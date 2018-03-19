@@ -1,0 +1,14 @@
+{
+  "name": "@dr-core/build-util",
+  "version": "0.4.3",
+  "description": "build utility",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dr": {
+    "category": ["nodejs", "internal"]
+  },
+  "author": "LJ",
+  "license": "ISC"
+}

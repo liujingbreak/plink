@@ -1,0 +1,8 @@
+graph TD;
+
+CommonJsPlugin --- cjsReq
+subgraph Dependency
+ModuleDependency --> Dependency
+cjsReq[CommonJsRequireDependency] --> ModuleDependency
+cjsReq --- ModuleDependencyTemplateAsId
+end

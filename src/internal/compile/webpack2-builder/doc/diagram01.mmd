@@ -1,0 +1,22 @@
+graph TD;
+Compiler --- c[Compilation]
+subgraph compiler
+Compiler -.-> newCompilationParams("newCompilationParams()")
+Compiler -.-> createNormalModuleFactory("createNormalModuleFactory()")
+end
+
+createNormalModuleFactory --- normalModuleFactory
+
+subgraph compilationParam
+newCompilationParams --- cp[compilationParam]
+cp --- normalModuleFactory
+cp --- contextModuleFactory
+cp --- compilationDependencies
+end
+
+normalModuleFactory --- Parser
+
+subgraph Template
+ChunkTemplate --> |extend| Template
+ChunkTemplate --> |apply| JsonpChunkTemplatePlugin
+end

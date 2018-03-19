@@ -1,0 +1,15 @@
+src
+runtime
+e2etest
+/logs
+/.vscode
+recipes
+*.log
+wfh/doc
+wfh/spec
+wfh/bin
+tsconfig.json
+.git/
+**/node_modules
+**/.bak
+/.eslintrc.json

@@ -1,0 +1,21 @@
+graph LR;
+entrypoints -->|&#91name:string&#93| chunks
+chunks --- bundlA
+chunks --- bundlB
+
+subgraph bundle A
+entryJs["entry JS for bundle A"] -.-|1 - *| lego1["LEGO component 1"]
+entryJs -.- lego2["LEGO component 2"]
+lego1 ---|1 - *| entryHtml1("entry html 1")
+
+
+lego1 ---|1 require&#40&#41 n| dep1["LEGO dependency component 1"]
+
+lego2 ---|1 - *| entryHtml2("entry html 2")
+end
+
+subgraph bundle B
+dep1-2["LEGO dependency 1-2"]
+
+lego1 -->|require&#40&#41| dep1-2
+end

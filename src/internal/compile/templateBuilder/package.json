@@ -1,0 +1,22 @@
+{
+  "name": "@dr/template-builder",
+  "version": "0.4.6",
+  "description": "A swig based template transform and builder",
+  "main": "templateBuilder.js",
+  "loader": "swig-template-loader.js",
+  "dr": {
+    "type": ["builder", "server"],
+    "noLint": true,
+    "builderPriority": "before @dr/translate-generator",
+    "category": ["internal", "nodejs", "tool"]
+  },
+  "dependencies": {
+    "swig-package-tmpl-loader": "^1.3.0",
+    "swig-templates": "^2.0.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "LJ",
+  "license": "MIT"
+}

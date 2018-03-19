@@ -1,0 +1,5 @@
+# If you are not familiar with YAML format
+# read https://en.wikipedia.org/wiki/YAML
+devMode: true
+cacheControlMaxAge: 0
+enableSourceMaps: true

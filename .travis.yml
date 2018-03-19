@@ -1,0 +1,16 @@
+language: node_js
+node_js:
+    - "6.10.3"
+install:
+    - npm install -g yarn
+    - mkdir test-workspace
+    - cd test-workspace
+    - mkdir node_modules
+    - cd node_modules
+    - ln -s ../.. dr-comp-package
+    - cd ..
+before_script:
+script:
+    - node node_modules/dr-comp-package/bin/drcp.js project -a .
+    - node node_modules/dr-comp-package/bin/drcp.js lint
+    - node node_modules/dr-comp-package/bin/drcp.js test

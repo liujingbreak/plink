@@ -1,0 +1,337 @@
+# If you are not familiar with YAML format just like me, read https://en.wikipedia.org/wiki/YAML
+# and js-yaml https://www.npmjs.com/package/js-yaml
+# PLEASE DON'T MODIFY THIS FILE, instead you may create a local file called `config.local.yaml`
+# to overwrites this file.
+log4jsReloadSeconds: 300
+srcDir: src/internal
+# destDir contains build results like node server required data, template and timestamp file which
+# helps to speed up build process in local dev environment
+destDir: dist
+dllDestDir: dist/dll
+# staticDir folder ideally should be inside `destDir`, you can change name of it
+# or move its location out of `destDir`, but it can't not be out of process.cwd()
+staticDir: dist/static
+
+port: 14333 # read by @dr/http-server
+# ssl:
+#     enabled: true
+#     port: 13043
+#     key: "ssl/key.pem"
+#     cert: "ssl/cert.pem"
+# set max-age property of the Cache-Control header in `ms` format, see https://github.com/expressjs/serve-static
+# unit convention reference to github.com/guille/ms.js
+cacheControlMaxAge:
+    js: '365 days'
+    css: '365 days'
+    less: '365 days'
+    html: 0
+    png: '365 days'
+    jpg: '365 days'
+    jpeg: '365 days'
+    gif: '365 days'
+    svg: '365 days'
+    eot: '365 days'
+    ttf: '365 days'
+    woff: '365 days'
+    woff2: '365 days'
+
+packageScopes:
+  - dr
+  - dr-core
+  - dr-types
+
+# Only build out i18n bundles for following locales, e.g. for angularjs it means only
+# some locales for file match pattern:
+#  i18n/angular-locale_{locale}.js
+# will be built out into bundles.
+locales:
+    - zh
+    - en
+
+nodeRoutePath: /
+
+# enable devMode to denote default builder tool do not do things like uglify JS bundles,
+# and also it will set process.env.NODE_ENV = 'production' if false
+# revisioning file name...
+devMode: false
+
+# You don't want others read your source code in production environment
+enableSourceMaps: false
+# If we have public CDN domain name like "http://cdn.foobar.com", like Webpack's publicPath
+
+staticAssetsURL: "" # Same as 'output.publicPath' in Webpack configuration
+
+serverURL: ""
+
+# Override bundle file name for installed components (including 3rd-party library),
+# otherwise browserify will bundle them with every package that depends on.
+# Bundle file name could also be URL for loading bundle from an external CDN
+vendorBundleMap:
+  hmr:
+    - webpack-hot-middleware
+  common-lib:
+    - html-entities
+    - jquery
+    - promise-polyfill
+    - node-libs-browser
+    - setimmediate
+    - "@dr/lodash3"
+    - fastclick
+    - style-loader
+    - css-loader
+    - lodash
+    - webpack
+    - process
+    - buffer
+    - base64-js
+    - ieee754
+    - isarray
+    - history
+    - value-equal
+    - resolve-pathname
+    - querystring-es3
+    - url
+    - punycode
+    - global
+    - timers-browserify
+    - ua-parser-js
+    - attr-accept
+    - indexof
+    - enquire.js
+    - js-base64
+    - ansi-html
+    - strip-ansi
+    - ansi-regex 
+  common-app:
+    - dr-comp-package
+  ui-lib: # bundle name
+    - angular-ui-router
+    - fontfaceobserver/fontfaceobserver
+    - gsap
+    - swiper
+    - angular-highlightjs
+    - highlight.js
+  react-lib:
+    - react
+    - react-dom
+    - react-router
+    - react-router-dom
+    - mobx-react
+    - mobx
+    - classnames # react-extra
+    - create-react-class
+    - prop-types
+    - dom-scroll-into-view
+    - fbjs
+    - path-to-regexp
+    - hoist-non-react-statics
+    - invariant
+    - dom-closest
+    - dom-matches
+    - react-lazy-load
+    - eventlistener
+    - draft-js
+    - immutable
+    - shallowequal
+    - component-classes
+    - warning
+    - component-classes
+    - component-indexof
+    - omit.js
+    - add-dom-event-listener
+  angular-lib:
+    - '@angular/core'
+    - '@angular/platform-browser'
+    - '@angular/platform-browser-dynamic'
+    - '@angular/compiler'
+    - '@angular/common'
+    - tslib
+    - rxjs
+    - zone.js
+  vendor-gsap:
+    - gsap
+  babel:
+    - core-js
+    - babel-polyfill
+    - regenerator-runtime
+    - object-assign
+    - babel-runtime
+    - can-use-dom
+    - es5-shim
+  react-ui:
+    - antd
+    - rc-util
+    - rc-trigger
+    - rc-animate
+    - css-animation
+    - component-classe
+    - rc-trigger
+    - rc-align
+    - dom-align
+    - rc-checkbox
+    - rc-calendar
+    - react-slick
+    - rc-cascader
+    - async-validator
+    - rc-tree
+    - rc-tree-select
+    - rc-tabs
+    - rc-editor-mention
+    - rc-input-number
+    - rc-touchable
+    - rc-notification
+    - rc-tooltip
+    - rc-dialog
+    - rc-pagination
+    - rc-progress
+    - rc-rate
+    - rc-slider
+    - rc-steps
+    - rc-switch
+    - rc-table
+    - rc-time-picker
+    - rc-dropdown
+    - rc-form
+    - rc-select
+    - rc-collapse
+    - rc-menu
+    - rc-collapse
+    - array-tree-filter
+    - shallow-equal
+    - rc-editor-core
+    - rc-upload
+  graph:
+    - d3
+    - he
+    - dagre-d3-renderer
+    - dagre-layout
+    - graphlib
+    - mermaid
+  moment:
+    - moment
+
+# You may use external JS/CSS resource like CDN service instead of a local hosted bundle file,
+# `gulp compile` replaces those bundles with the URLs you set here in each eatry files.
+externalBundleMap:
+#    "bundleName":
+#       - "//foo-url/foo.js"
+#       - "http://foo-url/bar.js"
+#       - "https://bar-url/bar.css"
+#
+# Normally you will still need to provide a local package (probably via "npm install")
+# for analysing dependency, so that you won't get a "module not found" error for `require()`
+# during `gulp compile/build`, otherwise a complete format must provided, e.g.
+#    "bundleName":
+#       URLs:
+#           - "//foo-url/bar.js"
+#           - "//foo-url/bar.css"
+#       modules:
+#           - foo
+#           - bar
+
+
+
+# Global `browserify.bundle()` `noParse` option, there is also a package specific `dr.browserifyNoParse`
+# available option in individual package.json file
+browserifyNoParse:
+    - q
+    - jquery
+    - bluebird
+#    - angular-ui-router
+#    - gsap
+
+# Replace `require` keyword from final JS bundle file, this might help to eliminate conflict using `require`
+# from other tool or library
+# browserify-builder:
+# 	replaceRequireKeyword: __req # replace "require" to "__req"
+
+packageContextPathMapping:
+    # Package short name - route path map, used by Express server @dr/express-app.
+    # By default, each package's node server `api.router()`` is mapped to a route
+    # context path "/<package short name>"
+    # e.g.
+    #   if package name is "@dr/example-dr", default route root path will be `/example-dr`
+    # If you want change this rule, config route path here.
+
+outputPathMap:
+    # Like "output.publicPath" in webpack.config.js.
+    # For static browser entry pages, the default entry page is compiled to
+    #   dist/static/<package-short-name>/<entry-page-path>
+    # so for example when you access page with browser, the URL is like
+    #  "http://<host>:<port>/<package-short-name>/<replative-page-path>/index.html"
+    #
+    # If you want to change the URL to another folder like "http://<host>:<port>/<another-path>/<replative-page-path>/index.html",
+    # do add a key-value pair <package-short/full-name>: <new-folder-path> like,
+    #   package-A: /
+    #   package-B: /entriesB
+    #   package-C: entriesC
+    # It doesn't matter whether the "value" part startsWith or endsWith slash "/",
+    # but if the value is only a slash "/", it means the root folder "dist/static"
+
+# If there are any dependencies from workspace's package.json file and their match following patterns,
+# then they are recipe packages, their dependencies are considered as our components for being loaded and compiled.
+installedRecipes:
+    - ^@dr/.*?-recipe$
+    - ^@dr/recipe-.*?$
+
+gulp:
+    watchTimeout: 12000 # gulp watch on change which triggers `gulp compile` with a timeout check
+    watchDebounceDelay: 800 # gulp watch change event will not trigger `gulp compile` within this duration
+
+# Following is a list of current configuration property names of which property
+# are visible to browser side environment, meaning those properties will be stringified
+# and downloaded to client browser as a property of API object, can be returned from
+# script:
+#   __api.config()
+#
+# Not everything in these file should be visible to browser, e.g. database connection setting
+browserSideConfigProp:
+    # following are default properties
+    # - staticAssetsURL
+    # - serverURL
+    # - packageContextPathMapping
+    # - locales
+    # - devMode
+
+e2etestHelper:
+    selenium:
+        driverPath: 'node_modules/@dr/chrome-driver/linux64'
+
+
+# To enable HTTP access control (CORS), you may set `express-app-enableCORS` to `true` or
+# a white list for allowed origins
+#
+# express-app-enableCORS: false
+# Or
+# express-app-enableCORS:
+#   - http://www.example.com
+#   - http://other-allowed-origin.com
+# Also call
+#   api.router().use('/api', api.cors());
+# in server javascript
+express-app-enableCORS: true
+
+# livereload will be enabled when `devMode` is true and `livereload.enabled` is not `false`
+livereload:
+    #enabled: true  # By default `true`, put `false` to disable adding livereload script tag and starting server
+    port: 35730
+
+# Disable colorful console log message, useful for outputing console log to a file instead of terminal screen,
+# because the colorful log message contains extra messy character as special color indicator, that's what terminal can understand for printing colorful text.
+#
+# e.g. When you running `gulp compile` on a Jenkins server remotely, you will need to disable `colorfulConsole`,
+# since Jenkins actually stores console message to file and shows it on web page.
+#
+# Also you make set environment variable "CHALK_ENABLED" to `false` to disable colorful console log.
+# colorfulConsole: false
+
+# drcp compile command will print warning message for encountering an assets URL reference used in HTML, CSS,
+# Javascript file which neither belong to any of existing component nor an external URL, but some times you
+# actually intent to reference such an URL.
+# Then, to prevent `drcp compile` or `node app watch` command from printing warning message like:
+# `Problematic assets URL format "/my-path/some-image.jpg" used in ...` for specific URL paths
+# You add following properties:
+#
+# suppressWarning:
+#   assetsUrl:
+#     - '^/my-path(?:/|$)' # regular expression string

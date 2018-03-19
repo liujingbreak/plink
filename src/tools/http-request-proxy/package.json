@@ -1,0 +1,37 @@
+{
+  "name": "@dr/http-request-proxy",
+  "version": "4.0.0",
+  "description": "Http proxy server by LJ",
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "dr": {
+    "type": "server",
+    "category": "tool",
+    "config": {
+      "server": {
+        "trackRequestStream": false,
+        "proxies": {
+        },
+        "timeout": 60000
+      }
+    },
+    "config.local": {
+      "server": {
+        "trackRequestStream": false,
+        "proxies": {
+          "/": "https://www-demo.foobar.com"
+        },
+        "timeout": 60000
+      }
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "request": "^2.81.0",
+    "chalk": "^2.1.0"
+  },
+  "author": "",
+  "license": "MIT"
+}

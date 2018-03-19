@@ -1,0 +1,26 @@
+{
+  "name": "@dr/http-server",
+  "description": "http and https server used by dr-comp-package",
+  "version": "0.2.5",
+  "main": "dist/server.js",
+  "dr": {
+    "type": [
+      "core",
+      "server"
+    ],
+    "serverPriority": 999999,
+    "category": ["internal", "nodejs"],
+    "config": {
+      "server": {
+        "ssl": {
+          "enabled": false,
+          "key": "key.pem",
+          "cert": "cert.pem",
+          "port": 443,
+          "httpForward": true
+        }
+      }
+    }
+  },
+  "author": "LJ"
+}

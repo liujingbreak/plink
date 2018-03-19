@@ -1,0 +1,21 @@
+{
+  "name": "?",
+  "version": "1.0.0",
+  "description": "?",
+  "main": "app.js",
+  "private": true,
+  "scripts": {
+    "start": "node app.js",
+    "lint": "gulp lint",
+    "e2e": "gulp e2e --browser chrome"
+  },
+  "author": "?",
+  "license": "MIT",
+  "engines": {
+    "node": ">=6.7.0"
+  },
+  "dependencies": {
+    "dr-comp-package": "",
+    "jasmine": "^2.5.3"
+  }
+}

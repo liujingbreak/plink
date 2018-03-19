@@ -1,0 +1,43 @@
+<div class="mermaid">
+graph TD;
+Compiler --- c[Compilation]
+subgraph compiler
+Compiler -.-> newCompilationParams("newCompilationParams()")
+Compiler -.-> createNormalModuleFactory("createNormalModuleFactory()")
+end
+
+createNormalModuleFactory --- normalModuleFactory
+
+subgraph compilationParam
+newCompilationParams --- cp[compilationParam]
+cp --- normalModuleFactory
+cp --- contextModuleFactory
+cp --- compilationDependencies
+end
+
+normalModuleFactory --- Parser
+
+subgraph Template
+ChunkTemplate --> |extend| Template
+ChunkTemplate --> |apply| JsonpChunkTemplatePlugin
+end
+</div>
+<div class="mermaid">
+graph TD;
+
+CommonJsPlugin --- cjsReq
+subgraph Dependency
+ModuleDependency --> Dependency
+cjsReq[CommonJsRequireDependency] --> ModuleDependency
+cjsReq --- ModuleDependencyTemplateAsId
+end
+</div>
+<div class="mermaid">
+sequenceDiagram;
+? ->> compilation: buildModule()
+compilation ->> compilation: applyPlugins1("build-module", module)
+compilation ->> NormalModule: build()
+NormalModule ->> NormalModule: doBuild()
+NormalModule ->> compilation: applyPlugins("normal-module-loader"...)
+Note right of NormalModule: runLoaders
+</div>

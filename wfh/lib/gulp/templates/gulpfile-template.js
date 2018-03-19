@@ -1,0 +1,1 @@
+require('<plateformFolder>/gulpfile.js');

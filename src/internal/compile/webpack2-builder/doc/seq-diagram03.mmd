@@ -1,0 +1,51 @@
+sequenceDiagram;
+? ->> compiler: run()
+Note right of compiler: before-run,<br/> run
+compiler ->> compiler: readRecords()
+compiler ->> +compiler: compile()
+compiler ->> compiler: newCompilationParams()
+Note right of compiler: before-compile, compile
+
+compiler ->> +compiler: newCompilation()
+compiler ->> +compiler: createCompilation()
+compiler ->> +compilation: new
+compilation -->> -compiler: 
+compiler -->> -compiler: 
+Note right of compiler: this-compilation, compilation
+compiler -->> -compiler: return newCompilation()
+
+Note right of compiler: make
+
+Note left of SingleEntryPlugin: EntryOptionPlugin
+compiler ->> +SingleEntryPlugin: apply plugin "make"
+SingleEntryPlugin ->> SingleEntryPlugin: createDependency()
+SingleEntryPlugin ->> +compilation: addEntry()
+compilation ->> compilation: this.preparedChunks.push()
+compilation ->> compilation: this._addModuleChain()
+compilation -->> SingleEntryPlugin: return
+SingleEntryPlugin -->> -compiler: return
+compiler ->> compilation: finish()
+compiler ->> +compilation: seal()
+compilation ->> compilation: createChunkAssets()
+compilation -->> -compiler: return
+Note right of compiler: after-compile
+compiler -->> -compiler: return compile()
+loop compilation onCompiled()
+	opt compiler plugin("should-emit") === false
+		compiler ->> compilation: getStats()
+		Note right of compiler: done
+	end
+	compiler ->> compiler: emitAssets()
+
+	opt compilation plugin('need-additional-pass')
+		Note right of compilation: need-additional-pass
+		compiler ->> compilation: needAdditionalPass = true
+		compiler ->> compilation: getStats()
+		Note right of compiler: done
+		Note right of compiler: additional-pass
+		compiler ->> compiler: compile()
+	end
+end
+compiler ->> compiler: .emitRecords()
+compiler ->> compilation: getStats()
+Note right of compiler: done
