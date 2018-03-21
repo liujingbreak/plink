@@ -2,13 +2,12 @@ node_modules
 /npm-debug.log
 .DS_Store
 /bower_components
-config.local.yaml
 /dist
 /logs
 /certificate
 .vscode
 *.log
-tsconfig.json
+/tsconfig.json
 *.bak
 /.eslintrc.json
 /tslint.json
