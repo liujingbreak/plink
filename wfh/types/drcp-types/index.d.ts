@@ -40,6 +40,7 @@ declare module '__api' {
 		packageName: string;
 		packageShortName: string;
 		packageInstance: string;
+		entryPage: string;
 		contextPath: string;
 		buildUtils: any;
 		packageUtils: any;
