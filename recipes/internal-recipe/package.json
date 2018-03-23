@@ -1,12 +1,12 @@
 {
   "name": "@dr/internal-recipe",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Component group: internal-recipe",
   "dependencies": {
     "@dr-core/build-util": "0.4.3",
     "@dr-core/assets-processer": "0.6.6",
     "@dr/template-builder": "0.4.6",
-    "@dr-core/webpack2-builder": "0.7.2",
+    "@dr-core/webpack2-builder": "0.7.3",
     "@dr-core/express-app": "0.3.13",
     "@dr/http-server": "0.2.5",
     "@dr/logger": "0.1.4",

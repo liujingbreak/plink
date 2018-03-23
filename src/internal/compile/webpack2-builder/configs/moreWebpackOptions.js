@@ -1,6 +1,6 @@
 /* eslint max-lines: 1 */
 var api = require('__api');
-var fs = require('fs');
+var fs = require('fs-extra');
 var Path = require('path');
 var _ = require('lodash');
 var glob = require('glob');
