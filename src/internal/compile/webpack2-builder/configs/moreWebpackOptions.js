@@ -110,6 +110,7 @@ exports.createParams = function(contextPath) {
 		writeEntryFileAsync(moduleRules) {
 			if (api.argv.dll)
 				return Promise.resolve(null);
+			fs.mkdirsSync(Path.resolve(api.config().destDir, TEMP_DIR));
 			var allWritten = _.map(bundleEntryCompsMap, (moduleInfos, bundle) => {
 				return writeEntryFileForBundle(bundle, moduleInfos, entryChunkHtmls[bundle], entryChunkViews[bundle], moduleRules);
 			});
