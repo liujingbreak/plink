@@ -160,8 +160,8 @@ class Guarder {
 			console.log(logName + 'offline mode is on');
 			yarnArgv.push('--offline');
 		} else {
-			console.log(logName + '--prefer-offline mode is on');
-			yarnArgv.push('--prefer-offline');
+			// console.log(logName + '--prefer-offline mode is on');
+			// yarnArgv.push('--prefer-offline');
 		}
 		var installProm;
 		if (isOffline && fs.existsSync(this.rootPath + '/dr.offline-yarn.lock')) {

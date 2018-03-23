@@ -4,7 +4,7 @@ var Path = require('path');
 var os = require('os');
 const cacheFile = Path.resolve(os.tmpdir(), 'drcpLatestVersion.json');
 var processUtils = require('./gulp/processUtils');
-const INTERNAL_RECIPE_VER = '0.6.29';
+const INTERNAL_RECIPE_VER = '0.7.2';
 
 exports.checkVersions = checkVersions;
 exports.getLatestRecipeVer = getLatestRecipeVer;
