@@ -55,10 +55,18 @@ export function doEs(code: string, file: string): [string, any] {
 	if (DISABLE_BANNER.test(code))
 		return [code, null];
 	var ast;
+	var firstCompileErr = null;
 	try {
 		ast = acornjsx.parse(code, {allowHashBang: true, sourceType: 'module', plugins: {jsx: true, dynamicImport: true}});
 	} catch (err) {
-		ast = acornjsx.parse(code, {allowHashBang: true, plugins: {jsx: true, dynamicImport: true}});
+		firstCompileErr = err;
+		try {
+			ast = acornjsx.parse(code, {allowHashBang: true, plugins: {jsx: true, dynamicImport: true}});
+		} catch (err2) {
+			log.error('Possible ES compilation error', firstCompileErr);
+			firstCompileErr.message += '\n' + err2.message;
+			throw firstCompileErr;
+		}
 	}
 	let patches: Array<{start: number, end: number, replacement: string}> = [];
 
