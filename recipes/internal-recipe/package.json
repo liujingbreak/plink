@@ -1,6 +1,6 @@
 {
   "name": "@dr/internal-recipe",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Component group: internal-recipe",
   "dependencies": {
     "@dr-core/build-util": "0.4.3",
