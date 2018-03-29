@@ -63,8 +63,8 @@ export function doEs(code: string, file: string): [string, any] {
 		try {
 			ast = acornjsx.parse(code, {allowHashBang: true, plugins: {jsx: true, dynamicImport: true}});
 		} catch (err2) {
-			log.error('Possible ES compilation error', firstCompileErr);
-			firstCompileErr.message += '\n' + err2.message;
+			firstCompileErr.message += '\nOr ' + err2.message;
+			firstCompileErr.stack += '\nAnother possible compilation error is\n' + err2.stack;
 			throw firstCompileErr;
 		}
 	}
@@ -82,24 +82,12 @@ export function doEs(code: string, file: string): [string, any] {
 				node.callee.property.type === 'Identifier') {
 				lodashFunctions.add(node.callee.property.name);
 			}
-			// if (node.type === 'MemberExpression' && node.object.type === 'Identifier' &&
-			// (node.object.name === 'exports' || node.object.name === 'module' && node.property.name === 'exports')) {
-			// 	hasExports = true;
-			// }
-			// if (node.type === 'ImportDeclaration' && node.source.value === 'lodash') {
-			// 	lodashImported = true;
-			// } else 
 			if (node.type === 'VariableDeclarator' && _.get(node, 'id.name') === '_' &&
 			_.get(parent, 'declarations.length') === 1) {
 				let init = node.init;
 				if (init.type === 'CallExpression' && _.get(init, 'callee.name') === 'require' &&
 					_.get(init, 'arguments[0].value') === 'lodash') {
 						requireLodashPos = [parent.start, parent.end];
-						// patches.push({
-						// 	start: parent.start,
-						// 	end: parent.end,
-						// 	replacement: ''
-						// });
 				}
 			} else if (parent && parent.type === 'ExpressionStatement' && node.type === 'CallExpression' &&
 			_.get(node, 'callee.name') === 'require' &&

@@ -64,7 +64,6 @@
     "jade": "^1.11.0",
     "promise-polyfill": "^7.0.0",
     "manual-chunk-plugin": "^2.0.0",
-    "require-injector": "^4.1.0",
     "typescript": "2.4.2",
     "webpack-bundle-analyzer": "^2.9.2",
     "ts-loader": "3.4.0",
