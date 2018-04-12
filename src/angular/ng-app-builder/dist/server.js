@@ -182,6 +182,11 @@ function compile() {
     });
 }
 exports.compile = compile;
+function init() {
+    // TODO:
+    log.info(api.getProjectDirs().join('\n'));
+}
+exports.init = init;
 function shouldUseNgLoader(file) {
     if (!/(?:\.ngfactory\.js|\.ngstyle\.js|\.ts)$/.test(file))
         return false;

@@ -192,6 +192,11 @@ export function compile() {
 		});
 }
 
+export function init() {
+	// TODO:
+	log.info(api.getProjectDirs().join('\n'));
+}
+
 function shouldUseNgLoader(file: string): boolean {
 	if (!/(?:\.ngfactory\.js|\.ngstyle\.js|\.ts)$/.test(file))
 		return false;

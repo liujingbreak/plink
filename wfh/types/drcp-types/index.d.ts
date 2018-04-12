@@ -58,7 +58,7 @@ declare module '__api' {
 		isDefaultLocale(): boolean;
 		assetsUrl(packageName: string, path?: string): string;
 		entryPageUrl(packageName: string, path?: string, locale?: string): string;
-
+		getProjectDirs(): string[];
 		addBrowserSideConfig(name: string, value: any): void;
 		[key: string]: any;
 	}
