@@ -8,6 +8,8 @@ import postcssPlugins from './postcss';
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
+const pify = require('pify');
+const readFileAsync = pify(sysFs.readFile);
 const rxPaths = require('rxjs/_esm5/path-mapping');
 const api = __api as Webpack2BuilderApi;
 const log = log4js.getLogger(api.packageName);
@@ -193,8 +195,26 @@ export function compile() {
 }
 
 export function init() {
-	// TODO:
-	log.info(api.getProjectDirs().join('\n'));
+	let ownPj = require('../package.json');
+	let verNgCli = ownPj.dependencies['@angular/cli'] || ownPj.devDependencies['@angular/cli'];
+	let drcpDir = Path.dirname(require.resolve('dr-comp-package/package.json'));
+	// Insert @angular/cli to project's package.json file otherwise Angular command line tool will give warning like
+	// `Unable to find "@angular/cli" in devDependencies.`
+	let done = _.map(api.getProjectDirs(), (dir: string) => {
+		if (dir !== drcpDir) {
+			let projPkFile = Path.join(dir, 'package.json');
+			return readFileAsync(projPkFile, 'utf8')
+			.then((content: string) => {
+				let pkjson = JSON.parse(content);
+				if (!_.has(pkjson.devDependencies, '@angular/cli')) {
+					_.set(pkjson, 'devDependencies.@angular/cli', verNgCli);
+					log.info('Insert @angular/cli%s to %s', verNgCli, projPkFile);
+					return fs.writeFileSync(projPkFile, JSON.stringify(pkjson, null, '  '));
+				}
+			}, (err: Error) => {});
+		}
+	});
+	return Promise.all(done);
 }
 
 function shouldUseNgLoader(file: string): boolean {

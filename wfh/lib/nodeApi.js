@@ -41,7 +41,7 @@ NodeApi.prototype = {
 	},
 
 	getProjectDirs() {
-		return require('./gulp/cli').getProjects(this.config.rootPath);
+		return this.config().projectList;
 	},
 	/**
 	 * @param {string} url
