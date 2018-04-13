@@ -12,6 +12,11 @@ const readFileAsync = pify(sysFs.readFile);
 const rxPaths = require('rxjs/_esm5/path-mapping');
 const api = __api_1.default;
 const log = log4js.getLogger(api.packageName);
+// const rl = readline.createInterface({
+// 	input: process.stdin,
+// 	output: process.stdout,
+// 	terminal: true
+// });
 // const CircularDependencyPlugin = require('circular-dependency-plugin');
 const { PurifyPlugin } = require('@angular-devkit/build-optimizer');
 const webpack_1 = require("@ngtools/webpack");
@@ -190,10 +195,21 @@ function init() {
     let drcpDir = Path.dirname(require.resolve('dr-comp-package/package.json'));
     // Insert @angular/cli to project's package.json file otherwise Angular command line tool will give warning like
     // `Unable to find "@angular/cli" in devDependencies.`
-    let done = _.map(api.getProjectDirs(), (dir) => {
+    let done = Promise.resolve();
+    _.each(api.getProjectDirs(), (dir) => {
+        // let cliJsonFile = Path.join(dir, '.angular-cli.json');
+        // if (!fs.existsSync(cliJsonFile)) {
+        // 	// let cliJson = require('../ts/tmpl-angular-cli.json');
+        // 	done = done.then(() => new Promise(resolve => {
+        // 		rl.question(`Name project at "${dir}", (default: "app"): `, name => {
+        // 			rl.pause();
+        // 			resolve();
+        // 		});
+        // 	}));
+        // }
         if (dir !== drcpDir) {
             let projPkFile = Path.join(dir, 'package.json');
-            return readFileAsync(projPkFile, 'utf8')
+            done = done.then(() => readFileAsync(projPkFile, 'utf8')
                 .then((content) => {
                 let pkjson = JSON.parse(content);
                 if (!_.has(pkjson.devDependencies, '@angular/cli')) {
@@ -201,12 +217,24 @@ function init() {
                     log.info('Insert @angular/cli%s to %s', verNgCli, projPkFile);
                     return fs.writeFileSync(projPkFile, JSON.stringify(pkjson, null, '  '));
                 }
-            }, (err) => { });
+            }, (err) => { }));
         }
     });
-    return Promise.all(done);
+    return done;
 }
 exports.init = init;
+function activate() {
+    // api.router().use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // 	log.info('req.originalUrl = ', req.originalUrl);
+    // 	req.url = 'index.html';
+    // 	next();
+    // });
+    api.router().get('/ok', (req, res) => {
+        log.warn('cool');
+        res.send('cool');
+    });
+}
+exports.activate = activate;
 function shouldUseNgLoader(file) {
     if (!/(?:\.ngfactory\.js|\.ngstyle\.js|\.ts)$/.test(file))
         return false;

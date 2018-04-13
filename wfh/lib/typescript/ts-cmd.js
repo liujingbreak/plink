@@ -1,6 +1,7 @@
 /*eslint no-loop-func: 0*/
 const ts = require('gulp-typescript');
 const packageUtils = require('../packageMgr/packageUtils');
+const chalk = require('chalk');
 const fs = require('fs-extra');
 const _ = require('lodash');
 const gulp = require('gulp');
@@ -146,7 +147,8 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 
 		var all = merge([jsStream, tsResult.dts.pipe(changePath())])
 		.pipe(through.obj(function(file, en, next) {
-			log.info(Path.relative(nodeModules, file.path) + ' is compiled');
+			log.info('%s %s Kb', Path.relative(nodeModules, file.path),
+				chalk.blue(Math.round(file.contents.length / 1024 * 10) / 10));
 			next(null, file);
 		}))
 		.pipe(gulp.dest(root));

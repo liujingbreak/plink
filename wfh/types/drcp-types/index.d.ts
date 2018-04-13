@@ -1,31 +1,9 @@
 /* tslint:disable:class-name */
-// type DrcpApi = any;
-// import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
-// import { EventEmitter } from 'events';
-// declare interface DrcpApi {
-// 	findPackageByFile(path: string): PackageBrowserInstance;
-// 	buildUtils: any;
-// 	packageUtils: any;
-// 	compileNodePath: any[];
-// 	eventBus: EventEmitter;
-// 	packageInfo: PackageInfo;
-// 	config: any;
-// 	argv: any;
-// 	isBrowser(): boolean;
-// 	isNode(): boolean;
-// 	parsePackageName(packageName: string): {scope: string, name: string};
-// 	getBuildLocale(): string;
-// 	isDefaultLocale(): boolean;
-// 	assetsUrl(packageName: string, path?: string): string;
-// 	entryPageUrl(packageName: string, path?: string, locale?: string): string;
-// }
-// declare interface PackageInfo {
-// 	allModules: PackageBrowserInstance[];
-// 	moduleMap: {[name: string]: PackageBrowserInstance};
-// }
+
 declare var __api: any;
 
 declare module '__api' {
+	import NodePackage from 'dr-comp-package/wfh/dist/packageNodeInstance';
 	import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
 	import { EventEmitter } from 'events';
 	import {ExpressAppApi} from '@dr-core/express-app';
@@ -39,7 +17,7 @@ declare module '__api' {
 		findPackageByFile(path: string): PackageBrowserInstance;
 		packageName: string;
 		packageShortName: string;
-		packageInstance: string;
+		packageInstance: NodePackage & PackageBrowserInstance;
 		entryPage: string;
 		contextPath: string;
 		buildUtils: any;

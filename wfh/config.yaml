@@ -69,6 +69,7 @@ serverURL: ""
 vendorBundleMap:
   hmr:
     - webpack-hot-middleware
+    - '@angularclass/hmr'
   common-lib:
     - html-entities
     - jquery
@@ -145,6 +146,7 @@ vendorBundleMap:
     - '@angular/platform-browser-dynamic'
     - '@angular/compiler'
     - '@angular/common'
+    - '@angular/router'
     - tslib
     - rxjs
     - zone.js

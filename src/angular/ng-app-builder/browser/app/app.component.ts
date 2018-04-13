@@ -9,4 +9,6 @@ import { environment } from '../../environments/environment';
 export class AppComponent {
   title = api.packageName + '...';
   environment = environment.name;
+  ngOnInit() {
+	}
 }

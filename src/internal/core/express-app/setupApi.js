@@ -21,8 +21,8 @@ module.exports.createPackageDefinedRouters = function(app) {
 			throw er;
 		}
 	});
-	app.use(revertRenderFunction);
-	app.use(revertRenderFunctionForError);//important
+	// app.use(revertRenderFunction);
+	// app.use(revertRenderFunctionForError);//important
 };
 
 module.exports.applyPackageDefinedAppSetting = function(app) {
@@ -50,12 +50,15 @@ function setupApi(api, app) {
 		var router = self._router = express.Router();
 		var contextPath = self.contextPath;
 		var packageRelPath = Path.relative(self.config().rootPath, self.packageInstance.path);
+		if (Path.sep === '\\') {
+			packageRelPath = packageRelPath.replace(/\\/g, '/');
+		}
 		log.debug('package relative path: ' + packageRelPath);
 		packageRelPath += '/';
 		var oldRender;
 		function setupRouter(app) {
 			app.use(contextPath, function(req, res, next) {
-				log.debug('in package', calleePackageName, self.packageName, 'middleware customized res.render');
+				log.debug('In package', calleePackageName, self.packageName, 'middleware customized res.render');
 				if (!oldRender)
 					oldRender = Object.getPrototypeOf(res).render;
 				res.render = customizedRender;
@@ -65,10 +68,12 @@ function setupApi(api, app) {
 			app.use(contextPath, router);
 			app.use(contextPath, function(req, res, next) {
 				delete res.render;
+				log.debug('Out package', calleePackageName, self.packageName, 'cleanup customized res.render');
 				next();
 			});
 			// If an error encountered in previous middlewares, we still need to cleanup render method
 			app.use(contextPath, function(err, req, res, next) {
+				log.warn('cleanup render() when encountering error in ', contextPath);
 				delete res.render;
 				next(err);
 			});
@@ -127,6 +132,7 @@ function setupApi(api, app) {
  	 * 		app.set('trust proxy', true);
  	 * 		app.set('views', Path.resolve(api.config().rootPath, '../web/views/'));
  	 * 	});
+	 * @return void
 	 */
 	apiPrototype.expressAppSet = (callback) => appSets.push(callback);
 
@@ -136,6 +142,7 @@ function setupApi(api, app) {
 	 * 	api.router().get('/api', api.cors());
 	 * Or
 	 *  api.router().use('/api', api.cors());
+	 * @return void
 	 */
 	apiPrototype.cors = function() {
 		var setting = api.config();
@@ -158,20 +165,20 @@ function setupApi(api, app) {
 	};
 }
 
-function revertRenderFunction(req, res, next) {
-	log.trace('release hijacked res.render()');
-	if (res.__origRender) {
-		res.render = res.__origRender;
-		delete res.__origRender;
-	}
-	next();
-}
+// function revertRenderFunction(req, res, next) {
+// 	log.trace('release hijacked res.render()');
+// 	if (res.__origRender) {
+// 		res.render = res.__origRender;
+// 		delete res.__origRender;
+// 	}
+// 	next();
+// }
 
-function revertRenderFunctionForError(err, req, res, next) {
-	log.trace('encounter error, release hijacked res.render()');
-	if (res.__origRender) {
-		res.render = res.__origRender;
-		delete res.__origRender;
-	}
-	next(err);
-}
+// function revertRenderFunctionForError(err, req, res, next) {
+// 	log.trace('encounter error, release hijacked res.render()');
+// 	if (res.__origRender) {
+// 		res.render = res.__origRender;
+// 		delete res.__origRender;
+// 	}
+// 	next(err);
+// }

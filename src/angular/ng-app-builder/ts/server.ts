@@ -3,8 +3,10 @@ import * as log4js from 'log4js';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import * as _fs from 'fs';
+// import * as readline from 'readline';
 import {WebpackConfig, Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
 import postcssPlugins from './postcss';
+import * as express from 'express';
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
@@ -13,6 +15,12 @@ const readFileAsync = pify(sysFs.readFile);
 const rxPaths = require('rxjs/_esm5/path-mapping');
 const api = __api as Webpack2BuilderApi;
 const log = log4js.getLogger(api.packageName);
+// const rl = readline.createInterface({
+// 	input: process.stdin,
+// 	output: process.stdout,
+// 	terminal: true
+// });
+
 // const CircularDependencyPlugin = require('circular-dependency-plugin');
 const {PurifyPlugin} = require('@angular-devkit/build-optimizer');
 import {AngularCompilerPlugin} from '@ngtools/webpack';
@@ -200,10 +208,21 @@ export function init() {
 	let drcpDir = Path.dirname(require.resolve('dr-comp-package/package.json'));
 	// Insert @angular/cli to project's package.json file otherwise Angular command line tool will give warning like
 	// `Unable to find "@angular/cli" in devDependencies.`
-	let done = _.map(api.getProjectDirs(), (dir: string) => {
+	let done: Promise<any> = Promise.resolve();
+	_.each(api.getProjectDirs(), (dir: string) => {
+		// let cliJsonFile = Path.join(dir, '.angular-cli.json');
+		// if (!fs.existsSync(cliJsonFile)) {
+		// 	// let cliJson = require('../ts/tmpl-angular-cli.json');
+		// 	done = done.then(() => new Promise(resolve => {
+		// 		rl.question(`Name project at "${dir}", (default: "app"): `, name => {
+		// 			rl.pause();
+		// 			resolve();
+		// 		});
+		// 	}));
+		// }
 		if (dir !== drcpDir) {
 			let projPkFile = Path.join(dir, 'package.json');
-			return readFileAsync(projPkFile, 'utf8')
+			done = done.then(() => readFileAsync(projPkFile, 'utf8')
 			.then((content: string) => {
 				let pkjson = JSON.parse(content);
 				if (!_.has(pkjson.devDependencies, '@angular/cli')) {
@@ -211,10 +230,22 @@ export function init() {
 					log.info('Insert @angular/cli%s to %s', verNgCli, projPkFile);
 					return fs.writeFileSync(projPkFile, JSON.stringify(pkjson, null, '  '));
 				}
-			}, (err: Error) => {});
+			}, (err: Error) => {}));
 		}
 	});
-	return Promise.all(done);
+	return done;
+}
+
+export function activate() {
+	// api.router().use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+	// 	log.info('req.originalUrl = ', req.originalUrl);
+	// 	req.url = 'index.html';
+	// 	next();
+	// });
+	api.router().get('/ok', (req: express.Request, res: express.Response) => {
+		log.warn('cool');
+		res.send('cool');
+	});
 }
 
 function shouldUseNgLoader(file: string): boolean {

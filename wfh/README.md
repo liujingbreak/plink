@@ -1,5 +1,30 @@
-@dr web platform command tool
-===========
+# Developing dr-comp-package
+
+dr-comp-package is written partially in plain Javascript and partially in Typescript.
+ > I am trying to migrate legacy JS file to Typescript, still in progress.
+```
+/
+  ├─ wfh
+  │   ├─ bin/
+  │   ├─ dist/
+  │   │    ├─ Compild files...
+  │   ├─ doc/
+  │   ├─ lib/
+  │   ├─ spec/
+  │   ├─ ts/
+  │   │    ├─ Typescript source files...
+  │   ├─ types/
+  │   ├─ tsconfig.json
+  ├─ package.json
+```
+To compile Typescript part, go to `wfh` folder where `tsconfig.json` is, run `tsc`
+
+
+# Below doc is deprecated
+--------------------
+
+# @dr web platform command tool
+
 This is core part of a web pluggable component platform project run by foobar.com, which includes a command line tool for developer and deployer, a couple of node packages as internal components and a private NPM registry server.
 
 Main purpose of this platform or tool is helping web developers, a team or a company to
@@ -56,14 +81,14 @@ If you are contributor, please read [Contributor doc](http://dr-web-house.github
   mkdir workspace
   cd workspace
 
-  npm install dr-comp-package
+  yarn add dr-comp-package
 
   drcp project -a <project1-dir> [-a <project2-dir> ...]
 
-  npm install
+  yarn install
 
   # For development mode, compile web static resource to memory and start node web server
-  node app --ww
+  node app watch
   # For production mode, compile web static resource to dist/
   drcp compile
   ```

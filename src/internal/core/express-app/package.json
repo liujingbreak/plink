@@ -2,7 +2,7 @@
   "name": "@dr-core/express-app",
   "description": "express app",
   "version": "0.3.13",
-  "main": "app.js",
+  "main": "dist/app.js",
   "types": "index.d.ts",
   "dependencies": {
     "cors": "^2.8.4",
