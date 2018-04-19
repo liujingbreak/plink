@@ -3,6 +3,8 @@
 		"tslint:recommended", "tslint-eslint-rules"
 	],
 	"rules": {
+		"jsdoc-format": false,
+		"no-consecutive-blank-lines": false,
 		"object-literal-shorthand": true,
 		"prefer-const": false,
 		"interface-name": false,

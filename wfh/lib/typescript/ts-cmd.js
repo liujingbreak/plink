@@ -31,29 +31,18 @@ function tsc(argv, onCompiled) {
 	var compGlobs = [];
 	// var compStream = [];
 	var compDirInfo = {}; // {[name: string]: {srcDir: string, destDir: string}}
+	var baseTsconfig = require('../../tsconfig.json');
 
-	var tsProject = ts.createProject({
-		declaration: true,
+	var tsProject = ts.createProject(Object.assign({}, baseTsconfig.compilerOptions, {
 		typescript: require('typescript'),
 		// Compiler options
-		module: 'commonjs',
-		target: 'es2016',
-		noImplicitAny: true,
-		moduleResolution: 'node',
-		sourceMap: true,
 		outDir: '',
-		skipLibCheck: false,
-		experimentalDecorators: true,
-		emitDecoratorMetadata: true,
-		noUnusedLocals: true,
-		lib: ['es2016', 'es2015'],
-		baseUrl: root,
 		typeRoots: [
 			Path.join(root, 'node_modules/@types'),
 			Path.join(root, 'node_modules/@dr-types'),
 			Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
 		]
-	});
+	}));
 	if (argv.package.length > 0)
 		packageUtils.findAllPackages(argv.package, onComponent, 'src');
 	else if (argv.project && argv.project.length > 0) {
