@@ -38,6 +38,16 @@ exports.activate = function () {
         log.info('start HTTP');
         var port = config().port ? config().port : 80;
         var server = http.createServer(app);
+        // Node 8 has a keepAliveTimeout bug which doesn't respect active connections.
+        // Connections will end after ~5 seconds (arbitrary), often not letting the full download
+        // of large pieces of content, such as a vendor javascript file.  This results in browsers
+        // throwing a "net::ERR_CONTENT_LENGTH_MISMATCH" error.
+        // https://github.com/angular/angular-cli/issues/7197
+        // https://github.com/nodejs/node/issues/13391
+        // https://github.com/nodejs/node/commit/2cb6f2b281eb96a7abe16d58af6ebc9ce23d2e96
+        if (/^v8.\d.\d+$/.test(process.version)) {
+            server.keepAliveTimeout = 30000; // 30 seconds
+        }
         server.listen(port);
         server.on('error', (err) => {
             onError(server, port, err);
@@ -57,6 +67,9 @@ exports.activate = function () {
             cert: fs.readFileSync(sslSetting.cert)
         }, app);
         server.listen(port);
+        if (/^v8.\d.\d+$/.test(process.version)) {
+            server.keepAliveTimeout = 30000; // 30 seconds
+        }
         server.on('error', (error) => {
             onError(server, port, error);
         });

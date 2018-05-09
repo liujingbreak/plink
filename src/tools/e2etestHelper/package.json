@@ -1,12 +1,12 @@
 {
   "name": "@dr/e2etest-helper",
-  "version": "0.3.15",
+  "version": "1.0.0",
   "description": "End-to-end test helper which helps to initialize webdriver by configuration and provide some other utilities",
   "main": "webdriverHelper.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dr": {
+  "--dr": {
     "category": ["internal", "tool", "nodejs"]
   },
   "dependencies": {

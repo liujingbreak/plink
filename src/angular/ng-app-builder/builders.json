@@ -1,0 +1,10 @@
+{
+  "$schema": "../architect/src/builders-schema.json",
+  "builders": {
+    "dev-server": {
+      "class": "./dist/ng/dev-server",
+      "schema": "./ts/ng/dev-server-schema.json",
+      "description": "Serve a browser app."
+    }
+  }
+}

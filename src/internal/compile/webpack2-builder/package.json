@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/webpack2-builder",
-  "version": "0.7.4",
+  "version": "1.0.0",
   "description": "Browser side stuff builder module based on Webpack2",
   "main": "main.js",
   "browser": "browser/api.js",
@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "webpack": "^4.6.0",
+    "tapable": "0.2.8",
     "html-loader": "^0.5.5",
     "raw-loader": "^0.5.1",
     "yaml-loader": "^0.5.0",
@@ -64,7 +64,7 @@
     "jade": "^1.11.0",
     "promise-polyfill": "^7.1.2",
     "manual-chunk-plugin": "^2.0.0",
-    "typescript": "2.4.2",
+    "typescript": "~2.7.2",
     "webpack-bundle-analyzer": "^2.9.2",
     "ts-loader": "4.2.0",
     "core-js": "2.5.3",

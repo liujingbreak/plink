@@ -4,7 +4,7 @@ import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
 import { AppModule } from './app/app.module';
-import { environment } from '../environments/environment';
+import { environment } from './environments/environment';
 import hmrBootstrap from './hmr';
 
 if (environment.production) {
@@ -12,13 +12,7 @@ if (environment.production) {
 }
 
 const bootstrap = () => platformBrowserDynamic().bootstrapModule(AppModule);
-// platformBrowserDynamic().bootstrapModule(AppModule)
-// .catch(err => console.log(err));
 
-// let hot = (module as any).hot;
-// if (hot) {
-// 	hot.accept();
-// }
 
 if (environment.hmr && (module as any).hot) {
 	hmrBootstrap(module, bootstrap);

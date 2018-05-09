@@ -5,7 +5,7 @@ var logD = log; //require('log4js').getLogger('wfh.ManualChunkPlugin.d');
 var divideLog = require('log4js').getLogger('wfh.ManualChunkPlugin.divideModule');
 var _ = require('lodash');
 var Path = require('path');
-var Tapable = require('tapable');
+// var Tapable = require('tapable');
 var chalk = require('chalk');
 var nextIdent = 0;
 
@@ -20,9 +20,11 @@ var showFileDep = true;
  * @param {boolean} opts.hasExtractTextWebpackPlugin default is false
  * @param {function(file: string)} opts.getChunkName a function callback used to provide chunk name to which file belongs
  */
-class ManualChunkPlugin extends Tapable {
+// class ManualChunkPlugin extends Tapable {
+// TODO: Webpack 4
+class ManualChunkPlugin {
 	constructor(opts) {
-		super();
+		// super();
 		this.ident = __filename + (nextIdent++);
 		this.opts = opts;
 		if (!opts.manifest)

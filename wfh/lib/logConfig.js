@@ -21,8 +21,8 @@ module.exports = function(rootPath, reloadSec) {
 		opt.reloadSecs = reloadSec;
 	try {
 		log4js.configure(require(log4jsConfig), opt);
-		var consoleLogger = log4js.getLogger('>');
-		console.log = consoleLogger.info.bind(consoleLogger);
+		// var consoleLogger = log4js.getLogger('>');
+		// console.log = consoleLogger.info.bind(consoleLogger);
 		log4js.getLogger('dr-comp-package').info(`\n\n-------------- ${new Date().toLocaleString()} ----------------\n`);
 	} catch (e) {
 		console.log(e);

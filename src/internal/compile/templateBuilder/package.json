@@ -1,6 +1,6 @@
 {
   "name": "@dr/template-builder",
-  "version": "0.4.6",
+  "version": "1.0.0",
   "description": "A swig based template transform and builder",
   "main": "templateBuilder.js",
   "loader": "swig-template-loader.js",

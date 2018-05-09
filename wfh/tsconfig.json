@@ -7,7 +7,7 @@
 		"noImplicitAny": true,
 		"moduleResolution": "node",
 		"sourceMap": true,
-		"skipLibCheck": false,
+		"skipLibCheck": true,
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
 		"noUnusedLocals": true,

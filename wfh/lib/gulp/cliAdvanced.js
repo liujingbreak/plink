@@ -220,6 +220,7 @@ function _tsLintPackageAsync(tslint, fullName, json, packagePath, fix) {
 	return new Promise((resolve, reject) => {
 		var tsDestDir = _.get(json, 'dr.ts.dest', 'dist');
 		var stream = gulp.src([packagePath0 + '/**/*.{ts,tsx}',
+			`!${packagePath}/**/*.spec.ts`,
 			`!${packagePath}/${tsDestDir}/**/*`,
 			`!${packagePath0}/spec/**/*`,
 			`!${packagePath}/${_.get(json, 'dr.assetsDir', 'assets')}/**/*`,

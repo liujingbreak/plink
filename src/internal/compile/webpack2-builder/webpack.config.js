@@ -2,14 +2,14 @@
 const api = require('__api');
 const webpack = require('webpack');
 const _ = require('lodash');
-const chalk = require('chalk');
+// const chalk = require('chalk');
 const Path = require('path');
 const log4js = require('log4js');
 const log = log4js.getLogger(api.packageName);
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 // const fs = require('fs');
 //const atl = require('awesome-typescript-loader');
-const ManualChunkPlugin = require('./lib/manual-chunk-plugin');
+// const ManualChunkPlugin = require('./lib/manual-chunk-plugin');
 const MultiEntryHtmlPlugin = require('./lib/multi-entry-html-plugin');
 const DrModuleResolvePlugin = require('./lib/dr-module-resolve-plugin');
 const loaderConfig = require('./configs/loader-config');
@@ -237,24 +237,25 @@ module.exports = function(webpackConfigEntry, noParseChecker, file2ChunkName,
 				async: devMode,
 				checkSyntacticErrors: useHappypack
 			}),
-			new ManualChunkPlugin({
-				hasExtractTextWebpackPlugin: true,
-				manifest: 'runtime',
-				defaultChunkName: api.config.get([api.packageName, 'defaultChunkName']),
-				getChunkName: (file) => {
-					var bundle = file2ChunkName[file];
-					if (bundle) {
-						log.debug('chunk %s, for file %s', bundle, file);
-						return bundle;
-					}
-					var pk = api.findPackageByFile(file);
-					if (!pk) {
-						log.debug('No chunk(bundle) name for: %s', chalk.yellow(Path.relative(webpackConfig.context, file)));
-						return null;
-					}
-					return chunk4package(pk);
-				}
-			}),
+			// TODO: Webpack 4
+			// new ManualChunkPlugin({
+			// 	hasExtractTextWebpackPlugin: true,
+			// 	manifest: 'runtime',
+			// 	defaultChunkName: api.config.get([api.packageName, 'defaultChunkName']),
+			// 	getChunkName: (file) => {
+			// 		var bundle = file2ChunkName[file];
+			// 		if (bundle) {
+			// 			log.debug('chunk %s, for file %s', bundle, file);
+			// 			return bundle;
+			// 		}
+			// 		var pk = api.findPackageByFile(file);
+			// 		if (!pk) {
+			// 			log.debug('No chunk(bundle) name for: %s', chalk.yellow(Path.relative(webpackConfig.context, file)));
+			// 			return null;
+			// 		}
+			// 		return chunk4package(pk);
+			// 	}
+			// }),
 			api.argv.hmr ? () => {} :
 				new ExtractTextPlugin({
 					//disable: api.argv.dll != null || (api.argv['ref-dll'] != null && api.argv.ww),

@@ -10,19 +10,23 @@ module.exports = function(injector) {
 	var less = require('less');
 	var oldLessRender = less.render;
 	var NpmImportPlugin;
-	try {
-		NpmImportPlugin = require('less-plugin-npm-import');
-	} catch (e) {
-		NpmImportPlugin = require('@dr-core/webpack2-builder/node_modules/less-plugin-npm-import');
+	if ([
+		'less-plugin-npm-import',
+		'@dr-core/webpack2-builder/node_modules/less-plugin-npm-import'
+	].some(m => {
+		try {
+			NpmImportPlugin = require(m);
+		} catch (e) {
+			return false;
+		}
+	})) {
+		injector.fromDir(['node_modules/less-loader', '@dr-core/webpack2-builder/node_modules/less-loader'])
+		.factory('less', function(file) {
+			if (less.render !== hackedLessRender)
+				less.render = hackedLessRender;
+			return less;
+		});
 	}
-
-	injector.fromDir(['node_modules/less-loader', '@dr-core/webpack2-builder/node_modules/less-loader'])
-	.factory('less', function(file) {
-		if (less.render !== hackedLessRender)
-			less.render = hackedLessRender;
-		return less;
-	});
-
 	function hackedLessRender(source, options, ...others) {
 		options.plugins.push(new NpmImportPlugin());
 		return oldLessRender.call(less, source, options, ...others);

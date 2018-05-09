@@ -3,6 +3,7 @@
 		"tslint:recommended", "tslint-eslint-rules"
 	],
 	"rules": {
+		"max-classes-per-file": false,
 		"jsdoc-format": false,
 		"no-consecutive-blank-lines": false,
 		"object-literal-shorthand": true,

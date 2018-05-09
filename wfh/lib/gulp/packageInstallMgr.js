@@ -49,6 +49,8 @@ class InstallManager {
 		for (let packageJson of jsonFiles) {
 			log.debug('scanSrcDepsAsync() ' + Path.relative(config().rootPath, packageJson));
 			var json = JSON.parse(fs.readFileSync(packageJson, 'utf8'));
+			if (!json.dr)
+				continue;
 			this.componentMap[json.name] = {ver: json.version, toInstall: false};
 			var deps = json.dependencies;
 			if (deps) {
@@ -142,6 +144,8 @@ class InstallManager {
 			log.info('Checking', mainPkFile);
 			mainPkjson = JSON.parse(fs.readFileSync(mainPkFile, 'utf8'));
 			mainDeps = mainPkjson.dependencies;
+			if (mainDeps == null)
+				mainDeps = mainPkjson.dependencies = {};
 			if (process.env.NODE_ENV === 'development')
 				_.assign(mainDeps, mainPkjson.devDependencies);
 			_.each(packageJsonGuarder.getChanges().dependencies, (ver, name) => {

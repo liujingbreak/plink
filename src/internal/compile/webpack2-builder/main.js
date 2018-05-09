@@ -17,6 +17,7 @@ const hotMiddleware = require('webpack-hot-middleware');
 const dllConfig = require('./configs/dll-plugin-config');
 const createWebpackConfig = require('./webpack.config.js');
 const lr = require('tiny-lr');
+const Url = require('url');
 //const LiveReloadPlugin = require('webpack-livereload-plugin');
 
 const tapable = new Tapable();
@@ -58,21 +59,35 @@ exports.compile = () => {
 };
 
 exports.activate = function() {
-	if (!api.argv.ww && !api.argv.poll)
+	var angularCliParam = api.config()._angularCli;
+	if (angularCliParam)
+		Object.assign(api.argv, angularCliParam.argv);
+	if (!angularCliParam && !api.argv.ww && !api.argv.poll)
 		return;
 	var webpackMiddleware = require('webpack-dev-middleware');
 	fs.mkdirsSync(api.config.resolve('destDir', 'webpack-temp'));
+
+	let webpackRootPath = '/';
+	if (angularCliParam.browserOptions.deployUrl) {
+		webpackRootPath = _.trimEnd(Url.parse(angularCliParam.browserOptions.deployUrl).pathname, '/');
+	}
+
 
 	return Promise.coroutine(function*() {
 		if (!api.argv.hmr) {
 			yield startLivereloadAsyc();
 		}
 		yield api.runBuilder({browserify: false}, api.packageName);
-		var webpackConfig = yield initWebpackConfig();
+		var webpackConfig;
+		if (api.webpackConfig) {
+			// From Angular cli, ng-app-builder
+			webpackConfig = api.webpackConfig;
+		} else
+			webpackConfig = yield initWebpackConfig();
 		if (_.size(webpackConfig.entry) === 0)
 			return;
 		var compiler = webpack(webpackConfig);
-		api.use((api.isDefaultLocale() ? '/' : '/' + api.getBuildLocale()), webpackMiddleware(compiler, {
+		api.use((api.isDefaultLocale() ? webpackRootPath : webpackRootPath + '/' + api.getBuildLocale()), webpackMiddleware(compiler, {
 			//noInfo: true,
 			watchOptions: {
 				poll: api.argv.poll ? true : false,

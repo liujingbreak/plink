@@ -55,6 +55,7 @@ function activate() {
 		gif: '365 days',
 		svg: '365 days',
 	});
+	log.info('Serve static dir', staticFolder);
 	api.use('/', staticRoute(staticFolder));
 	api.use('/', staticRoute(api.config.resolve('dllDestDir')));
 	if (!api.config().devMode) {

@@ -2,7 +2,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { AppComponent } from './app.component';
 import {RouterModule, Routes} from '@angular/router';
-import { environment } from '../../environments/environment';
+import { environment } from '../environments/environment';
 // import api from '__api';
 
 const appRoutes: Routes = [

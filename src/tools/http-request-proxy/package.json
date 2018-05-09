@@ -1,6 +1,6 @@
 {
   "name": "@dr/http-request-proxy",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Http proxy server by LJ",
   "main": "dist/server.js",
   "types": "dist/server.d.ts",
@@ -29,8 +29,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "request": "^2.81.0",
-    "chalk": "^2.1.0"
+    "request": "^2.85.0",
+    "chalk": "^2.4.1"
   },
   "author": "",
   "license": "MIT"
