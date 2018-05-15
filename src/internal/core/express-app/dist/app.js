@@ -20,6 +20,7 @@ module.exports = {
         app = express();
         setupApi(__api_1.default, app);
         __api_1.default.eventBus.on('packagesActivated', function (packageCache) {
+            log.info('packagesActivated');
             process.nextTick(() => {
                 create(app, __api_1.default.config());
                 __api_1.default.eventBus.emit('appCreated', app);
@@ -102,7 +103,7 @@ function create(app, setting) {
         app.use(function (err, req, res, next) {
             res.status(err.status || 500);
             log.error(req.originalUrl, err);
-            res.render(Path.join(VIEW_PATH, 'error.html'), {
+            res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
                 message: err.message,
                 error: err
             });
@@ -113,7 +114,7 @@ function create(app, setting) {
     app.use(function (err, req, res, next) {
         res.status(err.status || 500);
         log.error(req.originalUrl, err);
-        res.render(Path.join(VIEW_PATH, 'error.html'), {
+        res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
             message: err.message,
             error: {}
         });

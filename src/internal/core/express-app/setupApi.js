@@ -87,11 +87,14 @@ function setupApi(api, app) {
 
 		function customizedRender() {
 			var args = [].slice.call(arguments);
-			if (_.startsWith(args[0], '/')) {
+			if (arguments[0].endsWith('_drcp-express-error.html'))
+				return oldRender.apply(this, args);
+			else if (_.startsWith(args[0], '/')) {
 				args[0] = args[0].substring(1);
 			} else {
 				args[0] = packageRelPath + arguments[0];
 			}
+
 			return oldRender.apply(this, args);
 		}
 
