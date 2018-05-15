@@ -15,7 +15,7 @@ module.exports.createPackageDefinedRouters = function(app) {
 	routerSetupFuncs.forEach(function(routerDef) {
 		try {
 			log.debug(routerDef.packageName, 'defines router/middleware');
-			routerDef(app);
+			routerDef(app, express);
 		} catch (er) {
 			log.error('package ' + routerDef.packageName + ' router, original stack: ' + routerDef.stack, er);
 			throw er;
@@ -36,6 +36,7 @@ function setupApi(api, app) {
 	apiPrototype.express = express;
 	apiPrototype.expressApp = app;
 	apiPrototype.swig = swig;
+
 	/**
 	 * setup a router under package context path
 	 * same as app.use('/<package-path>', router);
@@ -138,7 +139,7 @@ function setupApi(api, app) {
 	 * @return void
 	 */
 	apiPrototype.expressAppSet = (callback) => appSets.push(callback);
-
+	apiPrototype.expressAppUse = (callback) => routerSetupFuncs.push(callback);
 	/**
 	 * e.g.
 	 * 	api.router().options('/api', api.cors());
