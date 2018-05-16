@@ -32,9 +32,10 @@ const webpack = require('webpack');
 
 // const AOT = true;
 export function compile() {
+	writeTsconfig();
 	let ngParam: AngularCliParam = api.config()._angularCli;
 	if (ngParam) {
-		writeTsconfig();
+		// writeTsconfig();
 		// ngParam.browserOptions.tsConfig =
 		// 	Path.join(api.config().rootPath, 'dist', 'webpack-temp', 'angular-app-tsconfig.json');
 		// ngParam.browserOptions.scripts.push({
@@ -49,7 +50,7 @@ export function compile() {
 	}
 	if (!api.argv.ng)
 		return;
-	writeTsconfig();
+	// writeTsconfig();
 	// var tsConfigPath = writeTsconfig();
 	// var useHappypack = api.config.get('@dr-core/webpack2-builder.useHappypack', false);
 	// var devMode = api.config().devMode;
