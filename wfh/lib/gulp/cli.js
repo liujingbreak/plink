@@ -122,7 +122,7 @@ class WorkspaceInstaller {
 			}
 			packageJsonGuarder.markInstallNum();
 			yield helper.addupConfigs((file, configContent) => {
-				writeFile(file, '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
+				// writeFile(file, '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
 				writeFile(Path.resolve(rootPath || process.cwd(), 'dist', file),
 					'\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
 			});
