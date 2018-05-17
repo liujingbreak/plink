@@ -27,14 +27,6 @@ const webpack = require('webpack');
 function compile() {
     let ngParam = api.config()._angularCli;
     if (ngParam) {
-        writeTsconfig();
-        // ngParam.browserOptions.tsConfig =
-        // 	Path.join(api.config().rootPath, 'dist', 'webpack-temp', 'angular-app-tsconfig.json');
-        // ngParam.browserOptions.scripts.push({
-        // 	input: 'src/hmr-client.ts',
-        // 	bundleName: 'hmr-client',
-        // 	lazy: false
-        // });
         let webpackConfig = ngParam.buildWebpackConfig(ngParam.browserOptions);
         Object.getPrototypeOf(api).webpackConfig = webpackConfig;
         mergeWebpackConfig4Ng6(ngParam, webpackConfig);
@@ -42,7 +34,6 @@ function compile() {
     }
     if (!api.argv.ng)
         return;
-    writeTsconfig();
     // var tsConfigPath = writeTsconfig();
     // var useHappypack = api.config.get('@dr-core/webpack2-builder.useHappypack', false);
     // var devMode = api.config().devMode;
@@ -212,6 +203,10 @@ function compile() {
     // 	});
 }
 exports.compile = compile;
+function init() {
+    writeTsconfig();
+}
+exports.init = init;
 // export function init() {
 // 	let ownPj = require('../package.json');
 // 	let verNgCli = ownPj.dependencies['@angular/cli'] || ownPj.devDependencies['@angular/cli'];

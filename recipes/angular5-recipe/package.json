@@ -1,8 +1,8 @@
 {
   "name": "@dr/angular5-recipe",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "Component group: angular5-recipe",
   "dependencies": {
-    "@dr-core/ng-app-builder": "2.0.1"
+    "@dr-core/ng-app-builder": "2.0.3"
   }
 }
