@@ -1,7 +1,7 @@
 {
   "name": "dr-comp-package",
   "version": "0.7.0-rc.2",
-  "description": "DR web component package developer toolkit",
+  "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
     "drcp": "bin/drcp.js"
