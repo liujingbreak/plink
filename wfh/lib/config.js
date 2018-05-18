@@ -80,6 +80,7 @@ module.exports.resolve = function(pathPropName, ...paths) {
 	return Path.resolve.apply(Path, args);
 };
 
+module.exports.load = load;
 /**
  * Load configuration from config.yaml.
  * Besides those properties in config.yaml, there are extra available properties:
@@ -91,7 +92,9 @@ module.exports.resolve = function(pathPropName, ...paths) {
  * - wfhSrcPath meaning wfh source code is linked, it is not installed
  * - _package2Chunk a hash object whose key is `package name`, value is `chunk name`
  */
-function load() {
+function load(configFileList) {
+	if (configFileList)
+		localConfigPath = configFileList;
 	try {
 		//log.debug('root Path: ' + rootPath);
 		setting = setting || {};

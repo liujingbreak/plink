@@ -1,4 +1,4 @@
-import {DevServerBuilder, DevServerBuilderOptions} from '@angular-devkit/build-angular';
+import {DevServerBuilder, DevServerBuilderOptions as DevServerBuilderOptions0} from '@angular-devkit/build-angular';
 import {
 	BuildEvent,
 	// Builder,
@@ -20,11 +20,15 @@ import { addFileReplacements, normalizeAssetPatterns } from '@angular-devkit/bui
 import * as fs from 'fs';
 import * as Rx from 'rxjs';
 import { concatMap, map, tap } from 'rxjs/operators';
+// import * as _ from 'lodash';
 // const opn = require('opn');
 // import * as Path from 'path';
 
 export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
 
+export interface DevServerBuilderOptions extends DevServerBuilderOptions0 {
+	drcpArgs: any;
+}
 export interface AngularCliParam {
 	builderConfig: BuilderConfiguration<DevServerBuilderOptions>;
 	buildWebpackConfig: buildWebpackConfigFunc;
@@ -113,6 +117,9 @@ export default class DrcpDevServer extends DevServerBuilder {
 		buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent> {
 		let argv: any = {};
 		var config = require('dr-comp-package/wfh/lib/config');
+		if (Array.isArray(builderConfig.options.drcpArgs.c)) {
+			config.load(builderConfig.options.drcpArgs.c);
+		}
 		return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
 			require('dr-comp-package/wfh/lib/logConfig')(config().rootPath, config().log4jsReloadSeconds);
 
@@ -122,7 +129,8 @@ export default class DrcpDevServer extends DevServerBuilder {
 				buildWebpackConfig,
 				argv: {
 					poll: builderConfig.options.poll,
-					hmr: builderConfig.options.hmr
+					hmr: builderConfig.options.hmr,
+					...builderConfig.options.drcpArgs
 				}
 			};
 			config.set('_angularCli', param);

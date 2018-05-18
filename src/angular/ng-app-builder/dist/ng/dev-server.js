@@ -72,16 +72,16 @@ class DrcpDevServer extends build_angular_1.DevServerBuilder {
     startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
         let argv = {};
         var config = require('dr-comp-package/wfh/lib/config');
+        if (Array.isArray(builderConfig.options.drcpArgs.c)) {
+            config.load(builderConfig.options.drcpArgs.c);
+        }
         return Rx.Observable.create((obs) => {
             require('dr-comp-package/wfh/lib/logConfig')(config().rootPath, config().log4jsReloadSeconds);
             let param = {
                 builderConfig,
                 browserOptions,
                 buildWebpackConfig,
-                argv: {
-                    poll: builderConfig.options.poll,
-                    hmr: builderConfig.options.hmr
-                }
+                argv: Object.assign({ poll: builderConfig.options.poll, hmr: builderConfig.options.hmr }, builderConfig.options.drcpArgs)
             };
             config.set('_angularCli', param);
             config.set('port', builderConfig.options.port);

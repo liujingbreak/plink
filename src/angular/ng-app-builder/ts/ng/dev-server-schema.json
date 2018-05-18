@@ -3,6 +3,11 @@
   "description": "Karma target options for Build Facade.",
   "type": "object",
   "properties": {
+    "drcpArgs": {
+      "type": "object",
+      "description": "Argument object for DRCP server start command",
+      "default": {}
+    },
     "browserTarget": {
       "type": "string",
       "description": "Target to serve."
