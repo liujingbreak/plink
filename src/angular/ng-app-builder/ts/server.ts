@@ -299,9 +299,6 @@ export function writeTsconfig(): string {
 	});
 	tsExclude.push('**/test.ts');
 
-	for (let comp of ngPackages) {
-		log.warn(comp.longName);
-	}
 	var tsjson: any = {
 		extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
 		include: tsInclude,
