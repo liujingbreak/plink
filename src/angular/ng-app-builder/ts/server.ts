@@ -7,7 +7,7 @@ import * as _fs from 'fs';
 import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
 // import postcssPlugins from './postcss';
 import * as express from 'express';
-import {AngularCliParam} from '@dr-core/ng-app-builder/dist/ng/dev-server';
+import {AngularCliParam} from './ng/common';
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};

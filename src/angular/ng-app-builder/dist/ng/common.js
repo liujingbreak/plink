@@ -61,6 +61,7 @@ function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
     });
 }
 exports.startDrcpServer = startDrcpServer;
+const chunk_info_1 = require("../plugins/chunk-info");
 function changeWebpackConfig(options, webpackConfig) {
     const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
     console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
@@ -70,6 +71,7 @@ function changeWebpackConfig(options, webpackConfig) {
             reportFilename: 'bundle-report.html',
             openAnalyzer: options.drcpArgs.openReport
         }));
+        webpackConfig.plugins.push(new chunk_info_1.default());
     }
     return webpackConfig;
 }

@@ -91,6 +91,8 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 	});
 }
 
+import ChunkInfoPlugin from '../plugins/chunk-info';
+
 export function changeWebpackConfig(options: DrcpBuilderOptions, webpackConfig: any): any {
 	const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 	console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
@@ -100,6 +102,9 @@ export function changeWebpackConfig(options: DrcpBuilderOptions, webpackConfig: 
 			reportFilename: 'bundle-report.html',
 			openAnalyzer: options.drcpArgs.openReport
 		}));
+		webpackConfig.plugins.push(
+			new ChunkInfoPlugin()
+		);
 	}
 	return webpackConfig;
 }
