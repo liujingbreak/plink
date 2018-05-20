@@ -1,4 +1,4 @@
-import {DevServerBuilder, DevServerBuilderOptions as DevServerBuilderOptions0} from '@angular-devkit/build-angular';
+import {DevServerBuilder, DevServerBuilderOptions} from '@angular-devkit/build-angular';
 import {
 	BuildEvent,
 	// Builder,
@@ -24,17 +24,19 @@ import { concatMap, map, tap } from 'rxjs/operators';
 // const opn = require('opn');
 // import * as Path from 'path';
 
+import * as common from './common';
+
 export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
 
-export interface DevServerBuilderOptions extends DevServerBuilderOptions0 {
-	drcpArgs: any;
-}
-export interface AngularCliParam {
-	builderConfig: BuilderConfiguration<DevServerBuilderOptions>;
-	buildWebpackConfig: buildWebpackConfigFunc;
-	browserOptions: NormalizedBrowserBuilderSchema;
-	argv: any;
-}
+// export interface DevServerBuilderOptions extends DevServerBuilderOptions0 {
+// 	drcpArgs: any;
+// }
+// export interface AngularCliParam {
+// 	builderConfig: BuilderConfiguration<DevServerBuilderOptions>;
+// 	buildWebpackConfig: buildWebpackConfigFunc;
+// 	browserOptions: NormalizedBrowserBuilderSchema;
+// 	argv: any;
+// }
 
 export default class DrcpDevServer extends DevServerBuilder {
 	run(builderConfig: BuilderConfiguration<DevServerBuilderOptions>): Rx.Observable<BuildEvent> {
@@ -105,72 +107,11 @@ export default class DrcpDevServer extends DevServerBuilder {
 				obs.complete();
 			})),
 			concatMap((buildWebpackConfig) => {
-				return this.startDrcpServer(builderConfig, browserOptions as NormalizedBrowserBuilderSchema,
+				return common.startDrcpServer(builderConfig, browserOptions as NormalizedBrowserBuilderSchema,
 					buildWebpackConfig);
 			}),
 			tap((msg: BuildEvent) => console.log)
 		);
-	}
-
-	startDrcpServer(builderConfig: BuilderConfiguration<DevServerBuilderOptions>,
-		browserOptions: NormalizedBrowserBuilderSchema,
-		buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent> {
-		let argv: any = {};
-		var config = require('dr-comp-package/wfh/lib/config');
-		if (Array.isArray(builderConfig.options.drcpArgs.c)) {
-			config.load(builderConfig.options.drcpArgs.c);
-		}
-		return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
-			require('dr-comp-package/wfh/lib/logConfig')(config().rootPath, config().log4jsReloadSeconds);
-
-			let param: AngularCliParam = {
-				builderConfig,
-				browserOptions,
-				buildWebpackConfig,
-				argv: {
-					poll: builderConfig.options.poll,
-					hmr: builderConfig.options.hmr,
-					...builderConfig.options.drcpArgs
-				}
-			};
-			config.set('_angularCli', param);
-			config.set('port', builderConfig.options.port);
-
-			var log = require('log4js').getLogger('ng-app-builder.ng.dev-server');
-			var pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
-
-			try {
-				process.on('uncaughtException', function(err) {
-					log.error('Uncaught exception: ', err, err.stack);
-					// throw err; // let PM2 handle exception
-					obs.error(err);
-				});
-				process.on('SIGINT', function() {
-					log.info('Recieve SIGINT, bye.');
-					obs.next({ success: true });
-					obs.complete();
-					setTimeout(() => process.exit(0), 500);
-				});
-				process.on('message', function(msg) {
-					if (msg === 'shutdown') {
-						log.info('Recieve shutdown message from PM2, bye.');
-						process.exit(0);
-						obs.next({ success: true });
-						obs.complete();
-					}
-				});
-				(process as any)._config = config;
-				pkMgr.runServer(argv)
-				.catch((err: Error) => {
-					console.error('Failed to start server:', err);
-					// process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.
-					obs.error(err);
-				});
-			} catch (err) {
-				console.error('Failed to start server:', err);
-				obs.error(err);
-			}
-		});
 	}
 
 	private _getBrowserOptions1(options: DevServerBuilderOptions) {

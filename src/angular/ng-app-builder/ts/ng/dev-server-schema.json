@@ -8,6 +8,7 @@
       "description": "Argument object for DRCP server start command",
       "default": {}
     },
+
     "browserTarget": {
       "type": "string",
       "description": "Target to serve."

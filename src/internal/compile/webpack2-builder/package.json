@@ -65,7 +65,7 @@
     "promise-polyfill": "^7.1.2",
     "manual-chunk-plugin": "^2.0.0",
     "typescript": "~2.7.2",
-    "webpack-bundle-analyzer": "^2.9.2",
+    "webpack-bundle-analyzer": "^2.12.0",
     "ts-loader": "4.2.0",
     "core-js": "2.5.3",
     "es5-shim": "^4.5.10",

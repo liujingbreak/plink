@@ -24,6 +24,9 @@
     "@angularclass/hmr": "^2.1.3",
     "@angular-devkit/schematics": "^0.6.0"
   },
+  "peerDependencies": {
+    "webpack-bundle-analyzer": "^2.12.0"
+  },
   "back-dep": {
   },
   "scripts": {
