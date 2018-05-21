@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console max-line-length */
 const log = require('log4js').getLogger('ChunkInfoPlugin');
@@ -7,6 +15,7 @@ const logD = log;
 const chalk = require('chalk');
 const showDependency = false;
 const showFileDep = true;
+const { cyan, green } = require('chalk');
 const _ = require("lodash");
 const Path = require("path");
 class ChunkInfoPlugin {
@@ -14,54 +23,65 @@ class ChunkInfoPlugin {
         console.log('ChunkInfoPlugin');
         this.compiler = compiler;
         compiler.hooks.emit.tapPromise('ChunkInfoPlugin', (compilation) => {
-            log.debug(_.pad(' emit ', 40, '-'));
-            return this.printChunks(compilation, compilation.chunks);
+            log.info(_.pad(' emit ', 40, '-'));
+            return this.printChunkGroups(compilation);
         });
     }
-    printChunks(compilation, chunks) {
+    printChunkGroups(compilation) {
+        return __awaiter(this, void 0, void 0, function* () {
+            for (let cg of compilation.chunkGroups) {
+                // log.info('Named chunk groups: ' + compilation.namedChunkGroups.keys().join(', '));
+                // log.info('entrypoints: ' + compilation.entrypoints.keys().join(', '));
+                log.info('');
+                log.info(`Chunk group: ${cyan(cg.name)}`);
+                log.info('├─  children: (%s)', cg.getChildren().map((ck) => green(this.getChunkName(ck))).join(', '));
+                log.info(`├─  parents: ${cg.getParents().map((ck) => green(this.getChunkName(ck))).join(', ')}`);
+                this.printChunks(cg.chunks, compilation);
+            }
+            this.printChunksByEntry(compilation);
+        });
+    }
+    printChunks(chunks, compilation) {
         var self = this;
         chunks.forEach((chunk) => {
-            log.debug('chunk: %s, parents:(%s), isOnlyInitial: %s, ids: %s', this.getChunkName(chunk), 'TBD', 
+            log.info('├─  chunk: %s, isOnlyInitial: %s, ids: %s', this.getChunkName(chunk), 
             // chunk.parents.map((p: any) => this.getChunkName(p)).join(', '),
             chunk.isOnlyInitial(), chunk.ids);
-            log.debug('\tchildren: (%s)', chunk.chunks.map((ck) => this.getChunkName(ck)).join(', '));
-            log.debug('\t%s %s', chunk.hasRuntime() ? '(has runtime)' : '', chunk.hasEntryModule() ? `(has entryModule: ${this.simpleModuleId(chunk.entryModule)})` : '');
-            log.debug('  ├─ modules');
+            // log.info('\tchildren: (%s)', chunk.chunks.map((ck: any) => this.getChunkName(ck)).join(', '));
+            log.info('│    ├─ %s %s', chunk.hasRuntime() ? '(has runtime)' : '', chunk.hasEntryModule() ? `(has entryModule: ${this.simpleModuleId(chunk.entryModule)})` : '');
+            log.info(`│    ├─ ${green('modules')}`);
             (chunk.getModules ? chunk.getModules() : chunk.modules).forEach((module) => {
                 // Explore each source file path that was included into the module:
-                log.debug('  │  ├─ %s', this.simpleModuleId(module));
+                log.info('│    │  ├─ %s', this.simpleModuleId(module));
                 if (showFileDep)
                     _.each(module.fileDependencies, (filepath) => {
-                        logFd.debug('  │  │  ├─ %s', chalk.blue('(fileDependency): ' + Path.relative(this.compiler.options.context, filepath)));
+                        logFd.debug('│    │  │  ├─ %s', chalk.blue('(fileDependency): ' + Path.relative(this.compiler.options.context, filepath)));
                     });
                 _.each(module.blocks, (block) => {
-                    log.debug('  │  │  ├─ (block %s): %s', block.constructor.name, _.map(block.chunks, (ck) => {
-                        return this.getChunkName(ck);
-                    }).join(', '));
+                    log.info('│    │  │  ├─ (block %s): %s', block.constructor.name, _.map(block.chunkGroup, (cg) => cg.name).join(', '));
                     if (showDependency) {
                         _.each(block.dependencies, (bDep) => {
-                            logD.debug(`  │  │  │  ├─ ${bDep.constructor.name}`);
+                            logD.debug(`│    │  │  │  ├─ ${bDep.constructor.name}`);
                             if (bDep.module)
-                                logD.debug(`  │  │  │  │  ├─ .module ${self.simpleModuleId(bDep.module)}`);
+                                logD.debug(`│    │  │  │  │  ├─ .module ${self.simpleModuleId(bDep.module)}`);
                         });
                     }
                 });
                 if (showDependency) {
                     _.each(module.dependencies, (dep) => {
                         var source = module._source.source();
-                        logD.debug('  │  │  ├─ %s', chalk.blue('(dependency %s): ' + dep.constructor.name), dep.range ? source.substring(dep.range[0], dep.range[1]) : '');
+                        logD.debug('│    │  │  ├─ %s', chalk.blue('(dependency %s): ' + dep.constructor.name), dep.range ? source.substring(dep.range[0], dep.range[1]) : '');
                         if (dep.module)
-                            logD.debug(`  │  │  │  ├─ .module ${chalk.blue(self.simpleModuleId(dep.module))}`);
+                            logD.debug(`│    │  │  │  ├─ .module ${chalk.blue(self.simpleModuleId(dep.module))}`);
                     });
                 }
             });
-            log.debug('  │  ');
+            log.info('│    │  ');
             // Explore each asset filename generated by the chunk:
             chunk.files.forEach(function (filename) {
-                log.debug('  ├── file: %s', filename);
+                log.info('│    ├── file: %s', filename);
             });
         });
-        this.printChunksByEntry(compilation);
     }
     simpleModuleId(m) {
         return Path.relative(this.compiler.options.context, (m.identifier() || m.name).split('!').slice().pop());
