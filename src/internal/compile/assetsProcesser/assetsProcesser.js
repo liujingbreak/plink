@@ -9,6 +9,7 @@ var mkdirp = require('mkdirp');
 var api = require('__api');
 var log = require('log4js').getLogger(api.packageName);
 var serverFavicon = require('serve-favicon');
+
 var buildUtils = api.buildUtils;
 
 var packageUtils = api.packageUtils;
@@ -34,7 +35,9 @@ function compile(api) {
 	}
 
 	copyRootPackageFavicon();
-	return copyAssets();
+	const {zipStatic} = require('./dist/zip');
+	return copyAssets()
+	.then(zipStatic);
 }
 
 function activate() {
@@ -156,11 +159,15 @@ function copyAssets() {
 	if (streams.length === 0) {
 		return null;
 	}
-	return es.merge(streams)
-	.pipe(gulp.dest(config.resolve('staticDir')))
-	.on('end', function() {
-		log.debug('flush');
-		buildUtils.writeTimestamp('assets');
+	return new Promise((resolve, reject) => {
+		es.merge(streams)
+		.pipe(gulp.dest(config.resolve('staticDir')))
+		.on('end', function() {
+			log.debug('flush');
+			buildUtils.writeTimestamp('assets');
+			resolve();
+		})
+		.on('error', reject);
 	});
 }
 

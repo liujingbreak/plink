@@ -92,9 +92,9 @@ module.exports.load = load;
  * - wfhSrcPath meaning wfh source code is linked, it is not installed
  * - _package2Chunk a hash object whose key is `package name`, value is `chunk name`
  */
-function load(configFileList) {
-	if (configFileList)
-		localConfigPath = configFileList;
+function load(fileList) {
+	if (fileList)
+		localConfigPath = fileList;
 	try {
 		//log.debug('root Path: ' + rootPath);
 		setting = setting || {};
