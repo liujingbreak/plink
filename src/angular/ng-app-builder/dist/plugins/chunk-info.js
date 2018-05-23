@@ -20,7 +20,7 @@ const _ = require("lodash");
 const Path = require("path");
 class ChunkInfoPlugin {
     apply(compiler) {
-        console.log('ChunkInfoPlugin');
+        console.log('----- ChunkInfoPlugin -----');
         this.compiler = compiler;
         compiler.hooks.emit.tapPromise('ChunkInfoPlugin', (compilation) => {
             log.info(_.pad(' emit ', 40, '-'));

@@ -14,7 +14,7 @@ import * as url from 'url';
 // 	statsWarningsToString
 // 	} from '@angular-devkit/build-angular/src/angular-cli-files/utilities/stats';
 
-import { BrowserBuilder, NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
+import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
 import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { addFileReplacements, normalizeAssetPatterns } from '@angular-devkit/build-angular/src/utils';
 import * as fs from 'fs';
@@ -25,6 +25,7 @@ import { concatMap, map, tap } from 'rxjs/operators';
 // import * as Path from 'path';
 
 import * as common from './common';
+import {BrowserBuilder} from './browser-builder';
 
 export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
 

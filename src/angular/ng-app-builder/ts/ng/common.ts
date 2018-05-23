@@ -35,7 +35,7 @@ export interface DrcpBuilderOptions {
 export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBuilderOptions>,
 	browserOptions: NormalizedBrowserBuilderSchema,
 	buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent> {
-	let argv: any = {};
+	// let argv: any = {};
 	let options = builderConfig.options as (DevServerBuilderOptions & DrcpBuilderOptions);
 
 	let config = initDrcp(options.drcpArgs);
@@ -78,7 +78,7 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 				}
 			});
 			(process as any)._config = config;
-			pkMgr.runServer(argv)
+			pkMgr.runServer(options.drcpArgs)
 			.catch((err: Error) => {
 				console.error('Failed to start server:', err);
 				// process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.

@@ -60,8 +60,6 @@ exports.compile = () => {
 
 exports.activate = function() {
 	var angularCliParam = api.config()._angularCli;
-	if (angularCliParam)
-		Object.assign(api.argv, angularCliParam.argv);
 	if (!angularCliParam && !api.argv.ww && !api.argv.poll)
 		return;
 	var webpackMiddleware = require('webpack-dev-middleware');

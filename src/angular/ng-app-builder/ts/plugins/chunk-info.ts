@@ -14,7 +14,7 @@ export default class ChunkInfoPlugin {
 
 
 	apply(compiler: any) {
-		console.log('ChunkInfoPlugin');
+		console.log('----- ChunkInfoPlugin -----');
 		this.compiler = compiler;
 		compiler.hooks.emit.tapPromise('ChunkInfoPlugin', (compilation: any) => {
 			log.info(_.pad(' emit ', 40, '-'));
