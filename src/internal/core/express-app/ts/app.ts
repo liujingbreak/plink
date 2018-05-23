@@ -93,6 +93,16 @@ function create(app: express.Express, setting: any) {
 	// setupApi.createPackageDefinedMiddleware(app);
 	setupApi.createPackageDefinedRouters(app);
 
+	let hashFile = Path.join(api.config().rootPath, 'githash-server.txt');
+	if (fs.existsSync(hashFile)) {
+		let githash = fs.readFileSync(hashFile, 'utf8');
+		app.get('/githash-server', (req, res) => {
+			res.send(githash);
+		});
+		app.get('/githash-server.txt', (req, res) => {
+			res.send(githash);
+		});
+	}
 	// error handlers
 	// catch 404 and forward to error handler
 	app.use(function(req, res, next) {

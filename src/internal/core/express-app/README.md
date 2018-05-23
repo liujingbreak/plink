@@ -47,3 +47,20 @@ exports.activate = function(){
 	});
 };
 ```
+
+# Check server side git hash
+You need put generate a git hash text file in root folder like,
+```shell
+git rev-parse HEAD > githash-server.txt
+echo \"I am in Dev\" >> githash-server.txt
+```
+
+Or put in your package.json npm script:
+```js
+"scripts": {
+	"build": "git rev-parse HEAD > githash-server.txt && echo \"I am in Dev\" >> githash-server.txt:
+}
+```
+
+Once your start server by `node app`, you can access `/githash-server` or `/githash-server.txt`
+
