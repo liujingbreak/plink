@@ -23,8 +23,9 @@ export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSc
 
 export interface AngularCliParam {
 	builderConfig: BuilderConfiguration<DevServerBuilderOptions>;
-	buildWebpackConfig: buildWebpackConfigFunc;
+	// buildWebpackConfig: buildWebpackConfigFunc;
 	browserOptions: NormalizedBrowserBuilderSchema;
+	webpackConfig: any;
 	argv: any;
 }
 
@@ -44,7 +45,8 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 		let param: AngularCliParam = {
 			builderConfig,
 			browserOptions,
-			buildWebpackConfig,
+			webpackConfig: changeWebpackConfig(((browserOptions as any) as DrcpBuilderOptions),
+				buildWebpackConfig(browserOptions)),
 			argv: {
 				poll: options.poll,
 				hmr: options.hmr,
@@ -94,15 +96,15 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 import ChunkInfoPlugin from '../plugins/chunk-info';
 
 export function changeWebpackConfig(options: DrcpBuilderOptions, webpackConfig: any): any {
-	const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+	// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 	console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
 	if (options.drcpArgs.report ||(options.drcpArgs.openReport)) {
-		webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
-			analyzerMode: 'static',
-			reportFilename: 'bundle-report.html',
-			openAnalyzer: options.drcpArgs.openReport
-		}));
-		webpackConfig.plugins.push(
+		// webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
+		// 	analyzerMode: 'static',
+		// 	reportFilename: 'bundle-report.html',
+		// 	openAnalyzer: options.drcpArgs.openReport
+		// }));
+		webpackConfig.plugins.unshift(
 			new ChunkInfoPlugin()
 		);
 	}

@@ -34,7 +34,7 @@ const webpack = require('webpack');
 export function compile() {
 	let ngParam: AngularCliParam = api.config()._angularCli;
 	if (ngParam) {
-		let webpackConfig = ngParam.buildWebpackConfig(ngParam.browserOptions);
+		let webpackConfig = ngParam.webpackConfig;
 		Object.getPrototypeOf(api).webpackConfig = webpackConfig;
 		mergeWebpackConfig4Ng6(ngParam, webpackConfig);
 		return;

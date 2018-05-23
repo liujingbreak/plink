@@ -19,7 +19,7 @@ function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
         let param = {
             builderConfig,
             browserOptions,
-            buildWebpackConfig,
+            webpackConfig: changeWebpackConfig(browserOptions, buildWebpackConfig(browserOptions)),
             argv: Object.assign({ poll: options.poll, hmr: options.hmr }, options.drcpArgs)
         };
         config.set('_angularCli', param);
@@ -63,15 +63,15 @@ function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
 exports.startDrcpServer = startDrcpServer;
 const chunk_info_1 = require("../plugins/chunk-info");
 function changeWebpackConfig(options, webpackConfig) {
-    const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+    // const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
     console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
     if (options.drcpArgs.report || (options.drcpArgs.openReport)) {
-        webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
-            analyzerMode: 'static',
-            reportFilename: 'bundle-report.html',
-            openAnalyzer: options.drcpArgs.openReport
-        }));
-        webpackConfig.plugins.push(new chunk_info_1.default());
+        // webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
+        // 	analyzerMode: 'static',
+        // 	reportFilename: 'bundle-report.html',
+        // 	openAnalyzer: options.drcpArgs.openReport
+        // }));
+        webpackConfig.plugins.unshift(new chunk_info_1.default());
     }
     return webpackConfig;
 }

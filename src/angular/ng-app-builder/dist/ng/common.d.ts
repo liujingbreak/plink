@@ -6,8 +6,8 @@ export declare function initDrcp(drcpArgs: any): any;
 export declare type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
 export interface AngularCliParam {
     builderConfig: BuilderConfiguration<DevServerBuilderOptions>;
-    buildWebpackConfig: buildWebpackConfigFunc;
     browserOptions: NormalizedBrowserBuilderSchema;
+    webpackConfig: any;
     argv: any;
 }
 export interface DrcpBuilderOptions {
