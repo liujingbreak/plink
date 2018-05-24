@@ -8,7 +8,7 @@ import {
 import { Path, /*getSystemPath,*/ normalize, resolve, virtualFs } from '@angular-devkit/core';
 import * as fs from 'fs';
 import { Observable, concat, of } from 'rxjs';
-import { concatMap, last, tap, map } from 'rxjs/operators';
+import { concatMap, last, tap } from 'rxjs/operators';
 // import * as ts from 'typescript'; // tslint:disable-line:no-implicit-dependencies
 // import * as webpack from 'webpack';
 const webpack = require('webpack');
