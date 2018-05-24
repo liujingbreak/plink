@@ -10,7 +10,6 @@ function initDrcp(drcpArgs) {
     require('dr-comp-package/wfh/lib/logConfig')(config().rootPath, config().log4jsReloadSeconds);
     return config;
 }
-exports.initDrcp = initDrcp;
 function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
     // let argv: any = {};
     let options = builderConfig.options;
@@ -18,8 +17,8 @@ function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
     return Rx.Observable.create((obs) => {
         let param = {
             builderConfig,
-            browserOptions,
-            webpackConfig: changeWebpackConfig(browserOptions, buildWebpackConfig(browserOptions)),
+            browserOptions: browserOptions,
+            webpackConfig: buildWebpackConfig(browserOptions),
             argv: Object.assign({ poll: options.poll, hmr: options.hmr }, options.drcpArgs)
         };
         config.set('_angularCli', param);
@@ -47,7 +46,7 @@ function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
                 }
             });
             process._config = config;
-            pkMgr.runServer(options.drcpArgs)
+            pkMgr.runServer(param.argv)
                 .catch((err) => {
                 console.error('Failed to start server:', err);
                 // process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.
@@ -61,20 +60,26 @@ function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
     });
 }
 exports.startDrcpServer = startDrcpServer;
-const chunk_info_1 = require("../plugins/chunk-info");
-function changeWebpackConfig(options, webpackConfig) {
-    // const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-    console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
-    if (options.drcpArgs.report || (options.drcpArgs.openReport)) {
-        // webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
-        // 	analyzerMode: 'static',
-        // 	reportFilename: 'bundle-report.html',
-        // 	openAnalyzer: options.drcpArgs.openReport
-        // }));
-        webpackConfig.plugins.unshift(new chunk_info_1.default());
-    }
-    return webpackConfig;
+function compile(browserOptions, buildWebpackConfig) {
+    return new Rx.Observable((obs) => {
+        compileAsync(browserOptions, buildWebpackConfig).then((webpackConfig) => {
+            obs.next(webpackConfig);
+            obs.complete();
+        });
+    });
 }
-exports.changeWebpackConfig = changeWebpackConfig;
+exports.compile = compile;
+function compileAsync(browserOptions, buildWebpackConfig) {
+    let options = browserOptions;
+    let config = initDrcp(options.drcpArgs);
+    let param = {
+        browserOptions: options,
+        webpackConfig: buildWebpackConfig(browserOptions),
+        argv: Object.assign({ poll: options.poll }, options.drcpArgs)
+    };
+    config.set('_angularCli', param);
+    return require('dr-comp-package/wfh/lib/packageMgr/packageRunner').runBuilder(param.argv)
+        .then(() => param.webpackConfig);
+}
 
 //# sourceMappingURL=common.js.map

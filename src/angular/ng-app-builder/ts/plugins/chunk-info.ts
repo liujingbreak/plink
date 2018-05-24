@@ -4,19 +4,22 @@ const logFd = log;
 const logD = log;
 const chalk = require('chalk');
 const showDependency = false;
-const showFileDep = true;
+const showFileDep = false;
 const {cyan, green} = require('chalk');
 import * as _ from 'lodash';
 import * as Path from 'path';
-
+import api from '__api';
 export default class ChunkInfoPlugin {
 	compiler: any;
-
+	done = false;
 
 	apply(compiler: any) {
-		console.log('----- ChunkInfoPlugin -----');
+		log.info('----- ChunkInfoPlugin -----');
 		this.compiler = compiler;
 		compiler.hooks.emit.tapPromise('ChunkInfoPlugin', (compilation: any) => {
+			if (this.done)
+				return Promise.resolve();
+			this.done = true;
 			log.info(_.pad(' emit ', 40, '-'));
 			return this.printChunkGroups(compilation);
 		});
@@ -27,7 +30,7 @@ export default class ChunkInfoPlugin {
 			// log.info('Named chunk groups: ' + compilation.namedChunkGroups.keys().join(', '));
 			// log.info('entrypoints: ' + compilation.entrypoints.keys().join(', '));
 			log.info('');
-			log.info(`Chunk group: ${cyan(cg.name)}`);
+			log.info(`Chunk group: ${cyan(cg.name || cg.id)}`);
 			log.info('├─  children: (%s)', cg.getChildren().map((ck: any) => green(this.getChunkName(ck))).join(', '));
 			log.info(`├─  parents: ${cg.getParents().map((ck: any) => green(this.getChunkName(ck))).join(', ')}`);
 			this.printChunks(cg.chunks, compilation);
@@ -43,24 +46,27 @@ export default class ChunkInfoPlugin {
 				// chunk.parents.map((p: any) => this.getChunkName(p)).join(', '),
 				chunk.isOnlyInitial(), chunk.ids);
 			// log.info('\tchildren: (%s)', chunk.chunks.map((ck: any) => this.getChunkName(ck)).join(', '));
-			log.info('│    ├─ %s %s', chunk.hasRuntime() ? '(has runtime)' : '', chunk.hasEntryModule() ? `(has entryModule: ${this.simpleModuleId(chunk.entryModule)})` : '');
+			log.info('│    ├─ %s %s', chunk.hasRuntime() ? '(has runtime)' : '', chunk.hasEntryModule() ? `(has entryModule: ${this.moduleFileName(chunk.entryModule)})` : '');
 
 			log.info(`│    ├─ ${green('modules')}`);
 			(chunk.getModules ? chunk.getModules() : chunk.modules).forEach((module: any) => {
 				// Explore each source file path that was included into the module:
-				log.info('│    │  ├─ %s', this.simpleModuleId(module));
-				if (showFileDep)
-					_.each(module.fileDependencies, (filepath: any) => {
-						logFd.debug('│    │  │  ├─ %s', chalk.blue('(fileDependency): ' + Path.relative(this.compiler.options.context, filepath)));
-					});
+				let moduleName = this.moduleFileName(module);
+				log.info('│    │  ├─ %s', moduleName);
+				let pk = api.findPackageByFile(Path.resolve(this.compiler.options.context, moduleName));
+				if (module.buildInfo.fileDependencies && (showFileDep || (pk && pk.dr && module.buildInfo.fileDependencies))) {
+					for (let filepath of module.buildInfo.fileDependencies) {
+						logFd.info('│    │  │  ├─ %s', chalk.blue('(fileDependency): ' + Path.relative(this.compiler.options.context, filepath)));
+					}
+				}
 				_.each(module.blocks, (block: any) => {
 					log.info('│    │  │  ├─ (block %s): %s', block.constructor.name,
 						_.map(block.chunkGroup, (cg: any) => cg.name).join(', '));
-					if (showDependency) {
+					if (showDependency || (pk && pk.dr)) {
 						_.each(block.dependencies, (bDep: any) => {
-							logD.debug(`│    │  │  │  ├─ ${bDep.constructor.name}`);
+							logD.info(`│    │  │  │  ├─ ${bDep.constructor.name}`);
 							if (bDep.module)
-								logD.debug(`│    │  │  │  │  ├─ .module ${self.simpleModuleId(bDep.module)}`);
+								logD.info(`│    │  │  │  │  ├─ .module ${self.moduleFileName(bDep.module)}`);
 						});
 					}
 				});
@@ -70,7 +76,7 @@ export default class ChunkInfoPlugin {
 						logD.debug('│    │  │  ├─ %s', chalk.blue('(dependency %s): ' + dep.constructor.name),
 							dep.range ? source.substring(dep.range[0], dep.range[1]) : '');
 						if (dep.module)
-							logD.debug(`│    │  │  │  ├─ .module ${chalk.blue(self.simpleModuleId(dep.module))}`);
+							logD.debug(`│    │  │  │  ├─ .module ${chalk.blue(self.moduleFileName(dep.module))}`);
 					});
 				}
 			});
@@ -83,7 +89,7 @@ export default class ChunkInfoPlugin {
 		});
 	}
 
-	simpleModuleId(m: any) {
+	moduleFileName(m: any) {
 		return Path.relative(this.compiler.options.context, (m.identifier() || m.name).split('!').slice().pop());
 	}
 
@@ -98,7 +104,7 @@ export default class ChunkInfoPlugin {
 		log.info('Entrypoint chunk tree:');
 		_.each(compilation.entrypoints, (entrypoint: any, name: string) => {
 			log.info('entrypoint %s', chalk.green(name));
-			_.each(entrypoint.chunks, chunk => log.info('  ├─ %s', chunk.files[0]));
+			_.each(entrypoint.chunks, (chunk: any) => log.info('  ├─ %s', chunk.files[0]));
 		});
 	}
 

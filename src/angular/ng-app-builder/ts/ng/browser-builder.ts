@@ -8,7 +8,7 @@ import {
 import { Path, /*getSystemPath,*/ normalize, resolve, virtualFs } from '@angular-devkit/core';
 import * as fs from 'fs';
 import { Observable, concat, of } from 'rxjs';
-import { concatMap, last, tap } from 'rxjs/operators';
+import { concatMap, last, tap, map } from 'rxjs/operators';
 // import * as ts from 'typescript'; // tslint:disable-line:no-implicit-dependencies
 // import * as webpack from 'webpack';
 const webpack = require('webpack');
@@ -63,7 +63,7 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 		const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<fs.Stats>);
 
 
-		drcpCommon.initDrcp(options.drcpArgs);
+		// let drcpConfig = drcpCommon.initDrcp(options.drcpArgs);
 
 		return of(null).pipe(
 			concatMap(() => options.deleteOutputPath
@@ -74,21 +74,19 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 				options.assets, host, root, projectRoot, builderConfig.sourceRoot)),
 			// Replace the assets in options with the normalized version.
 			tap((assetPatternObjects => options.assets = assetPatternObjects)),
-			concatMap(() => new Observable(obs => {
+			concatMap(() => {
 				// Ensure Build Optimizer is only used with AOT.
 				if (options.buildOptimizer && !options.aot) {
 					throw new Error('The `--build-optimizer` option cannot be used without `--aot`.');
 				}
 
-				let webpackConfig;
-				try {
-					webpackConfig = drcpCommon.changeWebpackConfig(options, this.buildWebpackConfig(root, projectRoot, host,
-						options as NormalizedBrowserBuilderSchema));
-				} catch (e) {
-					obs.error(e);
+				return drcpCommon.compile(options as NormalizedBrowserBuilderSchema, () => {
+					return this.buildWebpackConfig(root, projectRoot, host,
+						options as NormalizedBrowserBuilderSchema);
+				});
+			}),
+			concatMap((webpackConfig: any) => new Observable(obs => {
 
-					return;
-				}
 				const webpackCompiler = webpack(webpackConfig);
 				const statsConfig = getWebpackStatsConfig(options.verbose);
 

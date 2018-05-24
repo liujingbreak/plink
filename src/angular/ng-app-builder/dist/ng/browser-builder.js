@@ -41,24 +41,20 @@ class BrowserBuilder extends build_angular_1.BrowserBuilder {
         const root = this.context.workspace.root;
         const projectRoot = core_1.resolve(root, builderConfig.root);
         const host = new core_1.virtualFs.AliasHost(this.context.host);
-        drcpCommon.initDrcp(options.drcpArgs);
+        // let drcpConfig = drcpCommon.initDrcp(options.drcpArgs);
         return rxjs_1.of(null).pipe(operators_1.concatMap(() => options.deleteOutputPath
             ? this._deleteOutputDir0(root, core_1.normalize(options.outputPath), this.context.host)
             : rxjs_1.of(null)), operators_1.concatMap(() => utils_2.addFileReplacements(root, host, options.fileReplacements)), operators_1.concatMap(() => utils_2.normalizeAssetPatterns(options.assets, host, root, projectRoot, builderConfig.sourceRoot)), 
         // Replace the assets in options with the normalized version.
-        operators_1.tap((assetPatternObjects => options.assets = assetPatternObjects)), operators_1.concatMap(() => new rxjs_1.Observable(obs => {
+        operators_1.tap((assetPatternObjects => options.assets = assetPatternObjects)), operators_1.concatMap(() => {
             // Ensure Build Optimizer is only used with AOT.
             if (options.buildOptimizer && !options.aot) {
                 throw new Error('The `--build-optimizer` option cannot be used without `--aot`.');
             }
-            let webpackConfig;
-            try {
-                webpackConfig = drcpCommon.changeWebpackConfig(options, this.buildWebpackConfig(root, projectRoot, host, options));
-            }
-            catch (e) {
-                obs.error(e);
-                return;
-            }
+            return drcpCommon.compile(options, () => {
+                return this.buildWebpackConfig(root, projectRoot, host, options);
+            });
+        }), operators_1.concatMap((webpackConfig) => new rxjs_1.Observable(obs => {
             const webpackCompiler = webpack(webpackConfig);
             const statsConfig = utils_1.getWebpackStatsConfig(options.verbose);
             const callback = (err, stats) => {

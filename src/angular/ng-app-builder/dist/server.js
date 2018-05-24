@@ -4,6 +4,7 @@ const __api_1 = require("__api");
 const log4js = require("log4js");
 const _ = require("lodash");
 const Path = require("path");
+const config_webpack_1 = require("./config-webpack");
 const fs = require('fs-extra');
 const sysFs = fs;
 // const pify = require('pify');
@@ -11,7 +12,6 @@ const sysFs = fs;
 // const rxPaths = require('rxjs/_esm5/path-mapping');
 const api = __api_1.default;
 const log = log4js.getLogger(api.packageName);
-const webpack = require('webpack');
 // const rl = readline.createInterface({
 // 	input: process.stdin,
 // 	output: process.stdout,
@@ -29,7 +29,8 @@ function compile() {
     if (ngParam) {
         let webpackConfig = ngParam.webpackConfig;
         Object.getPrototypeOf(api).webpackConfig = webpackConfig;
-        mergeWebpackConfig4Ng6(ngParam, webpackConfig);
+        config_webpack_1.default(ngParam, webpackConfig, api.config());
+        // mergeWebpackConfig4Ng6(ngParam, webpackConfig);
         return;
     }
     if (!api.argv.ng)
@@ -313,9 +314,9 @@ function writeTsconfig() {
     return tsConfigPath;
 }
 exports.writeTsconfig = writeTsconfig;
-function mergeWebpackConfig4Ng6(param, webpackConfig) {
-    if (param.builderConfig.options.hmr)
-        webpackConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
-}
+// function mergeWebpackConfig4Ng6(param: AngularCliParam, webpackConfig: any) {
+// 	if (param.builderConfig.options.hmr)
+// 		webpackConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
+// }
 
 //# sourceMappingURL=server.js.map

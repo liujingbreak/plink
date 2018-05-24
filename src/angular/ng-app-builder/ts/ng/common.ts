@@ -10,7 +10,7 @@ import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
 import {NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
 import * as Rx from 'rxjs';
 
-export function initDrcp(drcpArgs: any) {
+function initDrcp(drcpArgs: any) {
 	var config = require('dr-comp-package/wfh/lib/config');
 	if (Array.isArray(drcpArgs.c)) {
 		config.load(drcpArgs.c);
@@ -22,9 +22,9 @@ export function initDrcp(drcpArgs: any) {
 export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
 
 export interface AngularCliParam {
-	builderConfig: BuilderConfiguration<DevServerBuilderOptions>;
+	builderConfig?: BuilderConfiguration<DevServerBuilderOptions>;
 	// buildWebpackConfig: buildWebpackConfigFunc;
-	browserOptions: NormalizedBrowserBuilderSchema;
+	browserOptions: NormalizedBrowserBuilderSchema & DrcpBuilderOptions;
 	webpackConfig: any;
 	argv: any;
 }
@@ -44,9 +44,8 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 	return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
 		let param: AngularCliParam = {
 			builderConfig,
-			browserOptions,
-			webpackConfig: changeWebpackConfig(((browserOptions as any) as DrcpBuilderOptions),
-				buildWebpackConfig(browserOptions)),
+			browserOptions: browserOptions as any as NormalizedBrowserBuilderSchema & DrcpBuilderOptions,
+			webpackConfig: buildWebpackConfig(browserOptions),
 			argv: {
 				poll: options.poll,
 				hmr: options.hmr,
@@ -80,7 +79,7 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 				}
 			});
 			(process as any)._config = config;
-			pkMgr.runServer(options.drcpArgs)
+			pkMgr.runServer(param.argv)
 			.catch((err: Error) => {
 				console.error('Failed to start server:', err);
 				// process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.
@@ -93,20 +92,31 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 	});
 }
 
-import ChunkInfoPlugin from '../plugins/chunk-info';
-
-export function changeWebpackConfig(options: DrcpBuilderOptions, webpackConfig: any): any {
-	// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-	console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
-	if (options.drcpArgs.report ||(options.drcpArgs.openReport)) {
-		// webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
-		// 	analyzerMode: 'static',
-		// 	reportFilename: 'bundle-report.html',
-		// 	openAnalyzer: options.drcpArgs.openReport
-		// }));
-		webpackConfig.plugins.unshift(
-			new ChunkInfoPlugin()
-		);
-	}
-	return webpackConfig;
+export function compile(browserOptions: NormalizedBrowserBuilderSchema,
+	buildWebpackConfig: buildWebpackConfigFunc) {
+	return new Rx.Observable((obs: any) => {
+		compileAsync(browserOptions, buildWebpackConfig).then((webpackConfig: any) => {
+			obs.next(webpackConfig);
+			obs.complete();
+		});
+	});
 }
+
+function compileAsync(browserOptions: NormalizedBrowserBuilderSchema,
+	buildWebpackConfig: buildWebpackConfigFunc) {
+	let options = browserOptions as (NormalizedBrowserBuilderSchema & DrcpBuilderOptions);
+	let config = initDrcp(options.drcpArgs);
+	let param: AngularCliParam = {
+		browserOptions: options,
+		webpackConfig: buildWebpackConfig(browserOptions),
+		argv: {
+			poll: options.poll,
+			...options.drcpArgs
+		}
+	};
+	config.set('_angularCli', param);
+	return require('dr-comp-package/wfh/lib/packageMgr/packageRunner').runBuilder(param.argv)
+	.then(() => param.webpackConfig);
+}
+
+

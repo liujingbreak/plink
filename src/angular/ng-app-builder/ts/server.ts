@@ -8,6 +8,7 @@ import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
 // import postcssPlugins from './postcss';
 import * as express from 'express';
 import {AngularCliParam} from './ng/common';
+import configWebpack from './config-webpack';
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
@@ -16,7 +17,6 @@ const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
 // const rxPaths = require('rxjs/_esm5/path-mapping');
 const api = __api as Webpack2BuilderApi;
 const log = log4js.getLogger(api.packageName);
-const webpack = require('webpack');
 // const rl = readline.createInterface({
 // 	input: process.stdin,
 // 	output: process.stdout,
@@ -36,7 +36,8 @@ export function compile() {
 	if (ngParam) {
 		let webpackConfig = ngParam.webpackConfig;
 		Object.getPrototypeOf(api).webpackConfig = webpackConfig;
-		mergeWebpackConfig4Ng6(ngParam, webpackConfig);
+		configWebpack(ngParam, webpackConfig, api.config());
+		// mergeWebpackConfig4Ng6(ngParam, webpackConfig);
 		return;
 	}
 	if (!api.argv.ng)
@@ -322,9 +323,9 @@ export function writeTsconfig(): string {
 	return tsConfigPath;
 }
 
-function mergeWebpackConfig4Ng6(param: AngularCliParam, webpackConfig: any) {
-	if (param.builderConfig.options.hmr)
-		webpackConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
-}
+// function mergeWebpackConfig4Ng6(param: AngularCliParam, webpackConfig: any) {
+// 	if (param.builderConfig.options.hmr)
+// 		webpackConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
+// }
 
 
