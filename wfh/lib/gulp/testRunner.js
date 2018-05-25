@@ -8,8 +8,7 @@ var chalk = require('chalk');
 var config = require('../config');
 var Package = require('../packageMgr/packageNodeInstance');
 var NodeApi = require('../nodeApi');
-var rj = require('../injectorFactory');
-var injector = rj(require.resolve);
+var {nodeInjector} = require('../injectorFactory');
 require('../logConfig')(config().rootPath);
 
 exports.runUnitTest = runUnitTest;
@@ -63,9 +62,8 @@ function runUnitTest(argv) {
 			path: packagePath,
 			priority: json.dr ? json.dr.builderPriority : null
 		});
-		injector.fromPackage(name, packagePath)
-			.value('__injectorFactory', rj)
-			.value('__injector', injector)
+		nodeInjector.fromPackage(name, packagePath)
+			.value('__injector', nodeInjector)
 			.factory('__api', function() {
 				return getApiForPackage(pkInstance);
 			});
@@ -85,8 +83,7 @@ function runUnitTest(argv) {
 }
 
 function runE2eTest(argv) {
-	var rj = require('../injectorFactory');
-	var injector = rj(require.resolve);
+	var injector = require('../injectorFactory').nodeInjector;
 	var factoryMap = injector.fromDir(Path.resolve(config().rootPath, 'e2etest'));
 	factoryMap.value('__injector', injector);
 	factoryMap.value('__config', config);

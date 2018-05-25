@@ -17,8 +17,8 @@ module.exports = function(content) {
 		if (!this.emitFile) throw new Error('emitFile is required from module system');
 
 		var query = loaderUtils.getOptions(this) || {};
-		var configKey = query.config || 'fileLoader';
-		var options = this.options[configKey] || {};
+		// var configKey = query.config || 'fileLoader';
+		// var options = this.options[configKey] || {};
 		var config = {
 			publicPath: false,
 			useRelativePath: false,
@@ -26,16 +26,16 @@ module.exports = function(content) {
 		};
 
 		// options takes precedence over config
-		Object.keys(options).forEach(function(attr) {
-			config[attr] = options[attr];
-		});
+		// Object.keys(options).forEach(function(attr) {
+		// 	config[attr] = options[attr];
+		// });
 
 		// query takes precedence over config and options
 		Object.keys(query).forEach(function(attr) {
 			config[attr] = query[attr];
 		});
 
-		var context = config.context || this.options.context;
+		var context = config.context || this.rootContext;
 		var url = loaderUtils.interpolateName(this, config.name, {
 			context,
 			content,
@@ -44,12 +44,12 @@ module.exports = function(content) {
 
 		var filePath = this.resourcePath;
 		var browserPackage = api.findPackageByFile(filePath);
-		if (browserPackage) {
-			let outputPath = _.trimStart(api.config.get(['outputPathMap', browserPackage.longName]), '/');
-			outputPath = path.join(outputPath, path.dirname(path.relative(_.get(this, 'options.resolve.symlinks') ? browserPackage.realPackagePath : browserPackage.packagePath, filePath)));
-			url = path.join(outputPath, url.split('/').pop()); // only file name part
-		} else
-			url = url.replace(/(^|\/)node_modules(\/|$)/g, '$1n-m$2').replace(/@/g, 'a');
+		// if (browserPackage) {
+		let outputPath = _.trimStart(api.config.get(['outputPathMap', browserPackage.longName]), '/');
+		outputPath = path.join(outputPath, path.dirname(path.relative(_.get(this, 'options.resolve.symlinks') ? browserPackage.realPackagePath : browserPackage.packagePath, filePath)));
+		url = path.join(outputPath, url.split('/').pop()); // only file name part
+		// } else
+		url = url.replace(/(^|\/)node_modules(\/|$)/g, '$1n-m$2').replace(/@/g, 'a');
 		// var outputPath = '';
 		// if (config.useRelativePath) {
 		// 	var issuerContext = this._module && this._module.issuer && this._module.issuer.context || context;

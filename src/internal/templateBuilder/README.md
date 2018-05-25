@@ -1,9 +1,14 @@
 Template Builder
 =========
 
-- [Compile template in server side in compilation phase. (vs Server side runtime rendering)](#compile-template-in-server-side-in-compilation-phase-vs-server-side-runtime-rendering)
-- [Which kind of files will be considered as templates](#which-kind-of-files-will-be-considered-as-templates)
-- [Ouput multiple files](#ouput-multiple-files) (New!)
+- [Template Builder](#template-builder)
+		- [Compile template in server side in compilation phase. (vs Server side runtime rendering)](#compile-template-in-server-side-in-compilation-phase-vs-server-side-runtime-rendering)
+	- [Setup package.json](#setup-packagejson)
+	- [Set Local variables for template file](#set-local-variables-for-template-file)
+	- [Which kind of files will be considered as templates](#which-kind-of-files-will-be-considered-as-templates)
+	- [Global predefined Swig variable and utility function](#global-predefined-swig-variable-and-utility-function)
+	- [Ouput multiple files](#ouput-multiple-files)
+	- [Configure Swig](#configure-swig)
 
 > We replaced swig with [swig-templates](https://www.npmjs.com/package/swig-templates) as its successor.
 
@@ -24,20 +29,17 @@ package.json
 ```json
 {
 	...
-	"browser": "browser.js",
-	"main": "server.js"
+	"main": "dist/server.js"
 }
 ```
-Not matter what content `browser.js` has, it could be empty file, but the file must exist,
-so that Browserify builder can consider this package as compile target.
 
 Set Local variables for template file
 -----------
 Under the hood, there is a *Swig* template engine runs as a Browserify transform.
 
-Your package's main node entry JS file `server.js`
+Your package's main node entry JS file `server.js` or `server.ts`
 ```js
-exports.onCompileTemplate = function(relativeHtmlFilePath, swig) {
+export fucntion onCompileTemplate(relativeHtmlFilePath, swig): any {
 	var locals = getLocalVariablesForFile(relativeHtmlFilePath);
 	return locals ? { locals: locals } : null;
 	// return null has same effect as returning {locals: {}}

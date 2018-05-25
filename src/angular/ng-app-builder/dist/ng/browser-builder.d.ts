@@ -1,3 +1,4 @@
+import './node-inject';
 import { BuildEvent, BuilderConfiguration } from '@angular-devkit/architect';
 import { Observable } from 'rxjs';
 import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';

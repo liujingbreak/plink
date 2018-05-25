@@ -1,4 +1,5 @@
 /* tslint:disable max-line-length */
+import './node-inject';
 import {
 		BuildEvent,
 		// Builder,
@@ -61,7 +62,6 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 		const root = this.context.workspace.root;
 		const projectRoot = resolve(root, builderConfig.root);
 		const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<fs.Stats>);
-
 
 		// let drcpConfig = drcpCommon.initDrcp(options.drcpArgs);
 

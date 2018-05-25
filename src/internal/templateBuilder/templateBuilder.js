@@ -33,11 +33,10 @@ exports.activate = function() {
 
 function _setupSwig() {
 	swigInjectLoader.swigSetup(swig, {
-		injector: injector,
-		fileContentHandler: function(file, source) {
+		injector,
+		fileContentHandler(file, source) {
 			fileHandler.onFile(file);
 			return source;
-			//return translateHtml(source, file, api.getBuildLocale());
 		}
 	});
 }
@@ -103,32 +102,3 @@ function renderFile(filePath, fromFile, swigOptions, cb) {
 	return template(swigOptions.locals);
 }
 
-/**
- * @Deprecated
- * [preParseTemplate description]
- * @param  {string} str            template content
- * @param  {function} replaceHandler function(toReplacePath, templatePath)
- * @return {string}                new template content
- */
-// function preParseTemplate(templatePath, str, replaceHandler) {
-// 	parser.lexer.options.ranges = true;
-// 	var nodes = parser.parse(str);
-// 	var textPatches = [];
-// 	nodes.forEach(node => {
-// 		if (node.name === 'include' || node.name === 'import') {
-// 			var value = node.attr.value;
-// 			value = (_.startsWith(value, '"') || _.startsWith(value, '\'')) ?
-// 				value.substring(1, value.length - 1) : value;
-// 			var replaced = replaceHandler(value, templatePath);
-// 			if (replaced !== undefined && replaced !== null) {
-// 				textPatches.push({
-// 					start: node.attr.loc.range[0],
-// 					end: node.attr.loc.range[1],
-// 					replacement: '"' + replaced + '"'
-// 				});
-// 				log.debug('line: ', node.loc.lineno, ' replace ', node.name, ' file path ', node.attr.value, ' to ', replaced);
-// 			}
-// 		}
-// 	});
-// 	return patchText(str, textPatches);
-// }

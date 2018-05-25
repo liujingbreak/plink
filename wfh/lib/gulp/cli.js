@@ -239,8 +239,8 @@ function ls(_argv) {
 	require('../logConfig')(config().rootPath);
 	// require('log4js').getLogger('lib.injector').setLevel('warn');
 	// require('log4js').getLogger('packagePriorityHelper').setLevel('warn');
-	var rj = require('../injectorFactory');
-	var injector = rj(require.resolve);
+	var {nodeInjector} = require('../injectorFactory');
+	var injector = nodeInjector;
 	injector.fromPackage('@dr-core/build-util')
 		.factory('__api', function() {
 			return {compileNodePath: [config().nodePath]};

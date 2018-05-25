@@ -1,5 +1,4 @@
 /* tslint:disable no-console */
-
 import {
 	BuildEvent,
 	// Builder,
@@ -118,5 +117,3 @@ function compileAsync(browserOptions: NormalizedBrowserBuilderSchema,
 	return require('dr-comp-package/wfh/lib/packageMgr/packageRunner').runBuilder(param.argv)
 	.then(() => param.webpackConfig);
 }
-
-

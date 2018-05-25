@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+require("./node-inject");
 const build_angular_1 = require("@angular-devkit/build-angular");
 const core_1 = require("@angular-devkit/core");
 const check_port_1 = require("@angular-devkit/build-angular/src/angular-cli-files/utilities/check-port");

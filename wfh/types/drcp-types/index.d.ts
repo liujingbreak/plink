@@ -1,7 +1,6 @@
 /* tslint:disable:class-name */
 
 declare var __api: any;
-
 declare module '__api' {
 	import NodePackage from 'dr-comp-package/wfh/dist/packageNodeInstance';
 	import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
@@ -49,15 +48,32 @@ declare module '__api' {
 	var api: DrcpApi;
 	export default api;
 }
-declare module '__injector';
-declare module '__injectorFactory';
 
+
+interface ComponentInjector {
+	addPackage(name: string, dir: string): void;
+	fromComponent(name: string, dir: string): ComponentInjector;
+	fromPackage(name: string, dir: string): ComponentInjector;
+	fromAllPackages(): ComponentInjector;
+	notFromPackages(): ComponentInjector;
+	readInjectFile(): void;
+}
+declare module '__injectorFactory' {
+	export let nodeInjector: ComponentInjector;
+	export let webInjector: ComponentInjector;
+}
+
+declare module '__injector' {
+	let a: ComponentInjector;
+	export = a;
+}
+declare type RawSourceMap = any;
 // declare function require(name: string): any;
 declare interface require {
 	ensure(names: string[]): any;
 }
 declare function drTranslate(key: string): string;
-
+declare type Position = any;
 // Workaround @angular-devkit issue
 // /Users/liujing/bk/my-app/node_modules/@angular-devkit/build-angular/src/browser/schema.d.ts(52,21): error TS2304: Cannot find name 'FileReplacements'.
 // /Users/liujing/bk/my-app/node_modules/@angular-devkit/build-angular/src/server/schema.d.ts(75,21): error TS2304: Cannot find name 'FileReplacements'.

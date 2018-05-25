@@ -1,5 +1,4 @@
 "use strict";
-/* tslint:disable no-console */
 Object.defineProperty(exports, "__esModule", { value: true });
 const Rx = require("rxjs");
 function initDrcp(drcpArgs) {

@@ -1,3 +1,4 @@
+import './node-inject';
 import {DevServerBuilder, DevServerBuilderOptions} from '@angular-devkit/build-angular';
 import {
 	BuildEvent,

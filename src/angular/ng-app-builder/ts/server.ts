@@ -327,5 +327,3 @@ export function writeTsconfig(): string {
 // 	if (param.builderConfig.options.hmr)
 // 		webpackConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
 // }
-
-

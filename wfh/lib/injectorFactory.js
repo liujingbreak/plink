@@ -5,7 +5,10 @@ var _ = require('lodash');
 var fs = require('fs');
 var Path = require('path');
 
-module.exports = function(resolve, noNode) {
+exports.nodeInjector = createInjector(require.resolve);
+exports.webInjector = createInjector(null, true);
+
+function createInjector(resolve, noNode) {
 	var injector = rj({
 		basedir: config().rootPath,
 		resolve,
@@ -19,7 +22,7 @@ module.exports = function(resolve, noNode) {
 
 	monkeyPatchRequireInjector(injector, ComponentInjector.prototype);
 	return new ComponentInjector();
-};
+}
 
 var packageNamePathMap = {};
 

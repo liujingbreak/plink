@@ -6,11 +6,10 @@ var priorityHelper = require('./packagePriorityHelper');
 var LRU = require('lru-cache');
 var _ = require('lodash');
 var log = require('log4js').getLogger('wfh.packageMgr.packageRunnerHelper');
-var rj = require('../injectorFactory');
+var {webInjector, nodeInjector} = require('../injectorFactory');
 var Promise = require('bluebird');
 var http = require('http');
 var fs = require('fs');
-var nodeInjector = rj(require.resolve);
 
 exports.sendlivereload = sendlivereload;
 exports.runBuilderComponents = runBuilderComponents;
@@ -141,7 +140,6 @@ function initWebInjector(packageInfo, apiPrototype) {
 	if (initialized)
 		return;
 	initialized = true;
-	var webInjector = rj(null, true);
 	_.each(packageInfo.allModules, pack => {
 		if (pack.dr) {
 			// no vendor package's path information
@@ -174,7 +172,6 @@ function traversePackages(needInject) {
 function setupNodeInjectorFor(pkInstance, name, packagePath) {
 	log.debug('setupNodeInjectorFor %s resolved to: %s', name, packagePath);
 	nodeInjector.fromPackage(name, packagePath)
-	.value('__injectorFactory', rj)
 	.value('__injector', nodeInjector)
 	.factory('__api', function() {
 		return getApiForPackage(pkInstance);
