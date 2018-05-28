@@ -49,7 +49,7 @@ function changeLoaders(webpackConfig: any) {
 				use: [
 					{loader: 'raw-loader'},
 					// {loader: 'html-loader', options: {attrs: 'img:src'}},
-					// {loader: 'lib/html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
+					{loader: 'lib/html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
 					// {loader: '@dr/translate-generator'},
 					{loader: '@dr/template-builder'}
 				]
