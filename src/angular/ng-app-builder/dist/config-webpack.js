@@ -27,7 +27,6 @@ function changeWebpackConfig(param, webpackConfig, drcpConfig) {
         webpackConfig.plugins.push(new gzip_size_1.default());
     }
     changeLoaders(webpackConfig);
-    console.log('--------- Webpack configure -----------');
     fs.writeFileSync('dist/ng-webpack-config.js', printConfig(webpackConfig));
     console.log('If you are wondering what kind of Webapck config file is used internally, checkout dist/ng-webpack-config.js');
     return webpackConfig;
