@@ -1,67 +1,93 @@
 /* tslint:disable max-classes-per-file */
-// enum TokenType {
-// 	EOF = -1,
-// 	comments,
-// 	openTag,
-// 	closeTag,
-// 	identity,
-// 	stringLiteral
-// }
-
-const EOF: null = null;
-
-export interface Input<T> {
-	at(index: number): T;
+export enum TokenType {
+	comments,
+	openTag,
+	closeTag,
+	identity,
+	stringLiteral
 }
 
-export abstract class LookaheadQ<T> {
-	inputPos = -1;
+export class LookAhead<T, S extends Iterable<T>> {
+	currPos = -1;
 	cached: T[];
+	sourceIterator: Iterator<T>;
+	isString: boolean;
 
-	constructor() {}
+	constructor(source: S) {
+		this.isString = typeof source === 'string';
+		this.cached = [];
+		this.sourceIterator = source[Symbol.iterator]();
+	}
 
-	la(count: number): T {
-		let laIndex = this.inputPos + count;
-		if (this.cached.length > laIndex) {
-			return this.cached[laIndex];
+	la(num = 1): T {
+		let readPos = this.currPos + num;
+		return this.read(readPos);
+	}
+
+	advance(count = 1): T {
+		let current;
+		for (let i = 0; i < count; i++) {
+			current = this.la(1);
+			this.currPos++;
 		}
-		while (this.cached.length <= laIndex) {
-			let next = this.fetch();
-			this.cached.push(next);
-			if (next === EOF)
-				break;
+		return current;
+	}
+
+	isNext(...values: T[]): boolean {
+		let compareTo: T[]| string;
+		if (this.isString) {
+			compareTo = values.join('');
+		} else
+			compareTo = values;
+		let i = 0, l = compareTo.length;
+		let next = this.la(i + 1);
+		while (true) {
+			if (i === l)
+				return true;
+			next = this.la(i + 1);
+			if (next == null)
+				return false; // EOF
+			else if (next !== compareTo[i])
+				return false;
+			i++;
 		}
 	}
 
-	next(): T {
-		if (this.cached[this.inputPos] !== EOF) {
-			return this.cached[this.inputPos++];
+	private read(pos: number): T {
+		while (this.cached.length <= pos) {
+			let next = this.sourceIterator.next();
+			if (next.done)
+				return null;
+			this.cached.push(next.value);
 		}
+		return this.cached[pos];
 	}
-
-	isNext(...compare: T[]): boolean {
-		var index = 1;
-		while(true) {
-			if (this.la(index) !== compare[index - 1])
-				return;
-		}
-	}
-
-	abstract fetch(): T;
 }
 
-// class Lexer extends LookaheadQ<string> {
+export class BaseLexer extends LookAhead<string, string> implements Iterable<TokenType> {
+	current: TokenType;
 
-// 	constructor(protected source: string) {
-// 		super();
-// 		this.cached = source as any;
-// 	}
+	constructor(source: string) {
+		super(source);
+	}
 
-// 	fetch(): string {
-// 		return this.source[this.inputPos];
-// 	}
+	*[Symbol.iterator](): Iterator<TokenType> {
 
-// }
+	}
+
+	isComment() {
+		if(this.isNext('<!--')) {
+			this.advance(4);
+			while(!this.isNext('-->')) {
+				if (this.la() == null)
+					throw new Error('Comment is not closed');
+				this.advance();
+			}
+			return true;
+		}
+		return false;
+	}
+}
 
 
 
@@ -72,7 +98,7 @@ export abstract class LookaheadQ<T> {
 // 	}
 
 // 	fetch(): TokenType {
-// 		return this.lexer[this.inputPos];
+// 		return this.lexer[this.currPos];
 // 	}
 // }
 

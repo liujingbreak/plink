@@ -68,17 +68,17 @@ function runUnitTest(argv) {
 				return getApiForPackage(pkInstance);
 			});
 		// inject end
-		if (!fs.existsSync(Path.join(packagePath, 'spec'))) {
+		if (!fs.existsSync(Path.join(packagePath, 'spec')) && !fs.existsSync(Path.join(packagePath, 'dist', 'spec'))) {
 			return;
 		}
 		log.info('Found test for package: ' + name);
-		var relativePkPath = Path.relative(Path.resolve(), packagePath);
+		var relativePkPath = Path.relative(Path.resolve(), packagePath).replace(/\\/g, '/');
 		jasmineSetting.spec_files.push(
-			relativePkPath.replace(/\\/g, '/') + '/spec/**/*[sS]pec.js',
-			relativePkPath.replace(/\\/g, '/') + '/dist/spec/**/*[sS]pec.js');
-		jasmineSetting.helpers.push(relativePkPath.replace(/\\/g, '/') + '/spec/helpers/**/*[sS]pec.js');
+			relativePkPath + '/spec/**/*[sS]pec.js',
+			relativePkPath + '/dist/spec/**/*[sS]pec.js');
+		jasmineSetting.helpers.push(relativePkPath + '/spec/helpers/**/*[sS]pec.js');
 	}, 'src');
-	log.debug(jasmineSetting.spec_files);
+	// log.info(jasmineSetting.spec_files);
 	return runJasmine(jasmineSetting);
 }
 
