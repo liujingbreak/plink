@@ -10,6 +10,7 @@ const through = require('through2');
 const chokidar = require('chokidar');
 const merge = require('merge2');
 const sourcemaps = require('gulp-sourcemaps');
+// const mapSources = require('@gulp-sourcemaps/map-sources');
 var config = require('../config');
 var SEP = Path.sep;
 
@@ -122,7 +123,6 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 	return new Promise((resolve, reject) => {
 		var tsResult = gulp.src(compGlobs)
 		.pipe(sourcemaps.init())
-		// var tsResult = merge(compStream)
 		.pipe(through.obj(function(file, en, next) {
 			file.base = gulpBase;
 			next(null, file);
@@ -132,7 +132,16 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 
 		var jsStream = tsResult.js
 		.pipe(changePath())
-		.pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.', {includeContent: false, sourceRoot: ''}));
+		.pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.', {includeContent: false, sourceRoot: ''}))
+		.pipe(through.obj(function(file, en, next) {
+			if (file.extname === '.map') {
+				var sm = JSON.parse(file.contents.toString());
+				sm.sources =
+					sm.sources.map( spath => Path.relative(file.base, fs.realpathSync(spath)));
+				file.contents = Buffer.from(JSON.stringify(sm), 'utf8');
+			}
+			next(null, file);
+		}));
 
 		var all = merge([jsStream, tsResult.dts.pipe(changePath())])
 		.pipe(through.obj(function(file, en, next) {

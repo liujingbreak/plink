@@ -29,6 +29,8 @@ function compile() {
     if (ngParam) {
         let webpackConfig = ngParam.webpackConfig;
         Object.getPrototypeOf(api).webpackConfig = webpackConfig;
+        // log.warn(ngParam.builderConfig.root);
+        // api.config.set(['outputPathMap']);
         config_webpack_1.default(ngParam, webpackConfig, api.config());
         // mergeWebpackConfig4Ng6(ngParam, webpackConfig);
         return;

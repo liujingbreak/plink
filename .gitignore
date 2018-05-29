@@ -12,3 +12,4 @@ node_modules
 /.eslintrc.json
 /tslint.json
 /dr.backup.package.json
+**/*.js.map

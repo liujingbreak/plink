@@ -46,45 +46,17 @@ module.exports = function(content) {
 		var browserPackage = api.findPackageByFile(filePath);
 		// if (browserPackage) {
 		let outputPath = _.trimStart(api.config.get(['outputPathMap', browserPackage.longName]), '/');
-		outputPath = path.join(outputPath, path.dirname(path.relative(_.get(this, 'options.resolve.symlinks') ? browserPackage.realPackagePath : browserPackage.packagePath, filePath)));
+		outputPath = path.join(outputPath, path.dirname(path.relative(_.get(this, '_compiler.options.resolve.symlinks') ? browserPackage.realPackagePath : browserPackage.packagePath, filePath)));
 		url = path.join(outputPath, url.split('/').pop()); // only file name part
 		// } else
 		url = url.replace(/(^|\/)node_modules(\/|$)/g, '$1n-m$2').replace(/@/g, 'a');
-		// var outputPath = '';
-		// if (config.useRelativePath) {
-		// 	var issuerContext = this._module && this._module.issuer && this._module.issuer.context || context;
-		// 	var relativeUrl = issuerContext && path.relative(issuerContext, filePath).split(path.sep).join('/');
-		// 	var relativePath = relativeUrl && path.dirname(relativeUrl) + '/';
-		// 	if (~relativePath.indexOf('../')) {
-		// 		outputPath = path.posix.join(outputPath, relativePath, url);
-		// 	} else {
-		// 		outputPath = relativePath + url;
-		// 	}
-		// 	url = relativePath + url;
-		// } else if (config.outputPath) {
-		// 	// support functions as outputPath to generate them dynamically
-		// 	outputPath = (
-		// 		typeof config.outputPath === 'function' ? config.outputPath(url)
-		// 		: config.outputPath + url
-		// 	);
-		// 	url = outputPath;
-		// } else {
-		// 	outputPath = url;
-		// }
 
 		var publicPath = '__webpack_public_path__ + ' + JSON.stringify(url);
-		// if (config.publicPath) {
-		// 	// support functions as publicPath to generate them dynamically
-		// 	publicPath = JSON.stringify(
-		// 		typeof config.publicPath === 'function' ? config.publicPath(url)
-		// 		: config.publicPath + url
-		// 	);
-		// }
 
 		if (query.emitFile === undefined || query.emitFile) {
 			this.emitFile(url, content);
 		}
-		log.debug(publicPath);
+		log.warn(publicPath);
 		callback(null, 'module.exports = ' + publicPath + ';');
 	} catch (e) {
 		callback(e);

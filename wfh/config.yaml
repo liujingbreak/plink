@@ -36,6 +36,8 @@ cacheControlMaxAge:
     woff2: '365 days'
 
 packageScopes:
+  - bk
+  - bk-core
   - dr
   - dr-core
   - dr-types
@@ -275,6 +277,8 @@ outputPathMap:
 installedRecipes:
     - ^@dr/.*?-recipe$
     - ^@dr/recipe-.*?$
+    - ^@bk/.*?-recipe$
+    - ^@bk/recipe-.*?$
 
 gulp:
     watchTimeout: 12000 # gulp watch on change which triggers `gulp compile` with a timeout check

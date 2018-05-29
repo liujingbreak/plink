@@ -35,7 +35,7 @@ exports.default = changeWebpackConfig;
 function changeLoaders(webpackConfig) {
     let devMode = webpackConfig.mode === 'development';
     webpackConfig.resolveLoader = {
-        modules: [Path.dirname(require.resolve('@dr-core/webpack2-builder/package.json')), 'node_modules']
+        modules: ['node_modules']
     };
     webpackConfig.module.rules.forEach((rule) => {
         let test = rule.test;
@@ -45,8 +45,7 @@ function changeLoaders(webpackConfig) {
                 test,
                 use: [
                     { loader: 'raw-loader' },
-                    // {loader: 'html-loader', options: {attrs: 'img:src'}},
-                    { loader: 'lib/html-loader' },
+                    { loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader') },
                     // {loader: '@dr/translate-generator'},
                     { loader: '@dr/template-builder' }
                 ]
@@ -66,7 +65,8 @@ function changeLoaders(webpackConfig) {
                 use: [{
                         loader: 'url-loader',
                         options: {
-                            limit: !devMode ? 10000 : 1 // <10k ,use base64 format, dev mode only use url for speed
+                            limit: !devMode ? 10000 : 1,
+                            fallback: '@dr-core/webpack2-builder/lib/dr-file-loader'
                         }
                     }
                 ]
@@ -77,16 +77,16 @@ function changeLoaders(webpackConfig) {
         test: /\.jade$/,
         use: [
             { loader: 'html-loader', options: { attrs: 'img:src' } },
-            { loader: 'lib/html-loader' },
+            { loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader') },
             // {loader: '@dr/translate-generator'},
-            { loader: 'lib/jade-to-html-loader' }
+            { loader: '@dr-core/webpack2-builder/lib/jade-to-html-loader' }
         ]
     }, {
         test: /\.md$/,
         use: [
             { loader: 'html-loader', options: { attrs: 'img:src' } },
-            { loader: 'lib/html-loader' },
-            { loader: 'lib/markdown-loader' }
+            { loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader') },
+            { loader: '@dr-core/webpack2-builder/lib/markdown-loader' }
         ]
     }, {
         test: /\.txt$/,
