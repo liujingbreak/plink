@@ -25,6 +25,7 @@ export interface AngularCliParam {
 	// buildWebpackConfig: buildWebpackConfigFunc;
 	browserOptions: NormalizedBrowserBuilderSchema & DrcpBuilderOptions;
 	webpackConfig: any;
+	projectRoot: string;
 	argv: any;
 }
 
@@ -32,7 +33,7 @@ export interface DrcpBuilderOptions {
 	drcpArgs: any;
 }
 
-export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBuilderOptions>,
+export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfiguration<DevServerBuilderOptions>,
 	browserOptions: NormalizedBrowserBuilderSchema,
 	buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent> {
 	// let argv: any = {};
@@ -45,6 +46,7 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 			builderConfig,
 			browserOptions: browserOptions as any as NormalizedBrowserBuilderSchema & DrcpBuilderOptions,
 			webpackConfig: buildWebpackConfig(browserOptions),
+			projectRoot,
 			argv: {
 				poll: options.poll,
 				hmr: options.hmr,
@@ -91,23 +93,24 @@ export function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBui
 	});
 }
 
-export function compile(browserOptions: NormalizedBrowserBuilderSchema,
+export function compile(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema,
 	buildWebpackConfig: buildWebpackConfigFunc) {
 	return new Rx.Observable((obs: any) => {
-		compileAsync(browserOptions, buildWebpackConfig).then((webpackConfig: any) => {
+		compileAsync(projectRoot, browserOptions, buildWebpackConfig).then((webpackConfig: any) => {
 			obs.next(webpackConfig);
 			obs.complete();
 		});
 	});
 }
 
-function compileAsync(browserOptions: NormalizedBrowserBuilderSchema,
+function compileAsync(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema,
 	buildWebpackConfig: buildWebpackConfigFunc) {
 	let options = browserOptions as (NormalizedBrowserBuilderSchema & DrcpBuilderOptions);
 	let config = initDrcp(options.drcpArgs);
 	let param: AngularCliParam = {
 		browserOptions: options,
 		webpackConfig: buildWebpackConfig(browserOptions),
+		projectRoot,
 		argv: {
 			poll: options.poll,
 			...options.drcpArgs

@@ -109,7 +109,7 @@ export default class DrcpDevServer extends DevServerBuilder {
 				obs.complete();
 			})),
 			concatMap((buildWebpackConfig) => {
-				return common.startDrcpServer(builderConfig, browserOptions as NormalizedBrowserBuilderSchema,
+				return common.startDrcpServer(projectRoot, builderConfig, browserOptions as NormalizedBrowserBuilderSchema,
 					buildWebpackConfig);
 			}),
 			tap((msg: BuildEvent) => console.log)

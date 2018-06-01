@@ -9,7 +9,7 @@ function initDrcp(drcpArgs) {
     require('dr-comp-package/wfh/lib/logConfig')(config().rootPath, config().log4jsReloadSeconds);
     return config;
 }
-function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
+function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpackConfig) {
     // let argv: any = {};
     let options = builderConfig.options;
     let config = initDrcp(options.drcpArgs);
@@ -18,6 +18,7 @@ function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
             builderConfig,
             browserOptions: browserOptions,
             webpackConfig: buildWebpackConfig(browserOptions),
+            projectRoot,
             argv: Object.assign({ poll: options.poll, hmr: options.hmr }, options.drcpArgs)
         };
         config.set('_angularCli', param);
@@ -59,21 +60,22 @@ function startDrcpServer(builderConfig, browserOptions, buildWebpackConfig) {
     });
 }
 exports.startDrcpServer = startDrcpServer;
-function compile(browserOptions, buildWebpackConfig) {
+function compile(projectRoot, browserOptions, buildWebpackConfig) {
     return new Rx.Observable((obs) => {
-        compileAsync(browserOptions, buildWebpackConfig).then((webpackConfig) => {
+        compileAsync(projectRoot, browserOptions, buildWebpackConfig).then((webpackConfig) => {
             obs.next(webpackConfig);
             obs.complete();
         });
     });
 }
 exports.compile = compile;
-function compileAsync(browserOptions, buildWebpackConfig) {
+function compileAsync(projectRoot, browserOptions, buildWebpackConfig) {
     let options = browserOptions;
     let config = initDrcp(options.drcpArgs);
     let param = {
         browserOptions: options,
         webpackConfig: buildWebpackConfig(browserOptions),
+        projectRoot,
         argv: Object.assign({ poll: options.poll }, options.drcpArgs)
     };
     config.set('_angularCli', param);

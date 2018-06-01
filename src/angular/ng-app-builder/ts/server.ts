@@ -36,10 +36,9 @@ export function compile() {
 	if (ngParam) {
 		let webpackConfig = ngParam.webpackConfig;
 		Object.getPrototypeOf(api).webpackConfig = webpackConfig;
-		// log.warn(ngParam.builderConfig.root);
-		// api.config.set(['outputPathMap']);
+		let component = api.findPackageByFile(ngParam.projectRoot);
+		api.config.set(['outputPathMap', component.longName], '/');
 		configWebpack(ngParam, webpackConfig, api.config());
-		// mergeWebpackConfig4Ng6(ngParam, webpackConfig);
 		return;
 	}
 	if (!api.argv.ng)

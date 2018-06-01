@@ -4,6 +4,7 @@ import * as postcss from 'postcss';
 import * as url from 'url';
 import * as webpack from 'webpack';
 import {DrcpApi} from '__api';
+// import * as _ from 'lodash';
 import * as Path from 'path';
 const log = require('log4js').getLogger('postcss-cli-resource');
 
@@ -73,6 +74,7 @@ export default postcss.plugin('postcss-cli-resources', (options: PostcssCliResou
 	const result = await resolve(pathname as string, loader.context, resolver);
 	// ------------- hack starts
 	let comp = api.findPackageByFile(result);
+	// let outputPath = _.trimStart(api.config.get(['outputPathMap', comp.longName]), '/');
 	let relativeDir = Path.dirname(Path.relative(comp.realPackagePath, result)).replace(/\\/g, '/');
 	if (relativeDir.startsWith('..')) {
 		log.error(`Target resource: ${result}\n, while package is ${comp.realPackagePath}, and dir is ${relativeDir}`);

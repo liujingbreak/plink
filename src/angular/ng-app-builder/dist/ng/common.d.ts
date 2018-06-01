@@ -7,10 +7,11 @@ export interface AngularCliParam {
     builderConfig?: BuilderConfiguration<DevServerBuilderOptions>;
     browserOptions: NormalizedBrowserBuilderSchema & DrcpBuilderOptions;
     webpackConfig: any;
+    projectRoot: string;
     argv: any;
 }
 export interface DrcpBuilderOptions {
     drcpArgs: any;
 }
-export declare function startDrcpServer(builderConfig: BuilderConfiguration<DevServerBuilderOptions>, browserOptions: NormalizedBrowserBuilderSchema, buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent>;
-export declare function compile(browserOptions: NormalizedBrowserBuilderSchema, buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<{}>;
+export declare function startDrcpServer(projectRoot: string, builderConfig: BuilderConfiguration<DevServerBuilderOptions>, browserOptions: NormalizedBrowserBuilderSchema, buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent>;
+export declare function compile(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema, buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<{}>;

@@ -46,7 +46,10 @@ module.exports = function(content) {
 		var browserPackage = api.findPackageByFile(filePath);
 		// if (browserPackage) {
 		let outputPath = _.trimStart(api.config.get(['outputPathMap', browserPackage.longName]), '/');
-		outputPath = path.join(outputPath, path.dirname(path.relative(_.get(this, '_compiler.options.resolve.symlinks') ? browserPackage.realPackagePath : browserPackage.packagePath, filePath)));
+		outputPath = path.join(outputPath, path.dirname(path.relative(
+			_.get(this, '_compiler.options.resolve.symlinks') ?
+				browserPackage.realPackagePath :
+				browserPackage.packagePath, filePath)));
 		url = path.join(outputPath, url.split('/').pop()); // only file name part
 		// } else
 		url = url.replace(/(^|\/)node_modules(\/|$)/g, '$1n-m$2').replace(/@/g, 'a');
