@@ -53,7 +53,7 @@ class BrowserBuilder extends build_angular_1.BrowserBuilder {
             if (options.buildOptimizer && !options.aot) {
                 throw new Error('The `--build-optimizer` option cannot be used without `--aot`.');
             }
-            return drcpCommon.compile(projectRoot, options, () => {
+            return drcpCommon.compile(builderConfig.root, options, () => {
                 return this.buildWebpackConfig(root, projectRoot, host, options);
             });
         }), operators_1.concatMap((webpackConfig) => new rxjs_1.Observable(obs => {

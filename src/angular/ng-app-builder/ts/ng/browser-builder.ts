@@ -80,7 +80,7 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 					throw new Error('The `--build-optimizer` option cannot be used without `--aot`.');
 				}
 
-				return drcpCommon.compile(projectRoot, options as NormalizedBrowserBuilderSchema, () => {
+				return drcpCommon.compile(builderConfig.root, options as NormalizedBrowserBuilderSchema, () => {
 					return this.buildWebpackConfig(root, projectRoot, host,
 						options as NormalizedBrowserBuilderSchema);
 				});

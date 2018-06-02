@@ -36,7 +36,7 @@ export function compile() {
 	if (ngParam) {
 		let webpackConfig = ngParam.webpackConfig;
 		Object.getPrototypeOf(api).webpackConfig = webpackConfig;
-		let component = api.findPackageByFile(ngParam.projectRoot);
+		let component = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
 		api.config.set(['outputPathMap', component.longName], '/');
 		configWebpack(ngParam, webpackConfig, api.config());
 		return;
