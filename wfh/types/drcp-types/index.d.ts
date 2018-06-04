@@ -27,6 +27,7 @@ declare module '__api' {
 		config: DrcpConfig;
 		argv: any;
 		browserInjector: any;
+		ngEntryComponent: PackageBrowserInstance;
 		extend(target: any): void;
 		isBrowser(): boolean;
 		isNode(): boolean;

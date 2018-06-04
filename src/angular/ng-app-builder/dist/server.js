@@ -7,33 +7,10 @@ const Path = require("path");
 const config_webpack_1 = require("./config-webpack");
 const fs = require('fs-extra');
 const sysFs = fs;
-// const pify = require('pify');
-// const readFileAsync = pify(sysFs.readFile);
-// const rxPaths = require('rxjs/_esm5/path-mapping');
 const api = __api_1.default;
 const log = log4js.getLogger(api.packageName);
-// const rl = readline.createInterface({
-// 	input: process.stdin,
-// 	output: process.stdout,
-// 	terminal: true
-// });
-// const CircularDependencyPlugin = require('circular-dependency-plugin');
-// import {AngularCompilerPlugin} from '@ngtools/webpack';
-// const {SourceMapDevToolPlugin} = require('webpack');
-// const ExtractTextPlugin = require('extract-text-webpack-plugin');
-// const loaderConfig = require('@dr-core/webpack2-builder/configs/loader-config');
-// const HappyPack = require('happypack');
-// const AOT = true;
 function compile() {
-    let ngParam = api.config()._angularCli;
-    if (ngParam) {
-        let webpackConfig = ngParam.webpackConfig;
-        Object.getPrototypeOf(api).webpackConfig = webpackConfig;
-        let component = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
-        api.config.set(['outputPathMap', component.longName], '/');
-        config_webpack_1.default(ngParam, webpackConfig, api.config());
-        return;
-    }
+    setupApiForAngularCli();
     if (!api.argv.ng)
         return;
     // var tsConfigPath = writeTsconfig();
@@ -232,12 +209,23 @@ exports.init = init;
 // 	});
 // 	return done;
 // }
+function setupApiForAngularCli() {
+    let ngParam = api.config()._angularCli;
+    if (!ngParam || api.ngEntryComponent)
+        return;
+    let webpackConfig = ngParam.webpackConfig;
+    let ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
+    Object.assign(Object.getPrototypeOf(api), {
+        webpackConfig,
+        ngEntryComponent
+    });
+    api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
+    // api.config.set('staticDir', api.config().staticDir + '/' + ngEntryComponent.shortName);
+    config_webpack_1.default(ngParam, webpackConfig, api.config());
+    log.info('Setup api object for Angular');
+}
 function activate() {
-    // api.router().use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-    // 	log.info('req.originalUrl = ', req.originalUrl);
-    // 	req.url = 'index.html';
-    // 	next();
-    // });
+    setupApiForAngularCli();
     api.router().get('/ok', (req, res) => {
         log.warn('cool');
         res.send('cool');

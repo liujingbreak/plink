@@ -6,7 +6,7 @@ const __api_1 = require("__api");
 const log = require('log4js').getLogger(__api_1.default.packageName);
 function zipStatic() {
     return new Promise((resolve, reject) => {
-        log.info(`zip ${__api_1.default.config.get('staticDir')} to webui-static.zip`);
+        log.info(`Will zip ${__api_1.default.config.get('staticDir')} to webui-static.zip`);
         gulp.src(__api_1.default.config.get('staticDir') + '/**/*')
             .pipe(zip('webui-static.zip'))
             .pipe(gulp.dest('.'))

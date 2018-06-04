@@ -3,44 +3,18 @@ import * as log4js from 'log4js';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import * as _fs from 'fs';
-// import * as readline from 'readline';
 import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
-// import postcssPlugins from './postcss';
 import * as express from 'express';
 import {AngularCliParam} from './ng/common';
 import configWebpack from './config-webpack';
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
-// const pify = require('pify');
-// const readFileAsync = pify(sysFs.readFile);
-// const rxPaths = require('rxjs/_esm5/path-mapping');
 const api = __api as Webpack2BuilderApi;
 const log = log4js.getLogger(api.packageName);
-// const rl = readline.createInterface({
-// 	input: process.stdin,
-// 	output: process.stdout,
-// 	terminal: true
-// });
 
-// const CircularDependencyPlugin = require('circular-dependency-plugin');
-// import {AngularCompilerPlugin} from '@ngtools/webpack';
-// const {SourceMapDevToolPlugin} = require('webpack');
-// const ExtractTextPlugin = require('extract-text-webpack-plugin');
-// const loaderConfig = require('@dr-core/webpack2-builder/configs/loader-config');
-// const HappyPack = require('happypack');
-
-// const AOT = true;
 export function compile() {
-	let ngParam: AngularCliParam = api.config()._angularCli;
-	if (ngParam) {
-		let webpackConfig = ngParam.webpackConfig;
-		Object.getPrototypeOf(api).webpackConfig = webpackConfig;
-		let component = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
-		api.config.set(['outputPathMap', component.longName], '/');
-		configWebpack(ngParam, webpackConfig, api.config());
-		return;
-	}
+	setupApiForAngularCli();
 	if (!api.argv.ng)
 		return;
 	// var tsConfigPath = writeTsconfig();
@@ -239,12 +213,24 @@ export function init() {
 // 	return done;
 // }
 
+function setupApiForAngularCli() {
+	let ngParam: AngularCliParam = api.config()._angularCli;
+	if (!ngParam || api.ngEntryComponent)
+		return;
+	let webpackConfig = ngParam.webpackConfig;
+	let ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
+	Object.assign(Object.getPrototypeOf(api), {
+		webpackConfig,
+		ngEntryComponent
+	});
+	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
+	// api.config.set('staticDir', api.config().staticDir + '/' + ngEntryComponent.shortName);
+	configWebpack(ngParam, webpackConfig, api.config());
+	log.info('Setup api object for Angular');
+}
+
 export function activate() {
-	// api.router().use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-	// 	log.info('req.originalUrl = ', req.originalUrl);
-	// 	req.url = 'index.html';
-	// 	next();
-	// });
+	setupApiForAngularCli();
 	api.router().get('/ok', (req: express.Request, res: express.Response) => {
 		log.warn('cool');
 		res.send('cool');

@@ -65,17 +65,25 @@ function activate() {
 		return;
 	}
 
-	var localePrefix = '';
-	// if (!api.isDefaultLocale())
-	// 	localePrefix = api.getBuildLocale() + '/';
+	var contextPath = _.get(api, 'ngEntryComponent.shortName');
 	api.packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
 		var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
 		var assetsDir = Path.join(packagePath, assetsFolder);
 		var assetsDirMap = api.config.get('outputPathMap.' + name);
 		if (assetsDirMap != null)
 			assetsDirMap = _.trim(assetsDirMap, '/');
+
 		if (fs.existsSync(assetsDir)) {
-			var path = '/' + localePrefix + (assetsDirMap != null ? assetsDirMap : parsedName.name);
+			var pathElement = [];
+			if (contextPath)
+				pathElement.push(contextPath);
+
+			if (assetsDirMap == null)
+				pathElement.push(parsedName.name);
+			else if (assetsDirMap !== '')
+				pathElement.push(assetsDirMap);
+
+			var path = '/' + pathElement.join('/');
 			if (path.length > 1)
 				path += '/';
 			log.info('route ' + path + ' -> ' + assetsDir);
@@ -159,9 +167,12 @@ function copyAssets() {
 	if (streams.length === 0) {
 		return null;
 	}
+	var contextPath = _.get(api, 'ngEntryComponent.shortName', '');
+	var outputDir = Path.join(config.resolve('staticDir'), contextPath);
+	log.info('Output assets to ', outputDir);
 	return new Promise((resolve, reject) => {
 		es.merge(streams)
-		.pipe(gulp.dest(config.resolve('staticDir')))
+		.pipe(gulp.dest(outputDir))
 		.on('end', function() {
 			log.debug('flush');
 			buildUtils.writeTimestamp('assets');
