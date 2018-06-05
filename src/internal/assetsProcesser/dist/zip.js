@@ -1,6 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console */
-const zip = require('gulp-zip');
 const gulp = require('gulp');
+const zip = require('gulp-zip');
+console.log('zip dist/static to webui-static.zip');
+gulp.src('dist/static/**/*')
+    .pipe(zip('webui-static.zip'))
+    .pipe(gulp.dest('.'));
+// const zip = require('gulp-zip');
+// const gulp = require('gulp');
 // import api from '__api';
 // const log = require('log4js').getLogger(api.packageName);
 // export function zipStatic() {
@@ -13,9 +21,5 @@ const gulp = require('gulp');
 // 		.on('error', reject);
 // 	});
 // }
-console.log('zip dist/static to webui-static.zip');
-gulp.src('dist/static/**/*')
-    .pipe(zip('webui-static.zip'))
-    .pipe(gulp.dest('.'));
 
 //# sourceMappingURL=zip.js.map
