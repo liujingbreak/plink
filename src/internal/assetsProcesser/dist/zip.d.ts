@@ -1,1 +1,2 @@
-export declare function zipStatic(): Promise<{}>;
+declare const zip: any;
+declare const gulp: any;

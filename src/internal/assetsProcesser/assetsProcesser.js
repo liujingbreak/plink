@@ -35,9 +35,9 @@ function compile(api) {
 	}
 
 	copyRootPackageFavicon();
-	const {zipStatic} = require('./dist/zip');
-	return copyAssets()
-	.then(zipStatic);
+	// const {zipStatic} = require('./dist/zip');
+	return copyAssets();
+	// .then(zipStatic);
 }
 
 function activate() {

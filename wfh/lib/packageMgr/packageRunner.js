@@ -44,7 +44,10 @@ function runServer(argv) {
 function runBuilder(argv, funcName, skipOnFail) {
 	var packagesTypeMap = helper.traversePackages(true);
 	return helper.runBuilderComponentsWith(funcName, packagesTypeMap.builder, argv, [], skipOnFail)
-	.then(buildRes => helper.sendlivereload(buildRes, argv));
+	.then(buildRes => {
+		helper.sendlivereload(buildRes, argv);
+		eventBus.emit('build-done');
+	});
 }
 
 function requireServerPackages(dontLoad) {

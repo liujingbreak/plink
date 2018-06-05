@@ -1,28 +1,21 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+/* tslint:disable no-console */
 const zip = require('gulp-zip');
 const gulp = require('gulp');
-const __api_1 = require("__api");
-const log = require('log4js').getLogger(__api_1.default.packageName);
-function zipStatic() {
-    return new Promise((resolve, reject) => {
-        log.info(`Will zip ${__api_1.default.config.get('staticDir')} to webui-static.zip`);
-        gulp.src(__api_1.default.config.get('staticDir') + '/**/*')
-            .pipe(zip('webui-static.zip'))
-            .pipe(gulp.dest('.'))
-            .on('end', resolve)
-            .on('error', reject);
-    });
-}
-exports.zipStatic = zipStatic;
-// export function unZipStatic() {	
+// import api from '__api';
+// const log = require('log4js').getLogger(api.packageName);
+// export function zipStatic() {
 // 	return new Promise((resolve, reject) => {
-// 		gulp.src('webui-static.zip')
-// 		.pipe(unzip())
+// 		log.info(`Will zip ${api.config.get('staticDir')} to webui-static.zip`);
+// 		gulp.src(api.config.get('staticDir') + '/**/*')
+// 		.pipe(zip('webui-static.zip'))
 // 		.pipe(gulp.dest('.'))
 // 		.on('end', resolve)
 // 		.on('error', reject);
 // 	});
 // }
+console.log('zip dist/static to webui-static.zip');
+gulp.src('dist/static/**/*')
+    .pipe(zip('webui-static.zip'))
+    .pipe(gulp.dest('.'));
 
 //# sourceMappingURL=zip.js.map
