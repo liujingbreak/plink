@@ -84,17 +84,24 @@ function resolveUrl(href: string, loader: any) {
 }
 
 function doLoadAssets(src: string, loader: any) {
-	var res = api.normalizeAssetsUrl(src, loader.resourcePath);
-	if (_.isObject(res)) {
-		return Promise.resolve(res.isPage ?
-			api.entryPageUrl(res.packageName, res.path, res.locale) :
-			api.assetsUrl(res.packageName, res.path));
+	if (src.startsWith('assets://') || src.startsWith('page://')) {
+		let res = api.normalizeAssetsUrl(src, loader.resourcePath);
+		if (_.isObject(res)) {
+			return Promise.resolve(res.isPage ?
+				api.entryPageUrl(res.packageName, res.path, res.locale) :
+				api.assetsUrl(res.packageName, res.path));
+		}
 	}
+
 	if (/^(?:https?:|\/\/|data:)/.test(src))
 		return Promise.resolve(src);
 	if (src.charAt(0) === '/')
 		return Promise.resolve(src);
-	if (src.charAt(0) !== '.')
+	if (src.charAt(0) === '~') {
+		src = src.substring(1);
+	} else if (src.startsWith('npm://')) {
+		src = src.substring('npm://'.length);
+	} else if (src.charAt(0) !== '.')
 		src = './' + src;
 	return new Promise((resolve, reject) => {
 		// Unlike extract-loader, we does not support embedded require statement in source code 
@@ -108,7 +115,7 @@ function doLoadAssets(src: string, loader: any) {
 				}
 			};
 			vm.runInNewContext(source, vm.createContext(sandbox));
-			log.warn(loader.resourcePath + ', assets: ', src, 'to', sandbox.module.exports);
+			// log.warn(loader.resourcePath + ', assets: ', src, 'to', sandbox.module.exports);
 			resolve(sandbox.module.exports);
 		});
 	});
