@@ -40,6 +40,7 @@ import {
 
 import {BrowserBuilder as GoogleBrowserBuilder, NormalizedBrowserBuilderSchema} from '@angular-devkit/build-angular';
 import * as drcpCommon from './common';
+import ReadHookHost from '../utils/read-hook-vfshost';
 // import * as log4js from 'log4js';
 // const log = log4js.getLogger('@dr/ng-app-builder.browser-builder');
 
@@ -61,7 +62,7 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 		const options = builderConfig.options as drcpCommon.DrcpBuilderOptions & BrowserBuilderSchema;
 		const root = this.context.workspace.root;
 		const projectRoot = resolve(root, builderConfig.root);
-		const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<fs.Stats>);
+		const host = new ReadHookHost(this.context.host as virtualFs.Host<fs.Stats>);
 
 		// let drcpConfig = drcpCommon.initDrcp(options.drcpArgs);
 
@@ -83,7 +84,7 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 				return drcpCommon.compile(builderConfig.root, options as NormalizedBrowserBuilderSchema, () => {
 					return this.buildWebpackConfig(root, projectRoot, host,
 						options as NormalizedBrowserBuilderSchema);
-				});
+				}, host);
 			}),
 			concatMap((webpackConfig: any) => new Observable(obs => {
 

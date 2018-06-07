@@ -25,6 +25,7 @@ const utils_2 = require("@angular-devkit/build-angular/src/utils");
 // const webpackMerge = require('webpack-merge');
 const build_angular_1 = require("@angular-devkit/build-angular");
 const drcpCommon = require("./common");
+const read_hook_vfshost_1 = require("../utils/read-hook-vfshost");
 // import * as log4js from 'log4js';
 // const log = log4js.getLogger('@dr/ng-app-builder.browser-builder');
 // TODO: figure out a better way to normalize assets, extra entry points, file replacements,
@@ -42,7 +43,7 @@ class BrowserBuilder extends build_angular_1.BrowserBuilder {
         const options = builderConfig.options;
         const root = this.context.workspace.root;
         const projectRoot = core_1.resolve(root, builderConfig.root);
-        const host = new core_1.virtualFs.AliasHost(this.context.host);
+        const host = new read_hook_vfshost_1.default(this.context.host);
         // let drcpConfig = drcpCommon.initDrcp(options.drcpArgs);
         return rxjs_1.of(null).pipe(operators_1.concatMap(() => options.deleteOutputPath
             ? this._deleteOutputDir0(root, core_1.normalize(options.outputPath), this.context.host)
@@ -55,7 +56,7 @@ class BrowserBuilder extends build_angular_1.BrowserBuilder {
             }
             return drcpCommon.compile(builderConfig.root, options, () => {
                 return this.buildWebpackConfig(root, projectRoot, host, options);
-            });
+            }, host);
         }), operators_1.concatMap((webpackConfig) => new rxjs_1.Observable(obs => {
             const webpackCompiler = webpack(webpackConfig);
             const statsConfig = utils_1.getWebpackStatsConfig(options.verbose);

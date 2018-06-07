@@ -6,7 +6,7 @@ var path = require('path').posix;
 var loaderUtils = require('loader-utils');
 var api = require('__api');
 var _ = require('lodash');
-var log = require('log4js').getLogger('wfh.dr-file-loader');
+// var log = require('log4js').getLogger('wfh.dr-file-loader');
 
 module.exports = function(content) {
 	if (this.cacheable)
@@ -59,7 +59,6 @@ module.exports = function(content) {
 		if (query.emitFile === undefined || query.emitFile) {
 			this.emitFile(url, content);
 		}
-		log.warn(publicPath);
 		callback(null, 'module.exports = ' + publicPath + ';');
 	} catch (e) {
 		callback(e);

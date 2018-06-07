@@ -5,6 +5,7 @@ const log4js = require("log4js");
 const _ = require("lodash");
 const Path = require("path");
 const config_webpack_1 = require("./config-webpack");
+const rxjs_1 = require("rxjs");
 const fs = require('fs-extra');
 const sysFs = fs;
 const api = __api_1.default;
@@ -186,29 +187,6 @@ function init() {
     writeTsconfig();
 }
 exports.init = init;
-// export function init() {
-// 	let ownPj = require('../package.json');
-// 	let verNgCli = ownPj.dependencies['@angular/cli'] || ownPj.devDependencies['@angular/cli'];
-// 	let drcpDir = Path.dirname(require.resolve('dr-comp-package/package.json'));
-// 	// Insert @angular/cli to project's package.json file otherwise Angular command line tool will give warning like
-// 	// `Unable to find "@angular/cli" in devDependencies.`
-// 	let done: Promise<any> = Promise.resolve();
-// 	_.each(api.getProjectDirs(), (dir: string) => {
-// 		if (dir !== drcpDir) {
-// 			let projPkFile = Path.join(dir, 'package.json');
-// 			done = done.then(() => readFileAsync(projPkFile, 'utf8')
-// 			.then((content: string) => {
-// 				let pkjson = JSON.parse(content);
-// 				if (!_.has(pkjson.devDependencies, '@angular/cli')) {
-// 					_.set(pkjson, 'devDependencies.@angular/cli', verNgCli);
-// 					log.info('Insert @angular/cli%s to %s', verNgCli, projPkFile);
-// 					return fs.writeFileSync(projPkFile, JSON.stringify(pkjson, null, '  '));
-// 				}
-// 			}, (err: Error) => {}));
-// 		}
-// 	});
-// 	return done;
-// }
 function setupApiForAngularCli() {
     let ngParam = api.config()._angularCli;
     if (!ngParam || api.ngEntryComponent)
@@ -220,8 +198,24 @@ function setupApiForAngularCli() {
         ngEntryComponent
     });
     api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
-    // api.config.set('staticDir', api.config().staticDir + '/' + ngEntryComponent.shortName);
     config_webpack_1.default(ngParam, webpackConfig, api.config());
+    ngParam.vfsHost.hookRead = (file, buf) => {
+        if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
+            let len = buf.byteLength;
+            let content = Buffer.from(buf).toString();
+            // console.log(content);
+            let changed = api.browserInjector.injectToFile(file, content);
+            let nodeBuf = Buffer.from(changed);
+            len = nodeBuf.byteLength;
+            let newBuf = new ArrayBuffer(len);
+            let dataView = new DataView(newBuf);
+            for (let i = 0; i < len; i++) {
+                dataView.setUint8(i, nodeBuf.readUInt8(i));
+            }
+            return rxjs_1.of(newBuf);
+        }
+        return rxjs_1.of(buf);
+    };
     log.info('Setup api object for Angular');
 }
 function activate() {

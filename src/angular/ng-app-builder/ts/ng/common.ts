@@ -7,6 +7,7 @@ import {
 } from '@angular-devkit/architect';
 import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
 import {NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
+import ReadHookHost from '../utils/read-hook-vfshost';
 import * as Rx from 'rxjs';
 
 function initDrcp(drcpArgs: any) {
@@ -26,6 +27,7 @@ export interface AngularCliParam {
 	browserOptions: NormalizedBrowserBuilderSchema & DrcpBuilderOptions;
 	webpackConfig: any;
 	projectRoot: string;
+	vfsHost: ReadHookHost;
 	argv: any;
 }
 
@@ -35,7 +37,8 @@ export interface DrcpBuilderOptions {
 
 export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfiguration<DevServerBuilderOptions>,
 	browserOptions: NormalizedBrowserBuilderSchema,
-	buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent> {
+	buildWebpackConfig: buildWebpackConfigFunc,
+	vfsHost: ReadHookHost): Rx.Observable<BuildEvent> {
 	// let argv: any = {};
 	let options = builderConfig.options as (DevServerBuilderOptions & DrcpBuilderOptions);
 
@@ -47,6 +50,7 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 			browserOptions: browserOptions as any as NormalizedBrowserBuilderSchema & DrcpBuilderOptions,
 			webpackConfig: buildWebpackConfig(browserOptions),
 			projectRoot,
+			vfsHost,
 			argv: {
 				poll: options.poll,
 				hmr: options.hmr,
@@ -94,9 +98,9 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 }
 
 export function compile(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema,
-	buildWebpackConfig: buildWebpackConfigFunc) {
+	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost) {
 	return new Rx.Observable((obs: any) => {
-		compileAsync(projectRoot, browserOptions, buildWebpackConfig).then((webpackConfig: any) => {
+		compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost).then((webpackConfig: any) => {
 			obs.next(webpackConfig);
 			obs.complete();
 		});
@@ -104,13 +108,14 @@ export function compile(projectRoot: string, browserOptions: NormalizedBrowserBu
 }
 
 function compileAsync(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema,
-	buildWebpackConfig: buildWebpackConfigFunc) {
+	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost) {
 	let options = browserOptions as (NormalizedBrowserBuilderSchema & DrcpBuilderOptions);
 	let config = initDrcp(options.drcpArgs);
 	let param: AngularCliParam = {
 		browserOptions: options,
 		webpackConfig: buildWebpackConfig(browserOptions),
 		projectRoot,
+		vfsHost,
 		argv: {
 			poll: options.poll,
 			...options.drcpArgs

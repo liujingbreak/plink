@@ -9,7 +9,7 @@ function initDrcp(drcpArgs) {
     require('dr-comp-package/wfh/lib/logConfig')(config().rootPath, config().log4jsReloadSeconds);
     return config;
 }
-function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpackConfig) {
+function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpackConfig, vfsHost) {
     // let argv: any = {};
     let options = builderConfig.options;
     let config = initDrcp(options.drcpArgs);
@@ -19,6 +19,7 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
             browserOptions: browserOptions,
             webpackConfig: buildWebpackConfig(browserOptions),
             projectRoot,
+            vfsHost,
             argv: Object.assign({ poll: options.poll, hmr: options.hmr }, options.drcpArgs)
         };
         config.set('_angularCli', param);
@@ -60,22 +61,23 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
     });
 }
 exports.startDrcpServer = startDrcpServer;
-function compile(projectRoot, browserOptions, buildWebpackConfig) {
+function compile(projectRoot, browserOptions, buildWebpackConfig, vfsHost) {
     return new Rx.Observable((obs) => {
-        compileAsync(projectRoot, browserOptions, buildWebpackConfig).then((webpackConfig) => {
+        compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost).then((webpackConfig) => {
             obs.next(webpackConfig);
             obs.complete();
         });
     });
 }
 exports.compile = compile;
-function compileAsync(projectRoot, browserOptions, buildWebpackConfig) {
+function compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost) {
     let options = browserOptions;
     let config = initDrcp(options.drcpArgs);
     let param = {
         browserOptions: options,
         webpackConfig: buildWebpackConfig(browserOptions),
         projectRoot,
+        vfsHost,
         argv: Object.assign({ poll: options.poll }, options.drcpArgs)
     };
     config.set('_angularCli', param);

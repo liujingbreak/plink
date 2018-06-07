@@ -13,6 +13,7 @@ const operators_1 = require("rxjs/operators");
 // import * as Path from 'path';
 const common = require("./common");
 const browser_builder_1 = require("./browser-builder");
+const read_hook_vfshost_1 = require("../utils/read-hook-vfshost");
 // export interface DevServerBuilderOptions extends DevServerBuilderOptions0 {
 // 	drcpArgs: any;
 // }
@@ -28,7 +29,7 @@ class DrcpDevServer extends build_angular_1.DevServerBuilder {
         const options = builderConfig.options;
         const root = this.context.workspace.root;
         const projectRoot = core_1.resolve(root, builderConfig.root);
-        const host = new core_1.virtualFs.AliasHost(this.context.host);
+        const host = new read_hook_vfshost_1.default(this.context.host);
         let browserOptions;
         return check_port_1.checkPort(options.port, options.host)
             .pipe(operators_1.tap((port) => options.port = port), operators_1.concatMap(() => this._getBrowserOptions1(options)), operators_1.tap((opts) => browserOptions = opts), operators_1.concatMap(() => utils_1.addFileReplacements(root, host, browserOptions.fileReplacements)), operators_1.concatMap(() => utils_1.normalizeAssetPatterns(browserOptions.assets, host, root, projectRoot, builderConfig.sourceRoot)), 
@@ -75,7 +76,7 @@ class DrcpDevServer extends build_angular_1.DevServerBuilder {
             obs.next(buildWebpackConfig);
             obs.complete();
         })), operators_1.concatMap((buildWebpackConfig) => {
-            return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions, buildWebpackConfig);
+            return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions, buildWebpackConfig, host);
         }), operators_1.tap((msg) => console.log));
     }
     _getBrowserOptions1(options) {

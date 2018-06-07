@@ -27,6 +27,7 @@ import { concatMap, map, tap } from 'rxjs/operators';
 
 import * as common from './common';
 import {BrowserBuilder} from './browser-builder';
+import ReadHookHost from '../utils/read-hook-vfshost';
 
 export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
 
@@ -46,7 +47,7 @@ export default class DrcpDevServer extends DevServerBuilder {
 		const options = builderConfig.options;
 		const root = this.context.workspace.root;
 		const projectRoot = resolve(root, builderConfig.root);
-		const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<fs.Stats>);
+		const host = new ReadHookHost(this.context.host as virtualFs.Host<fs.Stats>);
 		let browserOptions: BrowserBuilderSchema;
 
 		return checkPort(options.port, options.host)
@@ -110,7 +111,7 @@ export default class DrcpDevServer extends DevServerBuilder {
 			})),
 			concatMap((buildWebpackConfig) => {
 				return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions as NormalizedBrowserBuilderSchema,
-					buildWebpackConfig);
+					buildWebpackConfig, host);
 			}),
 			tap((msg: BuildEvent) => console.log)
 		);
