@@ -19,27 +19,14 @@ require('../logConfig')(config().rootPath);
 var log = require('log4js').getLogger('wfh.cliAdvanced');
 var packageUtils = require('../packageMgr/packageUtils');
 
-//exports.writeProjectDep = writeProjectDep;
 exports.listCompDependency = PackageInstall.listCompDependency;
 exports.addupConfigs = addupConfigs;
-//exports.cleanPackagesWalkerCache = cleanPackagesWalkerCache;
 exports.clean = clean;
 exports.bumpDirsAsync = bumpDirsAsync;
 exports.bumpProjectsAsync = bumpProjectsAsync;
 exports.lint = lint;
 exports.publish = publish;
 exports.unpublish = unpublish;
-// function writeProjectDep(projDir) {
-// 	var installer = new PackageInstall(projDir);
-// 	var srcDirs = [];
-// 	recipeManager.eachRecipeSrc(projDir, function(src, recipe) {
-// 		srcDirs.push(src);
-// 	});
-// 	return installer.scanSrcDeps(srcDirs)
-// 	.then(() => {
-// 		return installer.printDep();
-// 	});
-// }
 
 function addupConfigs(onEachYaml) {
 	var componentConfigs = {outputPathMap: {}, vendorBundleMap: {}, browserSideConfigProp: []};
@@ -135,12 +122,6 @@ function _addupCompConfigProp(componentConfigs, compName, browserSideConfigProp,
 	// browserSideConfigProp
 	browserSideConfigProp.push(..._.map(_.keys(configJson.public), key => compName + '.' + key));
 }
-
-// function cleanPackagesWalkerCache() {
-// 	var packageInfoCacheFile = config.resolve('destDir', 'packageInfo.json');
-// 	if (fs.existsSync(packageInfoCacheFile))
-// 		fs.unlink(packageInfoCacheFile);
-// }
 
 function clean() {
 	return require('./recipeManager').clean()

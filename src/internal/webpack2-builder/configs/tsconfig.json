@@ -6,7 +6,7 @@
 			"node_modules/dr-comp-package/wfh/types"
 		],
 		"jsx": "preserve",
-		"noImplicitAny": false,
+		"noImplicitAny": true,
 		"suppressImplicitAnyIndexErrors": true,
 		"allowSyntheticDefaultImports": true,
 		"lib": [
