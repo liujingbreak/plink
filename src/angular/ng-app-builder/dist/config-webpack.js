@@ -72,6 +72,14 @@ function changeLoaders(webpackConfig) {
                 ]
             });
         }
+        else if (rule.use) {
+            for (let useItem of rule.use) {
+                if (useItem.loader === 'less-loader' && _.has(useItem, 'options.paths')) {
+                    delete useItem.options.paths;
+                    break;
+                }
+            }
+        }
     });
     webpackConfig.module.rules.unshift({
         test: /\.jade$/,
