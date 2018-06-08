@@ -136,8 +136,14 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 		.pipe(through.obj(function(file, en, next) {
 			if (file.extname === '.map') {
 				var sm = JSON.parse(file.contents.toString());
+				let sFileDir;
 				sm.sources =
-					sm.sources.map( spath => Path.relative(file.base, fs.realpathSync(spath)));
+					sm.sources.map( spath => {
+						let realFile = fs.realpathSync(spath);
+						sFileDir = Path.dirname(realFile);
+						return Path.relative(file.base, realFile);
+					});
+				sm.sourceRoot = Path.relative(sFileDir, file.base).replace(/\\/g, '/');
 				file.contents = Buffer.from(JSON.stringify(sm), 'utf8');
 			}
 			next(null, file);

@@ -15,5 +15,20 @@ export interface AngularCliParam {
 export interface DrcpBuilderOptions {
     drcpArgs: any;
 }
+/**
+ * Invoke this function from dev server builder
+ * @param projectRoot
+ * @param builderConfig
+ * @param browserOptions
+ * @param buildWebpackConfig
+ * @param vfsHost
+ */
 export declare function startDrcpServer(projectRoot: string, builderConfig: BuilderConfiguration<DevServerBuilderOptions>, browserOptions: NormalizedBrowserBuilderSchema, buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost): Rx.Observable<BuildEvent>;
+/**
+ * Invoke this function from browser builder
+ * @param projectRoot
+ * @param browserOptions
+ * @param buildWebpackConfig
+ * @param vfsHost
+ */
 export declare function compile(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema, buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost): Rx.Observable<{}>;

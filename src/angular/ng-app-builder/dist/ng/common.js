@@ -9,6 +9,14 @@ function initDrcp(drcpArgs) {
     require('dr-comp-package/wfh/lib/logConfig')(config().rootPath, config().log4jsReloadSeconds);
     return config;
 }
+/**
+ * Invoke this function from dev server builder
+ * @param projectRoot
+ * @param builderConfig
+ * @param browserOptions
+ * @param buildWebpackConfig
+ * @param vfsHost
+ */
 function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpackConfig, vfsHost) {
     // let argv: any = {};
     let options = builderConfig.options;
@@ -61,6 +69,13 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
     });
 }
 exports.startDrcpServer = startDrcpServer;
+/**
+ * Invoke this function from browser builder
+ * @param projectRoot
+ * @param browserOptions
+ * @param buildWebpackConfig
+ * @param vfsHost
+ */
 function compile(projectRoot, browserOptions, buildWebpackConfig, vfsHost) {
     return new Rx.Observable((obs) => {
         compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost).then((webpackConfig) => {

@@ -35,6 +35,14 @@ export interface DrcpBuilderOptions {
 	drcpArgs: any;
 }
 
+/**
+ * Invoke this function from dev server builder
+ * @param projectRoot 
+ * @param builderConfig 
+ * @param browserOptions 
+ * @param buildWebpackConfig 
+ * @param vfsHost 
+ */
 export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfiguration<DevServerBuilderOptions>,
 	browserOptions: NormalizedBrowserBuilderSchema,
 	buildWebpackConfig: buildWebpackConfigFunc,
@@ -97,6 +105,13 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 	});
 }
 
+/**
+ * Invoke this function from browser builder
+ * @param projectRoot 
+ * @param browserOptions 
+ * @param buildWebpackConfig 
+ * @param vfsHost 
+ */
 export function compile(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema,
 	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost) {
 	return new Rx.Observable((obs: any) => {
