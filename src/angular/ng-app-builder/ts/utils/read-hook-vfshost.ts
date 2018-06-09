@@ -2,7 +2,9 @@
 import {virtualFs, Path} from '@angular-devkit/core';
 import {Observable} from 'rxjs';
 import {concatMap, tap} from 'rxjs/operators';
+import {sep} from 'path';
 
+const isWindows = sep === '\\';
 export type FBuffer = virtualFs.FileBuffer;
 
 export interface TsFile {
@@ -17,11 +19,16 @@ export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.
 	hookRead: HookReadFunc;
 
 	read(path: Path): Observable<FBuffer> {
-
 		return super.read(path).pipe(
 			this.hookRead ?
 			concatMap((buffer: FBuffer) => {
-				return this.hookRead(path, buffer);
+				let sPath: string = path;
+				if (isWindows) {
+					let match = /^\/([^/]+)(.*)/.exec(path);
+					if (match)
+						sPath = match[1] + ':' + match[2].replace(/\//g, sep);
+				}
+				return this.hookRead(sPath, buffer);
 			}) :
 			tap(() => {
 				console.log('ReadHookHost reading ', path);

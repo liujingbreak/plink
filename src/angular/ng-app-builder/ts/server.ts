@@ -239,15 +239,16 @@ export function writeTsconfig(): string {
 		}
 		ngPackages = someComps;
 	} else {
-		ngPackages = ngPackages.filter(comp => comp.dr || comp.parsedName.scope === 'bk');
+		ngPackages = ngPackages.filter(comp => comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk');
 	}
 	let tsInclude: string[] = [];
 	let tsExclude: string[] = [];
 	ngPackages.forEach(pk => {
 		let dir = Path.relative(tempDir, pk.realPackagePath).replace(/\\/g, '/');
 		tsInclude.push(dir + '/**/*.ts');
-		tsExclude.push(dir + '/ts/**/*',
-			dir + '/spec/**/*',
+		tsExclude.push(dir + '/ts',
+			dir + '/spec',
+			dir + '/dist',
 			dir + '/**/*.spec.ts');
 	});
 	tsExclude.push('**/test.ts');

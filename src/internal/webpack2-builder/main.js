@@ -46,6 +46,9 @@ exports.init = () => {
 };
 
 exports.compile = () => {
+	var angularCliParam = api.config()._angularCli;
+	if (angularCliParam)
+		return;
 	return initWebpackConfig()
 	.then(webpackConfig => {
 		if (_.size(webpackConfig.entry) === 0)

@@ -234,14 +234,14 @@ function writeTsconfig() {
         ngPackages = someComps;
     }
     else {
-        ngPackages = ngPackages.filter(comp => comp.dr || comp.parsedName.scope === 'bk');
+        ngPackages = ngPackages.filter(comp => comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk');
     }
     let tsInclude = [];
     let tsExclude = [];
     ngPackages.forEach(pk => {
         let dir = Path.relative(tempDir, pk.realPackagePath).replace(/\\/g, '/');
         tsInclude.push(dir + '/**/*.ts');
-        tsExclude.push(dir + '/ts/**/*', dir + '/spec/**/*', dir + '/**/*.spec.ts');
+        tsExclude.push(dir + '/ts', dir + '/spec', dir + '/dist', dir + '/**/*.spec.ts');
     });
     tsExclude.push('**/test.ts');
     var tsjson = {
