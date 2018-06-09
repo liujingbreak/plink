@@ -1,3 +1,4 @@
+/* tslint:disable max-line-length */
 import __api from '__api';
 import * as log4js from 'log4js';
 import * as _ from 'lodash';
@@ -7,7 +8,7 @@ import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
 import * as express from 'express';
 import {AngularCliParam} from './ng/common';
 import configWebpack from './config-webpack';
-import {of} from 'rxjs';
+import {readHook} from './ng-ts-replace';
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
@@ -191,38 +192,6 @@ export function init() {
 	writeTsconfig();
 }
 
-function setupApiForAngularCli() {
-	let ngParam: AngularCliParam = api.config()._angularCli;
-	if (!ngParam || api.ngEntryComponent)
-		return;
-	let webpackConfig = ngParam.webpackConfig;
-	let ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
-	Object.assign(Object.getPrototypeOf(api), {
-		webpackConfig,
-		ngEntryComponent
-	});
-	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
-	configWebpack(ngParam, webpackConfig, api.config());
-	ngParam.vfsHost.hookRead = (file, buf) => {
-		if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
-			let len = buf.byteLength;
-			let content = Buffer.from(buf).toString();
-			// console.log(content);
-			let changed = api.browserInjector.injectToFile(file, content);
-			let nodeBuf = Buffer.from(changed);
-			len = nodeBuf.byteLength;
-			let newBuf = new ArrayBuffer(len);
-			let dataView = new DataView(newBuf);
-			for (let i = 0; i < len; i++) {
-				dataView.setUint8(i, nodeBuf.readUInt8(i));
-			}
-			return of(newBuf);
-		}
-		return of(buf);
-	};
-	log.info('Setup api object for Angular');
-}
-
 export function activate() {
 	setupApiForAngularCli();
 	api.router().get('/ok', (req: express.Request, res: express.Response) => {
@@ -270,14 +239,16 @@ export function writeTsconfig(): string {
 		}
 		ngPackages = someComps;
 	} else {
-		ngPackages = ngPackages.filter(comp => comp.dr && comp.dr.angularCompiler);
+		ngPackages = ngPackages.filter(comp => comp.dr || comp.parsedName.scope === 'bk');
 	}
 	let tsInclude: string[] = [];
 	let tsExclude: string[] = [];
 	ngPackages.forEach(pk => {
 		let dir = Path.relative(tempDir, pk.realPackagePath).replace(/\\/g, '/');
 		tsInclude.push(dir + '/**/*.ts');
-		tsExclude.push(dir + '/ts', dir + '/**/*.spec.ts');
+		tsExclude.push(dir + '/ts/**/*',
+			dir + '/spec/**/*',
+			dir + '/**/*.spec.ts');
 	});
 	tsExclude.push('**/test.ts');
 
@@ -304,7 +275,19 @@ export function writeTsconfig(): string {
 	return tsConfigPath;
 }
 
-// function mergeWebpackConfig4Ng6(param: AngularCliParam, webpackConfig: any) {
-// 	if (param.builderConfig.options.hmr)
-// 		webpackConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
-// }
+function setupApiForAngularCli() {
+	let ngParam: AngularCliParam = api.config()._angularCli;
+	if (!ngParam || api.ngEntryComponent)
+		return;
+	let webpackConfig = ngParam.webpackConfig;
+	let ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
+	Object.assign(Object.getPrototypeOf(api), {
+		webpackConfig,
+		ngEntryComponent
+	});
+	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
+	configWebpack(ngParam, webpackConfig, api.config());
+
+	ngParam.vfsHost.hookRead = readHook;
+	log.info('Setup api object for Angular');
+}

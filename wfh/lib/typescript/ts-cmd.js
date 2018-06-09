@@ -71,14 +71,17 @@ function tsc(argv, onCompiled) {
 		log.info('Watch mode');
 		var watchDirs = [];
 		compGlobs = [];
+
 		var delayCompile = _.debounce(() => {
 			let toCompile = compGlobs;
 			compGlobs = [];
 			promCompile = promCompile.catch(() => {})
-				.then(() => compile(toCompile, tsProject, compDirInfo, argv.sourceMap === 'inline'));
+				.then(() => compile(toCompile, tsProject, compDirInfo, argv.sourceMap === 'inline'))
+				.catch(() => {});
 			if (onCompiled)
 				promCompile = promCompile.then(onCompiled);
 		}, 200);
+
 		_.each(compDirInfo, (info, name) => {
 			watchDirs.push(Path.join(info.dir, info.srcDir) + '/**/*.ts');
 		});
@@ -89,12 +92,14 @@ function tsc(argv, onCompiled) {
 	} else {
 		return compile(compGlobs, tsProject, compDirInfo, argv.sourceMap === 'inline');
 	}
+
 	function onChangeFile(path, reason) {
 		if (reason !== 'removed')
 			compGlobs.push(path);
 		log.info(`File ${Path.relative(root, path)} has been ` + reason);
 		delayCompile();
 	}
+
 	return promCompile;
 }
 
@@ -115,12 +120,12 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 				packageName = packageName.replace(/\\/g, '/');
 			var {srcDir, destDir} = compDirInfo[packageName];
 			file.path = Path.resolve(nodeModules, packageName, destDir, shortPath.substring(packageName.length + 2 + srcDir.length));
-			// fs.writeFile(file.path, file.contents.toString('utf8'), err => next(err, file));
 			next(null, file);
 		});
 	}
 
 	return new Promise((resolve, reject) => {
+		var compileErrors = [];
 		var tsResult = gulp.src(compGlobs)
 		.pipe(sourcemaps.init())
 		.pipe(through.obj(function(file, en, next) {
@@ -128,7 +133,9 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 			next(null, file);
 		}))
 		.pipe(tsProject())
-		.on('error', err => reject('Failed to compile typescript file'));
+		.on('error', err => {
+			compileErrors.push(err.message);
+		});
 
 		var jsStream = tsResult.js
 		.pipe(changePath())
@@ -157,14 +164,20 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 		}))
 		.pipe(gulp.dest(root));
 		all.resume();
-		all.on('end', resolve);
+		all.on('end', () => {
+			if (compileErrors.length > 0) {
+				compileErrors.forEach(msg => log.error(msg));
+				return reject('Failed to compile Typescript files, check out above error message');
+			}
+			resolve();
+		});
 		all.on('error', reject);
 	})
 	.then(() => {
 		printDuration();
 	})
 	.catch(err => {
-		printDuration();
+		printDuration(err);
 		return Promise.reject(err);
 	});
 }
