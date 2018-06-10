@@ -2,9 +2,9 @@
 import {virtualFs, Path, getSystemPath} from '@angular-devkit/core';
 import {Observable} from 'rxjs';
 import {concatMap, tap} from 'rxjs/operators';
-import {sep} from 'path';
+// import {sep} from 'path';
 
-const isWindows = sep === '\\';
+// const isWindows = sep === '\\';
 export type FBuffer = virtualFs.FileBuffer;
 
 export interface TsFile {
@@ -38,6 +38,6 @@ export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.
 
 	protected _resolve(path: Path) {
 		let r = super._resolve(path);
-		return getSystemPath(r);
+		return r;
 	}
 }

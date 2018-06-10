@@ -3,8 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console */
 const core_1 = require("@angular-devkit/core");
 const operators_1 = require("rxjs/operators");
-const path_1 = require("path");
-const isWindows = path_1.sep === '\\';
 class ReadHookHost extends core_1.virtualFs.AliasHost {
     read(path) {
         return super.read(path).pipe(this.hookRead ?
@@ -23,7 +21,7 @@ class ReadHookHost extends core_1.virtualFs.AliasHost {
     }
     _resolve(path) {
         let r = super._resolve(path);
-        return core_1.getSystemPath(r);
+        return r;
     }
 }
 exports.default = ReadHookHost;
