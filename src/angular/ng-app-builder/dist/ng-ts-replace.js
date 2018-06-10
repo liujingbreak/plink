@@ -13,10 +13,9 @@ exports.readHook = virtualHostReadHook;
 function virtualHostReadHook(file, buf) {
     // log.warn(file);
     if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
-        log.warn(file);
         if (file === includeTsFile) {
             browserLegoConfig();
-            log.warn('here');
+            // TODO
         }
         let compPkg = __api_1.default.findPackageByFile(file);
         let len = buf.byteLength;
