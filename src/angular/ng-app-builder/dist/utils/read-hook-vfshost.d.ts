@@ -10,4 +10,5 @@ export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.
     /** set this property to add a file read hook */
     hookRead: HookReadFunc;
     read(path: Path): Observable<FBuffer>;
+    protected _resolve(path: Path): string;
 }

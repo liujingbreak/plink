@@ -9,17 +9,21 @@ class ReadHookHost extends core_1.virtualFs.AliasHost {
     read(path) {
         return super.read(path).pipe(this.hookRead ?
             operators_1.concatMap((buffer) => {
-                let sPath = path;
-                if (isWindows) {
-                    let match = /^\/([^/]+)(.*)/.exec(path);
-                    if (match)
-                        sPath = match[1] + ':' + match[2].replace(/\//g, path_1.sep);
-                }
+                let sPath = core_1.getSystemPath(path);
+                // if (isWindows) {
+                // 	let match = /^\/([^/]+)(.*)/.exec(path);
+                // 	if (match)
+                // 		sPath = match[1] + ':' + match[2].replace(/\//g, sep);
+                // }
                 return this.hookRead(sPath, buffer);
             }) :
             operators_1.tap(() => {
                 console.log('ReadHookHost reading ', path);
             }));
+    }
+    _resolve(path) {
+        let r = super._resolve(path);
+        return core_1.getSystemPath(r);
     }
 }
 exports.default = ReadHookHost;

@@ -10,7 +10,7 @@
     "category": ["tool", "internal", "nodejs"],
     "chunk": "common-app",
     "entryPage": "index.html",
-    "angularCompiler": false,
+    "angularCompiler": true,
     "type": ["builder", "server"],
     "builderPriority": 9999
   },

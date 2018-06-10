@@ -239,7 +239,7 @@ function writeTsconfig() {
     let tsInclude = [];
     let tsExclude = [];
     ngPackages.forEach(pk => {
-        let dir = Path.relative(tempDir, pk.realPackagePath).replace(/\\/g, '/');
+        let dir = Path.relative(tempDir, pk.packagePath).replace(/\\/g, '/');
         tsInclude.push(dir + '/**/*.ts');
         tsExclude.push(dir + '/ts', dir + '/spec', dir + '/dist', dir + '/**/*.spec.ts');
     });
@@ -271,6 +271,11 @@ function setupApiForAngularCli() {
     let ngParam = api.config()._angularCli;
     if (!ngParam || api.ngEntryComponent)
         return;
+    if (!ngParam.browserOptions.preserveSymlinks) {
+        throw new Error('In order to get DRCP builder work,\
+		you must set property `preserveSymlinks` to be true in project\'s angular.json file \
+		');
+    }
     let webpackConfig = ngParam.webpackConfig;
     let ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
     Object.assign(Object.getPrototypeOf(api), {
