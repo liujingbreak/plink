@@ -7,8 +7,11 @@ var loaderUtils = require('loader-utils');
 var api = require('__api');
 var _ = require('lodash');
 // var log = require('log4js').getLogger('wfh.dr-file-loader');
+var resolveSymlink = null;
 
 module.exports = function(content) {
+	if (resolveSymlink === null)
+		resolveSymlink = _.get(this, '_compiler.options.resolve.symlinks');
 	if (this.cacheable)
 		this.cacheable();
 	var callback = this.async();
@@ -46,10 +49,14 @@ module.exports = function(content) {
 		var browserPackage = api.findPackageByFile(filePath);
 		// if (browserPackage) {
 		let outputPath = _.trimStart(api.config.get(['outputPathMap', browserPackage.longName]), '/');
-		outputPath = path.join(outputPath, path.dirname(path.relative(
-			_.get(this, '_compiler.options.resolve.symlinks') ?
-				browserPackage.realPackagePath :
-				browserPackage.packagePath, filePath)));
+
+		let packageDir;
+		if (browserPackage.realPackagePath.startsWith(process.cwd()) || resolveSymlink) {
+			packageDir = browserPackage.realPackagePath;
+		} else {
+			packageDir = browserPackage.packagePath;
+		}
+		outputPath = path.join(outputPath, path.dirname(path.relative(packageDir, filePath)));
 		url = path.join(outputPath, url.split('/').pop()); // only file name part
 		// } else
 		url = url.replace(/(^|\/)node_modules(\/|$)/g, '$1n-m$2').replace(/@/g, 'a');

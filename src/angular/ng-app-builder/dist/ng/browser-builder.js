@@ -26,17 +26,6 @@ const utils_2 = require("@angular-devkit/build-angular/src/utils");
 const build_angular_1 = require("@angular-devkit/build-angular");
 const drcpCommon = require("./common");
 const read_hook_vfshost_1 = require("../utils/read-hook-vfshost");
-// import * as log4js from 'log4js';
-// const log = log4js.getLogger('@dr/ng-app-builder.browser-builder');
-// TODO: figure out a better way to normalize assets, extra entry points, file replacements,
-// and whatever else needs to be normalized, while keeping type safety.
-// Right now this normalization has to be done in all other builders that make use of the
-// BrowserBuildSchema and BrowserBuilder.buildWebpackConfig.
-// It would really help if it happens during architect.validateBuilderOptions, or similar.
-// export interface NormalizedBrowserBuilderSchema extends BrowserBuilderSchema {
-// 	assets: AssetPatternObject[];
-// 	fileReplacements: CurrentFileReplacement[];
-// }
 class BrowserBuilder extends build_angular_1.BrowserBuilder {
     // constructor(public context: BuilderContext) { }
     run(builderConfig) {

@@ -41,18 +41,6 @@ import {
 import {BrowserBuilder as GoogleBrowserBuilder, NormalizedBrowserBuilderSchema} from '@angular-devkit/build-angular';
 import * as drcpCommon from './common';
 import ReadHookHost from '../utils/read-hook-vfshost';
-// import * as log4js from 'log4js';
-// const log = log4js.getLogger('@dr/ng-app-builder.browser-builder');
-
-	// TODO: figure out a better way to normalize assets, extra entry points, file replacements,
-	// and whatever else needs to be normalized, while keeping type safety.
-	// Right now this normalization has to be done in all other builders that make use of the
-	// BrowserBuildSchema and BrowserBuilder.buildWebpackConfig.
-	// It would really help if it happens during architect.validateBuilderOptions, or similar.
-// export interface NormalizedBrowserBuilderSchema extends BrowserBuilderSchema {
-// 	assets: AssetPatternObject[];
-// 	fileReplacements: CurrentFileReplacement[];
-// }
 
 export class BrowserBuilder extends GoogleBrowserBuilder {
 
@@ -205,17 +193,17 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 	private _deleteOutputDir0(root: Path, outputPath: Path, host: virtualFs.Host) {
 		const resolvedOutputPath = resolve(root, outputPath);
 		if (resolvedOutputPath === root) {
-			throw new Error('Output path MUST not be project root directory!');
+		  throw new Error('Output path MUST not be project root directory!');
 		}
 
 		return host.exists(resolvedOutputPath).pipe(
-			concatMap(exists => exists
-				// TODO: remove this concat once host ops emit an event.
-				? concat(host.delete(resolvedOutputPath), of(null)).pipe(last())
-				// ? of(null)
-				: of(null))
+		  concatMap(exists => exists
+			// TODO: remove this concat once host ops emit an event.
+			? concat(host.delete(resolvedOutputPath), of(null)).pipe(last())
+			// ? of(null)
+			: of(null))
 		);
-	}
+	  }
 }
 
 export default BrowserBuilder;
