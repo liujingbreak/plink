@@ -36,16 +36,17 @@ var config = {
 		errorOut: {type: 'logLevelFilter', appender: 'out', level: 'error'},
 		file: {
 			type: 'file',
-			filename: 'logs/drcp.log',
-			backups: 0,
+			filename: 'logs/credit-nodejs-server.log',
+			keepFileExt: true,
+			layout: {type: 'pattern', pattern: cluster.isWorker ? patterns.clusterFileDate : patterns.fileDate},
 			maxLogSize: 500 * 1024,
-			layout: {type: 'pattern', pattern: cluster.isWorker ? patterns.clusterFileDate : patterns.fileDate}
+			backups: 2
 		}
 	},
 	categories: {
 		'default': {appenders: ['out', 'file'], level: 'info'},
 		'dr-comp-package': {appenders: ['file'], level: 'debug'},
-		'@dr-core/assets-processer': {appenders: ['file'], level: 'debug'},
+		'@dr-core/assets-processer': {appenders: ['infoOut', 'file'], level: 'debug'},
 		'wfh.module-dep-helper': {appenders: ['infoOut', 'file'], level: 'info'},
 		'wfh.ManualChunkPlugin': {appenders: ['infoOut', 'file'], level: 'debug'},
 		'wfh.ManualChunkPlugin-m': {appenders: ['out', 'file'], level: 'error'},
@@ -67,3 +68,21 @@ if (isPm2 && !pm2Intercom) {
 }
 
 module.exports = config;
+
+module.exports.setup = function(options) {
+	var {logger} = options;
+	if (logger == null)
+		return config;
+	if (logger.noFileLimit) {
+		console.log('[log4js.js] No file max log size limitation');
+		delete config.appenders.file.maxLogSize;
+		delete config.appenders.file.backups;
+	}
+	if (logger.onlyFileOut) {
+		for (let cat of Object.values(config.categories)) {
+			cat.appenders = ['file'];
+		}
+		console.log('[log4js.js] only file out');
+	}
+	return config;
+};

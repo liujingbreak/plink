@@ -15,7 +15,7 @@ var recipeManager = require('./recipeManager');
 var pify = require('pify');
 var File = require('vinyl');
 var buildUtils = require('./buildUtils');
-require('../logConfig')(config().rootPath);
+require('../logConfig')(config());
 var log = require('log4js').getLogger('wfh.cliAdvanced');
 var packageUtils = require('../packageMgr/packageUtils');
 

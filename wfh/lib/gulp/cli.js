@@ -235,7 +235,7 @@ function writeProjectListFile(dirs) {
 function ls(_argv) {
 	argv = _argv;
 	var config = require('../config');
-	require('../logConfig')(config().rootPath);
+	require('../logConfig')(config());
 	// require('log4js').getLogger('lib.injector').setLevel('warn');
 	// require('log4js').getLogger('packagePriorityHelper').setLevel('warn');
 	var {nodeInjector} = require('../injectorFactory');

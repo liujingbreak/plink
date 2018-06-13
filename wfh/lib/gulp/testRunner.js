@@ -9,7 +9,7 @@ var config = require('../config');
 var Package = require('../packageMgr/packageNodeInstance');
 var NodeApi = require('../nodeApi');
 var {nodeInjector} = require('../injectorFactory');
-require('../logConfig')(config().rootPath);
+require('../logConfig')(config());
 
 exports.runUnitTest = runUnitTest;
 exports.runE2eTest = runE2eTest;

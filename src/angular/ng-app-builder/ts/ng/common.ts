@@ -15,7 +15,7 @@ function initDrcp(drcpArgs: any) {
 	if (Array.isArray(drcpArgs.c)) {
 		config.load(drcpArgs.c);
 	}
-	require('dr-comp-package/wfh/lib/logConfig')(config().rootPath, config().log4jsReloadSeconds);
+	require('dr-comp-package/wfh/lib/logConfig')(config());
 	return config;
 }
 

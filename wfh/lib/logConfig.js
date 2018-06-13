@@ -3,7 +3,8 @@ var mkdirp = require('mkdirp');
 var Path = require('path');
 var fs = require('fs');
 
-module.exports = function(rootPath, reloadSec) {
+module.exports = function(configObj) {
+	var {rootPath, log4jsReloadSeconds: reloadSec} = configObj;
 	var log4js = require('log4js');
 	// var log4jsConfig = Path.resolve(__dirname, 'gulp/templates/log4js.json');
 	var log4jsConfig = Path.join(rootPath, 'log4js.js');
@@ -20,7 +21,11 @@ module.exports = function(rootPath, reloadSec) {
 	if (reloadSec !== undefined)
 		opt.reloadSecs = reloadSec;
 	try {
-		log4js.configure(require(log4jsConfig), opt);
+		var localSetting = require(log4jsConfig);
+		if (localSetting.setup instanceof Function) {
+			localSetting = localSetting.setup(configObj);
+		}
+		log4js.configure(localSetting, opt);
 		// var consoleLogger = log4js.getLogger('>');
 		// console.log = consoleLogger.info.bind(consoleLogger);
 		log4js.getLogger('dr-comp-package').info(`\n\n-------------- ${new Date().toLocaleString()} ----------------\n`);

@@ -14,7 +14,7 @@ const sourcemaps = require('gulp-sourcemaps');
 var config = require('../config');
 var SEP = Path.sep;
 
-require('../logConfig')(config().rootPath);
+require('../logConfig')(config());
 var log = require('log4js').getLogger('wfh.typescript');
 
 exports.tsc = tsc;

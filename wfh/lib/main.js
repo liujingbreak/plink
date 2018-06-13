@@ -7,7 +7,7 @@ require('./cmd-args').nodeAppCommand(function(argv) {
 
 	// require('./gulp/cli').getProjects(config().rootPath)
 	// 	.forEach(prj => nodePathSetup.removeNodePath(Path.resolve(prj, 'node_modules')));
-	require('./logConfig')(config().rootPath, config().log4jsReloadSeconds);
+	require('./logConfig')(config());
 	var log = require('log4js').getLogger('lib.main');
 	var pkMgr = require('./packageMgr');
 
