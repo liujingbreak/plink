@@ -193,8 +193,8 @@ function _writeGitHook(project) {
 	if (fs.existsSync(gitPath)) {
 		var hookStr = '#!/bin/sh\n' +
 			`cd "${rootPath}"\n` +
-			'npx pretty-quick --staged\n' +
 			'drcp init\n' +
+			'npx pretty-quick --staged\n' +
 			`drcp lint --pj "${project}"\n`;
 		fs.writeFileSync(gitPath + '/pre-commit', hookStr);
 		console.log('Write ' + gitPath + '/pre-commit');
