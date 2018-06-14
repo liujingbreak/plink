@@ -1,3 +1,11 @@
-#https://prettier.io/docs/en/ignore.html
+# https://prettier.io/docs/en/ignore.html
+
 *.html
 *.js
+*.js.map
+
+dist
+/tmp
+/out-tsc
+/package-lock.json
+coverage
