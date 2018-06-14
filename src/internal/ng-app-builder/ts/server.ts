@@ -193,7 +193,7 @@ export function init() {
 }
 
 export function activate() {
-	setupApiForAngularCli();
+	// setupApiForAngularCli();
 	api.router().get('/ok', (req: express.Request, res: express.Response) => {
 		log.warn('cool');
 		res.send('cool');
@@ -245,8 +245,8 @@ export function writeTsconfig(): string {
 	let tsExclude: string[] = [];
 	ngPackages.forEach(pk => {
 		let dir = Path.relative(tempDir,
-			pk.realPackagePath)
-			// pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
+			// pk.realPackagePath)
+			pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
 			.replace(/\\/g, '/');
 		tsInclude.push(dir + '/**/*.ts');
 		tsExclude.push(dir + '/ts',
@@ -262,6 +262,11 @@ export function writeTsconfig(): string {
 		exclude: tsExclude,
 		compilerOptions: {
 			baseUrl: root,
+			paths: {
+				'*': [
+					'node_modules/*'
+				]
+			},
 			typeRoots: [
 				Path.resolve(root, 'node_modules/@types'),
 				Path.resolve(root, 'node_modules/@dr-types'),
@@ -283,9 +288,9 @@ function setupApiForAngularCli() {
 	let ngParam: AngularCliParam = api.config()._angularCli;
 	if (!ngParam || api.ngEntryComponent)
 		return;
-	if (ngParam.browserOptions.preserveSymlinks) {
+	if (!ngParam.browserOptions.preserveSymlinks) {
 		throw new Error('In order to get DRCP builder work,\
-		you must set property `preserveSymlinks` to be false in project\'s angular.json file \
+		you must set property `preserveSymlinks` to be true in project\'s angular.json file \
 		');
 	}
 	let webpackConfig = ngParam.webpackConfig;

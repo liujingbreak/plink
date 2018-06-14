@@ -17,6 +17,7 @@ function virtualHostReadHook(file, buf) {
             browserLegoConfig();
             // TODO
         }
+        // log.warn(file);
         let compPkg = __api_1.default.findPackageByFile(file);
         let len = buf.byteLength;
         let content = Buffer.from(buf).toString();

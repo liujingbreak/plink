@@ -161,16 +161,21 @@ function initWebInjector(packageInfo, apiPrototype) {
  */
 function traversePackages(needInject) {
 	var packagesTypeMap = mapPackagesByType(['builder', 'server'], needInject ?
-		(pkInstance, name, entryPath, parsedName, pkJson, packagePath) => {
-			setupNodeInjectorFor(pkInstance, name, packagePath);
+		(pkInstance, name, entryPath, parsedName, pkJson, realPackagePath, packagePath) => {
+			setupNodeInjectorFor(pkInstance, name, packagePath, realPackagePath);
 		} : null);
 	if (needInject)
 		nodeInjector.readInjectFile();
 	return packagesTypeMap;
 }
 
-function setupNodeInjectorFor(pkInstance, name, packagePath) {
-	log.debug('setupNodeInjectorFor %s resolved to: %s', name, packagePath);
+function setupNodeInjectorFor(pkInstance, name, packagePath, realPackagePath) {
+	log.debug('setupNodeInjectorFor %s resolved to: %s', name, packagePath, realPackagePath);
+	nodeInjector.fromPackage(name, realPackagePath)
+	.value('__injector', nodeInjector)
+	.factory('__api', function() {
+		return getApiForPackage(pkInstance);
+	});
 	nodeInjector.fromPackage(name, packagePath)
 	.value('__injector', nodeInjector)
 	.factory('__api', function() {
@@ -204,7 +209,7 @@ function mapPackagesByType(types, onEachPackage) {
 	});
 
 	packageUtils.findNodePackageByType('*', (name, entryPath, parsedName, pkJson, packagePath, isInstalled) => {
-		packagePath = fs.realpathSync(packagePath);
+		var realPackagePath = fs.realpathSync(packagePath);
 		var pkInstance = new Package({
 			moduleName: name,
 			shortName: parsedName.name,
@@ -221,7 +226,7 @@ function mapPackagesByType(types, onEachPackage) {
 			packagesMap[type].push(pkInstance);
 		});
 		if (pkJson.main && onEachPackage) {
-			onEachPackage(pkInstance, name, entryPath, parsedName, pkJson, packagePath);
+			onEachPackage(pkInstance, name, entryPath, parsedName, pkJson, realPackagePath, packagePath);
 		}
 	});
 	return packagesMap;

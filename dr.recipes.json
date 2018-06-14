@@ -1,5 +1,3 @@
 {
 	"recipes/internal-recipe": "src/internal",
-	"recipes/internal-tools-recipe": "src/tools",
-	"recipes/angular5-recipe": "src/angular"
-}
+	"recipes/internal-tools-recipe": "src/tools"}

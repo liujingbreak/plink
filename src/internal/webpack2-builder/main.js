@@ -200,6 +200,12 @@ function writeTsconfig4Editor(tsjson) {
 		});
 		log.info('Write tsconfig.json to ' + proj);
 		tsjson.compilerOptions = {
+			baseUrl: root,
+			paths: {
+				'*': [
+					'node_modules/*'
+				]
+			},
 			typeRoots: [
 				Path.join(root, 'node_modules/@types'),
 				Path.join(root, 'node_modules/@dr-types'),

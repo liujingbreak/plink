@@ -68,7 +68,7 @@ exports.default = postcss.plugin('postcss-cli-resources', (options) => {
         // ------------- hack starts
         let comp = api.findPackageByFile(result);
         // let outputPath = _.trimStart(api.config.get(['outputPathMap', comp.longName]), '/');
-        let relativeDir = Path.dirname(Path.relative(comp.realPackagePath, result)).replace(/\\/g, '/');
+        let relativeDir = Path.dirname(Path.relative(comp.packagePath, result)).replace(/\\/g, '/');
         if (relativeDir.startsWith('..')) {
             log.error(`Target resource: ${result}\n, while package is ${comp.realPackagePath}, and dir is ${relativeDir}`);
             throw new Error('Resource path should not starts with "../", caused by symblink');

@@ -38,6 +38,12 @@ function tsc(argv, onCompiled) {
 		typescript: require('typescript'),
 		// Compiler options
 		outDir: '',
+		baseUrl: root,
+		paths: {
+			'*': [
+				'node_modules/*'
+			]
+		},
 		typeRoots: [
 			Path.join(root, 'node_modules/@types'),
 			Path.join(root, 'node_modules/@dr-types'),

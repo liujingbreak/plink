@@ -8,6 +8,7 @@
     "@dr-core/express-app": "1.0.1",
     "@dr/http-server": "1.0.0",
     "@dr/logger": "1.0.0",
+    "@dr-core/ng-app-builder": "2.0.4",
     "@dr/template-builder": "1.0.0",
     "@dr/translate-generator": "1.0.0",
     "@dr-core/webpack2-builder": "1.0.0"
