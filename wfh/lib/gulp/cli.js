@@ -140,6 +140,8 @@ function _initDependency(isDrcpSymlink) {
 		_writeGitHook(prjdir);
 		maybeCopyTemplate(Path.resolve(__dirname, '../../.eslintrc.json'), prjdir + '/.eslintrc.json');
 		maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
+		maybeCopyTemplate(Path.resolve(__dirname, '../../prettier.config.js'), prjdir + '/prettier.config.js');
+		maybeCopyTemplate(Path.resolve(__dirname, '../../.prettierignore'), prjdir + '/.prettierignore');
 		let moduleDir = Path.resolve(prjdir, 'node_modules');
 		let needCreateSymlink = false;
 		let stats;
@@ -191,6 +193,7 @@ function _writeGitHook(project) {
 	if (fs.existsSync(gitPath)) {
 		var hookStr = '#!/bin/sh\n' +
 			`cd "${rootPath}"\n` +
+			'npx pretty-quick --staged\n' +
 			'drcp init\n' +
 			`drcp lint --pj "${project}"\n`;
 		fs.writeFileSync(gitPath + '/pre-commit', hookStr);
