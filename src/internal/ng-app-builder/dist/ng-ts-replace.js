@@ -5,38 +5,69 @@ const __api_1 = require("__api");
 const _ = require("lodash");
 const log4js = require("log4js");
 const rxjs_1 = require("rxjs");
-const Path = require("path");
 const log = log4js.getLogger(__api_1.default.packageName);
 const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder\'); var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\'); __api.default = __api;');
-const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
-exports.readHook = virtualHostReadHook;
-function virtualHostReadHook(file, buf) {
-    // log.warn(file);
-    if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
-        if (file === includeTsFile) {
-            browserLegoConfig();
-            // TODO
-        }
-        // log.warn(file);
-        let compPkg = __api_1.default.findPackageByFile(file);
-        let len = buf.byteLength;
-        let content = Buffer.from(buf).toString();
-        let changed = __api_1.default.browserInjector.injectToFile(file, content);
-        if (changed !== content) {
-            changed = apiTmpl({ packageName: compPkg.longName }) + '\n' + changed;
-            let nodeBuf = Buffer.from(changed);
-            len = nodeBuf.byteLength;
-            let newBuf = new ArrayBuffer(len);
-            let dataView = new DataView(newBuf);
-            for (let i = 0; i < len; i++) {
-                dataView.setUint8(i, nodeBuf.readUInt8(i));
+// const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
+function createTsReadHook(ngParam) {
+    let drcpIncludeBuf;
+    return function (file, buf) {
+        try {
+            // log.warn(file);
+            if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
+                if (/[\\\/]drcp-include\.ts/.test(file)) {
+                    if (drcpIncludeBuf)
+                        return rxjs_1.of(drcpIncludeBuf);
+                    let content = Buffer.from(buf).toString();
+                    let legoConfig = browserLegoConfig();
+                    let body;
+                    if (_.get(ngParam, 'builderConfig.options.hmr')) {
+                        content = `import 'webpack-hot-middleware/client';
+						// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
+						import hmrBootstrap from './hmr';
+						`.replace(/^[ \t]+/gm, '') + content;
+                        body = 'hmrBootstrap(module, bootstrap);';
+                    }
+                    else {
+                        body = 'bootstrap();';
+                    }
+                    if (!ngParam.browserOptions.aot) {
+                        content = 'import \'core-js/es7/reflect\';\n' + content;
+                    }
+                    content = content.replace(/\/\/ handleBootStrap placeholder/, body);
+                    content += `\n(window as any).LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
+                    drcpIncludeBuf = string2buffer(content);
+                    log.info(file + ':\n' + content);
+                    return rxjs_1.of(drcpIncludeBuf);
+                }
+                let compPkg = __api_1.default.findPackageByFile(file);
+                let content = Buffer.from(buf).toString();
+                let changed = __api_1.default.browserInjector.injectToFile(file, content);
+                if (changed !== content) {
+                    changed = apiTmpl({ packageName: compPkg.longName }) + '\n' + changed;
+                    log.info('Replacing content in ' + file);
+                    return rxjs_1.of(string2buffer(changed));
+                }
             }
-            log.info('Replacing content in ' + file);
-            return rxjs_1.of(newBuf);
+            return rxjs_1.of(buf);
         }
-    }
-    return rxjs_1.of(buf);
+        catch (ex) {
+            log.error(ex);
+            return rxjs_1.throwError(ex);
+        }
+    };
 }
+exports.default = createTsReadHook;
+function string2buffer(input) {
+    let nodeBuf = Buffer.from(input);
+    let len = nodeBuf.byteLength;
+    let newBuf = new ArrayBuffer(len);
+    let dataView = new DataView(newBuf);
+    for (let i = 0; i < len; i++) {
+        dataView.setUint8(i, nodeBuf.readUInt8(i));
+    }
+    return newBuf;
+}
+exports.string2buffer = string2buffer;
 function browserLegoConfig() {
     var browserPropSet = {};
     var legoConfig = {}; // legoConfig is global configuration properties which apply to all entries and modules

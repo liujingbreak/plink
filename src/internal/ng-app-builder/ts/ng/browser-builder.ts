@@ -149,47 +149,6 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 		);
 	}
 
-	// buildWebpackConfig(
-	// 	root: Path,
-	// 	projectRoot: Path,
-	// 	host: virtualFs.Host<fs.Stats>,
-	// 	options: NormalizedBrowserBuilderSchema
-	// ) {
-	// 	let wco: WebpackConfigOptions<NormalizedBrowserBuilderSchema>;
-
-	// 	const tsConfigPath = getSystemPath(normalize(resolve(root, normalize(options.tsConfig))));
-	// 	const tsConfig = readTsconfig(tsConfigPath);
-
-	// 	const projectTs = requireProjectModule(getSystemPath(projectRoot), 'typescript') as typeof ts;
-
-	// 	const supportES2015 = tsConfig.options.target !== projectTs.ScriptTarget.ES3
-	// 		&& tsConfig.options.target !== projectTs.ScriptTarget.ES5;
-
-	// 	wco = {
-	// 		root: getSystemPath(root),
-	// 		projectRoot: getSystemPath(projectRoot),
-	// 		buildOptions: options,
-	// 		tsConfig,
-	// 		tsConfigPath,
-	// 		supportES2015
-	// 	};
-
-	// 	const webpackConfigs: Array<{}> = [
-	// 		getCommonConfig(wco),
-	// 		getBrowserConfig(wco),
-	// 		getStylesConfig(wco)
-	// 	];
-
-	// 	if (wco.buildOptions.main || wco.buildOptions.polyfills) {
-	// 		const typescriptConfigPartial = wco.buildOptions.aot
-	// 			? getAotConfig(wco, host)
-	// 			: getNonAotConfig(wco, host);
-	// 		webpackConfigs.push(typescriptConfigPartial);
-	// 	}
-
-	// 	return webpackMerge(webpackConfigs);
-	// }
-
 	private _deleteOutputDir0(root: Path, outputPath: Path, host: virtualFs.Host) {
 		const resolvedOutputPath = resolve(root, outputPath);
 		if (resolvedOutputPath === root) {

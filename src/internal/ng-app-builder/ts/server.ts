@@ -8,7 +8,7 @@ import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
 import * as express from 'express';
 import {AngularCliParam} from './ng/common';
 import configWebpack from './config-webpack';
-import {readHook} from './ng-ts-replace';
+import createHook from './ng-ts-replace';
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
@@ -302,6 +302,7 @@ function setupApiForAngularCli() {
 	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
 	configWebpack(ngParam, webpackConfig, api.config());
 
-	ngParam.vfsHost.hookRead = readHook;
+	// ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
+	ngParam.vfsHost.hookRead = createHook(ngParam);
 	log.info('Setup api object for Angular');
 }

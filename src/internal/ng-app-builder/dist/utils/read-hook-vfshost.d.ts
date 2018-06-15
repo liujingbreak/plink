@@ -8,7 +8,8 @@ export interface TsFile {
 export declare type HookReadFunc = (path: string, buffer: FBuffer) => Observable<FBuffer>;
 export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.AliasHost<StatsT> {
     /** set this property to add a file read hook */
+    _readFunc: HookReadFunc;
     hookRead: HookReadFunc;
     read(path: Path): Observable<FBuffer>;
-    protected _resolve(path: Path): Path;
+    protected _hookRead(path: string, buffer: FBuffer): Observable<FBuffer>;
 }

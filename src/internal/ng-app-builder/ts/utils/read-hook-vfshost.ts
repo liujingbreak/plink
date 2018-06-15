@@ -1,7 +1,7 @@
 /* tslint:disable no-console */
-import {virtualFs, Path, getSystemPath} from '@angular-devkit/core';
+import {virtualFs, Path ,getSystemPath} from '@angular-devkit/core';
 import {Observable} from 'rxjs';
-import {concatMap, tap} from 'rxjs/operators';
+import {concatMap} from 'rxjs/operators';
 // import {sep} from 'path';
 
 // const isWindows = sep === '\\';
@@ -16,28 +16,28 @@ export type HookReadFunc =(path: string, buffer: FBuffer) => Observable<FBuffer>
 
 export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.AliasHost<StatsT> {
 	/** set this property to add a file read hook */
-	hookRead: HookReadFunc;
+	_readFunc: HookReadFunc;
+
+	set hookRead(func: HookReadFunc) {
+		this._readFunc = func;
+	}
 
 	read(path: Path): Observable<FBuffer> {
 		return super.read(path).pipe(
-			this.hookRead ?
 			concatMap((buffer: FBuffer) => {
 				let sPath: string = getSystemPath(path);
-				// if (isWindows) {
-				// 	let match = /^\/([^/]+)(.*)/.exec(path);
-				// 	if (match)
-				// 		sPath = match[1] + ':' + match[2].replace(/\//g, sep);
-				// }
-				return this.hookRead(sPath, buffer);
-			}) :
-			tap(() => {
-				console.log('ReadHookHost reading ', path);
+				return this._hookRead(sPath, buffer);
 			})
 		);
 	}
 
-	protected _resolve(path: Path) {
-		let r = super._resolve(path);
-		return r;
+	protected _hookRead(path: string, buffer: FBuffer): Observable<FBuffer> {
+		return this._readFunc(path, buffer);
 	}
+
+
+	// protected _resolve(path: Path) {
+	// 	let r = super._resolve(path);
+	// 	return r;
+	// }
 }

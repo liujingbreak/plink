@@ -292,7 +292,8 @@ function setupApiForAngularCli() {
     });
     api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
     config_webpack_1.default(ngParam, webpackConfig, api.config());
-    ngParam.vfsHost.hookRead = ng_ts_replace_1.readHook;
+    // ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
+    ngParam.vfsHost.hookRead = ng_ts_replace_1.default(ngParam);
     log.info('Setup api object for Angular');
 }
 
