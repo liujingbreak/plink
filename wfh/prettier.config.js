@@ -11,8 +11,8 @@ module.exports = {
 	jsxBracketSameLine: false, // Put > on the last line instead of at a new line
 	printWidth: 100,
 	proseWrap: 'preserve', // How to wrap prose. (markdown)"
-	rangeEnd: null, // Format code ending at a given character offset (exclusive).\nThe range will extend forwards to the end of the selected statement.\nThis option cannot be used with --cursor-offset
-	rangeStart: 0, // Format code starting at a given character offset.\nThe range will extend backwards to the start of the first line containing the selected statement.\nThis option cannot be used with --cursor-offset
+	// rangeEnd: null, // Format code ending at a given character offset (exclusive).\nThe range will extend forwards to the end of the selected statement.\nThis option cannot be used with --cursor-offset
+	// rangeStart: 0, // Format code starting at a given character offset.\nThe range will extend backwards to the start of the first line containing the selected statement.\nThis option cannot be used with --cursor-offset
 	requirePragma: false, // Require either '@prettier' or '@format' to be present in the file's first docblock comment\nin order for it to be formatted
 	semi: true, // Print semicolons
 	singleQuote: true,
