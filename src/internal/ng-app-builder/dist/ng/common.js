@@ -34,6 +34,7 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
         config.set('port', options.port);
         var log = require('log4js').getLogger('ng-app-builder.ng.dev-server');
         var pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
+        let shutdownable;
         try {
             process.on('uncaughtException', function (err) {
                 log.error('Uncaught exception: ', err, err.stack);
@@ -42,20 +43,22 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
             });
             process.on('SIGINT', function () {
                 log.info('Recieve SIGINT, bye.');
-                obs.next({ success: true });
-                obs.complete();
-                setTimeout(() => process.exit(0), 500);
+                shutdownable.then(shut => shut())
+                    .then(() => process.exit(0));
+                // obs.next({ success: true });
+                // obs.complete();
             });
             process.on('message', function (msg) {
                 if (msg === 'shutdown') {
                     log.info('Recieve shutdown message from PM2, bye.');
-                    process.exit(0);
-                    obs.next({ success: true });
-                    obs.complete();
+                    shutdownable.then(shut => shut())
+                        .then(() => process.exit(0));
+                    // obs.next({ success: true });
+                    // obs.complete();
                 }
             });
             process._config = config;
-            pkMgr.runServer(param.argv)
+            shutdownable = pkMgr.runServer(param.argv)
                 .catch((err) => {
                 console.error('Failed to start server:', err);
                 // process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.

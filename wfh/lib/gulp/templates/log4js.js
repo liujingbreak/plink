@@ -1,4 +1,5 @@
 const cluster = require('cluster');
+const os = require('os');
 
 var isPm2 = cluster.isWorker && process.env.NODE_APP_INSTANCE != null;
 var pm2Intercom = true;
@@ -41,7 +42,15 @@ var config = {
 			layout: {type: 'pattern', pattern: cluster.isWorker ? patterns.clusterFileDate : patterns.fileDate},
 			maxLogSize: 500 * 1024,
 			backups: 2
-		}
+		},
+		// You need to install "@log4js-node/slack": "^1.0.0"
+		slack: {
+			type: '@log4js-node/slack',
+			token: 'xoxp-312833633648-360821048965-382755661938-eea29fbbad616de83d52a6d51c787641',
+			channel_id: 'credit_service_log',
+			username: os.hostname() + ' ' + os.userInfo().username
+		},
+		errorSlack: {type: 'logLevelFilter', appender: 'slack', level: 'error'}
 	},
 	categories: {
 		'default': {appenders: ['out', 'file'], level: 'info'},

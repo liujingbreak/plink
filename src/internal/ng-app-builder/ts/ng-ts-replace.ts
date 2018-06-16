@@ -8,7 +8,6 @@ import {HookReadFunc} from './utils/read-hook-vfshost';
 import {AngularCliParam} from './ng/common';
 const log = log4js.getLogger(api.packageName);
 
-
 const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder\'); var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\'); __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
 
@@ -106,4 +105,3 @@ function compressOutputPathMap(pathMap: any) {
 		diffMap: newMap
 	};
 }
-

@@ -5,9 +5,11 @@ import * as Path from 'path';
 // var Promise = require('bluebird');
 import * as log4js from 'log4js';
 import api from '__api';
-var config: any, log: any;
 
-exports.activate = function() {
+var config: any, log: any;
+var server: https.Server | http.Server;
+
+export function activate() {
 	log = log4js.getLogger(api.packageName);
 	config = api.config;
 	var rootPath: string = config().rootPath;
@@ -38,7 +40,7 @@ exports.activate = function() {
 	function startHttpServer(app: any) {
 		log.info('start HTTP');
 		var port = config().port ? config().port : 80;
-		var server: http.Server = http.createServer(app);
+		server = http.createServer(app);
 		// Node 8 has a keepAliveTimeout bug which doesn't respect active connections.
 		// Connections will end after ~5 seconds (arbitrary), often not letting the full download
 		// of large pieces of content, such as a vendor javascript file.  This results in browsers
@@ -64,7 +66,7 @@ exports.activate = function() {
 		var startPromises = [];
 		var port: number | string = sslSetting.port ? sslSetting.port : 433;
 		port = typeof(port) === 'number' ? port : normalizePort(port as string);
-		var server: https.Server = https.createServer({
+		server = https.createServer({
 			key: fs.readFileSync(sslSetting.key),
 			cert: fs.readFileSync(sslSetting.cert)
 		}, app);
@@ -126,7 +128,7 @@ exports.activate = function() {
 	/**
 	 * Event listener for HTTP server "listening" event.
 	 */
-	function onListening(server: http.Server, title: string) {
+	function onListening(server: http.Server | https.Server, title: string) {
 		var addr = server.address();
 		var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + JSON.stringify(addr, null, '\t');
 		log.info('%s is listening on %s', title ? title : '', bind);
@@ -157,7 +159,12 @@ exports.activate = function() {
 				throw error;
 		}
 	}
-};
+}
+
+export function deactivate() {
+	server.close();
+	log.info('HTTP server is shut');
+}
 
 function fileAccessable(file: string) {
 	try {

@@ -6,9 +6,11 @@ var Promise = require('bluebird');
 var util = require('util');
 var helper = require('./packageRunnerHelper');
 var priorityHelper = require('./packagePriorityHelper');
+const {ServerRunner} = require('../../dist/package-runner');
 
 var packageCache = {};
 var corePackages = {};
+var deactivateOrder;
 var eventBus;
 
 eventBus = NodeApi.prototype.eventBus;
@@ -35,9 +37,16 @@ function runServer(argv) {
 		return helper.runBuilderComponents(packagesTypeMap.builder, buildArgv, skipNames);
 	};
 	var packagesTypeMap = requireServerPackages();
+	deactivateOrder = [];
 	return activateCoreComponents()
 	.then(() => {
 		return activateNormalComponents();
+	})
+	.then(() => {
+		var newRunner = new ServerRunner();
+		deactivateOrder.reverse();
+		newRunner.deactivatePackages = deactivateOrder;
+		return () => newRunner.shutdownServer();
 	});
 }
 
@@ -83,6 +92,7 @@ function activateNormalComponents() {
 
 function _activePackages(packages, eventName) {
 	return priorityHelper.orderPackages(_.values(packages), pkInstance => {
+		deactivateOrder.push(pkInstance);
 		return helper.runServerComponent(pkInstance);
 	}, 'json.dr.serverPriority')
 	.then(function() {

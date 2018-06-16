@@ -8,7 +8,8 @@ const Path = require("path");
 const log4js = require("log4js");
 const __api_1 = require("__api");
 var config, log;
-exports.activate = function () {
+var server;
+function activate() {
     log = log4js.getLogger(__api_1.default.packageName);
     config = __api_1.default.config;
     var rootPath = config().rootPath;
@@ -37,7 +38,7 @@ exports.activate = function () {
     function startHttpServer(app) {
         log.info('start HTTP');
         var port = config().port ? config().port : 80;
-        var server = http.createServer(app);
+        server = http.createServer(app);
         // Node 8 has a keepAliveTimeout bug which doesn't respect active connections.
         // Connections will end after ~5 seconds (arbitrary), often not letting the full download
         // of large pieces of content, such as a vendor javascript file.  This results in browsers
@@ -62,7 +63,7 @@ exports.activate = function () {
         var startPromises = [];
         var port = sslSetting.port ? sslSetting.port : 433;
         port = typeof (port) === 'number' ? port : normalizePort(port);
-        var server = https.createServer({
+        server = https.createServer({
             key: fs.readFileSync(sslSetting.key),
             cert: fs.readFileSync(sslSetting.cert)
         }, app);
@@ -146,7 +147,13 @@ exports.activate = function () {
                 throw error;
         }
     }
-};
+}
+exports.activate = activate;
+function deactivate() {
+    server.close();
+    log.info('HTTP server is shut');
+}
+exports.deactivate = deactivate;
 function fileAccessable(file) {
     try {
         fs.accessSync(file, fs.constants.R_OK);

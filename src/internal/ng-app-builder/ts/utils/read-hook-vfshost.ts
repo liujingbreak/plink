@@ -35,7 +35,6 @@ export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.
 		return this._readFunc(path, buffer);
 	}
 
-
 	// protected _resolve(path: Path) {
 	// 	let r = super._resolve(path);
 	// 	return r;

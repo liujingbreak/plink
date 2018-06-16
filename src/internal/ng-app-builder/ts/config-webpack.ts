@@ -1,13 +1,13 @@
-/* tslint:disable no-console */
+/* tslint:disable no-console max-line-length */
 import ChunkInfoPlugin from './plugins/chunk-info';
-/* tslint:disable max-line-length */
 import gzipSize from './plugins/gzip-size';
 import {AngularCliParam} from './ng/common';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import { isRegExp } from 'util';
 import * as Path from 'path';
-const webpack = require('webpack');
+import {Compiler, HotModuleReplacementPlugin} from 'webpack';
+const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
 export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfig: any): any {
 	// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
@@ -23,12 +23,13 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 		);
 	}
 	if (_.get(param, 'builderConfig.options.hmr'))
-		webpackConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
+		webpackConfig.plugins.push(new HotModuleReplacementPlugin());
 	if (!drcpConfig.devMode) {
 		console.log('Build in production mode');
 		webpackConfig.plugins.push(new gzipSize());
 	}
 
+	webpackConfig.plugins.push(new CompileDonePlugin());
 	changeLoaders(webpackConfig);
 	fs.writeFileSync('dist/ng-webpack-config.js', printConfig(webpackConfig));
 	console.log('If you are wondering what kind of Webapck config file is used internally, checkout dist/ng-webpack-config.js');
@@ -148,4 +149,12 @@ function printConfigValue(value: any, level: number): string {
 		out += ' unknown';
 	}
 	return out;
+}
+
+class CompileDonePlugin {
+	apply(compiler: Compiler) {
+		compiler.hooks.done.tap('drcp-devserver-build-webpack', (stats) => {
+			log.info('Webpack done');
+		});
+	}
 }

@@ -15,4 +15,3 @@ export default function(module: any, bootstrap: () => Promise<NgModuleRef<any>>)
 		makeVisible();
 	});
 }
-

@@ -112,8 +112,7 @@ export default class DrcpDevServer extends DevServerBuilder {
 			concatMap((buildWebpackConfig) => {
 				return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions as NormalizedBrowserBuilderSchema,
 					buildWebpackConfig, host);
-			}),
-			tap((msg: BuildEvent) => console.log)
+			})
 		);
 	}
 

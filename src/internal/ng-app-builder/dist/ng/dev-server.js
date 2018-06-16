@@ -77,7 +77,7 @@ class DrcpDevServer extends build_angular_1.DevServerBuilder {
             obs.complete();
         })), operators_1.concatMap((buildWebpackConfig) => {
             return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions, buildWebpackConfig, host);
-        }), operators_1.tap((msg) => console.log));
+        }));
     }
     _getBrowserOptions1(options) {
         const architect = this.context.architect;
