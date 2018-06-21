@@ -8,7 +8,8 @@ const fs = require("fs");
 const util_1 = require("util");
 const Path = require("path");
 const webpack_1 = require("webpack");
-const log = require('log4js').getLogger('ng-app-builder.config-webpack');
+const __api_1 = require("__api");
+// const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 function changeWebpackConfig(param, webpackConfig, drcpConfig) {
     // const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
     console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
@@ -154,7 +155,7 @@ function printConfigValue(value, level) {
 class CompileDonePlugin {
     apply(compiler) {
         compiler.hooks.done.tap('drcp-devserver-build-webpack', (stats) => {
-            log.info('Webpack done');
+            __api_1.default.eventBus.emit('webpackDone', { success: true });
         });
     }
 }

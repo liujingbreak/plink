@@ -6,7 +6,6 @@ const core_1 = require("@angular-devkit/core");
 const check_port_1 = require("@angular-devkit/build-angular/src/angular-cli-files/utilities/check-port");
 const url = require("url");
 const utils_1 = require("@angular-devkit/build-angular/src/utils");
-const Rx = require("rxjs");
 const operators_1 = require("rxjs/operators");
 // import * as _ from 'lodash';
 // const opn = require('opn');
@@ -34,7 +33,7 @@ class DrcpDevServer extends build_angular_1.DevServerBuilder {
         return check_port_1.checkPort(options.port, options.host)
             .pipe(operators_1.tap((port) => options.port = port), operators_1.concatMap(() => this._getBrowserOptions1(options)), operators_1.tap((opts) => browserOptions = opts), operators_1.concatMap(() => utils_1.addFileReplacements(root, host, browserOptions.fileReplacements)), operators_1.concatMap(() => utils_1.normalizeAssetPatterns(browserOptions.assets, host, root, projectRoot, builderConfig.sourceRoot)), 
         // Replace the assets in options with the normalized version.
-        operators_1.tap((assetPatternObjects => browserOptions.assets = assetPatternObjects)), operators_1.concatMap(() => new Rx.Observable(obs => {
+        operators_1.tap((assetPatternObjects => browserOptions.assets = assetPatternObjects)), operators_1.concatMap(() => {
             const browserBuilder = new browser_builder_1.BrowserBuilder(this.context);
             // DRCP
             // browserOptions.tsConfig = Path.join(process.cwd(), 'dist', 'webpack-temp', 'angular-app-tsconfig.json');
@@ -73,9 +72,6 @@ class DrcpDevServer extends build_angular_1.DevServerBuilder {
 					${options.port}, open your browser on ${serverAddress}
 					**
 				`);
-            obs.next(buildWebpackConfig);
-            obs.complete();
-        })), operators_1.concatMap((buildWebpackConfig) => {
             return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions, buildWebpackConfig, host);
         }));
     }

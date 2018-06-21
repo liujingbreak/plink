@@ -17,6 +17,7 @@ eventBus = NodeApi.prototype.eventBus;
 module.exports = {
 	runServer,
 	runBuilder,
+	eventBus,
 	requireServerPackages,
 	activateNormalComponents,
 	activateCoreComponents,

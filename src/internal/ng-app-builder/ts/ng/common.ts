@@ -9,6 +9,7 @@ import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
 import {NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
 import ReadHookHost from '../utils/read-hook-vfshost';
 import * as Rx from 'rxjs';
+import * as _ from 'lodash';
 
 function initDrcp(drcpArgs: any) {
 	var config = require('dr-comp-package/wfh/lib/config');
@@ -65,10 +66,11 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 				...options.drcpArgs
 			}
 		};
-		config.set('_angularCli', param);
+		if (!_.get(options, 'drcpArgs.noWebpack'))
+			config.set('_angularCli', param);
 		config.set('port', options.port);
-
-		var log = require('log4js').getLogger('ng-app-builder.ng.dev-server');
+		var log4js = require('log4js');
+		var log = log4js.getLogger('ng-app-builder.ng.dev-server');
 		var pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
 		let shutdownable: Promise<() => void>;
 		try {
@@ -78,23 +80,38 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 				obs.error(err);
 			});
 			process.on('SIGINT', function() {
-				log.info('Recieve SIGINT, bye.');
+				log.info('Recieve SIGINT.');
 				shutdownable.then(shut => shut())
-				.then(() => process.exit(0));
-				// obs.next({ success: true });
-				// obs.complete();
+				.then(() => {
+					log4js.shutdown();
+					log.info('Bye.');
+					process.exit(0);
+				});
 			});
 			process.on('message', function(msg) {
 				if (msg === 'shutdown') {
-					log.info('Recieve shutdown message from PM2, bye.');
+					log.info('Recieve shutdown message from PM2');
 					shutdownable.then(shut => shut())
-					.then(() => process.exit(0));
-					// obs.next({ success: true });
-					// obs.complete();
+					.then(() => {
+						log4js.shutdown();
+						log.info('Bye.');
+						process.exit(0);
+					});
 				}
 			});
 			(process as any)._config = config;
+			pkMgr.eventBus.on('webpackDone', (buildEvent: BuildEvent) => {
+				obs.next(buildEvent);
+				// obs.complete();
+			});
 			shutdownable = pkMgr.runServer(param.argv)
+			.then((shutdownable: any) => {
+				if (_.get(options, 'drcpArgs.noWebpack')) {
+					obs.next({success: true});
+					// obs.complete();
+				}
+				return shutdownable;
+			})
 			.catch((err: Error) => {
 				console.error('Failed to start server:', err);
 				// process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.

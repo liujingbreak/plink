@@ -4,7 +4,7 @@
 
 // var Path = require('path');
 var log4js = require('log4js');
-var startDone;
+var shutdownable;
 
 require('./cmd-args').nodeAppCommand(function(argv) {
 	var config = require('./config');
@@ -31,7 +31,7 @@ require('./cmd-args').nodeAppCommand(function(argv) {
 			}
 		});
 		process._config = config;
-		startDone = pkMgr.runServer(argv)
+		shutdownable = pkMgr.runServer(argv)
 		.catch(err => {
 			log.error('Failed to start server:', err);
 			process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.
@@ -44,7 +44,7 @@ require('./cmd-args').nodeAppCommand(function(argv) {
 
 function shutdown() {
 	return new Promise((resolve, reject) => {
-		return startDone
+		return shutdownable
 		.then(shutdownServer => shutdownServer())
 		.then(() => {
 			log4js.shutdown(resolve);

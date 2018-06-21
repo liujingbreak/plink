@@ -7,7 +7,8 @@ import * as fs from 'fs';
 import { isRegExp } from 'util';
 import * as Path from 'path';
 import {Compiler, HotModuleReplacementPlugin} from 'webpack';
-const log = require('log4js').getLogger('ng-app-builder.config-webpack');
+import api from '__api';
+// const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
 export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfig: any): any {
 	// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
@@ -152,9 +153,10 @@ function printConfigValue(value: any, level: number): string {
 }
 
 class CompileDonePlugin {
+
 	apply(compiler: Compiler) {
 		compiler.hooks.done.tap('drcp-devserver-build-webpack', (stats) => {
-			log.info('Webpack done');
+			api.eventBus.emit('webpackDone', {success: true});
 		});
 	}
 }

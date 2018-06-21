@@ -60,7 +60,7 @@ export default class DrcpDevServer extends DevServerBuilder {
 				browserOptions.assets, host, root, projectRoot, builderConfig.sourceRoot)),
 				// Replace the assets in options with the normalized version.
 			tap((assetPatternObjects => browserOptions.assets = assetPatternObjects)),
-			concatMap(() => new Rx.Observable<any>(obs => {
+			concatMap(() => {
 				const browserBuilder = new BrowserBuilder(this.context);
 
 				// DRCP
@@ -106,10 +106,6 @@ export default class DrcpDevServer extends DevServerBuilder {
 					**
 				`);
 
-				obs.next(buildWebpackConfig);
-				obs.complete();
-			})),
-			concatMap((buildWebpackConfig) => {
 				return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions as NormalizedBrowserBuilderSchema,
 					buildWebpackConfig, host);
 			})

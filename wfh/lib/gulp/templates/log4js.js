@@ -42,15 +42,7 @@ var config = {
 			layout: {type: 'pattern', pattern: cluster.isWorker ? patterns.clusterFileDate : patterns.fileDate},
 			maxLogSize: 500 * 1024,
 			backups: 2
-		},
-		// You need to install "@log4js-node/slack": "^1.0.0"
-		slack: {
-			type: '@log4js-node/slack',
-			token: 'xoxp-312833633648-360821048965-382755661938-eea29fbbad616de83d52a6d51c787641',
-			channel_id: 'credit_service_log',
-			username: os.hostname() + ' ' + os.userInfo().username
-		},
-		errorSlack: {type: 'logLevelFilter', appender: 'slack', level: 'error'}
+		}
 	},
 	categories: {
 		'default': {appenders: ['out', 'file'], level: 'info'},
@@ -87,11 +79,24 @@ module.exports.setup = function(options) {
 		delete config.appenders.file.maxLogSize;
 		delete config.appenders.file.backups;
 	}
-	if (logger.onlyFileOut) {
-		for (let cat of Object.values(config.categories)) {
-			cat.appenders = ['file'];
+	if (logger.slackChannelId) {
+		var slackInstalled = true;
+		try {
+			require.resolve('@log4js-node/slack');
+		} catch (ex) {
+			slackInstalled = false;
+			console.log('[log4js.js] slack is not installed yet.');
 		}
-		console.log('[log4js.js] only file out');
+		if (slackInstalled) {
+			config.appenders.slack = {
+				type: '@log4js-node/slack',
+				token: '<YOUR SLACK API TOKEN>',
+				channel_id: logger.slackChannelId,
+				username: os.hostname() + ' ' + os.userInfo().username
+			};
+			config.appenders.errorSlack = {type: 'logLevelFilter', appender: 'slack', level: 'error'};
+			config.categories['@bk/credit-appl'].appenders.push('slack');
+		}
 	}
 	return config;
 };
