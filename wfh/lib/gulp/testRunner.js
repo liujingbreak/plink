@@ -9,6 +9,8 @@ var config = require('../config');
 var Package = require('../packageMgr/packageNodeInstance');
 var NodeApi = require('../nodeApi');
 var {nodeInjector} = require('../injectorFactory');
+var LRU = require('lru-cache');
+
 require('../logConfig')(config());
 
 exports.runUnitTest = runUnitTest;
@@ -67,6 +69,11 @@ function runUnitTest(argv) {
 			.factory('__api', function() {
 				return getApiForPackage(pkInstance);
 			});
+		nodeInjector.fromPackage(name, fs.realpathSync(packagePath))
+			.value('__injector', nodeInjector)
+			.factory('__api', function() {
+				return getApiForPackage(pkInstance);
+			});
 		// inject end
 		if (!fs.existsSync(Path.join(packagePath, 'spec')) && !fs.existsSync(Path.join(packagePath, 'dist', 'spec'))) {
 			return;
@@ -78,6 +85,16 @@ function runUnitTest(argv) {
 			relativePkPath + '/dist/spec/**/*[sS]pec.js');
 		jasmineSetting.helpers.push(relativePkPath + '/spec/helpers/**/*[sS]pec.js');
 	}, 'src');
+	// var cache = LRU(20);
+	// var proto = NodeApi.prototype;
+	// proto.findPackageByFile = function(file) {
+	// 	var found = cache.get(file);
+	// 	if (!found) {
+	// 		found = packageInfo.dirTree.getAllData(file).pop();
+	// 		cache.set(file, found);
+	// 	}
+	// 	return found;
+	// };
 	// log.info(jasmineSetting.spec_files);
 	return runJasmine(jasmineSetting);
 }

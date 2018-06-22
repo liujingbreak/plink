@@ -3,7 +3,7 @@ import patchText, {Replacement as Rep} from '../utils/patch-text';
 const api = require('__api');
 const log = require('log4js').getLogger('ng-html-loader');
 import * as _ from 'lodash';
-const vm = require('vm');
+import vm = require('vm');
 
 export = function(content: string, map: any) {
 	var callback = this.async();
@@ -20,7 +20,7 @@ export = function(content: string, map: any) {
 	});
 };
 
-const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset'];
+const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 
 async function load(content: string, loader: any) {
 	let ast = new TemplateParser(content).parse();

@@ -1,0 +1,20 @@
+log(__api.packageName, __api['config']);
+const appRoutes: Routes = [
+  { path: __api.assetsUrl('credit-appl/detail'), loadChildren: './appl-detail/appl-detail.module#ApplDetailModule' },
+  {
+    path: 'credit-appl',
+    pathMatch: 'full',
+    component: RealNameComponent,
+    resolve: { loginInfo: LoginResolver }
+  },
+  { path: '**', redirectTo: '/' + __api.publicPath }
+];
+@NgModule({
+  declarations: [AppComponent],
+  imports: [
+    BrowserModule
+  ],
+  providers: [Title],
+  bootstrap: [AppComponent]
+})
+export class AppModule {}

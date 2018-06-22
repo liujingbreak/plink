@@ -1,12 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const __api_1 = require("__api");
 /* tslint:disable max-line-length */
+const __api_1 = require("__api");
 const _ = require("lodash");
 const log4js = require("log4js");
 const rxjs_1 = require("rxjs");
+const ts_before_aot_1 = require("./utils/ts-before-aot");
 const log = log4js.getLogger(__api_1.default.packageName);
-const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder\'); var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\'); __api.default = __api;');
+const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder\');\
+var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\');\
+ __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
 function createTsReadHook(ngParam) {
     let drcpIncludeBuf;
@@ -42,6 +45,7 @@ function createTsReadHook(ngParam) {
                 let compPkg = __api_1.default.findPackageByFile(file);
                 let content = Buffer.from(buf).toString();
                 let changed = __api_1.default.browserInjector.injectToFile(file, content);
+                new ts_before_aot_1.default(file, content).parse();
                 if (changed !== content) {
                     changed = apiTmpl({ packageName: compPkg.longName }) + '\n' + changed;
                     log.info('Replacing content in ' + file);

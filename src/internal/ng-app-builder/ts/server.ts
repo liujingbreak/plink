@@ -1,18 +1,17 @@
 /* tslint:disable max-line-length */
-import __api from '__api';
+import api, {DrcpApi} from '__api';
 import * as log4js from 'log4js';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import * as _fs from 'fs';
-import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
 import * as express from 'express';
 import {AngularCliParam} from './ng/common';
 import configWebpack from './config-webpack';
 import createHook from './ng-ts-replace';
+import Url = require('url');
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
-const api = __api as Webpack2BuilderApi;
 const log = log4js.getLogger(api.packageName);
 
 export function compile() {
@@ -295,11 +294,19 @@ function setupApiForAngularCli() {
 	}
 	let webpackConfig = ngParam.webpackConfig;
 	let ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
+
+	let publicUrlObj = Url.parse(webpackConfig.output.publicPath);
 	Object.assign(Object.getPrototypeOf(api), {
 		webpackConfig,
-		ngEntryComponent
+		ngEntryComponent,
+		deployUrlPath: publicUrlObj.pathname,
+		ngRouterPath(this: DrcpApi, packageName: string, subPath?: string) {
+			let url = this.assetsUrl(packageName, subPath);
+			return Url.parse(url).pathname;
+		}
 	});
 	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
+	api.config.set('staticAssetsURL', webpackConfig.output.publicPath);
 	configWebpack(ngParam, webpackConfig, api.config());
 
 	// ngParam.vfsHost.hookRead = createTsReadHook(ngParam);

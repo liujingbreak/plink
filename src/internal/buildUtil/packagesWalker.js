@@ -276,11 +276,4 @@ function createPackageDirTree(packageInfo) {
 	});
 	log.info('Total %s node packages', count);
 	packageInfo.dirTree = tree;
-	// var api = require('__api');
-	// Object.getPrototypeOf(api).findPackageByFile = function(file) {
-	// 	return tree.getAllData(file).pop();
-	// };
-	// Object.getPrototypeOf(api).findPackageByFile = _.memoize(function(file) {
-	// 	return tree.getAllData(file).pop();
-	// });
 }
