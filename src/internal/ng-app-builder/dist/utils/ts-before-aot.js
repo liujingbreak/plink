@@ -6,6 +6,8 @@ const patch_text_1 = require("./patch-text");
 const lodash_1 = require("lodash");
 const __api_1 = require("__api");
 const vm = require("vm");
+const chalk = require('chalk');
+// import chalk from 'chalk';
 const log = require('log4js').getLogger(__api_1.default.packageName + '.api-aot-compiler');
 class ApiAotCompiler {
     constructor(file, src) {
@@ -24,14 +26,15 @@ class ApiAotCompiler {
         for (let stm of this.ast.statements) {
             this.traverseTsAst(stm);
         }
-        if (this.replacements.length > 0)
-            log.info('Compile API call in ', this.file);
+        if (this.replacements.length === 0)
+            return this.src;
+        log.info('Compile API call in ', this.file);
         let context = vm.createContext({ __api: __api_1.default.getNodeApiForPackage(pk) });
         for (let repl of this.replacements) {
             let origText = repl.text;
             let res = vm.runInNewContext(origText, context);
             repl.text = JSON.stringify(res);
-            log.info(`Evaluate "${origText}" to: ${res}`);
+            log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)}`);
         }
         log.debug(this.replacements);
         return patch_text_1.default(this.src, this.replacements);

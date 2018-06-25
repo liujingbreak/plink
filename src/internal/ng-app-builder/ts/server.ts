@@ -303,7 +303,7 @@ function setupApiForAngularCli() {
 		deployUrlPath: publicUrlObj.pathname,
 		ngRouterPath(this: DrcpApi, packageName: string, subPath?: string) {
 			let url = this.assetsUrl(packageName, subPath);
-			return Url.parse(url).pathname;
+			return _.trimStart(Url.parse(url).pathname, '/');
 		}
 	});
 	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');

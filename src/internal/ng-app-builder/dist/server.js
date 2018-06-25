@@ -291,7 +291,7 @@ function setupApiForAngularCli() {
         deployUrlPath: publicUrlObj.pathname,
         ngRouterPath(packageName, subPath) {
             let url = this.assetsUrl(packageName, subPath);
-            return Url.parse(url).pathname;
+            return _.trimStart(Url.parse(url).pathname, '/');
         }
     });
     __api_1.default.config.set(['outputPathMap', ngEntryComponent.longName], '/');

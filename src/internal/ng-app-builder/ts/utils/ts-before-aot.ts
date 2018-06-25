@@ -4,6 +4,8 @@ import replaceCode, {ReplacementInf} from './patch-text';
 import {trim} from 'lodash';
 import api, {DrcpApi} from '__api';
 import vm = require('vm');
+const chalk = require('chalk');
+// import chalk from 'chalk';
 
 const log = require('log4js').getLogger(api.packageName + '.api-aot-compiler');
 export default class ApiAotCompiler {
@@ -28,15 +30,17 @@ export default class ApiAotCompiler {
 			this.traverseTsAst(stm);
 		}
 
-		if (this.replacements.length > 0)
-			log.info('Compile API call in ', this.file);
+		if (this.replacements.length === 0)
+			return this.src;
+
+		log.info('Compile API call in ', this.file);
 		let context = vm.createContext({__api: api.getNodeApiForPackage<DrcpApi>(pk)});
 
 		for (let repl of this.replacements) {
 			let origText = repl.text;
 			let res = vm.runInNewContext(origText, context);
 			repl.text = JSON.stringify(res);
-			log.info(`Evaluate "${origText}" to: ${res}`);
+			log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)}`);
 		}
 		log.debug(this.replacements);
 		return replaceCode(this.src, this.replacements);

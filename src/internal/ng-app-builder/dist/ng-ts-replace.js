@@ -45,10 +45,9 @@ function createTsReadHook(ngParam) {
                 let compPkg = __api_1.default.findPackageByFile(file);
                 let content = Buffer.from(buf).toString();
                 let changed = __api_1.default.browserInjector.injectToFile(file, content);
-                new ts_before_aot_1.default(file, content).parse();
+                changed = new ts_before_aot_1.default(file, changed).parse();
                 if (changed !== content) {
                     changed = apiTmpl({ packageName: compPkg.longName }) + '\n' + changed;
-                    log.info('Replacing content in ' + file);
                     return rxjs_1.of(string2buffer(changed));
                 }
             }

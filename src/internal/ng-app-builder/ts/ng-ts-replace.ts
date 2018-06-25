@@ -51,10 +51,9 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 				let content = Buffer.from(buf).toString();
 
 				let changed = api.browserInjector.injectToFile(file, content);
-				new ApiAotCompiler(file, content).parse();
+				changed = new ApiAotCompiler(file, changed).parse();
 				if (changed !== content) {
 					changed = apiTmpl({packageName: compPkg.longName}) + '\n' + changed;
-					log.info('Replacing content in ' + file);
 					return of(string2buffer(changed));
 				}
 			}
