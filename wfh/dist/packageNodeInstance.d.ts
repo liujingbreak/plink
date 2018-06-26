@@ -6,5 +6,6 @@ export default class Package {
     scope: string;
     path: string;
     json: any;
+    api: any;
     constructor(attrs: any);
 }

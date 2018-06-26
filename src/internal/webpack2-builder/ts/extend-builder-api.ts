@@ -1,11 +1,11 @@
-import api, {DrcpApi} from '__api';
+import api from '__api';
 import DrComponent from '@dr-core/build-util/dist/package-instance';
 const Webpack = require('webpack');
 
 export interface WebpackConfig {
 	[key: string]: any;
 }
-export interface Webpack2BuilderApi extends DrcpApi {
+export interface Webpack2BuilderApi {
 	configWebpackLater(execFunc:
 		(originalConfig: WebpackConfig, webpack: any) =>WebpackConfig | Promise<WebpackConfig>): void;
 	isDrFile(fileSuffix: string | string[],

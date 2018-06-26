@@ -47,6 +47,9 @@ function runBuilderComponentsWith(funcName, builderComponents, argv, skips, skip
 		}
 		return found;
 	};
+	proto.getNodeApiForPackage = function(packageInstance) {
+		return getApiForPackage(packageInstance);
+	};
 	return priorityHelper.orderPackages(builderComponents, pkInstance => {
 		if (_.includes(skips, pkInstance.longName)) {
 			log.info('skip builder: %s', pkInstance.longName);
@@ -148,7 +151,7 @@ function initWebInjector(packageInfo, apiPrototype) {
 	});
 	webInjector.fromAllPackages()
 	.replaceCode('__api', '__api')
-	.substitute(/^([^\{]*)\{locale\}(.*)$/,
+	.substitute(/^([^{]*)\{locale\}(.*)$/,
 		(filePath, match) => match[1] + apiPrototype.getBuildLocale() + match[2]);
 
 	webInjector.readInjectFile('module-resolve.browser.js');
@@ -171,16 +174,15 @@ function traversePackages(needInject) {
 
 function setupNodeInjectorFor(pkInstance, name, packagePath, realPackagePath) {
 	log.debug('setupNodeInjectorFor %s resolved to: %s', name, packagePath, realPackagePath);
+	function apiFactory() {
+		return getApiForPackage(pkInstance);
+	}
 	nodeInjector.fromPackage(name, realPackagePath)
 	.value('__injector', nodeInjector)
-	.factory('__api', function() {
-		return getApiForPackage(pkInstance);
-	});
+	.factory('__api', apiFactory);
 	nodeInjector.fromPackage(name, packagePath)
 	.value('__injector', nodeInjector)
-	.factory('__api', function() {
-		return getApiForPackage(pkInstance);
-	});
+	.factory('__api', apiFactory);
 	nodeInjector.default = nodeInjector; // For ES6 import syntax
 }
 
@@ -190,7 +192,7 @@ function getApiForPackage(pkInstance) {
 	}
 
 	var api = new NodeApi(pkInstance.longName, pkInstance);
-	api.constructor = NodeApi;
+	// api.constructor = NodeApi;
 	pkInstance.api = api;
 	apiCache[pkInstance.longName] = api;
 	api.default = api; // For ES6 import syntax

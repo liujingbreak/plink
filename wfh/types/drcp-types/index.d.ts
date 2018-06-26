@@ -1,55 +1,11 @@
 /* tslint:disable:class-name */
 
-declare var __api: any;
 declare module '__api' {
-	import NodePackage from 'dr-comp-package/wfh/dist/packageNodeInstance';
-	import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
-	import { EventEmitter } from 'events';
-	import {ExpressAppApi} from '@dr-core/express-app';
-	export interface DrcpConfig {
-		get(path: string|string[], defaultValue?: any): any;
-		set(path: string|string[], value: any): void;
-		resolve(...path: string[]): string;
-		(): {[property: string]: any}
-	}
-	interface _DrcpApi{
-		findPackageByFile(path: string): PackageBrowserInstance;
-		packageName: string;
-		packageShortName: string;
-		packageInstance: NodePackage & PackageBrowserInstance;
-		entryPage: string;
-		contextPath: string;
-		buildUtils: any;
-		packageUtils: any;
-		compileNodePath: any[];
-		eventBus: EventEmitter;
-		packageInfo: PackageInfo;
-		config: DrcpConfig;
-		argv: any;
-		browserInjector: any;
-		ngEntryComponent: PackageBrowserInstance;
-		extend(target: any): void;
-		isBrowser(): boolean;
-		isNode(): boolean;
-		parsePackageName(packageName: string): {scope: string, name: string};
-		getBuildLocale(): string;
-		isDefaultLocale(): boolean;
-		assetsUrl(packageName: string, path?: string): string;
-		entryPageUrl(packageName: string, path?: string, locale?: string): string;
-		getProjectDirs(): string[];
-		addBrowserSideConfig(name: string, value: any): void;
-		[key: string]: any;
-	}
-	export type DrcpApi = _DrcpApi & ExpressAppApi;
-
-	interface PackageInfo {
-		allModules: PackageBrowserInstance[];
-		moduleMap: {[name: string]: PackageBrowserInstance};
-	}
+	import {DrcpApi} from '@dr-core/ng-app-builder/globals';
+	export * from '@dr-core/ng-app-builder/globals';
 	var api: DrcpApi;
 	export default api;
 }
-
 
 interface ComponentInjector {
 	addPackage(name: string, dir: string): void;

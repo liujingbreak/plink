@@ -12,8 +12,8 @@ const patch_text_1 = require("../utils/patch-text");
 const api = require('__api');
 const log = require('log4js').getLogger('ng-html-loader');
 const _ = require("lodash");
-const vm = require('vm');
-const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset'];
+const vm = require("vm");
+const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 function load(content, loader) {
     return __awaiter(this, void 0, void 0, function* () {
         let ast = new ng_html_parser_1.TemplateParser(content).parse();

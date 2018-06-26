@@ -1,14 +1,18 @@
-import api from '__api';
 /* tslint:disable max-line-length */
+import api from '__api';
 import * as _ from 'lodash';
 import * as log4js from 'log4js';
 import {of, throwError} from 'rxjs';
 // import * as Path from 'path';
 import {HookReadFunc} from './utils/read-hook-vfshost';
 import {AngularCliParam} from './ng/common';
+import ApiAotCompiler from './utils/ts-before-aot';
+
 const log = log4js.getLogger(api.packageName);
 
-const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder\'); var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\'); __api.default = __api;');
+const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder\');\
+var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\');\
+ __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
 
 export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc {
@@ -47,6 +51,7 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 				let content = Buffer.from(buf).toString();
 
 				let changed = api.browserInjector.injectToFile(file, content);
+				new ApiAotCompiler(file, content).parse();
 				if (changed !== content) {
 					changed = apiTmpl({packageName: compPkg.longName}) + '\n' + changed;
 					log.info('Replacing content in ' + file);

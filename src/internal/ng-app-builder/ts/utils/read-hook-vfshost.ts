@@ -1,4 +1,8 @@
 /* tslint:disable no-console */
+/**
+ * TODO: So far Angular TS compiler reads file not in async mode, even return type is an Observable,
+ * we probably can pre-read files and cache them to make hooks work in async-like mode.
+ */
 import {virtualFs, Path ,getSystemPath} from '@angular-devkit/core';
 import {Observable} from 'rxjs';
 import {concatMap} from 'rxjs/operators';

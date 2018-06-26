@@ -43,7 +43,7 @@ BrowserApi.prototype = {
 	_config: LEGO_CONFIG,
 	buildLocale: LEGO_CONFIG.buildLocale,
 
-	entryPage: __drcpEntryPage,
+	entryPage: window.__drcpEntryPage,
 	entryPackage: window.__drcpEntryPackage,
 
 	_ensureLodash: ensureLodash,

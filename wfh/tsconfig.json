@@ -14,5 +14,9 @@
 		"lib": ["es2016", "es2015"],
 		"pretty": true
 	},
+	"typeRoots": [
+		"../node_modules/@types",
+		"types"
+	],
 	"include": ["ts/**/*.ts"]
 }

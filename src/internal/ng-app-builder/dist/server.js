@@ -7,13 +7,13 @@ const _ = require("lodash");
 const Path = require("path");
 const config_webpack_1 = require("./config-webpack");
 const ng_ts_replace_1 = require("./ng-ts-replace");
+const Url = require("url");
 const fs = require('fs-extra');
 const sysFs = fs;
-const api = __api_1.default;
-const log = log4js.getLogger(api.packageName);
+const log = log4js.getLogger(__api_1.default.packageName);
 function compile() {
     setupApiForAngularCli();
-    if (!api.argv.ng)
+    if (!__api_1.default.argv.ng)
         return;
     // var tsConfigPath = writeTsconfig();
     // var useHappypack = api.config.get('@dr-core/webpack2-builder.useHappypack', false);
@@ -190,7 +190,7 @@ function init() {
 exports.init = init;
 function activate() {
     // setupApiForAngularCli();
-    api.router().get('/ok', (req, res) => {
+    __api_1.default.router().get('/ok', (req, res) => {
         log.warn('cool');
         res.send('cool');
     });
@@ -207,15 +207,15 @@ exports.activate = activate;
 // 	return false;
 // }
 function writeTsconfig() {
-    var root = api.config().rootPath;
-    var tempDir = api.config.resolve('destDir', 'webpack-temp');
+    var root = __api_1.default.config().rootPath;
+    var tempDir = __api_1.default.config.resolve('destDir', 'webpack-temp');
     sysFs.mkdirsSync(tempDir);
-    var packageScopes = api.config().packageScopes;
-    var components = api.packageInfo.moduleMap;
-    var ngPackages = api.packageInfo.allModules;
-    if (api.argv.package && api.argv.package.length > 0) {
+    var packageScopes = __api_1.default.config().packageScopes;
+    var components = __api_1.default.packageInfo.moduleMap;
+    var ngPackages = __api_1.default.packageInfo.allModules;
+    if (__api_1.default.argv.package && __api_1.default.argv.package.length > 0) {
         var someComps = [];
-        var packages = _.uniq([...api.argv.package, api.packageName]);
+        var packages = _.uniq([...__api_1.default.argv.package, __api_1.default.packageName]);
         for (let name of packages) {
             if (_.has(components, name) && _.has(components, [name, 'dr', 'angularCompiler'])) {
                 someComps.push(components[name]);
@@ -274,8 +274,8 @@ function writeTsconfig() {
 }
 exports.writeTsconfig = writeTsconfig;
 function setupApiForAngularCli() {
-    let ngParam = api.config()._angularCli;
-    if (!ngParam || api.ngEntryComponent)
+    let ngParam = __api_1.default.config()._angularCli;
+    if (!ngParam || __api_1.default.ngEntryComponent)
         return;
     if (!ngParam.browserOptions.preserveSymlinks) {
         throw new Error('In order to get DRCP builder work,\
@@ -283,13 +283,20 @@ function setupApiForAngularCli() {
 		');
     }
     let webpackConfig = ngParam.webpackConfig;
-    let ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
-    Object.assign(Object.getPrototypeOf(api), {
+    let ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
+    let publicUrlObj = Url.parse(webpackConfig.output.publicPath);
+    Object.assign(Object.getPrototypeOf(__api_1.default), {
         webpackConfig,
-        ngEntryComponent
+        ngEntryComponent,
+        deployUrlPath: publicUrlObj.pathname,
+        ngRouterPath(packageName, subPath) {
+            let url = this.assetsUrl(packageName, subPath);
+            return Url.parse(url).pathname;
+        }
     });
-    api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
-    config_webpack_1.default(ngParam, webpackConfig, api.config());
+    __api_1.default.config.set(['outputPathMap', ngEntryComponent.longName], '/');
+    __api_1.default.config.set('staticAssetsURL', webpackConfig.output.publicPath);
+    config_webpack_1.default(ngParam, webpackConfig, __api_1.default.config());
     // ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
     ngParam.vfsHost.hookRead = ng_ts_replace_1.default(ngParam);
     log.info('Setup api object for Angular');
