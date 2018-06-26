@@ -245,8 +245,9 @@ export function writeTsconfig(): string {
 	let tsExclude: string[] = [];
 	ngPackages.forEach(pk => {
 		let dir = Path.relative(tempDir,
-			// pk.realPackagePath)
-			pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
+			_.get(pk, 'dr.ngAppModule') ? pk.realPackagePath : pk.packagePath)
+			// pk.packagePath)
+			// pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
 			.replace(/\\/g, '/');
 		tsInclude.push(dir + '/**/*.ts');
 		tsExclude.push(dir + '/ts',
