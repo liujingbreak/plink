@@ -1,6 +1,7 @@
 /* tslint:disable no-console max-line-length */
 import ChunkInfoPlugin from './plugins/chunk-info';
 import gzipSize from './plugins/gzip-size';
+import IndexHtmlPlugin from './plugins/index-html-plugin';
 import {AngularCliParam} from './ng/common';
 import * as _ from 'lodash';
 import * as fs from 'fs';
@@ -30,7 +31,12 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 		webpackConfig.plugins.push(new gzipSize());
 	}
 
-	webpackConfig.plugins.push(new CompileDonePlugin());
+	webpackConfig.plugins.push(
+		new IndexHtmlPlugin({
+			indexHtml: Path.basename(param.browserOptions.index),
+			inlineChunkNames: ['runtime']
+		}),
+		new CompileDonePlugin());
 	changeLoaders(webpackConfig);
 	fs.writeFileSync('dist/ng-webpack-config.js', printConfig(webpackConfig));
 	console.log('If you are wondering what kind of Webapck config file is used internally, checkout dist/ng-webpack-config.js');

@@ -251,8 +251,8 @@ export class TemplateLexer extends BaseLexer {
 		}
 	}
 	openTagStart() {
-		this.advance();
 		let start = this.position;
+		this.advance();
 		do {
 			this.advance();
 		} while (this.isIdStart());
@@ -296,6 +296,9 @@ export class TemplateLexer extends BaseLexer {
 export interface TagAst {
 	name?: string;
 	attrs?: {[key: string]: AttributeValueAst};
+	start: number;
+	end: number;
+	[key: string]: any;
 }
 export interface AttributeValueAst {
 	text: string; start: number; end: number;
@@ -334,10 +337,11 @@ export class TemplateParser extends LookAhead<Token, TemplateLexer> {
 		return ast;
 	}
 	tag(): TagAst {
-		let name = this.advance().text;
+		let first = this.advance();
+		let name = first.text.substring(1);
 		let attrs = this.attributes();
-		this.advance(); // >
-		return {name, attrs};
+		let last = this.advance(); // >
+		return {name, attrs, start: first.start, end: last.end};
 	}
 	attributes() {
 		let attrs: {[key: string]: AttributeValueAst} = {};

@@ -78,6 +78,9 @@ export interface TagAst {
     attrs?: {
         [key: string]: AttributeValueAst;
     };
+    start: number;
+    end: number;
+    [key: string]: any;
 }
 export interface AttributeValueAst {
     text: string;

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console max-line-length */
 const chunk_info_1 = require("./plugins/chunk-info");
 const gzip_size_1 = require("./plugins/gzip-size");
+const index_html_plugin_1 = require("./plugins/index-html-plugin");
 const _ = require("lodash");
 const fs = require("fs");
 const util_1 = require("util");
@@ -27,7 +28,10 @@ function changeWebpackConfig(param, webpackConfig, drcpConfig) {
         console.log('Build in production mode');
         webpackConfig.plugins.push(new gzip_size_1.default());
     }
-    webpackConfig.plugins.push(new CompileDonePlugin());
+    webpackConfig.plugins.push(new index_html_plugin_1.default({
+        indexHtml: Path.basename(param.browserOptions.index),
+        inlineChunkNames: ['runtime']
+    }), new CompileDonePlugin());
     changeLoaders(webpackConfig);
     fs.writeFileSync('dist/ng-webpack-config.js', printConfig(webpackConfig));
     console.log('If you are wondering what kind of Webapck config file is used internally, checkout dist/ng-webpack-config.js');

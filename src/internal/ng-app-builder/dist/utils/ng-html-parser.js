@@ -242,8 +242,8 @@ class TemplateLexer extends BaseLexer {
         }
     }
     openTagStart() {
-        this.advance();
         let start = this.position;
+        this.advance();
         do {
             this.advance();
         } while (this.isIdStart());
@@ -317,10 +317,11 @@ class TemplateParser extends LookAhead {
         return ast;
     }
     tag() {
-        let name = this.advance().text;
+        let first = this.advance();
+        let name = first.text.substring(1);
         let attrs = this.attributes();
-        this.advance(); // >
-        return { name, attrs };
+        let last = this.advance(); // >
+        return { name, attrs, start: first.start, end: last.end };
     }
     attributes() {
         let attrs = {};

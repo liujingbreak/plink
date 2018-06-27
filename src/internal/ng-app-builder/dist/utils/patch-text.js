@@ -16,7 +16,7 @@ function replaceCode(text, replacements) {
     return replacements.reduce((text, update) => {
         var start = update.start + offset;
         var end = update.end + offset;
-        var replacement = update.text;
+        var replacement = update.text || update.replacement;
         offset += (replacement.length - (end - start));
         return text.slice(0, start) + replacement + text.slice(end);
     }, text);

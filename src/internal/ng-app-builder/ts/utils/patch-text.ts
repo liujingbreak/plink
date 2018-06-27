@@ -9,7 +9,8 @@
 export interface ReplacementInf {
 	start: number;
 	end: number;
-	text: string;
+	text?: string;
+	replacement?: string;
 }
 
 export class Replacement implements ReplacementInf {
@@ -25,7 +26,7 @@ export default function replaceCode(text: string, replacements: ReplacementInf[]
 	return replacements.reduce((text: string, update: ReplacementInf) => {
 		var start = update.start + offset;
 		var end = update.end + offset;
-		var replacement = update.text;
+		var replacement = update.text || update.replacement;
 		offset += (replacement.length - (end - start));
 		return text.slice(0, start) + replacement + text.slice(end);
 	}, text);

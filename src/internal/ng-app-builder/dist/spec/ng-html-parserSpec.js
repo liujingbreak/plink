@@ -49,12 +49,14 @@ describe('ng-html-parser', () => {
         let ast = new ps.TemplateParser(ngHtml).parse();
         console.log(JSON.stringify(ast, null, '  '));
         for (let tag of ast) {
+            console.log(tag);
             for (let attrValue of _.values(tag.attrs)) {
                 if (attrValue == null)
                     continue;
                 expect(ngHtml.substring(attrValue.start, attrValue.end)).toEqual(attrValue.text);
             }
         }
+        expect(ast[0].start).toBe(0);
     });
 });
 

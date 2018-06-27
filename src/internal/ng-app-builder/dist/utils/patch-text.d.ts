@@ -9,7 +9,8 @@
 export interface ReplacementInf {
     start: number;
     end: number;
-    text: string;
+    text?: string;
+    replacement?: string;
 }
 export declare class Replacement implements ReplacementInf {
     start: number;
