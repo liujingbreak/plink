@@ -38,7 +38,7 @@ function loader(content: string, map: any) {
 }
 
 function loadAsync(code: string, loaderCtx: any): Promise<string> {
-	let file = loaderCtx.resourcePath;
+	const file = loaderCtx.resourcePath;
 	if (file.endsWith('.js') || file.endsWith('.jsx'))
 		return Promise.resolve(loader.doEs(code, file)[0]);
 	else if (file.endsWith('.ts') || file.endsWith('.tsx'))
@@ -68,12 +68,12 @@ export function doEs(code: string, file: string): [string, any] {
 			throw firstCompileErr;
 		}
 	}
-	let patches: Array<{start: number, end: number, replacement: string}> = [];
+	const patches: Array<{start: number, end: number, replacement: string}> = [];
 
 	// let lodashImported = false;
 	let requireLodashPos: [number, number] = null;
 	// let hasExports = false;
-	let lodashFunctions: Set<string> = new Set<string>();
+	const lodashFunctions: Set<string> = new Set<string>();
 
 	estraverse.traverse(ast, {
 		enter(node: any, parent: any) {
@@ -84,7 +84,7 @@ export function doEs(code: string, file: string): [string, any] {
 			}
 			if (node.type === 'VariableDeclarator' && _.get(node, 'id.name') === '_' &&
 			_.get(parent, 'declarations.length') === 1) {
-				let init = node.init;
+				const init = node.init;
 				if (init.type === 'CallExpression' && _.get(init, 'callee.name') === 'require' &&
 					_.get(init, 'arguments[0].value') === 'lodash') {
 						requireLodashPos = [parent.start, parent.end];
@@ -152,8 +152,8 @@ export class TSParser {
 
 	doTs(code: string, file: string): string {
 		this.file = file;
-		let srcfile = ts.createSourceFile('file', code, ts.ScriptTarget.ES2015);
-		for(let stm of srcfile.statements) {
+		const srcfile = ts.createSourceFile('file', code, ts.ScriptTarget.ES2015);
+		for(const stm of srcfile.statements) {
 			this.traverseTsAst(stm, srcfile);
 		}
 		// if (this.patches.length > 0) {
@@ -168,12 +168,12 @@ export class TSParser {
 	}
 
 	private traverseTsAst(ast: ts.Node, srcfile: ts.SourceFile, level = 0) {
-		let SyntaxKind = ts.SyntaxKind;
+		const SyntaxKind = ts.SyntaxKind;
 		if (ast.kind === SyntaxKind.CallExpression) {
-			let node = ast as ts.CallExpression;
+			const node = ast as ts.CallExpression;
 			if (node.expression.kind === SyntaxKind.PropertyAccessExpression) {
-				let left = (node.expression as ts.PropertyAccessExpression).expression;
-				let right = (node.expression as ts.PropertyAccessExpression).name;
+				const left = (node.expression as ts.PropertyAccessExpression).expression;
+				const right = (node.expression as ts.PropertyAccessExpression).name;
 				if (left.kind === SyntaxKind.Identifier && (left as ts.Identifier).text === '_' &&
 					right.kind === SyntaxKind.Identifier) {
 					this.lodashFunctions.add(right.text);
@@ -186,10 +186,10 @@ export class TSParser {
 		// 	this.lodashImported = true;
 		// } else 
 		if (ast.kind === SyntaxKind.VariableStatement) {
-			let decs = (ast as ts.VariableStatement).declarationList.declarations;
+			const decs = (ast as ts.VariableStatement).declarationList.declarations;
 			decs.some(dec => {
 				if (dec.initializer && dec.initializer.kind === SyntaxKind.CallExpression) {
-					let callExp = dec.initializer as ts.CallExpression;
+					const callExp = dec.initializer as ts.CallExpression;
 					if (callExp.expression.kind === SyntaxKind.Identifier &&
 						(callExp.expression as ts.Identifier).text === 'require' && (callExp.arguments[0] as any).text === 'lodash') {
 							this.requireLodashPos = [ast.pos, ast.end];
@@ -205,7 +205,7 @@ export class TSParser {
 			});
 		} else if (ast.kind === SyntaxKind.ExpressionStatement &&
 			(ast as ts.ExpressionStatement).expression.kind === SyntaxKind.CallExpression) {
-			let callExp = (ast as ts.ExpressionStatement).expression as ts.CallExpression;
+			const callExp = (ast as ts.ExpressionStatement).expression as ts.CallExpression;
 			if (callExp.expression.kind === SyntaxKind.Identifier && (callExp.expression as ts.Identifier).text === 'require' &&
 			(callExp.arguments[0] as any).text === 'lodash') {
 				log.debug('Remove orphan statement require("lodash") from\n  ', this.file);

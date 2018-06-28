@@ -89,9 +89,9 @@ function create(app, setting) {
     app.use(compression());
     // setupApi.createPackageDefinedMiddleware(app);
     setupApi.createPackageDefinedRouters(app);
-    let hashFile = Path.join(__api_1.default.config().rootPath, 'githash-server.txt');
+    const hashFile = Path.join(__api_1.default.config().rootPath, 'githash-server.txt');
     if (fs.existsSync(hashFile)) {
-        let githash = fs.readFileSync(hashFile, 'utf8');
+        const githash = fs.readFileSync(hashFile, 'utf8');
         app.get('/githash-server', (req, res) => {
             res.send(githash);
         });

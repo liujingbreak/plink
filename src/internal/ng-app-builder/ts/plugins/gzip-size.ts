@@ -40,7 +40,7 @@ export default class GzipSize {
 				.forEach((item: [string, number]) => {
 					item[1] = prettyBytes(item[1]);
 				});
-				let datas = (rawDatas as any) as Array<[string, string]>;
+				const datas = (rawDatas as any) as Array<[string, string]>;
 
 				var maxLenSize = _.max(_.map(datas, data => data[1].length));
 				var sepLineLen = '(gzipped)'.length + maxLenSize + maxLenName + 10;

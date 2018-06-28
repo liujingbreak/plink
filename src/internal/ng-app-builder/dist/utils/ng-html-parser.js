@@ -33,11 +33,11 @@ class LookAhead {
             this.skip();
             this.channel = Channel.normal;
         }
-        let readPos = this.currPos + num;
+        const readPos = this.currPos + num;
         return this.read(readPos);
     }
     lb(num = 1) {
-        let pos = this.currPos - (num - 1);
+        const pos = this.currPos - (num - 1);
         if (pos < 0)
             return undefined;
         return this.read(pos);
@@ -81,7 +81,7 @@ class LookAhead {
      */
     read(pos) {
         while (this.cached.length <= pos) {
-            let next = this.sourceIterator.next();
+            const next = this.sourceIterator.next();
             if (next.done)
                 return null;
             this.cached.push(next.value);
@@ -95,14 +95,14 @@ class LookAheadString extends LookAhead {
         super(source);
         this.source = source;
         this.lineBeginPositions = [-1];
-        let originNext = this.sourceIterator.next;
-        let it = this.sourceIterator;
+        const originNext = this.sourceIterator.next;
+        const it = this.sourceIterator;
         // - Monkey patch iterator's next() method to track beginning position of each line
         let nextCount = 0;
-        let self = this;
+        const self = this;
         this.sourceIterator.next = function () {
-            let nextRes = originNext.call(it);
-            let chr = nextRes.value;
+            const nextRes = originNext.call(it);
+            const chr = nextRes.value;
             if (!nextRes.done && chr === '\n')
                 self.lineBeginPositions.push(nextCount);
             nextCount++;
@@ -113,15 +113,15 @@ class LookAheadString extends LookAhead {
         return this.source.substring(startPos, this.position);
     }
     getCurrentPosInfo() {
-        let [line, col] = this.getLineColumn(this.currPos);
+        const [line, col] = this.getLineColumn(this.currPos);
         return `get ${JSON.stringify(this.la())}, at line ${line + 1}, column ${col + 1}, after ${JSON.stringify(this.lb())}`;
     }
     /**
      * @return zero-based [line, column] value
      * */
     getLineColumn(pos) {
-        let lineIndex = sortedIndex(this.lineBeginPositions, pos) - 1;
-        let linePos = this.lineBeginPositions[lineIndex];
+        const lineIndex = sortedIndex(this.lineBeginPositions, pos) - 1;
+        const linePos = this.lineBeginPositions[lineIndex];
         // console.log(`pos = ${pos}, lineIndex = ${lineIndex}, linePos=${linePos}`);
         return [lineIndex, pos - (linePos + 1)];
     }
@@ -190,7 +190,7 @@ var TokenType;
 class TemplateLexer extends BaseLexer {
     *[Symbol.iterator]() {
         while (true) {
-            let start = this.position;
+            const start = this.position;
             let char = this.la();
             if (char == null) {
                 return;
@@ -205,6 +205,7 @@ class TemplateLexer extends BaseLexer {
                     this.advance();
                     yield new Token(TokenType[char], this, start);
                     continue;
+                default:
             }
             if (char === '<' && this.isIdStart(2)) {
                 yield this.openTagStart();
@@ -242,7 +243,7 @@ class TemplateLexer extends BaseLexer {
         }
     }
     openTagStart() {
-        let start = this.position;
+        const start = this.position;
         this.advance();
         do {
             this.advance();
@@ -251,23 +252,23 @@ class TemplateLexer extends BaseLexer {
     }
     closeTagStart() {
         this.advance(2);
-        let start = this.position;
+        const start = this.position;
         while (this.la() !== '>') {
             this.advance();
         }
         return new Token(TokenType['</'], this, start);
     }
     isIdStart(laIdx = 1) {
-        let char = this.la(laIdx);
+        const char = this.la(laIdx);
         return /[^<>()\[\]"'=`/]/.test(char) && /\S/.test(char);
     }
     isWhitespace() {
-        let chr = this.la();
+        const chr = this.la();
         return /\s/.test(chr);
     }
     stringLit(quote) {
         this.advance();
-        let start = this.position;
+        const start = this.position;
         while (this.la() !== quote) {
             if (this.la() == null)
                 this.throwError();
@@ -277,7 +278,7 @@ class TemplateLexer extends BaseLexer {
             }
             this.advance();
         }
-        let tk = new Token(TokenType.stringLiteral, this, start);
+        const tk = new Token(TokenType.stringLiteral, this, start);
         this.advance();
         return tk;
     }
@@ -285,14 +286,14 @@ class TemplateLexer extends BaseLexer {
 exports.TemplateLexer = TemplateLexer;
 class TemplateParser extends LookAhead {
     constructor(input) {
-        let lexer = new TemplateLexer(input);
+        const lexer = new TemplateLexer(input);
         super(lexer);
         this.lexer = lexer;
     }
     getCurrentPosInfo() {
-        let start = this.la() ? this.la().start : null;
+        const start = this.la() ? this.la().start : null;
         if (start) {
-            let lineCol = this.lexer.getLineColumn(start);
+            const lineCol = this.lexer.getLineColumn(start);
             return `Line ${lineCol[0] + 1} column ${lineCol[1] + 1}`;
         }
     }
@@ -302,7 +303,7 @@ class TemplateParser extends LookAhead {
         }
     }
     parse() {
-        let ast = [];
+        const ast = [];
         while (this.la() != null) {
             if (this.la().type === TokenType['<']) {
                 ast.push(this.tag());
@@ -317,21 +318,21 @@ class TemplateParser extends LookAhead {
         return ast;
     }
     tag() {
-        let first = this.advance();
-        let name = first.text.substring(1);
-        let attrs = this.attributes();
-        let last = this.advance(); // >
+        const first = this.advance();
+        const name = first.text.substring(1);
+        const attrs = this.attributes();
+        const last = this.advance(); // >
         return { name, attrs, start: first.start, end: last.end };
     }
     attributes() {
-        let attrs = {};
+        const attrs = {};
         while (this.la() != null && this.la().type !== TokenType['>']) {
             if (this.isNgAttrName()) {
-                let key = this.ngAttrName();
+                const key = this.ngAttrName();
                 attrs[key] = this.attrValue();
             }
             else if (this.la().type === TokenType.identity) {
-                let key = this.attrName();
+                const key = this.attrName();
                 attrs[key] = this.attrValue();
             }
             else {
@@ -342,11 +343,11 @@ class TemplateParser extends LookAhead {
         return attrs;
     }
     isNgAttrName() {
-        let type = this.la().type;
+        const type = this.la().type;
         return type === TokenType['['] || type === TokenType['('];
     }
     ngAttrName() {
-        let kind = this.la().type === TokenType['['] ? TokenType[']'] : TokenType[')'];
+        const kind = this.la().type === TokenType['['] ? TokenType[']'] : TokenType[')'];
         let name;
         this.advance();
         if (this.isNgAttrName())

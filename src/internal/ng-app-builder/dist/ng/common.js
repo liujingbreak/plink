@@ -20,10 +20,10 @@ function initDrcp(drcpArgs) {
  */
 function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpackConfig, vfsHost) {
     // let argv: any = {};
-    let options = builderConfig.options;
-    let config = initDrcp(options.drcpArgs);
+    const options = builderConfig.options;
+    const config = initDrcp(options.drcpArgs);
     return Rx.Observable.create((obs) => {
-        let param = {
+        const param = {
             builderConfig,
             browserOptions: browserOptions,
             webpackConfig: buildWebpackConfig(browserOptions),
@@ -107,9 +107,9 @@ function compile(projectRoot, browserOptions, buildWebpackConfig, vfsHost) {
 }
 exports.compile = compile;
 function compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost) {
-    let options = browserOptions;
-    let config = initDrcp(options.drcpArgs);
-    let param = {
+    const options = browserOptions;
+    const config = initDrcp(options.drcpArgs);
+    const param = {
         browserOptions: options,
         webpackConfig: buildWebpackConfig(browserOptions),
         projectRoot,

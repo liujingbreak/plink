@@ -17,21 +17,21 @@ export default class IndexHtmlPlugin {
 	replacements: ReplacementInf[];
 
 	constructor(public options: IndexHtmlPluginOptions) {
-		for (let name of options.inlineChunkNames) {
+		for (const name of options.inlineChunkNames) {
 			this.inlineChunkSet.add(name);
 		}
 	}
 	apply(compiler: Compiler) {
 		compiler.hooks.emit.tapPromise('drcp-index-html-plugin', async compilation => {
-			let htmlSrc = compilation.assets[this.options.indexHtml];
-			let source = htmlSrc.source();
-			let asts = new TemplateParser(source).parse();
-			for (let ast of asts) {
+			const htmlSrc = compilation.assets[this.options.indexHtml];
+			const source = htmlSrc.source();
+			const asts = new TemplateParser(source).parse();
+			for (const ast of asts) {
 				if (ast.name.toLowerCase() === 'script' && ast.attrs) {
-					let srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'text');
+					const srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'text');
 					if (srcUrl == null)
 						continue;
-					let match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
+					const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
 					if (match && this.inlineChunkSet.has(match[1])) {
 						this.replaceScriptTag(smUrl.removeFrom(compilation.assets[match[0]].source()), ast.start, ast.end);
 						log.info(`Inline chunk "${match[1]}" in :`, this.options.indexHtml);

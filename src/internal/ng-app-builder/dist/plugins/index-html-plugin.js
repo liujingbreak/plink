@@ -19,21 +19,21 @@ class IndexHtmlPlugin {
     constructor(options) {
         this.options = options;
         this.inlineChunkSet = new Set();
-        for (let name of options.inlineChunkNames) {
+        for (const name of options.inlineChunkNames) {
             this.inlineChunkSet.add(name);
         }
     }
     apply(compiler) {
         compiler.hooks.emit.tapPromise('drcp-index-html-plugin', (compilation) => __awaiter(this, void 0, void 0, function* () {
-            let htmlSrc = compilation.assets[this.options.indexHtml];
-            let source = htmlSrc.source();
-            let asts = new ng_html_parser_1.TemplateParser(source).parse();
-            for (let ast of asts) {
+            const htmlSrc = compilation.assets[this.options.indexHtml];
+            const source = htmlSrc.source();
+            const asts = new ng_html_parser_1.TemplateParser(source).parse();
+            for (const ast of asts) {
                 if (ast.name.toLowerCase() === 'script' && ast.attrs) {
-                    let srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'text');
+                    const srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'text');
                     if (srcUrl == null)
                         continue;
-                    let match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
+                    const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
                     if (match && this.inlineChunkSet.has(match[1])) {
                         this.replaceScriptTag(smUrl.removeFrom(compilation.assets[match[0]].source()), ast.start, ast.end);
                         log.info(`Inline chunk "${match[1]}" in :`, this.options.indexHtml);

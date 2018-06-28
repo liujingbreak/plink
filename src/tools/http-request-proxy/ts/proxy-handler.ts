@@ -74,7 +74,7 @@ export default function doProxy(target: string, req: express.Request, res: expre
 		} else {
 			return intercept(req, toHeaders, req.body, proxyInstance.reqHandlers, proxyName)
 			.then((result: any) => {
-				let reqBody = result == null ? req.body : result;
+				const reqBody = result == null ? req.body : result;
 				return Promise.resolve(doBodyAsync(requestNum, req, reqBody, opts));
 			})
 			.then(msg => {
@@ -147,7 +147,7 @@ function doBodyAsync(requestNum: number, req: express.Request, reqBody: any, opt
 		opts.body = reqBody;
 		return 'Body as Buffer or string: ' + reqBody.length;
 	} else if (_.isObject(reqBody) && _.size(reqBody) > 0) {
-		let reqContentType = reqHeaders['content-type'];
+		const reqContentType = reqHeaders['content-type'];
 		if (reqContentType && reqContentType.indexOf('json') >= 0) {
 			opts.body = JSON.stringify(reqBody);
 			return 'Body as JSON: ' + opts.body;
@@ -156,7 +156,7 @@ function doBodyAsync(requestNum: number, req: express.Request, reqBody: any, opt
 			return 'Body as form: ' + JSON.stringify(opts.form);
 		}
 	} else if (trackRequestStream) {
-		let tempFile: string = api.config.resolve('destDir', 'request-body-' + requestNum);
+		const tempFile: string = api.config.resolve('destDir', 'request-body-' + requestNum);
 		var out = fs.createWriteStream(tempFile);
 		return new Promise((resolve, reject) => {
 			req.pipe(out).on('finish', () => {
@@ -185,7 +185,7 @@ function intercept(req: express.Request, headers: {[k: string]: any}, body: any,
 		bodyHandlerProm = Promise.resolve({req, headers, body});
 		handlers.forEach(func => {
 			bodyHandlerProm = bodyHandlerProm.then(data => {
-				let resolvedRes = func(data.req, data.headers, data.body, data.result);
+				const resolvedRes = func(data.req, data.headers, data.body, data.result);
 				if (resolvedRes != null) {
 					return Promise.resolve(resolvedRes)
 					.then(result => {

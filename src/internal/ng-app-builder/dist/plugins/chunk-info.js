@@ -36,7 +36,7 @@ class ChunkInfoPlugin {
     }
     printChunkGroups(compilation) {
         return __awaiter(this, void 0, void 0, function* () {
-            for (let cg of compilation.chunkGroups) {
+            for (const cg of compilation.chunkGroups) {
                 // log.info('Named chunk groups: ' + compilation.namedChunkGroups.keys().join(', '));
                 // log.info('entrypoints: ' + compilation.entrypoints.keys().join(', '));
                 log.info('');
@@ -59,11 +59,11 @@ class ChunkInfoPlugin {
             log.info(`│    ├─ ${green('modules')}`);
             (chunk.getModules ? chunk.getModules() : chunk.modules).forEach((module) => {
                 // Explore each source file path that was included into the module:
-                let moduleName = this.moduleFileName(module);
+                const moduleName = this.moduleFileName(module);
                 log.info('│    │  ├─ %s', moduleName);
-                let pk = __api_1.default.findPackageByFile(Path.resolve(this.compiler.options.context, moduleName));
+                const pk = __api_1.default.findPackageByFile(Path.resolve(this.compiler.options.context, moduleName));
                 if (module.buildInfo.fileDependencies && (showFileDep || (pk && pk.dr && module.buildInfo.fileDependencies))) {
-                    for (let filepath of module.buildInfo.fileDependencies) {
+                    for (const filepath of module.buildInfo.fileDependencies) {
                         logFd.info('│    │  │  ├─ %s', chalk.blue('(fileDependency): ' + Path.relative(this.compiler.options.context, filepath)));
                     }
                 }

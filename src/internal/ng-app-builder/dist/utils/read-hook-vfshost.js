@@ -13,7 +13,7 @@ class ReadHookHost extends core_1.virtualFs.AliasHost {
     }
     read(path) {
         return super.read(path).pipe(operators_1.concatMap((buffer) => {
-            let sPath = core_1.getSystemPath(path);
+            const sPath = core_1.getSystemPath(path);
             return this._hookRead(sPath, buffer);
         }));
     }

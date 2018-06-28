@@ -5,7 +5,7 @@ const {doEs, TSParser} = loader;
 const log = log4js.getLogger('require-lodash-loaderSpec');
 
 describe('require-lodash-loader', () => {
-	let testCode = `var _ = require('lodash');
+	const testCode = `var _ = require('lodash');
 		function def() {
 			something(_.isString(''));
 			_.debounce(() => {});
@@ -24,7 +24,7 @@ describe('require-lodash-loader', () => {
 	});
 
 	it('should remove orphan require statement', () => {
-		let testCode = `require('lodash');
+		const testCode = `require('lodash');
 		something();
 		`;
 		var result = doEs(testCode, 'test.js');

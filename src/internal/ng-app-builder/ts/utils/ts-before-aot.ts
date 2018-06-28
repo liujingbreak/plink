@@ -20,13 +20,13 @@ export default class ApiAotCompiler {
 	}
 
 	parse() {
-		let pk = api.findPackageByFile(this.file);
+		const pk = api.findPackageByFile(this.file);
 		if (pk == null)
 			return this.src;
 
 		this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext,
 			true, ts.ScriptKind.TSX);
-		for(let stm of this.ast.statements) {
+		for(const stm of this.ast.statements) {
 			this.traverseTsAst(stm);
 		}
 
@@ -34,11 +34,11 @@ export default class ApiAotCompiler {
 			return this.src;
 
 		log.info('Compile API call in ', this.file);
-		let context = vm.createContext({__api: api.getNodeApiForPackage<DrcpApi>(pk)});
+		const context = vm.createContext({__api: api.getNodeApiForPackage<DrcpApi>(pk)});
 
-		for (let repl of this.replacements) {
-			let origText = repl.text;
-			let res = vm.runInNewContext(origText, context);
+		for (const repl of this.replacements) {
+			const origText = repl.text;
+			const res = vm.runInNewContext(origText, context);
 			repl.text = JSON.stringify(res);
 			log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)}`);
 		}
@@ -52,7 +52,7 @@ export default class ApiAotCompiler {
 
 	private traverseTsAst(ast: ts.Node, level = 0) {
 		if (ast.kind === sk.PropertyAccessExpression || ast.kind === sk.ElementAccessExpression) {
-			let node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
+			const node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
 			if (node.expression.kind === sk.Identifier && ApiAotCompiler.idText(node.expression) === '__api') {
 				if (node.parent.kind === sk.CallExpression && (node.parent as ts.CallExpression).expression === node) {
 					// It is a function call __api.xxx()

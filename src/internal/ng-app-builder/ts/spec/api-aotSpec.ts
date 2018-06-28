@@ -6,7 +6,7 @@ const log = log4js.getLogger('api-aotSpec');
 
 describe('apiAotCompiler', () => {
 	xit('should recoganize identifier __api', () => {
-		let compiler = new ApiAotCompiler('test.ts',
+		const compiler = new ApiAotCompiler('test.ts',
 			fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/api-aot-sample.ts.txt'), 'utf8'));
 		compiler.parse();
 		expect(compiler.replacements.map(({text}) => text)).toEqual([

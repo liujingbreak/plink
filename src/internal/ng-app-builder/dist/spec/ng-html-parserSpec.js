@@ -5,7 +5,7 @@ const ps = require("../utils/ng-html-parser");
 const fs = require("fs");
 const _ = require("lodash");
 describe('ng-html-parser', () => {
-    let lexer = new ps.BaseLexer('abcde');
+    const lexer = new ps.BaseLexer('abcde');
     it('Lexer.la()  should work', () => {
         // let lexer = new ps.Lexer('abcde');
         expect(lexer.la()).toEqual('a');
@@ -23,7 +23,7 @@ describe('ng-html-parser', () => {
         expect(lexer.isNext('cd')).toBeTruthy();
         expect(lexer.isNext('cdef')).toBeFalsy();
     });
-    let lexer2 = new ps.BaseLexer('0123\n5678\n0abcd\n');
+    const lexer2 = new ps.BaseLexer('0123\n5678\n0abcd\n');
     it('line and column shoud be correct', () => {
         expect(lexer2.la(10 + 1)).toEqual('0');
         let chr = lexer2.la();
@@ -38,19 +38,19 @@ describe('ng-html-parser', () => {
         expect(lexer2.getLineColumn(11)).toEqual([2, 1]);
     });
     it('template lexer should work for test html file', () => {
-        let ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
-        let lexer = new ps.TemplateLexer(ngHtml);
-        for (let token of lexer) {
+        const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
+        const lexer = new ps.TemplateLexer(ngHtml);
+        for (const token of lexer) {
             console.log(`type: ${ps.TokenType[token.type]},\ttext: ` + token.text);
         }
     });
     it('parser should work for test html file', () => {
-        let ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
-        let ast = new ps.TemplateParser(ngHtml).parse();
+        const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
+        const ast = new ps.TemplateParser(ngHtml).parse();
         console.log(JSON.stringify(ast, null, '  '));
-        for (let tag of ast) {
+        for (const tag of ast) {
             console.log(tag);
-            for (let attrValue of _.values(tag.attrs)) {
+            for (const attrValue of _.values(tag.attrs)) {
                 if (attrValue == null)
                     continue;
                 expect(ngHtml.substring(attrValue.start, attrValue.end)).toEqual(attrValue.text);

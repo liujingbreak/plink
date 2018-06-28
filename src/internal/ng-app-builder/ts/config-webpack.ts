@@ -47,12 +47,12 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 }
 
 function changeLoaders(webpackConfig: any) {
-	let devMode = webpackConfig.mode === 'development';
+	const devMode = webpackConfig.mode === 'development';
 	webpackConfig.resolveLoader = {
 		modules: ['node_modules']
 	};
 	webpackConfig.module.rules.forEach((rule: any) => {
-		let test = rule.test;
+		const test = rule.test;
 		if (rule.test instanceof RegExp && rule.test.toString() === '/\\.html$/') {
 			Object.keys(rule).forEach((key: string) => delete rule[key]);
 			Object.assign(rule, {
@@ -84,7 +84,7 @@ function changeLoaders(webpackConfig: any) {
 				]
 			});
 		} else if (rule.use) {
-			for (let useItem of rule.use) {
+			for (const useItem of rule.use) {
 				if (useItem.loader === 'less-loader' && _.has(useItem, 'options.paths')) {
 					delete useItem.options.paths;
 					break;
@@ -172,7 +172,7 @@ function printConfigValue(value: any, level: number): string {
 	} else if (isRegExp(value)) {
 		out += `${value.toString()}`;
 	} else if (_.isObject(value)) {
-		let proto = Object.getPrototypeOf(value);
+		const proto = Object.getPrototypeOf(value);
 		if (proto && proto.constructor !== Object) {
 			out += `new ${proto.constructor.name}()`;
 		} else {

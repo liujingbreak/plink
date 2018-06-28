@@ -216,13 +216,13 @@ function writeTsconfig() {
     if (__api_1.default.argv.package && __api_1.default.argv.package.length > 0) {
         var someComps = [];
         var packages = _.uniq([...__api_1.default.argv.package, __api_1.default.packageName]);
-        for (let name of packages) {
+        for (const name of packages) {
             if (_.has(components, name) && _.has(components, [name, 'dr', 'angularCompiler'])) {
                 someComps.push(components[name]);
             }
             else {
                 packageScopes.some(scope => {
-                    let testName = `@${scope}/${name}`;
+                    const testName = `@${scope}/${name}`;
                     if (_.has(components, testName) && _.get(components, [name, 'dr', 'angularCompiler'])) {
                         someComps.push(components[testName]);
                         return true;
@@ -236,10 +236,10 @@ function writeTsconfig() {
     else {
         ngPackages = ngPackages.filter(comp => comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk');
     }
-    let tsInclude = [];
-    let tsExclude = [];
+    const tsInclude = [];
+    const tsExclude = [];
     ngPackages.forEach(pk => {
-        let dir = Path.relative(tempDir, _.get(pk, 'dr.ngAppModule') ? pk.realPackagePath : pk.packagePath)
+        const dir = Path.relative(tempDir, _.get(pk, 'dr.ngAppModule') ? pk.realPackagePath : pk.packagePath)
             .replace(/\\/g, '/');
         tsInclude.push(dir + '/**/*.ts');
         tsExclude.push(dir + '/ts', dir + '/spec', dir + '/dist', dir + '/**/*.spec.ts');
@@ -274,7 +274,7 @@ function writeTsconfig() {
 }
 exports.writeTsconfig = writeTsconfig;
 function setupApiForAngularCli() {
-    let ngParam = __api_1.default.config()._angularCli;
+    const ngParam = __api_1.default.config()._angularCli;
     if (!ngParam || __api_1.default.ngEntryComponent)
         return;
     if (!ngParam.browserOptions.preserveSymlinks) {
@@ -282,15 +282,15 @@ function setupApiForAngularCli() {
 		you must set property `preserveSymlinks` to be true in project\'s angular.json file \
 		');
     }
-    let webpackConfig = ngParam.webpackConfig;
-    let ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
-    let publicUrlObj = Url.parse(webpackConfig.output.publicPath);
+    const webpackConfig = ngParam.webpackConfig;
+    const ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
+    const publicUrlObj = Url.parse(webpackConfig.output.publicPath);
     Object.assign(Object.getPrototypeOf(__api_1.default), {
         webpackConfig,
         ngEntryComponent,
         deployUrlPath: publicUrlObj.pathname,
         ngRouterPath(packageName, subPath) {
-            let url = this.assetsUrl(packageName, subPath);
+            const url = this.assetsUrl(packageName, subPath);
             return _.trimStart(Url.parse(url).pathname, '/');
         }
     });

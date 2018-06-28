@@ -48,6 +48,8 @@ function getStyleLoaders(type: string): any[] {
 				sourceMap: api.config().enableSourceMaps
 			}});
 			break;
+		default:
+			break;
 	}
 
 	loaders.push({loader: 'require-injector/css-loader', options: {

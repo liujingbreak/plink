@@ -222,12 +222,12 @@ export function writeTsconfig(): string {
 	if (api.argv.package && api.argv.package.length > 0) {
 		var someComps: PackageInstances = [];
 		var packages = _.uniq([...api.argv.package, api.packageName]);
-		for (let name of packages) {
+		for (const name of packages) {
 			if (_.has(components, name) && _.has(components, [name, 'dr', 'angularCompiler'])) {
 				someComps.push(components[name]);
 			} else {
 				packageScopes.some(scope => {
-					let testName = `@${scope}/${name}`;
+					const testName = `@${scope}/${name}`;
 					if (_.has(components, testName) && _.get(components, [name, 'dr', 'angularCompiler'])) {
 						someComps.push(components[testName]);
 						return true;
@@ -240,10 +240,10 @@ export function writeTsconfig(): string {
 	} else {
 		ngPackages = ngPackages.filter(comp => comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk');
 	}
-	let tsInclude: string[] = [];
-	let tsExclude: string[] = [];
+	const tsInclude: string[] = [];
+	const tsExclude: string[] = [];
 	ngPackages.forEach(pk => {
-		let dir = Path.relative(tempDir,
+		const dir = Path.relative(tempDir,
 			_.get(pk, 'dr.ngAppModule') ? pk.realPackagePath : pk.packagePath)
 			// pk.packagePath)
 			// pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
@@ -285,7 +285,7 @@ export function writeTsconfig(): string {
 }
 
 function setupApiForAngularCli() {
-	let ngParam: AngularCliParam = api.config()._angularCli;
+	const ngParam: AngularCliParam = api.config()._angularCli;
 	if (!ngParam || api.ngEntryComponent)
 		return;
 	if (!ngParam.browserOptions.preserveSymlinks) {
@@ -293,16 +293,16 @@ function setupApiForAngularCli() {
 		you must set property `preserveSymlinks` to be true in project\'s angular.json file \
 		');
 	}
-	let webpackConfig = ngParam.webpackConfig;
-	let ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
+	const webpackConfig = ngParam.webpackConfig;
+	const ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
 
-	let publicUrlObj = Url.parse(webpackConfig.output.publicPath);
+	const publicUrlObj = Url.parse(webpackConfig.output.publicPath);
 	Object.assign(Object.getPrototypeOf(api), {
 		webpackConfig,
 		ngEntryComponent,
 		deployUrlPath: publicUrlObj.pathname,
 		ngRouterPath(this: DrcpApi, packageName: string, subPath?: string) {
-			let url = this.assetsUrl(packageName, subPath);
+			const url = this.assetsUrl(packageName, subPath);
 			return _.trimStart(Url.parse(url).pathname, '/');
 		}
 	});

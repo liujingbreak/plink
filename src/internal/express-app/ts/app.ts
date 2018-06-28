@@ -93,9 +93,9 @@ function create(app: express.Express, setting: any) {
 	// setupApi.createPackageDefinedMiddleware(app);
 	setupApi.createPackageDefinedRouters(app);
 
-	let hashFile = Path.join(api.config().rootPath, 'githash-server.txt');
+	const hashFile = Path.join(api.config().rootPath, 'githash-server.txt');
 	if (fs.existsSync(hashFile)) {
-		let githash = fs.readFileSync(hashFile, 'utf8');
+		const githash = fs.readFileSync(hashFile, 'utf8');
 		app.get('/githash-server', (req, res) => {
 			res.send(githash);
 		});

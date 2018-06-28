@@ -7,7 +7,7 @@
 		"jsdoc-format": false,
 		"no-consecutive-blank-lines": false,
 		"object-literal-shorthand": true,
-		"prefer-const": false,
+		"prefer-const": true,
 		"interface-name": false,
 		"ordered-imports": false,
 		"no-var-requires": false,
@@ -153,7 +153,11 @@
 				"SwitchCase": 1,
 				"MemberExpression": "off"
 			}
-		]
+		],
+		"switch-default": true,
+		"no-unsafe-finally": true,
+		"no-string-throw": true,
+		"no-duplicate-super": true
 		// "valid-jsdoc": [1, {
 		// 	"requireReturn": false,
 		// 	"requireReturnType": false,

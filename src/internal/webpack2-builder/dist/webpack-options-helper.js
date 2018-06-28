@@ -46,6 +46,8 @@ function getStyleLoaders(type) {
                     sourceMap: __api_1.default.config().enableSourceMaps
                 } });
             break;
+        default:
+            break;
     }
     loaders.push({ loader: 'require-injector/css-loader', options: {
             injector: __api_1.default.browserInjector

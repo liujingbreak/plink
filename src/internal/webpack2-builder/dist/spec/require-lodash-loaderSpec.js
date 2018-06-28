@@ -6,7 +6,7 @@ const log4js = require("log4js");
 const { doEs, TSParser } = loader;
 const log = log4js.getLogger('require-lodash-loaderSpec');
 describe('require-lodash-loader', () => {
-    let testCode = `var _ = require('lodash');
+    const testCode = `var _ = require('lodash');
 		function def() {
 			something(_.isString(''));
 			_.debounce(() => {});
@@ -23,7 +23,7 @@ describe('require-lodash-loader', () => {
         expect(result).toContain("var _: any = {isString: require('lodash/isString'), debounce: require('lodash/debounce')}");
     });
     it('should remove orphan require statement', () => {
-        let testCode = `require('lodash');
+        const testCode = `require('lodash');
 		something();
 		`;
         var result = doEs(testCode, 'test.js');

@@ -26,7 +26,7 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 					if (drcpIncludeBuf)
 						return of(drcpIncludeBuf);
 					let content = Buffer.from(buf).toString();
-					let legoConfig = browserLegoConfig();
+					const legoConfig = browserLegoConfig();
 					let body: string;
 					if (_.get(ngParam, 'builderConfig.options.hmr')) {
 						content = `import 'webpack-hot-middleware/client';
@@ -47,8 +47,8 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 					log.info(file + ':\n' + content);
 					return of(drcpIncludeBuf);
 				}
-				let compPkg = api.findPackageByFile(file);
-				let content = Buffer.from(buf).toString();
+				const compPkg = api.findPackageByFile(file);
+				const content = Buffer.from(buf).toString();
 
 				let changed = api.browserInjector.injectToFile(file, content);
 				changed = new ApiAotCompiler(file, changed).parse();
@@ -66,10 +66,10 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 }
 
 export function string2buffer(input: string): ArrayBuffer {
-	let nodeBuf = Buffer.from(input);
-	let len = nodeBuf.byteLength;
-	let newBuf = new ArrayBuffer(len);
-	let dataView = new DataView(newBuf);
+	const nodeBuf = Buffer.from(input);
+	const len = nodeBuf.byteLength;
+	const newBuf = new ArrayBuffer(len);
+	const dataView = new DataView(newBuf);
 	for (let i = 0; i < len; i++) {
 		dataView.setUint8(i, nodeBuf.readUInt8(i));
 	}

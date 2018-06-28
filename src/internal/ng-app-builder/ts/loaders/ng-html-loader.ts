@@ -23,18 +23,18 @@ export = function(content: string, map: any) {
 const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 
 async function load(content: string, loader: any) {
-	let ast = new TemplateParser(content).parse();
-	let proms: Array<PromiseLike<any>> = [];
-	let replacements: Rep[] = [];
-	for (let el of ast) {
-		for (let name of toCheckNames) {
+	const ast = new TemplateParser(content).parse();
+	const proms: Array<PromiseLike<any>> = [];
+	const replacements: Rep[] = [];
+	for (const el of ast) {
+		for (const name of toCheckNames) {
 			if (_.has(el.attrs, name)) {
 				proms.push(doAttrAssetsUrl(name, el.attrs[name], el, replacements, loader));
 			}
 		}
 	}
 	await Promise.all(proms);
-	let updated = patchText(content, replacements);
+	const updated = patchText(content, replacements);
 	// log.warn(updated);
 	return updated;
 }
@@ -62,8 +62,8 @@ function doAttrAssetsUrl(attrName: string, valueToken: AttributeValueAst,
 function doSrcSet(value: string, loader: any) {
 	var prom = value.split(/\s*,\s*/).map(urlSet => {
 		urlSet = _.trim(urlSet);
-		let factors = urlSet.split(/\s+/);
-		let image = factors[0];
+		const factors = urlSet.split(/\s+/);
+		const image = factors[0];
 		return doLoadAssets(image, loader)
 		.then(url => {
 			return url + ' ' + factors[1];
@@ -85,7 +85,7 @@ function resolveUrl(href: string, loader: any) {
 
 function doLoadAssets(src: string, loader: any) {
 	if (src.startsWith('assets://') || src.startsWith('page://')) {
-		let res = api.normalizeAssetsUrl(src, loader.resourcePath);
+		const res = api.normalizeAssetsUrl(src, loader.resourcePath);
 		if (_.isObject(res)) {
 			return Promise.resolve(res.isPage ?
 				api.entryPageUrl(res.packageName, res.path, res.locale) :

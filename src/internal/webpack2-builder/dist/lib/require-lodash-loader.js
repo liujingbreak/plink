@@ -37,7 +37,7 @@ function loader(content, map) {
     });
 }
 function loadAsync(code, loaderCtx) {
-    let file = loaderCtx.resourcePath;
+    const file = loaderCtx.resourcePath;
     if (file.endsWith('.js') || file.endsWith('.jsx'))
         return Promise.resolve(loader.doEs(code, file)[0]);
     else if (file.endsWith('.ts') || file.endsWith('.tsx'))
@@ -66,11 +66,11 @@ function loadAsync(code, loaderCtx) {
                 throw firstCompileErr;
             }
         }
-        let patches = [];
+        const patches = [];
         // let lodashImported = false;
         let requireLodashPos = null;
         // let hasExports = false;
-        let lodashFunctions = new Set();
+        const lodashFunctions = new Set();
         estraverse.traverse(ast, {
             enter(node, parent) {
                 if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
@@ -80,7 +80,7 @@ function loadAsync(code, loaderCtx) {
                 }
                 if (node.type === 'VariableDeclarator' && _.get(node, 'id.name') === '_' &&
                     _.get(parent, 'declarations.length') === 1) {
-                    let init = node.init;
+                    const init = node.init;
                     if (init.type === 'CallExpression' && _.get(init, 'callee.name') === 'require' &&
                         _.get(init, 'arguments[0].value') === 'lodash') {
                         requireLodashPos = [parent.start, parent.end];
@@ -146,8 +146,8 @@ function loadAsync(code, loaderCtx) {
         }
         doTs(code, file) {
             this.file = file;
-            let srcfile = ts.createSourceFile('file', code, ts.ScriptTarget.ES2015);
-            for (let stm of srcfile.statements) {
+            const srcfile = ts.createSourceFile('file', code, ts.ScriptTarget.ES2015);
+            for (const stm of srcfile.statements) {
                 this.traverseTsAst(stm, srcfile);
             }
             // if (this.patches.length > 0) {
@@ -161,12 +161,12 @@ function loadAsync(code, loaderCtx) {
             return doTranspile(code, this.patches, this.requireLodashPos, this.lodashFunctions, true);
         }
         traverseTsAst(ast, srcfile, level = 0) {
-            let SyntaxKind = ts.SyntaxKind;
+            const SyntaxKind = ts.SyntaxKind;
             if (ast.kind === SyntaxKind.CallExpression) {
-                let node = ast;
+                const node = ast;
                 if (node.expression.kind === SyntaxKind.PropertyAccessExpression) {
-                    let left = node.expression.expression;
-                    let right = node.expression.name;
+                    const left = node.expression.expression;
+                    const right = node.expression.name;
                     if (left.kind === SyntaxKind.Identifier && left.text === '_' &&
                         right.kind === SyntaxKind.Identifier) {
                         this.lodashFunctions.add(right.text);
@@ -179,10 +179,10 @@ function loadAsync(code, loaderCtx) {
             // 	this.lodashImported = true;
             // } else 
             if (ast.kind === SyntaxKind.VariableStatement) {
-                let decs = ast.declarationList.declarations;
+                const decs = ast.declarationList.declarations;
                 decs.some(dec => {
                     if (dec.initializer && dec.initializer.kind === SyntaxKind.CallExpression) {
-                        let callExp = dec.initializer;
+                        const callExp = dec.initializer;
                         if (callExp.expression.kind === SyntaxKind.Identifier &&
                             callExp.expression.text === 'require' && callExp.arguments[0].text === 'lodash') {
                             this.requireLodashPos = [ast.pos, ast.end];
@@ -199,7 +199,7 @@ function loadAsync(code, loaderCtx) {
             }
             else if (ast.kind === SyntaxKind.ExpressionStatement &&
                 ast.expression.kind === SyntaxKind.CallExpression) {
-                let callExp = ast.expression;
+                const callExp = ast.expression;
                 if (callExp.expression.kind === SyntaxKind.Identifier && callExp.expression.text === 'require' &&
                     callExp.arguments[0].text === 'lodash') {
                     log.debug('Remove orphan statement require("lodash") from\n  ', this.file);

@@ -1,7 +1,7 @@
 /* tslint:disable no-console */
 import * as Path from 'path';
 import postCssPlugin from './postcss-cli-resource';
-let {nodeInjector} = require('dr-comp-package/wfh/lib/injectorFactory');
+const {nodeInjector} = require('dr-comp-package/wfh/lib/injectorFactory');
 
 nodeInjector.fromDir(Path.dirname(require.resolve(
 '@angular-devkit/build-angular')))

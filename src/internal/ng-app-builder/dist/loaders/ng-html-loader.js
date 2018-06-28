@@ -16,18 +16,18 @@ const vm = require("vm");
 const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 function load(content, loader) {
     return __awaiter(this, void 0, void 0, function* () {
-        let ast = new ng_html_parser_1.TemplateParser(content).parse();
-        let proms = [];
-        let replacements = [];
-        for (let el of ast) {
-            for (let name of toCheckNames) {
+        const ast = new ng_html_parser_1.TemplateParser(content).parse();
+        const proms = [];
+        const replacements = [];
+        for (const el of ast) {
+            for (const name of toCheckNames) {
                 if (_.has(el.attrs, name)) {
                     proms.push(doAttrAssetsUrl(name, el.attrs[name], el, replacements, loader));
                 }
             }
         }
         yield Promise.all(proms);
-        let updated = patch_text_1.default(content, replacements);
+        const updated = patch_text_1.default(content, replacements);
         // log.warn(updated);
         return updated;
     });
@@ -55,8 +55,8 @@ function doAttrAssetsUrl(attrName, valueToken, el, replacements, loader) {
 function doSrcSet(value, loader) {
     var prom = value.split(/\s*,\s*/).map(urlSet => {
         urlSet = _.trim(urlSet);
-        let factors = urlSet.split(/\s+/);
-        let image = factors[0];
+        const factors = urlSet.split(/\s+/);
+        const image = factors[0];
         return doLoadAssets(image, loader)
             .then(url => {
             return url + ' ' + factors[1];
@@ -76,7 +76,7 @@ function resolveUrl(href, loader) {
 }
 function doLoadAssets(src, loader) {
     if (src.startsWith('assets://') || src.startsWith('page://')) {
-        let res = api.normalizeAssetsUrl(src, loader.resourcePath);
+        const res = api.normalizeAssetsUrl(src, loader.resourcePath);
         if (_.isObject(res)) {
             return Promise.resolve(res.isPage ?
                 api.entryPageUrl(res.packageName, res.path, res.locale) :

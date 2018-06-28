@@ -29,7 +29,7 @@ export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.
 	read(path: Path): Observable<FBuffer> {
 		return super.read(path).pipe(
 			concatMap((buffer: FBuffer) => {
-				let sPath: string = getSystemPath(path);
+				const sPath: string = getSystemPath(path);
 				return this._hookRead(sPath, buffer);
 			})
 		);

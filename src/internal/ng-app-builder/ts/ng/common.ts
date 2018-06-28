@@ -49,12 +49,12 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 	buildWebpackConfig: buildWebpackConfigFunc,
 	vfsHost: ReadHookHost): Rx.Observable<BuildEvent> {
 	// let argv: any = {};
-	let options = builderConfig.options as (DevServerBuilderOptions & DrcpBuilderOptions);
+	const options = builderConfig.options as (DevServerBuilderOptions & DrcpBuilderOptions);
 
-	let config = initDrcp(options.drcpArgs);
+	const config = initDrcp(options.drcpArgs);
 
 	return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
-		let param: AngularCliParam = {
+		const param: AngularCliParam = {
 			builderConfig,
 			browserOptions: browserOptions as any as NormalizedBrowserBuilderSchema & DrcpBuilderOptions,
 			webpackConfig: buildWebpackConfig(browserOptions),
@@ -143,9 +143,9 @@ export function compile(projectRoot: string, browserOptions: NormalizedBrowserBu
 
 function compileAsync(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema,
 	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost) {
-	let options = browserOptions as (NormalizedBrowserBuilderSchema & DrcpBuilderOptions);
-	let config = initDrcp(options.drcpArgs);
-	let param: AngularCliParam = {
+	const options = browserOptions as (NormalizedBrowserBuilderSchema & DrcpBuilderOptions);
+	const config = initDrcp(options.drcpArgs);
+	const param: AngularCliParam = {
 		browserOptions: options,
 		webpackConfig: buildWebpackConfig(browserOptions),
 		projectRoot,
