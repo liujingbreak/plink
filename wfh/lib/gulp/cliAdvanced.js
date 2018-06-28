@@ -53,7 +53,7 @@ function addupConfigs(onEachYaml) {
 		});
 
 		// outputPath
-		var outputPath = dr.outputPath || _.get(json, 'dr.output.path') || parsedName.name;
+		var outputPath = dr.outputPath || dr.ngRoutePath || _.get(json, 'dr.output.path') || parsedName.name;
 		if (dr.outputPath != null)
 			outputPath = dr.outputPath;
 		else {

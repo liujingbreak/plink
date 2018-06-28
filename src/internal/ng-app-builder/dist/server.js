@@ -288,7 +288,20 @@ function setupApiForAngularCli() {
     Object.assign(Object.getPrototypeOf(__api_1.default), {
         webpackConfig,
         ngEntryComponent,
-        deployUrlPath: publicUrlObj.pathname,
+        deployUrl: webpackConfig.output.publicPath,
+        ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
+        /**@function ngRouterPath
+         * @memberOf __api
+         * e.g.
+         * Assume application is deployed on 'http://foobar.com/base-href' as "deployUrl" in angular.json.
+         * Current feature package is `@bk/feature-a`, its `ngRoutePath` is by default 'feature-a',
+         * feature package `@bk/feature-b`'s `ngRoutePath` is by default 'feature-b'
+         ```ts
+        __api.ngRouterPath('action')  // "/base-href/feature-a/action"
+        __api.ngRouterPath('@bk/feature-b', 'action')   // "/base-href/feature-b/action"
+        ```
+        * @return the configured Angular router path for specific (current) feature package
+        */
         ngRouterPath(packageName, subPath) {
             const url = this.assetsUrl(packageName, subPath);
             return _.trimStart(Url.parse(url).pathname, '/');

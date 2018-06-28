@@ -3,7 +3,7 @@ exports.publicUrl = publicUrl;
 
 exports.patchToApi = function(apiPrototype) {
 	apiPrototype.assetsUrl = function(packageName, path) {
-		if (arguments.length === 1) {
+		if (path == null) {
 			path = arguments[0];
 			packageName = this.packageName;
 		}
@@ -51,15 +51,21 @@ function publicUrl(staticAssetsURL, outputPathMap, useLocale, packageName, path)
 	return finalUrl;
 }
 
-function joinUrl(url, url2, urlN) {
-	var joined = arguments[0];
-	for (var i = 1, l = arguments.length; i < l; i++) {
-		if (arguments[i] == null || arguments[i].length === 0)
+function joinUrl(...pathEls) {
+	pathEls = pathEls.map(el => {
+		// Trim last '/'
+		if (el && el.charAt(el.length - 1) === '/' && el.length > 1)
+			return el.substring(0, el.length - 1);
+		return el;
+	});
+	var joined = pathEls[0];
+	for (var i = 1, l = pathEls.length; i < l; i++) {
+		if (pathEls[i] == null || pathEls[i].length === 0)
 			continue;
 		if (joined.length > 0 && joined.charAt(joined.length - 1) !== '/' &&
-			arguments[i] && arguments[i].charAt(0) !== '/')
+			pathEls[i] && pathEls[i].charAt(0) !== '/')
 			joined += '/';
-		joined += arguments[i];
+		joined += pathEls[i];
 	}
 	return joined;
 }
