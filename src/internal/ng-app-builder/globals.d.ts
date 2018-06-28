@@ -32,8 +32,8 @@ interface _DrcpNgApi {
 	 * @memberOf __api
 	 * e.g.
 	 * Assume application is deployed on 'http://foobar.com/base-href' as "deployUrl" in angular.json.
-	 * Current feature package is `@bk/feature-a`, its `ngRoutePath` is by default 'feature-a',
-	 * feature package `@bk/feature-b`'s `ngRoutePath` is by default 'feature-b'
+	 * Current feature package is `@bk/feature-a`, its `ngRouterPath` is by default 'feature-a',
+	 * feature package `@bk/feature-b`'s `ngRouterPath` is by default 'feature-b'
 	 ```ts
 	 __api.ngRouterPath('')  // "base-href/feature-a"
 	 __api.ngRouterPath('action')   // "base-href/feature-a/action"
