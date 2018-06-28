@@ -68,7 +68,8 @@ class ChunkInfoPlugin {
                     }
                 }
                 _.each(module.blocks, (block) => {
-                    log.info('│    │  │  ├─ (block %s): %s', block.constructor.name, _.map(block.chunkGroup, (cg) => cg.name).join(', '));
+                    const cacheGroups = _.map(block.chunkGroup, (cg) => cg.name).filter(name => name).join(', ');
+                    log.info(`│    │  │  ├─ (block ${block.constructor.name}): chunk group (${cacheGroups})`);
                     if (showDependency || (pk && pk.dr)) {
                         _.each(block.dependencies, (bDep) => {
                             logD.info(`│    │  │  │  ├─ ${bDep.constructor.name}`);
@@ -94,7 +95,9 @@ class ChunkInfoPlugin {
         });
     }
     moduleFileName(m) {
-        return Path.relative(this.compiler.options.context, (m.identifier() || m.name).split('!').slice().pop());
+        const fileName = m.nameForCondition ? m.nameForCondition() : (m.identifier() || m.name).split('!').slice().pop();
+        // return Path.relative(this.compiler.options.context, (m.identifier() || m.name).split('!').slice().pop());
+        return Path.relative(this.compiler.options.context, fileName);
     }
     getChunkName(chunk) {
         var id = chunk.debugId;

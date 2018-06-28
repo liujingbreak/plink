@@ -34,7 +34,7 @@ export default class IndexHtmlPlugin {
 					let match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
 					if (match && this.inlineChunkSet.has(match[1])) {
 						this.replaceScriptTag(smUrl.removeFrom(compilation.assets[match[0]].source()), ast.start, ast.end);
-						log.info(`Inline chunk ${match[1]} in :`, this.options.indexHtml);
+						log.info(`Inline chunk "${match[1]}" in :`, this.options.indexHtml);
 					}
 				}
 			}

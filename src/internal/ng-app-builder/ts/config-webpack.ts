@@ -37,7 +37,10 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 			inlineChunkNames: ['runtime']
 		}),
 		new CompileDonePlugin());
+
+	changeSplitChunks(param, webpackConfig);
 	changeLoaders(webpackConfig);
+
 	fs.writeFileSync('dist/ng-webpack-config.js', printConfig(webpackConfig));
 	console.log('If you are wondering what kind of Webapck config file is used internally, checkout dist/ng-webpack-config.js');
 	return webpackConfig;
@@ -117,6 +120,29 @@ function changeLoaders(webpackConfig: any) {
 			]
 		}
 	);
+}
+
+function changeSplitChunks(param: AngularCliParam, webpackConfig: any) {
+	const oldVendorTestFunc = _.get(webpackConfig, 'optimization.splitChunks.cacheGroups.vendor.test');
+
+	function vendorTest(module: any, chunks: Array<{ name: string }>) {
+		const maybeVendor = oldVendorTestFunc(module, chunks);
+		if (!maybeVendor)
+			return false;
+		const resource = module.nameForCondition ? module.nameForCondition() : '';
+		const pk = api.findPackageByFile(resource);
+		return pk == null || pk.dr == null;
+	}
+
+	if (oldVendorTestFunc) {
+		webpackConfig.optimization.splitChunks.cacheGroups.vendor.test = vendorTest;
+		webpackConfig.optimization.splitChunks.cacheGroups.lazyVendor = {
+			name: 'lazy-vendor',
+			chunks: 'async',
+			enforce: true,
+			test: vendorTest
+		};
+	}
 }
 
 function printConfig(c: any, level = 0): string {
