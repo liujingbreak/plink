@@ -6,6 +6,8 @@ import * as Path from 'path';
 import * as log4js from 'log4js';
 import api from '__api';
 
+import * as healthCheckServer from '@bk/bkjk-node-health-server';
+
 var config: any, log: any;
 var server: https.Server | http.Server;
 
@@ -58,7 +60,13 @@ export function activate() {
 		server.on('listening', () => {
 			onListening(server, 'HTTP Server');
 			api.eventBus.emit('serverStarted', {});
+			startHealthServer();
 		});
+	}
+
+	function startHealthServer() {
+		log.info('start Health-check Server');
+		healthCheckServer.startServer();
 	}
 
 	function startHttpsServer(app: any) {
@@ -163,6 +171,7 @@ export function activate() {
 
 export function deactivate() {
 	server.close();
+	healthCheckServer.endServer();
 	log.info('HTTP server is shut');
 }
 

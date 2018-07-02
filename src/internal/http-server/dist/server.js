@@ -7,6 +7,7 @@ const Path = require("path");
 // var Promise = require('bluebird');
 const log4js = require("log4js");
 const __api_1 = require("__api");
+const healthCheckServer = require("@bk/bkjk-node-health-server");
 var config, log;
 var server;
 function activate() {
@@ -56,7 +57,12 @@ function activate() {
         server.on('listening', () => {
             onListening(server, 'HTTP Server');
             __api_1.default.eventBus.emit('serverStarted', {});
+            startHealthServer();
         });
+    }
+    function startHealthServer() {
+        log.info('start Health-check Server');
+        healthCheckServer.startServer();
     }
     function startHttpsServer(app) {
         log.info('start HTTPS');
@@ -151,6 +157,7 @@ function activate() {
 exports.activate = activate;
 function deactivate() {
     server.close();
+    healthCheckServer.endServer();
     log.info('HTTP server is shut');
 }
 exports.deactivate = deactivate;
