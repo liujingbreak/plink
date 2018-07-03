@@ -9,8 +9,21 @@ import api from '__api';
 var config: any, log: any;
 var server: https.Server | http.Server;
 
+let healthCheckServer: any;
 try {
-	const healthCheckServer = require('@bk/bkjk-node-health-server');
+	healthCheckServer = require('@bk/bkjk-node-health-server');
+} catch(e) {
+	if(e.code === 'MODULE_NOT_FOUND') {
+		log = log4js.getLogger(api.packageName);
+		log.info('@bk/bkjk-node-health-server not installed');
+	}
+}
+
+if(healthCheckServer) {
+	initHealthServer();
+}
+
+function initHealthServer() {
 	const startHealthServer = () => {
 		log.info('start Health-check Server');
 		healthCheckServer.startServer();
@@ -21,10 +34,6 @@ try {
 	};
 	api.eventBus.on('serverStarted', startHealthServer);
 	api.eventBus.on('serverClosed', endHealthServer);
-} catch(e) {
-	if(e.code === 'MODULE_NOT_FOUND') {
-		log.info('@bk/bkjk-node-health-server not installed');
-	}
 }
 
 export function activate() {

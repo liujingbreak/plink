@@ -12,6 +12,17 @@ var server;
 let healthCheckServer;
 try {
     healthCheckServer = require('@bk/bkjk-node-health-server');
+}
+catch (e) {
+    if (e.code === 'MODULE_NOT_FOUND') {
+        log = log4js.getLogger(__api_1.default.packageName);
+        log.info('@bk/bkjk-node-health-server not installed');
+    }
+}
+if (healthCheckServer) {
+    initHealthServer();
+}
+function initHealthServer() {
     const startHealthServer = () => {
         log.info('start Health-check Server');
         healthCheckServer.startServer();
@@ -22,11 +33,6 @@ try {
     };
     __api_1.default.eventBus.on('serverStarted', startHealthServer);
     __api_1.default.eventBus.on('serverClosed', endHealthServer);
-}
-catch (e) {
-    if (e.code === 'MODULE_NOT_FOUND') {
-        console.info('e');
-    }
 }
 function activate() {
     log = log4js.getLogger(__api_1.default.packageName);
