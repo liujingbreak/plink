@@ -49,6 +49,7 @@ function activate() {
 		api.use(serverFavicon(favicon));
 
 	var maxAgeMap = api.config.get('cacheControlMaxAge', {
+		// Format https://www.npmjs.com/package/ms
 		js: '365 days',
 		css: '365 days',
 		less: '365 days',

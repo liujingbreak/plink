@@ -1,8 +1,9 @@
+/* eslint no-console: 0 */
 const cluster = require('cluster');
 const os = require('os');
-
-var isPm2 = cluster.isWorker && process.env.NODE_APP_INSTANCE != null;
-var pm2Intercom = true;
+const pm2InstanceId = process.env.NODE_APP_INSTANCE;
+var isPm2 = cluster.isWorker && pm2InstanceId != null;
+const SLACK_API_TOKEN = '<paste your token>';
 
 const patterns = {
 	fileDate: '%d [%p] %c - %m',
@@ -12,22 +13,17 @@ const patterns = {
 
 if (isPm2) {
 	// log4js requires special treatment for cluster or PM2 environment
-	console.log('[log4js.js] worker id', cluster.worker.id);
-	console.log('[log4js.js] process.env.NODE_APP_INSTANCE', process.env.NODE_APP_INSTANCE);
-	try {
-		require('pm2-intercom');
-	} catch (e) {
-		if (e.code === 'MODULE_NOT_FOUND') {
-			pm2Intercom = false;
-			console.log('[log4js.js] Since "pm2-intercom" is not installed, pm2 mode wiil be disable and switched to "disableClustering" mode.');
-		} else
-			console.log(e);
+	console.log(`(PID:${process.pid})[log4js.js] process is worker? ${cluster.isWorker}, is master? ${cluster.isMaster}`);
+	console.log(`(PID:${process.pid})[log4js.js] worker id`, cluster.worker.id);
+	console.log(`(PID:${process.pid})[log4js.js] process.env.NODE_APP_INSTANCE`, pm2InstanceId);
+	if (pm2InstanceId === '0') {
+		// Refer to https://github.com/liujingbreak/log4js-pm2-intercom
+		process.send({topic: 'log4js:master'});
 	}
 }
 
 var config = {
-	pm2: isPm2 && pm2Intercom,
-	disableClustering: isPm2 && !pm2Intercom,
+	pm2: isPm2,
 	appenders: {
 		out: {
 			type: 'stdout',
@@ -42,10 +38,13 @@ var config = {
 			layout: {type: 'pattern', pattern: cluster.isWorker ? patterns.clusterFileDate : patterns.fileDate},
 			maxLogSize: 500 * 1024,
 			backups: 2
-		}
+		},
+		server: { type: 'multiprocess', mode: 'master', appender: 'file', loggerHost: '0.0.0.0', loggerPort: 5000 },
+		errorSlack: {type: 'logLevelFilter', appender: 'slack', level: 'error'}
 	},
 	categories: {
 		'default': {appenders: ['out', 'file'], level: 'info'},
+		'@bk/credit-appl': {appenders: ['out', 'file'], level: 'info'},
 		'dr-comp-package': {appenders: ['file'], level: 'debug'},
 		'@dr-core/assets-processer': {appenders: ['infoOut', 'file'], level: 'debug'},
 		'wfh.module-dep-helper': {appenders: ['infoOut', 'file'], level: 'info'},
@@ -55,29 +54,22 @@ var config = {
 	}
 };
 
-var has = Object.prototype.hasOwnProperty;
-if (isPm2 && !pm2Intercom) {
-	console.log('[log4js.js] Remove file appender since "pm2-intercom" is not installed.');
-	var cats = config.categories;
-	for (var f in cats) {
-		if (has.call(cats, f) && cats[f].appenders) {
-			let aps = cats[f].appenders = cats[f].appenders.filter(ap => ap !== 'file');
-			if (aps.length === 0)
-				delete cats[f];
-		}
-	}
-}
-
 module.exports = config;
 
 module.exports.setup = function(options) {
 	var {logger} = options;
-	if (logger == null)
+	if (logger == null || pm2InstanceId !== '0')
 		return config;
 	if (logger.noFileLimit) {
 		console.log('[log4js.js] No file max log size limitation');
 		delete config.appenders.file.maxLogSize;
 		delete config.appenders.file.backups;
+	}
+	if (logger.onlyFileOut) {
+		for (let cat of Object.values(config.categories)) {
+			cat.appenders = ['file'];
+		}
+		console.log('[log4js.js] only file out');
 	}
 	if (logger.slackChannelId) {
 		var slackInstalled = true;
@@ -90,7 +82,7 @@ module.exports.setup = function(options) {
 		if (slackInstalled) {
 			config.appenders.slack = {
 				type: '@log4js-node/slack',
-				token: '<YOUR SLACK API TOKEN>',
+				token: SLACK_API_TOKEN,
 				channel_id: logger.slackChannelId,
 				username: os.hostname() + ' ' + os.userInfo().username
 			};
