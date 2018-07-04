@@ -6,7 +6,8 @@ import * as Path from 'path';
 import * as log4js from 'log4js';
 import api from '__api';
 
-var config: any, log: any;
+var config: any;
+const log = log4js.getLogger(api.packageName);
 var server: https.Server | http.Server;
 
 let healthCheckServer: any;
@@ -14,7 +15,6 @@ try {
 	healthCheckServer = require('@bk/bkjk-node-health-server');
 } catch(e) {
 	if(e.code === 'MODULE_NOT_FOUND') {
-		log = log4js.getLogger(api.packageName);
 		log.info('@bk/bkjk-node-health-server not installed');
 	}
 }
@@ -33,11 +33,10 @@ function initHealthServer() {
 		healthCheckServer.endServer();
 	};
 	api.eventBus.on('serverStarted', startHealthServer);
-	api.eventBus.on('serverClosed', endHealthServer);
+	api.eventBus.on('serverStoped', endHealthServer);
 }
 
 export function activate() {
-	log = log4js.getLogger(api.packageName);
 	config = api.config;
 	const rootPath: string = config().rootPath;
 
@@ -189,7 +188,7 @@ export function activate() {
 }
 
 export function deactivate() {
-	api.eventBus.emit('serverClosed', {});
+	api.eventBus.emit('serverStoped', {});
 	server.close();
 	log.info('HTTP server is shut');
 }

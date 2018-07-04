@@ -7,7 +7,8 @@ const Path = require("path");
 // var Promise = require('bluebird');
 const log4js = require("log4js");
 const __api_1 = require("__api");
-var config, log;
+var config;
+const log = log4js.getLogger(__api_1.default.packageName);
 var server;
 let healthCheckServer;
 try {
@@ -15,7 +16,6 @@ try {
 }
 catch (e) {
     if (e.code === 'MODULE_NOT_FOUND') {
-        log = log4js.getLogger(__api_1.default.packageName);
         log.info('@bk/bkjk-node-health-server not installed');
     }
 }
@@ -32,10 +32,9 @@ function initHealthServer() {
         healthCheckServer.endServer();
     };
     __api_1.default.eventBus.on('serverStarted', startHealthServer);
-    __api_1.default.eventBus.on('serverClosed', endHealthServer);
+    __api_1.default.eventBus.on('serverStoped', endHealthServer);
 }
 function activate() {
-    log = log4js.getLogger(__api_1.default.packageName);
     config = __api_1.default.config;
     const rootPath = config().rootPath;
     const sslSetting = config.get(__api_1.default.packageName + '.ssl') || config().ssl;
@@ -175,7 +174,7 @@ function activate() {
 }
 exports.activate = activate;
 function deactivate() {
-    __api_1.default.eventBus.emit('serverClosed', {});
+    __api_1.default.eventBus.emit('serverStoped', {});
     server.close();
     log.info('HTTP server is shut');
 }
