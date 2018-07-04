@@ -33,7 +33,7 @@ function initHealthServer() {
 		healthCheckServer.endServer();
 	};
 	api.eventBus.on('serverStarted', startHealthServer);
-	api.eventBus.on('serverStoped', endHealthServer);
+	api.eventBus.on('serverStopped', endHealthServer);
 }
 
 export function activate() {
@@ -188,7 +188,7 @@ export function activate() {
 }
 
 export function deactivate() {
-	api.eventBus.emit('serverStoped', {});
+	api.eventBus.emit('serverStopped', {});
 	server.close();
 	log.info('HTTP server is shut');
 }

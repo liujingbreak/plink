@@ -32,7 +32,7 @@ function initHealthServer() {
         healthCheckServer.endServer();
     };
     __api_1.default.eventBus.on('serverStarted', startHealthServer);
-    __api_1.default.eventBus.on('serverStoped', endHealthServer);
+    __api_1.default.eventBus.on('serverStopped', endHealthServer);
 }
 function activate() {
     config = __api_1.default.config;
@@ -174,7 +174,7 @@ function activate() {
 }
 exports.activate = activate;
 function deactivate() {
-    __api_1.default.eventBus.emit('serverStoped', {});
+    __api_1.default.eventBus.emit('serverStopped', {});
     server.close();
     log.info('HTTP server is shut');
 }
