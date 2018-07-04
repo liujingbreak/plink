@@ -6,15 +6,41 @@ import * as Path from 'path';
 import * as log4js from 'log4js';
 import api from '__api';
 
-var config: any, log: any;
+var config: any;
+const log = log4js.getLogger(api.packageName);
 var server: https.Server | http.Server;
 
-export function activate() {
-	log = log4js.getLogger(api.packageName);
-	config = api.config;
-	var rootPath: string = config().rootPath;
+let healthCheckServer: any;
+try {
+	healthCheckServer = require('@bk/bkjk-node-health-server');
+} catch(e) {
+	if(e.code === 'MODULE_NOT_FOUND') {
+		log.info('@bk/bkjk-node-health-server not installed');
+	}
+}
 
-	var sslSetting: any = config.get(api.packageName + '.ssl') || config().ssl;
+if(healthCheckServer) {
+	initHealthServer();
+}
+
+function initHealthServer() {
+	const startHealthServer = () => {
+		log.info('start Health-check Server');
+		healthCheckServer.startServer();
+	};
+	const endHealthServer = () => {
+		log.info('Health-check Server is shut');
+		healthCheckServer.endServer();
+	};
+	api.eventBus.on('serverStarted', startHealthServer);
+	api.eventBus.on('serverStopped', endHealthServer);
+}
+
+export function activate() {
+	config = api.config;
+	const rootPath: string = config().rootPath;
+
+	const sslSetting: any = config.get(api.packageName + '.ssl') || config().ssl;
 
 	if (sslSetting && sslSetting.enabled) {
 		if (!sslSetting.key) {
@@ -39,7 +65,7 @@ export function activate() {
 
 	function startHttpServer(app: any) {
 		log.info('start HTTP');
-		var port = config().port ? config().port : 80;
+		const port = config().port ? config().port : 80;
 		server = http.createServer(app);
 		// Node 8 has a keepAliveTimeout bug which doesn't respect active connections.
 		// Connections will end after ~5 seconds (arbitrary), often not letting the full download
@@ -63,7 +89,7 @@ export function activate() {
 
 	function startHttpsServer(app: any) {
 		log.info('start HTTPS');
-		var startPromises = [];
+		const startPromises = [];
 		var port: number | string = sslSetting.port ? sslSetting.port : 433;
 		port = typeof(port) === 'number' ? port : normalizePort(port as string);
 		server = https.createServer({
@@ -83,9 +109,9 @@ export function activate() {
 		}));
 
 		if (sslSetting.httpForward !== false) {
-			var redirectHttpServer = http.createServer((req: any, res: any) => {
+			const redirectHttpServer = http.createServer((req: any, res: any) => {
 				log.debug('req.headers.host: %j', req.headers.host);
-				var url = 'https://' + /([^:]+)(:[0-9]+)?/.exec(req.headers.host)[1] + ':' + port;
+				const url = 'https://' + /([^:]+)(:[0-9]+)?/.exec(req.headers.host)[1] + ':' + port;
 				log.debug('redirect to ' + url);
 				res.writeHead(307, {
 					Location: url,
@@ -112,7 +138,7 @@ export function activate() {
 	}
 
 	function normalizePort(val: string): number | string {
-		var port = parseInt(val as string, 10);
+		const port = parseInt(val as string, 10);
 		if (isNaN(port)) {
 			// named pipe
 			return val;
@@ -129,8 +155,8 @@ export function activate() {
 	 * Event listener for HTTP server "listening" event.
 	 */
 	function onListening(server: http.Server | https.Server, title: string) {
-		var addr = server.address();
-		var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + JSON.stringify(addr, null, '\t');
+		const addr = server.address();
+		const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + JSON.stringify(addr, null, '\t');
 		log.info('%s is listening on %s', title ? title : '', bind);
 	}
 
@@ -143,7 +169,7 @@ export function activate() {
 			throw error;
 		}
 
-		var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+		const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
 
 		// handle specific listen errors with friendly messages
 		switch (error.code) {
@@ -162,6 +188,7 @@ export function activate() {
 }
 
 export function deactivate() {
+	api.eventBus.emit('serverStopped', {});
 	server.close();
 	log.info('HTTP server is shut');
 }
