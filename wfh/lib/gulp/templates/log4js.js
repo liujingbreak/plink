@@ -39,7 +39,6 @@ var config = {
 			maxLogSize: 500 * 1024,
 			backups: 2
 		},
-		server: { type: 'multiprocess', mode: 'master', appender: 'file', loggerHost: '0.0.0.0', loggerPort: 5000 },
 		errorSlack: {type: 'logLevelFilter', appender: 'slack', level: 'error'}
 	},
 	categories: {

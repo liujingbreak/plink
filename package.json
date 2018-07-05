@@ -1,11 +1,12 @@
 {
   "name": "dr-comp-package",
-  "version": "0.7.0-rc.2",
+  "version": "0.7.1",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
     "drcp": "bin/drcp.js"
   },
+  "dr": {},
   "scripts": {
     "start": "node app.js",
     "init": "node bin/drcp.js init",

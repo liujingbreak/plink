@@ -7,30 +7,35 @@ import {
 } from '@angular-devkit/architect';
 import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
 import {NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
+import {BuildWebpackServerSchema} from '@angular-devkit/build-angular/src/server/schema';
 import ReadHookHost from '../utils/read-hook-vfshost';
 import * as Rx from 'rxjs';
 import * as _ from 'lodash';
 
 function initDrcp(drcpArgs: any) {
 	var config = require('dr-comp-package/wfh/lib/config');
-	if (Array.isArray(drcpArgs.c)) {
-		config.load(drcpArgs.c);
+	if (Array.isArray(drcpArgs.c) || drcpArgs.prop) {
+		config.load(drcpArgs.c, drcpArgs);
 	}
 	require('dr-comp-package/wfh/lib/logConfig')(config());
 	return config;
 }
 
-export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
+export type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
 
 export interface AngularCliParam {
 	builderConfig?: BuilderConfiguration<DevServerBuilderOptions>;
 	// buildWebpackConfig: buildWebpackConfigFunc;
-	browserOptions: NormalizedBrowserBuilderSchema & DrcpBuilderOptions;
+	browserOptions: AngularBuilderOptions;
 	webpackConfig: any;
 	projectRoot: string;
 	vfsHost: ReadHookHost;
 	argv: any;
 }
+
+export type AngularBuilderOptions =
+	NormalizedBrowserBuilderSchema & BuildWebpackServerSchema & DrcpBuilderOptions;
+
 
 export interface DrcpBuilderOptions {
 	drcpArgs: any;
@@ -45,7 +50,7 @@ export interface DrcpBuilderOptions {
  * @param vfsHost 
  */
 export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfiguration<DevServerBuilderOptions>,
-	browserOptions: NormalizedBrowserBuilderSchema,
+	browserOptions: AngularBuilderOptions,
 	buildWebpackConfig: buildWebpackConfigFunc,
 	vfsHost: ReadHookHost): Rx.Observable<BuildEvent> {
 	// let argv: any = {};
@@ -131,7 +136,7 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
  * @param buildWebpackConfig 
  * @param vfsHost 
  */
-export function compile(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema,
+export function compile(projectRoot: string, browserOptions: AngularBuilderOptions,
 	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost) {
 	return new Rx.Observable((obs: any) => {
 		compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost).then((webpackConfig: any) => {
@@ -141,9 +146,9 @@ export function compile(projectRoot: string, browserOptions: NormalizedBrowserBu
 	});
 }
 
-function compileAsync(projectRoot: string, browserOptions: NormalizedBrowserBuilderSchema,
+function compileAsync(projectRoot: string, browserOptions: AngularBuilderOptions,
 	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost) {
-	const options = browserOptions as (NormalizedBrowserBuilderSchema & DrcpBuilderOptions);
+	const options = browserOptions;
 	const config = initDrcp(options.drcpArgs);
 	const param: AngularCliParam = {
 		browserOptions: options,
@@ -151,7 +156,6 @@ function compileAsync(projectRoot: string, browserOptions: NormalizedBrowserBuil
 		projectRoot,
 		vfsHost,
 		argv: {
-			poll: options.poll,
 			...options.drcpArgs
 		}
 	};

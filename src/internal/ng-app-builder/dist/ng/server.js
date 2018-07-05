@@ -2,38 +2,37 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable max-line-length */
 require("./node-inject");
+const build_angular_1 = require("@angular-devkit/build-angular");
 const core_1 = require("@angular-devkit/core");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const webpack = require('webpack');
-const utils_1 = require("@angular-devkit/build-angular/src/angular-cli-files/models/webpack-configs/utils");
-const service_worker_1 = require("@angular-devkit/build-angular/src/angular-cli-files/utilities/service-worker");
+const webpack = require("webpack");
+const utils_1 = require("@angular-devkit/build-angular/src/utils");
+const utils_2 = require("@angular-devkit/build-angular/src/angular-cli-files/models/webpack-configs/utils");
 const stats_1 = require("@angular-devkit/build-angular/src/angular-cli-files/utilities/stats");
-const utils_2 = require("@angular-devkit/build-angular/src/utils");
-const build_angular_1 = require("@angular-devkit/build-angular");
 const drcpCommon = require("./common");
 const read_hook_vfshost_1 = require("../utils/read-hook-vfshost");
-class BrowserBuilder extends build_angular_1.BrowserBuilder {
+class ServerBuilder extends build_angular_1.ServerBuilder {
+    // constructor(public context: BuilderContext) { }
     run(builderConfig) {
         const options = builderConfig.options;
         const root = this.context.workspace.root;
         const projectRoot = core_1.resolve(root, builderConfig.root);
         const host = new read_hook_vfshost_1.default(this.context.host);
+        // TODO: verify using of(null) to kickstart things is a pattern.
         return rxjs_1.of(null).pipe(operators_1.concatMap(() => options.deleteOutputPath
             ? this._deleteOutputDir0(root, core_1.normalize(options.outputPath), this.context.host)
-            : rxjs_1.of(null)), operators_1.concatMap(() => utils_2.addFileReplacements(root, host, options.fileReplacements)), operators_1.concatMap(() => utils_2.normalizeAssetPatterns(options.assets, host, root, projectRoot, builderConfig.sourceRoot)), 
-        // Replace the assets in options with the normalized version.
-        operators_1.tap((assetPatternObjects => options.assets = assetPatternObjects)), operators_1.concatMap(() => {
-            // Ensure Build Optimizer is only used with AOT.
-            if (options.buildOptimizer && !options.aot) {
-                throw new Error('The `--build-optimizer` option cannot be used without `--aot`.');
-            }
+            : rxjs_1.of(null)), operators_1.concatMap(() => utils_1.addFileReplacements(root, host, options.fileReplacements)), 
+        // TODO:
+        operators_1.concatMap(() => {
             return drcpCommon.compile(builderConfig.root, options, () => {
                 return this.buildWebpackConfig(root, projectRoot, host, options);
             }, host);
         }), operators_1.concatMap((webpackConfig) => new rxjs_1.Observable(obs => {
+            // Ensure Build Optimizer is only used with AOT.
+            // const webpackConfig = this.buildWebpackConfig(root, projectRoot, host, options);
             const webpackCompiler = webpack(webpackConfig);
-            const statsConfig = utils_1.getWebpackStatsConfig(options.verbose);
+            const statsConfig = utils_2.getWebpackStatsConfig(options.verbose);
             const callback = (err, stats) => {
                 if (err) {
                     return obs.error(err);
@@ -51,36 +50,11 @@ class BrowserBuilder extends build_angular_1.BrowserBuilder {
                 if (stats.hasErrors()) {
                     this.context.logger.error(stats_1.statsErrorsToString(json, statsConfig));
                 }
-                if (options.watch) {
-                    obs.next({ success: !stats.hasErrors() });
-                    // Never complete on watch mode.
-                    return;
-                }
-                else {
-                    if (builderConfig.options.serviceWorker) {
-                        service_worker_1.augmentAppWithServiceWorker(this.context.host, root, projectRoot, core_1.resolve(root, core_1.normalize(options.outputPath)), options.baseHref || '/', options.ngswConfigPath).then(() => {
-                            obs.next({ success: !stats.hasErrors() });
-                            obs.complete();
-                        }, (err) => {
-                            // We error out here because we're not in watch mode anyway (see above).
-                            obs.error(err);
-                        });
-                    }
-                    else {
-                        obs.next({ success: !stats.hasErrors() });
-                        obs.complete();
-                    }
-                }
+                obs.next({ success: !stats.hasErrors() });
+                obs.complete();
             };
             try {
-                if (options.watch) {
-                    const watching = webpackCompiler.watch({ poll: options.poll }, callback);
-                    // Teardown logic. Close the watcher when unsubscribed from.
-                    return () => watching.close(() => { });
-                }
-                else {
-                    webpackCompiler.run(callback);
-                }
+                webpackCompiler.run(callback);
             }
             catch (err) {
                 if (err) {
@@ -102,7 +76,7 @@ class BrowserBuilder extends build_angular_1.BrowserBuilder {
             : rxjs_1.of(null)));
     }
 }
-exports.BrowserBuilder = BrowserBuilder;
-exports.default = BrowserBuilder;
+exports.ServerBuilder = ServerBuilder;
+exports.default = ServerBuilder;
 
-//# sourceMappingURL=browser-builder.js.map
+//# sourceMappingURL=server.js.map

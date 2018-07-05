@@ -92,9 +92,11 @@ module.exports.load = load;
  * - wfhSrcPath meaning wfh source code is linked, it is not installed
  * - _package2Chunk a hash object whose key is `package name`, value is `chunk name`
  */
-function load(fileList) {
+function load(fileList, yargv) {
 	if (fileList)
 		localConfigPath = fileList;
+	if (yargv === undefined)
+		yargv = argv;
 	try {
 		//log.debug('root Path: ' + rootPath);
 		setting = setting || {};
@@ -157,7 +159,7 @@ function load(fileList) {
 		setting.publicPath = publicPath(setting);
 		setting.localIP = publicPath.getLocalIP();
 		setting.hostnamePath = publicPath.getHostnamePath(setting);
-		mergeFromCliArgs(setting);
+		mergeFromCliArgs(setting, yargv);
 		if (setting.devMode) {
 			console.log('[config] ' + 'Development mode');
 		} else {
@@ -207,10 +209,10 @@ function mergeFromFile(setting, localConfigPath) {
 	});
 }
 
-function mergeFromCliArgs(setting) {
-	if (!argv.prop)
+function mergeFromCliArgs(setting, yargv) {
+	if (!yargv.prop)
 		return;
-	for (let propSet of argv.prop) {
+	for (let propSet of yargv.prop) {
 		propSet = propSet.split('=');
 		let propPath = propSet[0];
 		if (_.startsWith(propSet[0], '['))

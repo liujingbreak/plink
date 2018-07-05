@@ -10,20 +10,8 @@ import { Path, /*getSystemPath,*/ normalize, resolve, virtualFs } from '@angular
 import * as fs from 'fs';
 import { Observable, concat, of } from 'rxjs';
 import { concatMap, last, tap } from 'rxjs/operators';
-// import * as ts from 'typescript'; // tslint:disable-line:no-implicit-dependencies
-// import * as webpack from 'webpack';
 const webpack = require('webpack');
-// import { WebpackConfigOptions } from '../angular-cli-files/models/build-options';
-// import {
-// 	getAotConfig,
-// 	getBrowserConfig,
-// 	getCommonConfig,
-// 	getNonAotConfig,
-// 	getStylesConfig
-// } from '../angular-cli-files/models/webpack-configs';
 import { getWebpackStatsConfig } from '@angular-devkit/build-angular/src/angular-cli-files/models/webpack-configs/utils';
-// import { readTsconfig } from '../angular-cli-files/utilities/read-tsconfig';
-// import { requireProjectModule } from '../angular-cli-files/utilities/require-project-module';
 import { augmentAppWithServiceWorker } from '@angular-devkit/build-angular/src/angular-cli-files/utilities/service-worker';
 import {
 	statsErrorsToString,
@@ -32,11 +20,8 @@ import {
 } from '@angular-devkit/build-angular/src/angular-cli-files/utilities/stats';
 import { addFileReplacements, normalizeAssetPatterns } from '@angular-devkit/build-angular/src/utils';
 import {
-	// AssetPatternObject,
 	BrowserBuilderSchema
-	// CurrentFileReplacement
 } from '@angular-devkit/build-angular/src/browser/schema';
-// const webpackMerge = require('webpack-merge');
 
 import {BrowserBuilder as GoogleBrowserBuilder, NormalizedBrowserBuilderSchema} from '@angular-devkit/build-angular';
 import * as drcpCommon from './common';
@@ -44,15 +29,11 @@ import ReadHookHost from '../utils/read-hook-vfshost';
 
 export class BrowserBuilder extends GoogleBrowserBuilder {
 
-	// constructor(public context: BuilderContext) { }
-
 	run(builderConfig: BuilderConfiguration<BrowserBuilderSchema>): Observable<BuildEvent> {
-		const options = builderConfig.options as drcpCommon.DrcpBuilderOptions & BrowserBuilderSchema;
+		const options = builderConfig.options as drcpCommon.AngularBuilderOptions;
 		const root = this.context.workspace.root;
 		const projectRoot = resolve(root, builderConfig.root);
 		const host = new ReadHookHost(this.context.host as virtualFs.Host<fs.Stats>);
-
-		// let drcpConfig = drcpCommon.initDrcp(options.drcpArgs);
 
 		return of(null).pipe(
 			concatMap(() => options.deleteOutputPath
@@ -69,7 +50,7 @@ export class BrowserBuilder extends GoogleBrowserBuilder {
 					throw new Error('The `--build-optimizer` option cannot be used without `--aot`.');
 				}
 
-				return drcpCommon.compile(builderConfig.root, options as NormalizedBrowserBuilderSchema, () => {
+				return drcpCommon.compile(builderConfig.root, options, () => {
 					return this.buildWebpackConfig(root, projectRoot, host,
 						options as NormalizedBrowserBuilderSchema);
 				}, host);

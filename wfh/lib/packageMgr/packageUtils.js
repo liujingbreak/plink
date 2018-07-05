@@ -148,9 +148,9 @@ function lookForPackages(packageList, callback) {
 
 		var json = JSON.parse(fs.readFileSync(packageJson, 'utf-8'));
 		fullName = json.name;
-		if (!resolveAny.checkPackagJson(json)) {
-			return;
-		}
+		// if (!resolveAny.checkPackagJson(json)) {
+		// 	return;
+		// }
 		var parsedName = parseName(fullName);
 		callback(fullName, entryPath, parsedName, json, packagePath);
 	});

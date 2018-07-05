@@ -4,8 +4,8 @@ const Rx = require("rxjs");
 const _ = require("lodash");
 function initDrcp(drcpArgs) {
     var config = require('dr-comp-package/wfh/lib/config');
-    if (Array.isArray(drcpArgs.c)) {
-        config.load(drcpArgs.c);
+    if (Array.isArray(drcpArgs.c) || drcpArgs.prop) {
+        config.load(drcpArgs.c, drcpArgs);
     }
     require('dr-comp-package/wfh/lib/logConfig')(config());
     return config;
@@ -114,7 +114,7 @@ function compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost) 
         webpackConfig: buildWebpackConfig(browserOptions),
         projectRoot,
         vfsHost,
-        argv: Object.assign({ poll: options.poll }, options.drcpArgs)
+        argv: Object.assign({}, options.drcpArgs)
     };
     config.set('_angularCli', param);
     return require('dr-comp-package/wfh/lib/packageMgr/packageRunner').runBuilder(param.argv)

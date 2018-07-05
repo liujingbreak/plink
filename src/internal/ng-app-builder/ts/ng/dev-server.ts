@@ -65,7 +65,7 @@ export default class DrcpDevServer extends DevServerBuilder {
 
 				// DRCP
 				// browserOptions.tsConfig = Path.join(process.cwd(), 'dist', 'webpack-temp', 'angular-app-tsconfig.json');
-				function buildWebpackConfig(browserOptions: NormalizedBrowserBuilderSchema): any {
+				function buildWebpackConfig(browserOptions: common.AngularBuilderOptions): any {
 					return browserBuilder.buildWebpackConfig(
 						root, projectRoot, host, browserOptions as NormalizedBrowserBuilderSchema);
 				}
@@ -106,7 +106,7 @@ export default class DrcpDevServer extends DevServerBuilder {
 					**
 				`);
 
-				return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions as NormalizedBrowserBuilderSchema,
+				return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions as common.AngularBuilderOptions,
 					buildWebpackConfig, host);
 			})
 		);

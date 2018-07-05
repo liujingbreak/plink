@@ -125,7 +125,7 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 			if (SEP === '\\')
 				packageName = packageName.replace(/\\/g, '/');
 			var {srcDir, destDir} = compDirInfo[packageName];
-			file.path = Path.resolve(nodeModules, packageName, destDir, shortPath.substring(packageName.length + 2 + srcDir.length));
+			file.path = Path.resolve(nodeModules, packageName, destDir, shortPath.substring(packageName.length + 1 + (srcDir.length > 0 ? srcDir.length + 1 : 0)));
 			next(null, file);
 		});
 	}

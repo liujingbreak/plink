@@ -284,11 +284,12 @@ function setupApiForAngularCli() {
     }
     const webpackConfig = ngParam.webpackConfig;
     const ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
-    const publicUrlObj = Url.parse(webpackConfig.output.publicPath);
+    let deployUrl = webpackConfig.output.publicPath || __api_1.default.config.get('staticAssetsURL');
+    const publicUrlObj = Url.parse(deployUrl);
     Object.assign(Object.getPrototypeOf(__api_1.default), {
         webpackConfig,
         ngEntryComponent,
-        deployUrl: webpackConfig.output.publicPath,
+        deployUrl,
         ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
         /**@function ngRouterPath
          * @memberOf __api
@@ -308,7 +309,8 @@ function setupApiForAngularCli() {
         }
     });
     __api_1.default.config.set(['outputPathMap', ngEntryComponent.longName], '/');
-    __api_1.default.config.set('staticAssetsURL', webpackConfig.output.publicPath);
+    if (!__api_1.default.config.get('staticAssetsURL'))
+        __api_1.default.config.set('staticAssetsURL', deployUrl);
     config_webpack_1.default(ngParam, webpackConfig, __api_1.default.config());
     // ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
     ngParam.vfsHost.hookRead = ng_ts_replace_1.default(ngParam);

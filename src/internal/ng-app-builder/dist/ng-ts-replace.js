@@ -7,7 +7,7 @@ const log4js = require("log4js");
 const rxjs_1 = require("rxjs");
 const ts_before_aot_1 = require("./utils/ts-before-aot");
 const log = log4js.getLogger(__api_1.default.packageName);
-const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder\');\
+const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
 var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\');\
  __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');

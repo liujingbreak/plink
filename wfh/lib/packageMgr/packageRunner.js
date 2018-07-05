@@ -52,6 +52,9 @@ function runServer(argv) {
 }
 
 function runBuilder(argv, funcName, skipOnFail) {
+	if (NodeApi.prototype.argv == null) {
+		NodeApi.prototype.argv = argv;
+	}
 	var packagesTypeMap = helper.traversePackages(true);
 	return helper.runBuilderComponentsWith(funcName, packagesTypeMap.builder, argv, [], skipOnFail)
 	.then(buildRes => {

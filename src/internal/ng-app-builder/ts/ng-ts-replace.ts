@@ -10,7 +10,7 @@ import ApiAotCompiler from './utils/ts-before-aot';
 
 const log = log4js.getLogger(api.packageName);
 
-const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder\');\
+const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
 var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\');\
  __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');

@@ -28,10 +28,44 @@ function changeWebpackConfig(param, webpackConfig, drcpConfig) {
         console.log('Build in production mode');
         webpackConfig.plugins.push(new gzip_size_1.default());
     }
-    webpackConfig.plugins.push(new index_html_plugin_1.default({
-        indexHtml: Path.basename(param.browserOptions.index),
-        inlineChunkNames: ['runtime']
-    }), new CompileDonePlugin());
+    if (webpackConfig.target !== 'node') {
+        webpackConfig.plugins.push(new index_html_plugin_1.default({
+            indexHtml: Path.basename(param.browserOptions.index),
+            inlineChunkNames: ['runtime']
+        }));
+    }
+    else {
+        // Refer to angular-cli/packages/angular_devkit/build_angular/src/angular-cli-files/models/webpack-configs/server.ts
+        if (param.browserOptions.bundleDependencies === 'none') {
+            webpackConfig.externals = [
+                /^@angular/,
+                (_, request, callback) => {
+                    // Absolute & Relative paths are not externals
+                    if (request.match(/^\.{0,2}\//)) {
+                        return callback();
+                    }
+                    try {
+                        // Attempt to resolve the module via Node
+                        const e = require.resolve(request);
+                        let comp = __api_1.default.findPackageByFile(e);
+                        if (comp == null || comp.dr == null) {
+                            // It's a node_module
+                            callback(null, request);
+                        }
+                        else {
+                            // It's a system thing (.ie util, fs...)
+                            callback();
+                        }
+                    }
+                    catch (e) {
+                        // Node couldn't find it, so it must be user-aliased
+                        callback();
+                    }
+                }
+            ];
+        }
+    }
+    webpackConfig.plugins.push(new CompileDonePlugin());
     changeSplitChunks(param, webpackConfig);
     changeLoaders(webpackConfig);
     fs.writeFileSync('dist/ng-webpack-config.js', printConfig(webpackConfig));
@@ -46,7 +80,7 @@ function changeLoaders(webpackConfig) {
     };
     webpackConfig.module.rules.forEach((rule) => {
         const test = rule.test;
-        if (rule.test instanceof RegExp && rule.test.toString() === '/\\.html$/') {
+        if (test instanceof RegExp && test.toString() === '/\\.html$/') {
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
                 test,
@@ -79,13 +113,14 @@ function changeLoaders(webpackConfig) {
                 ]
             });
         }
-        else if (rule.use) {
+        else if (test instanceof RegExp && test.toString() === '/\\.less$/' && rule.use) {
             for (const useItem of rule.use) {
                 if (useItem.loader === 'less-loader' && _.has(useItem, 'options.paths')) {
                     delete useItem.options.paths;
                     break;
                 }
             }
+            // rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
         }
     });
     webpackConfig.module.rules.unshift({
@@ -115,6 +150,8 @@ function changeLoaders(webpackConfig) {
     });
 }
 function changeSplitChunks(param, webpackConfig) {
+    if (webpackConfig.optimization == null)
+        return; // SSR' Webpack config does not has this property
     const oldVendorTestFunc = _.get(webpackConfig, 'optimization.splitChunks.cacheGroups.vendor.test');
     function vendorTest(module, chunks) {
         const maybeVendor = oldVendorTestFunc(module, chunks);

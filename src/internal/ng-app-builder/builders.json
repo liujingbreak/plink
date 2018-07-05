@@ -10,6 +10,11 @@
       "class": "./dist/ng/dev-server",
       "schema": "./ts/ng/dev-server-schema.json",
       "description": "Serve a browser app."
+    },
+    "server": {
+      "class": "./dist/ng/server",
+      "schema": "./ts/ng/server-schema.json",
+      "description": "Build a server Angular application."
     }
   }
 }
