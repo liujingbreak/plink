@@ -54,7 +54,7 @@ function runUnitTest(argv) {
 		jasmineSetting.helpers.push(wfhPath + 'spec/helpers/**/*.js');
 	}
 	var packages = argv.package && argv.package.length === 0 ? null : argv.package;
-	packageUtils.findAllPackages(packages, (name, entryPath, parsedName, json, packagePath) => {
+	packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
 		// inject global modules start
 		var pkInstance = new Package({
 			moduleName: parsedName.name,
@@ -74,7 +74,8 @@ function runUnitTest(argv) {
 			.factory('__api', function() {
 				return getApiForPackage(pkInstance);
 			});
-		// inject end
+	});
+	packageUtils.findAllPackages(packages, (name, entryPath, parsedName, json, packagePath) => {
 		if (!fs.existsSync(Path.join(packagePath, 'spec')) && !fs.existsSync(Path.join(packagePath, 'dist', 'spec'))) {
 			return;
 		}
