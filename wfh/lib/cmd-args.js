@@ -24,6 +24,12 @@ function drcpCommand(startTime) {
 	})
 	.command('project [add|remove] [project-dir..]', 'Associate, disassociate or list associated project folders', {
 		builder: yargs => {
+			yargs.positional('add', {
+				desc: 'Associate or disassociate a project to/from this workspace'
+			});
+			yargs.positional('project-dir', {
+				describe: 'directories of projects which to be associated to or disassociated from this workspace '
+			});
 			yargs.options({
 				a: {
 					describe: '(Deprecated) Associate project-dir',
@@ -58,68 +64,74 @@ function drcpCommand(startTime) {
 		builder: {},
 		handler: argv => cli.ls(argv)
 	})
-	.command('compile [package..]', 'compile packages into static browser bundles', {
-		builder: yargs => {
-			yargs.options({
-				p: {
-					describe: '(Deprecated) <package-short-name> Entry package',
-					type: 'array'
-				}, x: {
-					describe: '<package-short-name> exclude entry packages',
-					type: 'array'
-				}, l: {
-					describe: '<locale> e.g. "en", should be one of "locale" values defined in config.yaml',
-					type: 'string',
-					alias: 'locale'
-				}, ng: {
-					describe: 'Use AngularCompiler (@angular/cli@1.7.3)',
-					type: 'boolean'
-				},
-				dll: {
-					describe: '<library name> Generate Webpack DLL chunk with manifest, output to directory dist/dll',
-					type: 'string'
-				}, 'ref-dll': {
-					describe: '<library..> Reuse existing Webpack DLL chunks and manifest',
-					type: 'array',
-					alias: 'rd'
-				}, pgs: {
-					alias: 'progress',
-					describe: 'Use Webpack ProgressPlugin to show build progress',
-					type: 'boolean'
-				}, report: {
-					describe: 'Run webpack-bundle-analyzer to generate report file "dist/static/bundle-report.html"',
-					type: 'boolean'
-				}, 'open-report': {
-					describe: 'Run webpack-bundle-analyzer to generate report file "dist/static/bundle-report.html", and open it with default browser',
-					type: 'boolean'
-				}
-			})
-			.usage(hlDesc('drcp compile <package..> [-c config-files..]') +
-				'\n Compile specificy entry components, <package> can be short name of an Entry component\n' +
-				hlDesc('drcp compile [-c config-files ..]') +
-				'\n Compile all entry components from associated projects and installed components in current workspace\n' +
-				hlDesc('drcp compile -x <package..> [-c config-files..]') +
-				'\n Compile all entry components but exclude <package..>\n' +
-				hlDesc('drcp compile <module..> --dll <as-library-name>') +
-				'\n Compile specific components into a single DLL library named with <as-library-name>\n' +
-				hlDesc('drcp compile [package..] --rd <dll-library..>') +
-				'\n Compile entry components with existing DLL chunks, <dll-library> can be an absolute path or file name from dist/dll\n' +
-				hlDesc('drcp compile <module..> --dll <as-library-name> --rd <other-dll-library..>') +
-				'\n Compile specific components into a single DLL library to work with other existing DLL chunks\n'
-			);
-		},
-		handler: argv => {
-			if (argv.ng && argv.package.length > 0) {
-				argv.package.push('@dr-core/ng-app-builder');
-			}
-			if (argv.p != null)
-				argv.package.push(...argv.p);
-			argv.p = argv.package; // For legacy
-			cli.compile(argv);
-		}
-	})
+	// .command('compile [package..]', 'compile packages into static browser bundles', {
+	// 	builder: yargs => {
+	// 		yargs.positional('package', {
+	// 			describe: 'component packages of which package.json has a property "dr"'
+	// 		});
+	// 		yargs.options({
+	// 			p: {
+	// 				describe: '(Deprecated) <package-short-name> Entry package',
+	// 				type: 'array'
+	// 			}, x: {
+	// 				describe: '<package-short-name> exclude entry packages',
+	// 				type: 'array'
+	// 			}, l: {
+	// 				describe: '<locale> e.g. "en", should be one of "locale" values defined in config.yaml',
+	// 				type: 'string',
+	// 				alias: 'locale'
+	// 			}, ng: {
+	// 				describe: 'Use AngularCompiler (@angular/cli@1.7.3)',
+	// 				type: 'boolean'
+	// 			},
+	// 			dll: {
+	// 				describe: '<library name> Generate Webpack DLL chunk with manifest, output to directory dist/dll',
+	// 				type: 'string'
+	// 			}, 'ref-dll': {
+	// 				describe: '<library..> Reuse existing Webpack DLL chunks and manifest',
+	// 				type: 'array',
+	// 				alias: 'rd'
+	// 			}, pgs: {
+	// 				alias: 'progress',
+	// 				describe: 'Use Webpack ProgressPlugin to show build progress',
+	// 				type: 'boolean'
+	// 			}, report: {
+	// 				describe: 'Run webpack-bundle-analyzer to generate report file "dist/static/bundle-report.html"',
+	// 				type: 'boolean'
+	// 			}, 'open-report': {
+	// 				describe: 'Run webpack-bundle-analyzer to generate report file "dist/static/bundle-report.html", and open it with default browser',
+	// 				type: 'boolean'
+	// 			}
+	// 		})
+	// 		.usage(hlDesc('drcp compile <package..> [-c config-files..]') +
+	// 			'\n Compile specificy entry components, <package> can be short name of an Entry component\n' +
+	// 			hlDesc('drcp compile [-c config-files ..]') +
+	// 			'\n Compile all entry components from associated projects and installed components in current workspace\n' +
+	// 			hlDesc('drcp compile -x <package..> [-c config-files..]') +
+	// 			'\n Compile all entry components but exclude <package..>\n' +
+	// 			hlDesc('drcp compile <module..> --dll <as-library-name>') +
+	// 			'\n Compile specific components into a single DLL library named with <as-library-name>\n' +
+	// 			hlDesc('drcp compile [package..] --rd <dll-library..>') +
+	// 			'\n Compile entry components with existing DLL chunks, <dll-library> can be an absolute path or file name from dist/dll\n' +
+	// 			hlDesc('drcp compile <module..> --dll <as-library-name> --rd <other-dll-library..>') +
+	// 			'\n Compile specific components into a single DLL library to work with other existing DLL chunks\n'
+	// 		);
+	// 	},
+	// 	handler: argv => {
+	// 		if (argv.ng && argv.package.length > 0) {
+	// 			argv.package.push('@dr-core/ng-app-builder');
+	// 		}
+	// 		if (argv.p != null)
+	// 			argv.package.push(...argv.p);
+	// 		argv.p = argv.package; // For legacy
+	// 		cli.compile(argv);
+	// 	}
+	// })
 	.command('tsc [package..]', 'run typescript compiler', {
 		builder: yargs => {
+			yargs.positional('package', {
+				describe: 'component package, in which package.json has a property "dr"'
+			});
 			yargs.options({
 				watch: {
 					alias: 'w',
@@ -151,6 +163,9 @@ function drcpCommand(startTime) {
 	})
 	.command('eol <dir..>', 'Convert CRLF to LF from files (before "publish" to NPM registry server).', {
 		builder: yargs => {
+			yargs.positional('dir', {
+				describe: 'target source code directories'
+			});
 			yargs.usage('drcp eol <dir...>\n\nFor windows system, This command helps to convert CRLF to LF for local files.\n' +
 			'Before "publish" to NPM registry server, you need to make sure local files contain no CRLF.');
 		},
@@ -160,6 +175,9 @@ function drcpCommand(startTime) {
 	})
 	.command('lint [package..]', 'source code style check', {
 		builder: yargs => {
+			yargs.positional('package', {
+				describe: 'component package, in which package.json has a property "dr"'
+			});
 			yargs.options({
 				pj: {
 					describe: '<project-dir> lint only JS code from specific project',
@@ -180,6 +198,7 @@ function drcpCommand(startTime) {
 	})
 	.command('publish [project-dir..]', 'npm publish every pakages in source code folder including all mapped recipes', {
 		builder: yargs => {
+			yargs.positional('project-dir', 'project directories in which all components need to be published');
 			yargs.options({
 				pj: {
 					describe: '<project-dir> only publish component packages from specific project directory',
@@ -196,6 +215,7 @@ function drcpCommand(startTime) {
 	})
 	.command('unpublish [project-dir..]', 'npm unpublish every pakages in source code folder including all mapped recipes', {
 		builder: yargs => {
+			yargs.positional('project-dir', 'project directories in which all components need to be unpublished');
 			yargs.options({
 				pj: {
 					describe: '<project-dir> only publish component packages from specific project directory',
@@ -212,6 +232,9 @@ function drcpCommand(startTime) {
 	})
 	.command('bump [dir..]', 'bump version number of all package.json from specific directories', {
 		builder: yargs => {
+			yargs.positional('dir', {
+				describe: 'directories under which looking up for component packages to bump'
+			});
 			yargs.options({
 				pj: {
 					describe: '<project-dir> only bump component packages from specific project directory',
@@ -243,6 +266,9 @@ function drcpCommand(startTime) {
 	})
 	.command('test [package..]', 'run Jasmine for specific or all packages', {
 		builder: yargs => {
+			yargs.positional('package', {
+				describe: 'component package, in which package.json has a property "dr"'
+			});
 			yargs.options({
 				f: {
 					describe: '<file..> only run specific test files',
@@ -256,6 +282,9 @@ function drcpCommand(startTime) {
 	})
 	.command('e2e [file..]', 'run Jasmine for end-to-end tests', {
 		builder: yargs => {
+			yargs.positional('file', {
+				describe: 'Spec JS files'
+			});
 			yargs.options({
 				d: {
 					describe: '<test-suit-dir>',
@@ -315,57 +344,60 @@ function nodeAppCommand(callback) {
 			builder: yargs => {},
 			handler
 		})
-		.command('watch [package..]', 'Start app in Webpack watch mode (Compile and host client side components)', {
-			builder: yargs => {
-				yargs.options({
-					poll: {
-						describe: 'webpack watch poll mode, try this if "--ww" does not work for you environment',
-						alias: 'wwp',
-						type: 'boolean'
-					},
-					p: {
-						describe: '<package-short-name> Entry package short name like "comp" for "@dr/comp"',
-						type: 'array'
-					}, x: {
-						describe: '<package-short-name> exclude entry packages',
-						type: 'array'
-					},
-					ng: {
-						describe: 'Use AngularCompiler (@angular/cli@1.7.3)',
-						type: 'boolean'
-					},
-					hmr: {
-						describe: 'Use Webapck "Hot Module Replacement" instead of live-reload,\n' +
-							'this will disable extract-text-webpack-plugin for CSS bundle split loading',
-						type: 'boolean',
-						'default': false
-					},
-					l: {
-						describe: '<locale> e.g. "en", should be one of "locale" values defined in config.yaml',
-						type: 'string',
-						alias: 'locale'
-					}, 'ref-dll': {
-						describe: '<library..> Reuse existing Webpack DLL chunks and manifest',
-						type: 'array',
-						alias: 'rd'
-					}, pgs: {
-						alias: 'progress',
-						describe: 'Use Webpack ProgressPlugin to show build progress',
-						type: 'boolean'
-					}, report: {
-						describe: 'Run webpack-bundle-analyzer to generate report file "dist/static/bundle-report.html"',
-						type: 'boolean'
-					}, 'open-report': {
-						describe: 'Run webpack-bundle-analyzer to generate report file "dist/static/bundle-report.html", and open it with default browser',
-						type: 'boolean'
-					}
-				});
-			},
-			handler: argv => {
-				argv.ww = argv.webpackWatch = argv['webpack-watch'] = true;
-				handler(argv);
-			}
-		})
+		// .command('watch [package..]', 'Start app in Webpack watch mode (Compile and host client side components)', {
+		// 	builder: yargs => {
+		// 		yargs.positional('package', {
+		// 			describe: 'component packages of which package.json has a property "dr"'
+		// 		});
+		// 		yargs.options({
+		// 			poll: {
+		// 				describe: 'webpack watch poll mode, try this if "--ww" does not work for you environment',
+		// 				alias: 'wwp',
+		// 				type: 'boolean'
+		// 			},
+		// 			p: {
+		// 				describe: '<package-short-name> Entry package short name like "comp" for "@dr/comp"',
+		// 				type: 'array'
+		// 			}, x: {
+		// 				describe: '<package-short-name> exclude entry packages',
+		// 				type: 'array'
+		// 			},
+		// 			ng: {
+		// 				describe: 'Use AngularCompiler (@angular/cli@1.7.3)',
+		// 				type: 'boolean'
+		// 			},
+		// 			hmr: {
+		// 				describe: 'Use Webapck "Hot Module Replacement" instead of live-reload,\n' +
+		// 					'this will disable extract-text-webpack-plugin for CSS bundle split loading',
+		// 				type: 'boolean',
+		// 				'default': false
+		// 			},
+		// 			l: {
+		// 				describe: '<locale> e.g. "en", should be one of "locale" values defined in config.yaml',
+		// 				type: 'string',
+		// 				alias: 'locale'
+		// 			}, 'ref-dll': {
+		// 				describe: '<library..> Reuse existing Webpack DLL chunks and manifest',
+		// 				type: 'array',
+		// 				alias: 'rd'
+		// 			}, pgs: {
+		// 				alias: 'progress',
+		// 				describe: 'Use Webpack ProgressPlugin to show build progress',
+		// 				type: 'boolean'
+		// 			}, report: {
+		// 				describe: 'Run webpack-bundle-analyzer to generate report file "dist/static/bundle-report.html"',
+		// 				type: 'boolean'
+		// 			}, 'open-report': {
+		// 				describe: 'Run webpack-bundle-analyzer to generate report file "dist/static/bundle-report.html", and open it with default browser',
+		// 				type: 'boolean'
+		// 			}
+		// 		});
+		// 	},
+		// 	handler: argv => {
+		// 		argv.ww = argv.webpackWatch = argv['webpack-watch'] = true;
+		// 		handler(argv);
+		// 	}
+		// })
 		.command('watch-server [package..]', 'Start app in server watch mode (Compile and watch server side Typescript components)', {
 			builder: yargs => {
 				yargs.options({

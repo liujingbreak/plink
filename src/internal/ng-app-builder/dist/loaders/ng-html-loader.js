@@ -9,10 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 const ng_html_parser_1 = require("../utils/ng-html-parser");
 const patch_text_1 = require("../utils/patch-text");
-const api = require('__api');
+const __api_1 = require("__api");
 const log = require('log4js').getLogger('ng-html-loader');
 const _ = require("lodash");
 const vm = require("vm");
+const chalk = require('chalk');
 const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 function load(content, loader) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -48,7 +49,7 @@ function doAttrAssetsUrl(attrName, valueToken, el, replacements, loader) {
         });
     }
     else {
-        resolveUrl(valueToken.text, loader)
+        return resolveUrl(valueToken.text, loader)
             .then(url => replacements.push(new patch_text_1.Replacement(valueToken.start, valueToken.end, url)));
     }
 }
@@ -66,21 +67,26 @@ function doSrcSet(value, loader) {
         .then(urlSets => urlSets.join(', '));
 }
 function resolveUrl(href, loader) {
-    var res = api.normalizeAssetsUrl(href, loader.resourcePath);
+    if (href === '')
+        return Promise.resolve(href);
+    var res = __api_1.default.normalizeAssetsUrl(href, loader.resourcePath);
     if (_.isObject(res)) {
-        return Promise.resolve(res.isPage ?
-            api.entryPageUrl(res.packageName, res.path, res.locale) :
-            api.assetsUrl(res.packageName, res.path));
+        const resolved = res.isPage ?
+            __api_1.default.entryPageUrl(res.packageName, res.path, res.locale) :
+            __api_1.default.assetsUrl(res.packageName, res.path);
+        log.info(`resolve URL/routePath ${chalk.yellow(href)} to ${chalk.cyan(resolved)},\n` +
+            chalk.grey(loader.resourcePath));
+        return Promise.resolve(resolved);
     }
     return Promise.resolve(href);
 }
 function doLoadAssets(src, loader) {
     if (src.startsWith('assets://') || src.startsWith('page://')) {
-        const res = api.normalizeAssetsUrl(src, loader.resourcePath);
+        const res = __api_1.default.normalizeAssetsUrl(src, loader.resourcePath);
         if (_.isObject(res)) {
             return Promise.resolve(res.isPage ?
-                api.entryPageUrl(res.packageName, res.path, res.locale) :
-                api.assetsUrl(res.packageName, res.path));
+                __api_1.default.entryPageUrl(res.packageName, res.path, res.locale) :
+                __api_1.default.assetsUrl(res.packageName, res.path));
         }
     }
     if (/^(?:https?:|\/\/|data:)/.test(src))
@@ -101,7 +107,7 @@ function doLoadAssets(src, loader) {
             if (err)
                 return reject(err);
             var sandbox = {
-                __webpack_public_path__: loader._compiler.options.output.publicPath,
+                __webpack_public_path__: __api_1.default.ssr ? __api_1.default.config().staticAssetsURL : loader._compiler.options.output.publicPath,
                 module: {
                     exports: {}
                 }

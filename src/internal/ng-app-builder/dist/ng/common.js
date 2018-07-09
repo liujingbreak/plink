@@ -24,6 +24,7 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
     const config = initDrcp(options.drcpArgs);
     return Rx.Observable.create((obs) => {
         const param = {
+            ssr: false,
             builderConfig,
             browserOptions: browserOptions,
             webpackConfig: buildWebpackConfig(browserOptions),
@@ -97,19 +98,20 @@ exports.startDrcpServer = startDrcpServer;
  * @param buildWebpackConfig
  * @param vfsHost
  */
-function compile(projectRoot, browserOptions, buildWebpackConfig, vfsHost) {
+function compile(projectRoot, browserOptions, buildWebpackConfig, vfsHost, isSSR = false) {
     return new Rx.Observable((obs) => {
-        compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost).then((webpackConfig) => {
+        compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost, isSSR).then((webpackConfig) => {
             obs.next(webpackConfig);
             obs.complete();
         });
     });
 }
 exports.compile = compile;
-function compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost) {
+function compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost, ssr) {
     const options = browserOptions;
     const config = initDrcp(options.drcpArgs);
     const param = {
+        ssr,
         browserOptions: options,
         webpackConfig: buildWebpackConfig(browserOptions),
         projectRoot,

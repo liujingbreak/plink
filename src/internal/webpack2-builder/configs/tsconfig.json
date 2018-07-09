@@ -27,7 +27,7 @@
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
 		"noUnusedLocals": true,
-		"target": "es2016",
+		"target": "ES5",
 		"moduleResolution": "Node",
 		"preserveSymlinks": true
 	}

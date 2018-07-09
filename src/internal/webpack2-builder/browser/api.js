@@ -1,4 +1,4 @@
-/* globals LEGO_CONFIG:true */
+/* globals LEGO_CONFIG:true, __drcpEntryPackage */
 /* no import-lodash-loader */
 var has = Object.prototype.hasOwnProperty;
 var _ = null;
@@ -43,8 +43,8 @@ BrowserApi.prototype = {
 	_config: LEGO_CONFIG,
 	buildLocale: LEGO_CONFIG.buildLocale,
 
-	entryPage: window.__drcpEntryPage,
-	entryPackage: window.__drcpEntryPackage,
+	entryPage: __drcpEntryPage,
+	entryPackage: __drcpEntryPackage,
 
 	_ensureLodash: ensureLodash,
 

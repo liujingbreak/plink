@@ -68,7 +68,8 @@
     "os-locale": "^2.1.0",
     "promise-queue": "^2.2.3",
     "pify": "^3.0.0",
-    "fs-extra": "^4.0.2",
+    "fs-extra": "^5.0.0",
+    "@types/fs-extra": "5.0.4",
     "babel-eslint": "^8.1.2"
   }
 }

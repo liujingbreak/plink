@@ -3,7 +3,7 @@ exports.publicUrl = publicUrl;
 
 exports.patchToApi = function(apiPrototype) {
 	apiPrototype.assetsUrl = function(packageName, path) {
-		if (path == null) {
+		if (path === undefined) {
 			path = arguments[0];
 			packageName = this.packageName;
 		}
@@ -34,7 +34,7 @@ exports.patchToApi = function(apiPrototype) {
  * @return {string}
  */
 function publicUrl(staticAssetsURL, outputPathMap, useLocale, packageName, path) {
-	var m = /(?:assets:\/\/|~|npm:\/\/|page(?:-([^:]+))?:\/\/)((?:@[^/]+\/)?[^/]+)?\/(.*)/.exec(path);
+	var m = /^(?:assets:\/\/|~|npm:\/\/|page(?:-([^:]+))?:\/\/)((?:@[^/]+\/)?[^/@][^/]*)?(?:\/([^@].*)?)?$/.exec(path);
 	if (m) {
 		packageName = m[2];
 		path = m[3];
@@ -43,8 +43,10 @@ function publicUrl(staticAssetsURL, outputPathMap, useLocale, packageName, path)
 	var outputPath = outputPathMap[packageName];
 	if (outputPath != null)
 		outputPath = /^\/*(.*?)\/*$/.exec(outputPath)[1];// _.trim(outputPath, '/');
-	else
-		outputPath = /(?:@([^/]+)\/)?(\S+)/.exec(packageName)[2];
+	else {
+		m = /(?:@([^/]+)\/)?(\S+)/.exec(packageName);
+		outputPath = m[2];
+	}
 	var finalUrl = joinUrl(staticAssetsURL, useLocale, outputPath, path);
 	if (finalUrl.charAt(0) !== '/')
 		finalUrl = '/' + finalUrl;

@@ -8,7 +8,7 @@ describe('apiAotCompiler', () => {
 	xit('should recoganize identifier __api', () => {
 		const compiler = new ApiAotCompiler('test.ts',
 			fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/api-aot-sample.ts.txt'), 'utf8'));
-		compiler.parse();
+		compiler.parse(source => source);
 		expect(compiler.replacements.map(({text}) => text)).toEqual([
 			'__api.packageName',
 			'__api[\'config\']',

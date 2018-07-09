@@ -1,9 +1,10 @@
 import {TemplateParser, AttributeValueAst, TagAst} from '../utils/ng-html-parser';
 import patchText, {Replacement as Rep} from '../utils/patch-text';
-const api = require('__api');
+import api from '__api';
 const log = require('log4js').getLogger('ng-html-loader');
 import * as _ from 'lodash';
 import vm = require('vm');
+const chalk = require('chalk');
 
 export = function(content: string, map: any) {
 	var callback = this.async();
@@ -53,8 +54,8 @@ function doAttrAssetsUrl(attrName: string, valueToken: AttributeValueAst,
 			.then(url => {
 				replacements.push(new Rep(valueToken.start, valueToken.end, url));
 			});
-	} else { // href, ng-src
-		resolveUrl(valueToken.text, loader)
+	} else { // href, ng-src, routerLink
+		return resolveUrl(valueToken.text, loader)
 			.then(url => replacements.push(new Rep(valueToken.start, valueToken.end, url)));
 	}
 }
@@ -74,11 +75,16 @@ function doSrcSet(value: string, loader: any) {
 }
 
 function resolveUrl(href: string, loader: any) {
+	if (href === '')
+		return Promise.resolve(href);
 	var res = api.normalizeAssetsUrl(href, loader.resourcePath);
 	if (_.isObject(res)) {
-		return Promise.resolve(res.isPage ?
+		const resolved = res.isPage ?
 			api.entryPageUrl(res.packageName, res.path, res.locale) :
-			api.assetsUrl(res.packageName, res.path));
+			api.assetsUrl(res.packageName, res.path);
+		log.info(`resolve URL/routePath ${chalk.yellow(href)} to ${chalk.cyan(resolved)},\n` +
+			chalk.grey(loader.resourcePath));
+		return Promise.resolve(resolved);
 	}
 	return Promise.resolve(href);
 }
@@ -103,20 +109,20 @@ function doLoadAssets(src: string, loader: any) {
 		src = src.substring('npm://'.length);
 	} else if (src.charAt(0) !== '.')
 		src = './' + src;
-	return new Promise((resolve, reject) => {
+	return new Promise<string>((resolve, reject) => {
 		// Unlike extract-loader, we does not support embedded require statement in source code 
 		loader.loadModule(src, (err: Error, source: any, sourceMap: any, module: any) => {
 			if (err)
 				return reject(err);
 			var sandbox = {
-				__webpack_public_path__: loader._compiler.options.output.publicPath,
+				__webpack_public_path__: api.ssr ? api.config().staticAssetsURL : loader._compiler.options.output.publicPath,
 				module: {
 					exports: {}
 				}
 			};
 			vm.runInNewContext(source, vm.createContext(sandbox));
 			// log.warn(loader.resourcePath + ', assets: ', src, 'to', sandbox.module.exports);
-			resolve(sandbox.module.exports);
+			resolve(sandbox.module.exports as string);
 		});
 	});
 }

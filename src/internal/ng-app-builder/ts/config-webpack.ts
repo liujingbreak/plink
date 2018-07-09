@@ -12,7 +12,7 @@ import api from '__api';
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
 export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfig: any): any {
-	// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+	// const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
 	console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
 	if (param.browserOptions.drcpArgs.report ||(param.browserOptions.drcpArgs.openReport)) {
 		// webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
@@ -37,6 +37,7 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 				inlineChunkNames: ['runtime']
 			}));
 	} else {
+		// This is condition of Server side rendering
 		// Refer to angular-cli/packages/angular_devkit/build_angular/src/angular-cli-files/models/webpack-configs/server.ts
 		if (param.browserOptions.bundleDependencies === 'none') {
 			webpackConfig.externals = [
@@ -46,7 +47,6 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 				if (request.match(/^\.{0,2}\//)) {
 					return callback();
 				}
-
 				try {
 					// Attempt to resolve the module via Node
 					const e = require.resolve(request);
@@ -71,8 +71,13 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 	changeSplitChunks(param, webpackConfig);
 	changeLoaders(webpackConfig);
 
-	fs.writeFileSync('dist/ng-webpack-config.js', printConfig(webpackConfig));
-	console.log('If you are wondering what kind of Webapck config file is used internally, checkout dist/ng-webpack-config.js');
+	if (param.ssr) {
+		webpackConfig.devtool = 'source-map';
+	}
+
+	let wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
+	fs.writeFileSync(wfname, printConfig(webpackConfig));
+	console.log('If you are wondering what kind of Webapck config file is used internally, checkout ' + wfname);
 	return webpackConfig;
 }
 

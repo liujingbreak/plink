@@ -8,7 +8,7 @@ const log = log4js.getLogger('api-aotSpec');
 describe('apiAotCompiler', () => {
     xit('should recoganize identifier __api', () => {
         const compiler = new ts_before_aot_1.default('test.ts', fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/api-aot-sample.ts.txt'), 'utf8'));
-        compiler.parse();
+        compiler.parse(source => source);
         expect(compiler.replacements.map(({ text }) => text)).toEqual([
             '__api.packageName',
             '__api[\'config\']',

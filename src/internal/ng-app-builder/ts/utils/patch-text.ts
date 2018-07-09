@@ -1,3 +1,5 @@
+import * as assert from 'assert';
+
 /**
  * @param  {[type]} text
  * @param  {object} replacements
@@ -15,7 +17,9 @@ export interface ReplacementInf {
 
 export class Replacement implements ReplacementInf {
 	constructor(public start: number, public end: number,
-		public text: string) {}
+		public text: string) {
+		assert.notEqual(text, null, 'replacement text should not be null or undefined');
+	}
 }
 
 export default function replaceCode(text: string, replacements: ReplacementInf[]) {
@@ -26,7 +30,7 @@ export default function replaceCode(text: string, replacements: ReplacementInf[]
 	return replacements.reduce((text: string, update: ReplacementInf) => {
 		var start = update.start + offset;
 		var end = update.end + offset;
-		var replacement = update.text || update.replacement;
+		var replacement = update.text == null ? update.replacement : update.text;
 		offset += (replacement.length - (end - start));
 		return text.slice(0, start) + replacement + text.slice(end);
 	}, text);

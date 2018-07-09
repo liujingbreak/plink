@@ -8,6 +8,7 @@ export declare type buildWebpackConfigFunc = (browserOptions: AngularBuilderOpti
 export interface AngularCliParam {
     builderConfig?: BuilderConfiguration<DevServerBuilderOptions>;
     browserOptions: AngularBuilderOptions;
+    ssr: boolean;
     webpackConfig: any;
     projectRoot: string;
     vfsHost: ReadHookHost;
@@ -33,4 +34,4 @@ export declare function startDrcpServer(projectRoot: string, builderConfig: Buil
  * @param buildWebpackConfig
  * @param vfsHost
  */
-export declare function compile(projectRoot: string, browserOptions: AngularBuilderOptions, buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost): Rx.Observable<{}>;
+export declare function compile(projectRoot: string, browserOptions: AngularBuilderOptions, buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost, isSSR?: boolean): Rx.Observable<{}>;

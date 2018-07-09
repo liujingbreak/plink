@@ -3,10 +3,12 @@ import api from '__api';
 import * as _ from 'lodash';
 import * as log4js from 'log4js';
 import {of, throwError} from 'rxjs';
-// import * as Path from 'path';
 import {HookReadFunc} from './utils/read-hook-vfshost';
 import {AngularCliParam} from './ng/common';
 import ApiAotCompiler from './utils/ts-before-aot';
+import {transpileModule} from 'typescript';
+import {readFileSync} from 'fs';
+import * as ts from 'typescript';
 
 const log = log4js.getLogger(api.packageName);
 
@@ -18,9 +20,11 @@ var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageNa
 export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc {
 	let drcpIncludeBuf: ArrayBuffer;
 
+	let tsconfigFile = ngParam.browserOptions.tsConfig;
+	let tsCompilerOptions = readTsConfig(tsconfigFile);
+
 	return function(file: string, buf: ArrayBuffer) {
 		try {
-			// log.warn(file);
 			if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
 				if (/[\\\/]drcp-include\.ts/.test(file)) {
 					if (drcpIncludeBuf)
@@ -42,18 +46,35 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 						content = 'import \'core-js/es7/reflect\';\n' + content;
 					}
 					content = content.replace(/\/\/ handleBootStrap placeholder/, body);
-					content += `\n(window as any).LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
+					if (ngParam.ssr) {
+						content += '\nconsole.log("set global.LEGO_CONFIG");';
+						content += '\nObject.assign(global, {\
+							__drcpEntryPage: null, \
+							__drcpEntryPackage: null\
+						});\n';
+						content += '(global as any)';
+					} else {
+						content += '\nObject.assign(window, {\
+							__drcpEntryPage: null, \
+							__drcpEntryPackage: null\
+						});\n';
+						content += '\n(window as any)';
+					}
+					content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
 					drcpIncludeBuf = string2buffer(content);
 					log.info(file + ':\n' + content);
 					return of(drcpIncludeBuf);
 				}
 				const compPkg = api.findPackageByFile(file);
-				const content = Buffer.from(buf).toString();
 
+				const content = Buffer.from(buf).toString();
 				let changed = api.browserInjector.injectToFile(file, content);
-				changed = new ApiAotCompiler(file, changed).parse();
+
+				changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
 				if (changed !== content) {
 					changed = apiTmpl({packageName: compPkg.longName}) + '\n' + changed;
+					if (ngParam.ssr)
+						changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
 					return of(string2buffer(changed));
 				}
 			}
@@ -63,6 +84,24 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 			return throwError(ex);
 		}
 	};
+}
+
+function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
+	let tsconfig = ts.readConfigFile(tsconfigFile, (file) => readFileSync(file, 'utf-8')).config;
+	return ts.parseJsonConfigFileContent(tsconfig, ts.sys, process.cwd().replace(/\\/g, '/'), undefined, tsconfigFile).options;
+}
+/**
+ * Refer to https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#transpiling-a-single-file
+ * @param tsCode 
+ */
+function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOptions): string {
+	let res = transpileModule(tsCode, {compilerOptions});
+	if (res.diagnostics && res.diagnostics.length > 0) {
+		let msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
+		log.error(msg);
+		throw new Error(msg);
+	}
+	return res.outputText;
 }
 
 export function string2buffer(input: string): ArrayBuffer {

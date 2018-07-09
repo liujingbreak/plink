@@ -6,6 +6,9 @@ const _ = require("lodash");
 const log4js = require("log4js");
 const rxjs_1 = require("rxjs");
 const ts_before_aot_1 = require("./utils/ts-before-aot");
+const typescript_1 = require("typescript");
+const fs_1 = require("fs");
+const ts = require("typescript");
 const log = log4js.getLogger(__api_1.default.packageName);
 const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
 var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\');\
@@ -13,9 +16,10 @@ var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageNa
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
 function createTsReadHook(ngParam) {
     let drcpIncludeBuf;
+    let tsconfigFile = ngParam.browserOptions.tsConfig;
+    let tsCompilerOptions = readTsConfig(tsconfigFile);
     return function (file, buf) {
         try {
-            // log.warn(file);
             if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
                 if (/[\\\/]drcp-include\.ts/.test(file)) {
                     if (drcpIncludeBuf)
@@ -37,7 +41,22 @@ function createTsReadHook(ngParam) {
                         content = 'import \'core-js/es7/reflect\';\n' + content;
                     }
                     content = content.replace(/\/\/ handleBootStrap placeholder/, body);
-                    content += `\n(window as any).LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
+                    if (ngParam.ssr) {
+                        content += '\nconsole.log("set global.LEGO_CONFIG");';
+                        content += '\nObject.assign(global, {\
+							__drcpEntryPage: null, \
+							__drcpEntryPackage: null\
+						});\n';
+                        content += '(global as any)';
+                    }
+                    else {
+                        content += '\nObject.assign(window, {\
+							__drcpEntryPage: null, \
+							__drcpEntryPackage: null\
+						});\n';
+                        content += '\n(window as any)';
+                    }
+                    content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
                     drcpIncludeBuf = string2buffer(content);
                     log.info(file + ':\n' + content);
                     return rxjs_1.of(drcpIncludeBuf);
@@ -45,9 +64,11 @@ function createTsReadHook(ngParam) {
                 const compPkg = __api_1.default.findPackageByFile(file);
                 const content = Buffer.from(buf).toString();
                 let changed = __api_1.default.browserInjector.injectToFile(file, content);
-                changed = new ts_before_aot_1.default(file, changed).parse();
+                changed = new ts_before_aot_1.default(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
                 if (changed !== content) {
                     changed = apiTmpl({ packageName: compPkg.longName }) + '\n' + changed;
+                    if (ngParam.ssr)
+                        changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
                     return rxjs_1.of(string2buffer(changed));
                 }
             }
@@ -60,6 +81,23 @@ function createTsReadHook(ngParam) {
     };
 }
 exports.default = createTsReadHook;
+function readTsConfig(tsconfigFile) {
+    let tsconfig = ts.readConfigFile(tsconfigFile, (file) => fs_1.readFileSync(file, 'utf-8')).config;
+    return ts.parseJsonConfigFileContent(tsconfig, ts.sys, process.cwd().replace(/\\/g, '/'), undefined, tsconfigFile).options;
+}
+/**
+ * Refer to https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#transpiling-a-single-file
+ * @param tsCode
+ */
+function transpileSingleTs(tsCode, compilerOptions) {
+    let res = typescript_1.transpileModule(tsCode, { compilerOptions });
+    if (res.diagnostics && res.diagnostics.length > 0) {
+        let msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
+        log.error(msg);
+        throw new Error(msg);
+    }
+    return res.outputText;
+}
 function string2buffer(input) {
     const nodeBuf = Buffer.from(input);
     const len = nodeBuf.byteLength;

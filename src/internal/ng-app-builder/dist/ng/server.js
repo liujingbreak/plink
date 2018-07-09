@@ -27,7 +27,7 @@ class ServerBuilder extends build_angular_1.ServerBuilder {
         operators_1.concatMap(() => {
             return drcpCommon.compile(builderConfig.root, options, () => {
                 return this.buildWebpackConfig(root, projectRoot, host, options);
-            }, host);
+            }, host, true);
         }), operators_1.concatMap((webpackConfig) => new rxjs_1.Observable(obs => {
             // Ensure Build Optimizer is only used with AOT.
             // const webpackConfig = this.buildWebpackConfig(root, projectRoot, host, options);

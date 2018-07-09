@@ -30,7 +30,6 @@ declare interface require {
 	ensure(names: string[]): any;
 }
 declare function drTranslate(key: string): string;
-declare type Position = any;
 // Workaround @angular-devkit issue
 // /Users/liujing/bk/my-app/node_modules/@angular-devkit/build-angular/src/browser/schema.d.ts(52,21): error TS2304: Cannot find name 'FileReplacements'.
 // /Users/liujing/bk/my-app/node_modules/@angular-devkit/build-angular/src/server/schema.d.ts(75,21): error TS2304: Cannot find name 'FileReplacements'.

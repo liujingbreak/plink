@@ -27,6 +27,7 @@ export interface AngularCliParam {
 	builderConfig?: BuilderConfiguration<DevServerBuilderOptions>;
 	// buildWebpackConfig: buildWebpackConfigFunc;
 	browserOptions: AngularBuilderOptions;
+	ssr: boolean; // Is server side / prerender
 	webpackConfig: any;
 	projectRoot: string;
 	vfsHost: ReadHookHost;
@@ -35,7 +36,6 @@ export interface AngularCliParam {
 
 export type AngularBuilderOptions =
 	NormalizedBrowserBuilderSchema & BuildWebpackServerSchema & DrcpBuilderOptions;
-
 
 export interface DrcpBuilderOptions {
 	drcpArgs: any;
@@ -60,6 +60,7 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 
 	return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
 		const param: AngularCliParam = {
+			ssr: false,
 			builderConfig,
 			browserOptions: browserOptions as any as NormalizedBrowserBuilderSchema & DrcpBuilderOptions,
 			webpackConfig: buildWebpackConfig(browserOptions),
@@ -137,9 +138,9 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
  * @param vfsHost 
  */
 export function compile(projectRoot: string, browserOptions: AngularBuilderOptions,
-	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost) {
+	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost, isSSR = false) {
 	return new Rx.Observable((obs: any) => {
-		compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost).then((webpackConfig: any) => {
+		compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost, isSSR).then((webpackConfig: any) => {
 			obs.next(webpackConfig);
 			obs.complete();
 		});
@@ -147,10 +148,11 @@ export function compile(projectRoot: string, browserOptions: AngularBuilderOptio
 }
 
 function compileAsync(projectRoot: string, browserOptions: AngularBuilderOptions,
-	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost) {
+	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost, ssr: boolean) {
 	const options = browserOptions;
 	const config = initDrcp(options.drcpArgs);
 	const param: AngularCliParam = {
+		ssr,
 		browserOptions: options,
 		webpackConfig: buildWebpackConfig(browserOptions),
 		projectRoot,

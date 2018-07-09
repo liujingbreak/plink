@@ -50,10 +50,10 @@ NodeApi.prototype = {
 	 * it is in format of /^(?:assets:\/\/|~|page(?:-([^:]+))?:\/\/)((?:@[^\/]+\/)?[^\/]+)?\/(.*)$/
 	 */
 	normalizeAssetsUrl(url, sourceFile) {
-		var match = /^(?:assets:\/\/|~|page(?:-([^:]+))?:\/\/)((?:@[^/]+\/)?[^/]+)?\/(.*)$/.exec(url);
+		var match = /^(?:assets:\/\/|~|page(?:-([^:]+))?:\/\/)((?:@[^/]+\/)?[^/@][^/]*)?(?:\/([^@].*)?)?$/.exec(url);
 		if (match) {
 			let packageName = match[2];
-			var relPath = match[3];
+			var relPath = match[3] || '';
 			if (!packageName || packageName === '') {
 				var compPackage = this.findPackageByFile(sourceFile);
 				packageName = compPackage.longName;

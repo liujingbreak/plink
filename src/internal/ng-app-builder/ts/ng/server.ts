@@ -6,7 +6,7 @@ import {BuildWebpackServerSchema} from '@angular-devkit/build-angular/src/server
 import {
 	BuildEvent,
 	BuilderConfiguration
-  } from '@angular-devkit/architect';
+} from '@angular-devkit/architect';
 import { Path, normalize, resolve, virtualFs } from '@angular-devkit/core';
 import { Stats } from 'fs';
 import { Observable, concat, of } from 'rxjs';
@@ -23,7 +23,7 @@ statsWarningsToString
 import * as drcpCommon from './common';
 import ReadHookHost from '../utils/read-hook-vfshost';
 
-  export class ServerBuilder extends GoogleServerBuilder {
+export class ServerBuilder extends GoogleServerBuilder {
 
 	// constructor(public context: BuilderContext) { }
 
@@ -44,7 +44,7 @@ import ReadHookHost from '../utils/read-hook-vfshost';
 			return drcpCommon.compile(builderConfig.root, options, () => {
 				return this.buildWebpackConfig(root, projectRoot, host,
 					options);
-			}, host);
+			}, host, true);
 		  }),
 		  concatMap((webpackConfig) => new Observable(obs => {
 			// Ensure Build Optimizer is only used with AOT.
@@ -106,4 +106,3 @@ import ReadHookHost from '../utils/read-hook-vfshost';
   }
 
   export default ServerBuilder;
-

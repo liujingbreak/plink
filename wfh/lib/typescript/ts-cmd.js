@@ -39,11 +39,6 @@ function tsc(argv, onCompiled) {
 		// Compiler options
 		outDir: '',
 		baseUrl: root,
-		paths: {
-			'*': [
-				'node_modules/*'
-			]
-		},
 		typeRoots: [
 			Path.join(root, 'node_modules/@types'),
 			Path.join(root, 'node_modules/@dr-types'),
