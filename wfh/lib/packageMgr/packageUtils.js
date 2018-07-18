@@ -300,7 +300,7 @@ function _findPackageByType(types, callback, resolver, recipeType, projectDir) {
 
 	function findEntryFiles(recipe, isInstalled) {
 		entryFileFindler.findByRecipeJson(recipe, isInstalled, function(name, entryPath, parsedName, pkJson, packagePath) {
-			if (!_.has(pkJson, 'dr') && !_.includes(config().packageScopes, parsedName.scope))
+			if (!_.has(pkJson, 'dr'))
 				return;
 			var packageType = _.get(pkJson, 'dr.type');
 			packageType = packageType ? [].concat(packageType) : [];
