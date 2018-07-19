@@ -320,6 +320,10 @@ function setupApiForAngularCli() {
 		ngRouterPath(this: DrcpApi, packageName: string, subPath?: string) {
 			const url = this.assetsUrl(packageName, subPath);
 			return _.trimStart(Url.parse(url).pathname, '/');
+		},
+		ssrRequire(requirePath: string) {
+			if (ngParam.ssr)
+				return require(Path.join(this.__dirname, requirePath));
 		}
 	});
 	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');

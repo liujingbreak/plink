@@ -34,7 +34,8 @@ var cmdFunctions = {
 	bumpProjects,
 	runUnitTest,
 	runE2eTest,
-	tsc
+	tsc,
+	runPackages
 };
 
 var delegatedCmds = {};
@@ -456,5 +457,12 @@ function _drawPuppy(slogon, message) {
 function setStartTime(time) {
 	if (startTime == null)
 		startTime = time;
+}
+
+function runPackages(argv) {
+	console.log('--------');
+	// require('./cliAdvanced').runPackages(argv);
+	console.log('shit------');
+	return Promise.resolve(require('./cliAdvanced').runPackages(argv));
 }
 

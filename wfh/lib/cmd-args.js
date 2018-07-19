@@ -64,6 +64,27 @@ function drcpCommand(startTime) {
 		builder: {},
 		handler: argv => cli.ls(argv)
 	})
+	.command('run <target> [package..]', 'Run specific exported function of specific packages one by one, in random order', {
+		builder: yargs => {
+			yargs.positional('target', {
+				describe: 'FilePath and exported function name, eg. ' + chalk.green('dist/prerender.js#prepare')
+			});
+			yargs.positional('package', {describe: 'Default is all component packages which has "dr" property in package.json file'});
+			yargs.options({
+				arguments: {
+					desc: 'argument array to be passed to <target>',
+					type: 'array'
+				}
+			})
+			.usage('drcp run dist/file.js#exec');
+		},
+		handler: argv => {
+			try {
+				cli.runPackages(argv);
+			} catch (e) {}
+			return 0;
+		}
+	})
 	// .command('compile [package..]', 'compile packages into static browser bundles', {
 	// 	builder: yargs => {
 	// 		yargs.positional('package', {

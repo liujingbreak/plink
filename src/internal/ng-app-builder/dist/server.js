@@ -307,6 +307,10 @@ function setupApiForAngularCli() {
         ngRouterPath(packageName, subPath) {
             const url = this.assetsUrl(packageName, subPath);
             return _.trimStart(Url.parse(url).pathname, '/');
+        },
+        ssrRequire(requirePath) {
+            if (ngParam.ssr)
+                return require(Path.join(this.__dirname, requirePath));
         }
     });
     __api_1.default.config.set(['outputPathMap', ngEntryComponent.longName], '/');

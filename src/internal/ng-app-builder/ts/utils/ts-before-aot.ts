@@ -4,6 +4,7 @@ import replaceCode, {ReplacementInf} from './patch-text';
 import {trim} from 'lodash';
 import api, {DrcpApi} from '__api';
 import vm = require('vm');
+import {dirname} from 'path';
 import ImportClauseTranspile from './default-import-ts-transpiler';
 
 const chalk = require('chalk');
@@ -39,8 +40,9 @@ export default class ApiAotCompiler {
 		for(const stm of this.ast.statements) {
 			this.traverseTsAst(stm);
 		}
-
-		const context = vm.createContext({__api: api.getNodeApiForPackage<DrcpApi>(pk)});
+		let nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
+		nodeApi.__dirname = dirname(this.file);
+		const context = vm.createContext({__api: nodeApi});
 
 		for (const repl of this.replacements) {
 			const origText = repl.text;

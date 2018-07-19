@@ -27,6 +27,7 @@ exports.bumpProjectsAsync = bumpProjectsAsync;
 exports.lint = lint;
 exports.publish = publish;
 exports.unpublish = unpublish;
+exports.runPackages = runPackages;
 
 function addupConfigs(onEachYaml) {
 	var componentConfigs = {outputPathMap: {}, vendorBundleMap: {}, browserSideConfigProp: []};
@@ -455,4 +456,9 @@ function _srcRecipeMap() {
 		}
 	});
 	return rsMap;
+}
+
+function runPackages(argv) {
+	console.log('cool')
+	// return require('../../dist/package-runner').runPackages(argv);
 }

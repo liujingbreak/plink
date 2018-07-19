@@ -6,6 +6,7 @@ const patch_text_1 = require("./patch-text");
 const lodash_1 = require("lodash");
 const __api_1 = require("__api");
 const vm = require("vm");
+const path_1 = require("path");
 const default_import_ts_transpiler_1 = require("./default-import-ts-transpiler");
 const chalk = require('chalk');
 // import chalk from 'chalk';
@@ -33,7 +34,9 @@ class ApiAotCompiler {
         for (const stm of this.ast.statements) {
             this.traverseTsAst(stm);
         }
-        const context = vm.createContext({ __api: __api_1.default.getNodeApiForPackage(pk) });
+        let nodeApi = __api_1.default.getNodeApiForPackage(pk);
+        nodeApi.__dirname = path_1.dirname(this.file);
+        const context = vm.createContext({ __api: nodeApi });
         for (const repl of this.replacements) {
             const origText = repl.text;
             let res;
