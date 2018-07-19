@@ -41,7 +41,6 @@ function tsc(argv, onCompiled) {
 		baseUrl: root,
 		typeRoots: [
 			Path.join(root, 'node_modules/@types'),
-			Path.join(root, 'node_modules/@dr-types'),
 			Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
 		]
 	}));

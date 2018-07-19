@@ -1,5 +1,5 @@
 var rj = require('require-injector');
-var config = require('./config');
+// var config = require('./config');
 var log = require('log4js').getLogger('lib.injectorFactory');
 var _ = require('lodash');
 var fs = require('fs');
@@ -10,9 +10,9 @@ exports.webInjector = createInjector(null, true);
 
 function createInjector(resolve, noNode) {
 	var injector = rj({
-		basedir: config().rootPath,
+		basedir: process.cwd(),
 		resolve,
-		debug: config.devMode,
+		// debug: config.devMode,
 		enableFactoryParamFile: false,
 		noNode
 	});
@@ -99,10 +99,10 @@ function monkeyPatchRequireInjector(superInjector, proto) {
 		}
 		log.debug('execute internal ' + fileName);
 		require('../' + fileName)(this);
-		var file = Path.resolve(config().rootPath, fileName);
+		var file = Path.resolve(process.cwd(), fileName);
 		if (fs.existsSync(file)) {
 			log.debug('execute ' + file);
-			require(config().rootPath.replace(/\\/g, '/') + '/' + fileName)(this);
+			require(process.cwd().replace(/\\/g, '/') + '/' + fileName)(this);
 		} else {
 			log.warn(file + ' doesn\'t exist');
 		}

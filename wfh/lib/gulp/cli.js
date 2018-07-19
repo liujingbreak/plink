@@ -9,7 +9,6 @@ var buildUtils = require('./buildUtils');
 var PackageJsonGuarder = require('./packageJsonGuarder');
 
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
-//var argv = require('../cmd-args'); //require('./showHelp');
 var startTime;
 module.exports = {
 	//initGulpfile: initGulpfile,
@@ -459,10 +458,8 @@ function setStartTime(time) {
 		startTime = time;
 }
 
-function runPackages(argv) {
-	console.log('--------');
-	// require('./cliAdvanced').runPackages(argv);
-	console.log('shit------');
-	return Promise.resolve(require('./cliAdvanced').runPackages(argv));
+function runPackages(_argv) {
+	var helper = require('./cliAdvanced');
+	return helper.runPackages(_argv);
 }
 

@@ -19,6 +19,7 @@ function drcpCommand(startTime) {
 		aliases: ['init-workspace'],
 		builder: {},
 		handler: argv => {
+			require('./config').init(argv);
 			cli.init(argv);
 		}
 	})
@@ -51,38 +52,44 @@ function drcpCommand(startTime) {
 			return cli.listProject(argv);
 		}
 	})
-	.command(['install', 'i'], 'Execute "yarn install", if you are using "node_moduels/dr-comp-package" as a symlink, Yarn (>1.0.0) deletes any symlinks' +
-		' during "yarn install", this command will recreate symlink right after "yarn install", convenient for DRCP tool developer', {
-		builder: {},
-		handler: argv => cli.install(argv)
-	})
+	// .command(['install', 'i'], 'Execute "yarn install", if you are using "node_moduels/dr-comp-package" as a symlink, Yarn (>1.0.0) deletes any symlinks' +
+	// 	' during "yarn install", this command will recreate symlink right after "yarn install", convenient for DRCP tool developer', {
+	// 	builder: {},
+	// 	handler: argv => cli.install(argv)
+	// })
 	.command('clean', 'Clean "destDir" and symbolic links from node_modules', {
 		builder: {},
-		handler: argv => cli.clean(argv)
+		handler: argv => {
+			require('./config').init(argv);
+			cli.clean(argv);
+		}
 	})
 	.command(['ls', 'list'], 'If you want to know how many components will actually run, this command prints out a list and the priorities, including installed components', {
 		builder: {},
-		handler: argv => cli.ls(argv)
+		handler: argv => {
+			require('./config').init(argv);
+			cli.ls(argv);
+		}
 	})
-	.command('run <target> [package..]', 'Run specific exported function of specific packages one by one, in random order', {
+	.command('run [target] [package..]', 'Run specific exported function of specific packages one by one, in random order', {
 		builder: yargs => {
-			yargs.positional('target', {
-				describe: 'FilePath and exported function name, eg. ' + chalk.green('dist/prerender.js#prepare')
-			});
-			yargs.positional('package', {describe: 'Default is all component packages which has "dr" property in package.json file'});
-			yargs.options({
+			yargs
+			.positional('target', {
+				desc: 'FilePath and exported function name, eg. ' + chalk.green('dist/prerender.js#prepare'),
+				type: 'string'
+			})
+			.positional('package', {describe: 'Default is all component packages which has "dr" property in package.json file'})
+			.options({
 				arguments: {
 					desc: 'argument array to be passed to <target>',
 					type: 'array'
 				}
 			})
-			.usage('drcp run dist/file.js#exec');
+			.usage('run <target> [package]\ne.g. drcp run dist/file.js#exec');
 		},
 		handler: argv => {
-			try {
-				cli.runPackages(argv);
-			} catch (e) {}
-			return 0;
+			require('./config').init(argv);
+			return cli.runPackages(argv);
 		}
 	})
 	// .command('compile [package..]', 'compile packages into static browser bundles', {
@@ -152,8 +159,8 @@ function drcpCommand(startTime) {
 		builder: yargs => {
 			yargs.positional('package', {
 				describe: 'component package, in which package.json has a property "dr"'
-			});
-			yargs.options({
+			})
+			.options({
 				watch: {
 					alias: 'w',
 					describe: 'Typescript compiler watch mode',
@@ -179,6 +186,7 @@ function drcpCommand(startTime) {
 				hlDesc('drcp tsc [package...] -w\n') + ' Watch components change and compile when new typescript file is changed or created\n\n');
 		},
 		handler: argv => {
+			require('./config').init(argv);
 			cli.tsc(argv);
 		}
 	})
@@ -186,8 +194,8 @@ function drcpCommand(startTime) {
 		builder: yargs => {
 			yargs.positional('dir', {
 				describe: 'target source code directories'
-			});
-			yargs.usage('drcp eol <dir...>\n\nFor windows system, This command helps to convert CRLF to LF for local files.\n' +
+			})
+			.usage('drcp eol <dir...>\n\nFor windows system, This command helps to convert CRLF to LF for local files.\n' +
 			'Before "publish" to NPM registry server, you need to make sure local files contain no CRLF.');
 		},
 		handler: argv => {
@@ -196,10 +204,11 @@ function drcpCommand(startTime) {
 	})
 	.command('lint [package..]', 'source code style check', {
 		builder: yargs => {
-			yargs.positional('package', {
-				describe: 'component package, in which package.json has a property "dr"'
-			});
-			yargs.options({
+			yargs
+			// .positional('package', {
+			// 	describe: 'component package, in which package.json has a property "dr"'
+			// })
+			.options({
 				pj: {
 					describe: '<project-dir> lint only JS code from specific project',
 					type: 'array',
@@ -214,13 +223,16 @@ function drcpCommand(startTime) {
 				hl('\ndrcp lint <component-package..> [--fix]') + ' Lint JS files from specific component packages');
 		},
 		handler: argv => {
+			require('./config').init(argv);
 			cli.lint(argv);
 		}
 	})
 	.command('publish [project-dir..]', 'npm publish every pakages in source code folder including all mapped recipes', {
 		builder: yargs => {
-			yargs.positional('project-dir', 'project directories in which all components need to be published');
-			yargs.options({
+			yargs.positional('project-dir', {
+				desc: 'project directories in which all components need to be published'
+			})
+			.options({
 				pj: {
 					describe: '<project-dir> only publish component packages from specific project directory',
 					type: 'array',
@@ -229,6 +241,7 @@ function drcpCommand(startTime) {
 			});
 		},
 		handler: argv => {
+			require('./config').init(argv);
 			if (argv.pj)
 				argv.projectDir.push(...argv.pj);
 			cli.publish(argv);
@@ -236,8 +249,9 @@ function drcpCommand(startTime) {
 	})
 	.command('unpublish [project-dir..]', 'npm unpublish every pakages in source code folder including all mapped recipes', {
 		builder: yargs => {
-			yargs.positional('project-dir', 'project directories in which all components need to be unpublished');
-			yargs.options({
+			yargs.positional('project-dir', {
+				desc: 'project directories in which all components need to be unpublished'})
+			.options({
 				pj: {
 					describe: '<project-dir> only publish component packages from specific project directory',
 					type: 'array',
@@ -246,6 +260,7 @@ function drcpCommand(startTime) {
 			});
 		},
 		handler: argv => {
+			require('./config').init(argv);
 			if (argv.pj)
 				argv.projectDir.push(...argv.pj);
 			cli.unpublish(argv);
@@ -277,6 +292,7 @@ function drcpCommand(startTime) {
 				hl('drcp bump <dir> -v minor') + 'to bump minor version number, default is patch number');
 		},
 		handler: argv => {
+			require('./config').init(argv);
 			if (argv.d)
 				argv.dir.push(...argv.d);
 			cli.bumpDirs(argv.dir, argv.v);
@@ -298,44 +314,46 @@ function drcpCommand(startTime) {
 			});
 		},
 		handler: argv => {
+			require('./config').init(argv);
 			cli.runUnitTest(argv);
 		}
 	})
-	.command('e2e [file..]', 'run Jasmine for end-to-end tests', {
-		builder: yargs => {
-			yargs.positional('file', {
-				describe: 'Spec JS files'
-			});
-			yargs.options({
-				d: {
-					describe: '<test-suit-dir>',
-					type: 'array'
-				},
-				f: {
-					describe: '<spec-file-path>',
-					type: 'array'
-				},
-				server: {
-					describe: '<start-js-file>',
-					type: 'string'
-				},
-				dir: {
-					describe: '<working-directory>',
-					type: 'string'
-				},
-				browser: {
-					describe: 'Browser engine',
-					choices: ['chrome', 'firefox', 'ie', 'opera', 'edge', 'safari'],
-					'default': 'chrome'
-				}
-			});
-		},
-		handler: argv => {
-			if (argv.file.length > 0)
-				argv.f = argv.file;
-			cli.runE2eTest(argv);
-		}
-	})
+	// .command('e2e [file..]', 'run Jasmine for end-to-end tests', {
+	// 	builder: yargs => {
+	// 		yargs.positional('file', {
+	// 			describe: 'Spec JS files'
+	// 		});
+	// 		yargs.options({
+	// 			d: {
+	// 				describe: '<test-suit-dir>',
+	// 				type: 'array'
+	// 			},
+	// 			f: {
+	// 				describe: '<spec-file-path>',
+	// 				type: 'array'
+	// 			},
+	// 			server: {
+	// 				describe: '<start-js-file>',
+	// 				type: 'string'
+	// 			},
+	// 			dir: {
+	// 				describe: '<working-directory>',
+	// 				type: 'string'
+	// 			},
+	// 			browser: {
+	// 				describe: 'Browser engine',
+	// 				choices: ['chrome', 'firefox', 'ie', 'opera', 'edge', 'safari'],
+	// 				'default': 'chrome'
+	// 			}
+	// 		});
+	// 	},
+	// 	handler: argv => {
+	// 		require('./config').init(argv);
+	// 		if (argv.file.length > 0)
+	// 			argv.f = argv.file;
+	// 		cli.runE2eTest(argv);
+	// 	}
+	// })
 	.command(['completion', 'ac'], 'Adds autocomplete functionality to commands and subcommands', {
 		builder: {},
 		handler: argv => {
@@ -458,6 +476,7 @@ function nodeAppCommand(callback) {
 			}
 		});
 	function handler(argv) {
+		require('./config').init(argv);
 		try {
 			if (argv.ng && argv.package.length > 0) {
 				argv.package.push('@dr-core/ng-app-builder');

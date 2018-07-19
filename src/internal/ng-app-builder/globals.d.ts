@@ -5,7 +5,7 @@ import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
 import { EventEmitter } from 'events';
 import {ExpressAppApi} from '@dr-core/express-app';
 import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
-
+import {PackageInfo} from '@dr-core/build-util/index';
 export interface DrcpConfig {
 	get(path: string|string[], defaultValue?: any): any;
 	set(path: string|string[], value: any): void;
@@ -13,10 +13,6 @@ export interface DrcpConfig {
 	(): {[property: string]: any};
 }
 
-interface PackageInfo {
-	allModules: PackageBrowserInstance[];
-	moduleMap: {[name: string]: PackageBrowserInstance};
-}
 interface _DrcpNgApi {
 	webpackConfig: any;
 	ngEntryComponent: PackageBrowserInstance;

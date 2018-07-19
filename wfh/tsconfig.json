@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		"baseUrl": ".",
 		"outDir": "dist",
 		"declaration": true,
 		"module":"commonjs",
@@ -16,11 +17,11 @@
 			"es2015",
 			"dom"
 		],
-		"pretty": true
+		"pretty": true,
+		"typeRoots": [
+			"../node_modules/@types"
+		]
 	},
-	"typeRoots": [
-		"../node_modules/@types",
-		"types"
-	],
+	
 	"include": ["ts/**/*.ts"]
 }

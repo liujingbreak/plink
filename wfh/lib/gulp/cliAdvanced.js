@@ -2,7 +2,7 @@
 /**
  * Do not require this file until wfh dependencies is installed and config.yaml file is generated
  */
-var PackageInstall = require('./packageInstallMgr');
+
 var config = require('../config');
 var jsYaml = require('js-yaml');
 var Path = require('path');
@@ -18,6 +18,7 @@ var buildUtils = require('./buildUtils');
 require('../logConfig')(config());
 var log = require('log4js').getLogger('wfh.cliAdvanced');
 var packageUtils = require('../packageMgr/packageUtils');
+var PackageInstall = require('./packageInstallMgr');
 
 exports.listCompDependency = PackageInstall.listCompDependency;
 exports.addupConfigs = addupConfigs;
@@ -459,6 +460,5 @@ function _srcRecipeMap() {
 }
 
 function runPackages(argv) {
-	console.log('cool')
-	// return require('../../dist/package-runner').runPackages(argv);
+	return require('../../dist/package-runner').runPackages(argv);
 }

@@ -9,10 +9,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const _ = require("lodash");
-const packageNodeInstance_1 = require("./packageNodeInstance");
+// import Package from './packageNodeInstance';
 const fs_1 = require("fs");
 const path_1 = require("path");
+const LRU = require('lru-cache');
+const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
+const NodeApi = require('../lib/nodeApi');
+const priorityHelper = require('../lib/packageMgr/packagePriorityHelper');
+const { nodeInjector } = require('../lib/injectorFactory');
 // const {orderPackages} = require('../lib/packageMgr/packagePriorityHelper');
 const log = require('log4js').getLogger('package-runner');
 class ServerRunner {
@@ -35,29 +40,83 @@ class ServerRunner {
     }
 }
 exports.ServerRunner = ServerRunner;
+const apiCache = {};
 function runPackages(argv) {
-    // const packageNames: string[] = argv.package;
-    const pks = [];
-    const hyPos = argv.fileExportFunc.indexOf('#');
-    const fileToRun = argv.fileExportFunc.substring(0, hyPos);
-    // const funcToRun = (argv.fileExportFunc as string).substring(hyPos + 1);
-    packageUtils.findNodePackageByType('*', (name, entryPath, parsedName, pkJson, packagePath, isInstalled) => {
-        const realPackagePath = fs_1.realpathSync(packagePath);
-        const pkInstance = new packageNodeInstance_1.default({
-            moduleName: name,
-            shortName: parsedName.name,
-            name,
-            longName: name,
-            scope: parsedName.scope,
-            path: packagePath,
-            json: pkJson,
-            realPackagePath
-        });
-        console.log(path_1.join(packagePath, fileToRun));
-        if (!fs_1.existsSync(path_1.join(packagePath, fileToRun)))
-            return;
-        pks.push(pkInstance);
+    const includeNameSet = new Set();
+    argv.package.forEach(name => includeNameSet.add(name));
+    const hyPos = argv.target.indexOf('#');
+    const fileToRun = argv.target.substring(0, hyPos);
+    const funcToRun = argv.target.substring(hyPos + 1);
+    // packageUtils.findNodePackageByType('*', (name: string, entryPath: string, parsedName: any, pkJson: string, packagePath: string, isInstalled: boolean) => {
+    // 	const realPackagePath = realpathSync(packagePath);
+    // 	const pkInstance = new Package({
+    // 		moduleName: name,
+    // 		shortName: parsedName.name,
+    // 		name,
+    // 		longName: name,
+    // 		scope: parsedName.scope,
+    // 		path: packagePath,
+    // 		json: pkJson,
+    // 		realPackagePath
+    // 	});
+    // 	console.log(join(packagePath, fileToRun));
+    // 	if (!existsSync(join(packagePath, fileToRun)))
+    // 		return;
+    // 	pks.push(pkInstance);
+    // });
+    const NodeApi = require('../lib/nodeApi');
+    const proto = NodeApi.prototype;
+    proto.argv = argv;
+    const walkPackages = require('@dr-core/build-util').walkPackages;
+    const packageInfo = walkPackages(config, argv, packageUtils, argv['package-cache'] === false);
+    proto.packageInfo = packageInfo;
+    const cache = LRU(20);
+    proto.findPackageByFile = function (file) {
+        var found = cache.get(file);
+        if (!found) {
+            found = packageInfo.dirTree.getAllData(file).pop();
+            cache.set(file, found);
+        }
+        return found;
+    };
+    proto.getNodeApiForPackage = function (packageInstance) {
+        return getApiForPackage(packageInstance);
+    };
+    const components = packageInfo.allModules.filter(pk => {
+        return (includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
+            pk.dr != null && fs_1.existsSync(path_1.join(pk.packagePath, fileToRun));
+    });
+    components.forEach(pk => {
+        setupNodeInjectorFor(pk);
+    });
+    return priorityHelper.orderPackages(components, (pkInstance) => {
+        const file = path_1.join(pkInstance.packagePath, fileToRun);
+        log.info('Run %s %s()', file, funcToRun);
+        return require(file)[funcToRun]();
     });
 }
 exports.runPackages = runPackages;
+function setupNodeInjectorFor(pkInstance) {
+    function apiFactory() {
+        return getApiForPackage(pkInstance);
+    }
+    nodeInjector.fromPackage(pkInstance.longName, pkInstance.realPackagePath)
+        .value('__injector', nodeInjector)
+        .factory('__api', apiFactory);
+    nodeInjector.fromPackage(pkInstance.longName, pkInstance.packagePath)
+        .value('__injector', nodeInjector)
+        .factory('__api', apiFactory);
+    nodeInjector.default = nodeInjector; // For ES6 import syntax
+}
+function getApiForPackage(pkInstance) {
+    if (_.has(apiCache, pkInstance.longName)) {
+        return apiCache[pkInstance.longName];
+    }
+    const api = new NodeApi(pkInstance.longName, pkInstance);
+    // api.constructor = NodeApi;
+    pkInstance.api = api;
+    apiCache[pkInstance.longName] = api;
+    api.default = api; // For ES6 import syntax
+    return api;
+}
 //# sourceMappingURL=package-runner.js.map

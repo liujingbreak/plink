@@ -3,14 +3,15 @@ var _ = require('lodash');
 var fs = require('fs');
 var Path = require('path');
 var yamljs = require('yamljs');
-var argv = require('yargs').argv;
+var argv;
+// var argv = require('yargs').argv;
 require('yamlify/register');
 var publicPath = require('./publicPath');
 
-var rootPath = argv.root || process.cwd();
+var rootPath = process.cwd();
 var setting;
 var localDisabled = false;
-var localConfigPath = argv.c || process.env.DR_CONFIG_FILE || Path.join(rootPath, 'dist', 'config.local.yaml');
+var localConfigPath;
 
 var Promise = require('bluebird');
 Promise.defer = defer;
@@ -28,9 +29,6 @@ function defer() {
 	};
 }
 
-if (!setting) {
-	load();
-}
 /**
  * read and return configuration
  * @name config
@@ -38,6 +36,14 @@ if (!setting) {
  */
 module.exports = function() {
 	return setting;
+};
+
+module.exports.init = function(_argv) {
+	argv = _argv;
+	if (argv.root)
+		rootPath = argv.root;
+	localConfigPath = argv.c || process.env.DR_CONFIG_FILE || Path.join(rootPath, 'dist', 'config.local.yaml');
+	load();
 };
 
 module.exports.disableLocal = function() {
