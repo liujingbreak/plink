@@ -270,31 +270,25 @@ function drcpCommand(startTime) {
 		builder: yargs => {
 			yargs.positional('dir', {
 				describe: 'directories under which looking up for component packages to bump'
-			});
-			yargs.options({
+			})
+			.options({
 				pj: {
 					describe: '<project-dir> only bump component packages from specific project directory',
 					type: 'array',
 					alias: 'project'
 				},
-				v: {
+				i: {
 					describe: 'version increment',
 					choices: ['major', 'minor', 'patch', 'prerelease'],
 					'default': 'patch',
-					alias: 'version'
-				},
-				d: {
-					describe: '<dir>, (Deprecated)',
-					type: 'array'
+					alias: 'incre-version'
 				}
 			})
 			.usage(hl('drcp bump <dir-1> <dir-2> ...') + 'to recursively bump package.json from multiple directories\n' +
-				hl('drcp bump <dir> -v minor') + 'to bump minor version number, default is patch number');
+				hl('drcp bump <dir> -i minor') + 'to bump minor version number, default is patch number');
 		},
 		handler: argv => {
 			require('./config').init(argv);
-			if (argv.d)
-				argv.dir.push(...argv.d);
 			cli.bumpDirs(argv.dir, argv.v);
 			if (argv.pj) {
 				cli.bumpProjects(argv.pj, argv.v);
