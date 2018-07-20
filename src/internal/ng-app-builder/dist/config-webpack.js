@@ -10,6 +10,7 @@ const util_1 = require("util");
 const Path = require("path");
 const webpack_1 = require("webpack");
 const __api_1 = require("__api");
+const { babel } = require('@dr-core/webpack2-builder/configs/loader-config');
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 function changeWebpackConfig(param, webpackConfig, drcpConfig) {
     // const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
@@ -152,7 +153,20 @@ function changeLoaders(webpackConfig) {
             { loader: 'json-loader' },
             { loader: 'yaml-loader' }
         ]
+    }, {
+        test: isDrJs,
+        use: [babel()]
     });
+}
+function isDrJs(file) {
+    if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))
+        return false;
+    const pk = __api_1.default.findPackageByFile(file);
+    if (pk && pk.dr) {
+        // log.warn('js file', file);
+        return true;
+    }
+    return false;
 }
 function changeSplitChunks(param, webpackConfig) {
     if (webpackConfig.optimization == null)

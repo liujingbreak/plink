@@ -9,6 +9,7 @@ import { isRegExp } from 'util';
 import * as Path from 'path';
 import {Compiler, HotModuleReplacementPlugin} from 'webpack';
 import api from '__api';
+const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
 export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfig: any): any {
@@ -154,8 +155,23 @@ function changeLoaders(webpackConfig: any) {
 				{loader: 'json-loader'},
 				{loader: 'yaml-loader'}
 			]
+		},
+		{
+			test: isDrJs,
+			use: [babel()]
 		}
 	);
+}
+
+function isDrJs(file: string) {
+	if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))
+		return false;
+	const pk = api.findPackageByFile(file);
+	if (pk && pk.dr) {
+		// log.warn('js file', file);
+		return true;
+	}
+	return false;
 }
 
 function changeSplitChunks(param: AngularCliParam, webpackConfig: any) {

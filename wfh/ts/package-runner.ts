@@ -47,24 +47,6 @@ export function runPackages(argv: any) {
 	const hyPos: number = (argv.target as string).indexOf('#');
 	const fileToRun = (argv.target as string).substring(0, hyPos);
 	const funcToRun = (argv.target as string).substring(hyPos + 1);
-
-	// packageUtils.findNodePackageByType('*', (name: string, entryPath: string, parsedName: any, pkJson: string, packagePath: string, isInstalled: boolean) => {
-	// 	const realPackagePath = realpathSync(packagePath);
-	// 	const pkInstance = new Package({
-	// 		moduleName: name,
-	// 		shortName: parsedName.name,
-	// 		name,
-	// 		longName: name,
-	// 		scope: parsedName.scope,
-	// 		path: packagePath,
-	// 		json: pkJson,
-	// 		realPackagePath
-	// 	});
-	// 	console.log(join(packagePath, fileToRun));
-	// 	if (!existsSync(join(packagePath, fileToRun)))
-	// 		return;
-	// 	pks.push(pkInstance);
-	// });
 	const NodeApi = require('../lib/nodeApi');
 	const proto = NodeApi.prototype;
 	proto.argv = argv;

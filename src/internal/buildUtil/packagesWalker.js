@@ -74,76 +74,83 @@ function _walkPackages(packageUtils, config) {
 
 	packageUtils.findBrowserPackageByType('*', function(
 		name, entryPath, parsedName, pkJson, packagePath) {
-		var entryViews, entryPages;
-		var isEntryServerTemplate = true;
-		var noParseFiles, instance;
-		if (_.has(info.moduleMap, name))
-			instance = info.moduleMap[name];
-		else {
-			// There are also node packages
-			instance = new packageBrowserInstance({
-				isVendor: true,
-				bundle: null,
-				longName: name,
-				shortName: packageUtils.parseName(name).name,
-				packagePath,
-				realPackagePath: fs.realpathSync(packagePath),
-			});
-		}
-		if (!pkJson.dr) {
-			pkJson.dr = {};
-		}
-		if (pkJson.dr.entryPage) {
-			isEntryServerTemplate = false;
-			entryPages = [].concat(pkJson.dr.entryPage);
-			info.entryPageMap[name] = instance;
-		} else if (pkJson.dr.entryView) {
-			isEntryServerTemplate = true;
-			entryViews = [].concat(pkJson.dr.entryView);
-			info.entryPageMap[name] = instance;
-		}
-		if (pkJson.dr.noParse) {
-			noParseFiles = [].concat(pkJson.dr.noParse).map(trimNoParseSetting);
-		}
-		if (pkJson.dr.browserifyNoParse) {
-			noParseFiles = [].concat(pkJson.dr.browserifyNoParse).map(trimNoParseSetting);
-		}
-		var mainFile;
-		try {
-			// For package like e2etest, it could have no main file
-			mainFile = bResolve.sync(name, {paths: nodePaths});
-		} catch (err) {}
-		instance.init({
-			isVendor: false,
-			file: mainFile ? fs.realpathSync(mainFile) : null, // package.json "browser"
-			main: pkJson.main, // package.json "main"
-			style: pkJson.style ? resolveStyle(name, nodePaths) : null,
-			parsedName,
-			entryPages,
-			entryViews,
-			browserifyNoParse: noParseFiles,
-			isEntryServerTemplate,
-			translatable: !_.has(pkJson, 'dr.translatable') || _.get(pkJson, 'dr.translatable'),
-			dr: pkJson.dr,
-			json: pkJson,
-			compiler: pkJson.dr.compiler,
-			browser: pkJson.browser,
-			i18n: pkJson.dr.i18n ? pkJson.dr.i18n : null,
-			appType: pkJson.dr.appType
-		});
-		if (instance.file == null && (instance.entryPages || instance.entryViews))
-			throw new Error(`Entry package "${instance.longName}"'s "browser" or "main" file ${mainFile} doesn't exist!`);
-		info.moduleMap[instance.longName] = instance;
-		info.shortNameMap[instance.shortName] = instance;
-		if (!instance.bundle)
-			info.noBundlePackageMap[instance.longName] = instance;
+		addPackageToInfo(packageUtils, info, nodePaths, name, parsedName, pkJson, packagePath);
 	});
+	addPackageToInfo(packageUtils, info, nodePaths, 'dr-comp-package',
+		require.resolve('dr-comp-package'), packageUtils.parseName('dr-comp-package'),
+		require('dr-comp-package/package.json'), packageUtils.findBrowserPackagePath('dr-comp-package'));
 	_.each(bundleMap, (packageMap, bundle) => {
 		bundleMap[bundle] = _.values(packageMap); // turn Object.<moduleName, packageInstance> to Array.<packageInstance>
 	});
 	info.allModules = _.values(info.moduleMap);
 
 	return info;
+}
+
+function addPackageToInfo(packageUtils, info, nodePaths, name, parsedName, pkJson, packagePath) {
+	var entryViews, entryPages;
+	var isEntryServerTemplate = true;
+	var noParseFiles, instance;
+	if (_.has(info.moduleMap, name))
+		instance = info.moduleMap[name];
+	else {
+		// There are also node packages
+		instance = new packageBrowserInstance({
+			isVendor: true,
+			bundle: null,
+			longName: name,
+			shortName: packageUtils.parseName(name).name,
+			packagePath,
+			realPackagePath: fs.realpathSync(packagePath),
+		});
+	}
+	if (!pkJson.dr) {
+		pkJson.dr = {};
+	}
+	if (pkJson.dr.entryPage) {
+		isEntryServerTemplate = false;
+		entryPages = [].concat(pkJson.dr.entryPage);
+		info.entryPageMap[name] = instance;
+	} else if (pkJson.dr.entryView) {
+		isEntryServerTemplate = true;
+		entryViews = [].concat(pkJson.dr.entryView);
+		info.entryPageMap[name] = instance;
+	}
+	if (pkJson.dr.noParse) {
+		noParseFiles = [].concat(pkJson.dr.noParse).map(trimNoParseSetting);
+	}
+	if (pkJson.dr.browserifyNoParse) {
+		noParseFiles = [].concat(pkJson.dr.browserifyNoParse).map(trimNoParseSetting);
+	}
+	var mainFile;
+	try {
+		// For package like e2etest, it could have no main file
+		mainFile = bResolve.sync(name, {paths: nodePaths});
+	} catch (err) {}
+	instance.init({
+		isVendor: false,
+		file: mainFile ? fs.realpathSync(mainFile) : null, // package.json "browser"
+		main: pkJson.main, // package.json "main"
+		style: pkJson.style ? resolveStyle(name, nodePaths) : null,
+		parsedName,
+		entryPages,
+		entryViews,
+		browserifyNoParse: noParseFiles,
+		isEntryServerTemplate,
+		translatable: !_.has(pkJson, 'dr.translatable') || _.get(pkJson, 'dr.translatable'),
+		dr: pkJson.dr,
+		json: pkJson,
+		compiler: pkJson.dr.compiler,
+		browser: pkJson.browser,
+		i18n: pkJson.dr.i18n ? pkJson.dr.i18n : null,
+		appType: pkJson.dr.appType
+	});
+	if (instance.file == null && (instance.entryPages || instance.entryViews))
+		throw new Error(`Entry package "${instance.longName}"'s "browser" or "main" file ${mainFile} doesn't exist!`);
+	info.moduleMap[instance.longName] = instance;
+	info.shortNameMap[instance.shortName] = instance;
+	if (!instance.bundle)
+		info.noBundlePackageMap[instance.longName] = instance;
 }
 
 function trimNoParseSetting(p) {
@@ -266,6 +273,7 @@ function createPackageDirTree(packageInfo) {
 	var tree = new DirTree();
 	var count = 0;
 	packageInfo.allModules.forEach(moduleInstance => {
+		// log.info(moduleInstance.longName);
 		if (moduleInstance == null)
 			return;
 		if (moduleInstance.realPackagePath)
