@@ -44,6 +44,7 @@ module.exports.init = function(_argv) {
 		rootPath = argv.root;
 	localConfigPath = argv.c || process.env.DR_CONFIG_FILE || Path.join(rootPath, 'dist', 'config.local.yaml');
 	load();
+	return module.exports;
 };
 
 module.exports.disableLocal = function() {

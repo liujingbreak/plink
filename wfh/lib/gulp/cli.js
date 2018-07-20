@@ -206,7 +206,7 @@ function _writeGitHook(project) {
 
 function addProject(_argv, dirs) {
 	writeProjectListFile(dirs);
-	return Promise.resolve(require('../config').reload())
+	return Promise.resolve(require('../config').init(_argv).reload())
 		.then(() => init(_argv))
 		.catch(e => {
 			console.log('Roll back dr.project.list.json');
