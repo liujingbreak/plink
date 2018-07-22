@@ -5,15 +5,14 @@ import {PackageInfo, packageInstance} from '@dr-core/build-util/index';
 // import Package from './packageNodeInstance';
 import { existsSync} from 'fs';
 import {join} from 'path';
+import {orderPackages} from './package-priority-helper';
 const LRU = require('lru-cache');
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
 const NodeApi = require('../lib/nodeApi');
-const priorityHelper = require('../lib/packageMgr/packagePriorityHelper');
 const {nodeInjector} = require('../lib/injectorFactory');
 
 
-// const {orderPackages} = require('../lib/packageMgr/packagePriorityHelper');
 
 const log = require('log4js').getLogger('package-runner');
 
@@ -72,7 +71,7 @@ export function runPackages(argv: any) {
 	components.forEach( pk => {
 		setupNodeInjectorFor(pk);
 	});
-	return priorityHelper.orderPackages(components, (pkInstance: packageInstance)  => {
+	return orderPackages(components, (pkInstance: packageInstance)  => {
 		const file = join(pkInstance.packagePath, fileToRun);
 		log.info('Run %s %s()', file, funcToRun);
 		return require(file)[funcToRun]();

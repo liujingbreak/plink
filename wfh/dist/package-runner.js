@@ -12,13 +12,12 @@ const _ = require("lodash");
 // import Package from './packageNodeInstance';
 const fs_1 = require("fs");
 const path_1 = require("path");
+const package_priority_helper_1 = require("./package-priority-helper");
 const LRU = require('lru-cache');
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
 const NodeApi = require('../lib/nodeApi');
-const priorityHelper = require('../lib/packageMgr/packagePriorityHelper');
 const { nodeInjector } = require('../lib/injectorFactory');
-// const {orderPackages} = require('../lib/packageMgr/packagePriorityHelper');
 const log = require('log4js').getLogger('package-runner');
 class ServerRunner {
     shutdownServer() {
@@ -47,23 +46,6 @@ function runPackages(argv) {
     const hyPos = argv.target.indexOf('#');
     const fileToRun = argv.target.substring(0, hyPos);
     const funcToRun = argv.target.substring(hyPos + 1);
-    // packageUtils.findNodePackageByType('*', (name: string, entryPath: string, parsedName: any, pkJson: string, packagePath: string, isInstalled: boolean) => {
-    // 	const realPackagePath = realpathSync(packagePath);
-    // 	const pkInstance = new Package({
-    // 		moduleName: name,
-    // 		shortName: parsedName.name,
-    // 		name,
-    // 		longName: name,
-    // 		scope: parsedName.scope,
-    // 		path: packagePath,
-    // 		json: pkJson,
-    // 		realPackagePath
-    // 	});
-    // 	console.log(join(packagePath, fileToRun));
-    // 	if (!existsSync(join(packagePath, fileToRun)))
-    // 		return;
-    // 	pks.push(pkInstance);
-    // });
     const NodeApi = require('../lib/nodeApi');
     const proto = NodeApi.prototype;
     proto.argv = argv;
@@ -89,7 +71,7 @@ function runPackages(argv) {
     components.forEach(pk => {
         setupNodeInjectorFor(pk);
     });
-    return priorityHelper.orderPackages(components, (pkInstance) => {
+    return package_priority_helper_1.orderPackages(components, (pkInstance) => {
         const file = path_1.join(pkInstance.packagePath, fileToRun);
         log.info('Run %s %s()', file, funcToRun);
         return require(file)[funcToRun]();

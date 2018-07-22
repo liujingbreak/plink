@@ -71,7 +71,7 @@ function drcpCommand(startTime) {
 			cli.ls(argv);
 		}
 	})
-	.command('run [target] [package..]', 'Run specific exported function of specific packages one by one, in random order', {
+	.command('run <target> [package..]', 'Run specific exported function of specific packages one by one, in random order', {
 		builder: yargs => {
 			yargs
 			.positional('target', {
@@ -85,7 +85,7 @@ function drcpCommand(startTime) {
 					type: 'array'
 				}
 			})
-			.usage('run <target> [package]\ne.g. drcp run dist/file.js#exec');
+			.usage('drcp run <target> [package]\ne.g. drcp run dist/file.js#exec');
 		},
 		handler: argv => {
 			require('./config').init(argv);
