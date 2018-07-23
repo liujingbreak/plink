@@ -519,10 +519,10 @@ function globalOptions(argv, overrides) {
 				'--prop ["@dr/foo.bar","prop",0]=true',
 			type: 'array'
 		},
-		offline: {
-			describe: 'Use Yarn install "--offline" instead of default "--prefer-offline" mode during installation process',
-			type: 'boolean'
-		}
+		// offline: {
+		// 	describe: 'Use Yarn install "--offline" instead of default "--prefer-offline" mode during installation process',
+		// 	type: 'boolean'
+		// }
 		// root: {
 		// 	describe: '<workspace-directory>  default is `process.cwd()`',
 		// 	default: process.env.DR_ROOT_DIR || process.cwd()

@@ -126,22 +126,15 @@ class WorkspaceInstaller {
 					'\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
 			});
 			argv['package-cache'] = false;
+			createProjectSymlinks();
 			return yield require('../packageMgr/packageRunner').runBuilder(argv, 'init', true);
 		})();
 	}
 }
 
-function _initDependency(isDrcpSymlink) {
-	var rm = require('./recipeManager');
-	var helper = require('./cliAdvanced');
+function createProjectSymlinks() {
 	var nodePath = fs.realpathSync(Path.resolve(rootPath, 'node_modules'));
-	// Create project folder node_modules
 	listProject().forEach(prjdir => {
-		_writeGitHook(prjdir);
-		maybeCopyTemplate(Path.resolve(__dirname, '../../.eslintrc.json'), prjdir + '/.eslintrc.json');
-		maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
-		maybeCopyTemplate(Path.resolve(__dirname, '../../prettier.config.js'), prjdir + '/prettier.config.js');
-		maybeCopyTemplate(Path.resolve(__dirname, '../../.prettierignore'), prjdir + '/.prettierignore');
 		let moduleDir = Path.resolve(prjdir, 'node_modules');
 		let needCreateSymlink = false;
 		let stats;
@@ -171,6 +164,30 @@ function _initDependency(isDrcpSymlink) {
 			fs.symlinkSync(Path.relative(prjdir, fs.realpathSync(nodePath)), moduleDir, isWin32 ? 'junction' : 'dir');
 		}
 	});
+}
+
+function _initDependency(isDrcpSymlink) {
+	var rm = require('./recipeManager');
+	var helper = require('./cliAdvanced');
+	// Create project folder node_modules
+	listProject().forEach(prjdir => {
+		_writeGitHook(prjdir);
+		maybeCopyTemplate(Path.resolve(__dirname, '../../.eslintrc.json'), prjdir + '/.eslintrc.json');
+		maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
+		maybeCopyTemplate(Path.resolve(__dirname, '../../prettier.config.js'), prjdir + '/prettier.config.js');
+		maybeCopyTemplate(Path.resolve(__dirname, '../../.prettierignore'), prjdir + '/.prettierignore');
+		let moduleDir = Path.resolve(prjdir, 'node_modules');
+		let stats;
+
+		try {
+			stats = fs.lstatSync(moduleDir);
+			if (stats.isSymbolicLink()) {
+				fs.unlinkSync(moduleDir);
+			}
+		} catch (e) {
+			// node_modules does not exists
+		}
+	});
 
 	return Promise.coroutine(function*() {
 		var pkJsonFiles = yield rm.linkComponentsAsync();
@@ -181,10 +198,10 @@ function _initDependency(isDrcpSymlink) {
 		var needRunInstall = helper.listCompDependency(pkJsonFiles, true, isDrcpSymlink);
 		return needRunInstall;
 	})()
-		.catch(err => {
-			console.error(chalk.red(err), err.stack);
-			throw err;
-		});
+	.catch(err => {
+		console.error(chalk.red(err), err.stack);
+		throw err;
+	});
 }
 
 function _writeGitHook(project) {

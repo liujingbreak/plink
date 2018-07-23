@@ -155,32 +155,33 @@ class Guarder {
 		this.isPackageJsonDirty = true;
 		var drcpLocation = Path.resolve('node_modules', 'dr-comp-package');
 		var realDrcpPath = fs.realpathSync(drcpLocation);
-		var yarnArgv = ['install', '--non-interactive', '--check-files'];
-		if (isOffline) {
-			console.log(logName + 'offline mode is on');
-			yarnArgv.push('--offline');
-		} else {
-			// console.log(logName + '--prefer-offline mode is on');
-			// yarnArgv.push('--prefer-offline');
-		}
+		// var yarnArgv = ['install', '--non-interactive', '--check-files'];
+		const npmArgv = ['install'];
+		// if (isOffline) {
+		// 	console.log(logName + 'offline mode is on');
+		// 	yarnArgv.push('--offline');
+		// } else {
+		// 	// console.log(logName + '--prefer-offline mode is on');
+		// 	// yarnArgv.push('--prefer-offline');
+		// }
 		var installProm;
-		if (isOffline && fs.existsSync(this.rootPath + '/dr.offline-yarn.lock')) {
-			console.log(logName + 'Read existing dr.offline-yarn.lock');
-			installProm = new Promise((resolve, rej) => {
-				var to = fs.createWriteStream(this.rootPath + '/yarn.lock');
-				var from = fs.createReadStream(this.rootPath + '/dr.offline-yarn.lock');
-				to.on('finish', resolve)
-				.on('error', err => {
-					console.log(err);
-					to.end();
-					rej(err);
-				});
-				from.pipe(to);
-			});
-		} else {
-			installProm = Promise.resolve();
-		}
-		installProm = installProm.then(() => processUtils.promisifyExe('yarn', yarnArgv, {cwd: this.rootPath}))
+		// if (isOffline && fs.existsSync(this.rootPath + '/dr.offline-yarn.lock')) {
+		// 	console.log(logName + 'Read existing dr.offline-yarn.lock');
+		// 	installProm = new Promise((resolve, rej) => {
+		// 		var to = fs.createWriteStream(this.rootPath + '/yarn.lock');
+		// 		var from = fs.createReadStream(this.rootPath + '/dr.offline-yarn.lock');
+		// 		to.on('finish', resolve)
+		// 		.on('error', err => {
+		// 			console.log(err);
+		// 			to.end();
+		// 			rej(err);
+		// 		});
+		// 		from.pipe(to);
+		// 	});
+		// } else {
+		installProm = Promise.resolve();
+		// }
+		installProm = installProm.then(() => processUtils.promisifyExe('npm', npmArgv, {cwd: this.rootPath}))
 		.then(res => {
 			if (this.isDrcpSymlink) {
 				return new Promise(resolve => setTimeout(() => resolve(res), 500))
@@ -201,7 +202,12 @@ class Guarder {
 			if (!doNotMarkInstallNum)
 				self.markInstallNum();
 		}
-		return installProm;
+		return installProm
+		.catch(err => {
+			console.log('Sorry, my bad.');
+			console.log(err);
+			throw err;
+		});
 	}
 
 	markInstallNum() {

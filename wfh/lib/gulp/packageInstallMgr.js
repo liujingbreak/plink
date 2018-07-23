@@ -27,6 +27,7 @@ exports.listCompDependency = listCompDependency;
  * @return true if there are newly found dependencies added to package.json
  */
 function listCompDependency(pkJsonFiles, write, isDrcpSymlink) {
+	log.info('scan components from:\n', pkJsonFiles.join('\n'));
 	var installer = new InstallManager();
 	installer.scanSrcDeps(pkJsonFiles);
 	installer.scanInstalledPeerDeps();
