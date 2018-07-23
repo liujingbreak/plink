@@ -83,6 +83,7 @@ function ensurePackageJsonFile(isDrcpDevMode) {
 	if (needCreateFile)
 		fs.writeFileSync(Path.join(cwd, 'package.json'), backupJson);
 	if (needInstall) {
+		removeProjectSymlink();
 		packageJsonGuarder.beforeChange();
 		return packageJsonGuarder.installAsync(false, process.argv.some(arg => arg === '--offline'))
 		.then(() => packageJsonGuarder.afterChange())
@@ -92,6 +93,24 @@ function ensurePackageJsonFile(isDrcpDevMode) {
 		});
 	}
 	return Promise.resolve(null);
+}
+
+function removeProjectSymlink() {
+	let projects;
+	var projectListFile = Path.join(process.cwd(), 'dr.project.list.json');
+	if (fs.existsSync(projectListFile))
+		projects = require(projectListFile);
+	if (projects && projects.length > 0) {
+		for (let prjdir of projects) {
+			let moduleDir = Path.resolve(prjdir, 'node_modules');
+			try {
+				let stats = fs.lstatSync(moduleDir);
+				if (stats.isSymbolicLink()) {
+					fs.unlinkSync(moduleDir);
+				}
+			} catch (e) {}
+		}
+	}
 }
 
 function needInstallWfh(workspaceJson) {

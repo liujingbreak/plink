@@ -108,13 +108,6 @@ function load(fileList, yargv) {
 		//log.debug('root Path: ' + rootPath);
 		setting = setting || {};
 
-		// projectList
-		// if (fs.existsSync(Path.join(rootPath, 'dr.project.list.json'))) {
-		// 	var prfile = Path.join(rootPath, 'dr.project.list.json');
-		// 	delete require.cache[require.resolve(prfile)];
-		// 	var projectDirs = require(prfile);
-		// 	setting.projectList = _.map(projectDirs, dir => Path.resolve(rootPath, dir));
-		// }
 		setting.projectList = require('./gulp/cli').getProjects(rootPath);
 
 		// some extra config properties

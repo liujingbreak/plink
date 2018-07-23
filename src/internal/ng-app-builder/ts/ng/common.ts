@@ -15,9 +15,6 @@ import * as _ from 'lodash';
 function initDrcp(drcpArgs: any) {
 	var config = require('dr-comp-package/wfh/lib/config');
 	config.init(drcpArgs);
-	if (Array.isArray(drcpArgs.c) || drcpArgs.prop) {
-		config.load(drcpArgs.c, drcpArgs);
-	}
 	require('dr-comp-package/wfh/lib/logConfig')(config());
 	return config;
 }

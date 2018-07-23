@@ -80,20 +80,22 @@ function init(_argv, noPuppy) {
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates/app-template.js'), rootPath + '/app.js');
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.server.tmpl.js '), rootPath + '/module-resolve.server.js');
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.browser.tmpl.js'), rootPath + '/module-resolve.browser.js');
-
+	// var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
+	// if (fs.lstatSync(drcpFolder).isSymbolicLink())
+	// 	removeProject(_argv, [fs.realpathSync(drcpFolder)]);
 
 	packageJsonGuarder.beforeChange();
 	var wi = new WorkspaceInstaller(null, argv.offline);
-	var initProm = Promise.resolve(wi.run(packageJsonGuarder.isModulesChanged()));
+	var initProm = wi.run(packageJsonGuarder.isModulesChanged());
 	return initProm.then(() => {
 		packageJsonGuarder.afterChange();
 		if (!noPuppy)
 			_drawPuppy();
 	})
-		.catch(err => {
-			packageJsonGuarder.afterChangeFail();
-			throw err;
-		});
+	.catch(err => {
+		packageJsonGuarder.afterChangeFail();
+		throw err;
+	});
 }
 
 class WorkspaceInstaller {
@@ -250,6 +252,7 @@ function writeProjectListFile(dirs) {
 		prj = [...dirs];
 		writeFile(projectListFile, JSON.stringify(prj, null, '  '));
 	}
+	delete require.cache[require.resolve(projectListFile)];
 }
 
 function ls(_argv) {
@@ -314,6 +317,7 @@ function removeProject(_argv, dirs) {
 		prjs = _.differenceBy(prjs, dirs, dir => Path.resolve(dir));
 		var str = JSON.stringify(prjs, null, '  ');
 		writeFile(projectListFile, str);
+		delete require.cache[require.resolve(projectListFile)];
 		listProject(_argv, prjs);
 	}
 }
@@ -370,15 +374,9 @@ function install(isDrcpSymlink) {
 
 function clean(_argv) {
 	argv = _argv;
-	// if (!fs.existsSync(rootPath + '/config.yaml'))
-	// 	return;
 	var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
-
 	return require('./cliAdvanced').clean()
 		.then(() => {
-			if (fs.lstatSync(drcpFolder).isSymbolicLink())
-				removeProject(_argv, [fs.realpathSync(drcpFolder)]);
-
 			getProjectDirs().forEach(prjdir => {
 				let moduleDir = Path.resolve(prjdir, 'node_modules');
 				try {
@@ -392,6 +390,8 @@ function clean(_argv) {
 			});
 			fs.remove(Path.resolve(rootPath, 'config.yaml'));
 			fs.remove(Path.resolve(rootPath, 'config.local.yaml'));
+			if (fs.lstatSync(drcpFolder).isSymbolicLink())
+				removeProject(_argv, [fs.realpathSync(drcpFolder)]);
 		});
 }
 
