@@ -243,12 +243,20 @@ export function writeTsconfig(): string {
 	const tsInclude: string[] = [];
 	const tsExclude: string[] = [];
 	ngPackages.forEach(pk => {
+		// TODO: doc for dr.ngAppModule
+		let isNgAppModule: boolean = _.get(pk, 'dr.ngAppModule');
 		const dir = Path.relative(tempDir,
-			_.get(pk, 'dr.ngAppModule') ? pk.realPackagePath : pk.packagePath)
+			isNgAppModule ? pk.realPackagePath : pk.packagePath)
 			// pk.packagePath)
 			// pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
 			.replace(/\\/g, '/');
-		tsInclude.push(dir + '/**/*.ts');
+		if (isNgAppModule) {
+			tsInclude.unshift(dir + '/**/*.ts');
+			// entry package must be at first of TS include list, otherwise will encounter:
+			// "Error: No NgModule metadata found for 'AppModule'
+		} else {
+			tsInclude.push(dir + '/**/*.ts');
+		}
 		tsExclude.push(dir + '/ts',
 			dir + '/spec',
 			dir + '/dist',
