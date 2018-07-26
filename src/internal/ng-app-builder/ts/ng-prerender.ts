@@ -51,11 +51,15 @@ export function writeRoutes(destDir: string, applName: string, ROUTES: string[])
 		})).then(html => {
 			let wf = join(fullPath, 'index.html');
 			writeFileSync(wf, html);
+			log.info('Render %s page at ', route, wf);
 			routerFileMap[route] = relative(staticDir, wf);
 		});
 	});
-	previousRender.then(() => writeFileSync(
-		join(outputFolder, ROUTE_MAP_FILE), JSON.stringify(routerFileMap, null, '  '), 'utf-8'));
+	previousRender.then(() => {
+		const routeMapFile = join(outputFolder, ROUTE_MAP_FILE);
+		writeFileSync(routeMapFile, JSON.stringify(routerFileMap, null, '  '), 'utf-8');
+		log.info('write ', routeMapFile);
+	});
 }
 
 export class PrerenderForExpress {

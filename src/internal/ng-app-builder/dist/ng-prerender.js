@@ -44,10 +44,15 @@ function writeRoutes(destDir, applName, ROUTES) {
         })).then(html => {
             let wf = path_1.join(fullPath, 'index.html');
             fs_extra_1.writeFileSync(wf, html);
+            log.info('Render %s page at ', route, wf);
             routerFileMap[route] = path_1.relative(staticDir, wf);
         });
     });
-    previousRender.then(() => fs_extra_1.writeFileSync(path_1.join(outputFolder, ROUTE_MAP_FILE), JSON.stringify(routerFileMap, null, '  '), 'utf-8'));
+    previousRender.then(() => {
+        const routeMapFile = path_1.join(outputFolder, ROUTE_MAP_FILE);
+        fs_extra_1.writeFileSync(routeMapFile, JSON.stringify(routerFileMap, null, '  '), 'utf-8');
+        log.info('write ', routeMapFile);
+    });
 }
 exports.writeRoutes = writeRoutes;
 class PrerenderForExpress {

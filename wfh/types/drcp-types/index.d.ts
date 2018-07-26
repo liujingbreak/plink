@@ -2,7 +2,8 @@
 
 declare module '__api' {
 	import {DrcpApi} from '@dr-core/ng-app-builder/globals';
-	export * from '@dr-core/ng-app-builder/globals';
+  export * from '@dr-core/ng-app-builder/globals';
+  export {ServerRunnerEvent} from 'dr-comp-package/wfh/dist/package-runner';
 	var api: DrcpApi;
 	export default api;
 }

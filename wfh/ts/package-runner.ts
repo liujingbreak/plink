@@ -1,5 +1,6 @@
 /* tslint:disable max-line-length */
 import NodePackage from './packageNodeInstance';
+import Events = require('events');
 import * as _ from 'lodash';
 import {PackageInfo, packageInstance} from '@dr-core/build-util/index';
 // import Package from './packageNodeInstance';
@@ -13,9 +14,12 @@ const NodeApi = require('../lib/nodeApi');
 const {nodeInjector} = require('../lib/injectorFactory');
 
 
-
 const log = require('log4js').getLogger('package-runner');
 
+export interface ServerRunnerEvent {
+	file: string;
+	functionName: string;
+}
 export class ServerRunner {
 	// packageCache: {[shortName: string]: NodePackage} = {};
 	// corePackages: {[shortName: string]: NodePackage} = {};
@@ -73,8 +77,15 @@ export function runPackages(argv: any) {
 	});
 	return orderPackages(components, (pkInstance: packageInstance)  => {
 		const file = join(pkInstance.packagePath, fileToRun);
-		log.info('Run %s %s()', file, funcToRun);
-		return require(file)[funcToRun]();
+		log.info('require(%s)', JSON.stringify(file));
+		const fileExports: any = require(file);
+		if (_.isFunction(fileExports[funcToRun])) {
+			log.info('Run %s %s()', file, funcToRun);
+			return fileExports[funcToRun]();
+		}
+	})
+	.then(() => {
+		(proto.eventBus as Events).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
 	});
 }
 

@@ -1,4 +1,8 @@
 import NodePackage from './packageNodeInstance';
+export interface ServerRunnerEvent {
+    file: string;
+    functionName: string;
+}
 export declare class ServerRunner {
     deactivatePackages: NodePackage[];
     shutdownServer(): Promise<void>;

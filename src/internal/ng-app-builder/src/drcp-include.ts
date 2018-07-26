@@ -4,5 +4,14 @@
  */
 
 export default function handleBootStrap(module: any, bootstrap: ()=> Promise<any>) {
-	// handleBootStrap placeholder
+	document.addEventListener('DOMContentLoaded', () => {
+		// Wait for Server side rendering state element being loaded on HTML.
+		// handleBootStrap placeholder
+		(window as any).__DOMContentLoaded = true;
+	});
+	if ((window as any).__DOMContentLoaded) {
+		// When hot module replacement triggere this file being executed,
+		// we don't need to wait for DOMContentLoaded event anymore.
+		// handleBootStrap placeholder
+	}
 }

@@ -40,7 +40,7 @@ function createTsReadHook(ngParam) {
                     if (!ngParam.browserOptions.aot) {
                         content = 'import \'core-js/es7/reflect\';\n' + content;
                     }
-                    content = content.replace(/\/\/ handleBootStrap placeholder/, body);
+                    content = content.replace(/\/\/ handleBootStrap placeholder/g, body);
                     if (ngParam.ssr) {
                         content += '\nconsole.log("set global.LEGO_CONFIG");';
                         content += '\nObject.assign(global, {\

@@ -73,8 +73,15 @@ function runPackages(argv) {
     });
     return package_priority_helper_1.orderPackages(components, (pkInstance) => {
         const file = path_1.join(pkInstance.packagePath, fileToRun);
-        log.info('Run %s %s()', file, funcToRun);
-        return require(file)[funcToRun]();
+        log.info('require(%s)', JSON.stringify(file));
+        const fileExports = require(file);
+        if (_.isFunction(fileExports[funcToRun])) {
+            log.info('Run %s %s()', file, funcToRun);
+            return fileExports[funcToRun]();
+        }
+    })
+        .then(() => {
+        proto.eventBus.emit('done', { file: fileToRun, functionName: funcToRun });
     });
 }
 exports.runPackages = runPackages;
