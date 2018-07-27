@@ -1,16 +1,16 @@
 {
   "name": "@dr/internal-recipe",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "description": "Component group: internal-recipe",
   "dependencies": {
-    "@dr-core/assets-processer": "1.0.1",
-    "@dr-core/build-util": "1.0.1",
-    "@dr-core/express-app": "1.0.2",
-    "@dr/http-server": "1.0.1",
-    "@dr/logger": "1.0.1",
-    "@dr-core/ng-app-builder": "2.0.5",
-    "@dr/template-builder": "1.0.1",
-    "@dr/translate-generator": "1.0.1",
-    "@dr-core/webpack2-builder": "1.0.1"
+    "@dr-core/assets-processer": "1.0.2",
+    "@dr-core/build-util": "1.0.2",
+    "@dr-core/express-app": "1.0.3",
+    "@dr/http-server": "1.0.2",
+    "@dr/logger": "1.0.2",
+    "@dr-core/ng-app-builder": "2.0.6",
+    "@dr/template-builder": "1.0.2",
+    "@dr/translate-generator": "1.0.2",
+    "@dr-core/webpack2-builder": "1.0.2"
   }
 }

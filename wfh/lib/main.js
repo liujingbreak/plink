@@ -30,7 +30,6 @@ require('./cmd-args').nodeAppCommand(function(argv) {
 				shutdown();
 			}
 		});
-		process._config = config;
 		shutdownable = pkMgr.runServer(argv)
 		.catch(err => {
 			log.error('Failed to start server:', err);

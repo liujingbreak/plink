@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 // Load zone.js for the server.
 require("zone.js/dist/zone-node");
@@ -8,6 +16,7 @@ const path_1 = require("path");
 const core_1 = require("@angular/core");
 const _ = require("lodash");
 const log = require('log4js').getLogger('ng-prerender');
+const __api_1 = require("__api");
 // const request = require('request');
 // Faster server renders w/ Prod mode (dev mode never needed)
 core_1.enableProdMode();
@@ -48,13 +57,27 @@ function writeRoutes(destDir, applName, ROUTES) {
             routerFileMap[route] = path_1.relative(staticDir, wf);
         });
     });
-    previousRender.then(() => {
+    return previousRender.then(() => {
         const routeMapFile = path_1.join(outputFolder, ROUTE_MAP_FILE);
         fs_extra_1.writeFileSync(routeMapFile, JSON.stringify(routerFileMap, null, '  '), 'utf-8');
         log.info('write ', routeMapFile);
+        return routeMapFile;
     });
 }
 exports.writeRoutes = writeRoutes;
+function writeRoutesWithLocalServer(destDir, applName, ROUTES) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
+        const shutdown = yield pkMgr.runServer(__api_1.default.argv);
+        const mapFile = yield writeRoutes(destDir, applName, ROUTES);
+        yield shutdown();
+        yield new Promise((resolve) => {
+            require('log4js').shutdown(resolve);
+        });
+        return mapFile;
+    });
+}
+exports.writeRoutesWithLocalServer = writeRoutesWithLocalServer;
 class PrerenderForExpress {
     constructor(staticDir, applName) {
         this.staticDir = staticDir;

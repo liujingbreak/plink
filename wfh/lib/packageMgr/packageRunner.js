@@ -47,7 +47,13 @@ function runServer(argv) {
 		var newRunner = new ServerRunner();
 		deactivateOrder.reverse();
 		newRunner.deactivatePackages = deactivateOrder;
-		return () => newRunner.shutdownServer();
+		return new Promise(resolve => {
+			setTimeout(() => {
+				resolve(() => {
+					newRunner.shutdownServer();
+				});
+			}, 500);
+		});
 	});
 }
 

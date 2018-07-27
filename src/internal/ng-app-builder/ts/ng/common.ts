@@ -78,11 +78,11 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 		var pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
 		let shutdownable: Promise<() => void>;
 		try {
-			process.on('uncaughtException', function(err) {
-				log.error('Uncaught exception: ', err, err.stack);
-				// throw err; // let PM2 handle exception
-				obs.error(err);
-			});
+			// process.on('uncaughtException', function(err) {
+			// 	log.error('Uncaught exception: ', err, err.stack);
+			// 	// throw err; // let PM2 handle exception
+			// 	obs.error(err);
+			// });
 			process.on('SIGINT', function() {
 				log.info('Recieve SIGINT.');
 				shutdownable.then(shut => shut())
@@ -103,16 +103,13 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 					});
 				}
 			});
-			(process as any)._config = config;
 			pkMgr.eventBus.on('webpackDone', (buildEvent: BuildEvent) => {
 				obs.next(buildEvent);
-				// obs.complete();
 			});
 			shutdownable = pkMgr.runServer(param.argv)
 			.then((shutdownable: any) => {
 				if (_.get(options, 'drcpArgs.noWebpack')) {
 					obs.next({success: true});
-					// obs.complete();
 				}
 				return shutdownable;
 			})

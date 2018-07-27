@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/build-util",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "build utility",
   "main": "index.js",
   "scripts": {

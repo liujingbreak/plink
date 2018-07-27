@@ -9,6 +9,8 @@ import { enableProdMode } from '@angular/core';
 import {Request, Response, NextFunction} from 'express';
 import * as _ from 'lodash';
 const log = require('log4js').getLogger('ng-prerender');
+import api from '__api';
+
 // const request = require('request');
 // Faster server renders w/ Prod mode (dev mode never needed)
 enableProdMode();
@@ -19,7 +21,7 @@ import { renderModuleFactory } from '@angular/platform-server';
 
 const ROUTE_MAP_FILE = 'prerender-routes.json';
 
-export function writeRoutes(destDir: string, applName: string, ROUTES: string[]) {
+export function writeRoutes(destDir: string, applName: string, ROUTES: string[]): Promise<string> {
 	const mainServerExports = require(join(destDir, 'server', applName, 'main'));
 	const indexHtmlFile = join(destDir, 'static', applName, 'index.html');
 	const outputFolder = join(destDir, 'static', applName, '_prerender');
@@ -55,11 +57,23 @@ export function writeRoutes(destDir: string, applName: string, ROUTES: string[])
 			routerFileMap[route] = relative(staticDir, wf);
 		});
 	});
-	previousRender.then(() => {
+	return previousRender.then(() => {
 		const routeMapFile = join(outputFolder, ROUTE_MAP_FILE);
 		writeFileSync(routeMapFile, JSON.stringify(routerFileMap, null, '  '), 'utf-8');
 		log.info('write ', routeMapFile);
+		return routeMapFile;
 	});
+}
+
+export async function writeRoutesWithLocalServer(destDir: string, applName: string, ROUTES: string[]) {
+	const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
+	const shutdown: () => void = await pkMgr.runServer(api.argv);
+	const mapFile = await writeRoutes(destDir, applName, ROUTES);
+	await shutdown();
+	await new Promise((resolve) => {
+		require('log4js').shutdown(resolve);
+	});
+	return mapFile;
 }
 
 export class PrerenderForExpress {

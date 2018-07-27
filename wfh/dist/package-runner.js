@@ -65,11 +65,9 @@ function runPackages(argv) {
         return getApiForPackage(packageInstance);
     };
     const components = packageInfo.allModules.filter(pk => {
+        setupNodeInjectorFor(pk); // All component package should be able to access '__api', even they are not included
         return (includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
             pk.dr != null && fs_1.existsSync(path_1.join(pk.packagePath, fileToRun));
-    });
-    components.forEach(pk => {
-        setupNodeInjectorFor(pk);
     });
     return package_priority_helper_1.orderPackages(components, (pkInstance) => {
         const file = path_1.join(pkInstance.packagePath, fileToRun);
