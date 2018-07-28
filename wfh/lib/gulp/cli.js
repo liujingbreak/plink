@@ -218,8 +218,8 @@ function _writeGitHook(project) {
 		var hookStr = '#!/bin/sh\n' +
 			`cd "${rootPath}"\n` +
 			'drcp init\n' +
-			'npx pretty-quick --staged\n' +
-			`drcp lint --pj "${project}"\n`;
+			// 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
+			`drcp lint --pj "${project}" --fix\n`;
 		fs.writeFileSync(gitPath + '/pre-commit', hookStr);
 		console.log('Write ' + gitPath + '/pre-commit');
 		if (!isWin32)

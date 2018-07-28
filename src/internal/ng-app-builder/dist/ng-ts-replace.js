@@ -25,7 +25,7 @@ function createTsReadHook(ngParam) {
             if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
                 let normalFile = path_1.relative(process.cwd(), file);
                 if (path_1.sep === '\\')
-                    normalFile = file.replace(/\\/g, '/');
+                    normalFile = normalFile.replace(/\\/g, '/');
                 if (normalFile === polyfillsFile) {
                     const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
                     const content = Buffer.from(buf).toString() + hmrClient;

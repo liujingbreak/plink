@@ -15,7 +15,8 @@ const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfig: any): any {
 	// const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
 	console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
-	if (param.browserOptions.drcpArgs.report ||(param.browserOptions.drcpArgs.openReport)) {
+	if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
+		param.browserOptions.drcpArgs.report ||(param.browserOptions.drcpArgs.openReport)) {
 		// webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
 		// 	analyzerMode: 'static',
 		// 	reportFilename: 'bundle-report.html',
