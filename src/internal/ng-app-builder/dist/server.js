@@ -196,16 +196,6 @@ function activate() {
     });
 }
 exports.activate = activate;
-// function shouldUseNgLoader(file: string): boolean {
-// 	if (!/(?:\.ngfactory\.js|\.ngstyle\.js|\.ts)$/.test(file))
-// 		return false;
-// 	var component = api.findPackageByFile(file);
-// 	if (!component)
-// 		return true;
-// 	else if (_.get(component, 'dr.angularCompiler'))
-// 		return true;
-// 	return false;
-// }
 function writeTsconfig() {
     var root = __api_1.default.config().rootPath;
     var tempDir = __api_1.default.config.resolve('destDir', 'webpack-temp');

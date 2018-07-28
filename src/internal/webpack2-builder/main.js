@@ -88,13 +88,14 @@ exports.activate = function() {
 		if (_.size(webpackConfig.entry) === 0)
 			return;
 		var compiler = webpack(webpackConfig);
-		api.use((api.isDefaultLocale() ? webpackRootPath : webpackRootPath + '/' + api.getBuildLocale()), webpackMiddleware(compiler, {
+		api.use(webpackMiddleware(compiler, {
 			//noInfo: true,
 			watchOptions: {
 				poll: api.argv.poll ? true : false,
 				aggregateTimeout: 300
 			},
 			stats: webpackStateOption(),
+			publicPath: api.isDefaultLocale() ? webpackRootPath : webpackRootPath + '/' + api.getBuildLocale()
 		}));
 		if (api.argv.hmr) {
 			log.info('Enable ' + chalk.yellow('Hot module replacement mode (HMR)'));

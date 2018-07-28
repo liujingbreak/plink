@@ -8,6 +8,7 @@ const rxjs_1 = require("rxjs");
 const ts_before_aot_1 = require("./utils/ts-before-aot");
 const typescript_1 = require("typescript");
 const fs_1 = require("fs");
+const path_1 = require("path");
 const ts = require("typescript");
 const log = log4js.getLogger(__api_1.default.packageName);
 const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
@@ -16,20 +17,29 @@ var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageNa
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
 function createTsReadHook(ngParam) {
     let drcpIncludeBuf;
-    let tsconfigFile = ngParam.browserOptions.tsConfig;
-    let tsCompilerOptions = readTsConfig(tsconfigFile);
+    const tsconfigFile = ngParam.browserOptions.tsConfig;
+    const tsCompilerOptions = readTsConfig(tsconfigFile);
+    const polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
     return function (file, buf) {
         try {
             if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
-                if (/[\\\/]drcp-include\.ts/.test(file)) {
+                let normalFile = path_1.relative(process.cwd(), file);
+                if (path_1.sep === '\\')
+                    normalFile = file.replace(/\\/g, '/');
+                if (normalFile === polyfillsFile) {
+                    const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
+                    const content = Buffer.from(buf).toString() + hmrClient;
+                    log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
+                    return rxjs_1.of(string2buffer(content));
+                }
+                else if (normalFile.endsWith('/drcp-include.ts')) {
                     if (drcpIncludeBuf)
                         return rxjs_1.of(drcpIncludeBuf);
                     let content = Buffer.from(buf).toString();
                     const legoConfig = browserLegoConfig();
                     let body;
                     if (_.get(ngParam, 'builderConfig.options.hmr')) {
-                        content = `import 'webpack-hot-middleware/client';
-						// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
+                        content = `// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
 						import hmrBootstrap from './hmr';
 						`.replace(/^[ \t]+/gm, '') + content;
                         body = 'hmrBootstrap(module, bootstrap);';

@@ -118,8 +118,13 @@ class WorkspaceInstaller {
 			var needRunInstall = yield _initDependency(self.isDrcpSymlink);
 			if (forceInstall || needRunInstall) {
 				//this.installed = true;
-				return yield packageJsonGuarder.installAsync(false, self.isOffline)
-					.then(() => self.run(false));
+				try {
+					yield packageJsonGuarder.installAsync(false, self.isOffline);
+				} catch (err) {
+					createProjectSymlinks();
+					throw err;
+				}
+				return yield self.run(false);
 			}
 			packageJsonGuarder.markInstallNum();
 			yield helper.addupConfigs((file, configContent) => {

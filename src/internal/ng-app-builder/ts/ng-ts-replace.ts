@@ -8,6 +8,7 @@ import {AngularCliParam} from './ng/common';
 import ApiAotCompiler from './utils/ts-before-aot';
 import {transpileModule} from 'typescript';
 import {readFileSync} from 'fs';
+import {sep as SEP, relative} from 'path';
 import * as ts from 'typescript';
 
 const log = log4js.getLogger(api.packageName);
@@ -20,21 +21,30 @@ var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageNa
 export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc {
 	let drcpIncludeBuf: ArrayBuffer;
 
-	let tsconfigFile = ngParam.browserOptions.tsConfig;
-	let tsCompilerOptions = readTsConfig(tsconfigFile);
+	const tsconfigFile = ngParam.browserOptions.tsConfig;
+	const tsCompilerOptions = readTsConfig(tsconfigFile);
+	const polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
 
 	return function(file: string, buf: ArrayBuffer) {
 		try {
 			if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
-				if (/[\\\/]drcp-include\.ts/.test(file)) {
+				let normalFile = relative(process.cwd(), file);
+				if (SEP === '\\')
+					normalFile = file.replace(/\\/g, '/');
+
+				if (normalFile === polyfillsFile) {
+					const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
+					const content = Buffer.from(buf).toString() + hmrClient;
+					log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
+					return of(string2buffer(content));
+				} else if (normalFile.endsWith('/drcp-include.ts')) {
 					if (drcpIncludeBuf)
 						return of(drcpIncludeBuf);
 					let content = Buffer.from(buf).toString();
 					const legoConfig = browserLegoConfig();
 					let body: string;
 					if (_.get(ngParam, 'builderConfig.options.hmr')) {
-						content = `import 'webpack-hot-middleware/client';
-						// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
+						content = `// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
 						import hmrBootstrap from './hmr';
 						`.replace(/^[ \t]+/gm, '') + content;
 
