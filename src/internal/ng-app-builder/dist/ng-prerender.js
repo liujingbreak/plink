@@ -17,13 +17,16 @@ const core_1 = require("@angular/core");
 const _ = require("lodash");
 const log = require('log4js').getLogger('ng-prerender');
 const __api_1 = require("__api");
-// const request = require('request');
-// Faster server renders w/ Prod mode (dev mode never needed)
-core_1.enableProdMode();
-// Import module map for lazy loading
 const module_map_ngfactory_loader_1 = require("@nguniversal/module-map-ngfactory-loader");
 const platform_server_1 = require("@angular/platform-server");
+const domino = require('domino');
 const ROUTE_MAP_FILE = 'prerender-routes.json';
+core_1.enableProdMode();
+function setupGlobals(indexHtml, url) {
+    const window = domino.createWindow(indexHtml, url);
+    global.window = window;
+    global.document = window.document;
+}
 function writeRoutes(destDir, applName, ROUTES) {
     const mainServerExports = require(path_1.join(destDir, 'server', applName, 'main'));
     const indexHtmlFile = path_1.join(destDir, 'static', applName, 'index.html');
@@ -43,6 +46,7 @@ function writeRoutes(destDir, applName, ROUTES) {
         if (!fs_extra_1.existsSync(fullPath)) {
             fs_extra_1.ensureDirSync(fullPath);
         }
+        setupGlobals(index, route);
         // Writes rendered HTML to index.html, replacing the file if it already exists.
         previousRender = previousRender.then(_ => platform_server_1.renderModuleFactory(AppServerModuleNgFactory, {
             document: index,
@@ -93,6 +97,10 @@ class PrerenderForExpress {
         this.queryPrerenderPages();
     }
     asMiddleware() {
+        if (__api_1.default.argv.hmr) {
+            log.warn('Hot module replacement mode is on, no prerender page will be served');
+            return (req, res, next) => next();
+        }
         return (req, res, next) => {
             const route = _.trimEnd(req.originalUrl, '/');
             if (_.has(this.prerenderPages, route)) {

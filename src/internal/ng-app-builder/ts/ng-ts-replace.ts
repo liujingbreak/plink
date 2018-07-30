@@ -22,8 +22,12 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 	let drcpIncludeBuf: ArrayBuffer;
 
 	const tsconfigFile = ngParam.browserOptions.tsConfig;
+
+	const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || api.argv.hmr;
 	const tsCompilerOptions = readTsConfig(tsconfigFile);
-	const polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
+	let polyfillsFile: string = '';
+	if (ngParam.browserOptions.polyfills)
+		polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
 
 	return function(file: string, buf: ArrayBuffer) {
 		try {
@@ -32,7 +36,7 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 				if (SEP === '\\')
 					normalFile = normalFile.replace(/\\/g, '/');
 
-				if (normalFile === polyfillsFile) {
+				if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
 					const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
 					const content = Buffer.from(buf).toString() + hmrClient;
 					log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
@@ -43,7 +47,7 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 					let content = Buffer.from(buf).toString();
 					const legoConfig = browserLegoConfig();
 					let body: string;
-					if (_.get(ngParam, 'builderConfig.options.hmr')) {
+					if (hmrEnabled) {
 						content = `// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
 						import hmrBootstrap from './hmr';
 						`.replace(/^[ \t]+/gm, '') + content;

@@ -4,7 +4,7 @@ import * as log4js from 'log4js';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import * as _fs from 'fs';
-import * as express from 'express';
+// import { PrerenderForExpress } from './ng-prerender';
 import {AngularCliParam} from './ng/common';
 import configWebpack from './config-webpack';
 import createHook from './ng-ts-replace';
@@ -193,10 +193,10 @@ export function init() {
 
 export function activate() {
 	// setupApiForAngularCli();
-	api.router().get('/ok', (req: express.Request, res: express.Response) => {
-		log.warn('cool');
-		res.send('cool');
-	});
+	// const prerenderExpress = new PrerenderForExpress(api.config().staticDir, '...');
+	// api.expressAppUse(app => {
+	// 	app.use(prerenderExpress.asMiddleware());
+	// });
 }
 
 export function writeTsconfig(): string {

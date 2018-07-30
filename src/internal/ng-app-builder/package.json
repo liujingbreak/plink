@@ -33,7 +33,8 @@
     "source-map": "^0.6.1",
     "@types/loader-utils": "^1.1.3",
     "reflect-metadata": "^0.1.12",
-    "zone.js": "^0.8.26"
+    "zone.js": "^0.8.26",
+    "domino": "2.0.3"
   },
   "back-dep": {
   },

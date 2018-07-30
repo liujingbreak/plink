@@ -365,11 +365,11 @@ function drcpCommand(startTime) {
 function nodeAppCommand(callback) {
 	var cli = require('./gulp/cli');
 	var argv = yargs.usage(
-		hlDesc('node app --ww [-c config-name ...] [-p package-name ...]') + '\n Start app in Webpack watch mode\n' +
-		hlDesc('node app watch [package-name ...] [-c config-name ...]') + '\n Start app in Webpack watch mode\n' +
+		// hlDesc('node app --ww [-c config-name ...] [-p package-name ...]') + '\n Start app in Webpack watch mode\n' +
+		// hlDesc('node app watch [package-name ...] [-c config-name ...]') + '\n Start app in Webpack watch mode\n' +
 		hlDesc('node app [-c config-name ...]') + '\n Only start Express and HTTP service and run server side Node.js component\n' +
-		hlDesc('node app watch [package..] --rd <dll-library..>') +
-		'\n Start app in Webpack watch mode, compile entry components with existing DLL chunks, <dll-library> can be an absolute path or file name from dist/dll\n' +
+		// hlDesc('node app watch [package..] --rd <dll-library..>') +
+		// '\n Start app in Webpack watch mode, compile entry components with existing DLL chunks, <dll-library> can be an absolute path or file name from dist/dll\n' +
 		hlDesc('node app watch-server [package..] [--pj <project-dir..>]') +
 		'\n Start app in server side Typescript file watch mode, once <component>/ts/**/*.ts is changed or added, ' +
 		'the changed server side Typescript file will be compiled and server will restart.\n (ps. No client file will be compiled)')

@@ -18,15 +18,18 @@ var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageNa
 function createTsReadHook(ngParam) {
     let drcpIncludeBuf;
     const tsconfigFile = ngParam.browserOptions.tsConfig;
+    const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || __api_1.default.argv.hmr;
     const tsCompilerOptions = readTsConfig(tsconfigFile);
-    const polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
+    let polyfillsFile = '';
+    if (ngParam.browserOptions.polyfills)
+        polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
     return function (file, buf) {
         try {
             if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
                 let normalFile = path_1.relative(process.cwd(), file);
                 if (path_1.sep === '\\')
                     normalFile = normalFile.replace(/\\/g, '/');
-                if (normalFile === polyfillsFile) {
+                if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
                     const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
                     const content = Buffer.from(buf).toString() + hmrClient;
                     log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
@@ -38,7 +41,7 @@ function createTsReadHook(ngParam) {
                     let content = Buffer.from(buf).toString();
                     const legoConfig = browserLegoConfig();
                     let body;
-                    if (_.get(ngParam, 'builderConfig.options.hmr')) {
+                    if (hmrEnabled) {
                         content = `// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
 						import hmrBootstrap from './hmr';
 						`.replace(/^[ \t]+/gm, '') + content;

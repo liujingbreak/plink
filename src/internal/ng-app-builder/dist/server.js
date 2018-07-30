@@ -190,10 +190,10 @@ function init() {
 exports.init = init;
 function activate() {
     // setupApiForAngularCli();
-    __api_1.default.router().get('/ok', (req, res) => {
-        log.warn('cool');
-        res.send('cool');
-    });
+    // const prerenderExpress = new PrerenderForExpress(api.config().staticDir, '...');
+    // api.expressAppUse(app => {
+    // 	app.use(prerenderExpress.asMiddleware());
+    // });
 }
 exports.activate = activate;
 function writeTsconfig() {
