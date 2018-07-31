@@ -1,4 +1,5 @@
 import express = require('express');
+import {Request, Response, NextFunction} from 'express';
 import * as Path from 'path';
 // var favicon = require('serve-favicon');
 import * as log4js from 'log4js';
@@ -15,7 +16,8 @@ var compression = require('compression');
 const VIEW_PATH = Path.relative(api.config().rootPath,
 	Path.resolve(__dirname, '..', 'views'));
 var app: express.Express;
-module.exports = {
+
+export = {
 	activate() {
 		app = express();
 		setupApi(api, app);
@@ -34,20 +36,6 @@ module.exports = {
 		return app;
 	}
 };
-
-// Object.defineProperties(module.exports, {
-// 	/**
-// 	 * Express app instance.
-// 	 * Assign another express app instance instead of a default one,
-// 	 * otherwise a default express app instance will be created.
-// 	 * @type {Object}
-// 	 */
-// 	app: {
-// 		enumerable: true,
-// 		set: expressApp => app = expressApp,
-// 		get: () => app
-// 	}
-// });
 
 function create(app: express.Express, setting: any) {
 	// view engine setup
@@ -96,10 +84,12 @@ function create(app: express.Express, setting: any) {
 	const hashFile = Path.join(api.config().rootPath, 'githash-server.txt');
 	if (fs.existsSync(hashFile)) {
 		const githash = fs.readFileSync(hashFile, 'utf8');
-		app.get('/githash-server', (req, res) => {
+		app.get('/githash-server', (req: Request, res: Response) => {
+			res.set('Content-Type', 'text/plain');
 			res.send(githash);
 		});
-		app.get('/githash-server.txt', (req, res) => {
+		app.get('/githash-server.txt', (req: Request, res: Response) => {
+			res.set('Content-Type', 'text/plain');
 			res.send(githash);
 		});
 	}
@@ -115,7 +105,7 @@ function create(app: express.Express, setting: any) {
 	// development error handler
 	// will print stacktrace
 	if (setting.devMode || app.get('env') === 'development') {
-		app.use(function(err: Error, req: express.Request, res: express.Response, next: express.NextFunction) {
+		app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
 			res.status((err as any).status || 500);
 			log.error(req.originalUrl, err);
 			res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
@@ -127,7 +117,7 @@ function create(app: express.Express, setting: any) {
 
 	// production error handler
 	// no stacktraces leaked to user
-	app.use(function(err: Error, req: express.Request, res: express.Response, next: express.NextFunction) {
+	app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
 		res.status((err as any).status || 500);
 		log.error(req.originalUrl, err);
 		res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {

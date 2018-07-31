@@ -98,7 +98,7 @@ class PrerenderForExpress {
     }
     asMiddleware() {
         if (__api_1.default.argv.hmr) {
-            log.warn('Hot module replacement mode is on, no prerender page will be served');
+            log.warn('Hot module replacement mode is on, no prerendered page will be served\n');
             return (req, res, next) => next();
         }
         return (req, res, next) => {

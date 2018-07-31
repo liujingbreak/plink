@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const Path = require("path");
 // var favicon = require('serve-favicon');
@@ -15,38 +14,6 @@ var compression = require('compression');
 // var swigInjectLoader = require('swig-package-tmpl-loader');
 const VIEW_PATH = Path.relative(__api_1.default.config().rootPath, Path.resolve(__dirname, '..', 'views'));
 var app;
-module.exports = {
-    activate() {
-        app = express();
-        setupApi(__api_1.default, app);
-        __api_1.default.eventBus.on('packagesActivated', function (packageCache) {
-            log.info('packagesActivated');
-            process.nextTick(() => {
-                create(app, __api_1.default.config());
-                __api_1.default.eventBus.emit('appCreated', app);
-            });
-        });
-    },
-    set app(expressApp) {
-        app = expressApp;
-    },
-    get app() {
-        return app;
-    }
-};
-// Object.defineProperties(module.exports, {
-// 	/**
-// 	 * Express app instance.
-// 	 * Assign another express app instance instead of a default one,
-// 	 * otherwise a default express app instance will be created.
-// 	 * @type {Object}
-// 	 */
-// 	app: {
-// 		enumerable: true,
-// 		set: expressApp => app = expressApp,
-// 		get: () => app
-// 	}
-// });
 function create(app, setting) {
     // view engine setup
     swig.setDefaults({
@@ -93,9 +60,11 @@ function create(app, setting) {
     if (fs.existsSync(hashFile)) {
         const githash = fs.readFileSync(hashFile, 'utf8');
         app.get('/githash-server', (req, res) => {
+            res.set('Content-Type', 'text/plain');
             res.send(githash);
         });
         app.get('/githash-server.txt', (req, res) => {
+            res.set('Content-Type', 'text/plain');
             res.send(githash);
         });
     }
@@ -131,5 +100,24 @@ function create(app, setting) {
     });
     return app;
 }
+module.exports = {
+    activate() {
+        app = express();
+        setupApi(__api_1.default, app);
+        __api_1.default.eventBus.on('packagesActivated', function (packageCache) {
+            log.info('packagesActivated');
+            process.nextTick(() => {
+                create(app, __api_1.default.config());
+                __api_1.default.eventBus.emit('appCreated', app);
+            });
+        });
+    },
+    set app(expressApp) {
+        app = expressApp;
+    },
+    get app() {
+        return app;
+    }
+};
 
 //# sourceMappingURL=app.js.map

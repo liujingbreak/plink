@@ -3,6 +3,7 @@
 *.html
 *.js
 *.map
+*.d.ts
 
 dist
 /tmp
