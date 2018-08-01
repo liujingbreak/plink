@@ -120,6 +120,19 @@ function changeLoaders(webpackConfig: any) {
 					}
 				]
 			});
+		} else if (test instanceof RegExp && test.toString().indexOf('\\.scss') >= 0 && rule.use) {
+			const use = (rule.use as Array<{[key: string]: any, loader: string}>);
+			let insertIdx = use.findIndex(item => item.loader === 'sass-loader');
+			if (insertIdx < 0) {
+				throw new Error('sass-loader is not found');
+			}
+			use.splice(insertIdx, 0, {
+				loader: 'resolve-url-loader',
+				options: {
+					sourceMap: use[insertIdx].options.sourceMap
+				}
+			});
+			// rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
 		} else if (test instanceof RegExp && test.toString() === '/\\.less$/' && rule.use) {
 			for (const useItem of rule.use) {
 				if (useItem.loader === 'less-loader' && _.has(useItem, 'options.paths')) {
