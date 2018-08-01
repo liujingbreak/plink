@@ -104,6 +104,8 @@ class PrerenderForExpress {
             return (req, res, next) => next();
         }
         return (req, res, next) => {
+            if (req.method !== 'GET')
+                return next();
             const route = _.trimEnd(req.originalUrl, '/');
             if (_.has(this.prerenderPages, route)) {
                 log.info('Serve with prerender page for ', route);
