@@ -28,14 +28,15 @@ function setupGlobals(indexHtml, url) {
     global.document = window.document;
 }
 function writeRoutes(destDir, applName, ROUTES) {
-    const mainServerExports = require(path_1.join(destDir, 'server', applName, 'main'));
     const indexHtmlFile = path_1.join(destDir, 'static', applName, 'index.html');
+    const index = fs_extra_1.readFileSync(indexHtmlFile, 'utf8');
+    setupGlobals(index);
+    const mainServerExports = require(path_1.join(destDir, 'server', applName, 'main'));
     const outputFolder = path_1.join(destDir, 'static', applName, '_prerender');
     const staticDir = path_1.join(destDir, 'static');
     // * NOTE :: leave this as require() since this file is built Dynamically from webpack
     const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = mainServerExports;
     // Load the index.html file containing referances to your application bundle.
-    const index = fs_extra_1.readFileSync(indexHtmlFile, 'utf8');
     let previousRender = Promise.resolve();
     let routerFileMap = {};
     // Iterate each route path
@@ -46,15 +47,16 @@ function writeRoutes(destDir, applName, ROUTES) {
         if (!fs_extra_1.existsSync(fullPath)) {
             fs_extra_1.ensureDirSync(fullPath);
         }
-        setupGlobals(index, route);
         // Writes rendered HTML to index.html, replacing the file if it already exists.
-        previousRender = previousRender.then(_ => platform_server_1.renderModuleFactory(AppServerModuleNgFactory, {
-            document: index,
-            url: route,
-            extraProviders: [
-                module_map_ngfactory_loader_1.provideModuleMap(LAZY_MODULE_MAP)
-            ]
-        })).then(html => {
+        previousRender = previousRender.then(_ => {
+            return platform_server_1.renderModuleFactory(AppServerModuleNgFactory, {
+                document: index,
+                url: route,
+                extraProviders: [
+                    module_map_ngfactory_loader_1.provideModuleMap(LAZY_MODULE_MAP)
+                ]
+            });
+        }).then(html => {
             let wf = path_1.join(fullPath, 'index.html');
             fs_extra_1.writeFileSync(wf, html);
             log.info('Render %s page at ', route, wf);

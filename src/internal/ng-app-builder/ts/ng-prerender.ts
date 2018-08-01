@@ -18,21 +18,23 @@ const domino = require('domino');
 const ROUTE_MAP_FILE = 'prerender-routes.json';
 enableProdMode();
 
-function setupGlobals(indexHtml: string, url: string) {
+function setupGlobals(indexHtml: string, url?: string) {
 	const window: any = domino.createWindow(indexHtml, url);
 	(global as any).window = window;
 	(global as any).document = window.document;
 }
 
 export function writeRoutes(destDir: string, applName: string, ROUTES: string[]): Promise<string> {
-	const mainServerExports = require(join(destDir, 'server', applName, 'main'));
 	const indexHtmlFile = join(destDir, 'static', applName, 'index.html');
+	const index = readFileSync(indexHtmlFile, 'utf8');
+	setupGlobals(index);
+	const mainServerExports = require(join(destDir, 'server', applName, 'main'));
 	const outputFolder = join(destDir, 'static', applName, '_prerender');
 	const staticDir = join(destDir, 'static');
 	// * NOTE :: leave this as require() since this file is built Dynamically from webpack
 	const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = mainServerExports;
 	// Load the index.html file containing referances to your application bundle.
-	const index = readFileSync(indexHtmlFile, 'utf8');
+
 
 	let previousRender = Promise.resolve();
 	let routerFileMap: {[route: string]: string} = {};
@@ -45,15 +47,15 @@ export function writeRoutes(destDir: string, applName: string, ROUTES: string[])
 		if (!existsSync(fullPath)) {
 			ensureDirSync(fullPath);
 		}
-		setupGlobals(index, route);
 		// Writes rendered HTML to index.html, replacing the file if it already exists.
-		previousRender = previousRender.then(_ => renderModuleFactory(AppServerModuleNgFactory, {
-			document: index,
-			url: route,
-			extraProviders: [
-				provideModuleMap(LAZY_MODULE_MAP)
-			]
-		})).then(html => {
+		previousRender = previousRender.then(_ => {
+			return renderModuleFactory(AppServerModuleNgFactory, {
+				document: index,
+				url: route,
+				extraProviders: [
+					provideModuleMap(LAZY_MODULE_MAP)
+			]});
+		}).then(html => {
 			let wf = join(fullPath, 'index.html');
 			writeFileSync(wf, html);
 			log.info('Render %s page at ', route, wf);
