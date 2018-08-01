@@ -126,10 +126,14 @@ function changeLoaders(webpackConfig: any) {
 			if (insertIdx < 0) {
 				throw new Error('sass-loader is not found');
 			}
+			const needSourceMap = use[insertIdx].options.sourceMap;
+			// resolve-url-loader: "source maps must be enabled on any preceding loader"
+			// https://github.com/bholloway/resolve-url-loader
+			use[insertIdx].options.sourceMap = true;
 			use.splice(insertIdx, 0, {
 				loader: 'resolve-url-loader',
 				options: {
-					sourceMap: use[insertIdx].options.sourceMap
+					sourceMap: needSourceMap
 				}
 			});
 			// rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
