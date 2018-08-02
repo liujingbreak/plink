@@ -50,7 +50,7 @@ exports.activate = function(){
 
 # Check server side git hash
 You need put generate a git hash text file in root folder like,
-```shell
+```bash
 git rev-parse HEAD > githash-server.txt
 echo \"I am in Dev\" >> githash-server.txt
 ```

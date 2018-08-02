@@ -4,7 +4,7 @@ Quick Start
 
 1.	git clone 平台源码后，在根目录下执行
 
-	```shell
+	```bash
 	npm install
 	gulp build
 	npm start
@@ -24,18 +24,18 @@ Quick Start
 
 2.	如果你需要一个本地Sinopia (private NPM registry)
 
-	```shell
+	```bash
 	npm install -g sinopia
 	```
 	Start it!
 
-	```shell
+	```bash
 	sinopia
 	```
 	访问 [http://localhost:4873/](http://localhost:4873/)
 
 3.	Publish packages
-	```shell
+	```bash
 	npm set registry http://localhost:4873/
 	npm adduser <your user name>
 	# If you modified anything, bump version before publish

@@ -18,7 +18,8 @@
           "cert": "cert.pem",
           "port": 443,
           "httpForward": true
-        }
+        },
+        "noHealthCheck": false
       }
     }
   },

@@ -75,17 +75,18 @@ function drcpCommand(startTime) {
 		builder: yargs => {
 			yargs
 			.positional('target', {
-				desc: 'FilePath and exported function name, eg. ' + chalk.green('dist/prerender.js#prepare'),
+				desc: 'FilePath and exported function name, eg. ' + chalk.green('dist/prerender.js#prepare') + ', function can async and return Promise',
 				type: 'string'
 			})
-			.positional('package', {describe: 'Default is all component packages which has "dr" property in package.json file'})
+			.positional('package', {describe: 'Default is all component packages which have "dr" property in package.json file'})
 			.options({
 				arguments: {
 					desc: 'argument array to be passed to <target>',
 					type: 'array'
 				}
 			})
-			.usage('drcp run <target> [package]\ne.g. drcp run dist/file.js#exec');
+			.usage('drcp run <target> [package]\ne.g. drcp run dist/file.js#exec\n' +
+				'execute function from all packages one after one, after all api.eventBus will emit ServerRunnerEvent "done"');
 		},
 		handler: argv => {
 			require('./config').init(argv);

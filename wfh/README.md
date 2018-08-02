@@ -75,7 +75,7 @@ If you are contributor, please read [Contributor doc](http://dr-web-house.github
 
 1. Install command line tool, create an empty **container** folder in somewhere.
 
-  ```shell
+  ```bash
   npm install -g dr-comp-package-cli # Only need to install once
 
   mkdir workspace
@@ -147,7 +147,7 @@ If you are contributor, please read [Contributor doc](http://dr-web-house.github
 ## Share `node_modules` with multiple workspaces
 
 Create the first workspace directory like normal, do `drcp init` in that directory. Then later on, create the second workspace directory, but create a symbolic link which links to workspace 1's folder `node_modules`.
-```shell
+```bash
 ln -s ../workspace1/node_modules node_modules
 ``` 
 

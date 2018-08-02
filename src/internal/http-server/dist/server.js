@@ -12,11 +12,12 @@ const log = log4js.getLogger(__api_1.default.packageName);
 var server;
 let healthCheckServer;
 try {
-    healthCheckServer = require('@bk/bkjk-node-health-server');
+    healthCheckServer = __api_1.default.config.get(__api_1.default.packageName + '.noHealthCheck', false) ?
+        false : require('@bk/bkjk-node-health-server');
 }
 catch (e) {
     if (e.code === 'MODULE_NOT_FOUND') {
-        log.info('@bk/bkjk-node-health-server not installed');
+        log.info('@bk/bkjk-node-health-server is not found, skip it.');
     }
 }
 if (healthCheckServer) {
