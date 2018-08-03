@@ -9,7 +9,7 @@ wfh/doc
 wfh/spec
 wfh/bin
 /wfh/ts
-tsconfig.json
+/tsconfig.json
 .git/
 **/node_modules
 **/.bak
