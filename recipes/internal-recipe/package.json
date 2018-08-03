@@ -1,14 +1,14 @@
 {
   "name": "@dr/internal-recipe",
-  "version": "0.7.10",
+  "version": "0.7.11",
   "description": "Component group: internal-recipe",
   "dependencies": {
     "@dr-core/assets-processer": "1.0.2",
     "@dr-core/build-util": "1.0.2",
     "@dr-core/express-app": "1.0.3",
-    "@dr/http-server": "1.0.2",
+    "@dr/http-server": "1.0.3",
     "@dr/logger": "1.0.2",
-    "@dr-core/ng-app-builder": "2.0.7",
+    "@dr-core/ng-app-builder": "2.0.8",
     "@dr/template-builder": "1.0.2",
     "@dr/translate-generator": "1.0.2",
     "@dr-core/webpack2-builder": "1.0.3"

@@ -46,20 +46,19 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 						return of(drcpIncludeBuf);
 					let content = Buffer.from(buf).toString();
 					const legoConfig = browserLegoConfig();
-					let body: string;
+					let hmrBoot: string;
 					if (hmrEnabled) {
 						content = `// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
 						import hmrBootstrap from './hmr';
 						`.replace(/^[ \t]+/gm, '') + content;
 
-						body = 'hmrBootstrap(module, bootstrap);';
-					} else {
-						body = 'bootstrap();';
+						hmrBoot = 'hmrBootstrap(module, bootstrap)';
 					}
 					if (!ngParam.browserOptions.aot) {
 						content = 'import \'core-js/es7/reflect\';\n' + content;
 					}
-					content = content.replace(/\/\/ handleBootStrap placeholder/g, body);
+					if (hmrBoot)
+						content = content.replace(/\/\* replace \*\/bootstrap\(\)/g, hmrBoot);
 					if (ngParam.ssr) {
 						content += '\nconsole.log("set global.LEGO_CONFIG");';
 						content += '\nObject.assign(global, {\

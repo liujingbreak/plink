@@ -1,7 +1,7 @@
 {
   "name": "@dr/http-server",
   "description": "http and https server used by dr-comp-package",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "dist/server.js",
   "dr": {
     "type": [
@@ -20,6 +20,11 @@
           "httpForward": true
         },
         "noHealthCheck": false
+      }
+    },
+    "config.local": {
+      "server": {
+        "noHealthChe]ck": true
       }
     }
   },

@@ -51,3 +51,8 @@ To be supported by `ng <command>` command:
 ```
 Remove properties: `path`, `include` and `exclude`.
 `extends` property should be a proper location of file `<project root>/dist/webpack-temp/angular-app-tsconfig.json`
+
+### 2. Utilities at runtime
+```ts
+
+```
