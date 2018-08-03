@@ -21,7 +21,7 @@ function checkVersions(latestRecipe, isSymbolicLink) {
 	var semver = require('semver');
 	const PAD_SPACE = 28;
 
-	return Promise.all([buildUtils.getYarnVersion(), getLatestDrcpVer(), osLocale()])
+	return Promise.all([buildUtils.getNpmVersion(), getLatestDrcpVer(), osLocale()])
 		.then(outputs => {
 			var sline = _.repeat('-', 60);
 			var infoText = sline;
@@ -41,7 +41,7 @@ function checkVersions(latestRecipe, isSymbolicLink) {
 			// 	//infoText += `${msg} ${chalk.red('yarn add @dr/internal-recipe@' + latestRecipe)}`;
 			// }
 			infoText += '\n' + _.padStart('Node.js version: ', PAD_SPACE) + chalk.green(process.version);
-			infoText += '\n' + _.padStart('Yarn version: ', PAD_SPACE) + chalk.green(outputs[0]);
+			infoText += '\n' + _.padStart('NPM version: ', PAD_SPACE) + chalk.green(outputs[0]);
 			infoText += '\n' + _.padStart('dr-comp-package version: ', PAD_SPACE) + chalk.green(drcpVer) +
 				(isSymbolicLink ? chalk.green(' (symlink)') : '') +
 				(isDrcpOutdated ? chalk.yellow(` (latest: ${latestDrcp})`) : '');
@@ -79,7 +79,8 @@ function getRecipeVersion() {
 	}
 }
 
-var npmViewReg = /latest:[^"']*['"]([^"']+)['"]/;
+var npmViewReg = /latest:[^"']*['"]([^"']+)['"]/; // Adaptive to npm 5.x and yarn
+var npm6ViewReg = /latest:\s*(\S+)/;
 
 function getLatestRecipeVer() {
 	if (cachedVersionsInfo)
@@ -99,13 +100,17 @@ function getLatestRecipeVer() {
 function getLatestDrcpVer() {
 	if (cachedVersionsInfo)
 		return Promise.resolve(cachedVersionsInfo.drcpVersion);
-	return checkTimeout(processUtils.promisifyExe('yarn', 'info', 'dr-comp-package', {cwd: process.cwd(), silent: true}))
+	return checkTimeout(processUtils.promisifyExe('npm', 'info', 'dr-comp-package', {cwd: process.cwd(), silent: true}))
 		.then(output => {
+			output = output.replace(/(\[[0-9]+m|\u{001b})/ug, '');
 			var m = npmViewReg.exec(output);
+			if (m == null) {
+				m = npm6ViewReg.exec(output);
+			}
 			return (m && m[1]) ? m[1] : null;
 		})
 		.catch(e => {
-			console.error('[WARN] Command "' + ['yarn', 'info', 'dr-comp-package'].join(' ') + '" timeout');
+			console.error('[WARN] Command "' + ['npm', 'info', 'dr-comp-package'].join(' ') + '" timeout');
 			return null;
 		});
 }
@@ -118,7 +123,7 @@ function checkTimeout(origPromise) {
 			resolve(res);
 		})
 			.catch(reject);
-		timeout = setTimeout(() => reject('Timeout'), 12000);
+		timeout = setTimeout(() => reject('Timeout'), 8000);
 	});
 }
 
