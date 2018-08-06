@@ -124,6 +124,7 @@ function clean() {
 		fs.removeSync(config().destDir);
 		fs.removeSync(Path.join(config().rootPath, 'gulpfile.js'));
 		fs.removeSync(Path.join(config().rootPath, 'yarn.lock'));
+		fs.removeSync(Path.join(config().rootPath, 'package-lock.json'));
 		fs.removeSync(Path.join(config().rootPath, 'yarn-error.log'));
 	});
 }
