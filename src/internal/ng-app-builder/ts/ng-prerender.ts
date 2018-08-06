@@ -2,7 +2,7 @@
 import 'zone.js/dist/zone-node';
 import 'reflect-metadata';
 import { readFileSync, readFile, writeFileSync, existsSync, ensureDirSync } from 'fs-extra';
-import { join, relative } from 'path';
+import { join, relative, sep } from 'path';
 
 import { enableProdMode } from '@angular/core';
 
@@ -59,7 +59,10 @@ export function writeRoutes(destDir: string, applName: string, ROUTES: string[])
 			let wf = join(fullPath, 'index.html');
 			writeFileSync(wf, html);
 			log.info('Render %s page at ', route, wf);
-			routerFileMap[route] = relative(staticDir, wf);
+			let indexFile = relative(staticDir, wf);
+			if (sep === '\\')
+				indexFile = indexFile.replace(/\\/g, '/');
+			routerFileMap[route] = indexFile;
 		});
 	});
 	return previousRender.then(() => {
@@ -111,6 +114,10 @@ export class PrerenderForExpress {
 				log.info('Serve with prerender page for ', route);
 				if (this.prerenderPages[route] === null) {
 					readFile(join(this.staticDir, this.prerenderMap[route]), 'utf-8', (err, cont) => {
+						if (err) {
+							log.error('Failed to read prerendered page: ' + this.prerenderMap[route], err);
+							next();
+						}
 						this.prerenderPages[route] = cont;
 						res.send(cont);
 					});

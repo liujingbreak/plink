@@ -60,7 +60,10 @@ function writeRoutes(destDir, applName, ROUTES) {
             let wf = path_1.join(fullPath, 'index.html');
             fs_extra_1.writeFileSync(wf, html);
             log.info('Render %s page at ', route, wf);
-            routerFileMap[route] = path_1.relative(staticDir, wf);
+            let indexFile = path_1.relative(staticDir, wf);
+            if (path_1.sep === '\\')
+                indexFile = indexFile.replace(/\\/g, '/');
+            routerFileMap[route] = indexFile;
         });
     });
     return previousRender.then(() => {
@@ -111,6 +114,10 @@ class PrerenderForExpress {
                 log.info('Serve with prerender page for ', route);
                 if (this.prerenderPages[route] === null) {
                     fs_extra_1.readFile(path_1.join(this.staticDir, this.prerenderMap[route]), 'utf-8', (err, cont) => {
+                        if (err) {
+                            log.error('Failed to read prerendered page: ' + this.prerenderMap[route], err);
+                            next();
+                        }
                         this.prerenderPages[route] = cont;
                         res.send(cont);
                     });
