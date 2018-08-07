@@ -12,7 +12,12 @@
     "entryPage": "index.html",
     "angularCompiler": true,
     "type": ["builder", "server"],
-    "builderPriority": 9999
+    "builderPriority": 9999,
+    "config": {
+      "server": {
+        "routePackages": []
+      }
+    }
   },
   "dependencies": {
     "@types/express": "^4.11.1",

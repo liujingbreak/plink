@@ -17,6 +17,7 @@ export interface AngularCliParam {
 export declare type AngularBuilderOptions = NormalizedBrowserBuilderSchema & BuildWebpackServerSchema & DrcpBuilderOptions;
 export interface DrcpBuilderOptions {
     drcpArgs: any;
+    drcpConfig: string;
 }
 /**
  * Invoke this function from dev server builder

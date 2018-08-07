@@ -3,7 +3,8 @@
 *.html
 *.js
 *.map
-
+*.d.ts
+*.json
 dist
 /tmp
 /out-tsc

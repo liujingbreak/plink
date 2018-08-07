@@ -1,10 +1,10 @@
 /* tslint:disable no-console */
-import * as ps from '../utils/ng-html-parser';
+import {TemplateLexer, TokenType, TemplateParser} from '../utils/ng-html-parser';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 
 describe('ng-html-parser', () => {
-	const lexer = new ps.BaseLexer('abcde');
+	const lexer = new TemplateLexer('abcde');
 
 	it('Lexer.la()  should work', () => {
 		// let lexer = new ps.Lexer('abcde');
@@ -26,7 +26,7 @@ describe('ng-html-parser', () => {
 		expect(lexer.isNext('cdef')).toBeFalsy();
 	});
 
-	const lexer2 = new ps.BaseLexer('0123\n5678\n0abcd\n');
+	const lexer2 = new TemplateLexer('0123\n5678\n0abcd\n');
 	it('line and column shoud be correct', () => {
 		expect(lexer2.la(10 + 1)).toEqual('0');
 		let chr = lexer2.la();
@@ -43,15 +43,15 @@ describe('ng-html-parser', () => {
 
 	it('template lexer should work for test html file', () => {
 		const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
-		const lexer = new ps.TemplateLexer(ngHtml);
+		const lexer = new TemplateLexer(ngHtml);
 		for (const token of lexer) {
-			console.log(`type: ${ps.TokenType[token.type]},\ttext: ` + token.text);
+			console.log(`type: ${TokenType[token.type]},\ttext: ` + token.text);
 		}
 	});
 
 	it('parser should work for test html file', () => {
 		const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
-		const ast = new ps.TemplateParser(ngHtml).parse();
+		const ast = new TemplateParser(ngHtml).parse();
 		console.log(JSON.stringify(ast, null, '  '));
 		for (const tag of ast) {
 			console.log(tag);

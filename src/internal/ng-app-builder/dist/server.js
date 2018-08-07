@@ -8,183 +8,16 @@ const Path = require("path");
 const config_webpack_1 = require("./config-webpack");
 const ng_ts_replace_1 = require("./ng-ts-replace");
 const Url = require("url");
+// const {yellow, cyan} = require('chalk');
 const fs = require('fs-extra');
 const sysFs = fs;
 const log = log4js.getLogger(__api_1.default.packageName);
 function compile() {
     setupApiForAngularCli();
-    if (!__api_1.default.argv.ng)
-        return;
-    // var tsConfigPath = writeTsconfig();
-    // var useHappypack = api.config.get('@dr-core/webpack2-builder.useHappypack', false);
-    // var devMode = api.config().devMode;
-    // var happyThreadPool = HappyPack.ThreadPool({
-    // 	size: api.config.get('@dr-core/webpack2-builder.happyThreadPoolSize', 2)
-    // });
-    // api.configWebpackLater(
-    // 	function(webpackConfig: WebpackConfig): WebpackConfig {
-    // 		if (webpackConfig.resolve.alias)
-    // 			Object.assign(webpackConfig.resolve.alias, rxPaths());
-    // 		else
-    // 			webpackConfig.resolve.alias = rxPaths();
-    // 		webpackConfig.resolve.mainFields = [
-    // 			'browser',
-    // 			'module',
-    // 			'main'
-    // 		];
-    // 		if (webpackConfig.resolveLoader.alias)
-    // 			Object.assign(webpackConfig.resolveLoader.alias, rxPaths());
-    // 		else
-    // 			webpackConfig.resolveLoader.alias = rxPaths();
-    // 		webpackConfig.module.rules.push(
-    // 			{
-    // 				test: /\.css$/,
-    // 				compiler: AOT ? () => true : undefined,
-    // 				issuer: AOT ? undefined: api.isIssuerAngular,
-    // 				use: [
-    // 					'exports-loader?module.exports.toString()',
-    // 					{
-    // 						loader: 'css-loader',
-    // 						options: {
-    // 							sourceMap: api.config().enableSourceMaps,
-    // 							import: false
-    // 						}
-    // 					},
-    // 					{
-    // 						loader: 'postcss-loader',
-    // 						options: {
-    // 							ident: 'postcss',
-    // 							plugins: postcssPlugins,
-    // 							sourceMap: api.config().enableSourceMaps
-    // 						}
-    // 					},
-    // 					{loader: 'lib/css-url-assets-loader'},
-    // 					{loader: 'require-injector/css-loader', options: {
-    // 						injector: api.browserInjector
-    // 					}}
-    // 				]
-    // 			},
-    // 			{
-    // 				test: /\.scss$|\.sass$/,
-    // 				compiler: AOT ? () => true : undefined,
-    // 				issuer: AOT ? undefined: api.isIssuerAngular,
-    // 				use: [
-    // 					'exports-loader?module.exports.toString()',
-    // 					{
-    // 						loader: 'css-loader',
-    // 						options: {
-    // 							sourceMap: api.config().enableSourceMaps,
-    // 							import: false
-    // 						}
-    // 					},
-    // 					{
-    // 						loader: 'postcss-loader',
-    // 						options: {
-    // 							ident: 'postcss',
-    // 							plugins: postcssPlugins,
-    // 							sourceMap: api.config().enableSourceMaps
-    // 						}
-    // 					},
-    // 					{loader: 'lib/css-url-assets-loader'},
-    // 					{
-    // 						loader: 'sass-loader',
-    // 						options: {
-    // 							sourceMap: api.config().enableSourceMaps,
-    // 							precision: 8,
-    // 							includePaths: []
-    // 						}
-    // 					},
-    // 					{loader: 'require-injector/css-loader', options: {
-    // 						injector: api.browserInjector
-    // 					}}
-    // 				]
-    // 			  },
-    // 			{
-    // 				test: /\.less$/,
-    // 				compiler: AOT ? () => true : undefined,
-    // 				issuer: AOT ? undefined: api.isIssuerAngular,
-    // 				use: [
-    // 					'exports-loader?module.exports.toString()',
-    // 					{
-    // 						loader: 'css-loader',
-    // 						options: {
-    // 							sourceMap: api.config().enableSourceMaps,
-    // 							import: false
-    // 						}
-    // 					},
-    // 					{
-    // 						loader: 'postcss-loader',
-    // 						options: {
-    // 							ident: 'postcss',
-    // 							plugins: postcssPlugins,
-    // 							sourceMap: api.config().enableSourceMaps
-    // 						}
-    // 					},
-    // 					{loader: 'lib/css-url-assets-loader'},
-    // 					{loader: 'less-loader', options: {
-    // 						sourceMap: api.config().enableSourceMaps
-    // 					}},
-    // 					{loader: 'require-injector/css-loader', options: {
-    // 						injector: api.browserInjector
-    // 					}}
-    // 				]
-    // 			},
-    // 			devMode ?
-    // 			{
-    // 				test: shouldUseNgLoader,
-    // 				use: ['@ngtools/webpack']
-    // 			} : {
-    // 				test: shouldUseNgLoader,
-    // 				use: [
-    // 					{
-    // 						loader: '@angular-devkit/build-optimizer/webpack-loader',
-    // 						options: {
-    // 							sourceMap: api.config().enableSourceMaps
-    // 						}
-    // 					},
-    // 					'@ngtools/webpack'
-    // 				]
-    // 			}
-    // 		);
-    // 		// var entryPackage = api.packageInfo.moduleMap['@dr-core/ng-app-builder'];
-    // 		// TODO:
-    // 		// var angularCompiler = new AngularCompilerPlugin({
-    // 		// 	mainPath: Path.resolve(__dirname, '../browser/main.ts'),
-    // 		// 	// mainPath: require.resolve('@dr/angular-app/main.ts'),
-    // 		// 	basePath: api.config().rootPath,
-    // 		// 	platform: 0,
-    // 		// 	skipCodeGeneration: !AOT,
-    // 		// 	// forkTypeChecker: true, // Only available at version above 6.0.0
-    // 		// 	// Angular 5 has a bug with Typescript > 2.4.2:
-    // 		// 	// "Host should not return a redirect source file from `getSourceFile`"
-    // 		// 	hostReplacementPaths: environmentMap(),
-    // 		// 	sourceMap: api.config().enableSourceMaps,
-    // 		// 	tsConfigPath,
-    // 		// 	compilerOptions: {
-    // 		// 	}
-    // 		// });
-    // 		// TODO: require-injector
-    // 		// (angularCompiler as any)._compilerHost.writeFile();
-    // 		// webpackConfig.plugins.push(angularCompiler);
-    // 		// let env = api.argv.env;
-    // 		// if (env) {
-    // 		// 	api.browserInjector.fromAllComponents().alias(
-    // 		// 		/^.*\/environment(\?:.ts)?$/, (file: string, result: RegExpExecArray) => {
-    // 		// 		if (file.endsWith('.ts')) {
-    // 		// 			return result[0] + '.' + env;
-    // 		// 		}
-    // 		// 		log.warn(file, result);
-    // 		// 		return result[0];
-    // 		// 	});
-    // 		// }
-    // 		if (!devMode) {
-    // 			webpackConfig.plugins.push(new PurifyPlugin());
-    // 		}
-    // 		return webpackConfig;
-    // 	});
 }
 exports.compile = compile;
 function init() {
+    // printHelp();
     writeTsconfig();
 }
 exports.init = init;
@@ -320,5 +153,18 @@ function setupApiForAngularCli() {
     ngParam.vfsHost.hookRead = ng_ts_replace_1.default(ngParam);
     log.info('Setup api object for Angular');
 }
+// function printHelp() {
+// 	// tslint:disable no-console
+// 	console.log('\n\n  If you want to narrow down to only specific modules for Angular to build/serve, try\n    ' +
+// 		yellow('drcp init --prop @dr-core/ng-app-builder.packages=<packageName,...>') + '\n  ' +
+// 		'Or through a configuration file:\n' +
+// 		yellow('    drcp init -c <other files> modules.yaml\n') +
+// 		'  modules.yaml:\n' +
+// 		cyan('  '.repeat(1) + '@dr-core/ng-app-builder:\n' +
+// 			'  '.repeat(2) + 'packages:\n' +
+// 			'  '.repeat(3) + '- <packageName 1>\n' +
+// 			'  '.repeat(3) + '- <packageName 2>\n')
+// 	);
+// }
 
 //# sourceMappingURL=server.js.map

@@ -7,7 +7,11 @@
       "description": "Argument object for DRCP server start command",
       "default": {}
     },
-
+    "drcpConfig": {
+      "type": "string",
+      "description": "--drcp-config <config-1.yaml>,<config-2.yaml>,...",
+      "default": ""
+    },
     "assets": {
       "type": "array",
       "description": "List of static application assets.",

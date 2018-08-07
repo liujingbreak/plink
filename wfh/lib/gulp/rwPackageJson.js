@@ -125,21 +125,23 @@ var packageJsonTemp = {
  */
 function addDependency(recipeAbsDir) {
 	var linkFiles = [];
-	var destJson;
+	// var destJson;
+	let dependencies = {};
+	let recipePkJsonStr;
 	if (recipeAbsDir) {
 		var recipeFile = Path.resolve(recipeAbsDir, 'package.json');
 		if (fs.existsSync(recipeFile)) {
 			log.debug('Existing recipeFile %s', recipeFile);
-			var content = fs.readFileSync(recipeFile, 'utf8');
-			try {
-				destJson = JSON.parse(content);
-			} catch (err) {}
-		}
-		if (!destJson) {
-			destJson = _.cloneDeep(packageJsonTemp);
+			recipePkJsonStr = fs.readFileSync(recipeFile, 'utf8');
+			// try {
+			// 	dependencies = JSON.parse(recipePkJsonStr).dependencies;
+			// } catch (err) {}
+		} else {
+			let destJson = _.cloneDeep(packageJsonTemp);
 			var recipeDirName = Path.basename(recipeAbsDir);
-			destJson.name += recipeDirName.replace(/[\/\\]/g, '-');
+			destJson.name += recipeDirName.replace(/[/\\]/g, '-');
 			destJson.description += recipeDirName;
+			recipePkJsonStr = JSON.stringify(destJson, null, '  ');
 		}
 	}
 
@@ -148,21 +150,21 @@ function addDependency(recipeAbsDir) {
 
 		log.debug('add to recipe: ' + recipeAbsDir + ' : ' + file.path);
 		linkFiles.push(Path.relative(config().rootPath, file.path));
-		if (!destJson)
+		if (!recipePkJsonStr)
 			return callback();
-		if (!destJson.dependencies) {
-			destJson.dependencies = {};
-		}
-		destJson.dependencies[json.name] = json.version;
+		// if (!destJson.dependencies) {
+		// 	destJson.dependencies = {};
+		// }
+		dependencies[json.name] = json.version;
 		callback();
 	}, function flush(callback) {
 		var self = this;
 		self.push(linkFiles);
-		if (destJson) {
+		if (recipePkJsonStr) {
 			var destFile = new File({
 				base: Path.resolve(config().rootPath),
 				path: Path.resolve(recipeFile),
-				contents: new Buffer(JSON.stringify(destJson, null, '  '))
+				contents: new Buffer(recipePkJsonStr.replace(/("dependencies"\s*:\s*)\{[^}]*\}/, '$1' + JSON.stringify(dependencies, null, '    ')))
 			});
 			self.push(destFile);
 		}

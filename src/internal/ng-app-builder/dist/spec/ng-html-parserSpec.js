@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console */
-const ps = require("../utils/ng-html-parser");
+const ng_html_parser_1 = require("../utils/ng-html-parser");
 const fs = require("fs");
 const _ = require("lodash");
 describe('ng-html-parser', () => {
-    const lexer = new ps.BaseLexer('abcde');
+    const lexer = new ng_html_parser_1.TemplateLexer('abcde');
     it('Lexer.la()  should work', () => {
         // let lexer = new ps.Lexer('abcde');
         expect(lexer.la()).toEqual('a');
@@ -23,7 +23,7 @@ describe('ng-html-parser', () => {
         expect(lexer.isNext('cd')).toBeTruthy();
         expect(lexer.isNext('cdef')).toBeFalsy();
     });
-    const lexer2 = new ps.BaseLexer('0123\n5678\n0abcd\n');
+    const lexer2 = new ng_html_parser_1.TemplateLexer('0123\n5678\n0abcd\n');
     it('line and column shoud be correct', () => {
         expect(lexer2.la(10 + 1)).toEqual('0');
         let chr = lexer2.la();
@@ -39,14 +39,14 @@ describe('ng-html-parser', () => {
     });
     it('template lexer should work for test html file', () => {
         const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
-        const lexer = new ps.TemplateLexer(ngHtml);
+        const lexer = new ng_html_parser_1.TemplateLexer(ngHtml);
         for (const token of lexer) {
-            console.log(`type: ${ps.TokenType[token.type]},\ttext: ` + token.text);
+            console.log(`type: ${ng_html_parser_1.TokenType[token.type]},\ttext: ` + token.text);
         }
     });
     it('parser should work for test html file', () => {
         const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
-        const ast = new ps.TemplateParser(ngHtml).parse();
+        const ast = new ng_html_parser_1.TemplateParser(ngHtml).parse();
         console.log(JSON.stringify(ast, null, '  '));
         for (const tag of ast) {
             console.log(tag);

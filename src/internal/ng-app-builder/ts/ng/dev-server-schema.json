@@ -8,7 +8,11 @@
       "description": "Argument object for DRCP server start command",
       "default": {}
     },
-
+    "drcpConfig": {
+      "type": "string",
+      "description": "--drcp-config <config-1.yaml>,<config-2.yaml>,...",
+      "default": ""
+    },
     "browserTarget": {
       "type": "string",
       "description": "Target to serve."

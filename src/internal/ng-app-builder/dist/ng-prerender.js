@@ -78,11 +78,19 @@ function writeRoutesWithLocalServer(destDir, applName, ROUTES) {
     return __awaiter(this, void 0, void 0, function* () {
         const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
         const shutdown = yield pkMgr.runServer(__api_1.default.argv);
-        const mapFile = yield writeRoutes(destDir, applName, ROUTES);
-        yield shutdown();
-        yield new Promise((resolve) => {
-            require('log4js').shutdown(resolve);
-        });
+        let mapFile;
+        try {
+            mapFile = yield writeRoutes(destDir, applName, ROUTES);
+        }
+        catch (err) {
+            throw err;
+        }
+        finally {
+            yield shutdown();
+            yield new Promise((resolve) => {
+                require('log4js').shutdown(resolve);
+            });
+        }
         return mapFile;
     });
 }

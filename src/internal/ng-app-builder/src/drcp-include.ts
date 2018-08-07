@@ -24,5 +24,3 @@ export default function handleBootStrap(module: any, bootstrap: ()=> Promise<any
 	// 	});
 	// }
 }
-
-

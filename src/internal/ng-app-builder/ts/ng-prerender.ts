@@ -35,7 +35,6 @@ export function writeRoutes(destDir: string, applName: string, ROUTES: string[])
 	const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = mainServerExports;
 	// Load the index.html file containing referances to your application bundle.
 
-
 	let previousRender = Promise.resolve();
 	let routerFileMap: {[route: string]: string} = {};
 	// Iterate each route path
@@ -76,11 +75,17 @@ export function writeRoutes(destDir: string, applName: string, ROUTES: string[])
 export async function writeRoutesWithLocalServer(destDir: string, applName: string, ROUTES: string[]) {
 	const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
 	const shutdown: () => void = await pkMgr.runServer(api.argv);
-	const mapFile = await writeRoutes(destDir, applName, ROUTES);
-	await shutdown();
-	await new Promise((resolve) => {
-		require('log4js').shutdown(resolve);
-	});
+	let mapFile: string;
+	try {
+		mapFile = await writeRoutes(destDir, applName, ROUTES);
+	} catch (err) {
+		throw err;
+	} finally {
+		await shutdown();
+		await new Promise((resolve) => {
+			require('log4js').shutdown(resolve);
+		});
+	}
 	return mapFile;
 }
 

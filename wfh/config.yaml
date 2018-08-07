@@ -40,7 +40,6 @@ packageScopes:
   - bk-core
   - dr
   - dr-core
-  - dr-types
 
 # Only build out i18n bundles for following locales, e.g. for angularjs it means only
 # some locales for file match pattern:
@@ -280,9 +279,9 @@ installedRecipes:
     - ^@bk/.*?-recipe$
     - ^@bk/recipe-.*?$
 
-gulp:
-    watchTimeout: 12000 # gulp watch on change which triggers `gulp compile` with a timeout check
-    watchDebounceDelay: 800 # gulp watch change event will not trigger `gulp compile` within this duration
+# gulp:
+#     watchTimeout: 12000 # gulp watch on change which triggers `gulp compile` with a timeout check
+#     watchDebounceDelay: 800 # gulp watch change event will not trigger `gulp compile` within this duration
 
 # Following is a list of current configuration property names of which property
 # are visible to browser side environment, meaning those properties will be stringified

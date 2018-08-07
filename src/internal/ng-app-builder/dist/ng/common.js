@@ -2,8 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const Rx = require("rxjs");
 const _ = require("lodash");
-function initDrcp(drcpArgs) {
+function initDrcp(drcpArgs, drcpConfig) {
     var config = require('dr-comp-package/wfh/lib/config');
+    const files = drcpConfig ? drcpConfig.split(/\s*[,;]\s*/) : [];
+    if (drcpArgs.c == null)
+        drcpArgs.c = [];
+    drcpArgs.c.push(...files);
     config.init(drcpArgs);
     require('dr-comp-package/wfh/lib/logConfig')(config());
     return config;
@@ -19,7 +23,7 @@ function initDrcp(drcpArgs) {
 function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpackConfig, vfsHost) {
     // let argv: any = {};
     const options = builderConfig.options;
-    const config = initDrcp(options.drcpArgs);
+    const config = initDrcp(options.drcpArgs, options.drcpConfig);
     return Rx.Observable.create((obs) => {
         const param = {
             ssr: false,
@@ -104,7 +108,7 @@ function compile(projectRoot, browserOptions, buildWebpackConfig, vfsHost, isSSR
 exports.compile = compile;
 function compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost, ssr) {
     const options = browserOptions;
-    const config = initDrcp(options.drcpArgs);
+    const config = initDrcp(options.drcpArgs, options.drcpConfig);
     const param = {
         ssr,
         browserOptions: options,

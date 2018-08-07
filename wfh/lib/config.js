@@ -199,12 +199,13 @@ function mergeFromFile(setting, localConfigPath) {
 					package2Chunk[p] = chunk;
 				}
 			});
-			//log.debug('package to chunk: %s', JSON.stringify(package2Chunk, null, '  '));
 		} else if (key === 'outputPathMap') {
 			if (!objValue)
 				objValue = object.outputPathMap = {};
 			return _.assign(objValue, srcValue);
-			//log.debug('package to chunk: %s', JSON.stringify(package2Chunk, null, '  '));
+		} else if (_.isObject(objValue) && !Array.isArray(objValue)) {
+			// We only merge 2nd level properties
+			return _.assign(objValue, srcValue);
 		}
 	});
 }

@@ -1,154 +1,112 @@
 /* tslint:disable max-classes-per-file max-line-length no-console jsdoc-format */
-import sortedIndex = require('lodash/sortedIndex');
+import {Token, BaseParser, BaseLexer} from 'dr-comp-package/wfh/dist/base-LLn-parser';
 
-export class Token {
-	text: string;
-	end: number;
-	constructor(public type: TokenType, lexer: LookAheadString,
-		public start: number) {
-		this.text = lexer.getText(start);
-		this.end = lexer.position;
-	}
+export enum HtmlTokenType {
+	// comments,
+	['<'],
+	['>'],
+	['('],
+	[')'],
+	['['],
+	[']'],
+	['</'],
+	['='],
+	identity,
+	stringLiteral,
+	any, // .*
+	space
 }
 
-export enum Channel {
-	normal,
-	skip
-}
-
-export abstract class LookAhead<T, S extends Iterable<T>> {
-	cached: T[];
-	sourceIterator: Iterator<T>;
-	isString: boolean;
-	channel = Channel.normal;
-	protected currPos = -1;
-
-	constructor(source: S) {
-		this.isString = typeof source === 'string';
-		this.cached = [];
-		this.sourceIterator = source[Symbol.iterator]();
-	}
-
-	get position(): number {
-		return this.currPos + 1;
-	}
-
-	la(num = 1): T {
-		if (this.channel === Channel.normal) {
-			this.channel = Channel.skip;
-			this.skip();
-			this.channel = Channel.normal;
-		}
-		const readPos = this.currPos + num;
-		return this.read(readPos);
-	}
-
-	lb(num = 1): T {
-		const pos = this.currPos - (num - 1);
-		if (pos < 0)
-			return undefined;
-		return this.read(pos);
-	}
-
-	advance(count = 1): T {
-		let current;
-		for (let i = 0; i < count; i++) {
-			current = this.la(1);
-			if (current == null)
-				this.throwError();
-			this.currPos++;
-		}
-		return current;
-	}
-
-	isNext(...values: T[]): boolean {
-		let compareTo: T[]| string;
-		if (this.isString) {
-			compareTo = values.join('');
-		} else
-			compareTo = values;
-		let i = 0, l = compareTo.length;
-		let next = this.la(i + 1);
+export {HtmlTokenType as TokenType};
+export class TemplateLexer extends BaseLexer<HtmlTokenType> {
+	*[Symbol.iterator](): Iterator<Token<HtmlTokenType>> {
 		while (true) {
-			if (i === l)
-				return true;
-			next = this.la(i + 1);
-			if (next == null)
-				return false; // EOF
-			else if (next !== compareTo[i])
-				return false;
-			i++;
+			let char: string = this.la();
+			const start = this.position;
+			if (char == null) {
+				return;
+			}
+			switch (char) {
+				case '>':
+				case '(':
+				case ')':
+				case '[':
+				case ']':
+				case '=':
+					this.advance();
+					yield new Token(HtmlTokenType[char], this, start);
+					continue;
+				default:
+			}
+			if (char === '<' && this.isIdStart(2)) {
+				yield this.openTagStart();
+			} else if (this.isNext('</')) {
+				yield this.closeTagStart();
+			} else if (this.isIdStart()) {
+				do {
+					this.advance();
+					char = this.la();
+				} while (this.isIdStart());
+				yield new Token(HtmlTokenType.identity, this, start);
+			} else if (char === '"') {
+				yield this.stringLit('"');
+			} else if (char === '\'') {
+				yield this.stringLit('\'');
+			} else if (char === '`') {
+				yield this.stringLit('`');
+			} else if (this.isWhitespace()) {
+				do {
+					this.advance();
+				} while (this.isWhitespace());
+				// yield new Token(HtmlTokenType.space, ' ');
+				continue;
+			} else {
+				yield new Token(HtmlTokenType.any, this, start);
+				this.advance();
+			}
 		}
 	}
-	throwError(unexpected = 'End-of-file') {
-		throw new Error(`Unexpected ${JSON.stringify(unexpected)} at ` + this.getCurrentPosInfo());
+	openTagStart() {
+		const start = this.position;
+		this.advance();
+		do {
+			this.advance();
+		} while (this.isIdStart());
+		return new Token(HtmlTokenType['<'], this, start);
 	}
-
-	abstract getCurrentPosInfo(): string;
-	abstract skip(): void;
-
-	/**
-	 * Do not read postion less than 0
-	 * @param pos 
-	 */
-	protected read(pos: number): T {
-		while (this.cached.length <= pos) {
-			const next = this.sourceIterator.next();
-			if (next.done)
-				return null;
-			this.cached.push(next.value);
+	closeTagStart() {
+		this.advance(2);
+		const start = this.position;
+		while (this.la() !== '>') {
+			this.advance();
 		}
-		return this.cached[pos];
+		return new Token(HtmlTokenType['</'], this, start);
 	}
-}
-
-export abstract class LookAheadString extends LookAhead<string, string> {
-	lineBeginPositions: number[] = [-1];
-
-	constructor(protected source: string) {
-		super(source);
-		const originNext = this.sourceIterator.next;
-		const it = this.sourceIterator;
-		// - Monkey patch iterator's next() method to track beginning position of each line
-		let nextCount = 0;
-		const self = this;
-		this.sourceIterator.next = function() {
-			const nextRes = originNext.call(it);
-			const chr = nextRes.value;
-			if (!nextRes.done && chr === '\n')
-				self.lineBeginPositions.push(nextCount);
-			nextCount++;
-			return nextRes;
-		};
+	isIdStart(laIdx = 1) {
+		const char = this.la(laIdx);
+		return /[^<>()\[\]"'=`/]/.test(char) && /\S/.test(char);
+	}
+	isWhitespace() {
+		const chr = this.la();
+		return /\s/.test(chr);
 	}
 
-	getText(startPos: number) {
-		return this.source.substring(startPos, this.position);
+	stringLit(quote: string) {
+		this.advance();
+		const start = this.position;
+		while (this.la() !== quote) {
+			if (this.la() == null)
+				this.throwError();
+			// console.log(':', this.la());
+			if (this.la() === '\\') {
+				this.advance();
+			}
+			this.advance();
+		}
+		const tk = new Token(HtmlTokenType.stringLiteral, this, start);
+		this.advance();
+		return tk;
 	}
-
-	getCurrentPosInfo(): string {
-		const [line, col] = this.getLineColumn(this.currPos);
-		return `get ${JSON.stringify(this.la())}, at line ${line + 1}, column ${col + 1}, after ${JSON.stringify(this.lb())}`;
-	}
-
-	/**
-	 * @return zero-based [line, column] value
-	 * */
-	getLineColumn(pos: number): [number, number] {
-		const lineIndex = sortedIndex(this.lineBeginPositions, pos) - 1;
-		const linePos = this.lineBeginPositions[lineIndex];
-		// console.log(`pos = ${pos}, lineIndex = ${lineIndex}, linePos=${linePos}`);
-		return [lineIndex, pos - (linePos + 1)];
-	}
-}
-
-export class BaseLexer extends LookAheadString implements Iterable<Token> {
-
-	constructor(source: string) {
-		super(source);
-	}
-
-	*[Symbol.iterator](): Iterator<Token> {}
 
 	skip() {
 		let chr = this.la();
@@ -188,112 +146,6 @@ export class BaseLexer extends LookAheadString implements Iterable<Token> {
 	}
 }
 
-export enum TokenType {
-	comments,
-	['<'],
-	['>'],
-	['('],
-	[')'],
-	['['],
-	[']'],
-	['</'],
-	['='],
-	identity,
-	stringLiteral,
-	any, // .*
-	space
-}
-export class TemplateLexer extends BaseLexer {
-	*[Symbol.iterator](): Iterator<Token> {
-		while (true) {
-			const start = this.position;
-			let char: string = this.la();
-			if (char == null) {
-				return;
-			}
-			switch (char) {
-				case '>':
-				case '(':
-				case ')':
-				case '[':
-				case ']':
-				case '=':
-					this.advance();
-					yield new Token((TokenType as any)[char], this, start);
-					continue;
-				default:
-			}
-			if (char === '<' && this.isIdStart(2)) {
-				yield this.openTagStart();
-			} else if (this.isNext('</')) {
-				yield this.closeTagStart();
-			} else if (this.isIdStart()) {
-				do {
-					this.advance();
-					char = this.la();
-				} while (this.isIdStart());
-				yield new Token(TokenType.identity, this, start);
-			} else if (char === '"') {
-				yield this.stringLit('"');
-			} else if (char === '\'') {
-				yield this.stringLit('\'');
-			} else if (char === '`') {
-				yield this.stringLit('`');
-			} else if (this.isWhitespace()) {
-				do {
-					this.advance();
-				} while (this.isWhitespace());
-				// yield new Token(TokenType.space, ' ');
-				continue;
-			} else {
-				yield new Token(TokenType.any, this, start);
-				this.advance();
-			}
-		}
-	}
-	openTagStart() {
-		const start = this.position;
-		this.advance();
-		do {
-			this.advance();
-		} while (this.isIdStart());
-		return new Token(TokenType['<'], this, start);
-	}
-	closeTagStart() {
-		this.advance(2);
-		const start = this.position;
-		while (this.la() !== '>') {
-			this.advance();
-		}
-		return new Token(TokenType['</'], this, start);
-	}
-	isIdStart(laIdx = 1) {
-		const char = this.la(laIdx);
-		return /[^<>()\[\]"'=`/]/.test(char) && /\S/.test(char);
-	}
-	isWhitespace() {
-		const chr = this.la();
-		return /\s/.test(chr);
-	}
-
-	stringLit(quote: string) {
-		this.advance();
-		const start = this.position;
-		while (this.la() !== quote) {
-			if (this.la() == null)
-				this.throwError();
-			// console.log(':', this.la());
-			if (this.la() === '\\') {
-				this.advance();
-			}
-			this.advance();
-		}
-		const tk = new Token(TokenType.stringLiteral, this, start);
-		this.advance();
-		return tk;
-	}
-}
-
 export interface TagAst {
 	name?: string;
 	attrs?: {[key: string]: AttributeValueAst};
@@ -304,7 +156,7 @@ export interface TagAst {
 export interface AttributeValueAst {
 	text: string; start: number; end: number;
 }
-export class TemplateParser extends LookAhead<Token, TemplateLexer> {
+export class TemplateParser extends BaseParser<HtmlTokenType, TemplateLexer> {
 	lexer: TemplateLexer;
 	constructor(input: string) {
 		const lexer = new TemplateLexer(input);
@@ -320,16 +172,16 @@ export class TemplateParser extends LookAhead<Token, TemplateLexer> {
 		}
 	}
 	skip() {
-		while (this.la() != null && this.la().type === TokenType.space) {
+		while (this.la() != null && this.la().type === HtmlTokenType.space) {
 			this.advance();
 		}
 	}
 	parse(): TagAst[] {
 		const ast: TagAst[] = [];
 		while(this.la() != null) {
-			if (this.la().type === TokenType['<']) {
+			if (this.la().type === HtmlTokenType['<']) {
 				ast.push(this.tag());
-			} else if (this.la().type === TokenType['</']) {
+			} else if (this.la().type === HtmlTokenType['</']) {
 				this.advance();
 			} else {
 				this.advance();
@@ -346,11 +198,11 @@ export class TemplateParser extends LookAhead<Token, TemplateLexer> {
 	}
 	attributes() {
 		const attrs: {[key: string]: AttributeValueAst} = {};
-		while (this.la() != null && this.la().type !== TokenType['>']) {
+		while (this.la() != null && this.la().type !== HtmlTokenType['>']) {
 			if (this.isNgAttrName()) {
 				const key = this.ngAttrName();
 				attrs[key] = this.attrValue();
-			} else if (this.la().type === TokenType.identity) {
+			} else if (this.la().type === HtmlTokenType.identity) {
 				const key = this.attrName();
 				attrs[key] = this.attrValue();
 			} else {
@@ -362,10 +214,10 @@ export class TemplateParser extends LookAhead<Token, TemplateLexer> {
 	}
 	isNgAttrName() {
 		const type = this.la().type;
-		return type === TokenType['['] || type === TokenType['('];
+		return type === HtmlTokenType['['] || type === HtmlTokenType['('];
 	}
 	ngAttrName() {
-		const kind = this.la().type === TokenType['['] ? TokenType[']'] : TokenType[')'];
+		const kind = this.la().type === HtmlTokenType['['] ? HtmlTokenType[']'] : HtmlTokenType[')'];
 		let name: string;
 		this.advance();
 		if (this.isNgAttrName())
@@ -381,7 +233,7 @@ export class TemplateParser extends LookAhead<Token, TemplateLexer> {
 		return this.advance().text;
 	}
 	attrValue(): AttributeValueAst {
-		if (this.la() && this.la().type === TokenType['=']) {
+		if (this.la() && this.la().type === HtmlTokenType['=']) {
 			// let {text, start, end} = this.advance(2);
 			// return {text, start, end};
 			return this.advance(2);

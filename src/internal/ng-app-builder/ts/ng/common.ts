@@ -12,8 +12,13 @@ import ReadHookHost from '../utils/read-hook-vfshost';
 import * as Rx from 'rxjs';
 import * as _ from 'lodash';
 
-function initDrcp(drcpArgs: any) {
+function initDrcp(drcpArgs: any, drcpConfig: string) {
 	var config = require('dr-comp-package/wfh/lib/config');
+
+	const files = drcpConfig ? drcpConfig.split(/\s*[,;]\s*/) : [];
+	if (drcpArgs.c == null)
+		drcpArgs.c = [];
+	drcpArgs.c.push(...files);
 	config.init(drcpArgs);
 	require('dr-comp-package/wfh/lib/logConfig')(config());
 	return config;
@@ -37,6 +42,7 @@ export type AngularBuilderOptions =
 
 export interface DrcpBuilderOptions {
 	drcpArgs: any;
+	drcpConfig: string;
 }
 
 /**
@@ -54,7 +60,7 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 	// let argv: any = {};
 	const options = builderConfig.options as (DevServerBuilderOptions & DrcpBuilderOptions);
 
-	const config = initDrcp(options.drcpArgs);
+	const config = initDrcp(options.drcpArgs, options.drcpConfig);
 
 	return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
 		const param: AngularCliParam = {
@@ -145,7 +151,7 @@ export function compile(projectRoot: string, browserOptions: AngularBuilderOptio
 function compileAsync(projectRoot: string, browserOptions: AngularBuilderOptions,
 	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost, ssr: boolean) {
 	const options = browserOptions;
-	const config = initDrcp(options.drcpArgs);
+	const config = initDrcp(options.drcpArgs, options.drcpConfig);
 	const param: AngularCliParam = {
 		ssr,
 		browserOptions: options,

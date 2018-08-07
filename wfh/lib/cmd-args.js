@@ -15,9 +15,21 @@ function drcpCommand(startTime) {
 		`${hl('drcp help <command>')} to see help for each command.\n` +
 		`${hl('drcp <command> -h')} to see help for each command.\n` +
 		`${hl('drcp <command> -c <config-name1> <config-name2> ...')} to apply proper config yaml files to the processing command.`)
-	.command('init', 'Initialize workspace, copy project  and other basic configuration', {
+	.command('init', 'Initialize workspace, generate basic configuration files for project and component packages', {
 		aliases: ['init-workspace'],
-		builder: {},
+		builder: yargs => {
+			// yargs.positional('package', {
+			// 	desc: 'A list of package (short) names of which to be initialized, default is all installed and linked project packages.\n' +
+			// 		'Be aware that some special packages are always be include even they are not specified'
+			// })
+			// .options({
+			// 	pj: {
+			// 		describe: 'A list of project directorys, only packages of specified projects will be initialized to workspace',
+			// 		type: 'array'
+			// 	}
+			// })
+			// .usage('drcp init');
+		},
 		handler: argv => {
 			require('./config').init(argv);
 			cli.init(argv);
