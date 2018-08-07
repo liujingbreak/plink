@@ -366,7 +366,7 @@ function install(isDrcpSymlink) {
 	var realDrcpPath;
 	if (isDrcpSymlink)
 		realDrcpPath = fs.realpathSync(drcpLocation);
-	return buildUtils.promisifyExe('yarn', 'install', '--non-interactive', '--pure-lockfile', {cwd: rootPath})
+	return buildUtils.promisifyExe('npm', 'install', {cwd: rootPath})
 		.then(res => new Promise(resolve => setTimeout(() => resolve(res), 500)))
 		.then(res => {
 			if (isDrcpSymlink && !fs.existsSync(drcpLocation)) {

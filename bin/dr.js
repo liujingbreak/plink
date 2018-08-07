@@ -30,7 +30,7 @@ var isSymbolicLink = false;
 var cmdPromise;
 if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink()) {
 	isSymbolicLink = true;
-	cmdPromise = installDeps(true)
+	cmdPromise = installDeps(isSymbolicLink)
 		.then(latestRecipe => versionChecker.checkVersions(latestRecipe, isSymbolicLink))
 	.then( infoText => {
 		require('../wfh/lib/gulp/cli').writeProjectListFile([Path.resolve(__dirname, '..')]);

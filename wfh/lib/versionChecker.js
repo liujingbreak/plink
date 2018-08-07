@@ -14,7 +14,7 @@ var cachedVersionsInfo = readCachedVersionInfo();
 
 
 function checkVersions(latestRecipe, isSymbolicLink) {
-	var chalk = require('chalk'); // do not require any 3rd-party util bin/dr.js installDeps() is done
+	const {red, yellow, green} = require('chalk'); // do not require any 3rd-party util bin/dr.js installDeps() is done
 	var _ = require('lodash');
 	var buildUtils = require('./gulp/buildUtils');
 	var osLocale = require('os-locale');
@@ -31,23 +31,26 @@ function checkVersions(latestRecipe, isSymbolicLink) {
 
 			var isDrcpOutdated = latestDrcp && semver.gt(latestDrcp, drcpVer);
 			var isRecipeOutdated = recipeVer && latestRecipe && semver.lt(recipeVer, latestRecipe);
-			// infoText += '\n' + _.padStart('Latest dr-comp-package: ' + chalk.yellow(latestDrcp), PAD_SPACE);
+			// infoText += '\n' + _.padStart('Latest dr-comp-package: ' + yellow(latestDrcp), PAD_SPACE);
 			// //let msg = outputs[2].startsWith('zh') ? '\n当前Workspace下的drcp不是最新的, 如果升级执行命令:\n\t' : '\nCurrent drcp is not latest, you can upgrade it by execute:\n\t';
 			// //infoText += `${msg} ${chalk.red('yarn add dr-comp-package@' + latestDrcp)}`;
 			// }
 			// if (recipeVer && latestRecipe && semver.lt(recipeVer, latestRecipe)) {
-			// 	infoText += '\n' + _.padStart('Latest @dr/internal-recipe: ' + chalk.yellow(latestRecipe), PAD_SPACE);
+			// 	infoText += '\n' + _.padStart('Latest @dr/internal-recipe: ' + yellow(latestRecipe), PAD_SPACE);
 			// 	//let msg = outputs[2].startsWith('zh') ? '\n当前Workspace下的@dr/internal-recipe不是最新的, 如果升级执行命令:\n\t' : '\nCurrent @dr/internal-recipe is not latest, you can upgrade it by execute:\n\t';
 			// 	//infoText += `${msg} ${chalk.red('yarn add @dr/internal-recipe@' + latestRecipe)}`;
 			// }
-			infoText += '\n' + _.padStart('Node.js version: ', PAD_SPACE) + chalk.green(process.version);
-			infoText += '\n' + _.padStart('NPM version: ', PAD_SPACE) + chalk.green(outputs[0]);
-			infoText += '\n' + _.padStart('dr-comp-package version: ', PAD_SPACE) + chalk.green(drcpVer) +
-				(isSymbolicLink ? chalk.green(' (symlink)') : '') +
-				(isDrcpOutdated ? chalk.yellow(` (latest: ${latestDrcp})`) : '');
-			if (recipeVer)
-				infoText += '\n' + _.padStart('@dr/internal-recipe version: ', PAD_SPACE) + chalk.green(recipeVer) +
-					(isRecipeOutdated ? chalk.yellow(`(latest: ${latestRecipe})`) : '');
+			infoText += '\n' + _.padStart('Node.js version: ', PAD_SPACE) + green(process.version);
+			infoText += '\n' + _.padStart('NPM version: ', PAD_SPACE) + green(outputs[0]);
+			infoText += '\n' + _.padStart('dr-comp-package version: ', PAD_SPACE) + green(drcpVer) +
+				(isSymbolicLink ? green(' (symlink)') : '') +
+				(isDrcpOutdated ? yellow(` (latest: ${latestDrcp})`) : ` (published: ${latestDrcp}) `);
+			if (recipeVer) {
+				infoText += '\n' + _.padStart('@dr/internal-recipe version: ', PAD_SPACE) + green(recipeVer) +
+					(isRecipeOutdated ? yellow(`(latest: ${latestRecipe})`) : '');
+			} else if (!isSymbolicLink) {
+				infoText += '\n' + red('Missing @dr/internal-recipe, Need to install it.');
+			}
 
 			infoText += '\n' + sline;
 			if (latestDrcp)
@@ -86,13 +89,13 @@ function getLatestRecipeVer() {
 	if (cachedVersionsInfo)
 		return Promise.resolve(cachedVersionsInfo.recipeVersion || INTERNAL_RECIPE_VER);
 	console.log('Check versions');
-	return checkTimeout(processUtils.promisifyExe('yarn', 'info', '@dr/internal-recipe', {cwd: process.cwd(), silent: true}))
+	return checkTimeout(processUtils.promisifyExe('npm', 'info', '@dr/internal-recipe', {cwd: process.cwd(), silent: true}))
 		.then(output => {
 			var m = npmViewReg.exec(output);
 			return (m && m[1]) ? m[1] : INTERNAL_RECIPE_VER;
 		})
 		.catch(e => {
-			console.error('[WARN] Command "' + ['yarn', 'info', '@dr/internal-recipe'].join(' ') + '" timeout');
+			console.error('[WARN] Command "' + ['npm', 'info', '@dr/internal-recipe'].join(' ') + '" timeout');
 			return INTERNAL_RECIPE_VER;
 		});
 }
