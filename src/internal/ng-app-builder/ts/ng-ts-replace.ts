@@ -6,10 +6,13 @@ import {of, throwError} from 'rxjs';
 import {HookReadFunc} from './utils/read-hook-vfshost';
 import {AngularCliParam} from './ng/common';
 import ApiAotCompiler from './utils/ts-before-aot';
+import AppModuleParser, {findAppModuleFileFromMain} from './utils/parse-app-module';
 import {transpileModule} from 'typescript';
 import {readFileSync} from 'fs';
-import {sep as SEP, relative} from 'path';
+import {sep as SEP, relative, resolve, dirname} from 'path';
 import * as ts from 'typescript';
+import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
+const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName);
 
@@ -29,13 +32,17 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 	if (ngParam.browserOptions.polyfills)
 		polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
 
+	let appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
+	log.info('app module file: ', appModuleFile);
+	if (!appModuleFile.endsWith('.ts'))
+		appModuleFile = appModuleFile + '.ts';
+
 	return function(file: string, buf: ArrayBuffer) {
 		try {
 			if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
 				let normalFile = relative(process.cwd(), file);
 				if (SEP === '\\')
 					normalFile = normalFile.replace(/\\/g, '/');
-
 				if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
 					const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
 					const content = Buffer.from(buf).toString() + hmrClient;
@@ -75,12 +82,22 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 					}
 					content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
 					drcpIncludeBuf = string2buffer(content);
-					log.info(file + ':\n' + content);
+					log.info(chalk.cyan(file) + ':\n' + content);
 					return of(drcpIncludeBuf);
 				}
 				const compPkg = api.findPackageByFile(file);
+				let content = Buffer.from(buf).toString();
 
-				const content = Buffer.from(buf).toString();
+				// patch app.module.ts
+				if (appModuleFile === file) {
+					log.info('patch', file);
+					const removables = removableNgModules(api.findPackageByFile(appModuleFile), dirname(appModuleFile));
+					const ngModules = api.config.get([api.packageName, 'ngModule']) || removables;
+					log.info('Insert optional NgModules to AppModule:\n  ', ngModules.join('\n  '));
+					content = new AppModuleParser()
+						.patchFile(file, content, removables, ngModules);
+					log.info(chalk.cyan(file) + ':\n' + content);
+				}
 				let changed = api.browserInjector.injectToFile(file, content);
 
 				changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
@@ -160,4 +177,43 @@ function compressOutputPathMap(pathMap: any) {
 		sames: sameAsNames,
 		diffMap: newMap
 	};
+}
+
+/**
+ * 
+ * @param appModulePkName package name of the one contains app.module.ts
+ * @param appModuleDir app.module.ts's directory, used to calculate relative path
+ */
+function removableNgModules(appModulePk: PackageBrowserInstance, appModuleDir: string): string[] {
+	const res: string[] = [];
+	for (const pk of api.packageInfo.allModules) {
+		if (pk.dr == null || pk.dr.ngModule == null)
+			continue;
+
+		let modules = pk.dr.ngModule;
+		if (!Array.isArray(modules))
+			modules = [modules];
+
+		for (let name of modules) {
+			name = _.trimStart(name, './');
+			if (pk !== appModulePk) {
+				if (name.indexOf('#') < 0)
+					res.push(pk.longName + '#' + name);
+				else
+					res.push(pk.longName + '/' + name);
+			} else {
+				// package is same as the one app.module belongs to, we use relative path instead of package name
+				if (name.indexOf('#') < 0)
+					throw new Error(`In ${pk.realPackagePath}/package.json, value of "dr.ngModule" array` +
+						`must be in form of '<path>#<export NgModule name>', but here it is '${name}'`);
+				const nameParts = name.split('#');
+				name = relative(appModuleDir, nameParts[0]) + '#' + nameParts[1];
+				name = name.replace(/\\/g, '/');
+				if (!name.startsWith('.'))
+					name = './' + name;
+				res.push(name);
+			}
+		}
+	}
+	return res;
 }
