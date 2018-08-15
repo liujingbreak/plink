@@ -105,7 +105,7 @@ class InstallManager {
 		}
 		var m = this.versionReg.exec(version);
 		trackTo[name].push({
-			ver: version === '*' || version === '' ? 'latest' : version,
+			ver: version === '*' ? '' : version,
 			verNum: m ? m[2] : null,
 			pre: m ? m[1] : '',
 			by: byWhom,

@@ -6,10 +6,10 @@ import * as Path from 'path';
 import * as _fs from 'fs';
 // import { PrerenderForExpress } from './ng-prerender';
 import {AngularCliParam} from './ng/common';
-import configWebpack from './config-webpack';
-import createHook from './ng-ts-replace';
+import changeWebpackConfig from './config-webpack';
 import Url = require('url');
-// const {yellow, cyan} = require('chalk');
+const semver = require('semver');
+const {red, yellow} = require('chalk');
 
 const fs = require('fs-extra');
 const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
@@ -21,6 +21,7 @@ export function compile() {
 
 export function init() {
 	// printHelp();
+	checkAngularVersion();
 	writeTsconfig();
 }
 
@@ -159,11 +160,28 @@ function setupApiForAngularCli() {
 	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
 	if (!api.config.get('staticAssetsURL'))
 		api.config.set('staticAssetsURL', deployUrl);
-	configWebpack(ngParam, webpackConfig, api.config());
+	changeWebpackConfig(ngParam, webpackConfig, api.config());
 
 	// ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
-	ngParam.vfsHost.hookRead = createHook(ngParam);
 	log.info('Setup api object for Angular');
+}
+
+function checkAngularVersion() {
+	const deps: {[k: string]: string} = {
+		'@angular-devkit/build-angular': '~0.7.3',
+		'@angular/cli': '6.1.3',
+		'@angular/compiler-cli': '6.1.3',
+		'@angular/language-service': '6.1.3'
+	};
+	let valid = true;
+	_.each(deps, (expectVer, mod) => {
+		const ver = require(mod + '/package.json').version;
+		if (!semver.satisfies(ver, expectVer)) {
+			valid = false;
+			log.error(yellow(`Installed dependency "${mod}@`) + red(ver) + yellow(`" version is not supported, install ${expectVer} instead.`));
+		}
+	});
+	return valid;
 }
 
 // function printHelp() {

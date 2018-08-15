@@ -10,6 +10,9 @@ const util_1 = require("util");
 const Path = require("path");
 const webpack_1 = require("webpack");
 const __api_1 = require("__api");
+const webpack_2 = require("@ngtools/webpack");
+const ng_ts_replace_1 = require("./ng-ts-replace");
+const read_hook_vfshost_1 = require("./utils/read-hook-vfshost");
 const { babel } = require('@dr-core/webpack2-builder/configs/loader-config');
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 function changeWebpackConfig(param, webpackConfig, drcpConfig) {
@@ -24,6 +27,17 @@ function changeWebpackConfig(param, webpackConfig, drcpConfig) {
         // }));
         webpackConfig.plugins.push(new chunk_info_1.default());
     }
+    const ngCompilerPlugin = webpackConfig.plugins.find((plugin) => {
+        return (plugin instanceof webpack_2.AngularCompilerPlugin);
+    });
+    if (ngCompilerPlugin == null)
+        throw new Error('Can not find AngularCompilerPlugin');
+    // hack _options.host before angular/packages/ngtools/webpack/src/angular_compiler_plugin.ts apply() runs
+    webpackConfig.plugins.unshift(new class {
+        apply(compiler) {
+            ngCompilerPlugin._options.host = new read_hook_vfshost_1.default(compiler.inputFileSystem, ng_ts_replace_1.default(param));
+        }
+    }());
     if (_.get(param, 'builderConfig.options.hmr'))
         webpackConfig.plugins.push(new webpack_1.HotModuleReplacementPlugin());
     if (!drcpConfig.devMode) {

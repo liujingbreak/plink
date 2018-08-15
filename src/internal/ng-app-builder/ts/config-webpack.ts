@@ -9,6 +9,9 @@ import { isRegExp } from 'util';
 import * as Path from 'path';
 import {Compiler, HotModuleReplacementPlugin} from 'webpack';
 import api from '__api';
+import {AngularCompilerPlugin} from '@ngtools/webpack';
+import createHook from './ng-ts-replace';
+import ReadHookHost from './utils/read-hook-vfshost';
 const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
@@ -26,6 +29,19 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 			new ChunkInfoPlugin()
 		);
 	}
+
+	const ngCompilerPlugin: AngularCompilerPlugin = webpackConfig.plugins.find((plugin: any) => {
+		return (plugin instanceof AngularCompilerPlugin);
+	});
+	if (ngCompilerPlugin == null)
+		throw new Error('Can not find AngularCompilerPlugin');
+	// hack _options.host before angular/packages/ngtools/webpack/src/angular_compiler_plugin.ts apply() runs
+	webpackConfig.plugins.unshift(new class {
+		apply(compiler: Compiler) {
+			(ngCompilerPlugin as any)._options.host = new ReadHookHost((compiler as any).inputFileSystem, createHook(param));
+		}
+	}());
+
 	if (_.get(param, 'builderConfig.options.hmr'))
 		webpackConfig.plugins.push(new HotModuleReplacementPlugin());
 	if (!drcpConfig.devMode) {

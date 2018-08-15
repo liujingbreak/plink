@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const Rx = require("rxjs");
 const _ = require("lodash");
+const change_cli_options_1 = require("./change-cli-options");
 function initDrcp(drcpArgs, drcpConfig) {
     var config = require('dr-comp-package/wfh/lib/config');
     const files = drcpConfig ? drcpConfig.split(/\s*[,;]\s*/) : [];
@@ -20,10 +21,11 @@ function initDrcp(drcpArgs, drcpConfig) {
  * @param buildWebpackConfig
  * @param vfsHost
  */
-function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpackConfig, vfsHost) {
+function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpackConfig) {
     // let argv: any = {};
     const options = builderConfig.options;
     const config = initDrcp(options.drcpArgs, options.drcpConfig);
+    change_cli_options_1.default(config, browserOptions, builderConfig);
     return Rx.Observable.create((obs) => {
         const param = {
             ssr: false,
@@ -31,7 +33,6 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
             browserOptions: browserOptions,
             webpackConfig: buildWebpackConfig(browserOptions),
             projectRoot,
-            vfsHost,
             argv: Object.assign({ poll: options.poll, hmr: options.hmr }, options.drcpArgs)
         };
         if (!_.get(options, 'drcpArgs.noWebpack'))
@@ -97,24 +98,30 @@ exports.startDrcpServer = startDrcpServer;
  * @param buildWebpackConfig
  * @param vfsHost
  */
-function compile(projectRoot, browserOptions, buildWebpackConfig, vfsHost, isSSR = false) {
+function compile(projectRoot, browserOptions, buildWebpackConfig, isSSR = false) {
     return new Rx.Observable((obs) => {
-        compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost, isSSR).then((webpackConfig) => {
-            obs.next(webpackConfig);
-            obs.complete();
-        });
+        try {
+            compileAsync(projectRoot, browserOptions, buildWebpackConfig, isSSR).then((webpackConfig) => {
+                obs.next(webpackConfig);
+                obs.complete();
+            })
+                .catch((err) => obs.error(err));
+        }
+        catch (err) {
+            obs.error(err);
+        }
     });
 }
 exports.compile = compile;
-function compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost, ssr) {
+function compileAsync(projectRoot, browserOptions, buildWebpackConfig, ssr) {
     const options = browserOptions;
     const config = initDrcp(options.drcpArgs, options.drcpConfig);
+    change_cli_options_1.default(config, browserOptions);
     const param = {
         ssr,
         browserOptions: options,
         webpackConfig: buildWebpackConfig(browserOptions),
         projectRoot,
-        vfsHost,
         argv: Object.assign({}, options.drcpArgs)
     };
     config.set('_angularCli', param);

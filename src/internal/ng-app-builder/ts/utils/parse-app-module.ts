@@ -30,22 +30,47 @@ export class EsImportStatement {
 }
 
 export function findAppModuleFileFromMain(mainFile: string): string {
-	const srcfile = ts.createSourceFile(mainFile, fs.readFileSync(mainFile, 'utf8'), ts.ScriptTarget.ESNext,
+	const lookupPath = ['AppModule', 'AppServerModule'];
+	while (true) {
+		let found = findFileByExportNames(mainFile, ...lookupPath);
+		if (found == null || found.size === 0) {
+			throw new Error('Can not found "AppModule" or "AppServerModule from ' + mainFile);
+		}
+		if (found.has(lookupPath[0])) {
+			return Path.resolve(Path.dirname(mainFile), found.get(lookupPath[0]));
+		}
+		if (found.has(lookupPath[1])) {
+			mainFile = Path.resolve(Path.dirname(mainFile), found.get(lookupPath[1]));
+			if (!mainFile.endsWith('.ts'))
+				mainFile += '.ts';
+		}
+	}
+}
+
+function findFileByExportNames(file: string, ...importName: string[]): Map<string, string> {
+	const srcfile = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.ESNext,
 		true, ts.ScriptKind.TSX);
-	let appModuleFile: string;
+	const res: Map<string, string> = new Map();
 	for(const stm of srcfile.statements) {
 		if (stm.kind === sk.ImportDeclaration && _.has(stm, 'importClause.namedBindings')) {
 			const binding = (stm as ts.ImportDeclaration).importClause.namedBindings as ts.NamedImports;
-			if (binding.elements.some(el => el.name.text === 'AppModule')) {
-				appModuleFile = ((stm as ts.ImportDeclaration).moduleSpecifier as ts.StringLiteral).text;
+			const found = _.intersection(binding.elements.map(el => el.name.text), importName);
+			if (found && found.length > 0) {
+				const appModuleFile = ((stm as ts.ImportDeclaration).moduleSpecifier as ts.StringLiteral).text;
+				found.forEach(importName => res.set(importName, appModuleFile));
+				break;
+			}
+		} else if (stm.kind === sk.ExportDeclaration && (stm as ts.ExportDeclaration).exportClause) {
+			const binding = (stm as ts.ExportDeclaration).exportClause;
+			const found = _.intersection(binding.elements.map(el => el.name.text), importName);
+			if (found && found.length > 0) {
+				const appModuleFile = ((stm as ts.ExportDeclaration).moduleSpecifier as ts.StringLiteral).text;
+				found.forEach(importName => res.set(importName, appModuleFile));
 				break;
 			}
 		}
 	}
-	if (appModuleFile == null) {
-		throw new Error('Can not found "AppModule" from ' + mainFile);
-	}
-	return Path.resolve(Path.dirname(mainFile), appModuleFile);
+	return res;
 }
 // tslint:disable max-classes-per-file
 export default class AppModuleParser {
@@ -132,7 +157,7 @@ export default class AppModuleParser {
 		let i = 0;
 		// 4. Replace whole NgModule imports arrary with those not removables and newly added
 		const wholeNgImports = Array.from(keepImportEl.values());
-		wholeNgImports.push(...this.modulesToAdd.map(m => m.exportName + '_' + i++));
+		wholeNgImports.unshift(...this.modulesToAdd.map(m => m.exportName + '_' + i++));
 		this.replacements.push({
 			start: ngImportArrayExp.getStart(),
 			end: ngImportArrayExp.getEnd(),

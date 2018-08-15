@@ -24,7 +24,7 @@ To be supported by `ng <command>` command:
 ## How to use as Angular command line builder
 ### 1. Make your application project as a DRCP workspace
 - Add **dr-comp-package** to project dependency list in file package.json
-- Run `drcp init` to install dependencies, this will call `yarn install` internally.
+- Run `drcp init` to install dependencies, this will call `npm install` internally.
 - Modify **angular.json** file, change application project part:
     ```json
     "architect": {
@@ -52,7 +52,31 @@ To be supported by `ng <command>` command:
 Remove properties: `path`, `include` and `exclude`.
 `extends` property should be a proper location of file `<project root>/dist/webpack-temp/angular-app-tsconfig.json`
 
-### 2. Utilities at runtime
-```ts
+### 2. Configurable Angular AppModule
+Insert(import) business modules into app.module.ts at build time, so that we can build project with difference set of modules.
 
+Assume you work on 2 projects which shares a lot of the common logic as Angular modules, each has different set of business modules.
+
+We can reuse the project folder and same files like "polyfill.ts", "main.ts", "app/app.module.ts" ...
+
+Create first config yaml file, assume it is named `project-prod.config.yaml`.
+```yaml
+@dr-core/ng-app-builder:
+  ngPackage:
+    - @dr/foobar1
+    - @dr/foobar2
 ```
+
+Create 2nd config file, `project-demo.config.yaml`
+```yaml
+@dr-core/ng-app-builder:
+  ngPackage:
+    - @dr/demo
+  deployUrl: '/' # This property overrides "deployUrl" from angular.json
+```
+
+We support customized ng command argument `--drcp-config` for `ng serve/build`
+```shell
+ng build --drcp-config project-prod.yaml
+```
+

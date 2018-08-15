@@ -7,8 +7,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const core_1 = require("@angular-devkit/core");
 const operators_1 = require("rxjs/operators");
-class ReadHookHost extends core_1.virtualFs.AliasHost {
-    set hookRead(func) {
+const webpack_input_host_1 = require("@ngtools/webpack/src/webpack-input-host");
+class ReadHookHost extends webpack_input_host_1.WebpackInputHost {
+    constructor(inputFileSystem, func) {
+        super(inputFileSystem);
         this._readFunc = func;
     }
     read(path) {

@@ -6,9 +6,9 @@ const log4js = require("log4js");
 const _ = require("lodash");
 const Path = require("path");
 const config_webpack_1 = require("./config-webpack");
-const ng_ts_replace_1 = require("./ng-ts-replace");
 const Url = require("url");
-// const {yellow, cyan} = require('chalk');
+const semver = require('semver');
+const { red, yellow } = require('chalk');
 const fs = require('fs-extra');
 const sysFs = fs;
 const log = log4js.getLogger(__api_1.default.packageName);
@@ -18,6 +18,7 @@ function compile() {
 exports.compile = compile;
 function init() {
     // printHelp();
+    checkAngularVersion();
     writeTsconfig();
 }
 exports.init = init;
@@ -150,8 +151,24 @@ function setupApiForAngularCli() {
         __api_1.default.config.set('staticAssetsURL', deployUrl);
     config_webpack_1.default(ngParam, webpackConfig, __api_1.default.config());
     // ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
-    ngParam.vfsHost.hookRead = ng_ts_replace_1.default(ngParam);
     log.info('Setup api object for Angular');
+}
+function checkAngularVersion() {
+    const deps = {
+        '@angular-devkit/build-angular': '~0.7.3',
+        '@angular/cli': '6.1.3',
+        '@angular/compiler-cli': '6.1.3',
+        '@angular/language-service': '6.1.3'
+    };
+    let valid = true;
+    _.each(deps, (expectVer, mod) => {
+        const ver = require(mod + '/package.json').version;
+        if (!semver.satisfies(ver, expectVer)) {
+            valid = false;
+            log.error(yellow(`Installed dependency "${mod}@`) + red(ver) + yellow(`" version is not supported, install ${expectVer} instead.`));
+        }
+    });
+    return valid;
 }
 // function printHelp() {
 // 	// tslint:disable no-console

@@ -6,6 +6,8 @@
 import {virtualFs, Path ,getSystemPath} from '@angular-devkit/core';
 import {Observable} from 'rxjs';
 import {concatMap} from 'rxjs/operators';
+import {WebpackInputHost} from '@ngtools/webpack/src/webpack-input-host';
+import { InputFileSystem } from '@ngtools/webpack/src/webpack';
 // import {sep} from 'path';
 
 // const isWindows = sep === '\\';
@@ -18,11 +20,12 @@ export interface TsFile {
 
 export type HookReadFunc =(path: string, buffer: FBuffer) => Observable<FBuffer>;
 
-export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.AliasHost<StatsT> {
+export default class ReadHookHost extends WebpackInputHost {
 	/** set this property to add a file read hook */
 	_readFunc: HookReadFunc;
 
-	set hookRead(func: HookReadFunc) {
+	constructor(inputFileSystem: InputFileSystem, func: HookReadFunc) {
+		super(inputFileSystem);
 		this._readFunc = func;
 	}
 
@@ -38,9 +41,4 @@ export default class ReadHookHost<StatsT extends object = {}> extends virtualFs.
 	protected _hookRead(path: string, buffer: FBuffer): Observable<FBuffer> {
 		return this._readFunc(path, buffer);
 	}
-
-	// protected _resolve(path: Path) {
-	// 	let r = super._resolve(path);
-	// 	return r;
-	// }
 }

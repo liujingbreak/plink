@@ -1,5 +1,5 @@
 {
-  "title": "Dev server Target",
+  "title": "Karma Target",
   "description": "Karma target options for Build Facade.",
   "type": "object",
   "properties": {
@@ -71,7 +71,7 @@
     "hmr": {
       "type": "boolean",
       "description": "Enable hot module replacement.",
-      "default": true
+      "default": false
     },
     "watch": {
       "type": "boolean",
@@ -94,12 +94,16 @@
     },
     "aot": {
       "type": "boolean",
-      "description": "Build using Ahead of Time compilation.",
-      "default": true
+      "description": "Build using Ahead of Time compilation."
     },
     "sourceMap": {
       "type": "boolean",
       "description": "Output sourcemaps."
+    },
+    "vendorSourceMap": {
+      "type": "boolean",
+      "description": "Resolve vendor packages sourcemaps.",
+      "default": false
     },
     "evalSourceMap": {
       "type": "boolean",
@@ -121,10 +125,6 @@
       "type": "string",
       "description": "URL where files will be deployed."
     },
-    "verbose": {
-      "type": "boolean",
-      "description": "Adds more details to output logging."
-    },
     "progress": {
       "type": "boolean",
       "description": "Log progress to the console while building."
@@ -134,6 +134,8 @@
       "description": "Enable and define the file watching poll time period in milliseconds."
     }
   },
-  "additionalProperties": true,
-  "required": []
+  "additionalProperties": false,
+  "required": [
+    "browserTarget"
+  ]
 }

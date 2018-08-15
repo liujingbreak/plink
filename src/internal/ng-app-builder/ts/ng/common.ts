@@ -8,9 +8,9 @@ import {
 import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
 import {NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
 import {BuildWebpackServerSchema} from '@angular-devkit/build-angular/src/server/schema';
-import ReadHookHost from '../utils/read-hook-vfshost';
 import * as Rx from 'rxjs';
 import * as _ from 'lodash';
+import changeAngularCliOptions from './change-cli-options';
 
 function initDrcp(drcpArgs: any, drcpConfig: string) {
 	var config = require('dr-comp-package/wfh/lib/config');
@@ -33,7 +33,6 @@ export interface AngularCliParam {
 	ssr: boolean; // Is server side / prerender
 	webpackConfig: any;
 	projectRoot: string;
-	vfsHost: ReadHookHost;
 	argv: any;
 }
 
@@ -55,12 +54,13 @@ export interface DrcpBuilderOptions {
  */
 export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfiguration<DevServerBuilderOptions>,
 	browserOptions: AngularBuilderOptions,
-	buildWebpackConfig: buildWebpackConfigFunc,
-	vfsHost: ReadHookHost): Rx.Observable<BuildEvent> {
+	buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent> {
 	// let argv: any = {};
 	const options = builderConfig.options as (DevServerBuilderOptions & DrcpBuilderOptions);
 
+
 	const config = initDrcp(options.drcpArgs, options.drcpConfig);
+	changeAngularCliOptions(config, browserOptions, builderConfig);
 
 	return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
 		const param: AngularCliParam = {
@@ -69,7 +69,6 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 			browserOptions: browserOptions as any as NormalizedBrowserBuilderSchema & DrcpBuilderOptions,
 			webpackConfig: buildWebpackConfig(browserOptions),
 			projectRoot,
-			vfsHost,
 			argv: {
 				poll: options.poll,
 				hmr: options.hmr,
@@ -139,25 +138,30 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
  * @param vfsHost 
  */
 export function compile(projectRoot: string, browserOptions: AngularBuilderOptions,
-	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost, isSSR = false) {
-	return new Rx.Observable((obs: any) => {
-		compileAsync(projectRoot, browserOptions, buildWebpackConfig, vfsHost, isSSR).then((webpackConfig: any) => {
-			obs.next(webpackConfig);
-			obs.complete();
-		});
+	buildWebpackConfig: buildWebpackConfigFunc, isSSR = false) {
+	return new Rx.Observable((obs) => {
+		try {
+			compileAsync(projectRoot, browserOptions, buildWebpackConfig, isSSR).then((webpackConfig: any) => {
+				obs.next(webpackConfig);
+				obs.complete();
+			})
+			.catch((err: Error) => obs.error(err));
+		} catch (err) {
+			obs.error(err);
+		}
 	});
 }
 
 function compileAsync(projectRoot: string, browserOptions: AngularBuilderOptions,
-	buildWebpackConfig: buildWebpackConfigFunc, vfsHost: ReadHookHost, ssr: boolean) {
+	buildWebpackConfig: buildWebpackConfigFunc, ssr: boolean) {
 	const options = browserOptions;
 	const config = initDrcp(options.drcpArgs, options.drcpConfig);
+	changeAngularCliOptions(config, browserOptions);
 	const param: AngularCliParam = {
 		ssr,
 		browserOptions: options,
 		webpackConfig: buildWebpackConfig(browserOptions),
 		projectRoot,
-		vfsHost,
 		argv: {
 			...options.drcpArgs
 		}
