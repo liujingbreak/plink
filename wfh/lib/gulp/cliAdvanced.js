@@ -55,7 +55,11 @@ function addupConfigs(onEachYaml) {
 		});
 
 		// outputPath
-		var outputPath = dr.outputPath || dr.ngRouterPath || _.get(json, 'dr.output.path') || parsedName.name;
+		var outputPath = dr.outputPath;
+		if (outputPath == null)
+			outputPath = dr.ngRouterPath;
+		if (outputPath == null)
+			outputPath = _.get(json, 'dr.output.path', parsedName.name);
 
 		if (_.has(trackOutputPath, outputPath) && trackOutputPath[outputPath] !== name) {
 			log.warn(chalk.yellow('[Warning] Conflict outputPath setting "%s" for both %s and %s, resolve conflict by adding a config file,'), outputPath, trackOutputPath[outputPath], name);

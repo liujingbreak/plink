@@ -15,7 +15,8 @@
     "builderPriority": 9999,
     "config": {
       "server": {
-        "ngModule": null
+        "ngModule": null,
+        "ngPackage": null
       }
     }
   },

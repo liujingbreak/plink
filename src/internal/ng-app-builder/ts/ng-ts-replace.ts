@@ -91,9 +91,11 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 				// patch app.module.ts
 				if (appModuleFile === file) {
 					log.info('patch', file);
-					const removables = removableNgModules(api.findPackageByFile(appModuleFile), dirname(appModuleFile));
-					const ngModules = api.config.get([api.packageName, 'ngModule']) || removables;
-					log.info('Insert optional NgModules to AppModule:\n  ', ngModules.join('\n  '));
+					const appModulePackage = api.findPackageByFile(appModuleFile);
+					const removables = removableNgModules(appModulePackage, dirname(appModuleFile));
+					const ngModules: string[] = api.config.get([api.packageName, 'ngModule']) ||
+						packageNames2NgModule(appModulePackage, dirname(appModuleFile), api.config.get([api.packageName, 'ngPackage'])) || removables;
+					log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
 					content = new AppModuleParser()
 						.patchFile(file, content, removables, ngModules);
 					log.info(chalk.cyan(file) + ':\n' + content);
@@ -179,16 +181,33 @@ function compressOutputPathMap(pathMap: any) {
 	};
 }
 
-/**
- * 
- * @param appModulePkName package name of the one contains app.module.ts
- * @param appModuleDir app.module.ts's directory, used to calculate relative path
- */
-function removableNgModules(appModulePk: PackageBrowserInstance, appModuleDir: string): string[] {
+function packageNames2NgModule(appModulePk: PackageBrowserInstance, appModuleDir: string, includePackages?: string[]): string[] {
 	const res: string[] = [];
-	for (const pk of api.packageInfo.allModules) {
+	if (includePackages) {
+		for (const name of includePackages) {
+			let pk = api.packageInfo.moduleMap[name];
+			if (pk == null) {
+				const scope = (api.config.get('packageScopes') as string[]).find(scope => {
+					return api.packageInfo.moduleMap[`@${scope}/${name}`] != null;
+				});
+				if (scope == null) {
+					log.error('Package named: "%s" is not found with possible scope name in "%s"', name,
+						(api.config.get('packageScopes') as string[]).join(', '));
+					break;
+				}
+				pk = api.packageInfo.moduleMap[`@${scope}/${name}`];
+			}
+			eachPackage(pk);
+		}
+	} else {
+		for (const pk of api.packageInfo.allModules) {
+			eachPackage(pk);
+		}
+	}
+
+	function eachPackage(pk: PackageBrowserInstance) {
 		if (pk.dr == null || pk.dr.ngModule == null)
-			continue;
+			return;
 
 		let modules = pk.dr.ngModule;
 		if (!Array.isArray(modules))
@@ -216,4 +235,13 @@ function removableNgModules(appModulePk: PackageBrowserInstance, appModuleDir: s
 		}
 	}
 	return res;
+}
+
+/**
+ * 
+ * @param appModulePkName package name of the one contains app.module.ts
+ * @param appModuleDir app.module.ts's directory, used to calculate relative path
+ */
+function removableNgModules(appModulePk: PackageBrowserInstance, appModuleDir: string): string[] {
+	return packageNames2NgModule(appModulePk, appModuleDir);
 }
