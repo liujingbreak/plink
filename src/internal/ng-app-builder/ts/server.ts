@@ -168,8 +168,8 @@ function setupApiForAngularCli() {
 
 function checkAngularVersion() {
 	const deps: {[k: string]: string} = {
-		'@angular-devkit/build-angular': '~0.7.3',
-		'@angular/cli': '6.1.3',
+		'@angular-devkit/build-angular': '~0.7.4',
+		'@angular/cli': '6.1.4',
 		'@angular/compiler-cli': '6.1.3',
 		'@angular/language-service': '6.1.3'
 	};

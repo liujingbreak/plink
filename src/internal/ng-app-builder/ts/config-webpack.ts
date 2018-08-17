@@ -1,4 +1,4 @@
-/* tslint:disable no-console max-line-length */
+/* tslint:disable no-console max-line-length max-classes-per-file */
 import ChunkInfoPlugin from './plugins/chunk-info';
 import gzipSize from './plugins/gzip-size';
 import IndexHtmlPlugin from './plugins/index-html-plugin';

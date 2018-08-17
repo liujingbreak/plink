@@ -48,7 +48,7 @@ function doAttrAssetsUrl(attrName, valueToken, el, replacements, loader) {
             replacements.push(new patch_text_1.Replacement(valueToken.start, valueToken.end, url));
         });
     }
-    else {
+    else { // href, ng-src, routerLink
         return resolveUrl(valueToken.text, loader)
             .then(url => replacements.push(new patch_text_1.Replacement(valueToken.start, valueToken.end, url)));
     }

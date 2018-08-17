@@ -1,4 +1,3 @@
-/// <reference types="webpack" />
 import { Compiler } from 'webpack';
 import { ReplacementInf } from '../utils/patch-text';
 export interface IndexHtmlPluginOptions {

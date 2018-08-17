@@ -4,7 +4,7 @@ const Path = require("path");
 const NM_DIR = Path.sep + 'node_modules' + Path.sep;
 // You don't have to export the function as default. You can also have more than one rule factory
 // per file.
-function drcpApp() {
+function drcpApp( /*options: any*/) {
     return (tree, _context) => {
         tree.visit((path /*, entry: FileEntry*/) => {
             if (path.startsWith(NM_DIR))

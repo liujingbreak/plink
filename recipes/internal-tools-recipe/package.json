@@ -1,9 +1,9 @@
 {
 	"name": "@dr/internal-tools-recipe",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Component group: internal-tools-recipe",
 	"dependencies": {
     "@dr/e2etest-helper": "1.0.2",
-    "@dr/http-request-proxy": "5.0.2"
+    "@dr/http-request-proxy": "5.0.3"
 }
 }

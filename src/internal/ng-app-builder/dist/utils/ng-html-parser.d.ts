@@ -11,7 +11,7 @@ export declare enum HtmlTokenType {
     identity = 8,
     stringLiteral = 9,
     any = 10,
-    space = 11,
+    space = 11
 }
 export { HtmlTokenType as TokenType };
 export declare class TemplateLexer extends BaseLexer<HtmlTokenType> {

@@ -12,7 +12,7 @@ export default function changeOptions(config: any, browserOptions: AngularBuilde
 
 	for (const prop of ['deployUrl', 'outputPath']) {
 		const value = config.get([currPackageName, prop]);
-		if (value) {
+		if (value != null) {
 			(browserOptions as any)[prop] = value;
 			console.log(currPackageName + ' - override %s: %s', prop, value);
 		}

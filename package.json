@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package",
-  "version": "0.7.11",
+  "version": "0.7.12",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -79,7 +79,7 @@
     "through2": "^2.0.3",
     "tslint": "^5.9.1",
     "tslint-eslint-rules": "^4.1.1",
-    "typescript": "2.7.2",
+    "typescript": "2.9.2",
     "typescript-eslint-parser": "^8.0.1",
     "vinyl": "^2.1.0",
     "vinyl-buffer": "^1.0.1",

@@ -5,5 +5,5 @@ import { BuildWebpackServerSchema } from '@angular-devkit/build-angular/src/serv
 import { ServerBuilder as GoogleServerBuilder } from '@angular-devkit/build-angular';
 export default class ServerBuilder extends GoogleServerBuilder {
     run(builderConfig: BuilderConfiguration<BuildWebpackServerSchema>): Observable<BuildEvent>;
-    private _deleteOutputDir0(root, outputPath, host);
+    private _deleteOutputDir0;
 }

@@ -7,7 +7,7 @@ declare namespace loader {
         private file;
         private patches;
         doTs(code: string, file: string): string;
-        private traverseTsAst(ast, srcfile, level?);
+        private traverseTsAst;
     }
 }
 export = loader;

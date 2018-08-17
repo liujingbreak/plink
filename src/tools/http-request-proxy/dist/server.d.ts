@@ -1,4 +1,3 @@
-/// <reference types="express" />
 import * as express from 'express';
 export declare function activate(): void;
 export declare function forName(name: string, opts?: {
@@ -43,7 +42,7 @@ export declare class ProxyInstance {
     interceptRequest(path: string, handler: BodyHandler): void;
     mockResponse(path: string, handler: BodyHandler): void;
     interceptResHeader(path: string, handler: HeaderHandler): void;
-    private addHandler(path, handler, to);
+    private addHandler;
 }
 /**
  * Add proxy middlewares to a specific router path

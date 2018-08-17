@@ -66,6 +66,8 @@ function writeTsconfig() {
         // TODO: doc for dr.ngAppModule
         let isNgAppModule = _.get(pk, 'dr.ngAppModule');
         const dir = Path.relative(tempDir, isNgAppModule ? pk.realPackagePath : pk.packagePath)
+            // pk.packagePath)
+            // pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
             .replace(/\\/g, '/');
         if (isNgAppModule) {
             tsInclude.unshift(dir + '/**/*.ts');
@@ -155,8 +157,8 @@ function setupApiForAngularCli() {
 }
 function checkAngularVersion() {
     const deps = {
-        '@angular-devkit/build-angular': '~0.7.3',
-        '@angular/cli': '6.1.3',
+        '@angular-devkit/build-angular': '~0.7.4',
+        '@angular/cli': '6.1.4',
         '@angular/compiler-cli': '6.1.3',
         '@angular/language-service': '6.1.3'
     };

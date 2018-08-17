@@ -1,4 +1,3 @@
-/// <reference types="express" />
 import 'zone.js/dist/zone-node';
 import 'reflect-metadata';
 import { Request, Response, NextFunction } from 'express';
