@@ -118,7 +118,7 @@ Change **app.module.ts**
 
 ```ts
 const appRoutes: Routes = [
-  { path: '**', redirectTo: `/${__api.ngBaseRouterPath + __api.config.get('@dr-core/ng-app-builder.redirectToRoute')}` }
+  { path: '**', redirectTo: __api.config.get('@dr-core/ng-app-builder.redirectToRoute') }
 ];
 
 @NgModule({
