@@ -156,8 +156,7 @@ e.g.
 	"@dr/doc-home": "0.0.1",
 	"@dr/doc-less-var": "0.0.0",
 	"@dr/doc-ui": "0.0.0",
-	"@dr/text-anim-ng": "0.0.0",
-	"@dr/logger": "0.0.3"
+	"@dr/text-anim-ng": "0.0.0"
 }
 ```
 

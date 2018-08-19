@@ -10,7 +10,13 @@
     ],
     "builderPriority": 8000,
     "serverPriority": 1000,
-    "category": ["internal", "nodejs", "tool"]
+    "category": ["internal", "nodejs", "tool"],
+    "config": {
+      "server": {
+        "fetchUrl": null,
+        "fetchInterval": "5m"
+      }
+    }
   },
   "dependencies": {
     "through2": "^2.0.3",
