@@ -87,7 +87,7 @@ function createTsReadHook(ngParam) {
                     const removables = removableNgModules(appModulePackage, path_1.dirname(appModuleFile));
                     const ngModules = __api_1.default.config.get([__api_1.default.packageName, 'ngModule']) ||
                         packageNames2NgModule(appModulePackage, path_1.dirname(appModuleFile), __api_1.default.config.get([__api_1.default.packageName, 'ngPackage'])) || removables;
-                    ngModules.push(__api_1.default.packageName + '/src/app/developer/developer.module#DeveloperModule');
+                    ngModules.push(__api_1.default.packageName + '/src/app#DeveloperModule');
                     log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
                     content = new parse_app_module_1.default()
                         .patchFile(file, content, removables, ngModules);

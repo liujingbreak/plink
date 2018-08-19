@@ -15,7 +15,6 @@
     "builderPriority": 9999,
     "config": {
       "server": {
-        "redirectToRoute": "/ng-app-builder",
         "ngModule": null,
         "ngPackage": null,
         "deployUrl": null,

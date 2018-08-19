@@ -67,7 +67,7 @@ class Guarder {
 	/**
 	 * Mark changes without writing dr.package.json
 	 * @param {object} pk package.json
-	 * @return changed list {[depName: string]: string}[]
+	 * @return changed list [string, string][]
 	 */
 	markChanges(pk) {
 		var changeList = [];

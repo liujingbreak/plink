@@ -18,9 +18,9 @@ var buildUtils = require('./buildUtils');
 require('../logConfig')(config());
 var log = require('log4js').getLogger('wfh.cliAdvanced');
 var packageUtils = require('../packageMgr/packageUtils');
-var PackageInstall = require('./packageInstallMgr');
+var {listCompDependency} = require('../../dist/dependency-installer');
 
-exports.listCompDependency = PackageInstall.listCompDependency;
+exports.listCompDependency = listCompDependency;
 exports.addupConfigs = addupConfigs;
 exports.clean = clean;
 exports.bumpDirsAsync = bumpDirsAsync;

@@ -11,3 +11,4 @@ const routes: Routes = [{
   exports: [RouterModule]
 })
 export class DeveloperRoutingModule { }
+export const ROUTE = routes[0].path;

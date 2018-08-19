@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-/* tslint:disable no-console max-line-length */
+/* tslint:disable no-console max-line-length max-classes-per-file */
 const chunk_info_1 = require("./plugins/chunk-info");
 const gzip_size_1 = require("./plugins/gzip-size");
 const index_html_plugin_1 = require("./plugins/index-html-plugin");

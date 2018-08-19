@@ -48,6 +48,10 @@ class ApiAotCompiler {
                 // e.g. if (false) {...} --> if (!!false) {...}
                 if (repl.text === 'true' || repl.text === 'false')
                     repl.text = '!!' + repl.text;
+                else if (repl.text === undefined) {
+                    // JSON.stringify(undefined) will not return string of "undefined", but actual undefined
+                    repl.text = 'undefined';
+                }
             }
             catch (ex) {
                 log.warn('Evaluate %s, result:', origText, res);

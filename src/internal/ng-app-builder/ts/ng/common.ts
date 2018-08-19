@@ -58,7 +58,6 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 	// let argv: any = {};
 	const options = builderConfig.options as (DevServerBuilderOptions & DrcpBuilderOptions);
 
-
 	const config = initDrcp(options.drcpArgs, options.drcpConfig);
 	changeAngularCliOptions(config, browserOptions, builderConfig);
 
