@@ -15,7 +15,7 @@ import changeAngularCliOptions from './change-cli-options';
 function initDrcp(drcpArgs: any, drcpConfig: string) {
 	var config = require('dr-comp-package/wfh/lib/config');
 
-	const files = drcpConfig ? drcpConfig.split(/\s*[,;]\s*/) : [];
+	const files = drcpConfig ? drcpConfig.split(/\s*[,;:]\s*/) : [];
 	if (drcpArgs.c == null)
 		drcpArgs.c = [];
 	drcpArgs.c.push(...files);

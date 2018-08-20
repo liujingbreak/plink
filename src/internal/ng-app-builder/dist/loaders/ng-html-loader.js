@@ -99,7 +99,7 @@ function doLoadAssets(src, loader) {
     else if (src.startsWith('npm://')) {
         src = src.substring('npm://'.length);
     }
-    else if (src.charAt(0) !== '.')
+    else if (src.charAt(0) !== '.' && src.trim().length > 0 && src.indexOf('{') < 0)
         src = './' + src;
     return new Promise((resolve, reject) => {
         // Unlike extract-loader, we does not support embedded require statement in source code 

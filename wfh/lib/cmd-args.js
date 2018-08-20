@@ -97,7 +97,7 @@ function drcpCommand(startTime) {
 					type: 'array'
 				}
 			})
-			.usage('drcp run <target> [package]\ne.g. drcp run dist/file.js#exec\n' +
+			.usage('drcp run <target> [package1 package2 ...]\ne.g. drcp run dist/file.js#exec\n' +
 				'execute function from all packages one after one, after all api.eventBus will emit ServerRunnerEvent "done"');
 		},
 		handler: argv => {

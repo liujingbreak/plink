@@ -1,21 +1,20 @@
 // Load zone.js for the server.
 import 'zone.js/dist/zone-node';
 import 'reflect-metadata';
-import { readFileSync, readFile, writeFileSync, existsSync, ensureDirSync } from 'fs-extra';
-import { join, relative, sep } from 'path';
+import { readFileSync, writeFileSync, existsSync, ensureDirSync } from 'fs-extra';
+import { join, relative, sep, dirname } from 'path';
 
 import { enableProdMode } from '@angular/core';
 
-import {Request, Response, NextFunction} from 'express';
 import * as _ from 'lodash';
 const log = require('log4js').getLogger('ng-prerender');
 import api from '__api';
 import { provideModuleMap } from '@nguniversal/module-map-ngfactory-loader';
 import { renderModuleFactory } from '@angular/platform-server';
+import {ROUTE_MAP_FILE} from '@dr-core/assets-processer/dist/ng-prerender';
 
 const domino = require('domino');
 
-const ROUTE_MAP_FILE = 'prerender-routes.json';
 enableProdMode();
 
 function setupGlobals(indexHtml: string, url?: string) {
@@ -24,15 +23,22 @@ function setupGlobals(indexHtml: string, url?: string) {
 	(global as any).document = window.document;
 }
 
-export function writeRoutes(destDir: string, applName: string, ROUTES: string[]): Promise<string> {
-	const indexHtmlFile = join(destDir, 'static', applName, 'index.html');
-	const index = readFileSync(indexHtmlFile, 'utf8');
+/**
+ * Write static prerender pages
+ * @param staticDir dist/static
+ * @param htmlFile dist/static/<app>/index.html
+ * @param mainFile dist/server/main.js file path which can be require.resolve, should be corresponding to angular.json
+ * @param ROUTES 
+ */
+export function writeRoutes(staticDir: string, htmlFile: string, mainFile: string, ROUTES: string[],
+	outputFolder?: string): Promise<string> {
+	const index = readFileSync(htmlFile, 'utf8');
 	setupGlobals(index);
-	const mainServerExports = require(join(destDir, 'server', applName, 'main'));
-	const outputFolder = join(destDir, 'static', applName, '_prerender');
-	const staticDir = join(destDir, 'static');
+	if (outputFolder == null)
+		outputFolder = join(dirname(htmlFile), '_prerender');
 	// * NOTE :: leave this as require() since this file is built Dynamically from webpack
-	const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = mainServerExports;
+	log.info('main file:', mainFile);
+	const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(mainFile);
 	// Load the index.html file containing referances to your application bundle.
 
 	let previousRender = Promise.resolve();
@@ -72,12 +78,20 @@ export function writeRoutes(destDir: string, applName: string, ROUTES: string[])
 	});
 }
 
-export async function writeRoutesWithLocalServer(destDir: string, applName: string, ROUTES: string[]) {
+/**
+ * Write static prerender pages
+ * @param staticDir dist/static
+ * @param htmlFile dist/static/<app>/index.html
+ * @param mainFile dist/server/main.js file path which can be require.resolve, should be corresponding to angular.json
+ * @param ROUTES 
+ */
+export async function writeRoutesWithLocalServer(staticDir: string, htmlFile: string, mainFile: string,
+	ROUTES: string[], outputFolder?: string) {
 	const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
 	const shutdown: () => void = await pkMgr.runServer(api.argv);
 	let mapFile: string;
 	try {
-		mapFile = await writeRoutes(destDir, applName, ROUTES);
+		mapFile = await writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder);
 	} catch (err) {
 		throw err;
 	} finally {
@@ -87,62 +101,4 @@ export async function writeRoutesWithLocalServer(destDir: string, applName: stri
 		});
 	}
 	return mapFile;
-}
-
-export class PrerenderForExpress {
-	noPrerender = false;
-	prerenderPages: {[route: string]: string} = {};
-	// lastQueried: Map<string, number> = new Map();
-	prerenderMap: {[route: string]: string};
-	prerenderMapFile: string;
-
-	constructor(public staticDir: string, public applName: string) {
-		this.prerenderMapFile = join(this.staticDir, this.applName, '_prerender', ROUTE_MAP_FILE);
-		this.noPrerender = !existsSync(this.prerenderMapFile);
-		if (this.noPrerender) {
-			log.warn('No prerender files found in ', this.prerenderMapFile);
-			return;
-		}
-		this.queryPrerenderPages();
-	}
-
-	asMiddleware() {
-		if (api.argv.hmr) {
-			log.warn('Hot module replacement mode is on, no prerendered page will be served\n');
-			return (req: Request, res: Response, next: NextFunction) => next();
-		}
-		return (req: Request, res: Response, next: NextFunction) => {
-			if (req.method !== 'GET')
-				return next();
-			const route = _.trimEnd(req.originalUrl, '/');
-			if (_.has(this.prerenderPages, route)) {
-				log.info('Serve with prerender page for ', route);
-				if (this.prerenderPages[route] === null) {
-					readFile(join(this.staticDir, this.prerenderMap[route]), 'utf-8', (err, cont) => {
-						if (err) {
-							log.error('Failed to read prerendered page: ' + this.prerenderMap[route], err);
-							next();
-						}
-						this.prerenderPages[route] = cont;
-						res.send(cont);
-					});
-				} else {
-					res.send(this.prerenderPages[route]);
-				}
-			} else {
-				next();
-			}
-		};
-	}
-
-	protected queryPrerenderPages() {
-		if (this.noPrerender)
-			return;
-		readFile(this.prerenderMapFile, 'utf-8', (err, content) => {
-			this.prerenderMap = JSON.parse(content);
-			_.forEach(this.prerenderMap, (file, route) => {
-				this.prerenderPages[route] = null;
-			});
-		});
-	}
 }

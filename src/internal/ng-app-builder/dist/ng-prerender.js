@@ -19,23 +19,29 @@ const log = require('log4js').getLogger('ng-prerender');
 const __api_1 = require("__api");
 const module_map_ngfactory_loader_1 = require("@nguniversal/module-map-ngfactory-loader");
 const platform_server_1 = require("@angular/platform-server");
+const ng_prerender_1 = require("@dr-core/assets-processer/dist/ng-prerender");
 const domino = require('domino');
-const ROUTE_MAP_FILE = 'prerender-routes.json';
 core_1.enableProdMode();
 function setupGlobals(indexHtml, url) {
     const window = domino.createWindow(indexHtml, url);
     global.window = window;
     global.document = window.document;
 }
-function writeRoutes(destDir, applName, ROUTES) {
-    const indexHtmlFile = path_1.join(destDir, 'static', applName, 'index.html');
-    const index = fs_extra_1.readFileSync(indexHtmlFile, 'utf8');
+/**
+ * Write static prerender pages
+ * @param staticDir dist/static
+ * @param htmlFile dist/static/<app>/index.html
+ * @param mainFile dist/server/main.js file path which can be require.resolve, should be corresponding to angular.json
+ * @param ROUTES
+ */
+function writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder) {
+    const index = fs_extra_1.readFileSync(htmlFile, 'utf8');
     setupGlobals(index);
-    const mainServerExports = require(path_1.join(destDir, 'server', applName, 'main'));
-    const outputFolder = path_1.join(destDir, 'static', applName, '_prerender');
-    const staticDir = path_1.join(destDir, 'static');
+    if (outputFolder == null)
+        outputFolder = path_1.join(path_1.dirname(htmlFile), '_prerender');
     // * NOTE :: leave this as require() since this file is built Dynamically from webpack
-    const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = mainServerExports;
+    log.info('main file:', mainFile);
+    const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(mainFile);
     // Load the index.html file containing referances to your application bundle.
     let previousRender = Promise.resolve();
     let routerFileMap = {};
@@ -67,20 +73,27 @@ function writeRoutes(destDir, applName, ROUTES) {
         });
     });
     return previousRender.then(() => {
-        const routeMapFile = path_1.join(outputFolder, ROUTE_MAP_FILE);
+        const routeMapFile = path_1.join(outputFolder, ng_prerender_1.ROUTE_MAP_FILE);
         fs_extra_1.writeFileSync(routeMapFile, JSON.stringify(routerFileMap, null, '  '), 'utf-8');
         log.info('write ', routeMapFile);
         return routeMapFile;
     });
 }
 exports.writeRoutes = writeRoutes;
-function writeRoutesWithLocalServer(destDir, applName, ROUTES) {
+/**
+ * Write static prerender pages
+ * @param staticDir dist/static
+ * @param htmlFile dist/static/<app>/index.html
+ * @param mainFile dist/server/main.js file path which can be require.resolve, should be corresponding to angular.json
+ * @param ROUTES
+ */
+function writeRoutesWithLocalServer(staticDir, htmlFile, mainFile, ROUTES, outputFolder) {
     return __awaiter(this, void 0, void 0, function* () {
         const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
         const shutdown = yield pkMgr.runServer(__api_1.default.argv);
         let mapFile;
         try {
-            mapFile = yield writeRoutes(destDir, applName, ROUTES);
+            mapFile = yield writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder);
         }
         catch (err) {
             throw err;
@@ -95,61 +108,5 @@ function writeRoutesWithLocalServer(destDir, applName, ROUTES) {
     });
 }
 exports.writeRoutesWithLocalServer = writeRoutesWithLocalServer;
-class PrerenderForExpress {
-    constructor(staticDir, applName) {
-        this.staticDir = staticDir;
-        this.applName = applName;
-        this.noPrerender = false;
-        this.prerenderPages = {};
-        this.prerenderMapFile = path_1.join(this.staticDir, this.applName, '_prerender', ROUTE_MAP_FILE);
-        this.noPrerender = !fs_extra_1.existsSync(this.prerenderMapFile);
-        if (this.noPrerender) {
-            log.warn('No prerender files found in ', this.prerenderMapFile);
-            return;
-        }
-        this.queryPrerenderPages();
-    }
-    asMiddleware() {
-        if (__api_1.default.argv.hmr) {
-            log.warn('Hot module replacement mode is on, no prerendered page will be served\n');
-            return (req, res, next) => next();
-        }
-        return (req, res, next) => {
-            if (req.method !== 'GET')
-                return next();
-            const route = _.trimEnd(req.originalUrl, '/');
-            if (_.has(this.prerenderPages, route)) {
-                log.info('Serve with prerender page for ', route);
-                if (this.prerenderPages[route] === null) {
-                    fs_extra_1.readFile(path_1.join(this.staticDir, this.prerenderMap[route]), 'utf-8', (err, cont) => {
-                        if (err) {
-                            log.error('Failed to read prerendered page: ' + this.prerenderMap[route], err);
-                            next();
-                        }
-                        this.prerenderPages[route] = cont;
-                        res.send(cont);
-                    });
-                }
-                else {
-                    res.send(this.prerenderPages[route]);
-                }
-            }
-            else {
-                next();
-            }
-        };
-    }
-    queryPrerenderPages() {
-        if (this.noPrerender)
-            return;
-        fs_extra_1.readFile(this.prerenderMapFile, 'utf-8', (err, content) => {
-            this.prerenderMap = JSON.parse(content);
-            _.forEach(this.prerenderMap, (file, route) => {
-                this.prerenderPages[route] = null;
-            });
-        });
-    }
-}
-exports.PrerenderForExpress = PrerenderForExpress;
 
 //# sourceMappingURL=ng-prerender.js.map

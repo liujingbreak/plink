@@ -166,8 +166,10 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
 		all.resume();
 		all.on('end', () => {
 			if (compileErrors.length > 0) {
+				/* eslint no-console: 0 */
+				console.log('\n---------- Failed to compile Typescript files, check out below error message -------------\n');
 				compileErrors.forEach(msg => log.error(msg));
-				return reject('Failed to compile Typescript files, check out above error message');
+				return reject(new Error(compileErrors.join(',')));
 			}
 			resolve();
 		});

@@ -8,6 +8,7 @@ var shell = require('shelljs');
 var mkdirp = require('mkdirp');
 var api = require('__api');
 var log = require('log4js').getLogger(api.packageName);
+const fetchRemote = require('./dist/fetch-remote');
 var serverFavicon = require('serve-favicon');
 
 var buildUtils = api.buildUtils;
@@ -17,7 +18,8 @@ var config = api.config;
 
 module.exports = {
 	compile,
-	activate
+	activate,
+	deactivate
 };
 
 function compile(api) {
@@ -40,6 +42,9 @@ function compile(api) {
 	// .then(zipStatic);
 }
 
+function deactivate() {
+	fetchRemote.stop();
+}
 function activate() {
 	var staticFolder = api.config.resolve('staticDir');
 	log.debug('express static path: ' + staticFolder);
@@ -62,6 +67,7 @@ function activate() {
 	log.info('Serve static dir', staticFolder);
 	api.use('/', staticRoute(staticFolder));
 	api.use('/', staticRoute(api.config.resolve('dllDestDir')));
+	fetchRemote.start();
 	if (!api.config().devMode) {
 		return;
 	}
@@ -168,8 +174,8 @@ function copyAssets() {
 	if (streams.length === 0) {
 		return null;
 	}
-	var contextPath = _.get(api, 'ngEntryComponent.shortName', '');
-	var outputDir = Path.join(config.resolve('staticDir'), contextPath);
+	// var contextPath = _.get(api, 'ngEntryComponent.shortName', '');
+	var outputDir = api.webpackConfig.output.path;
 	log.info('Output assets to ', outputDir);
 	return new Promise((resolve, reject) => {
 		es.merge(streams)

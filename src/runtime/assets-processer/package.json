@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/assets-processer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Copy assets to destDir folder only when devMode is false",
   "main": "assetsProcesser.js",
   "dr": {
@@ -14,17 +14,21 @@
     "config": {
       "server": {
         "fetchUrl": null,
-        "fetchInterval": "5m"
+        "fetchRetry": 3,
+        "fetchIntervalSec": 300
       }
     }
   },
   "dependencies": {
+    "request": "2.88.0",
+    "@types/request": "2.47.1",
     "through2": "^2.0.3",
     "shelljs": "^0.7.8",
     "mkdirp": "^0.5.1",
     "serve-favicon": "^2.4.4",
     "gulp-zip": "4.1.0",
-    "gulp-unzip": "1.0.0"
+    "gulp-unzip": "1.0.0",
+    "adm-zip": "^0.4.11"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
