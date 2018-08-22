@@ -60,7 +60,6 @@ function doSrcSet(value, loader) {
         const image = factors[0];
         return doLoadAssets(image, loader)
             .then(url => {
-            log.warn(url);
             return url + ' ' + factors[1];
         });
     });
