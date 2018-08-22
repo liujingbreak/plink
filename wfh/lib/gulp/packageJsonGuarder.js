@@ -148,7 +148,7 @@ class Guarder {
 		return false;
 	}
 
-	installAsync(doNotMarkInstallNum, isOffline) {
+	installAsync(doNotMarkInstallNum, useYarn, isOffline) {
 		this.offline = isOffline;
 		fs.writeFileSync(Path.resolve(this.rootPath, 'package.json'),
 			JSON.stringify(this.getChanges(), null, '  '));
@@ -181,7 +181,7 @@ class Guarder {
 		// } else {
 		installProm = Promise.resolve();
 		// }
-		installProm = installProm.then(() => processUtils.promisifyExe('npm', npmArgv, {cwd: this.rootPath}))
+		installProm = installProm.then(() => processUtils.promisifyExe(useYarn ? 'yarn' : 'npm', npmArgv, {cwd: this.rootPath}))
 		.then(res => {
 			if (this.isDrcpSymlink) {
 				return new Promise(resolve => setTimeout(() => resolve(res), 500))

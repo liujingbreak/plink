@@ -85,7 +85,7 @@ function ensurePackageJsonFile(isDrcpDevMode) {
 	if (needInstall) {
 		removeProjectSymlink();
 		packageJsonGuarder.beforeChange();
-		return packageJsonGuarder.installAsync(false, process.argv.some(arg => arg === '--offline'))
+		return packageJsonGuarder.installAsync(false, process.argv.some(arg => arg === '--yarn'), process.argv.some(arg => arg === '--offline'))
 		.then(() => packageJsonGuarder.afterChange())
 		.catch(err => {
 			packageJsonGuarder.afterChangeFail();

@@ -22,12 +22,12 @@ function drcpCommand(startTime) {
 			// 	desc: 'A list of package (short) names of which to be initialized, default is all installed and linked project packages.\n' +
 			// 		'Be aware that some special packages are always be include even they are not specified'
 			// })
-			// .options({
-			// 	pj: {
-			// 		describe: 'A list of project directorys, only packages of specified projects will be initialized to workspace',
-			// 		type: 'array'
-			// 	}
-			// })
+			yargs.options({
+				yarn: {
+					describe: 'Use Yarn to install component peer dependencies instead of using NPM',
+					type: 'boolean'
+				}
+			});
 			// .usage('drcp init');
 		},
 		handler: argv => {
