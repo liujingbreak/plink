@@ -10,8 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const _ = require("lodash");
 // import Package from './packageNodeInstance';
-const fs_1 = require("fs");
-const path_1 = require("path");
 const package_priority_helper_1 = require("./package-priority-helper");
 const LRU = require('lru-cache');
 const config = require('../lib/config');
@@ -66,15 +64,24 @@ function runPackages(argv) {
     };
     const components = packageInfo.allModules.filter(pk => {
         setupNodeInjectorFor(pk); // All component package should be able to access '__api', even they are not included
-        return (includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
-            pk.dr != null && fs_1.existsSync(path_1.join(pk.packagePath, fileToRun));
+        if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
+            pk.dr != null) {
+            try {
+                require.resolve(pk.longName + '/' + fileToRun);
+                return true;
+            }
+            catch (err) {
+                return false;
+            }
+        }
+        return false;
     });
     return package_priority_helper_1.orderPackages(components, (pkInstance) => {
-        const file = path_1.join(pkInstance.packagePath, fileToRun);
-        log.info('require(%s)', JSON.stringify(file));
-        const fileExports = require(file);
+        const mod = pkInstance.longName + '/' + fileToRun;
+        log.info('require(%s)', JSON.stringify(mod));
+        const fileExports = require(mod);
         if (_.isFunction(fileExports[funcToRun])) {
-            log.info('Run %s %s()', file, funcToRun);
+            log.info('Run %s %s()', mod, funcToRun);
             return fileExports[funcToRun]();
         }
     })

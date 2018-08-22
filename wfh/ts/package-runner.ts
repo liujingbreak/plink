@@ -4,8 +4,6 @@ import Events = require('events');
 import * as _ from 'lodash';
 import {PackageInfo, packageInstance} from '@dr-core/build-util/index';
 // import Package from './packageNodeInstance';
-import { existsSync} from 'fs';
-import {join} from 'path';
 import {orderPackages} from './package-priority-helper';
 const LRU = require('lru-cache');
 const config = require('../lib/config');
@@ -70,15 +68,24 @@ export function runPackages(argv: any) {
 	};
 	const components = packageInfo.allModules.filter(pk => {
 		setupNodeInjectorFor(pk); // All component package should be able to access '__api', even they are not included
-		return (includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
-			pk.dr != null && existsSync(join(pk.packagePath, fileToRun));
+
+		if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
+			pk.dr != null) {
+			try {
+				require.resolve(pk.longName + '/' + fileToRun);
+				return true;
+			} catch (err) {
+				return false;
+			}
+		}
+		return false;
 	});
 	return orderPackages(components, (pkInstance: packageInstance)  => {
-		const file = join(pkInstance.packagePath, fileToRun);
-		log.info('require(%s)', JSON.stringify(file));
-		const fileExports: any = require(file);
+		const mod = pkInstance.longName + '/' + fileToRun;
+		log.info('require(%s)', JSON.stringify(mod));
+		const fileExports: any = require(mod);
 		if (_.isFunction(fileExports[funcToRun])) {
-			log.info('Run %s %s()', file, funcToRun);
+			log.info('Run %s %s()', mod, funcToRun);
 			return fileExports[funcToRun]();
 		}
 	})

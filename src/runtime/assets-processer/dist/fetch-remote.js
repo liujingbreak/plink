@@ -86,10 +86,10 @@ function fetch(fetchUrl) {
     return new Promise((resolve, rej) => {
         request.get(checkUrl, {}, (error, response, body) => {
             if (error) {
-                return rej(error);
+                return rej(new Error(error));
             }
             if (response.statusCode < 200 || response.statusCode > 302) {
-                return rej(error);
+                return rej(new Error(`status code ${response.statusCode}\nresponse:\n${response}\nbody:\n${body}`));
             }
             if (typeof body === 'string')
                 body = JSON.parse(body);
@@ -108,7 +108,8 @@ function retry(func, ...args) {
                 if (cnt === 3) {
                     throw err;
                 }
-                log.warn('Encounter error, will retry', err);
+                log.debug(err);
+                log.warn('Encounter error, will retry');
             }
             yield new Promise(res => setTimeout(res, 5000));
         }

@@ -86,10 +86,10 @@ function fetch(fetchUrl: string): Promise<any> {
 	return new Promise((resolve, rej) => {
 		request.get(checkUrl, {}, (error: any, response: request.Response, body: any) => {
 			if (error) {
-				return rej(error);
+				return rej(new Error(error));
 			}
 			if (response.statusCode < 200 || response.statusCode > 302) {
-				return rej(error);
+				return rej(new Error(`status code ${response.statusCode}\nresponse:\n${response}\nbody:\n${body}`));
 			}
 			if (typeof body === 'string')
 				body = JSON.parse(body);
@@ -107,7 +107,8 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 			if (cnt === 3) {
 				throw err;
 			}
-			log.warn('Encounter error, will retry', err);
+			log.debug(err);
+			log.warn('Encounter error, will retry');
 		}
 		await new Promise(res => setTimeout(res, 5000));
 	}
