@@ -67,6 +67,7 @@ function doSrcSet(value: string, loader: any) {
 		const image = factors[0];
 		return doLoadAssets(image, loader)
 		.then(url => {
+			log.warn(url);
 			return url + ' ' + factors[1];
 		});
 	});
@@ -115,11 +116,12 @@ function doLoadAssets(src: string, loader: any) {
 			if (err)
 				return reject(err);
 			var sandbox = {
-				__webpack_public_path__: api.ssr ? api.config().staticAssetsURL : loader._compiler.options.output.publicPath,
+				__webpack_public_path__: _.get(loader, '_compiler.options.output.publicPath', api.config().publicPath),
 				module: {
 					exports: {}
 				}
 			};
+			// log.warn('__webpack_public_path__=', sandbox.__webpack_public_path__);
 			vm.runInNewContext(source, vm.createContext(sandbox));
 			// log.warn(loader.resourcePath + ', assets: ', src, 'to', sandbox.module.exports);
 			resolve(sandbox.module.exports as string);

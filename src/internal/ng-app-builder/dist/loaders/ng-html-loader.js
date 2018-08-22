@@ -60,6 +60,7 @@ function doSrcSet(value, loader) {
         const image = factors[0];
         return doLoadAssets(image, loader)
             .then(url => {
+            log.warn(url);
             return url + ' ' + factors[1];
         });
     });
@@ -107,11 +108,12 @@ function doLoadAssets(src, loader) {
             if (err)
                 return reject(err);
             var sandbox = {
-                __webpack_public_path__: __api_1.default.ssr ? __api_1.default.config().staticAssetsURL : loader._compiler.options.output.publicPath,
+                __webpack_public_path__: _.get(loader, '_compiler.options.output.publicPath', __api_1.default.config().publicPath),
                 module: {
                     exports: {}
                 }
             };
+            // log.warn('__webpack_public_path__=', sandbox.__webpack_public_path__);
             vm.runInNewContext(source, vm.createContext(sandbox));
             // log.warn(loader.resourcePath + ', assets: ', src, 'to', sandbox.module.exports);
             resolve(sandbox.module.exports);

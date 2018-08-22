@@ -119,7 +119,7 @@ function setupApiForAngularCli() {
     }
     const webpackConfig = ngParam.webpackConfig;
     const ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
-    let deployUrl = webpackConfig.output.publicPath || __api_1.default.config.get('staticAssetsURL');
+    let deployUrl = webpackConfig.output.publicPath || __api_1.default.config.get('publicPath');
     const publicUrlObj = Url.parse(deployUrl);
     Object.assign(Object.getPrototypeOf(__api_1.default), {
         webpackConfig,
@@ -149,8 +149,11 @@ function setupApiForAngularCli() {
         }
     });
     __api_1.default.config.set(['outputPathMap', ngEntryComponent.longName], '/');
+    // Be compatible to old DRCP build tools
     if (!__api_1.default.config.get('staticAssetsURL'))
-        __api_1.default.config.set('staticAssetsURL', deployUrl);
+        __api_1.default.config.set('staticAssetsURL', _.trimEnd(deployUrl, '/'));
+    if (!__api_1.default.config.get('publicPath'))
+        __api_1.default.config.set('publicPath', deployUrl);
     config_webpack_1.default(ngParam, webpackConfig, __api_1.default.config());
     // ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
     log.info('Setup api object for Angular');

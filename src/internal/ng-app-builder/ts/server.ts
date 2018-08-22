@@ -127,7 +127,7 @@ function setupApiForAngularCli() {
 	const webpackConfig = ngParam.webpackConfig;
 	const ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
 
-	let deployUrl = webpackConfig.output.publicPath || api.config.get('staticAssetsURL');
+	let deployUrl = webpackConfig.output.publicPath || api.config.get('publicPath');
 
 	const publicUrlObj = Url.parse(deployUrl);
 	Object.assign(Object.getPrototypeOf(api), {
@@ -158,8 +158,11 @@ function setupApiForAngularCli() {
 		}
 	});
 	api.config.set(['outputPathMap', ngEntryComponent.longName], '/');
+	// Be compatible to old DRCP build tools
 	if (!api.config.get('staticAssetsURL'))
-		api.config.set('staticAssetsURL', deployUrl);
+		api.config.set('staticAssetsURL', _.trimEnd(deployUrl, '/'));
+	if (!api.config.get('publicPath'))
+		api.config.set('publicPath', deployUrl);
 	changeWebpackConfig(ngParam, webpackConfig, api.config());
 
 	// ngParam.vfsHost.hookRead = createTsReadHook(ngParam);

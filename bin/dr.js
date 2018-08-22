@@ -31,7 +31,7 @@ var cmdPromise;
 if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink()) {
 	isSymbolicLink = true;
 	cmdPromise = installDeps(isSymbolicLink)
-		.then(latestRecipe => versionChecker.checkVersions(latestRecipe, isSymbolicLink))
+		.then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
 	.then( infoText => {
 		require('../wfh/lib/gulp/cli').writeProjectListFile([Path.resolve(__dirname, '..')]);
 		return infoText;
@@ -39,7 +39,7 @@ if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink
 	.then(infoText => processCmd(infoText));
 } else {
 	cmdPromise = installDeps(false)
-		.then(latestRecipe => versionChecker.checkVersions(latestRecipe, isSymbolicLink))
+		.then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
 	.then(infoText => processCmd(infoText));
 }
 cmdPromise.catch(e => {
@@ -48,10 +48,7 @@ cmdPromise.catch(e => {
 });
 
 function installDeps(isDrcpDevMode) {
-	return ensurePackageJsonFile(isDrcpDevMode)
-	.then(() => {
-		return versionChecker.getLatestRecipeVer();
-	});
+	return ensurePackageJsonFile(isDrcpDevMode);
 }
 
 /**

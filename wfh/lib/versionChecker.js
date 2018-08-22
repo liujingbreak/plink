@@ -7,64 +7,64 @@ var processUtils = require('./gulp/processUtils');
 const INTERNAL_RECIPE_VER = '0.7.9';
 
 exports.checkVersions = checkVersions;
-exports.getLatestRecipeVer = getLatestRecipeVer;
 
 var versionsFromCache = false;
 var cachedVersionsInfo = readCachedVersionInfo();
 
-
-function checkVersions(latestRecipe, isSymbolicLink) {
+function checkVersions(isSymbolicLink) {
 	const {red, yellow, green} = require('chalk'); // do not require any 3rd-party util bin/dr.js installDeps() is done
 	var _ = require('lodash');
 	var buildUtils = require('./gulp/buildUtils');
-	var osLocale = require('os-locale');
+	// var osLocale = require('os-locale');
 	var semver = require('semver');
 	const PAD_SPACE = 28;
 
-	return Promise.all([buildUtils.getNpmVersion(), getLatestDrcpVer(), osLocale()])
-		.then(outputs => {
-			var sline = _.repeat('-', 60);
-			var infoText = sline;
-			var drcpVer = getVersion();
-			var recipeVer = getRecipeVersion();
-			var latestDrcp = outputs[1];
+	return Promise.all([buildUtils.getNpmVersion(),
+		getLatestDrcpVer(),
+		getLatestRecipeVer('@dr/runtime-recipe'),
+		getLatestRecipeVer('@dr/internal-recipe')
+	])
+	.then(outputs => {
+		var sline = _.repeat('-', 60);
+		var infoText = sline;
+		var drcpVer = getVersion();
 
-			var isDrcpOutdated = latestDrcp && semver.gt(latestDrcp, drcpVer);
-			var isRecipeOutdated = recipeVer && latestRecipe && semver.lt(recipeVer, latestRecipe);
-			// infoText += '\n' + _.padStart('Latest dr-comp-package: ' + yellow(latestDrcp), PAD_SPACE);
-			// //let msg = outputs[2].startsWith('zh') ? '\n当前Workspace下的drcp不是最新的, 如果升级执行命令:\n\t' : '\nCurrent drcp is not latest, you can upgrade it by execute:\n\t';
-			// //infoText += `${msg} ${chalk.red('yarn add dr-comp-package@' + latestDrcp)}`;
-			// }
-			// if (recipeVer && latestRecipe && semver.lt(recipeVer, latestRecipe)) {
-			// 	infoText += '\n' + _.padStart('Latest @dr/internal-recipe: ' + yellow(latestRecipe), PAD_SPACE);
-			// 	//let msg = outputs[2].startsWith('zh') ? '\n当前Workspace下的@dr/internal-recipe不是最新的, 如果升级执行命令:\n\t' : '\nCurrent @dr/internal-recipe is not latest, you can upgrade it by execute:\n\t';
-			// 	//infoText += `${msg} ${chalk.red('yarn add @dr/internal-recipe@' + latestRecipe)}`;
-			// }
-			infoText += '\n' + _.padStart('Node.js version: ', PAD_SPACE) + green(process.version);
-			infoText += '\n' + _.padStart('NPM version: ', PAD_SPACE) + green(outputs[0]);
-			infoText += '\n' + _.padStart('dr-comp-package version: ', PAD_SPACE) + green(drcpVer) +
-				(isSymbolicLink ? green(' (symlink)') : '') +
-				(isDrcpOutdated ? yellow(` (latest: ${latestDrcp})`) : ` (published: ${latestDrcp}) `);
-			if (recipeVer) {
-				infoText += '\n' + _.padStart('@dr/internal-recipe version: ', PAD_SPACE) + green(recipeVer) +
-					(isRecipeOutdated ? yellow(`(latest: ${latestRecipe})`) : '');
-			} else if (!isSymbolicLink) {
-				infoText += '\n' + red('Missing @dr/internal-recipe, Need to install it.');
-			}
+		var latestDrcp = outputs[1];
 
-			infoText += '\n' + sline;
-			if (latestDrcp)
-				cacheVersionInfo(latestDrcp, latestRecipe);
-			return infoText;
-		});
+		var isDrcpOutdated = latestDrcp && semver.gt(latestDrcp, drcpVer);
+
+		infoText += '\n' + _.padStart('Node.js version: ', PAD_SPACE) + green(process.version);
+		infoText += '\n' + _.padStart('NPM version: ', PAD_SPACE) + green(outputs[0]);
+		infoText += '\n' + _.padStart('dr-comp-package version: ', PAD_SPACE) + green(drcpVer) +
+			(isSymbolicLink ? green(' (symlink)') : '') +
+			(isDrcpOutdated ? yellow(` (latest: ${latestDrcp})`) : ` (published: ${latestDrcp}) `);
+
+		let runtimeVer = getRecipeVersion('@dr/runtime-recipe');
+		if (runtimeVer) {
+			infoText += '\n' + _.padStart('@dr/runtime-recipe version: ', PAD_SPACE) + green(runtimeVer) +
+				((runtimeVer && outputs[2] && semver.lt(runtimeVer, outputs[2])) ? yellow(`(latest: ${outputs[2]})`) : '');
+		} else if (!isSymbolicLink) {
+			infoText += '\n' + red('Missing @dr/runtime-recipe, Need to install it.');
+		}
+		let recipeVer = getRecipeVersion('@dr/internal-recipe');
+		if (recipeVer) {
+			infoText += '\n' + _.padStart('@dr/internal-recipe version: ', PAD_SPACE) + green(recipeVer) +
+				((recipeVer && outputs[3] && semver.lt(recipeVer, outputs[3])) ? yellow(`(latest: ${outputs[3]})`) : '');
+		}
+
+		infoText += '\n' + sline;
+		if (latestDrcp)
+			cacheVersionInfo(latestDrcp, {'@dr/runtime-recipe': outputs[2], '@dr/internal-recipe': outputs[3]});
+		return infoText;
+	});
 }
 
-function cacheVersionInfo(latestDrcpVer, latestRecipeVer) {
+function cacheVersionInfo(latestDrcpVer, recipeVersions) {
 	if (versionsFromCache)
 		return;
 	fs.writeFileSync(cacheFile, JSON.stringify({
 		drcpVersion: latestDrcpVer,
-		recipeVersion: latestRecipeVer,
+		recipeVersions,
 		date: new Date().toDateString()
 	}, null, '  '));
 }
@@ -74,9 +74,9 @@ function getVersion() {
 	return require(path).version;
 }
 
-function getRecipeVersion() {
+function getRecipeVersion(recipeName) {
 	try {
-		return require('@dr/internal-recipe/package.json').version;
+		return require(recipeName + '/package.json').version;
 	} catch (e) {
 		return null;
 	}
@@ -85,17 +85,17 @@ function getRecipeVersion() {
 var npmViewReg = /latest:[^"']*['"]([^"']+)['"]/; // Adaptive to npm 5.x and yarn
 var npm6ViewReg = /latest:\s*(\S+)/;
 
-function getLatestRecipeVer() {
+function getLatestRecipeVer(recipeName) {
 	if (cachedVersionsInfo)
-		return Promise.resolve(cachedVersionsInfo.recipeVersion || INTERNAL_RECIPE_VER);
-	console.log('Check versions');
-	return checkTimeout(processUtils.promisifyExe('npm', 'info', '@dr/internal-recipe', {cwd: process.cwd(), silent: true}))
+		return Promise.resolve(cachedVersionsInfo.recipeVersions ? cachedVersionsInfo.recipeVersions[recipeName] : INTERNAL_RECIPE_VER);
+	console.log(`Check ${recipeName} version`);
+	return checkTimeout(processUtils.promisifyExe('npm', 'info', recipeName, {cwd: process.cwd(), silent: true}))
 		.then(output => {
 			var m = npmViewReg.exec(output);
 			return (m && m[1]) ? m[1] : INTERNAL_RECIPE_VER;
 		})
 		.catch(e => {
-			console.error('[WARN] Command "' + ['npm', 'info', '@dr/internal-recipe'].join(' ') + '" timeout');
+			console.error('[WARN] Command "' + ['npm', 'info', recipeName].join(' ') + '" timeout');
 			return INTERNAL_RECIPE_VER;
 		});
 }
