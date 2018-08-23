@@ -182,9 +182,9 @@ function compressOutputPathMap(pathMap: any) {
 }
 
 function getRouterModules(appModulePackage: PackageBrowserInstance, appModuleDir: string) {
-	const ngModules: string[] = api.config.get([api.packageName, 'ngModule'], []);
-	const ngPackageModules = new Set(packageNames2NgModule(
-		appModulePackage, appModuleDir, api.config.get([api.packageName, 'ngPackage'], [])));
+	const ngModules: string[] = api.config.get([api.packageName, 'ngModule']) || [];
+	const ngPackageModules = new Set(packageNames2NgModule(appModulePackage, appModuleDir,
+		api.config.get([api.packageName, 'ngPackage']) || []));
 	ngModules.forEach(m => ngPackageModules.add(m));
 	return Array.from(ngPackageModules);
 }

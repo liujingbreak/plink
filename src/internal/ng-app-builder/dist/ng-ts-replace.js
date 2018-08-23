@@ -172,8 +172,8 @@ function compressOutputPathMap(pathMap) {
     };
 }
 function getRouterModules(appModulePackage, appModuleDir) {
-    const ngModules = __api_1.default.config.get([__api_1.default.packageName, 'ngModule'], []);
-    const ngPackageModules = new Set(packageNames2NgModule(appModulePackage, appModuleDir, __api_1.default.config.get([__api_1.default.packageName, 'ngPackage'], [])));
+    const ngModules = __api_1.default.config.get([__api_1.default.packageName, 'ngModule']) || [];
+    const ngPackageModules = new Set(packageNames2NgModule(appModulePackage, appModuleDir, __api_1.default.config.get([__api_1.default.packageName, 'ngPackage']) || []));
     ngModules.forEach(m => ngPackageModules.add(m));
     return Array.from(ngPackageModules);
 }
