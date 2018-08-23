@@ -85,8 +85,7 @@ function createTsReadHook(ngParam) {
                     log.info('patch', file);
                     const appModulePackage = __api_1.default.findPackageByFile(appModuleFile);
                     const removables = removableNgModules(appModulePackage, path_1.dirname(appModuleFile));
-                    const ngModules = __api_1.default.config.get([__api_1.default.packageName, 'ngModule']) ||
-                        packageNames2NgModule(appModulePackage, path_1.dirname(appModuleFile), __api_1.default.config.get([__api_1.default.packageName, 'ngPackage'])) || removables;
+                    const ngModules = getRouterModules(appModulePackage, path_1.dirname(appModuleFile)) || removables;
                     ngModules.push(__api_1.default.packageName + '/src/app#DeveloperModule');
                     log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
                     content = new parse_app_module_1.default()
@@ -171,6 +170,12 @@ function compressOutputPathMap(pathMap) {
         sames: sameAsNames,
         diffMap: newMap
     };
+}
+function getRouterModules(appModulePackage, appModuleDir) {
+    const ngModules = __api_1.default.config.get([__api_1.default.packageName, 'ngModule'], []);
+    const ngPackageModules = new Set(packageNames2NgModule(appModulePackage, appModuleDir, __api_1.default.config.get([__api_1.default.packageName, 'ngPackage'], [])));
+    ngModules.forEach(m => ngPackageModules.add(m));
+    return Array.from(ngPackageModules);
 }
 function packageNames2NgModule(appModulePk, appModuleDir, includePackages) {
     const res = [];
