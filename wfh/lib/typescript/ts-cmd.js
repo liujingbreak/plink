@@ -87,8 +87,7 @@ function tsc(argv, onCompiled) {
 			watchDirs.push(Path.join(info.dir, info.srcDir).replace(/\\/g, '/') + '/**/*.ts');
 			ignoreSet.add(Path.join(info.dir, info.destDir).replace(/\\/g, '/') + '/**/*');
 		});
-		console.log(Array.from(ignoreSet));
-		var watcher = chokidar.watch(watchDirs, {ignored: path => ignoreSet.has(path.replace(/\\/g, '/')) });
+		var watcher = chokidar.watch(watchDirs, {ignored: /(\.d\.ts|\.js)$/ });
 		watcher.on('add', path => onChangeFile(path, 'added'));
 		watcher.on('change', path => onChangeFile(path, 'changed'));
 		watcher.on('unlink', path => onChangeFile(path, 'removed'));
