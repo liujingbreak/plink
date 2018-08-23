@@ -12,17 +12,30 @@ interface Checksum {
 	changeFetchUrl?: string;
 }
 
+interface Setting {
+	fetchUrl: string;
+	fetchRetry: number;
+	fetchLogErrPerTimes: number;
+	fetchIntervalSec: number;
+}
+
+let setting: Setting;
 let currVersion: number = Number.NEGATIVE_INFINITY;
 let timer: NodeJS.Timer;
 let stopped = false;
+let errCount = 0;
 
 export function start() {
-	const setting = api.config.get(api.packageName);
+	setting = api.config.get(api.packageName);
 	const fetchUrl = setting.fetchUrl;
 	if (fetchUrl == null) {
 		log.info('No fetchUrl configured, skip fetching resource.');
 		return Promise.resolve();
 	}
+
+	if (setting.fetchRetry == null)
+		setting.fetchRetry = 3;
+	log.info(setting);
 	return runRepeatly(setting);
 }
 
@@ -36,7 +49,7 @@ export function stop() {
 	}
 }
 
-function runRepeatly(setting: any): Promise<void> {
+function runRepeatly(setting: Setting): Promise<void> {
 	if (stopped)
 		return Promise.resolve();
 	return run(setting)
@@ -49,9 +62,16 @@ function runRepeatly(setting: any): Promise<void> {
 		}, setting.fetchIntervalSec * 1000);
 	});
 }
-async function run(setting: any) {
-	let checksumObj: Checksum = await retry(fetch, setting.fetchUrl);
-
+async function run(setting: Setting) {
+	let checksumObj: Checksum;
+	try {
+		checksumObj = await retry(fetch, setting.fetchUrl);
+	} catch (err) {
+		if (errCount++ % setting.fetchLogErrPerTimes === 0) {
+			throw err;
+		}
+		return;
+	}
 	if (checksumObj == null)
 		return;
 	if (checksumObj.changeFetchUrl) {
@@ -84,7 +104,8 @@ function fetch(fetchUrl: string): Promise<any> {
 	const checkUrl = fetchUrl + '?' + Math.random();
 	log.info('request', checkUrl);
 	return new Promise((resolve, rej) => {
-		request.get(checkUrl, {}, (error: any, response: request.Response, body: any) => {
+		request.get(checkUrl,
+			{headers: {Referer: Url.resolve(checkUrl, '/')}}, (error: any, response: request.Response, body: any) => {
 			if (error) {
 				return rej(new Error(error));
 			}
@@ -104,11 +125,11 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 			return await func(...args);
 		} catch (err) {
 			cnt++;
-			if (cnt === 3) {
+			if (cnt >= setting.fetchRetry) {
 				throw err;
 			}
 			log.debug(err);
-			log.warn('Encounter error, will retry');
+			log.debug('Encounter error, will retry');
 		}
 		await new Promise(res => setTimeout(res, 5000));
 	}

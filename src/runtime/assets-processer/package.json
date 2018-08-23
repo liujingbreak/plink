@@ -15,7 +15,15 @@
       "server": {
         "fetchUrl": null,
         "fetchRetry": 3,
+        "fetchLogErrPerTimes": 20,
         "fetchIntervalSec": 300
+      }
+    },
+    "config.local": {
+      "server": {
+        "fetchRetry": 0,
+        "fetchLogErrPerTimes": 1,
+        "fetchIntervalSec": 30
       }
     }
   },

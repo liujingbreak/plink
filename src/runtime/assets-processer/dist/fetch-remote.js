@@ -14,16 +14,21 @@ const Url = require("url");
 const fs = require("fs");
 const AdmZip = require('adm-zip');
 const log = require('log4js').getLogger(__api_1.default.packageName + '.fetch-remote');
+let setting;
 let currVersion = Number.NEGATIVE_INFINITY;
 let timer;
 let stopped = false;
+let errCount = 0;
 function start() {
-    const setting = __api_1.default.config.get(__api_1.default.packageName);
+    setting = __api_1.default.config.get(__api_1.default.packageName);
     const fetchUrl = setting.fetchUrl;
     if (fetchUrl == null) {
         log.info('No fetchUrl configured, skip fetching resource.');
         return Promise.resolve();
     }
+    if (setting.fetchRetry == null)
+        setting.fetchRetry = 3;
+    log.info(setting);
     return runRepeatly(setting);
 }
 exports.start = start;
@@ -52,7 +57,16 @@ function runRepeatly(setting) {
 }
 function run(setting) {
     return __awaiter(this, void 0, void 0, function* () {
-        let checksumObj = yield retry(fetch, setting.fetchUrl);
+        let checksumObj;
+        try {
+            checksumObj = yield retry(fetch, setting.fetchUrl);
+        }
+        catch (err) {
+            if (errCount++ % setting.fetchLogErrPerTimes === 0) {
+                throw err;
+            }
+            return;
+        }
         if (checksumObj == null)
             return;
         if (checksumObj.changeFetchUrl) {
@@ -84,7 +98,7 @@ function fetch(fetchUrl) {
     const checkUrl = fetchUrl + '?' + Math.random();
     log.info('request', checkUrl);
     return new Promise((resolve, rej) => {
-        request.get(checkUrl, {}, (error, response, body) => {
+        request.get(checkUrl, { headers: { Referer: Url.resolve(checkUrl, '/') } }, (error, response, body) => {
             if (error) {
                 return rej(new Error(error));
             }
@@ -105,11 +119,11 @@ function retry(func, ...args) {
             }
             catch (err) {
                 cnt++;
-                if (cnt === 3) {
+                if (cnt >= setting.fetchRetry) {
                     throw err;
                 }
                 log.debug(err);
-                log.warn('Encounter error, will retry');
+                log.debug('Encounter error, will retry');
             }
             yield new Promise(res => setTimeout(res, 5000));
         }

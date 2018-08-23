@@ -82,10 +82,13 @@ function tsc(argv, onCompiled) {
 				promCompile = promCompile.then(onCompiled);
 		}, 200);
 
+		let ignoreSet = new Set();
 		_.each(compDirInfo, (info, name) => {
-			watchDirs.push(Path.join(info.dir, info.srcDir) + '/**/*.ts');
+			watchDirs.push(Path.join(info.dir, info.srcDir).replace(/\\/g, '/') + '/**/*.ts');
+			ignoreSet.add(Path.join(info.dir, info.destDir).replace(/\\/g, '/') + '/**/*');
 		});
-		var watcher = chokidar.watch(watchDirs);
+		console.log(Array.from(ignoreSet));
+		var watcher = chokidar.watch(watchDirs, {ignored: path => ignoreSet.has(path.replace(/\\/g, '/')) });
 		watcher.on('add', path => onChangeFile(path, 'added'));
 		watcher.on('change', path => onChangeFile(path, 'changed'));
 		watcher.on('unlink', path => onChangeFile(path, 'removed'));
@@ -96,7 +99,7 @@ function tsc(argv, onCompiled) {
 	function onChangeFile(path, reason) {
 		if (reason !== 'removed')
 			compGlobs.push(path);
-		log.info(`File ${Path.relative(root, path)} has been ` + reason);
+		log.info(`File ${chalk.cyan(Path.relative(root, path))} has been ` + chalk.yellow(reason));
 		delayCompile();
 	}
 
