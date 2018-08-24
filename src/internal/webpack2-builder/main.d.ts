@@ -1,1 +1,1 @@
-export * from './ts/extend-builder-api';
+export * from './dist/extend-builder-api';
