@@ -1,20 +1,43 @@
 /* tslint:disable no-console */
-import {AngularBuilderOptions} from './common';
+import {AngularBuilderOptions, AngularConfigHandler} from './common';
 import {
 	BuilderConfiguration
 } from '@angular-devkit/architect';
 import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
+import api from '__api';
+type DrcpConfig = typeof api.config;
 
-export default function changeOptions(config: any, browserOptions: AngularBuilderOptions,
+export default async function changeAngularCliOptions(config: DrcpConfig, browserOptions: AngularBuilderOptions,
+	configHandlers: Array<{file: string, handler: AngularConfigHandler}>,
 	builderConfig?: BuilderConfiguration<DevServerBuilderOptions>) {
 
 	const currPackageName = require('../../package.json').name;
 
-	for (const prop of ['deployUrl', 'outputPath']) {
+	for (const prop of ['deployUrl', 'outputPath', 'styles']) {
 		const value = config.get([currPackageName, prop]);
 		if (value != null) {
 			(browserOptions as any)[prop] = value;
 			console.log(currPackageName + ' - override %s: %s', prop, value);
 		}
 	}
+	for (const {file, handler} of configHandlers) {
+		console.log('Run %s angularJson()', file);
+		await handler.angularJson(browserOptions, config);
+	}
+	reduceTsConfig(browserOptions);
+}
+
+import {sys} from 'typescript';
+import Path = require('path');
+const log = require('log4js').getLogger('reduceTsConfig');
+
+// Hack ts.sys, so far it is used to read tsconfig.json
+function reduceTsConfig(browserOptions: AngularBuilderOptions) {
+	const oldReadFile = sys.readFile;
+	sys.readFile = function(path: string, encoding?: string): string {
+		const res: string = oldReadFile.apply(sys, arguments);
+		if (path === Path.resolve(browserOptions.tsConfig))
+			log.warn(path + '\n' + res);
+		return res;
+	};
 }

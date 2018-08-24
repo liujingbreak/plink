@@ -76,7 +76,8 @@ if application arouce file structure is like `projects/<your-app>/src/main.ts`, 
   "name": ...,
   "version": ...,
   "dr": {
-    "ngAppModule": true
+    "ngAppModule": true,
+    "angularCompiler": true
   }
 }
 
@@ -145,7 +146,8 @@ Defined module route path in the **package.json** file of your module package
 {
   "name": "@hellow/foo-bar",
   "dr": {
-    "ngRouterPath": "foobar"
+    "ngRouterPath": "foobar",
+    "angularCompiler": true
   }
 }
 ```

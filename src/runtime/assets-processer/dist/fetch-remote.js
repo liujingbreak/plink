@@ -96,7 +96,7 @@ function run(setting) {
 }
 function fetch(fetchUrl) {
     const checkUrl = fetchUrl + '?' + Math.random();
-    log.info('request', checkUrl);
+    log.debug('check', checkUrl);
     return new Promise((resolve, rej) => {
         request.get(checkUrl, { headers: { Referer: Url.resolve(checkUrl, '/') } }, (error, response, body) => {
             if (error) {

@@ -7,7 +7,7 @@ export declare class Token<T> {
 }
 export declare enum Channel {
     normal = 0,
-    skip = 1
+    skip = 1,
 }
 export declare abstract class LookAhead<T, S extends Iterable<T>> {
     cached: T[];

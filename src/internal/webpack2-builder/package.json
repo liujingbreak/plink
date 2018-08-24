@@ -86,6 +86,7 @@
       "builder",
       "server"
     ],
+    "serverPriority": 4000,
     "jsLoader": "babel",
     "builderPriority": 0,
     "config": {

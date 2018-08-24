@@ -181,7 +181,7 @@ function mergeFromFile(setting, localConfigPath) {
 	console.log('[config] ' + `Read ${localConfigPath}`);
 	var package2Chunk = setting._package2Chunk;
 	var configObj;
-	var suffix = /^(?:[^.]*\.([^.]+))+$/.exec(localConfigPath)[1];
+	var suffix = /\.([^.]+)$/.exec(localConfigPath)[1];
 	if (suffix === 'yaml' || suffix === 'yml') {
 		configObj = yamljs.parse(fs.readFileSync(localConfigPath, 'utf8'));
 	} else {

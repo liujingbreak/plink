@@ -7,10 +7,8 @@ const log4js = require("log4js");
 const rxjs_1 = require("rxjs");
 const ts_before_aot_1 = require("./utils/ts-before-aot");
 const parse_app_module_1 = require("./utils/parse-app-module");
-const typescript_1 = require("typescript");
-const fs_1 = require("fs");
 const path_1 = require("path");
-const ts = require("typescript");
+const ts_compiler_1 = require("./utils/ts-compiler");
 const chalk = require('chalk');
 const log = log4js.getLogger(__api_1.default.packageName);
 const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
@@ -21,7 +19,7 @@ function createTsReadHook(ngParam) {
     let drcpIncludeBuf;
     const tsconfigFile = ngParam.browserOptions.tsConfig;
     const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || __api_1.default.argv.hmr;
-    const tsCompilerOptions = readTsConfig(tsconfigFile);
+    const tsCompilerOptions = ts_compiler_1.readTsConfig(tsconfigFile);
     let polyfillsFile = '';
     if (ngParam.browserOptions.polyfills)
         polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
@@ -80,6 +78,7 @@ function createTsReadHook(ngParam) {
                 }
                 const compPkg = __api_1.default.findPackageByFile(file);
                 let content = Buffer.from(buf).toString();
+                let needLogFile = false;
                 // patch app.module.ts
                 if (appModuleFile === file) {
                     log.info('patch', file);
@@ -90,16 +89,18 @@ function createTsReadHook(ngParam) {
                     log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
                     content = new parse_app_module_1.default()
                         .patchFile(file, content, removables, ngModules);
-                    log.info(chalk.cyan(file) + ':\n' + content);
+                    needLogFile = true;
                 }
                 let changed = __api_1.default.browserInjector.injectToFile(file, content);
-                changed = new ts_before_aot_1.default(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
+                changed = new ts_before_aot_1.default(file, changed).parse(source => ts_compiler_1.transpileSingleTs(source, tsCompilerOptions));
                 if (changed !== content) {
                     changed = apiTmpl({ packageName: compPkg.longName }) + '\n' + changed;
                     if (ngParam.ssr)
                         changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
-                    return rxjs_1.of(string2buffer(changed));
                 }
+                if (needLogFile)
+                    log.info(chalk.cyan(file) + ':\n' + changed);
+                return rxjs_1.of(string2buffer(changed));
             }
             return rxjs_1.of(buf);
         }
@@ -110,23 +111,6 @@ function createTsReadHook(ngParam) {
     };
 }
 exports.default = createTsReadHook;
-function readTsConfig(tsconfigFile) {
-    let tsconfig = ts.readConfigFile(tsconfigFile, (file) => fs_1.readFileSync(file, 'utf-8')).config;
-    return ts.parseJsonConfigFileContent(tsconfig, ts.sys, process.cwd().replace(/\\/g, '/'), undefined, tsconfigFile).options;
-}
-/**
- * Refer to https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#transpiling-a-single-file
- * @param tsCode
- */
-function transpileSingleTs(tsCode, compilerOptions) {
-    let res = typescript_1.transpileModule(tsCode, { compilerOptions });
-    if (res.diagnostics && res.diagnostics.length > 0) {
-        let msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
-        log.error(msg);
-        throw new Error(msg);
-    }
-    return res.outputText;
-}
 function string2buffer(input) {
     const nodeBuf = Buffer.from(input);
     const len = nodeBuf.byteLength;

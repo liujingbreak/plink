@@ -7,10 +7,8 @@ import {HookReadFunc} from './utils/read-hook-vfshost';
 import {AngularCliParam} from './ng/common';
 import ApiAotCompiler from './utils/ts-before-aot';
 import AppModuleParser, {findAppModuleFileFromMain} from './utils/parse-app-module';
-import {transpileModule} from 'typescript';
-import {readFileSync} from 'fs';
 import {sep as SEP, relative, resolve, dirname} from 'path';
-import * as ts from 'typescript';
+import {readTsConfig, transpileSingleTs} from './utils/ts-compiler';
 import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
 const chalk = require('chalk');
 
@@ -87,7 +85,7 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 				}
 				const compPkg = api.findPackageByFile(file);
 				let content = Buffer.from(buf).toString();
-
+				let needLogFile = false;
 				// patch app.module.ts
 				if (appModuleFile === file) {
 					log.info('patch', file);
@@ -98,7 +96,7 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 					log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
 					content = new AppModuleParser()
 						.patchFile(file, content, removables, ngModules);
-					log.info(chalk.cyan(file) + ':\n' + content);
+					needLogFile = true;
 				}
 				let changed = api.browserInjector.injectToFile(file, content);
 
@@ -107,8 +105,10 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 					changed = apiTmpl({packageName: compPkg.longName}) + '\n' + changed;
 					if (ngParam.ssr)
 						changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
-					return of(string2buffer(changed));
 				}
+				if (needLogFile)
+					log.info(chalk.cyan(file) + ':\n' + changed);
+				return of(string2buffer(changed));
 			}
 			return of(buf);
 		} catch (ex) {
@@ -116,24 +116,6 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 			return throwError(ex);
 		}
 	};
-}
-
-function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
-	let tsconfig = ts.readConfigFile(tsconfigFile, (file) => readFileSync(file, 'utf-8')).config;
-	return ts.parseJsonConfigFileContent(tsconfig, ts.sys, process.cwd().replace(/\\/g, '/'), undefined, tsconfigFile).options;
-}
-/**
- * Refer to https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#transpiling-a-single-file
- * @param tsCode 
- */
-function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOptions): string {
-	let res = transpileModule(tsCode, {compilerOptions});
-	if (res.diagnostics && res.diagnostics.length > 0) {
-		let msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
-		log.error(msg);
-		throw new Error(msg);
-	}
-	return res.outputText;
 }
 
 export function string2buffer(input: string): ArrayBuffer {

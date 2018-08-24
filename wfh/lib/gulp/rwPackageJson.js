@@ -115,7 +115,7 @@ var packageJsonTemp = {
 	name: '@dr/',
 	version: '0.1.0',
 	description: 'Component group: ',
-	dependencies: null
+	dependencies: {}
 };
 
 /**

@@ -26,14 +26,14 @@ interface _DrcpNgApi {
 	__dirname: string;
 	/**
 	 * @memberOf __api
-	 * Assume application is deployed on 'http://foobar.com/base-href' as "deployUrl" in angular.json,
+	 * Given application is deployed on 'http://foobar.com/base-href/' as "deployUrl" in angular.json,
 	 * the value is `base-href`
 	 */
 	ngBaseRouterPath: string;
 	/**@function ngRouterPath
 	 * @memberOf __api
 	 * e.g.
-	 * Assume application is deployed on 'http://foobar.com/base-href' as "deployUrl" in angular.json.
+	 * Given application is deployed on 'http://foobar.com/base-href/' as "deployUrl" in angular.json.
 	 * Current feature package is `@bk/feature-a`, its `ngRouterPath` is by default 'feature-a',
 	 * feature package `@bk/feature-b`'s `ngRouterPath` is by default 'feature-b'
 	 * ```ts

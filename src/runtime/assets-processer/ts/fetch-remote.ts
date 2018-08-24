@@ -102,7 +102,7 @@ async function run(setting: Setting) {
 
 function fetch(fetchUrl: string): Promise<any> {
 	const checkUrl = fetchUrl + '?' + Math.random();
-	log.info('request', checkUrl);
+	log.debug('check', checkUrl);
 	return new Promise((resolve, rej) => {
 		request.get(checkUrl,
 			{headers: {Referer: Url.resolve(checkUrl, '/')}}, (error: any, response: request.Response, body: any) => {

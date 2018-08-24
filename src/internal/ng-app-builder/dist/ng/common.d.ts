@@ -3,6 +3,11 @@ import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
 import { BuildWebpackServerSchema } from '@angular-devkit/build-angular/src/server/schema';
 import * as Rx from 'rxjs';
+import api from '__api';
+export declare type DrcpConfig = typeof api.config;
+export interface AngularConfigHandler {
+    angularJson(options: AngularBuilderOptions, drcpCfgObj: DrcpConfig): Promise<void> | void;
+}
 export declare type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
 export interface AngularCliParam {
     builderConfig?: BuilderConfiguration<DevServerBuilderOptions>;
@@ -11,6 +16,10 @@ export interface AngularCliParam {
     webpackConfig: any;
     projectRoot: string;
     argv: any;
+    configHandlers: Array<{
+        file: string;
+        handler: AngularConfigHandler;
+    }>;
 }
 export declare type AngularBuilderOptions = NormalizedBrowserBuilderSchema & BuildWebpackServerSchema & DrcpBuilderOptions;
 export interface DrcpBuilderOptions {

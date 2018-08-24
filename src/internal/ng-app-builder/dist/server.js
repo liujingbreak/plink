@@ -23,11 +23,6 @@ function init() {
 }
 exports.init = init;
 function activate() {
-    // setupApiForAngularCli();
-    // const prerenderExpress = new PrerenderForExpress(api.config().staticDir, '...');
-    // api.expressAppUse(app => {
-    // 	app.use(prerenderExpress.asMiddleware());
-    // });
 }
 exports.activate = activate;
 function writeTsconfig() {

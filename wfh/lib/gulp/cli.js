@@ -408,7 +408,7 @@ function compile(_argv) {
 }
 
 function tsc(_argv, onCompiled) {
-	return require('../typescript/ts-cmd').tsc(_argv, onCompiled);
+	return require('../../dist/ts-cmd').tsc(_argv, onCompiled);
 }
 
 function lint(_argv) {
