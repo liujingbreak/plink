@@ -21,7 +21,7 @@ class ServerBuilder extends build_angular_1.ServerBuilder {
         return rxjs_1.of(null).pipe(operators_1.concatMap(() => options.deleteOutputPath
             ? this._deleteOutputDir0(root, core_1.normalize(options.outputPath), this.context.host)
             : rxjs_1.of(null)), operators_1.concatMap(() => utils_1.normalizeFileReplacements(options.fileReplacements, host, root)), operators_1.tap(fileReplacements => options.fileReplacements = fileReplacements), operators_1.concatMap(() => {
-            return drcpCommon.compile(builderConfig.root, options, () => {
+            return drcpCommon.compile(builderConfig.root, builderConfig, () => {
                 return this.buildWebpackConfig(root, projectRoot, host, options);
             }, true);
         }), operators_1.concatMap(webpackConfig => {

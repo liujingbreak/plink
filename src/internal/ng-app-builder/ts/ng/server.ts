@@ -34,7 +34,7 @@ export default class ServerBuilder extends GoogleServerBuilder {
 			concatMap(() => normalizeFileReplacements(options.fileReplacements, host, root)),
 			tap(fileReplacements => options.fileReplacements = fileReplacements),
 			concatMap(() => {
-				return drcpCommon.compile(builderConfig.root, options as drcpCommon.AngularBuilderOptions, () => {
+				return drcpCommon.compile(builderConfig.root, builderConfig, () => {
 					return this.buildWebpackConfig(root, projectRoot, host, options);
 				}, true);
 			}),

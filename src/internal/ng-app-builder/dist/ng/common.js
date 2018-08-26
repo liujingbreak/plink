@@ -44,7 +44,7 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
             const param = {
                 ssr: false,
                 builderConfig,
-                browserOptions: browserOptions,
+                browserOptions,
                 webpackConfig: buildWebpackConfig(browserOptions),
                 projectRoot,
                 argv: Object.assign({ poll: options.poll, hmr: options.hmr }, options.drcpArgs),
@@ -98,7 +98,7 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
                 obs.error(err);
             });
         })
-            .catch(err => {
+            .catch((err) => {
             console.error('Failed to start server:', err);
             obs.error(err);
         });
@@ -112,10 +112,10 @@ exports.startDrcpServer = startDrcpServer;
  * @param buildWebpackConfig
  * @param vfsHost
  */
-function compile(projectRoot, browserOptions, buildWebpackConfig, isSSR = false) {
+function compile(projectRoot, builderConfig, buildWebpackConfig, isSSR = false) {
     return new Rx.Observable((obs) => {
         try {
-            compileAsync(projectRoot, browserOptions, buildWebpackConfig, isSSR).then((webpackConfig) => {
+            compileAsync(projectRoot, builderConfig, buildWebpackConfig, isSSR).then((webpackConfig) => {
                 obs.next(webpackConfig);
                 obs.complete();
             })
@@ -127,13 +127,14 @@ function compile(projectRoot, browserOptions, buildWebpackConfig, isSSR = false)
     });
 }
 exports.compile = compile;
-function compileAsync(projectRoot, browserOptions, buildWebpackConfig, ssr) {
+function compileAsync(projectRoot, builderConfig, buildWebpackConfig, ssr) {
     return __awaiter(this, void 0, void 0, function* () {
+        const browserOptions = builderConfig.options;
         const options = browserOptions;
         const drcpConfigFiles = options.drcpConfig ? options.drcpConfig.split(/\s*[,;:]\s*/) : [];
         const configHandlers = initConfigHandlers(drcpConfigFiles);
         const config = initDrcp(options.drcpArgs, drcpConfigFiles);
-        yield change_cli_options_1.default(config, browserOptions, configHandlers);
+        yield change_cli_options_1.default(config, browserOptions, configHandlers, builderConfig);
         const param = {
             ssr,
             browserOptions: options,

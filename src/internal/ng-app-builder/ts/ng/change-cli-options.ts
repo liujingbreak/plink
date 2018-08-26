@@ -3,13 +3,16 @@ import {AngularBuilderOptions, AngularConfigHandler} from './common';
 import {
 	BuilderConfiguration
 } from '@angular-devkit/architect';
-import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
+// import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
+// import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+// import {BuildWebpackServerSchema} from '@angular-devkit/build-angular/src/server/schema';
 import api from '__api';
 type DrcpConfig = typeof api.config;
 
-export default async function changeAngularCliOptions(config: DrcpConfig, browserOptions: AngularBuilderOptions,
+export default async function changeAngularCliOptions(config: DrcpConfig,
+	browserOptions: AngularBuilderOptions,
 	configHandlers: Array<{file: string, handler: AngularConfigHandler}>,
-	builderConfig?: BuilderConfiguration<DevServerBuilderOptions>) {
+	builderConfig?: BuilderConfiguration<AngularBuilderOptions>) {
 
 	const currPackageName = require('../../package.json').name;
 
@@ -22,7 +25,7 @@ export default async function changeAngularCliOptions(config: DrcpConfig, browse
 	}
 	for (const {file, handler} of configHandlers) {
 		console.log('Run %s angularJson()', file);
-		await handler.angularJson(browserOptions, config);
+		await handler.angularJson(config, browserOptions, builderConfig);
 	}
 	reduceTsConfig(browserOptions);
 }

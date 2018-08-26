@@ -5,8 +5,10 @@ import {
 	BuilderConfiguration
 	// BuilderContext,
 } from '@angular-devkit/architect';
+
+// import {NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
+import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
-import {NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
 import {BuildWebpackServerSchema} from '@angular-devkit/build-angular/src/server/schema';
 import * as Rx from 'rxjs';
 import * as _ from 'lodash';
@@ -19,7 +21,9 @@ import api from '__api';
 
 export type DrcpConfig = typeof api.config;
 export interface AngularConfigHandler {
-	angularJson(options: AngularBuilderOptions, drcpCfgObj: DrcpConfig): Promise<void> | void;
+	angularJson(drcpCfgObj: DrcpConfig, options: AngularBuilderOptions,
+		builderConfig: BuilderConfiguration<AngularBuilderOptions>)
+	: Promise<void> | void;
 }
 
 function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): DrcpConfig {
@@ -46,7 +50,7 @@ export interface AngularCliParam {
 }
 
 export type AngularBuilderOptions =
-	NormalizedBrowserBuilderSchema & BuildWebpackServerSchema & DrcpBuilderOptions;
+	BrowserBuilderSchema & BuildWebpackServerSchema & DevServerBuilderOptions & DrcpBuilderOptions;
 
 export interface DrcpBuilderOptions {
 	drcpArgs: any;
@@ -72,12 +76,13 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 	const config = initDrcp(options.drcpArgs, drcpConfigFiles);
 
 	return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
-		changeAngularCliOptions(config, browserOptions, configHandlers, builderConfig)
+		changeAngularCliOptions(config, browserOptions, configHandlers,
+			builderConfig as BuilderConfiguration<AngularBuilderOptions>)
 		.then(() => {
 			const param: AngularCliParam = {
 				ssr: false,
 				builderConfig,
-				browserOptions: browserOptions as any as NormalizedBrowserBuilderSchema & DrcpBuilderOptions,
+				browserOptions,
 				webpackConfig: buildWebpackConfig(browserOptions),
 				projectRoot,
 				argv: {
@@ -136,7 +141,7 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 				obs.error(err);
 			});
 		})
-		.catch(err => {
+		.catch((err: Error) => {
 			console.error('Failed to start server:', err);
 			obs.error(err);
 		});
@@ -150,11 +155,12 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
  * @param buildWebpackConfig 
  * @param vfsHost 
  */
-export function compile(projectRoot: string, browserOptions: AngularBuilderOptions,
+export function compile(projectRoot: string,
+	builderConfig: BuilderConfiguration<BrowserBuilderSchema | BuildWebpackServerSchema>,
 	buildWebpackConfig: buildWebpackConfigFunc, isSSR = false) {
 	return new Rx.Observable((obs) => {
 		try {
-			compileAsync(projectRoot, browserOptions, buildWebpackConfig, isSSR).then((webpackConfig: any) => {
+			compileAsync(projectRoot, builderConfig, buildWebpackConfig, isSSR).then((webpackConfig: any) => {
 				obs.next(webpackConfig);
 				obs.complete();
 			})
@@ -165,13 +171,16 @@ export function compile(projectRoot: string, browserOptions: AngularBuilderOptio
 	});
 }
 
-async function compileAsync(projectRoot: string, browserOptions: AngularBuilderOptions,
+async function compileAsync(projectRoot: string,
+	builderConfig: BuilderConfiguration<BrowserBuilderSchema | BuildWebpackServerSchema>,
 	buildWebpackConfig: buildWebpackConfigFunc, ssr: boolean) {
+	const browserOptions: AngularBuilderOptions = builderConfig.options as AngularBuilderOptions;
 	const options = browserOptions;
 	const drcpConfigFiles = options.drcpConfig ? options.drcpConfig.split(/\s*[,;:]\s*/) : [];
 	const configHandlers = initConfigHandlers(drcpConfigFiles);
 	const config = initDrcp(options.drcpArgs, drcpConfigFiles);
-	await changeAngularCliOptions(config, browserOptions, configHandlers);
+	await changeAngularCliOptions(config, browserOptions, configHandlers,
+		builderConfig as BuilderConfiguration<AngularBuilderOptions>);
 	const param: AngularCliParam = {
 		ssr,
 		browserOptions: options,
@@ -212,4 +221,3 @@ function initConfigHandlers(files: string[]): Array<{file: string, handler: Angu
 	});
 	return exporteds;
 }
-

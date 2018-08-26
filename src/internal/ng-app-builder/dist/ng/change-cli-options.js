@@ -20,7 +20,7 @@ function changeAngularCliOptions(config, browserOptions, configHandlers, builder
         }
         for (const { file, handler } of configHandlers) {
             console.log('Run %s angularJson()', file);
-            yield handler.angularJson(browserOptions, config);
+            yield handler.angularJson(config, browserOptions, builderConfig);
         }
         reduceTsConfig(browserOptions);
     });

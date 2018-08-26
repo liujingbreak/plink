@@ -36,7 +36,7 @@ export default class BrowserBuilder extends GoogleBrowserBuilder {
 		  // Replace the assets in options with the normalized version.
 		  tap((assetPatternObjects => options.assets = assetPatternObjects)),
 		  concatMap(() => {
-			  return drcpCommon.compile(builderConfig.root, options as drcpCommon.AngularBuilderOptions,
+			  return drcpCommon.compile(builderConfig.root, builderConfig,
 				() => {
 					return this.buildWebpackConfig(root, projectRoot, host,
 					options as NormalizedBrowserBuilderSchema);

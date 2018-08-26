@@ -22,7 +22,7 @@ class BrowserBuilder extends build_angular_1.BrowserBuilder {
             : rxjs_1.of(null)), operators_1.concatMap(() => utils_1.normalizeFileReplacements(options.fileReplacements, host, root)), operators_1.tap(fileReplacements => options.fileReplacements = fileReplacements), operators_1.concatMap(() => utils_1.normalizeAssetPatterns(options.assets, host, root, projectRoot, builderConfig.sourceRoot)), 
         // Replace the assets in options with the normalized version.
         operators_1.tap((assetPatternObjects => options.assets = assetPatternObjects)), operators_1.concatMap(() => {
-            return drcpCommon.compile(builderConfig.root, options, () => {
+            return drcpCommon.compile(builderConfig.root, builderConfig, () => {
                 return this.buildWebpackConfig(root, projectRoot, host, options);
             });
         }), operators_1.concatMap((webpackConfig) => {
