@@ -1,6 +1,6 @@
 {
 	"name": "@dr/internal-tools-recipe",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"description": "Component group: internal-tools-recipe",
 	"dependencies": {
     "@dr/e2etest-helper": "1.0.2",
