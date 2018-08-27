@@ -3,10 +3,13 @@ var _ = require('lodash');
 var fs = require('fs');
 var Path = require('path');
 var yamljs = require('yamljs');
+const {cyan} = require('chalk');
 var argv;
 // var argv = require('yargs').argv;
 require('yamlify/register');
 var publicPath = require('./publicPath');
+const ConfigHandlerMgr = require('../dist/config-handler').ConfigHandlerMgr;
+let handlers;
 
 var rootPath = process.cwd();
 var setting;
@@ -43,20 +46,18 @@ module.exports.init = function(_argv) {
 	if (argv.root)
 		rootPath = argv.root;
 	localConfigPath = argv.c || process.env.DR_CONFIG_FILE || Path.join(rootPath, 'dist', 'config.local.yaml');
-	load();
-	return module.exports;
+	return load();
 };
 
 module.exports.disableLocal = function() {
 	localDisabled = true;
 	setting = {};
-	load();
+	return load();
 };
 
 module.exports.reload = function reload() {
 	setting = {};
-	load();
-	return setting;
+	return load();
 };
 
 module.exports.set = function(path, value) {
@@ -88,6 +89,8 @@ module.exports.resolve = function(pathPropName, ...paths) {
 };
 
 module.exports.load = load;
+
+module.exports.configHandlerMgr = () => handlers;
 /**
  * Load configuration from config.yaml.
  * Besides those properties in config.yaml, there are extra available properties:
@@ -138,34 +141,43 @@ function load(fileList, yargv) {
 				configFileList.push(localConfigPath);
 		}
 
-		configFileList.forEach(localConfigPath => mergeFromFile(setting, localConfigPath));
+		configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(setting, localConfigPath));
+		handlers = new ConfigHandlerMgr(configFileList.filter(name => /\.[tj]s$/.test(name)));
+		return handlers.runEach((file, obj, handler) => {
+			return handler.onConfig(file, obj || setting);
+		})
+		.then(() => {
+			if (setting.recipeFolder) {
+				setting.recipeFolderPath = Path.resolve(rootPath, setting.recipeFolder);
+			}
+			validateConfig();
 
-		//setting.internalRecipeFolderPath = Path.resolve(__dirname, '..', setting.internalRecipeFolder);
-		if (setting.recipeFolder) {
-			setting.recipeFolderPath = Path.resolve(rootPath, setting.recipeFolder);
-		}
-		validateConfig();
+			var defaultEntrySet = setting.defaultEntrySet = {};
+			if (setting.defaultEntryPackages) {
+				[].concat(setting.defaultEntryPackages).forEach(function(entryFile) {
+					defaultEntrySet[entryFile] = true;
+				});
+			}
+			setting.port = normalizePort(setting.port);
 
-		var defaultEntrySet = setting.defaultEntrySet = {};
-		if (setting.defaultEntryPackages) {
-			[].concat(setting.defaultEntryPackages).forEach(function(entryFile) {
-				defaultEntrySet[entryFile] = true;
-			});
-		}
-		setting.port = normalizePort(setting.port);
-
-		if (!setting.devMode)
-			process.env.NODE_ENV = 'production';
-		setting.publicPath = publicPath(setting);
-		setting.localIP = publicPath.getLocalIP();
-		setting.hostnamePath = publicPath.getHostnamePath(setting);
-		mergeFromCliArgs(setting, yargv);
-		if (setting.devMode) {
-			console.log('[config] ' + 'Development mode');
-		} else {
-			console.log('[config] ' + 'Production mode');
-		}
-		return setting;
+			if (!setting.devMode)
+				process.env.NODE_ENV = 'production';
+			setting.publicPath = _.trimEnd(setting.staticAssetsURL || '', '/') + '/'; // always ends with /
+			setting.localIP = publicPath.getLocalIP();
+			setting.hostnamePath = publicPath.getHostnamePath(setting);
+			mergeFromCliArgs(setting, yargv);
+			if (setting.devMode) {
+				console.log(cyan('config - ') + 'Development mode');
+			} else {
+				console.log(cyan('config - ') + 'Production mode');
+			}
+			return setting;
+		})
+		.catch(err => {
+			console.error(err);
+			console.error(__filename + ' failed to read config files', err);
+			throw err;
+		});
 	} catch (err) {
 		console.error(err);
 		console.error(__filename + ' failed to read config files', err);
@@ -173,19 +185,21 @@ function load(fileList, yargv) {
 	}
 }
 
-function mergeFromFile(setting, localConfigPath) {
+function mergeFromYamlJsonFile(setting, localConfigPath) {
 	if (!fs.existsSync(localConfigPath)) {
-		console.log('[config] ' + 'File does not exist: %s', localConfigPath);
+		console.log(cyan('config - ') + 'File does not exist: %s', localConfigPath);
 		return;
 	}
-	console.log('[config] ' + `Read ${localConfigPath}`);
+	console.log(cyan('config - ') + `Read ${localConfigPath}`);
 	var package2Chunk = setting._package2Chunk;
 	var configObj;
 	var suffix = /\.([^.]+)$/.exec(localConfigPath)[1];
 	if (suffix === 'yaml' || suffix === 'yml') {
 		configObj = yamljs.parse(fs.readFileSync(localConfigPath, 'utf8'));
-	} else {
+	} else if (suffix === 'json') {
 		configObj = require(Path.resolve(localConfigPath));
+	} else {
+		return;
 	}
 
 	_.assignWith(setting, configObj, (objValue, srcValue, key, object, source) => {

@@ -12,27 +12,23 @@ import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
 import {BuildWebpackServerSchema} from '@angular-devkit/build-angular/src/server/schema';
 import * as Rx from 'rxjs';
 import * as _ from 'lodash';
-import * as Path from 'path';
-import * as fs from 'fs';
-import vm = require('vm');
-import {readTsConfig, transpileSingleTs} from '../utils/ts-compiler';
 import changeAngularCliOptions from './change-cli-options';
 import api from '__api';
 
 export type DrcpConfig = typeof api.config;
 export interface AngularConfigHandler {
-	angularJson(drcpCfgObj: DrcpConfig, options: AngularBuilderOptions,
+	angularJson(options: AngularBuilderOptions,
 		builderConfig: BuilderConfiguration<AngularBuilderOptions>)
 	: Promise<void> | void;
 }
 
-function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): DrcpConfig {
+async function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): Promise<DrcpConfig> {
 	var config = require('dr-comp-package/wfh/lib/config');
 
 	if (drcpArgs.c == null)
 		drcpArgs.c = [];
-	drcpArgs.c.push(...drcpConfigFiles.filter(file => !file.endsWith('.js') && !file.endsWith('.ts')));
-	config.init(drcpArgs);
+	drcpArgs.c.push(...drcpConfigFiles);
+	await config.init(drcpArgs);
 	require('dr-comp-package/wfh/lib/logConfig')(config());
 	return config;
 }
@@ -46,7 +42,6 @@ export interface AngularCliParam {
 	webpackConfig: any;
 	projectRoot: string;
 	argv: any;
-	configHandlers: Array<{file: string, handler: AngularConfigHandler}>;
 }
 
 export type AngularBuilderOptions =
@@ -71,13 +66,15 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 	// let argv: any = {};
 	const options = builderConfig.options as (DevServerBuilderOptions & DrcpBuilderOptions);
 	const drcpConfigFiles = options.drcpConfig ? options.drcpConfig.split(/\s*[,;:]\s*/) : [];
-	const configHandlers = initConfigHandlers(drcpConfigFiles);
-
-	const config = initDrcp(options.drcpArgs, drcpConfigFiles);
+	let config: DrcpConfig;
 
 	return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
-		changeAngularCliOptions(config, browserOptions, configHandlers,
-			builderConfig as BuilderConfiguration<AngularBuilderOptions>)
+		initDrcp(options.drcpArgs, drcpConfigFiles)
+		.then((cfg) => {
+			config = cfg;
+			return changeAngularCliOptions(config, browserOptions,
+				builderConfig as BuilderConfiguration<AngularBuilderOptions>);
+		})
 		.then(() => {
 			const param: AngularCliParam = {
 				ssr: false,
@@ -89,8 +86,7 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 					poll: options.poll,
 					hmr: options.hmr,
 					...options.drcpArgs
-				},
-				configHandlers
+				}
 			};
 			if (!_.get(options, 'drcpArgs.noWebpack'))
 				config.set('_angularCli', param);
@@ -177,9 +173,8 @@ async function compileAsync(projectRoot: string,
 	const browserOptions: AngularBuilderOptions = builderConfig.options as AngularBuilderOptions;
 	const options = browserOptions;
 	const drcpConfigFiles = options.drcpConfig ? options.drcpConfig.split(/\s*[,;:]\s*/) : [];
-	const configHandlers = initConfigHandlers(drcpConfigFiles);
-	const config = initDrcp(options.drcpArgs, drcpConfigFiles);
-	await changeAngularCliOptions(config, browserOptions, configHandlers,
+	const config = await initDrcp(options.drcpArgs, drcpConfigFiles);
+	await changeAngularCliOptions(config, browserOptions,
 		builderConfig as BuilderConfiguration<AngularBuilderOptions>);
 	const param: AngularCliParam = {
 		ssr,
@@ -188,36 +183,9 @@ async function compileAsync(projectRoot: string,
 		projectRoot,
 		argv: {
 			...options.drcpArgs
-		},
-		configHandlers
+		}
 	};
 	config.set('_angularCli', param);
 	await require('dr-comp-package/wfh/lib/packageMgr/packageRunner').runBuilder(param.argv);
 	return param.webpackConfig;
-}
-
-function initConfigHandlers(files: string[]): Array<{file: string, handler: AngularConfigHandler}> {
-	// const files = browserOptions.drcpConfig ? browserOptions.drcpConfig.split(/\s*[,;:]\s*/) : [];
-	const exporteds: Array<{file: string, handler: AngularConfigHandler}> = [];
-	const compilerOpt = readTsConfig(require.resolve('dr-comp-package/wfh/tsconfig.json'));
-	files.forEach(file => {
-		if (file.endsWith('.ts')) {
-			console.log('Compile', file);
-			const jscode = transpileSingleTs(fs.readFileSync(Path.resolve(file), 'utf8'), compilerOpt);
-			console.log(jscode);
-			const mod = {exports: {}};
-			const context = vm.createContext({module: mod, exports: mod.exports, console, process, require});
-			try {
-				vm.runInContext(jscode, context, {filename: file});
-			} catch (ex) {
-				console.error(ex);
-				throw ex;
-			}
-			exporteds.push({file, handler: (mod.exports as any).default});
-		} else if (file.endsWith('.js')) {
-			const exp = require(Path.resolve(file));
-			exporteds.push({file, handler: exp.default ? exp.default : exp});
-		}
-	});
-	return exporteds;
 }

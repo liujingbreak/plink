@@ -8,7 +8,7 @@ export declare enum JsonTokenType {
     ['{'] = 5,
     ['}'] = 6,
     [':'] = 7,
-    any = 8,
+    any = 8
 }
 export declare class JsonLexer extends BaseLexer<JsonTokenType> {
     constructor(source: string);

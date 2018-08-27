@@ -1,9 +1,7 @@
-import { AngularBuilderOptions, AngularConfigHandler } from './common';
+import { AngularBuilderOptions } from './common';
 import { BuilderConfiguration } from '@angular-devkit/architect';
-import api from '__api';
-declare type DrcpConfig = typeof api.config;
-export default function changeAngularCliOptions(config: DrcpConfig, browserOptions: AngularBuilderOptions, configHandlers: Array<{
-    file: string;
-    handler: AngularConfigHandler;
-}>, builderConfig?: BuilderConfiguration<AngularBuilderOptions>): Promise<void>;
-export {};
+import { DrcpConfig, ConfigHandler } from 'dr-comp-package/wfh/dist/config-handler';
+export interface AngularConfigHandler extends ConfigHandler {
+    angularJson(options: AngularBuilderOptions, builderConfig: BuilderConfiguration<AngularBuilderOptions>): Promise<void> | void;
+}
+export default function changeAngularCliOptions(config: DrcpConfig, browserOptions: AngularBuilderOptions, builderConfig?: BuilderConfiguration<AngularBuilderOptions>): Promise<void>;

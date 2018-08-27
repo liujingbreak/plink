@@ -6,7 +6,7 @@ import * as Rx from 'rxjs';
 import api from '__api';
 export declare type DrcpConfig = typeof api.config;
 export interface AngularConfigHandler {
-    angularJson(drcpCfgObj: DrcpConfig, options: AngularBuilderOptions, builderConfig: BuilderConfiguration<AngularBuilderOptions>): Promise<void> | void;
+    angularJson(options: AngularBuilderOptions, builderConfig: BuilderConfiguration<AngularBuilderOptions>): Promise<void> | void;
 }
 export declare type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
 export interface AngularCliParam {
@@ -16,10 +16,6 @@ export interface AngularCliParam {
     webpackConfig: any;
     projectRoot: string;
     argv: any;
-    configHandlers: Array<{
-        file: string;
-        handler: AngularConfigHandler;
-    }>;
 }
 export declare type AngularBuilderOptions = BrowserBuilderSchema & BuildWebpackServerSchema & DevServerBuilderOptions & DrcpBuilderOptions;
 export interface DrcpBuilderOptions {

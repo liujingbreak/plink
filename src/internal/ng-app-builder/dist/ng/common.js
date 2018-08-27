@@ -10,19 +10,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const Rx = require("rxjs");
 const _ = require("lodash");
-const Path = require("path");
-const fs = require("fs");
-const vm = require("vm");
-const ts_compiler_1 = require("../utils/ts-compiler");
 const change_cli_options_1 = require("./change-cli-options");
 function initDrcp(drcpArgs, drcpConfigFiles) {
-    var config = require('dr-comp-package/wfh/lib/config');
-    if (drcpArgs.c == null)
-        drcpArgs.c = [];
-    drcpArgs.c.push(...drcpConfigFiles.filter(file => !file.endsWith('.js') && !file.endsWith('.ts')));
-    config.init(drcpArgs);
-    require('dr-comp-package/wfh/lib/logConfig')(config());
-    return config;
+    return __awaiter(this, void 0, void 0, function* () {
+        var config = require('dr-comp-package/wfh/lib/config');
+        if (drcpArgs.c == null)
+            drcpArgs.c = [];
+        drcpArgs.c.push(...drcpConfigFiles);
+        yield config.init(drcpArgs);
+        require('dr-comp-package/wfh/lib/logConfig')(config());
+        return config;
+    });
 }
 /**
  * Invoke this function from dev server builder
@@ -36,10 +34,13 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
     // let argv: any = {};
     const options = builderConfig.options;
     const drcpConfigFiles = options.drcpConfig ? options.drcpConfig.split(/\s*[,;:]\s*/) : [];
-    const configHandlers = initConfigHandlers(drcpConfigFiles);
-    const config = initDrcp(options.drcpArgs, drcpConfigFiles);
+    let config;
     return Rx.Observable.create((obs) => {
-        change_cli_options_1.default(config, browserOptions, configHandlers, builderConfig)
+        initDrcp(options.drcpArgs, drcpConfigFiles)
+            .then((cfg) => {
+            config = cfg;
+            return change_cli_options_1.default(config, browserOptions, builderConfig);
+        })
             .then(() => {
             const param = {
                 ssr: false,
@@ -47,8 +48,7 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
                 browserOptions,
                 webpackConfig: buildWebpackConfig(browserOptions),
                 projectRoot,
-                argv: Object.assign({ poll: options.poll, hmr: options.hmr }, options.drcpArgs),
-                configHandlers
+                argv: Object.assign({ poll: options.poll, hmr: options.hmr }, options.drcpArgs)
             };
             if (!_.get(options, 'drcpArgs.noWebpack'))
                 config.set('_angularCli', param);
@@ -132,48 +132,19 @@ function compileAsync(projectRoot, builderConfig, buildWebpackConfig, ssr) {
         const browserOptions = builderConfig.options;
         const options = browserOptions;
         const drcpConfigFiles = options.drcpConfig ? options.drcpConfig.split(/\s*[,;:]\s*/) : [];
-        const configHandlers = initConfigHandlers(drcpConfigFiles);
-        const config = initDrcp(options.drcpArgs, drcpConfigFiles);
-        yield change_cli_options_1.default(config, browserOptions, configHandlers, builderConfig);
+        const config = yield initDrcp(options.drcpArgs, drcpConfigFiles);
+        yield change_cli_options_1.default(config, browserOptions, builderConfig);
         const param = {
             ssr,
             browserOptions: options,
             webpackConfig: buildWebpackConfig(browserOptions),
             projectRoot,
-            argv: Object.assign({}, options.drcpArgs),
-            configHandlers
+            argv: Object.assign({}, options.drcpArgs)
         };
         config.set('_angularCli', param);
         yield require('dr-comp-package/wfh/lib/packageMgr/packageRunner').runBuilder(param.argv);
         return param.webpackConfig;
     });
-}
-function initConfigHandlers(files) {
-    // const files = browserOptions.drcpConfig ? browserOptions.drcpConfig.split(/\s*[,;:]\s*/) : [];
-    const exporteds = [];
-    const compilerOpt = ts_compiler_1.readTsConfig(require.resolve('dr-comp-package/wfh/tsconfig.json'));
-    files.forEach(file => {
-        if (file.endsWith('.ts')) {
-            console.log('Compile', file);
-            const jscode = ts_compiler_1.transpileSingleTs(fs.readFileSync(Path.resolve(file), 'utf8'), compilerOpt);
-            console.log(jscode);
-            const mod = { exports: {} };
-            const context = vm.createContext({ module: mod, exports: mod.exports, console, process, require });
-            try {
-                vm.runInContext(jscode, context, { filename: file });
-            }
-            catch (ex) {
-                console.error(ex);
-                throw ex;
-            }
-            exporteds.push({ file, handler: mod.exports.default });
-        }
-        else if (file.endsWith('.js')) {
-            const exp = require(Path.resolve(file));
-            exporteds.push({ file, handler: exp.default ? exp.default : exp });
-        }
-    });
-    return exporteds;
 }
 
 //# sourceMappingURL=common.js.map

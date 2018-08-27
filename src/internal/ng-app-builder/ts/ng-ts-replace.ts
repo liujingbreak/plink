@@ -8,7 +8,7 @@ import {AngularCliParam} from './ng/common';
 import ApiAotCompiler from './utils/ts-before-aot';
 import AppModuleParser, {findAppModuleFileFromMain} from './utils/parse-app-module';
 import {sep as SEP, relative, resolve, dirname} from 'path';
-import {readTsConfig, transpileSingleTs} from './utils/ts-compiler';
+import {readTsConfig, transpileSingleTs} from 'dr-comp-package/wfh/dist/ts-compiler';
 import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
 const chalk = require('chalk');
 

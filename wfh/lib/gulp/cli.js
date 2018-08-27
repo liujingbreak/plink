@@ -263,18 +263,19 @@ function writeProjectListFile(dirs) {
 
 function ls(_argv) {
 	argv = _argv;
-	var config = require('../config');
-	require('../logConfig')(config());
-	// require('log4js').getLogger('lib.injector').setLevel('warn');
-	// require('log4js').getLogger('packagePriorityHelper').setLevel('warn');
-	var {nodeInjector} = require('../injectorFactory');
-	var injector = nodeInjector;
-	injector.fromPackage('@dr-core/build-util')
-		.factory('__api', function() {
-			return {compileNodePath: [config().nodePath]};
-		});
-
 	return Promise.coroutine(function*() {
+		const config = require('../config');
+		yield config.init(_argv);
+		require('../logConfig')(config());
+		// require('log4js').getLogger('lib.injector').setLevel('warn');
+		// require('log4js').getLogger('packagePriorityHelper').setLevel('warn');
+		var {nodeInjector} = require('../injectorFactory');
+		var injector = nodeInjector;
+		injector.fromPackage('@dr-core/build-util')
+			.factory('__api', function() {
+				return {compileNodePath: [config().nodePath]};
+			});
+
 		var browserCompInfo = require('@dr-core/build-util').walkPackages.listBundleInfo(
 			config, argv, require('../packageMgr/packageUtils'));
 		console.log(chalk.green(_.pad('[ BROWSER COMPONENTS ]', 50, '=')));
@@ -434,7 +435,10 @@ function bumpProjects(projects, versionType) {
 }
 
 function runUnitTest(_argv) {
-	return require('./testRunner').runUnitTest(_argv);
+	require('../config').init(_argv)
+	.then(() => {
+		return require('./testRunner').runUnitTest(_argv);
+	});
 }
 
 function runE2eTest(_argv) {

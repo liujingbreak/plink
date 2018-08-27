@@ -9,7 +9,7 @@ var config = require('../config');
 var Package = require('../packageMgr/packageNodeInstance');
 var NodeApi = require('../nodeApi');
 var {nodeInjector} = require('../injectorFactory');
-var LRU = require('lru-cache');
+// var LRU = require('lru-cache');
 
 require('../logConfig')(config());
 

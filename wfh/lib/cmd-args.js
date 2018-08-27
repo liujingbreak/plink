@@ -483,8 +483,8 @@ function nodeAppCommand(callback) {
 			}
 		});
 	function handler(argv) {
-		require('./config').init(argv);
-		try {
+		require('./config').init(argv)
+		.then(() => {
 			if (argv.ng && argv.package.length > 0) {
 				argv.package.push('@dr-core/ng-app-builder');
 			}
@@ -498,10 +498,11 @@ function nodeAppCommand(callback) {
 				argv.package.push(...argv.p);
 			}
 			callback(argv);
-		} catch (err) {
+		})
+		.catch(err => {
 			console.error(err);
 			process.exit(1);
-		}
+		});
 	}
 
 	return globalOptions(argv, {

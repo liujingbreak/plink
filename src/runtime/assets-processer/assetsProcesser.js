@@ -8,6 +8,7 @@ var shell = require('shelljs');
 var mkdirp = require('mkdirp');
 var api = require('__api');
 var log = require('log4js').getLogger(api.packageName);
+const {parse: parseUrl} = require('url');
 const fetchRemote = require('./dist/fetch-remote');
 var serverFavicon = require('serve-favicon');
 
@@ -72,7 +73,7 @@ function activate() {
 		return;
 	}
 
-	var contextPath = _.get(api, 'ngEntryComponent.shortName');
+	var rootPath = _.trimEnd(parseUrl(api.config().staticAssetsURL).pathname, '/');
 	api.packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
 		var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
 		var assetsDir = Path.join(packagePath, assetsFolder);
@@ -82,15 +83,15 @@ function activate() {
 
 		if (fs.existsSync(assetsDir)) {
 			var pathElement = [];
-			if (contextPath)
-				pathElement.push(contextPath);
+			if (rootPath)
+				pathElement.push(rootPath);
 
 			if (assetsDirMap == null)
 				pathElement.push(parsedName.name);
 			else if (assetsDirMap !== '')
 				pathElement.push(assetsDirMap);
 
-			var path = '/' + pathElement.join('/');
+			var path = pathElement.join('/');
 			if (path.length > 1)
 				path += '/';
 			log.info('route ' + path + ' -> ' + assetsDir);
@@ -165,7 +166,6 @@ function copyAssets() {
 				var pathInPk = Path.relative(assetsDir, file.path);
 				file.path = Path.join(assetsDir, assetsDirMap != null ? assetsDirMap : parsedName.name, pathInPk);
 				log.debug(file.path);
-				//file.path = file.path
 				next(null, file);
 			}));
 			streams.push(stream);

@@ -8,7 +8,7 @@ const rxjs_1 = require("rxjs");
 const ts_before_aot_1 = require("./utils/ts-before-aot");
 const parse_app_module_1 = require("./utils/parse-app-module");
 const path_1 = require("path");
-const ts_compiler_1 = require("./utils/ts-compiler");
+const ts_compiler_1 = require("dr-comp-package/wfh/dist/ts-compiler");
 const chalk = require('chalk');
 const log = log4js.getLogger(__api_1.default.packageName);
 const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\

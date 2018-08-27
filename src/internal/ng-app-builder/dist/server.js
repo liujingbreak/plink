@@ -143,12 +143,6 @@ function setupApiForAngularCli() {
                 return require(Path.join(this.__dirname, requirePath));
         }
     });
-    __api_1.default.config.set(['outputPathMap', ngEntryComponent.longName], '/');
-    // Be compatible to old DRCP build tools
-    if (!__api_1.default.config.get('staticAssetsURL'))
-        __api_1.default.config.set('staticAssetsURL', _.trimEnd(deployUrl, '/'));
-    if (!__api_1.default.config.get('publicPath'))
-        __api_1.default.config.set('publicPath', deployUrl);
     config_webpack_1.default(ngParam, webpackConfig, __api_1.default.config());
     // ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
     log.info('Setup api object for Angular');
