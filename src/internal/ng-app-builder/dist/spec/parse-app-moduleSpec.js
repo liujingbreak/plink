@@ -4,12 +4,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const parse_app_module_1 = require("../utils/parse-app-module");
 const fs_1 = require("fs");
 const path_1 = require("path");
+class TestableParser extends parse_app_module_1.default {
+    _findEsImportByName(name) {
+        return super.findEsImportByName(name);
+    }
+}
 describe('parse-app-module', () => {
     let parser;
     let source;
     let patched;
     beforeAll(() => {
-        parser = new parse_app_module_1.default();
+        parser = new TestableParser();
         source = fs_1.readFileSync(path_1.resolve(__dirname, '../../ts/spec/app.module.ts.txt'), 'utf8');
     });
     it('should can find out NgModule', () => {
@@ -25,8 +30,8 @@ describe('parse-app-module', () => {
             '@bk/foobar#water',
             'foobar#tea'
         ]);
-        expect(parser.findEsImportByName('_.get').from).toBe('lodash');
-        expect(parser.findEsImportByName('env').from).toBe('@bk/env/environment');
+        expect(parser._findEsImportByName('_.get').from).toBe('lodash');
+        expect(parser._findEsImportByName('env').from).toBe('@bk/env/environment');
         const keys = [];
         for (const k of parser.esImportsMap.keys()) {
             // console.log(parser.esImportsMap.get(k));

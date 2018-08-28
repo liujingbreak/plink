@@ -3,13 +3,19 @@ import AppModuleParser, {findAppModuleFileFromMain} from '../utils/parse-app-mod
 import {readFileSync} from 'fs';
 import {resolve} from 'path';
 
+class TestableParser extends AppModuleParser {
+	_findEsImportByName(name: string) {
+		return super.findEsImportByName(name);
+	}
+}
+
 describe('parse-app-module', () => {
-	let parser: AppModuleParser;
+	let parser: TestableParser;
 	let source: string;
 	let patched: string;
 
 	beforeAll(() => {
-		parser = new AppModuleParser();
+		parser = new TestableParser();
 		source = readFileSync(resolve(__dirname, '../../ts/spec/app.module.ts.txt'), 'utf8');
 	});
 
@@ -27,8 +33,8 @@ describe('parse-app-module', () => {
 				'@bk/foobar#water',
 				'foobar#tea'
 			]);
-		expect(parser.findEsImportByName('_.get').from).toBe('lodash');
-		expect(parser.findEsImportByName('env').from).toBe('@bk/env/environment');
+		expect(parser._findEsImportByName('_.get').from).toBe('lodash');
+		expect(parser._findEsImportByName('env').from).toBe('@bk/env/environment');
 		const keys: string[] = [];
 		for (const k of parser.esImportsMap.keys()) {
 			// console.log(parser.esImportsMap.get(k));
