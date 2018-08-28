@@ -1,4 +1,3 @@
-/*tslint:disable prefer-const*/
 const ts = require('gulp-typescript');
 const packageUtils = require('../lib/packageMgr/packageUtils');
 const chalk = require('chalk');
@@ -15,7 +14,7 @@ const config = require('../lib/config');
 const SEP = Path.sep;
 
 require('../lib/logConfig')(config());
-var log = require('log4js').getLogger('wfh.typescript');
+const log = require('log4js').getLogger('wfh.typescript');
 
 exports.tsc = tsc;
 // exports.init = init;
@@ -44,10 +43,10 @@ interface Args {
 function tsc(argv: Args, onCompiled: () => void) {
 	var compGlobs: string[] = [];
 	// var compStream = [];
-	var compDirInfo: {[name: string]: ComponentInfo} = {}; // {[name: string]: {srcDir: string, destDir: string}}
-	var baseTsconfig = require('../tsconfig.json');
+	const compDirInfo: {[name: string]: ComponentInfo} = {}; // {[name: string]: {srcDir: string, destDir: string}}
+	const baseTsconfig = require('../tsconfig.json');
 
-	var tsProject = ts.createProject(Object.assign({}, baseTsconfig.compilerOptions, {
+	const tsProject = ts.createProject(Object.assign({}, baseTsconfig.compilerOptions, {
 		typescript: require('typescript'),
 		// Compiler options
 		outDir: '',
@@ -79,26 +78,26 @@ function tsc(argv: Args, onCompiled: () => void) {
 		} catch (e) {}
 	}
 
+	const delayCompile = _.debounce(() => {
+		const toCompile = compGlobs;
+		compGlobs = [];
+		promCompile = promCompile.catch(() => {})
+			.then(() => compile(toCompile, tsProject, compDirInfo, argv.sourceMap === 'inline'))
+			.catch(() => {});
+		if (onCompiled)
+			promCompile = promCompile.then(onCompiled);
+	}, 200);
+
 	var promCompile = Promise.resolve();
 	if (argv.watch) {
 		log.info('Watch mode');
-		var watchDirs: string[] = [];
+		const watchDirs: string[] = [];
 		compGlobs = [];
-
-		var delayCompile = _.debounce(() => {
-			const toCompile = compGlobs;
-			compGlobs = [];
-			promCompile = promCompile.catch(() => {})
-				.then(() => compile(toCompile, tsProject, compDirInfo, argv.sourceMap === 'inline'))
-				.catch(() => {});
-			if (onCompiled)
-				promCompile = promCompile.then(onCompiled);
-		}, 200);
 
 		_.each(compDirInfo, (info, name) => {
 			watchDirs.push(Path.join(info.dir, info.srcDir).replace(/\\/g, '/') + '/**/*.ts');
 		});
-		var watcher = chokidar.watch(watchDirs, {ignored: /(\.d\.ts|\.js)$/ });
+		const watcher = chokidar.watch(watchDirs, {ignored: /(\.d\.ts|\.js)$/ });
 		watcher.on('add', (path: string) => onChangeFile(path, 'added'));
 		watcher.on('change', (path: string) => onChangeFile(path, 'changed'));
 		watcher.on('unlink', (path: string) => onChangeFile(path, 'removed'));
@@ -118,22 +117,22 @@ function tsc(argv: Args, onCompiled: () => void) {
 
 function compile(compGlobs: string[], tsProject: any,
 	compDirInfo: {[name: string]: ComponentInfo}, inlineSourceMap: boolean) {
-	var gulpBase = root + SEP;
-	var startTime = new Date().getTime();
+	const gulpBase = root + SEP;
+	const startTime = new Date().getTime();
 
 	function printDuration(isError: boolean) {
-		var sec = Math.ceil((new Date().getTime() - startTime) / 1000);
-		var min = `${Math.floor(sec / 60)} minutes ${sec % 60} secends`;
+		const sec = Math.ceil((new Date().getTime() - startTime) / 1000);
+		const min = `${Math.floor(sec / 60)} minutes ${sec % 60} secends`;
 		log.info(`Compiled ${isError ? 'with errors ' : ''}in ` + min);
 	}
 
 	function changePath() {
 		return through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
-			var shortPath = Path.relative(nodeModules, file.path);
-			var packageName = /^((?:@[^/\\]+[/\\])?[^/\\]+)/.exec(shortPath)[1];
+			const shortPath = Path.relative(nodeModules, file.path);
+			let packageName = /^((?:@[^/\\]+[/\\])?[^/\\]+)/.exec(shortPath)[1];
 			if (SEP === '\\')
 				packageName = packageName.replace(/\\/g, '/');
-			var {srcDir, destDir} = compDirInfo[packageName];
+			const {srcDir, destDir} = compDirInfo[packageName];
 			file.path = Path.resolve(nodeModules, packageName, destDir,
 				shortPath.substring(packageName.length + 1 + (srcDir.length > 0 ? srcDir.length + 1 : 0)));
 			next(null, file);
@@ -141,8 +140,8 @@ function compile(compGlobs: string[], tsProject: any,
 	}
 
 	return new Promise((resolve, reject) => {
-		var compileErrors: string[] = [];
-		var tsResult = gulp.src(compGlobs)
+		const compileErrors: string[] = [];
+		const tsResult = gulp.src(compGlobs)
 		.pipe(sourcemaps.init())
 		.pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
 			file.base = gulpBase;
@@ -153,12 +152,12 @@ function compile(compGlobs: string[], tsProject: any,
 			compileErrors.push(err.message);
 		});
 
-		var jsStream = tsResult.js
+		const jsStream = tsResult.js
 		.pipe(changePath())
 		.pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.', {includeContent: false, sourceRoot: ''}))
 		.pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
 			if (file.extname === '.map') {
-				var sm = JSON.parse(file.contents.toString());
+				const sm = JSON.parse(file.contents.toString());
 				let sFileDir;
 				sm.sources =
 					sm.sources.map( (spath: string) => {
@@ -172,7 +171,7 @@ function compile(compGlobs: string[], tsProject: any,
 			next(null, file);
 		}));
 
-		var all = merge([jsStream, tsResult.dts.pipe(changePath())])
+		const all = merge([jsStream, tsResult.dts.pipe(changePath())])
 		.pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
 			log.info('%s %s Kb', Path.relative(nodeModules, file.path),
 				chalk.blue(Math.round(file.contents.length / 1024 * 10) / 10));

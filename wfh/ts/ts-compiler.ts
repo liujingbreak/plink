@@ -2,7 +2,7 @@ import * as ts from 'typescript';
 import {readFileSync} from 'fs';
 
 export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
-	let tsconfig = ts.readConfigFile(tsconfigFile, (file) => readFileSync(file, 'utf-8')).config;
+	const tsconfig = ts.readConfigFile(tsconfigFile, (file) => readFileSync(file, 'utf-8')).config;
 	return ts.parseJsonConfigFileContent(tsconfig, ts.sys, process.cwd().replace(/\\/g, '/'),
 		undefined, tsconfigFile).options;
 }
@@ -12,9 +12,9 @@ export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
  * @param tsCode 
  */
 export function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOptions): string {
-	let res = ts.transpileModule(tsCode, {compilerOptions});
+	const res = ts.transpileModule(tsCode, {compilerOptions});
 	if (res.diagnostics && res.diagnostics.length > 0) {
-		let msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
+		const msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
 		console.error(msg);
 		throw new Error(msg);
 	}

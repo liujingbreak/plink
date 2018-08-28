@@ -25,7 +25,8 @@ class ConfigHandlerMgr {
                 const jscode = ts_compiler_1.transpileSingleTs(fs.readFileSync(Path.resolve(file), 'utf8'), compilerOpt);
                 console.log(jscode);
                 const mod = { exports: {} };
-                const context = vm.createContext({ module: mod, exports: mod.exports, console, process, require });
+                const context = vm.createContext({ module: mod, exports: mod.exports, console, process, require,
+                    __filename: file, __dirname: Path.dirname(file) });
                 try {
                     vm.runInContext(jscode, context, { filename: file });
                 }

@@ -56,9 +56,9 @@ describe('ng-html-parser', () => {
 		for (const tag of ast) {
 			console.log(tag);
 			for (const attrValue of _.values(tag.attrs)) {
-				if (attrValue == null)
+				if (attrValue.value == null)
 					continue;
-				expect(ngHtml.substring(attrValue.start, attrValue.end)).toEqual(attrValue.text);
+				expect(ngHtml.substring(attrValue.value.start, attrValue.value.end)).toEqual(attrValue.value.text);
 			}
 		}
 		expect(ast[0].start).toBe(0);

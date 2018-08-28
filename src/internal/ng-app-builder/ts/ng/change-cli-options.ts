@@ -34,9 +34,8 @@ export default async function changeAngularCliOptions(config: DrcpConfig,
 	const pkJson = lookupEntryPackage(Path.resolve(builderConfig.root));
 	if (pkJson) {
 		console.log(green('change-cli-options - ') + `Set entry package ${cyan(pkJson.name)}'s output path to /`);
+		config.set(['outputPathMap', pkJson.name], '/');
 	}
-	// config.set(['outputPathMap', ngEntryComponent.longName], '/');
-
 	// Be compatible to old DRCP build tools
 	const {deployUrl} = browserOptions;
 	if (!config.get('staticAssetsURL'))

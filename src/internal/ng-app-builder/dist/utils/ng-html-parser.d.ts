@@ -30,7 +30,10 @@ export declare class TemplateLexer extends BaseLexer<HtmlTokenType> {
 export interface TagAst {
     name?: string;
     attrs?: {
-        [key: string]: AttributeValueAst;
+        [key: string]: {
+            isNg: boolean;
+            value: AttributeValueAst;
+        };
     };
     start: number;
     end: number;
@@ -49,7 +52,10 @@ export declare class TemplateParser extends BaseParser<HtmlTokenType, TemplateLe
     parse(): TagAst[];
     tag(): TagAst;
     attributes(): {
-        [key: string]: AttributeValueAst;
+        [key: string]: {
+            isNg: boolean;
+            value: AttributeValueAst;
+        };
     };
     isNgAttrName(): boolean;
     ngAttrName(): string;

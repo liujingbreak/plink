@@ -17,7 +17,7 @@ export interface DrcpConfig {
 }
 
 export interface ConfigHandler {
-	onConfig(filename: string, configSetting: {[prop: string]: any}): Promise<void> | void;
+	onConfig(configSetting: {[prop: string]: any}, drcpCliArgv?: {[prop: string]: any}): Promise<void> | void;
 }
 
 export class ConfigHandlerMgr {
@@ -31,7 +31,8 @@ export class ConfigHandlerMgr {
 				const jscode = transpileSingleTs(fs.readFileSync(Path.resolve(file), 'utf8'), compilerOpt);
 				console.log(jscode);
 				const mod = {exports: {}};
-				const context = vm.createContext({module: mod, exports: mod.exports, console, process, require});
+				const context = vm.createContext({module: mod, exports: mod.exports, console, process, require,
+					__filename: file, __dirname: Path.dirname(file)});
 				try {
 					vm.runInContext(jscode, context, {filename: file});
 				} catch (ex) {

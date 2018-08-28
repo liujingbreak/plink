@@ -14,6 +14,23 @@ const log = require('log4js').getLogger('ng-html-loader');
 const _ = require("lodash");
 const vm = require("vm");
 const chalk = require('chalk');
+function loader(content, map) {
+    var callback = this.async();
+    if (!callback) {
+        this.emitError('loader does not support sync mode');
+        throw new Error('loader does not support sync mode');
+    }
+    load(content, this)
+        .then(result => this.callback(null, result, map))
+        .catch(err => {
+        this.callback(err);
+        this.emitError(err);
+        log.error(err);
+    });
+}
+(function (loader) {
+    loader.compileHtml = load;
+})(loader || (loader = {}));
 const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 function load(content, loader) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -23,35 +40,36 @@ function load(content, loader) {
         for (const el of ast) {
             for (const name of toCheckNames) {
                 if (_.has(el.attrs, name)) {
-                    proms.push(doAttrAssetsUrl(name, el.attrs[name], el, replacements, loader));
+                    if (el.attrs[name].isNg || el.attrs[name].value == null)
+                        continue;
+                    proms.push(doAttrAssetsUrl(name, el.attrs[name].value, el, replacements, loader));
                 }
             }
         }
         yield Promise.all(proms);
         const updated = patch_text_1.default(content, replacements);
-        // log.warn(updated);
         return updated;
     });
 }
 function doAttrAssetsUrl(attrName, valueToken, el, replacements, loader) {
-    if (!valueToken)
-        return;
-    if (attrName === 'srcset') {
-        // img srcset
-        return doSrcSet(valueToken.text, loader)
-            .then(value => replacements.push(new patch_text_1.Replacement(valueToken.start, valueToken.end, value)));
-    }
-    else if (attrName === 'src' && el.name.toUpperCase() === 'IMG') {
-        // img src
-        return doLoadAssets(valueToken.text, loader)
-            .then(url => {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!valueToken)
+            return;
+        if (attrName === 'srcset') {
+            // img srcset
+            const value = yield doSrcSet(valueToken.text, loader);
+            replacements.push(new patch_text_1.Replacement(valueToken.start, valueToken.end, value));
+        }
+        else if (attrName === 'src') {
+            // img src
+            const url = yield doLoadAssets(valueToken.text, loader);
             replacements.push(new patch_text_1.Replacement(valueToken.start, valueToken.end, url));
-        });
-    }
-    else { // href, ng-src, routerLink
-        return resolveUrl(valueToken.text, loader)
-            .then(url => replacements.push(new patch_text_1.Replacement(valueToken.start, valueToken.end, url)));
-    }
+        }
+        else { // href, ng-src, routerLink
+            const url = yield resolveUrl(valueToken.text, loader);
+            replacements.push(new patch_text_1.Replacement(valueToken.start, valueToken.end, url));
+        }
+    });
 }
 function doSrcSet(value, loader) {
     var prom = value.split(/\s*,\s*/).map(urlSet => {
@@ -112,26 +130,11 @@ function doLoadAssets(src, loader) {
                     exports: {}
                 }
             };
-            // log.warn('__webpack_public_path__=', sandbox.__webpack_public_path__);
             vm.runInNewContext(source, vm.createContext(sandbox));
-            // log.warn(loader.resourcePath + ', assets: ', src, 'to', sandbox.module.exports);
             resolve(sandbox.module.exports);
         });
     });
 }
-module.exports = function (content, map) {
-    var callback = this.async();
-    if (!callback) {
-        this.emitError('loader does not support sync mode');
-        throw new Error('loader does not support sync mode');
-    }
-    load(content, this)
-        .then(result => this.callback(null, result, map))
-        .catch(err => {
-        this.callback(err);
-        this.emitError(err);
-        log.error(err);
-    });
-};
+module.exports = loader;
 
 //# sourceMappingURL=ng-html-loader.js.map

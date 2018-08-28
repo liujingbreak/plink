@@ -198,11 +198,11 @@ class TemplateParser extends base_LLn_parser_1.BaseParser {
         while (this.la() != null && this.la().type !== HtmlTokenType['>']) {
             if (this.isNgAttrName()) {
                 const key = this.ngAttrName();
-                attrs[key] = this.attrValue();
+                attrs[key] = { isNg: true, value: this.attrValue() };
             }
             else if (this.la().type === HtmlTokenType.identity) {
                 const key = this.attrName();
-                attrs[key] = this.attrValue();
+                attrs[key] = { isNg: false, value: this.attrValue() };
             }
             else {
                 console.log('Previous tokens: ', this.lb().text);

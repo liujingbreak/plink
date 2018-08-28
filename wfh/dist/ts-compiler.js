@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const ts = require("typescript");
 const fs_1 = require("fs");
 function readTsConfig(tsconfigFile) {
-    let tsconfig = ts.readConfigFile(tsconfigFile, (file) => fs_1.readFileSync(file, 'utf-8')).config;
+    const tsconfig = ts.readConfigFile(tsconfigFile, (file) => fs_1.readFileSync(file, 'utf-8')).config;
     return ts.parseJsonConfigFileContent(tsconfig, ts.sys, process.cwd().replace(/\\/g, '/'), undefined, tsconfigFile).options;
 }
 exports.readTsConfig = readTsConfig;
@@ -12,9 +12,9 @@ exports.readTsConfig = readTsConfig;
  * @param tsCode
  */
 function transpileSingleTs(tsCode, compilerOptions) {
-    let res = ts.transpileModule(tsCode, { compilerOptions });
+    const res = ts.transpileModule(tsCode, { compilerOptions });
     if (res.diagnostics && res.diagnostics.length > 0) {
-        let msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
+        const msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
         console.error(msg);
         throw new Error(msg);
     }

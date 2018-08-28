@@ -6,7 +6,8 @@ import * as _ from 'lodash';
 import vm = require('vm');
 const chalk = require('chalk');
 
-export = function(content: string, map: any) {
+export = loader;
+function loader(content: string, map: any) {
 	var callback = this.async();
 	if (!callback) {
 		this.emitError('loader does not support sync mode');
@@ -19,7 +20,10 @@ export = function(content: string, map: any) {
 		this.emitError(err);
 		log.error(err);
 	});
-};
+}
+namespace loader {
+	export const compileHtml = load;
+}
 
 const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 
@@ -30,33 +34,32 @@ async function load(content: string, loader: any) {
 	for (const el of ast) {
 		for (const name of toCheckNames) {
 			if (_.has(el.attrs, name)) {
-				proms.push(doAttrAssetsUrl(name, el.attrs[name], el, replacements, loader));
+				if (el.attrs[name].isNg || el.attrs[name].value == null)
+					continue;
+				proms.push(doAttrAssetsUrl(name, el.attrs[name].value, el, replacements, loader));
 			}
 		}
 	}
 	await Promise.all(proms);
 	const updated = patchText(content, replacements);
-	// log.warn(updated);
 	return updated;
 }
 
-function doAttrAssetsUrl(attrName: string, valueToken: AttributeValueAst,
-	el: TagAst, replacements: Rep[], loader: any): PromiseLike<any> {
+async function doAttrAssetsUrl(attrName: string, valueToken: AttributeValueAst,
+	el: TagAst, replacements: Rep[], loader: any): Promise<any> {
 	if (!valueToken)
 		return;
 	if (attrName === 'srcset') {
 		// img srcset
-		return doSrcSet(valueToken.text, loader)
-			.then(value => replacements.push(new Rep(valueToken.start, valueToken.end, value)));
-	} else if (attrName === 'src' && el.name.toUpperCase() === 'IMG') {
+		const value = await doSrcSet(valueToken.text, loader);
+		replacements.push(new Rep(valueToken.start, valueToken.end, value));
+	} else if (attrName === 'src') {
 		// img src
-		return doLoadAssets(valueToken.text, loader)
-			.then(url => {
-				replacements.push(new Rep(valueToken.start, valueToken.end, url));
-			});
+		const url = await doLoadAssets(valueToken.text, loader);
+		replacements.push(new Rep(valueToken.start, valueToken.end, url));
 	} else { // href, ng-src, routerLink
-		return resolveUrl(valueToken.text, loader)
-			.then(url => replacements.push(new Rep(valueToken.start, valueToken.end, url)));
+		const url = await resolveUrl(valueToken.text, loader);
+		replacements.push(new Rep(valueToken.start, valueToken.end, url));
 	}
 }
 
@@ -120,9 +123,7 @@ function doLoadAssets(src: string, loader: any) {
 					exports: {}
 				}
 			};
-			// log.warn('__webpack_public_path__=', sandbox.__webpack_public_path__);
 			vm.runInNewContext(source, vm.createContext(sandbox));
-			// log.warn(loader.resourcePath + ', assets: ', src, 'to', sandbox.module.exports);
 			resolve(sandbox.module.exports as string);
 		});
 	});

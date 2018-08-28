@@ -148,7 +148,7 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 
 export interface TagAst {
 	name?: string;
-	attrs?: {[key: string]: AttributeValueAst};
+	attrs?: {[key: string]: {isNg: boolean, value: AttributeValueAst}};
 	start: number;
 	end: number;
 	[key: string]: any;
@@ -196,15 +196,15 @@ export class TemplateParser extends BaseParser<HtmlTokenType, TemplateLexer> {
 		const last = this.advance(); // >
 		return {name, attrs, start: first.start, end: last.end};
 	}
-	attributes() {
-		const attrs: {[key: string]: AttributeValueAst} = {};
+	attributes(): {[key: string]: {isNg: boolean, value: AttributeValueAst}} {
+		const attrs: {[key: string]: {isNg: boolean, value: AttributeValueAst}} = {};
 		while (this.la() != null && this.la().type !== HtmlTokenType['>']) {
 			if (this.isNgAttrName()) {
 				const key = this.ngAttrName();
-				attrs[key] = this.attrValue();
+				attrs[key] = {isNg: true, value: this.attrValue()};
 			} else if (this.la().type === HtmlTokenType.identity) {
 				const key = this.attrName();
-				attrs[key] = this.attrValue();
+				attrs[key] = {isNg: false, value: this.attrValue()};
 			} else {
 				console.log('Previous tokens: ', this.lb().text);
 				this.throwError(this.la().text);

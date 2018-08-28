@@ -51,7 +51,7 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 
 	if (webpackConfig.target !== 'node') {
 		webpackConfig.plugins.push(new IndexHtmlPlugin({
-				indexHtml: Path.basename(param.browserOptions.index),
+				indexFile: Path.resolve(param.browserOptions.index),
 				inlineChunkNames: ['runtime']
 			}));
 	} else {

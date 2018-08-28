@@ -17,7 +17,9 @@ export interface DrcpConfig {
     }>;
 }
 export interface ConfigHandler {
-    onConfig(filename: string, configSetting: {
+    onConfig(configSetting: {
+        [prop: string]: any;
+    }, drcpCliArgv?: {
         [prop: string]: any;
     }): Promise<void> | void;
 }

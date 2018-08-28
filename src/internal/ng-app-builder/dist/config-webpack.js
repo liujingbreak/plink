@@ -46,7 +46,7 @@ function changeWebpackConfig(param, webpackConfig, drcpConfig) {
     }
     if (webpackConfig.target !== 'node') {
         webpackConfig.plugins.push(new index_html_plugin_1.default({
-            indexHtml: Path.basename(param.browserOptions.index),
+            indexFile: Path.resolve(param.browserOptions.index),
             inlineChunkNames: ['runtime']
         }));
     }

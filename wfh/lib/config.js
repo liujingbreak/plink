@@ -144,7 +144,7 @@ function load(fileList, yargv) {
 		configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(setting, localConfigPath));
 		handlers = new ConfigHandlerMgr(configFileList.filter(name => /\.[tj]s$/.test(name)));
 		return handlers.runEach((file, obj, handler) => {
-			return handler.onConfig(file, obj || setting);
+			return handler.onConfig(obj || setting, yargv);
 		})
 		.then(() => {
 			if (setting.recipeFolder) {
