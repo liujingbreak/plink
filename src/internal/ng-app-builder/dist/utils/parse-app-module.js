@@ -38,7 +38,10 @@ function findAppModuleFileFromMain(mainFile) {
             throw new Error('Can not found "AppModule" or "AppServerModule from ' + mainFile);
         }
         if (found.has(lookupPath[0])) {
-            return Path.resolve(Path.dirname(mainFile), found.get(lookupPath[0]));
+            let target = Path.resolve(Path.dirname(mainFile), found.get(lookupPath[0]));
+            if (!target.endsWith('.ts'))
+                target = target + '.ts';
+            return target;
         }
         if (found.has(lookupPath[1])) {
             mainFile = Path.resolve(Path.dirname(mainFile), found.get(lookupPath[1]));
@@ -86,6 +89,7 @@ class AppModuleParser {
      * @param fileContent file content
      * @param removableModules array of <ES module path>#<export name>, e.g. @foo/bar/src/module#DocRoute
      * @param modulesToAdd array of <ES module path>#<export name>, e.g. @foo/bar/src/module#DocRoute
+     * @param importAppComponent e.g. @foo/bar/src/module#AppComponent
      */
     patchFile(file, fileContent, removableModules, modulesToAdd) {
         this.fileContent = fileContent;

@@ -231,8 +231,7 @@ function _writeGitHook(project) {
 
 function addProject(_argv, dirs) {
 	writeProjectListFile(dirs);
-	return Promise.resolve(require('../config').init(_argv).reload())
-		.then(() => init(_argv))
+	return Promise.resolve(require('../config').init(_argv))
 		.catch(e => {
 			console.log('Roll back dr.project.list.json');
 			fs.renameSync(Path.join(rootPath, 'dr.project.list.json.bak'), Path.join(rootPath, 'dr.project.list.json'));

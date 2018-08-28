@@ -25,8 +25,6 @@ function createTsReadHook(ngParam) {
         polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
     let appModuleFile = parse_app_module_1.findAppModuleFileFromMain(path_1.resolve(ngParam.browserOptions.main));
     log.info('app module file: ', appModuleFile);
-    if (!appModuleFile.endsWith('.ts'))
-        appModuleFile = appModuleFile + '.ts';
     return function (file, buf) {
         try {
             if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {

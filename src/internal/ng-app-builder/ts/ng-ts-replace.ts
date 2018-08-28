@@ -32,8 +32,6 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 
 	let appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
 	log.info('app module file: ', appModuleFile);
-	if (!appModuleFile.endsWith('.ts'))
-		appModuleFile = appModuleFile + '.ts';
 
 	return function(file: string, buf: ArrayBuffer) {
 		try {

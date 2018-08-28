@@ -1,3 +1,4 @@
+/* tslint:disable max-classes-per-file */
 import { Compiler } from 'webpack';
 const { RawSource } = require('webpack-sources');
 import {TemplateParser} from '../utils/ng-html-parser';
