@@ -9,6 +9,7 @@ var config = require('../config');
 var Package = require('../packageMgr/packageNodeInstance');
 var NodeApi = require('../nodeApi');
 var {nodeInjector} = require('../injectorFactory');
+const {LazyPackageFactory} = require('@dr-core/build-util/dist/package-instance');
 // var LRU = require('lru-cache');
 
 require('../logConfig')(config());
@@ -42,6 +43,15 @@ function defaultConfig() {
 
 function runUnitTest(argv) {
 	if (argv.f) {
+		for (const singleFile of argv.f) {
+			let pk = new LazyPackageFactory().getPackageByPath(Path.resolve(singleFile));
+			nodeInjector.fromPackage(pk.longName, pk.packagePath)
+			.value('__injector', nodeInjector)
+			.value('__api', getApiForPackage(pk));
+			nodeInjector.fromPackage(pk.longName, pk.realPackagePath)
+			.value('__injector', nodeInjector)
+			.value('__api', getApiForPackage(pk));
+		}
 		return runJasmine(defaultConfig(), [].concat(argv.f), argv.spec);
 	}
 	var jasmineSetting = defaultConfig();
@@ -152,6 +162,5 @@ function getApiForPackage(pkInstance) {
 	// NodeApi.prototype.packageUtils = packageUtils;
 	// NodeApi.prototype.argv = argv;
 	NodeApi.prototype.compileNodePath = [config().rootPath];
-	//apiCache[pkInstance.longName] = api;
 	return api;
 }

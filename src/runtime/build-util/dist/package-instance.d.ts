@@ -27,3 +27,8 @@ export default class PackageBrowserInstance {
     init(attrs: any): void;
     toString(): string;
 }
+import { DirTree } from 'require-injector/dist/dir-tree';
+export declare class LazyPackageFactory {
+    packagePathMap: DirTree<PackageBrowserInstance>;
+    getPackageByPath(file: string): PackageBrowserInstance;
+}

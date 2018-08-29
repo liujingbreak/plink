@@ -4,6 +4,8 @@ var log = require('log4js').getLogger('lib.injectorFactory');
 var _ = require('lodash');
 var fs = require('fs');
 var Path = require('path');
+const {doInjectorConfig} = require('../dist/require-injectors');
+
 
 exports.nodeInjector = createInjector(require.resolve);
 exports.webInjector = createInjector(null, true);
@@ -16,12 +18,12 @@ function createInjector(resolve, noNode) {
 		enableFactoryParamFile: false,
 		noNode
 	});
-
 	function ComponentInjector() {}
 	ComponentInjector.prototype = injector;
-
 	monkeyPatchRequireInjector(injector, ComponentInjector.prototype);
-	return new ComponentInjector();
+	let cj = new ComponentInjector();
+	cj.isNode = !noNode;
+	return cj;
 }
 
 var packageNamePathMap = {};
@@ -92,6 +94,7 @@ function monkeyPatchRequireInjector(superInjector, proto) {
 	/**
 	 * read and evaluate inject setting file
 	 * @param  {string} fileName optional, default is 'module-resolve.server.js'
+	 * @return {Promise<void>}
 	 */
 	proto.readInjectFile = function(fileName) {
 		if (!fileName) {
@@ -106,6 +109,7 @@ function monkeyPatchRequireInjector(superInjector, proto) {
 		} else {
 			log.warn(file + ' doesn\'t exist');
 		}
+		return doInjectorConfig(this, this.isNode);
 	};
 }
 

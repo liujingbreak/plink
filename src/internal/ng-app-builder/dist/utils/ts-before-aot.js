@@ -2,8 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const ts = require("typescript");
 const typescript_1 = require("typescript");
-const patch_text_1 = require("./patch-text");
-const lodash_1 = require("lodash");
+const textPatcher = require("./patch-text");
 const __api_1 = require("__api");
 const vm = require("vm");
 const path_1 = require("path");
@@ -23,9 +22,6 @@ class ApiAotCompiler {
             });
         }
     }
-    static idText(node) {
-        return node.text;
-    }
     parse(transpileExp) {
         const pk = __api_1.default.findPackageByFile(this.file);
         if (pk == null)
@@ -34,6 +30,7 @@ class ApiAotCompiler {
         for (const stm of this.ast.statements) {
             this.traverseTsAst(stm);
         }
+        textPatcher._sortAndRemoveOverlap(this.replacements);
         let nodeApi = __api_1.default.getNodeApiForPackage(pk);
         nodeApi.__dirname = path_1.dirname(this.file);
         const context = vm.createContext({ __api: nodeApi });
@@ -64,7 +61,7 @@ class ApiAotCompiler {
         if (this.replacements.length === 0)
             return this.src;
         log.debug(this.replacements);
-        return patch_text_1.default(this.src, this.replacements);
+        return textPatcher._replaceSorted(this.src, this.replacements);
     }
     getApiForFile(file) {
         __api_1.default.findPackageByFile(file);
@@ -72,10 +69,13 @@ class ApiAotCompiler {
     traverseTsAst(ast, level = 0) {
         if (ast.kind === typescript_1.SyntaxKind.PropertyAccessExpression || ast.kind === typescript_1.SyntaxKind.ElementAccessExpression) {
             const node = ast;
-            if (node.expression.kind === typescript_1.SyntaxKind.Identifier && ApiAotCompiler.idText(node.expression) === '__api') {
+            if (node.expression.kind === typescript_1.SyntaxKind.Identifier && node.expression.getText(this.ast) === '__api') {
                 // keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
                 let evaluateNode = this.goUpToParentExpress(node);
-                this.replacements.push({ start: evaluateNode.pos, end: evaluateNode.end, text: this.nodeText(evaluateNode) });
+                this.replacements.push({ start: evaluateNode.getStart(this.ast),
+                    end: evaluateNode.getEnd(),
+                    text: evaluateNode.getText(this.ast) });
+                return;
             }
         }
         ast.forEachChild((sub) => {
@@ -85,7 +85,8 @@ class ApiAotCompiler {
     /**
      * keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
      */
-    goUpToParentExpress(currNode) {
+    goUpToParentExpress(target) {
+        let currNode = target;
         while (true) {
             let kind = currNode.parent.kind;
             if (kind === typescript_1.SyntaxKind.CallExpression && currNode.parent.expression === currNode ||
@@ -98,9 +99,6 @@ class ApiAotCompiler {
             }
         }
         return currNode;
-    }
-    nodeText(ast) {
-        return lodash_1.trim(this.src.substring(ast.pos, ast.end));
     }
 }
 exports.default = ApiAotCompiler;

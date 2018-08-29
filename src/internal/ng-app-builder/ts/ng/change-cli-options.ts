@@ -8,7 +8,13 @@ import * as Path from 'path';
 import * as fs from 'fs';
 import {DrcpConfig, ConfigHandler} from 'dr-comp-package/wfh/dist/config-handler';
 const {cyan, green} = require('chalk');
+
 export interface AngularConfigHandler extends ConfigHandler {
+	/**
+	 * You may override angular.json in this function
+	 * @param options Angular angular.json properties under path <project>.architect.<command>.options
+	 * @param builderConfig Angular angular.json properties under path <project>
+	 */
 	angularJson(options: AngularBuilderOptions,
 		builderConfig: BuilderConfiguration<AngularBuilderOptions>)
 	: Promise<void> | void;
@@ -27,9 +33,12 @@ export default async function changeAngularCliOptions(config: DrcpConfig,
 			console.log(currPackageName + ' - override %s: %s', prop, value);
 		}
 	}
-	config.configHandlerMgr().runEach<AngularConfigHandler>((file, obj, handler) => {
+	await config.configHandlerMgr().runEach<AngularConfigHandler>((file, obj, handler) => {
 		console.log(green('change-cli-options - ') + ' run', cyan(file));
-		return handler.angularJson(browserOptions, builderConfig);
+		if (handler.angularJson)
+			return handler.angularJson(browserOptions, builderConfig);
+		else
+			return obj;
 	});
 	const pkJson = lookupEntryPackage(Path.resolve(builderConfig.root));
 	if (pkJson) {

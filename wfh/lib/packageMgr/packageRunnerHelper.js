@@ -36,41 +36,43 @@ function runBuilderComponentsWith(funcName, builderComponents, argv, skips, skip
 	proto.argv = argv;
 	var {walkPackages} = require('@dr-core/build-util');
 	var packageInfo = walkPackages(config, argv, packageUtils, argv['package-cache'] === false);
-	initWebInjector(packageInfo, proto);
-	proto.packageInfo = packageInfo;
-	var cache = LRU(20);
-	proto.findPackageByFile = function(file) {
-		var found = cache.get(file);
-		if (!found) {
-			found = packageInfo.dirTree.getAllData(file).pop();
-			cache.set(file, found);
-		}
-		return found;
-	};
-	proto.getNodeApiForPackage = function(packageInstance) {
-		return getApiForPackage(packageInstance);
-	};
-	return priorityHelper.orderPackages(builderComponents, pkInstance => {
-		if (_.includes(skips, pkInstance.longName)) {
-			log.info('skip builder: %s', pkInstance.longName);
-			return;
-		}
-		var res;
-		try {
-			res = runBuilderComponent(pkInstance, funcName);
-		} catch (ex) {
-			if (skipOnFail) {
-				log.warn(`Skip error on ${pkInstance.longName} ${funcName}()`, ex);
+	return initWebInjector(packageInfo, proto)
+	.then(() => {
+		proto.packageInfo = packageInfo;
+		var cache = LRU(20);
+		proto.findPackageByFile = function(file) {
+			var found = cache.get(file);
+			if (!found) {
+				found = packageInfo.dirTree.getAllData(file).pop();
+				cache.set(file, found);
+			}
+			return found;
+		};
+		proto.getNodeApiForPackage = function(packageInstance) {
+			return getApiForPackage(packageInstance);
+		};
+		return priorityHelper.orderPackages(builderComponents, pkInstance => {
+			if (_.includes(skips, pkInstance.longName)) {
+				log.info('skip builder: %s', pkInstance.longName);
 				return;
-			} else
-				throw ex;
-		}
-		if (skipOnFail)
-			return res.catch(err => {
-				log.warn(`Skip error on ${pkInstance.longName} ${funcName}()`, err);
-			});
-		return res;
-	}, 'json.dr.builderPriority')
+			}
+			var res;
+			try {
+				res = runBuilderComponent(pkInstance, funcName);
+			} catch (ex) {
+				if (skipOnFail) {
+					log.warn(`Skip error on ${pkInstance.longName} ${funcName}()`, ex);
+					return;
+				} else
+					throw ex;
+			}
+			if (skipOnFail)
+				return res.catch(err => {
+					log.warn(`Skip error on ${pkInstance.longName} ${funcName}()`, err);
+				});
+			return res;
+		}, 'json.dr.builderPriority');
+	})
 	.then(() => walkPackages.saveCache(packageInfo, config));
 }
 
@@ -154,8 +156,9 @@ function initWebInjector(packageInfo, apiPrototype) {
 	.substitute(/^([^{]*)\{locale\}(.*)$/,
 		(filePath, match) => match[1] + apiPrototype.getBuildLocale() + match[2]);
 
-	webInjector.readInjectFile('module-resolve.browser.js');
+	let done = webInjector.readInjectFile('module-resolve.browser.js');
 	apiPrototype.browserInjector = webInjector;
+	return done;
 }
 
 /**
@@ -167,22 +170,23 @@ function traversePackages(needInject) {
 		(pkInstance, name, entryPath, parsedName, pkJson, realPackagePath, packagePath) => {
 			setupNodeInjectorFor(pkInstance, name, packagePath, realPackagePath);
 		} : null);
+	let done;
 	if (needInject)
-		nodeInjector.readInjectFile();
-	return packagesTypeMap;
+		done = nodeInjector.readInjectFile();
+	else
+		done = Promise.resolve();
+	return done.then(() => packagesTypeMap);
 }
 
 function setupNodeInjectorFor(pkInstance, name, packagePath, realPackagePath) {
 	log.debug('setupNodeInjectorFor %s resolved to: %s', name, packagePath, realPackagePath);
-	function apiFactory() {
-		return getApiForPackage(pkInstance);
-	}
+	let api = getApiForPackage(pkInstance);
 	nodeInjector.fromPackage(name, realPackagePath)
 	.value('__injector', nodeInjector)
-	.factory('__api', apiFactory);
+	.value('__api', api);
 	nodeInjector.fromPackage(name, packagePath)
 	.value('__injector', nodeInjector)
-	.factory('__api', apiFactory);
+	.value('__api', api);
 	nodeInjector.default = nodeInjector; // For ES6 import syntax
 }
 

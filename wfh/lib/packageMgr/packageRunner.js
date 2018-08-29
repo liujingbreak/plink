@@ -28,6 +28,7 @@ module.exports = {
 };
 
 function runServer(argv) {
+	var packagesTypeMap;
 	NodeApi.prototype.argv = argv;
 	NodeApi.prototype.runBuilder = function(buildArgv, skipNames) {
 		_.assign(buildArgv, argv);
@@ -37,59 +38,64 @@ function runServer(argv) {
 
 		return helper.runBuilderComponents(packagesTypeMap.builder, buildArgv, skipNames);
 	};
-	var packagesTypeMap = requireServerPackages();
-	deactivateOrder = [];
-	return activateCoreComponents()
-	.then(() => {
-		return activateNormalComponents();
-	})
-	.then(() => {
-		var newRunner = new ServerRunner();
-		deactivateOrder.reverse();
-		newRunner.deactivatePackages = deactivateOrder;
-		return new Promise(resolve => {
-			setTimeout(() => {
-				resolve(() => {
-					newRunner.shutdownServer();
-				});
-			}, 500);
+	return Promise.coroutine(function*() {
+		packagesTypeMap = yield requireServerPackages();
+		deactivateOrder = [];
+		return activateCoreComponents()
+		.then(() => {
+			return activateNormalComponents();
+		})
+		.then(() => {
+			var newRunner = new ServerRunner();
+			deactivateOrder.reverse();
+			newRunner.deactivatePackages = deactivateOrder;
+			return new Promise(resolve => {
+				setTimeout(() => {
+					resolve(() => {
+						newRunner.shutdownServer();
+					});
+				}, 500);
+			});
 		});
-	});
+	})();
 }
 
 function runBuilder(argv, funcName, skipOnFail) {
 	if (NodeApi.prototype.argv == null) {
 		NodeApi.prototype.argv = argv;
 	}
-	var packagesTypeMap = helper.traversePackages(true);
-	return helper.runBuilderComponentsWith(funcName, packagesTypeMap.builder, argv, [], skipOnFail)
-	.then(buildRes => {
+	return helper.traversePackages(true)
+	.then(packagesTypeMap => {
+		return helper.runBuilderComponentsWith(funcName, packagesTypeMap.builder, argv, [], skipOnFail)
+	}).then(buildRes => {
 		helper.sendlivereload(buildRes, argv);
 		eventBus.emit('build-done');
 	});
 }
 
 function requireServerPackages(dontLoad) {
-	var packagesTypeMap = helper.traversePackages(!dontLoad);
-	// var proto = NodeApi.prototype;
-	// proto.argv = argv;
+	return helper.traversePackages(!dontLoad)
+	.then(packagesTypeMap => {
+		// var proto = NodeApi.prototype;
+		// proto.argv = argv;
 
-	// create API instance and inject factories
+		// create API instance and inject factories
 
-	_.each(packagesTypeMap.server, (p, idx) => {
-		if (!checkPackageName(p.scope, p.shortName, false)) {
-			return;
-		}
-		if (_.includes([].concat(_.get(p, 'json.dr.type')), 'core')) {
-			corePackages[p.shortName] = p;
-		} else {
-			packageCache[p.shortName] = p;
-		}
-		if (!dontLoad)
-			p.exports = require(p.moduleName);
+		_.each(packagesTypeMap.server, (p, idx) => {
+			if (!checkPackageName(p.scope, p.shortName, false)) {
+				return;
+			}
+			if (_.includes([].concat(_.get(p, 'json.dr.type')), 'core')) {
+				corePackages[p.shortName] = p;
+			} else {
+				packageCache[p.shortName] = p;
+			}
+			if (!dontLoad)
+				p.exports = require(p.moduleName);
+		});
+		eventBus.emit('loadEnd', packageCache);
+		return packagesTypeMap;
 	});
-	eventBus.emit('loadEnd', packageCache);
-	return packagesTypeMap;
 }
 
 function activateCoreComponents() {
@@ -115,16 +121,16 @@ function _activePackages(packages, eventName) {
  * @return Array<Object<{pk: {package}, desc: {string}}>>
  */
 function listServerComponents() {
-	requireServerPackages(true);
-	var idx = 0;
-
-	var coreList = _.values(corePackages);
-	var normalList = _.values(packageCache);
-	var packages = [];
-	packages.push(...coreList, ...normalList);
-	var maxNameLe = _.maxBy(packages, pk => pk.longName.length).longName.length;
-
 	return Promise.coroutine(function*() {
+		yield requireServerPackages(true);
+		var idx = 0;
+
+		var coreList = _.values(corePackages);
+		var normalList = _.values(packageCache);
+		var packages = [];
+		packages.push(...coreList, ...normalList);
+		var maxNameLe = _.maxBy(packages, pk => pk.longName.length).longName.length;
+
 		var list = [];
 		yield priorityHelper.orderPackages(coreList, pk => {
 			idx++;
@@ -154,11 +160,12 @@ function listServerComponents() {
 
 function listBuilderComponents() {
 	var util = require('util');
-	var packages = helper.traversePackages(false).builder;
-	var idx = 0;
-	var maxNameLe = _.maxBy(packages, pk => pk.longName.length).longName.length;
-	var list = [];
 	return Promise.coroutine(function*() {
+		var {builder: packages} = yield helper.traversePackages(false);
+		var idx = 0;
+		var maxNameLe = _.maxBy(packages, pk => pk.longName.length).longName.length;
+		var list = [];
+
 		yield priorityHelper.orderPackages(packages, pk => {
 			idx++;
 			var gapLen = maxNameLe - pk.longName.length;

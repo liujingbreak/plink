@@ -155,7 +155,7 @@ class AppModuleParser {
         const wholeNgImports = Array.from(keepImportEl.values());
         wholeNgImports.unshift(...this.modulesToAdd.map(m => m.exportName + '_' + i++));
         this.replacements.push({
-            start: ngImportArrayExp.getStart(),
+            start: ngImportArrayExp.getStart(this.sourceFile),
             end: ngImportArrayExp.getEnd(),
             text: '[\n    ' + wholeNgImports.join(',\n    ') + '  ]'
         });

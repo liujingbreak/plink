@@ -24,7 +24,6 @@ class MockLoaderContext {
 	}
 }
 
-
 export default class IndexHtmlPlugin {
 	inlineChunkSet = new Set();
 	replacements: ReplacementInf[];

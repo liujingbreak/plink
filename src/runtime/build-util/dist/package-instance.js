@@ -23,5 +23,91 @@ class PackageBrowserInstance {
     }
 }
 exports.default = PackageBrowserInstance;
+const Path = require("path");
+const fs = require("fs");
+const dir_tree_1 = require("require-injector/dist/dir-tree");
+const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
+class LazyPackageFactory {
+    constructor() {
+        this.packagePathMap = new dir_tree_1.DirTree();
+    }
+    getPackageByPath(file) {
+        let currPath = file;
+        let found;
+        found = this.packagePathMap.getAllData(file);
+        if (found.length > 0)
+            return found[found.length - 1];
+        while (true) {
+            let dir = Path.dirname(currPath);
+            if (dir === currPath)
+                break; // Has reached root
+            if (fs.existsSync(Path.join(dir, 'package.json'))) {
+                let pkjson = require(Path.join(dir, 'package.json'));
+                let pk = createPackage(dir, pkjson);
+                this.packagePathMap.putData(dir, pk);
+                return pk;
+            }
+            currPath = dir;
+        }
+        return null;
+    }
+}
+exports.LazyPackageFactory = LazyPackageFactory;
+function createPackage(packagePath, pkJson) {
+    const name = pkJson.name;
+    let instance = new PackageBrowserInstance({
+        isVendor: false,
+        bundle: null,
+        longName: pkJson.name,
+        shortName: packageUtils.parseName(pkJson.name).name,
+        packagePath,
+        realPackagePath: fs.realpathSync(packagePath)
+    });
+    let entryViews, entryPages;
+    let isEntryServerTemplate = true;
+    let noParseFiles;
+    if (pkJson.dr) {
+        if (pkJson.dr.entryPage) {
+            isEntryServerTemplate = false;
+            entryPages = [].concat(pkJson.dr.entryPage);
+        }
+        else if (pkJson.dr.entryView) {
+            isEntryServerTemplate = true;
+            entryViews = [].concat(pkJson.dr.entryView);
+        }
+        if (pkJson.dr.noParse) {
+            noParseFiles = [].concat(pkJson.dr.noParse).map(trimNoParseSetting);
+        }
+        if (pkJson.dr.browserifyNoParse) {
+            noParseFiles = [].concat(pkJson.dr.browserifyNoParse).map(trimNoParseSetting);
+        }
+    }
+    const mainFile = pkJson.browser | pkJson.main;
+    instance.init({
+        file: mainFile ? fs.realpathSync(Path.resolve(packagePath, mainFile)) : null,
+        main: pkJson.main,
+        // style: pkJson.style ? resolveStyle(name, nodePaths) : null,
+        parsedName: packageUtils.parseName(name),
+        entryPages,
+        entryViews,
+        browserifyNoParse: noParseFiles,
+        isEntryServerTemplate,
+        translatable: !_.has(pkJson, 'dr.translatable') || _.get(pkJson, 'dr.translatable'),
+        dr: pkJson.dr,
+        json: pkJson,
+        compiler: _.get(pkJson, 'dr.compiler'),
+        browser: pkJson.browser,
+        i18n: pkJson.dr.i18n ? pkJson.dr.i18n : null,
+        appType: _.get(pkJson, 'dr.appType')
+    });
+    return instance;
+}
+function trimNoParseSetting(p) {
+    p = p.replace(/\\/g, '/');
+    if (p.startsWith('./')) {
+        p = p.substring(2);
+    }
+    return p;
+}
 
 //# sourceMappingURL=package-instance.js.map

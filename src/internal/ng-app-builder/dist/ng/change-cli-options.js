@@ -22,9 +22,12 @@ function changeAngularCliOptions(config, browserOptions, builderConfig) {
                 console.log(currPackageName + ' - override %s: %s', prop, value);
             }
         }
-        config.configHandlerMgr().runEach((file, obj, handler) => {
+        yield config.configHandlerMgr().runEach((file, obj, handler) => {
             console.log(green('change-cli-options - ') + ' run', cyan(file));
-            return handler.angularJson(browserOptions, builderConfig);
+            if (handler.angularJson)
+                return handler.angularJson(browserOptions, builderConfig);
+            else
+                return obj;
         });
         const pkJson = lookupEntryPackage(Path.resolve(builderConfig.root));
         if (pkJson) {

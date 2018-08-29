@@ -1,7 +1,6 @@
 import * as ts from 'typescript';
 import {SyntaxKind as sk} from 'typescript';
-import replaceCode, {ReplacementInf} from './patch-text';
-import {trim} from 'lodash';
+import * as textPatcher from './patch-text';
 import api, {DrcpApi} from '__api';
 import vm = require('vm');
 import {dirname} from 'path';
@@ -12,12 +11,9 @@ const chalk = require('chalk');
 
 const log = require('log4js').getLogger(api.packageName + '.api-aot-compiler');
 export default class ApiAotCompiler {
-	static idText(node: any) {
-		return node.text;
-	}
 	ast: ts.SourceFile;
 
-	replacements: ReplacementInf[] = [];
+	replacements: textPatcher.ReplacementInf[] = [];
 
 	importTranspiler: ImportClauseTranspile;
 
@@ -40,6 +36,8 @@ export default class ApiAotCompiler {
 		for(const stm of this.ast.statements) {
 			this.traverseTsAst(stm);
 		}
+		textPatcher._sortAndRemoveOverlap(this.replacements);
+
 		let nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
 		nodeApi.__dirname = dirname(this.file);
 		const context = vm.createContext({__api: nodeApi});
@@ -71,7 +69,7 @@ export default class ApiAotCompiler {
 		if (this.replacements.length === 0)
 			return this.src;
 		log.debug(this.replacements);
-		return replaceCode(this.src, this.replacements);
+		return textPatcher._replaceSorted(this.src, this.replacements);
 	}
 
 	getApiForFile(file: string) {
@@ -81,10 +79,13 @@ export default class ApiAotCompiler {
 	protected traverseTsAst(ast: ts.Node, level = 0) {
 		if (ast.kind === sk.PropertyAccessExpression || ast.kind === sk.ElementAccessExpression) {
 			const node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
-			if (node.expression.kind === sk.Identifier && ApiAotCompiler.idText(node.expression) === '__api') {
+			if (node.expression.kind === sk.Identifier && node.expression.getText(this.ast) === '__api') {
 				// keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
 				let evaluateNode = this.goUpToParentExpress(node);
-				this.replacements.push({start: evaluateNode.pos, end: evaluateNode.end, text: this.nodeText(evaluateNode)});
+				this.replacements.push({start: evaluateNode.getStart(this.ast),
+					end: evaluateNode.getEnd(),
+					text: evaluateNode.getText(this.ast)});
+				return;
 			}
 		}
 		ast.forEachChild((sub: ts.Node) => {
@@ -95,7 +96,8 @@ export default class ApiAotCompiler {
 	/**
 	 * keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
 	 */
-	protected goUpToParentExpress(currNode: ts.Node): ts.Node {
+	protected goUpToParentExpress(target: ts.Node): ts.Node {
+		let currNode = target;
 		while(true) {
 			let kind = currNode.parent.kind;
 			if (kind === sk.CallExpression && (currNode.parent as ts.CallExpression).expression === currNode ||
@@ -107,9 +109,5 @@ export default class ApiAotCompiler {
 			}
 		}
 		return currNode;
-	}
-
-	protected nodeText(ast: ts.Node) {
-		return trim(this.src.substring(ast.pos, ast.end));
 	}
 }
