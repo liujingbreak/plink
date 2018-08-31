@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+/* tslint:disable max-classes-per-file */
 const _ = require("lodash");
 class PackageBrowserInstance {
     constructor(attrs) {

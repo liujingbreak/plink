@@ -132,21 +132,24 @@ function send(req, opts, requestDebugInfo, requestNum, res, proxyInstance) {
 function doBodyAsync(requestNum, req, reqBody, opts) {
     var reqHeaders = req.headers;
     if (Buffer.isBuffer(reqBody) || _.isString(reqBody)) {
+        // 
         opts.body = reqBody;
         return 'Body as Buffer or string: ' + reqBody.length;
     }
-    else if (_.isObject(reqBody) && _.size(reqBody) > 0) {
+    else if (_.isObject(reqBody)) {
+        // Request body is object (JSON, form or stream)
         const reqContentType = reqHeaders['content-type'];
         if (reqContentType && reqContentType.indexOf('json') >= 0) {
             opts.body = JSON.stringify(reqBody);
             return 'Body as JSON: ' + opts.body;
         }
-        else if (reqContentType.indexOf('application/x-www-form-urlencoded') >= 0) {
+        else if (reqContentType && reqContentType.indexOf('application/x-www-form-urlencoded') >= 0) {
             opts.form = reqBody;
             return 'Body as form: ' + JSON.stringify(opts.form);
         }
     }
-    else if (trackRequestStream) {
+    // Request body is stream
+    if (trackRequestStream) {
         const tempFile = __api_1.default.config.resolve('destDir', 'request-body-' + requestNum);
         var out = fs.createWriteStream(tempFile);
         return new Promise((resolve, reject) => {
