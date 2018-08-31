@@ -31,6 +31,9 @@ class ApiAotCompiler {
             this.traverseTsAst(stm);
         }
         textPatcher._sortAndRemoveOverlap(this.replacements);
+        // Remove overloped replacements to avoid them getting into later `vm.runInNewContext()`,
+        // We don't want to single out and evaluate lower level expression like `__api.packageName` from
+        // `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
         let nodeApi = __api_1.default.getNodeApiForPackage(pk);
         nodeApi.__dirname = path_1.dirname(this.file);
         const context = vm.createContext({ __api: nodeApi });
@@ -60,7 +63,7 @@ class ApiAotCompiler {
             this.importTranspiler.parse(this.ast, this.replacements);
         if (this.replacements.length === 0)
             return this.src;
-        log.debug(this.replacements);
+        textPatcher._sortAndRemoveOverlap(this.replacements);
         return textPatcher._replaceSorted(this.src, this.replacements);
     }
     getApiForFile(file) {

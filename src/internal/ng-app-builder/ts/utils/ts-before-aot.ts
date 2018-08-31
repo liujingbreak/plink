@@ -37,6 +37,9 @@ export default class ApiAotCompiler {
 			this.traverseTsAst(stm);
 		}
 		textPatcher._sortAndRemoveOverlap(this.replacements);
+		// Remove overloped replacements to avoid them getting into later `vm.runInNewContext()`,
+		// We don't want to single out and evaluate lower level expression like `__api.packageName` from
+		// `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
 
 		let nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
 		nodeApi.__dirname = dirname(this.file);
@@ -63,12 +66,13 @@ export default class ApiAotCompiler {
 			}
 			log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)}`);
 		}
+
 		if (this.importTranspiler)
 			this.importTranspiler.parse(this.ast, this.replacements);
 
 		if (this.replacements.length === 0)
 			return this.src;
-		log.debug(this.replacements);
+		textPatcher._sortAndRemoveOverlap(this.replacements);
 		return textPatcher._replaceSorted(this.src, this.replacements);
 	}
 

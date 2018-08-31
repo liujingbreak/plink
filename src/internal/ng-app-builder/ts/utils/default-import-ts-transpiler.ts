@@ -42,8 +42,8 @@ export default class ImportClauseTranspile {
 						const defaultName = node.importClause.name.text;
 						log.info(`Replace: "import ${defaultName} from ${from}" in ` + this.options.file);
 						replacements.push({
-							start: stm.pos,
-							end: stm.end,
+							start: stm.getStart(ast),
+							end: stm.getEnd(),
 							text: `const ${defaultName} = require('${from}');`
 						});
 					}
