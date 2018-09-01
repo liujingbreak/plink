@@ -24,8 +24,11 @@ var moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/; // content can be (@<scope>)/(<name
 var packageNameReg = /^((?:@[^/]+\/)?[^/]+)(?:\/(.+?))?$/; // content can be (@<scope>/<name>)/(<path>)
 
 var packageScopeSet = {};
-config().packageScopes.forEach(function(scope) {
-	packageScopeSet[scope] = true;
+
+config.done.then(({packageScopes}) => {
+	packageScopes.forEach(function(scope) {
+		packageScopeSet[scope] = true;
+	});
 });
 
 /**

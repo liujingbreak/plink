@@ -16,7 +16,6 @@ var setting;
 var localDisabled = false;
 var localConfigPath;
 
-var Promise = require('bluebird');
 Promise.defer = defer;
 
 function defer() {
@@ -41,12 +40,20 @@ module.exports = function() {
 	return setting;
 };
 
+let initResolve;
+module.exports.done = new Promise(resolve => {
+	initResolve = resolve;
+});
+
 module.exports.init = function(_argv) {
 	argv = _argv;
 	if (argv.root)
 		rootPath = argv.root;
 	localConfigPath = argv.c || process.env.DR_CONFIG_FILE || Path.join(rootPath, 'dist', 'config.local.yaml');
-	return load();
+	return load().then(res => {
+		initResolve(res);
+		return res;
+	});
 };
 
 module.exports.disableLocal = function() {

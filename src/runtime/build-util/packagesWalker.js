@@ -14,7 +14,7 @@ const DirTree = require('require-injector/lib/dir-tree').DirTree;
 module.exports = walkPackages;
 module.exports.saveCache = saveCache;
 module.exports.listBundleInfo = listBundleInfo;
-
+let packageInfo;
 // var packageInfoCacheFile, isFromCache;
 /**
  * walkPackages
@@ -26,7 +26,8 @@ module.exports.listBundleInfo = listBundleInfo;
  */
 function walkPackages(config, argv, packageUtils, ignoreCache) {
 	//packageInfoCacheFile = config.resolve('destDir', 'packageInfo.json');
-	var packageInfo;
+	if (packageInfo)
+		return packageInfo;
 	// if (!ignoreCache && fs.existsSync(packageInfoCacheFile)) {
 	// 	isFromCache = true;
 	// 	log.info('Reading build info cache from ' + packageInfoCacheFile);

@@ -3,7 +3,7 @@ import api, {DrcpApi} from '__api';
 import * as log4js from 'log4js';
 import * as _ from 'lodash';
 import * as Path from 'path';
-import * as _fs from 'fs';
+// import * as _fs from 'fs';
 // import { PrerenderForExpress } from './ng-prerender';
 import {AngularCliParam} from './ng/common';
 import changeWebpackConfig from './config-webpack';
@@ -11,8 +11,8 @@ import Url = require('url');
 const semver = require('semver');
 const {red, yellow} = require('chalk');
 
-const fs = require('fs-extra');
-const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
+// const fs = require('fs-extra');
+// const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
 const log = log4js.getLogger(api.packageName);
 
 export function compile() {
@@ -22,93 +22,88 @@ export function compile() {
 export function init() {
 	// printHelp();
 	checkAngularVersion();
-	writeTsconfig();
+	// writeTsconfig();
 }
 
 export function activate() {
 }
 
-export function writeTsconfig(): string {
-	var root = api.config().rootPath;
-	var tempDir = api.config.resolve('destDir', 'webpack-temp');
-	sysFs.mkdirsSync(tempDir);
-	var packageScopes: string[] = api.config().packageScopes;
-	var components = api.packageInfo.moduleMap;
+// function writeTsconfig(): string {
+// 	var root = api.config().rootPath;
+// 	var tempDir = api.config.resolve('destDir', 'webpack-temp');
+// 	sysFs.mkdirsSync(tempDir);
+// 	var packageScopes: string[] = api.config().packageScopes;
+// 	var components = api.packageInfo.moduleMap;
 
-	type PackageInstances = typeof api.packageInfo.allModules;
-	var ngPackages: PackageInstances = api.packageInfo.allModules;
-	if (api.argv.package && api.argv.package.length > 0) {
-		var someComps: PackageInstances = [];
-		var packages = _.uniq([...api.argv.package, api.packageName]);
-		for (const name of packages) {
-			if (_.has(components, name) && _.has(components, [name, 'dr', 'angularCompiler'])) {
-				someComps.push(components[name]);
-			} else {
-				packageScopes.some(scope => {
-					const testName = `@${scope}/${name}`;
-					if (_.has(components, testName) && _.get(components, [name, 'dr', 'angularCompiler'])) {
-						someComps.push(components[testName]);
-						return true;
-					}
-					return false;
-				});
-			}
-		}
-		ngPackages = someComps;
-	} else {
-		ngPackages = ngPackages.filter(comp => comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk');
-	}
-	const tsInclude: string[] = [];
-	const tsExclude: string[] = [];
-	ngPackages.forEach(pk => {
-		// TODO: doc for dr.ngAppModule
-		let isNgAppModule: boolean = _.get(pk, 'dr.ngAppModule');
-		const dir = Path.relative(tempDir,
-			isNgAppModule ? pk.realPackagePath : pk.packagePath)
-			// pk.packagePath)
-			// pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
-			.replace(/\\/g, '/');
-		if (isNgAppModule) {
-			tsInclude.unshift(dir + '/**/*.ts');
-			// entry package must be at first of TS include list, otherwise will encounter:
-			// "Error: No NgModule metadata found for 'AppModule'
-		} else {
-			tsInclude.push(dir + '/**/*.ts');
-		}
-		tsExclude.push(dir + '/ts',
-			dir + '/spec',
-			dir + '/dist',
-			dir + '/**/*.spec.ts');
-	});
-	tsExclude.push('**/test.ts');
+// 	type PackageInstances = typeof api.packageInfo.allModules;
+// 	var ngPackages: PackageInstances = api.packageInfo.allModules;
+// 	if (api.argv.package && api.argv.package.length > 0) {
+// 		var someComps: PackageInstances = [];
+// 		var packages = _.uniq([...api.argv.package, api.packageName]);
+// 		for (const name of packages) {
+// 			if (_.has(components, name) && _.has(components, [name, 'dr', 'angularCompiler'])) {
+// 				someComps.push(components[name]);
+// 			} else {
+// 				packageScopes.some(scope => {
+// 					const testName = `@${scope}/${name}`;
+// 					if (_.has(components, testName) && _.get(components, [name, 'dr', 'angularCompiler'])) {
+// 						someComps.push(components[testName]);
+// 						return true;
+// 					}
+// 					return false;
+// 				});
+// 			}
+// 		}
+// 		ngPackages = someComps;
+// 	} else {
+// 		ngPackages = ngPackages.filter(comp => comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk');
+// 	}
+// 	const tsInclude: string[] = [];
+// 	const tsExclude: string[] = [];
+// 	ngPackages.forEach(pk => {
+// 		// TODO: doc for dr.ngAppModule
+// 		let isNgAppModule: boolean = _.get(pk, 'dr.ngAppModule');
+// 		const dir = Path.relative(tempDir,
+// 			isNgAppModule ? pk.realPackagePath : pk.packagePath)
+// 			// pk.packagePath)
+// 			// pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
+// 			.replace(/\\/g, '/');
+// 		if (isNgAppModule) {
+// 			tsInclude.unshift(dir + '/**/*.ts');
+// 			// entry package must be at first of TS include list, otherwise will encounter:
+// 			// "Error: No NgModule metadata found for 'AppModule'
+// 		} else {
+// 			tsInclude.push(dir + '/**/*.ts');
+// 		}
+// 		tsExclude.push(dir + '/ts',
+// 			dir + '/spec',
+// 			dir + '/dist',
+// 			dir + '/**/*.spec.ts');
+// 	});
+// 	tsExclude.push('**/test.ts');
 
-	var tsjson: any = {
-		extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
-		include: tsInclude,
-		exclude: tsExclude,
-		compilerOptions: {
-			baseUrl: root,
-			// paths: {
-			// 	'*': [
-			// 		'node_modules/*'
-			// 	]
-			// },
-			typeRoots: [
-				Path.resolve(root, 'node_modules/@types'),
-				Path.resolve(root, 'node_modules/@dr-types'),
-				Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
-			],
-			module: 'esnext'
-		},
-		angularCompilerOptions: {
-			trace: true,
-			strictMetadataEmit: true
-		}
-	};
-	var tsConfigPath = Path.resolve(tempDir, 'angular-app-tsconfig.json');
-	fs.writeFileSync(tsConfigPath, JSON.stringify(tsjson, null, '  '));
-	return tsConfigPath;
-}
+// 	var tsjson: any = {
+// 		extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
+// 		include: tsInclude,
+// 		exclude: tsExclude,
+// 		compilerOptions: {
+// 			baseUrl: root,
+// 			typeRoots: [
+// 				Path.resolve(root, 'node_modules/@types'),
+// 				Path.resolve(root, 'node_modules/@dr-types'),
+// 				Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
+// 			],
+// 			module: 'esnext'
+// 		},
+// 		angularCompilerOptions: {
+// 			trace: true,
+// 			strictMetadataEmit: true
+// 		}
+// 	};
+// 	var tsConfigPath = Path.resolve(tempDir, 'angular-app-tsconfig.json');
+// 	fs.writeFileSync(tsConfigPath, JSON.stringify(tsjson, null, '  '));
+// 	return tsConfigPath;
+// }
 
 function setupApiForAngularCli() {
 	const ngParam: AngularCliParam = api.config()._angularCli;

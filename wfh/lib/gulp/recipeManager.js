@@ -10,10 +10,14 @@ const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
 const fs = require('fs-extra');
 const File = require('vinyl');
 var PackageJsonGuarder = require('./packageJsonGuarder');
-var packageJsonGuarder = PackageJsonGuarder(config().rootPath);
 
+var packageJsonGuarder = PackageJsonGuarder(process.cwd());
 
-const linkListFile = config.resolve('destDir', 'link-list.json');
+let linkListFile;
+config.done.then(() => {
+	linkListFile = config.resolve('destDir', 'link-list.json');
+});
+
 module.exports = {
 	linkComponentsAsync,
 	link, // return a piped stream

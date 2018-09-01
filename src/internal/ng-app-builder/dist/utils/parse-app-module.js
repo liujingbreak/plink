@@ -30,7 +30,8 @@ class EsImportStatement {
     }
 }
 exports.EsImportStatement = EsImportStatement;
-function findAppModuleFileFromMain(mainFile) {
+exports.findAppModuleFileFromMain = _.memoize(_findAppModuleFileFromMain);
+function _findAppModuleFileFromMain(mainFile) {
     const lookupPath = ['AppModule', 'AppServerModule'];
     while (true) {
         let found = findFileByExportNames(mainFile, ...lookupPath);
@@ -50,7 +51,6 @@ function findAppModuleFileFromMain(mainFile) {
         }
     }
 }
-exports.findAppModuleFileFromMain = findAppModuleFileFromMain;
 function findFileByExportNames(file, ...importName) {
     const srcfile = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
     const res = new Map();

@@ -28,8 +28,9 @@ export class EsImportStatement {
 		throw new Error(`No "${asName}" found in import statement from "${this.from}"`);
 	}
 }
+export const findAppModuleFileFromMain = _.memoize(_findAppModuleFileFromMain);
 
-export function findAppModuleFileFromMain(mainFile: string): string {
+function _findAppModuleFileFromMain(mainFile: string): string {
 	const lookupPath = ['AppModule', 'AppServerModule'];
 	while (true) {
 		let found = findFileByExportNames(mainFile, ...lookupPath);

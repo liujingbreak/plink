@@ -93,13 +93,13 @@ function startDrcpServer(projectRoot, builderConfig, browserOptions, buildWebpac
                 return shutdownable;
             })
                 .catch((err) => {
-                console.error('Failed to start server:', err);
+                console.error('ng.command -  Failed to start server:', err);
                 // process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.
                 obs.error(err);
             });
         })
             .catch((err) => {
-            console.error('Failed to start server:', err);
+            console.error('ng.command -  Failed to start server:', err);
             obs.error(err);
         });
     });
@@ -114,16 +114,15 @@ exports.startDrcpServer = startDrcpServer;
  */
 function compile(projectRoot, builderConfig, buildWebpackConfig, isSSR = false) {
     return new Rx.Observable((obs) => {
-        try {
-            compileAsync(projectRoot, builderConfig, buildWebpackConfig, isSSR).then((webpackConfig) => {
-                obs.next(webpackConfig);
-                obs.complete();
-            })
-                .catch((err) => obs.error(err));
-        }
-        catch (err) {
+        compileAsync(projectRoot, builderConfig, buildWebpackConfig, isSSR)
+            .then((webpackConfig) => {
+            obs.next(webpackConfig);
+            obs.complete();
+        })
+            .catch((err) => {
+            console.error('ng.command - Angular cli error', err);
             obs.error(err);
-        }
+        });
     });
 }
 exports.compile = compile;

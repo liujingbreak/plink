@@ -1,4 +1,5 @@
 import * as ts from 'typescript';
+import * as _ from 'lodash';
 import { ReplacementInf } from './patch-text';
 export declare class EsImportStatement {
     from: string;
@@ -13,7 +14,8 @@ export declare class EsImportStatement {
     constructor(from: string, start: number, end: number);
     asNameToRealName(asName: string): string;
 }
-export declare function findAppModuleFileFromMain(mainFile: string): string;
+export declare const findAppModuleFileFromMain: typeof _findAppModuleFileFromMain & _.MemoizedFunction;
+declare function _findAppModuleFileFromMain(mainFile: string): string;
 export default class AppModuleParser {
     file: string;
     esImportsMap: Map<string, EsImportStatement>;
@@ -52,3 +54,4 @@ export default class AppModuleParser {
         exportName: string;
     };
 }
+export {};

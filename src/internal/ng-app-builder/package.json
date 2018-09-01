@@ -18,7 +18,8 @@
         "ngModule": [],
         "ngPackage": [],
         "deployUrl": "/",
-        "outputPath": "dist/static"
+        "outputPath": "dist/static",
+        "excludePackage": []
       }
     }
   },
