@@ -21,7 +21,7 @@ class ConfigHandlerMgr {
         const compilerOpt = ts_compiler_1.readTsConfig(require.resolve('dr-comp-package/wfh/tsconfig.json'));
         files.forEach(file => {
             if (file.endsWith('.ts')) {
-                console.log('ConfigHandlerMgr compile', file);
+                console.log(green('config-handler -') + ' compile', file);
                 const jscode = ts_compiler_1.transpileSingleTs(fs.readFileSync(Path.resolve(file), 'utf8'), compilerOpt);
                 console.log(jscode);
                 const mod = { exports: {} };

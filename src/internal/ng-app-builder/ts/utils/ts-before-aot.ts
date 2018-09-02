@@ -3,7 +3,7 @@ import {SyntaxKind as sk} from 'typescript';
 import * as textPatcher from './patch-text';
 import api, {DrcpApi} from '__api';
 import vm = require('vm');
-import {dirname} from 'path';
+import {dirname, relative} from 'path';
 import ImportClauseTranspile from './default-import-ts-transpiler';
 
 const chalk = require('chalk');
@@ -64,7 +64,8 @@ export default class ApiAotCompiler {
 				log.warn('Evaluate %s, result:', origText, res);
 				throw ex;
 			}
-			log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)}`);
+			log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +
+				relative(process.cwd(), this.file));
 		}
 
 		if (this.importTranspiler)

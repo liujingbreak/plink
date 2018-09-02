@@ -57,7 +57,8 @@ class ApiAotCompiler {
                 log.warn('Evaluate %s, result:', origText, res);
                 throw ex;
             }
-            log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)}`);
+            log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +
+                path_1.relative(process.cwd(), this.file));
         }
         if (this.importTranspiler)
             this.importTranspiler.parse(this.ast, this.replacements);

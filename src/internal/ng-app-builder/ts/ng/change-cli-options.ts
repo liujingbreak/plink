@@ -64,8 +64,16 @@ import {sys} from 'typescript';
 function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig) {
 	const oldReadFile = sys.readFile;
 	const tsConfigFile = Path.resolve(browserOptions.tsConfig);
+
 	sys.readFile = function(path: string, encoding?: string): string {
 		const res: string = oldReadFile.apply(sys, arguments);
+		if (Path.sep === '\\') {
+			// Angular somehow reads tsconfig.json twice and passes in `path`
+			// with different path seperator `\` and `/` in Windows 
+			// `cachedTsConfigFor` is lodash memoize function which needs a
+			// consistent `path` value as cache key
+			path = path.replace(/\//g, Path.sep);
+		}
 		try {
 			if (path === tsConfigFile)
 				return cachedTsConfigFor(path, res, browserOptions, config);
@@ -117,7 +125,8 @@ function overrideTsConfig(file: string, content: string,
 	let ngPackages: PackageInstances = pkInfo.allModules;
 
 	// const excludePkSet = new Set<string>();
-	let excludePackage: Array<RegExp | string> = config.get(currPackageName + '.excludePackage') || [];
+	const excludePackage: Array<RegExp | string> = config.get(currPackageName + '.excludePackage') || [];
+	const excludePath: string[] = config.get(currPackageName + '.excludePath') || [];
 	// if (excludePackage)
 	// 	excludePackage.forEach(pname => excludePkSet.add(pname));
 
@@ -151,6 +160,8 @@ function overrideTsConfig(file: string, content: string,
 			dir + '/**/*.spec.ts');
 	});
 	tsExclude.push('**/test.ts');
+	tsExclude.push(...excludePath.map(expath =>
+		Path.relative(Path.dirname(file), expath).replace(/\\/g, '/') + '/**/*'));
 
 	var tsjson: any = {
 		extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),

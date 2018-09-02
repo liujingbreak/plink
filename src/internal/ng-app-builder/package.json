@@ -19,7 +19,8 @@
         "ngPackage": [],
         "deployUrl": "/",
         "outputPath": "dist/static",
-        "excludePackage": []
+        "excludePackage": [],
+        "excludePath": []
       }
     }
   },
