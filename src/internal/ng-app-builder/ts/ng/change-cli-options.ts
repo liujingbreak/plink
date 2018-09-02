@@ -68,7 +68,7 @@ function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig)
 		const res: string = oldReadFile.apply(sys, arguments);
 		try {
 			if (path === tsConfigFile)
-				return overrideTsConfig(path, res, browserOptions, config);
+				return cachedTsConfigFor(path, res, browserOptions, config);
 			else
 				return res;
 		} catch (err) {
@@ -90,6 +90,11 @@ function lookupEntryPackage(lookupDir: string): any {
 	return null;
 }
 
+/**
+ * Angular cli will read tsconfig.json twice due to some junk code, 
+ * let's memoize the result by file path as cache key.
+ */
+let cachedTsConfigFor = _.memoize(overrideTsConfig);
 /**
  * Let's override tsconfig.json files for Angular at rutime :)
  * - Read into memory
