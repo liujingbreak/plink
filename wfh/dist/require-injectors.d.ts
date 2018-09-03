@@ -1,4 +1,7 @@
-export interface InjectorFactory {
+export interface RequireInjector {
+    fromDir(dir: string): FactoryMapInterf;
+}
+export interface InjectorFactory extends RequireInjector {
     addPackage(name: string, dir: string): void;
     fromComponent(name: string, dir: string): FactoryMapInterf;
     fromPackage(name: string, dir: string): FactoryMapInterf;
