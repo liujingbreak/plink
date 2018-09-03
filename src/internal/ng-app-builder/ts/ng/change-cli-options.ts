@@ -13,6 +13,7 @@ const {cyan, green, red} = require('chalk');
 const {walkPackages} = require('@dr-core/build-util');
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 const currPackageName = require('../../package.json').name;
+const cjson = require('comment-json');
 export interface AngularConfigHandler extends ConfigHandler {
 	/**
 	 * You may override angular.json in this function
@@ -116,7 +117,7 @@ function overrideTsConfig(file: string, content: string,
 	browserOptions: AngularBuilderOptions, config: DrcpConfig): string {
 
 	const root = config().rootPath;
-	let oldJson = JSON.parse(content);
+	let oldJson = cjson.parse(content);
 	const pkInfo: PackageInfo = walkPackages(config, null, packageUtils, true);
 	// var packageScopes: string[] = config().packageScopes;
 	// var components = pkInfo.moduleMap;

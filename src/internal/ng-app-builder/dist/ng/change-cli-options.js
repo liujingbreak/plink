@@ -16,6 +16,7 @@ const { cyan, green, red } = require('chalk');
 const { walkPackages } = require('@dr-core/build-util');
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 const currPackageName = require('../../package.json').name;
+const cjson = require('comment-json');
 function changeAngularCliOptions(config, browserOptions, builderConfig) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const prop of ['deployUrl', 'outputPath', 'styles']) {
@@ -103,7 +104,7 @@ let cachedTsConfigFor = _.memoize(overrideTsConfig);
  */
 function overrideTsConfig(file, content, browserOptions, config) {
     const root = config().rootPath;
-    let oldJson = JSON.parse(content);
+    let oldJson = cjson.parse(content);
     const pkInfo = walkPackages(config, null, packageUtils, true);
     let ngPackages = pkInfo.allModules;
     // const excludePkSet = new Set<string>();
