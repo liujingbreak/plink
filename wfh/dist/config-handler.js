@@ -22,7 +22,8 @@ class ConfigHandlerMgr {
         files.forEach(file => {
             if (file.endsWith('.ts')) {
                 console.log(green('config-handler -') + ' compile', file);
-                const jscode = ts_compiler_1.transpileSingleTs(fs.readFileSync(Path.resolve(file), 'utf8'), compilerOpt);
+                file = Path.resolve(file);
+                const jscode = ts_compiler_1.transpileAndCheck(fs.readFileSync(file, 'utf8'), file, compilerOpt);
                 console.log(jscode);
                 const mod = { exports: {} };
                 const context = vm.createContext({ module: mod, exports: mod.exports, console, process, require,

@@ -2,7 +2,7 @@
 import * as Path from 'path';
 import vm = require('vm');
 import * as fs from 'fs';
-import {readTsConfig, transpileSingleTs} from './ts-compiler';
+import {readTsConfig, transpileAndCheck} from './ts-compiler';
 const {cyan, green} = require('chalk');
 
 export interface DrcpConfig {
@@ -33,7 +33,8 @@ export class ConfigHandlerMgr {
 		files.forEach(file => {
 			if (file.endsWith('.ts')) {
 				console.log(green('config-handler -') + ' compile', file);
-				const jscode = transpileSingleTs(fs.readFileSync(Path.resolve(file), 'utf8'), compilerOpt);
+				file = Path.resolve(file);
+				const jscode = transpileAndCheck(fs.readFileSync(file, 'utf8'), file, compilerOpt);
 				console.log(jscode);
 				const mod = {exports: {}};
 				const context = vm.createContext({module: mod, exports: mod.exports, console, process, require,
