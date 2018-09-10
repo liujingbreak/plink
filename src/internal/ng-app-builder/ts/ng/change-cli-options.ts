@@ -162,7 +162,7 @@ function overrideTsConfig(file: string, content: string,
 	});
 	tsExclude.push('**/test.ts');
 	tsExclude.push(...excludePath.map(expath =>
-		Path.relative(Path.dirname(file), expath).replace(/\\/g, '/') + '/**/*'));
+		Path.relative(Path.dirname(file), expath).replace(/\\/g, '/')));
 
 	var tsjson: any = {
 		extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),

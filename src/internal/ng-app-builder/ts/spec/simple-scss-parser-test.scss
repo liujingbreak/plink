@@ -1,0 +1,112 @@
+@import '~@angular/material/theming';
+
+// https://material.io/tools/color/#!/?view.left=0&view.right=0&primary.color=1976D2&secondary.color=304FFE
+
+$primary-color-map: (
+	100: #659eff,
+	500: #417ad6,
+	700: #1c4f86,
+	contrast: (
+		100: hsl(0, 0%, 95%),
+		500: hsl(0, 0%, 95%),
+		700: hsl(0, 0%, 95%)
+	)
+);
+
+
+$accent-color-map: (
+	100: #8e9aff,
+	500: #526cfe,
+	700: #0044cc,
+	contrast: (
+		500: #fafafa,
+		700: #fafafa,
+		100: #fafafa,
+	)
+);
+
+$extra-color: rgba(1, 159, 232, 1);
+$extra-color-50: rgba(1, 159, 232, 0.5);
+
+$palette-primary: mat-palette($primary-color-map);
+$palette-accent: mat-palette($accent-color-map);
+$palette-warn: mat-palette($mat-deep-orange, 600);
+
+/**
+	primary: $primary,
+		default: map-get($base-palette, $default),
+		lighter: map-get($base-palette, $lighter),
+		darker: map-get($base-palette, $darker),
+
+		default-contrast: mat-contrast($base-palette, $default),
+		lighter-contrast: mat-contrast($base-palette, $lighter),
+		darker-contrast: mat-contrast($base-palette, $darker)
+		50...900,A100,A200,A400,A700
+    accent: $accent,
+    warn: $warn,
+    is-dark: false,
+	foreground: $mat-light-theme-foreground,
+		base:              black,
+		divider:           $dark-dividers,
+		dividers:          $dark-dividers,
+		disabled:          $dark-disabled-text,
+		disabled-button:   rgba(black, 0.26),
+		disabled-text:     $dark-disabled-text,
+		hint-text:         $dark-disabled-text,
+		secondary-text:    $dark-secondary-text,
+		icon:              rgba(black, 0.54),
+		icons:             rgba(black, 0.54),
+		text:              rgba(black, 0.87),
+		slider-min:        rgba(black, 0.87),
+		slider-off:        rgba(black, 0.26),
+		slider-off-active: rgba(black, 0.38),
+	background: $mat-light-theme-background,
+		status-bar: map_get($mat-grey, 300),
+		app-bar:    map_get($mat-grey, 100),
+		background: map_get($mat-grey, 50),
+		hover:      rgba(black, 0.04), // TODO(kara): check style with Material Design UX
+		card:       white,
+		dialog:     white,
+		disabled-button: rgba(black, 0.12),
+		raised-button: white,
+		focused-button: $dark-focused,
+		selected-button: map_get($mat-grey, 300),
+		selected-disabled-button: map_get($mat-grey, 400),
+		disabled-button-toggle: map_get($mat-grey, 200),
+		unselected-chip: map_get($mat-grey, 300),
+		disabled-list-option: map_get($mat-grey, 200),
+*/
+$app-theme: mat-light-theme($palette-primary, $palette-accent, $palette-warn);
+
+@function app-color($palette, $hue: default, $opacity: null) {
+	@return mat-color(map-get($app-theme, $palette), $hue, $opacity);
+}
+@function app-color-contrast($palette, $hue: default, $opacity: null) {
+	@return app-color($palette, '#{$hue}-contrast');
+}
+
+$primary: app-color(primary);
+$on-primary: app-color-contrast(primary);
+
+@mixin primary-bg() {
+	background-image: linear-gradient(147deg, #6898f8 0%, #2c68e0 100%);
+	// background-image: linear-gradient(147deg, app-color(primary), app-color(primary, darker) 100%);
+}
+
+@mixin header-bg() {
+	// background: radial-gradient(circle farthest-corner at top right, hsl(244, 90%, 64%) 0%,
+	// 	app-color(primary) 80%), app-color(primary);
+	$light-blue: rgba(1, 159, 232, .7);
+	background: // linear-gradient(to top, rgba(0,0,0,.1), transparent 20%),
+		linear-gradient(45deg, transparent, transparent 50%, $light-blue 50%, transparent 100%),
+				radial-gradient(circle farthest-corner at top left, #2c43b9, transparent 70%,  rgba(196, 44, 210, .6) 100%),
+				app-color(primary, lighter);
+}
+
+// $mdc-theme-secondary: #FEEAE6;
+// $mdc-theme-on-secondary: #442C2E;
+// $mdc-theme-surface: #FFFBFA;
+// $mdc-theme-on-surface: #442C2E;
+// $mdc-theme-background: #FFFFFF;
+// $mdc-theme-on-background: #442C2E;
+

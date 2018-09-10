@@ -3,26 +3,31 @@ import sortedIndex = require('lodash/sortedIndex');
 export class Token<T> {
 	text: string;
 	end: number;
+	lineColumn: [number, number];
+
 	constructor(public type: T, lexer: BaseLexer<T>,
 		public start: number) {
 		this.text = lexer.getText(start);
 		this.end = lexer.position;
+		this.lineColumn = lexer.getLineColumn(start);
 	}
 }
 
 export enum Channel {
 	normal,
-	skip
+	full
 }
 
-export abstract class LookAhead<T, S extends Iterable<T>> {
+export abstract class LookAhead<T> {
 	cached: T[];
+	// channels: {[channel: string]: T[]} = {};
+	// channelPos: {[channel: string]: number} = {};
 	sourceIterator: Iterator<T>;
 	isString: boolean;
 	channel = Channel.normal;
 	protected currPos = -1;
 
-	constructor(source: S) {
+	constructor(source: Iterable<T>) {
 		this.isString = typeof source === 'string';
 		this.cached = [];
 		this.sourceIterator = source[Symbol.iterator]();
@@ -32,12 +37,11 @@ export abstract class LookAhead<T, S extends Iterable<T>> {
 		return this.currPos + 1;
 	}
 
+	/**
+	 * look ahead for 1 character
+	 * @param num default is 1
+	 */
 	la(num = 1): T {
-		if (this.channel === Channel.normal) {
-			this.channel = Channel.skip;
-			this.skip();
-			this.channel = Channel.normal;
-		}
 		const readPos = this.currPos + num;
 		return this.read(readPos);
 	}
@@ -60,12 +64,24 @@ export abstract class LookAhead<T, S extends Iterable<T>> {
 		return current;
 	}
 
+	/**
+	 * Same as `return la(1) === values[0] && la(2) === values[1]...`
+	 * @param values lookahead string or tokens
+	 */
 	isNext(...values: T[]): boolean {
-		let compareTo: T[]| string;
+		return this._isNext<T, T>(values);
+	}
+
+	_isNext<NEXT, C>(values: C[], isEqual = (a: NEXT, b: C) => a as any === b): boolean {
+		let compareTo: C[]| string;
+		let compareFn: (...arg: any[]) => boolean;
 		if (this.isString) {
 			compareTo = values.join('');
-		} else
+			compareFn = (a: string, b: string) => a === b;
+		} else {
 			compareTo = values;
+			compareFn = isEqual;
+		}
 		let i = 0;
 		const l = compareTo.length;
 		let next = this.la(i + 1);
@@ -75,34 +91,35 @@ export abstract class LookAhead<T, S extends Iterable<T>> {
 			next = this.la(i + 1);
 			if (next == null)
 				return false; // EOF
-			else if (next !== compareTo[i])
+			else if (!compareFn(next, compareTo[i]))
 				return false;
 			i++;
 		}
 	}
+
 	throwError(unexpected = 'End-of-file') {
 		throw new Error(`Unexpected ${JSON.stringify(unexpected)} at ` + this.getCurrentPosInfo());
 	}
 
 	abstract getCurrentPosInfo(): string;
-	abstract skip(): void;
 
 	/**
 	 * Do not read postion less than 0
 	 * @param pos 
 	 */
 	protected read(pos: number): T {
-		while (this.cached.length <= pos) {
+		const cached = this.cached;
+		while (cached.length <= pos) {
 			const next = this.sourceIterator.next();
 			if (next.done)
 				return null;
-			this.cached.push(next.value);
+			cached.push(next.value);
 		}
-		return this.cached[pos];
+		return cached[pos];
 	}
 }
 
-export abstract class BaseLexer<Type> extends LookAhead<string, string> implements Iterable<Token<Type>> {
+export abstract class BaseLexer<T> extends LookAhead<string> implements Iterable<Token<T>> {
 	lineBeginPositions: number[] = [-1];
 
 	constructor(protected source: string) {
@@ -122,10 +139,10 @@ export abstract class BaseLexer<Type> extends LookAhead<string, string> implemen
 		};
 	}
 
-	abstract [Symbol.iterator](): Iterator<Token<Type>>;
+	abstract [Symbol.iterator](): Iterator<Token<T>>;
 
 	getText(startPos: number) {
-		return this.source.substring(startPos, this.position);
+		return this.source.slice(startPos, this.position);
 	}
 
 	getCurrentPosInfo(): string {
@@ -139,23 +156,54 @@ export abstract class BaseLexer<Type> extends LookAhead<string, string> implemen
 	getLineColumn(pos: number): [number, number] {
 		const lineIndex = sortedIndex(this.lineBeginPositions, pos) - 1;
 		const linePos = this.lineBeginPositions[lineIndex];
-		// console.log(`pos = ${pos}, lineIndex = ${lineIndex}, linePos=${linePos}`);
 		return [lineIndex, pos - (linePos + 1)];
 	}
 }
 
+export class TokenFilter<T> extends LookAhead<Token<T>> implements Iterable<Token<T>> {
+	constructor(lexer: Iterable<Token<T>>, public skipType: T) {
+		super(lexer);
+	}
 
-export abstract class BaseParser<T, S extends BaseLexer<T>> extends LookAhead<Token<T>, S> {
-	constructor(protected lexer: S) {
+	*[Symbol.iterator](): Iterator<Token<T>> {
+		while (this.la() != null) {
+			if (this.la().type === this.skipType) {
+				this.advance();
+			} else {
+				yield this.la();
+				this.advance();
+			}
+		}
+	}
+
+	getCurrentPosInfo(): string {
+		const start = this.la();
+		if (start == null)
+			return 'EOF';
+		return `line ${start.lineColumn[0] + 1} column ${start.lineColumn[1] + 1}`;
+	}
+}
+/**
+ * TT - token type
+ */
+export abstract class BaseParser<T> extends LookAhead<Token<T>> {
+	constructor(protected lexer: Iterable<Token<T>>) {
 		super(lexer);
 	}
 
 	getCurrentPosInfo(): string {
-		const start = this.la() ? this.la().start : null;
-		if (start) {
-			const lineCol = this.lexer.getLineColumn(start);
-			return `Line ${lineCol[0] + 1} column ${lineCol[1] + 1}`;
-		}
-		return '';
+		const start = this.la();
+		if (start == null)
+			return 'EOF';
+		return `line ${start.lineColumn[0] + 1} column ${start.lineColumn[1] + 1}`;
+	}
+
+	isNextTypes(...types: T[]): boolean {
+		const comparator = (a: Token<T>, b: T) => {
+			if (a == null)
+				return false;
+			return a.type === b;
+		};
+		return this._isNext<Token<T>, T>(types, comparator);
 	}
 }

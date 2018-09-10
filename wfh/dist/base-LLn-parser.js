@@ -7,13 +7,14 @@ class Token {
         this.start = start;
         this.text = lexer.getText(start);
         this.end = lexer.position;
+        this.lineColumn = lexer.getLineColumn(start);
     }
 }
 exports.Token = Token;
 var Channel;
 (function (Channel) {
     Channel[Channel["normal"] = 0] = "normal";
-    Channel[Channel["skip"] = 1] = "skip";
+    Channel[Channel["full"] = 1] = "full";
 })(Channel = exports.Channel || (exports.Channel = {}));
 class LookAhead {
     constructor(source) {
@@ -26,12 +27,11 @@ class LookAhead {
     get position() {
         return this.currPos + 1;
     }
+    /**
+     * look ahead for 1 character
+     * @param num default is 1
+     */
     la(num = 1) {
-        if (this.channel === Channel.normal) {
-            this.channel = Channel.skip;
-            this.skip();
-            this.channel = Channel.normal;
-        }
         const readPos = this.currPos + num;
         return this.read(readPos);
     }
@@ -51,13 +51,24 @@ class LookAhead {
         }
         return current;
     }
+    /**
+     * Same as `return la(1) === values[0] && la(2) === values[1]...`
+     * @param values lookahead string or tokens
+     */
     isNext(...values) {
+        return this._isNext(values);
+    }
+    _isNext(values, isEqual = (a, b) => a === b) {
         let compareTo;
+        let compareFn;
         if (this.isString) {
             compareTo = values.join('');
+            compareFn = (a, b) => a === b;
         }
-        else
+        else {
             compareTo = values;
+            compareFn = isEqual;
+        }
         let i = 0;
         const l = compareTo.length;
         let next = this.la(i + 1);
@@ -67,7 +78,7 @@ class LookAhead {
             next = this.la(i + 1);
             if (next == null)
                 return false; // EOF
-            else if (next !== compareTo[i])
+            else if (!compareFn(next, compareTo[i]))
                 return false;
             i++;
         }
@@ -80,13 +91,14 @@ class LookAhead {
      * @param pos
      */
     read(pos) {
-        while (this.cached.length <= pos) {
+        const cached = this.cached;
+        while (cached.length <= pos) {
             const next = this.sourceIterator.next();
             if (next.done)
                 return null;
-            this.cached.push(next.value);
+            cached.push(next.value);
         }
-        return this.cached[pos];
+        return cached[pos];
     }
 }
 exports.LookAhead = LookAhead;
@@ -110,7 +122,7 @@ class BaseLexer extends LookAhead {
         };
     }
     getText(startPos) {
-        return this.source.substring(startPos, this.position);
+        return this.source.slice(startPos, this.position);
     }
     getCurrentPosInfo() {
         const [line, col] = this.getLineColumn(this.currPos);
@@ -122,23 +134,55 @@ class BaseLexer extends LookAhead {
     getLineColumn(pos) {
         const lineIndex = sortedIndex(this.lineBeginPositions, pos) - 1;
         const linePos = this.lineBeginPositions[lineIndex];
-        // console.log(`pos = ${pos}, lineIndex = ${lineIndex}, linePos=${linePos}`);
         return [lineIndex, pos - (linePos + 1)];
     }
 }
 exports.BaseLexer = BaseLexer;
+class TokenFilter extends LookAhead {
+    constructor(lexer, skipType) {
+        super(lexer);
+        this.skipType = skipType;
+    }
+    *[Symbol.iterator]() {
+        while (this.la() != null) {
+            if (this.la().type === this.skipType) {
+                this.advance();
+            }
+            else {
+                yield this.la();
+                this.advance();
+            }
+        }
+    }
+    getCurrentPosInfo() {
+        const start = this.la();
+        if (start == null)
+            return 'EOF';
+        return `line ${start.lineColumn[0] + 1} column ${start.lineColumn[1] + 1}`;
+    }
+}
+exports.TokenFilter = TokenFilter;
+/**
+ * TT - token type
+ */
 class BaseParser extends LookAhead {
     constructor(lexer) {
         super(lexer);
         this.lexer = lexer;
     }
     getCurrentPosInfo() {
-        const start = this.la() ? this.la().start : null;
-        if (start) {
-            const lineCol = this.lexer.getLineColumn(start);
-            return `Line ${lineCol[0] + 1} column ${lineCol[1] + 1}`;
-        }
-        return '';
+        const start = this.la();
+        if (start == null)
+            return 'EOF';
+        return `line ${start.lineColumn[0] + 1} column ${start.lineColumn[1] + 1}`;
+    }
+    isNextTypes(...types) {
+        const comparator = (a, b) => {
+            if (a == null)
+                return false;
+            return a.type === b;
+        };
+        return this._isNext(types, comparator);
     }
 }
 exports.BaseParser = BaseParser;

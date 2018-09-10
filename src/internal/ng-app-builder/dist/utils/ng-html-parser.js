@@ -27,6 +27,7 @@ class TemplateLexer extends base_LLn_parser_1.BaseLexer {
             if (char == null) {
                 return;
             }
+            this.skip();
             switch (char) {
                 case '>':
                 case '(':

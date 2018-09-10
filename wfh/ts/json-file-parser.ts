@@ -9,14 +9,11 @@ export enum JsonTokenType {
 	['{'],
 	['}'],
 	[':'],
+	skip,
 	any // .*
 }
 
 export class JsonLexer extends BaseLexer<JsonTokenType> {
-
-	constructor(source: string) {
-		super(source);
-	}
 
 	*[Symbol.iterator](): Iterator<Token<JsonTokenType>> {
 		while (true) {
@@ -24,6 +21,10 @@ export class JsonLexer extends BaseLexer<JsonTokenType> {
 			const start = this.position;
 			if (char == null) {
 				return;
+			}
+			if (/\s/.test(this.la())) {
+				yield this.skip();
+				continue;
 			}
 			switch (char) {
 				case ',':
@@ -66,12 +67,15 @@ export class JsonLexer extends BaseLexer<JsonTokenType> {
 	}
 
 	skip() {
-		while (/\s/.test(this.la())) {
+		const start = this.position;
+		while (this.la() != null && /\s/.test(this.la())) {
 			this.advance();
 		}
+		return new Token(JsonTokenType.skip, this, start);
 	}
 }
 
-export class JsonParser extends BaseParser<JsonTokenType, JsonLexer> {
+export class JsonParser extends BaseParser<JsonTokenType> {
+	// TODO
 	skip() {}
 }

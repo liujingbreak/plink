@@ -1,0 +1,25 @@
+{
+	"name": "@dr/tool-misc",
+	"version": "1.0.0",
+	"description": "Tools",
+	"scripts": {
+	  "test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"dr": {
+		"config": {
+			"server": {
+				"fillPalettes": [{
+					"100": "#7aaaff",
+					"500": "#407bd7",
+					"700": "#0050a5"
+				}]
+			}
+		}
+	},
+	"dependencies": {
+		"color-js": "^1.0.4"
+	},
+	"author": "LJ",
+	"license": "MIT"
+  }
+  

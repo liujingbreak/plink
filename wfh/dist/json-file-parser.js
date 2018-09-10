@@ -11,18 +11,20 @@ var JsonTokenType;
     JsonTokenType[JsonTokenType['{'] = 5] = '{';
     JsonTokenType[JsonTokenType['}'] = 6] = '}';
     JsonTokenType[JsonTokenType[':'] = 7] = ':';
-    JsonTokenType[JsonTokenType["any"] = 8] = "any"; // .*
+    JsonTokenType[JsonTokenType["skip"] = 8] = "skip";
+    JsonTokenType[JsonTokenType["any"] = 9] = "any"; // .*
 })(JsonTokenType = exports.JsonTokenType || (exports.JsonTokenType = {}));
 class JsonLexer extends base_LLn_parser_1.BaseLexer {
-    constructor(source) {
-        super(source);
-    }
     *[Symbol.iterator]() {
         while (true) {
             const char = this.la();
             const start = this.position;
             if (char == null) {
                 return;
+            }
+            if (/\s/.test(this.la())) {
+                yield this.skip();
+                continue;
             }
             switch (char) {
                 case ',':
@@ -63,13 +65,16 @@ class JsonLexer extends base_LLn_parser_1.BaseLexer {
         return tk;
     }
     skip() {
-        while (/\s/.test(this.la())) {
+        const start = this.position;
+        while (this.la() != null && /\s/.test(this.la())) {
             this.advance();
         }
+        return new base_LLn_parser_1.Token(JsonTokenType.skip, this, start);
     }
 }
 exports.JsonLexer = JsonLexer;
 class JsonParser extends base_LLn_parser_1.BaseParser {
+    // TODO
     skip() { }
 }
 exports.JsonParser = JsonParser;

@@ -5,6 +5,7 @@
 	"dependencies": {
     "@dr/e2etest-helper": "1.0.2",
     "@dr/http-request-proxy": "5.0.5",
+    "@dr/tool-misc": "1.0.0",
     "@dr/vendor-binary": "1.0.0"
 }
 }

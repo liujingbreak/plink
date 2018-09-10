@@ -44,7 +44,7 @@ export interface AttributeValueAst {
     start: number;
     end: number;
 }
-export declare class TemplateParser extends BaseParser<HtmlTokenType, TemplateLexer> {
+export declare class TemplateParser extends BaseParser<HtmlTokenType> {
     lexer: TemplateLexer;
     constructor(input: string);
     getCurrentPosInfo(): string;

@@ -26,6 +26,7 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 			if (char == null) {
 				return;
 			}
+			this.skip();
 			switch (char) {
 				case '>':
 				case '(':
@@ -156,7 +157,7 @@ export interface TagAst {
 export interface AttributeValueAst {
 	text: string; start: number; end: number;
 }
-export class TemplateParser extends BaseParser<HtmlTokenType, TemplateLexer> {
+export class TemplateParser extends BaseParser<HtmlTokenType> {
 	lexer: TemplateLexer;
 	constructor(input: string) {
 		const lexer = new TemplateLexer(input);

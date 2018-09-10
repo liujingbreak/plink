@@ -51,7 +51,8 @@ describe('parse-app-module', () => {
         expect(patched).toContain('import {tea as tea_2} from \'foobar\';');
     });
     it('should can locate app.module.ts file from main.ts', () => {
-        expect(parse_app_module_1.findAppModuleFileFromMain(path_1.resolve(__dirname, '../../ts/spec/main-test.ts.txt'))).toBe(path_1.resolve(__dirname, '../../ts/spec/app/app.module'));
+        expect(parse_app_module_1.findAppModuleFileFromMain(path_1.resolve(__dirname, '../../ts/spec/main-test.ts.txt')))
+            .toBe(path_1.resolve(__dirname, '../../ts/spec/app/app.module.ts'));
     });
 });
 

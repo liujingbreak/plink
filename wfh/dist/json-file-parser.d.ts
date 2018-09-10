@@ -8,14 +8,14 @@ export declare enum JsonTokenType {
     ['{'] = 5,
     ['}'] = 6,
     [':'] = 7,
-    any = 8
+    skip = 8,
+    any = 9
 }
 export declare class JsonLexer extends BaseLexer<JsonTokenType> {
-    constructor(source: string);
     [Symbol.iterator](): Iterator<Token<JsonTokenType>>;
     stringLit(quote: string): Token<JsonTokenType>;
-    skip(): void;
+    skip(): Token<JsonTokenType>;
 }
-export declare class JsonParser extends BaseParser<JsonTokenType, JsonLexer> {
+export declare class JsonParser extends BaseParser<JsonTokenType> {
     skip(): void;
 }

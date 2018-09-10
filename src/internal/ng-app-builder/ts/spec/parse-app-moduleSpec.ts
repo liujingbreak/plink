@@ -57,6 +57,7 @@ describe('parse-app-module', () => {
 	});
 
 	it('should can locate app.module.ts file from main.ts', () => {
-		expect(findAppModuleFileFromMain(resolve(__dirname, '../../ts/spec/main-test.ts.txt'))).toBe(resolve(__dirname, '../../ts/spec/app/app.module'));
+		expect(findAppModuleFileFromMain(resolve(__dirname, '../../ts/spec/main-test.ts.txt')))
+		.toBe(resolve(__dirname, '../../ts/spec/app/app.module.ts'));
 	});
 });
