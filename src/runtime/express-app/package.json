@@ -1,7 +1,7 @@
 {
   "name": "@dr-core/express-app",
   "description": "express app",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "dist/app.js",
   "types": "index.d.ts",
   "dependencies": {

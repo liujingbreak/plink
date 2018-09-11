@@ -1,7 +1,7 @@
 {
   "name": "@dr/http-server",
   "description": "http and https server used by dr-comp-package",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "dist/server.js",
   "dr": {
     "type": [
