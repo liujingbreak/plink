@@ -190,6 +190,11 @@ function changeLoaders(webpackConfig) {
         test: isDrJs,
         use: [babel()]
     });
+    // TODO: Until scss-import-loader is ready
+    // webpackConfig.module.rules.push({
+    // 	test: /\.scss$/,
+    // 	use: [{loader: Path.resolve(__dirname, 'loaders', 'scss-import-loader')}]
+    // });
 }
 function isDrJs(file) {
     if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))

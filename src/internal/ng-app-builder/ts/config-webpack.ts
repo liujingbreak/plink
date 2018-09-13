@@ -195,6 +195,11 @@ function changeLoaders(webpackConfig: any) {
 			use: [babel()]
 		}
 	);
+	// TODO: Until scss-import-loader is ready
+	// webpackConfig.module.rules.push({
+	// 	test: /\.scss$/,
+	// 	use: [{loader: Path.resolve(__dirname, 'loaders', 'scss-import-loader')}]
+	// });
 }
 
 function isDrJs(file: string) {

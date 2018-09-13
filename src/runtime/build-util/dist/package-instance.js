@@ -83,7 +83,7 @@ function createPackage(packagePath, pkJson) {
             noParseFiles = [].concat(pkJson.dr.browserifyNoParse).map(trimNoParseSetting);
         }
     }
-    const mainFile = pkJson.browser | pkJson.main;
+    const mainFile = pkJson.browser || pkJson.main;
     instance.init({
         file: mainFile ? fs.realpathSync(Path.resolve(packagePath, mainFile)) : null,
         main: pkJson.main,

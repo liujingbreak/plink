@@ -7,6 +7,7 @@ import {ExpressAppApi} from '@dr-core/express-app';
 import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
 import {PackageInfo} from '@dr-core/build-util/index';
 import {DrcpConfig} from 'dr-comp-package/wfh/dist/config-handler';
+import {RequireInjector} from 'require-injector/dist/replace-require';
 
 interface _DrcpNgApi {
 	webpackConfig: any;
@@ -60,7 +61,7 @@ interface _DrcpApi {
 	packageInfo: PackageInfo;
 	config: DrcpConfig;
 	argv: any;
-	browserInjector: any;
+	browserInjector: RequireInjector;
 	ngEntryComponent: PackageBrowserInstance;
 	findPackageByFile(path: string): PackageBrowserInstance;
 	getNodeApiForPackage<T extends _DrcpApi>(pk: {longName: string}): T;
