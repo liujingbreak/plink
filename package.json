@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package",
-  "version": "0.7.25",
+  "version": "0.7.26",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -72,7 +72,7 @@
     "prettier": "1.13.5",
     "pretty-quick": "^1.6.0",
     "promise-queue": "^2.2.5",
-    "require-injector": "^5.0.0-alpha.2",
+    "require-injector": "^5.0.0-alpha.6",
     "resolve": "^1.4.0",
     "semver": "^5.4.1",
     "shelljs": "^0.7.8",

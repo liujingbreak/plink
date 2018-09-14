@@ -1,20 +1,22 @@
 import {DrcpConfig} from './config-handler';
 import {FactoryMapInterf} from 'require-injector/dist/factory-map';
 import {RequireInjector} from 'require-injector/dist/replace-require';
+import {DrPackageInjector} from './injector-factory';
+export {DrPackageInjector as InjectorFactory};
 export {FactoryMapInterf, RequireInjector};
 
-export interface InjectorFactory extends RequireInjector {
-	addPackage(name: string, dir: string): void;
-	fromAllComponents(): FactoryMapInterf;
-	notFromPackages(excludePackages: string | string[]): FactoryMapInterf;
-}
+// export interface InjectorFactory extends RequireInjector {
+// 	addPackage(name: string, dir: string): void;
+// 	fromAllComponents(): FactoryMapInterf;
+// 	notFromPackages(excludePackages: string | string[]): FactoryMapInterf;
+// }
 
 export interface InjectorConfigHandler {
-	setupNodeInjector(factory: InjectorFactory): void;
-	setupWebInjector(factory: InjectorFactory): void;
+	setupNodeInjector(factory: DrPackageInjector): void;
+	setupWebInjector(factory: DrPackageInjector): void;
 }
 
-export function doInjectorConfig(factory: InjectorFactory, isNode = false): Promise<void> {
+export function doInjectorConfig(factory: DrPackageInjector, isNode = false): Promise<void> {
 	const config: DrcpConfig = require('../lib/config');
 	return config.configHandlerMgr().runEach<InjectorConfigHandler>((file: string, lastResult: any, handler) => {
 		if (isNode && handler.setupNodeInjector)
