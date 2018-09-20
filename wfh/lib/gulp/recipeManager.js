@@ -200,17 +200,21 @@ function linkComponentsAsync() {
 }
 
 function clean() {
-	var recipes = [];
-	var removalProms = [];
-	if (fs.existsSync(linkListFile)) {
-		var list = fs.readFileSync(linkListFile, 'utf8');
-		list = JSON.parse(list);
-		removalProms = list.map(linkPath => {
-			log.info('Removing symbolic link file %s', linkPath);
-			return fs.remove(Path.resolve(config().rootPath, linkPath));
-		});
-	}
-	return Promise.all(removalProms).then(() => {
+	return config.done.then(() => {
+		linkListFile = config.resolve('destDir', 'link-list.json');
+		var recipes = [];
+		var removalProms = [];
+		if (fs.existsSync(linkListFile)) {
+			var list = fs.readFileSync(linkListFile, 'utf8');
+			list = JSON.parse(list);
+			removalProms = list.map(linkPath => {
+				log.info('Removing symbolic link file %s', linkPath);
+				return fs.remove(Path.resolve(config().rootPath, linkPath));
+			});
+		}
+		return Promise.all(removalProms).then(() => recipes);
+	})
+	.then((recipes) => {
 		eachRecipeSrc(function(src, recipeDir) {
 			if (recipeDir)
 				recipes.push(Path.join(recipeDir, 'package.json'));

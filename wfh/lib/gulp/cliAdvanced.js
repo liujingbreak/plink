@@ -121,16 +121,19 @@ function _addupCompConfigProp(componentConfigs, compName, browserSideConfigProp,
 	browserSideConfigProp.push(..._.map(_.keys(configJson.public), key => compName + '.' + key));
 }
 
-function clean() {
-	return require('./recipeManager').clean()
-	.then(() => {
-		fs.removeSync(config().staticDir);
-		fs.removeSync(config().destDir);
-		fs.removeSync(Path.join(config().rootPath, 'gulpfile.js'));
-		fs.removeSync(Path.join(config().rootPath, 'yarn.lock'));
-		fs.removeSync(Path.join(config().rootPath, 'package-lock.json'));
-		fs.removeSync(Path.join(config().rootPath, 'yarn-error.log'));
-	});
+function clean(onlySymlink) {
+	let done = require('./recipeManager').clean();
+	if (!onlySymlink) {
+		done = done.then(() => {
+			fs.removeSync(config().staticDir);
+			fs.removeSync(config().destDir);
+			fs.removeSync(Path.join(config().rootPath, 'gulpfile.js'));
+			fs.removeSync(Path.join(config().rootPath, 'yarn.lock'));
+			fs.removeSync(Path.join(config().rootPath, 'package-lock.json'));
+			fs.removeSync(Path.join(config().rootPath, 'yarn-error.log'));
+		});
+	}
+	return done;
 }
 
 function lint(argv) {

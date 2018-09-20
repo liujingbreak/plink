@@ -381,6 +381,10 @@ function install(isDrcpSymlink) {
 function clean(_argv) {
 	argv = _argv;
 	var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
+
+	if (argv.symlink === 'symlink') {
+		return require('./cliAdvanced').clean(true);
+	}
 	return require('./cliAdvanced').clean()
 		.then(() => {
 			getProjectDirs().forEach(prjdir => {

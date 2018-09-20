@@ -31,8 +31,8 @@ function drcpCommand(startTime) {
 			// .usage('drcp init');
 		},
 		handler: argv => {
-			require('./config').init(argv);
-			cli.init(argv);
+			require('./config').init(argv)
+			.then(() => cli.init(argv));
 		}
 	})
 	.command('project [add|remove] [project-dir..]', 'Associate, disassociate or list associated project folders', {
@@ -69,18 +69,20 @@ function drcpCommand(startTime) {
 	// 	builder: {},
 	// 	handler: argv => cli.install(argv)
 	// })
-	.command('clean', 'Clean "destDir" and symbolic links from node_modules', {
-		builder: {},
+	.command('clean [symlink]', 'Clean "destDir" and symbolic links from node_modules', {
+		builder: yargs => {
+			yargs.positional('symlink', {desc: 'Only cleanup corresponding symlinks from node_modules'});
+		},
 		handler: argv => {
-			require('./config').init(argv);
-			cli.clean(argv);
+			require('./config').init(argv)
+			.then(() => cli.clean(argv));
 		}
 	})
 	.command(['ls', 'list'], 'If you want to know how many components will actually run, this command prints out a list and the priorities, including installed components', {
 		builder: {},
 		handler: argv => {
-			require('./config').init(argv);
-			cli.ls(argv);
+			require('./config').init(argv)
+			.then(() => cli.ls(argv));
 		}
 	})
 	.command('run <target> [package..]', 'Run specific exported function of specific packages one by one, in random order', {
@@ -101,8 +103,8 @@ function drcpCommand(startTime) {
 				'execute function from all packages one after one, after all api.eventBus will emit ServerRunnerEvent "done"');
 		},
 		handler: argv => {
-			require('./config').init(argv);
-			return cli.runPackages(argv);
+			require('./config').init(argv)
+			.then(() => cli.runPackages(argv));
 		}
 	})
 	// .command('compile [package..]', 'compile packages into static browser bundles', {
@@ -199,8 +201,8 @@ function drcpCommand(startTime) {
 				hlDesc('drcp tsc [package...] -w\n') + ' Watch components change and compile when new typescript file is changed or created\n\n');
 		},
 		handler: argv => {
-			require('./config').init(argv);
-			cli.tsc(argv);
+			require('./config').init(argv)
+			.then(() => cli.tsc(argv));
 		}
 	})
 	.command('eol <dir..>', 'Convert CRLF to LF from files (before "publish" to NPM registry server).', {
@@ -236,8 +238,8 @@ function drcpCommand(startTime) {
 				hl('\ndrcp lint <component-package..> [--fix]') + ' Lint JS files from specific component packages');
 		},
 		handler: argv => {
-			require('./config').init(argv);
-			cli.lint(argv);
+			require('./config').init(argv)
+			.then(() => cli.lint(argv));
 		}
 	})
 	.command('publish [project-dir..]', 'npm publish every pakages in source code folder including all mapped recipes', {
@@ -254,10 +256,12 @@ function drcpCommand(startTime) {
 			});
 		},
 		handler: argv => {
-			require('./config').init(argv);
-			if (argv.pj)
-				argv.projectDir.push(...argv.pj);
-			cli.publish(argv);
+			require('./config').init(argv)
+			.then(() => {
+				if (argv.pj)
+					argv.projectDir.push(...argv.pj);
+				cli.publish(argv);
+			});
 		}
 	})
 	.command('unpublish [project-dir..]', 'npm unpublish every pakages in source code folder including all mapped recipes', {
@@ -273,10 +277,12 @@ function drcpCommand(startTime) {
 			});
 		},
 		handler: argv => {
-			require('./config').init(argv);
-			if (argv.pj)
-				argv.projectDir.push(...argv.pj);
-			cli.unpublish(argv);
+			require('./config').init(argv)
+			.then(() => {
+				if (argv.pj)
+					argv.projectDir.push(...argv.pj);
+				cli.unpublish(argv);
+			});
 		}
 	})
 	.command('bump [dir..]', 'bump version number of all package.json from specific directories', {
@@ -301,11 +307,13 @@ function drcpCommand(startTime) {
 				hl('drcp bump <dir> -i minor') + 'to bump minor version number, default is patch number');
 		},
 		handler: argv => {
-			require('./config').init(argv);
-			cli.bumpDirs(argv.dir, argv.v);
-			if (argv.pj) {
-				cli.bumpProjects(argv.pj, argv.v);
-			}
+			require('./config').init(argv)
+			.then(() => {
+				cli.bumpDirs(argv.dir, argv.v);
+				if (argv.pj) {
+					cli.bumpProjects(argv.pj, argv.v);
+				}
+			});
 		}
 	})
 	.command('test [package..]', 'run Jasmine for specific or all packages', {
@@ -321,8 +329,8 @@ function drcpCommand(startTime) {
 			});
 		},
 		handler: argv => {
-			require('./config').init(argv);
-			cli.runUnitTest(argv);
+			require('./config').init(argv)
+			.then(() => cli.runUnitTest(argv));
 		}
 	})
 	// .command('e2e [file..]', 'run Jasmine for end-to-end tests', {
