@@ -10,6 +10,7 @@ const __api_1 = require("__api");
 describe('apiAotCompiler', () => {
     it('should recoganize identifier __api', () => {
         Object.assign(Object.getPrototypeOf(__api_1.default), {
+            packageInfo: { allModules: [] },
             findPackageByFile(file) {
                 return { longName: 'test' };
             },

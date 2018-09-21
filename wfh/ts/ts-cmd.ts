@@ -163,7 +163,7 @@ function compile(compGlobs: string[], tsProject: any,
 					sm.sources.map( (spath: string) => {
 						const realFile = fs.realpathSync(spath);
 						sFileDir = Path.dirname(realFile);
-						return Path.relative(file.base, realFile);
+						return Path.relative(file.base, realFile).replace(/\\/g, '/');
 					});
 				sm.sourceRoot = Path.relative(sFileDir, file.base).replace(/\\/g, '/');
 				file.contents = Buffer.from(JSON.stringify(sm), 'utf8');

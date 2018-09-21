@@ -2,14 +2,29 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const ts = require("typescript");
 const typescript_1 = require("typescript");
-const textPatcher = require("./patch-text");
+const patch_text_1 = require("./patch-text"), textPatcher = patch_text_1;
 const __api_1 = require("__api");
 const vm = require("vm");
 const path_1 = require("path");
 const default_import_ts_transpiler_1 = require("./default-import-ts-transpiler");
 const chalk = require('chalk');
-// import chalk from 'chalk';
 const log = require('log4js').getLogger(__api_1.default.packageName + '.api-aot-compiler');
+function createTsHandlers() {
+    const funcs = [];
+    for (const pk of __api_1.default.packageInfo.allModules) {
+        if (pk.dr && pk.dr.ngTsHandler) {
+            const [filePath, exportName] = pk.dr.ngTsHandler.split('#');
+            const path = path_1.resolve(pk.realPackagePath, filePath);
+            const func = require(path)[exportName];
+            funcs.push([
+                path + '#' + exportName,
+                func
+            ]);
+        }
+    }
+    return funcs;
+}
+let tsHandlers;
 class ApiAotCompiler {
     constructor(file, src) {
         this.file = file;
@@ -26,12 +41,15 @@ class ApiAotCompiler {
         const pk = __api_1.default.findPackageByFile(this.file);
         if (pk == null)
             return this.src;
+        if (!tsHandlers)
+            tsHandlers = createTsHandlers();
         this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+        this._callTsHandlers(tsHandlers);
         for (const stm of this.ast.statements) {
             this.traverseTsAst(stm);
         }
         textPatcher._sortAndRemoveOverlap(this.replacements);
-        // Remove overloped replacements to avoid them getting into later `vm.runInNewContext()`,
+        // Remove overlaped replacements to avoid them getting into later `vm.runInNewContext()`,
         // We don't want to single out and evaluate lower level expression like `__api.packageName` from
         // `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
         let nodeApi = __api_1.default.getNodeApiForPackage(pk);
@@ -69,6 +87,16 @@ class ApiAotCompiler {
     }
     getApiForFile(file) {
         __api_1.default.findPackageByFile(file);
+    }
+    _callTsHandlers(tsHandlers) {
+        for (const [name, func] of tsHandlers) {
+            const change = func(this.ast);
+            if (change && change.length > 0) {
+                log.info('%s is changed by %s', chalk.cyan(this.ast.fileName), chalk.blue(name));
+                this.src = patch_text_1.default(this.src, this.replacements);
+                this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+            }
+        }
     }
     traverseTsAst(ast, level = 0) {
         if (ast.kind === typescript_1.SyntaxKind.PropertyAccessExpression || ast.kind === typescript_1.SyntaxKind.ElementAccessExpression) {

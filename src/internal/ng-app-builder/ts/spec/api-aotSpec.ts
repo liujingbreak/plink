@@ -9,6 +9,7 @@ import api from '__api';
 describe('apiAotCompiler', () => {
 	it('should recoganize identifier __api', () => {
 		Object.assign(Object.getPrototypeOf(api), {
+			packageInfo: {allModules: []},
 			findPackageByFile(file: string) {
 				return {longName: 'test'};
 			},

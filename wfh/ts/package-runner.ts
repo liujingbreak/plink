@@ -45,9 +45,7 @@ export function runPackages(argv: any) {
 	const includeNameSet = new Set<string>();
 	(argv.package as string[]).forEach(name => includeNameSet.add(name));
 
-	const hyPos: number = (argv.target as string).indexOf('#');
-	const fileToRun = (argv.target as string).substring(0, hyPos);
-	const funcToRun = (argv.target as string).substring(hyPos + 1);
+	const [fileToRun, funcToRun] = (argv.target as string).split('#');
 	const NodeApi = require('../lib/nodeApi');
 	const proto = NodeApi.prototype;
 	proto.argv = argv;

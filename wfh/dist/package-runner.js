@@ -41,9 +41,7 @@ const apiCache = {};
 function runPackages(argv) {
     const includeNameSet = new Set();
     argv.package.forEach(name => includeNameSet.add(name));
-    const hyPos = argv.target.indexOf('#');
-    const fileToRun = argv.target.substring(0, hyPos);
-    const funcToRun = argv.target.substring(hyPos + 1);
+    const [fileToRun, funcToRun] = argv.target.split('#');
     const NodeApi = require('../lib/nodeApi');
     const proto = NodeApi.prototype;
     proto.argv = argv;
