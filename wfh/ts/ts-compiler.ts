@@ -117,7 +117,10 @@ class TsCompiler {
 }
 
 let singletonCompiler: TsCompiler;
-export function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions): string {
+export function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions|string): string {
+	if (typeof co === 'string') {
+		co = readTsConfig(co);
+	}
 	co.declaration = false;
 	co.sourceMap = false;
 	if (singletonCompiler == null)

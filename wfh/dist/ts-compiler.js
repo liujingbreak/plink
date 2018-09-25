@@ -107,6 +107,9 @@ class TsCompiler {
 }
 let singletonCompiler;
 function transpileAndCheck(tsCode, filename, co) {
+    if (typeof co === 'string') {
+        co = readTsConfig(co);
+    }
     co.declaration = false;
     co.sourceMap = false;
     if (singletonCompiler == null)

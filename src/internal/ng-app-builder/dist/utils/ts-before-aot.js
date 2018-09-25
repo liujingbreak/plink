@@ -93,7 +93,7 @@ class ApiAotCompiler {
             const change = func(this.ast);
             if (change && change.length > 0) {
                 log.info('%s is changed by %s', chalk.cyan(this.ast.fileName), chalk.blue(name));
-                this.src = patch_text_1.default(this.src, this.replacements);
+                this.src = patch_text_1.default(this.src, change);
                 this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
             }
         }

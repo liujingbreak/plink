@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const ts_ast_query_1 = require("../utils/ts-ast-query");
 const fs = require("fs");
 const path_1 = require("path");
+// const log = require('log4js').getLogger('ts-ast-querySpec');
 describe('ts-ast-query', () => {
     it('printAll should work', () => {
         const file = path_1.resolve(__dirname, '../../ts/spec/app.module.ts.txt');
@@ -46,6 +47,34 @@ describe('ts-ast-query', () => {
         const sel = new ts_ast_query_1.default(fs.readFileSync(file, 'utf8'), file);
         const found = sel.findAll(':ImportDeclaration :Identifier');
         console.log(found.map(ast => ast.getText(sel.src)));
+    });
+});
+const ts_ast_util_1 = require("../utils/ts-ast-util");
+const ts = require("typescript");
+describe('ts-ast-util', () => {
+    let testContent;
+    const testFile = path_1.resolve(__dirname, '../../ts/spec/app.module.ts.txt');
+    beforeAll(() => {
+        testContent = fs.readFileSync(testFile, 'utf8');
+    });
+    it('resolveModule() should work', () => {
+        expect(ts_ast_util_1.defaultResolveModule('./abc', __filename)).toBe(__dirname + '/abc');
+        expect(ts_ast_util_1.defaultResolveModule('abc', __filename)).toBe(path_1.resolve('node_modules/abc'));
+    });
+    it('resolveImportBindName', () => {
+        const src = ts.createSourceFile(testFile, testContent, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+        let res = ts_ast_util_1.resolveImportBindName(src, '@bk/env/environment', 'environment');
+        expect(res).toBe('env');
+    });
+    it('resolveImportBindName for import name space binding', () => {
+        const testSample = 'import * as ng from "@angular/core";\
+			@ng.Component({})\
+			class MyComponent {}\
+		';
+        const src = ts.createSourceFile(testFile, testSample, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+        new ts_ast_query_1.default(src).printAll();
+        let res = ts_ast_util_1.resolveImportBindName(src, '@angular/core', 'Component');
+        expect(res).toBe('ng.Component');
     });
 });
 

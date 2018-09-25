@@ -2,9 +2,10 @@ import * as ts from 'typescript';
 export declare function printFile(): void;
 export default class Selector {
     src: ts.SourceFile;
-    constructor(src: ts.SourceFile | string, file?: string);
-    findWith<T>(query: string, callback: (ast: ts.Node) => T): T | null;
-    findWith<T>(ast: ts.Node, query: string, callback: (ast: ts.Node) => T): T | null;
+    constructor(src: string, file: string);
+    constructor(src: ts.SourceFile);
+    findWith<T>(query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
+    findWith<T>(ast: ts.Node, query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
     /**
      *
      * @param ast root AST node

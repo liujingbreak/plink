@@ -57,6 +57,7 @@ export default class ApiAotCompiler {
 		this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext,
 			true, ts.ScriptKind.TSX);
 		this._callTsHandlers(tsHandlers);
+
 		for(const stm of this.ast.statements) {
 			this.traverseTsAst(stm);
 		}
@@ -110,7 +111,7 @@ export default class ApiAotCompiler {
 			const change = func(this.ast);
 			if (change && change.length > 0) {
 				log.info('%s is changed by %s', chalk.cyan(this.ast.fileName), chalk.blue(name));
-				this.src = replaceCode(this.src, this.replacements);
+				this.src = replaceCode(this.src, change);
 				this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext,
 					true, ts.ScriptKind.TSX);
 			}

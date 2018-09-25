@@ -20,6 +20,8 @@ export function printFile() {
 export default class Selector {
 	src: ts.SourceFile;
 
+	constructor(src: string, file: string);
+	constructor(src: ts.SourceFile);
 	constructor(src: ts.SourceFile | string, file?: string) {
 		if (typeof src === 'string') {
 			this.src = ts.createSourceFile(file, src, ts.ScriptTarget.ESNext,
@@ -29,12 +31,12 @@ export default class Selector {
 		}
 	}
 
-	findWith<T>(query: string, callback: (ast: ts.Node) => T): T | null;
-	findWith<T>(ast: ts.Node, query: string, callback: (ast: ts.Node) => T): T | null;
+	findWith<T>(query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
+	findWith<T>(ast: ts.Node, query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
 	findWith<T>(...arg: any[]): T | null {
 		let query: string;
 		let ast: ts.Node;
-		let callback: (ast: ts.Node) => T;
+		let callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T;
 		if (typeof arg[0] === 'string') {
 			ast = this.src;
 			query = arg[0];
@@ -45,44 +47,17 @@ export default class Selector {
 			callback = arg[2];
 		}
 		let res: T | null;
-		this.traverse(ast, (ast, path) => {
+		this.traverse(ast, (ast, path, parents) => {
 			if (res !== undefined)
 				return true;
 			if (new Query(query).matches(path)) {
-				res = callback(ast);
+				res = callback(ast, path, parents);
 				if (res != null)
 					return true;
 			}
 		});
 		return res;
 	}
-
-	// some(query: string, callback: Callback): boolean;
-	// some(ast: ts.Node, query: string, callback: Callback): boolean;
-	// some(...arg: any[]): boolean {
-	// 	let query: string;
-	// 	let ast: ts.Node;
-	// 	let callback: Callback;
-	// 	if (typeof arg[0] === 'string') {
-	// 		ast = this.src;
-	// 		query = arg[0];
-	// 		callback = arg[1];
-	// 	} else {
-	// 		ast = arg[0];
-	// 		query = arg[1];
-	// 		callback = arg[2];
-	// 	}
-	// 	let res: boolean | void = false;
-	// 	this.traverse(ast, (ast, path) => {
-	// 		if (res)
-	// 			return true;
-	// 		if (new Query(query).matches(path)) {
-	// 			res = callback(ast, path);
-	// 		}
-	// 		return res;
-	// 	});
-	// 	return res;
-	// }
 
 	/**
 	 * 

@@ -42,11 +42,11 @@ class Selector {
             callback = arg[2];
         }
         let res;
-        this.traverse(ast, (ast, path) => {
+        this.traverse(ast, (ast, path, parents) => {
             if (res !== undefined)
                 return true;
             if (new Query(query).matches(path)) {
-                res = callback(ast);
+                res = callback(ast, path, parents);
                 if (res != null)
                     return true;
             }

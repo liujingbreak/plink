@@ -5,4 +5,4 @@ export declare function readTsConfig(tsconfigFile: string): ts.CompilerOptions;
  * @param tsCode
  */
 export declare function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOptions): string;
-export declare function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions): string;
+export declare function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions | string): string;
