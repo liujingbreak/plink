@@ -3,6 +3,8 @@ export declare function printFile(): void;
 export default class Selector {
     src: ts.SourceFile;
     constructor(src: ts.SourceFile | string, file?: string);
+    findWith<T>(query: string, callback: (ast: ts.Node) => T): T | null;
+    findWith<T>(ast: ts.Node, query: string, callback: (ast: ts.Node) => T): T | null;
     /**
      *
      * @param ast root AST node
@@ -14,7 +16,8 @@ export default class Selector {
      *  - .elements[2] > .name
      *  - .statements[0] :ImportSpecifier > :Identifier
      */
-    findAll(query: string, ast?: ts.Node): ts.Node[];
+    findAll(query: string): ts.Node[];
+    findAll(ast: ts.Node, query: string): ts.Node[];
     /**
      *
      * @param ast root AST node
@@ -26,7 +29,8 @@ export default class Selector {
      *  - .elements[2] > .name
      *  - .statements[0] :ImportSpecifier > :Identifier
      */
-    findFirst(query: string, ast?: ts.Node): ts.Node;
+    findFirst(query: string): ts.Node;
+    findFirst(ast: ts.Node, query: string): ts.Node;
     list(ast?: ts.Node): string;
     printAll(ast?: ts.Node): void;
     printAllNoType(ast?: ts.Node): void;

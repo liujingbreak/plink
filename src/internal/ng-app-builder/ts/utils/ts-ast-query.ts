@@ -15,6 +15,8 @@ export function printFile() {
 	}
 	new Selector(fs.readFileSync(fileName, 'utf8'), fileName).printAll();
 }
+
+// type Callback = (ast: ts.Node, path: string[]) => boolean | void;
 export default class Selector {
 	src: ts.SourceFile;
 
@@ -27,6 +29,61 @@ export default class Selector {
 		}
 	}
 
+	findWith<T>(query: string, callback: (ast: ts.Node) => T): T | null;
+	findWith<T>(ast: ts.Node, query: string, callback: (ast: ts.Node) => T): T | null;
+	findWith<T>(...arg: any[]): T | null {
+		let query: string;
+		let ast: ts.Node;
+		let callback: (ast: ts.Node) => T;
+		if (typeof arg[0] === 'string') {
+			ast = this.src;
+			query = arg[0];
+			callback = arg[1];
+		} else {
+			ast = arg[0];
+			query = arg[1];
+			callback = arg[2];
+		}
+		let res: T | null;
+		this.traverse(ast, (ast, path) => {
+			if (res !== undefined)
+				return true;
+			if (new Query(query).matches(path)) {
+				res = callback(ast);
+				if (res != null)
+					return true;
+			}
+		});
+		return res;
+	}
+
+	// some(query: string, callback: Callback): boolean;
+	// some(ast: ts.Node, query: string, callback: Callback): boolean;
+	// some(...arg: any[]): boolean {
+	// 	let query: string;
+	// 	let ast: ts.Node;
+	// 	let callback: Callback;
+	// 	if (typeof arg[0] === 'string') {
+	// 		ast = this.src;
+	// 		query = arg[0];
+	// 		callback = arg[1];
+	// 	} else {
+	// 		ast = arg[0];
+	// 		query = arg[1];
+	// 		callback = arg[2];
+	// 	}
+	// 	let res: boolean | void = false;
+	// 	this.traverse(ast, (ast, path) => {
+	// 		if (res)
+	// 			return true;
+	// 		if (new Query(query).matches(path)) {
+	// 			res = callback(ast, path);
+	// 		}
+	// 		return res;
+	// 	});
+	// 	return res;
+	// }
+
 	/**
 	 * 
 	 * @param ast root AST node
@@ -38,8 +95,17 @@ export default class Selector {
 	 *  - .elements[2] > .name
 	 *  - .statements[0] :ImportSpecifier > :Identifier
 	 */
-	findAll(query: string, ast: ts.Node = this.src): ts.Node[] {
-		const q = new Query(query);
+	findAll(query: string): ts.Node[];
+	findAll(ast: ts.Node, query: string): ts.Node[];
+	findAll(ast: ts.Node | string, query?: string): ts.Node[] {
+		let q: Query;
+		if (typeof ast === 'string') {
+			query = ast;
+			q = new Query(ast);
+			ast = this.src;
+		} else {
+			q = new Query(query);
+		}
 
 		const res: ts.Node[] = [];
 		this.traverse(ast, (ast, path, parents, isLeaf) => {
@@ -60,8 +126,17 @@ export default class Selector {
 	 *  - .elements[2] > .name
 	 *  - .statements[0] :ImportSpecifier > :Identifier
 	 */
-	findFirst(query: string, ast: ts.Node = this.src): ts.Node {
-		const q = new Query(query);
+	findFirst(query: string): ts.Node;
+	findFirst(ast: ts.Node, query: string): ts.Node;
+	findFirst(ast: ts.Node | string, query?: string): ts.Node {
+		let q: Query;
+		if (typeof ast === 'string') {
+			query = ast;
+			q = new Query(ast);
+			ast = this.src;
+		} else {
+			q = new Query(query);
+		}
 		let res: ts.Node = null;
 		this.traverse(ast, (ast, path) => {
 			if (res)

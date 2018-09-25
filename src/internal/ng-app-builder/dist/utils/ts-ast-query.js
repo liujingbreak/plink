@@ -17,6 +17,7 @@ function printFile() {
     new Selector(fs.readFileSync(fileName, 'utf8'), fileName).printAll();
 }
 exports.printFile = printFile;
+// type Callback = (ast: ts.Node, path: string[]) => boolean | void;
 class Selector {
     constructor(src, file) {
         if (typeof src === 'string') {
@@ -26,19 +27,42 @@ class Selector {
             this.src = src;
         }
     }
-    /**
-     *
-     * @param ast root AST node
-     * @param query Like CSS select := <selector element> (" " | ">") <selector element>
-     *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
-     *   where <index> := "[" "0"-"9" "]"
-     * e.g.
-     *  - .elements:ImportSpecifier > .name
-     *  - .elements[2] > .name
-     *  - .statements[0] :ImportSpecifier > :Identifier
-     */
-    findAll(query, ast = this.src) {
-        const q = new Query(query);
+    findWith(...arg) {
+        let query;
+        let ast;
+        let callback;
+        if (typeof arg[0] === 'string') {
+            ast = this.src;
+            query = arg[0];
+            callback = arg[1];
+        }
+        else {
+            ast = arg[0];
+            query = arg[1];
+            callback = arg[2];
+        }
+        let res;
+        this.traverse(ast, (ast, path) => {
+            if (res !== undefined)
+                return true;
+            if (new Query(query).matches(path)) {
+                res = callback(ast);
+                if (res != null)
+                    return true;
+            }
+        });
+        return res;
+    }
+    findAll(ast, query) {
+        let q;
+        if (typeof ast === 'string') {
+            query = ast;
+            q = new Query(ast);
+            ast = this.src;
+        }
+        else {
+            q = new Query(query);
+        }
         const res = [];
         this.traverse(ast, (ast, path, parents, isLeaf) => {
             if (q.matches(path)) {
@@ -47,19 +71,16 @@ class Selector {
         });
         return res;
     }
-    /**
-     *
-     * @param ast root AST node
-     * @param query Like CSS select := <selector element> (" " | ">") <selector element>
-     *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
-     *   where <index> := "[" "0"-"9" "]"
-     * e.g.
-     *  - .elements:ImportSpecifier > .name
-     *  - .elements[2] > .name
-     *  - .statements[0] :ImportSpecifier > :Identifier
-     */
-    findFirst(query, ast = this.src) {
-        const q = new Query(query);
+    findFirst(ast, query) {
+        let q;
+        if (typeof ast === 'string') {
+            query = ast;
+            q = new Query(ast);
+            ast = this.src;
+        }
+        else {
+            q = new Query(query);
+        }
         let res = null;
         this.traverse(ast, (ast, path) => {
             if (res)
