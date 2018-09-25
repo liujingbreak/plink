@@ -116,7 +116,7 @@ function createPackage(packagePath: string, pkJson: any) {
 		json: pkJson,
 		compiler: _.get(pkJson, 'dr.compiler'),
 		browser: pkJson.browser,
-		i18n: pkJson.dr.i18n ? pkJson.dr.i18n : null,
+		i18n: pkJson.dr && pkJson.dr.i18n ? pkJson.dr.i18n : null,
 		appType: _.get(pkJson, 'dr.appType')
 	});
 	return instance;

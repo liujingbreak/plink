@@ -89,7 +89,7 @@ function getLatestRecipeVer(recipeName) {
 	if (cachedVersionsInfo)
 		return Promise.resolve(cachedVersionsInfo.recipeVersions ? cachedVersionsInfo.recipeVersions[recipeName] : INTERNAL_RECIPE_VER);
 	console.log(`Check ${recipeName} version`);
-	return checkTimeout(processUtils.promisifyExe('npm', 'info', recipeName, {cwd: process.cwd(), silent: true}))
+	return processUtils.promisifyExe('npm', 'info', recipeName, {cwd: process.cwd(), silent: true, timeout: 8000})
 		.then(output => {
 			var m = npmViewReg.exec(output);
 			return (m && m[1]) ? m[1] : INTERNAL_RECIPE_VER;
@@ -103,7 +103,7 @@ function getLatestRecipeVer(recipeName) {
 function getLatestDrcpVer() {
 	if (cachedVersionsInfo)
 		return Promise.resolve(cachedVersionsInfo.drcpVersion);
-	return checkTimeout(processUtils.promisifyExe('npm', 'info', 'dr-comp-package', {cwd: process.cwd(), silent: true}))
+	return processUtils.promisifyExe('npm', 'info', 'dr-comp-package', {cwd: process.cwd(), silent: true, timeout: 8000})
 		.then(output => {
 			output = output.replace(/(\[[0-9]+m|\u{001b})/ug, '');
 			var m = npmViewReg.exec(output);
@@ -116,18 +116,6 @@ function getLatestDrcpVer() {
 			console.error('[WARN] Command "' + ['npm', 'info', 'dr-comp-package'].join(' ') + '" timeout');
 			return null;
 		});
-}
-
-function checkTimeout(origPromise) {
-	var timeout;
-	return new Promise((resolve, reject) => {
-		origPromise.then(res => {
-			clearTimeout(timeout);
-			resolve(res);
-		})
-			.catch(reject);
-		timeout = setTimeout(() => reject('Timeout'), 8000);
-	});
 }
 
 function readCachedVersionInfo() {

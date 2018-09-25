@@ -3,17 +3,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const ts = require("typescript");
 const typescript_1 = require("typescript");
 const fs = require("fs");
-// import * as _ from 'lodash';
+const __api_1 = require("__api");
+const _ = require("lodash");
 const { green, red, yellow } = require('chalk');
 // const log = require('log4js').getLogger('ts-ast-query');
-function printFile(fileName) {
-    new Selector(fs.readFileSync(fileName, 'utf8')).printAll();
+function printFile() {
+    const fileName = __api_1.default.argv.file;
+    if (!fileName) {
+        // tslint:disable-next-line
+        console.log('Usage:\n' + green('drcp run @dr-core/ng-app-builder/dist/utils/ts-ast-query --file <ts file>'));
+        return;
+    }
+    new Selector(fs.readFileSync(fileName, 'utf8'), fileName).printAll();
 }
 exports.printFile = printFile;
 class Selector {
     constructor(src, file) {
         if (typeof src === 'string') {
             this.src = ts.createSourceFile(file, src, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+        }
+        else {
+            this.src = src;
         }
     }
     /**
@@ -37,6 +47,17 @@ class Selector {
         });
         return res;
     }
+    /**
+     *
+     * @param ast root AST node
+     * @param query Like CSS select := <selector element> (" " | ">") <selector element>
+     *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
+     *   where <index> := "[" "0"-"9" "]"
+     * e.g.
+     *  - .elements:ImportSpecifier > .name
+     *  - .elements[2] > .name
+     *  - .statements[0] :ImportSpecifier > :Identifier
+     */
     findFirst(query, ast = this.src) {
         const q = new Query(query);
         let res = null;
@@ -50,17 +71,26 @@ class Selector {
         });
         return res;
     }
-    printAll() {
-        this.traverse(this.src, (node, path, parents, noChild) => {
+    list(ast = this.src) {
+        let out = '';
+        this.traverse(ast, (node, path, parents, noChild) => {
+            if (noChild) {
+                out += path.join('>') + ' ' + node.getText(this.src);
+                out += '\n';
+            }
+        });
+        return out;
+    }
+    printAll(ast = this.src) {
+        this.traverse(ast, (node, path, parents, noChild) => {
             if (noChild) {
                 // tslint:disable-next-line:no-console
                 console.log(path.join('>'), green(node.getText(this.src)));
-                // console.log('= ' + this.pathForAst(node));
             }
         });
     }
-    printAllNoType() {
-        this.traverse(this.src, (node, path, parents, noChild) => {
+    printAllNoType(ast = this.src) {
+        this.traverse(ast, (node, path, parents, noChild) => {
             if (noChild) {
                 // tslint:disable-next-line:no-console
                 console.log(path.map(name => name.split(':')[0]).join('>'), green(node.getText(this.src)));
@@ -168,6 +198,7 @@ class Query {
     }
     _parseDesc(singleAstDesc) {
         const astChar = {};
+        // tslint:disable-next-line
         let m = /^(?:\.([a-zA-Z0-9_$]+)(?:\[([0-9]*)\])?)?(?:\:([a-zA-Z0-9_$]+))?$|^\*$/.exec(singleAstDesc);
         if (m == null) {
             throw new Error(`Invalid query string "${yellow(singleAstDesc)}"`);
@@ -179,12 +210,18 @@ class Query {
         }
         if (m[3])
             astChar.kind = m[3];
+        // if (m[4])
+        // 	astChar.text = new RegExp(m[4]);
         return astChar;
     }
     matchesAst(query, target) {
         for (const key of Object.keys(query)) {
             const value = query[key];
-            if (target[key] !== value)
+            if (_.isRegExp(value)) {
+                if (!value.test(target[key]))
+                    return false;
+            }
+            else if (target[key] !== value)
                 return false;
         }
         return true;

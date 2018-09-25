@@ -70,7 +70,7 @@ export function spawn(command: string, ...args: Array<string|Option>):
 			}
 			resolve(output);
 		});
-	}))
+	}), opts.timeout)
 	.catch(e => {
 		console.error(e);
 		if (e.message === 'Timeout' && res) {
@@ -85,7 +85,7 @@ export function spawn(command: string, ...args: Array<string|Option>):
 	};
 }
 
-function checkTimeout<T>(origPromise: Promise<T>, timeBox = 8000): Promise<T> {
+function checkTimeout<T>(origPromise: Promise<T>, timeBox = 600000): Promise<T> {
 	var timeout: NodeJS.Timer;
 	return new Promise<T>((resolve, reject) => {
 		origPromise.then(res => {

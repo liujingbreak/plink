@@ -8,7 +8,7 @@ var chalk = require('chalk');
 var config = require('../config');
 var Package = require('../packageMgr/packageNodeInstance');
 var NodeApi = require('../nodeApi');
-var {nodeInjector} = require('../injectorFactory');
+var {nodeInjector} = require('../../dist/injector-factory');
 const {LazyPackageFactory} = require('@dr-core/build-util/dist/package-instance');
 // var LRU = require('lru-cache');
 
@@ -45,10 +45,10 @@ function runUnitTest(argv) {
 	if (argv.f) {
 		for (const singleFile of argv.f) {
 			let pk = new LazyPackageFactory().getPackageByPath(Path.resolve(singleFile));
-			nodeInjector.fromPackage(pk.longName, pk.packagePath)
+			nodeInjector.fromComponent(pk.longName, pk.packagePath)
 			.value('__injector', nodeInjector)
 			.value('__api', getApiForPackage(pk));
-			nodeInjector.fromPackage(pk.longName, pk.realPackagePath)
+			nodeInjector.fromComponent(pk.longName, pk.realPackagePath)
 			.value('__injector', nodeInjector)
 			.value('__api', getApiForPackage(pk));
 		}
@@ -74,12 +74,12 @@ function runUnitTest(argv) {
 			path: packagePath,
 			priority: json.dr ? json.dr.builderPriority : null
 		});
-		nodeInjector.fromPackage(name, packagePath)
+		nodeInjector.fromComponent(name, packagePath)
 			.value('__injector', nodeInjector)
 			.factory('__api', function() {
 				return getApiForPackage(pkInstance);
 			});
-		nodeInjector.fromPackage(name, fs.realpathSync(packagePath))
+		nodeInjector.fromComponent(name, fs.realpathSync(packagePath))
 			.value('__injector', nodeInjector)
 			.factory('__api', function() {
 				return getApiForPackage(pkInstance);

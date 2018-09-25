@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-export declare function printFile(fileName: string): void;
+export declare function printFile(): void;
 export default class Selector {
     src: ts.SourceFile;
     constructor(src: ts.SourceFile | string, file?: string);
@@ -15,9 +15,21 @@ export default class Selector {
      *  - .statements[0] :ImportSpecifier > :Identifier
      */
     findAll(query: string, ast?: ts.Node): ts.Node[];
+    /**
+     *
+     * @param ast root AST node
+     * @param query Like CSS select := <selector element> (" " | ">") <selector element>
+     *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
+     *   where <index> := "[" "0"-"9" "]"
+     * e.g.
+     *  - .elements:ImportSpecifier > .name
+     *  - .elements[2] > .name
+     *  - .statements[0] :ImportSpecifier > :Identifier
+     */
     findFirst(query: string, ast?: ts.Node): ts.Node;
-    printAll(): void;
-    printAllNoType(): void;
+    list(ast?: ts.Node): string;
+    printAll(ast?: ts.Node): void;
+    printAllNoType(ast?: ts.Node): void;
     /**
      *
      * @param ast
@@ -33,13 +45,15 @@ export interface AstCharacter {
     propertyName?: string;
     propIndex?: number;
     kind?: string;
-    text?: string;
+}
+export interface AstQuery extends AstCharacter {
+    text?: RegExp;
 }
 export declare class Query {
     queryPaths: AstCharacter[][];
     constructor(query: string);
     matches(path: string[]): boolean;
-    protected _parseDesc(singleAstDesc: string): AstCharacter;
+    protected _parseDesc(singleAstDesc: string): AstQuery;
     private matchesAst;
     private matchesConsecutiveNodes;
 }

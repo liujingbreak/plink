@@ -64,7 +64,7 @@ function spawn(command, ...args) {
             }
             resolve(output);
         });
-    }))
+    }), opts.timeout)
         .catch(e => {
         console.error(e);
         if (e.message === 'Timeout' && res) {
@@ -79,7 +79,7 @@ function spawn(command, ...args) {
     };
 }
 exports.spawn = spawn;
-function checkTimeout(origPromise, timeBox = 8000) {
+function checkTimeout(origPromise, timeBox = 600000) {
     var timeout;
     return new Promise((resolve, reject) => {
         origPromise.then(res => {
