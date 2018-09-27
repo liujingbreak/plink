@@ -30,7 +30,7 @@ var isSymbolicLink = false;
 var cmdPromise;
 if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink()) {
 	isSymbolicLink = true;
-	cmdPromise = installDeps(isSymbolicLink)
+	cmdPromise = ensurePackageJsonFile(isSymbolicLink)
 		.then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
 	.then( infoText => {
 		require('../wfh/lib/gulp/cli').writeProjectListFile([Path.resolve(__dirname, '..')]);
@@ -38,7 +38,7 @@ if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink
 	})
 	.then(infoText => processCmd(infoText));
 } else {
-	cmdPromise = installDeps(false)
+	cmdPromise = ensurePackageJsonFile(false)
 		.then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
 	.then(infoText => processCmd(infoText));
 }
@@ -46,10 +46,6 @@ cmdPromise.catch(e => {
 	console.error(e);
 	process.exit(1);
 });
-
-function installDeps(isDrcpDevMode) {
-	return ensurePackageJsonFile(isDrcpDevMode);
-}
 
 /**
  * @param {*} isDrcpDevMode denote true to copy dr-comp-package dependency list to workspace package.json file
@@ -60,6 +56,11 @@ function ensurePackageJsonFile(isDrcpDevMode) {
 	var needCreateFile = false;
 	var backupJson = null;
 	var needInstall = false;
+	if (fs.existsSync('dr.backup.package.json')) {
+		console.log('Found "dr.backup.package.json", will recover package.json from dr.backup.package.json');
+		fs.unlinkSync('package.json');
+		fs.renameSync('dr.backup.package.json', 'package.json');
+	}
 	if (!fs.existsSync('package.json')) {
 		console.log('Creating package.json');
 		needCreateFile = true;

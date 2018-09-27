@@ -4,7 +4,7 @@ module.exports = function(injector) {
 	 *  You can inject(aka replacement) required value from specific component package to some value
 	 *  you want by:
 	 *
-	 *  injector.fromPackage('component-package')
+	 *  injector.fromComponent('component-package')
 	 *  	.substitute('depenency-package', 'another-package')
 	 *  	.value('depenency-package', anyValue)
 	 *  	.factory('depenency-package', function() { return anyValue; });

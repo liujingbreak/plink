@@ -181,10 +181,10 @@ function traversePackages(needInject) {
 function setupNodeInjectorFor(pkInstance, name, packagePath, realPackagePath) {
 	log.debug('setupNodeInjectorFor %s resolved to: %s', name, packagePath, realPackagePath);
 	let api = getApiForPackage(pkInstance);
-	nodeInjector.fromPackage(name, realPackagePath)
+	nodeInjector.fromComponent(name, realPackagePath)
 	.value('__injector', nodeInjector)
 	.value('__api', api);
-	nodeInjector.fromPackage(name, packagePath)
+	nodeInjector.fromComponent(name, packagePath)
 	.value('__injector', nodeInjector)
 	.value('__api', api);
 	nodeInjector.default = nodeInjector; // For ES6 import syntax
@@ -226,12 +226,12 @@ function mapPackagesByType(types, onEachPackage) {
 			json: pkJson
 		});
 		var drTypes = [].concat(_.get(pkJson, 'dr.type'));
-		_.each(types, type => {
+		for (const type of types) {
 			if (!_.includes(drTypes, type))
-				return;
+				continue;
 			packagesMap[type].push(pkInstance);
-		});
-		if (pkJson.main && onEachPackage) {
+		}
+		if (onEachPackage) {
 			onEachPackage(pkInstance, name, entryPath, parsedName, pkJson, realPackagePath, packagePath);
 		}
 	});

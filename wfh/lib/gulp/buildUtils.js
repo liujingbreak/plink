@@ -3,7 +3,7 @@ var Path = require('path');
 
 var mkdirp = require('mkdirp');
 var _ = require('lodash');
-var processUtils = require('./processUtils');
+var processUtils = require('../../dist/process-utils');
 // var log = require('log4js').getLogger(Path.basename(__filename));
 
 exports.readTimestamp = readTimestamp;

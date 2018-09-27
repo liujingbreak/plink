@@ -465,7 +465,7 @@ function nodeAppCommand(callback) {
 			handler: argv => {
 				argv.watch = true;
 				cli.setStartTime(new Date().getTime());
-				var processUtils = require('./gulp/processUtils');
+				var processUtils = require('../dist/process-utils');
 				var childProcArgv = process.argv.slice();
 				childProcArgv.splice(childProcArgv.indexOf('watch-server'), 1);
 				var lastProc;

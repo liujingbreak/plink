@@ -1,7 +1,7 @@
 /* eslint no-console: 0 */
 var fs = require('fs');
 var Path = require('path');
-var processUtils = require('./processUtils');
+var processUtils = require('../../dist/process-utils');
 const EOL = require('os').EOL;
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
 

@@ -60,13 +60,13 @@ function spawn(command, ...args) {
                     if (output)
                         console.log(output);
                 }
-                reject(new Error(errMsg + '\n' + (output ? output : '')));
+                return reject(new Error(errMsg + '\n' + (output ? output : '')));
             }
-            resolve(output);
+            else
+                resolve(output);
         });
     }), opts.timeout)
         .catch(e => {
-        console.error(e);
         if (e.message === 'Timeout' && res) {
             console.log('Kill the child process');
             res.kill('SIGHUP');
@@ -83,10 +83,18 @@ function checkTimeout(origPromise, timeBox = 600000) {
     var timeout;
     return new Promise((resolve, reject) => {
         origPromise.then(res => {
-            clearTimeout(timeout);
+            if (timeout)
+                clearTimeout(timeout);
             resolve(res);
-        }).catch(reject);
-        timeout = setTimeout(() => reject(new Error('Timeout')), timeBox);
+        }).catch(e => {
+            if (timeout)
+                clearTimeout(timeout);
+            reject(e);
+        });
+        timeout = setTimeout(() => {
+            timeout = null;
+            reject(new Error('Timeout'));
+        }, timeBox);
     });
 }
 /**

@@ -6,7 +6,7 @@ module.exports = function(injector) {
 	 *  You can inject(aka replacement) required value from specific component package to some value
 	 *  you want by:
 	 *
-	 *  injector.fromPackage('component-package')
+	 *  injector.fromComponent('component-package')
 	 *  	.alias('depenency-package', 'another-package')
 	 *  	.value('depenency-package', anyValue)
 	 *  	.factory('depenency-package', function() { return anyValue; });
@@ -29,7 +29,7 @@ module.exports = function(injector) {
 	 * 		function() {return window.angular;});
 	 */
 	// Use light-lodash instead of lodash will only reduce around 7kb of gzipped bundle size
-	// injector.fromPackage('@dr/fabricjs')
+	// injector.fromComponent('@dr/fabricjs')
 	// 	.value('canvas', null)
 	// 	.value('jsdom', null);
 	if (fs.existsSync('node_modules/@dr/angularjs'))
