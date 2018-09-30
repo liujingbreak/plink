@@ -1,6 +1,7 @@
 src
 runtime
 e2etest
+/docs
 /logs
 /.vscode
 recipes
