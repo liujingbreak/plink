@@ -24,7 +24,7 @@ function wrapUrl(url: string): string {
 export interface PostcssCliResourcesOptions {
   deployUrl?: string;
   filename: string;
-  loader: any;
+  loader: webpack.loader.LoaderContext;
 }
 
 async function resolve(
@@ -90,10 +90,7 @@ export default postcss.plugin('postcss-cli-resources', (options: PostcssCliResou
         }
         // ----------- hack starts
         const outputPath = relativeDir + '/' + interpolateName(
-          { resourcePath: result } as webpack.loader.LoaderContext,
-          filename,
-          { content },
-        );
+          { resourcePath: result } as webpack.loader.LoaderContext, filename, { content } );
         // ----------- hack ends
 
         loader.addDependency(result);

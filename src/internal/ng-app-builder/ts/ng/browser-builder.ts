@@ -26,64 +26,73 @@ export default class BrowserBuilder extends GoogleBrowserBuilder {
 		const webpackBuilder = new WebpackBuilder({ ...this.context, host });
 
 		return of(null).pipe(
-		  concatMap(() => options.deleteOutputPath
-			? this._deleteOutputDir0(root, normalize(options.outputPath), this.context.host)
-			: of(null)),
-		  concatMap(() => normalizeFileReplacements(options.fileReplacements, host, root)),
-		  tap(fileReplacements => options.fileReplacements = fileReplacements),
-		  concatMap(() => normalizeAssetPatterns(
-			options.assets, host, root, projectRoot, builderConfig.sourceRoot)),
-		  // Replace the assets in options with the normalized version.
-		  tap((assetPatternObjects => options.assets = assetPatternObjects)),
-		  concatMap(() => {
-			  return drcpCommon.compile(builderConfig.root, builderConfig,
-				() => {
-					return this.buildWebpackConfig(root, projectRoot, host,
-					options as NormalizedBrowserBuilderSchema);
-				});
-		  }),
-		  concatMap((webpackConfig) => {
+			concatMap(() => options.deleteOutputPath
+				? this._deleteOutputDir__(root, normalize(options.outputPath), this.context.host)
+				: of(null)),
+			concatMap(() => normalizeFileReplacements(options.fileReplacements, host, root)),
+			tap(fileReplacements => options.fileReplacements = fileReplacements),
+			concatMap(() => normalizeAssetPatterns(
+				options.assets, host, root, projectRoot, builderConfig.sourceRoot)),
+			// Replace the assets in options with the normalized version.
+			tap((assetPatternObjects => options.assets = assetPatternObjects)),
+			concatMap(() => {
+				return drcpCommon.compile(builderConfig.root, builderConfig,
+					() => {
+						return this.buildWebpackConfig(root, projectRoot, host,
+						options as NormalizedBrowserBuilderSchema);
+					});
+			}),
+			concatMap((webpackConfig) => {
+				// let webpackConfig;
+				// try {
+				// 	webpackConfig = this.buildWebpackConfig(root, projectRoot, host,
+				// 	options as NormalizedBrowserBuilderSchema);
+				// } catch (e) {
+				// 	return throwError(e);
+				// }
+
 				return webpackBuilder.runWebpack(webpackConfig, getBrowserLoggingCb(options.verbose));
-		  }),
-		  concatMap(buildEvent => {
-			if (buildEvent.success && !options.watch && options.serviceWorker) {
-			  return new Observable(obs => {
-				augmentAppWithServiceWorker(
-				  this.context.host,
-				  root,
-				  projectRoot,
-				  resolve(root, normalize(options.outputPath)),
-				  options.baseHref || '/',
-				  options.ngswConfigPath
-				).then(
-				  () => {
-					obs.next({ success: true });
-					obs.complete();
-				  },
-				  (err: Error) => {
-					obs.error(err);
-				  }
-				);
-			  });
-			} else {
-			  return of(buildEvent);
-			}
-		  })
+			}),
+			concatMap(buildEvent => {
+				if (buildEvent.success && !options.watch && options.serviceWorker) {
+					return new Observable(obs => {
+					augmentAppWithServiceWorker(
+						this.context.host,
+						root,
+						projectRoot,
+						resolve(root, normalize(options.outputPath)),
+						options.baseHref || '/',
+						options.ngswConfigPath
+					).then(
+						() => {
+							obs.next({ success: true });
+							obs.complete();
+						},
+						(err: Error) => {
+							obs.error(err);
+						}
+					);
+					});
+				} else {
+					return of(buildEvent as BuildEvent);
+				}
+			})
 		);
 	}
 
-	private _deleteOutputDir0(root: Path, outputPath: Path, host: virtualFs.Host) {
-		const resolvedOutputPath = resolve(root, outputPath);
-		if (resolvedOutputPath === root) {
-		  throw new Error('Output path MUST not be project root directory!');
-		}
+	private _deleteOutputDir__(root: Path, outputPath: Path, host: virtualFs.Host) {
+	const resolvedOutputPath = resolve(root, outputPath);
+	if (resolvedOutputPath === root) {
+		throw new Error('Output path MUST not be project root directory!');
+	}
 
-		return host.exists(resolvedOutputPath).pipe(
-		  concatMap(exists => exists
-			// TODO: remove this concat once host ops emit an event.
-			? concat(host.delete(resolvedOutputPath), of(null)).pipe(last())
-			// ? of(null)
-			: of(null))
-		);
-	  }
+	return host.exists(resolvedOutputPath).pipe(
+		concatMap(exists => exists
+		// TODO: remove this concat once host ops emit an event.
+		? concat(host.delete(resolvedOutputPath), of(null)).pipe(last())
+		// ? of(null)
+		: of(null))
+	);
+  }
+
 }

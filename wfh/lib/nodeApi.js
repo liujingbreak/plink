@@ -4,7 +4,7 @@ var Path = require('path');
 var config = require('./config');
 var packageUitls = require('./packageMgr/packageUtils');
 var npmimportCssLoader = require('require-injector/css-loader');
-var assetsUrl = require('./assets-url');
+var assetsUrl = require('../dist/assets-url');
 var _ = require('lodash');
 const log = require('log4js').getLogger('wfh.nodeApi');
 

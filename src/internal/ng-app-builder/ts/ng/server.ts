@@ -18,7 +18,6 @@ import {ServerBuilder as GoogleServerBuilder} from '@angular-devkit/build-angula
 import * as drcpCommon from './common';
 
 export default class ServerBuilder extends GoogleServerBuilder {
-
 	run(builderConfig: BuilderConfiguration<BuildWebpackServerSchema>): Observable<BuildEvent> {
 		const options = builderConfig.options;
 		const root = this.context.workspace.root;
@@ -29,8 +28,8 @@ export default class ServerBuilder extends GoogleServerBuilder {
 		// TODO: verify using of(null) to kickstart things is a pattern.
 		return of(null).pipe(
 			concatMap(() => options.deleteOutputPath
-			? this._deleteOutputDir0(root, normalize(options.outputPath), this.context.host)
-			: of(null)),
+				? this._deleteOutputDir0(root, normalize(options.outputPath), this.context.host)
+				: of(null)),
 			concatMap(() => normalizeFileReplacements(options.fileReplacements, host, root)),
 			tap(fileReplacements => options.fileReplacements = fileReplacements),
 			concatMap(() => {
@@ -38,11 +37,13 @@ export default class ServerBuilder extends GoogleServerBuilder {
 					return this.buildWebpackConfig(root, projectRoot, host, options);
 				}, true);
 			}),
-			concatMap(webpackConfig => {
+		  	concatMap(webpackConfig => {
+				// const webpackConfig = this.buildWebpackConfig(root, projectRoot, host, options);
+
 				return webpackBuilder.runWebpack(webpackConfig, getBrowserLoggingCb(options.verbose));
 			})
 		);
-  }
+	}
 
 	private _deleteOutputDir0(root: Path, outputPath: Path, host: virtualFs.Host) {
 		const resolvedOutputPath = resolve(root, outputPath);

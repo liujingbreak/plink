@@ -1,28 +1,31 @@
 
-exports.publicUrl = publicUrl;
 
-exports.patchToApi = function(apiPrototype) {
-	apiPrototype.assetsUrl = function(packageName, path) {
-		if (path === undefined) {
-			path = arguments[0];
-			packageName = this.packageName;
-		}
-		return publicUrl(this.config().staticAssetsURL, this.config().outputPathMap, null,
-			packageName, path);
-	};
+export function patchToApi(apiPrototype: any) {
+	apiPrototype.assetsUrl = assetsUrl;
 
-	apiPrototype.entryPageUrl = function(packageName, path, locale) {
-		if (arguments.length === 1) {
-			path = arguments[0];
-			packageName = this.packageName;
-		}
-		if (!locale)
-			locale = this.isDefaultLocale() ? null : this.getBuildLocale();
-		path = path.replace(/([^./\\]+\.)[^?./\\]+(\?.*)?$/, '$1html$2');
-		return publicUrl(this.config().staticAssetsURL, this.config().outputPathMap,
-			locale, packageName, path);
-	};
-};
+	apiPrototype.entryPageUrl = entryPageUrl;
+}
+
+export function entryPageUrl(packageName: string, path: string, locale: string): string {
+	if (arguments.length === 1) {
+		path = arguments[0];
+		packageName = this.packageName;
+	}
+	if (!locale)
+		locale = this.isDefaultLocale() ? null : this.getBuildLocale();
+	path = path.replace(/([^./\\]+\.)[^?./\\]+(\?.*)?$/, '$1html$2');
+	return publicUrl(this.config().staticAssetsURL, this.config().outputPathMap,
+		locale, packageName, path);
+}
+
+export function assetsUrl(packageName: string, path: string): string {
+	if (path === undefined) {
+		path = arguments[0];
+		packageName = this.packageName;
+	}
+	return publicUrl(this.config().staticAssetsURL, this.config().outputPathMap, null,
+		packageName, path);
+}
 /**
  * Helper for dealing with url like "npm://<package>/<path>", "assets://<package>/<path>"
  * @param {string} staticAssetsURL, like Webpack's output.publicPath
@@ -33,7 +36,8 @@ exports.patchToApi = function(apiPrototype) {
  * @param {string} path
  * @return {string}
  */
-function publicUrl(staticAssetsURL, outputPathMap, useLocale, packageName, path) {
+export function publicUrl(staticAssetsURL: string, outputPathMap: {[name: string]: string},
+	useLocale: string | null, packageName: string, path: string) {
 	var m = /^(?:assets:\/\/|~|npm:\/\/|page(?:-([^:]+))?:\/\/)((?:@[^/]+\/)?[^/@][^/]*)?(?:\/([^@].*)?)?$/.exec(path);
 	if (m) {
 		packageName = m[2];
@@ -41,9 +45,9 @@ function publicUrl(staticAssetsURL, outputPathMap, useLocale, packageName, path)
 	}
 
 	var outputPath = outputPathMap[packageName];
-	if (outputPath != null)
+	if (outputPath != null) {
 		outputPath = /^\/*(.*?)\/*$/.exec(outputPath)[1];// _.trim(outputPath, '/');
-	else {
+	} else {
 		m = /(?:@([^/]+)\/)?(\S+)/.exec(packageName);
 		outputPath = m[2];
 	}
@@ -53,7 +57,7 @@ function publicUrl(staticAssetsURL, outputPathMap, useLocale, packageName, path)
 	return finalUrl;
 }
 
-function joinUrl(...pathEls) {
+function joinUrl(...pathEls: string[]) {
 	pathEls = pathEls.map(el => {
 		// Trim last '/'
 		if (el && el.charAt(el.length - 1) === '/' && el.length > 1)

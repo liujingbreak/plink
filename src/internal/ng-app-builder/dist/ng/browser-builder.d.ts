@@ -5,5 +5,5 @@ import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/
 import { BrowserBuilder as GoogleBrowserBuilder } from '@angular-devkit/build-angular';
 export default class BrowserBuilder extends GoogleBrowserBuilder {
     run(builderConfig: BuilderConfiguration<BrowserBuilderSchema>): Observable<BuildEvent>;
-    private _deleteOutputDir0;
+    private _deleteOutputDir__;
 }

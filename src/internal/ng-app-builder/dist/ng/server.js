@@ -25,6 +25,7 @@ class ServerBuilder extends build_angular_1.ServerBuilder {
                 return this.buildWebpackConfig(root, projectRoot, host, options);
             }, true);
         }), operators_1.concatMap(webpackConfig => {
+            // const webpackConfig = this.buildWebpackConfig(root, projectRoot, host, options);
             return webpackBuilder.runWebpack(webpackConfig, browser_1.getBrowserLoggingCb(options.verbose));
         }));
     }

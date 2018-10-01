@@ -31,7 +31,7 @@ function loadAsync(content, loader) {
 }
 
 function replaceUrl(css, file) {
-	return css.replace(/(\W)url\(\s*['"]?\s*([^'"\)]*)['"]?\s*\)/g,
+	return css.replace(/(\W)url\(\s*['"]?\s*([^'")]*)['"]?\s*\)/g,
 		function(match, preChar, url) {
 			var resolvedTo = preChar + 'url(' + replaceAssetsUrl(file, url) + ')';
 			log.debug('url: %s  -> %s', url, resolvedTo);

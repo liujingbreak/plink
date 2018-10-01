@@ -5,7 +5,7 @@ import {
 	BuilderConfiguration
 } from '@angular-devkit/architect';
 import { resolve, tags, virtualFs } from '@angular-devkit/core';
-import * as fs from 'fs';
+import { Stats} from 'fs';
 import { Observable } from 'rxjs';
 import { concatMap, map, tap } from 'rxjs/operators';
 import * as url from 'url';
@@ -23,63 +23,86 @@ export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSc
 
 export default class DrcpDevServer extends DevServerBuilder {
 	run(builderConfig: BuilderConfiguration<DevServerBuilderOptions>): Observable<BuildEvent> {
+		console.time('ng run()');
 		const options = builderConfig.options;
 		const root = this.context.workspace.root;
 		const projectRoot = resolve(root, builderConfig.root);
-		 // DRCP replaces virtualFs with ReadHookHost
-		const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<fs.Stats>);
+		const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<Stats>);
+		// DRCP has an Http server
 		// const webpackDevServerBuilder = new WebpackDevServerBuilder({ ...this.context, host });
 		let browserOptions: BrowserBuilderSchema;
 		let first = true;
 		let opnAddress: string;
 
 		return checkPort(options.port, options.host).pipe(
-			tap((port) => options.port = port),
-			concatMap(() => this._getBrowserOptions1(options)),
-			tap((opts) => browserOptions = opts),
-			concatMap(() => normalizeFileReplacements(browserOptions.fileReplacements, host, root)),
-			tap(fileReplacements => browserOptions.fileReplacements = fileReplacements),
-			concatMap(() => normalizeAssetPatterns(
-				browserOptions.assets, host, root, projectRoot, builderConfig.sourceRoot)),
-			// Replace the assets in options with the normalized version.
-			tap((assetPatternObjects => browserOptions.assets = assetPatternObjects)),
-			concatMap(() => {
-				// let webpackDevServerConfig: any;
-				// try {
-				//   webpackDevServerConfig = this._buildServerConfig(
-				// 	root, projectRoot, options, browserOptions);
-				// } catch (err) {
-				//   return throwError(err);
-				// }
+		  tap((port) => options.port = port),
+		  concatMap(() => this._getBrowserOptions1(options)),
+		  tap((opts) => browserOptions = opts),
+		  concatMap(() => normalizeFileReplacements(browserOptions.fileReplacements, host, root)),
+		  tap(fileReplacements => browserOptions.fileReplacements = fileReplacements),
+		  concatMap(() => normalizeAssetPatterns(
+			browserOptions.assets, host, root, projectRoot, builderConfig.sourceRoot)),
+		  // Replace the assets in options with the normalized version.
+		  tap((assetPatternObjects => browserOptions.assets = assetPatternObjects)),
+		  concatMap(() => {
+			// DRCP
+			console.timeEnd('ng run()');
+			console.time('startDrcpServer callback');
+			return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions as common.AngularBuilderOptions,
+				() => {
+					console.timeEnd('startDrcpServer callback');
+					const webpackConfig = this.buildWebpackConfig(
+					root, projectRoot, host, browserOptions as NormalizedBrowserBuilderSchema);
 
-				// Resolve public host and client address.
-				// let clientAddress = `${options.ssl ? 'https' : 'http'}://0.0.0.0:0`;
-				if (options.publicHost) {
-					let publicHost = options.publicHost;
-					if (!/^\w+:\/\//.test(publicHost)) {
-						publicHost = `${options.ssl ? 'https' : 'http'}://${publicHost}`;
+					// DRCP doesn't need below
+					// let webpackDevServerConfig: WebpackDevServer.Configuration;
+					// try {
+					//   webpackDevServerConfig = this._buildServerConfig(
+					// 	root, projectRoot, options, browserOptions);
+					// } catch (err) {
+					//   return throwError(err);
+					// }
+
+					// Resolve public host and client address.
+					// let clientAddress = `${options.ssl ? 'https' : 'http'}://0.0.0.0:0`;
+					if (options.publicHost) {
+						let publicHost = options.publicHost;
+						if (!/^\w+:\/\//.test(publicHost)) {
+							publicHost = `${options.ssl ? 'https' : 'http'}://${publicHost}`;
+						}
+						const clientUrl = url.parse(publicHost);
+						options.publicHost = clientUrl.host;
+						//   clientAddress = url.format(clientUrl);
 					}
-					const clientUrl = url.parse(publicHost);
-					options.publicHost = clientUrl.host;
-					//   clientAddress = url.format(clientUrl);
-				}
 
-				// Resolve serve address.
-				const serverAddress = url.format({
+					// Resolve serve address.
+					const serverAddress = url.format({
 					protocol: options.ssl ? 'https' : 'http',
 					hostname: options.host === '0.0.0.0' ? 'localhost' : options.host,
 					port: options.port.toString()
-				});
+					});
+					// DRCP has them both.
+					// Add live reload config.
+					// if (options.liveReload) {
+					//   this._addLiveReload(options, browserOptions, webpackConfig, clientAddress);
+					// } else if (options.hmr) {
+					//   this.context.logger.warn('Live reload is disabled. HMR option ignored.');
+					// }
 
-				// DRCP: I will do live reload
-				// Add live reload config.
-				// if (options.liveReload) {
-				//   this._addLiveReload(options, browserOptions, webpackConfig, clientAddress);
-				// } else if (options.hmr) {
-				//   this.context.logger.warn('Live reload is disabled. HMR option ignored.');
-				// }
+					if (!options.watch) {
+						// There's no option to turn off file watching in webpack-dev-server, but
+						// we can override the file watcher instead.
+						webpackConfig.plugins.unshift({
+							// tslint:disable-next-line:no-any
+							apply: (compiler: any) => {
+							compiler.hooks.afterEnvironment.tap('angular-cli', () => {
+								compiler.watchFileSystem = { watch: () => { } };
+							});
+							}
+						});
+					}
 
-				if (browserOptions.optimization) {
+					if (browserOptions.optimization) {
 					this.context.logger.error(tags.stripIndents`
 						****************************************************************************************
 						This is a simple server for use in testing or debugging Angular applications locally.
@@ -88,50 +111,32 @@ export default class DrcpDevServer extends DevServerBuilder {
 						DON'T USE IT FOR PRODUCTION!
 						****************************************************************************************
 					`);
-				}
+					}
 
-				this.context.logger.info(tags.oneLine`
-				**
-				DRCP Live Development Server is listening on ${options.host}:${options.port},
-				open your browser on ${serverAddress}
-				**
-				`);
+					this.context.logger.info(tags.oneLine`
+					**
+					DRCP Live Development Server is listening on ${options.host}:${options.port},
+					open your browser on ${serverAddress}${browserOptions.deployUrl}
+					**
+					`);
 
-				// opnAddress = serverAddress + webpackDevServerConfig.publicPath;
-				// webpackConfig.devServer = webpackDevServerConfig;
+					opnAddress = serverAddress + browserOptions.deployUrl;
+					// webpackConfig.devServer = webpackDevServerConfig;
 
-				// return webpackDevServerBuilder.runWebpackDevServer(
-				//   webpackConfig, undefined, getBrowserLoggingCb(browserOptions.verbose)
-				// );
-				// DRCP
-				return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions as common.AngularBuilderOptions,
-					() => {
-						const webpackConfig = this.buildWebpackConfig(
-							root, projectRoot, host, browserOptions as NormalizedBrowserBuilderSchema);
-						if (!options.watch) {
-							// There's no option to turn off file watching in webpack-dev-server, but
-							// we can override the file watcher instead.
-							webpackConfig.plugins.unshift({
-								// tslint:disable-next-line:no-any
-								apply: (compiler: any) => {
-								compiler.hooks.afterEnvironment.tap('angular-cli', () => {
-									compiler.watchFileSystem = { watch: () => { } };
-								});
-								}
-							});
-						}
-						opnAddress = serverAddress; // TODO: publicPath
-						return webpackConfig;
-					});
-			}),
-			map(buildEvent => {
-				if (first && options.open) {
-				first = false;
-				opn(opnAddress);
-				}
+					// return webpackDevServerBuilder.runWebpackDevServer(
+					//   webpackConfig, undefined, getBrowserLoggingCb(browserOptions.verbose),
+					// );
+					return webpackConfig;
+				});
+		  }),
+		  map(buildEvent => {
+			if (first && options.open) {
+			  first = false;
+			  opn(opnAddress);
+			}
 
-				return buildEvent;
-			})
+			return buildEvent as BuildEvent;
+		  })
 		);
 	}
 
@@ -155,6 +160,7 @@ export default class DrcpDevServer extends DevServerBuilder {
 		  ...(options.baseHref !== undefined ? { baseHref: options.baseHref } : {}),
 		  ...(options.progress !== undefined ? { progress: options.progress } : {}),
 		  ...(options.poll !== undefined ? { poll: options.poll } : {})
+		//   ...(options.verbose !== undefined ? { verbose: options.verbose } : {})
 		};
 
 		const browserTargetSpec = { project, target, configuration, overrides };
@@ -166,5 +172,5 @@ export default class DrcpDevServer extends DevServerBuilder {
 			architect.validateBuilderOptions(builderConfig, browserDescription)),
 		  map(browserConfig => browserConfig.options)
 		);
-	}
+	  }
 }

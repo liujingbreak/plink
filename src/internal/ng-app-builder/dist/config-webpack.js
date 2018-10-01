@@ -101,6 +101,14 @@ function changeLoaders(webpackConfig) {
     };
     webpackConfig.module.rules.forEach((rule) => {
         const test = rule.test;
+        if (rule.use) {
+            const idx = rule.use.findIndex(ruleSet => ruleSet.loader === 'postcss-loader');
+            if (idx >= 0) {
+                rule.use.splice(idx + 1, 0, {
+                    loader: require.resolve('./loaders/css-url-loader')
+                });
+            }
+        }
         if (test instanceof RegExp && test.toString() === '/\\.html$/') {
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
@@ -117,7 +125,7 @@ function changeLoaders(webpackConfig) {
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
                 test: /\.(eot|woff2|woff|ttf|svg|cur)$/,
-                use: [{ loader: 'lib/dr-file-loader' }]
+                use: [{ loader: '@dr-core/webpack2-builder/lib/dr-file-loader' }]
             });
         }
         else if (rule.loader === 'url-loader') {

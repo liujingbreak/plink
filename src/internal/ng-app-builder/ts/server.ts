@@ -154,10 +154,10 @@ function setupApiForAngularCli() {
 
 function checkAngularVersion() {
 	const deps: {[k: string]: string} = {
-		'@angular-devkit/build-angular': '~0.7.4',
-		'@angular/cli': '6.1.4',
-		'@angular/compiler-cli': '6.1.3',
-		'@angular/language-service': '6.1.3'
+		'@angular-devkit/build-angular': '~0.8.3',
+		'@angular/cli': '6.2.3',
+		'@angular/compiler-cli': '6.1.9',
+		'@angular/language-service': '6.1.9'
 	};
 	let valid = true;
 	_.each(deps, (expectVer, mod) => {
@@ -167,6 +167,19 @@ function checkAngularVersion() {
 			log.error(yellow(`Installed dependency "${mod}@`) + red(ver) + yellow(`" version is not supported, install ${expectVer} instead.`));
 		}
 	});
+
+	try {
+		const duplicate = require.resolve('@angular-devkit/build-angular/node_modules/webpack/package.json');
+		log.error(`Duplicate dependency is found in "${duplicate}",\n
+		you need to delete it and maybe \`clean\` and \`init\` again`);
+		valid = false;
+	} catch (ex) {}
+	try {
+		const duplicate = require.resolve('@angular-devkit/architect/node_modules/rxjs/package.json');
+		log.error(`Duplicate dependency is found in "${duplicate}",\n
+		you need to delete it and maybe \`clean\` and \`init\` again`);
+		valid = false;
+	} catch (ex) {}
 	return valid;
 }
 

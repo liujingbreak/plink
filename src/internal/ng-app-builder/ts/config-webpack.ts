@@ -12,6 +12,7 @@ import api from '__api';
 import {AngularCompilerPlugin} from '@ngtools/webpack';
 import createHook from './ng-ts-replace';
 import ReadHookHost from './utils/read-hook-vfshost';
+import * as webpack from 'webpack';
 const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
@@ -104,10 +105,18 @@ function changeLoaders(webpackConfig: any) {
 	webpackConfig.resolveLoader = {
 		modules: ['node_modules']
 	};
-	webpackConfig.module.rules.forEach((rule: any) => {
+	webpackConfig.module.rules.forEach((rule: webpack.Rule) => {
 		const test = rule.test;
+		if (rule.use) {
+			const idx = (rule.use as webpack.RuleSetLoader[]).findIndex(ruleSet => ruleSet.loader === 'postcss-loader');
+			if (idx >= 0) {
+				(rule.use as webpack.RuleSetLoader[]).splice(idx + 1, 0, {
+					loader: require.resolve('./loaders/css-url-loader')
+				});
+			}
+		}
 		if (test instanceof RegExp && test.toString() === '/\\.html$/') {
-			Object.keys(rule).forEach((key: string) => delete rule[key]);
+			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
 			Object.assign(rule, {
 				test,
 				use: [
@@ -118,13 +127,13 @@ function changeLoaders(webpackConfig: any) {
 				]
 			});
 		} else if (rule.loader === 'file-loader') {
-			Object.keys(rule).forEach((key: string) => delete rule[key]);
+			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
 			Object.assign(rule, {
 				test: /\.(eot|woff2|woff|ttf|svg|cur)$/,
-				use: [{loader: 'lib/dr-file-loader'}]
+				use: [{loader: '@dr-core/webpack2-builder/lib/dr-file-loader'}]
 			});
 		} else if (rule.loader === 'url-loader') {
-			Object.keys(rule).forEach((key: string) => delete rule[key]);
+			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
 			Object.assign(rule, {
 				test,
 				use: [{
@@ -154,9 +163,9 @@ function changeLoaders(webpackConfig: any) {
 			});
 			// rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
 		} else if (test instanceof RegExp && test.toString() === '/\\.less$/' && rule.use) {
-			for (const useItem of rule.use) {
+			for (const useItem of rule.use as webpack.RuleSetLoader[]) {
 				if (useItem.loader === 'less-loader' && _.has(useItem, 'options.paths')) {
-					delete useItem.options.paths;
+					delete (useItem.options as any).paths;
 					break;
 				}
 			}

@@ -2,7 +2,7 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
-var path = require('path').posix;
+var path = require('path');
 var loaderUtils = require('loader-utils');
 var api = require('__api');
 var _ = require('lodash');
@@ -52,7 +52,8 @@ module.exports = function(content) {
 			packageDir = browserPackage.packagePath;
 		}
 		outputPath = path.join(outputPath, path.dirname(path.relative(packageDir, filePath)));
-		url = path.join(outputPath, url.split('/').pop()); // only file name part
+
+		url = path.join(outputPath, url.split('/').pop()).replace(/\\/g, '/'); // only file name part
 		url = url.replace(/(^|\/)node_modules(\/|$)/g, '$1n-m$2').replace(/@/g, 'a');
 
 		var publicPath = '__webpack_public_path__ + ' + JSON.stringify(url);
