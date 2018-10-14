@@ -103,7 +103,7 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 function changeLoaders(webpackConfig: any) {
 	const devMode = webpackConfig.mode === 'development';
 	webpackConfig.resolveLoader = {
-		modules: ['node_modules']
+		modules: [Path.join(__dirname, 'loaders'), 'node_modules']
 	};
 	webpackConfig.module.rules.forEach((rule: webpack.Rule) => {
 		const test = rule.test;
@@ -111,7 +111,7 @@ function changeLoaders(webpackConfig: any) {
 			const idx = (rule.use as webpack.RuleSetLoader[]).findIndex(ruleSet => ruleSet.loader === 'postcss-loader');
 			if (idx >= 0) {
 				(rule.use as webpack.RuleSetLoader[]).splice(idx + 1, 0, {
-					loader: require.resolve('./loaders/css-url-loader')
+					loader: 'css-url-loader'
 				});
 			}
 		}
@@ -121,7 +121,7 @@ function changeLoaders(webpackConfig: any) {
 				test,
 				use: [
 					{loader: 'raw-loader'},
-					{loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader')}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
+					{loader: 'ng-html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
 					// {loader: '@dr/translate-generator'},
 					{loader: '@dr/template-builder'}
 				]

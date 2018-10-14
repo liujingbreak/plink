@@ -97,7 +97,7 @@ exports.default = changeWebpackConfig;
 function changeLoaders(webpackConfig) {
     const devMode = webpackConfig.mode === 'development';
     webpackConfig.resolveLoader = {
-        modules: ['node_modules']
+        modules: [Path.join(__dirname, 'loaders'), 'node_modules']
     };
     webpackConfig.module.rules.forEach((rule) => {
         const test = rule.test;
@@ -105,7 +105,7 @@ function changeLoaders(webpackConfig) {
             const idx = rule.use.findIndex(ruleSet => ruleSet.loader === 'postcss-loader');
             if (idx >= 0) {
                 rule.use.splice(idx + 1, 0, {
-                    loader: require.resolve('./loaders/css-url-loader')
+                    loader: 'css-url-loader'
                 });
             }
         }
@@ -115,7 +115,7 @@ function changeLoaders(webpackConfig) {
                 test,
                 use: [
                     { loader: 'raw-loader' },
-                    { loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader') },
+                    { loader: 'ng-html-loader' },
                     // {loader: '@dr/translate-generator'},
                     { loader: '@dr/template-builder' }
                 ]
