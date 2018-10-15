@@ -33,13 +33,20 @@ const urlLoader = function (content, map) {
 };
 function replaceUrl(loaderCtx, css, file) {
     return new rxjs_1.Observable(subscriber => {
-        const pattern = /(\W)url\(\s*['"]?\s*([^'")]*)['"]?\s*\)/mg;
+        const pattern = /(\W)url\s*\(\s*['"]?\s*([^'")]*)['"]?\s*\)/mg;
         while (true) {
             const result = pattern.exec(css);
             if (result == null) {
                 subscriber.complete();
                 break;
             }
+            // look behind for "@import"
+            let matchStart = result.index - 1;
+            while (matchStart >= 0 && /\s/.test(css[matchStart])) {
+                matchStart--;
+            }
+            if (matchStart >= 6 && css.slice(matchStart - 6, matchStart + 1) === '@import')
+                continue;
             subscriber.next({ start: result.index + 5,
                 end: result.index + result[0].length - 1,
                 text: result[2]

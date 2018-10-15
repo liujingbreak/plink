@@ -3,7 +3,7 @@ import loader = require('../loaders/css-url-loader');
 import * as wb from 'webpack';
 
 describe('css-url-loader', () => {
-	it('should resolve relative url()', (done) => {
+	it('should resolve relative url()', (done: any) => {
 		const context = {
 			async(): wb.loader.loaderCallback {
 				return function(err: Error, content: string) {
