@@ -14,17 +14,25 @@ describe('simple-scss-parser', () => {
         const lexer = new simple_scss_parser_1.ScssLexer(text);
         console.log('-----------');
         const tokens = Array.from(new base_LLn_parser_1.TokenFilter(lexer, simple_scss_parser_1.TokenType.any));
-        // console.log(tokens);
-        expect(tokens.length).toBe(9);
+        console.log(tokens);
+        // expect(tokens.length).toBe(9);
         for (const tk of tokens) {
             expect(text.slice(tk.start, tk.end)).toBe(tk.text);
         }
     });
-    it('parser should work', () => {
+    it('getAllImport() should work', () => {
         const lexer = new simple_scss_parser_1.ScssLexer(text);
         const parser = new simple_scss_parser_1.ScssParser(lexer);
-        const imports = parser.getAllImport();
+        const imports = parser.getAllImport(text);
         console.log(imports);
+        expect(imports.length).toBe(2);
+    });
+    it('getResUrl() should work', () => {
+        const lexer = new simple_scss_parser_1.ScssLexer(text);
+        const parser = new simple_scss_parser_1.ScssParser(lexer);
+        const imports = parser.getResUrl(text);
+        console.log(imports);
+        expect(imports.length).toBe(1);
     });
 });
 

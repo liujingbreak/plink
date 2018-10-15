@@ -7,6 +7,7 @@ import vm = require('vm');
 import patchText, {ReplacementInf} from '../utils/patch-text';
 import {Observable, of} from 'rxjs';
 import {mergeMap, map} from 'rxjs/operators';
+import {ScssParser, ScssLexer} from '../utils/simple-scss-parser';
 // import {loader as wbLoader} from 'webpack';
 const log = require('log4js').getLogger(api.packageName + '/css-url-loader');
 
@@ -15,6 +16,7 @@ const urlLoader: wb.loader.Loader = function(content: string, map) {
 	var file = this.resourcePath;
 	const self = this;
 	const replacements: ReplacementInf[] = [];
+
 	replaceUrl(this, content, file).subscribe({
 		next(repl) {
 			replacements.push(repl);
@@ -37,25 +39,13 @@ export = urlLoader;
 
 function replaceUrl(loaderCtx: wb.loader.LoaderContext, css: string, file: string): Observable<ReplacementInf> {
 	return new Observable<ReplacementInf>(subscriber => {
-		const pattern = /(\W)url\s*\(\s*['"]?\s*([^'")]*)['"]?\s*\)/mg;
-		while (true) {
-			const result = pattern.exec(css);
-			if (result == null) {
-				subscriber.complete();
-				break;
-			}
-			// look behind for "@import"
-			let matchStart = result.index - 1;
-			while (matchStart >= 0 && /\s/.test(css[matchStart])) {
-				matchStart--;
-			}
-			if (matchStart >= 6 && css.slice(matchStart - 6, matchStart + 1) === '@import')
-				continue;
-			subscriber.next({start: result.index + 5,
-				end: result.index + result[0].length - 1,
-				text: result[2]
-			} as ReplacementInf);
+		const lexer = new ScssLexer(css);
+		const parser = new ScssParser(lexer);
+		const resUrls = parser.getResUrl(css);
+		for (const {start, end, text} of resUrls) {
+			subscriber.next({start, end, text} as ReplacementInf);
 		}
+		subscriber.complete();
 	}).pipe(mergeMap( repl => {
 		var resolvedTo = replaceAssetsUrl(file, repl.text);
 		if (resolvedTo.startsWith('~')) {

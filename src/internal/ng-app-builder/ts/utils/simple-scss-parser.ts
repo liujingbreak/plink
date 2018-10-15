@@ -3,10 +3,13 @@ import {Token, BaseParser, BaseLexer} from 'dr-comp-package/wfh/dist/base-LLn-pa
 
 export enum TokenType {
 	skip,
+	id,
 	function,
 	stringLiteral,
 	any,
-	space
+	space,
+	'(',
+	')'
 }
 
 export class ScssLexer extends BaseLexer<TokenType> {
@@ -35,7 +38,16 @@ export class ScssLexer extends BaseLexer<TokenType> {
 				case '@':
 					yield this.identity();
 					break;
+				case '(':
+				case ')':
+					this.advance();
+					yield new Token(TokenType[char], this, start);
+					break;
 				default:
+					if (/[a-zA-Z0-9_-]/.test(char)) {
+						yield this.identity(TokenType.id);
+						break;
+					}
 					this.advance();
 					yield new Token(TokenType.any, this, start);
 					break;
@@ -43,13 +55,13 @@ export class ScssLexer extends BaseLexer<TokenType> {
 		}
 	}
 
-	identity() {
+	identity(type = TokenType.function) {
 		const start = this.position;
 		this.advance();
 		while (/[a-zA-Z0-9_-]/.test(this.la())) {
 			this.advance();
 		}
-		return new Token(TokenType.function, this, start);
+		return new Token(type, this, start);
 	}
 
 	stringLit(quote: string) {
@@ -97,13 +109,46 @@ export class ScssLexer extends BaseLexer<TokenType> {
 }
 
 export class ScssParser extends BaseParser<TokenType> {
-	getAllImport(): Array<Token<TokenType>> {
-		const res: Array<Token<TokenType>> = [];
+	getResUrl(text: string): Array<{start: number, end: number, text: string}> {
+		const res: Array<{start: number, end: number, text: string}> = [];
+		while(this.la() != null) {
+			if (this.isNextTypes(TokenType.id, TokenType['(']) &&
+				this.la().text === 'url' && this.lb().text !== '@import') {
+					const start = this.la(2).end;
+					this.advance(2);
+					while(this.la() != null && this.la().type !== TokenType[')']) {
+						this.advance();
+					}
+					if (this.la() == null)
+						throw new Error('Unexpect end of file');
+					const end = this.la().start;
+					res.push({start, end, text: text.slice(start, end)});
+			} else {
+				this.advance();
+			}
+		}
+		return res;
+	}
+
+	getAllImport(text: string): Array<{start: number, end: number, text: string}> {
+		const res: Array<{start: number, end: number, text: string}> = [];
 		while (this.la() != null) {
 			if (this.isNextTypes(TokenType.function, TokenType.stringLiteral) && this.la().text === '@import') {
 				res.push(this.la(2));
 				this.advance(2);
-			} else if (this.la() != null)
+			} else if (this.isNextTypes(TokenType.function, TokenType.id, TokenType['(']) &&
+				this.la().text === '@import' && this.la(2).text === 'url') {
+					const start = this.la(3).end;
+					this.advance(3);
+					while(this.la() != null && this.la().type !== TokenType[')']) {
+						this.advance();
+					}
+					if (this.la() == null)
+						throw new Error('Unexpect end of file');
+					const end = this.la().start;
+					this.advance();
+					res.push({start, end, text: text.slice(start, end)});
+			} else
 				this.advance();
 		}
 		return res;

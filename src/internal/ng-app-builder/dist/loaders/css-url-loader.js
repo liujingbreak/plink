@@ -7,6 +7,7 @@ const vm = require("vm");
 const patch_text_1 = require("../utils/patch-text");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
+const simple_scss_parser_1 = require("../utils/simple-scss-parser");
 // import {loader as wbLoader} from 'webpack';
 const log = require('log4js').getLogger(__api_1.default.packageName + '/css-url-loader');
 const urlLoader = function (content, map) {
@@ -33,25 +34,13 @@ const urlLoader = function (content, map) {
 };
 function replaceUrl(loaderCtx, css, file) {
     return new rxjs_1.Observable(subscriber => {
-        const pattern = /(\W)url\s*\(\s*['"]?\s*([^'")]*)['"]?\s*\)/mg;
-        while (true) {
-            const result = pattern.exec(css);
-            if (result == null) {
-                subscriber.complete();
-                break;
-            }
-            // look behind for "@import"
-            let matchStart = result.index - 1;
-            while (matchStart >= 0 && /\s/.test(css[matchStart])) {
-                matchStart--;
-            }
-            if (matchStart >= 6 && css.slice(matchStart - 6, matchStart + 1) === '@import')
-                continue;
-            subscriber.next({ start: result.index + 5,
-                end: result.index + result[0].length - 1,
-                text: result[2]
-            });
+        const lexer = new simple_scss_parser_1.ScssLexer(css);
+        const parser = new simple_scss_parser_1.ScssParser(lexer);
+        const resUrls = parser.getResUrl(css);
+        for (const { start, end, text } of resUrls) {
+            subscriber.next({ start, end, text });
         }
+        subscriber.complete();
     }).pipe(operators_1.mergeMap(repl => {
         var resolvedTo = replaceAssetsUrl(file, repl.text);
         if (resolvedTo.startsWith('~')) {
