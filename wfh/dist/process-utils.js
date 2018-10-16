@@ -121,7 +121,7 @@ function exe(command, ...argsAndOption) {
     // var args = [].slice.call(arguments);
     if (isWindows) {
         switch (command) {
-            case 'node':
+            // case 'node':
             case 'npm':
             case 'yarn':
             case 'gulp':
