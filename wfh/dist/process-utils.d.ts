@@ -1,8 +1,13 @@
 /// <reference types="node" />
 import { ChildProcess, SpawnOptions } from 'child_process';
+export declare const isWindows: boolean;
 export interface Option extends SpawnOptions {
     timeout?: number;
     silent?: boolean;
+}
+export interface Result {
+    childProcess: ChildProcess;
+    promise: Promise<string>;
 }
 /**
  * Spawn process
@@ -17,10 +22,7 @@ export interface Option extends SpawnOptions {
  * @return {Promise} rejected if child process exits with non-zero code
  */
 export declare function promisifySpawn(command: string, ...args: Array<string | Option>): Promise<string>;
-export declare function spawn(command: string, ...args: Array<string | Option>): {
-    childProcess: ChildProcess;
-    promise: Promise<string>;
-};
+export declare function spawn(command: string, ...args: Array<string | Option>): Result;
 /**
  * Fix some executable command for windows
  * @param  {string} command     [description]
@@ -32,16 +34,10 @@ export declare function spawn(command: string, ...args: Array<string | Option>):
  *
  * @return {Promise}        rejected if child process exits with non-zero code
  */
-export declare function promisifyExe(command: string, ...argsAndOption: Array<string | Option>): {
-    childProcess: ChildProcess;
-    promise: Promise<string>;
-};
+export declare function promisifyExe(command: string, ...argsAndOption: Array<string | Option>): Result;
 /**
  * @param {*} command
  * @param {*} argsAndOption
  * @return {object} {promise: Promise, childProcess: child_process}
  */
-export declare function exe(command: string, ...argsAndOption: Array<string | Option>): {
-    childProcess: ChildProcess;
-    promise: Promise<string>;
-};
+export declare function exe(command: string, ...argsAndOption: Array<string | Option>): Result;

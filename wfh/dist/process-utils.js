@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-/* tslint:disable:no-console */
+/* tslint:disable:no-console indent */
 const child_process_1 = require("child_process");
-const isWindows = process.platform === 'win32';
+exports.isWindows = process.platform === 'win32';
 /**
  * Spawn process
  * @param  {string} command
@@ -20,7 +20,7 @@ function promisifySpawn(command, ...args) {
 }
 exports.promisifySpawn = promisifySpawn;
 function spawn(command, ...args) {
-    var opts = args[args.length - 1];
+    let opts = args[args.length - 1];
     if (typeof opts === 'string') {
         opts = {};
     }
@@ -33,11 +33,11 @@ function spawn(command, ...args) {
     if (!(opts && opts.silent)) {
         opts.stdio = 'inherit';
     }
-    var res;
+    let res;
     const promise = checkTimeout(new Promise((resolve, reject) => {
         res = child_process_1.spawn(command, args, opts);
         // console.log(command, args);
-        var output;
+        let output;
         if (opts && opts.silent) {
             output = '';
             res.stdout.setEncoding('utf-8');
@@ -57,13 +57,15 @@ function spawn(command, ...args) {
                 const errMsg = `Child process exit with code ${code}, signal ` + signal;
                 if (opts == null || opts.silent !== true) {
                     console.log(errMsg);
-                    if (output)
+                    if (output) {
                         console.log(output);
+                    }
                 }
                 return reject(new Error(errMsg + '\n' + (output ? output : '')));
             }
-            else
+            else {
                 resolve(output);
+            }
         });
     }), opts.timeout)
         .catch(e => {
@@ -80,15 +82,17 @@ function spawn(command, ...args) {
 }
 exports.spawn = spawn;
 function checkTimeout(origPromise, timeBox = 600000) {
-    var timeout;
+    let timeout;
     return new Promise((resolve, reject) => {
         origPromise.then(res => {
-            if (timeout)
+            if (timeout) {
                 clearTimeout(timeout);
+            }
             resolve(res);
         }).catch(e => {
-            if (timeout)
+            if (timeout) {
                 clearTimeout(timeout);
+            }
             reject(e);
         });
         timeout = setTimeout(() => {
@@ -119,7 +123,7 @@ exports.promisifyExe = promisifyExe;
  */
 function exe(command, ...argsAndOption) {
     // var args = [].slice.call(arguments);
-    if (isWindows) {
+    if (exports.isWindows) {
         switch (command) {
             // case 'node':
             case 'npm':
@@ -128,8 +132,8 @@ function exe(command, ...argsAndOption) {
                 command += '.cmd';
                 break;
             default:
-                throw new Error('Unsupported command ' + command);
         }
+        command = command.replace(/\//g, '\\');
     }
     return spawn(command, ...argsAndOption);
 }
