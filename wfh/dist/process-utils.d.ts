@@ -1,6 +1,6 @@
 /// <reference types="node" />
-import { ChildProcess } from 'child_process';
-export interface Option {
+import { ChildProcess, SpawnOptions } from 'child_process';
+export interface Option extends SpawnOptions {
     timeout?: number;
     silent?: boolean;
 }

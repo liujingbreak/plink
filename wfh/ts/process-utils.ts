@@ -1,8 +1,8 @@
 /* tslint:disable:no-console */
-import {spawn as sysSpawn, ChildProcess} from 'child_process';
+import {spawn as sysSpawn, ChildProcess, SpawnOptions} from 'child_process';
 const isWindows = process.platform === 'win32';
 
-export interface Option {
+export interface Option extends SpawnOptions {
 	timeout?: number;
 	silent?: boolean;
 }
