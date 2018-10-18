@@ -2,14 +2,19 @@ import api from '__api';
 import * as request from 'request';
 import * as Url from 'url';
 import fs = require('fs');
+import * as _ from 'lodash';
 const AdmZip = require('adm-zip');
 
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
 
-interface Checksum {
+interface OldChecksum {
 	version: number;
 	path: string;
 	changeFetchUrl?: string;
+}
+
+interface Checksum extends OldChecksum {
+	versions?: {[key: string]: {version: number, path: string}};
 }
 
 interface Setting {
@@ -20,7 +25,12 @@ interface Setting {
 }
 
 let setting: Setting;
-let currVersion: number = Number.NEGATIVE_INFINITY;
+// let currVersion: number = Number.NEGATIVE_INFINITY;
+const currentChecksum: Checksum = {
+	version: Number.NEGATIVE_INFINITY,
+	path: '',
+	versions: {}
+};
 let timer: NodeJS.Timer;
 let stopped = false;
 let errCount = 0;
@@ -78,10 +88,30 @@ async function run(setting: Setting) {
 		setting.fetchUrl = checksumObj.changeFetchUrl;
 		log.info('Change fetch URL to', setting.fetchUrl);
 	}
-	if (checksumObj.version != null && currVersion >= checksumObj.version)
-		return;
+	let downloaded = false;
+	if (checksumObj.version != null && currentChecksum.version !== checksumObj.version) {
+		await downloadZip(checksumObj.path);
+		downloaded = true;
+		currentChecksum.version = checksumObj.version;
+	}
+	if (checksumObj.versions) {
+		const currVersions = currentChecksum.versions;
+		const targetVersions = checksumObj.versions;
+		for (const key of Object.keys(checksumObj.versions)) {
+			if (!_.has(targetVersions, key) || _.get(currVersions, [key, 'version']) !==
+				_.get(targetVersions, [key, 'version'])) {
+					await downloadZip(targetVersions[key].path);
+					currVersions[key] = targetVersions[key];
+					downloaded = true;
+				}
+		}
+	}
+	if (downloaded)
+		api.eventBus.emit(api.packageName + '.downloaded');
+}
 
-	const resource = Url.resolve( setting.fetchUrl, checksumObj.path + '?' + Math.random());
+async function downloadZip(path: string) {
+	const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
 	const downloadTo = api.config.resolve('destDir', 'remote.zip');
 	log.info('fetch', resource);
 	await retry(() => {
@@ -96,8 +126,6 @@ async function run(setting: Setting) {
 	const zip = new AdmZip(downloadTo);
 	log.info('extract', resource);
 	zip.extractAllTo(api.config.resolve('staticDir'), true);
-	api.eventBus.emit(api.packageName + '.downloaded');
-	currVersion = checksumObj.version;
 }
 
 function fetch(fetchUrl: string): Promise<any> {
@@ -112,8 +140,12 @@ function fetch(fetchUrl: string): Promise<any> {
 			if (response.statusCode < 200 || response.statusCode > 302) {
 				return rej(new Error(`status code ${response.statusCode}\nresponse:\n${response}\nbody:\n${body}`));
 			}
-			if (typeof body === 'string')
-				body = JSON.parse(body);
+			try {
+				if (typeof body === 'string')
+					body = JSON.parse(body);
+			} catch (ex) {
+				rej(ex);
+			}
 			resolve(body);
 		});
 	});

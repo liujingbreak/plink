@@ -1,14 +1,18 @@
 ## Fetch zip file and host its content as a file server
 - Forct fetch latest checksum file from URL (`fetchUrl`), compare it with local one
 - Fetch checksum at intervals (`fetchIntervalSec`)
-- If remote checksum is different, fetch zip file from URL addressed in checksum file
+- If remote version is different, fetch zip file from URL addressed in checksum file
 - unzip files to override any existing same name files.
 #### checksum file structure
 ```json
 {
-  "version": 21321313,
-  "path": "/foobar/abc.zip",
-  "changeFetchUrl": "<optional property: new url>"
+   "versions": {
+      <key>: {
+        "version": 123,
+        "path": <url>
+      }
+   },
+   "changeFetchUrl": "<optional property: new url>"
 }
 ```
 `path` can be any relative path or absolute URL like "abc.zip"  or "https://foobar.com/abc.zip"

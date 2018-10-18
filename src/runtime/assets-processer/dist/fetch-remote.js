@@ -12,10 +12,16 @@ const __api_1 = require("__api");
 const request = require("request");
 const Url = require("url");
 const fs = require("fs");
+const _ = require("lodash");
 const AdmZip = require('adm-zip');
 const log = require('log4js').getLogger(__api_1.default.packageName + '.fetch-remote');
 let setting;
-let currVersion = Number.NEGATIVE_INFINITY;
+// let currVersion: number = Number.NEGATIVE_INFINITY;
+const currentChecksum = {
+    version: Number.NEGATIVE_INFINITY,
+    path: '',
+    versions: {}
+};
 let timer;
 let stopped = false;
 let errCount = 0;
@@ -73,9 +79,31 @@ function run(setting) {
             setting.fetchUrl = checksumObj.changeFetchUrl;
             log.info('Change fetch URL to', setting.fetchUrl);
         }
-        if (checksumObj.version != null && currVersion >= checksumObj.version)
-            return;
-        const resource = Url.resolve(setting.fetchUrl, checksumObj.path + '?' + Math.random());
+        let downloaded = false;
+        if (checksumObj.version != null && currentChecksum.version !== checksumObj.version) {
+            yield downloadZip(checksumObj.path);
+            downloaded = true;
+            currentChecksum.version = checksumObj.version;
+        }
+        if (checksumObj.versions) {
+            const currVersions = currentChecksum.versions;
+            const targetVersions = checksumObj.versions;
+            for (const key of Object.keys(checksumObj.versions)) {
+                if (!_.has(targetVersions, key) || _.get(currVersions, [key, 'version']) !==
+                    _.get(targetVersions, [key, 'version'])) {
+                    yield downloadZip(targetVersions[key].path);
+                    currVersions[key] = targetVersions[key];
+                    downloaded = true;
+                }
+            }
+        }
+        if (downloaded)
+            __api_1.default.eventBus.emit(__api_1.default.packageName + '.downloaded');
+    });
+}
+function downloadZip(path) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const resource = Url.resolve(setting.fetchUrl, path + '?' + Math.random());
         const downloadTo = __api_1.default.config.resolve('destDir', 'remote.zip');
         log.info('fetch', resource);
         yield retry(() => {
@@ -90,8 +118,6 @@ function run(setting) {
         const zip = new AdmZip(downloadTo);
         log.info('extract', resource);
         zip.extractAllTo(__api_1.default.config.resolve('staticDir'), true);
-        __api_1.default.eventBus.emit(__api_1.default.packageName + '.downloaded');
-        currVersion = checksumObj.version;
     });
 }
 function fetch(fetchUrl) {
@@ -105,8 +131,13 @@ function fetch(fetchUrl) {
             if (response.statusCode < 200 || response.statusCode > 302) {
                 return rej(new Error(`status code ${response.statusCode}\nresponse:\n${response}\nbody:\n${body}`));
             }
-            if (typeof body === 'string')
-                body = JSON.parse(body);
+            try {
+                if (typeof body === 'string')
+                    body = JSON.parse(body);
+            }
+            catch (ex) {
+                rej(ex);
+            }
             resolve(body);
         });
     });

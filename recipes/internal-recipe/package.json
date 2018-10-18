@@ -5,7 +5,7 @@
 	"dependencies": {
     "@dr-core/ng-app-builder": "2.0.32",
     "@dr/template-builder": "1.0.3",
-    "@dr-core/webpack2-builder": "1.0.10",
-    "@dr/translate-generator": "1.0.3"
+    "@dr/translate-generator": "1.0.3",
+    "@dr-core/webpack2-builder": "1.0.10"
 }
 }
