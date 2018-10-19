@@ -13,6 +13,7 @@ import {AngularCompilerPlugin} from '@ngtools/webpack';
 import createHook from './ng-ts-replace';
 import ReadHookHost from './utils/read-hook-vfshost';
 import * as webpack from 'webpack';
+
 const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
@@ -114,6 +115,16 @@ function changeLoaders(webpackConfig: any) {
 					loader: 'css-url-loader'
 				});
 			}
+		}
+		console.log(test);
+
+		if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
+			(rule.use as webpack.RuleSetUseItem[]).some((item) => (item as webpack.RuleSetLoader).loader === '@angular-devkit/build-optimizer/webpack-loader')) {
+			rule.test = (path: string) => {
+				if (!/\.js$/.test(path))
+					return;
+				return (api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]).every((exclude => !path.replace(/\\/g, '/').includes(exclude)));
+			};
 		}
 		if (test instanceof RegExp && test.toString() === '/\\.html$/') {
 			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);

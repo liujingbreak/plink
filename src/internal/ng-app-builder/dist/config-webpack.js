@@ -109,6 +109,15 @@ function changeLoaders(webpackConfig) {
                 });
             }
         }
+        console.log(test);
+        if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
+            rule.use.some((item) => item.loader === '@angular-devkit/build-optimizer/webpack-loader')) {
+            rule.test = (path) => {
+                if (!/\.js$/.test(path))
+                    return;
+                return __api_1.default.config.get([__api_1.default.packageName, 'build-optimizer:exclude'], []).every((exclude => !path.replace(/\\/g, '/').includes(exclude)));
+            };
+        }
         if (test instanceof RegExp && test.toString() === '/\\.html$/') {
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
