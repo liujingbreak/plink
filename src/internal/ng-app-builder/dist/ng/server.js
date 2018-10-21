@@ -19,7 +19,7 @@ class ServerBuilder extends build_angular_1.ServerBuilder {
         const webpackBuilder = new build_webpack_1.WebpackBuilder(Object.assign({}, this.context, { host }));
         // TODO: verify using of(null) to kickstart things is a pattern.
         return rxjs_1.of(null).pipe(operators_1.concatMap(() => options.deleteOutputPath
-            ? this._deleteOutputDir0(root, core_1.normalize(options.outputPath), this.context.host)
+            ? this._deleteOutputDir(root, core_1.normalize(options.outputPath), this.context.host)
             : rxjs_1.of(null)), operators_1.concatMap(() => utils_1.normalizeFileReplacements(options.fileReplacements, host, root)), operators_1.tap(fileReplacements => options.fileReplacements = fileReplacements), operators_1.concatMap(() => {
             return drcpCommon.compile(builderConfig.root, builderConfig, () => {
                 return this.buildWebpackConfig(root, projectRoot, host, options);
@@ -28,17 +28,6 @@ class ServerBuilder extends build_angular_1.ServerBuilder {
             // const webpackConfig = this.buildWebpackConfig(root, projectRoot, host, options);
             return webpackBuilder.runWebpack(webpackConfig, browser_1.getBrowserLoggingCb(options.verbose));
         }));
-    }
-    _deleteOutputDir0(root, outputPath, host) {
-        const resolvedOutputPath = core_1.resolve(root, outputPath);
-        if (resolvedOutputPath === root) {
-            throw new Error('Output path MUST not be project root directory!');
-        }
-        return host.exists(resolvedOutputPath).pipe(operators_1.concatMap(exists => exists
-            // TODO: remove this concat once host ops emit an event.
-            ? rxjs_1.concat(host.delete(resolvedOutputPath), rxjs_1.of(null)).pipe(operators_1.last())
-            // ? of(null)
-            : rxjs_1.of(null)));
     }
 }
 exports.default = ServerBuilder;

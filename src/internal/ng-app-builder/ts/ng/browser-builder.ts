@@ -6,10 +6,10 @@ import {
 	BuilderConfiguration
   } from '@angular-devkit/architect';
   import { WebpackBuilder } from '@angular-devkit/build-webpack';
-  import { Path, normalize, resolve, virtualFs } from '@angular-devkit/core';
+  import { normalize, resolve, virtualFs } from '@angular-devkit/core';
   import * as fs from 'fs';
-  import { Observable, concat, of } from 'rxjs';
-  import { concatMap, last, tap } from 'rxjs/operators';
+  import { Observable, of } from 'rxjs';
+  import { concatMap, tap } from 'rxjs/operators';
   import { augmentAppWithServiceWorker } from '@angular-devkit/build-angular/src/angular-cli-files/utilities/service-worker';
   import { normalizeAssetPatterns, normalizeFileReplacements } from '@angular-devkit/build-angular/src/utils';
   import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
@@ -27,7 +27,7 @@ export default class BrowserBuilder extends GoogleBrowserBuilder {
 
 		return of(null).pipe(
 			concatMap(() => options.deleteOutputPath
-				? this._deleteOutputDir__(root, normalize(options.outputPath), this.context.host)
+				? (this as any)._deleteOutputDir(root, normalize(options.outputPath), this.context.host)
 				: of(null)),
 			concatMap(() => normalizeFileReplacements(options.fileReplacements, host, root)),
 			tap(fileReplacements => options.fileReplacements = fileReplacements),
@@ -41,58 +41,43 @@ export default class BrowserBuilder extends GoogleBrowserBuilder {
 						return this.buildWebpackConfig(root, projectRoot, host,
 						options as NormalizedBrowserBuilderSchema);
 					});
-			}),
-			concatMap((webpackConfig) => {
-				// let webpackConfig;
-				// try {
-				// 	webpackConfig = this.buildWebpackConfig(root, projectRoot, host,
-				// 	options as NormalizedBrowserBuilderSchema);
-				// } catch (e) {
-				// 	return throwError(e);
-				// }
+				}),
+		  concatMap((webpackConfig) => {
+			// let webpackConfig;
+			// try {
+			//   webpackConfig = this.buildWebpackConfig(root, projectRoot, host,
+			// 	options as NormalizedBrowserBuilderSchema);
+			// } catch (e) {
+			//   return throwError(e);
+			// }
 
-				return webpackBuilder.runWebpack(webpackConfig, getBrowserLoggingCb(options.verbose));
-			}),
-			concatMap(buildEvent => {
-				if (buildEvent.success && !options.watch && options.serviceWorker) {
-					return new Observable(obs => {
-					augmentAppWithServiceWorker(
-						this.context.host,
-						root,
-						projectRoot,
-						resolve(root, normalize(options.outputPath)),
-						options.baseHref || '/',
-						options.ngswConfigPath
-					).then(
-						() => {
-							obs.next({ success: true });
-							obs.complete();
-						},
-						(err: Error) => {
-							obs.error(err);
-						}
-					);
-					});
-				} else {
-					return of(buildEvent as BuildEvent);
-				}
-			})
+			return webpackBuilder.runWebpack(webpackConfig, getBrowserLoggingCb(options.verbose));
+		  }),
+		  concatMap((buildEvent: BuildEvent) => {
+			if (buildEvent.success && !options.watch && options.serviceWorker) {
+			  return new Observable(obs => {
+				augmentAppWithServiceWorker(
+				  this.context.host,
+				  root,
+				  projectRoot,
+				  resolve(root, normalize(options.outputPath)),
+				  options.baseHref || '/',
+				  options.ngswConfigPath
+				).then(
+				  () => {
+					obs.next({ success: true });
+					obs.complete();
+				  },
+				  (err: Error) => {
+					obs.error(err);
+				  }
+				);
+			  });
+			} else {
+			  return of(buildEvent);
+			}
+		  })
 		);
 	}
-
-	private _deleteOutputDir__(root: Path, outputPath: Path, host: virtualFs.Host) {
-	const resolvedOutputPath = resolve(root, outputPath);
-	if (resolvedOutputPath === root) {
-		throw new Error('Output path MUST not be project root directory!');
-	}
-
-	return host.exists(resolvedOutputPath).pipe(
-		concatMap(exists => exists
-		// TODO: remove this concat once host ops emit an event.
-		? concat(host.delete(resolvedOutputPath), of(null)).pipe(last())
-		// ? of(null)
-		: of(null))
-	);
-  }
 
 }

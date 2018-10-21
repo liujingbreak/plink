@@ -6,10 +6,10 @@ import {
   BuilderConfiguration
 } from '@angular-devkit/architect';
 import { WebpackBuilder } from '@angular-devkit/build-webpack';
-import { Path, normalize, resolve, virtualFs } from '@angular-devkit/core';
+import { normalize, resolve, virtualFs } from '@angular-devkit/core';
 import { Stats } from 'fs';
-import { Observable, concat, of } from 'rxjs';
-import { concatMap, last, tap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { concatMap, tap } from 'rxjs/operators';
 import { getBrowserLoggingCb } from '@angular-devkit/build-angular/src/browser';
 import { normalizeFileReplacements } from '@angular-devkit/build-angular/src/utils';
 import { BuildWebpackServerSchema } from '@angular-devkit/build-angular/src/server/schema';
@@ -27,9 +27,9 @@ export default class ServerBuilder extends GoogleServerBuilder {
 
 		// TODO: verify using of(null) to kickstart things is a pattern.
 		return of(null).pipe(
-			concatMap(() => options.deleteOutputPath
-				? this._deleteOutputDir0(root, normalize(options.outputPath), this.context.host)
-				: of(null)),
+		  concatMap(() => options.deleteOutputPath
+			? (this as any)._deleteOutputDir(root, normalize(options.outputPath), this.context.host)
+			: of(null)),
 			concatMap(() => normalizeFileReplacements(options.fileReplacements, host, root)),
 			tap(fileReplacements => options.fileReplacements = fileReplacements),
 			concatMap(() => {
@@ -37,26 +37,11 @@ export default class ServerBuilder extends GoogleServerBuilder {
 					return this.buildWebpackConfig(root, projectRoot, host, options);
 				}, true);
 			}),
-		  	concatMap(webpackConfig => {
-				// const webpackConfig = this.buildWebpackConfig(root, projectRoot, host, options);
+		  concatMap( webpackConfig => {
+			// const webpackConfig = this.buildWebpackConfig(root, projectRoot, host, options);
 
-				return webpackBuilder.runWebpack(webpackConfig, getBrowserLoggingCb(options.verbose));
-			})
-		);
-	}
-
-	private _deleteOutputDir0(root: Path, outputPath: Path, host: virtualFs.Host) {
-		const resolvedOutputPath = resolve(root, outputPath);
-		if (resolvedOutputPath === root) {
-			throw new Error('Output path MUST not be project root directory!');
-		}
-
-		return host.exists(resolvedOutputPath).pipe(
-			concatMap(exists => exists
-				// TODO: remove this concat once host ops emit an event.
-				? concat(host.delete(resolvedOutputPath), of(null)).pipe(last())
-				// ? of(null)
-				: of(null))
+			return webpackBuilder.runWebpack(webpackConfig, getBrowserLoggingCb(options.verbose));
+		  })
 		);
 	}
 }

@@ -7,7 +7,7 @@ import {virtualFs, Path ,getSystemPath} from '@angular-devkit/core';
 import {Observable} from 'rxjs';
 import {concatMap} from 'rxjs/operators';
 import {WebpackInputHost} from '@ngtools/webpack/src/webpack-input-host';
-import { InputFileSystem } from '@ngtools/webpack/src/webpack';
+import { InputFileSystem } from 'webpack';
 // import {sep} from 'path';
 
 // const isWindows = sep === '\\';

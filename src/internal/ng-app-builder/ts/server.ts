@@ -3,7 +3,7 @@ import api, {DrcpApi} from '__api';
 import * as log4js from 'log4js';
 import * as _ from 'lodash';
 import * as Path from 'path';
-// import * as _fs from 'fs';
+import * as _fs from 'fs';
 // import { PrerenderForExpress } from './ng-prerender';
 import {AngularCliParam} from './ng/common';
 import changeWebpackConfig from './config-webpack';
@@ -27,83 +27,6 @@ export function init() {
 
 export function activate() {
 }
-
-// function writeTsconfig(): string {
-// 	var root = api.config().rootPath;
-// 	var tempDir = api.config.resolve('destDir', 'webpack-temp');
-// 	sysFs.mkdirsSync(tempDir);
-// 	var packageScopes: string[] = api.config().packageScopes;
-// 	var components = api.packageInfo.moduleMap;
-
-// 	type PackageInstances = typeof api.packageInfo.allModules;
-// 	var ngPackages: PackageInstances = api.packageInfo.allModules;
-// 	if (api.argv.package && api.argv.package.length > 0) {
-// 		var someComps: PackageInstances = [];
-// 		var packages = _.uniq([...api.argv.package, api.packageName]);
-// 		for (const name of packages) {
-// 			if (_.has(components, name) && _.has(components, [name, 'dr', 'angularCompiler'])) {
-// 				someComps.push(components[name]);
-// 			} else {
-// 				packageScopes.some(scope => {
-// 					const testName = `@${scope}/${name}`;
-// 					if (_.has(components, testName) && _.get(components, [name, 'dr', 'angularCompiler'])) {
-// 						someComps.push(components[testName]);
-// 						return true;
-// 					}
-// 					return false;
-// 				});
-// 			}
-// 		}
-// 		ngPackages = someComps;
-// 	} else {
-// 		ngPackages = ngPackages.filter(comp => comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk');
-// 	}
-// 	const tsInclude: string[] = [];
-// 	const tsExclude: string[] = [];
-// 	ngPackages.forEach(pk => {
-// 		// TODO: doc for dr.ngAppModule
-// 		let isNgAppModule: boolean = _.get(pk, 'dr.ngAppModule');
-// 		const dir = Path.relative(tempDir,
-// 			isNgAppModule ? pk.realPackagePath : pk.packagePath)
-// 			// pk.packagePath)
-// 			// pk.realPackagePath.startsWith(root) ? pk.realPackagePath : pk.packagePath)
-// 			.replace(/\\/g, '/');
-// 		if (isNgAppModule) {
-// 			tsInclude.unshift(dir + '/**/*.ts');
-// 			// entry package must be at first of TS include list, otherwise will encounter:
-// 			// "Error: No NgModule metadata found for 'AppModule'
-// 		} else {
-// 			tsInclude.push(dir + '/**/*.ts');
-// 		}
-// 		tsExclude.push(dir + '/ts',
-// 			dir + '/spec',
-// 			dir + '/dist',
-// 			dir + '/**/*.spec.ts');
-// 	});
-// 	tsExclude.push('**/test.ts');
-
-// 	var tsjson: any = {
-// 		extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
-// 		include: tsInclude,
-// 		exclude: tsExclude,
-// 		compilerOptions: {
-// 			baseUrl: root,
-// 			typeRoots: [
-// 				Path.resolve(root, 'node_modules/@types'),
-// 				Path.resolve(root, 'node_modules/@dr-types'),
-// 				Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
-// 			],
-// 			module: 'esnext'
-// 		},
-// 		angularCompilerOptions: {
-// 			trace: true,
-// 			strictMetadataEmit: true
-// 		}
-// 	};
-// 	var tsConfigPath = Path.resolve(tempDir, 'angular-app-tsconfig.json');
-// 	fs.writeFileSync(tsConfigPath, JSON.stringify(tsjson, null, '  '));
-// 	return tsConfigPath;
-// }
 
 function setupApiForAngularCli() {
 	const ngParam: AngularCliParam = api.config()._angularCli;
@@ -154,10 +77,10 @@ function setupApiForAngularCli() {
 
 function checkAngularVersion() {
 	const deps: {[k: string]: string} = {
-		'@angular-devkit/build-angular': '~0.8.3',
-		'@angular/cli': '6.2.3',
-		'@angular/compiler-cli': '6.1.9',
-		'@angular/language-service': '6.1.9'
+		'@angular-devkit/build-angular': '~0.10.2',
+		'@angular/cli': '7.0.2',
+		'@angular/compiler-cli': '7.0.0',
+		'@angular/language-service': '7.0.0'
 	};
 	let valid = true;
 	_.each(deps, (expectVer, mod) => {
@@ -174,6 +97,12 @@ function checkAngularVersion() {
 		you need to delete it and maybe \`clean\` and \`init\` again`);
 		valid = false;
 	} catch (ex) {}
+
+	if (_fs.existsSync('@angular-devkit/build-angular/node_modules/@angular-devkit')) {
+		log.error(`Duplicate dependency is found in "@angular-devkit/build-angular/node_modules/@angular-devkit",\n
+		you need to delete it and maybe \`clean\` and \`init\` again`);
+		valid = false;
+	}
 	try {
 		const duplicate = require.resolve('@angular-devkit/architect/node_modules/rxjs/package.json');
 		log.error(`Duplicate dependency is found in "${duplicate}",\n

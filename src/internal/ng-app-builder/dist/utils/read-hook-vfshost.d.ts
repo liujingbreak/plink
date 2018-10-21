@@ -5,7 +5,7 @@
 import { virtualFs, Path } from '@angular-devkit/core';
 import { Observable } from 'rxjs';
 import { WebpackInputHost } from '@ngtools/webpack/src/webpack-input-host';
-import { InputFileSystem } from '@ngtools/webpack/src/webpack';
+import { InputFileSystem } from 'webpack';
 export declare type FBuffer = virtualFs.FileBuffer;
 export interface TsFile {
     path: Path;
