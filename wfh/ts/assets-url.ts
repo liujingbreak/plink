@@ -18,7 +18,7 @@ export function entryPageUrl(packageName: string, path: string, locale: string):
 		locale, packageName, path);
 }
 
-export function assetsUrl(packageName: string, path: string): string {
+export function assetsUrl(packageName: string, path?: string): string {
 	if (path === undefined) {
 		path = arguments[0];
 		packageName = this.packageName;

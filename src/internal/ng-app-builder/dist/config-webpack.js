@@ -13,7 +13,7 @@ const __api_1 = require("__api");
 const webpack_2 = require("@ngtools/webpack");
 const ng_ts_replace_1 = require("./ng-ts-replace");
 const read_hook_vfshost_1 = require("./utils/read-hook-vfshost");
-const { babel } = require('@dr-core/webpack2-builder/configs/loader-config');
+// const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 function changeWebpackConfig(param, webpackConfig, drcpConfig) {
     // const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
@@ -99,7 +99,11 @@ function changeLoaders(webpackConfig) {
     webpackConfig.resolveLoader = {
         modules: [Path.join(__dirname, 'loaders'), 'node_modules']
     };
-    webpackConfig.module.rules.forEach((rule) => {
+    const rules = webpackConfig.module.rules;
+    let hasUrlLoader = false;
+    let fileLoaderRuleIdx;
+    let fileLoaderTest;
+    rules.forEach((rule, ruleIdx) => {
         const test = rule.test;
         if (rule.use) {
             const idx = rule.use.findIndex(ruleSet => ruleSet.loader === 'postcss-loader');
@@ -109,7 +113,6 @@ function changeLoaders(webpackConfig) {
                 });
             }
         }
-        console.log(test);
         if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
             rule.use.some((item) => item.loader === '@angular-devkit/build-optimizer/webpack-loader')) {
             rule.test = (path) => {
@@ -131,13 +134,17 @@ function changeLoaders(webpackConfig) {
             });
         }
         else if (rule.loader === 'file-loader') {
+            fileLoaderRuleIdx = ruleIdx;
+            const test = rule.test;
+            fileLoaderTest = test;
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
-                test: /\.(eot|woff2|woff|ttf|svg|cur)$/,
+                test,
                 use: [{ loader: '@dr-core/webpack2-builder/lib/dr-file-loader' }]
             });
         }
         else if (rule.loader === 'url-loader') {
+            hasUrlLoader = true;
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
                 test,
@@ -179,7 +186,22 @@ function changeLoaders(webpackConfig) {
             // rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
         }
     });
-    webpackConfig.module.rules.unshift({
+    if (!hasUrlLoader) {
+        if (fileLoaderRuleIdx == null)
+            throw new Error('Missing file-loader rule from Angular\'s Webpack config');
+        console.log('Insert url-loader');
+        rules.splice(fileLoaderRuleIdx + 1, 0, {
+            test: fileLoaderTest,
+            use: [{
+                    loader: 'url-loader',
+                    options: {
+                        limit: 10000,
+                        fallback: '@dr-core/webpack2-builder/lib/dr-file-loader'
+                    }
+                }]
+        });
+    }
+    rules.unshift({
         test: /\.jade$/,
         use: [
             { loader: 'html-loader', options: { attrs: 'img:src' } },
@@ -203,26 +225,22 @@ function changeLoaders(webpackConfig) {
             { loader: 'json-loader' },
             { loader: 'yaml-loader' }
         ]
-    }, {
-        test: isDrJs,
-        use: [babel()]
-    });
-    // TODO: Until scss-import-loader is ready
-    // webpackConfig.module.rules.push({
-    // 	test: /\.scss$/,
-    // 	use: [{loader: Path.resolve(__dirname, 'loaders', 'scss-import-loader')}]
-    // });
-}
-function isDrJs(file) {
-    if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))
-        return false;
-    const pk = __api_1.default.findPackageByFile(file);
-    if (pk && pk.dr) {
-        // log.warn('js file', file);
-        return true;
     }
-    return false;
+    // {
+    // 	test: isDrJs,
+    // 	use: [babel()]
+    // }
+    );
 }
+// function isDrJs(file: string) {
+// 	if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))
+// 		return false;
+// 	const pk = api.findPackageByFile(file);
+// 	if (pk && pk.dr) {
+// 		return true;
+// 	}
+// 	return false;
+// }
 function changeSplitChunks(param, webpackConfig) {
     if (webpackConfig.optimization == null)
         return; // SSR' Webpack config does not has this property

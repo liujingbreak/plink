@@ -14,7 +14,7 @@ import createHook from './ng-ts-replace';
 import ReadHookHost from './utils/read-hook-vfshost';
 import * as webpack from 'webpack';
 
-const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
+// const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
 export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfig: any): any {
@@ -106,7 +106,11 @@ function changeLoaders(webpackConfig: any) {
 	webpackConfig.resolveLoader = {
 		modules: [Path.join(__dirname, 'loaders'), 'node_modules']
 	};
-	webpackConfig.module.rules.forEach((rule: webpack.Rule) => {
+	const rules = webpackConfig.module.rules as webpack.Rule[];
+	let hasUrlLoader = false;
+	let fileLoaderRuleIdx: number;
+	let fileLoaderTest: webpack.RuleSetCondition;
+	rules.forEach((rule, ruleIdx) => {
 		const test = rule.test;
 		if (rule.use) {
 			const idx = (rule.use as webpack.RuleSetLoader[]).findIndex(ruleSet => ruleSet.loader === 'postcss-loader');
@@ -116,7 +120,6 @@ function changeLoaders(webpackConfig: any) {
 				});
 			}
 		}
-		console.log(test);
 
 		if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
 			(rule.use as webpack.RuleSetUseItem[]).some((item) => (item as webpack.RuleSetLoader).loader === '@angular-devkit/build-optimizer/webpack-loader')) {
@@ -138,12 +141,17 @@ function changeLoaders(webpackConfig: any) {
 				]
 			});
 		} else if (rule.loader === 'file-loader') {
+			fileLoaderRuleIdx = ruleIdx;
+			const test = rule.test;
+			fileLoaderTest = test;
 			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
 			Object.assign(rule, {
-				test: /\.(eot|woff2|woff|ttf|svg|cur)$/,
+				test,
 				use: [{loader: '@dr-core/webpack2-builder/lib/dr-file-loader'}]
 			});
+
 		} else if (rule.loader === 'url-loader') {
+			hasUrlLoader = true;
 			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
 			Object.assign(rule, {
 				test,
@@ -183,7 +191,23 @@ function changeLoaders(webpackConfig: any) {
 			// rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
 		}
 	});
-	webpackConfig.module.rules.unshift({
+
+	if (!hasUrlLoader) {
+		if (fileLoaderRuleIdx == null)
+			throw new Error('Missing file-loader rule from Angular\'s Webpack config');
+		console.log('Insert url-loader');
+		rules.splice(fileLoaderRuleIdx + 1, 0, {
+			test: fileLoaderTest,
+			use: [{
+				loader: 'url-loader',
+				options: {
+					limit: 10000, // <10k ,use base64 format
+					fallback: '@dr-core/webpack2-builder/lib/dr-file-loader'
+				}
+			}]
+		});
+	}
+	rules.unshift({
 			test: /\.jade$/,
 			use: [
 				{loader: 'html-loader', options: {attrs: 'img:src'}},
@@ -209,29 +233,23 @@ function changeLoaders(webpackConfig: any) {
 				{loader: 'json-loader'},
 				{loader: 'yaml-loader'}
 			]
-		},
-		{
-			test: isDrJs,
-			use: [babel()]
 		}
+		// {
+		// 	test: isDrJs,
+		// 	use: [babel()]
+		// }
 	);
-	// TODO: Until scss-import-loader is ready
-	// webpackConfig.module.rules.push({
-	// 	test: /\.scss$/,
-	// 	use: [{loader: Path.resolve(__dirname, 'loaders', 'scss-import-loader')}]
-	// });
 }
 
-function isDrJs(file: string) {
-	if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))
-		return false;
-	const pk = api.findPackageByFile(file);
-	if (pk && pk.dr) {
-		// log.warn('js file', file);
-		return true;
-	}
-	return false;
-}
+// function isDrJs(file: string) {
+// 	if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))
+// 		return false;
+// 	const pk = api.findPackageByFile(file);
+// 	if (pk && pk.dr) {
+// 		return true;
+// 	}
+// 	return false;
+// }
 
 function changeSplitChunks(param: AngularCliParam, webpackConfig: any) {
 	if (webpackConfig.optimization == null)

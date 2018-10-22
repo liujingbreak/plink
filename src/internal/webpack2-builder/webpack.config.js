@@ -107,6 +107,7 @@ module.exports = function(webpackConfigEntry, noParseChecker, file2ChunkName,
 							loader: 'url-loader',
 							options: {
 								limit: !devMode ? 10000 : 1, // <10k ,use base64 format, dev mode only use url for speed
+								fallback: 'lib/dr-file-loader'
 							}
 						}
 					]

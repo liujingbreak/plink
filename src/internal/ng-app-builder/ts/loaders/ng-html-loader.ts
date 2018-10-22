@@ -1,13 +1,14 @@
 import {TemplateParser, AttributeValueAst, TagAst} from '../utils/ng-html-parser';
+import {RawSourceMap} from 'source-map';
 import patchText, {Replacement as Rep} from '../utils/patch-text';
 import api from '__api';
+import {loader as wbLoader} from 'webpack';
 const log = require('log4js').getLogger('ng-html-loader');
 import * as _ from 'lodash';
 import vm = require('vm');
 const chalk = require('chalk');
 
-export = loader;
-function loader(content: string, map: any) {
+function loader(content: string, map?: RawSourceMap) {
 	var callback = this.async();
 	if (!callback) {
 		this.emitError('loader does not support sync mode');
@@ -21,13 +22,16 @@ function loader(content: string, map: any) {
 		log.error(err);
 	});
 }
+
 namespace loader {
 	export const compileHtml = load;
 }
 
+export = loader;
+
 const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 
-async function load(content: string, loader: any) {
+async function load(content: string, loader: wbLoader.LoaderContext) {
 	const ast = new TemplateParser(content).parse();
 	const proms: Array<PromiseLike<any>> = [];
 	const replacements: Rep[] = [];
@@ -46,7 +50,7 @@ async function load(content: string, loader: any) {
 }
 
 async function doAttrAssetsUrl(attrName: string, valueToken: AttributeValueAst,
-	el: TagAst, replacements: Rep[], loader: any): Promise<any> {
+	el: TagAst, replacements: Rep[], loader: wbLoader.LoaderContext): Promise<any> {
 	if (!valueToken)
 		return;
 	if (attrName === 'srcset') {
@@ -63,7 +67,7 @@ async function doAttrAssetsUrl(attrName: string, valueToken: AttributeValueAst,
 	}
 }
 
-function doSrcSet(value: string, loader: any) {
+function doSrcSet(value: string, loader: wbLoader.LoaderContext) {
 	var prom = value.split(/\s*,\s*/).map(urlSet => {
 		urlSet = _.trim(urlSet);
 		const factors = urlSet.split(/\s+/);
@@ -77,7 +81,7 @@ function doSrcSet(value: string, loader: any) {
 	.then(urlSets => urlSets.join(', '));
 }
 
-function resolveUrl(href: string, loader: any) {
+function resolveUrl(href: string, loader: wbLoader.LoaderContext) {
 	if (href === '')
 		return Promise.resolve(href);
 	var res = api.normalizeAssetsUrl(href, loader.resourcePath);
@@ -92,7 +96,7 @@ function resolveUrl(href: string, loader: any) {
 	return Promise.resolve(href);
 }
 
-function doLoadAssets(src: string, loader: any) {
+function doLoadAssets(src: string, loader: wbLoader.LoaderContext) {
 	if (src.startsWith('assets://') || src.startsWith('page://')) {
 		const res = api.normalizeAssetsUrl(src, loader.resourcePath);
 		if (_.isObject(res)) {
@@ -112,6 +116,8 @@ function doLoadAssets(src: string, loader: any) {
 		src = src.substring('npm://'.length);
 	} else if (src.charAt(0) !== '.' && src.trim().length > 0 && src.indexOf('{') < 0)
 		src = './' + src;
+
+	// console.log(api.packageName, loader.resourcePath, src);
 	return new Promise<string>((resolve, reject) => {
 		// Unlike extract-loader, we does not support embedded require statement in source code 
 		loader.loadModule(src, (err: Error, source: any, sourceMap: any, module: any) => {

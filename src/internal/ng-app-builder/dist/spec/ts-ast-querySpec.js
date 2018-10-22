@@ -6,6 +6,12 @@ const fs = require("fs");
 const path_1 = require("path");
 // const log = require('log4js').getLogger('ts-ast-querySpec');
 describe('ts-ast-query', () => {
+    it('printAll demo', () => {
+        const file = path_1.resolve(__dirname, 'manual-written sample file');
+        const sel = new ts_ast_query_1.default('import api from \'__api\'', file);
+        sel.printAll();
+        expect(sel.findAll(':ImportDeclaration>.moduleSpecifier').length).toBe(1);
+    });
     it('printAll should work', () => {
         const file = path_1.resolve(__dirname, '../../ts/spec/app.module.ts.txt');
         new ts_ast_query_1.default(fs.readFileSync(file, 'utf8'), file).printAll();
@@ -58,8 +64,9 @@ describe('ts-ast-util', () => {
         testContent = fs.readFileSync(testFile, 'utf8');
     });
     it('resolveModule() should work', () => {
-        expect(ts_ast_util_1.defaultResolveModule('./abc', __filename)).toBe(__dirname + '/abc');
-        expect(ts_ast_util_1.defaultResolveModule('abc', __filename)).toBe(path_1.resolve('node_modules/abc'));
+        expect(ts_ast_util_1.defaultResolveModule('./abc', __filename).replace(/\\/g, '/')).toBe(__dirname.replace(/\\/g, '/') + '/abc');
+        expect(ts_ast_util_1.defaultResolveModule('abc', __filename).replace(/\\/g, '/'))
+            .toBe(path_1.resolve('node_modules/abc').replace(/\\/g, '/'));
     });
     it('resolveImportBindName', () => {
         const src = ts.createSourceFile(testFile, testContent, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);

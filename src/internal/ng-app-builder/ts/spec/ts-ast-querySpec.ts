@@ -5,6 +5,13 @@ import {resolve} from 'path';
 // const log = require('log4js').getLogger('ts-ast-querySpec');
 
 describe('ts-ast-query', () => {
+	it('printAll demo', () => {
+		const file = resolve(__dirname, 'manual-written sample file');
+		const sel = new Selector('import api from \'__api\'', file);
+		sel.printAll();
+		expect(sel.findAll(':ImportDeclaration>.moduleSpecifier').length).toBe(1);
+	});
+
 	it('printAll should work', () => {
 		const file = resolve(__dirname, '../../ts/spec/app.module.ts.txt');
 		new Selector(fs.readFileSync(file, 'utf8'), file).printAll();
@@ -70,8 +77,9 @@ describe('ts-ast-util', () => {
 	});
 
 	it('resolveModule() should work', () => {
-		expect(defaultResolveModule('./abc', __filename)).toBe(__dirname + '/abc');
-		expect(defaultResolveModule('abc', __filename)).toBe(resolve('node_modules/abc'));
+		expect(defaultResolveModule('./abc', __filename).replace(/\\/g, '/')).toBe(__dirname.replace(/\\/g, '/') + '/abc');
+		expect(defaultResolveModule('abc', __filename).replace(/\\/g, '/'))
+			.toBe(resolve('node_modules/abc').replace(/\\/g, '/'));
 	});
 
 	it('resolveImportBindName', () => {

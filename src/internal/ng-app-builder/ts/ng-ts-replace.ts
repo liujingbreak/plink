@@ -10,13 +10,19 @@ import AppModuleParser, {findAppModuleFileFromMain} from './utils/parse-app-modu
 import {sep as SEP, relative, resolve, dirname} from 'path';
 import {readTsConfig, transpileSingleTs} from 'dr-comp-package/wfh/dist/ts-compiler';
 import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
+import Selector from './utils/ts-ast-query';
+import * as ts from 'typescript';
 const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName);
 
-const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
-var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\');\
- __api.default = __api;');
+// const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
+// var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\');\
+//  __api.default = __api;');
+
+const apiTmplTs = _.template('import __DrApi from \'@dr-core/ng-app-builder/src/app/api\';\
+var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packageName%>\');\
+__api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
 
 export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc {
@@ -96,13 +102,17 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 						.patchFile(file, content, removables, ngModules);
 					needLogFile = true;
 				}
+				const tsSelector = new Selector(content, file);
+				const hasImportApi = tsSelector.findAll(':ImportDeclaration>.moduleSpecifier:StringLiteral').some(ast => {
+					return (ast as ts.StringLiteral).text === '__api';
+				});
 				let changed = api.browserInjector.injectToFile(file, content);
 
 				changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
-				if (changed !== content) {
-					changed = apiTmpl({packageName: compPkg.longName}) + '\n' + changed;
-					if (ngParam.ssr)
-						changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
+				if (hasImportApi)
+					changed = apiTmplTs({packageName: compPkg.longName}) + '\n' + changed;
+				if (changed !== content && ngParam.ssr) {
+					changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
 				}
 				if (needLogFile)
 					log.info(chalk.cyan(file) + ':\n' + changed);

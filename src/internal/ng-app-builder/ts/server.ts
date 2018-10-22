@@ -103,6 +103,11 @@ function checkAngularVersion() {
 		you need to delete it and maybe \`clean\` and \`init\` again`);
 		valid = false;
 	}
+	if (_fs.existsSync('@angular-devkit/build-angular/node_modules/@ngtools/webpack')) {
+		log.error(`Duplicate dependency is found in "@angular-devkit/build-angular/node_modules/@ngtools/webpack",\n
+		you need to delete it and maybe \`clean\` and \`init\` again`);
+		valid = false;
+	}
 	try {
 		const duplicate = require.resolve('@angular-devkit/architect/node_modules/rxjs/package.json');
 		log.error(`Duplicate dependency is found in "${duplicate}",\n

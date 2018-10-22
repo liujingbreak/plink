@@ -119,6 +119,7 @@ function doLoadAssets(src, loader) {
     }
     else if (src.charAt(0) !== '.' && src.trim().length > 0 && src.indexOf('{') < 0)
         src = './' + src;
+    // console.log(api.packageName, loader.resourcePath, src);
     return new Promise((resolve, reject) => {
         // Unlike extract-loader, we does not support embedded require statement in source code 
         loader.loadModule(src, (err, source, sourceMap, module) => {

@@ -44,7 +44,7 @@ export default class IndexHtmlPlugin {
 				api,
 				require
 			});
-			source = await htmlLoader.compileHtml(source, new MockLoaderContext(this.options.indexFile));
+			source = await htmlLoader.compileHtml(source, new MockLoaderContext(this.options.indexFile) as any);
 			const asts = new TemplateParser(source).parse();
 			for (const ast of asts) {
 				if (ast.name.toLowerCase() === 'script' && ast.attrs) {
