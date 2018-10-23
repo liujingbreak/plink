@@ -1,7 +1,7 @@
 {
   "name": "@dr-core/express-app",
   "description": "express app",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "dist/app.js",
   "types": "index.d.ts",
   "dependencies": {
@@ -18,7 +18,7 @@
     "swig-templates": "^2.0.2"
   },
   "peerDependencies": {
-    "@types/express": "^4.11.1"
+    "@types/express": "^4.16.0"
   },
   "dr": {
     "category": ["tool", "internal", "nodejs"],

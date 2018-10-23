@@ -36,7 +36,7 @@
     "babel-eslint": "^8.2.1",
     "bluebird": "^3.5.1",
     "browser-resolve": "^1.11.2",
-    "chalk": "^2.3.0",
+    "chalk": "^2.4.1",
     "cheerio": "^0.22.0",
     "chokidar": "^1.7.0",
     "cycle": "^1.0.3",
