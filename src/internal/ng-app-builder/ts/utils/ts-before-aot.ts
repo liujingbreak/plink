@@ -86,7 +86,7 @@ export default class ApiAotCompiler {
 					repl.text = 'undefined';
 				}
 			} catch(ex) {
-				log.warn('Evaluate %s, result:', origText, res);
+				log.error('Evaluate %s, result:', origText, res);
 				throw ex;
 			}
 			log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +

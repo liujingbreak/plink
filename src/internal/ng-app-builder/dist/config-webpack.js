@@ -102,7 +102,7 @@ function changeLoaders(webpackConfig) {
     const rules = webpackConfig.module.rules;
     let hasUrlLoader = false;
     let fileLoaderRuleIdx;
-    let fileLoaderTest;
+    // let fileLoaderTest: webpack.RuleSetCondition;
     rules.forEach((rule, ruleIdx) => {
         const test = rule.test;
         if (rule.use) {
@@ -135,11 +135,11 @@ function changeLoaders(webpackConfig) {
         }
         else if (rule.loader === 'file-loader') {
             fileLoaderRuleIdx = ruleIdx;
-            const test = rule.test;
-            fileLoaderTest = test;
+            // const test = rule.test;
+            // fileLoaderTest = test;
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
-                test,
+                test: /\.(eot|svg|cur|webp|otf|ttf|woff|woff2|ani)$/,
                 use: [{ loader: '@dr-core/webpack2-builder/lib/dr-file-loader' }]
             });
         }
@@ -147,7 +147,7 @@ function changeLoaders(webpackConfig) {
             hasUrlLoader = true;
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
-                test,
+                test: /\.(jpg|png|gif)$/,
                 use: [{
                         loader: 'url-loader',
                         options: {
@@ -191,7 +191,7 @@ function changeLoaders(webpackConfig) {
             throw new Error('Missing file-loader rule from Angular\'s Webpack config');
         console.log('Insert url-loader');
         rules.splice(fileLoaderRuleIdx + 1, 0, {
-            test: fileLoaderTest,
+            test: /\.(jpg|png|gif)$/,
             use: [{
                     loader: 'url-loader',
                     options: {

@@ -1,9 +1,9 @@
 {
 	"name": "@dr/internal-recipe",
-	"version": "0.7.42",
+	"version": "0.7.43",
 	"description": "Component group: internal-recipe",
 	"dependencies": {
-    "@dr-core/ng-app-builder": "2.0.34",
+    "@dr-core/ng-app-builder": "2.0.35",
     "@dr/template-builder": "1.0.3",
     "@dr/translate-generator": "1.0.3",
     "@dr-core/webpack2-builder": "1.0.11"
