@@ -73,9 +73,9 @@ function setupApiForAngularCli() {
 function checkAngularVersion() {
     const deps = {
         '@angular-devkit/build-angular': '~0.10.2',
-        '@angular/cli': '7.0.2',
-        '@angular/compiler-cli': '7.0.0',
-        '@angular/language-service': '7.0.0'
+        '@angular/cli': '7.0.3',
+        '@angular/compiler-cli': '7.0.1',
+        '@angular/language-service': '7.0.1'
     };
     let valid = true;
     _.each(deps, (expectVer, mod) => {

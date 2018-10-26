@@ -26,6 +26,11 @@ function drcpCommand(startTime) {
 				yarn: {
 					describe: 'Use Yarn to install component peer dependencies instead of using NPM',
 					type: 'boolean'
+				},
+				production: {
+					describe: 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"',
+					type: 'boolean',
+					alias: 'prod'
 				}
 			});
 			// .usage('drcp init');

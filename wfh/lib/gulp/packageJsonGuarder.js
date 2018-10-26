@@ -148,7 +148,7 @@ class Guarder {
 		return false;
 	}
 
-	installAsync(doNotMarkInstallNum, useYarn, isOffline) {
+	installAsync(doNotMarkInstallNum, useYarn, onlyProd, isOffline) {
 		this.offline = isOffline;
 		fs.writeFileSync(Path.resolve(this.rootPath, 'package.json'),
 			JSON.stringify(this.getChanges(), null, '  '));
@@ -157,6 +157,9 @@ class Guarder {
 		var realDrcpPath = fs.realpathSync(drcpLocation);
 		// var yarnArgv = ['install', '--non-interactive', '--check-files'];
 		const npmArgv = ['install'];
+		if (onlyProd) {
+			npmArgv.push(useYarn ? '--production' : '--only=prod');
+		}
 		// if (isOffline) {
 		// 	console.log(logName + 'offline mode is on');
 		// 	yarnArgv.push('--offline');

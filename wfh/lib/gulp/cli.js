@@ -85,7 +85,7 @@ function init(_argv, noPuppy) {
 	// 	removeProject(_argv, [fs.realpathSync(drcpFolder)]);
 
 	packageJsonGuarder.beforeChange();
-	var wi = new WorkspaceInstaller(null, argv.yarn, argv.offline);
+	var wi = new WorkspaceInstaller(null, argv.yarn, argv.production, argv.offline);
 	var initProm = wi.run(packageJsonGuarder.isModulesChanged());
 	return initProm.then(() => {
 		packageJsonGuarder.afterChange();
@@ -99,11 +99,12 @@ function init(_argv, noPuppy) {
 }
 
 class WorkspaceInstaller {
-	constructor(isDrcpSymlink, useYarn, isOffline) {
+	constructor(isDrcpSymlink, useYarn, onlyProd, isOffline) {
 		this.isDrcpSymlink = isDrcpSymlink;
 		//this.installed = false;
 		this.isOffline = isOffline;
 		this.useYarn = useYarn;
+		this.onlyProd = onlyProd;
 	}
 
 	run(forceInstall) {
@@ -120,7 +121,7 @@ class WorkspaceInstaller {
 			if (forceInstall || needRunInstall) {
 				//this.installed = true;
 				try {
-					yield packageJsonGuarder.installAsync(false, self.useYarn, self.isOffline);
+					yield packageJsonGuarder.installAsync(false, self.useYarn, self.onlyProd, self.isOffline);
 				} catch (err) {
 					createProjectSymlinks();
 					throw err;
