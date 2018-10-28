@@ -14,10 +14,16 @@ import createHook from './ng-ts-replace';
 import ReadHookHost from './utils/read-hook-vfshost';
 import * as webpack from 'webpack';
 
+export interface WepackConfigHandler {
+	/** @returns webpack configuration or Promise */
+	webpackConfig(originalConfig: any): Promise<{[name: string]: any} | void> | {[name: string]: any} | void;
+}
+
 // const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
+const noParse = (api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]);
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
-export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfig: any): any {
+export default async function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfigSetting: any) {
 	// const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
 	console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
 	if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
@@ -31,6 +37,8 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 			new ChunkInfoPlugin()
 		);
 	}
+
+	// webpackConfig.module.noParse = (file: string) => noParse.some(name => file.replace(/\\/g, '/').includes(name));
 
 	const ngCompilerPlugin: AngularCompilerPlugin = webpackConfig.plugins.find((plugin: any) => {
 		return (plugin instanceof AngularCompilerPlugin);
@@ -46,7 +54,7 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 
 	if (_.get(param, 'builderConfig.options.hmr'))
 		webpackConfig.plugins.push(new HotModuleReplacementPlugin());
-	if (!drcpConfig.devMode) {
+	if (!drcpConfigSetting.devMode) {
 		console.log('Build in production mode');
 		webpackConfig.plugins.push(new gzipSize());
 	}
@@ -95,6 +103,12 @@ export default function changeWebpackConfig(param: AngularCliParam, webpackConfi
 		webpackConfig.devtool = 'source-map';
 	}
 
+	await api.config.configHandlerMgr().runEach<WepackConfigHandler>((file, lastResult, handler) => {
+		if (handler.webpackConfig)
+			return handler.webpackConfig(webpackConfig);
+		return lastResult;
+	});
+
 	let wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
 	fs.writeFileSync(wfname, printConfig(webpackConfig));
 	console.log('If you are wondering what kind of Webapck config file is used internally, checkout ' + wfname);
@@ -126,7 +140,7 @@ function changeLoaders(webpackConfig: any) {
 			rule.test = (path: string) => {
 				if (!/\.js$/.test(path))
 					return;
-				return (api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]).every((exclude => !path.replace(/\\/g, '/').includes(exclude)));
+				return noParse.every((exclude => !path.replace(/\\/g, '/').includes(exclude)));
 			};
 		}
 		if (test instanceof RegExp && test.toString() === '/\\.html$/') {
@@ -235,20 +249,23 @@ function changeLoaders(webpackConfig: any) {
 			]
 		}
 		// {
-		// 	test: isDrJs,
+		// 	test: notAngularJs,
 		// 	use: [babel()]
 		// }
 	);
 }
 
-// function isDrJs(file: string) {
+// function notAngularJs(file: string) {
 // 	if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))
 // 		return false;
-// 	const pk = api.findPackageByFile(file);
-// 	if (pk && pk.dr) {
-// 		return true;
-// 	}
-// 	return false;
+// 	if (noParse.some(name => file.replace(/\\/g, '/').includes(name)))
+// 		return false;
+// 	// const pk = api.findPackageByFile(file);
+// 	// if (pk && pk.dr) {
+// 	// 	return true;
+// 	// }
+// 	console.log('babel: ', file);
+// 	return true;
 // }
 
 function changeSplitChunks(param: AngularCliParam, webpackConfig: any) {
@@ -256,23 +273,26 @@ function changeSplitChunks(param: AngularCliParam, webpackConfig: any) {
 		return; // SSR' Webpack config does not has this property
 	const oldVendorTestFunc = _.get(webpackConfig, 'optimization.splitChunks.cacheGroups.vendor.test');
 
+	if (oldVendorTestFunc) {
+		const cacheGroups: {[key: string]: webpack.Options.CacheGroupsOptions} = webpackConfig.optimization.splitChunks.cacheGroups;
+		cacheGroups.vendor.test = vendorTest;
+		cacheGroups.lazyVendor = {
+			name: 'lazy-vendor',
+			chunks: 'async',
+			enforce: true,
+			test: vendorTest,
+			priority: 1
+		};
+	}
+
 	function vendorTest(module: any, chunks: Array<{ name: string }>) {
 		const maybeVendor = oldVendorTestFunc(module, chunks);
 		if (!maybeVendor)
 			return false;
 		const resource = module.nameForCondition ? module.nameForCondition() : '';
+		// console.log(`vendor test, resource: ${resource}, chunks: ${chunks.map( c => c.name)}`);
 		const pk = api.findPackageByFile(resource);
 		return pk == null || pk.dr == null;
-	}
-
-	if (oldVendorTestFunc) {
-		webpackConfig.optimization.splitChunks.cacheGroups.vendor.test = vendorTest;
-		webpackConfig.optimization.splitChunks.cacheGroups.lazyVendor = {
-			name: 'lazy-vendor',
-			chunks: 'async',
-			enforce: true,
-			test: vendorTest
-		};
 	}
 }
 

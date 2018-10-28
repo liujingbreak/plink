@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console max-line-length max-classes-per-file */
 const chunk_info_1 = require("./plugins/chunk-info");
@@ -14,84 +22,93 @@ const webpack_2 = require("@ngtools/webpack");
 const ng_ts_replace_1 = require("./ng-ts-replace");
 const read_hook_vfshost_1 = require("./utils/read-hook-vfshost");
 // const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
+const noParse = __api_1.default.config.get([__api_1.default.packageName, 'build-optimizer:exclude'], []);
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
-function changeWebpackConfig(param, webpackConfig, drcpConfig) {
-    // const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
-    console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
-    if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
-        param.browserOptions.drcpArgs.report || (param.browserOptions.drcpArgs.openReport)) {
-        // webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
-        // 	analyzerMode: 'static',
-        // 	reportFilename: 'bundle-report.html',
-        // 	openAnalyzer: options.drcpArgs.openReport
-        // }));
-        webpackConfig.plugins.push(new chunk_info_1.default());
-    }
-    const ngCompilerPlugin = webpackConfig.plugins.find((plugin) => {
-        return (plugin instanceof webpack_2.AngularCompilerPlugin);
-    });
-    if (ngCompilerPlugin == null)
-        throw new Error('Can not find AngularCompilerPlugin');
-    // hack _options.host before angular/packages/ngtools/webpack/src/angular_compiler_plugin.ts apply() runs
-    webpackConfig.plugins.unshift(new class {
-        apply(compiler) {
-            ngCompilerPlugin._options.host = new read_hook_vfshost_1.default(compiler.inputFileSystem, ng_ts_replace_1.default(param));
+function changeWebpackConfig(param, webpackConfig, drcpConfigSetting) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
+        console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
+        if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
+            param.browserOptions.drcpArgs.report || (param.browserOptions.drcpArgs.openReport)) {
+            // webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
+            // 	analyzerMode: 'static',
+            // 	reportFilename: 'bundle-report.html',
+            // 	openAnalyzer: options.drcpArgs.openReport
+            // }));
+            webpackConfig.plugins.push(new chunk_info_1.default());
         }
-    }());
-    if (_.get(param, 'builderConfig.options.hmr'))
-        webpackConfig.plugins.push(new webpack_1.HotModuleReplacementPlugin());
-    if (!drcpConfig.devMode) {
-        console.log('Build in production mode');
-        webpackConfig.plugins.push(new gzip_size_1.default());
-    }
-    if (webpackConfig.target !== 'node') {
-        webpackConfig.plugins.push(new index_html_plugin_1.default({
-            indexFile: Path.resolve(param.browserOptions.index),
-            inlineChunkNames: ['runtime']
-        }));
-    }
-    else {
-        // This is condition of Server side rendering
-        // Refer to angular-cli/packages/angular_devkit/build_angular/src/angular-cli-files/models/webpack-configs/server.ts
-        if (param.browserOptions.bundleDependencies === 'none') {
-            webpackConfig.externals = [
-                /^@angular/,
-                (_, request, callback) => {
-                    // Absolute & Relative paths are not externals
-                    if (request.match(/^\.{0,2}\//)) {
-                        return callback();
-                    }
-                    try {
-                        // Attempt to resolve the module via Node
-                        const e = require.resolve(request);
-                        let comp = __api_1.default.findPackageByFile(e);
-                        if (comp == null || comp.dr == null) {
-                            // It's a node_module
-                            callback(null, request);
+        // webpackConfig.module.noParse = (file: string) => noParse.some(name => file.replace(/\\/g, '/').includes(name));
+        const ngCompilerPlugin = webpackConfig.plugins.find((plugin) => {
+            return (plugin instanceof webpack_2.AngularCompilerPlugin);
+        });
+        if (ngCompilerPlugin == null)
+            throw new Error('Can not find AngularCompilerPlugin');
+        // hack _options.host before angular/packages/ngtools/webpack/src/angular_compiler_plugin.ts apply() runs
+        webpackConfig.plugins.unshift(new class {
+            apply(compiler) {
+                ngCompilerPlugin._options.host = new read_hook_vfshost_1.default(compiler.inputFileSystem, ng_ts_replace_1.default(param));
+            }
+        }());
+        if (_.get(param, 'builderConfig.options.hmr'))
+            webpackConfig.plugins.push(new webpack_1.HotModuleReplacementPlugin());
+        if (!drcpConfigSetting.devMode) {
+            console.log('Build in production mode');
+            webpackConfig.plugins.push(new gzip_size_1.default());
+        }
+        if (webpackConfig.target !== 'node') {
+            webpackConfig.plugins.push(new index_html_plugin_1.default({
+                indexFile: Path.resolve(param.browserOptions.index),
+                inlineChunkNames: ['runtime']
+            }));
+        }
+        else {
+            // This is condition of Server side rendering
+            // Refer to angular-cli/packages/angular_devkit/build_angular/src/angular-cli-files/models/webpack-configs/server.ts
+            if (param.browserOptions.bundleDependencies === 'none') {
+                webpackConfig.externals = [
+                    /^@angular/,
+                    (_, request, callback) => {
+                        // Absolute & Relative paths are not externals
+                        if (request.match(/^\.{0,2}\//)) {
+                            return callback();
                         }
-                        else {
-                            // It's a system thing (.ie util, fs...)
+                        try {
+                            // Attempt to resolve the module via Node
+                            const e = require.resolve(request);
+                            let comp = __api_1.default.findPackageByFile(e);
+                            if (comp == null || comp.dr == null) {
+                                // It's a node_module
+                                callback(null, request);
+                            }
+                            else {
+                                // It's a system thing (.ie util, fs...)
+                                callback();
+                            }
+                        }
+                        catch (e) {
+                            // Node couldn't find it, so it must be user-aliased
                             callback();
                         }
                     }
-                    catch (e) {
-                        // Node couldn't find it, so it must be user-aliased
-                        callback();
-                    }
-                }
-            ];
+                ];
+            }
         }
-    }
-    webpackConfig.plugins.push(new CompileDonePlugin());
-    changeSplitChunks(param, webpackConfig);
-    changeLoaders(webpackConfig);
-    if (param.ssr) {
-        webpackConfig.devtool = 'source-map';
-    }
-    let wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
-    fs.writeFileSync(wfname, printConfig(webpackConfig));
-    console.log('If you are wondering what kind of Webapck config file is used internally, checkout ' + wfname);
-    return webpackConfig;
+        webpackConfig.plugins.push(new CompileDonePlugin());
+        changeSplitChunks(param, webpackConfig);
+        changeLoaders(webpackConfig);
+        if (param.ssr) {
+            webpackConfig.devtool = 'source-map';
+        }
+        yield __api_1.default.config.configHandlerMgr().runEach((file, lastResult, handler) => {
+            if (handler.webpackConfig)
+                return handler.webpackConfig(webpackConfig);
+            return lastResult;
+        });
+        let wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
+        fs.writeFileSync(wfname, printConfig(webpackConfig));
+        console.log('If you are wondering what kind of Webapck config file is used internally, checkout ' + wfname);
+        return webpackConfig;
+    });
 }
 exports.default = changeWebpackConfig;
 function changeLoaders(webpackConfig) {
@@ -118,7 +135,7 @@ function changeLoaders(webpackConfig) {
             rule.test = (path) => {
                 if (!/\.js$/.test(path))
                     return;
-                return __api_1.default.config.get([__api_1.default.packageName, 'build-optimizer:exclude'], []).every((exclude => !path.replace(/\\/g, '/').includes(exclude)));
+                return noParse.every((exclude => !path.replace(/\\/g, '/').includes(exclude)));
             };
         }
         if (test instanceof RegExp && test.toString() === '/\\.html$/') {
@@ -227,40 +244,46 @@ function changeLoaders(webpackConfig) {
         ]
     }
     // {
-    // 	test: isDrJs,
+    // 	test: notAngularJs,
     // 	use: [babel()]
     // }
     );
 }
-// function isDrJs(file: string) {
+// function notAngularJs(file: string) {
 // 	if (!file.endsWith('.js') || file.endsWith('.ngfactory.js') || file.endsWith('.ngstyle.js'))
 // 		return false;
-// 	const pk = api.findPackageByFile(file);
-// 	if (pk && pk.dr) {
-// 		return true;
-// 	}
-// 	return false;
+// 	if (noParse.some(name => file.replace(/\\/g, '/').includes(name)))
+// 		return false;
+// 	// const pk = api.findPackageByFile(file);
+// 	// if (pk && pk.dr) {
+// 	// 	return true;
+// 	// }
+// 	console.log('babel: ', file);
+// 	return true;
 // }
 function changeSplitChunks(param, webpackConfig) {
     if (webpackConfig.optimization == null)
         return; // SSR' Webpack config does not has this property
     const oldVendorTestFunc = _.get(webpackConfig, 'optimization.splitChunks.cacheGroups.vendor.test');
+    if (oldVendorTestFunc) {
+        const cacheGroups = webpackConfig.optimization.splitChunks.cacheGroups;
+        cacheGroups.vendor.test = vendorTest;
+        cacheGroups.lazyVendor = {
+            name: 'lazy-vendor',
+            chunks: 'async',
+            enforce: true,
+            test: vendorTest,
+            priority: 1
+        };
+    }
     function vendorTest(module, chunks) {
         const maybeVendor = oldVendorTestFunc(module, chunks);
         if (!maybeVendor)
             return false;
         const resource = module.nameForCondition ? module.nameForCondition() : '';
+        // console.log(`vendor test, resource: ${resource}, chunks: ${chunks.map( c => c.name)}`);
         const pk = __api_1.default.findPackageByFile(resource);
         return pk == null || pk.dr == null;
-    }
-    if (oldVendorTestFunc) {
-        webpackConfig.optimization.splitChunks.cacheGroups.vendor.test = vendorTest;
-        webpackConfig.optimization.splitChunks.cacheGroups.lazyVendor = {
-            name: 'lazy-vendor',
-            chunks: 'async',
-            enforce: true,
-            test: vendorTest
-        };
     }
 }
 function printConfig(c, level = 0) {

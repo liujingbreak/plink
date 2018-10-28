@@ -135,6 +135,7 @@ function overrideTsConfig(file, content, browserOptions, config) {
         }
         tsExclude.push(dir + '/ts', dir + '/spec', dir + '/dist', dir + '/**/*.spec.ts');
     });
+    tsInclude.push(Path.relative(Path.dirname(file), 'node_modules/dr-comp-package/wfh/share').replace(/\\/g, '/'));
     tsExclude.push('**/test.ts');
     tsExclude.push(...excludePath.map(expath => Path.relative(Path.dirname(file), expath).replace(/\\/g, '/')));
     var tsjson = {

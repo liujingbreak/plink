@@ -23,7 +23,7 @@ function babel() {
 				['import', {libraryName: 'antd', style: 'css'}]
 			],
 			// Workaround enhanced-resolve, put an nonexisting file here
-			babelrc: Path.resolve(api.config().rootPath, '.babelrc')
+			babelrc: Path.resolve(__dirname, '.babelrc')
 		}
 	};
 }

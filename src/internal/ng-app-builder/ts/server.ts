@@ -16,7 +16,7 @@ const {red, yellow} = require('chalk');
 const log = log4js.getLogger(api.packageName);
 
 export function compile() {
-	setupApiForAngularCli();
+	return setupApiForAngularCli();
 }
 
 export function init() {
@@ -28,7 +28,7 @@ export function init() {
 export function activate() {
 }
 
-function setupApiForAngularCli() {
+async function setupApiForAngularCli() {
 	const ngParam: AngularCliParam = api.config()._angularCli;
 	if (!ngParam || api.ngEntryComponent)
 		return;
@@ -69,7 +69,7 @@ function setupApiForAngularCli() {
 				return require(Path.join(this.__dirname, requirePath));
 		}
 	});
-	changeWebpackConfig(ngParam, webpackConfig, api.config());
+	await changeWebpackConfig(ngParam, webpackConfig, api.config());
 
 	// ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
 	log.info('Setup api object for Angular');

@@ -10,32 +10,50 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console */
 const Path = require("path");
-const vm = require("vm");
+// import vm = require('vm');
 const fs = require("fs");
 const ts_compiler_1 = require("./ts-compiler");
 const { cyan, green } = require('chalk');
+function registerExtension(ext, compilerOpt) {
+    const old = require.extensions[ext] || require.extensions['.js'];
+    require.extensions[ext] = function (m, filename) {
+        //   if (shouldIgnore(filename, ignore)) {
+        // 	return old(m, filename);
+        //   }
+        const _compile = m._compile;
+        m._compile = function (code, fileName) {
+            const jscode = ts_compiler_1.transpileAndCheck(fs.readFileSync(fileName, 'utf8'), fileName, compilerOpt);
+            console.log(jscode);
+            return _compile.call(this, ts_compiler_1.transpileAndCheck(code, fileName, compilerOpt), fileName);
+        };
+        return old(m, filename);
+    };
+}
 class ConfigHandlerMgr {
     static initConfigHandlers(files) {
         // const files = browserOptions.drcpConfig ? browserOptions.drcpConfig.split(/\s*[,;:]\s*/) : [];
         const exporteds = [];
         const compilerOpt = ts_compiler_1.readTsConfig(require.resolve('dr-comp-package/wfh/tsconfig.json'));
+        registerExtension('.ts', compilerOpt);
         files.forEach(file => {
             if (file.endsWith('.ts')) {
-                console.log(green('config-handler -') + ' compile', file);
-                file = Path.resolve(file);
-                const jscode = ts_compiler_1.transpileAndCheck(fs.readFileSync(file, 'utf8'), file, compilerOpt);
-                console.log(jscode);
-                const mod = { exports: {} };
-                const context = vm.createContext({ module: mod, exports: mod.exports, console, process, require,
-                    __filename: file, __dirname: Path.dirname(file) });
-                try {
-                    vm.runInContext(jscode, context, { filename: file });
-                }
-                catch (ex) {
-                    console.error(ex);
-                    throw ex;
-                }
-                exporteds.push({ file, handler: mod.exports.default });
+                // console.log(green('config-handler -') + ' compile', file);
+                // file = Path.resolve(file);
+                // const jscode = transpileAndCheck(fs.readFileSync(file, 'utf8'), file, compilerOpt);
+                // console.log(jscode);
+                // const mod = {exports: {}};
+                // const context = vm.createContext(
+                // 	{Object, Array, Number, String, JSON, module: mod, exports: mod.exports, console, process, require,
+                // 	__filename: file, __dirname: Path.dirname(file)});
+                // try {
+                // 	vm.runInContext(jscode, context, {filename: file});
+                // } catch (ex) {
+                // 	console.error(ex);
+                // 	throw ex;
+                // }
+                // exporteds.push({file, handler: (mod.exports as any).default});
+                const exp = require(Path.resolve(file));
+                exporteds.push({ file, handler: exp.default ? exp.default : exp });
             }
             else if (file.endsWith('.js')) {
                 const exp = require(Path.resolve(file));
@@ -51,6 +69,7 @@ class ConfigHandlerMgr {
      *
      * @param func parameters: (filePath, last returned result, handler function),
      * returns the changed result, keep the last result, if resturns undefined
+     * @returns last result
      */
     runEach(func) {
         return __awaiter(this, void 0, void 0, function* () {

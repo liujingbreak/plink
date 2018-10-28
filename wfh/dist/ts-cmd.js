@@ -37,6 +37,7 @@ function tsc(argv, onCompiled) {
         // Compiler options
         outDir: '',
         baseUrl: root,
+        rootDir: undefined,
         typeRoots: [
             Path.join(root, 'node_modules/@types'),
             Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')

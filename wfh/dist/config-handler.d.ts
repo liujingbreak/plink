@@ -42,6 +42,7 @@ export declare class ConfigHandlerMgr {
      *
      * @param func parameters: (filePath, last returned result, handler function),
      * returns the changed result, keep the last result, if resturns undefined
+     * @returns last result
      */
     runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): Promise<any>;
 }

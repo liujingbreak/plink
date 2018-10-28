@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable max-line-length */
 const __api_1 = require("__api");
@@ -14,7 +22,7 @@ const { red, yellow } = require('chalk');
 // const sysFs = fs as typeof _fs & {mkdirsSync: (file: string) => void};
 const log = log4js.getLogger(__api_1.default.packageName);
 function compile() {
-    setupApiForAngularCli();
+    return setupApiForAngularCli();
 }
 exports.compile = compile;
 function init() {
@@ -27,48 +35,50 @@ function activate() {
 }
 exports.activate = activate;
 function setupApiForAngularCli() {
-    const ngParam = __api_1.default.config()._angularCli;
-    if (!ngParam || __api_1.default.ngEntryComponent)
-        return;
-    if (!ngParam.browserOptions.preserveSymlinks) {
-        throw new Error('In order to get DRCP builder work,\
+    return __awaiter(this, void 0, void 0, function* () {
+        const ngParam = __api_1.default.config()._angularCli;
+        if (!ngParam || __api_1.default.ngEntryComponent)
+            return;
+        if (!ngParam.browserOptions.preserveSymlinks) {
+            throw new Error('In order to get DRCP builder work,\
 		you must set property `preserveSymlinks` to be true in project\'s angular.json file \
 		');
-    }
-    const webpackConfig = ngParam.webpackConfig;
-    const ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
-    let deployUrl = webpackConfig.output.publicPath || __api_1.default.config.get('publicPath');
-    const publicUrlObj = Url.parse(deployUrl);
-    Object.assign(Object.getPrototypeOf(__api_1.default), {
-        webpackConfig,
-        ngEntryComponent,
-        deployUrl,
-        ssr: ngParam.ssr,
-        ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
-        /**@function ngRouterPath
-         * @memberOf __api
-         * e.g.
-         * Assume application is deployed on 'http://foobar.com/base-href' as "deployUrl" in angular.json.
-         * Current feature package is `@bk/feature-a`, its `ngRoutePath` is by default 'feature-a',
-         * feature package `@bk/feature-b`'s `ngRoutePath` is by default 'feature-b'
-         *  ```ts
-         * __api.ngRouterPath('action')  // "/base-href/feature-a/action"
-         * __api.ngRouterPath('@bk/feature-b', 'action')   // "/base-href/feature-b/action"
-         * ```
-         * @return the configured Angular router path for specific (current) feature package
-         */
-        ngRouterPath(packageName, subPath) {
-            const url = this.assetsUrl(packageName, subPath);
-            return _.trimStart(Url.parse(url).pathname, '/');
-        },
-        ssrRequire(requirePath) {
-            if (ngParam.ssr)
-                return require(Path.join(this.__dirname, requirePath));
         }
+        const webpackConfig = ngParam.webpackConfig;
+        const ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
+        let deployUrl = webpackConfig.output.publicPath || __api_1.default.config.get('publicPath');
+        const publicUrlObj = Url.parse(deployUrl);
+        Object.assign(Object.getPrototypeOf(__api_1.default), {
+            webpackConfig,
+            ngEntryComponent,
+            deployUrl,
+            ssr: ngParam.ssr,
+            ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
+            /**@function ngRouterPath
+             * @memberOf __api
+             * e.g.
+             * Assume application is deployed on 'http://foobar.com/base-href' as "deployUrl" in angular.json.
+             * Current feature package is `@bk/feature-a`, its `ngRoutePath` is by default 'feature-a',
+             * feature package `@bk/feature-b`'s `ngRoutePath` is by default 'feature-b'
+             *  ```ts
+             * __api.ngRouterPath('action')  // "/base-href/feature-a/action"
+             * __api.ngRouterPath('@bk/feature-b', 'action')   // "/base-href/feature-b/action"
+             * ```
+             * @return the configured Angular router path for specific (current) feature package
+             */
+            ngRouterPath(packageName, subPath) {
+                const url = this.assetsUrl(packageName, subPath);
+                return _.trimStart(Url.parse(url).pathname, '/');
+            },
+            ssrRequire(requirePath) {
+                if (ngParam.ssr)
+                    return require(Path.join(this.__dirname, requirePath));
+            }
+        });
+        yield config_webpack_1.default(ngParam, webpackConfig, __api_1.default.config());
+        // ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
+        log.info('Setup api object for Angular');
     });
-    config_webpack_1.default(ngParam, webpackConfig, __api_1.default.config());
-    // ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
-    log.info('Setup api object for Angular');
 }
 function checkAngularVersion() {
     const deps = {

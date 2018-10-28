@@ -17,9 +17,11 @@ dr-comp-package is written partially in plain Javascript and partially in Typesc
   │   ├─ tsconfig.json
   ├─ package.json
 ```
-To compile Typescript part, go to `wfh` folder where `tsconfig.json` is, run `tsc`
-
-
+To compile Typescript part, go to `wfh` folder where `tsconfig.json` is, run 
+```bash
+../node_modules/.bin/tsc -p tsconfig-share.json
+../node_modules/.bin/tsc
+```
 # Below doc is deprecated
 --------------------
 

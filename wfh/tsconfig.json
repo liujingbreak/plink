@@ -21,7 +21,9 @@
 		"pretty": true,
 		"typeRoots": [
 			"../node_modules/@types"
-		]
+		],
+		"rootDir": "ts",
+		"rootDirs": ["dist"]
 	},
 	
 	"include": ["ts/**/*.ts"]
