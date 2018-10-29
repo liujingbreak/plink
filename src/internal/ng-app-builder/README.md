@@ -192,3 +192,24 @@ When angular.json's `deployUrl` is '/my-app', it will be compiled to
 <a routerLink="/my-app/foobar" routerLinkActive="active">Foobar</a>
 <a routerLink="/my-app/foobar/112" routerLinkActive="active">Page 112</a>
 ```
+
+### 4. Hack TS source code during compilation
+In DRCP component package's package.json file:
+```json
+"dr": {
+  "ngTsHandler": "dist/change-ng-ts#run"
+}
+```
+Meaning you can add a file 'dist/change-ng-ts.js' in your package folder and export a function named `run()` which actually handles hacking each TS source file passed from Angular cli.\
+e.g.
+```ts
+import {TsHandler, ReplacementInf} from '@dr-core/ng-app-builder/dist/utils/ts-before-aot';
+import * as ts from 'typescript';
+
+export let run: TsHandler = yourTsHacker;
+
+function yourTsHacker(src: ts.SourceFile): ReplacementInf[] {
+  // Where you return hacked source code
+}
+
+```
