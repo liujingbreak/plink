@@ -34,31 +34,12 @@ class ConfigHandlerMgr {
         // const files = browserOptions.drcpConfig ? browserOptions.drcpConfig.split(/\s*[,;:]\s*/) : [];
         const exporteds = [];
         const compilerOpt = ts_compiler_1.readTsConfig(require.resolve('dr-comp-package/wfh/tsconfig.json'));
+        delete compilerOpt.rootDir;
+        delete compilerOpt.rootDirs;
         registerExtension('.ts', compilerOpt);
         files.forEach(file => {
-            if (file.endsWith('.ts')) {
-                // console.log(green('config-handler -') + ' compile', file);
-                // file = Path.resolve(file);
-                // const jscode = transpileAndCheck(fs.readFileSync(file, 'utf8'), file, compilerOpt);
-                // console.log(jscode);
-                // const mod = {exports: {}};
-                // const context = vm.createContext(
-                // 	{Object, Array, Number, String, JSON, module: mod, exports: mod.exports, console, process, require,
-                // 	__filename: file, __dirname: Path.dirname(file)});
-                // try {
-                // 	vm.runInContext(jscode, context, {filename: file});
-                // } catch (ex) {
-                // 	console.error(ex);
-                // 	throw ex;
-                // }
-                // exporteds.push({file, handler: (mod.exports as any).default});
-                const exp = require(Path.resolve(file));
-                exporteds.push({ file, handler: exp.default ? exp.default : exp });
-            }
-            else if (file.endsWith('.js')) {
-                const exp = require(Path.resolve(file));
-                exporteds.push({ file, handler: exp.default ? exp.default : exp });
-            }
+            const exp = require(Path.resolve(file));
+            exporteds.push({ file, handler: exp.default ? exp.default : exp });
         });
         return exporteds;
     }
