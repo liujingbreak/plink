@@ -184,7 +184,7 @@ class Guarder {
 		// } else {
 		installProm = Promise.resolve();
 		// }
-		installProm = installProm.then(() => processUtils.promisifyExe(useYarn ? 'yarn' : 'npm', npmArgv, {cwd: this.rootPath}))
+		installProm = installProm.then(() => processUtils.promisifyExe(useYarn ? 'yarn' : 'npm', ...npmArgv, {cwd: this.rootPath}))
 		.then(res => {
 			if (this.isDrcpSymlink) {
 				return new Promise(resolve => setTimeout(() => resolve(res), 500))
