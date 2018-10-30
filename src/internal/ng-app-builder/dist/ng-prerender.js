@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// tslint:disable:no-console
 // Load zone.js for the server.
 require("zone.js/dist/zone-node");
 require("reflect-metadata");
@@ -96,6 +97,7 @@ function writeRoutesWithLocalServer(staticDir, htmlFile, mainFile, ROUTES, outpu
             mapFile = yield writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder);
         }
         catch (err) {
+            console.log(err);
             throw err;
         }
         finally {

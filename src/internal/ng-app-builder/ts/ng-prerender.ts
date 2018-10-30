@@ -1,3 +1,4 @@
+// tslint:disable:no-console
 // Load zone.js for the server.
 import 'zone.js/dist/zone-node';
 import 'reflect-metadata';
@@ -93,6 +94,7 @@ export async function writeRoutesWithLocalServer(staticDir: string, htmlFile: st
 	try {
 		mapFile = await writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder);
 	} catch (err) {
+		console.log(err);
 		throw err;
 	} finally {
 		await shutdown();
