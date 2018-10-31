@@ -9,7 +9,7 @@ exports.ROUTE_MAP_FILE = 'prerender-routes.json';
 const staticDir = __api_1.default.config.resolve('staticDir');
 class PrerenderForExpress {
     /**
-     *
+     * constructor
      * @param routeMapFiles array of dist/static/<app>/prerender-routes.json
      */
     constructor(...routeMapFiles) {

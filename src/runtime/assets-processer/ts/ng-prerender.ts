@@ -15,8 +15,8 @@ export class PrerenderForExpress {
 	prerenderMap: {[route: string]: string};
 
 	/**
-	 * 
-	 * @param routeMapFiles array of dist/static/<app>/prerender-routes.json
+	 * constructor
+	 * @param routeMapFiles array of dist/static/<app>/_prerender/prerender-routes.json
 	 */
 	constructor(...routeMapFiles: string[]) {
 		// this.prerenderMapFile = join(staticDir, this.applName, '_prerender', ROUTE_MAP_FILE);

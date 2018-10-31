@@ -7,25 +7,30 @@ module.exports = function(injector) {
 	injector.fromPackage('url-loader').alias('file-loader', '@dr-core/webpack2-builder/lib/dr-file-loader');
 
 	// Hacking less-loader start: to append NpmImportPlugin to less render plugin list
-	var less = require('less');
-	var oldLessRender = less.render;
-	var NpmImportPlugin;
-	if ([
-		'less-plugin-npm-import',
-		'@dr-core/webpack2-builder/node_modules/less-plugin-npm-import'
-	].some(m => {
-		try {
-			NpmImportPlugin = require(m);
-		} catch (e) {
-			return false;
+	try {
+		var less = require('less');
+		var oldLessRender = less.render;
+		var NpmImportPlugin;
+		if ([
+			'less-plugin-npm-import',
+			'@dr-core/webpack2-builder/node_modules/less-plugin-npm-import'
+		].some(m => {
+			try {
+				NpmImportPlugin = require(m);
+			} catch (e) {
+				return false;
+			}
+		})) {
+			injector.fromDir(['node_modules/less-loader', '@dr-core/webpack2-builder/node_modules/less-loader'])
+			.factory('less', function(file) {
+				if (less.render !== hackedLessRender)
+					less.render = hackedLessRender;
+				return less;
+			});
 		}
-	})) {
-		injector.fromDir(['node_modules/less-loader', '@dr-core/webpack2-builder/node_modules/less-loader'])
-		.factory('less', function(file) {
-			if (less.render !== hackedLessRender)
-				less.render = hackedLessRender;
-			return less;
-		});
+	} catch (e) {
+		console.log('Don\'t panic, this might be normal: ', e);
+		console.log('Skip setting up LESS hacking for above issue, it might be normal to a production Node.js HTTP server environment.');
 	}
 	function hackedLessRender(source, options, ...others) {
 		options.plugins.push(new NpmImportPlugin());

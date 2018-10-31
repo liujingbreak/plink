@@ -46,7 +46,7 @@ export function writeRoutes(staticDir: string, htmlFile: string, mainFile: strin
 	let routerFileMap: {[route: string]: string} = {};
 	// Iterate each route path
 	ROUTES.forEach(route => {
-		route = _.trimEnd(route, '/');
+		route = encodeURI(decodeURI(_.trimEnd(route, '/')));
 		const fullPath = join(outputFolder, route);
 
 		// Make sure the directory structure is there

@@ -48,7 +48,7 @@ function writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder) {
     let routerFileMap = {};
     // Iterate each route path
     ROUTES.forEach(route => {
-        route = _.trimEnd(route, '/');
+        route = encodeURI(decodeURI(_.trimEnd(route, '/')));
         const fullPath = path_1.join(outputFolder, route);
         // Make sure the directory structure is there
         if (!fs_extra_1.existsSync(fullPath)) {

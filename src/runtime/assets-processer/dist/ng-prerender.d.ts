@@ -8,7 +8,7 @@ export declare class PrerenderForExpress {
         [route: string]: string;
     };
     /**
-     *
+     * constructor
      * @param routeMapFiles array of dist/static/<app>/prerender-routes.json
      */
     constructor(...routeMapFiles: string[]);
