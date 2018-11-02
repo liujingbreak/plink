@@ -36,6 +36,9 @@ export default class IndexHtmlPlugin {
 		}
 	}
 	apply(compiler: Compiler) {
+		// compiler.hooks.watchRun.tapPromise('drcp-debug', async compiler => {
+		// 	console.log('watch run ');
+		// });
 		compiler.hooks.emit.tapPromise('drcp-index-html-plugin', async compilation => {
 			const htmlSrc = compilation.assets[this.indexOutputPath];
 			let source: string = htmlSrc.source();

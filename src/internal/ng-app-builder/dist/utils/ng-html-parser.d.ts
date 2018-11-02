@@ -21,7 +21,7 @@ export declare class TemplateLexer extends BaseLexer<HtmlTokenType> {
     isIdStart(laIdx?: number): boolean;
     isWhitespace(): boolean;
     stringLit(quote: string): Token<HtmlTokenType>;
-    skip(): void;
+    skip(): string;
     isComment(): boolean;
     comment(): boolean;
     isSwigComment(): boolean;

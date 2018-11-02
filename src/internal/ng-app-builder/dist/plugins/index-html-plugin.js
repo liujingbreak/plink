@@ -36,6 +36,9 @@ class IndexHtmlPlugin {
         }
     }
     apply(compiler) {
+        // compiler.hooks.watchRun.tapPromise('drcp-debug', async compiler => {
+        // 	console.log('watch run ');
+        // });
         compiler.hooks.emit.tapPromise('drcp-index-html-plugin', (compilation) => __awaiter(this, void 0, void 0, function* () {
             const htmlSrc = compilation.assets[this.indexOutputPath];
             let source = htmlSrc.source();

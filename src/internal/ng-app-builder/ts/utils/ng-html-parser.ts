@@ -21,12 +21,12 @@ export {HtmlTokenType as TokenType};
 export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 	*[Symbol.iterator](): Iterator<Token<HtmlTokenType>> {
 		while (true) {
+			this.skip();
 			let char: string = this.la();
 			const start = this.position;
 			if (char == null) {
 				return;
 			}
-			this.skip();
 			switch (char) {
 				case '>':
 				case '(':
@@ -120,7 +120,8 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 				break;
 			}
 			chr = this.la();
- 		}
+		 }
+		 return this.la();
 	}
 
 	isComment() {

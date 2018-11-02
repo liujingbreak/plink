@@ -22,12 +22,12 @@ exports.TokenType = HtmlTokenType;
 class TemplateLexer extends base_LLn_parser_1.BaseLexer {
     *[Symbol.iterator]() {
         while (true) {
+            this.skip();
             let char = this.la();
             const start = this.position;
             if (char == null) {
                 return;
             }
-            this.skip();
             switch (char) {
                 case '>':
                 case '(':
@@ -129,6 +129,7 @@ class TemplateLexer extends base_LLn_parser_1.BaseLexer {
             }
             chr = this.la();
         }
+        return this.la();
     }
     isComment() {
         return this.isNext('<!--');
