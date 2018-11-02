@@ -85,7 +85,7 @@ describe('ts-ast-util', () => {
 	it('resolveImportBindName', () => {
 		const src = ts.createSourceFile(testFile, testContent, ts.ScriptTarget.ESNext,
 			true, ts.ScriptKind.TSX);
-		let res = resolveImportBindName(src, '@bk/env/environment', 'environment');
+		const res = resolveImportBindName(src, '@bk/env/environment', 'environment');
 		expect(res).toBe('env');
 	});
 
@@ -97,7 +97,7 @@ describe('ts-ast-util', () => {
 		const src = ts.createSourceFile(testFile, testSample, ts.ScriptTarget.ESNext,
 			true, ts.ScriptKind.TSX);
 		new Selector(src).printAll();
-		let res = resolveImportBindName(src, '@angular/core', 'Component');
+		const res = resolveImportBindName(src, '@angular/core', 'Component');
 		expect(res).toBe('ng.Component');
 	});
 });

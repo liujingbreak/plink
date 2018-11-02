@@ -66,7 +66,7 @@ export default class ApiAotCompiler {
 		// We don't want to single out and evaluate lower level expression like `__api.packageName` from
 		// `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
 
-		let nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
+		const nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
 		nodeApi.__dirname = dirname(this.file);
 		const context = vm.createContext({__api: nodeApi});
 
@@ -123,7 +123,7 @@ export default class ApiAotCompiler {
 			const node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
 			if (node.expression.kind === sk.Identifier && node.expression.getText(this.ast) === '__api') {
 				// keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
-				let evaluateNode = this.goUpToParentExpress(node);
+				const evaluateNode = this.goUpToParentExpress(node);
 				this.replacements.push({start: evaluateNode.getStart(this.ast),
 					end: evaluateNode.getEnd(),
 					text: evaluateNode.getText(this.ast)});
@@ -141,7 +141,7 @@ export default class ApiAotCompiler {
 	protected goUpToParentExpress(target: ts.Node): ts.Node {
 		let currNode = target;
 		while(true) {
-			let kind = currNode.parent.kind;
+			const kind = currNode.parent.kind;
 			if (kind === sk.CallExpression && (currNode.parent as ts.CallExpression).expression === currNode ||
 				kind === sk.PropertyAccessExpression && (currNode.parent as ts.PropertyAccessExpression).expression === currNode ||
 				kind === sk.ElementAccessExpression && (currNode.parent as ts.ElementAccessExpression).expression === currNode) {

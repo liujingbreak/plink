@@ -1,16 +1,20 @@
-// var log = require('log4js').getLogger('wfh.' + __filename);
-// var Path = require('path');
-module.exports = function(injector) {
-	var _ = require('lodash');
-	var config = require('./lib/config');
+// tslint:disable:no-console
+import {DrPackageInjector} from './dist/injector-factory';
+import * as _ from 'lodash';
 
-	injector.fromPackage('url-loader').alias('file-loader', '@dr-core/webpack2-builder/lib/dr-file-loader');
+export = function(injector: DrPackageInjector) {
+	// var _ = require('lodash');
+	const config = require('./lib/config');
+	let less: any;
 
+	injector.fromPackage('url-loader', {baseDir: process.cwd()})
+		.alias('file-loader', '@dr-core/webpack2-builder/lib/dr-file-loader');
+	let oldLessRender: () => void;
 	// Hacking less-loader start: to append NpmImportPlugin to less render plugin list
 	try {
-		var less = require('less');
-		var oldLessRender = less.render;
-		var NpmImportPlugin;
+		less = require('less');
+		oldLessRender = less.render;
+		var NpmImportPlugin: any;
 		if ([
 			'less-plugin-npm-import',
 			'@dr-core/webpack2-builder/node_modules/less-plugin-npm-import'
@@ -30,18 +34,20 @@ module.exports = function(injector) {
 		}
 	} catch (e) {
 		console.log('Don\'t panic, this might be normal: ', e);
-		console.log('Skip setting up LESS hacking for above issue, it might be normal to a production Node.js HTTP server environment.');
+		console.log(
+			'Skip setting up LESS hacking for above issue, it might be normal to a production Node.js HTTP server environment.');
 	}
-	function hackedLessRender(source, options, ...others) {
+	function hackedLessRender(source: string, options: any, ...others: any[]) {
 		options.plugins.push(new NpmImportPlugin());
 		return oldLessRender.call(less, source, options, ...others);
 	}
 	// Hacking less-loader end
 
-	var chalk = require('chalk');
+	const chalk = require('chalk');
 	injector.fromAllComponents()
 	.factory('chalk', function() {
-		return new chalk.constructor({enabled: config.get('colorfulConsole') !== false && _.toLower(process.env.CHALK_ENABLED) !== 'false'});
+		return new chalk.constructor(
+			{enabled: config.get('colorfulConsole') !== false && _.toLower(process.env.CHALK_ENABLED) !== 'false'});
 	});
 
 	// Hack filesystem

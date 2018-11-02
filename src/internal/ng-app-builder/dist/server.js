@@ -29,6 +29,7 @@ function init() {
     // printHelp();
     checkAngularVersion();
     // writeTsconfig();
+    hackFixWatchpack();
 }
 exports.init = init;
 function activate() {
@@ -134,5 +135,23 @@ function checkAngularVersion() {
 // 			'  '.repeat(3) + '- <packageName 2>\n')
 // 	);
 // }
+/**
+ * https://github.com/webpack/watchpack/issues/61
+ */
+function hackFixWatchpack() {
+    const watchpackPath = ['webpack/node_modules/watchpack', 'watchpack'].find(path => {
+        return _fs.existsSync(Path.resolve('node_modules/' + path + '/lib/DirectoryWatcher.js'));
+    });
+    if (!watchpackPath) {
+        log.warn('Can not find watchpack, please make sure Webpack is installed.');
+        return;
+    }
+    const target = Path.resolve('node_modules/' + watchpackPath + '/lib/DirectoryWatcher.js');
+    if (_fs.existsSync(target + '.drcp-bak'))
+        return;
+    log.info(`hacking ${target}\n\t to workaround issue: https://github.com/webpack/watchpack/issues/61`);
+    _fs.renameSync(target, target + '.drcp-bak');
+    _fs.writeFileSync(target, _fs.readFileSync(target + '.drcp-bak', 'utf8').replace(/\WfollowSymlinks:\sfalse/g, 'followSymlinks: true'), 'utf8');
+}
 
 //# sourceMappingURL=server.js.map

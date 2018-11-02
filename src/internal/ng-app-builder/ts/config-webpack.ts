@@ -78,7 +78,7 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 				try {
 					// Attempt to resolve the module via Node
 					const e = require.resolve(request);
-					let comp = api.findPackageByFile(e);
+					const comp = api.findPackageByFile(e);
 					if (comp == null || comp.dr == null ) {
 						// It's a node_module
 						callback(null, request);
@@ -109,7 +109,7 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 		return lastResult;
 	});
 
-	let wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
+	const wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
 	fs.writeFileSync(wfname, printConfig(webpackConfig));
 	console.log('If you are wondering what kind of Webapck config file is used internally, checkout ' + wfname);
 	return webpackConfig;
@@ -180,7 +180,7 @@ function changeLoaders(webpackConfig: any) {
 			});
 		} else if (test instanceof RegExp && test.toString().indexOf('\\.scss') >= 0 && rule.use) {
 			const use = (rule.use as Array<{[key: string]: any, loader: string}>);
-			let insertIdx = use.findIndex(item => item.loader === 'sass-loader');
+			const insertIdx = use.findIndex(item => item.loader === 'sass-loader');
 			if (insertIdx < 0) {
 				throw new Error('sass-loader is not found');
 			}

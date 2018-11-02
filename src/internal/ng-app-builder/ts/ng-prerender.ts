@@ -43,7 +43,7 @@ export function writeRoutes(staticDir: string, htmlFile: string, mainFile: strin
 	// Load the index.html file containing referances to your application bundle.
 
 	let previousRender = Promise.resolve();
-	let routerFileMap: {[route: string]: string} = {};
+	const routerFileMap: {[route: string]: string} = {};
 	// Iterate each route path
 	ROUTES.forEach(route => {
 		route = encodeURI(decodeURI(_.trimEnd(route, '/')));
@@ -62,7 +62,7 @@ export function writeRoutes(staticDir: string, htmlFile: string, mainFile: strin
 					provideModuleMap(LAZY_MODULE_MAP)
 			]});
 		}).then(html => {
-			let wf = join(fullPath, 'index.html');
+			const wf = join(fullPath, 'index.html');
 			writeFileSync(wf, html);
 			log.info('Render %s page at ', route, wf);
 			let indexFile = relative(staticDir, wf);

@@ -1,7 +1,7 @@
 /* tslint:disable no-console */
 // import * as Path from 'path';
 // import postCssPlugin from './postcss-cli-resource';
-// const {nodeInjector} = require('dr-comp-package/wfh/lib/injectorFactory');
+// const {nodeInjector} = ('dr-comp-package/wfh/lib/injectorFactory');
 
 // nodeInjector.fromDir(Path.dirname(require.resolve(
 // '@angular-devkit/build-angular')))
@@ -11,3 +11,8 @@
 // 		default: postCssPlugin
 // 	};
 // });
+
+// import {nodeInjector} from 'dr-comp-package/wfh/dist/injector-factory';
+
+// nodeInjector.fromPackage('watchpack')
+// 	.alias(/\/DirectoryWatcher$/, '')

@@ -36,7 +36,7 @@ export default function createTsReadHook(ngParam: AngularCliParam): HookReadFunc
 	if (ngParam.browserOptions.polyfills)
 		polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
 
-	let appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
+	const appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
 	log.info('app module file: ', appModuleFile);
 
 	return function(file: string, buf: ArrayBuffer) {

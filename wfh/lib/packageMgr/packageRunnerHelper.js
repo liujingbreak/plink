@@ -156,7 +156,7 @@ function initWebInjector(packageInfo, apiPrototype) {
 	.substitute(/^([^{]*)\{locale\}(.*)$/,
 		(filePath, match) => match[1] + apiPrototype.getBuildLocale() + match[2]);
 
-	let done = webInjector.readInjectFile('module-resolve.browser.js');
+	let done = webInjector.readInjectFile('module-resolve.browser');
 	apiPrototype.browserInjector = webInjector;
 	return done;
 }

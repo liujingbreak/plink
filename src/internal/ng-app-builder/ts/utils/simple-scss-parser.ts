@@ -15,7 +15,7 @@ export enum TokenType {
 export class ScssLexer extends BaseLexer<TokenType> {
 	*[Symbol.iterator](): Iterator<Token<TokenType>> {
 		while (true) {
-			let char: string = this.la();
+			const char: string = this.la();
 			const start = this.position;
 			if (char == null) {
 				return;

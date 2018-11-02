@@ -63,20 +63,22 @@ class DrPackageInjector extends require_injector_1.default {
         log.debug('from ' + dirs);
         return super.fromDir(dirs);
     }
-    readInjectFile(fileName) {
-        if (!fileName) {
-            fileName = 'module-resolve.server.js';
-        }
-        log.debug('execute internal ' + fileName);
-        require('../' + fileName)(this);
-        const file = Path.resolve(process.cwd(), fileName);
-        if (fs.existsSync(file)) {
-            log.debug('execute ' + file);
-            require(process.cwd().replace(/\\/g, '/') + '/' + fileName)(this);
-        }
-        else {
-            log.warn(file + ' doesn\'t exist');
-        }
+    readInjectFile(fileNameWithoutExt) {
+        if (!fileNameWithoutExt)
+            fileNameWithoutExt = 'module-resolve.server';
+        [
+            Path.resolve(__dirname, '..', fileNameWithoutExt),
+            Path.resolve(process.cwd(), fileNameWithoutExt)
+        ].forEach(file => {
+            const file1 = fs.existsSync(file + '.ts') ? file + '.ts' : file + '.js';
+            if (fs.existsSync(file1)) {
+                log.debug('execute internal ' + file1);
+                require(file1)(this);
+            }
+            else {
+                log.info(file1 + ' doesn\'t exist');
+            }
+        });
         return require_injectors_1.doInjectorConfig(this, !this.noNode);
     }
 }
