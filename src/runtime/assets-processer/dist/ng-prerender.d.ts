@@ -9,7 +9,7 @@ export declare class PrerenderForExpress {
     };
     /**
      * constructor
-     * @param routeMapFiles array of dist/static/<app>/prerender-routes.json
+     * @param routeMapFiles array of dist/static/<app>/_prerender/prerender-routes.json
      */
     constructor(...routeMapFiles: string[]);
     asMiddleware(): (req: Request, res: Response, next: NextFunction) => void;

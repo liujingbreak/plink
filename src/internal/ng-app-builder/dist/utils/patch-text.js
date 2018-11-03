@@ -19,8 +19,8 @@ function _sortAndRemoveOverlap(replacements, removeOverlap = true, text) {
         return;
     for (let i = 1, l = replacements.length; i < l;) {
         if (replacements[i].start < replacements[i - 1].end) {
-            let prev = replacements[i - 1];
-            let curr = replacements[i];
+            const prev = replacements[i - 1];
+            const curr = replacements[i];
             if (removeOverlap) {
                 replacements.splice(i, 1);
                 l--;

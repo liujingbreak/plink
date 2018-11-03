@@ -47,7 +47,7 @@ function setupApiForAngularCli() {
         }
         const webpackConfig = ngParam.webpackConfig;
         const ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
-        let deployUrl = webpackConfig.output.publicPath || __api_1.default.config.get('publicPath');
+        const deployUrl = webpackConfig.output.publicPath || __api_1.default.config.get('publicPath');
         const publicUrlObj = Url.parse(deployUrl);
         Object.assign(Object.getPrototypeOf(__api_1.default), {
             webpackConfig,

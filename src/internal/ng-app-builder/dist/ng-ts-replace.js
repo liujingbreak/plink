@@ -27,7 +27,7 @@ function createTsReadHook(ngParam) {
     let polyfillsFile = '';
     if (ngParam.browserOptions.polyfills)
         polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
-    let appModuleFile = parse_app_module_1.findAppModuleFileFromMain(path_1.resolve(ngParam.browserOptions.main));
+    const appModuleFile = parse_app_module_1.findAppModuleFileFromMain(path_1.resolve(ngParam.browserOptions.main));
     log.info('app module file: ', appModuleFile);
     return function (file, buf) {
         try {

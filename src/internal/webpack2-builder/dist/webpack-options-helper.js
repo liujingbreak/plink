@@ -4,7 +4,7 @@ const __api_1 = require("__api");
 const Path = require("path");
 // import * as log4js from 'log4js';
 // const log = log4js.getLogger(api.packageName);
-var devMode = __api_1.default.config().devMode;
+const devMode = __api_1.default.config().devMode;
 const cssAutoPrefixSetting = {
     browsers: [
         'ie >= 8',
@@ -23,7 +23,7 @@ const styleLoaders = {
 };
 exports.styleLoaders = styleLoaders;
 function getStyleLoaders(type) {
-    var loaders = [
+    const loaders = [
         { loader: 'css-loader', options: {
                 minimize: !devMode,
                 sourceMap: __api_1.default.config().enableSourceMaps
@@ -55,17 +55,17 @@ function getStyleLoaders(type) {
     return loaders;
 }
 function isIssuerAngular(file) {
-    var component = __api_1.default.findPackageByFile(file);
+    const component = __api_1.default.findPackageByFile(file);
     if (!(component && component.dr && component.dr.angularCompiler))
         return false;
-    var relPath = Path.relative(component.realPackagePath, file);
+    const relPath = Path.relative(component.realPackagePath, file);
     return !/^[^/\\]+\.(?:ts|js)x?$/.test(relPath);
 }
 exports.isIssuerAngular = isIssuerAngular;
 function isIssuerNotAngular(file) {
-    var component = __api_1.default.findPackageByFile(file);
+    const component = __api_1.default.findPackageByFile(file);
     if ((component && component.dr && component.dr.angularCompiler)) {
-        var relPath = Path.relative(component.realPackagePath, file);
+        const relPath = Path.relative(component.realPackagePath, file);
         return /^[^/\\]+\.(?:ts|js)x?$/.test(relPath);
     }
     else

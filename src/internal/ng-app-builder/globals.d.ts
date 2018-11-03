@@ -5,7 +5,7 @@ import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
 import { EventEmitter } from 'events';
 import {ExpressAppApi} from '@dr-core/express-app';
 import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
-import {PackageInfo} from '@dr-core/build-util/index';
+import {PackageInfo} from '@dr-core/build-util';
 import {DrcpConfig} from 'dr-comp-package/wfh/dist/config-handler';
 import {RequireInjector} from 'require-injector';
 

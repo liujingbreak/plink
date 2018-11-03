@@ -1,6 +1,7 @@
 import express = require('express');
 import {Request, Response, NextFunction} from 'express';
 import * as Path from 'path';
+import * as fs from 'fs';
 // var favicon = require('serve-favicon');
 import * as log4js from 'log4js';
 var cookieParser = require('cookie-parser');
@@ -96,7 +97,7 @@ function create(app: express.Express, setting: any) {
 	// error handlers
 	// catch 404 and forward to error handler
 	app.use(function(req, res, next) {
-		log.info('originalUrl: ' + req.originalUrl);
+		log.info('Not Found: ' + req.originalUrl);
 		var err = new Error('Not Found');
 		(err as any).status = 404;
 		next(err);

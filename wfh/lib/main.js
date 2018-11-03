@@ -1,4 +1,5 @@
 /* eslint no-console:0 */
+require('source-map-support/register');
 //var nodePathSetup = require('../../bin/nodePath');
 //nodePathSetup();
 

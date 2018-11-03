@@ -1,7 +1,7 @@
 
 /* tslint:disable no-console */
 var unzip = require('gulp-unzip');
-var fs = require('fs-extra');
+import * as fs from 'fs-extra';
 var gulp = require('gulp');
 
 fs.mkdirsSync('dist/static');

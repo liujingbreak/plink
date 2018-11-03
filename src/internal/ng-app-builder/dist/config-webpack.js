@@ -75,7 +75,7 @@ function changeWebpackConfig(param, webpackConfig, drcpConfigSetting) {
                         try {
                             // Attempt to resolve the module via Node
                             const e = require.resolve(request);
-                            let comp = __api_1.default.findPackageByFile(e);
+                            const comp = __api_1.default.findPackageByFile(e);
                             if (comp == null || comp.dr == null) {
                                 // It's a node_module
                                 callback(null, request);
@@ -104,7 +104,7 @@ function changeWebpackConfig(param, webpackConfig, drcpConfigSetting) {
                 return handler.webpackConfig(webpackConfig);
             return lastResult;
         });
-        let wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
+        const wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
         fs.writeFileSync(wfname, printConfig(webpackConfig));
         console.log('If you are wondering what kind of Webapck config file is used internally, checkout ' + wfname);
         return webpackConfig;
@@ -177,7 +177,7 @@ function changeLoaders(webpackConfig) {
         }
         else if (test instanceof RegExp && test.toString().indexOf('\\.scss') >= 0 && rule.use) {
             const use = rule.use;
-            let insertIdx = use.findIndex(item => item.loader === 'sass-loader');
+            const insertIdx = use.findIndex(item => item.loader === 'sass-loader');
             if (insertIdx < 0) {
                 throw new Error('sass-loader is not found');
             }

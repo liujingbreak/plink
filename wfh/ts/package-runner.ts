@@ -2,7 +2,7 @@
 import NodePackage from './packageNodeInstance';
 import Events = require('events');
 import * as _ from 'lodash';
-import {PackageInfo, packageInstance} from '@dr-core/build-util/index';
+import {PackageInfo, packageInstance} from '@dr-core/build-util';
 // import Package from './packageNodeInstance';
 import {orderPackages} from './package-priority-helper';
 const LRU = require('lru-cache');

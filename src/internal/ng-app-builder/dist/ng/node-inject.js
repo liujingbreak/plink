@@ -1,4 +1,7 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console */
+require("source-map-support/register");
 // import * as Path from 'path';
 // import postCssPlugin from './postcss-cli-resource';
 // const {nodeInjector} = ('dr-comp-package/wfh/lib/injectorFactory');

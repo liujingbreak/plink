@@ -70,7 +70,7 @@ describe('ts-ast-util', () => {
     });
     it('resolveImportBindName', () => {
         const src = ts.createSourceFile(testFile, testContent, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
-        let res = ts_ast_util_1.resolveImportBindName(src, '@bk/env/environment', 'environment');
+        const res = ts_ast_util_1.resolveImportBindName(src, '@bk/env/environment', 'environment');
         expect(res).toBe('env');
     });
     it('resolveImportBindName for import name space binding', () => {
@@ -80,7 +80,7 @@ describe('ts-ast-util', () => {
 		';
         const src = ts.createSourceFile(testFile, testSample, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
         new ts_ast_query_1.default(src).printAll();
-        let res = ts_ast_util_1.resolveImportBindName(src, '@angular/core', 'Component');
+        const res = ts_ast_util_1.resolveImportBindName(src, '@angular/core', 'Component');
         expect(res).toBe('ng.Component');
     });
 });

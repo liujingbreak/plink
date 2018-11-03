@@ -34,7 +34,7 @@ exports.findAppModuleFileFromMain = _.memoize(_findAppModuleFileFromMain);
 function _findAppModuleFileFromMain(mainFile) {
     const lookupPath = ['AppModule', 'AppServerModule'];
     while (true) {
-        let found = findFileByExportNames(mainFile, ...lookupPath);
+        const found = findFileByExportNames(mainFile, ...lookupPath);
         if (found == null || found.size === 0) {
             throw new Error('Can not found "AppModule" or "AppServerModule from ' + mainFile);
         }
@@ -171,7 +171,7 @@ class AppModuleParser {
                 this.esImportsMap.set(importInfo.defaultName, importInfo);
             }
             if (_.get(node, 'importClause.namedBindings')) {
-                let nb = node.importClause.namedBindings;
+                const nb = node.importClause.namedBindings;
                 if (nb.kind === typescript_1.SyntaxKind.NamespaceImport) {
                     importInfo.namespace = nb.name.text;
                     this.esImportsMap.set(importInfo.namespace, importInfo);

@@ -125,6 +125,7 @@ function needInstallWfh(workspaceJson) {
 
 function processCmd(versionText) {
 	console.log(versionText);
+	require('source-map-support/register');
 	return require('../wfh/lib/cmd-args').drcpCommand(startTime);
 }
 

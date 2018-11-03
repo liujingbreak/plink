@@ -1,6 +1,7 @@
 "use strict";
 const express = require("express");
 const Path = require("path");
+const fs = require("fs");
 // var favicon = require('serve-favicon');
 const log4js = require("log4js");
 var cookieParser = require('cookie-parser');
@@ -71,7 +72,7 @@ function create(app, setting) {
     // error handlers
     // catch 404 and forward to error handler
     app.use(function (req, res, next) {
-        log.info('originalUrl: ' + req.originalUrl);
+        log.info('Not Found: ' + req.originalUrl);
         var err = new Error('Not Found');
         err.status = 404;
         next(err);

@@ -1,4 +1,5 @@
 /* tslint:disable no-console */
+import 'source-map-support/register';
 // import * as Path from 'path';
 // import postCssPlugin from './postcss-cli-resource';
 // const {nodeInjector} = ('dr-comp-package/wfh/lib/injectorFactory');

@@ -52,7 +52,7 @@ class ApiAotCompiler {
         // Remove overlaped replacements to avoid them getting into later `vm.runInNewContext()`,
         // We don't want to single out and evaluate lower level expression like `__api.packageName` from
         // `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
-        let nodeApi = __api_1.default.getNodeApiForPackage(pk);
+        const nodeApi = __api_1.default.getNodeApiForPackage(pk);
         nodeApi.__dirname = path_1.dirname(this.file);
         const context = vm.createContext({ __api: nodeApi });
         for (const repl of this.replacements) {
@@ -103,7 +103,7 @@ class ApiAotCompiler {
             const node = ast;
             if (node.expression.kind === typescript_1.SyntaxKind.Identifier && node.expression.getText(this.ast) === '__api') {
                 // keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
-                let evaluateNode = this.goUpToParentExpress(node);
+                const evaluateNode = this.goUpToParentExpress(node);
                 this.replacements.push({ start: evaluateNode.getStart(this.ast),
                     end: evaluateNode.getEnd(),
                     text: evaluateNode.getText(this.ast) });
@@ -120,7 +120,7 @@ class ApiAotCompiler {
     goUpToParentExpress(target) {
         let currNode = target;
         while (true) {
-            let kind = currNode.parent.kind;
+            const kind = currNode.parent.kind;
             if (kind === typescript_1.SyntaxKind.CallExpression && currNode.parent.expression === currNode ||
                 kind === typescript_1.SyntaxKind.PropertyAccessExpression && currNode.parent.expression === currNode ||
                 kind === typescript_1.SyntaxKind.ElementAccessExpression && currNode.parent.expression === currNode) {

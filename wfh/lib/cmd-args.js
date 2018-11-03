@@ -314,9 +314,9 @@ function drcpCommand(startTime) {
 		handler: argv => {
 			require('./config').init(argv)
 			.then(() => {
-				cli.bumpDirs(argv.dir, argv.v);
+				cli.bumpDirs(argv.dir, argv.i);
 				if (argv.pj) {
-					cli.bumpProjects(argv.pj, argv.v);
+					cli.bumpProjects(argv.pj, argv.i);
 				}
 			});
 		}

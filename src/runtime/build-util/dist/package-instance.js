@@ -39,12 +39,12 @@ class LazyPackageFactory {
         if (found.length > 0)
             return found[found.length - 1];
         while (true) {
-            let dir = Path.dirname(currPath);
+            const dir = Path.dirname(currPath);
             if (dir === currPath)
                 break; // Has reached root
             if (fs.existsSync(Path.join(dir, 'package.json'))) {
-                let pkjson = require(Path.join(dir, 'package.json'));
-                let pk = createPackage(dir, pkjson);
+                const pkjson = require(Path.join(dir, 'package.json'));
+                const pk = createPackage(dir, pkjson);
                 this.packagePathMap.putData(dir, pk);
                 return pk;
             }
@@ -56,7 +56,7 @@ class LazyPackageFactory {
 exports.LazyPackageFactory = LazyPackageFactory;
 function createPackage(packagePath, pkJson) {
     const name = pkJson.name;
-    let instance = new PackageBrowserInstance({
+    const instance = new PackageBrowserInstance({
         isVendor: false,
         bundle: null,
         longName: pkJson.name,

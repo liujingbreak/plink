@@ -7,7 +7,7 @@ import * as _ from 'lodash';
 import * as Path from 'path';
 import * as fs from 'fs';
 import {DrcpConfig, ConfigHandler} from 'dr-comp-package/wfh/dist/config-handler';
-import {PackageInfo} from '@dr-core/build-util/index';
+import {PackageInfo} from '@dr-core/build-util';
 import {findAppModuleFileFromMain} from '../utils/parse-app-module';
 const {cyan, green, red} = require('chalk');
 const {walkPackages} = require('@dr-core/build-util');

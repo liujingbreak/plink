@@ -16,7 +16,7 @@ var TokenType;
 class ScssLexer extends base_LLn_parser_1.BaseLexer {
     *[Symbol.iterator]() {
         while (true) {
-            let char = this.la();
+            const char = this.la();
             const start = this.position;
             if (char == null) {
                 return;

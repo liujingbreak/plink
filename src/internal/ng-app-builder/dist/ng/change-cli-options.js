@@ -92,7 +92,7 @@ function lookupEntryPackage(lookupDir) {
  * Angular cli will read tsconfig.json twice due to some junk code,
  * let's memoize the result by file path as cache key.
  */
-let cachedTsConfigFor = _.memoize(overrideTsConfig);
+const cachedTsConfigFor = _.memoize(overrideTsConfig);
 /**
  * Let's override tsconfig.json files for Angular at rutime :)
  * - Read into memory
@@ -104,7 +104,7 @@ let cachedTsConfigFor = _.memoize(overrideTsConfig);
  */
 function overrideTsConfig(file, content, browserOptions, config) {
     const root = config().rootPath;
-    let oldJson = cjson.parse(content);
+    const oldJson = cjson.parse(content);
     const pkInfo = walkPackages(config, null, packageUtils, true);
     let ngPackages = pkInfo.allModules;
     // const excludePkSet = new Set<string>();
@@ -122,7 +122,7 @@ function overrideTsConfig(file, content, browserOptions, config) {
         throw new Error('Error, can not find package.json of ' + appModuleFile);
     ngPackages.forEach(pk => {
         // TODO: doc for dr.ngAppModule
-        let isNgAppModule = pk.longName === appPackageJson.name;
+        const isNgAppModule = pk.longName === appPackageJson.name;
         const dir = Path.relative(Path.dirname(file), isNgAppModule ? pk.realPackagePath : pk.packagePath)
             .replace(/\\/g, '/');
         if (isNgAppModule) {

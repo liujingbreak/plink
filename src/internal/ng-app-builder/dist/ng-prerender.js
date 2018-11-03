@@ -45,7 +45,7 @@ function writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder) {
     const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(mainFile);
     // Load the index.html file containing referances to your application bundle.
     let previousRender = Promise.resolve();
-    let routerFileMap = {};
+    const routerFileMap = {};
     // Iterate each route path
     ROUTES.forEach(route => {
         route = encodeURI(decodeURI(_.trimEnd(route, '/')));
@@ -64,7 +64,7 @@ function writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder) {
                 ]
             });
         }).then(html => {
-            let wf = path_1.join(fullPath, 'index.html');
+            const wf = path_1.join(fullPath, 'index.html');
             fs_extra_1.writeFileSync(wf, html);
             log.info('Render %s page at ', route, wf);
             let indexFile = path_1.relative(staticDir, wf);
