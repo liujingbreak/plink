@@ -92,7 +92,6 @@ class TsCompiler {
 				output.outputFiles.map(o => yellow(o.name)).join(', '));
 		}
 		for (const o of output.outputFiles) {
-			console.log('ts-compiler - output: ', o.name);
 			return o.text;
 		}
 	  }
