@@ -28,6 +28,7 @@
 		"emitDecoratorMetadata": true,
 		"noUnusedLocals": true,
 		"target": "ES5",
-		"moduleResolution": "Node"
+		"moduleResolution": "Node",
+		"preserveSymlinks": false
 	}
 }
