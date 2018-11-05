@@ -119,7 +119,6 @@ function changeLoaders(webpackConfig) {
     const rules = webpackConfig.module.rules;
     let hasUrlLoader = false;
     let fileLoaderRuleIdx;
-    // let fileLoaderTest: webpack.RuleSetCondition;
     rules.forEach((rule, ruleIdx) => {
         const test = rule.test;
         if (rule.use) {
@@ -128,6 +127,7 @@ function changeLoaders(webpackConfig) {
                 rule.use.splice(idx + 1, 0, {
                     loader: 'css-url-loader'
                 });
+                // (rule.use as webpack.RuleSetLoader[]).push({loader: 'css-url-loader'});
             }
         }
         if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
@@ -157,7 +157,7 @@ function changeLoaders(webpackConfig) {
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
                 test: /\.(eot|svg|cur|webp|otf|ttf|woff|woff2|ani)$/,
-                use: [{ loader: '@dr-core/webpack2-builder/lib/dr-file-loader' }]
+                use: [{ loader: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader' }]
             });
         }
         else if (rule.loader === 'url-loader') {
@@ -169,7 +169,7 @@ function changeLoaders(webpackConfig) {
                         loader: 'url-loader',
                         options: {
                             limit: !devMode ? 10000 : 1,
-                            fallback: '@dr-core/webpack2-builder/lib/dr-file-loader'
+                            fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
                         }
                     }
                 ]
@@ -213,7 +213,7 @@ function changeLoaders(webpackConfig) {
                     loader: 'url-loader',
                     options: {
                         limit: 10000,
-                        fallback: '@dr-core/webpack2-builder/lib/dr-file-loader'
+                        fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
                     }
                 }]
         });

@@ -6,7 +6,7 @@ import {publicUrl} from 'dr-comp-package/wfh/dist/assets-url';
 import vm = require('vm');
 import patchText, {ReplacementInf} from '../utils/patch-text';
 import {Observable, of} from 'rxjs';
-import {mergeMap, map} from 'rxjs/operators';
+import {concatMap, map} from 'rxjs/operators';
 import {ScssParser, ScssLexer} from '../utils/simple-scss-parser';
 // import {loader as wbLoader} from 'webpack';
 const log = require('log4js').getLogger(api.packageName + '/css-url-loader');
@@ -46,7 +46,7 @@ function replaceUrl(loaderCtx: wb.loader.LoaderContext, css: string, file: strin
 			subscriber.next({start, end, text} as ReplacementInf);
 		}
 		subscriber.complete();
-	}).pipe(mergeMap( repl => {
+	}).pipe(concatMap( repl => {
 		var resolvedTo = replaceAssetsUrl(file, repl.text);
 		if (resolvedTo.startsWith('~')) {
 			return loadModule(loaderCtx, repl.text.slice(1)).pipe(map(url => {
@@ -80,7 +80,7 @@ function loadModule(loaderCtx: wb.loader.LoaderContext, url: string) {
 			vm.runInNewContext(source, vm.createContext(sandbox));
 			const newUrl = sandbox.module.exports as string;
 			loadModuleSub.next(newUrl);
-			log.info('url: %s  -> %s', url, newUrl);
+			log.debug('url: %s  -> %s', url, newUrl);
 			loadModuleSub.complete();
 		});
 	});

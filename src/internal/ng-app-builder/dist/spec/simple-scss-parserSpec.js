@@ -30,9 +30,9 @@ describe('simple-scss-parser', () => {
     it('getResUrl() should work', () => {
         const lexer = new simple_scss_parser_1.ScssLexer(text);
         const parser = new simple_scss_parser_1.ScssParser(lexer);
-        const imports = parser.getResUrl(text);
-        console.log(imports);
-        expect(imports.length).toBe(1);
+        const urls = parser.getResUrl(text);
+        console.log(urls);
+        expect(urls.length).toBe(7);
     });
 });
 

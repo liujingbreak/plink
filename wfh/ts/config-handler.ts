@@ -1,7 +1,7 @@
 /* tslint:disable no-console */
 import * as Path from 'path';
 // import vm = require('vm');
-import * as fs from 'fs';
+// import * as fs from 'fs';
 import {CompilerOptions} from 'typescript';
 import {readTsConfig, transpileAndCheck} from './ts-compiler';
 const {cyan, green} = require('chalk');
@@ -34,9 +34,9 @@ function registerExtension(ext: string, compilerOpt: CompilerOptions) {
 		//   }
 		const _compile = m._compile;
 		m._compile = function(code: string, fileName: string) {
-			const jscode = transpileAndCheck(fs.readFileSync(fileName, 'utf8'), fileName, compilerOpt);
-			console.log(jscode);
-			return _compile.call(this, transpileAndCheck(code, fileName, compilerOpt), fileName);
+			const jscode = transpileAndCheck(code, fileName, compilerOpt);
+			// console.log(jscode);
+			return _compile.call(this, jscode, fileName);
 		};
 		return old(m, filename);
 	};

@@ -10,8 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console */
 const Path = require("path");
-// import vm = require('vm');
-const fs = require("fs");
 const ts_compiler_1 = require("./ts-compiler");
 const { cyan, green } = require('chalk');
 function registerExtension(ext, compilerOpt) {
@@ -22,9 +20,9 @@ function registerExtension(ext, compilerOpt) {
         //   }
         const _compile = m._compile;
         m._compile = function (code, fileName) {
-            const jscode = ts_compiler_1.transpileAndCheck(fs.readFileSync(fileName, 'utf8'), fileName, compilerOpt);
-            console.log(jscode);
-            return _compile.call(this, ts_compiler_1.transpileAndCheck(code, fileName, compilerOpt), fileName);
+            const jscode = ts_compiler_1.transpileAndCheck(code, fileName, compilerOpt);
+            // console.log(jscode);
+            return _compile.call(this, jscode, fileName);
         };
         return old(m, filename);
     };

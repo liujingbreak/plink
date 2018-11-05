@@ -25,7 +25,7 @@ declare module '__injector' {
 	let a: ComponentInjector;
 	export = a;
 }
-declare type RawSourceMap = any;
+// declare type RawSourceMap = any;
 // declare function require(name: string): any;
 declare interface require {
 	ensure(names: string[]): any;

@@ -41,7 +41,7 @@ function replaceUrl(loaderCtx, css, file) {
             subscriber.next({ start, end, text });
         }
         subscriber.complete();
-    }).pipe(operators_1.mergeMap(repl => {
+    }).pipe(operators_1.concatMap(repl => {
         var resolvedTo = replaceAssetsUrl(file, repl.text);
         if (resolvedTo.startsWith('~')) {
             return loadModule(loaderCtx, repl.text.slice(1)).pipe(operators_1.map(url => {
@@ -76,7 +76,7 @@ function loadModule(loaderCtx, url) {
             vm.runInNewContext(source, vm.createContext(sandbox));
             const newUrl = sandbox.module.exports;
             loadModuleSub.next(newUrl);
-            log.info('url: %s  -> %s', url, newUrl);
+            log.debug('url: %s  -> %s', url, newUrl);
             loadModuleSub.complete();
         });
     });

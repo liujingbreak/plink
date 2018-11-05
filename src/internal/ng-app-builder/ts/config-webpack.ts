@@ -123,7 +123,6 @@ function changeLoaders(webpackConfig: any) {
 	const rules = webpackConfig.module.rules as webpack.Rule[];
 	let hasUrlLoader = false;
 	let fileLoaderRuleIdx: number;
-	// let fileLoaderTest: webpack.RuleSetCondition;
 	rules.forEach((rule, ruleIdx) => {
 		const test = rule.test;
 		if (rule.use) {
@@ -132,6 +131,7 @@ function changeLoaders(webpackConfig: any) {
 				(rule.use as webpack.RuleSetLoader[]).splice(idx + 1, 0, {
 					loader: 'css-url-loader'
 				});
+				// (rule.use as webpack.RuleSetLoader[]).push({loader: 'css-url-loader'});
 			}
 		}
 
@@ -161,7 +161,7 @@ function changeLoaders(webpackConfig: any) {
 			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
 			Object.assign(rule, {
 				test: /\.(eot|svg|cur|webp|otf|ttf|woff|woff2|ani)$/,
-				use: [{loader: '@dr-core/webpack2-builder/lib/dr-file-loader'}]
+				use: [{loader: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'}]
 			});
 
 		} else if (rule.loader === 'url-loader') {
@@ -173,7 +173,7 @@ function changeLoaders(webpackConfig: any) {
 						loader: 'url-loader',
 						options: {
 							limit: !devMode ? 10000 : 1, // <10k ,use base64 format, dev mode only use url for speed
-							fallback: '@dr-core/webpack2-builder/lib/dr-file-loader'
+							fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
 						}
 					}
 				]
@@ -216,7 +216,7 @@ function changeLoaders(webpackConfig: any) {
 				loader: 'url-loader',
 				options: {
 					limit: 10000, // <10k ,use base64 format
-					fallback: '@dr-core/webpack2-builder/lib/dr-file-loader'
+					fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
 				}
 			}]
 		});

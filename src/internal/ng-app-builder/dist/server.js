@@ -40,11 +40,11 @@ function setupApiForAngularCli() {
         const ngParam = __api_1.default.config()._angularCli;
         if (!ngParam || __api_1.default.ngEntryComponent)
             return;
-        if (!ngParam.browserOptions.preserveSymlinks) {
-            throw new Error('In order to get DRCP builder work,\
-		you must set property `preserveSymlinks` to be true in project\'s angular.json file \
-		');
-        }
+        // if (!ngParam.browserOptions.preserveSymlinks) {
+        // 	throw new Error('In order to get DRCP builder work,\
+        // 	you must set property `preserveSymlinks` to be true in project\'s angular.json file \
+        // 	');
+        // }
         const webpackConfig = ngParam.webpackConfig;
         const ngEntryComponent = __api_1.default.findPackageByFile(Path.resolve(ngParam.projectRoot));
         const deployUrl = webpackConfig.output.publicPath || __api_1.default.config.get('publicPath');

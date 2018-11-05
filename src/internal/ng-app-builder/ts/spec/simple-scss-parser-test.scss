@@ -1,6 +1,152 @@
 @import '~@angular/material/theming';
 @import url(abc.css);
+@charset "UTF-8";
 
+/* You can add global styles to this file, and also import other style files */
+
+/* fallback 
+<!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> -->
+<!-- <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet"> -->
+*/
+
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/materialicons/v37/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2) format("woff2");
+}
+
+/* cyrillic-ext */
+
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 300;
+  src: local("Roboto Light"), local("Roboto-Light"), url(https://fonts.gstatic.com/s/roboto/v18/KFOlCnqEu92Fr1MmSU5fCRc4AMP6lbBP.woff2) format("woff2");
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+
+
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(../../credit-common/vendors/material/iconfont/MaterialIcons-Regular.eot);
+  /* For IE6-8 */
+  src: local("Material Icons"), local("MaterialIcons-Regular"), url(../../credit-common/vendors/material/iconfont/MaterialIcons-Regular.woff2) format("woff2"), url(../../credit-common/vendors/material/iconfont/MaterialIcons-Regular.woff) format("woff"), url(../../credit-common/vendors/material/iconfont/MaterialIcons-Regular.ttf) format("truetype");
+}
+
+/**
+ * Applies styles for users in high contrast mode. Note that this only applies
+ * to Microsoft browsers. Chrome can be included by checking for the `html[hc]`
+ * attribute, however Chrome handles high contrast differently.
+ * @param target Which kind of high contrast setting to target. Defaults to `active`, can be
+ *    `white-on-black` or `black-on-white`.
+ */
+
+/* Theme for the ripple elements.*/
+
+/* stylelint-disable material/no-prefixes */
+
+/* stylelint-enable */
+
+/**
+	primary: $primary,
+		default: map-get($base-palette, $default),
+		lighter: map-get($base-palette, $lighter),
+		darker: map-get($base-palette, $darker),
+
+		default-contrast: mat-contrast($base-palette, $default),
+		lighter-contrast: mat-contrast($base-palette, $lighter),
+		darker-contrast: mat-contrast($base-palette, $darker)
+		50...900,A100,A200,A400,A700
+    accent: $accent,
+    warn: $warn,
+    is-dark: false,
+	foreground: $mat-light-theme-foreground,
+		base:              black,
+		divider:           $dark-dividers,
+		dividers:          $dark-dividers,
+		disabled:          $dark-disabled-text,
+		disabled-button:   rgba(black, 0.26),
+		disabled-text:     $dark-disabled-text,
+		hint-text:         $dark-disabled-text,
+		secondary-text:    $dark-secondary-text,
+		icon:              rgba(black, 0.54),
+		icons:             rgba(black, 0.54),
+		text:              rgba(black, 0.87),
+		slider-min:        rgba(black, 0.87),
+		slider-off:        rgba(black, 0.26),
+		slider-off-active: rgba(black, 0.38),
+	background: $mat-light-theme-background,
+		status-bar: map_get($mat-grey, 300),
+		app-bar:    map_get($mat-grey, 100),
+		background: map_get($mat-grey, 50),
+		hover:      rgba(black, 0.04), // TODO(kara): check style with Material Design UX
+		card:       white,
+		dialog:     white,
+		disabled-button: rgba(black, 0.12),
+		raised-button: white,
+		focused-button: $dark-focused,
+		selected-button: map_get($mat-grey, 300),
+		selected-disabled-button: map_get($mat-grey, 400),
+		disabled-button-toggle: map_get($mat-grey, 200),
+		unselected-chip: map_get($mat-grey, 300),
+		disabled-list-option: map_get($mat-grey, 200),
+*/
+
+* {
+  margin: 0;
+  padding: 0;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  cursor: inherit;
+}
+
+*:focus {
+  outline: none;
+}
+
+*::-moz-focus-inner {
+  border: none;
+}
+
+*::-moz-focusring {
+  outline: none;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: auto;
+  font-family: Roboto, 'Comic Sans MS', '幼圆', '黑体', sans-serif;
+  color: #303030;
+  position: relative;
+  cursor: default;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 300;
+  color: #404050;
+}
+
+
+  
 .foobar {
 	background: url(/efg.jpg);
 }

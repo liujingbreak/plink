@@ -118,6 +118,7 @@ function overrideTsConfig(file: string, content: string,
 
 	const root = config().rootPath;
 	const oldJson = cjson.parse(content);
+	const preserveSymlinks = browserOptions.preserveSymlinks;
 	const pkInfo: PackageInfo = walkPackages(config, null, packageUtils, true);
 	// var packageScopes: string[] = config().packageScopes;
 	// var components = pkInfo.moduleMap;
@@ -146,7 +147,7 @@ function overrideTsConfig(file: string, content: string,
 		// TODO: doc for dr.ngAppModule
 		const isNgAppModule: boolean = pk.longName === appPackageJson.name;
 		const dir = Path.relative(Path.dirname(file),
-			isNgAppModule ? pk.realPackagePath : pk.packagePath)
+			isNgAppModule ? pk.realPackagePath : (preserveSymlinks? pk.packagePath : pk.realPackagePath))
 			.replace(/\\/g, '/');
 		if (isNgAppModule) {
 			tsInclude.unshift(dir + '/**/*.ts');
@@ -160,7 +161,10 @@ function overrideTsConfig(file: string, content: string,
 			dir + '/dist',
 			dir + '/**/*.spec.ts');
 	});
-	tsInclude.push(Path.relative(Path.dirname(file), 'node_modules/dr-comp-package/wfh/share').replace(/\\/g, '/'));
+	tsInclude.push(Path.relative(Path.dirname(file), preserveSymlinks ?
+			'node_modules/dr-comp-package/wfh/share' :
+			fs.realpathSync('node_modules/dr-comp-package/wfh/share'))
+		.replace(/\\/g, '/'));
 	tsExclude.push('**/test.ts');
 	tsExclude.push(...excludePath.map(expath =>
 		Path.relative(Path.dirname(file), expath).replace(/\\/g, '/')));
@@ -176,7 +180,8 @@ function overrideTsConfig(file: string, content: string,
 				Path.resolve(root, 'node_modules/@dr-types'),
 				Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
 			],
-			module: 'esnext'
+			module: 'esnext',
+			preserveSymlinks
 		},
 		angularCompilerOptions: {
 			trace: true,

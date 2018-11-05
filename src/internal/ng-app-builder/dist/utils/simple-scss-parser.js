@@ -14,6 +14,10 @@ var TokenType;
     TokenType[TokenType[")"] = 7] = ")";
 })(TokenType = exports.TokenType || (exports.TokenType = {}));
 class ScssLexer extends base_LLn_parser_1.BaseLexer {
+    constructor() {
+        super(...arguments);
+        this.inParentheses = false;
+    }
     *[Symbol.iterator]() {
         while (true) {
             const char = this.la();
@@ -22,8 +26,8 @@ class ScssLexer extends base_LLn_parser_1.BaseLexer {
                 return;
             }
             if (this.la() === '/' && (this.la(2) === '/' || this.la(2) === '*')) {
-                this.comments();
-                continue;
+                if (this.comments())
+                    continue;
             }
             if (/\s/.test(this.la())) {
                 this.spaces();
@@ -40,12 +44,13 @@ class ScssLexer extends base_LLn_parser_1.BaseLexer {
                     yield this.identity();
                     break;
                 case '(':
+                    this.inParentheses = true;
                 case ')':
                     this.advance();
                     yield new base_LLn_parser_1.Token(TokenType[char], this, start);
                     break;
                 default:
-                    if (/[a-zA-Z0-9_-]/.test(char)) {
+                    if (/[a-zA-Z0-9_\-:\$]/.test(char)) {
                         yield this.identity(TokenType.id);
                         break;
                     }
@@ -87,6 +92,8 @@ class ScssLexer extends base_LLn_parser_1.BaseLexer {
         return new base_LLn_parser_1.Token(TokenType.skip, this, start);
     }
     comments() {
+        if (this.inParentheses && this.isNext('/', '/'))
+            return null; // Do not consider '//' as comment in a parentheses like ulr(http://...)
         const start = this.position;
         this.advance();
         if (this.isNext('/')) {

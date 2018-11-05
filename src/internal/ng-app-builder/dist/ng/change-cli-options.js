@@ -105,6 +105,7 @@ const cachedTsConfigFor = _.memoize(overrideTsConfig);
 function overrideTsConfig(file, content, browserOptions, config) {
     const root = config().rootPath;
     const oldJson = cjson.parse(content);
+    const preserveSymlinks = browserOptions.preserveSymlinks;
     const pkInfo = walkPackages(config, null, packageUtils, true);
     let ngPackages = pkInfo.allModules;
     // const excludePkSet = new Set<string>();
@@ -123,7 +124,7 @@ function overrideTsConfig(file, content, browserOptions, config) {
     ngPackages.forEach(pk => {
         // TODO: doc for dr.ngAppModule
         const isNgAppModule = pk.longName === appPackageJson.name;
-        const dir = Path.relative(Path.dirname(file), isNgAppModule ? pk.realPackagePath : pk.packagePath)
+        const dir = Path.relative(Path.dirname(file), isNgAppModule ? pk.realPackagePath : (preserveSymlinks ? pk.packagePath : pk.realPackagePath))
             .replace(/\\/g, '/');
         if (isNgAppModule) {
             tsInclude.unshift(dir + '/**/*.ts');
@@ -135,7 +136,10 @@ function overrideTsConfig(file, content, browserOptions, config) {
         }
         tsExclude.push(dir + '/ts', dir + '/spec', dir + '/dist', dir + '/**/*.spec.ts');
     });
-    tsInclude.push(Path.relative(Path.dirname(file), 'node_modules/dr-comp-package/wfh/share').replace(/\\/g, '/'));
+    tsInclude.push(Path.relative(Path.dirname(file), preserveSymlinks ?
+        'node_modules/dr-comp-package/wfh/share' :
+        fs.realpathSync('node_modules/dr-comp-package/wfh/share'))
+        .replace(/\\/g, '/'));
     tsExclude.push('**/test.ts');
     tsExclude.push(...excludePath.map(expath => Path.relative(Path.dirname(file), expath).replace(/\\/g, '/')));
     var tsjson = {
@@ -149,7 +153,8 @@ function overrideTsConfig(file, content, browserOptions, config) {
                 Path.resolve(root, 'node_modules/@dr-types'),
                 Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
             ],
-            module: 'esnext'
+            module: 'esnext',
+            preserveSymlinks
         },
         angularCompilerOptions: {
             trace: true,

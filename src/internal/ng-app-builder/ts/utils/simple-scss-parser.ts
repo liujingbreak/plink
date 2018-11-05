@@ -13,6 +13,7 @@ export enum TokenType {
 }
 
 export class ScssLexer extends BaseLexer<TokenType> {
+	inParentheses = false;
 	*[Symbol.iterator](): Iterator<Token<TokenType>> {
 		while (true) {
 			const char: string = this.la();
@@ -21,8 +22,8 @@ export class ScssLexer extends BaseLexer<TokenType> {
 				return;
 			}
 			if (this.la() === '/' && (this.la(2) === '/' || this.la(2) === '*')) {
-				this.comments();
-				continue;
+				if (this.comments())
+					continue;
 			}
 			if (/\s/.test(this.la())) {
 				this.spaces();
@@ -39,12 +40,13 @@ export class ScssLexer extends BaseLexer<TokenType> {
 					yield this.identity();
 					break;
 				case '(':
+					this.inParentheses = true;
 				case ')':
 					this.advance();
 					yield new Token(TokenType[char], this, start);
 					break;
 				default:
-					if (/[a-zA-Z0-9_-]/.test(char)) {
+					if (/[a-zA-Z0-9_\-:\$]/.test(char)) {
 						yield this.identity(TokenType.id);
 						break;
 					}
@@ -89,6 +91,8 @@ export class ScssLexer extends BaseLexer<TokenType> {
 		return new Token(TokenType.skip, this, start);
 	}
 	comments() {
+		if (this.inParentheses && this.isNext('/', '/'))
+			return null; // Do not consider '//' as comment in a parentheses like ulr(http://...)
 		const start = this.position;
 		this.advance();
 		if (this.isNext('/')) {
