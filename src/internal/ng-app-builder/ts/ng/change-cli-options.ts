@@ -184,8 +184,7 @@ function overrideTsConfig(file: string, content: string,
 			preserveSymlinks
 		},
 		angularCompilerOptions: {
-			trace: true,
-			strictMetadataEmit: true
+			// trace: true
 		}
 	};
 	Object.assign(tsjson.compilerOptions, oldJson.compilerOptions);
