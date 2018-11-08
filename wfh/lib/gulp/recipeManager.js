@@ -107,7 +107,9 @@ function eachDownloadedRecipe(callback, excludeRecipeSet) {
 	}
 	if (config().installedRecipes) {
 		var regexList = config().installedRecipes.map(s => new RegExp(s));
-		var deps = require(Path.resolve(config().rootPath, 'package.json')).dependencies;
+		const pkjson = require(Path.resolve(config().rootPath, 'package.json'));
+		var deps = Object.assign({}, pkjson.dependencies || {}, pkjson.devDependencies || {});
+		// var deps = require(Path.resolve(config().rootPath, 'package.json')).dependencies;
 		// log.warn('delete ', require('../../../package.json').name);
 		if (!deps)
 			return;
