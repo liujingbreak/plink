@@ -1,5 +1,5 @@
 import api from '__api';
-import DrComponent from '@dr-core/build-util/dist/package-instance';
+import DrComponent from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
 const Webpack = require('webpack');
 
 export interface WebpackConfig {

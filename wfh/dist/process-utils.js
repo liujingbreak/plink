@@ -49,8 +49,8 @@ function spawn(command, ...args) {
                 output += chunk;
             });
         }
-        res.on('error', () => {
-            reject(new Error(output));
+        res.on('error', (err) => {
+            reject(err);
         });
         res.on('exit', function (code, signal) {
             if (code !== 0 && signal !== 'SIGINT') {
@@ -113,7 +113,7 @@ function checkTimeout(origPromise, timeBox = 600000) {
  * @return {Promise}        rejected if child process exits with non-zero code
  */
 function promisifyExe(command, ...argsAndOption) {
-    return exports.exe(command, ...argsAndOption).promise;
+    return exe(command, ...argsAndOption).promise;
 }
 exports.promisifyExe = promisifyExe;
 /**

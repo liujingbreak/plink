@@ -121,14 +121,21 @@ class ScssParser extends base_LLn_parser_1.BaseParser {
             if (this.isNextTypes(TokenType.id, TokenType['(']) &&
                 this.la().text === 'url' && this.lb().text !== '@import') {
                 const start = this.la(2).end;
-                this.advance(2);
-                while (this.la() != null && this.la().type !== TokenType[')']) {
+                this.advance(2); // jump over '('
+                if (this.isNextTypes(TokenType.stringLiteral)) {
+                    const stringLit = this.la();
                     this.advance();
+                    res.push(stringLit);
                 }
-                if (this.la() == null)
-                    throw new Error('Unexpect end of file');
-                const end = this.la().start;
-                res.push({ start, end, text: text.slice(start, end) });
+                else {
+                    while (this.la() != null && this.la().type !== TokenType[')']) {
+                        this.advance();
+                    }
+                    if (this.la() == null)
+                        throw new Error('Unexpect end of file');
+                    const end = this.la().start;
+                    res.push({ start, end, text: text.slice(start, end) });
+                }
             }
             else {
                 this.advance();

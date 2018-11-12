@@ -9,7 +9,7 @@ const rwPackageJson = require('./rwPackageJson');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
 const fs = require('fs-extra');
 const File = require('vinyl');
-var PackageJsonGuarder = require('./packageJsonGuarder');
+var PackageJsonGuarder = require('../../dist/package-json-guarder').getInstance;
 
 var packageJsonGuarder = PackageJsonGuarder(process.cwd());
 

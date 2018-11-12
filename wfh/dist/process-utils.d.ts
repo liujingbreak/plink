@@ -34,7 +34,7 @@ export declare function spawn(command: string, ...args: Array<string | Option>):
  *
  * @return {Promise}        rejected if child process exits with non-zero code
  */
-export declare function promisifyExe(command: string, ...argsAndOption: Array<string | Option>): Result;
+export declare function promisifyExe(command: string, ...argsAndOption: Array<string | Option>): Promise<string>;
 /**
  * @param {*} command
  * @param {*} argsAndOption

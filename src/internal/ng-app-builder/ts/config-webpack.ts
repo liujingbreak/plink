@@ -10,7 +10,7 @@ import * as Path from 'path';
 import {Compiler, HotModuleReplacementPlugin} from 'webpack';
 import api from '__api';
 import {AngularCompilerPlugin} from '@ngtools/webpack';
-import createHook from './ng-ts-replace';
+import TSReadHooker from './ng-ts-replace';
 import ReadHookHost from './utils/read-hook-vfshost';
 import * as webpack from 'webpack';
 
@@ -48,7 +48,11 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 	// hack _options.host before angular/packages/ngtools/webpack/src/angular_compiler_plugin.ts apply() runs
 	webpackConfig.plugins.unshift(new class {
 		apply(compiler: Compiler) {
-			(ngCompilerPlugin as any)._options.host = new ReadHookHost((compiler as any).inputFileSystem, createHook(param));
+			const hooker = new TSReadHooker(param);
+			(ngCompilerPlugin as any)._options.host = new ReadHookHost((compiler as any).inputFileSystem, hooker.hookFunc);
+			compiler.hooks.watchRun.tapPromise('ts-read-hook', async () => {
+				hooker.clear();
+			});
 		}
 	}());
 

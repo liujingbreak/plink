@@ -6,7 +6,8 @@ var chalk = require('chalk');
 var shell = require('shelljs');
 var Promise = require('bluebird');
 var buildUtils = require('./buildUtils');
-var PackageJsonGuarder = require('./packageJsonGuarder');
+var PackageJsonGuarder = require('../../dist/package-json-guarder').getInstance;
+const {boxString} = require('../../dist/utils');
 
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
 var startTime;
@@ -221,7 +222,7 @@ function _writeGitHook(project) {
 			`cd "${rootPath}"\n` +
 			'drcp init\n' +
 			// 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
-			`drcp lint --pj "${project}" --fix\n`;
+			`drcp lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
 		fs.writeFileSync(gitPath + '/pre-commit', hookStr);
 		console.log('Write ' + gitPath + '/pre-commit');
 		if (!isWin32)
@@ -231,8 +232,16 @@ function _writeGitHook(project) {
 }
 
 function addProject(_argv, dirs) {
-	writeProjectListFile(dirs);
+	let changed = writeProjectListFile(dirs);
 	return Promise.resolve(require('../config').init(_argv))
+		.then(() => {
+			if (changed) {
+				console.log(boxString('Project list is updated, you need to run\n\tdrcp init\n' +
+					' or other offline init command to install new dependencies from the new project.', 60));
+			} else {
+				console.log(boxString('No new project is added.', 60));
+			}
+		})
 		.catch(e => {
 			console.log('Roll back dr.project.list.json');
 			fs.renameSync(Path.join(rootPath, 'dr.project.list.json.bak'), Path.join(rootPath, 'dr.project.list.json'));
@@ -241,6 +250,7 @@ function addProject(_argv, dirs) {
 }
 
 function writeProjectListFile(dirs) {
+	let changed = false;
 	if (rootPath == null)
 		rootPath = process.cwd();
 	var projectListFile = Path.join(rootPath, 'dr.project.list.json');
@@ -249,16 +259,19 @@ function writeProjectListFile(dirs) {
 	var prj;
 	if (fs.existsSync(projectListFile)) {
 		prj = JSON.parse(fs.readFileSync(projectListFile, 'utf8'));
-		let toAdd = _.differenceBy(dirs, prj, dir => Path.resolve(dir));
+		let toAdd = _.differenceBy(dirs, prj, dir => Path.resolve(dir).replace(/[/\\]$/, ''));
 		if (toAdd.length > 0) {
 			prj.push(...toAdd);
 			writeFile(projectListFile, JSON.stringify(prj, null, '  '));
+			changed = true;
 		}
 	} else {
 		prj = [...dirs];
 		writeFile(projectListFile, JSON.stringify(prj, null, '  '));
+		changed = true;
 	}
 	delete require.cache[require.resolve(projectListFile)];
+	return changed;
 }
 
 function ls(_argv) {
@@ -269,14 +282,15 @@ function ls(_argv) {
 		require('../logConfig')(config());
 		// require('log4js').getLogger('lib.injector').setLevel('warn');
 		// require('log4js').getLogger('packagePriorityHelper').setLevel('warn');
-		var {nodeInjector} = require('../../dist/injector-factory');
-		var injector = nodeInjector;
-		injector.fromComponent('@dr-core/build-util')
-			.factory('__api', function() {
-				return {compileNodePath: [config().nodePath]};
-			});
 
-		var browserCompInfo = require('@dr-core/build-util').walkPackages.listBundleInfo(
+		// var {nodeInjector} = require('../../dist/injector-factory');
+		// var injector = nodeInjector;
+		// injector.fromComponent('@dr-core/build-util')
+		// 	.factory('__api', function() {
+		// 		return {compileNodePath: [config().nodePath]};
+		// 	});
+
+		var browserCompInfo = require('../../dist/build-util/ts').listBundleInfo(
 			config, argv, require('../packageMgr/packageUtils'));
 		console.log(chalk.green(_.pad('[ BROWSER COMPONENTS ]', 50, '=')));
 		var index = 0;

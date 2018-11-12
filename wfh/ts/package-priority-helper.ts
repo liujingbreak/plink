@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import PackageNodeInstance from './packageNodeInstance';
-import PackageBrowserInstance from '@dr-core/build-util/dist/package-instance';
+import PackageBrowserInstance from './build-util/ts/package-instance';
 const log = require('log4js').getLogger('packagePriorityHelper');
 
 const beforeOrAfter: {[key: string]: number} = {};

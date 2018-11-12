@@ -5,7 +5,7 @@ var fs = require('fs');
 var os = require('os');
 var versionChecker = require('../wfh/lib/versionChecker');
 //var processUtils = require('../wfh/lib/gulp/processUtils');
-var getGuarder = require('../wfh/lib/gulp/packageJsonGuarder');
+var getGuarder = require('../wfh/dist/package-json-guarder').getInstance;
 
 var drcpPkJson = require('../package.json');
 //const isWin32 = require('os').platform().indexOf('win32') >= 0;
