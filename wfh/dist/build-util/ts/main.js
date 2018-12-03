@@ -7,7 +7,7 @@ const _ = require("lodash");
 const bResolve = require('browser-resolve');
 const resolve = require('resolve');
 // var chalk = require('chalk');
-var log = require('log4js').getLogger('buildUtil.' + Path.basename(__filename, '.js'));
+const log = require('log4js').getLogger('buildUtil.' + Path.basename(__filename, '.js'));
 const dir_tree_1 = require("require-injector/dist/dir-tree");
 const package_instance_2 = require("./package-instance");
 exports.PackageBrowserInstance = package_instance_2.default;
@@ -271,5 +271,4 @@ function createPackageDirTree(packageInfo) {
     log.info('Total %s node packages', count);
     packageInfo.dirTree = tree;
 }
-
 //# sourceMappingURL=main.js.map

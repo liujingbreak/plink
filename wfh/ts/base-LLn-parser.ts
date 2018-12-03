@@ -40,8 +40,9 @@ export abstract class LookAhead<T> {
 	/**
 	 * look ahead for 1 character
 	 * @param num default is 1
+	 * @return null if EOF is reached
 	 */
-	la(num = 1): T {
+	la(num = 1): T | null {
 		const readPos = this.currPos + num;
 		return this.read(readPos);
 	}
@@ -119,6 +120,23 @@ export abstract class LookAhead<T> {
 	}
 }
 
+/**
+ * 1. Define a "TokenType" enum
+ * 2. Implement your own "Lexer" which extends "BaseLexer" with type paremeter of your enum "TokenType"
+ * 3. Implement `[Symbol.interator]()` function in your Lexer:
+```ts
+	*[Symbol.iterator](): Iterator<Token<TokenType>> {
+		while (this.la() != null) {
+			const start = this.position;
+			if (this.la() === '\n') {
+				this.advance();
+				yield new Token(TokenType.EOL, this, start);
+			}
+			...
+		}
+	}
+```
+ */
 export abstract class BaseLexer<T> extends LookAhead<string> implements Iterable<Token<T>> {
 	lineBeginPositions: number[] = [-1];
 

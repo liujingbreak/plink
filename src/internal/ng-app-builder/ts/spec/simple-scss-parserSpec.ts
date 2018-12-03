@@ -35,5 +35,6 @@ describe('simple-scss-parser', () => {
 		const urls = parser.getResUrl(text);
 		console.log(urls);
 		expect(urls.length).toBe(7);
+		expect(urls[4].text).toBe('../../credit-common/vendors/material/iconfont/MaterialIcons-Regular.woff');
 	});
 });

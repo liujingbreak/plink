@@ -2,9 +2,10 @@
 import NodePackage from './packageNodeInstance';
 import Events = require('events');
 import * as _ from 'lodash';
-import {PackageInfo, packageInstance} from '@dr-core/build-util';
+import {PackageInfo, packageInstance} from './build-util/ts';
 // import Package from './packageNodeInstance';
 import {orderPackages} from './package-priority-helper';
+import {walkPackages} from './build-util/ts';
 const LRU = require('lru-cache');
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
@@ -49,8 +50,8 @@ export function runPackages(argv: any) {
 	const NodeApi = require('../lib/nodeApi');
 	const proto = NodeApi.prototype;
 	proto.argv = argv;
-	const walkPackages = require('@dr-core/build-util').walkPackages;
-	const packageInfo: PackageInfo = walkPackages(config, argv, packageUtils, argv['package-cache'] === false);
+	// const walkPackages = require('./build-util/ts').walkPackages;
+	const packageInfo: PackageInfo = walkPackages(config, argv, packageUtils);
 	proto.packageInfo = packageInfo;
 	const cache = LRU(20);
 	proto.findPackageByFile = function(file: string) {

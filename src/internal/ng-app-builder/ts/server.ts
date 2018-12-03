@@ -8,6 +8,9 @@ import * as _fs from 'fs';
 import {AngularCliParam} from './ng/common';
 import changeWebpackConfig from './config-webpack';
 import Url = require('url');
+import {TsHandler, ReplacementInf} from '@dr-core/ng-app-builder/dist/utils/ts-before-aot';
+import * as ts from 'typescript';
+// import TsSelector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
 const semver = require('semver');
 const {red, yellow} = require('chalk');
 
@@ -16,7 +19,49 @@ const {red, yellow} = require('chalk');
 const log = log4js.getLogger(api.packageName);
 
 export function compile() {
+	// const root = api.config().rootPath;
+	// const ngParam: AngularCliParam = api.config()._angularCli;
+	// if (!ngParam.browserOptions.preserveSymlinks) {
+	// 	const fm = api.browserInjector.fromDir(Path.resolve('/'));
+	// 	fm.alias(/^((?:@[^/]+\/)?[^./]+)(.*?)$/, (sourceFilePath: string, regs: RegExpExecArray): string => {
+	// 		const pkInstance = api.packageInfo.moduleMap[regs[1]];
+	// 		if (pkInstance) {
+	// 			return Path.relative(root, pkInstance.realPackagePath).replace(/\\/g, '/') + regs[2];
+	// 		}
+	// 		return regs[0];
+	// 	});
+	// }
 	return setupApiForAngularCli();
+}
+
+export let tsHandler: TsHandler = resolveImports;
+function resolveImports(src: ts.SourceFile): ReplacementInf[] {
+	return [];
+	// const ngParam: AngularCliParam = api.config()._angularCli;
+	// if (ngParam.browserOptions.preserveSymlinks)
+	// 	return [];
+
+	// const sel = new TsSelector(src);
+	// const repl: ReplacementInf[] = [];
+	// const dir = Path.dirname(src.fileName);
+	// for (const ast of sel.findAll(':ImportDeclaration>.moduleSpecifier')) {
+	// 	const from = ast as ts.StringLiteral;
+	// 	// log.info('from ', from.text);
+	// 	const reg = /^((?:@[^/]+\/)?[^./]+)(.*?)$/.exec(from.text);
+	// 	if (reg == null)
+	// 		continue;
+	// 	const pkInstance = api.packageInfo.moduleMap[reg[1]];
+	// 	if (pkInstance && pkInstance.dr) {
+	// 		let resolvedFrom = Path.relative(dir, pkInstance.realPackagePath).replace(/\\/g, '/') + reg[2];
+	// 		if (resolvedFrom.startsWith('node_modules/')) {
+	// 			resolvedFrom = resolvedFrom.slice('node_modules/'.length);
+	// 		} else if (/^[^./]/.test(resolvedFrom)) {
+	// 			resolvedFrom = './' + resolvedFrom;
+	// 		}
+	// 		repl.push({text: `'${resolvedFrom}'`, start: from.getStart(src), end: from.getEnd()});
+	// 	}
+	// }
+	// return repl;
 }
 
 export function init() {

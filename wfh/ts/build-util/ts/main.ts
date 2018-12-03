@@ -5,7 +5,7 @@ import * as _ from 'lodash';
 const bResolve = require('browser-resolve');
 const resolve = require('resolve');
 // var chalk = require('chalk');
-var log = require('log4js').getLogger('buildUtil.' + Path.basename(__filename, '.js'));
+const log = require('log4js').getLogger('buildUtil.' + Path.basename(__filename, '.js'));
 import {DirTree} from 'require-injector/dist/dir-tree';
 import PackageBrowserInstance from './package-instance';
 

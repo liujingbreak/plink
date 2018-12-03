@@ -10,6 +10,7 @@ const parse_app_module_1 = require("./utils/parse-app-module");
 const path_1 = require("path");
 const ts_compiler_1 = require("dr-comp-package/wfh/dist/ts-compiler");
 const ts_ast_query_1 = require("./utils/ts-ast-query");
+const fs = require("fs");
 const chalk = require('chalk');
 const log = log4js.getLogger(__api_1.default.packageName);
 // const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
@@ -19,104 +20,138 @@ const apiTmplTs = _.template('import __DrApi from \'@dr-core/ng-app-builder/src/
 var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packageName%>\');\
 __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
-function createTsReadHook(ngParam) {
-    let drcpIncludeBuf;
-    const tsconfigFile = ngParam.browserOptions.tsConfig;
-    const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || __api_1.default.argv.hmr;
-    const tsCompilerOptions = ts_compiler_1.readTsConfig(tsconfigFile);
-    let polyfillsFile = '';
-    if (ngParam.browserOptions.polyfills)
-        polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
-    const appModuleFile = parse_app_module_1.findAppModuleFileFromMain(path_1.resolve(ngParam.browserOptions.main));
-    log.info('app module file: ', appModuleFile);
-    return function (file, buf) {
-        try {
-            if (!file.endsWith('.ts') || file.endsWith('.d.ts')) {
-                return rxjs_1.of(buf);
-            }
-            let normalFile = path_1.relative(process.cwd(), file);
-            if (path_1.sep === '\\')
-                normalFile = normalFile.replace(/\\/g, '/');
-            if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
-                const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
-                const content = Buffer.from(buf).toString() + hmrClient;
-                log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
-                return rxjs_1.of(string2buffer(content));
-            }
-            else if (normalFile.endsWith('/drcp-include.ts')) {
-                if (drcpIncludeBuf)
+class TSReadHooker {
+    constructor(ngParam) {
+        this.realFileCache = new Map();
+        this.tsCache = new Map();
+        this.hookFunc = this.createTsReadHook(ngParam);
+    }
+    clear() {
+        this.tsCache.clear();
+    }
+    realFile(file, preserveSymlinks) {
+        // log.info(`readFile ${file}`);
+        const realFile = this.realFileCache.get(file);
+        if (realFile !== undefined)
+            return realFile;
+        if (fs.lstatSync(file).isSymbolicLink()) {
+            if (!preserveSymlinks)
+                log.warn(`Reading a symlink: ${file}, but "preserveSymlinks" is false.`);
+            const rf = fs.realpathSync(file);
+            this.realFileCache.set(file, rf);
+            return rf;
+        }
+        else
+            return file;
+    }
+    createTsReadHook(ngParam) {
+        let drcpIncludeBuf;
+        const tsconfigFile = ngParam.browserOptions.tsConfig;
+        const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || __api_1.default.argv.hmr;
+        const preserveSymlinks = ngParam.browserOptions.preserveSymlinks;
+        const tsCompilerOptions = ts_compiler_1.readTsConfig(tsconfigFile);
+        let polyfillsFile = '';
+        if (ngParam.browserOptions.polyfills)
+            polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
+        const appModuleFile = parse_app_module_1.findAppModuleFileFromMain(path_1.resolve(ngParam.browserOptions.main));
+        log.info('app module file: ', appModuleFile);
+        return (file, buf) => {
+            try {
+                if (!file.endsWith('.ts') || file.endsWith('.d.ts')) {
+                    return rxjs_1.of(buf);
+                }
+                const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
+                if (cached != null)
+                    return rxjs_1.of(cached);
+                let normalFile = path_1.relative(process.cwd(), file);
+                if (path_1.sep === '\\')
+                    normalFile = normalFile.replace(/\\/g, '/');
+                if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
+                    const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
+                    const content = Buffer.from(buf).toString() + hmrClient;
+                    log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
+                    const bf = string2buffer(content);
+                    this.tsCache.set(this.realFile(file, preserveSymlinks), bf);
+                    return rxjs_1.of(bf);
+                }
+                else if (normalFile.endsWith('/drcp-include.ts')) {
+                    if (drcpIncludeBuf)
+                        return rxjs_1.of(drcpIncludeBuf);
+                    let content = Buffer.from(buf).toString();
+                    const legoConfig = browserLegoConfig();
+                    let hmrBoot;
+                    if (hmrEnabled) {
+                        content = `// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
+						import hmrBootstrap from './hmr';
+						`.replace(/^[ \t]+/gm, '') + content;
+                        hmrBoot = 'hmrBootstrap(module, bootstrap)';
+                    }
+                    if (!ngParam.browserOptions.aot) {
+                        content = 'import \'core-js/es7/reflect\';\n' + content;
+                    }
+                    if (hmrBoot)
+                        content = content.replace(/\/\* replace \*\/bootstrap\(\)/g, hmrBoot);
+                    if (ngParam.ssr) {
+                        content += '\nconsole.log("set global.LEGO_CONFIG");';
+                        content += '\nObject.assign(global, {\
+							__drcpEntryPage: null, \
+							__drcpEntryPackage: null\
+						});\n';
+                        content += '(global as any)';
+                    }
+                    else {
+                        content += '\nObject.assign(window, {\
+							__drcpEntryPage: null, \
+							__drcpEntryPackage: null\
+						});\n';
+                        content += '\n(window as any)';
+                    }
+                    content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
+                    drcpIncludeBuf = string2buffer(content);
+                    log.info(chalk.cyan(file) + ':\n' + content);
+                    this.tsCache.set(this.realFile(file, preserveSymlinks), drcpIncludeBuf);
                     return rxjs_1.of(drcpIncludeBuf);
+                }
+                const compPkg = __api_1.default.findPackageByFile(file);
                 let content = Buffer.from(buf).toString();
-                const legoConfig = browserLegoConfig();
-                let hmrBoot;
-                if (hmrEnabled) {
-                    content = `// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
-					import hmrBootstrap from './hmr';
-					`.replace(/^[ \t]+/gm, '') + content;
-                    hmrBoot = 'hmrBootstrap(module, bootstrap)';
+                let needLogFile = false;
+                // patch app.module.ts
+                if (appModuleFile === file) {
+                    log.info('patch', file);
+                    const appModulePackage = __api_1.default.findPackageByFile(appModuleFile);
+                    const removables = removableNgModules(appModulePackage, path_1.dirname(appModuleFile));
+                    const ngModules = getRouterModules(appModulePackage, path_1.dirname(appModuleFile)) || removables;
+                    // ngModules.push(api.packageName + '/src/app#DeveloperModule');
+                    log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
+                    content = new parse_app_module_1.default()
+                        .patchFile(file, content, removables, ngModules);
+                    needLogFile = true;
                 }
-                if (!ngParam.browserOptions.aot) {
-                    content = 'import \'core-js/es7/reflect\';\n' + content;
+                const tsSelector = new ts_ast_query_1.default(content, file);
+                const hasImportApi = tsSelector.findAll(':ImportDeclaration>.moduleSpecifier:StringLiteral').some(ast => {
+                    return ast.text === '__api';
+                });
+                let changed = __api_1.default.browserInjector.injectToFile(file, content);
+                changed = new ts_before_aot_1.default(file, changed).parse(source => ts_compiler_1.transpileSingleTs(source, tsCompilerOptions));
+                if (hasImportApi)
+                    changed = apiTmplTs({ packageName: compPkg.longName }) + '\n' + changed;
+                if (changed !== content && ngParam.ssr) {
+                    changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
                 }
-                if (hmrBoot)
-                    content = content.replace(/\/\* replace \*\/bootstrap\(\)/g, hmrBoot);
-                if (ngParam.ssr) {
-                    content += '\nconsole.log("set global.LEGO_CONFIG");';
-                    content += '\nObject.assign(global, {\
-						__drcpEntryPage: null, \
-						__drcpEntryPackage: null\
-					});\n';
-                    content += '(global as any)';
-                }
-                else {
-                    content += '\nObject.assign(window, {\
-						__drcpEntryPage: null, \
-						__drcpEntryPackage: null\
-					});\n';
-                    content += '\n(window as any)';
-                }
-                content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
-                drcpIncludeBuf = string2buffer(content);
-                log.info(chalk.cyan(file) + ':\n' + content);
-                return rxjs_1.of(drcpIncludeBuf);
+                if (needLogFile)
+                    log.info(chalk.cyan(file) + ':\n' + changed);
+                const bf = string2buffer(changed);
+                this.tsCache.set(this.realFile(file, preserveSymlinks), bf);
+                return rxjs_1.of(bf);
             }
-            const compPkg = __api_1.default.findPackageByFile(file);
-            let content = Buffer.from(buf).toString();
-            let needLogFile = false;
-            // patch app.module.ts
-            if (appModuleFile === file) {
-                log.info('patch', file);
-                const appModulePackage = __api_1.default.findPackageByFile(appModuleFile);
-                const removables = removableNgModules(appModulePackage, path_1.dirname(appModuleFile));
-                const ngModules = getRouterModules(appModulePackage, path_1.dirname(appModuleFile)) || removables;
-                // ngModules.push(api.packageName + '/src/app#DeveloperModule');
-                log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
-                content = new parse_app_module_1.default()
-                    .patchFile(file, content, removables, ngModules);
-                needLogFile = true;
+            catch (ex) {
+                log.error(ex);
+                return rxjs_1.throwError(ex);
             }
-            const tsSelector = new ts_ast_query_1.default(content, file);
-            const hasImportApi = tsSelector.findAll(':ImportDeclaration>.moduleSpecifier:StringLiteral').some(ast => {
-                return ast.text === '__api';
-            });
-            let changed = __api_1.default.browserInjector.injectToFile(file, content);
-            changed = new ts_before_aot_1.default(file, changed).parse(source => ts_compiler_1.transpileSingleTs(source, tsCompilerOptions));
-            if (hasImportApi)
-                changed = apiTmplTs({ packageName: compPkg.longName }) + '\n' + changed;
-            if (changed !== content && ngParam.ssr) {
-                changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
-            }
-            if (needLogFile)
-                log.info(chalk.cyan(file) + ':\n' + changed);
-            return rxjs_1.of(string2buffer(changed));
-        }
-        catch (ex) {
-            log.error(ex);
-            return rxjs_1.throwError(ex);
-        }
-    };
+        };
+    }
 }
-exports.default = createTsReadHook;
+exports.default = TSReadHooker;
 function string2buffer(input) {
     const nodeBuf = Buffer.from(input);
     const len = nodeBuf.byteLength;

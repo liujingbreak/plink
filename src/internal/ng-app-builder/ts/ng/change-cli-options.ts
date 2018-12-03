@@ -7,13 +7,14 @@ import * as _ from 'lodash';
 import * as Path from 'path';
 import * as fs from 'fs';
 import {DrcpConfig, ConfigHandler} from 'dr-comp-package/wfh/dist/config-handler';
-import {PackageInfo} from '@dr-core/build-util';
+import {PackageInfo} from 'dr-comp-package/wfh/dist/build-util/ts';
 import {findAppModuleFileFromMain} from '../utils/parse-app-module';
 const {cyan, green, red} = require('chalk');
-const {walkPackages} = require('@dr-core/build-util');
+const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 const currPackageName = require('../../package.json').name;
 const cjson = require('comment-json');
+const log = require('log4js').getLogger('@dr-core/ng-app-builder.change-cli-options');
 export interface AngularConfigHandler extends ConfigHandler {
 	/**
 	 * You may override angular.json in this function
@@ -119,6 +120,7 @@ function overrideTsConfig(file: string, content: string,
 	const root = config().rootPath;
 	const oldJson = cjson.parse(content);
 	const preserveSymlinks = browserOptions.preserveSymlinks;
+	const pathMapping: {[key: string]: string[]} = preserveSymlinks ? undefined : {};
 	const pkInfo: PackageInfo = walkPackages(config, null, packageUtils, true);
 	// var packageScopes: string[] = config().packageScopes;
 	// var components = pkInfo.moduleMap;
@@ -160,6 +162,12 @@ function overrideTsConfig(file: string, content: string,
 			dir + '/spec',
 			dir + '/dist',
 			dir + '/**/*.spec.ts');
+
+		if (!preserveSymlinks) {
+			const realDir = Path.relative(root, pk.realPackagePath).replace(/\\/g, '/');
+			pathMapping[pk.longName] = [realDir];
+			pathMapping[pk.longName + '/*'] = [realDir + '/*'];
+		}
 	});
 	tsInclude.push(Path.relative(Path.dirname(file), preserveSymlinks ?
 			'node_modules/dr-comp-package/wfh/share' :
@@ -181,7 +189,8 @@ function overrideTsConfig(file: string, content: string,
 				Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
 			],
 			module: 'esnext',
-			preserveSymlinks
+			preserveSymlinks,
+			paths: pathMapping
 		},
 		angularCompilerOptions: {
 			// trace: true
@@ -189,6 +198,7 @@ function overrideTsConfig(file: string, content: string,
 	};
 	Object.assign(tsjson.compilerOptions, oldJson.compilerOptions);
 	Object.assign(tsjson.angularCompilerOptions, oldJson.angularCompilerOptions);
-	console.log(green('change-cli-options - ') + `${file}:\n`, tsjson);
+	// console.log(green('change-cli-options - ') + `${file}:\n`, JSON.stringify(tsjson, null, '  '));
+	log.info(`${file}:\n${JSON.stringify(tsjson, null, '  ')}`);
 	return JSON.stringify(tsjson, null, '  ');
 }

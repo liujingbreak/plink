@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _ = require("lodash");
 // import Package from './packageNodeInstance';
 const package_priority_helper_1 = require("./package-priority-helper");
+const ts_1 = require("./build-util/ts");
 const LRU = require('lru-cache');
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
@@ -45,8 +46,8 @@ function runPackages(argv) {
     const NodeApi = require('../lib/nodeApi');
     const proto = NodeApi.prototype;
     proto.argv = argv;
-    const walkPackages = require('@dr-core/build-util').walkPackages;
-    const packageInfo = walkPackages(config, argv, packageUtils, argv['package-cache'] === false);
+    // const walkPackages = require('./build-util/ts').walkPackages;
+    const packageInfo = ts_1.walkPackages(config, argv, packageUtils);
     proto.packageInfo = packageInfo;
     const cache = LRU(20);
     proto.findPackageByFile = function (file) {

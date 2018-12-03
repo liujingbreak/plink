@@ -46,7 +46,11 @@ function changeWebpackConfig(param, webpackConfig, drcpConfigSetting) {
         // hack _options.host before angular/packages/ngtools/webpack/src/angular_compiler_plugin.ts apply() runs
         webpackConfig.plugins.unshift(new class {
             apply(compiler) {
-                ngCompilerPlugin._options.host = new read_hook_vfshost_1.default(compiler.inputFileSystem, ng_ts_replace_1.default(param));
+                const hooker = new ng_ts_replace_1.default(param);
+                ngCompilerPlugin._options.host = new read_hook_vfshost_1.default(compiler.inputFileSystem, hooker.hookFunc);
+                compiler.hooks.watchRun.tapPromise('ts-read-hook', () => __awaiter(this, void 0, void 0, function* () {
+                    hooker.clear();
+                }));
             }
         }());
         if (_.get(param, 'builderConfig.options.hmr'))

@@ -34,7 +34,7 @@ function runBuilderComponentsWith(funcName, builderComponents, argv, skips, skip
 		funcName = 'compile';
 	var proto = NodeApi.prototype;
 	proto.argv = argv;
-	var {walkPackages, saveCache} = require('@dr-core/build-util');
+	var {walkPackages, saveCache} = require('../../dist/build-util/ts');
 	var packageInfo = walkPackages(config, argv, packageUtils, argv['package-cache'] === false);
 	return initWebInjector(packageInfo, proto)
 	.then(() => {

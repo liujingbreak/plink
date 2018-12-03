@@ -9,7 +9,7 @@ var config = require('../config');
 var Package = require('../packageMgr/packageNodeInstance');
 var NodeApi = require('../nodeApi');
 var {nodeInjector} = require('../../dist/injector-factory');
-const {LazyPackageFactory} = require('@dr-core/build-util/dist/package-instance');
+const {LazyPackageFactory} = require('../../dist/build-util/ts/package-instance');
 // var LRU = require('lru-cache');
 
 require('../logConfig')(config());

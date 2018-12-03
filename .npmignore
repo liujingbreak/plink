@@ -17,3 +17,4 @@ wfh/bin
 /.eslintrc.json
 /.angular-cli.json
 **/*.js.map
+/node_modules.bak

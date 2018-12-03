@@ -81,31 +81,6 @@ class InstallManager {
             });
         }, 'installed');
     }
-    _trackDependency(trackTo, name, version, byWhom, path) {
-        if (!_.has(trackTo, name)) {
-            trackTo[name] = [];
-        }
-        const m = this.versionReg.exec(version);
-        trackTo[name].push({
-            ver: version === '*' ? '' : version,
-            verNum: m ? m[2] : null,
-            pre: m ? m[1] : '',
-            by: byWhom,
-            path
-        });
-    }
-    _containsDiffVersion(sortedVersions) {
-        // var self = this;
-        for (let i = 0, l = sortedVersions.length - 1; i < l; i++) {
-            const a = sortedVersions[i].ver;
-            const b = sortedVersions[i + 1].ver;
-            if (b === '*' || b === '')
-                continue;
-            if (a !== b)
-                return true;
-        }
-        return false;
-    }
     /**
      * @return true if there are newly found dependencies added to package.json
      */
@@ -201,6 +176,31 @@ class InstallManager {
             // fs.writeFileSync(mainPkFile, JSON.stringify(mainPkjson, null, '  '));
             // log.info('%s is written.', mainPkFile);
             return needInstall;
+        }
+        return false;
+    }
+    _trackDependency(trackTo, name, version, byWhom, path) {
+        if (!_.has(trackTo, name)) {
+            trackTo[name] = [];
+        }
+        const m = this.versionReg.exec(version);
+        trackTo[name].push({
+            ver: version === '*' ? '' : version,
+            verNum: m ? m[2] : null,
+            pre: m ? m[1] : '',
+            by: byWhom,
+            path
+        });
+    }
+    _containsDiffVersion(sortedVersions) {
+        // var self = this;
+        for (let i = 0, l = sortedVersions.length - 1; i < l; i++) {
+            const a = sortedVersions[i].ver;
+            const b = sortedVersions[i + 1].ver;
+            if (b === '*' || b === '')
+                continue;
+            if (a !== b)
+                return true;
         }
         return false;
     }
