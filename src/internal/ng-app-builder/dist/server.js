@@ -16,6 +16,7 @@ const Path = require("path");
 const _fs = require("fs");
 const config_webpack_1 = require("./config-webpack");
 const Url = require("url");
+const utils_1 = require("dr-comp-package/wfh/dist/utils");
 // import TsSelector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
 const semver = require('semver');
 const { red, yellow } = require('chalk');
@@ -71,6 +72,7 @@ function init() {
     checkAngularVersion();
     // writeTsconfig();
     hackFixWatchpack();
+    writeTsconfig4Editor();
 }
 exports.init = init;
 function activate() {
@@ -176,6 +178,59 @@ function checkAngularVersion() {
 // 			'  '.repeat(3) + '- <packageName 2>\n')
 // 	);
 // }
+function writeTsconfig4Editor() {
+    const tsjson = {
+        extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
+        // include: tsInclude,
+        compilerOptions: {
+            baseUrl: '.'
+        }
+    };
+    // ------- Write tsconfig.json for Visual Code Editor --------
+    let srcDirCount = 0;
+    const root = __api_1.default.config().rootPath;
+    const packageToRealPath = [];
+    require('dr-comp-package/wfh/lib/packageMgr/packageUtils')
+        .findAllPackages((name, entryPath, parsedName, json, packagePath) => {
+        const realDir = _fs.realpathSync(packagePath);
+        // Path.relative(root, realDir).replace(/\\/g, '/');
+        packageToRealPath.push([name, realDir]);
+    }, 'src');
+    for (let proj of __api_1.default.config().projectList) {
+        tsjson.include = [];
+        require('dr-comp-package/wfh/lib/gulp/recipeManager').eachRecipeSrc(proj, (srcDir) => {
+            let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
+            tsjson.include.push(includeDir + '/**/*.ts');
+            tsjson.include.push(includeDir + '/**/*.tsx');
+            srcDirCount++;
+        });
+        log.info('Write tsconfig.json to ' + proj);
+        const pathMapping = {};
+        for (const [name, realPath] of packageToRealPath) {
+            const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
+            pathMapping[name] = [realDir];
+            pathMapping[name + '/*'] = [realDir + '/*'];
+        }
+        tsjson.compilerOptions = {
+            baseUrl: root,
+            paths: pathMapping,
+            typeRoots: [
+                Path.join(root, 'node_modules/@types'),
+                Path.join(root, 'node_modules/@dr-types'),
+                Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
+            ],
+            noImplicitAny: true,
+            target: 'es2015',
+            module: 'commonjs'
+        };
+        _fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(tsjson, null, '  '));
+    }
+    if (srcDirCount > 0) {
+        log.info('\n' + utils_1.boxString('To be friendly to your editor, we just added tsconfig.json file to each of your project directories,\n' +
+            'But please add "tsconfig.json" to your .gitingore file,\n' +
+            'since these tsconfig.json are generated based on your local workspace location.'));
+    }
+}
 /**
  * https://github.com/webpack/watchpack/issues/61
  */

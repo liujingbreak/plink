@@ -7,7 +7,6 @@ const api = require('__api');
 const fs = require('fs-extra');
 //const mkdirp = require('mkdirp');
 const Tapable = require('tapable');
-const Path = require('path');
 const _ = require('lodash');
 const log = require('log4js').getLogger(api.packageName);
 const Promise = require('bluebird');
@@ -30,20 +29,6 @@ tapable.plugin('wp-filename', function(nameFormat) {
 });
 
 require('./dist/extend-builder-api');
-
-exports.init = () => {
-	// fs.mkdirsSync(api.config.resolve('destDir', 'webpack-temp'));
-	var root = api.config().rootPath;
-
-	var tsjson = {
-		'extends': Path.resolve(__dirname, 'configs', 'tsconfig.json'),
-		// include: tsInclude,
-		compilerOptions: {
-			baseUrl: root
-		}
-	};
-	writeTsconfig4Editor(tsjson);
-};
 
 exports.compile = () => {
 	var angularCliParam = api.config()._angularCli;
@@ -187,43 +172,4 @@ function _tryLrOnPort(lrPort, lrServer) {
 	});
 }
 
-function writeTsconfig4Editor(tsjson) {
-	// ------- Write tsconfig.json for Visual Code Editor --------
-	var srcDirCount = 0;
-	var root = api.config().rootPath;
-	for (let proj of api.config().projectList) {
-		tsjson.include = [];
-		require('dr-comp-package/wfh/lib/gulp/recipeManager').eachRecipeSrc(proj, (srcDir) => {
-			let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
-			tsjson.include.push(includeDir + '/**/*.ts');
-			tsjson.include.push(includeDir + '/**/*.tsx');
-			srcDirCount++;
-		});
-		log.info('Write tsconfig.json to ' + proj);
-		tsjson.compilerOptions = {
-			baseUrl: root,
-			paths: {
-				'*': [
-					'node_modules/*'
-				]
-			},
-			typeRoots: [
-				Path.join(root, 'node_modules/@types'),
-				Path.join(root, 'node_modules/@dr-types'),
-				Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
-			],
-			noImplicitAny: true,
-			target: 'es2015',
-			module: 'commonjs'
-		};
-		fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(tsjson, null, '  '));
-	}
-
-
-	if (srcDirCount > 0) {
-		log.info('\n> To be friendly to your editor, we just added tsconfig.json file to each of your project directories,\n' +
-		'> But please add "tsconfig.json" to your .gitingore file,\n' +
-		'> since these tsconfig.json are generated based on your local workspace location.');
-	}
-}
 

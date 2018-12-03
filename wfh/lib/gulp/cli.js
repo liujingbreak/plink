@@ -350,13 +350,16 @@ function listProject(_argv, projects) {
 	if (projects == null && fs.existsSync(projectListFile))
 		projects = require(projectListFile);
 	if (projects && projects.length > 0) {
-		console.log(_.pad(' Projects directory ', 40, '-'));
+		let str = _.pad(' Projects directory ', 40, ' ');
+		str += '\n \n';
 		//var nameLen = _.maxBy(projects, dir => dir.length).length + 3;
 		_.each(projects, (dir, i) => {
 			dir = Path.resolve(rootPath, dir);
-			console.log(_.padEnd(i + 1 + '. ', 5, ' ') + dir);
+			str += _.padEnd(i + 1 + '. ', 5, ' ') + dir;
+			str += '\n';
 			//return _updateProjectFolder(dir);
 		});
+		console.log(boxString(str));
 		return projects;
 	} else {
 		console.log('No projects');
