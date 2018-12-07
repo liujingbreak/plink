@@ -123,8 +123,9 @@ function eachDownloadedRecipe(callback, excludeRecipeSet) {
 					p = Path.resolve(config().nodePath, depName);
 					callback(p, true, 'package.json');
 				} catch (e) {
-					log.error(`Weird things happened, I can't detect ${depName}, has it been installed?
-Please run command "drcp init" one more time, let me try again.`, e);
+					log.info(`${depName} seems to be not installed`);
+// 					log.error(`Weird things happened, I can't detect ${depName}, has it been installed?
+// Please run command "drcp init" one more time, let me try again.`, e);
 					//throw e;
 				}
 			}
