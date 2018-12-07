@@ -143,6 +143,8 @@ function drPackageOutputPath(this: unknown, loaderCtx: wl.LoaderContext) {
 		return outDir + '/' + relativeInPkg;
 	} else {
 		return path.relative(loaderCtx.rootContext, dir).replace(/\\/g, '/')
-			.replace(/(^|\/)node_modules(\/|$)/g, '$1n-m$2').replace(/@/g, 'a');
+			.replace(/\.\./g, '_')
+			.replace(/(^|\/)node_modules(\/|$)/g, '$1vendor$2')
+			.replace(/@/g, 'a_');
 	}
 }
