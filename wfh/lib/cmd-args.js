@@ -94,7 +94,8 @@ function drcpCommand(startTime) {
 		builder: yargs => {
 			yargs
 			.positional('target', {
-				desc: 'FilePath and exported function name, eg. ' + chalk.green('dist/prerender.js#prepare') + ', function can async and return Promise',
+				desc: 'FilePath and exported function name, eg. \n' + chalk.green('dist/prerender.js#prepare') + ', function can async and return Promise\n' +
+					`${chalk.green('ts/prerender.ts#prepare')}, run Typescript file directly`,
 				type: 'string'
 			})
 			.positional('package', {describe: 'Default is all component packages which have "dr" property in package.json file'})
