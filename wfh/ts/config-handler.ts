@@ -2,8 +2,7 @@
 import * as Path from 'path';
 // import vm = require('vm');
 // import * as fs from 'fs';
-import {CompilerOptions} from 'typescript';
-import {readTsConfig, transpileAndCheck} from './ts-compiler';
+import {readTsConfig, registerExtension} from './ts-compiler';
 const {cyan, green} = require('chalk');
 
 export interface DrcpConfig {
@@ -24,22 +23,6 @@ export interface ConfigHandler {
 	 * @param drcpCliArgv Override command line argumemnt for DRCP
 	 */
 	onConfig(configSetting: {[prop: string]: any}, drcpCliArgv?: {[prop: string]: any}): Promise<void> | void;
-}
-
-function registerExtension(ext: string, compilerOpt: CompilerOptions) {
-	const old = require.extensions[ext] || require.extensions['.js'];
-	require.extensions[ext] = function(m: any, filename) {
-		//   if (shouldIgnore(filename, ignore)) {
-		// 	return old(m, filename);
-		//   }
-		const _compile = m._compile;
-		m._compile = function(code: string, fileName: string) {
-			const jscode = transpileAndCheck(code, fileName, compilerOpt);
-			// console.log(jscode);
-			return _compile.call(this, jscode, fileName);
-		};
-		return old(m, filename);
-	};
 }
 
 export class ConfigHandlerMgr {

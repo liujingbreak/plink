@@ -167,9 +167,9 @@ class Guarder {
             const realDrcpPath = fs.realpathSync(drcpLocation);
             // var yarnArgv = ['install', '--non-interactive', '--check-files'];
             const npmArgv = ['install'];
-            if (onlyProd) {
-                npmArgv.push(useYarn ? '--production' : '--only=prod');
-            }
+            // if (onlyProd) {
+            // 	npmArgv.push(useYarn ? '--production' : '--only=prod');
+            // }
             // if (isOffline) {
             // 	console.log(logName + 'offline mode is on');
             // 	yarnArgv.push('--offline');
@@ -206,7 +206,7 @@ class Guarder {
             let res;
             try {
                 res = yield processUtils.exe(useYarn ? 'yarn' : 'npm', ...npmArgv, { cwd: this.rootPath,
-                    env: Object.assign({}, process.env, { NODE_ENV: 'development' }) }).promise;
+                    env: Object.assign({}, process.env, { NODE_ENV: onlyProd ? 'production' : 'development' }) }).promise;
             }
             catch (err) {
                 console.log('Sorry, yarn/npm install failed');

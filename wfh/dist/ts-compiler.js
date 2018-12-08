@@ -116,15 +116,25 @@ function transpileAndCheck(tsCode, filename, co) {
     return singletonCompiler.compile(filename, tsCode);
 }
 exports.transpileAndCheck = transpileAndCheck;
-// function debuggable<F>(desc: string, func: F): F {
-// 	return (function(path: string) {
-// 		const r = (func as any)(...arguments);
-// 		console.log(`${green(desc)}:(${path}) = ${r}`);
-// 		return r;
-// 	}) as any;
-// }
-// const testFile = Path.resolve('../credit-console/conf/home.ts');
-// const testSrc = fs.readFileSync(testFile, 'utf-8');
-// const options = readTsConfig('wfh/tsconfig.json');
-// transpileAndCheck(testSrc, testFile, options);
+/**
+ * Exactly like ts-node, so that we can `require()` a ts file directly without `tsc`
+ * @param ext
+ * @param compilerOpt
+ */
+function registerExtension(ext, compilerOpt) {
+    const old = require.extensions[ext] || require.extensions['.js'];
+    require.extensions[ext] = function (m, filename) {
+        //   if (shouldIgnore(filename, ignore)) {
+        // 	return old(m, filename);
+        //   }
+        const _compile = m._compile;
+        m._compile = function (code, fileName) {
+            const jscode = transpileAndCheck(code, fileName, compilerOpt);
+            // console.log(jscode);
+            return _compile.call(this, jscode, fileName);
+        };
+        return old(m, filename);
+    };
+}
+exports.registerExtension = registerExtension;
 //# sourceMappingURL=ts-compiler.js.map
