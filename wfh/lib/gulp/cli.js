@@ -220,7 +220,7 @@ function _writeGitHook(project) {
 	if (fs.existsSync(gitPath)) {
 		var hookStr = '#!/bin/sh\n' +
 			`cd "${rootPath}"\n` +
-			'drcp init\n' +
+			// 'drcp init\n' +
 			// 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
 			`drcp lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
 		fs.writeFileSync(gitPath + '/pre-commit', hookStr);
