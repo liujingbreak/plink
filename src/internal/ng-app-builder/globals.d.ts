@@ -53,6 +53,12 @@ interface _DrcpApi {
 	packageShortName: string;
 	packageInstance: NodePackage & PackageBrowserInstance;
 	entryPage: string;
+	/** 
+	 * Node route path for current package, used in browser side.
+	 * The path is exactly where `api.router()` hosts.
+	 * Default value is the package short name, but it can be changed in
+	 * config.yaml property `packageContextPathMapping`
+	 */
 	contextPath: string;
 	buildUtils: any;
 	packageUtils: any;
