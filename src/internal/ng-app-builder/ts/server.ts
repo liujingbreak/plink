@@ -217,6 +217,8 @@ function writeTsconfig4Editor() {
 			pathMapping[name + '/*'] = [realDir + '/*'];
 		}
 
+		pathMapping['*'] = ['node_modules/*'];
+
 		tsjson.compilerOptions = {
 			baseUrl: root,
 			paths: pathMapping,

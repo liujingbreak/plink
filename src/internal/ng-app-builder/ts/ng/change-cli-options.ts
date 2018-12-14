@@ -177,6 +177,16 @@ function overrideTsConfig(file: string, content: string,
 	tsExclude.push(...excludePath.map(expath =>
 		Path.relative(Path.dirname(file), expath).replace(/\\/g, '/')));
 
+	// Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
+	if (!preserveSymlinks) {
+		const drcpDir = Path.relative(root, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
+		pathMapping['dr-comp-package'] = [drcpDir];
+		pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
+		pathMapping['*'] = ['node_modules/*'
+			// , 'node_modules/@types/*'
+		];
+	}
+
 	var tsjson: any = {
 		extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
 		include: tsInclude,
