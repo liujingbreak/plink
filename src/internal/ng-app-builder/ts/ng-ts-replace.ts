@@ -96,10 +96,7 @@ export default class TSReadHooker {
 					const legoConfig = browserLegoConfig();
 					let hmrBoot: string;
 					if (hmrEnabled) {
-						content = `// Used for reflect-metadata in JIT. If you use AOT (and only Angular decorators), you can remove.
-						import hmrBootstrap from './hmr';
-						`.replace(/^[ \t]+/gm, '') + content;
-
+						content = 'import hmrBootstrap from \'./hmr\';\n' + content;
 						hmrBoot = 'hmrBootstrap(module, bootstrap)';
 					}
 					if (!ngParam.browserOptions.aot) {
