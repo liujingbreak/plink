@@ -20,7 +20,10 @@
 		],
 		"pretty": true,
 		"rootDir": "ts",
-		"rootDirs": ["dist"]
+		"rootDirs": ["dist"],
+		"paths": {
+			"*": ["node_modules/*", "node_modules/@types/*"]
+		}
 	},
 	
 	"include": ["ts/**/*.ts"]

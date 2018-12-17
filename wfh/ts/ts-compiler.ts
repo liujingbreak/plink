@@ -72,6 +72,7 @@ class TsCompiler {
 	}
 
 	compile(fileName: string, srcCode: string): string {
+		console.log('compile', fileName);
 		fileName = Path.resolve(fileName).replace(/\\/g, '/');
 		this.fileContent.set(fileName, srcCode);
 		this.fileNames.push(fileName);
@@ -106,10 +107,10 @@ class TsCompiler {
 			const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
 			if (diagnostic.file) {
 				const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-				console.log((isError ? red : yellow)(`  ${(isError ? 'Error' : 'Warning')} ` +
+				console.log((isError ? red : yellow)(`[wfh.ts-compiler] ${(isError ? 'Error' : 'Warning')} ` +
 					`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`));
 			} else {
-				console.log((isError ? red : yellow)(`  ${(isError ? 'Error' : 'Warning')}: ${message}`));
+				console.log((isError ? red : yellow)(`[wfh.ts-compiler] ${(isError ? 'Error' : 'Warning')}: ${message}`));
 			}
 		});
 	}

@@ -183,7 +183,7 @@ function overrideTsConfig(file: string, content: string,
 		pathMapping['dr-comp-package'] = [drcpDir];
 		pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
 		pathMapping['*'] = ['node_modules/*'
-			// , 'node_modules/@types/*'
+			, 'node_modules/@types/*'
 		];
 	}
 

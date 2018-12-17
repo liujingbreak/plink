@@ -154,8 +154,8 @@ function overrideTsConfig(file, content, browserOptions, config) {
         const drcpDir = Path.relative(root, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
         pathMapping['dr-comp-package'] = [drcpDir];
         pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
-        pathMapping['*'] = ['node_modules/*'
-            // , 'node_modules/@types/*'
+        pathMapping['*'] = ['node_modules/*',
+            'node_modules/@types/*'
         ];
     }
     var tsjson = {
