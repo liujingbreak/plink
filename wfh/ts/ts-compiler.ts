@@ -72,7 +72,6 @@ class TsCompiler {
 	}
 
 	compile(fileName: string, srcCode: string): string {
-		console.log('compile', fileName);
 		fileName = Path.resolve(fileName).replace(/\\/g, '/');
 		this.fileContent.set(fileName, srcCode);
 		this.fileNames.push(fileName);

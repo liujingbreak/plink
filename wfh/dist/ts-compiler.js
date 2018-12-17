@@ -64,7 +64,6 @@ class TsCompiler {
         this.langService = ts.createLanguageService(this.serviceHost, ts.createDocumentRegistry());
     }
     compile(fileName, srcCode) {
-        console.log('compile', fileName);
         fileName = Path.resolve(fileName).replace(/\\/g, '/');
         this.fileContent.set(fileName, srcCode);
         this.fileNames.push(fileName);
