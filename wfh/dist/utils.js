@@ -8,7 +8,7 @@ var WordTokenType;
     WordTokenType[WordTokenType["tab"] = 2] = "tab";
     WordTokenType[WordTokenType["eos"] = 3] = "eos";
     WordTokenType[WordTokenType["other"] = 4] = "other";
-})(WordTokenType || (WordTokenType = {}));
+})(WordTokenType = exports.WordTokenType || (exports.WordTokenType = {}));
 class WordLexer extends base_LLn_parser_1.BaseLexer {
     *[Symbol.iterator]() {
         while (this.la() != null) {
@@ -66,6 +66,7 @@ class WordLexer extends base_LLn_parser_1.BaseLexer {
         // }
     }
 }
+exports.WordLexer = WordLexer;
 function boxString(text, lineWidth = 60, whitespaceWrap = true) {
     const lexer = new WordLexer(text);
     lineWidth = lineWidth - 4;
@@ -87,6 +88,9 @@ function boxString(text, lineWidth = 60, whitespaceWrap = true) {
             column += word.type === WordTokenType.tab ? 2 : word.text.length;
         }
         else if (word.type === WordTokenType.eol) {
+            if (column === 0) {
+                updated += '| ';
+            }
             updated += ' '.repeat(lineWidth - column);
             updated += ' |\n';
             column = 0;

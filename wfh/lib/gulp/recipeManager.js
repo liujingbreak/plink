@@ -160,7 +160,7 @@ function link(onPkJsonFile) {
 	var streams = [];
 	var linkFiles = fs.existsSync(linkListFile) ? JSON.parse(fs.readFileSync(linkListFile, 'utf8')) : [];
 	eachRecipeSrc(function(src, recipeDir) {
-		console.log('link recipeDir ', recipeDir);
+		console.log('[recipeManager]link recipe', recipeDir);
 		streams.push(linkToRecipeFile(src, recipeDir, onPkJsonFile));
 	});
 	return merge(streams)

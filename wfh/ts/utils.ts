@@ -1,6 +1,6 @@
 import { BaseLexer, Token } from './base-LLn-parser';
 
-enum WordTokenType {
+export enum WordTokenType {
 	eol = 0,
 	word,
 	tab,
@@ -8,7 +8,7 @@ enum WordTokenType {
 	other
 }
 
-class WordLexer extends BaseLexer<WordTokenType> {
+export class WordLexer extends BaseLexer<WordTokenType> {
 	*[Symbol.iterator](): Iterator<Token<WordTokenType>> {
 		while (this.la() != null) {
 			const start = this.position;
@@ -88,6 +88,9 @@ export function boxString(text: string, lineWidth = 60, whitespaceWrap = true): 
 			updated += word.type === WordTokenType.tab ? '  ' : word.text;
 			column += word.type === WordTokenType.tab ? 2 : word.text.length;
 		} else if (word.type === WordTokenType.eol) {
+			if (column === 0) {
+				updated += '| ';
+			}
 			updated += ' '.repeat(lineWidth - column);
 			updated += ' |\n';
 			column = 0;

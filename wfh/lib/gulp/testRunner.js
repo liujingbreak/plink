@@ -59,7 +59,7 @@ function runUnitTest(argv) {
 	var i = argv.package.indexOf('dr-comp-package');
 	if (i >= 0) {
 		argv.package.splice(i, 1);
-		jasmineSetting.spec_files.push(wfhPath + '/spec/**/*[sS]pec.js',
+		jasmineSetting.spec_files.push(wfhPath + '/spec/**/*[sS]pec.[jt]s',
 			wfhPath + '/dist/spec/**/*[sS]pec.js');
 		jasmineSetting.helpers.push(wfhPath + 'spec/helpers/**/*.js');
 	}

@@ -40,7 +40,7 @@ function FolderScanner(fromDir, through) {
 FolderScanner.prototype = {
 	run() {
 		this.proms = [];
-		this.checkFolder(this.fromDir);
+		this.checkSubFolders(this.fromDir);
 		return Promise.all(this.proms);
 	},
 
