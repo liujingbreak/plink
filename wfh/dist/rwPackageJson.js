@@ -199,7 +199,6 @@ function sortProperties(obj) {
     for (const item of toSort) {
         res += `\t\t"${item[0]}": "${item[1]}",\n`;
     }
-    log.error(res);
     return res.slice(0, res.length - 2);
 }
 function removeDependency() {
