@@ -238,7 +238,7 @@ function clean() {
 
 function linkToRecipeFile(srcDir, recipeDir, onPkJsonFile) {
 	return gulp.src('')
-		.pipe(findPackageJson(srcDir))
+		.pipe(findPackageJson(srcDir, true))
 		.pipe(through.obj(function(file, enc, next) {
 			log.debug('Found recipeDir %s: file: %s', recipeDir, file.path);
 			if (onPkJsonFile)

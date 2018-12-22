@@ -34,7 +34,7 @@ class Guarder {
 	 * Backup package.json
 	 * @param {*} backupFileContent
 	 */
-	beforeChange(backupFileContent: any) {
+	beforeChange(backupFileContent?: any) {
 		console.log(logName + 'Backup package.json to dr.backup.package.json');
 		const backupFile = Path.join(this.rootPath, 'dr.backup.package.json');
 		if (backupFileContent) {

@@ -28,7 +28,7 @@ declare class Guarder {
      * Backup package.json
      * @param {*} backupFileContent
      */
-    beforeChange(backupFileContent: any): void;
+    beforeChange(backupFileContent?: any): void;
     /**
      * Get last changed package.json json from dr.package.json or memory
      * @returns {JSON} a cloned package.json

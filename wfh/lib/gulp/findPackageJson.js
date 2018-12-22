@@ -11,14 +11,14 @@ module.exports = findPackageJson;
 /**
  * Recursively lookup `fromDir` folder for private module's package.json file
  */
-function findPackageJson(fromDirs) {
+function findPackageJson(fromDirs, startFromSubDir) {
 	if (!Array.isArray(fromDirs))
 		fromDirs = [fromDirs];
 	return through.obj(
 		function(whatever, encoding, callback) {callback();},
 		function flush(callback) {
 			var me = this;
-			var proms = fromDirs.map(d => new FolderScanner(d, me).run());
+			var proms = fromDirs.map(d => new FolderScanner(d, me).run(startFromSubDir));
 
 			Promise.all(proms)
 			.then(function() {
@@ -38,9 +38,12 @@ function FolderScanner(fromDir, through) {
 }
 
 FolderScanner.prototype = {
-	run() {
+	run(startFromSubDir) {
 		this.proms = [];
-		this.checkSubFolders(this.fromDir);
+		if (startFromSubDir)
+			this.checkSubFolders(this.fromDir);
+		else
+			this.checkFolder(this.fromDir);
 		return Promise.all(this.proms);
 	},
 
