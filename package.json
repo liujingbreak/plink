@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package",
-  "version": "0.7.54",
+  "version": "0.7.55",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -33,6 +33,7 @@
     "@types/js-yaml": "3.10.1",
     "@types/lodash": "^4.14.92",
     "@types/node": "10.9.4",
+    "@types/promise-queue": "~2.2.0",
     "jasmine": "~3.3.1",
     "@types/jasmine": "~3.3.2",
     "source-map-support": "~0.5.9",

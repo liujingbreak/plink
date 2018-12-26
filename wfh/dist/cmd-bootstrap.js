@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Path = require("path");
 const fs = require("fs");
 const os = require("os");
-const versionChecker = require('../lib/versionChecker');
+// const versionChecker = require('../lib/versionChecker');
 const package_json_guarder_1 = require("./package-json-guarder");
 const drcpPkJson = require('../../package.json');
 // const isWin32 = require('os').platform().indexOf('win32') >= 0;
@@ -27,7 +27,8 @@ var cmdPromise;
 if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink()) {
     isSymbolicLink = true;
     cmdPromise = ensurePackageJsonFile(isSymbolicLink)
-        .then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
+        // .then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
+        .then(() => '')
         .then(infoText => {
         require('../lib/gulp/cli').writeProjectListFile([Path.resolve(__dirname, '..', '..')]);
         return infoText;
@@ -35,8 +36,8 @@ if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink
         .then(infoText => processCmd(infoText));
 }
 else {
-    cmdPromise = ensurePackageJsonFile(false)
-        .then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
+    cmdPromise = ensurePackageJsonFile(false).then(() => '')
+        // .then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
         .then(infoText => processCmd(infoText));
 }
 cmdPromise.catch(e => {

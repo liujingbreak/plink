@@ -291,6 +291,19 @@ function drcpCommand(startTime) {
 			});
 		}
 	})
+	.command('pack [project-dir..]', 'npm pack every pakage into tarball files', {
+		builder: yargs => {
+			yargs.positional('project-dir', {
+				desc: 'project directories to be looked up for all components which need to be packed to tarball files'
+			});
+		},
+		handler: argv => {
+			require('./config').init(argv)
+			.then(() => {
+				cli.pack(argv);
+			});
+		}
+	})
 	.command('bump [dir..]', 'bump version number of all package.json from specific directories', {
 		builder: yargs => {
 			yargs.positional('dir', {

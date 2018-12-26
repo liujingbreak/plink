@@ -29,6 +29,7 @@ var cmdFunctions = {
 	compile,
 	lint,
 	publish,
+	pack,
 	unpublish,
 	bumpDirs,
 	bumpProjects,
@@ -441,6 +442,10 @@ function lint(_argv) {
 
 function publish(_argv) {
 	return require('./cliAdvanced').publish(_argv);
+}
+
+function pack(_argv) {
+	return require('../../dist/drcp-cmd').pack(_argv);
 }
 
 function unpublish(_argv) {

@@ -262,13 +262,14 @@ class EntryFileFinder {
 				log.debug('Package %s does not exist', chalk.cyan(name));
 				return;
 			}
-			var packageJson = Path.join(packagePath, 'package.json');
+			var packageJsonFile = Path.join(packagePath, 'package.json');
+			var json = JSON.parse(fs.readFileSync(packageJsonFile, 'utf-8'));
 			var entryPath;
-			if (packageJson.browser || packageJson.main)
-				entryPath = Path.resolve(packagePath, packageJson.browser || packageJson.main);
-			else
-				entryPath = null;
-			var json = JSON.parse(fs.readFileSync(packageJson, 'utf-8'));
+			// if (typeof (json.browser || json.main)
+			// 	entryPath = Path.resolve(packagePath, json.browser || json.main);
+			// else
+			// 	entryPath = null;
+
 			eachCallback(name, entryPath, parsedName, json, packagePath);
 		});
 	}
@@ -280,7 +281,7 @@ function _findPackageByType(types, callback, resolver, recipeType, projectDir) {
 	var entryFileFindler = new EntryFileFinder(resolver);
 	types = [].concat(types);
 
-	var srcCompSet = new Set();
+	var srcCompSet = new Map();
 	// To avoid return duplicate components, some times duplicate component in associated projects, installed recipe or peer
 	// dependency (recipe)
 
@@ -308,8 +309,8 @@ function _findPackageByType(types, callback, resolver, recipeType, projectDir) {
 			var packageType = _.get(pkJson, 'dr.type');
 			packageType = packageType ? [].concat(packageType) : [];
 			if (srcCompSet.has(name))
-				console.error('Duplicate package %s found', name);
-			srcCompSet.add(name);
+				console.error('Duplicate package %s found in recipe %s', name, recipe);
+			srcCompSet.set(name, recipe);
 			if (_.includes(types, '*') || _.intersection(types, packageType).length > 0) {
 				//_checkDuplicate(packageSet, name, parsedName, pkJson, packagePath);
 				callback(name, entryPath, parsedName, pkJson, packagePath, isInstalled);
