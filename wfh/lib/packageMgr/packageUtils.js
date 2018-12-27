@@ -309,9 +309,11 @@ function _findPackageByType(types, callback, resolver, recipeType, projectDir) {
 				return;
 			var packageType = _.get(pkJson, 'dr.type');
 			packageType = packageType ? [].concat(packageType) : [];
-			if (srcCompSet.has(name))
-				console.error('Duplicate package %s found in recipe %s', name, recipe);
-			srcCompSet.set(name, recipe);
+			const existing = srcCompSet.get(name);
+			if (existing && existing[0] === isInstalled && existing[1] !== recipe) {
+				console.error('Duplicate package %s found in recipe "%s" and "%s"', name, recipe, srcCompSet.get(name));
+			}
+			srcCompSet.set(name, [isInstalled, recipe]);
 			if (_.includes(types, '*') || _.intersection(types, packageType).length > 0) {
 				//_checkDuplicate(packageSet, name, parsedName, pkJson, packagePath);
 				callback(name, entryPath, parsedName, pkJson, packagePath, isInstalled);
