@@ -247,7 +247,8 @@ class EntryFileFinder {
 		if (!pj.dependencies) {
 			return;
 		}
-		_.forOwn(pj.dependencies, function(version, name) {
+		
+		_.forOwn(Object.assign({}, pj.dependencies, pj.devDependencies), function(version, name) {
 			if (isInstalled) {
 				if (_.has(self.packageRecipeMap, name)) {
 					log.warn('Duplicate component dependency "%s" found in "%s" and "%s"',
