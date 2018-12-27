@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package-cli",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "dr-comp-package command line interface",
   "main": "bin/cli.js",
   "bin": {
