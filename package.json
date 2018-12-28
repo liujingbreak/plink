@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package",
-  "version": "0.7.57",
+  "version": "0.7.58",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -53,6 +53,7 @@
     "fs-extra": "^5.0.0",
     "@types/fs-extra": "5.0.4",
     "glob": "^7.1.2",
+    "@types/gulp": "^3.8.36",
     "gulp": "^3.9.1",
     "gulp-bump": "^2.9.0",
     "gulp-eslint": "^4.0.1",

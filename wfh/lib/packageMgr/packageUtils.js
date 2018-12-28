@@ -313,6 +313,8 @@ function _findPackageByType(types, callback, resolver, recipeType, projectDir) {
 			if (existing && existing[0] === isInstalled && existing[1] !== recipe) {
 				console.error('Duplicate package %s found in recipe "%s" and "%s"', name, recipe, srcCompSet.get(name));
 			}
+			if (existing)
+				return;
 			srcCompSet.set(name, [isInstalled, recipe]);
 			if (_.includes(types, '*') || _.intersection(types, packageType).length > 0) {
 				//_checkDuplicate(packageSet, name, parsedName, pkJson, packagePath);
