@@ -45,7 +45,7 @@ function eachRecipeSrc(projectDir, callback) {
             forProject(projectDir);
         }
         else {
-            throw new Error('Wrong arguments for eachRecipeSrc()');
+            forProject(config().projectList);
         }
     }
     function forProject(prjDirs) {

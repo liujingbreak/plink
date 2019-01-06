@@ -46,7 +46,7 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
 		if (typeof projectDir === 'string' || Array.isArray(projectDir)) {
 			forProject(projectDir);
 		} else {
-			throw new Error('Wrong arguments for eachRecipeSrc()');
+			forProject(config().projectList);
 		}
 	}
 
