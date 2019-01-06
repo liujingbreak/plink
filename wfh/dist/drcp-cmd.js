@@ -14,10 +14,11 @@ const fs = require("fs-extra");
 const Path = require("path");
 const process_utils_1 = require("./process-utils");
 const utils_1 = require("./utils");
+const recipeManager = require("./recipe-manager");
 const config = require('../lib/config');
 require('../lib/logConfig')(config());
 const packageUtils = require('../lib/packageMgr/packageUtils');
-const recipeManager = require('../lib/gulp/recipeManager');
+// const recipeManager = require('../lib/gulp/recipeManager');
 const log = require('log4js').getLogger('drcp-cmd');
 function pack(argv) {
     return __awaiter(this, void 0, void 0, function* () {

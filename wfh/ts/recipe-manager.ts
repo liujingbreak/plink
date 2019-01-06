@@ -43,10 +43,11 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
 		callback = arguments[0];
 		forProject(config().projectList);
 	} else if (arguments.length === 2) {
-		if (typeof projectDir === 'string')
+		if (typeof projectDir === 'string' || Array.isArray(projectDir)) {
 			forProject(projectDir);
-		else
-			forProject(config().projectList);
+		} else {
+			throw new Error('Wrong arguments for eachRecipeSrc()');
+		}
 	}
 
 	function forProject(prjDirs: string[] | string) {

@@ -5,11 +5,12 @@ import * as fs from 'fs-extra';
 import * as Path from 'path';
 import {promisifyExe} from './process-utils';
 import {boxString} from './utils';
+import * as recipeManager from './recipe-manager';
 const config = require('../lib/config');
 require('../lib/logConfig')(config());
 
 const packageUtils = require('../lib/packageMgr/packageUtils');
-const recipeManager = require('../lib/gulp/recipeManager');
+// const recipeManager = require('../lib/gulp/recipeManager');
 const log = require('log4js').getLogger('drcp-cmd');
 
 export async function pack(argv: any) {
