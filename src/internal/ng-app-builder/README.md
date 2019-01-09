@@ -2,8 +2,6 @@
 
 > Problematic **Angular + symlink**
 Angular command line has problems when source code comes from symlink directory.
-- `--aot` must be used with `--preserve-symlinks`, and same effect when setting corresponding properties in angular.json
-- `--aot` will show error in `ng serve --watch` mode
 - `--no-preserve-symlinks` or set `preserveSymlinks: false` in angular.json will leads to some symlink source code
 directory being ignored by Webpack watch mode. (Probably due to [Webpack's watchpack](https://github.com/webpack/watchpack/issues/61) bug)
 
@@ -224,7 +222,5 @@ function yourTsHacker(src: ts.SourceFile): ReplacementInf[] {
 ### Known Issues
 #### Problematic **Angular + symlink**
 Angular command line has problems when source code comes from symlink directory.
-- `--aot` must be used with `--preserve-symlinks`, and same effect when setting corresponding properties in angular.json
-- `--aot` will show error in `ng serve --watch` mode
 - `--preserve-symlinks` or set `preserveSymlinks: true` in angular.json will leads to some symlink source code
 directory being ignored by Webpack watch mode. (Probably due to [Webpack's watchpack](https://github.com/webpack/watchpack/issues/61) bug)

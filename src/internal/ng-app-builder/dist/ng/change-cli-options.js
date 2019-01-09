@@ -112,7 +112,7 @@ function overrideTsConfig(file, content, browserOptions, config) {
     let ngPackages = pkInfo.allModules;
     // const excludePkSet = new Set<string>();
     const excludePackage = config.get(currPackageName + '.excludePackage') || [];
-    const excludePath = config.get(currPackageName + '.excludePath') || [];
+    let excludePath = config.get(currPackageName + '.excludePath') || [];
     // if (excludePackage)
     // 	excludePackage.forEach(pname => excludePkSet.add(pname));
     ngPackages = ngPackages.filter(comp => !excludePackage.some(reg => _.isString(reg) ? comp.longName.includes(reg) : reg.test(comp.longName)) &&
@@ -148,7 +148,9 @@ function overrideTsConfig(file, content, browserOptions, config) {
         fs.realpathSync('node_modules/dr-comp-package/wfh/share'))
         .replace(/\\/g, '/'));
     tsExclude.push('**/test.ts');
-    tsExclude.push(...excludePath.map(expath => Path.relative(Path.dirname(file), expath).replace(/\\/g, '/')));
+    excludePath = excludePath.map(expath => Path.relative(Path.dirname(file), expath).replace(/\\/g, '/'));
+    console.log(excludePath);
+    tsExclude.push(...excludePath);
     // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
     if (!preserveSymlinks) {
         const drcpDir = Path.relative(root, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');

@@ -12,6 +12,10 @@ import {TsHandler, ReplacementInf} from '@dr-core/ng-app-builder/dist/utils/ts-b
 import * as ts from 'typescript';
 import {boxString} from 'dr-comp-package/wfh/dist/utils';
 
+export * from './configurable';
+export * from './ng-prerender';
+export * from './ng/common';
+
 // import TsSelector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
 const semver = require('semver');
 const {red, yellow} = require('chalk');

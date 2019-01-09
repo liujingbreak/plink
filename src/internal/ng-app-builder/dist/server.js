@@ -7,6 +7,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+}
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable max-line-length */
 const __api_1 = require("__api");
@@ -17,6 +20,8 @@ const _fs = require("fs");
 const config_webpack_1 = require("./config-webpack");
 const Url = require("url");
 const utils_1 = require("dr-comp-package/wfh/dist/utils");
+__export(require("./ng-prerender"));
+__export(require("./ng/common"));
 // import TsSelector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
 const semver = require('semver');
 const { red, yellow } = require('chalk');

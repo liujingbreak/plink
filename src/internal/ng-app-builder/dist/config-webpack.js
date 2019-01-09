@@ -22,7 +22,7 @@ const webpack_2 = require("@ngtools/webpack");
 const ng_ts_replace_1 = require("./ng-ts-replace");
 const read_hook_vfshost_1 = require("./utils/read-hook-vfshost");
 // const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
-const noParse = __api_1.default.config.get([__api_1.default.packageName, 'build-optimizer:exclude'], []);
+const noParse = __api_1.default.config.get([__api_1.default.packageName, 'buildOptimizerExclude'], []);
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 function changeWebpackConfig(param, webpackConfig, drcpConfigSetting) {
     return __awaiter(this, void 0, void 0, function* () {

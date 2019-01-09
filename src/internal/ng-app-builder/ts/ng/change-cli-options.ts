@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import {DrcpConfig, ConfigHandler} from 'dr-comp-package/wfh/dist/config-handler';
 import {PackageInfo} from 'dr-comp-package/wfh/dist/build-util/ts';
 import {findAppModuleFileFromMain} from '../utils/parse-app-module';
+import {DrcpSetting} from '../configurable';
 const {cyan, green, red} = require('chalk');
 const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
@@ -129,8 +130,8 @@ function overrideTsConfig(file: string, content: string,
 	let ngPackages: PackageInstances = pkInfo.allModules;
 
 	// const excludePkSet = new Set<string>();
-	const excludePackage: Array<RegExp | string> = config.get(currPackageName + '.excludePackage') || [];
-	const excludePath: string[] = config.get(currPackageName + '.excludePath') || [];
+	const excludePackage: DrcpSetting['excludePackage'] = config.get(currPackageName + '.excludePackage') || [];
+	let excludePath: string[] = config.get(currPackageName + '.excludePath') || [];
 	// if (excludePackage)
 	// 	excludePackage.forEach(pname => excludePkSet.add(pname));
 
@@ -174,8 +175,11 @@ function overrideTsConfig(file: string, content: string,
 			fs.realpathSync('node_modules/dr-comp-package/wfh/share'))
 		.replace(/\\/g, '/'));
 	tsExclude.push('**/test.ts');
-	tsExclude.push(...excludePath.map(expath =>
-		Path.relative(Path.dirname(file), expath).replace(/\\/g, '/')));
+
+	excludePath = excludePath.map(expath =>
+		Path.relative(Path.dirname(file), expath).replace(/\\/g, '/'));
+	console.log(excludePath);
+	tsExclude.push(...excludePath);
 
 	// Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
 	if (!preserveSymlinks) {

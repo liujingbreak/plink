@@ -149,6 +149,7 @@ function lint(argv) {
 				log.info('skip ' + fullName);
 				return;
 			}
+			packagePath = fs.realpathSync(packagePath);
 			prom = prom.catch(err => errors.push(err))
 			.then(() => {
 				log.info('Checking ', packagePath);
@@ -165,6 +166,7 @@ function lint(argv) {
 				log.info('skip ' + fullName);
 				return;
 			}
+			packagePath = fs.realpathSync(packagePath);
 			prom = prom.catch(err => errors.push(err))
 			.then(() => {
 				log.info('Checking ', packagePath);
@@ -187,7 +189,7 @@ function lint(argv) {
 
 function _tsLintPackageAsync(tslint, fullName, json, packagePath, fix) {
 	let dir;
-	packagePath = fs.realpathSync(packagePath);
+	// packagePath = fs.realpathSync(packagePath);
 	log.debug('TSlint Scan', packagePath);
 	if (fullName === 'dr-comp-package')
 		packagePath = packagePath + '/wfh';
@@ -230,7 +232,7 @@ function _lintPackageAsync(eslint, fullName, json, packagePath, fix) {
 		log.info('Fixing typescript file ...');
 
 	let dir;
-	packagePath = fs.realpathSync(packagePath);
+	// packagePath = fs.realpathSync(packagePath);
 	log.debug('ESlint Scan', packagePath);
 	if (fullName === 'dr-comp-package')
 		packagePath = packagePath + '/wfh';
