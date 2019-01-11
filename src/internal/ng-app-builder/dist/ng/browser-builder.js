@@ -12,27 +12,16 @@ const build_angular_1 = require("@angular-devkit/build-angular");
 const drcpCommon = require("./common");
 class BrowserBuilder extends build_angular_1.BrowserBuilder {
     run(builderConfig) {
-        const options = builderConfig.options;
         const root = this.context.workspace.root;
         const projectRoot = core_1.resolve(root, builderConfig.root);
         const host = new core_1.virtualFs.AliasHost(this.context.host);
         const webpackBuilder = new build_webpack_1.WebpackBuilder(Object.assign({}, this.context, { host }));
+        const options = utils_1.normalizeBuilderSchema(host, root, builderConfig);
         return rxjs_1.of(null).pipe(operators_1.concatMap(() => options.deleteOutputPath
             ? this._deleteOutputDir(root, core_1.normalize(options.outputPath), this.context.host)
-            : rxjs_1.of(null)), operators_1.concatMap(() => utils_1.normalizeFileReplacements(options.fileReplacements, host, root)), operators_1.tap(fileReplacements => options.fileReplacements = fileReplacements), operators_1.concatMap(() => utils_1.normalizeAssetPatterns(options.assets, host, root, projectRoot, builderConfig.sourceRoot)), 
-        // Replace the assets in options with the normalized version.
-        operators_1.tap((assetPatternObjects => options.assets = assetPatternObjects)), operators_1.concatMap(() => {
-            return drcpCommon.compile(builderConfig.root, builderConfig, () => {
-                return this.buildWebpackConfig(root, projectRoot, host, options);
-            });
+            : rxjs_1.of(null)), operators_1.concatMap(() => {
+            return drcpCommon.compile(builderConfig.root, builderConfig, () => this.buildWebpackConfig(root, projectRoot, host, options));
         }), operators_1.concatMap((webpackConfig) => {
-            // let webpackConfig;
-            // try {
-            //   webpackConfig = this.buildWebpackConfig(root, projectRoot, host,
-            // 	options as NormalizedBrowserBuilderSchema);
-            // } catch (e) {
-            //   return throwError(e);
-            // }
             return webpackBuilder.runWebpack(webpackConfig, build_angular_1.getBrowserLoggingCb(options.verbose));
         }), operators_1.concatMap((buildEvent) => {
             if (buildEvent.success && !options.watch && options.serviceWorker) {

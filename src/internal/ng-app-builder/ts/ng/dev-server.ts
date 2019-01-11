@@ -1,3 +1,5 @@
+
+// tslint:disable:max-line-length
 import './node-inject';
 
 import {
@@ -10,57 +12,50 @@ import { Observable } from 'rxjs';
 import { concatMap, map, tap } from 'rxjs/operators';
 import * as url from 'url';
 import { checkPort } from '@angular-devkit/build-angular/src/angular-cli-files/utilities/check-port';
-import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/';
-import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
-import { normalizeAssetPatterns, normalizeFileReplacements } from '@angular-devkit/build-angular/src/utils';
+// import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/';
+import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { normalizeBuilderSchema } from '@angular-devkit/build-angular/src/utils';
 const opn = require('opn');
 
  // DRCP
 import {DevServerBuilder, DevServerBuilderOptions} from '@angular-devkit/build-angular';
-import * as common from './common';
+import * as drcpCommon from './common';
 
-export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
+// export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
 
 export default class DrcpDevServer extends DevServerBuilder {
 	run(builderConfig: BuilderConfiguration<DevServerBuilderOptions>): Observable<BuildEvent> {
-		console.time('ng run()');
 		const options = builderConfig.options;
 		const root = this.context.workspace.root;
 		const projectRoot = resolve(root, builderConfig.root);
 		const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<Stats>);
-		// DRCP has an Http server
 		// const webpackDevServerBuilder = new WebpackDevServerBuilder({ ...this.context, host });
-		let browserOptions: BrowserBuilderSchema;
+		let browserOptions: NormalizedBrowserBuilderSchema;
 		let first = true;
 		let opnAddress: string;
 
 		return checkPort(options.port, options.host).pipe(
-		  tap((port) => options.port = port),
-		  concatMap(() => this._getBrowserOptions1(options)),
-		  tap((opts) => browserOptions = opts),
-		  concatMap(() => normalizeFileReplacements(browserOptions.fileReplacements, host, root)),
-		  tap(fileReplacements => browserOptions.fileReplacements = fileReplacements),
-		  concatMap(() => normalizeAssetPatterns(
-			browserOptions.assets, host, root, projectRoot, builderConfig.sourceRoot)),
-		  // Replace the assets in options with the normalized version.
-		  tap((assetPatternObjects => browserOptions.assets = assetPatternObjects)),
-		  concatMap(() => {
-			// DRCP
-			console.timeEnd('ng run()');
-			console.time('startDrcpServer callback');
-			return common.startDrcpServer(builderConfig.root, builderConfig, browserOptions as common.AngularBuilderOptions,
-				() => {
-					console.timeEnd('startDrcpServer callback');
-					const webpackConfig = this.buildWebpackConfig(
-					root, projectRoot, host, browserOptions as NormalizedBrowserBuilderSchema);
+			tap((port) => options.port = port),
+			concatMap(() => (this as any)._getBrowserOptions(options)),
+			tap(opts => browserOptions = normalizeBuilderSchema(
+				host,
+				root,
+				opts as any
+			)),
+			concatMap(() => {
+				return drcpCommon.startDrcpServer(builderConfig.root, builderConfig,
+					browserOptions as drcpCommon.AngularBuilderOptions, ()=> {
+					const webpackConfig = this.buildWebpackConfig(root, projectRoot, host, browserOptions);
 
-					// DRCP doesn't need below
 					// let webpackDevServerConfig: WebpackDevServer.Configuration;
 					// try {
-					//   webpackDevServerConfig = this._buildServerConfig(
-					// 	root, projectRoot, options, browserOptions);
+					// 	webpackDevServerConfig = (this as any)_buildServerConfig(
+					// 		root,
+					// 		options,
+					// 		browserOptions
+					// 	);
 					// } catch (err) {
-					//   return throwError(err);
+					// 	return throwError(err);
 					// }
 
 					// Resolve public host and client address.
@@ -72,21 +67,21 @@ export default class DrcpDevServer extends DevServerBuilder {
 						}
 						const clientUrl = url.parse(publicHost);
 						options.publicHost = clientUrl.host;
-						//   clientAddress = url.format(clientUrl);
+						// clientAddress = url.format(clientUrl);
 					}
 
 					// Resolve serve address.
 					const serverAddress = url.format({
-					protocol: options.ssl ? 'https' : 'http',
-					hostname: options.host === '0.0.0.0' ? 'localhost' : options.host,
-					port: options.port.toString()
+						protocol: options.ssl ? 'https' : 'http',
+						hostname: options.host === '0.0.0.0' ? 'localhost' : options.host,
+						port: options.port.toString()
 					});
-					// DRCP has them both.
+
 					// Add live reload config.
 					// if (options.liveReload) {
-					//   this._addLiveReload(options, browserOptions, webpackConfig, clientAddress);
+					// 	this._addLiveReload(options, browserOptions, webpackConfig, clientAddress);
 					// } else if (options.hmr) {
-					//   this.context.logger.warn('Live reload is disabled. HMR option ignored.');
+					// 	this.context.logger.warn('Live reload is disabled. HMR option ignored.');
 					// }
 
 					if (!options.watch) {
@@ -95,82 +90,49 @@ export default class DrcpDevServer extends DevServerBuilder {
 						webpackConfig.plugins.unshift({
 							// tslint:disable-next-line:no-any
 							apply: (compiler: any) => {
-							compiler.hooks.afterEnvironment.tap('angular-cli', () => {
-								compiler.watchFileSystem = { watch: () => { } };
-							});
+								compiler.hooks.afterEnvironment.tap('angular-cli', () => {
+									compiler.watchFileSystem = { watch: () => { } };
+								});
 							}
 						});
 					}
 
 					if (browserOptions.optimization) {
-					this.context.logger.error(tags.stripIndents`
-						****************************************************************************************
-						This is a simple server for use in testing or debugging Angular applications locally.
-						It hasn't been reviewed for security issues.
-			
-						DON'T USE IT FOR PRODUCTION!
-						****************************************************************************************
-					`);
+						this.context.logger.error(tags.stripIndents`
+							****************************************************************************************
+							This is a simple server for use in testing or debugging Angular applications locally.
+							It hasn't been reviewed for security issues.
+
+							DON'T USE IT FOR PRODUCTION!
+							****************************************************************************************
+						`);
 					}
 
 					this.context.logger.info(tags.oneLine`
-					**
-					DRCP Live Development Server is listening on ${options.host}:${options.port},
-					open your browser on ${serverAddress}${browserOptions.deployUrl}
-					**
+						**
+						Angular Live Development Server is listening on ${options.host}:${options.port},
+						open your browser on ${serverAddress}${browserOptions.deployUrl}
+						**
 					`);
 
 					opnAddress = serverAddress + browserOptions.deployUrl;
-					// webpackConfig.devServer = webpackDevServerConfig;
+					// webpackConfig.devServer = browserOptions.deployUrl;
 
 					// return webpackDevServerBuilder.runWebpackDevServer(
-					//   webpackConfig, undefined, getBrowserLoggingCb(browserOptions.verbose),
+					// 	webpackConfig, undefined, getBrowserLoggingCb(browserOptions.verbose),
 					// );
 					return webpackConfig;
 				});
-		  }),
-		  map(buildEvent => {
-			if (first && options.open) {
-			  first = false;
-			  opn(opnAddress);
-			}
+			}),
+			map(buildEvent => {
+				if (first && options.open) {
+					first = false;
+					opn(opnAddress);
+				}
 
-			return buildEvent as BuildEvent;
-		  })
-		);
+				return buildEvent;
+			})
+			// using more than 10 operators will cause rxjs to loose the types
+		) as Observable<BuildEvent>;
 	}
-
-	private _getBrowserOptions1(options: DevServerBuilderOptions) {
-		const architect = this.context.architect;
-		const [project, target, configuration] = options.browserTarget.split(':');
-
-		const overrides = {
-		  // Override browser build watch setting.
-		  watch: options.watch,
-
-		  // Update the browser options with the same options we support in serve, if defined.
-		  ...(options.optimization !== undefined ? { optimization: options.optimization } : {}),
-		  ...(options.aot !== undefined ? { aot: options.aot } : {}),
-		  ...(options.sourceMap !== undefined ? { sourceMap: options.sourceMap } : {}),
-		  ...(options.vendorSourceMap !== undefined ?
-			 { vendorSourceMap: options.vendorSourceMap } : {}),
-		  ...(options.evalSourceMap !== undefined ? { evalSourceMap: options.evalSourceMap } : {}),
-		  ...(options.vendorChunk !== undefined ? { vendorChunk: options.vendorChunk } : {}),
-		  ...(options.commonChunk !== undefined ? { commonChunk: options.commonChunk } : {}),
-		  ...(options.baseHref !== undefined ? { baseHref: options.baseHref } : {}),
-		  ...(options.progress !== undefined ? { progress: options.progress } : {}),
-		  ...(options.poll !== undefined ? { poll: options.poll } : {})
-		//   ...(options.verbose !== undefined ? { verbose: options.verbose } : {})
-		};
-
-		const browserTargetSpec = { project, target, configuration, overrides };
-		const builderConfig = architect.getBuilderConfiguration<BrowserBuilderSchema>(
-		  browserTargetSpec);
-
-		return architect.getBuilderDescription(builderConfig).pipe(
-		  concatMap(browserDescription =>
-			architect.validateBuilderOptions(builderConfig, browserDescription)),
-		  map(browserConfig => browserConfig.options)
-		);
-	  }
 }
