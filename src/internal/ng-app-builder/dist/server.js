@@ -1,16 +1,6 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-}
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable max-line-length */
 const __api_1 = require("__api");
 const log4js = require("log4js");
@@ -20,8 +10,8 @@ const _fs = require("fs");
 const config_webpack_1 = require("./config-webpack");
 const Url = require("url");
 const utils_1 = require("dr-comp-package/wfh/dist/utils");
-__export(require("./ng-prerender"));
-__export(require("./ng/common"));
+tslib_1.__exportStar(require("./ng-prerender"), exports);
+tslib_1.__exportStar(require("./ng/common"), exports);
 // import TsSelector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
 const semver = require('semver');
 const { red, yellow } = require('chalk');
@@ -84,7 +74,7 @@ function activate() {
 }
 exports.activate = activate;
 function setupApiForAngularCli() {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const ngParam = __api_1.default.config()._angularCli;
         if (!ngParam || __api_1.default.ngEntryComponent)
             return;

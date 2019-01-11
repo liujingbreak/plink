@@ -21,6 +21,7 @@ export interface WepackConfigHandler {
 
 // const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 const noParse = (api.config.get([api.packageName, 'buildOptimizerExclude'], []) as string[]);
+noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]);
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 
 export default async function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfigSetting: any) {

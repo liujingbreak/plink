@@ -1,13 +1,6 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 // tslint:disable:max-line-length
 const through = require('through2');
 const merge = require('merge2');
@@ -211,7 +204,7 @@ function linkComponentsAsync() {
 }
 exports.linkComponentsAsync = linkComponentsAsync;
 function clean() {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         yield config.done;
         linkListFile = config.resolve('destDir', 'link-list.json');
         const recipes = [];

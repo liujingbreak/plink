@@ -1,13 +1,6 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 const __api_1 = require("__api");
 const request = require("request");
 const Url = require("url");
@@ -62,7 +55,7 @@ function runRepeatly(setting) {
     });
 }
 function run(setting) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         let checksumObj;
         try {
             checksumObj = yield retry(fetch, setting.fetchUrl);
@@ -102,7 +95,7 @@ function run(setting) {
     });
 }
 function downloadZip(path) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const resource = Url.resolve(setting.fetchUrl, path + '?' + Math.random());
         const downloadTo = __api_1.default.config.resolve('destDir', 'remote.zip');
         log.info('fetch', resource);
@@ -143,7 +136,7 @@ function fetch(fetchUrl) {
     });
 }
 function retry(func, ...args) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         for (let cnt = 0;;) {
             try {
                 return yield func(...args);

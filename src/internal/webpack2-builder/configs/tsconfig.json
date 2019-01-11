@@ -29,6 +29,7 @@
 		"noUnusedLocals": true,
 		"target": "ES5",
 		"moduleResolution": "Node",
-		"preserveSymlinks": false
+		"preserveSymlinks": false,
+		"importHelpers": true
 	}
 }

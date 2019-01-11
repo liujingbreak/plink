@@ -153,7 +153,9 @@ class AppModuleParser {
         let i = 0;
         // 4. Replace whole NgModule imports arrary with those not removables and newly added
         const wholeNgImports = Array.from(keepImportEl.values());
-        wholeNgImports.unshift(...this.modulesToAdd.map(m => m.exportName + '_' + i++));
+        // wholeNgImports.unshift(...this.modulesToAdd.map(m => m.exportName + '_' + i++));
+        const insertPos = wholeNgImports.findIndex(value => /^\s*RouterModule\s*\.\s*forRoot\(/.test(value));
+        wholeNgImports.splice(insertPos, 0, ...this.modulesToAdd.map(m => m.exportName + '_' + i++));
         this.replacements.push({
             start: ngImportArrayExp.getStart(this.sourceFile),
             end: ngImportArrayExp.getEnd(),

@@ -1,18 +1,11 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 const Rx = require("rxjs");
 const _ = require("lodash");
 const change_cli_options_1 = require("./change-cli-options");
 function initDrcp(drcpArgs, drcpConfigFiles) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         var config = require('dr-comp-package/wfh/lib/config');
         if (drcpArgs.c == null)
             drcpArgs.c = [];
@@ -127,7 +120,7 @@ function compile(projectRoot, builderConfig, buildWebpackConfig, isSSR = false) 
 }
 exports.compile = compile;
 function compileAsync(projectRoot, builderConfig, buildWebpackConfig, ssr) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const browserOptions = builderConfig.options;
         const options = browserOptions;
         const drcpConfigFiles = options.drcpConfig ? options.drcpConfig.split(/\s*[,;:]\s*/) : [];

@@ -1,13 +1,6 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable no-console max-line-length max-classes-per-file */
 const chunk_info_1 = require("./plugins/chunk-info");
 const gzip_size_1 = require("./plugins/gzip-size");
@@ -23,9 +16,10 @@ const ng_ts_replace_1 = require("./ng-ts-replace");
 const read_hook_vfshost_1 = require("./utils/read-hook-vfshost");
 // const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 const noParse = __api_1.default.config.get([__api_1.default.packageName, 'buildOptimizerExclude'], []);
+noParse.push(...__api_1.default.config.get([__api_1.default.packageName, 'build-optimizer:exclude'], []));
 // const log = require('log4js').getLogger('ng-app-builder.config-webpack');
 function changeWebpackConfig(param, webpackConfig, drcpConfigSetting) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         // const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
         console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
         if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
@@ -48,7 +42,7 @@ function changeWebpackConfig(param, webpackConfig, drcpConfigSetting) {
             apply(compiler) {
                 const hooker = new ng_ts_replace_1.default(param);
                 ngCompilerPlugin._options.host = new read_hook_vfshost_1.default(compiler.inputFileSystem, hooker.hookFunc);
-                compiler.hooks.watchRun.tapPromise('ts-read-hook', () => __awaiter(this, void 0, void 0, function* () {
+                compiler.hooks.watchRun.tapPromise('ts-read-hook', () => tslib_1.__awaiter(this, void 0, void 0, function* () {
                     hooker.clear();
                 }));
             }

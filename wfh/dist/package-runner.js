@@ -1,13 +1,6 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 const _ = require("lodash");
 // import Package from './packageNodeInstance';
 const package_priority_helper_1 = require("./package-priority-helper");
@@ -20,13 +13,13 @@ const { nodeInjector } = require('../lib/injectorFactory');
 const log = require('log4js').getLogger('package-runner');
 class ServerRunner {
     shutdownServer() {
-        return __awaiter(this, void 0, void 0, function* () {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
             log.info('shutting down');
             yield this._deactivatePackages(this.deactivatePackages);
         });
     }
     _deactivatePackages(comps) {
-        return __awaiter(this, void 0, void 0, function* () {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
             for (const comp of comps) {
                 const exp = require(comp.longName);
                 if (_.isFunction(exp.deactivate)) {

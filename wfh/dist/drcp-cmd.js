@@ -1,13 +1,6 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 const Q = require("promise-queue");
 const _ = require("lodash");
 const fs = require("fs-extra");
@@ -21,7 +14,7 @@ const packageUtils = require('../lib/packageMgr/packageUtils');
 // const recipeManager = require('../lib/gulp/recipeManager');
 const log = require('log4js').getLogger('drcp-cmd');
 function pack(argv) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         fs.mkdirpSync('tarballs');
         const promises = [];
         // var count = 0;
@@ -37,7 +30,7 @@ function pack(argv) {
         const namePat = /name:\s+([^ \n\r]+)/mi;
         const fileNamePat = /filename:\s+([^ \n\r]+)/mi;
         packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
-            promises.push(q.add(() => __awaiter(this, void 0, void 0, function* () {
+            promises.push(q.add(() => tslib_1.__awaiter(this, void 0, void 0, function* () {
                 try {
                     const output = yield process_utils_1.promisifyExe('npm', 'pack', packagePath, { silent: true, cwd: Path.resolve('tarballs') });
                     const offset = output.indexOf('Tarball Details');

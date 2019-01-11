@@ -1,12 +1,5 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
+const tslib_1 = require("tslib");
 const ng_html_parser_1 = require("../utils/ng-html-parser");
 const patch_text_1 = require("../utils/patch-text");
 const __api_1 = require("__api");
@@ -33,7 +26,7 @@ function loader(content, map) {
 })(loader || (loader = {}));
 const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'];
 function load(content, loader) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const ast = new ng_html_parser_1.TemplateParser(content).parse();
         const proms = [];
         const replacements = [];
@@ -52,7 +45,7 @@ function load(content, loader) {
     });
 }
 function doAttrAssetsUrl(attrName, valueToken, el, replacements, loader) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
         if (!valueToken)
             return;
         if (attrName === 'srcset') {

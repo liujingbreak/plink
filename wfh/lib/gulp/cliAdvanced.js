@@ -62,8 +62,8 @@ function addupConfigs(onEachYaml) {
 			outputPath = _.get(json, 'dr.output.path', parsedName.name);
 
 		if (_.has(trackOutputPath, outputPath) && trackOutputPath[outputPath] !== name) {
-			log.warn(chalk.yellow('[Warning] Conflict outputPath setting "%s" for both %s and %s, resolve conflict by adding a config file,'), outputPath, trackOutputPath[outputPath], name);
-			log.warn(chalk.yellow('%s\'s "outputPath" will be changed to %s', name, parsedName.name));
+			log.warn(chalk.yellow('[Warning] Conflict package level outputPath setting (aka "ngRouterPath" in package.json) "%s" for both %s and %s, resolve conflict by adding a config file,'), outputPath, trackOutputPath[outputPath], name);
+			log.warn(chalk.yellow('%s\'s "outputPath" will be changed to %s'), name, parsedName.name);
 			outputPath = parsedName.name;
 		}
 		trackOutputPath[outputPath] = name;
