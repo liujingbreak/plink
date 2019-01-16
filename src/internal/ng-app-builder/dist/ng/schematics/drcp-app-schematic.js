@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Path = require("path");
+const tslib_1 = require("tslib");
+const Path = tslib_1.__importStar(require("path"));
 const NM_DIR = Path.sep + 'node_modules' + Path.sep;
 // You don't have to export the function as default. You can also have more than one rule factory
 // per file.

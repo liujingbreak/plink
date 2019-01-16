@@ -5,10 +5,10 @@ const tslib_1 = require("tslib");
 const through = require('through2');
 const merge = require('merge2');
 const config = require('../lib/config');
-const _ = require("lodash");
-const Path = require("path");
-const gulp = require("gulp");
-const fs = require("fs-extra");
+const _ = tslib_1.__importStar(require("lodash"));
+const Path = tslib_1.__importStar(require("path"));
+const gulp_1 = tslib_1.__importDefault(require("gulp"));
+const fs = tslib_1.__importStar(require("fs-extra"));
 const findPackageJson = require('../lib/gulp/findPackageJson');
 const rwPackageJson = require('./rwPackageJson');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
@@ -184,7 +184,7 @@ function link(onPkJsonFile) {
         log.debug('out: ' + linkFileTrack.path);
         next();
     }))
-        .pipe(gulp.dest(config().rootPath))
+        .pipe(gulp_1.default.dest(config().rootPath))
         .on('error', function (err) {
         log.error(err);
     });
@@ -222,13 +222,13 @@ function clean() {
                 recipes.push(Path.join(recipeDir, 'package.json'));
         });
         return new Promise((resolve, j) => {
-            gulp.src(recipes, { base: config().rootPath })
+            gulp_1.default.src(recipes, { base: config().rootPath })
                 .pipe(rwPackageJson.removeDependency())
                 .pipe(through.obj(function (file, enc, next) {
                 log.debug('out: ' + file.path);
                 next(null, file);
             }))
-                .pipe(gulp.dest(config().rootPath))
+                .pipe(gulp_1.default.dest(config().rootPath))
                 .on('end', () => resolve())
                 .on('error', j);
         });
@@ -236,7 +236,7 @@ function clean() {
 }
 exports.clean = clean;
 function linkToRecipeFile(srcDir, recipeDir, onPkJsonFile) {
-    return gulp.src('')
+    return gulp_1.default.src('')
         .pipe(findPackageJson(srcDir, true))
         .pipe(through.obj(function (file, enc, next) {
         log.debug('Found recipeDir %s: file: %s', recipeDir, file.path);

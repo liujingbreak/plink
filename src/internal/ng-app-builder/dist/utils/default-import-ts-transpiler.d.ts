@@ -11,3 +11,4 @@ export default class ImportClauseTranspile {
     constructor(opts?: ImportClauseTranspileOptions);
     parse(ast: ts.SourceFile, replacements: ReplacementInf[]): void;
 }
+//# sourceMappingURL=default-import-ts-transpiler.d.ts.map

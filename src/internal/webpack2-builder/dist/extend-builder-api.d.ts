@@ -8,3 +8,4 @@ export interface Webpack2BuilderApi {
     isIssuerAngular(file: string): boolean;
 }
 export declare type WebpackConfigFunc = (originalConfig: WebpackConfig, webpack: any) => WebpackConfig | Promise<WebpackConfig>;
+//# sourceMappingURL=extend-builder-api.d.ts.map

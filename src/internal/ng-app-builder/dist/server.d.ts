@@ -6,3 +6,4 @@ export declare function compile(): Promise<void>;
 export declare let tsHandler: TsHandler;
 export declare function init(): void;
 export declare function activate(): void;
+//# sourceMappingURL=server.d.ts.map

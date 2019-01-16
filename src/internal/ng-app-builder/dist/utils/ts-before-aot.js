@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const ts = require("typescript");
+const tslib_1 = require("tslib");
+const ts = tslib_1.__importStar(require("typescript"));
 const typescript_1 = require("typescript");
-const patch_text_1 = require("./patch-text"), textPatcher = patch_text_1;
-const __api_1 = require("__api");
+const patch_text_1 = tslib_1.__importStar(require("./patch-text")), textPatcher = patch_text_1;
+const __api_1 = tslib_1.__importDefault(require("__api"));
 const vm = require("vm");
 const path_1 = require("path");
-const default_import_ts_transpiler_1 = require("./default-import-ts-transpiler");
+const default_import_ts_transpiler_1 = tslib_1.__importDefault(require("./default-import-ts-transpiler"));
 const chalk = require('chalk');
 const log = require('log4js').getLogger(__api_1.default.packageName + '.api-aot-compiler');
 function createTsHandlers() {

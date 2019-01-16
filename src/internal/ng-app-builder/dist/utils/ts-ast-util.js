@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const ts_ast_query_1 = require("./ts-ast-query");
-const Path = require("path");
+const tslib_1 = require("tslib");
+const ts_ast_query_1 = tslib_1.__importDefault(require("./ts-ast-query"));
+const Path = tslib_1.__importStar(require("path"));
 // import {readTsConfig} from 'dr-comp-package/wfh/dist/ts-compiler';
 function resolveImportBindName(src, modulePath, propertyName, resolveFn) {
     let resolvedModulePath;

@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const require_injector_1 = require("require-injector");
+const tslib_1 = require("tslib");
+const require_injector_1 = tslib_1.__importDefault(require("require-injector"));
 const require_injectors_1 = require("./require-injectors");
 const factory_map_1 = require("require-injector/dist/factory-map");
 // import {ResolveOption} from 'require-injector/dist/node-inject';
-const _ = require("lodash");
-const fs = require("fs");
-const Path = require("path");
+const _ = tslib_1.__importStar(require("lodash"));
+const fs = tslib_1.__importStar(require("fs"));
+const Path = tslib_1.__importStar(require("path"));
 const log = require('log4js').getLogger('lib.injectorFactory');
 const packageNamePathMap = {};
 const emptyFactoryMap = {

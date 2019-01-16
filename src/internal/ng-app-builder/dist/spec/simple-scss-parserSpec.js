@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 // tslint:disable no-console
 const simple_scss_parser_1 = require("../utils/simple-scss-parser");
 const base_LLn_parser_1 = require("dr-comp-package/wfh/dist/base-LLn-parser");
-const fs = require("fs");
-const Path = require("path");
+const fs = tslib_1.__importStar(require("fs"));
+const Path = tslib_1.__importStar(require("path"));
 describe('simple-scss-parser', () => {
     let text;
     beforeAll(() => {

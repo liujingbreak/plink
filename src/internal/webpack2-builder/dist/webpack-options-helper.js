@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const __api_1 = require("__api");
-const Path = require("path");
+const tslib_1 = require("tslib");
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const Path = tslib_1.__importStar(require("path"));
 // import * as log4js from 'log4js';
 // const log = log4js.getLogger(api.packageName);
 const devMode = __api_1.default.config().devMode;

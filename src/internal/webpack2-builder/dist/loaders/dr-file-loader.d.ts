@@ -6,3 +6,4 @@ declare namespace loader {
     const raw = true;
 }
 export = loader;
+//# sourceMappingURL=dr-file-loader.d.ts.map

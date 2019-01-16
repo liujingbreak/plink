@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Path = require("path");
-const fs = require("fs");
+const tslib_1 = require("tslib");
+const Path = tslib_1.__importStar(require("path"));
+const fs = tslib_1.__importStar(require("fs"));
 const os = require("os");
 // const versionChecker = require('../lib/versionChecker');
 const package_json_guarder_1 = require("./package-json-guarder");

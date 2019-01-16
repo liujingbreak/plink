@@ -9,9 +9,9 @@ const chalk = require('chalk');
 const showDependency = false;
 const showFileDep = false;
 const { cyan, green } = require('chalk');
-const _ = require("lodash");
-const Path = require("path");
-const __api_1 = require("__api");
+const _ = tslib_1.__importStar(require("lodash"));
+const Path = tslib_1.__importStar(require("path"));
+const __api_1 = tslib_1.__importDefault(require("__api"));
 class ChunkInfoPlugin {
     constructor() {
         this.done = false;

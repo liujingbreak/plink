@@ -9,3 +9,4 @@ export default class Package {
     api: any;
     constructor(attrs: any);
 }
+//# sourceMappingURL=packageNodeInstance.d.ts.map

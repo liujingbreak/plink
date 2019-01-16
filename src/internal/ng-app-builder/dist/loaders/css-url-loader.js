@@ -1,10 +1,11 @@
 "use strict";
-const __api_1 = require("__api");
+const tslib_1 = require("tslib");
+const __api_1 = tslib_1.__importDefault(require("__api"));
 const assets_url_1 = require("dr-comp-package/wfh/dist/assets-url");
 // import * as Path from 'path';
 // import * as _ from 'lodash';
 const vm = require("vm");
-const patch_text_1 = require("../utils/patch-text");
+const patch_text_1 = tslib_1.__importDefault(require("../utils/patch-text"));
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const simple_scss_parser_1 = require("../utils/simple-scss-parser");

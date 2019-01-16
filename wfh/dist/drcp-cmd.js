@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-const Q = require("promise-queue");
-const _ = require("lodash");
-const fs = require("fs-extra");
-const Path = require("path");
+const promise_queue_1 = tslib_1.__importDefault(require("promise-queue"));
+const _ = tslib_1.__importStar(require("lodash"));
+const fs = tslib_1.__importStar(require("fs-extra"));
+const Path = tslib_1.__importStar(require("path"));
 const process_utils_1 = require("./process-utils");
 const utils_1 = require("./utils");
-const recipeManager = require("./recipe-manager");
+const recipeManager = tslib_1.__importStar(require("./recipe-manager"));
 const config = require('../lib/config');
 require('../lib/logConfig')(config());
 const packageUtils = require('../lib/packageMgr/packageUtils');
@@ -18,7 +18,7 @@ function pack(argv) {
         fs.mkdirpSync('tarballs');
         const promises = [];
         // var count = 0;
-        const q = new Q(5, Infinity);
+        const q = new promise_queue_1.default(5, Infinity);
         const recipe2packages = {};
         const package2tarball = {};
         recipeManager.eachRecipeSrc(argv.projectDir, function (src, recipeDir) {

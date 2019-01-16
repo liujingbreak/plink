@@ -2,18 +2,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 /* tslint:disable no-console max-line-length max-classes-per-file */
-const chunk_info_1 = require("./plugins/chunk-info");
-const gzip_size_1 = require("./plugins/gzip-size");
-const index_html_plugin_1 = require("./plugins/index-html-plugin");
-const _ = require("lodash");
-const fs = require("fs");
+const chunk_info_1 = tslib_1.__importDefault(require("./plugins/chunk-info"));
+const gzip_size_1 = tslib_1.__importDefault(require("./plugins/gzip-size"));
+const index_html_plugin_1 = tslib_1.__importDefault(require("./plugins/index-html-plugin"));
+const _ = tslib_1.__importStar(require("lodash"));
+const fs = tslib_1.__importStar(require("fs"));
 const util_1 = require("util");
-const Path = require("path");
+const Path = tslib_1.__importStar(require("path"));
 const webpack_1 = require("webpack");
-const __api_1 = require("__api");
+const __api_1 = tslib_1.__importDefault(require("__api"));
 const webpack_2 = require("@ngtools/webpack");
-const ng_ts_replace_1 = require("./ng-ts-replace");
-const read_hook_vfshost_1 = require("./utils/read-hook-vfshost");
+const ng_ts_replace_1 = tslib_1.__importDefault(require("./ng-ts-replace"));
+const read_hook_vfshost_1 = tslib_1.__importDefault(require("./utils/read-hook-vfshost"));
 // const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
 const noParse = __api_1.default.config.get([__api_1.default.packageName, 'buildOptimizerExclude'], []);
 noParse.push(...__api_1.default.config.get([__api_1.default.packageName, 'build-optimizer:exclude'], []));

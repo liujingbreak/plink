@@ -3,12 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const { RawSource } = require('webpack-sources');
 const ng_html_parser_1 = require("../utils/ng-html-parser");
-const _ = require("lodash");
-const patch_text_1 = require("../utils/patch-text");
+const _ = tslib_1.__importStar(require("lodash"));
+const patch_text_1 = tslib_1.__importDefault(require("../utils/patch-text"));
 const htmlLoader = require("../loaders/ng-html-loader");
-const Path = require("path");
+const Path = tslib_1.__importStar(require("path"));
 const smUrl = require('source-map-url');
-const __api_1 = require("__api");
+const __api_1 = tslib_1.__importDefault(require("__api"));
 const log = require('log4js').getLogger(__api_1.default.packageName + '.index-html-plugin');
 class MockLoaderContext {
     constructor(resourcePath) {

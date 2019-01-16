@@ -10,3 +10,4 @@ export default class TSReadHooker {
     private createTsReadHook;
 }
 export declare function string2buffer(input: string): ArrayBuffer;
+//# sourceMappingURL=ng-ts-replace.d.ts.map

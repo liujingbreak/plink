@@ -17,3 +17,4 @@ export declare class PrerenderForExpress {
         [route: string]: string;
     }>;
 }
+//# sourceMappingURL=ng-prerender.d.ts.map

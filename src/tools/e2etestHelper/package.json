@@ -1,6 +1,6 @@
 {
   "name": "@dr/e2etest-helper",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "End-to-end test helper which helps to initialize webdriver by configuration and provide some other utilities",
   "main": "webdriverHelper.js",
   "scripts": {

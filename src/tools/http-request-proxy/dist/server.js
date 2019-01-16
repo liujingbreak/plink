@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const __api_1 = require("__api");
-const _ = require("lodash");
-const log4js = require("log4js");
+const tslib_1 = require("tslib");
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const _ = tslib_1.__importStar(require("lodash"));
+const log4js = tslib_1.__importStar(require("log4js"));
 var log = log4js.getLogger(__api_1.default.packageName);
-const proxy_handler_1 = require("./proxy-handler");
+const proxy_handler_1 = tslib_1.__importDefault(require("./proxy-handler"));
 function activate() {
     // api.router().use('/', api.cors());
     testRouter();

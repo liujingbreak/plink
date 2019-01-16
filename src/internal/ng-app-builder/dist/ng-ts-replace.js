@@ -1,16 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable max-line-length */
-const __api_1 = require("__api");
-const _ = require("lodash");
-const log4js = require("log4js");
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const _ = tslib_1.__importStar(require("lodash"));
+const log4js = tslib_1.__importStar(require("log4js"));
 const rxjs_1 = require("rxjs");
-const ts_before_aot_1 = require("./utils/ts-before-aot");
-const parse_app_module_1 = require("./utils/parse-app-module");
+const ts_before_aot_1 = tslib_1.__importDefault(require("./utils/ts-before-aot"));
+const parse_app_module_1 = tslib_1.__importStar(require("./utils/parse-app-module"));
 const path_1 = require("path");
 const ts_compiler_1 = require("dr-comp-package/wfh/dist/ts-compiler");
-const ts_ast_query_1 = require("./utils/ts-ast-query");
-const fs = require("fs");
+const ts_ast_query_1 = tslib_1.__importDefault(require("./utils/ts-ast-query"));
+const fs = tslib_1.__importStar(require("fs"));
 const chalk = require('chalk');
 const log = log4js.getLogger(__api_1.default.packageName);
 // const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\

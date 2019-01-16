@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 // tslint:disable no-console
-const ts = require("typescript");
+const ts = tslib_1.__importStar(require("typescript"));
 const fs_1 = require("fs");
 function readTsConfig(tsconfigFile) {
     const tsconfig = ts.readConfigFile(tsconfigFile, (file) => fs_1.readFileSync(file, 'utf-8')).config;
@@ -23,7 +24,7 @@ function transpileSingleTs(tsCode, compilerOptions) {
 }
 exports.transpileSingleTs = transpileSingleTs;
 // import * as fs from 'fs';
-const Path = require("path");
+const Path = tslib_1.__importStar(require("path"));
 // import {inspect} from 'util';
 const chalk = require('chalk');
 const { red, yellow } = chalk;
@@ -110,6 +111,8 @@ function transpileAndCheck(tsCode, filename, co) {
         co = readTsConfig(co);
     }
     co.declaration = false;
+    co.declarationMap = false;
+    co.inlineSourceMap = true;
     co.sourceMap = false;
     if (singletonCompiler == null)
         singletonCompiler = new TsCompiler(co);
@@ -123,6 +126,7 @@ exports.transpileAndCheck = transpileAndCheck;
  */
 function registerExtension(ext, compilerOpt) {
     const old = require.extensions[ext] || require.extensions['.js'];
+    // compilerOpt.inlineSources = true;
     require.extensions[ext] = function (m, filename) {
         //   if (shouldIgnore(filename, ignore)) {
         // 	return old(m, filename);

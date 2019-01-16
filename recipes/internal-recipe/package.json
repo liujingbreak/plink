@@ -3,9 +3,9 @@
 	"version": "0.7.63",
 	"description": "Component group: internal-recipe",
 	"dependencies": {
-		"@dr-core/ng-app-builder": "2.0.53",
-		"@dr-core/webpack2-builder": "1.0.17",
-		"@dr/template-builder": "1.0.3",
-		"@dr/translate-generator": "1.0.3"
+		"@dr-core/ng-app-builder": "2.0.55",
+		"@dr-core/webpack2-builder": "1.0.19",
+		"@dr/template-builder": "1.0.5",
+		"@dr/translate-generator": "1.0.5"
 	}
 }

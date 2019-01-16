@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable max-line-length no-console */
-const parse_app_module_1 = require("../utils/parse-app-module");
+const parse_app_module_1 = tslib_1.__importStar(require("../utils/parse-app-module"));
 const fs_1 = require("fs");
 const path_1 = require("path");
 class TestableParser extends parse_app_module_1.default {

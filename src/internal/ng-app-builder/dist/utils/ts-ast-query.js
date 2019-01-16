@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const ts = require("typescript");
+const tslib_1 = require("tslib");
+const ts = tslib_1.__importStar(require("typescript"));
 const typescript_1 = require("typescript");
-const fs = require("fs");
-const __api_1 = require("__api");
-const _ = require("lodash");
+const fs = tslib_1.__importStar(require("fs"));
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const _ = tslib_1.__importStar(require("lodash"));
 const { green, red, yellow } = require('chalk');
 // const log = require('log4js').getLogger('ts-ast-query');
 function printFile() {

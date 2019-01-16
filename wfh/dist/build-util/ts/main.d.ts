@@ -42,3 +42,4 @@ export { PackageBrowserInstance };
 export declare function walkPackages(config: any, argv: any, packageUtils: any): PackageInfo;
 export declare function listBundleInfo(_config: any, _argv: any, _packageUtils: any): PackageInfo;
 export declare function saveCache(packageInfo: PackageInfo, config: any): void;
+//# sourceMappingURL=main.d.ts.map

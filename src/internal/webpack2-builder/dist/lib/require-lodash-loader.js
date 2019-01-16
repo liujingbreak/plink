@@ -1,4 +1,5 @@
 "use strict";
+const tslib_1 = require("tslib");
 /**
  * Because most of the legacy code is written in commonjs style,
  * babel-lodash-plugin can not help to tree-shake lodash bundle size.
@@ -10,9 +11,9 @@
  *   }" based on code analysis result.
  *
  */
-const _ = require("lodash");
-const log4js = require("log4js");
-const ts = require("typescript");
+const _ = tslib_1.__importStar(require("lodash"));
+const log4js = tslib_1.__importStar(require("log4js"));
+const ts = tslib_1.__importStar(require("typescript"));
 // const chalk = require('chalk');
 const patchText = require('../../lib/utils/patch-text');
 var acorn = require('acorn');

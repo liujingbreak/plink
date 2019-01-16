@@ -9,3 +9,4 @@ import { ProxyInstance } from './server';
  * @return undefined
  */
 export default function doProxy(target: string, req: express.Request, res: express.Response, proxyInstance: ProxyInstance, proxyName: string): Promise<void>;
+//# sourceMappingURL=proxy-handler.d.ts.map

@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable:quotemark */
 const loader = require("../lib/require-lodash-loader");
-const log4js = require("log4js");
+const log4js = tslib_1.__importStar(require("log4js"));
 const { doEs, TSParser } = loader;
 const log = log4js.getLogger('require-lodash-loaderSpec');
 describe('require-lodash-loader', () => {

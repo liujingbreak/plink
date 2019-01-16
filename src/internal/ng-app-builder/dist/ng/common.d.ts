@@ -39,3 +39,4 @@ export declare function startDrcpServer(projectRoot: string, builderConfig: Buil
  * @param vfsHost
  */
 export declare function compile(projectRoot: string, builderConfig: BuilderConfiguration<BrowserBuilderSchema | BuildWebpackServerSchema>, buildWebpackConfig: buildWebpackConfigFunc, isSSR?: boolean): Rx.Observable<{}>;
+//# sourceMappingURL=common.d.ts.map

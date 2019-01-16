@@ -1,5 +1,5 @@
 
-import * as Q from 'promise-queue';
+import Q from 'promise-queue';
 import * as _ from 'lodash';
 import * as fs from 'fs-extra';
 import * as Path from 'path';

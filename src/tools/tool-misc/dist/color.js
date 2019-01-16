@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable no-console */
 // import Color = require('color-js/color');
-const __api_1 = require("__api");
-const _ = require("lodash");
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const _ = tslib_1.__importStar(require("lodash"));
 function fillPalettes() {
     const input = __api_1.default.config.get([__api_1.default.packageName, 'fillPalettes']);
     console.log(input);

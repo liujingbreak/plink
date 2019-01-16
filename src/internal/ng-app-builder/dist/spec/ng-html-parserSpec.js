@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable no-console */
 const ng_html_parser_1 = require("../utils/ng-html-parser");
-const fs = require("fs");
-const _ = require("lodash");
+const fs = tslib_1.__importStar(require("fs"));
+const _ = tslib_1.__importStar(require("lodash"));
 describe('ng-html-parser', () => {
     const lexer = new ng_html_parser_1.TemplateLexer('abcde');
     it('Lexer.la()  should work', () => {

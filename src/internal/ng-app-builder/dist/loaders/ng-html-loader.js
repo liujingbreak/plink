@@ -1,10 +1,10 @@
 "use strict";
 const tslib_1 = require("tslib");
 const ng_html_parser_1 = require("../utils/ng-html-parser");
-const patch_text_1 = require("../utils/patch-text");
-const __api_1 = require("__api");
+const patch_text_1 = tslib_1.__importStar(require("../utils/patch-text"));
+const __api_1 = tslib_1.__importDefault(require("__api"));
 const log = require('log4js').getLogger('ng-html-loader');
-const _ = require("lodash");
+const _ = tslib_1.__importStar(require("lodash"));
 const vm = require("vm");
 const chalk = require('chalk');
 function loader(content, map) {

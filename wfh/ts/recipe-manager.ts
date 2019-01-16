@@ -4,7 +4,7 @@ const merge = require('merge2');
 const config = require('../lib/config');
 import * as _ from 'lodash';
 import * as Path from 'path';
-import * as gulp from 'gulp';
+import gulp from 'gulp';
 import * as fs from 'fs-extra';
 const findPackageJson = require('../lib/gulp/findPackageJson');
 const rwPackageJson = require('./rwPackageJson');

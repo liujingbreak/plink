@@ -1,16 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 // tslint:disable:max-line-length
 require("./node-inject");
 const core_1 = require("@angular-devkit/core");
 const operators_1 = require("rxjs/operators");
-const url = require("url");
+const url = tslib_1.__importStar(require("url"));
 const check_port_1 = require("@angular-devkit/build-angular/src/angular-cli-files/utilities/check-port");
 const utils_1 = require("@angular-devkit/build-angular/src/utils");
 const opn = require('opn');
 // DRCP
 const build_angular_1 = require("@angular-devkit/build-angular");
-const drcpCommon = require("./common");
+const drcpCommon = tslib_1.__importStar(require("./common"));
 // export type buildWebpackConfigFunc = (browserOptions: NormalizedBrowserBuilderSchema) => any;
 class DrcpDevServer extends build_angular_1.DevServerBuilder {
     run(builderConfig) {

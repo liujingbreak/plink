@@ -13,3 +13,4 @@ export default class IndexHtmlPlugin {
     apply(compiler: Compiler): void;
     replaceScriptTag(src: string, start: number, end: number): void;
 }
+//# sourceMappingURL=index-html-plugin.d.ts.map

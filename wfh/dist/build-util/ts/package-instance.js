@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable max-classes-per-file */
-const _ = require("lodash");
+const _ = tslib_1.__importStar(require("lodash"));
 class PackageBrowserInstance {
     constructor(attrs) {
         if (!(this instanceof PackageBrowserInstance)) {
@@ -24,8 +25,8 @@ class PackageBrowserInstance {
     }
 }
 exports.default = PackageBrowserInstance;
-const Path = require("path");
-const fs = require("fs");
+const Path = tslib_1.__importStar(require("path"));
+const fs = tslib_1.__importStar(require("fs"));
 const dir_tree_1 = require("require-injector/dist/dir-tree");
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 class LazyPackageFactory {

@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable no-console */
-const ts_before_aot_1 = require("../utils/ts-before-aot");
-const fs = require("fs");
-const Path = require("path");
+const ts_before_aot_1 = tslib_1.__importDefault(require("../utils/ts-before-aot"));
+const fs = tslib_1.__importStar(require("fs"));
+const Path = tslib_1.__importStar(require("path"));
 const log4js = require("log4js");
 const log = log4js.getLogger('api-aotSpec');
-const __api_1 = require("__api");
+const __api_1 = tslib_1.__importDefault(require("__api"));
 describe('apiAotCompiler', () => {
     it('should recoganize identifier __api', () => {
         Object.assign(Object.getPrototypeOf(__api_1.default), {

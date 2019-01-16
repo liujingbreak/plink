@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-const _ = require("lodash");
+const _ = tslib_1.__importStar(require("lodash"));
 // import Package from './packageNodeInstance';
 const package_priority_helper_1 = require("./package-priority-helper");
 const ts_1 = require("./build-util/ts");

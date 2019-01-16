@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-const Rx = require("rxjs");
-const _ = require("lodash");
-const change_cli_options_1 = require("./change-cli-options");
+const Rx = tslib_1.__importStar(require("rxjs"));
+const _ = tslib_1.__importStar(require("lodash"));
+const change_cli_options_1 = tslib_1.__importDefault(require("./change-cli-options"));
 function initDrcp(drcpArgs, drcpConfigFiles) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         var config = require('dr-comp-package/wfh/lib/config');

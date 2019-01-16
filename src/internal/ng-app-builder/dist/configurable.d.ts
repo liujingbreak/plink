@@ -60,3 +60,4 @@ to tell app.module.ts to import Angular `Router.forChild()` module
      */
     buildOptimizerExclude: string[];
 }
+//# sourceMappingURL=configurable.d.ts.map

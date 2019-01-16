@@ -6,3 +6,4 @@ declare namespace loader {
 }
 export = loader;
 declare function load(content: string, loader: wbLoader.LoaderContext): Promise<string>;
+//# sourceMappingURL=ng-html-loader.d.ts.map

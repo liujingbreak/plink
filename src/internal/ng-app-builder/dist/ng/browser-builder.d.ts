@@ -6,3 +6,4 @@ import { BrowserBuilder as GoogleBrowserBuilder } from '@angular-devkit/build-an
 export default class BrowserBuilder extends GoogleBrowserBuilder {
     run(builderConfig: BuilderConfiguration<BrowserBuilderSchema>): Observable<BuildEvent>;
 }
+//# sourceMappingURL=browser-builder.d.ts.map

@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 // tslint:disable:no-console
-const ts_ast_query_1 = require("../utils/ts-ast-query");
-const fs = require("fs");
+const ts_ast_query_1 = tslib_1.__importStar(require("../utils/ts-ast-query"));
+const fs = tslib_1.__importStar(require("fs"));
 const path_1 = require("path");
 // const log = require('log4js').getLogger('ts-ast-querySpec');
 describe('ts-ast-query', () => {
@@ -56,7 +57,7 @@ describe('ts-ast-query', () => {
     });
 });
 const ts_ast_util_1 = require("../utils/ts-ast-util");
-const ts = require("typescript");
+const ts = tslib_1.__importStar(require("typescript"));
 describe('ts-ast-util', () => {
     let testContent;
     const testFile = path_1.resolve(__dirname, '../../ts/spec/app.module.ts.txt');

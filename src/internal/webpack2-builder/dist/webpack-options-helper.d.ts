@@ -9,3 +9,4 @@ declare const styleLoaders: {
 export { cssAutoPrefixSetting, styleLoaders };
 export declare function isIssuerAngular(file: string): boolean;
 export declare function isIssuerNotAngular(file: string): boolean;
+//# sourceMappingURL=webpack-options-helper.d.ts.map

@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 // tslint:disable:no-console
-const fs = require("fs");
-const Path = require("path");
-const processUtils = require("./process-utils");
+const fs = tslib_1.__importStar(require("fs"));
+const Path = tslib_1.__importStar(require("path"));
+const processUtils = tslib_1.__importStar(require("./process-utils"));
 const os_1 = require("os");
 const isWin32 = os_1.platform().indexOf('win32') >= 0;
 const logName = '[Installer] ';

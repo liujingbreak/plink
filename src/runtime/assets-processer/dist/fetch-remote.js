@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-const __api_1 = require("__api");
-const request = require("request");
-const Url = require("url");
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const request = tslib_1.__importStar(require("request"));
+const Url = tslib_1.__importStar(require("url"));
 const fs = require("fs");
-const _ = require("lodash");
+const _ = tslib_1.__importStar(require("lodash"));
 const AdmZip = require('adm-zip');
 const log = require('log4js').getLogger(__api_1.default.packageName + '.fetch-remote');
 let setting;

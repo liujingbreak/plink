@@ -2,12 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 /* tslint:disable max-line-length */
-const __api_1 = require("__api");
-const log4js = require("log4js");
-const _ = require("lodash");
-const Path = require("path");
-const _fs = require("fs");
-const config_webpack_1 = require("./config-webpack");
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const log4js = tslib_1.__importStar(require("log4js"));
+const _ = tslib_1.__importStar(require("lodash"));
+const Path = tslib_1.__importStar(require("path"));
+const _fs = tslib_1.__importStar(require("fs"));
+const config_webpack_1 = tslib_1.__importDefault(require("./config-webpack"));
 const Url = require("url");
 const utils_1 = require("dr-comp-package/wfh/dist/utils");
 tslib_1.__exportStar(require("./ng-prerender"), exports);

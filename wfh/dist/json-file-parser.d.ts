@@ -19,3 +19,4 @@ export declare class JsonLexer extends BaseLexer<JsonTokenType> {
 export declare class JsonParser extends BaseParser<JsonTokenType> {
     skip(): void;
 }
+//# sourceMappingURL=json-file-parser.d.ts.map

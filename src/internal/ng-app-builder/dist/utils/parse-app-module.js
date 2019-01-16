@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const ts = require("typescript");
+const tslib_1 = require("tslib");
+const ts = tslib_1.__importStar(require("typescript"));
 const typescript_1 = require("typescript");
-const _ = require("lodash");
-const patch_text_1 = require("./patch-text");
-const Path = require("path");
-const fs = require("fs");
+const _ = tslib_1.__importStar(require("lodash"));
+const patch_text_1 = tslib_1.__importDefault(require("./patch-text"));
+const Path = tslib_1.__importStar(require("path"));
+const fs = tslib_1.__importStar(require("fs"));
 class EsImportStatement {
     constructor(from, start, end) {
         this.from = from;

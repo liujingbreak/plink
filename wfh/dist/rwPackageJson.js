@@ -4,14 +4,14 @@ const tslib_1 = require("tslib");
 const gutil = require('gulp-util');
 const PluginError = gutil.PluginError;
 const through = require('through2');
-const fs = require("fs-extra");
+const fs = tslib_1.__importStar(require("fs-extra"));
 const mkdirp = require('mkdirp');
 const pify = require('pify');
-const Path = require("path");
+const Path = tslib_1.__importStar(require("path"));
 const File = require('vinyl');
 const jsonLint = require('json-lint');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
-const _ = require("lodash");
+const _ = tslib_1.__importStar(require("lodash"));
 const config = require('../lib/config');
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
 module.exports = {

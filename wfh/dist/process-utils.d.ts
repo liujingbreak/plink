@@ -41,3 +41,4 @@ export declare function promisifyExe(command: string, ...argsAndOption: Array<st
  * @return {object} {promise: Promise, childProcess: child_process}
  */
 export declare function exe(command: string, ...argsAndOption: Array<string | Option>): Result;
+//# sourceMappingURL=process-utils.d.ts.map

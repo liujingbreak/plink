@@ -23,3 +23,4 @@ export declare function link(onPkJsonFile: (filePath: string, recipeDir: string)
  */
 export declare function linkComponentsAsync(): Promise<{}>;
 export declare function clean(): Promise<{}>;
+//# sourceMappingURL=recipe-manager.d.ts.map

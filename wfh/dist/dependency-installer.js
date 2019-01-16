@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable max-line-length */
-const fs = require("fs");
+const fs = tslib_1.__importStar(require("fs"));
 const fs_extra_1 = require("fs-extra");
-const _ = require("lodash");
-const Path = require("path");
+const _ = tslib_1.__importStar(require("lodash"));
+const Path = tslib_1.__importStar(require("path"));
 const config = require('../lib/config');
 const chalk = require('chalk');
 const semver = require('semver');

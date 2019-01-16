@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const _ = require("lodash");
+const tslib_1 = require("tslib");
+const _ = tslib_1.__importStar(require("lodash"));
 var acorn = require('acorn');
 var acornjsx = require('acorn-jsx/inject')(acorn);
 var acornImpInject = require('acorn-dynamic-import/lib/inject').default;

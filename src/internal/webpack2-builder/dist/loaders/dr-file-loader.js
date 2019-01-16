@@ -1,8 +1,9 @@
 "use strict";
-const path = require("path");
-const __api_1 = require("__api");
-const _ = require("lodash");
-const loaderUtils = require("loader-utils");
+const tslib_1 = require("tslib");
+const path = tslib_1.__importStar(require("path"));
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const _ = tslib_1.__importStar(require("lodash"));
+const loaderUtils = tslib_1.__importStar(require("loader-utils"));
 var log = require('log4js').getLogger(__api_1.default.packageName + '.dr-file-loader');
 let resolveSymlink = null;
 function loader(content, sourceMap) {

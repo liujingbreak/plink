@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-const _ = require("lodash");
+const _ = tslib_1.__importStar(require("lodash"));
 const log = require('log4js').getLogger('packagePriorityHelper');
 const beforeOrAfter = {};
 const priorityStrReg = /(before|after)\s+(\S+)/;

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 /* tslint:disable no-console */
-const Path = require("path");
+const Path = tslib_1.__importStar(require("path"));
 // import vm = require('vm');
 // import * as fs from 'fs';
 const ts_compiler_1 = require("./ts-compiler");

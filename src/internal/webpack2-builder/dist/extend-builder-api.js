@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const __api_1 = require("__api");
+const tslib_1 = require("tslib");
+const __api_1 = tslib_1.__importDefault(require("__api"));
 const Webpack = require('webpack');
 var newApi = Object.getPrototypeOf(__api_1.default);
 newApi.configWebpackLater = function (execFunc) {

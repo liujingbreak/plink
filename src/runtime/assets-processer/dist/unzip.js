@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable no-console */
 var unzip = require('gulp-unzip');
-const fs = require("fs-extra");
+const fs = tslib_1.__importStar(require("fs-extra"));
 var gulp = require('gulp');
 fs.mkdirsSync('dist/static');
 gulp.src('webui-static.zip')

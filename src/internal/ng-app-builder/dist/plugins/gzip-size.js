@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable no-console */
-const _ = require("lodash");
-const Path = require("path");
+const _ = tslib_1.__importStar(require("lodash"));
+const Path = tslib_1.__importStar(require("path"));
 // var log = require('log4js').getLogger('gzipSizePlugin');
 const gzipSize = require('gzip-size');
 var { magenta, cyan } = require('chalk');

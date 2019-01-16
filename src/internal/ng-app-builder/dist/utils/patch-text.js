@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const assert = require("assert");
+const tslib_1 = require("tslib");
+const assert = tslib_1.__importStar(require("assert"));
 const util = require("util");
 class Replacement {
     constructor(start, end, text) {

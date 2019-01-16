@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* tslint:disable max-line-length */
 require("./node-inject");
 const build_webpack_1 = require("@angular-devkit/build-webpack");
@@ -9,7 +10,7 @@ const operators_1 = require("rxjs/operators");
 const browser_1 = require("@angular-devkit/build-angular/src/browser");
 const utils_1 = require("@angular-devkit/build-angular/src/utils");
 const build_angular_1 = require("@angular-devkit/build-angular");
-const drcpCommon = require("./common");
+const drcpCommon = tslib_1.__importStar(require("./common"));
 class ServerBuilder extends build_angular_1.ServerBuilder {
     run(builderConfig) {
         const root = this.context.workspace.root;

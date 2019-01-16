@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 const fs_extra_1 = require("fs-extra");
 const path_1 = require("path");
-const _ = require("lodash");
-const __api_1 = require("__api");
+const _ = tslib_1.__importStar(require("lodash"));
+const __api_1 = tslib_1.__importDefault(require("__api"));
 const log = require('log4js').getLogger(__api_1.default.packageName);
 exports.ROUTE_MAP_FILE = 'prerender-routes.json';
 const staticDir = __api_1.default.config.resolve('staticDir');

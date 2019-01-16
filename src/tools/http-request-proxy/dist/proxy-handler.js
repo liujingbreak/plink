@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 var request = require('request');
-const __api_1 = require("__api");
-const _ = require("lodash");
-const fs = require("fs");
+const __api_1 = tslib_1.__importDefault(require("__api"));
+const _ = tslib_1.__importStar(require("lodash"));
+const fs = tslib_1.__importStar(require("fs"));
 var log = require('log4js').getLogger(__api_1.default.packageName + '.msg');
 var logBody = require('log4js').getLogger(__api_1.default.packageName + '.body');
 var Url = require('url');

@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 const ts = require('gulp-typescript');
 const packageUtils = require('../lib/packageMgr/packageUtils');
 const chalk = require('chalk');
-const fs = require("fs-extra");
-const _ = require("lodash");
-const Path = require("path");
+const fs = tslib_1.__importStar(require("fs-extra"));
+const _ = tslib_1.__importStar(require("lodash"));
+const Path = tslib_1.__importStar(require("path"));
 const gulp = require('gulp');
 const through = require('through2');
 const chokidar = require('chokidar');
