@@ -92,7 +92,7 @@ function runUnitTest(argv) {
 		log.info('Found test for package: ' + name);
 		var relativePkPath = Path.relative(Path.resolve(), packagePath).replace(/\\/g, '/');
 		jasmineSetting.spec_files.push(
-			relativePkPath + '/spec/**/*[sS]pec.js',
+			relativePkPath + '/spec/**/*[sS]pec.[jt]s',
 			relativePkPath + '/dist/spec/**/*[sS]pec.js');
 		jasmineSetting.helpers.push(relativePkPath + '/spec/helpers/**/*[sS]pec.js');
 	}, 'src');
