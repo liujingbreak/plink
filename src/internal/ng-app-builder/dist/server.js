@@ -175,7 +175,8 @@ function checkAngularVersion() {
 // }
 function writeTsconfig4Editor() {
     const tsjson = {
-        extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
+        // extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
+        extends: require.resolve('dr-comp-package/wfh/tsconfig.json'),
         // include: tsInclude,
         compilerOptions: {
             baseUrl: '.'
