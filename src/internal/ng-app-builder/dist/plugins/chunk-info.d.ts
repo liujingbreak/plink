@@ -8,4 +8,3 @@ export default class ChunkInfoPlugin {
     getChunkName(chunk: any): string;
     printChunksByEntry(compilation: any): void;
 }
-//# sourceMappingURL=chunk-info.d.ts.map

@@ -12,4 +12,3 @@ export declare function transpileAndCheck(tsCode: string, filename: string, co: 
  * @param compilerOpt
  */
 export declare function registerExtension(ext: string, compilerOpt: ts.CompilerOptions): void;
-//# sourceMappingURL=ts-compiler.d.ts.map

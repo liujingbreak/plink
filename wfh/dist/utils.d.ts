@@ -11,4 +11,3 @@ export declare class WordLexer extends BaseLexer<WordTokenType> {
     consumeNumbers(): void;
 }
 export declare function boxString(text: string, lineWidth?: number, whitespaceWrap?: boolean): string;
-//# sourceMappingURL=utils.d.ts.map

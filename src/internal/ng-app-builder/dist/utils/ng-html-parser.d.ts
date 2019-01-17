@@ -62,4 +62,3 @@ export declare class TemplateParser extends BaseParser<HtmlTokenType> {
     attrName(): string;
     attrValue(): AttributeValueAst;
 }
-//# sourceMappingURL=ng-html-parser.d.ts.map

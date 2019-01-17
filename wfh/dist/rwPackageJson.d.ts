@@ -11,4 +11,3 @@ export declare function _symbolicLink(dir: string, link: any): void;
  * @param {string} recipeAbsDir null when there is no recipe dir for those linked package file
  */
 export declare function addDependency(recipeAbsDir: string): any;
-//# sourceMappingURL=rwPackageJson.d.ts.map

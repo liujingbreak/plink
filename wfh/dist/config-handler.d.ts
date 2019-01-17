@@ -46,4 +46,3 @@ export declare class ConfigHandlerMgr {
      */
     runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): Promise<any>;
 }
-//# sourceMappingURL=config-handler.d.ts.map

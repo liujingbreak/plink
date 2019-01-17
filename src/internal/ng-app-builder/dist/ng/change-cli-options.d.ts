@@ -10,4 +10,3 @@ export interface AngularConfigHandler extends ConfigHandler {
     angularJson(options: AngularBuilderOptions, builderConfig: BuilderConfiguration<AngularBuilderOptions>): Promise<void> | void;
 }
 export default function changeAngularCliOptions(config: DrcpConfig, browserOptions: AngularBuilderOptions, builderConfig?: BuilderConfiguration<AngularBuilderOptions>): Promise<void>;
-//# sourceMappingURL=change-cli-options.d.ts.map

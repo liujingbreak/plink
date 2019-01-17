@@ -32,4 +32,3 @@ export declare class LazyPackageFactory {
     packagePathMap: DirTree<PackageBrowserInstance>;
     getPackageByPath(file: string): PackageBrowserInstance;
 }
-//# sourceMappingURL=package-instance.d.ts.map

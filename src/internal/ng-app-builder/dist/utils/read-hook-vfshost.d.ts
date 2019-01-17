@@ -19,4 +19,3 @@ export default class ReadHookHost extends WebpackInputHost {
     read(path: Path): Observable<FBuffer>;
     protected _hookRead(path: string, buffer: FBuffer): Observable<FBuffer>;
 }
-//# sourceMappingURL=read-hook-vfshost.d.ts.map

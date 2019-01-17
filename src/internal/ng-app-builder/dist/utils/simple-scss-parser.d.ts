@@ -29,4 +29,3 @@ export declare class ScssParser extends BaseParser<TokenType> {
         text: string;
     }>;
 }
-//# sourceMappingURL=simple-scss-parser.d.ts.map

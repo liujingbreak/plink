@@ -3,4 +3,3 @@ export default class GzipSize {
     done: boolean;
     apply(compiler: any): void;
 }
-//# sourceMappingURL=gzip-size.d.ts.map

@@ -20,4 +20,3 @@ export default class ApiAotCompiler {
      */
     protected goUpToParentExpress(target: ts.Node): ts.Node;
 }
-//# sourceMappingURL=ts-before-aot.d.ts.map

@@ -5,4 +5,3 @@ import { DevServerBuilder, DevServerBuilderOptions } from '@angular-devkit/build
 export default class DrcpDevServer extends DevServerBuilder {
     run(builderConfig: BuilderConfiguration<DevServerBuilderOptions>): Observable<BuildEvent>;
 }
-//# sourceMappingURL=dev-server.d.ts.map

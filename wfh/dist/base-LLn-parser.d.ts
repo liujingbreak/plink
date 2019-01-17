@@ -84,4 +84,3 @@ export declare abstract class BaseParser<T> extends LookAhead<Token<T>> {
     getCurrentPosInfo(): string;
     isNextTypes(...types: T[]): boolean;
 }
-//# sourceMappingURL=base-LLn-parser.d.ts.map

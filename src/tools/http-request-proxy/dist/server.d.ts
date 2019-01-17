@@ -51,4 +51,3 @@ export declare class ProxyInstance {
     * @param {string} proxyPath sub path the proxy middleware will be handling on
  */
 export declare function useProxy(router: express.Router, target: string, proxyPath: string): void;
-//# sourceMappingURL=server.d.ts.map

@@ -6,4 +6,3 @@ import { ServerBuilder as GoogleServerBuilder } from '@angular-devkit/build-angu
 export default class ServerBuilder extends GoogleServerBuilder {
     run(builderConfig: BuilderConfiguration<BuildWebpackServerSchema>): Observable<BuildEvent>;
 }
-//# sourceMappingURL=server.d.ts.map

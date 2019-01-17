@@ -195,7 +195,7 @@ function drcpCommand(startTime) {
 				'source-map': {
 					describe: 'Source map style',
 					choices: ['inline', 'file'],
-					'default': 'file'
+					'default': 'inline'
 				}
 			})
 			.usage('Run gulp-typescript to compile Node.js side typescript files\n' +

@@ -12,4 +12,3 @@ export declare class DrPackageInjector extends RJ {
 }
 export declare let nodeInjector: DrPackageInjector;
 export declare let webInjector: DrPackageInjector;
-//# sourceMappingURL=injector-factory.d.ts.map

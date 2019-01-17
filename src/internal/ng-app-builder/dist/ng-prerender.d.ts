@@ -16,4 +16,3 @@ export declare function writeRoutes(staticDir: string, htmlFile: string, mainFil
  * @param ROUTES
  */
 export declare function writeRoutesWithLocalServer(staticDir: string, htmlFile: string, mainFile: string, ROUTES: string[], outputFolder?: string): Promise<string>;
-//# sourceMappingURL=ng-prerender.d.ts.map

@@ -1,6 +1,6 @@
 {
   "name": "@dr/logger",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A log4js logger wrapper for both node and browser side",
   "main": "logger.server.js",
   "browser": "logger.browser.js",

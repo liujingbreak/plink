@@ -58,4 +58,3 @@ declare class Guarder {
 }
 export declare function getInstance(rootPath: string): Guarder;
 export {};
-//# sourceMappingURL=package-json-guarder.d.ts.map

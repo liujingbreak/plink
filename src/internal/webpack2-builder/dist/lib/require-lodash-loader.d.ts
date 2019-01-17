@@ -11,4 +11,3 @@ declare namespace loader {
     }
 }
 export = loader;
-//# sourceMappingURL=require-lodash-loader.d.ts.map

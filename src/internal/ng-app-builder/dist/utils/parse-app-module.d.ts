@@ -55,4 +55,3 @@ export default class AppModuleParser {
     };
 }
 export {};
-//# sourceMappingURL=parse-app-module.d.ts.map

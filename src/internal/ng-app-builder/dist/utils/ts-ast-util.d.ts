@@ -6,4 +6,3 @@ export declare function resolveImportBindName(src: ts.SourceFile, modulePath: st
  * @param currFile
  */
 export declare function defaultResolveModule(targetPath: string, currFile: string): string;
-//# sourceMappingURL=ts-ast-util.d.ts.map

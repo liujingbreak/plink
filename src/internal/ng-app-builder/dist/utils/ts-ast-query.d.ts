@@ -62,4 +62,3 @@ export declare class Query {
     private matchesAst;
     private matchesConsecutiveNodes;
 }
-//# sourceMappingURL=ts-ast-query.d.ts.map
