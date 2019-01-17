@@ -4,5 +4,5 @@ export * from './ng-prerender';
 export * from './ng/common';
 export declare function compile(): Promise<void>;
 export declare let tsHandler: TsHandler;
-export declare function init(): void;
+export declare function init(): Promise<void>;
 export declare function activate(): void;

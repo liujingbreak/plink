@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 var nodePath = require('./nodePath');
+const Path = require('path');
 nodePath();
 
 try {
-	require('dr-comp-package/bin/dr');
+	require(Path.resolve('node_modules/dr-comp-package/bin/dr'));
 } catch (e) {
 	console.log(e);
 	console.log('There is no local dr-comp-package installed.\n' +

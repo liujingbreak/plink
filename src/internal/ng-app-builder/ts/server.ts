@@ -3,7 +3,7 @@ import api, {DrcpApi} from '__api';
 import * as log4js from 'log4js';
 import * as _ from 'lodash';
 import * as Path from 'path';
-import * as _fs from 'fs';
+import * as _fs from 'fs-extra';
 // import { PrerenderForExpress } from './ng-prerender';
 import {AngularCliParam} from './ng/common';
 import changeWebpackConfig from './config-webpack';
@@ -11,7 +11,8 @@ import Url = require('url');
 import {TsHandler, ReplacementInf} from '@dr-core/ng-app-builder/dist/utils/ts-before-aot';
 import * as ts from 'typescript';
 import {boxString} from 'dr-comp-package/wfh/dist/utils';
-
+// import {promisifyExe} from 'dr-comp-package/wfh/dist/process-utils';
+// import {fork} from 'child_process';
 export * from './configurable';
 export * from './ng-prerender';
 export * from './ng/common';
@@ -70,9 +71,14 @@ function resolveImports(src: ts.SourceFile): ReplacementInf[] {
 	// return repl;
 }
 
-export function init() {
+export async function init() {
 	// printHelp();
-	checkAngularVersion();
+	if (_fs.existsSync('node_modules/@angular-devkit/build-angular/node_modules')) {
+		_fs.removeSync('node_modules/@angular-devkit/build-angular/node_modules');
+	}
+	await new Promise(resolve => setTimeout(resolve, 100)); // wait for delete
+	if (!checkAngularVersion())
+		throw new Error('Angular version check Error');
 	// writeTsconfig();
 	hackFixWatchpack();
 	writeTsconfig4Editor();
@@ -130,10 +136,10 @@ async function setupApiForAngularCli() {
 
 function checkAngularVersion() {
 	const deps: {[k: string]: string} = {
-		'@angular-devkit/build-angular': '~0.12.0',
-		'@angular/cli': '7.2.1',
-		'@angular/compiler-cli': '7.2.0',
-		'@angular/language-service': '7.2.0'
+		'@angular-devkit/build-angular': '0.12.2',
+		'@angular/cli': '7.2.2',
+		'@angular/compiler-cli': '7.2.1',
+		'@angular/language-service': '7.2.1'
 	};
 	let valid = true;
 	_.each(deps, (expectVer, mod) => {
@@ -147,24 +153,24 @@ function checkAngularVersion() {
 	try {
 		const duplicate = require.resolve('@angular-devkit/build-angular/node_modules/webpack/package.json');
 		log.error(`Duplicate dependency is found in "${duplicate}",\n
-		you need to delete it and maybe \`clean\` and \`init\` again`);
+		DRCP failed to delete some files for unknow reason, please try this command again`);
 		valid = false;
 	} catch (ex) {}
 
 	if (_fs.existsSync('@angular-devkit/build-angular/node_modules/@angular-devkit')) {
 		log.error(`Duplicate dependency is found in "@angular-devkit/build-angular/node_modules/@angular-devkit",\n
-		you need to delete it and maybe \`clean\` and \`init\` again`);
+		DRCP failed to delete some files for unknow reason, please try this command again`);
 		valid = false;
 	}
 	if (_fs.existsSync('@angular-devkit/build-angular/node_modules/@ngtools/webpack')) {
 		log.error(`Duplicate dependency is found in "@angular-devkit/build-angular/node_modules/@ngtools/webpack",\n
-		you need to delete it and maybe \`clean\` and \`init\` again`);
+		DRCP failed to delete some files for unknow reason, please try this command again`);
 		valid = false;
 	}
 	try {
 		const duplicate = require.resolve('@angular-devkit/architect/node_modules/rxjs/package.json');
 		log.error(`Duplicate dependency is found in "${duplicate}",\n
-		you need to delete it and maybe \`clean\` and \`init\` again`);
+		DRCP failed to delete some files for unknow reason, please try this command again`);
 		valid = false;
 	} catch (ex) {}
 	return valid;

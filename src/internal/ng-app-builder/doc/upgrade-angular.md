@@ -40,7 +40,12 @@ update version from ng-app-builder/package.json
     "@angular/platform-browser-dynamic": "^7.0.1"
   },
 ```
-> Beware `"webpack": "4.19.1"` Webpack version should be the same as angular-cli webpack dependency version (angular-cli/packages/angular_devkit/build_angular/package.json), not latest one.
+> ~~Beware `"webpack": "4.19.1"` Webpack version should be the same as angular-cli webpack dependency version (angular-cli/packages/angular_devkit/build_angular/package.json), not latest one.~~
+
+Copy node_modules/@angular-devkit/build-angular/package.json "dependencies" to our
+package.json file.
+
+> At runtime of `drcp init` node_modules/@angular-devkit/build-angular/node_modules will be deleted
 
 Update ts/server.ts `checkAngularVersion()`.
 

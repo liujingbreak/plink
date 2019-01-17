@@ -1,2 +1,3 @@
 /ts/**/*.ts
 /dist/spec/**/*
+/dist/**/*.map
