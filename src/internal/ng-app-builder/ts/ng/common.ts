@@ -5,22 +5,19 @@ import {
 	BuilderConfiguration
 	// BuilderContext,
 } from '@angular-devkit/architect';
-
 // import {NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser';
-import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import {NormalizedServerBuilderServerSchema} from '@angular-devkit/build-angular/src/server/schema';
+import {NormalizedKarmaBuilderSchema} from '@angular-devkit/build-angular/src/karma/schema';
+import { checkPort } from '@angular-devkit/build-angular/src/angular-cli-files/utilities/check-port';
 import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
-import {BuildWebpackServerSchema} from '@angular-devkit/build-angular/src/server/schema';
 import * as Rx from 'rxjs';
 import * as _ from 'lodash';
 import changeAngularCliOptions from './change-cli-options';
 import api from '__api';
+import PackageMgr from 'dr-comp-package/wfh/lib/packageMgr';
 
 export type DrcpConfig = typeof api.config;
-export interface AngularConfigHandler {
-	angularJson(options: AngularBuilderOptions,
-		builderConfig: BuilderConfiguration<AngularBuilderOptions>)
-	: Promise<void> | void;
-}
 
 async function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): Promise<DrcpConfig> {
 	var config = require('dr-comp-package/wfh/lib/config');
@@ -44,8 +41,12 @@ export interface AngularCliParam {
 	argv: any;
 }
 
+export type NormalizedAngularBuildSchema = NormalizedBrowserBuilderSchema | NormalizedServerBuilderServerSchema |
+NormalizedKarmaBuilderSchema;
+
 export type AngularBuilderOptions =
-	BrowserBuilderSchema & BuildWebpackServerSchema & DevServerBuilderOptions & DrcpBuilderOptions;
+	NormalizedBrowserBuilderSchema & NormalizedServerBuilderServerSchema & NormalizedKarmaBuilderSchema &
+	DrcpBuilderOptions;
 
 export interface DrcpBuilderOptions {
 	drcpArgs: any;
@@ -69,80 +70,80 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 	let config: DrcpConfig;
 
 	return Rx.Observable.create((obs: Rx.Observer<BuildEvent>) => {
-		initDrcp(options.drcpArgs, drcpConfigFiles)
-		.then((cfg) => {
-			config = cfg;
-			return changeAngularCliOptions(config, browserOptions,
-				builderConfig as BuilderConfiguration<AngularBuilderOptions>);
-		})
-		.then(() => {
-			const param: AngularCliParam = {
-				ssr: false,
-				builderConfig,
-				browserOptions,
-				webpackConfig: buildWebpackConfig(browserOptions),
-				projectRoot,
-				argv: {
-					poll: options.poll,
-					hmr: options.hmr,
-					...options.drcpArgs
-				}
-			};
-			if (!_.get(options, 'drcpArgs.noWebpack'))
-				config.set('_angularCli', param);
-			config.set('port', options.port);
-			var log4js = require('log4js');
-			var log = log4js.getLogger('ng-app-builder.ng.dev-server');
-			var pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
-			let shutdownable: Promise<() => void>;
+		const startServer = async (): Promise<() => void> => {
+			config = await initDrcp(options.drcpArgs, drcpConfigFiles);
+			await checkPort(config().port, builderConfig.options.host).toPromise();
+			await changeAngularCliOptions(config, browserOptions,
+					builderConfig);
+			try {
+				const param: AngularCliParam = {
+					ssr: false,
+					builderConfig,
+					browserOptions,
+					webpackConfig: buildWebpackConfig(browserOptions),
+					projectRoot,
+					argv: {
+						poll: options.poll,
+						hmr: options.hmr,
+						...options.drcpArgs
+					}
+				};
+				if (!_.get(options, 'drcpArgs.noWebpack'))
+					config.set('_angularCli', param);
+				// config.set('port', options.port);
+				const log4js = require('log4js');
+				const log = log4js.getLogger('ng-app-builder.ng.dev-server');
+				const pkMgr: typeof PackageMgr = require('dr-comp-package/wfh/lib/packageMgr');
+				// let shutdownable: Promise<() => void>;
 
-			// process.on('uncaughtException', function(err) {
-			// 	log.error('Uncaught exception: ', err, err.stack);
-			// 	// throw err; // let PM2 handle exception
-			// 	obs.error(err);
-			// });
-			process.on('SIGINT', function() {
-				log.info('Recieve SIGINT.');
-				shutdownable.then(shut => shut())
-				.then(() => {
-					log4js.shutdown();
-					log.info('Bye.');
-					process.exit(0);
-				});
-			});
-			process.on('message', function(msg) {
-				if (msg === 'shutdown') {
-					log.info('Recieve shutdown message from PM2');
-					shutdownable.then(shut => shut())
+				// process.on('uncaughtException', function(err) {
+				// 	log.error('Uncaught exception: ', err, err.stack);
+				// 	// throw err; // let PM2 handle exception
+				// 	obs.error(err);
+				// });
+				process.on('SIGINT', function() {
+					log.info('Recieve SIGINT.');
+					startDone.then(shut => shut())
 					.then(() => {
 						log4js.shutdown();
 						log.info('Bye.');
 						process.exit(0);
 					});
-				}
-			});
-			pkMgr.eventBus.on('webpackDone', (buildEvent: BuildEvent) => {
-				obs.next(buildEvent);
-			});
-			shutdownable = pkMgr.runServer(param.argv)
-			.then((shutdownable: any) => {
+				});
+				process.on('message', function(msg) {
+					if (msg === 'shutdown') {
+						log.info('Recieve shutdown message from PM2');
+						startDone.then(shut => shut())
+						.then(() => {
+							log4js.shutdown();
+							log.info('Bye.');
+							process.exit(0);
+						});
+					}
+				});
+				pkMgr.eventBus.on('webpackDone', (buildEvent: BuildEvent) => {
+					obs.next(buildEvent);
+				});
+
+				const shutdown = await pkMgr.runServer(param.argv);
 				if (_.get(options, 'drcpArgs.noWebpack')) {
 					obs.next({success: true});
 				}
-				return shutdownable;
-			})
-			.catch((err: Error) => {
+				return shutdown;
+			} catch (err) {
 				console.error('ng.command -  Failed to start server:', err);
-				// process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.
 				obs.error(err);
-			});
-		})
-		.catch((err: Error) => {
-			console.error('ng.command -  Failed to start server:', err);
-			obs.error(err);
-		});
+			}
+		};
+		const startDone = startServer();
+
+		return async function() {
+			const shutdown = await startDone;
+			shutdown();
+		};
 	});
 }
+
 
 /**
  * Invoke this function from browser builder
@@ -152,7 +153,7 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
  * @param vfsHost 
  */
 export function compile(projectRoot: string,
-	builderConfig: BuilderConfiguration<BrowserBuilderSchema | BuildWebpackServerSchema>,
+	builderConfig: NormalizedAngularBuildSchema,
 	buildWebpackConfig: buildWebpackConfigFunc, isSSR = false) {
 	return new Rx.Observable((obs) => {
 		compileAsync(projectRoot, builderConfig, buildWebpackConfig, isSSR)
@@ -168,14 +169,13 @@ export function compile(projectRoot: string,
 }
 
 async function compileAsync(projectRoot: string,
-	builderConfig: BuilderConfiguration<BrowserBuilderSchema | BuildWebpackServerSchema>,
+	builderConfig: NormalizedAngularBuildSchema,
 	buildWebpackConfig: buildWebpackConfigFunc, ssr: boolean) {
-	const browserOptions: AngularBuilderOptions = builderConfig.options as AngularBuilderOptions;
+	const browserOptions: AngularBuilderOptions = builderConfig as AngularBuilderOptions;
 	const options = browserOptions;
 	const drcpConfigFiles = options.drcpConfig ? options.drcpConfig.split(/\s*[,;:]\s*/) : [];
 	const config = await initDrcp(options.drcpArgs, drcpConfigFiles);
-	await changeAngularCliOptions(config, browserOptions,
-		builderConfig as BuilderConfiguration<AngularBuilderOptions>);
+	await changeAngularCliOptions(config, browserOptions);
 	const param: AngularCliParam = {
 		ssr,
 		browserOptions: options,

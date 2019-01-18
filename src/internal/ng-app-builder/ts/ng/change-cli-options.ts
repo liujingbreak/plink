@@ -3,6 +3,8 @@ import {AngularBuilderOptions} from './common';
 import {
 	BuilderConfiguration
 } from '@angular-devkit/architect';
+import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
+
 import * as _ from 'lodash';
 import * as Path from 'path';
 import * as fs from 'fs';
@@ -23,13 +25,13 @@ export interface AngularConfigHandler extends ConfigHandler {
 	 * @param builderConfig Angular angular.json properties under path <project>
 	 */
 	angularJson(options: AngularBuilderOptions,
-		builderConfig: BuilderConfiguration<AngularBuilderOptions>)
+		builderConfig?: BuilderConfiguration<DevServerBuilderOptions>)
 	: Promise<void> | void;
 }
 
 export default async function changeAngularCliOptions(config: DrcpConfig,
 	browserOptions: AngularBuilderOptions,
-	builderConfig?: BuilderConfiguration<AngularBuilderOptions>) {
+	builderConfig?: BuilderConfiguration<DevServerBuilderOptions>) {
 
 	for (const prop of ['deployUrl', 'outputPath', 'styles']) {
 		const value = config.get([currPackageName, prop]);

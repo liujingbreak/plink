@@ -36,7 +36,7 @@ export default class ServerBuilder extends GoogleServerBuilder {
 				? (this as any)._deleteOutputDir(builderConfig.root, normalize(options.outputPath), this.context.host)
 				: of(null)),
 			concatMap(() => {
-				return drcpCommon.compile(builderConfig.root, builderConfig,
+				return drcpCommon.compile(builderConfig.root, options,
 					() => this.buildWebpackConfig(root, projectRoot, host, options));
 			}),
 			concatMap(() => {

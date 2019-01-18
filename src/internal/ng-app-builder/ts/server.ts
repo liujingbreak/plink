@@ -16,6 +16,7 @@ import {boxString} from 'dr-comp-package/wfh/dist/utils';
 export * from './configurable';
 export * from './ng-prerender';
 export * from './ng/common';
+export {AngularConfigHandler} from './ng/change-cli-options';
 
 // import TsSelector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
 const semver = require('semver');

@@ -1,6 +1,6 @@
 {
 	"name": "@dr/tool-misc",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "Tools",
 	"scripts": {
 	  "test": "echo \"Error: no test specified\" && exit 1"

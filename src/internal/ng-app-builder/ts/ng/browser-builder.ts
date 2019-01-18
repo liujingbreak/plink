@@ -12,7 +12,7 @@ import {
   import { concatMap } from 'rxjs/operators';
   import { augmentAppWithServiceWorker } from '@angular-devkit/build-angular/src/angular-cli-files/utilities/service-worker';
   import { normalizeBuilderSchema } from '@angular-devkit/build-angular/src/utils';
-	import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 
 import {BrowserBuilder as GoogleBrowserBuilder, getBrowserLoggingCb} from '@angular-devkit/build-angular';
 import * as drcpCommon from './common';
@@ -35,7 +35,7 @@ export default class BrowserBuilder extends GoogleBrowserBuilder {
 		? (this as any)._deleteOutputDir(root, normalize(options.outputPath), this.context.host)
 		: of(null)),
 		concatMap(() => {
-			return drcpCommon.compile(builderConfig.root, builderConfig,
+			return drcpCommon.compile(builderConfig.root, options,
 				() => this.buildWebpackConfig(root, projectRoot, host, options));
 		}),
 		concatMap((webpackConfig) => {

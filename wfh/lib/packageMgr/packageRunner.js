@@ -41,22 +41,15 @@ function runServer(argv) {
 	return Promise.coroutine(function*() {
 		packagesTypeMap = yield requireServerPackages();
 		deactivateOrder = [];
-		return activateCoreComponents()
-		.then(() => {
-			return activateNormalComponents();
-		})
-		.then(() => {
-			var newRunner = new ServerRunner();
-			deactivateOrder.reverse();
-			newRunner.deactivatePackages = deactivateOrder;
-			return new Promise(resolve => {
-				setTimeout(() => {
-					resolve(() => {
-						newRunner.shutdownServer();
-					});
-				}, 500);
-			});
-		});
+		yield activateCoreComponents()
+		yield activateNormalComponents();
+		var newRunner = new ServerRunner();
+		deactivateOrder.reverse();
+		newRunner.deactivatePackages = deactivateOrder;
+		yield new Promise(resolve => setTimeout(resolve, 500));
+		return () => {
+			newRunner.shutdownServer();
+		}
 	})();
 }
 

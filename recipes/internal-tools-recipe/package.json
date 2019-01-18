@@ -1,11 +1,11 @@
 {
 	"name": "@dr/internal-tools-recipe",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"description": "Component group: internal-tools-recipe",
 	"dependencies": {
-		"@dr/e2etest-helper": "1.0.5",
-		"@dr/http-request-proxy": "5.0.8",
-		"@dr/tool-misc": "1.0.3",
-		"@dr/vendor-binary": "1.0.3"
+		"@dr/e2etest-helper": "1.0.6",
+		"@dr/http-request-proxy": "5.0.9",
+		"@dr/tool-misc": "1.0.4",
+		"@dr/vendor-binary": "1.0.4"
 	}
 }

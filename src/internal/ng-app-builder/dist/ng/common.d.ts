@@ -1,13 +1,11 @@
 import { BuildEvent, BuilderConfiguration } from '@angular-devkit/architect';
-import { BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { NormalizedServerBuilderServerSchema } from '@angular-devkit/build-angular/src/server/schema';
+import { NormalizedKarmaBuilderSchema } from '@angular-devkit/build-angular/src/karma/schema';
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
-import { BuildWebpackServerSchema } from '@angular-devkit/build-angular/src/server/schema';
 import * as Rx from 'rxjs';
 import api from '__api';
 export declare type DrcpConfig = typeof api.config;
-export interface AngularConfigHandler {
-    angularJson(options: AngularBuilderOptions, builderConfig: BuilderConfiguration<AngularBuilderOptions>): Promise<void> | void;
-}
 export declare type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
 export interface AngularCliParam {
     builderConfig?: BuilderConfiguration<DevServerBuilderOptions>;
@@ -17,7 +15,8 @@ export interface AngularCliParam {
     projectRoot: string;
     argv: any;
 }
-export declare type AngularBuilderOptions = BrowserBuilderSchema & BuildWebpackServerSchema & DevServerBuilderOptions & DrcpBuilderOptions;
+export declare type NormalizedAngularBuildSchema = NormalizedBrowserBuilderSchema | NormalizedServerBuilderServerSchema | NormalizedKarmaBuilderSchema;
+export declare type AngularBuilderOptions = NormalizedBrowserBuilderSchema & NormalizedServerBuilderServerSchema & NormalizedKarmaBuilderSchema & DrcpBuilderOptions;
 export interface DrcpBuilderOptions {
     drcpArgs: any;
     drcpConfig: string;
@@ -38,4 +37,4 @@ export declare function startDrcpServer(projectRoot: string, builderConfig: Buil
  * @param buildWebpackConfig
  * @param vfsHost
  */
-export declare function compile(projectRoot: string, builderConfig: BuilderConfiguration<BrowserBuilderSchema | BuildWebpackServerSchema>, buildWebpackConfig: buildWebpackConfigFunc, isSSR?: boolean): Rx.Observable<{}>;
+export declare function compile(projectRoot: string, builderConfig: NormalizedAngularBuildSchema, buildWebpackConfig: buildWebpackConfigFunc, isSSR?: boolean): Rx.Observable<{}>;

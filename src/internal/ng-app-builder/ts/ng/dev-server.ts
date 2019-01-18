@@ -8,10 +8,10 @@ import {
 } from '@angular-devkit/architect';
 import { resolve, tags, virtualFs } from '@angular-devkit/core';
 import { Stats} from 'fs';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { concatMap, map, tap } from 'rxjs/operators';
 import * as url from 'url';
-import { checkPort } from '@angular-devkit/build-angular/src/angular-cli-files/utilities/check-port';
+// import { checkPort } from '@angular-devkit/build-angular/src/angular-cli-files/utilities/check-port';
 // import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/';
 import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { normalizeBuilderSchema } from '@angular-devkit/build-angular/src/utils';
@@ -34,7 +34,8 @@ export default class DrcpDevServer extends DevServerBuilder {
 		let first = true;
 		let opnAddress: string;
 
-		return checkPort(options.port, options.host).pipe(
+		// return checkPort(options.port, options.host).pipe(
+		return of(options.port).pipe(
 			tap((port) => options.port = port),
 			concatMap(() => (this as any)._getBrowserOptions(options)),
 			tap(opts => browserOptions = normalizeBuilderSchema(

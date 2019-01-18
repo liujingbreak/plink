@@ -1,11 +1,11 @@
 {
 	"name": "@dr/runtime-recipe",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Component group: runtime-recipe",
 	"dependencies": {
-		"@dr-core/assets-processer": "1.0.15",
-		"@dr-core/express-app": "1.0.10",
-		"@dr/http-server": "1.0.8",
-		"@dr/logger": "1.0.7"
+		"@dr-core/assets-processer": "1.0.16",
+		"@dr-core/express-app": "1.0.11",
+		"@dr/http-server": "1.0.9",
+		"@dr/logger": "1.0.8"
 	}
 }
