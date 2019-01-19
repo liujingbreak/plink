@@ -37,4 +37,4 @@ export declare function startDrcpServer(projectRoot: string, builderConfig: Buil
  * @param buildWebpackConfig
  * @param vfsHost
  */
-export declare function compile(projectRoot: string, builderConfig: NormalizedAngularBuildSchema, buildWebpackConfig: buildWebpackConfigFunc, isSSR?: boolean): Rx.Observable<{}>;
+export declare function compile(projectRoot: string, builderConfig: NormalizedAngularBuildSchema, buildWebpackConfig: buildWebpackConfigFunc, isSSR?: boolean): Rx.Observable<any>;

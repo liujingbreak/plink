@@ -155,17 +155,7 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 export function compile(projectRoot: string,
 	builderConfig: NormalizedAngularBuildSchema,
 	buildWebpackConfig: buildWebpackConfigFunc, isSSR = false) {
-	return new Rx.Observable((obs) => {
-		compileAsync(projectRoot, builderConfig, buildWebpackConfig, isSSR)
-		.then((webpackConfig: any) => {
-			obs.next(webpackConfig);
-			obs.complete();
-		})
-		.catch((err: Error) => {
-			console.error('ng.command - Angular cli error', err);
-			obs.error(err);
-		});
-	});
+	return Rx.from(compileAsync(projectRoot, builderConfig, buildWebpackConfig, isSSR));
 }
 
 async function compileAsync(projectRoot: string,

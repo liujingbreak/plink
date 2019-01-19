@@ -11,15 +11,12 @@ import {sep as SEP, relative, resolve, dirname} from 'path';
 import {readTsConfig, transpileSingleTs} from 'dr-comp-package/wfh/dist/ts-compiler';
 import PackageBrowserInstance from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
 import Selector from './utils/ts-ast-query';
+import {replaceHtml} from './ng-aot-assets';
 import * as ts from 'typescript';
 import * as fs from 'fs';
 const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName);
-
-// const apiTmpl = _.template('var __DrApi = require(\'@dr-core/webpack2-builder/browser/api\');\
-// var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || __DrApi(\'<%=packageName%>\');\
-//  __api.default = __api;');
 
 const apiTmplTs = _.template('import __DrApi from \'@dr-core/ng-app-builder/src/app/api\';\
 var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packageName%>\');\
@@ -71,11 +68,20 @@ export default class TSReadHooker {
 		const appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
 		log.info('app module file: ', appModuleFile);
 
+		const isAot = ngParam.browserOptions.aot;
+
 		return (file: string, buf: ArrayBuffer): Observable<ArrayBuffer> => {
 			try {
-				if (!file.endsWith('.ts') || file.endsWith('.d.ts')) {
+				if (isAot && file.endsWith('.component.html')) {
+					const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
+					if (cached != null)
+						return of(cached);
+					return of(string2buffer(replaceHtml(file, Buffer.from(buf).toString())));
+
+				} else if (!file.endsWith('.ts') || file.endsWith('.d.ts')) {
 					return of(buf);
 				}
+
 				const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
 				if (cached != null)
 					return of(cached);

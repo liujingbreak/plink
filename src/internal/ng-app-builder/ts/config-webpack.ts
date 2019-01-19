@@ -102,7 +102,7 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 	webpackConfig.plugins.push(new CompileDonePlugin());
 
 	changeSplitChunks(param, webpackConfig);
-	changeLoaders(webpackConfig);
+	changeLoaders(param, webpackConfig);
 
 	if (param.ssr) {
 		webpackConfig.devtool = 'source-map';
@@ -120,7 +120,7 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 	return webpackConfig;
 }
 
-function changeLoaders(webpackConfig: any) {
+function changeLoaders(param: AngularCliParam, webpackConfig: any) {
 	const devMode = webpackConfig.mode === 'development';
 	webpackConfig.resolveLoader = {
 		modules: [Path.join(__dirname, 'loaders'), 'node_modules']
@@ -226,7 +226,14 @@ function changeLoaders(webpackConfig: any) {
 			}]
 		});
 	}
-	rules.unshift({
+	if (param.browserOptions.aot) {
+		rules.unshift({
+			test: /\.ngfactory.js$/,
+			use: [{loader: '@dr-core/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader'}]
+		});
+	}
+	rules.unshift(
+		{
 			test: /\.jade$/,
 			use: [
 				{loader: 'html-loader', options: {attrs: 'img:src'}},

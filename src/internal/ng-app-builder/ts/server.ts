@@ -8,7 +8,7 @@ import * as _fs from 'fs-extra';
 import {AngularCliParam} from './ng/common';
 import changeWebpackConfig from './config-webpack';
 import Url = require('url');
-import {TsHandler, ReplacementInf} from '@dr-core/ng-app-builder/dist/utils/ts-before-aot';
+import {TsHandler, ReplacementInf} from './utils/ts-before-aot';
 import * as ts from 'typescript';
 import {boxString} from 'dr-comp-package/wfh/dist/utils';
 // import {promisifyExe} from 'dr-comp-package/wfh/dist/process-utils';

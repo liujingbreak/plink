@@ -1,4 +1,4 @@
-import { TsHandler } from '@dr-core/ng-app-builder/dist/utils/ts-before-aot';
+import { TsHandler } from './utils/ts-before-aot';
 export * from './configurable';
 export * from './ng-prerender';
 export * from './ng/common';
