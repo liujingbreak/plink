@@ -3,8 +3,8 @@ import api from '__api';
 import replaceCode, {ReplacementInf} from '../utils/patch-text';
 import {randomNumStr} from './index';
 import {loader as wbLoader} from 'webpack';
-import {Observable, Subject} from 'rxjs';
-import {mergeMap, map} from 'rxjs/operators';
+import {Observable, of, Subject} from 'rxjs';
+import {mergeMap, map, toArray} from 'rxjs/operators';
 import vm = require('vm');
 import * as _ from 'lodash';
 // const log = require('log4js').getLogger('ng-app-builder.ng-aot-assets');
@@ -19,34 +19,44 @@ const loader: wbLoader.Loader = function(source: string | Buffer, sourceMap?: Ra
 	}
 	if (!this.resourcePath.endsWith('.ngfactory.js'))
 		return callback(null, source, sourceMap);
-	let src: string;
+	let str: string;
 	if (typeof source !== 'string')
-		src = source.toString();
+		str = source.toString();
 	else
-		src = source;
+		str = source;
 	pattern.lastIndex = 0;
-	let toBeReplaced: ReplacementInf[];
+	// let toBeReplaced: ReplacementInf[];
 
 	const subj = new Subject<ReplacementInf>();
 	subj.pipe(mergeMap(repl => {
-		return loadModule(this, repl.text)
-		.pipe(map(resolved => {
-			repl.text = JSON.stringify(resolved).slice(1, resolved.length - 1);
-			if (toBeReplaced == null)
-				toBeReplaced = [];
-			toBeReplaced.push(repl);
-			return repl;
-		}));
-	})).subscribe(null, null, () => {
-		if (toBeReplaced == null) {
+		const beginChar = str.charAt(repl.start-1);
+		const endChar = str.charAt(repl.end);
+		if ((beginChar === '"' || beginChar === '\'') && endChar === beginChar) {
+			// a string literal
+			repl.start--;
+			repl.end++;
+			repl.text = `require(${JSON.stringify(repl.text)})`;
+			return of(repl);
+		} else {
+			return loadModule(this, repl.text)
+			.pipe(
+				map(resolved => {
+					repl.text = JSON.stringify(resolved).slice(1, resolved.length - 1);
+					return repl;
+				})
+			);
+		}
+	}), toArray())
+	.subscribe(replacements => {
+		if (replacements.length === 0) {
 			return callback(null, source, sourceMap);
 		} else {
-			const replacedSrc = replaceCode(src, toBeReplaced);
+			const replacedSrc = replaceCode(str, replacements);
 			callback(null, replacedSrc, sourceMap);
 		}
 	});
 	while (true) {
-		const found = pattern.exec(src);
+		const found = pattern.exec(str);
 		if (found == null) {
 			subj.complete();
 			break;
