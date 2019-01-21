@@ -112,10 +112,17 @@ NodeApi.prototype = {
 		return (this.contextPath + '/' + path).replace(/\/\//g, '/');
 	},
 
-	_contextPath: function() {
-		var path = config.get('packageContextPathMapping[' + this.packageShortName + ']') ||
-			config.get(['packageContextPathMapping', this.packageName]);
-		path = path != null ? path : '/' + this.packageShortName;
+	_contextPath: function(packageName) {
+		let packageShortName;
+		if (!packageName) {
+			packageName = this.packageName;
+			packageShortName = this.parsePackageName(packageName).name;
+		} else {
+			packageShortName = this.packageShortName;
+		}
+		var path = config.get('packageContextPathMapping[' + packageShortName + ']') ||
+			config.get(['packageContextPathMapping', packageName]);
+		path = path != null ? path : '/' + packageShortName;
 		if (this.config().nodeRoutePath) {
 			path = this.config().nodeRoutePath + '/' + path;
 		}

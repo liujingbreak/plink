@@ -1,24 +1,21 @@
 /* tslint:disable max-line-length */
-import api, {DrcpApi} from '__api';
+import api from '__api';
+import * as Url from 'url';
 import * as log4js from 'log4js';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import * as _fs from 'fs-extra';
-// import { PrerenderForExpress } from './ng-prerender';
 import {AngularCliParam} from './ng/common';
 import changeWebpackConfig from './config-webpack';
-import Url = require('url');
 import {TsHandler, ReplacementInf} from './utils/ts-before-aot';
 import * as ts from 'typescript';
 import {boxString} from 'dr-comp-package/wfh/dist/utils';
-// import {promisifyExe} from 'dr-comp-package/wfh/dist/process-utils';
-// import {fork} from 'child_process';
+import {ngRouterPath} from './api-share';
 export * from './configurable';
 export * from './ng-prerender';
 export * from './ng/common';
 export {AngularConfigHandler} from './ng/change-cli-options';
 
-// import TsSelector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
 const semver = require('semver');
 const {red, yellow} = require('chalk');
 
@@ -108,22 +105,7 @@ async function setupApiForAngularCli() {
 		deployUrl,
 		ssr: ngParam.ssr,
 		ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
-		/**@function ngRouterPath
-		 * @memberOf __api
-		 * e.g.
-		 * Assume application is deployed on 'http://foobar.com/base-href' as "deployUrl" in angular.json.
-		 * Current feature package is `@bk/feature-a`, its `ngRoutePath` is by default 'feature-a',
-		 * feature package `@bk/feature-b`'s `ngRoutePath` is by default 'feature-b'
-		 *  ```ts
-		 * __api.ngRouterPath('action')  // "/base-href/feature-a/action"
-		 * __api.ngRouterPath('@bk/feature-b', 'action')   // "/base-href/feature-b/action"
-		 * ```
-		 * @return the configured Angular router path for specific (current) feature package
-		 */
-		ngRouterPath(this: DrcpApi, packageName: string, subPath?: string) {
-			const url = this.assetsUrl(packageName, subPath);
-			return _.trimStart(Url.parse(url).pathname, '/');
-		},
+		ngRouterPath,
 		ssrRequire(requirePath: string) {
 			if (ngParam.ssr)
 				return require(Path.join(this.__dirname, requirePath));

@@ -79,6 +79,11 @@ interface _DrcpApi {
 	isDefaultLocale(): boolean;
 	assetsUrl(packageName: string, path?: string): string;
 	entryPageUrl(packageName: string, path?: string, locale?: string): string;
+	/**
+	 * Only available in Node Server side, meaning you have to use `__api.serverUrl(...)`
+	 * in client side JS/TS code.
+	 */
+	serverUrl(this: DrcpApi, packageNameOrPath: string, path?: string): string;
 	getProjectDirs(): string[];
 	addBrowserSideConfig(name: string, value: any): void;
 	[key: string]: any;

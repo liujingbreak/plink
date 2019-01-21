@@ -1,9 +1,11 @@
-
+import * as Url from 'url';
 
 export function patchToApi(apiPrototype: any) {
 	apiPrototype.assetsUrl = assetsUrl;
 
 	apiPrototype.entryPageUrl = entryPageUrl;
+
+	apiPrototype.serverUrl = serverUrl;
 }
 
 export function entryPageUrl(packageName: string, path: string, locale: string): string {
@@ -52,7 +54,8 @@ export function publicUrl(staticAssetsURL: string, outputPathMap: {[name: string
 		outputPath = m[2];
 	}
 	var finalUrl = joinUrl(staticAssetsURL, useLocale, outputPath, path);
-	if (finalUrl.charAt(0) !== '/')
+
+	if (!/^https?:\/\//.test(finalUrl) && finalUrl.charAt(0) !== '/')
 		finalUrl = '/' + finalUrl;
 	return finalUrl;
 }
@@ -74,4 +77,16 @@ function joinUrl(...pathEls: string[]) {
 		joined += pathEls[i];
 	}
 	return joined;
+}
+
+export function serverUrl(packageNameOrPath: string, path?: string): string {
+	if (!this.isNode()) {
+		// tslint:disable-next-line
+		throw new Error(`api.serverUrl() only available at server side during compile-time and runtime, use "__api.serverUrl('${packageNameOrPath}', '${path}')" instead` );
+	}
+	if (path == null) {
+		path = packageNameOrPath;
+		packageNameOrPath = this.packageName;
+	}
+	return Url.resolve(this.config().staticAssetsURL, this._contextPath(packageNameOrPath) + '/' + path);
 }

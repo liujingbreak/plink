@@ -2,6 +2,7 @@
 import {TemplateParser, AttributeValueAst, TagAst} from '../utils/ng-html-parser';
 import patchText, {Replacement as Rep} from '../utils/patch-text';
 import api from '__api';
+import Url from 'url';
 import * as _ from 'lodash';
 import {Observable, of, forkJoin} from 'rxjs';
 import {map} from 'rxjs/operators';
@@ -22,7 +23,8 @@ export function replaceForHtml(content: string, resourcePath: string,
 	for (const el of ast) {
 		for (const name of toCheckNames) {
 			if (_.has(el.attrs, name)) {
-				if (el.attrs[name].isNg || el.attrs[name].value == null)
+				const value = el.attrs[name].value;
+				if (el.attrs[name].isNg || value == null || value.text.indexOf('{{') >= 0 )
 					continue;
 				dones.push(resolver.resolve(name, el.attrs[name].value, el));
 			}
@@ -50,6 +52,10 @@ class AttrAssetsUrlResolver {
 			// img src
 			const url = this.doLoadAssets(valueToken.text);
 			return url.pipe(map(url => new Rep(valueToken.start, valueToken.end, url)));
+		} else if (attrName === 'routerLink') {
+			const url = this.resolveUrl(valueToken.text);
+			const parsedUrl = Url.parse(url);
+			return of(new Rep(valueToken.start, valueToken.end, parsedUrl.path + (parsedUrl.hash ? parsedUrl.hash : '')));
 		} else { // href, ng-src, routerLink
 			const url = this.resolveUrl(valueToken.text);
 			return of(new Rep(valueToken.start, valueToken.end, url));

@@ -1,5 +1,6 @@
 var has = Object.prototype.hasOwnProperty;
 import * as assetsUrl from 'dr-comp-package/wfh/share/assets-url';
+import {ngRouterPath} from '../../dist/api-share';
 
 import * as lodash from 'lodash';
 
@@ -30,10 +31,13 @@ export default class BrowserApi {
 	_ensureLodash = ensureLodash;
 	contextPath: string;
 
-	patchToApi = assetsUrl.patchToApi;
+	// patchToApi = assetsUrl.patchToApi;
 	entryPageUrl = assetsUrl.entryPageUrl;
 	assetsUrl = assetsUrl.assetsUrl;
-	publicUrl = assetsUrl.publicUrl;
+	ngBaseRouterPath = __api.ngBaseRouterPath;
+	ngRouterPath = ngRouterPath;
+	// publicUrl = assetsUrl.publicUrl;
+	// serverUrl = assetsUrl.serverUrl;
 
 	constructor(public packageName: string, packageConfig?: any) {
 		var m = packageNameReg.exec(packageName);

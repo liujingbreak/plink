@@ -14,3 +14,4 @@ export declare function assetsUrl(packageName: string, path?: string): string;
 export declare function publicUrl(staticAssetsURL: string, outputPathMap: {
     [name: string]: string;
 }, useLocale: string | null, packageName: string, path: string): string;
+export declare function serverUrl(packageNameOrPath: string, path?: string): string;
