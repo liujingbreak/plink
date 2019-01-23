@@ -99,7 +99,7 @@ module.exports = function(webpackConfigEntry, noParseChecker, file2ChunkName,
 					]
 				}, {
 					test: /\.(eot|woff2|woff|ttf|svg|cur)$/,
-					use: [{loader: 'lib/dr-file-loader'}]
+					use: [{loader: 'dist/loaders/dr-file-loader'}]
 				}, {
 					test: /\.(jpg|png|gif|svg|jpeg)$/,
 					use: [
@@ -107,7 +107,7 @@ module.exports = function(webpackConfigEntry, noParseChecker, file2ChunkName,
 							loader: 'url-loader',
 							options: {
 								limit: !devMode ? 10000 : 1, // <10k ,use base64 format, dev mode only use url for speed
-								fallback: 'lib/dr-file-loader'
+								fallback: 'dist/loaders/dr-file-loader'
 							}
 						}
 					]

@@ -48,6 +48,7 @@ function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: Ra
 	}
 	const drcpOutputDir = drPackageOutputPath(this);
 	outputPath = drcpOutputDir + '/' + _.trimStart(outputPath, '/');
+	outputPath = _.trimStart(outputPath, '/');
 	// console.log(drPackageOutputPath(this));
 	// ------- DRCP: not supporting useRelativePath --------
 	// if (options.useRelativePath) {
