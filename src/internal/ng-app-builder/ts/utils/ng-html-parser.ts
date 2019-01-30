@@ -3,14 +3,15 @@ import {Token, BaseParser, BaseLexer} from 'dr-comp-package/wfh/dist/base-LLn-pa
 
 export enum HtmlTokenType {
 	// comments,
-	['<'],
-	['>'],
-	['('],
-	[')'],
-	['['],
-	[']'],
-	['</'],
-	['='],
+	'<',
+	'>',
+	'/>',
+	'(',
+	')',
+	'[',
+	']',
+	'</',
+	'=',
 	identity,
 	stringLiteral,
 	any, // .*
@@ -43,6 +44,9 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 				yield this.openTagStart();
 			} else if (this.isNext('</')) {
 				yield this.closeTagStart();
+			} else if (this.isNext('/>')) {
+				this.advance(2);
+				yield new Token(HtmlTokenType['/>'], this, start);
 			} else if (this.isIdStart()) {
 				do {
 					this.advance();
@@ -76,8 +80,8 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 		return new Token(HtmlTokenType['<'], this, start);
 	}
 	closeTagStart() {
-		this.advance(2);
 		const start = this.position;
+		this.advance(2);
 		while (this.la() !== '>') {
 			this.advance();
 		}
@@ -200,7 +204,7 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 	}
 	attributes(): {[key: string]: {isNg: boolean, value: AttributeValueAst}} {
 		const attrs: {[key: string]: {isNg: boolean, value: AttributeValueAst}} = {};
-		while (this.la() != null && this.la().type !== HtmlTokenType['>']) {
+		while (this.la() != null && this.la().type !== HtmlTokenType['>'] && this.la().type !== HtmlTokenType['/>']) {
 			if (this.isNgAttrName()) {
 				const key = this.ngAttrName();
 				attrs[key] = {isNg: true, value: this.attrValue()};

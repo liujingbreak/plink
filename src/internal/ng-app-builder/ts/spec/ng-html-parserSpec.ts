@@ -4,7 +4,10 @@ import * as fs from 'fs';
 import * as _ from 'lodash';
 
 describe('ng-html-parser', () => {
-	const lexer = new TemplateLexer('abcde');
+	let lexer: TemplateLexer;
+	beforeEach(() => {
+		lexer = new TemplateLexer('abcde');
+	});
 
 	it('Lexer.la()  should work', () => {
 		// let lexer = new ps.Lexer('abcde');
@@ -21,6 +24,7 @@ describe('ng-html-parser', () => {
 	});
 
 	it('Lexer.isNext("cde") should work', () => {
+		lexer = new TemplateLexer('cde');
 		expect(lexer.isNext('cde')).toBeTruthy();
 		expect(lexer.isNext('cd')).toBeTruthy();
 		expect(lexer.isNext('cdef')).toBeFalsy();

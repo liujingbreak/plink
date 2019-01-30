@@ -1,17 +1,18 @@
 import { Token, BaseParser, BaseLexer } from 'dr-comp-package/wfh/dist/base-LLn-parser';
 export declare enum HtmlTokenType {
-    ['<'] = 0,
-    ['>'] = 1,
-    ['('] = 2,
-    [')'] = 3,
-    ['['] = 4,
-    [']'] = 5,
-    ['</'] = 6,
-    ['='] = 7,
-    identity = 8,
-    stringLiteral = 9,
-    any = 10,
-    space = 11
+    '<' = 0,
+    '>' = 1,
+    '/>' = 2,
+    '(' = 3,
+    ')' = 4,
+    '[' = 5,
+    ']' = 6,
+    '</' = 7,
+    '=' = 8,
+    identity = 9,
+    stringLiteral = 10,
+    any = 11,
+    space = 12
 }
 export { HtmlTokenType as TokenType };
 export declare class TemplateLexer extends BaseLexer<HtmlTokenType> {
