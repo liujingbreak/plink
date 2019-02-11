@@ -8,7 +8,8 @@ describe('css-url-loader', () => {
 			async(): wb.loader.loaderCallback {
 				return function(err: Error, content: string) {
 					console.log('done ', content);
-					expect(content).toBe('.test {background: url(/foobar/abc.jpg)}\n.test2 {background: url(/foobar/efg.jpg)}');
+					expect(content).toBe(
+						'.test {background: url(/foobar/abc.jpg)}\n.test2 {background: url(/foobar/efg.svg#filter-id)}');
 					done();
 				};
 			},
@@ -20,6 +21,6 @@ describe('css-url-loader', () => {
 			}
 		};
 		loader.call(context, '.test {background: url(abc.jpg)}\n\
-.test2 {background: url(efg.jpg)}', null);
+.test2 {background: url(efg.svg#filter-id)}', null);
 	});
 });

@@ -53,7 +53,7 @@ function replaceUrl(loaderCtx: wb.loader.LoaderContext, css: string, file: strin
 				repl.text = url;
 				return repl;
 			}));
-		} else if (!resolvedTo.startsWith('/') && resolvedTo.indexOf(':') < 0) {
+		} else if (!resolvedTo.startsWith('/') && !resolvedTo.startsWith('#') && resolvedTo.indexOf(':') < 0) {
 			return loadModule(loaderCtx, repl.text).pipe(map(url => {
 				repl.text = url;
 				return repl;
