@@ -208,7 +208,7 @@ In DRCP component package's package.json file:
 Meaning you can add a file 'dist/change-ng-ts.js' in your package folder and export a function named `run()` which actually handles hacking each TS source file passed from Angular cli.\
 e.g.
 ```ts
-import {TsHandler, ReplacementInf} from '@dr-core/ng-app-builder/dist/utils/ts-before-aot';
+import {TsHandler, ReplacementInf} from '@dr-core/ng-app-builder';
 import * as ts from 'typescript';
 
 export let run: TsHandler = yourTsHacker;
@@ -218,6 +218,57 @@ function yourTsHacker(src: ts.SourceFile): ReplacementInf[] {
 }
 
 ```
+
+### Hack Angular command line
+A sample configuration TS file.
+`ng serve/build --drcp-config <conf-1.ts>,<conf-2.ts>...` 引入这个文件
+```
+import {AngularConfigHandler, AngularBuilderOptions, WepackConfigHandler, DrcpSetting as AppBuilderSetting} from '@dr-core/ng-app-builder';
+import {ConfigHandler, InjectorConfigHandler, InjectorFactory} from 'dr-comp-package/wfh/dist';
+import * as fs from 'fs';
+import * as _ from 'lodash';
+// import {Options as webpackOpt} from 'webpack';
+
+const handler: AngularConfigHandler & ConfigHandler & InjectorConfigHandler & WepackConfigHandler = {
+
+    onConfig(setting: {[prop: string]: any}, drcpCliArgv) {
+        const ngBuilderConf: AppBuilderSetting = setting['@dr-core/ng-app-builder'];
+        ngBuilderConf.ngPackage.push('@bk/console-home');
+        ngBuilderConf.ngModule.push('@bk/fancy/fancy.module#FancyModule');
+        ngBuilderConf.excludePackage = [
+            /@bk\/module-(real-name|apply|helper)$/,
+            '@bk/credit-console-conf',
+            '@bk/cash-loan-all'
+        ];
+        if (fs.existsSync('node_modules/@bk/credit-risk')) {
+            ngBuilderConf.excludePath.push(
+                'node_modules/@bk/credit-risk/**/*',
+                fs.realpathSync('node_modules/@bk/credit-risk') + '/**/*');
+        }
+        ngBuilderConf.buildOptimizerExclude.push('node_modules/mermaid');
+        _.set(setting, '@bk/cash-loan-all.noCheckAuth', true);
+        setting.redirectToRoute = '/console/console-home';
+        _.set(setting, '@bk/module-core.footerLogoVisible', false);
+    },
+
+    angularJson(options: AngularBuilderOptions) {
+        options.deployUrl = '/console/';
+        options.outputPath = 'dist/static/console';
+    },
+
+    webpackConfig(original: any) {
+    },
+
+    setupNodeInjector(factory: InjectorFactory): void {
+    },
+
+    setupWebInjector(factory: InjectorFactory): void {
+    }
+};
+
+export {handler as default};
+```
+
 
 ### Known Issues
 #### Problematic **Angular + symlink**

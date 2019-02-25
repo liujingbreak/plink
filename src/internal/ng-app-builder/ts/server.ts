@@ -14,6 +14,7 @@ import {ngRouterPath} from './api-share';
 export * from './configurable';
 export * from './ng-prerender';
 export * from './ng/common';
+export * from './config-webpack';
 export {AngularConfigHandler} from './ng/change-cli-options';
 
 const semver = require('semver');
