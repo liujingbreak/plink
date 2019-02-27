@@ -1,4 +1,4 @@
-import sortedIndex = require('lodash/sortedIndex');
+import sortedIndex from 'lodash/sortedIndex';
 
 export class Token<T> {
 	text: string;
