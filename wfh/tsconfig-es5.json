@@ -1,0 +1,14 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"target": "es5",
+		"outDir": "dist-es5",
+		"typeRoots": [
+			"../node_modules/@types",
+			"types"
+		]
+	},
+	"include": [
+		"ts/base-LLn-parser.ts"
+	]
+}
