@@ -3,6 +3,8 @@ import * as request from 'request';
 import * as Url from 'url';
 import fs = require('fs');
 import * as _ from 'lodash';
+import os from 'os';
+
 const AdmZip = require('adm-zip');
 
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
@@ -124,8 +126,27 @@ async function downloadZip(path: string) {
 		});
 	});
 	const zip = new AdmZip(downloadTo);
-	log.info('extract', resource);
-	zip.extractAllTo(api.config.resolve('staticDir'), true);
+
+	let retryCount = 0;
+	tryExtract();
+
+	function tryExtract() {
+		if (++retryCount > 3) {
+			log.info('Give up on extracting zip');
+			return;
+		}
+		log.info('extract', resource);
+		try {
+			zip.extractAllTo(api.config.resolve('staticDir'), true);
+		} catch (err) {
+			if (err.code === 'ENOMEM' || err.message.indexOf('not enough memory') >= 0) {
+				log.error(err);
+				// tslint:disable-next-line
+				log.info(`${os.hostname() + ' ' + os.userInfo().username} Free mem: ${os.freemem()}, total mem: ${os.totalmem()}, retrying...`);
+				setTimeout(tryExtract, 1000);
+			}
+		}
+	}
 }
 
 function fetch(fetchUrl: string): Promise<any> {
