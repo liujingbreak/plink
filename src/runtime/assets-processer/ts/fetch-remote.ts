@@ -139,7 +139,7 @@ async function downloadZip(path: string) {
 		try {
 			zip.extractAllTo(api.config.resolve('staticDir'), true);
 		} catch (err) {
-			if (err.code === 'ENOMEM' || err.message.indexOf('not enough memory') >= 0) {
+			if (err.code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
 				log.error(err);
 				// tslint:disable-next-line
 				log.info(`${os.hostname() + ' ' + os.userInfo().username} Free mem: ${os.freemem()}, total mem: ${os.totalmem()}, retrying...`);
