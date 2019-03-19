@@ -31,11 +31,13 @@ interface Setting {
 
 let setting: Setting;
 // let currVersion: number = Number.NEGATIVE_INFINITY;
-const currentChecksum: Checksum = {
+let currentChecksum: Checksum = {
 	version: Number.NEGATIVE_INFINITY,
 	path: '',
 	versions: {}
 };
+
+const currChecksumFile = api.config.resolve('destDir', 'assets-processer.checksum.json');
 let timer: NodeJS.Timer;
 let stopped = false;
 let errCount = 0;
@@ -56,6 +58,10 @@ export function start() {
 	if (setting.fetchRetry == null)
 		setting.fetchRetry = 3;
 	log.info(setting);
+	if (fs.existsSync(currChecksumFile)) {
+		currentChecksum = Object.assign(currentChecksum, fs.readJSONSync(currChecksumFile));
+		log.info('Found saved checksum file after reboot\n', JSON.stringify(currentChecksum, null, '  '));
+	}
 	return runRepeatly(setting);
 }
 
@@ -94,6 +100,7 @@ async function run(setting: Setting) {
 	}
 	if (checksumObj == null)
 		return;
+
 	if (checksumObj.changeFetchUrl) {
 		setting.fetchUrl = checksumObj.changeFetchUrl;
 		log.info('Change fetch URL to', setting.fetchUrl);
@@ -116,8 +123,11 @@ async function run(setting: Setting) {
 				}
 		}
 	}
-	if (downloaded)
+
+	if (downloaded) {
+		fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
 		api.eventBus.emit(api.packageName + '.downloaded');
+	}
 }
 
 // let downloadCount = 0;
@@ -165,7 +175,7 @@ async function downloadZip(path: string) {
 					if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
 						log.error(err);
 						// tslint:disable-next-line
-						log.info(`${os.hostname() + ' ' + os.userInfo().username} Free mem: ${os.freemem()}, total mem: ${os.totalmem()}, retrying...`);
+						// log.info(`${os.hostname() + ' ' + os.userInfo().username} Free mem: ${os.freemem()}, total mem: ${os.totalmem()}, retrying...`);
 						reject(err);
 					}
 					reject(err);
