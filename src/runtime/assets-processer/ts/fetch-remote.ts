@@ -1,11 +1,12 @@
 import api from '__api';
 import * as request from 'request';
 import * as Url from 'url';
-import fs = require('fs');
 import * as _ from 'lodash';
 import os from 'os';
+import AdmZip from 'adm-zip';
+import fs from 'fs-extra';
 
-const AdmZip = require('adm-zip');
+// const AdmZip = require('adm-zip');
 
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
 
@@ -112,9 +113,11 @@ async function run(setting: Setting) {
 		api.eventBus.emit(api.packageName + '.downloaded');
 }
 
+let downloadCount = 0;
+
 async function downloadZip(path: string) {
 	const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
-	const downloadTo = api.config.resolve('destDir', 'remote.zip');
+	const downloadTo = api.config.resolve('destDir', `remote-${downloadCount++}.zip`);
 	log.info('fetch', resource);
 	await retry(() => {
 		return new Promise((resolve, rej) => {
@@ -128,24 +131,37 @@ async function downloadZip(path: string) {
 	const zip = new AdmZip(downloadTo);
 
 	let retryCount = 0;
-	tryExtract();
+	do {
+		try {
+			log.info('extract to %s', downloadTo);
+			await tryExtract();
+			log.info('extract done');
+			fs.unlinkSync(downloadTo);
+			break;
+		} catch (ex) {
+			await new Promise(resolve => setTimeout(resolve, 1000));
+		}
+	} while (++retryCount <=3);
+	if (retryCount > 3) {
+		log.info('Give up on extracting zip');
+		return Promise.resolve();
+	}
 
 	function tryExtract() {
-		if (++retryCount > 3) {
-			log.info('Give up on extracting zip');
-			return;
-		}
-		log.info('extract', resource);
-		try {
-			zip.extractAllTo(api.config.resolve('staticDir'), true);
-		} catch (err) {
-			if (err.code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
-				log.error(err);
-				// tslint:disable-next-line
-				log.info(`${os.hostname() + ' ' + os.userInfo().username} Free mem: ${os.freemem()}, total mem: ${os.totalmem()}, retrying...`);
-				setTimeout(tryExtract, 1000);
-			}
-		}
+		return new Promise((resolve, reject) => {
+			zip.extractAllToAsync(api.config.resolve('staticDir'), true, (err) => {
+				if (err) {
+					if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
+						log.error(err);
+						// tslint:disable-next-line
+						log.info(`${os.hostname() + ' ' + os.userInfo().username} Free mem: ${os.freemem()}, total mem: ${os.totalmem()}, retrying...`);
+						reject(err);
+					}
+					reject(err);
+				} else
+					resolve();
+			});
+		});
 	}
 }
 
