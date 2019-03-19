@@ -5,10 +5,12 @@ import * as _ from 'lodash';
 import os from 'os';
 import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
-
-// const AdmZip = require('adm-zip');
-
+import cluster from 'cluster';
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
+
+const pm2InstanceId = process.env.NODE_APP_INSTANCE;
+const isPm2 = cluster.isWorker && pm2InstanceId != null;
+const isMainProcess = !isPm2 || pm2InstanceId !== '0';
 
 interface OldChecksum {
 	version: number;
@@ -39,6 +41,11 @@ let stopped = false;
 let errCount = 0;
 
 export function start() {
+	log.info(pm2InstanceId);
+	if (!isMainProcess) {
+		log.info('This process is not main process');
+		return;
+	}
 	setting = api.config.get(api.packageName);
 	const fetchUrl = setting.fetchUrl;
 	if (fetchUrl == null) {
@@ -116,6 +123,8 @@ async function run(setting: Setting) {
 // let downloadCount = 0;
 
 async function downloadZip(path: string) {
+	// tslint:disable-next-line
+	log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
 	const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
 	const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}.zip`);
 	log.info('fetch', resource);
@@ -135,8 +144,10 @@ async function downloadZip(path: string) {
 		try {
 			log.info('extract to %s', downloadTo);
 			await tryExtract();
-			log.info('extract done');
+			log.info(`extract ${downloadTo} done`);
 			fs.unlinkSync(downloadTo);
+			// tslint:disable-next-line
+			log.info(`${os.hostname()} ${os.userInfo().username} download done[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
 			break;
 		} catch (ex) {
 			await new Promise(resolve => setTimeout(resolve, 1000));
