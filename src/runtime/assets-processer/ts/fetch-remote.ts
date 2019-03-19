@@ -113,11 +113,11 @@ async function run(setting: Setting) {
 		api.eventBus.emit(api.packageName + '.downloaded');
 }
 
-let downloadCount = 0;
+// let downloadCount = 0;
 
 async function downloadZip(path: string) {
 	const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
-	const downloadTo = api.config.resolve('destDir', `remote-${downloadCount++}.zip`);
+	const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}.zip`);
 	log.info('fetch', resource);
 	await retry(() => {
 		return new Promise((resolve, rej) => {
