@@ -5,7 +5,8 @@ import * as fs from 'fs';
 // var favicon = require('serve-favicon');
 import * as log4js from 'log4js';
 var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
+// var bodyParser = require('body-parser');
+import bodyParser from 'body-parser';
 var engines = require('consolidate');
 var swig = require('swig-templates');
 var setupApi = require('../setupApi');
@@ -73,10 +74,15 @@ function create(app: express.Express, setting: any) {
 		limit: '50mb'
 	}));
 	app.use(bodyParser.urlencoded({
-		extended: false
+		extended: false,
+		limit: '50mb'
 	}));
-	app.use(bodyParser.raw());
-	app.use(bodyParser.text());
+	app.use(bodyParser.raw({
+		limit: '50mb'
+	}));
+	app.use(bodyParser.text({
+		limit: '50mb'
+	}));
 	app.use(cookieParser());
 	app.use(compression());
 	// setupApi.createPackageDefinedMiddleware(app);

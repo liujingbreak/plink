@@ -20,20 +20,7 @@ port: 14333 # read by @dr/http-server
 #     cert: "ssl/cert.pem"
 # set max-age property of the Cache-Control header in `ms` format, see https://github.com/expressjs/serve-static
 # unit convention reference to github.com/guille/ms.js
-cacheControlMaxAge:
-    js: '365 days'
-    css: '365 days'
-    less: '365 days'
-    html: 0
-    png: '365 days'
-    jpg: '365 days'
-    jpeg: '365 days'
-    gif: '365 days'
-    svg: '365 days'
-    eot: '365 days'
-    ttf: '365 days'
-    woff: '365 days'
-    woff2: '365 days'
+
 
 packageScopes:
   - bk

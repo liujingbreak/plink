@@ -1,4 +1,5 @@
-export declare function start(): Promise<void>;
+import { ZipResourceMiddleware } from 'serve-static-zip';
+export declare function start(serveStaticZip: ZipResourceMiddleware): Promise<void>;
 /**
  * It seems ok to quit process without calling this function
  */

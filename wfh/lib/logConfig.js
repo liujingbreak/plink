@@ -28,7 +28,7 @@ module.exports = function(configObj) {
 		log4js.configure(localSetting, opt);
 		// var consoleLogger = log4js.getLogger('>');
 		// console.log = consoleLogger.info.bind(consoleLogger);
-		log4js.getLogger('dr-comp-package').info(`\n\n-------------- ${new Date().toLocaleString()} ----------------\n`);
+		log4js.getLogger('logConfig').info(`\n\n-------------- ${new Date().toLocaleString()} ----------------\n`);
 	} catch (e) {
 		console.log(e);
 		// console.log('\nIt seems current log4js configure file is outdated, please delete\n\t' + log4jsConfig +

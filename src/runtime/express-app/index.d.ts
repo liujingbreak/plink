@@ -1,6 +1,6 @@
 import * as express from 'express';
 export interface ExpressAppApi {
-	express: any;
+	express: typeof express;
 	expressApp: express.Application;
 	swig: any;
 	router(): express.Router;

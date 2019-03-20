@@ -1,16 +1,17 @@
 import api from '__api';
-import * as request from 'request';
+import request from 'request';
 import * as Url from 'url';
 import * as _ from 'lodash';
 import os from 'os';
 import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
 import cluster from 'cluster';
+import {ZipResourceMiddleware} from 'serve-static-zip';
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
 
 const pm2InstanceId = process.env.NODE_APP_INSTANCE;
 const isPm2 = cluster.isWorker && pm2InstanceId != null;
-const isMainProcess = !isPm2 || pm2InstanceId !== '0';
+const isMainProcess = !isPm2 || pm2InstanceId === '0';
 
 interface OldChecksum {
 	version: number;
@@ -27,6 +28,7 @@ interface Setting {
 	fetchRetry: number;
 	fetchLogErrPerTimes: number;
 	fetchIntervalSec: number;
+	inMemory: boolean;
 }
 
 let setting: Setting;
@@ -42,12 +44,7 @@ let timer: NodeJS.Timer;
 let stopped = false;
 let errCount = 0;
 
-export function start() {
-	log.info(pm2InstanceId);
-	if (!isMainProcess) {
-		log.info('This process is not main process');
-		return;
-	}
+export function start(serveStaticZip: ZipResourceMiddleware) {
 	setting = api.config.get(api.packageName);
 	const fetchUrl = setting.fetchUrl;
 	if (fetchUrl == null) {
@@ -55,14 +52,20 @@ export function start() {
 		return Promise.resolve();
 	}
 
+	if (!setting.inMemory && !isMainProcess) {
+		// non inMemory mode means extracting zip file to local directory dist/static,
+		// in case of cluster mode, we only want single process do zip extracting and file writing task to avoid conflict.
+		log.info('This process is not main process');
+		return;
+	}
+
 	if (setting.fetchRetry == null)
 		setting.fetchRetry = 3;
-	log.info(setting);
 	if (fs.existsSync(currChecksumFile)) {
 		currentChecksum = Object.assign(currentChecksum, fs.readJSONSync(currChecksumFile));
 		log.info('Found saved checksum file after reboot\n', JSON.stringify(currentChecksum, null, '  '));
 	}
-	return runRepeatly(setting);
+	return runRepeatly(setting, setting.inMemory ? serveStaticZip : null);
 }
 
 /**
@@ -75,20 +78,20 @@ export function stop() {
 	}
 }
 
-function runRepeatly(setting: Setting): Promise<void> {
+function runRepeatly(setting: Setting, szip: ZipResourceMiddleware): Promise<void> {
 	if (stopped)
 		return Promise.resolve();
-	return run(setting)
+	return run(setting, szip)
 	.catch(error => log.error(error))
 	.then(() => {
 		if (stopped)
 			return;
 		timer = setTimeout(() => {
-			runRepeatly(setting);
+			runRepeatly(setting, szip);
 		}, setting.fetchIntervalSec * 1000);
 	});
 }
-async function run(setting: Setting) {
+async function run(setting: Setting, szip: ZipResourceMiddleware) {
 	let checksumObj: Checksum;
 	try {
 		checksumObj = await retry(fetch, setting.fetchUrl);
@@ -107,7 +110,7 @@ async function run(setting: Setting) {
 	}
 	let downloaded = false;
 	if (checksumObj.version != null && currentChecksum.version !== checksumObj.version) {
-		await downloadZip(checksumObj.path);
+		await downloadZip(checksumObj.path, szip);
 		downloaded = true;
 		currentChecksum.version = checksumObj.version;
 	}
@@ -117,14 +120,14 @@ async function run(setting: Setting) {
 		for (const key of Object.keys(checksumObj.versions)) {
 			if (!_.has(targetVersions, key) || _.get(currVersions, [key, 'version']) !==
 				_.get(targetVersions, [key, 'version'])) {
-					await downloadZip(targetVersions[key].path);
+					await downloadZip(targetVersions[key].path, szip);
 					currVersions[key] = targetVersions[key];
 					downloaded = true;
 				}
 		}
 	}
 
-	if (downloaded) {
+	if (downloaded && !szip) {
 		fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
 		api.eventBus.emit(api.packageName + '.downloaded');
 	}
@@ -132,57 +135,74 @@ async function run(setting: Setting) {
 
 // let downloadCount = 0;
 
-async function downloadZip(path: string) {
+async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 	// tslint:disable-next-line
-	log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
+	// log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
 	const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
-	const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}.zip`);
+	const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
 	log.info('fetch', resource);
-	await retry(() => {
-		return new Promise((resolve, rej) => {
-			request.get(resource).on('error', err => {
-				rej(err);
-			})
-			.pipe(fs.createWriteStream(downloadTo))
-			.on('finish', () => setTimeout(resolve, 100));
-		});
-	});
-	const zip = new AdmZip(downloadTo);
-
-	let retryCount = 0;
-	do {
-		try {
-			log.info('extract to %s', downloadTo);
-			await tryExtract();
-			log.info(`extract ${downloadTo} done`);
-			fs.unlinkSync(downloadTo);
-			// tslint:disable-next-line
-			log.info(`${os.hostname()} ${os.userInfo().username} download done[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
-			break;
-		} catch (ex) {
-			await new Promise(resolve => setTimeout(resolve, 1000));
-		}
-	} while (++retryCount <=3);
-	if (retryCount > 3) {
-		log.info('Give up on extracting zip');
-		return Promise.resolve();
-	}
-
-	function tryExtract() {
-		return new Promise((resolve, reject) => {
-			zip.extractAllToAsync(api.config.resolve('staticDir'), true, (err) => {
-				if (err) {
-					if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
-						log.error(err);
-						// tslint:disable-next-line
-						// log.info(`${os.hostname() + ' ' + os.userInfo().username} Free mem: ${os.freemem()}, total mem: ${os.totalmem()}, retrying...`);
-						reject(err);
+	if (szip) {
+		log.info('downloading zip content to memory...');
+		await retry(() => {
+			return new Promise((resolve, rej) => {
+				request({
+					uri: resource, method: 'GET', encoding: null
+				}, (err, res, body) => {
+					if (err) {
+						return rej(err);
 					}
-					reject(err);
-				} else
+					if (res.statusCode > 299 || res.statusCode < 200)
+						return rej(new Error(res.statusCode + ' ' + res.statusMessage));
+					const size = (body as Buffer).byteLength;
+					log.info('zip loaded, length:', size > 1024 ? size / 1024 + 'k' : size);
+					szip.updateZip(body);
 					resolve();
+				});
 			});
 		});
+	} else {
+		await retry(() => {
+			return new Promise((resolve, rej) => {
+				request.get(resource).on('error', err => {
+					rej(err);
+				})
+				.pipe(fs.createWriteStream(downloadTo))
+				.on('finish', () => setTimeout(resolve, 100));
+			});
+		});
+		const zip = new AdmZip(downloadTo);
+		let retryCount = 0;
+		do {
+			try {
+				log.info('extract %s', downloadTo);
+				await tryExtract();
+				log.info(`extract ${downloadTo} done`);
+				fs.unlinkSync(downloadTo);
+				// tslint:disable-next-line
+				// log.info(`${os.hostname()} ${os.userInfo().username} download done[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
+				break;
+			} catch (ex) {
+				await new Promise(resolve => setTimeout(resolve, 1000));
+			}
+		} while (++retryCount <=3);
+		if (retryCount > 3) {
+			log.info('Give up on extracting zip');
+		}
+		function tryExtract() {
+			return new Promise((resolve, reject) => {
+				zip.extractAllToAsync(api.config.resolve('staticDir'), true, (err) => {
+					if (err) {
+						log.error(err);
+						if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
+							// tslint:disable-next-line
+							log.info(`${os.hostname()} ${os.userInfo().username} [Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
+						}
+						reject(err);
+					} else
+						resolve();
+				});
+			});
+		}
 	}
 }
 

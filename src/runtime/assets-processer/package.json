@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/assets-processer",
-  "version": "1.0.22",
+  "version": "1.0.26",
   "description": "Copy assets to destDir folder only when devMode is false",
   "main": "assetsProcesser.js",
   "dr": {
@@ -15,15 +15,33 @@
       "server": {
         "fetchUrl": null,
         "fetchRetry": 3,
+        "inMemory": true,
         "fetchLogErrPerTimes": 20,
-        "fetchIntervalSec": 300
+        "fetchIntervalSec": 300,
+        "cacheControlMaxAge": {
+          "js": "365 days",
+          "css": "365 days",
+          "less": "365 days",
+          "html": 0,
+          "png": "365 days",
+          "jpg": "365 days",
+          "jpeg": "365 days",
+          "gif": "365 days",
+          "svg": "365 days",
+          "eot": "365 days",
+          "ttf": "365 days",
+          "woff": "365 days",
+          "woff2": "365 days"
+        }
       }
     },
     "config.local": {
       "server": {
         "fetchRetry": 0,
         "fetchLogErrPerTimes": 1,
-        "fetchIntervalSec": 30
+        "fetchIntervalSec": 30,
+        "cacheControlMaxAge": {
+        }
       }
     }
   },
@@ -37,7 +55,8 @@
     "gulp-zip": "4.1.0",
     "gulp-unzip": "1.0.0",
     "adm-zip": "^0.4.13",
-    "@types/adm-zip": "^0.4.32"
+    "@types/adm-zip": "^0.4.32",
+    "serve-static-zip": "./tarballs/serve-static-zip-1.0.2.tgz"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

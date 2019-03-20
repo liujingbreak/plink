@@ -11,6 +11,7 @@ var log = require('log4js').getLogger(api.packageName);
 const {parse: parseUrl} = require('url');
 const fetchRemote = require('./dist/fetch-remote');
 var serverFavicon = require('serve-favicon');
+const {createStaticRoute, createZipRoute} = require('./dist/static-middleware');
 
 var buildUtils = api.buildUtils;
 
@@ -54,21 +55,33 @@ function activate() {
 	if (favicon)
 		api.use(serverFavicon(favicon));
 
-	var maxAgeMap = api.config.get('cacheControlMaxAge', {
+	var maxAgeMap = api.config.get(api.packageName + '.cacheControlMaxAge', {
 		// Format https://www.npmjs.com/package/ms
-		js: '365 days',
-		css: '365 days',
-		less: '365 days',
-		html: 0,
-		png: '365 days',
-		jpg: '365 days',
-		gif: '365 days',
-		svg: '365 days',
+		// js: '365 days',
+		// css: '365 days',
+		// less: '365 days',
+		// html: 0,
+		// png: '365 days',
+		// jpg: '365 days',
+		// gif: '365 days',
+		// svg: '365 days',
+		// eot: 365 days
+		// ttf: 365 days
+		// woff: 365 days
+		// woff2: 365 days
 	});
+	log.info('cache control', maxAgeMap);
 	log.info('Serve static dir', staticFolder);
-	api.use('/', staticRoute(staticFolder));
-	api.use('/', staticRoute(api.config.resolve('dllDestDir')));
-	fetchRemote.start();
+	const zss = createZipRoute(maxAgeMap);
+	api.use('/', zss.handler);
+	api.use('/', createStaticRoute(staticFolder, maxAgeMap));
+	api.use('/', createStaticRoute(api.config.resolve('dllDestDir'), maxAgeMap));
+
+	api.eventBus.on('appCreated', () => {
+		// appCreated event is emitted by express-app
+		fetchRemote.start(zss);
+	});
+
 	if (!api.config().devMode) {
 		return;
 	}
@@ -96,23 +109,9 @@ function activate() {
 				path += '/';
 			log.info('route ' + path + ' -> ' + assetsDir);
 
-			api.use(path, staticRoute(assetsDir));
+			api.use(path, createStaticRoute(assetsDir));
 		}
 	});
-
-	function staticRoute(staticDir) {
-		return function(req, res, next) {
-			var ext = Path.extname(req.path).toLowerCase();
-			if (ext.startsWith('.'))
-				ext = ext.substring(1);
-			api.express.static(staticDir, {
-				maxAge: _.isObject(maxAgeMap) ?
-					(_.has(maxAgeMap, ext) ? maxAgeMap[ext] : 0) :
-					maxAgeMap,
-				setHeaders: setCORSHeader
-			})(req, res, next);
-		};
-	}
 }
 
 function copyRootPackageFavicon() {
@@ -187,8 +186,4 @@ function copyAssets() {
 		})
 		.on('error', reject);
 	});
-}
-
-function setCORSHeader(res) {
-	res.setHeader('Access-Control-Allow-Origin', '*');
 }
