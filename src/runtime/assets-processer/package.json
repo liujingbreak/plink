@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/assets-processer",
-  "version": "1.0.26",
+  "version": "1.0.28",
   "description": "Copy assets to destDir folder only when devMode is false",
   "main": "assetsProcesser.js",
   "dr": {
@@ -56,7 +56,7 @@
     "gulp-unzip": "1.0.0",
     "adm-zip": "^0.4.13",
     "@types/adm-zip": "^0.4.32",
-    "serve-static-zip": "./tarballs/serve-static-zip-1.0.2.tgz"
+    "serve-static-zip": "./tarballs/serve-static-zip-1.0.3.tgz"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

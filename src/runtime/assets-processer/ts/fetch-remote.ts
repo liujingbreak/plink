@@ -154,7 +154,7 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 					if (res.statusCode > 299 || res.statusCode < 200)
 						return rej(new Error(res.statusCode + ' ' + res.statusMessage));
 					const size = (body as Buffer).byteLength;
-					log.info('zip loaded, length:', size > 1024 ? size / 1024 + 'k' : size);
+					log.info('zip loaded, length:', size > 1024 ? Math.round(size / 1024) + 'k' : size);
 					szip.updateZip(body);
 					resolve();
 				});
