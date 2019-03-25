@@ -163,7 +163,7 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 			});
 		});
 	} else if (setting.downloadMode === 'fork') {
-		return forkDownloadzip(resource);
+		await retry<string>(forkDownloadzip, resource);
 	} else {
 		await retry(() => {
 			return new Promise((resolve, rej) => {
@@ -242,15 +242,16 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 			if (cnt >= setting.fetchRetry) {
 				throw err;
 			}
-			log.debug(err);
-			log.debug('Encounter error, will retry');
+			log.warn(err);
+			log.info('Encounter error, will retry');
 		}
 		await new Promise(res => setTimeout(res, 5000));
 	}
 }
 
-async function forkDownloadzip(resource: string) {
+async function forkDownloadzip(resource: string): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
+		let extractingDone = false;
 		const child = fork('node_modules/' + api.packageName + '/dist/download-zip-process.js',
 			[resource, api.config.resolve('staticDir'), setting.fetchRetry + ''], {
 			silent: true
@@ -260,12 +261,17 @@ async function forkDownloadzip(resource: string) {
 			reject(output);
 		});
 		child.on('exit', (code, signal) => {
-			log.info('zip download process done with: ', code, signal);
+			log.info('zip download process exit with: %d - %s', code, signal);
 			if (code !== 0) {
-				log.error('exit with erro signal', signal);
-				reject(output);
-			} else
+				log.error('exit with error signal "%s"', signal);
+				if (extractingDone)
+					resolve(output);
+				else
+					reject(output);
+			} else {
+				log.info('"%s" download process done successfully,', resource, output);
 				resolve(output);
+			}
 		});
 		let output = '';
 		child.stdout.setEncoding('utf-8');
@@ -280,6 +286,8 @@ async function forkDownloadzip(resource: string) {
 			if (msg.log) {
 				log.info('[child process]', msg.log);
 				return;
+			} else if (msg.done) {
+				extractingDone = true;
 			} else if (msg.error) {
 				log.error(msg.error);
 			}

@@ -18,8 +18,8 @@ async function downloadZip(fetchUrl: string) {
 	// log.info('fetch', resource);
 	process.send({log: `[pid:${process.pid}] fetch `+ resource});
 	process.send({log: `[pid:${process.pid}] downloading zip content to memory...`});
-	await retry(() => {
-		return new Promise<Buffer>((resolve, rej) => {
+	await retry(async () => {
+		const buf = await new Promise<Buffer>((resolve, rej) => {
 			request({
 				uri: resource, method: 'GET', encoding: null
 			}, (err, res, body) => {
@@ -33,11 +33,9 @@ async function downloadZip(fetchUrl: string) {
 				process.send({log: `[pid:${process.pid}] zip loaded, length:${size > 1024 ? Math.round(size / 1024) + 'k' : size}`});
 				resolve(body);
 			});
-		})
-		.then(buf => {
-			const zip = new AdmZip(buf);
-			return tryExtract(zip);
 		});
+		const zip = new AdmZip(buf);
+		await tryExtract(zip);
 	});
 }
 
@@ -48,11 +46,14 @@ function tryExtract(zip: AdmZip) {
 				process.send({error: err});
 				if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
 					// tslint:disable-next-line
-					process.send({log: `${os.hostname()} ${os.userInfo().username} [Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`});
+					process.send({log: `[pid:${process.pid}]${os.hostname()} ${os.userInfo().username} [Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`});
 				}
 				reject(err);
-			} else
+			} else {
+				process.send({done: `[pid:${process.pid}]done`});
+				console.log('zip extracted to ' + zipExtractDir);
 				resolve();
+			}
 		});
 	});
 }
