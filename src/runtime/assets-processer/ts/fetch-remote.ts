@@ -7,6 +7,7 @@ import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
 import cluster from 'cluster';
 import {ZipResourceMiddleware} from 'serve-static-zip';
+import {fork} from 'child_process';
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
 
 const pm2InstanceId = process.env.NODE_APP_INSTANCE;
@@ -28,7 +29,7 @@ interface Setting {
 	fetchRetry: number;
 	fetchLogErrPerTimes: number;
 	fetchIntervalSec: number;
-	inMemory: boolean;
+	downloadMode: 'memory' | 'fork' | null;
 }
 
 let setting: Setting;
@@ -52,7 +53,7 @@ export function start(serveStaticZip: ZipResourceMiddleware) {
 		return Promise.resolve();
 	}
 
-	if (!setting.inMemory && !isMainProcess) {
+	if (setting.downloadMode !== 'memory'  && !isMainProcess) {
 		// non inMemory mode means extracting zip file to local directory dist/static,
 		// in case of cluster mode, we only want single process do zip extracting and file writing task to avoid conflict.
 		log.info('This process is not main process');
@@ -65,7 +66,7 @@ export function start(serveStaticZip: ZipResourceMiddleware) {
 		currentChecksum = Object.assign(currentChecksum, fs.readJSONSync(currChecksumFile));
 		log.info('Found saved checksum file after reboot\n', JSON.stringify(currentChecksum, null, '  '));
 	}
-	return runRepeatly(setting, setting.inMemory ? serveStaticZip : null);
+	return runRepeatly(setting, setting.downloadMode === 'memory' ? serveStaticZip : null);
 }
 
 /**
@@ -127,8 +128,8 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
 		}
 	}
 
-	if (downloaded && !szip) {
-		fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
+	if (downloaded) {
+		// fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
 		api.eventBus.emit(api.packageName + '.downloaded');
 	}
 }
@@ -143,6 +144,7 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 	log.info('fetch', resource);
 	if (szip) {
 		log.info('downloading zip content to memory...');
+
 		await retry(() => {
 			return new Promise((resolve, rej) => {
 				request({
@@ -160,6 +162,8 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 				});
 			});
 		});
+	} else if (setting.downloadMode === 'fork') {
+		return forkDownloadzip(resource);
 	} else {
 		await retry(() => {
 			return new Promise((resolve, rej) => {
@@ -243,4 +247,42 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 		}
 		await new Promise(res => setTimeout(res, 5000));
 	}
+}
+
+async function forkDownloadzip(resource: string) {
+	return new Promise<string>((resolve, reject) => {
+		const child = fork('node_modules/' + api.packageName + '/dist/download-zip-process.js',
+			[resource, api.config.resolve('staticDir'), setting.fetchRetry + ''], {
+			silent: true
+		});
+		child.on('error', err => {
+			log.error(err);
+			reject(output);
+		});
+		child.on('exit', (code, signal) => {
+			log.info('zip download process done with: ', code, signal);
+			if (code !== 0) {
+				log.error('exit with erro signal', signal);
+				reject(output);
+			} else
+				resolve(output);
+		});
+		let output = '';
+		child.stdout.setEncoding('utf-8');
+		child.stdout.on('data', (chunk) => {
+			output += chunk;
+		});
+		child.stderr.setEncoding('utf-8');
+		child.stderr.on('data', (chunk) => {
+			output += chunk;
+		});
+		child.on('message', msg => {
+			if (msg.log) {
+				log.info('[child process]', msg.log);
+				return;
+			} else if (msg.error) {
+				log.error(msg.error);
+			}
+		});
+	});
 }

@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/assets-processer",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "description": "Copy assets to destDir folder only when devMode is false",
   "main": "assetsProcesser.js",
   "dr": {
@@ -15,7 +15,7 @@
       "server": {
         "fetchUrl": null,
         "fetchRetry": 3,
-        "inMemory": true,
+        "downloadMode": "fork",
         "fetchLogErrPerTimes": 20,
         "fetchIntervalSec": 300,
         "cacheControlMaxAge": {
