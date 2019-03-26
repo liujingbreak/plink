@@ -245,7 +245,7 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 			log.warn(err);
 			log.info('Encounter error, will retry');
 		}
-		await new Promise(res => setTimeout(res, 5000));
+		await new Promise(res => setTimeout(res, cnt * 5000));
 	}
 }
 
@@ -263,11 +263,14 @@ async function forkDownloadzip(resource: string): Promise<string> {
 		child.on('exit', (code, signal) => {
 			log.info('zip download process exit with: %d - %s', code, signal);
 			if (code !== 0) {
-				log.error('exit with error signal "%s"', signal);
-				if (extractingDone)
-					resolve(output);
-				else
-					reject(output);
+				log.info(code);
+				if (extractingDone) {
+					return resolve(output);
+				}
+				log.error('exit with error code %d - "%s"', JSON.stringify(code), signal);
+				if (output)
+					log.error(`[child process][pid:${child.pid}]`, output);
+				reject(output);
 			} else {
 				log.info('"%s" download process done successfully,', resource, output);
 				resolve(output);

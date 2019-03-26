@@ -70,7 +70,7 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 			console.log(err);
 			process.send({log: 'Encounter error, will retry'});
 		}
-		await new Promise(res => setTimeout(res, 5000));
+		await new Promise(res => setTimeout(res, cnt * 5000));
 	}
 }
 
