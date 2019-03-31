@@ -30,6 +30,7 @@
 		"target": "ES5",
 		"moduleResolution": "Node",
 		"preserveSymlinks": false,
-		"importHelpers": true
+		"importHelpers": true,
+		"downlevelIteration": true
 	}
 }
