@@ -1,7 +1,7 @@
 {
   "name": "@dr-core/express-app",
   "description": "express app",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "main": "dist/app.js",
   "types": "index.d.ts",
   "dependencies": {
@@ -9,7 +9,6 @@
     "body-parser": "~1.18.1",
     "cookie-parser": "~1.4.3",
     "express": "^4.16.3",
-    "morgan": "~1.8.2",
     "serve-favicon": "^2.4.4",
     "consolidate": "^0.14.5",
     "jade": "^1.11.0",

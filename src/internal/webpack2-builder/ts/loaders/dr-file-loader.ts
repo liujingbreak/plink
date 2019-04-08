@@ -1,3 +1,8 @@
+/**
+ * Unlike file-loader, it loads assets resource from "DRCP" package relative directory, not from current
+ * process.cwd() directory 
+ */
+
 import * as path from 'path';
 import api from '__api';
 import * as _ from 'lodash';
