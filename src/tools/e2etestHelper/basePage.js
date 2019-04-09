@@ -1,5 +1,5 @@
 var Path = require('path');
-var log = require('@dr/logger').getLogger('test.' + Path.basename(__filename));
+var log = require('log4js').getLogger('test.' + Path.basename(__filename));
 var _ = require('lodash');
 var Promise = require('bluebird');
 var helper = require('./webdriverHelper');

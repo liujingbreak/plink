@@ -1,7 +1,7 @@
 var webdriver = require('selenium-webdriver');
 var Path = require('path');
 var _ = require('lodash');
-var log = require('@dr/logger').getLogger('test.' + Path.basename(__filename));
+var log = require('log4js').getLogger('test.' + Path.basename(__filename));
 var request = require('request');
 var Promise = require('bluebird');
 var fs = require('fs');
