@@ -207,6 +207,7 @@ function _tsLintPackageAsync(tslint, fullName, json, packagePath, fix) {
 		var tsDestDir = _.get(json, 'dr.ts.dest', 'dist');
 		var stream = gulp.src([packagePath0 + '/**/*.{ts,tsx}',
 			`!${packagePath}/**/*.spec.ts`,
+			`!${packagePath}/**/*.d.ts`,
 			`!${packagePath}/${tsDestDir}/**/*`,
 			`!${packagePath0}/spec/**/*`,
 			`!${packagePath}/${_.get(json, 'dr.assetsDir', 'assets')}/**/*`,
@@ -247,6 +248,7 @@ function _lintPackageAsync(eslint, fullName, json, packagePath, fix) {
 	return new Promise((resolve, reject) => {
 		var tsDestDir = _.get(json, 'dr.ts.dest', 'dist');
 		var stream = gulp.src([packagePath + '/**/*.{js,jsx}',
+			`!${packagePath}/isom/**/*`,
 			`!${packagePath}/${tsDestDir}/**/*`,
 			`!${packagePath}/spec/**/*`,
 			`!${packagePath}/${_.get(json, 'dr.assetsDir', 'assets')}/**/*`,

@@ -198,9 +198,12 @@ function drcpCommand(startTime) {
 					'default': 'inline'
 				}
 			})
-			.usage('Run gulp-typescript to compile Node.js side typescript files\n' +
-				'It compiles "<component-directory>/ts/**/*.ts" to "<component-directory>/dist" for each component,' +
-				'you can add properties like "dr.ts.src" and "dr.ts.dest" to component package.json file which changes source and destination directry.\n\n' +
+			.usage('Run gulp-typescript to compile Node.js side typescript files.\n\n' +
+				'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
+				'  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @dr packages.\n' +
+				'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs not only in ' +
+				'Node.js but also in Browser) in directory `isom`.\n' +
+				// 'you can add properties like "dr.ts.src" and "dr.ts.dest" to component package.json file which changes source and destination directry.\n\n' +
 				hlDesc('drcp tsc <package..>\n') + ' Only compile specific components by providing package name or short name\n' +
 				hlDesc('drcp tsc\n') + ' Compile all components belong to associated projects, not including installed components\n' +
 				hlDesc('drcp tsc --pj <project directory...>\n') + ' Compile components belong to specific projects\n' +

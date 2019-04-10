@@ -1,4 +1,4 @@
-> You get binaries not by installing this package, but by clone the whole repo. We don't want every version of binary files go to npm registry. 
+> You should not get binaries by installing this package, but by clone the whole repo. We don't want every version of binary files go to npm registry. 
 
 
 ## node-sass

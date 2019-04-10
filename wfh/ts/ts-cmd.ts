@@ -21,18 +21,19 @@ exports.tsc = tsc;
 const root = config().rootPath;
 const nodeModules = Path.join(root, 'node_modules');
 
-interface ComponentInfo {
-	srcDir: string;
-	destDir: string;
-	dir: string;
-}
-
 interface Args {
 	package: string[];
 	project: string[];
 	watch: boolean;
 	sourceMap: string;
 }
+
+interface ComponentDirInfo {
+	srcDirs?: string[];
+	destDir?: string;
+	dir?: string;
+}
+
 /**
  * @param {object} argv
  * argv.watch: boolean
@@ -41,9 +42,10 @@ interface Args {
  * @return void
  */
 function tsc(argv: Args, onCompiled: () => void) {
+	const possibleSrcDirs = ['isom', 'ts'];
 	var compGlobs: string[] = [];
 	// var compStream = [];
-	const compDirInfo: {[name: string]: ComponentInfo} = {}; // {[name: string]: {srcDir: string, destDir: string}}
+	const compDirInfo: Map<string, ComponentDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
 	const baseTsconfig = require('../tsconfig.json');
 
 	const tsProject = ts.createProject(Object.assign({}, baseTsconfig.compilerOptions, {
@@ -65,18 +67,35 @@ function tsc(argv: Args, onCompiled: () => void) {
 		packageUtils.findAllPackages(onComponent, 'src');
 
 	function onComponent(name: string, entryPath: string, parsedName: string, json: any, packagePath: string) {
-		var srcDir = _.get(json, 'dr.ts.src', 'ts');
-		var destDir = _.get(json, 'dr.ts.dest', 'dist');
-		destDir = _.trim(destDir, '\\');
-		destDir = _.trim(destDir, '/');
-		srcDir = _.trim(srcDir, '\\');
-		srcDir = _.trim(srcDir, '/');
-		compDirInfo[name] = {srcDir, destDir, dir: packagePath};
-		try {
-			if (fs.statSync(Path.join(packagePath, srcDir)).isDirectory()) {
-				compGlobs.push(Path.resolve(packagePath, srcDir).replace(/\\/g, '/') + '/**/*.ts');
-			}
-		} catch (e) {}
+		// let srcDir = _.get(json, 'dr.ts.src', 'ts');
+		// let destDir = _.get(json, 'dr.ts.dest', 'dist');
+
+		// destDir = _.trim(destDir, '\\');
+		// destDir = _.trim(destDir, '/');
+		// srcDir = _.trim(srcDir, '\\');
+		// srcDir = _.trim(srcDir, '/');
+		const srcDirs = possibleSrcDirs.filter(srcDir => fs.statSync(Path.join(packagePath, srcDir)).isDirectory());
+		compDirInfo.set(name, {
+			srcDirs,
+			destDir: 'dist',
+			dir: packagePath
+		});
+		srcDirs.forEach(srcDir => {
+			compGlobs.push(Path.resolve(packagePath, srcDir).replace(/\\/g, '/') + '/**/*.ts');
+		});
+		// try {
+		// 	possibleSrcDirs.forEach(src => {
+		// 		if (fs.statSync(Path.join(packagePath, srcDir)).isDirectory()) {
+		// 			compGlobs.push(Path.resolve(packagePath, srcDir).replace(/\\/g, '/') + '/**/*.ts');
+		// 		}
+		// 	});
+		// 	if (fs.statSync(Path.join(packagePath, srcDir)).isDirectory()) {
+		// 		compGlobs.push(Path.resolve(packagePath, srcDir).replace(/\\/g, '/') + '/**/*.ts');
+		// 	}
+		// 	if (fs.statSync(Path.join(packagePath, 'isom')).isDirectory()) {
+		// 		compGlobs.push(Path.resolve(packagePath, 'isom').replace(/\\/g, '/') + '/**/*.ts');
+		// 	}
+		// } catch (e) {}
 	}
 
 	const delayCompile = _.debounce(() => {
@@ -95,9 +114,11 @@ function tsc(argv: Args, onCompiled: () => void) {
 		const watchDirs: string[] = [];
 		compGlobs = [];
 
-		_.each(compDirInfo, (info, name) => {
-			watchDirs.push(Path.join(info.dir, info.srcDir).replace(/\\/g, '/') + '/**/*.ts');
-		});
+		for (const info of compDirInfo.values()) {
+			info.srcDirs.forEach(srcDir => {
+				watchDirs.push(Path.join(info.dir, srcDir).replace(/\\/g, '/') + '/**/*.ts');
+			});
+		}
 		const watcher = chokidar.watch(watchDirs, {ignored: /(\.d\.ts|\.js)$/ });
 		watcher.on('add', (path: string) => onChangeFile(path, 'added'));
 		watcher.on('change', (path: string) => onChangeFile(path, 'changed'));
@@ -117,7 +138,7 @@ function tsc(argv: Args, onCompiled: () => void) {
 }
 
 function compile(compGlobs: string[], tsProject: any,
-	compDirInfo: {[name: string]: ComponentInfo}, inlineSourceMap: boolean) {
+	compDirInfo: Map<string, ComponentDirInfo>, inlineSourceMap: boolean) {
 	const gulpBase = root + SEP;
 	const startTime = new Date().getTime();
 
@@ -133,9 +154,18 @@ function compile(compGlobs: string[], tsProject: any,
 			let packageName = /^((?:@[^/\\]+[/\\])?[^/\\]+)/.exec(shortPath)[1];
 			if (SEP === '\\')
 				packageName = packageName.replace(/\\/g, '/');
-			const {srcDir, destDir} = compDirInfo[packageName];
-			file.path = Path.resolve(nodeModules, packageName, destDir,
-				shortPath.substring(packageName.length + 1 + (srcDir.length > 0 ? srcDir.length + 1 : 0)));
+			const {srcDirs, destDir, dir} = compDirInfo.get(packageName);
+			const packageRelPath = Path.relative(dir, file.path).replace(/\\/g, '/');
+			srcDirs.some(srcDir => {
+				if (packageRelPath.indexOf(srcDir + '/') === 0) {
+					if (srcDir === 'ts') {
+						file.path = Path.resolve(nodeModules, packageName, destDir,
+							shortPath.substring(packageName.length + 1 + (srcDir.length > 0 ? srcDir.length + 1 : 0)));
+					}
+					return true;
+				}
+				return false;
+			});
 			next(null, file);
 		});
 	}

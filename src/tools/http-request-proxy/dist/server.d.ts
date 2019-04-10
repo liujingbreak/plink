@@ -1,49 +1,17 @@
 import * as express from 'express';
+import { ProxyInstanceForBrowser } from '../isom/proxy-instance';
+export * from '../isom/proxy-instance';
 export declare function activate(): void;
+export declare class ProxyInstance extends ProxyInstanceForBrowser {
+    constructor(name: string, options?: {
+        [k: string]: any;
+    });
+    useProxy(router: any, target: string): void;
+}
 export declare function forName(name: string, opts?: {
     [k: string]: any;
 }): ProxyInstance;
 export declare function forEach(callback: (proxyInstance: ProxyInstance) => void): void;
-export declare type BodyHandler = (req: express.Request, hackedReqHeaders: {
-    [name: string]: string;
-}, requestBody: any, lastResult: any) => any;
-export declare type HeaderHandler = (req: express.Request, header: {
-    [name: string]: any;
-}) => void;
-export declare class ProxyInstance {
-    private options;
-    name: string;
-    resHandlers: {
-        [path: string]: Set<BodyHandler | HeaderHandler>;
-    };
-    reqHandlers: {
-        [path: string]: Set<BodyHandler | HeaderHandler>;
-    };
-    mockHandlers: {
-        [path: string]: Set<BodyHandler | HeaderHandler>;
-    };
-    resHeaderHandlers: {
-        [path: string]: Set<HeaderHandler>;
-    };
-    constructor(name: string, options?: {
-        [k: string]: any;
-    });
-    readonly isRemoveCookieDomain: boolean;
-    addOptions(opt: {
-        [k: string]: any;
-    }): ProxyInstance;
-    useProxy(router: any, target: string): void;
-    /**
-     * @param {*} path sub path after '/http-request-proxy'
-     * @param {*} handler (url: string, method:string,
-     * 	responseHeaders: {[name: string]:string}, responseBody: string | Buffer) => null | Promise<string>
-     */
-    interceptResponse(path: string, handler: BodyHandler): void;
-    interceptRequest(path: string, handler: BodyHandler): void;
-    mockResponse(path: string, handler: BodyHandler): void;
-    interceptResHeader(path: string, handler: HeaderHandler): void;
-    private addHandler;
-}
 /**
  * Add proxy middlewares to a specific router path
     * @param {Route} router Express router instance, could be `api.router()`

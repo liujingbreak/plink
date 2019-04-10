@@ -4,6 +4,8 @@ import * as log4js from 'log4js';
 import * as express from 'express';
 var log = log4js.getLogger(api.packageName);
 import doProxy from './proxy-handler';
+import {ProxyInstanceForBrowser} from '../isom/proxy-instance';
+export * from '../isom/proxy-instance';
 
 export function activate() {
 	// api.router().use('/', api.cors());
@@ -18,6 +20,16 @@ export function activate() {
 			return;
 		}
 		useProxy(api.router(), proxyTo, '');
+	}
+}
+
+export class ProxyInstance extends ProxyInstanceForBrowser {
+	constructor(name: string, options: {[k: string]: any} = {}) {
+		super(name, options);
+	}
+
+	useProxy(router: any, target: string) {
+		useProxy(router, target, this.name);
 	}
 }
 
@@ -36,63 +48,6 @@ export function forEach(callback: (proxyInstance: ProxyInstance) => void): void 
 		_.each(multiProxies, (target, name) => callback(forName(name)));
 	} else {
 		callback(forName(''));
-	}
-}
-export type BodyHandler = (req: express.Request,
-	hackedReqHeaders: {[name: string]: string},
-	requestBody: any,
-	lastResult: any) => any;
-
-export type HeaderHandler = (req: express.Request, header: {[name: string]: any}) => void;
-export class ProxyInstance {
-	name: string;
-	resHandlers: {[path: string]: Set<BodyHandler | HeaderHandler>} = {};
-	reqHandlers: {[path: string]: Set<BodyHandler | HeaderHandler>} = {};
-	mockHandlers: {[path: string]: Set<BodyHandler | HeaderHandler>} = {};
-	resHeaderHandlers: {[path: string]: Set<HeaderHandler>} = {};
-	constructor(name: string, private options: {[k: string]: any} = {}) {
-		this.name = name;
-	}
-
-	get isRemoveCookieDomain(): boolean {
-		return !!this.options.removeCookieDomain;
-	}
-
-	addOptions(opt: {[k: string]: any}): ProxyInstance {
-		_.assign(this.options, opt);
-		return this;
-	}
-
-	useProxy(router: any, target: string) {
-		useProxy(router, target, this.name);
-	}
-	/**
-	 * @param {*} path sub path after '/http-request-proxy'
-	 * @param {*} handler (url: string, method:string,
-	 * 	responseHeaders: {[name: string]:string}, responseBody: string | Buffer) => null | Promise<string>
-	 */
-	interceptResponse(path: string, handler: BodyHandler) {
-		this.addHandler(path, handler, this.resHandlers);
-	}
-	interceptRequest(path: string, handler: BodyHandler) {
-		this.addHandler(path, handler, this.reqHandlers);
-	}
-	mockResponse(path: string, handler: BodyHandler) {
-		this.addHandler(path, handler, this.mockHandlers);
-	}
-	interceptResHeader(path: string, handler: HeaderHandler) {
-		this.addHandler(path, handler, this.resHeaderHandlers);
-	}
-	private addHandler(path: string, handler: BodyHandler | HeaderHandler,
-		to: {[path: string]: Set<BodyHandler | HeaderHandler>}) {
-		if (path !== '*' && !_.startsWith(path, '/'))
-			path = '/' + path;
-		var list: Set<BodyHandler | HeaderHandler> = _.get(to, path);
-		if (list == null) {
-			list = new Set<BodyHandler | HeaderHandler>();
-			to[path] = list;
-		}
-		list.add(handler);
 	}
 }
 
