@@ -74,7 +74,13 @@ function tsc(argv: Args, onCompiled: () => void) {
 		// destDir = _.trim(destDir, '/');
 		// srcDir = _.trim(srcDir, '\\');
 		// srcDir = _.trim(srcDir, '/');
-		const srcDirs = possibleSrcDirs.filter(srcDir => fs.statSync(Path.join(packagePath, srcDir)).isDirectory());
+		const srcDirs = possibleSrcDirs.filter(srcDir => {
+			try {
+				return fs.statSync(Path.join(packagePath, srcDir)).isDirectory();
+			} catch (e) {
+				return false;
+			}
+		});
 		compDirInfo.set(name, {
 			srcDirs,
 			destDir: 'dist',
