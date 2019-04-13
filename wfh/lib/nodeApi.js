@@ -69,7 +69,7 @@ NodeApi.prototype = {
 				isPage: match[1] != null || _.startsWith(url, 'page://'),
 				locale: match[1]
 			};
-		} else if (url.length > 1 && url.charAt(0) === '/' && url.charAt(1) !== '/' && url !== '/favicon.ico') {
+		} else if (url.length > 1 && !url.startsWith(this.config.publicPath) && url.charAt(0) === '/' && url.charAt(1) !== '/' && url !== '/favicon.ico') {
 			let m = /^\/(?:([^/]+)\/)?([^/].*)$/.exec(url);
 			if (m && m[1]) {
 				var nameMap = this.packageInfo.shortNameMap;

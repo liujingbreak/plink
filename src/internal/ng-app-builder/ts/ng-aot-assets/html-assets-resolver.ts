@@ -16,7 +16,13 @@ const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'
 
 export function replaceForHtml(content: string, resourcePath: string,
 	callback: (text: string) => Observable<string>): Observable<string> {
-	const ast = new TemplateParser(content).parse();
+	let ast: TagAst[];
+	try {
+		ast = new TemplateParser(content).parse();
+	} catch (e) {
+		log.error(content);
+		throw e;
+	}
 	// const proms: Array<PromiseLike<any>> = [];
 	const dones: Observable<Rep>[] = [];
 	const resolver = new AttrAssetsUrlResolver(resourcePath, callback);

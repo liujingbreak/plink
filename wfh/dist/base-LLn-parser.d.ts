@@ -31,7 +31,7 @@ export declare abstract class LookAhead<T> {
      * @param values lookahead string or tokens
      */
     isNext(...values: T[]): boolean;
-    _isNext<NEXT, C>(values: C[], isEqual?: (a: NEXT, b: C) => boolean): boolean;
+    _isNext<C>(values: C[], isEqual?: (a: T, b: C) => boolean): boolean;
     throwError(unexpected?: string): void;
     abstract getCurrentPosInfo(): string;
     /**
@@ -83,4 +83,5 @@ export declare abstract class BaseParser<T> extends LookAhead<Token<T>> {
     constructor(lexer: Iterable<Token<T>>);
     getCurrentPosInfo(): string;
     isNextTypes(...types: T[]): boolean;
+    isNextTokenText(...text: string[]): boolean;
 }

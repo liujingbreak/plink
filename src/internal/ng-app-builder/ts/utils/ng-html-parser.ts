@@ -12,6 +12,7 @@ export enum HtmlTokenType {
 	']',
 	'</',
 	'=',
+	qm, // quotation mark
 	identity,
 	stringLiteral,
 	any, // .*
@@ -38,6 +39,11 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 					this.advance();
 					yield new Token(HtmlTokenType[char], this, start);
 					continue;
+				case '"':
+				case '\'':
+					this.advance();
+					yield new Token(HtmlTokenType.qm, this, start);
+					continue;
 				default:
 			}
 			if (char === '<' && this.isIdStart(2)) {
@@ -53,17 +59,17 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 					char = this.la();
 				} while (this.isIdStart());
 				yield new Token(HtmlTokenType.identity, this, start);
-			} else if (char === '"') {
-				yield this.stringLit('"');
-			} else if (char === '\'') {
-				yield this.stringLit('\'');
-			} else if (char === '`') {
-				yield this.stringLit('`');
+			// } else if (char === '"') {
+			// 	yield this.stringLit('"');
+			// } else if (char === '\'') {
+			// 	yield this.stringLit('\'');
+			// } else if (char === '`') {
+			// 	yield this.stringLit('`');
 			} else if (this.isWhitespace()) {
 				do {
 					this.advance();
 				} while (this.isWhitespace());
-				// yield new Token(HtmlTokenType.space, ' ');
+				yield new Token(HtmlTokenType.space, this, start);
 				continue;
 			} else {
 				yield new Token(HtmlTokenType.any, this, start);
@@ -99,9 +105,12 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 	stringLit(quote: string) {
 		this.advance();
 		const start = this.position;
+		const [line, col] = this.getLineColumn(start);
 		while (this.la() !== quote) {
-			if (this.la() == null)
+			if (this.la() == null) {
+				console.log('endless string literal begin with line %s, col %s', line, col);
 				this.throwError();
+			}
 			// console.log(':', this.la());
 			if (this.la() === '\\') {
 				this.advance();
@@ -164,10 +173,12 @@ export interface AttributeValueAst {
 }
 export class TemplateParser extends BaseParser<HtmlTokenType> {
 	lexer: TemplateLexer;
+	text: string;
 	constructor(input: string) {
 		const lexer = new TemplateLexer(input);
 		super(lexer);
 		this.lexer = lexer;
+		this.text = input;
 	}
 
 	getCurrentPosInfo(): string {
@@ -204,13 +215,15 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 	}
 	attributes(): {[key: string]: {isNg: boolean, value: AttributeValueAst}} {
 		const attrs: {[key: string]: {isNg: boolean, value: AttributeValueAst}} = {};
-		while (this.la() != null && this.la().type !== HtmlTokenType['>'] && this.la().type !== HtmlTokenType['/>']) {
+		while (this.la() && !this.isNextTypes(HtmlTokenType['>']) && !this.isNextTypes(HtmlTokenType['/>'])) {
 			if (this.isNgAttrName()) {
 				const key = this.ngAttrName();
 				attrs[key] = {isNg: true, value: this.attrValue()};
 			} else if (this.la().type === HtmlTokenType.identity) {
 				const key = this.attrName();
 				attrs[key] = {isNg: false, value: this.attrValue()};
+			} else if (this.isNextTypes(HtmlTokenType.space)) {
+				this.advance();
 			} else {
 				console.log('Previous tokens: ', this.lb().text);
 				this.throwError(this.la().text);
@@ -242,7 +255,41 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 		if (this.la() && this.la().type === HtmlTokenType['=']) {
 			// let {text, start, end} = this.advance(2);
 			// return {text, start, end};
-			return this.advance(2);
+			this.advance();
+			let start = this.la() && this.la().start;
+			if (this.isNextTypes(HtmlTokenType.qm)) {
+				const endText = this.advance().text;
+				start = this.la() && this.la().start;
+				while (this.la() && !this.isNextTokenText(endText)) {
+					this.advance();
+				}
+				if (this.la() == null) {
+					this.throwError('end of file');
+				}
+				const end = this.lb().end;
+				this.advance();
+				// console.log('value:', this.text.slice(start, end));
+				return {
+					text: this.text.slice(start, end),
+					start,
+					end
+				};
+			}
+
+			while (this.la() && !this.isNextTypes(HtmlTokenType.space) &&
+				!this.isNextTypes(HtmlTokenType['>'])) {
+				this.advance();
+			}
+			if (this.la() == null) {
+				this.throwError('end of file');
+			}
+			const end = this.lb().end;
+			// console.log('value:', this.text.slice(start, end));
+			return {
+				text: this.text.slice(start, end),
+				start,
+				end
+			};
 		} else {
 			return null;
 		}

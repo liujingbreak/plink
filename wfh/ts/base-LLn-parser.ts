@@ -70,10 +70,10 @@ export abstract class LookAhead<T> {
 	 * @param values lookahead string or tokens
 	 */
 	isNext(...values: T[]): boolean {
-		return this._isNext<T, T>(values);
+		return this._isNext<T>(values);
 	}
 
-	_isNext<NEXT, C>(values: C[], isEqual = (a: NEXT, b: C) => a as any === b): boolean {
+	_isNext<C>(values: C[], isEqual = (a: T, b: C) => a as any === b): boolean {
 		let compareTo: C[]| string;
 		let compareFn: (...arg: any[]) => boolean;
 		if (this.isString) {
@@ -222,6 +222,15 @@ export abstract class BaseParser<T> extends LookAhead<Token<T>> {
 				return false;
 			return a.type === b;
 		};
-		return this._isNext<Token<T>, T>(types, comparator);
+		return this._isNext<T>(types, comparator);
+	}
+
+	isNextTokenText(...text: string[]): boolean {
+		const comparator = (a: Token<T>, b: string) => {
+			if (a == null)
+				return false;
+			return a.text === b;
+		};
+		return this._isNext<string>(text, comparator);
 	}
 }

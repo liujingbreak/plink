@@ -9,21 +9,21 @@ describe('ng-html-parser', () => {
 		lexer = new TemplateLexer('abcde');
 	});
 
-	it('Lexer.la()  should work', () => {
+	xit('Lexer.la()  should work', () => {
 		// let lexer = new ps.Lexer('abcde');
 		expect(lexer.la()).toEqual('a');
 		expect(lexer.la(2)).toEqual('b');
 		expect(lexer.la(3)).toEqual('c');
 	});
 
-	it('Lexer.advance()  should work', () => {
+	xit('Lexer.advance()  should work', () => {
 		lexer.advance(2);
 		expect(lexer.la()).toEqual('c');
 		expect(lexer.la(3)).toEqual('e');
 		expect(lexer.la(7)).toEqual(null);
 	});
 
-	it('Lexer.isNext("cde") should work', () => {
+	xit('Lexer.isNext("cde") should work', () => {
 		lexer = new TemplateLexer('cde');
 		expect(lexer.isNext('cde')).toBeTruthy();
 		expect(lexer.isNext('cd')).toBeTruthy();
@@ -31,7 +31,7 @@ describe('ng-html-parser', () => {
 	});
 
 	const lexer2 = new TemplateLexer('0123\n5678\n0abcd\n');
-	it('line and column shoud be correct', () => {
+	xit('line and column shoud be correct', () => {
 		expect(lexer2.la(10 + 1)).toEqual('0');
 		let chr = lexer2.la();
 		while (chr != null) {
@@ -45,7 +45,7 @@ describe('ng-html-parser', () => {
 		expect(lexer2.getLineColumn(11)).toEqual([2, 1]);
 	});
 
-	it('template lexer should work for test html file', () => {
+	xit('template lexer should work for test html file', () => {
 		const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
 		const lexer = new TemplateLexer(ngHtml);
 		for (const token of lexer) {

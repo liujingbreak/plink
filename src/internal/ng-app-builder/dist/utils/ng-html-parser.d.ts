@@ -9,10 +9,11 @@ export declare enum HtmlTokenType {
     ']' = 6,
     '</' = 7,
     '=' = 8,
-    identity = 9,
-    stringLiteral = 10,
-    any = 11,
-    space = 12
+    qm = 9,
+    identity = 10,
+    stringLiteral = 11,
+    any = 12,
+    space = 13
 }
 export { HtmlTokenType as TokenType };
 export declare class TemplateLexer extends BaseLexer<HtmlTokenType> {
@@ -47,6 +48,7 @@ export interface AttributeValueAst {
 }
 export declare class TemplateParser extends BaseParser<HtmlTokenType> {
     lexer: TemplateLexer;
+    text: string;
     constructor(input: string);
     getCurrentPosInfo(): string;
     skip(): void;
