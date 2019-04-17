@@ -139,7 +139,8 @@ function overrideTsConfig(file: string, content: string,
 
 	ngPackages = ngPackages.filter(comp =>
 		!excludePackage.some(reg => _.isString(reg) ? comp.longName.includes(reg) : reg.test(comp.longName)) &&
-		(comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk'));
+		(comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk' ||
+			hasIsomorphicDir(comp.packagePath)));
 
 	const tsInclude: string[] = [];
 	const tsExclude: string[] = [];
@@ -217,4 +218,13 @@ function overrideTsConfig(file: string, content: string,
 	// console.log(green('change-cli-options - ') + `${file}:\n`, JSON.stringify(tsjson, null, '  '));
 	log.info(`${file}:\n${JSON.stringify(tsjson, null, '  ')}`);
 	return JSON.stringify(tsjson, null, '  ');
+}
+
+function hasIsomorphicDir(packagePath: string) {
+	const fullPath = Path.resolve(packagePath, 'isom');
+	try {
+		return fs.statSync(fullPath).isDirectory();
+	} catch (e) {
+		return false;
+	}
 }

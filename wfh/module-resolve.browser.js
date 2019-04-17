@@ -32,6 +32,8 @@ module.exports = function(injector) {
 	// injector.fromComponent('@dr/fabricjs')
 	// 	.value('canvas', null)
 	// 	.value('jsdom', null);
-	if (fs.existsSync('node_modules/@dr/angularjs'))
-		injector.fromDir('node_modules').alias('angular', '@dr/angularjs');
+	// if (fs.existsSync('node_modules/@dr/angularjs'))
+	// 	injector.fromDir('node_modules').alias('angular', '@dr/angularjs');
+
+	injector.fromAllComponents().alias('log4js', '@dr-core/ng-app-builder/src/log4js-browser');
 };
