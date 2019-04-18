@@ -3,12 +3,14 @@ import api from '__api';
 import * as _ from 'lodash';
 import * as express from 'express';
 import { ProxyInstance } from './server';
-import {BodyHandler, HeaderHandler} from './server';
+// import {BodyHandler, HeaderHandler} from './server';
+import {intercept} from '../isom/proxy-instance';
+import Url from 'url';
 import {IncomingMessage} from 'http';
 import * as fs from 'fs';
 var log = require('log4js').getLogger(api.packageName + '.msg');
 var logBody = require('log4js').getLogger(api.packageName + '.body');
-var Url = require('url');
+
 var chalk = require('chalk');
 var trackRequestStream = api.config.get(api.packageName + '.trackRequestStream');
 
@@ -176,48 +178,6 @@ function doBodyAsync(requestNum: number, req: express.Request, reqBody: any, opt
 	}
 }
 
-interface HandlerParams {
-	req: express.Request;
-	headers: {[k: string]: any};
-	body: any;
-	result?: any;
-}
-function intercept(req: express.Request, headers: {[k: string]: any}, body: any,
-	resHandlers: {[path: string]: Set<BodyHandler>}, name: string): Promise<any> {
-	var bodyHandlerProm: Promise<HandlerParams>;
-	var handlers: BodyHandler[] = _filterHandlers(req, resHandlers);
-	if (handlers.length > 0) {
-		bodyHandlerProm = Promise.resolve({req, headers, body});
-		handlers.forEach(func => {
-			bodyHandlerProm = bodyHandlerProm.then(data => {
-				const resolvedRes = func(data.req, data.headers, data.body, data.result);
-				if (resolvedRes != null) {
-					return Promise.resolve(resolvedRes)
-					.then(result => {
-						return Object.assign(data, {result});
-					});
-				}
-				return Promise.resolve(data);
-			});
-		});
-		bodyHandlerProm = bodyHandlerProm.then(data => data.result);
-	} else {
-		bodyHandlerProm = Promise.resolve(null);
-	}
-	return bodyHandlerProm;
-}
-
-function _filterHandlers(req: express.Request, resHandlers: {[path: string]: Set<BodyHandler|HeaderHandler>}) {
-	var handlers: Array<BodyHandler|HeaderHandler> = [];
-	var handlerSet = _.get(resHandlers, Url.parse(req.url).pathname);
-	if (handlerSet)
-		handlers.push(...handlerSet.values());
-	var defaultHandlerSet = resHandlers['*'];
-	if (defaultHandlerSet)
-		handlers.push(...defaultHandlerSet.values());
-	return handlers;
-}
-
 function hackHeaders(target: string, req: express.Request): {[k: string]: any} {
 	var toHeaders = _.assign({}, req.headers, {
 		'x-real-ip': req.ip,
@@ -228,7 +188,8 @@ function hackHeaders(target: string, req: express.Request): {[k: string]: any} {
 	toHeaders.host = parsedTarget.host;
 	delete toHeaders.origin;
 	if (toHeaders.referer) {
-		toHeaders.referer = `${parsedTarget.protocol}//${parsedTarget.host}${Url.parse(toHeaders.referer).pathname}`;
+		// tslint:disable-next-line:max-line-length
+		toHeaders.referer = `${parsedTarget.protocol}//${parsedTarget.host}${Url.parse(toHeaders.referer as string).pathname}`;
 	}
 	return toHeaders;
 }

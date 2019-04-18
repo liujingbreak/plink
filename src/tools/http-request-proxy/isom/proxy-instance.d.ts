@@ -5,20 +5,20 @@ export declare type HeaderHandler = (req: express.Request, header: {
 export declare type BodyHandler = (req: express.Request, hackedReqHeaders: {
     [name: string]: string;
 }, requestBody: any, lastResult: any) => any;
+export interface Handlers {
+    [path: string]: Set<BodyHandler | HeaderHandler>;
+}
+export declare function intercept(req: express.Request, headers: {
+    [k: string]: any;
+}, body: any, resHandlers: Handlers, name: string): Promise<any>;
 export declare class ProxyInstanceForBrowser {
     protected options: {
         [k: string]: any;
     };
     name: string;
-    resHandlers: {
-        [path: string]: Set<BodyHandler | HeaderHandler>;
-    };
-    reqHandlers: {
-        [path: string]: Set<BodyHandler | HeaderHandler>;
-    };
-    mockHandlers: {
-        [path: string]: Set<BodyHandler | HeaderHandler>;
-    };
+    resHandlers: Handlers;
+    reqHandlers: Handlers;
+    mockHandlers: Handlers;
     resHeaderHandlers: {
         [path: string]: Set<HeaderHandler>;
     };
@@ -40,3 +40,4 @@ export declare class ProxyInstanceForBrowser {
     interceptResHeader(path: string, handler: HeaderHandler): void;
     private addHandler;
 }
+export declare type MockSetupFunc = (proxy: ProxyInstanceForBrowser, forName?: (name: string) => ProxyInstanceForBrowser) => void;
