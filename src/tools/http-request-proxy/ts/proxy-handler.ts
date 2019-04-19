@@ -35,7 +35,7 @@ var SKIP_RES_HEADERS_SET = SKIP_RES_HEADERS.reduce((set: {[k: string]: boolean},
  * @param {*} proxyName {string} proxy sub path which should not starts with '/'
  * @return undefined
  */
-export default function doProxy(target: string, req: express.Request, res: express.Response,
+export default async function doProxy(target: string, req: express.Request, res: express.Response,
 	proxyInstance: ProxyInstance, proxyName: string) {
 	var requestNum = ++countRequest;
 
@@ -63,41 +63,30 @@ export default function doProxy(target: string, req: express.Request, res: expre
 		gzip: toHeaders['accept-encoding'] && toHeaders['accept-encoding'].indexOf('gzip') >= 0
 	};
 
-	return intercept(req, toHeaders, req.body, proxyInstance.mockHandlers, proxyName)
-	.then((mockBody: any) => {
+	try {
+		const mockBody = await intercept(req, toHeaders, req.body, proxyInstance.mockHandlers, proxyName);
 		if (mockBody != null) {
 			log.info(requestDebugInfo);
-			return Promise.resolve(doBodyAsync(requestNum, req, req.body, opts))
-			.then(msg => {
-				log.info(msg);
-				log.info('Mock response:\n' + chalk.blue(_.isString(mockBody) ? mockBody : JSON.stringify(mockBody)));
-				res.status(200).send(mockBody);
-			});
+			const msg = await Promise.resolve(doBodyAsync(requestNum, req, req.body, opts));
+			log.info(msg);
+			log.info('Mock response:\n' + chalk.blue(_.isString(mockBody) ? mockBody : JSON.stringify(mockBody)));
+			res.status(200).send(mockBody);
 		} else {
-			return intercept(req, toHeaders, req.body, proxyInstance.reqHandlers, proxyName)
-			.then((result: any) => {
-				const reqBody = result == null ? req.body : result;
-				return Promise.resolve(doBodyAsync(requestNum, req, reqBody, opts));
-			})
-			.then(msg => {
-				requestDebugInfo += msg;
-				return send(req, opts, requestDebugInfo, requestNum, res, proxyInstance);
-			})
-			.then((data: any) => {
-				return intercept(req, data.headers, data.body, proxyInstance.resHandlers, proxyName)
-				.then((body: any) => {
-					if (body)
-						logBody.info(`Hacked Response body:\n${chalk.green(_.isString(body) ? body :
-							(Buffer.isBuffer(body) ? 'buffer' : JSON.stringify(body)))}`);
-					res.status(data.res.statusCode).send(body == null ? data.body : body);
-				});
-			});
+			const result = await intercept(req, toHeaders, req.body, proxyInstance.reqHandlers, proxyName);
+			const reqBody = result == null ? req.body : result;
+			const msg = await Promise.resolve(doBodyAsync(requestNum, req, reqBody, opts));
+			requestDebugInfo += msg;
+			const data = await send(req, opts, requestDebugInfo, requestNum, res, proxyInstance);
+			const body = await intercept(req, data.headers, data.body, proxyInstance.resHandlers, proxyName);
+			if (body)
+				logBody.info(`Hacked Response body:\n${chalk.green(_.isString(body) ? body :
+					(Buffer.isBuffer(body) ? 'buffer' : JSON.stringify(body)))}`);
+			res.status(data.res.statusCode).send(body == null ? data.body : body);
 		}
-	})
-	.catch((err: Error) => {
+	} catch(err) {
 		log.error(err);
 		res.status(500).send(err.message);
-	});
+	}
 }
 
 function send(req: express.Request, opts: any, requestDebugInfo: any, requestNum: number, res: express.Response,
