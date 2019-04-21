@@ -20,7 +20,8 @@ interface HandlerParams {
 	result?: any;
 }
 export function intercept(req: express.Request, headers: {[k: string]: any}, body: any,
-	resHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>>, name: string): Promise<HandlerParams|null> {
+	resHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>[]>, name: string): Promise<HandlerParams|null> {
+	// console.log(resHandlers.toString());
 	var bodyHandlerProm: Promise<HandlerParams>;
 	var handlers: BodyHandler[] = pm.matchedHandlers(resHandlers, req.url);
 	if (handlers.length > 0) {
@@ -58,10 +59,10 @@ export function intercept(req: express.Request, headers: {[k: string]: any}, bod
 // }
 export class ProxyInstanceForBrowser {
 	name: string;
-	resHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>> = new pm.DirTree();
-	reqHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>> = new pm.DirTree();
-	mockHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>> = new pm.DirTree();
-	resHeaderHandlers: pm.DirTree<pm.StoredHandler<HeaderHandler>> = new pm.DirTree();
+	resHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>[]> = new pm.DirTree();
+	reqHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>[]> = new pm.DirTree();
+	mockHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>[]> = new pm.DirTree();
+	resHeaderHandlers: pm.DirTree<pm.StoredHandler<HeaderHandler>[]> = new pm.DirTree();
 	constructor(name: string, protected options: {[k: string]: any} = {}) {
 		this.name = name;
 	}
@@ -87,6 +88,13 @@ export class ProxyInstanceForBrowser {
 	interceptRequest(path: string, handler: BodyHandler) {
 		pm.addToHandlerTree(path, handler, this.reqHandlers);
 	}
+	/**
+	 * 
+	 * @param path {string} a URI string in format of Url's pathname, support path parameterized path name
+	 *  begin with ":" or wildcard "*", e.g.
+	 *   "/foo/bar/:id/resting-path", "/foo/bar/*" and "*"
+	 * @param handler 
+	 */
 	mockResponse(path: string, handler: BodyHandler) {
 		pm.addToHandlerTree(path, handler, this.mockHandlers);
 	}

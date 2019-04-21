@@ -17,9 +17,8 @@ export interface Handlers {
 }
 export interface StoredHandler<H> {
     treePath: string;
-    restingPath: string;
-    restingRegex: RegExp;
+    restingRegex: RegExp | null;
     handler: H;
 }
-export declare function addToHandlerTree<H extends (BodyHandler | HeaderHandler)>(path: string, handler: H, tree: DirTree<StoredHandler<H>>): void;
-export declare function matchedHandlers<H>(tree: DirTree<StoredHandler<H>>, reqUrl: string): H[];
+export declare function addToHandlerTree<H extends (BodyHandler | HeaderHandler)>(path: string, handler: H, tree: DirTree<StoredHandler<H>[]>): void;
+export declare function matchedHandlers<H>(tree: DirTree<StoredHandler<H>[]>, reqUrl: string): H[];

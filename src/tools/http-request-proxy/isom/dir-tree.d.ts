@@ -21,5 +21,6 @@ export declare class DirTree<T> {
     getAllData(path: string | string[]): T[];
     ensureNode(path: string | string[]): TreeNode<T>;
     findNode(path: string | string[]): TreeNode<T>;
-    traverse(level: number, tree: TreeNode<T>, lines: string[]): string | string[];
+    traverse(level?: number, tree?: TreeNode<T>, lines?: string[]): string | string[];
+    toString(): string;
 }

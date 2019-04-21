@@ -90,10 +90,8 @@ export class DirTree<T> {
 		return tree;
 	}
 
-	traverse(level: number, tree: TreeNode<T>, lines: string[]) {
+	traverse(level: number = 0, tree?: TreeNode<T>, lines?: string[]) {
 		var isRoot = false;
-		if (!level)
-			level = 0;
 		if (!tree)
 			tree = this.root;
 		if (!lines) {
@@ -106,5 +104,9 @@ export class DirTree<T> {
 			this.traverse(level + 1, subTree, lines);
 		});
 		return isRoot ? lines.join('\n') : lines;
+	}
+
+	toString() {
+		return this.traverse() as string;
 	}
 }
