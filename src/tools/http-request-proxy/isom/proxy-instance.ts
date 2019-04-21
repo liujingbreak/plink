@@ -1,9 +1,8 @@
-import * as _ from 'lodash';
+import assign from 'lodash/assign';
 import * as express from 'express';
-import Url from 'url';
+import {BodyHandler, HeaderHandler} from './path-matcher';
+import * as pm from './path-matcher';
 // import {IncomingHttpHeaders} from 'http';
-
-export type HeaderHandler = (req: express.Request, header: {[name: string]: any}) => void;
 
 // export interface IsomRequest {
 // 	method: string;
@@ -13,14 +12,7 @@ export type HeaderHandler = (req: express.Request, header: {[name: string]: any}
 // 	query: any;
 // 	responseType: 'arraybuffer' | 'blob' | 'json' | 'text';
 // }
-export type BodyHandler = (req: express.Request,
-	hackedReqHeaders: {[name: string]: string},
-	requestBody: any,
-	lastResult: any) => any;
 
-export interface Handlers {
-	[path: string]: Set<BodyHandler | HeaderHandler>;
-}
 interface HandlerParams {
 	req: express.Request;
 	headers: {[k: string]: any};
@@ -28,14 +20,14 @@ interface HandlerParams {
 	result?: any;
 }
 export function intercept(req: express.Request, headers: {[k: string]: any}, body: any,
-	resHandlers: Handlers, name: string): Promise<any> {
+	resHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>>, name: string): Promise<HandlerParams|null> {
 	var bodyHandlerProm: Promise<HandlerParams>;
-	var handlers: BodyHandler[] = _filterHandlers(req, resHandlers);
+	var handlers: BodyHandler[] = pm.matchedHandlers(resHandlers, req.url);
 	if (handlers.length > 0) {
 		bodyHandlerProm = Promise.resolve({req, headers, body});
 		handlers.forEach(func => {
 			bodyHandlerProm = bodyHandlerProm.then(data => {
-				const resolvedRes = func(data.req, data.headers, data.body, data.result);
+				const resolvedRes = func(data.req, data.headers, data.body, data.result, {});
 				if (resolvedRes != null) {
 					return Promise.resolve(resolvedRes)
 					.then(result => {
@@ -47,26 +39,29 @@ export function intercept(req: express.Request, headers: {[k: string]: any}, bod
 		});
 		bodyHandlerProm = bodyHandlerProm.then(data => data.result);
 	} else {
-		bodyHandlerProm = Promise.resolve(null);
+		return Promise.resolve(null);
 	}
 	return bodyHandlerProm;
 }
-function _filterHandlers(req: express.Request, resHandlers: {[path: string]: Set<BodyHandler|HeaderHandler>}) {
-	var handlers: Array<BodyHandler|HeaderHandler> = [];
-	var handlerSet = _.get(resHandlers, Url.parse(req.url).pathname);
-	if (handlerSet)
-		handlers.push(...handlerSet.values());
-	var defaultHandlerSet = resHandlers['*'];
-	if (defaultHandlerSet)
-		handlers.push(...defaultHandlerSet.values());
-	return handlers;
-}
+// function _filterHandlers(req: express.Request, resHandlers: {[path: string]: Set<BodyHandler|HeaderHandler>}) {
+// 	var handlers: Array<BodyHandler|HeaderHandler> = [];
+// 	const parsedUrl = Url.parse(req.url);
+// 	if (parsedUrl.pathname == null)
+// 		return [];
+// 	var handlerSet = get(resHandlers, parsedUrl.pathname);
+// 	if (handlerSet)
+// 		handlers.push(...handlerSet.values());
+// 	var defaultHandlerSet = resHandlers['*'];
+// 	if (defaultHandlerSet)
+// 		handlers.push(...defaultHandlerSet.values());
+// 	return handlers;
+// }
 export class ProxyInstanceForBrowser {
 	name: string;
-	resHandlers: Handlers = {};
-	reqHandlers: Handlers = {};
-	mockHandlers: Handlers = {};
-	resHeaderHandlers: {[path: string]: Set<HeaderHandler>} = {};
+	resHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>> = new pm.DirTree();
+	reqHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>> = new pm.DirTree();
+	mockHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>> = new pm.DirTree();
+	resHeaderHandlers: pm.DirTree<pm.StoredHandler<HeaderHandler>> = new pm.DirTree();
 	constructor(name: string, protected options: {[k: string]: any} = {}) {
 		this.name = name;
 	}
@@ -76,36 +71,28 @@ export class ProxyInstanceForBrowser {
 	}
 
 	addOptions(opt: {[k: string]: any}): ProxyInstanceForBrowser {
-		_.assign(this.options, opt);
+		assign(this.options, opt);
 		return this;
 	}
 	/**
+	 * @deprecated
 	 * @param {*} path sub path after '/http-request-proxy'
 	 * @param {*} handler (url: string, method:string,
 	 * 	responseHeaders: {[name: string]:string}, responseBody: string | Buffer) => null | Promise<string>
 	 */
 	interceptResponse(path: string, handler: BodyHandler) {
-		this.addHandler(path, handler, this.resHandlers);
+		pm.addToHandlerTree(path, handler, this.resHandlers);
 	}
+	/** @deprecated */
 	interceptRequest(path: string, handler: BodyHandler) {
-		this.addHandler(path, handler, this.reqHandlers);
+		pm.addToHandlerTree(path, handler, this.reqHandlers);
 	}
 	mockResponse(path: string, handler: BodyHandler) {
-		this.addHandler(path, handler, this.mockHandlers);
+		pm.addToHandlerTree(path, handler, this.mockHandlers);
 	}
+	/**@deprecated */
 	interceptResHeader(path: string, handler: HeaderHandler) {
-		this.addHandler(path, handler, this.resHeaderHandlers);
-	}
-	private addHandler(path: string, handler: BodyHandler | HeaderHandler,
-		to: {[path: string]: Set<BodyHandler | HeaderHandler>}) {
-		if (path !== '*' && !_.startsWith(path, '/'))
-			path = '/' + path;
-		var list: Set<BodyHandler | HeaderHandler> = _.get(to, path);
-		if (list == null) {
-			list = new Set<BodyHandler | HeaderHandler>();
-			to[path] = list;
-		}
-		list.add(handler);
+		pm.addToHandlerTree(path, handler, this.resHeaderHandlers);
 	}
 }
 

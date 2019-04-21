@@ -1,27 +1,26 @@
 import * as express from 'express';
-export declare type HeaderHandler = (req: express.Request, header: {
-    [name: string]: any;
-}) => void;
-export declare type BodyHandler = (req: express.Request, hackedReqHeaders: {
-    [name: string]: string;
-}, requestBody: any, lastResult: any) => any;
-export interface Handlers {
-    [path: string]: Set<BodyHandler | HeaderHandler>;
+import { BodyHandler, HeaderHandler } from './path-matcher';
+import * as pm from './path-matcher';
+interface HandlerParams {
+    req: express.Request;
+    headers: {
+        [k: string]: any;
+    };
+    body: any;
+    result?: any;
 }
 export declare function intercept(req: express.Request, headers: {
     [k: string]: any;
-}, body: any, resHandlers: Handlers, name: string): Promise<any>;
+}, body: any, resHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>>, name: string): Promise<HandlerParams | null>;
 export declare class ProxyInstanceForBrowser {
     protected options: {
         [k: string]: any;
     };
     name: string;
-    resHandlers: Handlers;
-    reqHandlers: Handlers;
-    mockHandlers: Handlers;
-    resHeaderHandlers: {
-        [path: string]: Set<HeaderHandler>;
-    };
+    resHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>>;
+    reqHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>>;
+    mockHandlers: pm.DirTree<pm.StoredHandler<BodyHandler>>;
+    resHeaderHandlers: pm.DirTree<pm.StoredHandler<HeaderHandler>>;
     constructor(name: string, options?: {
         [k: string]: any;
     });
@@ -30,14 +29,17 @@ export declare class ProxyInstanceForBrowser {
         [k: string]: any;
     }): ProxyInstanceForBrowser;
     /**
+     * @deprecated
      * @param {*} path sub path after '/http-request-proxy'
      * @param {*} handler (url: string, method:string,
      * 	responseHeaders: {[name: string]:string}, responseBody: string | Buffer) => null | Promise<string>
      */
     interceptResponse(path: string, handler: BodyHandler): void;
+    /** @deprecated */
     interceptRequest(path: string, handler: BodyHandler): void;
     mockResponse(path: string, handler: BodyHandler): void;
+    /**@deprecated */
     interceptResHeader(path: string, handler: HeaderHandler): void;
-    private addHandler;
 }
 export declare type MockSetupFunc = (proxy: ProxyInstanceForBrowser, forName?: (name: string) => ProxyInstanceForBrowser) => void;
+export {};

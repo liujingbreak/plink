@@ -180,7 +180,8 @@ function writeTsconfig4Editor() {
 		extends: require.resolve('dr-comp-package/wfh/tsconfig.json'),
 		// include: tsInclude,
 		compilerOptions: {
-			baseUrl: '.'
+			baseUrl: '.',
+			strictNullChecks: true
 		}
 	};
 	// ------- Write tsconfig.json for Visual Code Editor --------
