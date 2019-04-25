@@ -1,12 +1,35 @@
-# @dr web component package
+# DR. web component package toolkit
+It is designed to accomplish various web frontend tasks:
 
-This is core part of a web pluggable component platform project aka **Dr. Component Platform**, it includes a command line tool for developer and deployer, a couple of node packages as internal components and a private NPM registry server.
+- Command line tool for managing packages, symlinks, CI process.
+- Node package management system
+- Yaml File and TS file based configuration management system.
 
-Main purpose is helping web developers, a team or a company to
-- decouple and modularize their NodeJS based web project or web app product
-- share and reuse pluggable components between different web project or product in a smarter way than git branching or file copy
-- easily deploy and reassamble web products by plugging different components and configurations
 
-in a way of packing and run mutiple web apps on one platform.
+Main purpose is to facilitate out web teams to:
+- modularize their HTML5 + NodeJS based web app products.
+- unify, share and reuse pluggable components between different products
+- reuse a lot of predefined HTTP server with a lot of shared fundamental middlewares
+- work on a consistent platform
 
-Refer to the offcial doc in Chinese at [http://dr-web-house.github.io](http://dr-web-house.github.io), English version is still in progress [http://dr-web-house.github.io/en](http://dr-web-house.github.io/en)
+Inspired by Chrome app store and a lot of other Node.js based pluggable system design.
+
+Refer to the offcial doc in Chinese at [http://dr-web-house.github.io](http://dr-web-house.github.io).
+
+
+
+### Design features
+- A Component package (Node package) can contain both Client side code and server side code, even isomorphic code.
+
+- Be compliant (or work with) to modern web framework's command line tools like `Angulr cli` and `CreateReactApp`
+
+- Support developing library package through symlinks
+
+- A share environment configuration system which can be avaible 
+to runtime client side (in browser), compile time server side and Node.js express http server side.
+
+- Component package can take multiple roles:
+   - tooling like Webpack plugin or Angular cli extension
+   - client side business logic, server side logic
+   - isomorphic logic as shared library which can be run in both sides, if it is needed.
+
