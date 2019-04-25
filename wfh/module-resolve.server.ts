@@ -33,7 +33,7 @@ export = function(injector: DrPackageInjector) {
 			});
 		}
 	} catch (e) {
-		console.log('Don\'t panic, this might be normal: ', e);
+		console.log('Don\'t be panic, this might be normal: ', e);
 		console.log(
 			'Skip setting up LESS hacking for above issue, it might be normal to a production Node.js HTTP server environment.');
 	}
