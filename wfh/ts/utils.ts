@@ -1,4 +1,6 @@
 import { BaseLexer, Token } from './base-LLn-parser';
+import trim from 'lodash/trim';
+import get from 'lodash/get';
 
 export enum WordTokenType {
 	eol = 0,
@@ -102,5 +104,24 @@ export function boxString(text: string, lineWidth = 60, whitespaceWrap = true): 
 	}
 	updated += `${'-'.repeat(lineWidth + 4)}`;
 	return updated;
+}
+
+export interface PackageTsDirs {
+	srcDir: string;
+	destDir: string;
+	isomDir: string;
+}
+
+export function getTsDirsOfPackage(json: any): PackageTsDirs {
+	let srcDir = get(json, 'dr.ts.src', 'ts');
+	let destDir = get(json, 'dr.ts.dest', 'dist');
+	let isomDir = get(json, 'dr.ts.isom', 'isom');
+
+	destDir = trim(trim(destDir, '\\'), '/');
+	srcDir = trim(trim(srcDir, '/'), '\\');
+	isomDir = trim(trim(isomDir, '/'), '\\');
+	return {
+		srcDir, destDir, isomDir
+	};
 }
 

@@ -11,3 +11,9 @@ export declare class WordLexer extends BaseLexer<WordTokenType> {
     consumeNumbers(): void;
 }
 export declare function boxString(text: string, lineWidth?: number, whitespaceWrap?: boolean): string;
+export interface PackageTsDirs {
+    srcDir: string;
+    destDir: string;
+    isomDir: string;
+}
+export declare function getTsDirsOfPackage(json: any): PackageTsDirs;

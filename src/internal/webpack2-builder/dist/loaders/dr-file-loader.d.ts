@@ -1,3 +1,7 @@
+/**
+ * Unlike file-loader, it loads assets resource from "DRCP" package relative directory, not from current
+ * process.cwd() directory
+ */
 /// <reference types="node" />
 import { loader as wl } from 'webpack';
 import { RawSourceMap } from 'source-map';

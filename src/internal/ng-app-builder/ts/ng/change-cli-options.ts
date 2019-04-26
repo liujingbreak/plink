@@ -12,6 +12,8 @@ import {DrcpConfig, ConfigHandler} from 'dr-comp-package/wfh/dist/config-handler
 import {PackageInfo} from 'dr-comp-package/wfh/dist/build-util/ts';
 import {findAppModuleFileFromMain} from '../utils/parse-app-module';
 import {DrcpSetting} from '../configurable';
+import {getTsDirsOfPackage} from 'dr-comp-package/wfh/dist/utils';
+
 const {cyan, green, red} = require('chalk');
 const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
@@ -140,7 +142,7 @@ function overrideTsConfig(file: string, content: string,
 	ngPackages = ngPackages.filter(comp =>
 		!excludePackage.some(reg => _.isString(reg) ? comp.longName.includes(reg) : reg.test(comp.longName)) &&
 		(comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk' ||
-			hasIsomorphicDir(comp.packagePath)));
+			hasIsomorphicDir(comp.json, comp.packagePath)));
 
 	const tsInclude: string[] = [];
 	const tsExclude: string[] = [];
@@ -220,8 +222,8 @@ function overrideTsConfig(file: string, content: string,
 	return JSON.stringify(tsjson, null, '  ');
 }
 
-function hasIsomorphicDir(packagePath: string) {
-	const fullPath = Path.resolve(packagePath, 'isom');
+function hasIsomorphicDir(pkJson: any, packagePath: string) {
+	const fullPath = Path.resolve(packagePath, getTsDirsOfPackage(pkJson).isomDir);
 	try {
 		return fs.statSync(fullPath).isDirectory();
 	} catch (e) {
