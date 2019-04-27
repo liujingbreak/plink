@@ -47,7 +47,7 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 	if (ngCompilerPlugin == null)
 		throw new Error('Can not find AngularCompilerPlugin');
 	// hack _options.host before angular/packages/ngtools/webpack/src/angular_compiler_plugin.ts apply() runs
-	webpackConfig.plugins.unshift(new class {
+	(webpackConfig.plugins as any[]).unshift(new class {
 		apply(compiler: Compiler) {
 			const hooker = new TSReadHooker(param);
 			(ngCompilerPlugin as any)._options.host = new ReadHookHost((compiler as any).inputFileSystem, hooker.hookFunc);
