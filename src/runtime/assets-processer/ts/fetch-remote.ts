@@ -93,9 +93,18 @@ function runRepeatly(setting: Setting, szip: ZipResourceMiddleware): Promise<voi
 	});
 }
 async function run(setting: Setting, szip: ZipResourceMiddleware) {
+
+	if (setting.downloadMode === 'fork') {
+		const files = fs.readdirSync(api.config.resolve('destDir'));
+		if (files.filter(name => name.startsWith('download-update-')).length > 0) {
+			await retry(20, forkExtractExstingZip);
+			api.eventBus.emit(api.packageName + '.downloaded');
+		}
+	}
+
 	let checksumObj: Checksum;
 	try {
-		checksumObj = await retry(fetch, setting.fetchUrl);
+		checksumObj = await retry(setting.fetchRetry, fetch, setting.fetchUrl);
 	} catch (err) {
 		if (errCount++ % setting.fetchLogErrPerTimes === 0) {
 			throw err;
@@ -131,7 +140,7 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
 	if (downloaded) {
 		// fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
 		if (setting.downloadMode === 'fork') {
-			await retry(forkExtractExstingZip);
+			await retry(20, forkExtractExstingZip);
 		}
 		api.eventBus.emit(api.packageName + '.downloaded');
 	}
@@ -146,9 +155,7 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 	const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
 	log.info('fetch', resource);
 	if (szip) {
-		log.info('downloading zip content to memory...');
-
-		await retry(() => {
+		await retry(setting.fetchRetry, () => {
 			return new Promise((resolve, rej) => {
 				request({
 					uri: resource, method: 'GET', encoding: null
@@ -166,9 +173,9 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 			});
 		});
 	} else if (setting.downloadMode === 'fork') {
-		await retry<string>(forkDownloadzip, resource);
+		await retry<string>(setting.fetchRetry, forkDownloadzip, resource);
 	} else {
-		await retry(() => {
+		await retry(setting.fetchRetry, () => {
 			return new Promise((resolve, rej) => {
 				request.get(resource).on('error', err => {
 					rej(err);
@@ -236,7 +243,7 @@ function fetch(fetchUrl: string): Promise<any> {
 	});
 }
 
-async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> {
+async function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> {
 	for (let cnt = 0;;) {
 		try {
 			return await func(...args);
@@ -248,7 +255,7 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 			log.warn(err);
 			log.info('Encounter error, will retry');
 		}
-		await new Promise(res => setTimeout(res, cnt * 5000));
+		await new Promise(res => setTimeout(res, cnt * 500));
 	}
 }
 
@@ -270,23 +277,32 @@ async function forkProcess(name: string, filePath: string, args: string[]) {
 			args, {
 			silent: true
 		});
+		child.on('message', msg => {
+			if (msg.log) {
+				log.info('[child process] %s - %s', name, msg.log);
+				return;
+			} else if (msg.done) {
+				extractingDone = true;
+			} else if (msg.error) {
+				log.error(msg.error);
+			}
+		});
 		child.on('error', err => {
 			log.error(err);
 			reject(output);
 		});
 		child.on('exit', (code, signal) => {
-			log.info('child process %s exit with: %d - %s', child.pid, code, signal);
+			log.info('process [%s] %s exit with: %d - %s', child.pid, name, code, signal);
 			if (code !== 0) {
-				log.info(code);
 				if (extractingDone) {
 					return resolve(output);
 				}
 				log.error('exit with error code %d - "%s"', JSON.stringify(code), signal);
 				if (output)
-					log.error(`[child process][pid:${child.pid}]`, output);
+					log.error(`[child process][pid:${child.pid}]${name} - `, output);
 				reject(output);
 			} else {
-				log.info('"%s" process done successfully,', name, output);
+				log.info('process "%s" done successfully,', name, output);
 				resolve(output);
 			}
 		});
@@ -298,16 +314,6 @@ async function forkProcess(name: string, filePath: string, args: string[]) {
 		child.stderr.setEncoding('utf-8');
 		child.stderr.on('data', (chunk) => {
 			output += chunk;
-		});
-		child.on('message', msg => {
-			if (msg.log) {
-				log.info('[child process]', msg.log);
-				return;
-			} else if (msg.done) {
-				extractingDone = true;
-			} else if (msg.error) {
-				log.error(msg.error);
-			}
 		});
 	});
 }

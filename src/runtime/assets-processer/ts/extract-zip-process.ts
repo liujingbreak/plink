@@ -6,7 +6,6 @@ import fs from 'fs';
 import Path from 'path';
 import pify from 'pify';
 
-console.log('------ extract starts --------');
 process.on('uncaughtException', (err) => {
 	// tslint:disable-next-line
 	console.log(err);
