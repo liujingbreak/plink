@@ -4,4 +4,3 @@ export declare function start(serveStaticZip: ZipResourceMiddleware): Promise<vo
  * It seems ok to quit process without calling this function
  */
 export declare function stop(): void;
-export declare function forkExtractExstingZip(): Promise<string>;

@@ -60,7 +60,7 @@ function activate() {
 		// js: '365 days',
 		// css: '365 days',
 		// less: '365 days',
-		// html: 0,
+		// html: 0, // null meaning 'cache-control: no-store'
 		// png: '365 days',
 		// jpg: '365 days',
 		// gif: '365 days',

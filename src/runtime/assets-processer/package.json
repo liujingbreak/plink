@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/assets-processer",
-  "version": "1.0.34",
+  "version": "1.0.36",
   "description": "Copy assets to destDir folder only when devMode is false",
   "main": "assetsProcesser.js",
   "dr": {
@@ -22,7 +22,7 @@
           "js": "365 days",
           "css": "365 days",
           "less": "365 days",
-          "html": 0,
+          "html": null,
           "png": "365 days",
           "jpg": "365 days",
           "jpeg": "365 days",
@@ -55,6 +55,7 @@
     "gulp-zip": "4.1.0",
     "gulp-unzip": "1.0.0",
     "adm-zip": "^0.4.13",
+    "chokidar": "^2.1.5",
     "@types/adm-zip": "^0.4.32"
   },
   "scripts": {

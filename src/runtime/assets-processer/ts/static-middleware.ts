@@ -2,6 +2,7 @@ import serveZip from 'serve-static-zip';
 import {Response, Handler} from 'express';
 import Path from 'path';
 import api from '__api';
+import _ from 'lodash';
 
 const ms = require('ms');
 
@@ -22,15 +23,20 @@ function createSetHeaderFunc(maxAgeNumMap: {[extname: string]: number}) {
 		var ext = Path.extname(path).toLowerCase();
 		if (ext.startsWith('.'))
 			ext = ext.substring(1);
-		if (maxAgeNumMap[ext])
+		if (_.has(maxAgeNumMap, ext))
 			setCacheControlHeader(res, maxAgeNumMap[ext]);
-		res.setHeader('Access-Control-Allow-Origin', '*');
+		else
+			res.setHeader('Cache-Control', 'no-store');
+		// res.setHeader('Access-Control-Allow-Origin', '*');
 	};
 }
 
-function setCacheControlHeader(res: Response, _maxage = 0, immutable = false) {
+function setCacheControlHeader(res: Response, _maxage: number | null = 0, immutable = false) {
+	if (_maxage == null) {
+		res.setHeader('Cache-Control', 'no-store');
+		return;
+	}
 	var cacheControl = 'public, max-age=' + Math.floor(_maxage / 1000);
-
 	if (immutable) {
 		cacheControl += ', immutable';
 	}

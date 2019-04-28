@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package",
-  "version": "0.7.74",
+  "version": "0.7.75",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -43,7 +43,7 @@
     "browser-resolve": "^1.11.2",
     "chalk": "^2.4.1",
     "cheerio": "^0.22.0",
-    "chokidar": "^1.7.0",
+    "chokidar": "^2.1.5",
     "cycle": "^1.0.3",
     "del": "^2.2.2",
     "eslint": "^4.19.1",

@@ -7,8 +7,9 @@ import Path from 'path';
 
 const argv = process.argv;
 const fetchUrl = argv[2];
-const distDir = argv[3];
-const retryTimes = parseInt(argv[4], 10);
+const fileName = argv[3];
+const distDir = argv[4];
+const retryTimes = parseInt(argv[5], 10);
 
 process.on('uncaughtException', (err) => {
 	// tslint:disable-next-line
@@ -23,7 +24,6 @@ async function downloadZip(fetchUrl: string) {
 	// const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
 	// log.info('fetch', resource);
 	process.send({log: `[pid:${process.pid}] fetch `+ resource});
-	process.send({log: `[pid:${process.pid}] downloading zip content to memory...`});
 	await retry(async () => {
 		const buf = await new Promise<Buffer>((resolve, rej) => {
 			request({
@@ -40,7 +40,7 @@ async function downloadZip(fetchUrl: string) {
 				resolve(body);
 			});
 		});
-		fs.writeFileSync(Path.resolve(distDir, 'download-update-' + (new Date().getTime()) + '.zip'),
+		fs.writeFileSync(Path.resolve(distDir, fileName),
 			buf);
 		// const zip = new AdmZip(buf);
 		// await tryExtract(zip);

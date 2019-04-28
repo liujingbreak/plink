@@ -31,6 +31,11 @@ function drcpCommand(startTime) {
 					describe: 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"',
 					type: 'boolean',
 					alias: 'prod'
+				},
+				args: {
+					describe: 'additional command arguments passed to npm/yarn directly,\n' +
+						'e.g. drcp init --args "--cache /tmp/empty-cache"',
+					type: 'string'
 				}
 			});
 			// .usage('drcp init');

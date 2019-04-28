@@ -3,11 +3,13 @@ import request from 'request';
 import * as Url from 'url';
 import * as _ from 'lodash';
 import os from 'os';
+import Path from 'path';
 import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
 import cluster from 'cluster';
 import {ZipResourceMiddleware} from 'serve-static-zip';
 import {fork} from 'child_process';
+const chokidar = require('chokidar');
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
 
 const pm2InstanceId = process.env.NODE_APP_INSTANCE;
@@ -44,8 +46,29 @@ const currChecksumFile = api.config.resolve('destDir', 'assets-processer.checksu
 let timer: NodeJS.Timer;
 let stopped = false;
 let errCount = 0;
+let zipDownloadDir: string;
+let watcher: any;
 
 export function start(serveStaticZip: ZipResourceMiddleware) {
+	zipDownloadDir = api.config.resolve('destDir', 'assets-processer');
+	watcher = chokidar.watch('**/*.zip', {
+		ignoreInitial: true,
+		cwd: zipDownloadDir
+	});
+	const updateServerStatic = (path: string) => {
+		log.info('read %s', path);
+		try {
+			serveStaticZip.updateZip(fs.readFileSync(Path.resolve(zipDownloadDir, path)));
+			api.eventBus.emit(api.packageName + '.downloaded');
+		} catch (e) {
+			log.warn('Failed to update from ' + path, e);
+		}
+	};
+	log.info('watch ', zipDownloadDir.replace(/\\/g, '/') + '/**/*.zip');
+	watcher.on('add', updateServerStatic);
+	watcher.on('change', updateServerStatic);
+
+
 	setting = api.config.get(api.packageName);
 	const fetchUrl = setting.fetchUrl;
 	if (fetchUrl == null) {
@@ -59,6 +82,9 @@ export function start(serveStaticZip: ZipResourceMiddleware) {
 		log.info('This process is not main process');
 		return;
 	}
+	// zipExtractDir = api.config.resolve('destDir', 'assets-processer');
+	// if (!fs.existsSync(zipExtractDir))
+	// 	fs.mkdirpSync(zipExtractDir);
 
 	if (setting.fetchRetry == null)
 		setting.fetchRetry = 3;
@@ -74,6 +100,8 @@ export function start(serveStaticZip: ZipResourceMiddleware) {
  */
 export function stop() {
 	stopped = true;
+	if (watcher)
+		watcher.close();
 	if (timer) {
 		clearTimeout(timer);
 	}
@@ -94,13 +122,13 @@ function runRepeatly(setting: Setting, szip: ZipResourceMiddleware): Promise<voi
 }
 async function run(setting: Setting, szip: ZipResourceMiddleware) {
 
-	if (setting.downloadMode === 'fork') {
-		const files = fs.readdirSync(api.config.resolve('destDir'));
-		if (files.filter(name => name.startsWith('download-update-')).length > 0) {
-			await retry(20, forkExtractExstingZip);
-			api.eventBus.emit(api.packageName + '.downloaded');
-		}
-	}
+	// if (setting.downloadMode === 'fork') {
+	// 	const files = fs.readdirSync(api.config.resolve('destDir'));
+	// 	if (files.filter(name => name.startsWith('download-update-')).length > 0) {
+	// 		await retry(20, forkExtractExstingZip);
+	// 		api.eventBus.emit(api.packageName + '.downloaded');
+	// 	}
+	// }
 
 	let checksumObj: Checksum;
 	try {
@@ -139,9 +167,9 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
 
 	if (downloaded) {
 		// fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
-		if (setting.downloadMode === 'fork') {
-			await retry(20, forkExtractExstingZip);
-		}
+		// if (setting.downloadMode === 'fork') {
+		// 	await retry(20, forkExtractExstingZip);
+		// }
 		api.eventBus.emit(api.packageName + '.downloaded');
 	}
 }
@@ -173,7 +201,7 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 			});
 		});
 	} else if (setting.downloadMode === 'fork') {
-		await retry<string>(setting.fetchRetry, forkDownloadzip, resource);
+		await retry<string>(setting.fetchRetry, forkDownloadzip, resource, path);
 	} else {
 		await retry(setting.fetchRetry, () => {
 			return new Promise((resolve, rej) => {
@@ -259,16 +287,17 @@ async function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...
 	}
 }
 
-function forkDownloadzip(resource: string): Promise<string> {
-	return forkProcess('download ' + resource, 'node_modules/' + api.packageName + '/dist/download-zip-process.js', [
-		resource, api.config.resolve('destDir'), setting.fetchRetry + ''
+function forkDownloadzip(resource: string, originPath: string): Promise<string> {
+	return forkProcess('download', 'node_modules/' + api.packageName + '/dist/download-zip-process.js', [
+		resource, originPath.replace(/[\\/]/g, '_'), zipDownloadDir, setting.fetchRetry + ''
 	]);
 }
-export function forkExtractExstingZip() {
-	return forkProcess('check and extract zip', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
-		api.config.resolve('destDir'), api.config.resolve('staticDir')
-	]);
-}
+// function forkExtractExstingZip() {
+// 	return forkProcess('extract', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
+// 		api.config.resolve('destDir'),
+// 		zipExtractDir
+// 	]);
+// }
 
 async function forkProcess(name: string, filePath: string, args: string[]) {
 	return new Promise<string>((resolve, reject) => {
@@ -292,7 +321,7 @@ async function forkProcess(name: string, filePath: string, args: string[]) {
 			reject(output);
 		});
 		child.on('exit', (code, signal) => {
-			log.info('process [%s] %s exit with: %d - %s', child.pid, name, code, signal);
+			log.info('process [%s] %s - exit with: %d - %s', child.pid, name, code, signal);
 			if (code !== 0) {
 				if (extractingDone) {
 					return resolve(output);

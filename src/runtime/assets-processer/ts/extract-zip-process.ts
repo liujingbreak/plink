@@ -1,4 +1,7 @@
 // tslint:disable:no-console
+/**
+ * @deprecated
+ */
 import AdmZip from 'adm-zip';
 import os from 'os';
 import util from 'util';
@@ -35,7 +38,7 @@ async function start() {
 	.map(name => {
 		const file = Path.resolve(zipDir, name);
 		return () => {
-			console.log(`[pid:${process.pid}] start extracting ${file}`);
+			// console.log(`[pid:${process.pid}] start extracting ${file}`);
 			process.send({log: `[pid:${process.pid}] start extracting ${file}`});
 			return tryExtract(file)
 			.then(() => {
@@ -79,4 +82,5 @@ async function tryExtract(file: string) {
 	});
 }
 
-setTimeout(start, 100);
+start();
+// setTimeout(start, 100);
