@@ -130,6 +130,9 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
 
 	if (downloaded) {
 		// fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
+		if (setting.downloadMode === 'fork') {
+			await retry(forkExtractExstingZip);
+		}
 		api.eventBus.emit(api.packageName + '.downloaded');
 	}
 }
@@ -249,11 +252,22 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 	}
 }
 
-async function forkDownloadzip(resource: string): Promise<string> {
+function forkDownloadzip(resource: string): Promise<string> {
+	return forkProcess('download ' + resource, 'node_modules/' + api.packageName + '/dist/download-zip-process.js', [
+		resource, api.config.resolve('destDir'), setting.fetchRetry + ''
+	]);
+}
+export function forkExtractExstingZip() {
+	return forkProcess('check and extract zip', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
+		api.config.resolve('destDir'), api.config.resolve('staticDir')
+	]);
+}
+
+async function forkProcess(name: string, filePath: string, args: string[]) {
 	return new Promise<string>((resolve, reject) => {
 		let extractingDone = false;
-		const child = fork('node_modules/' + api.packageName + '/dist/download-zip-process.js',
-			[resource, api.config.resolve('staticDir'), setting.fetchRetry + ''], {
+		const child = fork(filePath,
+			args, {
 			silent: true
 		});
 		child.on('error', err => {
@@ -261,7 +275,7 @@ async function forkDownloadzip(resource: string): Promise<string> {
 			reject(output);
 		});
 		child.on('exit', (code, signal) => {
-			log.info('zip download process exit with: %d - %s', code, signal);
+			log.info('child process %s exit with: %d - %s', child.pid, code, signal);
 			if (code !== 0) {
 				log.info(code);
 				if (extractingDone) {
@@ -272,7 +286,7 @@ async function forkDownloadzip(resource: string): Promise<string> {
 					log.error(`[child process][pid:${child.pid}]`, output);
 				reject(output);
 			} else {
-				log.info('"%s" download process done successfully,', resource, output);
+				log.info('"%s" process done successfully,', name, output);
 				resolve(output);
 			}
 		});

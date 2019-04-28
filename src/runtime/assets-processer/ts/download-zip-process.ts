@@ -1,14 +1,20 @@
 // tslint:disable:no-console
 // import {ZipResourceMiddleware} from 'serve-static-zip';
 import request from 'request';
-import AdmZip from 'adm-zip';
-import os from 'os';
 
+import fs from 'fs';
+import Path from 'path';
 
 const argv = process.argv;
 const fetchUrl = argv[2];
-const zipExtractDir = argv[3];
+const distDir = argv[3];
 const retryTimes = parseInt(argv[4], 10);
+
+process.on('uncaughtException', (err) => {
+	// tslint:disable-next-line
+	console.log(err);
+	process.send({error: err});
+});
 
 async function downloadZip(fetchUrl: string) {
 	// tslint:disable-next-line
@@ -34,29 +40,14 @@ async function downloadZip(fetchUrl: string) {
 				resolve(body);
 			});
 		});
-		const zip = new AdmZip(buf);
-		await tryExtract(zip);
+		fs.writeFileSync(Path.resolve(distDir, 'download-update-' + (new Date().getTime()) + '.zip'),
+			buf);
+		// const zip = new AdmZip(buf);
+		// await tryExtract(zip);
 	});
 }
 
-function tryExtract(zip: AdmZip) {
-	return new Promise((resolve, reject) => {
-		zip.extractAllToAsync(zipExtractDir, true, (err) => {
-			if (err) {
-				process.send({error: err});
-				if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
-					// tslint:disable-next-line
-					process.send({log: `[pid:${process.pid}]${os.hostname()} ${os.userInfo().username} [Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`});
-				}
-				reject(err);
-			} else {
-				process.send({done: `[pid:${process.pid}]done`});
-				console.log('zip extracted to ' + zipExtractDir);
-				resolve();
-			}
-		});
-	});
-}
+
 
 async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> {
 	for (let cnt = 0;;) {

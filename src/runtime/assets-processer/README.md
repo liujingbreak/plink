@@ -30,3 +30,8 @@ This tool will also started as Node service and routes `http://<server-host>:<po
 ```bash
 node node_modules/@dr-core/assets-processer/dist/zip
 ```
+
+## "downloadMode"
+> Check package.json `dr > config > server > downloadMode`.
+If `downloadMode` is "fork", we will use a separate forked process to do downloading and extracting task, since in our
+annoying DevOps environment, process updating local filesystem will randomly being killed by unknow reason.
