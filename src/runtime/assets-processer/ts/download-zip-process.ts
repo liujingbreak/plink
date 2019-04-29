@@ -3,13 +3,12 @@
 import request from 'request';
 
 import fs from 'fs';
-import Path from 'path';
+// import Path from 'path';
 
 const argv = process.argv;
 const fetchUrl = argv[2];
 const fileName = argv[3];
-const distDir = argv[4];
-const retryTimes = parseInt(argv[5], 10);
+const retryTimes = parseInt(argv[4], 10);
 
 process.on('uncaughtException', (err) => {
 	// tslint:disable-next-line
@@ -25,23 +24,27 @@ async function downloadZip(fetchUrl: string) {
 	// log.info('fetch', resource);
 	process.send({log: `[pid:${process.pid}] fetch `+ resource});
 	await retry(async () => {
-		const buf = await new Promise<Buffer>((resolve, rej) => {
+		await new Promise<Buffer>((resolve, rej) => {
+			const writeStream = fs.createWriteStream(fileName);
+			writeStream.on('finish', () => {
+				process.send({log: 'zip file is written: ' + fileName});
+				resolve();
+			});
 			request({
 				uri: resource, method: 'GET', encoding: null
-			}, (err, res, body) => {
-				if (err) {
-					return rej(err);
-				}
+			})
+			.on('response', res => {
 				if (res.statusCode > 299 || res.statusCode < 200)
 					return rej(new Error(res.statusCode + ' ' + res.statusMessage));
-				const size = (body as Buffer).byteLength;
-				// tslint:disable-next-line
-				process.send({log: `[pid:${process.pid}] zip loaded, length:${size > 1024 ? Math.round(size / 1024) + 'k' : size}`});
-				resolve(body);
-			});
+			})
+			.on('error', err => {
+				return rej(err);
+			})
+			.pipe(writeStream);
 		});
-		fs.writeFileSync(Path.resolve(distDir, fileName),
-			buf);
+		// fs.writeFileSync(Path.resolve(distDir, fileName),
+		// 	buf);
+		process.send({log: `${fileName} is written.`});
 		// const zip = new AdmZip(buf);
 		// await tryExtract(zip);
 	});
@@ -59,10 +62,14 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 				throw err;
 			}
 			console.log(err);
-			process.send({log: 'Encounter error, will retry'});
+			process.send({log: 'Encounter error, will retry ' + (err as Error).stack ? err.stack : err});
 		}
 		await new Promise(res => setTimeout(res, cnt * 5000));
 	}
 }
 
-downloadZip(fetchUrl);
+downloadZip(fetchUrl)
+.catch(err => {
+	process.send({error: err});
+	process.exit(1);
+});

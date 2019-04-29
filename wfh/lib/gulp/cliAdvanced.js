@@ -143,6 +143,7 @@ function lint(argv) {
 	// let program = tslint.Linter.createPrograme('');
 	var prom = Promise.resolve();
 	var errors = [];
+	const getPackDirs = require('../../dist/utils').getTsDirsOfPackage;
 	if (argv.package && argv.package.length > 0) {
 		packageUtils.lookForPackages(argv.package, (fullName, entryPath, parsedName, json, packagePath) => {
 			if (json.dr && json.dr.noLint === true) {
@@ -153,7 +154,7 @@ function lint(argv) {
 			prom = prom.catch(err => errors.push(err))
 			.then(() => {
 				log.info('Checking ', packagePath);
-				return _lintPackageAsync(eslint, fullName, json, packagePath, argv.fix);
+				return _lintPackageAsync(eslint, fullName, json, packagePath, getPackDirs(json), argv.fix);
 			})
 			.catch(err => errors.push(err))
 			.then(() => {
@@ -170,7 +171,7 @@ function lint(argv) {
 			prom = prom.catch(err => errors.push(err))
 			.then(() => {
 				log.info('Checking ', packagePath);
-				return _lintPackageAsync(eslint, fullName, json, packagePath, argv.fix);
+				return _lintPackageAsync(eslint, fullName, json, packagePath, getPackDirs(json), argv.fix);
 			})
 			.catch(err => errors.push(err))
 			.then(() => {
@@ -228,7 +229,7 @@ function _tsLintPackageAsync(tslint, fullName, json, packagePath, fix) {
 	});
 }
 
-function _lintPackageAsync(eslint, fullName, json, packagePath, fix) {
+function _lintPackageAsync(eslint, fullName, json, packagePath, pkTsDirs, fix) {
 	if (fix)
 		log.info('Fixing typescript file ...');
 
@@ -246,9 +247,10 @@ function _lintPackageAsync(eslint, fullName, json, packagePath, fix) {
 	log.debug('Use', rcfile);
 	packagePath = packagePath.replace(/\\/g, '/');
 	return new Promise((resolve, reject) => {
+		
 		var tsDestDir = _.get(json, 'dr.ts.dest', 'dist');
 		var stream = gulp.src([packagePath + '/**/*.{js,jsx}',
-			`!${packagePath}/isom/**/*`,
+			`!${packagePath}/${pkTsDirs.isomDir}/**/*`,
 			`!${packagePath}/${tsDestDir}/**/*`,
 			`!${packagePath}/spec/**/*`,
 			`!${packagePath}/${_.get(json, 'dr.assetsDir', 'assets')}/**/*`,

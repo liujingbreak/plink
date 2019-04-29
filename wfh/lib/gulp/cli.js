@@ -76,7 +76,6 @@ var argv;
 var packageJsonGuarder = PackageJsonGuarder(rootPath);
 function init(_argv, noPuppy) {
 	argv = _argv;
-	console.log(_argv);
 	fs.mkdirpSync(Path.join(rootPath, 'dist'));
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates/config.local-template.yaml'), Path.join(rootPath, 'dist', 'config.local.yaml'));
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates/log4js.js'), rootPath + '/log4js.js');

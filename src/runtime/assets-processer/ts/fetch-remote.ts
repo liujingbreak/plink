@@ -8,8 +8,8 @@ import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
 import cluster from 'cluster';
 import {ZipResourceMiddleware} from 'serve-static-zip';
-import {fork} from 'child_process';
-const chokidar = require('chokidar');
+import {fork, ChildProcess} from 'child_process';
+// const chokidar = require('chokidar');
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
 
 const pm2InstanceId = process.env.NODE_APP_INSTANCE;
@@ -51,22 +51,28 @@ let watcher: any;
 
 export function start(serveStaticZip: ZipResourceMiddleware) {
 	zipDownloadDir = api.config.resolve('destDir', 'assets-processer');
-	watcher = chokidar.watch('**/*.zip', {
-		ignoreInitial: true,
-		cwd: zipDownloadDir
-	});
-	const updateServerStatic = (path: string) => {
-		log.info('read %s', path);
-		try {
-			serveStaticZip.updateZip(fs.readFileSync(Path.resolve(zipDownloadDir, path)));
-			api.eventBus.emit(api.packageName + '.downloaded');
-		} catch (e) {
-			log.warn('Failed to update from ' + path, e);
-		}
-	};
-	log.info('watch ', zipDownloadDir.replace(/\\/g, '/') + '/**/*.zip');
-	watcher.on('add', updateServerStatic);
-	watcher.on('change', updateServerStatic);
+	if (!fs.existsSync(zipDownloadDir))
+		fs.mkdirpSync(zipDownloadDir);
+	const fileNames = fs.readdirSync(zipDownloadDir);
+	for (const name of fileNames) {
+		const file = Path.resolve(zipDownloadDir, name);
+		updateServerStatic(file, serveStaticZip);
+	}
+	// watcher = chokidar.watch('**/*.zip', {
+	// 	cwd: zipDownloadDir
+	// });
+	// const updateServerStatic = (path: string) => {
+	// 	log.info('read %s', path);
+	// 	try {
+	// 		serveStaticZip.updateZip(fs.readFileSync(Path.resolve(zipDownloadDir, path)));
+	// 		api.eventBus.emit(api.packageName + '.downloaded');
+	// 	} catch (e) {
+	// 		log.warn('Failed to update from ' + path, e);
+	// 	}
+	// };
+	// log.info('watch ', zipDownloadDir.replace(/\\/g, '/') + '/**/*.zip');
+	// watcher.on('add', updateServerStatic);
+	// watcher.on('change', updateServerStatic);
 
 
 	setting = api.config.get(api.packageName);
@@ -92,7 +98,7 @@ export function start(serveStaticZip: ZipResourceMiddleware) {
 		currentChecksum = Object.assign(currentChecksum, fs.readJSONSync(currChecksumFile));
 		log.info('Found saved checksum file after reboot\n', JSON.stringify(currentChecksum, null, '  '));
 	}
-	return runRepeatly(setting, setting.downloadMode === 'memory' ? serveStaticZip : null);
+	return runRepeatly(setting, serveStaticZip);
 }
 
 /**
@@ -104,6 +110,15 @@ export function stop() {
 		watcher.close();
 	if (timer) {
 		clearTimeout(timer);
+	}
+}
+
+function updateServerStatic(path: string, serveStaticZip: ZipResourceMiddleware) {
+	log.info('read %s', path);
+	try {
+		serveStaticZip.updateZip(fs.readFileSync(Path.resolve(zipDownloadDir, path)));
+	} catch (e) {
+		log.warn('Failed to update from ' + path, e);
 	}
 }
 
@@ -121,15 +136,6 @@ function runRepeatly(setting: Setting, szip: ZipResourceMiddleware): Promise<voi
 	});
 }
 async function run(setting: Setting, szip: ZipResourceMiddleware) {
-
-	// if (setting.downloadMode === 'fork') {
-	// 	const files = fs.readdirSync(api.config.resolve('destDir'));
-	// 	if (files.filter(name => name.startsWith('download-update-')).length > 0) {
-	// 		await retry(20, forkExtractExstingZip);
-	// 		api.eventBus.emit(api.packageName + '.downloaded');
-	// 	}
-	// }
-
 	let checksumObj: Checksum;
 	try {
 		checksumObj = await retry(setting.fetchRetry, fetch, setting.fetchUrl);
@@ -146,10 +152,10 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
 		setting.fetchUrl = checksumObj.changeFetchUrl;
 		log.info('Change fetch URL to', setting.fetchUrl);
 	}
-	let downloaded = false;
+	let downloads: string[] = [];
 	if (checksumObj.version != null && currentChecksum.version !== checksumObj.version) {
-		await downloadZip(checksumObj.path, szip);
-		downloaded = true;
+		const file = await downloadZip(checksumObj.path, szip);
+		downloads.push(file);
 		currentChecksum.version = checksumObj.version;
 	}
 	if (checksumObj.versions) {
@@ -158,14 +164,22 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
 		for (const key of Object.keys(checksumObj.versions)) {
 			if (!_.has(targetVersions, key) || _.get(currVersions, [key, 'version']) !==
 				_.get(targetVersions, [key, 'version'])) {
-					await downloadZip(targetVersions[key].path, szip);
+					const file = await downloadZip(targetVersions[key].path, szip);
 					currVersions[key] = targetVersions[key];
-					downloaded = true;
+					downloads.push(file);
 				}
 		}
 	}
 
-	if (downloaded) {
+	if (downloads.length > 0) {
+		await retry(setting.fetchRetry, () => {
+			return forkProcess('write-checksum', 'node_modules/' + api.packageName + '/dist/write-checksum-process.js',
+				[currChecksumFile], child => {
+					log.info('write checksum');
+					child.send({checksum: currentChecksum});
+				});
+			});
+		downloads.forEach(file => updateServerStatic(file, szip));
 		// fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
 		// if (setting.downloadMode === 'fork') {
 		// 	await retry(20, forkExtractExstingZip);
@@ -180,9 +194,11 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 	// tslint:disable-next-line
 	// log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
 	const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
-	const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
+	// const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
+	const newName = path.replace(/[\\/]/g, '_');
+	const downloadTo = Path.resolve(zipDownloadDir, newName);
 	log.info('fetch', resource);
-	if (szip) {
+	if (setting.downloadMode === 'memory') {
 		await retry(setting.fetchRetry, () => {
 			return new Promise((resolve, rej) => {
 				request({
@@ -201,7 +217,8 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 			});
 		});
 	} else if (setting.downloadMode === 'fork') {
-		await retry<string>(setting.fetchRetry, forkDownloadzip, resource, path);
+		await retry<string>(setting.fetchRetry, forkDownloadzip, resource, downloadTo);
+		return downloadTo;
 	} else {
 		await retry(setting.fetchRetry, () => {
 			return new Promise((resolve, rej) => {
@@ -287,9 +304,9 @@ async function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...
 	}
 }
 
-function forkDownloadzip(resource: string, originPath: string): Promise<string> {
+function forkDownloadzip(resource: string, toFileName: string): Promise<string> {
 	return forkProcess('download', 'node_modules/' + api.packageName + '/dist/download-zip-process.js', [
-		resource, originPath.replace(/[\\/]/g, '_'), zipDownloadDir, setting.fetchRetry + ''
+		resource, toFileName, setting.fetchRetry + ''
 	]);
 }
 // function forkExtractExstingZip() {
@@ -299,13 +316,16 @@ function forkDownloadzip(resource: string, originPath: string): Promise<string> 
 // 	]);
 // }
 
-async function forkProcess(name: string, filePath: string, args: string[]) {
+async function forkProcess(name: string, filePath: string, args: string[], onProcess?: (child: ChildProcess) => void) {
 	return new Promise<string>((resolve, reject) => {
 		let extractingDone = false;
 		const child = fork(filePath,
 			args, {
 			silent: true
 		});
+		if (onProcess) {
+			onProcess(child);
+		}
 		child.on('message', msg => {
 			if (msg.log) {
 				log.info('[child process] %s - %s', name, msg.log);
@@ -321,17 +341,17 @@ async function forkProcess(name: string, filePath: string, args: string[]) {
 			reject(output);
 		});
 		child.on('exit', (code, signal) => {
-			log.info('process [%s] %s - exit with: %d - %s', child.pid, name, code, signal);
+			log.info('process [pid:%s] %s - exit with: %d - %s', child.pid, name, code, signal);
 			if (code !== 0) {
 				if (extractingDone) {
 					return resolve(output);
 				}
-				log.error('exit with error code %d - "%s"', JSON.stringify(code), signal);
+				log.error(`process [pid:${child.pid}] ${name} exit with error code %d - "%s"`, JSON.stringify(code), signal);
 				if (output)
 					log.error(`[child process][pid:${child.pid}]${name} - `, output);
 				reject(output);
 			} else {
-				log.info('process "%s" done successfully,', name, output);
+				log.info(`process [pid:${child.pid}] ${name} done successfully:`, output);
 				resolve(output);
 			}
 		});
