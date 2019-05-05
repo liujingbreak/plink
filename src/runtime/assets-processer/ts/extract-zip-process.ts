@@ -26,15 +26,15 @@ const zipExtractDir = argv[3];
 const readFileAsync = pify(fs.readFile);
 async function start() {
 	const fileNames = fs.readdirSync(zipDir);
-	const proms = fileNames.filter(name => name.startsWith('download-update-'))
-	.sort((name1, name2) => {
-		const match1 = /[0-9]+/.exec(name1);
-		const match2 = /[0-9]+/.exec(name2);
-		if (match1 && match1[0] && match2 && match2[0]) {
-			return parseInt(match1[0], 10) - parseInt(match2[0], 10);
-		}
-		return 0;
-	})
+	const proms = fileNames.filter(name => Path.extname(name).toLowerCase() === '.zip')
+	// .sort((name1, name2) => {
+	// 	const match1 = /[0-9]+/.exec(name1);
+	// 	const match2 = /[0-9]+/.exec(name2);
+	// 	if (match1 && match1[0] && match2 && match2[0]) {
+	// 		return parseInt(match1[0], 10) - parseInt(match2[0], 10);
+	// 	}
+	// 	return 0;
+	// })
 	.map(name => {
 		const file = Path.resolve(zipDir, name);
 		return () => {

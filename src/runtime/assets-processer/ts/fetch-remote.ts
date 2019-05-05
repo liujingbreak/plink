@@ -4,7 +4,7 @@ import * as Url from 'url';
 import * as _ from 'lodash';
 import os from 'os';
 import Path from 'path';
-import AdmZip from 'adm-zip';
+// import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
 import cluster from 'cluster';
 import {ZipResourceMiddleware} from 'serve-static-zip';
@@ -49,31 +49,21 @@ let errCount = 0;
 let zipDownloadDir: string;
 let watcher: any;
 
-export function start(serveStaticZip: ZipResourceMiddleware) {
+export async function start(serveStaticZip: ZipResourceMiddleware) {
+	// tslint:disable-next-line
+	log.info(`[memory status] total ${Math.floor(os.totalmem() / 1048576)}Mb, free ${Math.floor(os.freemem() / 1048576)}Mb\n` +
+		`[CPU] ${JSON.stringify(os.cpus(), null, '  ')}`);
 	zipDownloadDir = api.config.resolve('destDir', 'assets-processer');
 	if (!fs.existsSync(zipDownloadDir))
 		fs.mkdirpSync(zipDownloadDir);
-	const fileNames = fs.readdirSync(zipDownloadDir);
-	for (const name of fileNames) {
-		const file = Path.resolve(zipDownloadDir, name);
-		updateServerStatic(file, serveStaticZip);
+	const fileNames = fs.readdirSync(zipDownloadDir).filter(name => Path.extname(name) === '.zip');
+	if (fileNames.length > 0) {
+		await retry(20, forkExtractExstingZip);
 	}
-	// watcher = chokidar.watch('**/*.zip', {
-	// 	cwd: zipDownloadDir
-	// });
-	// const updateServerStatic = (path: string) => {
-	// 	log.info('read %s', path);
-	// 	try {
-	// 		serveStaticZip.updateZip(fs.readFileSync(Path.resolve(zipDownloadDir, path)));
-	// 		api.eventBus.emit(api.packageName + '.downloaded');
-	// 	} catch (e) {
-	// 		log.warn('Failed to update from ' + path, e);
-	// 	}
-	// };
-	// log.info('watch ', zipDownloadDir.replace(/\\/g, '/') + '/**/*.zip');
-	// watcher.on('add', updateServerStatic);
-	// watcher.on('change', updateServerStatic);
-
+	// for (const name of fileNames) {
+	// 	const file = Path.resolve(zipDownloadDir, name);
+	// 	updateServerStatic(file, serveStaticZip);
+	// }
 
 	setting = api.config.get(api.packageName);
 	const fetchUrl = setting.fetchUrl;
@@ -88,9 +78,6 @@ export function start(serveStaticZip: ZipResourceMiddleware) {
 		log.info('This process is not main process');
 		return;
 	}
-	// zipExtractDir = api.config.resolve('destDir', 'assets-processer');
-	// if (!fs.existsSync(zipExtractDir))
-	// 	fs.mkdirpSync(zipExtractDir);
 
 	if (setting.fetchRetry == null)
 		setting.fetchRetry = 3;
@@ -113,14 +100,14 @@ export function stop() {
 	}
 }
 
-function updateServerStatic(path: string, serveStaticZip: ZipResourceMiddleware) {
-	log.info('read %s', path);
-	try {
-		serveStaticZip.updateZip(fs.readFileSync(Path.resolve(zipDownloadDir, path)));
-	} catch (e) {
-		log.warn('Failed to update from ' + path, e);
-	}
-}
+// function updateServerStatic(path: string, serveStaticZip: ZipResourceMiddleware) {
+// 	log.info('read %s', path);
+// 	try {
+// 		serveStaticZip.updateZip(fs.readFileSync(Path.resolve(zipDownloadDir, path)));
+// 	} catch (e) {
+// 		log.warn('Failed to update from ' + path, e);
+// 	}
+// }
 
 function runRepeatly(setting: Setting, szip: ZipResourceMiddleware): Promise<void> {
 	if (stopped)
@@ -172,18 +159,11 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
 	}
 
 	if (downloads.length > 0) {
-		await retry(setting.fetchRetry, () => {
-			return forkProcess('write-checksum', 'node_modules/' + api.packageName + '/dist/write-checksum-process.js',
-				[currChecksumFile], child => {
-					log.info('write checksum');
-					child.send({checksum: currentChecksum});
-				});
-			});
-		downloads.forEach(file => updateServerStatic(file, szip));
-		// fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, ' '), 'utf8');
-		// if (setting.downloadMode === 'fork') {
-		// 	await retry(20, forkExtractExstingZip);
-		// }
+		fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, '  '), 'utf8');
+		// downloads.forEach(file => updateServerStatic(file, szip));
+		if (setting.downloadMode === 'fork') {
+			await retry(20, forkExtractExstingZip);
+		}
 		api.eventBus.emit(api.packageName + '.downloaded');
 	}
 }
@@ -198,71 +178,8 @@ async function downloadZip(path: string, szip: ZipResourceMiddleware) {
 	const newName = path.replace(/[\\/]/g, '_');
 	const downloadTo = Path.resolve(zipDownloadDir, newName);
 	log.info('fetch', resource);
-	if (setting.downloadMode === 'memory') {
-		await retry(setting.fetchRetry, () => {
-			return new Promise((resolve, rej) => {
-				request({
-					uri: resource, method: 'GET', encoding: null
-				}, (err, res, body) => {
-					if (err) {
-						return rej(err);
-					}
-					if (res.statusCode > 299 || res.statusCode < 200)
-						return rej(new Error(res.statusCode + ' ' + res.statusMessage));
-					const size = (body as Buffer).byteLength;
-					log.info('zip loaded, length:', size > 1024 ? Math.round(size / 1024) + 'k' : size);
-					szip.updateZip(body);
-					resolve();
-				});
-			});
-		});
-	} else if (setting.downloadMode === 'fork') {
-		await retry<string>(setting.fetchRetry, forkDownloadzip, resource, downloadTo);
-		return downloadTo;
-	} else {
-		await retry(setting.fetchRetry, () => {
-			return new Promise((resolve, rej) => {
-				request.get(resource).on('error', err => {
-					rej(err);
-				})
-				.pipe(fs.createWriteStream(downloadTo))
-				.on('finish', () => setTimeout(resolve, 100));
-			});
-		});
-		const zip = new AdmZip(downloadTo);
-		let retryCount = 0;
-		do {
-			try {
-				log.info('extract %s', downloadTo);
-				await tryExtract();
-				log.info(`extract ${downloadTo} done`);
-				fs.unlinkSync(downloadTo);
-				// tslint:disable-next-line
-				// log.info(`${os.hostname()} ${os.userInfo().username} download done[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
-				break;
-			} catch (ex) {
-				await new Promise(resolve => setTimeout(resolve, 1000));
-			}
-		} while (++retryCount <=3);
-		if (retryCount > 3) {
-			log.info('Give up on extracting zip');
-		}
-		function tryExtract() {
-			return new Promise((resolve, reject) => {
-				zip.extractAllToAsync(api.config.resolve('staticDir'), true, (err) => {
-					if (err) {
-						log.error(err);
-						if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
-							// tslint:disable-next-line
-							log.info(`${os.hostname()} ${os.userInfo().username} [Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
-						}
-						reject(err);
-					} else
-						resolve();
-				});
-			});
-		}
-	}
+	await retry<string>(setting.fetchRetry, forkDownloadzip, resource, downloadTo);
+	return downloadTo;
 }
 
 function fetch(fetchUrl: string): Promise<any> {
@@ -309,12 +226,12 @@ function forkDownloadzip(resource: string, toFileName: string): Promise<string> 
 		resource, toFileName, setting.fetchRetry + ''
 	]);
 }
-// function forkExtractExstingZip() {
-// 	return forkProcess('extract', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
-// 		api.config.resolve('destDir'),
-// 		zipExtractDir
-// 	]);
-// }
+function forkExtractExstingZip() {
+	return forkProcess('extract', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
+		zipDownloadDir,
+		api.config.resolve('staticDir')
+	]);
+}
 
 async function forkProcess(name: string, filePath: string, args: string[], onProcess?: (child: ChildProcess) => void) {
 	return new Promise<string>((resolve, reject) => {
