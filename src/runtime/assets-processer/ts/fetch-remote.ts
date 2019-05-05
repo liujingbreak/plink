@@ -52,18 +52,7 @@ let watcher: any;
 export async function start(serveStaticZip: ZipResourceMiddleware) {
 	// tslint:disable-next-line
 	log.info(`[memory status] total ${Math.floor(os.totalmem() / 1048576)}Mb, free ${Math.floor(os.freemem() / 1048576)}Mb\n` +
-		`[CPU] ${JSON.stringify(os.cpus(), null, '  ')}`);
-	zipDownloadDir = api.config.resolve('destDir', 'assets-processer');
-	if (!fs.existsSync(zipDownloadDir))
-		fs.mkdirpSync(zipDownloadDir);
-	const fileNames = fs.readdirSync(zipDownloadDir).filter(name => Path.extname(name) === '.zip');
-	if (fileNames.length > 0) {
-		await retry(20, forkExtractExstingZip);
-	}
-	// for (const name of fileNames) {
-	// 	const file = Path.resolve(zipDownloadDir, name);
-	// 	updateServerStatic(file, serveStaticZip);
-	// }
+		`[num of CPU] ${os.cpus().length}`);
 
 	setting = api.config.get(api.packageName);
 	const fetchUrl = setting.fetchUrl;
@@ -77,6 +66,13 @@ export async function start(serveStaticZip: ZipResourceMiddleware) {
 		// in case of cluster mode, we only want single process do zip extracting and file writing task to avoid conflict.
 		log.info('This process is not main process');
 		return;
+	}
+	zipDownloadDir = api.config.resolve('destDir', 'assets-processer');
+	if (!fs.existsSync(zipDownloadDir))
+		fs.mkdirpSync(zipDownloadDir);
+	const fileNames = fs.readdirSync(zipDownloadDir).filter(name => Path.extname(name) === '.zip');
+	if (fileNames.length > 0) {
+		await retry(20, forkExtractExstingZip);
 	}
 
 	if (setting.fetchRetry == null)
