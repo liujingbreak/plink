@@ -51,10 +51,11 @@ export default class IndexHtmlPlugin {
 			const asts = new TemplateParser(source).parse();
 			for (const ast of asts) {
 				if (ast.name.toLowerCase() === 'script' && ast.attrs) {
-					const srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'text');
+					const srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'value');
 					if (srcUrl == null)
 						continue;
-					const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
+					// log.warn('srcUrl', srcUrl.text);
+					const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl.text);
 					if (match && this.inlineChunkSet.has(match[1])) {
 						this.replaceScriptTag(smUrl.removeFrom(compilation.assets[match[0]].source()), ast.start, ast.end);
 						log.info(`Inline chunk "${match[1]}" in :`, this.options.indexFile);

@@ -49,25 +49,4 @@ export = function(injector: DrPackageInjector) {
 		return new chalk.constructor(
 			{enabled: config.get('colorfulConsole') !== false && _.toLower(process.env.CHALK_ENABLED) !== 'false'});
 	});
-
-	// Hack filesystem
-	// var fs = require('fs');
-	// var oldWriteFile = fs.writeFile;
-	// var oldWriteFileSync = fs.writeFileSync;
-	// var hackedFs = Object.assign({}, fs, {
-	// 	writeFile(path) {
-	// 		log.warn('writeFile ', path);
-	// 		return oldWriteFile.apply(fs, arguments);
-	// 	},
-	// 	writeFileSync(path) {
-	// 		log.warn('writeFileSync', path);
-	// 		return oldWriteFileSync.apply(fs, arguments);
-	// 	}
-	// });
-
-	// injector.fromDir(['node_modules/dr-comp-package/node_modules/typescript', 'node_modules/typescript'])
-	// .factory('fs', function() {
-	// 	//log.warn(arguments);
-	// 	return hackedFs;
-	// });
 };
