@@ -26,7 +26,6 @@ class MockLoaderContext {
 
 export default class IndexHtmlPlugin {
 	inlineChunkSet = new Set();
-	replacements: ReplacementInf[];
 	indexOutputPath: string;
 
 	constructor(public options: IndexHtmlPluginOptions) {
@@ -43,6 +42,7 @@ export default class IndexHtmlPlugin {
 			const htmlSrc = compilation.assets[this.indexOutputPath];
 			let source: string = htmlSrc.source();
 			const compile = _.template(source);
+			const replacements: ReplacementInf[] = [];
 			source = compile({
 				api,
 				require
@@ -57,25 +57,25 @@ export default class IndexHtmlPlugin {
 					// log.warn('srcUrl', srcUrl.text);
 					const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl.text);
 					if (match && this.inlineChunkSet.has(match[1])) {
-						this.replaceScriptTag(smUrl.removeFrom(compilation.assets[match[0]].source()), ast.start, ast.end);
+						replacements.push({
+							start: ast.start, end: ast.end, text: '<script>' + smUrl.removeFrom(compilation.assets[match[0]].source())
+						});
 						log.info(`Inline chunk "${match[1]}" in :`, this.options.indexFile);
 					}
 				}
 			}
-			if (this.replacements) {
+			if (replacements.length > 0) {
 				compilation.assets[this.indexOutputPath] = new RawSource(
-					replaceCode(source, this.replacements));
+					replaceCode(source, replacements));
 			} else {
 				compilation.assets[this.indexOutputPath] = new RawSource(source);
 			}
 		});
 	}
 
-	replaceScriptTag(src: string, start: number, end: number) {
-		if (this.replacements == null)
-			this.replacements = [];
-		this.replacements.push({
-			start, end, text: '<script>' + src
-		});
-	}
+	// replaceScriptTag(replacements: ReplacementInf[], src: string, start: number, end: number) {
+	// 	replacements.push({
+	// 		start, end, text: '<script>' + src
+	// 	});
+	// }
 }
