@@ -1,5 +1,5 @@
-{
-  "$schema": "../architect/src/builders-schema.json",
+  {
+  "$schema": "../../../../node_modules/@angular-devkit/architect/src/builders-schema.json",
   "builders": {
     "browser": {
       "class": "../dist/ng/browser-builder",
@@ -15,6 +15,11 @@
       "class": "../dist/ng/server",
       "schema": "./server-schema.json",
       "description": "Build a server Angular application."
+    },
+    "browser2": {
+      "class": "../dist/ng/browser-builder2",
+      "schema": "./browser-builder-schema.json",
+      "description": "Build a browser app."
     }
   }
 }
