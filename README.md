@@ -17,7 +17,8 @@ Refer to the offcial doc in Chinese at [http://dr-web-house.github.io](http://dr
 ## Packages
 This is a monorepo which contains many tools and packages:
 
-- Internal packages under `src/internal`, which are installed or linked as `devDependencies` for business projects.
+1. Internal packages under `src/internal`, which are installed or linked as `devDependencies` for business projects.
+   
    | package | desc | state
    | - | - | -
    | ng-app-builder | Command line tool extension for Angular cli and Create-react-app
@@ -26,14 +27,16 @@ This is a monorepo which contains many tools and packages:
    | templateBuilder | Webpack loaders for swig template | Obsolete
    | translate-generator | i18n text tool including command line tool and Webpack loader |
 
-- Runtime packages under `src/runtime`, which are installed or linked as `dependencies` for business project.
+2. Runtime packages under `src/runtime`, which are installed or linked as `dependencies` for business project.
+   
    | package | desc | state
    | - | - | -
    | assets-processer | Serve static resource in production or develop environment while CDN is not avaible for some products, also support updating online static resource on-the-fly. Details like setting CORS and proper content cache header in response. 
    | express-app | Basic and common express.js middlewares used among all projects.
    | http-server | HTTP and HTTPS server
 
-- Tools `src/tools`
+3. Tools `src/tools`
+   
    | package | desc | state
    | - | - | -
    | e2etestHelper| end-to-end test library, should be replaced with framework specific tool like **Protractor** | Obsolete
