@@ -199,7 +199,7 @@ function writeTsconfig4Editor() {
 
 	for (let proj of api.config().projectList) {
 		tsjson.include = [];
-		require('dr-comp-package/wfh/lib/gulp/recipeManager').eachRecipeSrc(proj, (srcDir: string) => {
+		require('dr-comp-package/wfh/dist/recipe-manager').eachRecipeSrc(proj, (srcDir: string) => {
 			let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
 			if (includeDir && includeDir !== '/')
 				includeDir += '/';

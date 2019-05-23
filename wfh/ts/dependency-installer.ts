@@ -9,7 +9,7 @@ const semver = require('semver');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
 const packageUtils = require('../lib/packageMgr/packageUtils');
 const getPackageJsonGuarder = require('../lib/gulp/packageJsonGuarder');
-const recipeManager = require('../lib/gulp/recipeManager');
+import * as recipeManager from './recipe-manager';
 
 export function listCompDependency(pkJsonFiles: string[], write: boolean, isDrcpSymlink: boolean) {
 	log.info('scan components from:\n', pkJsonFiles.join('\n'));

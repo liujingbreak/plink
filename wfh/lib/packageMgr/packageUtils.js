@@ -5,7 +5,7 @@ var resolve = require('resolve').sync;
 var config = require('../config');
 var log = require('log4js').getLogger('wfh.packageUtils');
 var chalk = require('chalk');
-var recipeMgr = require('../gulp/recipeManager');
+var recipeMgr = require('../../dist/recipe-manager');
 module.exports = {
 	parseName,
 	is3rdParty,

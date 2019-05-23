@@ -178,7 +178,7 @@ function createProjectSymlinks() {
 }
 
 function _initDependency(isDrcpSymlink) {
-	var rm = require('./recipeManager');
+	var rm = require('../../dist/recipe-manager');
 	var helper = require('./cliAdvanced');
 	// Create project folder node_modules
 	listProject().forEach(prjdir => {

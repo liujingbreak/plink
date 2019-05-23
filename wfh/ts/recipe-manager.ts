@@ -19,16 +19,6 @@ config.done.then(() => {
 	linkListFile = config.resolve('destDir', 'link-list.json');
 });
 
-module.exports = {
-	linkComponentsAsync,
-	link, // return a piped stream
-	clean,
-	// eachSrcPkJson: eachSrcPkJson,
-	eachRecipeSrc,
-	eachRecipe,
-	eachInstalledRecipe
-};
-
 export type EachRecipeSrcCallback = (srcDir: string, recipeDir: string, recipeName: string) => void;
 /**
  * Iterate src folder for component items
@@ -70,15 +60,28 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
 	}
 }
 
-function _projectSrcRecipeMap(projectDir: string) {
+function _projectSrcRecipeMap(projectDir: string): {[recipeDir: string]: string} {
 	const srcRecipeMapFile = Path.resolve(projectDir, 'dr.recipes.json');
+	const pkJsonFile = Path.resolve(projectDir, 'package.json');
 	const recipeSrcMapping: {[recipe: string]: string} = {};
 	let nameSrcSetting: {[key: string]: string} = {};
 
+	let normalizedPrjName = Path.resolve(projectDir).replace(/[\/\\]/g, '.');
+	normalizedPrjName = _.trim(normalizedPrjName, '.');
+	if (fs.existsSync(pkJsonFile)) {
+		const pkjson = require(pkJsonFile);
+		if (pkjson.packages) {
+			[].concat(pkjson.packages).forEach((dirName) => {
+				// TODO:
+				// nameSrcSetting[`${normalizedPrjName}.${}`]
+			});
+			return;
+		}
+	}
+	// legacy: read dr.recipes.json
 	if (fs.existsSync(srcRecipeMapFile)) {
 		nameSrcSetting = JSON.parse(fs.readFileSync(srcRecipeMapFile, 'utf8'));
 	} else {
-		const pkJsonFile = Path.resolve(projectDir, 'package.json');
 		const projectName = fs.existsSync(pkJsonFile) ? require(pkJsonFile).name : Path.basename(projectDir);
 		if (fs.existsSync(Path.join(projectDir, 'src'))) {
 			nameSrcSetting['recipes/' + projectName] = 'src';
@@ -101,6 +104,7 @@ function _projectSrcRecipeMap(projectDir: string) {
 	return recipeSrcMapping;
 }
 export type EachRecipeCallback = (recipeDir: string, isFromInstallation: boolean, jsonFileName: string) => void;
+
 function eachDownloadedRecipe(callback: EachRecipeCallback, excludeRecipeSet?: Set<string>) {
 	let srcRecipeSet: Set<string>;
 	if (excludeRecipeSet) {
@@ -115,12 +119,9 @@ function eachDownloadedRecipe(callback: EachRecipeCallback, excludeRecipeSet?: S
 		const regexList = (config().installedRecipes as string[]).map(s => new RegExp(s));
 		const pkjson = require(Path.resolve(config().rootPath, 'package.json'));
 		const deps = Object.assign({}, pkjson.dependencies || {}, pkjson.devDependencies || {});
-		// let deps = require(Path.resolve(config().rootPath, 'package.json')).dependencies;
-		// log.warn('delete ', require('../../../package.json').name);
 		if (!deps)
 			return;
 		const drcpName = require('../../package.json').name;
-		// delete deps[require('../../../package.json').name];
 		_.each(deps, function(ver, depName) {
 			if (depName !== drcpName && !srcRecipeSet.has(depName) && _.some(regexList, regex => regex.test(depName))) {
 				log.debug('looking for installed recipe: %s', depName);
@@ -130,9 +131,6 @@ function eachDownloadedRecipe(callback: EachRecipeCallback, excludeRecipeSet?: S
 					callback(p, true, 'package.json');
 				} catch (e) {
 					log.info(`${depName} seems to be not installed`);
-// 					log.error(`Weird things happened, I can't detect ${depName}, has it been installed?
-// Please run command "drcp init" one more time, let me try again.`, e);
-					// throw e;
 				}
 			}
 		});
