@@ -105,7 +105,9 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 					log.info('Recieve SIGINT.');
 					startDone.then(shut => shut())
 					.then(() => {
-						log4js.shutdown();
+						try {
+							log4js.shutdown();
+						} catch (e) {console.log(e);}
 						log.info('Bye.');
 						process.exit(0);
 					});
@@ -115,7 +117,9 @@ export function startDrcpServer(projectRoot: string, builderConfig: BuilderConfi
 						log.info('Recieve shutdown message from PM2');
 						startDone.then(shut => shut())
 						.then(() => {
-							log4js.shutdown();
+							try {
+								log4js.shutdown();
+							} catch (e) {console.log(e);}
 							log.info('Bye.');
 							process.exit(0);
 						});
