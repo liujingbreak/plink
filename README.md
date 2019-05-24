@@ -85,14 +85,17 @@ Options:
 copyright 2016
 ```
 
-### Design features
+### Designed features
 - A Component package (Node package) can contain both Client side code and server side code, even isomorphic code.
 
-- Be compliant (or work with) to modern web framework's command line tools like `Angulr cli` and `create-react-app`
+- Be compliant (or work with) to modern web framework's command line tools like `Angulr cli` and `create-react-app`.
 
-- Support developing library package through symlinks, manage monorepos style projects (like what Lerna, Bazel and Yarn do).
+- Support developing library package through symlinks, manage **monorepo** style projects (like what Lerna, Bazel and Yarn do).
   > [monorepos](https://www.atlassian.com/git/tutorials/monorepos)
+  
+- Unlike Lerna, also supports **multirepo**.
 
+- Compiling Typescript file from monorepo source file structure.
 - A share environment configuration system which can be avaible 
 to runtime client side (in browser), compile time server side and Node.js express http server side.
 
@@ -101,3 +104,5 @@ to runtime client side (in browser), compile time server side and Node.js expres
    - client side business logic, server side logic
    - isomorphic logic as shared library which can be run in both sides, if it is needed.
 
+### Roadmap
+ - Support GraphQL
