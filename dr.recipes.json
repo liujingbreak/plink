@@ -1,4 +1,0 @@
-{
-	"recipes/internal-recipe": "src/internal",
-	"recipes/runtime-recipe": "src/runtime",
-	"recipes/internal-tools-recipe": "src/tools"}

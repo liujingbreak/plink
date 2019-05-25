@@ -246,7 +246,7 @@ class Guarder {
 	 * Not including symlink components
 	 */
 	_countPackages() {
-		console.log(logName + 'Counting installed modules...');
+		// console.log(logName + 'Counting installed modules...');
 		// var count = 0;
 		const packageNames = [];
 		const moduleDir = Path.resolve(this.rootPath, 'node_modules');

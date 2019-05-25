@@ -80,10 +80,8 @@ function recipe2srcDirMapForPrj(projectDir: string): {[recipeDir: string]: strin
 				else if (pat.endsWith('/*'))
 					pat = pat.slice(0, -2);
 				pat = _.trimStart(pat, '.');
-				if (pat.length > 0)
-					pat = '_' + pat;
 				nameSrcSetting[config.resolve(
-					'destDir', `recipes/${pkjson.name}${pat.replace(/[\/\\]/g, '_')}-recipe`)] =
+					'destDir', `recipes/${pkjson.name}${pat.length > 0 ? '.' : ''}${pat.replace(/[\/\\]/g, '.')}.recipe`)] =
 						Path.resolve(projectDir, pat);
 			});
 			return nameSrcSetting;

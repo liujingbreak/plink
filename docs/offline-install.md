@@ -1,4 +1,5 @@
-# Offline Install
+# (Deprecated) Offline Install
+> Since Yarn has really bad maintain on offline feature lately, this function will be suspended.
 
 ## Purpose
 We hope to install dependencies like 3rd-party Node packages and our private Node packages (Tookkits, DRCP, other common packages) offline during the deployment process on production environment, in which case, we can commit 3rd party or private packages along with product source or target code to Git repo, and make sure build in DevOps's environment is more stable.
