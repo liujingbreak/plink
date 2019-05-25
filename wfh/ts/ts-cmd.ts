@@ -53,6 +53,7 @@ function tsc(argv: Args, onCompiled: () => void) {
 	const tsProject = ts.createProject(Object.assign({}, baseTsconfig.compilerOptions, {
 		typescript: require('typescript'),
 		// Compiler options
+		importHelpers: true,
 		outDir: '',
 		baseUrl: root,
 		rootDir: undefined,

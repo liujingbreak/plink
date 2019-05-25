@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /* tslint:disable:no-console */
 import * as Path from 'path';
-import * as fs from 'fs';
 import os = require('os');
+import fs from 'fs';
+import {removeSync} from 'fs-extra';
 // const versionChecker = require('../lib/versionChecker');
 import {getInstance as getGuarder} from './package-json-guarder';
 
@@ -124,6 +125,46 @@ function removeProjectSymlink(isDrcpDevMode: boolean) {
 				fs.unlinkSync(moduleDir);
 			}
 		} catch (e) {}
+	}
+}
+
+export function createProjectSymlink() {
+	const isWin32 = require('os').platform().indexOf('win32') >= 0;
+	const nodePath = fs.realpathSync(Path.resolve(process.cwd(), 'node_modules'));
+	const projectListFile = Path.join(process.cwd(), 'dr.project.list.json');
+	if (!fs.existsSync(projectListFile))
+		return;
+	for (const prjdir of require(projectListFile) as string[]) {
+		const moduleDir = Path.resolve(prjdir, 'node_modules');
+		let needCreateSymlink = false;
+		let stats;
+
+		try {
+			stats = fs.lstatSync(moduleDir);
+			if (stats.isSymbolicLink() || stats.isDirectory() || stats.isFile()) {
+				if (!fs.existsSync(moduleDir) || fs.realpathSync(moduleDir) !== nodePath) {
+					if (stats.isSymbolicLink()) {
+						fs.unlinkSync(moduleDir);
+					} else {
+						if (fs.existsSync(moduleDir + '.bak')) {
+							const _removeSync: typeof removeSync = require('fs-extra').removeSync;
+							_removeSync(moduleDir + '.bak');
+						}
+						fs.renameSync(moduleDir, moduleDir + '.bak');
+						console.log(`Backup "${moduleDir}" to "${moduleDir}.bak"`);
+					}
+					needCreateSymlink = true;
+				}
+			} else
+				needCreateSymlink = true;
+		} catch (e) {
+			// node_modules does not exists, fs.lstatSync() throws error
+			needCreateSymlink = true;
+		}
+		if (needCreateSymlink) {
+			// console.log('Create symlink "%s"', Path.resolve(prjdir, 'node_modules'));
+			fs.symlinkSync(Path.relative(prjdir, fs.realpathSync(nodePath)), moduleDir, isWin32 ? 'junction' : 'dir');
+		}
 	}
 }
 

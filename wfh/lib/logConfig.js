@@ -1,7 +1,6 @@
 /* eslint no-console: 0 */
-var mkdirp = require('mkdirp');
 var Path = require('path');
-var fs = require('fs');
+var fs = require('fs-extra');
 
 module.exports = function(configObj) {
 	var {rootPath, log4jsReloadSeconds: reloadSec} = configObj;
@@ -12,7 +11,7 @@ module.exports = function(configObj) {
 		console.log('Logging configuration is not found %s', log4jsConfig);
 		return;
 	}
-	mkdirp.sync(Path.resolve(rootPath, 'logs'));
+	fs.mkdirpSync(Path.resolve(rootPath, 'logs'));
 
 	var opt = {
 		cwd: rootPath

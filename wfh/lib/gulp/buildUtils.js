@@ -1,7 +1,5 @@
-var fs = require('fs');
+var fs = require('fs-extra');
 var Path = require('path');
-
-var mkdirp = require('mkdirp');
 var _ = require('lodash');
 var processUtils = require('../../dist/process-utils');
 // var log = require('log4js').getLogger(Path.basename(__filename));
@@ -46,7 +44,7 @@ function writeTimestamp(name) {
 		}
 	}
 	timeStampCache[name] = time;
-	mkdirp.sync(Path.dirname(file));
+	fs.mkdirpSync(Path.dirname(file));
 	fs.writeFileSync(file, JSON.stringify(timeStampCache, null, '\t'));
 }
 

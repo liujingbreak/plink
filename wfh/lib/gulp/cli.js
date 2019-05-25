@@ -7,6 +7,7 @@ var shell = require('shelljs');
 var Promise = require('bluebird');
 var buildUtils = require('./buildUtils');
 var PackageJsonGuarder = require('../../dist/package-json-guarder').getInstance;
+const {createProjectSymlink} = require('../../dist/cmd-bootstrap');
 const {boxString} = require('../../dist/utils');
 
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
@@ -82,6 +83,7 @@ function init(_argv, noPuppy) {
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates/app-template.js'), rootPath + '/app.js');
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.server.tmpl.js '), rootPath + '/module-resolve.server.js');
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.browser.tmpl.js'), rootPath + '/module-resolve.browser.js');
+
 	// var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
 	// if (fs.lstatSync(drcpFolder).isSymbolicLink())
 	// 	removeProject(_argv, [fs.realpathSync(drcpFolder)]);
@@ -111,7 +113,6 @@ class WorkspaceInstaller {
 
 	run(forceInstall) {
 		var helper = require('./cliAdvanced');
-		// mkdirp(Path.join(rootPath, 'node_modules'));
 		if (this.isDrcpSymlink == null)
 			this.isDrcpSymlink = fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink();
 
@@ -125,7 +126,7 @@ class WorkspaceInstaller {
 				try {
 					yield packageJsonGuarder.installAsync(false, self.useYarn, self.onlyProd, self.isOffline);
 				} catch (err) {
-					createProjectSymlinks();
+					createProjectSymlink();
 					throw err;
 				}
 				return yield self.run(false);
@@ -137,44 +138,10 @@ class WorkspaceInstaller {
 					'\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
 			});
 			argv['package-cache'] = false;
-			createProjectSymlinks();
+			createProjectSymlink();
 			return yield require('../packageMgr/packageRunner').runBuilder(argv, 'init', true);
 		})();
 	}
-}
-
-function createProjectSymlinks() {
-	var nodePath = fs.realpathSync(Path.resolve(rootPath, 'node_modules'));
-	listProject().forEach(prjdir => {
-		let moduleDir = Path.resolve(prjdir, 'node_modules');
-		let needCreateSymlink = false;
-		let stats;
-
-		try {
-			stats = fs.lstatSync(moduleDir);
-			if (stats.isSymbolicLink() || stats.isDirectory() || stats.isFile()) {
-				if (!fs.existsSync(moduleDir) || fs.realpathSync(moduleDir) !== nodePath) {
-					if (stats.isSymbolicLink())
-						fs.unlinkSync(moduleDir);
-					else {
-						if (fs.existsSync(moduleDir + '.bak'))
-							fs.removeSync(moduleDir + '.bak');
-						fs.renameSync(moduleDir, moduleDir + '.bak');
-						console.log(`Backup "${moduleDir}" to "${moduleDir}.bak"`);
-					}
-					needCreateSymlink = true;
-				}
-			} else
-				needCreateSymlink = true;
-		} catch (e) {
-			// node_modules does not exists, fs.lstatSync() throws error
-			needCreateSymlink = true;
-		}
-		if (needCreateSymlink) {
-			console.log('Create symlink "%s"', Path.resolve(prjdir, 'node_modules'));
-			fs.symlinkSync(Path.relative(prjdir, fs.realpathSync(nodePath)), moduleDir, isWin32 ? 'junction' : 'dir');
-		}
-	});
 }
 
 function _initDependency(isDrcpSymlink) {
@@ -255,20 +222,19 @@ function writeProjectListFile(dirs) {
 	if (rootPath == null)
 		rootPath = process.cwd();
 	var projectListFile = Path.join(rootPath, 'dr.project.list.json');
-	if (fs.existsSync(projectListFile))
-		fs.copySync(Path.join(rootPath, 'dr.project.list.json'), Path.join(rootPath, 'dr.project.list.json.bak'));
 	var prj;
 	if (fs.existsSync(projectListFile)) {
+		fs.copySync(Path.join(rootPath, 'dr.project.list.json'), Path.join(rootPath, 'dr.project.list.json.bak'));
 		prj = JSON.parse(fs.readFileSync(projectListFile, 'utf8'));
-		let toAdd = _.differenceBy(dirs, prj, dir => Path.resolve(dir).replace(/[/\\]$/, ''));
+		let toAdd = _.differenceBy(dirs, prj, dir => fs.realpathSync(dir).replace(/[/\\]$/, ''));
 		if (toAdd.length > 0) {
 			prj.push(...toAdd);
-			writeFile(projectListFile, JSON.stringify(prj, null, '  '));
+			writeFile(projectListFile, JSON.stringify(_.uniqBy(prj, p => fs.realpathSync(p)), null, '  '));
 			changed = true;
 		}
 	} else {
 		prj = [...dirs];
-		writeFile(projectListFile, JSON.stringify(prj, null, '  '));
+		writeFile(projectListFile, JSON.stringify(_.uniqBy(prj, p => fs.realpathSync(p)), null, '  '));
 		changed = true;
 	}
 	delete require.cache[require.resolve(projectListFile)];

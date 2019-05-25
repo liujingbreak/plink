@@ -12,7 +12,7 @@ const getPackageJsonGuarder = require('../lib/gulp/packageJsonGuarder');
 import * as recipeManager from './recipe-manager';
 
 export function listCompDependency(pkJsonFiles: string[], write: boolean, isDrcpSymlink: boolean) {
-	log.info('scan components from:\n', pkJsonFiles.join('\n'));
+	// log.info('scan components from:\n', pkJsonFiles.join('\n'));
 	const installer = new InstallManager();
 	installer.scanSrcDeps(pkJsonFiles);
 	installer.scanInstalledPeerDeps();

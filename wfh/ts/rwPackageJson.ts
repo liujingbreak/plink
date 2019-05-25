@@ -2,7 +2,6 @@ const gutil = require('gulp-util');
 const PluginError = gutil.PluginError;
 const through = require('through2');
 import * as fs from 'fs-extra';
-const mkdirp = require('mkdirp');
 const pify = require('pify');
 import * as Path from 'path';
 const File = require('vinyl');
@@ -11,13 +10,6 @@ const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'
 import * as _ from 'lodash';
 const config = require('../lib/config');
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
-
-module.exports = {
-	symbolicLinkPackages,
-	addDependency,
-	removeDependency,
-	readAsJson
-};
 
 const readFileAsync = pify(fs.readFile);
 
@@ -63,13 +55,12 @@ export function symbolicLinkPackages(destDir: string) {
 			}
 			json = JSON.parse(content);
 			newPath = Path.join(fs.realpathSync(Path.join(destDir, 'node_modules')), json.name);
-			var stat, exists;
+			let stat: fs.Stats, exists = false;
 			try {
 				stat = fs.lstatSync(newPath);
 				exists = true;
 			} catch (e) {
 				if (e.code === 'ENOENT') {
-					_symbolicLink(Path.dirname(file.path), newPath); // file doesn't exist, create a new link
 					exists = false;
 				} else
 					throw e;
@@ -77,8 +68,7 @@ export function symbolicLinkPackages(destDir: string) {
 			log.debug('symblink to %s', newPath);
 			if (exists) {
 				if (stat.isFile() ||
-					(stat.isSymbolicLink() &&
-						(stat.mtime.getTime() < file.stat.mtime.getTime() || !fs.existsSync(newPath)))) {
+					(stat.isSymbolicLink() && fs.realpathSync(newPath) !== Path.dirname(file.path))) {
 					fs.unlinkSync(newPath);
 					_symbolicLink(Path.dirname(file.path), newPath);
 				} else if (stat.isDirectory()) {
@@ -86,6 +76,8 @@ export function symbolicLinkPackages(destDir: string) {
 					fs.removeSync(newPath);
 					_symbolicLink(Path.dirname(file.path), newPath);
 				}
+			} else {
+				_symbolicLink(Path.dirname(file.path), newPath);
 			}
 			self.push(new File({
 				base: destDir,
@@ -104,7 +96,7 @@ export function symbolicLinkPackages(destDir: string) {
 }
 
 export function _symbolicLink(dir: string, link: any) {
-	mkdirp.sync(Path.dirname(link));
+	fs.mkdirpSync(Path.dirname(link));
 	fs.symlinkSync(Path.relative(Path.dirname(link), dir), link, isWin32 ? 'junction' : 'dir');
 	log.info('Create symlink "%s"', Path.relative(process.cwd(), link));
 }
@@ -194,7 +186,7 @@ function sortProperties(obj: {[k: string]: string}): string {
 	return res.slice(0, res.length - 2);
 }
 
-function removeDependency() {
+export function removeDependency() {
 	return through.obj(function(file: any, encoding: string, callback: any) {
 		log.info('removing dependencies from recipe file ' + file.path);
 		var content = file.contents.toString('utf8');

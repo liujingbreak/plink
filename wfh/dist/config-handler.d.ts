@@ -1,7 +1,9 @@
 export interface DrcpConfig {
+    done: Promise<void>;
     configHandlerMgr(): ConfigHandlerMgr;
     get(path: string | string[], defaultValue?: any): any;
     set(path: string | string[], value: any): void;
+    resolve(dir: 'destDir' | 'staticDir', ...path: string[]): string;
     resolve(...path: string[]): string;
     (): {
         [property: string]: any;

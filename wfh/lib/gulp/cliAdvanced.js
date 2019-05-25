@@ -122,7 +122,7 @@ function _addupCompConfigProp(componentConfigs, compName, browserSideConfigProp,
 }
 
 function clean(onlySymlink) {
-	let done = require('./recipeManager').clean();
+	let done = recipeManager.clean();
 	if (!onlySymlink) {
 		done = done.then(() => {
 			fs.removeSync(config().staticDir);

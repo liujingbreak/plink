@@ -2,7 +2,6 @@
 var Path = require('path');
 var fs = require('fs');
 // var cycle = require('cycle');
-// var mkdirp = require('mkdirp');
 var packageBrowserInstance = require('./dist/package-instance').default;
 var _ = require('lodash');
 var bResolve = require('browser-resolve');

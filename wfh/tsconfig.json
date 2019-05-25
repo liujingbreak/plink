@@ -16,7 +16,6 @@
 		"emitDecoratorMetadata": true,
 		"noUnusedLocals": true,
 		"preserveSymlinks": false,
-		"importHelpers": true,
 		"downlevelIteration": true,
 		"lib": ["es2016",
 			"es2015",

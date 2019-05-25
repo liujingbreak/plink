@@ -6,9 +6,11 @@ import {readTsConfig, registerExtension} from './ts-compiler';
 const {cyan, green} = require('chalk');
 
 export interface DrcpConfig {
+	done: Promise<void>;
 	configHandlerMgr(): ConfigHandlerMgr;
 	get(path: string|string[], defaultValue?: any): any;
 	set(path: string|string[], value: any): void;
+	resolve(dir: 'destDir'|'staticDir', ...path: string[]): string;
 	resolve(...path: string[]): string;
 	(): {[property: string]: any};
 	load(): Promise<{[property: string]: any}>;

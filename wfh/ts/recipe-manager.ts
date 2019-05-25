@@ -1,7 +1,6 @@
 // tslint:disable:max-line-length
-const through = require('through2');
-const merge = require('merge2');
-const config = require('../lib/config');
+
+import {DrcpConfig} from './config-handler';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import gulp from 'gulp';
@@ -10,6 +9,10 @@ const findPackageJson = require('../lib/gulp/findPackageJson');
 const rwPackageJson = require('./rwPackageJson');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
 const File = require('vinyl');
+const through = require('through2');
+const merge = require('merge2');
+const config: DrcpConfig = require('../lib/config');
+
 import {getInstance} from './package-json-guarder';
 const packageJsonGuarder = getInstance(process.cwd());
 
@@ -28,7 +31,7 @@ export type EachRecipeSrcCallback = (srcDir: string, recipeDir: string, recipeNa
 export function eachRecipeSrc(callback: EachRecipeSrcCallback): void;
 export function eachRecipeSrc(projectDir: string, callback: EachRecipeSrcCallback): void;
 export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
-	callback?: (srcDir: string, recipeDir: string, recipeName: string) => void): void {
+	callback?: (srcDir: string, recipeDir: string, recipeName: string | null) => void): void {
 	if (arguments.length === 1) {
 		callback = arguments[0];
 		forProject(config().projectList);
@@ -42,7 +45,7 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
 
 	function forProject(prjDirs: string[] | string) {
 		[].concat(prjDirs).forEach(prjDir => {
-			_.each(_projectSrcRecipeMap(prjDir), onEachSrcRecipePair);
+			_.each(recipe2srcDirMapForPrj(prjDir), onEachSrcRecipePair);
 			const e2eDir = Path.join(prjDir, 'e2etest');
 			if (fs.existsSync(e2eDir))
 				callback(e2eDir, null, null);
@@ -50,17 +53,17 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
 	}
 
 	function onEachSrcRecipePair(srcDir: string, recipeDir: string) {
-		let recipeName;
+		let recipeName: string = null;
 		try {
 			recipeName = require(Path.resolve(recipeDir, 'package.json')).name;
 		} catch (e) {
-			log.error(`Can't read ${Path.resolve(recipeDir, 'package.json')}`);
+			log.debug(`Can't read ${Path.resolve(recipeDir, 'package.json')}`);
 		}
 		callback(srcDir, recipeDir, recipeName);
 	}
 }
 
-function _projectSrcRecipeMap(projectDir: string): {[recipeDir: string]: string} {
+function recipe2srcDirMapForPrj(projectDir: string): {[recipeDir: string]: string} {
 	const srcRecipeMapFile = Path.resolve(projectDir, 'dr.recipes.json');
 	const pkJsonFile = Path.resolve(projectDir, 'package.json');
 	const recipeSrcMapping: {[recipe: string]: string} = {};
@@ -71,15 +74,23 @@ function _projectSrcRecipeMap(projectDir: string): {[recipeDir: string]: string}
 	if (fs.existsSync(pkJsonFile)) {
 		const pkjson = require(pkJsonFile);
 		if (pkjson.packages) {
-			[].concat(pkjson.packages).forEach((dirName) => {
-				// TODO:
-				// nameSrcSetting[`${normalizedPrjName}.${}`]
+			([] as string[]).concat(pkjson.packages).forEach((pat) => {
+				if (pat.endsWith('/**'))
+					pat = pat.slice(0, -3);
+				else if (pat.endsWith('/*'))
+					pat = pat.slice(0, -2);
+				pat = _.trimStart(pat, '.');
+				if (pat.length > 0)
+					pat = '_' + pat;
+				nameSrcSetting[config.resolve(
+					'destDir', `recipes/${pkjson.name}${pat.replace(/[\/\\]/g, '_')}-recipe`)] =
+						Path.resolve(projectDir, pat);
 			});
-			return;
+			return nameSrcSetting;
 		}
 	}
-	// legacy: read dr.recipes.json
 	if (fs.existsSync(srcRecipeMapFile)) {
+		// legacy: read dr.recipes.json
 		nameSrcSetting = JSON.parse(fs.readFileSync(srcRecipeMapFile, 'utf8'));
 	} else {
 		const projectName = fs.existsSync(pkJsonFile) ? require(pkJsonFile).name : Path.basename(projectDir);
@@ -87,19 +98,19 @@ function _projectSrcRecipeMap(projectDir: string): {[recipeDir: string]: string}
 			nameSrcSetting['recipes/' + projectName] = 'src';
 		} else {
 			const testSrcDir = Path.join(projectDir, 'app');
-			if (fs.existsSync(testSrcDir) && fs.statSync(testSrcDir))
+			if (fs.existsSync(testSrcDir) && fs.statSync(testSrcDir).isDirectory())
 				nameSrcSetting['recipes/' + projectName] = 'app';
 			else
 				nameSrcSetting['recipes/' + projectName] = '.';
 		}
 	}
-	_.each(nameSrcSetting, (srcDir, recipeName) => {
+	_.each(nameSrcSetting, (srcDir, recipeDir) => {
 		let srcDirs: string[];
-		if (!_.endsWith(recipeName, '-recipe'))
-			recipeName += '-recipe';
+		if (!_.endsWith(recipeDir, '-recipe'))
+			recipeDir += '-recipe';
 		srcDirs = Array.isArray(srcDir) ? srcDir : [srcDir];
-		const recipeDir = Path.join(projectDir, recipeName);
-		srcDirs.forEach(srcDir => recipeSrcMapping[recipeDir] = Path.resolve(projectDir, srcDir));
+		const absRecipeDir = config.resolve('destDir', recipeDir);
+		srcDirs.forEach(srcDir => recipeSrcMapping[absRecipeDir] = Path.resolve(projectDir, srcDir));
 	});
 	return recipeSrcMapping;
 }
@@ -165,7 +176,7 @@ export function link(onPkJsonFile: (filePath: string, recipeDir: string) => void
 	let linkFiles = fs.existsSync(linkListFile) ? JSON.parse(fs.readFileSync(linkListFile, 'utf8')) : [];
 	eachRecipeSrc(function(src, recipeDir) {
 		// tslint:disable-next-line:no-console
-		console.log('[recipeManager]link recipe', recipeDir);
+		log.debug('[recipeManager]link recipe', recipeDir);
 		streams.push(linkToRecipeFile(src, recipeDir, onPkJsonFile));
 	});
 	return merge(streams)
