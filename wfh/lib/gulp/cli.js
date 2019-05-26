@@ -7,7 +7,7 @@ var shell = require('shelljs');
 var Promise = require('bluebird');
 var buildUtils = require('./buildUtils');
 var PackageJsonGuarder = require('../../dist/package-json-guarder').getInstance;
-const {createProjectSymlink} = require('../../dist/cmd-bootstrap');
+const {createProjectSymlink, removeProjectSymlink} = require('../../dist/cmd-bootstrap');
 const {boxString} = require('../../dist/utils');
 
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
@@ -117,12 +117,14 @@ class WorkspaceInstaller {
 			this.isDrcpSymlink = fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink();
 
 		// logs
-		shell.mkdir('-p', Path.join(rootPath, 'logs'));
+		if (!fs.existsSync(Path.join(rootPath, 'logs')))
+			fs.mkdirpSync(Path.join(rootPath, 'logs'));
 		var self = this;
+
 		return Promise.coroutine(function*() {
 			var needRunInstall = yield _initDependency(self.isDrcpSymlink);
 			if (forceInstall || needRunInstall) {
-				//this.installed = true;
+				removeProjectSymlink();
 				try {
 					yield packageJsonGuarder.installAsync(false, self.useYarn, self.onlyProd, self.isOffline);
 				} catch (err) {
@@ -148,31 +150,27 @@ function _initDependency(isDrcpSymlink) {
 	var rm = require('../../dist/recipe-manager');
 	var helper = require('./cliAdvanced');
 	// Create project folder node_modules
-	listProject().forEach(prjdir => {
+	const projectDirs = getProjectDirs();
+	projectDirs.forEach(prjdir => {
 		_writeGitHook(prjdir);
 		maybeCopyTemplate(Path.resolve(__dirname, '../../.eslintrc.json'), prjdir + '/.eslintrc.json');
 		maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
 		maybeCopyTemplate(Path.resolve(__dirname, '../../prettier.config.js'), prjdir + '/prettier.config.js');
 		maybeCopyTemplate(Path.resolve(__dirname, '../../.prettierignore'), prjdir + '/.prettierignore');
-		let moduleDir = Path.resolve(prjdir, 'node_modules');
-		let stats;
-
-		try {
-			stats = fs.lstatSync(moduleDir);
-			if (stats.isSymbolicLink()) {
-				fs.unlinkSync(moduleDir);
-			}
-		} catch (e) {
-			// node_modules does not exists
-		}
 	});
 
 	return Promise.coroutine(function*() {
 		var pkJsonFiles = yield rm.linkComponentsAsync();
 		if (isDrcpSymlink) {
 			console.log('node_modules/dr-comp-package is symbolic link, add its dependencies to %s', chalk.cyan(Path.resolve('package.json')));
-			pkJsonFiles.push(Path.resolve('node_modules', 'dr-comp-package', 'package.json'));
+			const drcpPk = Path.resolve('node_modules', 'dr-comp-package', 'package.json');
+			pkJsonFiles.push(isDrcpSymlink ? fs.realpathSync(drcpPk) : drcpPk);
 		}
+		pkJsonFiles.push(...projectDirs.filter(dir => dir !== rootPath)
+				.map(dir => Path.join(dir, 'package.json'))
+				.filter(file => fs.existsSync(file)));
+		pkJsonFiles = _.uniq(pkJsonFiles);
+		console.log(pkJsonFiles);
 		var needRunInstall = helper.listCompDependency(pkJsonFiles, true, isDrcpSymlink);
 		return needRunInstall;
 	})()
@@ -316,6 +314,8 @@ function listProject(_argv, projects) {
 	var projectListFile = Path.join(rootPath, 'dr.project.list.json');
 	if (projects == null && fs.existsSync(projectListFile))
 		projects = require(projectListFile);
+
+	projects = getProjectDirs(rootPath);
 	if (projects && projects.length > 0) {
 		let str = _.pad(' Projects directory ', 40, ' ');
 		str += '\n \n';
@@ -339,9 +339,9 @@ function getProjectDirs(_rootPath) {
 	var proList = [];
 	if (fs.existsSync(projectListFile)) {
 		var projects = require(projectListFile);
-		proList = _.map(projects, dir => Path.resolve(_rootPath || rootPath, dir));
+		proList = projects;
 	}
-	return proList;
+	return proList.map(dir => fs.realpathSync(Path.resolve(Path.dirname(projectListFile), dir)));
 }
 
 function install(isDrcpSymlink) {

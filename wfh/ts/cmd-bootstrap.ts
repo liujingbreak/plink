@@ -95,21 +95,22 @@ function ensurePackageJsonFile(isDrcpDevMode: boolean) {
 	return Promise.resolve(null);
 }
 
+let cacheProjectList: string[];
 /**
  * Otherwise `npm install` will get an max stack overflow error
  * @param isDrcpDevMode 
  */
-function removeProjectSymlink(isDrcpDevMode: boolean) {
-	let projects;
+export function removeProjectSymlink(isDrcpDevMode: boolean) {
 	const projectListFile = Path.join(process.cwd(), 'dr.project.list.json');
-	if (fs.existsSync(projectListFile))
-		projects = require(projectListFile);
-	if (projects && projects.length > 0) {
-		for (const prjdir of projects) {
+	if (!cacheProjectList && fs.existsSync(projectListFile)) {
+		cacheProjectList = require(projectListFile);
+	}
+
+	if (cacheProjectList && cacheProjectList.length > 0) {
+		for (const prjdir of cacheProjectList) {
 			const moduleDir = Path.resolve(prjdir, 'node_modules');
 			try {
-				const stats = fs.lstatSync(moduleDir);
-				if (stats.isSymbolicLink()) {
+				if (fs.lstatSync(moduleDir).isSymbolicLink()) {
 					fs.unlinkSync(moduleDir);
 				}
 			} catch (e) {}
@@ -120,8 +121,7 @@ function removeProjectSymlink(isDrcpDevMode: boolean) {
 		const moduleDir = Path.join(Path.dirname(fs.realpathSync(require.resolve('dr-comp-package/package.json'))),
 			'node_modules');
 		try {
-			const stats = fs.lstatSync(moduleDir);
-			if (stats.isSymbolicLink()) {
+			if (fs.lstatSync(moduleDir).isSymbolicLink()) {
 				fs.unlinkSync(moduleDir);
 			}
 		} catch (e) {}
@@ -131,8 +131,13 @@ function removeProjectSymlink(isDrcpDevMode: boolean) {
 export function createProjectSymlink() {
 	const isWin32 = require('os').platform().indexOf('win32') >= 0;
 	const nodePath = fs.realpathSync(Path.resolve(process.cwd(), 'node_modules'));
+
 	const projectListFile = Path.join(process.cwd(), 'dr.project.list.json');
-	if (!fs.existsSync(projectListFile))
+	if (!cacheProjectList && fs.existsSync(projectListFile)) {
+		cacheProjectList = require(projectListFile);
+	}
+
+	if (!cacheProjectList)
 		return;
 	for (const prjdir of require(projectListFile) as string[]) {
 		const moduleDir = Path.resolve(prjdir, 'node_modules');

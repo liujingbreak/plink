@@ -1,0 +1,36 @@
+{
+	"compilerOptions": {
+	 	"typeRoots": [
+			"node_modules/@types",
+			"node_modules/@dr-types",
+			"node_modules/dr-comp-package/wfh/types"
+		],
+		"jsx": "preserve",
+		"noImplicitAny": true,
+		"suppressImplicitAnyIndexErrors": true,
+		"allowSyntheticDefaultImports": true,
+		"lib": [
+			"dom",
+			"es2015",
+			"es2016",
+			"es2017",
+			"webworker",
+			"dom.iterable",
+			"scripthost"
+		],
+		"removeComments": true,
+		"declaration": false,
+		"sourceMap": true,
+		"module": "es2015",
+		"allowJs": true,
+		"skipLibCheck": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"noUnusedLocals": true,
+		"target": "ES5",
+		"moduleResolution": "Node",
+		"preserveSymlinks": false,
+		"importHelpers": true,
+		"downlevelIteration": true
+	}
+}
