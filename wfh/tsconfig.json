@@ -22,8 +22,6 @@
 			"dom"
 		],
 		"pretty": true,
-		"rootDir": "ts",
-		"rootDirs": ["dist"],
 		"paths": {
 			"*": ["node_modules/*", "node_modules/@types/*"]
 		}
