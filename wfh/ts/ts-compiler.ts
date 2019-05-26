@@ -29,7 +29,6 @@ import * as Path from 'path';
 const chalk = require('chalk');
 const {red, yellow} = chalk;
 class TsCompiler {
-	serviceHost: ts.LanguageServiceHost;
 	fileNames: string[] = [];
 	files: ts.MapLike<{ version: number }> = {};
 	langService: ts.LanguageService;
@@ -40,7 +39,7 @@ class TsCompiler {
 		const self = this;
 		const compilerHost = ts.createCompilerHost(compilerOptions);
 
-		this.serviceHost = {
+		const serviceHost: ts.LanguageServiceHost = {
 			getNewLine() { return '\n'; },
 			getCompilationSettings() { return self.compilerOptions;},
 			getScriptFileNames() {return self.fileNames;},
@@ -67,7 +66,7 @@ class TsCompiler {
 			realpath: compilerHost.realpath // debuggable('realpath', compilerHost.realpath),
 
 		};
-		this.langService = ts.createLanguageService( this.serviceHost, ts.createDocumentRegistry());
+		this.langService = ts.createLanguageService( serviceHost, ts.createDocumentRegistry());
 
 	}
 
