@@ -24,7 +24,7 @@ const startTime = new Date().getTime();
 const cwd = process.cwd();
 const packageJsonGuarder = getGuarder(cwd);
 // process.env.SASS_BINARY_SITE = 'https://npm.taobao.org/mirrors/node-sass';
-
+let cacheProjectList: string[];
 
 var isSymbolicLink = false;
 var cmdPromise;
@@ -94,8 +94,6 @@ function ensurePackageJsonFile(isDrcpDevMode: boolean) {
 	}
 	return Promise.resolve(null);
 }
-
-let cacheProjectList: string[];
 /**
  * Otherwise `npm install` will get an max stack overflow error
  * @param isDrcpDevMode 

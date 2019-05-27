@@ -170,7 +170,6 @@ function _initDependency(isDrcpSymlink) {
 				.map(dir => Path.join(dir, 'package.json'))
 				.filter(file => fs.existsSync(file)));
 		pkJsonFiles = _.uniq(pkJsonFiles);
-		console.log(pkJsonFiles);
 		var needRunInstall = helper.listCompDependency(pkJsonFiles, true, isDrcpSymlink);
 		return needRunInstall;
 	})()
