@@ -3,7 +3,7 @@
 import * as Path from 'path';
 import os = require('os');
 import fs from 'fs';
-import {removeSync} from 'fs-extra';
+import {removeProjectSymlink} from './project-dir';
 // const versionChecker = require('../lib/versionChecker');
 import {getInstance as getGuarder} from './package-json-guarder';
 
@@ -24,7 +24,6 @@ const startTime = new Date().getTime();
 const cwd = process.cwd();
 const packageJsonGuarder = getGuarder(cwd);
 // process.env.SASS_BINARY_SITE = 'https://npm.taobao.org/mirrors/node-sass';
-let cacheProjectList: string[];
 
 var isSymbolicLink = false;
 var cmdPromise;
@@ -93,82 +92,6 @@ function ensurePackageJsonFile(isDrcpDevMode: boolean) {
 		});
 	}
 	return Promise.resolve(null);
-}
-/**
- * Otherwise `npm install` will get an max stack overflow error
- * @param isDrcpDevMode 
- */
-export function removeProjectSymlink(isDrcpDevMode: boolean) {
-	const projectListFile = Path.join(process.cwd(), 'dr.project.list.json');
-	if (!cacheProjectList && fs.existsSync(projectListFile)) {
-		cacheProjectList = require(projectListFile);
-	}
-
-	if (cacheProjectList && cacheProjectList.length > 0) {
-		for (const prjdir of cacheProjectList) {
-			const moduleDir = Path.resolve(prjdir, 'node_modules');
-			try {
-				if (fs.lstatSync(moduleDir).isSymbolicLink()) {
-					fs.unlinkSync(moduleDir);
-				}
-			} catch (e) {}
-		}
-	}
-	if (isDrcpDevMode) {
-		// Since drcp itself is symlink, in case there is no dr.project.list.json, we still need to make sure...
-		const moduleDir = Path.join(Path.dirname(fs.realpathSync(require.resolve('dr-comp-package/package.json'))),
-			'node_modules');
-		try {
-			if (fs.lstatSync(moduleDir).isSymbolicLink()) {
-				fs.unlinkSync(moduleDir);
-			}
-		} catch (e) {}
-	}
-}
-
-export function createProjectSymlink() {
-	const isWin32 = require('os').platform().indexOf('win32') >= 0;
-	const nodePath = fs.realpathSync(Path.resolve(process.cwd(), 'node_modules'));
-
-	const projectListFile = Path.join(process.cwd(), 'dr.project.list.json');
-	if (!cacheProjectList && fs.existsSync(projectListFile)) {
-		cacheProjectList = require(projectListFile);
-	}
-
-	if (!cacheProjectList)
-		return;
-	for (const prjdir of require(projectListFile) as string[]) {
-		const moduleDir = Path.resolve(prjdir, 'node_modules');
-		let needCreateSymlink = false;
-		let stats;
-
-		try {
-			stats = fs.lstatSync(moduleDir);
-			if (stats.isSymbolicLink() || stats.isDirectory() || stats.isFile()) {
-				if (!fs.existsSync(moduleDir) || fs.realpathSync(moduleDir) !== nodePath) {
-					if (stats.isSymbolicLink()) {
-						fs.unlinkSync(moduleDir);
-					} else {
-						if (fs.existsSync(moduleDir + '.bak')) {
-							const _removeSync: typeof removeSync = require('fs-extra').removeSync;
-							_removeSync(moduleDir + '.bak');
-						}
-						fs.renameSync(moduleDir, moduleDir + '.bak');
-						console.log(`Backup "${moduleDir}" to "${moduleDir}.bak"`);
-					}
-					needCreateSymlink = true;
-				}
-			} else
-				needCreateSymlink = true;
-		} catch (e) {
-			// node_modules does not exists, fs.lstatSync() throws error
-			needCreateSymlink = true;
-		}
-		if (needCreateSymlink) {
-			// console.log('Create symlink "%s"', Path.resolve(prjdir, 'node_modules'));
-			fs.symlinkSync(Path.relative(prjdir, fs.realpathSync(nodePath)), moduleDir, isWin32 ? 'junction' : 'dir');
-		}
-	}
 }
 
 function needInstallWfh(workspaceJson: any) {

@@ -411,7 +411,6 @@ function drcpCommand(startTime) {
 }
 
 function nodeAppCommand(callback) {
-	var cli = require('./gulp/cli');
 	var argv = yargs.usage(
 		// hlDesc('node app --ww [-c config-name ...] [-p package-name ...]') + '\n Start app in Webpack watch mode\n' +
 		// hlDesc('node app watch [package-name ...] [-c config-name ...]') + '\n Start app in Webpack watch mode\n' +
@@ -490,6 +489,7 @@ function nodeAppCommand(callback) {
 				});
 			},
 			handler: argv => {
+				var cli = require('./gulp/cli');
 				argv.watch = true;
 				cli.setStartTime(new Date().getTime());
 				var processUtils = require('../dist/process-utils');
