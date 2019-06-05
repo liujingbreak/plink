@@ -7,7 +7,6 @@ var shell = require('shelljs');
 var Promise = require('bluebird');
 var buildUtils = require('./buildUtils');
 var PackageJsonGuarder = require('../../dist/package-json-guarder').getInstance;
-const {createProjectSymlink} = require('../../dist/cmd-bootstrap');
 const {boxString} = require('../../dist/utils');
 
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
@@ -112,6 +111,7 @@ class WorkspaceInstaller {
 	}
 
 	run(forceInstall) {
+		const {createProjectSymlink} = require('../../dist/project-dir');
 		var helper = require('./cliAdvanced');
 		if (this.isDrcpSymlink == null)
 			this.isDrcpSymlink = fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink();
