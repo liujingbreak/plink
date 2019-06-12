@@ -1,21 +1,19 @@
 /* tslint:disable max-line-length */
-import api from '__api';
-import * as Url from 'url';
-import * as log4js from 'log4js';
-import * as _ from 'lodash';
-import * as Path from 'path';
+import { boxString } from 'dr-comp-package/wfh/dist/utils';
 import * as _fs from 'fs-extra';
-import {AngularCliParam} from './ng/common';
-import changeWebpackConfig from './config-webpack';
-import {TsHandler, ReplacementInf} from './utils/ts-before-aot';
+import * as _ from 'lodash';
+import * as log4js from 'log4js';
+import * as Path from 'path';
 import * as ts from 'typescript';
-import {boxString} from 'dr-comp-package/wfh/dist/utils';
-import {ngRouterPath} from './api-share';
+import api from '__api';
+import { ReplacementInf, TsHandler } from './utils/ts-before-aot';
+const {parse} = require('comment-json');
+
+export * from './config-webpack';
 export * from './configurable';
 export * from './ng-prerender';
+export { AngularConfigHandler } from './ng/change-cli-options';
 export * from './ng/common';
-export * from './config-webpack';
-export {AngularConfigHandler} from './ng/change-cli-options';
 
 const semver = require('semver');
 const {red, yellow} = require('chalk');
@@ -25,49 +23,12 @@ const {red, yellow} = require('chalk');
 const log = log4js.getLogger(api.packageName);
 
 export function compile() {
-	// const root = api.config().rootPath;
-	// const ngParam: AngularCliParam = api.config()._angularCli;
-	// if (!ngParam.browserOptions.preserveSymlinks) {
-	// 	const fm = api.browserInjector.fromDir(Path.resolve('/'));
-	// 	fm.alias(/^((?:@[^/]+\/)?[^./]+)(.*?)$/, (sourceFilePath: string, regs: RegExpExecArray): string => {
-	// 		const pkInstance = api.packageInfo.moduleMap[regs[1]];
-	// 		if (pkInstance) {
-	// 			return Path.relative(root, pkInstance.realPackagePath).replace(/\\/g, '/') + regs[2];
-	// 		}
-	// 		return regs[0];
-	// 	});
-	// }
-	return setupApiForAngularCli();
+	// return setupApiForAngularCli();
 }
 
 export let tsHandler: TsHandler = resolveImports;
 function resolveImports(src: ts.SourceFile): ReplacementInf[] {
 	return [];
-	// const ngParam: AngularCliParam = api.config()._angularCli;
-	// if (ngParam.browserOptions.preserveSymlinks)
-	// 	return [];
-
-	// const sel = new TsSelector(src);
-	// const repl: ReplacementInf[] = [];
-	// const dir = Path.dirname(src.fileName);
-	// for (const ast of sel.findAll(':ImportDeclaration>.moduleSpecifier')) {
-	// 	const from = ast as ts.StringLiteral;
-	// 	// log.info('from ', from.text);
-	// 	const reg = /^((?:@[^/]+\/)?[^./]+)(.*?)$/.exec(from.text);
-	// 	if (reg == null)
-	// 		continue;
-	// 	const pkInstance = api.packageInfo.moduleMap[reg[1]];
-	// 	if (pkInstance && pkInstance.dr) {
-	// 		let resolvedFrom = Path.relative(dir, pkInstance.realPackagePath).replace(/\\/g, '/') + reg[2];
-	// 		if (resolvedFrom.startsWith('node_modules/')) {
-	// 			resolvedFrom = resolvedFrom.slice('node_modules/'.length);
-	// 		} else if (/^[^./]/.test(resolvedFrom)) {
-	// 			resolvedFrom = './' + resolvedFrom;
-	// 		}
-	// 		repl.push({text: `'${resolvedFrom}'`, start: from.getStart(src), end: from.getEnd()});
-	// 	}
-	// }
-	// return repl;
 }
 
 export async function init() {
@@ -86,44 +47,33 @@ export async function init() {
 export function activate() {
 }
 
-async function setupApiForAngularCli() {
-	const ngParam: AngularCliParam = api.config()._angularCli;
-	if (!ngParam || api.ngEntryComponent)
-		return;
-	// if (!ngParam.browserOptions.preserveSymlinks) {
-	// 	throw new Error('In order to get DRCP builder work,\
-	// 	you must set property `preserveSymlinks` to be true in project\'s angular.json file \
-	// 	');
-	// }
-	const webpackConfig = ngParam.webpackConfig;
-	const ngEntryComponent = api.findPackageByFile(Path.resolve(ngParam.projectRoot));
-	const deployUrl = webpackConfig.output.publicPath || api.config.get('publicPath');
+// async function setupApiForAngularCli() {
+// 	const ngParam: AngularCliParam = api.config()._angularCli;
+// 	if (!ngParam || api.ngEntryComponent)
+// 		return;
+// 	const deployUrl = webpackConfig.output.publicPath || api.config.get('publicPath');
 
-	const publicUrlObj = Url.parse(deployUrl);
-	Object.assign(Object.getPrototypeOf(api), {
-		webpackConfig,
-		ngEntryComponent,
-		deployUrl,
-		ssr: ngParam.ssr,
-		ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
-		ngRouterPath,
-		ssrRequire(requirePath: string) {
-			if (ngParam.ssr)
-				return require(Path.join(this.__dirname, requirePath));
-		}
-	});
-	await changeWebpackConfig(ngParam, webpackConfig, api.config());
-
-	// ngParam.vfsHost.hookRead = createTsReadHook(ngParam);
-	log.info('Setup api object for Angular');
-}
+// 	const publicUrlObj = Url.parse(deployUrl);
+// 	Object.assign(Object.getPrototypeOf(api), {
+// 		deployUrl,
+// 		ssr: ngParam.ssr,
+// 		ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
+// 		ngRouterPath,
+// 		ssrRequire(requirePath: string) {
+// 			if (ngParam.ssr)
+// 				return require(Path.join(this.__dirname, requirePath));
+// 		}
+// 	});
+// 	await changeWebpackConfig(ngParam, webpackConfig, api.config());
+// 	log.info('Setup api object for Angular');
+// }
 
 function checkAngularVersion() {
 	const deps: {[k: string]: string} = {
-		'@angular-devkit/build-angular': '0.12.2',
-		'@angular/cli': '7.2.2',
-		'@angular/compiler-cli': '7.2.1',
-		'@angular/language-service': '7.2.1'
+		'@angular-devkit/build-angular': '~0.800.2',
+		'@angular/cli': '~8.0.2',
+		'@angular/compiler-cli': '~8.0.0',
+		'@angular/language-service': '~8.0.0'
 	};
 	let valid = true;
 	_.each(deps, (expectVer, mod) => {
@@ -176,11 +126,7 @@ function checkAngularVersion() {
 
 function writeTsconfig4Editor() {
 	const tsjson: any = {
-		extends: null,
-		compilerOptions: {
-			baseUrl: '.',
-			strictNullChecks: true
-		}
+		extends: null
 	};
 	// ------- Write tsconfig.json for Visual Code Editor --------
 
@@ -195,10 +141,16 @@ function writeTsconfig4Editor() {
 		packageToRealPath.push([name, realDir]);
 	}, 'src');
 
+	const recipeManager = require('dr-comp-package/wfh/dist/recipe-manager');
+
 	for (let proj of api.config().projectList) {
 		tsjson.include = [];
-		tsjson.extends = Path.relative(proj, require.resolve('dr-comp-package/wfh/tsconfig.json')).replace(/\\/g, '/'),
-		require('dr-comp-package/wfh/dist/recipe-manager').eachRecipeSrc(proj, (srcDir: string) => {
+		tsjson.extends = Path.relative(proj, require.resolve('dr-comp-package/wfh/tsconfig.json'));
+		if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
+			tsjson.extends = './' + tsjson.extends;
+		}
+		tsjson.extends = tsjson.extends.replace(/\\/g, '/');
+		recipeManager.eachRecipeSrc(proj, (srcDir: string) => {
 			let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
 			if (includeDir && includeDir !== '/')
 				includeDir += '/';
@@ -220,6 +172,7 @@ function writeTsconfig4Editor() {
 		pathMapping['*'] = ['node_modules/*', 'node_modules/@types/*'];
 
 		tsjson.compilerOptions = {
+			rootDir: './',
 			baseUrl: root,
 			paths: pathMapping,
 			typeRoots: [
@@ -231,7 +184,23 @@ function writeTsconfig4Editor() {
 			target: 'es2015',
 			module: 'commonjs'
 		};
-		_fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(tsjson, null, '  '));
+		const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
+		if (_fs.existsSync(tsconfigFile)) {
+			const existingJson = parse(_fs.readFileSync(tsconfigFile, 'utf8'));
+			const co = existingJson.compilerOptions;
+			const newCo = tsjson.compilerOptions;
+			co.typeRoots = newCo.typeRoots;
+			co.baseUrl = newCo.baseUrl;
+			co.paths = newCo.paths;
+			co.rootDir = newCo.rootDir;
+
+			existingJson.extends = tsjson.extends;
+			existingJson.include = tsjson.include;
+
+			_fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(existingJson, null, '  '));
+		} else {
+			_fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(tsjson, null, '  '));
+		}
 	}
 
 

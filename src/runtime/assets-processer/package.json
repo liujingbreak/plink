@@ -55,7 +55,9 @@
     "gulp-zip": "4.1.0",
     "gulp-unzip": "1.0.0",
     "adm-zip": "^0.4.13",
-    "@types/adm-zip": "^0.4.32"
+    "@types/adm-zip": "^0.4.32",
+    "serve-static-zip": "^1.0.3",
+    "pify": "~4.0.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

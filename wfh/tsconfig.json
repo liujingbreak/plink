@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"baseUrl": ".",
+		"baseUrl": "./",
 		"outDir": "dist",
 		"declaration": true,
 		"module":"commonjs",
@@ -10,7 +10,6 @@
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
 		"moduleResolution": "node",
-		"inlineSourceMap": true,
 		"skipLibCheck": false,
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,

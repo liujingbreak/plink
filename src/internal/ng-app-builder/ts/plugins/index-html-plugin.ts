@@ -1,4 +1,7 @@
 /* tslint:disable max-classes-per-file */
+/**
+ * Same function as react-dev-utils/InlineChunkHtmlPlugin, but does not rely on HtmlWebpackPlugin
+ */
 import { Compiler } from 'webpack';
 const { RawSource } = require('webpack-sources');
 import {TemplateParser} from '../utils/ng-html-parser';

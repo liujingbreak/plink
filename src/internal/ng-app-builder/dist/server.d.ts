@@ -1,10 +1,10 @@
 import { TsHandler } from './utils/ts-before-aot';
+export * from './config-webpack';
 export * from './configurable';
 export * from './ng-prerender';
-export * from './ng/common';
-export * from './config-webpack';
 export { AngularConfigHandler } from './ng/change-cli-options';
-export declare function compile(): Promise<void>;
+export * from './ng/common';
+export declare function compile(): void;
 export declare let tsHandler: TsHandler;
 export declare function init(): Promise<void>;
 export declare function activate(): void;

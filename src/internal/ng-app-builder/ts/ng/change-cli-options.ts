@@ -1,18 +1,21 @@
 /* tslint:disable no-console */
-import {AngularBuilderOptions} from './common';
-import {
-	BuilderConfiguration
-} from '@angular-devkit/architect';
-import {DevServerBuilderOptions} from '@angular-devkit/build-angular';
-
+import { BuilderContext, Target, targetFromTargetString } from '@angular-devkit/architect';
+import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
+import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { PackageInfo } from 'dr-comp-package/wfh/dist/build-util/ts';
+import { ConfigHandler, DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
+import { getTsDirsOfPackage } from 'dr-comp-package/wfh/dist/utils';
+import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as Path from 'path';
-import * as fs from 'fs';
-import {DrcpConfig, ConfigHandler} from 'dr-comp-package/wfh/dist/config-handler';
-import {PackageInfo} from 'dr-comp-package/wfh/dist/build-util/ts';
-import {findAppModuleFileFromMain} from '../utils/parse-app-module';
-import {DrcpSetting} from '../configurable';
-import {getTsDirsOfPackage} from 'dr-comp-package/wfh/dist/utils';
+import { sys } from 'typescript';
+import { DrcpSetting } from '../configurable';
+import { findAppModuleFileFromMain } from '../utils/parse-app-module';
+import replaceCode from '../utils/patch-text';
+import TsAstSelector from '../utils/ts-ast-query';
+import { AngularBuilderOptions } from './common';
+import apiSetup from './api-setup';
+import ts from 'typescript';
 
 const {cyan, green, red} = require('chalk');
 const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
@@ -27,18 +30,62 @@ export interface AngularConfigHandler extends ConfigHandler {
 	 * @param builderConfig Angular angular.json properties under path <project>
 	 */
 	angularJson(options: AngularBuilderOptions,
-		builderConfig?: BuilderConfiguration<DevServerBuilderOptions>)
+		builderConfig?: DevServerBuilderOptions)
 	: Promise<void> | void;
 }
 
-export default async function changeAngularCliOptions(config: DrcpConfig,
-	browserOptions: AngularBuilderOptions,
-	builderConfig?: BuilderConfiguration<DevServerBuilderOptions>) {
+function hackAngularBuilderContext(context: BuilderContext, targetName: string,
+	replacedOpts: any) {
+	const getTargetOptions = context.getTargetOptions;
 
+	// const cached = new Map<string, any>();
+	context.getTargetOptions = async function(target: Target) {
+		// if (cached.has(target.project + '.' + target.target)) {
+		// 	return cached.get(target.project + '.' + target.target);
+		// }
+		if (target.target === targetName) {
+			return replacedOpts;
+		}
+		const origOption = await getTargetOptions.apply(context, arguments);
+		// cached.set(target.project + '.' + target.target, origOption);
+		return origOption;
+	};
+}
+/**
+ * For build (ng build)
+ * @param config 
+ * @param browserOptions 
+ */
+export async function changeAngularCliOptionsForBuild(config: DrcpConfig,
+	browserOptions: BrowserBuilderSchema): Promise<AngularBuilderOptions> {
+	return processBrowserBuiliderOptions(config, browserOptions);
+}
+
+/**
+ * For dev server (ng serve)
+ * @param config 
+ * @param context 
+ * @param builderConfig 
+ */
+export async function changeAngularCliOptions(config: DrcpConfig,
+	context: BuilderContext,
+	builderConfig?: DevServerBuilderOptions) {
+
+	const browserTarget = targetFromTargetString(builderConfig.browserTarget);
+	const rawBrowserOptions = await context.getTargetOptions(browserTarget);
+	const browserOptions = await processBrowserBuiliderOptions(
+		config, rawBrowserOptions as any as BrowserBuilderSchema, builderConfig, true);
+	hackAngularBuilderContext(context, 'build', browserOptions);
+	return browserOptions;
+}
+
+async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptions: BrowserBuilderSchema,
+	builderConfig?: DevServerBuilderOptions, hmr = false) {
+	const browserOptions = rawBrowserOptions as AngularBuilderOptions;
 	for (const prop of ['deployUrl', 'outputPath', 'styles']) {
 		const value = config.get([currPackageName, prop]);
 		if (value != null) {
-			(browserOptions as any)[prop] = value;
+			(rawBrowserOptions as any)[prop] = value;
 			console.log(currPackageName + ' - override %s: %s', prop, value);
 		}
 	}
@@ -49,6 +96,7 @@ export default async function changeAngularCliOptions(config: DrcpConfig,
 		else
 			return obj;
 	});
+
 	const pkJson = lookupEntryPackage(Path.resolve(browserOptions.main));
 	if (pkJson) {
 		console.log(green('change-cli-options - ') + `Set entry package ${cyan(pkJson.name)}'s output path to /`);
@@ -60,12 +108,73 @@ export default async function changeAngularCliOptions(config: DrcpConfig,
 		config.set('staticAssetsURL', _.trimEnd(deployUrl, '/'));
 	if (!config.get('publicPath'))
 		config.set('publicPath', deployUrl);
+
+	const mainHmr = createMainFileForHmr(browserOptions.main);
+	if (hmr) {
+		builderConfig.hmr = true;
+		if (!browserOptions.fileReplacements)
+			browserOptions.fileReplacements = [];
+		browserOptions.fileReplacements.push({
+			replace: browserOptions.main,
+			with: Path.relative('.', mainHmr)
+		});
+	}
+	if (browserOptions.drcpArgs == null) {
+		browserOptions.drcpArgs = {};
+	}
 	hackTsConfig(browserOptions, config);
+	apiSetup(browserOptions);
+
+	return browserOptions;
 }
 
-import {sys} from 'typescript';
-// import Path = require('path');
-// const log = require('log4js').getLogger('hackTsConfig');
+function createMainFileForHmr(mainFile: string): string {
+	const dir = Path.dirname(mainFile);
+	const writeTo = Path.resolve(dir, 'main-hmr.ts');
+	if (fs.existsSync(writeTo)) {
+		return writeTo;
+	}
+	const main = fs.readFileSync(mainFile, 'utf8');
+	let mainHmr = '// tslint:disable\n' +
+	`import hmrBootstrap from '@dr-core/ng-app-builder/src/hmr';\n${main}`;
+	const query = new TsAstSelector(mainHmr, 'main-hmr.ts');
+	// query.printAll();
+
+	let bootCallAst: ts.Node;
+	const statement = query.src.statements.find(statement => {
+		// tslint:disable-next-line max-line-length
+		const bootCall = query.findWith(statement, ':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
+			(ast: ts.Identifier, path, parents) => {
+				if (ast.text === 'platformBrowserDynamic' &&
+				(ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src) === 'bootstrapModule' &&
+				ast.parent.parent.parent.kind === ts.SyntaxKind.CallExpression) {
+					return ast.parent.parent.parent;
+				}
+			});
+		if (bootCall) {
+			bootCallAst = bootCall;
+			return true;
+		}
+		return false;
+	});
+
+	mainHmr = replaceCode(mainHmr, [{
+		start: statement.getStart(query.src, true),
+		end: statement.getEnd(),
+		text: ''}]);
+	mainHmr += `const bootstrap = () => ${bootCallAst.getText()};\n`;
+	mainHmr += `if (module[ 'hot' ]) {
+	    hmrBootstrap(module, bootstrap);
+	  } else {
+	    console.error('HMR is not enabled for webpack-dev-server!');
+	    console.log('Are you using the --hmr flag for ng serve?');
+	  }\n`.replace(/^\t/gm, '');
+
+	fs.writeFileSync(writeTo, mainHmr);
+	log.info('Write ' + writeTo);
+	log.info(mainHmr);
+	return writeTo;
+}
 
 // Hack ts.sys, so far it is used to read tsconfig.json
 function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig) {
@@ -136,21 +245,20 @@ function overrideTsConfig(file: string, content: string,
 	// const excludePkSet = new Set<string>();
 	const excludePackage: DrcpSetting['excludePackage'] = config.get(currPackageName + '.excludePackage') || [];
 	let excludePath: string[] = config.get(currPackageName + '.excludePath') || [];
-	// if (excludePackage)
-	// 	excludePackage.forEach(pname => excludePkSet.add(pname));
 
 	ngPackages = ngPackages.filter(comp =>
 		!excludePackage.some(reg => _.isString(reg) ? comp.longName.includes(reg) : reg.test(comp.longName)) &&
 		(comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk' ||
 			hasIsomorphicDir(comp.json, comp.packagePath)));
 
-	const tsInclude: string[] = [];
-	const tsExclude: string[] = [];
+	const tsInclude: string[] = oldJson.include || [];
+	const tsExclude: string[] = oldJson.exclude || [];
 	const appModuleFile = findAppModuleFileFromMain(Path.resolve(browserOptions.main));
 	const appPackageJson = lookupEntryPackage(appModuleFile);
 	if (appPackageJson == null)
 		throw new Error('Error, can not find package.json of ' + appModuleFile);
 
+	// let hasAppPackage = false;
 	ngPackages.forEach(pk => {
 		// TODO: doc for dr.ngAppModule
 		const isNgAppModule: boolean = pk.longName === appPackageJson.name;
@@ -158,6 +266,7 @@ function overrideTsConfig(file: string, content: string,
 			isNgAppModule ? pk.realPackagePath : (preserveSymlinks? pk.packagePath : pk.realPackagePath))
 			.replace(/\\/g, '/');
 		if (isNgAppModule) {
+			// hasAppPackage = true;
 			tsInclude.unshift(dir + '/**/*.ts');
 			// entry package must be at first of TS include list, otherwise will encounter:
 			// "Error: No NgModule metadata found for 'AppModule'
@@ -175,6 +284,9 @@ function overrideTsConfig(file: string, content: string,
 			pathMapping[pk.longName + '/*'] = [realDir + '/*'];
 		}
 	});
+	// if (!hasAppPackage) {
+	// 	tsInclude.unshift(Path.dirname(browserOptions.main).replace(/\\/g, '/') + '/**/*.ts');
+	// }
 	tsInclude.push(Path.relative(Path.dirname(file), preserveSymlinks ?
 			'node_modules/dr-comp-package/wfh/share' :
 			fs.realpathSync('node_modules/dr-comp-package/wfh/share'))
@@ -208,7 +320,7 @@ function overrideTsConfig(file: string, content: string,
 				Path.resolve(root, 'node_modules/@dr-types'),
 				Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
 			],
-			module: 'esnext',
+			// module: 'esnext',
 			preserveSymlinks,
 			paths: pathMapping
 		},
@@ -216,6 +328,9 @@ function overrideTsConfig(file: string, content: string,
 			// trace: true
 		}
 	};
+	if (oldJson.extends) {
+		tsjson.extends = oldJson.extends;
+	}
 	Object.assign(tsjson.compilerOptions, oldJson.compilerOptions);
 	Object.assign(tsjson.angularCompilerOptions, oldJson.angularCompilerOptions);
 	// console.log(green('change-cli-options - ') + `${file}:\n`, JSON.stringify(tsjson, null, '  '));

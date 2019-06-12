@@ -1,40 +1,24 @@
-import { BuildEvent, BuilderConfiguration } from '@angular-devkit/architect';
-import { NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
-import { NormalizedServerBuilderServerSchema } from '@angular-devkit/build-angular/src/server/schema';
-import { NormalizedKarmaBuilderSchema } from '@angular-devkit/build-angular/src/karma/schema';
+/// <reference types="webpack-dev-server" />
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
-import * as Rx from 'rxjs';
+import { Schema as NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { Schema as NormalizedServerBuilderServerSchema } from '@angular-devkit/build-angular/src/server/schema';
+import { json } from '@angular-devkit/core';
+import webpack from 'webpack';
 import api from '__api';
 export declare type DrcpConfig = typeof api.config;
+export declare function initCli(options: any): Promise<import("dr-comp-package/wfh/dist/config-handler").DrcpConfig>;
+export declare function configWebpack(param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
+    devMode: boolean;
+}): void;
 export declare type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
 export interface AngularCliParam {
-    builderConfig?: BuilderConfiguration<DevServerBuilderOptions>;
+    builderConfig?: DevServerBuilderOptions;
     browserOptions: AngularBuilderOptions;
     ssr: boolean;
-    webpackConfig: any;
-    projectRoot: string;
-    argv: any;
 }
-export declare type NormalizedAngularBuildSchema = NormalizedBrowserBuilderSchema | NormalizedServerBuilderServerSchema | NormalizedKarmaBuilderSchema;
-export declare type AngularBuilderOptions = NormalizedBrowserBuilderSchema & NormalizedServerBuilderServerSchema & NormalizedKarmaBuilderSchema & DrcpBuilderOptions;
+export declare type NormalizedAngularBuildSchema = NormalizedBrowserBuilderSchema | NormalizedServerBuilderServerSchema;
+export declare type AngularBuilderOptions = NormalizedBrowserBuilderSchema & NormalizedServerBuilderServerSchema & DrcpBuilderOptions & json.JsonObject;
 export interface DrcpBuilderOptions {
     drcpArgs: any;
     drcpConfig: string;
 }
-/**
- * Invoke this function from dev server builder
- * @param projectRoot
- * @param builderConfig
- * @param browserOptions
- * @param buildWebpackConfig
- * @param vfsHost
- */
-export declare function startDrcpServer(projectRoot: string, builderConfig: BuilderConfiguration<DevServerBuilderOptions>, browserOptions: AngularBuilderOptions, buildWebpackConfig: buildWebpackConfigFunc): Rx.Observable<BuildEvent>;
-/**
- * Invoke this function from browser builder
- * @param projectRoot
- * @param browserOptions
- * @param buildWebpackConfig
- * @param vfsHost
- */
-export declare function compile(projectRoot: string, builderConfig: NormalizedAngularBuildSchema, buildWebpackConfig: buildWebpackConfigFunc, isSSR?: boolean): Rx.Observable<any>;

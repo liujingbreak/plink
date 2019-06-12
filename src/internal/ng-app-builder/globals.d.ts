@@ -10,8 +10,6 @@ import {DrcpConfig} from 'dr-comp-package/wfh/dist/config-handler';
 import {RequireInjector} from 'require-injector';
 
 interface _DrcpNgApi {
-	webpackConfig: any;
-	ngEntryComponent: PackageBrowserInstance;
 	deployUrl: string;
 	ssr: boolean;
 	/**
@@ -68,7 +66,6 @@ interface _DrcpApi {
 	config: DrcpConfig;
 	argv: any;
 	browserInjector: RequireInjector;
-	ngEntryComponent: PackageBrowserInstance;
 	findPackageByFile(path: string): PackageBrowserInstance;
 	getNodeApiForPackage<T extends _DrcpApi>(pk: {longName: string}): T;
 	extend(target: any): void;

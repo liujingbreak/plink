@@ -1,9 +1,20 @@
 import * as ts from 'typescript';
-export declare function printFile(): void;
+export declare function printFile(fileName: string): void;
 export default class Selector {
     src: ts.SourceFile;
     constructor(src: string, file: string);
     constructor(src: ts.SourceFile);
+    /**
+     *
+     * @param query Like CSS select := <selector element> (" " | ">") <selector element>
+     *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
+     *   where <index> := "[" "0"-"9" "]"
+     * e.g.
+     *  - .elements:ImportSpecifier > .name
+     *  - .elements[2] > .name
+     *  - .statements[0] :ImportSpecifier > :Identifier
+     * @param callback
+     */
     findWith<T>(query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
     findWith<T>(ast: ts.Node, query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
     /**

@@ -1,3 +1,5 @@
+/// <reference types="webpack-dev-server" />
+import * as webpack from 'webpack';
 import { AngularCliParam } from './ng/common';
 export interface WepackConfigHandler {
     /** @returns webpack configuration or Promise */
@@ -7,4 +9,6 @@ export interface WepackConfigHandler {
         [name: string]: any;
     } | void;
 }
-export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfigSetting: any): Promise<any>;
+export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
+    devMode: boolean;
+}): Promise<webpack.Configuration>;

@@ -1,13 +1,12 @@
 import * as ts from 'typescript';
 import {SyntaxKind as sk} from 'typescript';
 import * as fs from 'fs';
-import api from '__api';
+// import api from '__api';
 import * as _ from 'lodash';
 const {green, red, yellow} = require('chalk');
 // const log = require('log4js').getLogger('ts-ast-query');
 
-export function printFile() {
-	const fileName = api.argv.file;
+export function printFile(fileName: string) {
 	if (!fileName) {
 		// tslint:disable-next-line
 		console.log('Usage:\n' + green('drcp run @dr-core/ng-app-builder/dist/utils/ts-ast-query --file <ts file>'));
@@ -31,6 +30,17 @@ export default class Selector {
 		}
 	}
 
+	/**
+	 * 
+	 * @param query Like CSS select := <selector element> (" " | ">") <selector element>
+	 *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
+	 *   where <index> := "[" "0"-"9" "]"
+	 * e.g.
+	 *  - .elements:ImportSpecifier > .name
+	 *  - .elements[2] > .name
+	 *  - .statements[0] :ImportSpecifier > :Identifier
+	 * @param callback 
+	 */
 	findWith<T>(query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
 	findWith<T>(ast: ts.Node, query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
 	findWith<T>(...arg: any[]): T | null {
@@ -47,6 +57,7 @@ export default class Selector {
 			callback = arg[2];
 		}
 		let res: T | null;
+
 		this.traverse(ast, (ast, path, parents) => {
 			if (res !== undefined)
 				return true;

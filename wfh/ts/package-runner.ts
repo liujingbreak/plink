@@ -9,7 +9,7 @@ import {walkPackages} from './build-util/ts';
 const LRU = require('lru-cache');
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
-const NodeApi = require('../lib/nodeApi');
+// const NodeApi = require('../lib/nodeApi');
 const {nodeInjector} = require('../lib/injectorFactory');
 
 
@@ -42,32 +42,14 @@ export class ServerRunner {
 
 const apiCache: {[name: string]: any} = {};
 
-export function runPackages(argv: any) {
+export function runPackages(argv: {target: string, package: string[], [key: string]: any}) {
+	// const NodeApi = require('../lib/nodeApi');
 	const includeNameSet = new Set<string>();
-	(argv.package as string[]).forEach(name => includeNameSet.add(name));
-
+	argv.package.forEach(name => includeNameSet.add(name));
 	const [fileToRun, funcToRun] = (argv.target as string).split('#');
-	const NodeApi = require('../lib/nodeApi');
-	const proto = NodeApi.prototype;
-	proto.argv = argv;
-	// const walkPackages = require('./build-util/ts').walkPackages;
-	const packageInfo: PackageInfo = walkPackages(config, argv, packageUtils);
-	proto.packageInfo = packageInfo;
-	const cache = LRU(20);
-	proto.findPackageByFile = function(file: string) {
-		var found = cache.get(file);
-		if (!found) {
-			found = packageInfo.dirTree.getAllData(file).pop();
-			cache.set(file, found);
-		}
-		return found;
-	};
-	proto.getNodeApiForPackage = function(packageInstance: any) {
-		return getApiForPackage(packageInstance);
-	};
-	const components = packageInfo.allModules.filter(pk => {
-		setupNodeInjectorFor(pk); // All component package should be able to access '__api', even they are not included
-
+	const [packages, proto] = initApiForAllPackages(argv);
+	const components = packages.filter(pk => {
+		// setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
 		if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
 			pk.dr != null) {
 			try {
@@ -93,9 +75,39 @@ export function runPackages(argv: any) {
 	});
 }
 
-function setupNodeInjectorFor(pkInstance: packageInstance) {
+export function initApiForAllPackages(argv: {[key: string]: any}):
+	[packageInstance[], {eventBus: Events}] {
+	const NodeApi = require('../lib/nodeApi');
+	const proto = NodeApi.prototype;
+	proto.argv = argv;
+	const packageInfo: PackageInfo = walkPackages(config, packageUtils);
+	proto.packageInfo = packageInfo;
+	const cache = LRU(20);
+	proto.findPackageByFile = function(file: string) {
+		var found = cache.get(file);
+		if (!found) {
+			found = packageInfo.dirTree.getAllData(file).pop();
+			cache.set(file, found);
+		}
+		return found;
+	};
+	proto.getNodeApiForPackage = function(packageInstance: any) {
+		return getApiForPackage(packageInstance, NodeApi);
+	};
+	const drPackages = packageInfo.allModules.filter(pk => {
+		if (pk.dr) {
+			log.info(pk.longName);
+			setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
+			return true;
+		}
+		return false;
+	});
+	return [drPackages, proto];
+}
+
+function setupNodeInjectorFor(pkInstance: packageInstance, NodeApi: any) {
 	function apiFactory() {
-		return getApiForPackage(pkInstance);
+		return getApiForPackage(pkInstance, NodeApi);
 	}
 	nodeInjector.fromPackage(pkInstance.longName, pkInstance.realPackagePath)
 	.value('__injector', nodeInjector)
@@ -106,7 +118,7 @@ function setupNodeInjectorFor(pkInstance: packageInstance) {
 	nodeInjector.default = nodeInjector; // For ES6 import syntax
 }
 
-function getApiForPackage(pkInstance: any) {
+function getApiForPackage(pkInstance: any, NodeApi: any) {
 	if (_.has(apiCache, pkInstance.longName)) {
 		return apiCache[pkInstance.longName];
 	}

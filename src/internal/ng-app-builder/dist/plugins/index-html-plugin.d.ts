@@ -1,3 +1,6 @@
+/**
+ * Same function as react-dev-utils/InlineChunkHtmlPlugin, but does not rely on HtmlWebpackPlugin
+ */
 import { Compiler } from 'webpack';
 export interface IndexHtmlPluginOptions {
     indexFile: string;

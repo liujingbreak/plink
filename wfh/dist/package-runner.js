@@ -22,7 +22,7 @@ const ts_1 = require("./build-util/ts");
 const LRU = require('lru-cache');
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
-const NodeApi = require('../lib/nodeApi');
+// const NodeApi = require('../lib/nodeApi');
 const { nodeInjector } = require('../lib/injectorFactory');
 const log = require('log4js').getLogger('package-runner');
 class ServerRunner {
@@ -47,29 +47,13 @@ class ServerRunner {
 exports.ServerRunner = ServerRunner;
 const apiCache = {};
 function runPackages(argv) {
+    // const NodeApi = require('../lib/nodeApi');
     const includeNameSet = new Set();
     argv.package.forEach(name => includeNameSet.add(name));
     const [fileToRun, funcToRun] = argv.target.split('#');
-    const NodeApi = require('../lib/nodeApi');
-    const proto = NodeApi.prototype;
-    proto.argv = argv;
-    // const walkPackages = require('./build-util/ts').walkPackages;
-    const packageInfo = ts_1.walkPackages(config, argv, packageUtils);
-    proto.packageInfo = packageInfo;
-    const cache = LRU(20);
-    proto.findPackageByFile = function (file) {
-        var found = cache.get(file);
-        if (!found) {
-            found = packageInfo.dirTree.getAllData(file).pop();
-            cache.set(file, found);
-        }
-        return found;
-    };
-    proto.getNodeApiForPackage = function (packageInstance) {
-        return getApiForPackage(packageInstance);
-    };
-    const components = packageInfo.allModules.filter(pk => {
-        setupNodeInjectorFor(pk); // All component package should be able to access '__api', even they are not included
+    const [packages, proto] = initApiForAllPackages(argv);
+    const components = packages.filter(pk => {
+        // setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
         if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
             pk.dr != null) {
             try {
@@ -96,9 +80,38 @@ function runPackages(argv) {
     });
 }
 exports.runPackages = runPackages;
-function setupNodeInjectorFor(pkInstance) {
+function initApiForAllPackages(argv) {
+    const NodeApi = require('../lib/nodeApi');
+    const proto = NodeApi.prototype;
+    proto.argv = argv;
+    const packageInfo = ts_1.walkPackages(config, packageUtils);
+    proto.packageInfo = packageInfo;
+    const cache = LRU(20);
+    proto.findPackageByFile = function (file) {
+        var found = cache.get(file);
+        if (!found) {
+            found = packageInfo.dirTree.getAllData(file).pop();
+            cache.set(file, found);
+        }
+        return found;
+    };
+    proto.getNodeApiForPackage = function (packageInstance) {
+        return getApiForPackage(packageInstance, NodeApi);
+    };
+    const drPackages = packageInfo.allModules.filter(pk => {
+        if (pk.dr) {
+            log.info(pk.longName);
+            setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
+            return true;
+        }
+        return false;
+    });
+    return [drPackages, proto];
+}
+exports.initApiForAllPackages = initApiForAllPackages;
+function setupNodeInjectorFor(pkInstance, NodeApi) {
     function apiFactory() {
-        return getApiForPackage(pkInstance);
+        return getApiForPackage(pkInstance, NodeApi);
     }
     nodeInjector.fromPackage(pkInstance.longName, pkInstance.realPackagePath)
         .value('__injector', nodeInjector)
@@ -108,7 +121,7 @@ function setupNodeInjectorFor(pkInstance) {
         .factory('__api', apiFactory);
     nodeInjector.default = nodeInjector; // For ES6 import syntax
 }
-function getApiForPackage(pkInstance) {
+function getApiForPackage(pkInstance, NodeApi) {
     if (_.has(apiCache, pkInstance.longName)) {
         return apiCache[pkInstance.longName];
     }
@@ -119,4 +132,3 @@ function getApiForPackage(pkInstance) {
     api.default = api; // For ES6 import syntax
     return api;
 }
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicGFja2FnZS1ydW5uZXIuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi90cy9wYWNrYWdlLXJ1bm5lci50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7OztBQUdBLDBDQUE0QjtBQUU1QiwrQ0FBK0M7QUFDL0MsdUVBQXdEO0FBQ3hELHdDQUE2QztBQUM3QyxNQUFNLEdBQUcsR0FBRyxPQUFPLENBQUMsV0FBVyxDQUFDLENBQUM7QUFDakMsTUFBTSxNQUFNLEdBQUcsT0FBTyxDQUFDLGVBQWUsQ0FBQyxDQUFDO0FBQ3hDLE1BQU0sWUFBWSxHQUFHLE9BQU8sQ0FBQyxnQ0FBZ0MsQ0FBQyxDQUFDO0FBQy9ELE1BQU0sT0FBTyxHQUFHLE9BQU8sQ0FBQyxnQkFBZ0IsQ0FBQyxDQUFDO0FBQzFDLE1BQU0sRUFBQyxZQUFZLEVBQUMsR0FBRyxPQUFPLENBQUMsd0JBQXdCLENBQUMsQ0FBQztBQUd6RCxNQUFNLEdBQUcsR0FBRyxPQUFPLENBQUMsUUFBUSxDQUFDLENBQUMsU0FBUyxDQUFDLGdCQUFnQixDQUFDLENBQUM7QUFNMUQsTUFBYSxZQUFZO0lBS2xCLGNBQWM7O1lBQ25CLEdBQUcsQ0FBQyxJQUFJLENBQUMsZUFBZSxDQUFDLENBQUM7WUFDMUIsTUFBTSxJQUFJLENBQUMsbUJBQW1CLENBQUMsSUFBSSxDQUFDLGtCQUFrQixDQUFDLENBQUM7UUFDekQsQ0FBQztLQUFBO0lBRWUsbUJBQW1CLENBQUMsS0FBb0I7O1lBQ3ZELEtBQUssTUFBTSxJQUFJLElBQUksS0FBSyxFQUFFO2dCQUN6QixNQUFNLEdBQUcsR0FBRyxPQUFPLENBQUMsSUFBSSxDQUFDLFFBQVEsQ0FBQyxDQUFDO2dCQUNuQyxJQUFJLENBQUMsQ0FBQyxVQUFVLENBQUMsR0FBRyxDQUFDLFVBQVUsQ0FBQyxFQUFFO29CQUNqQyxHQUFHLENBQUMsSUFBSSxDQUFDLFlBQVksRUFBRSxJQUFJLENBQUMsUUFBUSxDQUFDLENBQUM7b0JBQ3RDLE1BQU0sT0FB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

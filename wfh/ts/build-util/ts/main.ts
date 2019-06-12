@@ -35,7 +35,7 @@ let packageInfo: PackageInfo;
  * @param {*} ignoreCache
  * @return {PackageInfo}
  */
-export function walkPackages(config: any, argv: any, packageUtils: any) {
+export function walkPackages(config: any, packageUtils: any) {
 	if (packageInfo)
 		return packageInfo;
 	log.info('scan for packages info');
@@ -44,9 +44,9 @@ export function walkPackages(config: any, argv: any, packageUtils: any) {
 	return packageInfo;
 }
 
-export function listBundleInfo(_config: any, _argv: any, _packageUtils: any) {
+export function listBundleInfo(_config: any, _packageUtils: any) {
 	_config.set('bundlePerPackage', false);
-	var packageInfo = walkPackages(_config, _argv, _packageUtils);
+	const packageInfo = walkPackages(_config, _packageUtils);
 	saveCache(packageInfo, _config);
 	return packageInfo;
 }
@@ -61,9 +61,9 @@ export function saveCache(packageInfo: PackageInfo, config: any) {
 }
 
 function _walkPackages(packageUtils: any, config: any): PackageInfo {
-	var nodePaths = [config().nodePath];
-	var configBundleInfo = readBundleMapConfig(packageUtils, config);
-	var info: PackageInfo = {
+	const nodePaths = [config().nodePath];
+	const configBundleInfo = readBundleMapConfig(packageUtils, config);
+	const info: PackageInfo = {
 		allModules: null, // array
 		moduleMap: _.clone(configBundleInfo.moduleMap),
 		shortNameMap: _.clone(configBundleInfo.shortNameMap),
@@ -74,7 +74,7 @@ function _walkPackages(packageUtils: any, config: any): PackageInfo {
 		entryPageMap: {},
 		dirTree: null
 	};
-	var bundleMap = info.bundleMap;
+	const bundleMap = info.bundleMap;
 
 	packageUtils.findBrowserPackageByType('*', function(
 		name: string, entryPath: string, parsedName: {scope: string, name: string}, pkJson: any, packagePath: string) {
@@ -198,15 +198,15 @@ function readBundleMapConfig(packageUtils: any, config: any) {
 }
 
 function _readPackageChunkMap(packageUtils: any, config: any, info: BundleInfo) {
-	var bmap = info.bundleMap;
-	var mmap = info.moduleMap;
+	const bmap = info.bundleMap;
+	const mmap = info.moduleMap;
 	_.each(config()._package2Chunk, (bundle, moduleName) => {
 		try {
-			var packagePath = packageUtils.findBrowserPackagePath(moduleName);
+			const packagePath = packageUtils.findBrowserPackagePath(moduleName);
 			if (!packagePath)
 				return;
-			var parsedName = packageUtils.parseName(moduleName);
-			var instance = new packageBrowserInstance({
+			const parsedName = packageUtils.parseName(moduleName);
+			const instance = new packageBrowserInstance({
 				isVendor: true,
 				bundle,
 				longName: moduleName,
@@ -230,8 +230,8 @@ function _readPackageChunkMap(packageUtils: any, config: any, info: BundleInfo) 
 }
 
 function _readBundles(packageUtils: any, info: BundleInfo, config: any, isExternal = false) {
-	var bmap = info.bundleMap;
-	var mmap = info.moduleMap;
+	const bmap = info.bundleMap;
+	const mmap = info.moduleMap;
 
 	interface EbmType1 {
 		URLs: string[];
@@ -243,16 +243,16 @@ function _readBundles(packageUtils: any, info: BundleInfo, config: any, isExtern
 	}
 	type EbmType = EbmType1 | EbmType2 | string;
 
-	var mapConfig = config().externalBundleMap as {[k: string]: string[] | EbmType};
+	const mapConfig = config().externalBundleMap as {[k: string]: string[] | EbmType};
 	if (isExternal)
 		info.urlPackageSet = {};
 	_.forOwn(mapConfig, function(bundleData, bundle) {
-		var moduleNames: string[] = _.isArray((bundleData as EbmType1).modules) ?
+		const moduleNames: string[] = _.isArray((bundleData as EbmType1).modules) ?
 			(bundleData as EbmType1).modules : bundleData as string[];
-		var bundleModules = _.map(moduleNames, function(moduleName) {
+		const bundleModules = _.map(moduleNames, function(moduleName) {
 			try {
-				var packagePath = packageUtils.findBrowserPackagePath(moduleName);
-				var instance = new packageBrowserInstance({
+				const packagePath = packageUtils.findBrowserPackagePath(moduleName);
+				const instance = new packageBrowserInstance({
 					isVendor: true,
 					bundle,
 					longName: moduleName,
@@ -287,7 +287,7 @@ function _readBundles(packageUtils: any, info: BundleInfo, config: any, isExtern
 }
 
 function createPackageDirTree(packageInfo: PackageInfo) {
-	var tree = new DirTree<PackageBrowserInstance>();
+	const tree = new DirTree<PackageBrowserInstance>();
 	var count = 0;
 	packageInfo.allModules.forEach(moduleInstance => {
 		// log.info(moduleInstance.longName);

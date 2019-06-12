@@ -7,7 +7,7 @@ import os from 'os';
 import util from 'util';
 import fs from 'fs';
 import Path from 'path';
-import pify from 'pify';
+const pify = require('pify');
 
 process.on('uncaughtException', (err) => {
 	// tslint:disable-next-line
@@ -23,7 +23,7 @@ const argv = process.argv;
 const zipDir = argv[2];
 const zipExtractDir = argv[3];
 
-const readFileAsync = pify(fs.readFile);
+const readFileAsync: (file: string, code?: string) => Promise<Buffer> = pify(fs.readFile);
 async function start() {
 	const fileNames = fs.readdirSync(zipDir);
 	const proms = fileNames.filter(name => Path.extname(name).toLowerCase() === '.zip')

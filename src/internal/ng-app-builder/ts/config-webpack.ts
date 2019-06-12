@@ -1,39 +1,31 @@
 /* tslint:disable no-console max-line-length max-classes-per-file */
+import { AngularCompilerPlugin } from '@ngtools/webpack';
+import * as fs from 'fs';
+import * as _ from 'lodash';
+import * as Path from 'path';
+import { isRegExp } from 'util';
+import * as webpack from 'webpack';
+import { Compiler } from 'webpack';
+import api from '__api';
+import TSReadHooker from './ng-ts-replace';
+import { AngularCliParam } from './ng/common';
 import ChunkInfoPlugin from './plugins/chunk-info';
 import gzipSize from './plugins/gzip-size';
 import IndexHtmlPlugin from './plugins/index-html-plugin';
-import {AngularCliParam} from './ng/common';
-import * as _ from 'lodash';
-import * as fs from 'fs';
-import { isRegExp } from 'util';
-import * as Path from 'path';
-import {Compiler, HotModuleReplacementPlugin} from 'webpack';
-import api from '__api';
-import {AngularCompilerPlugin} from '@ngtools/webpack';
-import TSReadHooker from './ng-ts-replace';
 import ReadHookHost from './utils/read-hook-vfshost';
-import * as webpack from 'webpack';
 
 export interface WepackConfigHandler {
 	/** @returns webpack configuration or Promise */
 	webpackConfig(originalConfig: any): Promise<{[name: string]: any} | void> | {[name: string]: any} | void;
 }
 
-// const {babel} = require('@dr-core/webpack2-builder/configs/loader-config');
-const noParse = (api.config.get([api.packageName, 'buildOptimizerExclude'], []) as string[]);
-noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]);
-// const log = require('log4js').getLogger('ng-app-builder.config-webpack');
-
-export default async function changeWebpackConfig(param: AngularCliParam, webpackConfig: any, drcpConfigSetting: any) {
-	// const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');
+export default async function changeWebpackConfig(param: AngularCliParam, webpackConfig: webpack.Configuration,
+	drcpConfigSetting: {devMode: boolean}) {
+	// const api: typeof __api = require('__api'); // force to defer loading api until DRCP config is ready
 	console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
+
 	if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
-		param.browserOptions.drcpArgs.report ||(param.browserOptions.drcpArgs.openReport)) {
-		// webpackConfig.plugins.unshift(new BundleAnalyzerPlugin({
-		// 	analyzerMode: 'static',
-		// 	reportFilename: 'bundle-report.html',
-		// 	openAnalyzer: options.drcpArgs.openReport
-		// }));
+	param.browserOptions.drcpArgs.report ||(param.browserOptions.drcpArgs.openReport)) {
 		webpackConfig.plugins.push(
 			new ChunkInfoPlugin()
 		);
@@ -41,7 +33,7 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 
 	// webpackConfig.module.noParse = (file: string) => noParse.some(name => file.replace(/\\/g, '/').includes(name));
 
-	const ngCompilerPlugin: AngularCompilerPlugin = webpackConfig.plugins.find((plugin: any) => {
+	const ngCompilerPlugin: any = webpackConfig.plugins.find((plugin: any) => {
 		return (plugin instanceof AngularCompilerPlugin);
 	});
 	if (ngCompilerPlugin == null)
@@ -57,8 +49,8 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 		}
 	}());
 
-	if (_.get(param, 'builderConfig.options.hmr'))
-		webpackConfig.plugins.push(new HotModuleReplacementPlugin());
+	// if (_.get(param, 'builderConfig.options.hmr'))
+	// 	webpackConfig.plugins.push(new HotModuleReplacementPlugin());
 	if (!drcpConfigSetting.devMode) {
 		console.log('Build in production mode');
 		webpackConfig.plugins.push(new gzipSize());
@@ -77,7 +69,7 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 			  /^@angular/,
 			  (_: any, request: any, callback: (error?: any, result?: any) => void) => {
 				// Absolute & Relative paths are not externals
-				if (request.match(/^\.{0,2}\//)) {
+				if (/^\.{0,2}\//.test(request) || Path.isAbsolute(request)) {
 					return callback();
 				}
 				try {
@@ -99,7 +91,7 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 			];
 		  }
 	}
-	webpackConfig.plugins.push(new CompileDonePlugin());
+	// webpackConfig.plugins.push(new CompileDonePlugin());
 
 	changeSplitChunks(param, webpackConfig);
 	changeLoaders(param, webpackConfig);
@@ -120,11 +112,19 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 	return webpackConfig;
 }
 
-function changeLoaders(param: AngularCliParam, webpackConfig: any) {
+function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configuration) {
+	const noParse = (api.config.get([api.packageName, 'buildOptimizerExclude'], []) as string[]);
+noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]);
+
+
 	const devMode = webpackConfig.mode === 'development';
-	webpackConfig.resolveLoader = {
-		modules: [Path.join(__dirname, 'loaders'), 'node_modules']
-	};
+	if (webpackConfig.resolveLoader == null) {
+		webpackConfig.resolveLoader = {};
+	}
+	if (webpackConfig.resolveLoader.modules == null) {
+		webpackConfig.resolveLoader.modules = [];
+	}
+	webpackConfig.resolveLoader.modules.unshift(Path.join(__dirname, 'loaders'));
 	const rules = webpackConfig.module.rules as webpack.Rule[];
 	let hasUrlLoader = false;
 	let fileLoaderRuleIdx: number;
@@ -347,11 +347,11 @@ function printConfigValue(value: any, level: number): string {
 	return out;
 }
 
-class CompileDonePlugin {
+// class CompileDonePlugin {
 
-	apply(compiler: Compiler) {
-		compiler.hooks.done.tap('drcp-devserver-build-webpack', (stats) => {
-			api.eventBus.emit('webpackDone', {success: true});
-		});
-	}
-}
+// 	apply(compiler: Compiler) {
+// 		compiler.hooks.done.tap('drcp-devserver-build-webpack', (stats) => {
+// 			api.eventBus.emit('webpackDone', {success: true});
+// 		});
+// 	}
+// }
