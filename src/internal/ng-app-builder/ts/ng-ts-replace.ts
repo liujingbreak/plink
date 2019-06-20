@@ -1,19 +1,19 @@
 /* tslint:disable max-line-length */
-import api from '__api';
+import PackageBrowserInstance from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
+import { readTsConfig, transpileSingleTs } from 'dr-comp-package/wfh/dist/ts-compiler';
+import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as log4js from 'log4js';
-import {of, throwError, Observable} from 'rxjs';
-import {HookReadFunc} from './utils/read-hook-vfshost';
-import {AngularCliParam} from './ng/common';
-import ApiAotCompiler from './utils/ts-before-aot';
-import AppModuleParser, {findAppModuleFileFromMain} from './utils/parse-app-module';
-import {sep as SEP, relative, resolve, dirname} from 'path';
-import {readTsConfig, transpileSingleTs} from 'dr-comp-package/wfh/dist/ts-compiler';
-import PackageBrowserInstance from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
-import Selector from './utils/ts-ast-query';
-import {replaceHtml} from './ng-aot-assets';
+import { dirname, relative, resolve } from 'path';
+import { Observable, of, throwError } from 'rxjs';
 import * as ts from 'typescript';
-import * as fs from 'fs';
+import api from '__api';
+import { replaceHtml } from './ng-aot-assets';
+import { AngularCliParam } from './ng/common';
+import AppModuleParser, { findAppModuleFileFromMain } from './utils/parse-app-module';
+import { HookReadFunc } from './utils/read-hook-vfshost';
+import Selector from './utils/ts-ast-query';
+import ApiAotCompiler from './utils/ts-before-aot';
 const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName);
@@ -54,16 +54,16 @@ export default class TSReadHooker {
 	}
 
 	private createTsReadHook(ngParam: AngularCliParam): HookReadFunc {
-		let drcpIncludeBuf: ArrayBuffer;
+		// let drcpIncludeBuf: ArrayBuffer;
 
 		const tsconfigFile = ngParam.browserOptions.tsConfig;
 
-		const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || api.argv.hmr;
+		// const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || api.argv.hmr;
 		const preserveSymlinks = ngParam.browserOptions.preserveSymlinks;
 		const tsCompilerOptions = readTsConfig(tsconfigFile);
-		let polyfillsFile: string = '';
-		if (ngParam.browserOptions.polyfills)
-			polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
+		// let polyfillsFile: string = '';
+		// if (ngParam.browserOptions.polyfills)
+		// 	polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
 
 		const appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
 		log.info('app module file: ', appModuleFile);
@@ -85,51 +85,51 @@ export default class TSReadHooker {
 				const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
 				if (cached != null)
 					return of(cached);
-				let normalFile = relative(process.cwd(), file);
-				if (SEP === '\\')
-					normalFile = normalFile.replace(/\\/g, '/');
-				if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
-					const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
-					const content = Buffer.from(buf).toString() + hmrClient;
-					log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
-					const bf = string2buffer(content);
-					this.tsCache.set(this.realFile(file, preserveSymlinks), bf);
-					return of(bf);
-				} else if (normalFile.endsWith('/drcp-include.ts')) {
-					if (drcpIncludeBuf)
-						return of(drcpIncludeBuf);
-					let content = Buffer.from(buf).toString();
-					const legoConfig = browserLegoConfig();
-					let hmrBoot: string;
-					if (hmrEnabled) {
-						content = 'import hmrBootstrap from \'./hmr\';\n' + content;
-						hmrBoot = 'hmrBootstrap(module, bootstrap)';
-					}
-					if (!ngParam.browserOptions.aot) {
-						content = 'import \'core-js/es7/reflect\';\n' + content;
-					}
-					if (hmrBoot)
-						content = content.replace(/\/\* replace \*\/bootstrap\(\)/g, hmrBoot);
-					if (ngParam.ssr) {
-						content += '\nconsole.log("set global.LEGO_CONFIG");';
-						content += '\nObject.assign(global, {\
-							__drcpEntryPage: null, \
-							__drcpEntryPackage: null\
-						});\n';
-						content += '(global as any)';
-					} else {
-						content += '\nObject.assign(window, {\
-							__drcpEntryPage: null, \
-							__drcpEntryPackage: null\
-						});\n';
-						content += '\n(window as any)';
-					}
-					content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
-					drcpIncludeBuf = string2buffer(content);
-					log.info(chalk.cyan(file) + ':\n' + content);
-					this.tsCache.set(this.realFile(file, preserveSymlinks), drcpIncludeBuf);
-					return of(drcpIncludeBuf);
-				}
+				// let normalFile = relative(process.cwd(), file);
+				// if (SEP === '\\')
+				// 	normalFile = normalFile.replace(/\\/g, '/');
+				// if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
+				// 	const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
+				// 	const content = Buffer.from(buf).toString() + hmrClient;
+				// 	log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
+				// 	const bf = string2buffer(content);
+				// 	this.tsCache.set(this.realFile(file, preserveSymlinks), bf);
+				// 	return of(bf);
+				// } else if (normalFile.endsWith('/drcp-include.ts')) {
+				// 	if (drcpIncludeBuf)
+				// 		return of(drcpIncludeBuf);
+				// 	let content = Buffer.from(buf).toString();
+				// 	const legoConfig = browserLegoConfig();
+				// 	let hmrBoot: string;
+				// 	if (hmrEnabled) {
+				// 		content = 'import hmrBootstrap from \'./hmr\';\n' + content;
+				// 		hmrBoot = 'hmrBootstrap(module, bootstrap)';
+				// 	}
+				// 	if (!ngParam.browserOptions.aot) {
+				// 		content = 'import \'core-js/es7/reflect\';\n' + content;
+				// 	}
+				// 	if (hmrBoot)
+				// 		content = content.replace(/\/\* replace \*\/bootstrap\(\)/g, hmrBoot);
+				// 	if (ngParam.ssr) {
+				// 		content += '\nconsole.log("set global.LEGO_CONFIG");';
+				// 		content += '\nObject.assign(global, {\
+				// 			__drcpEntryPage: null, \
+				// 			__drcpEntryPackage: null\
+				// 		});\n';
+				// 		content += '(global as any)';
+				// 	} else {
+				// 		content += '\nObject.assign(window, {\
+				// 			__drcpEntryPage: null, \
+				// 			__drcpEntryPackage: null\
+				// 		});\n';
+				// 		content += '\n(window as any)';
+				// 	}
+				// 	content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
+				// 	drcpIncludeBuf = string2buffer(content);
+				// 	log.info(chalk.cyan(file) + ':\n' + content);
+				// 	this.tsCache.set(this.realFile(file, preserveSymlinks), drcpIncludeBuf);
+				// 	return of(drcpIncludeBuf);
+				// }
 				const compPkg = api.findPackageByFile(file);
 				let content = Buffer.from(buf).toString();
 				let needLogFile = false;
@@ -181,39 +181,39 @@ export function string2buffer(input: string): ArrayBuffer {
 	return newBuf;
 }
 
-function browserLegoConfig() {
-	var browserPropSet: any = {};
-	var legoConfig: any = {}; // legoConfig is global configuration properties which apply to all entries and modules
-	_.each([
-		'staticAssetsURL', 'serverURL', 'packageContextPathMapping',
-		'locales', 'devMode', 'outputPathMap'
-	], prop => browserPropSet[prop] = 1);
-	_.each(api.config().browserSideConfigProp, prop => browserPropSet[prop] = true);
-	_.forOwn(browserPropSet, (nothing, propPath) => _.set(legoConfig, propPath, _.get(api.config(), propPath)));
-	var compressedInfo = compressOutputPathMap(legoConfig.outputPathMap);
-	legoConfig.outputPathMap = compressedInfo.diffMap;
-	legoConfig._outputAsNames = compressedInfo.sames;
-	legoConfig.buildLocale = api.getBuildLocale();
-	log.debug('DefinePlugin LEGO_CONFIG: ', legoConfig);
-	return legoConfig;
-}
+// function browserLegoConfig() {
+// 	var browserPropSet: any = {};
+// 	var legoConfig: any = {}; // legoConfig is global configuration properties which apply to all entries and modules
+// 	_.each([
+// 		'staticAssetsURL', 'serverURL', 'packageContextPathMapping',
+// 		'locales', 'devMode', 'outputPathMap'
+// 	], prop => browserPropSet[prop] = 1);
+// 	_.each(api.config().browserSideConfigProp, prop => browserPropSet[prop] = true);
+// 	_.forOwn(browserPropSet, (nothing, propPath) => _.set(legoConfig, propPath, _.get(api.config(), propPath)));
+// 	var compressedInfo = compressOutputPathMap(legoConfig.outputPathMap);
+// 	legoConfig.outputPathMap = compressedInfo.diffMap;
+// 	legoConfig._outputAsNames = compressedInfo.sames;
+// 	legoConfig.buildLocale = api.getBuildLocale();
+// 	log.debug('DefinePlugin LEGO_CONFIG: ', legoConfig);
+// 	return legoConfig;
+// }
 
-function compressOutputPathMap(pathMap: any) {
-	var newMap: any = {};
-	var sameAsNames: string[] = [];
-	_.each(pathMap, (value, key) => {
-		var parsed = api.packageUtils.parseName(key);
-		if (parsed.name !== value) {
-			newMap[key] = value;
-		} else {
-			sameAsNames.push(key);
-		}
-	});
-	return {
-		sames: sameAsNames,
-		diffMap: newMap
-	};
-}
+// function compressOutputPathMap(pathMap: any) {
+// 	var newMap: any = {};
+// 	var sameAsNames: string[] = [];
+// 	_.each(pathMap, (value, key) => {
+// 		var parsed = api.packageUtils.parseName(key);
+// 		if (parsed.name !== value) {
+// 			newMap[key] = value;
+// 		} else {
+// 			sameAsNames.push(key);
+// 		}
+// 	});
+// 	return {
+// 		sames: sameAsNames,
+// 		diffMap: newMap
+// 	};
+// }
 
 function getRouterModules(appModulePackage: PackageBrowserInstance, appModuleDir: string) {
 	const ngModules: string[] = api.config.get([api.packageName, 'ngModule']) || [];

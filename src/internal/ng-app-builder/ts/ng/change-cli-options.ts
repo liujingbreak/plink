@@ -14,7 +14,7 @@ import { findAppModuleFileFromMain } from '../utils/parse-app-module';
 import replaceCode from '../utils/patch-text';
 import TsAstSelector from '../utils/ts-ast-query';
 import { AngularBuilderOptions } from './common';
-import apiSetup from './api-setup';
+import apiSetup from './injector-setup';
 import ts from 'typescript';
 
 const {cyan, green, red} = require('chalk');
@@ -123,7 +123,7 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
 		browserOptions.drcpArgs = {};
 	}
 	hackTsConfig(browserOptions, config);
-	apiSetup(browserOptions);
+	await apiSetup(browserOptions);
 
 	return browserOptions;
 }

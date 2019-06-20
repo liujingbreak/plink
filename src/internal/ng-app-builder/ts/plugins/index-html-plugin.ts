@@ -22,7 +22,7 @@ class MockLoaderContext {
 	constructor(public resourcePath: string) {}
 
 	loadModule(path: string, callback: (err: Error, source?: any, sourceMap?: any, module?: any) => void) {
-		callback(new Error(`index.html does not support requesting relative resource URL like ${path}.` +
+		callback(new Error(`index.html does not support requesting relative resource URL like "${path}".` +
 			'only supports resource url in form of : <assets|page>://<package-name>/<resource>'));
 	}
 }

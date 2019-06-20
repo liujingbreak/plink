@@ -3,11 +3,12 @@ import Path from 'path';
 // import api from '__api';
 import _ from 'lodash';
 import {ngRouterPath} from '../api-share';
-import {initApiForAllPackages} from 'dr-comp-package/wfh/dist/package-runner';
+import {initInjectorForNodePackages, initWebInjector} from 'dr-comp-package/wfh/dist/package-runner';
 import {AngularBuilderOptions} from './common';
 
-export default function(browserOptions: AngularBuilderOptions, ssr = false) {
-	const [, apiProto] = initApiForAllPackages(browserOptions.drcpArgs);
+export default async function(browserOptions: AngularBuilderOptions, ssr = false) {
+	const [pks, apiProto] = initInjectorForNodePackages(browserOptions.drcpArgs);
+	await initWebInjector(pks, apiProto);
 
 	const deployUrl = browserOptions.deployUrl || '';
 

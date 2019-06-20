@@ -10,8 +10,8 @@ const LRU = require('lru-cache');
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
 // const NodeApi = require('../lib/nodeApi');
-const {nodeInjector} = require('../lib/injectorFactory');
-
+// const {nodeInjector} = require('../lib/injectorFactory');
+import {webInjector, nodeInjector} from './injector-factory';
 
 const log = require('log4js').getLogger('package-runner');
 
@@ -47,7 +47,7 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
 	const includeNameSet = new Set<string>();
 	argv.package.forEach(name => includeNameSet.add(name));
 	const [fileToRun, funcToRun] = (argv.target as string).split('#');
-	const [packages, proto] = initApiForAllPackages(argv);
+	const [packages, proto] = initInjectorForNodePackages(argv);
 	const components = packages.filter(pk => {
 		// setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
 		if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
@@ -75,7 +75,7 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
 	});
 }
 
-export function initApiForAllPackages(argv: {[key: string]: any}):
+export function initInjectorForNodePackages(argv: {[key: string]: any}):
 	[packageInstance[], {eventBus: Events}] {
 	const NodeApi = require('../lib/nodeApi');
 	const proto = NodeApi.prototype;
@@ -105,17 +105,34 @@ export function initApiForAllPackages(argv: {[key: string]: any}):
 	return [drPackages, proto];
 }
 
+export function initWebInjector(packages: packageInstance[], apiPrototype: any) {
+	_.each(packages, pack => {
+		if (pack.dr) {
+			// no vendor package's path information
+			webInjector.addPackage(pack.longName, pack.packagePath);
+		}
+	});
+	webInjector.fromAllPackages()
+	.replaceCode('__api', '__api')
+	.substitute(/^([^{]*)\{locale\}(.*)$/,
+		(filePath, match) => match[1] + apiPrototype.getBuildLocale() + match[2]);
+
+	const done = webInjector.readInjectFile('module-resolve.browser');
+	apiPrototype.browserInjector = webInjector;
+	return done;
+}
+
 function setupNodeInjectorFor(pkInstance: packageInstance, NodeApi: any) {
 	function apiFactory() {
 		return getApiForPackage(pkInstance, NodeApi);
 	}
-	nodeInjector.fromPackage(pkInstance.longName, pkInstance.realPackagePath)
+	nodeInjector.fromDir(pkInstance.realPackagePath)
 	.value('__injector', nodeInjector)
 	.factory('__api', apiFactory);
-	nodeInjector.fromPackage(pkInstance.longName, pkInstance.packagePath)
+	nodeInjector.fromDir(pkInstance.packagePath)
 	.value('__injector', nodeInjector)
 	.factory('__api', apiFactory);
-	nodeInjector.default = nodeInjector; // For ES6 import syntax
+	// nodeInjector.default = nodeInjector; // For ES6 import syntax
 }
 
 function getApiForPackage(pkInstance: any, NodeApi: any) {

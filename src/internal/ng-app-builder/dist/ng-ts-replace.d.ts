@@ -1,5 +1,5 @@
-import { HookReadFunc } from './utils/read-hook-vfshost';
 import { AngularCliParam } from './ng/common';
+import { HookReadFunc } from './utils/read-hook-vfshost';
 export default class TSReadHooker {
     hookFunc: HookReadFunc;
     private realFileCache;

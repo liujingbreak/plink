@@ -16,8 +16,9 @@ export declare function runPackages(argv: {
     package: string[];
     [key: string]: any;
 }): Promise<void>;
-export declare function initApiForAllPackages(argv: {
+export declare function initInjectorForNodePackages(argv: {
     [key: string]: any;
 }): [packageInstance[], {
     eventBus: Events;
 }];
+export declare function initWebInjector(packages: packageInstance[], apiPrototype: any): Promise<void>;
