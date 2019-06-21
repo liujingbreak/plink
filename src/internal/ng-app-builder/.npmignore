@@ -1,5 +1,4 @@
 /ts/**/*.ts
-!/ts/api-share.ts
 /ts/spec/**/*
 /dist/spec/**/*
 /dist/**/*.map

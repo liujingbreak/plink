@@ -2,7 +2,7 @@ import {parse} from 'url';
 import Path from 'path';
 // import api from '__api';
 import _ from 'lodash';
-import {ngRouterPath} from '../api-share';
+import {ngRouterPath} from '../../isom/api-share';
 import {initInjectorForNodePackages, initWebInjector} from 'dr-comp-package/wfh/dist/package-runner';
 import {AngularBuilderOptions} from './common';
 
