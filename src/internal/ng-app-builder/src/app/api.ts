@@ -1,6 +1,6 @@
 var has = Object.prototype.hasOwnProperty;
 import * as assetsUrl from 'dr-comp-package/wfh/share/assets-url';
-import {ngRouterPath} from '../../dist/api-share';
+import {ngRouterPath} from '../../isom/api-share';
 
 import * as lodash from 'lodash';
 

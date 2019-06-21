@@ -10,7 +10,7 @@ import changeWebpackConfig from './config-webpack';
 import {TsHandler, ReplacementInf} from './utils/ts-before-aot';
 import * as ts from 'typescript';
 import {boxString} from 'dr-comp-package/wfh/dist/utils';
-import {ngRouterPath} from './api-share';
+import {ngRouterPath} from '../isom/api-share';
 export * from './configurable';
 export * from './ng-prerender';
 export * from './ng/common';
