@@ -22,13 +22,13 @@ class MockLoaderContext {
 	constructor(public resourcePath: string) {}
 
 	loadModule(path: string, callback: (err: Error, source?: any, sourceMap?: any, module?: any) => void) {
-		callback(new Error(`index.html does not support requesting relative resource URL like "${path}".` +
-			'only supports resource url in form of : <assets|page>://<package-name>/<resource>'));
+			callback(new Error(`index.html does not support requesting relative resource URL like "${path}".` +
+				'only supports resource url in form of : <assets|page>://<package-name>/<resource>'));
 	}
 }
 
 export default class IndexHtmlPlugin {
-	inlineChunkSet = new Set();
+	inlineChunkSet = new Set<string>();
 	indexOutputPath: string;
 
 	constructor(public options: IndexHtmlPluginOptions) {
@@ -50,7 +50,8 @@ export default class IndexHtmlPlugin {
 				api,
 				require
 			});
-			source = await htmlLoader.compileHtml(source, new MockLoaderContext(this.options.indexFile) as any);
+			source = await htmlLoader.compileHtml(source,
+				new MockLoaderContext(this.options.indexFile) as any);
 			const asts = new TemplateParser(source).parse();
 			for (const ast of asts) {
 				if (ast.name.toLowerCase() === 'script' && ast.attrs) {
