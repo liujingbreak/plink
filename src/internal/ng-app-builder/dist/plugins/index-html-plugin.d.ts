@@ -5,7 +5,7 @@ export interface IndexHtmlPluginOptions {
 }
 export default class IndexHtmlPlugin {
     options: IndexHtmlPluginOptions;
-    inlineChunkSet: Set<any>;
+    inlineChunkSet: Set<string>;
     indexOutputPath: string;
     constructor(options: IndexHtmlPluginOptions);
     apply(compiler: Compiler): void;

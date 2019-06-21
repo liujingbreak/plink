@@ -27,6 +27,8 @@ export function replaceForHtml(content: string, resourcePath: string,
 	const dones: Observable<Rep>[] = [];
 	const resolver = new AttrAssetsUrlResolver(resourcePath, callback);
 	for (const el of ast) {
+		if (el.name === 'script')
+			continue;
 		for (const name of toCheckNames) {
 			if (_.has(el.attrs, name)) {
 				const value = el.attrs[name].value;
