@@ -122,6 +122,8 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
 	if (browserOptions.drcpArgs == null) {
 		browserOptions.drcpArgs = {};
 	}
+
+	browserOptions.commonChunk = false;
 	hackTsConfig(browserOptions, config);
 	await apiSetup(browserOptions);
 

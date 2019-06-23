@@ -114,10 +114,9 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 
 function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configuration) {
 	const noParse = (api.config.get([api.packageName, 'buildOptimizerExclude'], []) as string[]);
-noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]);
+	noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]);
 
-
-	const devMode = webpackConfig.mode === 'development';
+	// const devMode = webpackConfig.mode === 'development';
 	if (webpackConfig.resolveLoader == null) {
 		webpackConfig.resolveLoader = {};
 	}
@@ -127,7 +126,28 @@ noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], [])
 	webpackConfig.resolveLoader.modules.unshift(Path.join(__dirname, 'loaders'));
 	const rules = webpackConfig.module.rules as webpack.Rule[];
 	let hasUrlLoader = false;
+	let hasHtmlLoader = false;
 	let fileLoaderRuleIdx: number;
+
+	const urlLoaderRule = {
+		test: /\.(jpg|png|gif)$/,
+		use: [{
+			loader: 'url-loader',
+			options: {
+				limit: 10000, // <10k ,use base64 format
+				fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
+			}
+		}]
+	};
+	const htmlLoaderRule = {
+		test: /\\.html$/,
+		use: [
+			{loader: 'raw-loader'},
+			{loader: 'ng-html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
+			// {loader: '@dr/translate-generator'},
+			{loader: '@dr/template-builder'}
+		]
+	};
 	rules.forEach((rule, ruleIdx) => {
 		const test = rule.test;
 		if (rule.use) {
@@ -148,21 +168,13 @@ noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], [])
 				return noParse.every((exclude => !path.replace(/\\/g, '/').includes(exclude)));
 			};
 		}
+		// Angular 8 doesn't have loader for HTML
 		if (test instanceof RegExp && test.toString() === '/\\.html$/') {
+			hasHtmlLoader = true;
 			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
-			Object.assign(rule, {
-				test,
-				use: [
-					{loader: 'raw-loader'},
-					{loader: 'ng-html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
-					// {loader: '@dr/translate-generator'},
-					{loader: '@dr/template-builder'}
-				]
-			});
+			Object.assign(rule, htmlLoaderRule);
 		} else if (rule.loader === 'file-loader') {
 			fileLoaderRuleIdx = ruleIdx;
-			// const test = rule.test;
-			// fileLoaderTest = test;
 			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
 			Object.assign(rule, {
 				test: /\.(eot|svg|cur|webp|otf|ttf|woff|woff2|ani)$/,
@@ -172,17 +184,7 @@ noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], [])
 		} else if (rule.loader === 'url-loader') {
 			hasUrlLoader = true;
 			Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
-			Object.assign(rule, {
-				test: /\.(jpg|png|gif)$/,
-				use: [{
-						loader: 'url-loader',
-						options: {
-							limit: !devMode ? 10000 : 1, // <10k ,use base64 format, dev mode only use url for speed
-							fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
-						}
-					}
-				]
-			});
+			Object.assign(rule, urlLoaderRule);
 		} else if (test instanceof RegExp && test.toString().indexOf('\\.scss') >= 0 && rule.use) {
 			const use = (rule.use as Array<{[key: string]: any, loader: string}>);
 			const insertIdx = use.findIndex(item => item.loader === 'sass-loader');
@@ -215,16 +217,7 @@ noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], [])
 		if (fileLoaderRuleIdx == null)
 			throw new Error('Missing file-loader rule from Angular\'s Webpack config');
 		console.log('Insert url-loader');
-		rules.splice(fileLoaderRuleIdx + 1, 0, {
-			test: /\.(jpg|png|gif)$/,
-			use: [{
-				loader: 'url-loader',
-				options: {
-					limit: 10000, // <10k ,use base64 format
-					fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
-				}
-			}]
-		});
+		rules.splice(fileLoaderRuleIdx + 1, 0, urlLoaderRule);
 	}
 	if (param.browserOptions.aot) {
 		rules.unshift({
@@ -232,7 +225,8 @@ noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], [])
 			use: [{loader: '@dr-core/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader'}]
 		});
 	}
-	rules.unshift(
+	rules.unshift({
+		oneOf: [
 		{
 			test: /\.jade$/,
 			use: [
@@ -259,12 +253,12 @@ noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], [])
 				{loader: 'json-loader'},
 				{loader: 'yaml-loader'}
 			]
-		}
-		// {
-		// 	test: notAngularJs,
-		// 	use: [babel()]
-		// }
-	);
+		}]
+	});
+
+	if (!hasHtmlLoader) {
+		rules[0].oneOf.push(htmlLoaderRule);
+	}
 }
 
 // function notAngularJs(file: string) {
