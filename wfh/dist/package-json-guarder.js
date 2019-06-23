@@ -174,34 +174,10 @@ class Guarder {
             const realDrcpPath = fs.realpathSync(drcpLocation);
             // var yarnArgv = ['install', '--non-interactive', '--check-files'];
             const npmArgv = ['install'];
-            // if (onlyProd) {
-            // 	npmArgv.push(useYarn ? '--production' : '--only=prod');
-            // }
-            // if (isOffline) {
-            // 	console.log(logName + 'offline mode is on');
-            // 	yarnArgv.push('--offline');
-            // } else {
-            // 	// console.log(logName + '--prefer-offline mode is on');
-            // 	// yarnArgv.push('--prefer-offline');
-            // }
-            // var installProm;
-            // if (isOffline && fs.existsSync(this.rootPath + '/dr.offline-yarn.lock')) {
-            // 	console.log(logName + 'Read existing dr.offline-yarn.lock');
-            // 	installProm = new Promise((resolve, rej) => {
-            // 		var to = fs.createWriteStream(this.rootPath + '/yarn.lock');
-            // 		var from = fs.createReadStream(this.rootPath + '/dr.offline-yarn.lock');
-            // 		to.on('finish', resolve)
-            // 		.on('error', err => {
-            // 			console.log(err);
-            // 			to.end();
-            // 			rej(err);
-            // 		});
-            // 		from.pipe(to);
-            // 	});
-            // } else {
-            // installProm = Promise.resolve();
-            // }
             const self = this;
+            if (this.isDrcpSymlink && fs.existsSync(drcpLocation)) {
+                fs.unlinkSync(drcpLocation);
+            }
             function recreateSymlink() {
                 if (!fs.existsSync(Path.resolve('node_modules', 'dr-comp-package'))) {
                     fs.symlinkSync(Path.relative('node_modules', realDrcpPath), drcpLocation, isWin32 ? 'junction' : 'dir');
