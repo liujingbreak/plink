@@ -19,6 +19,8 @@ export default class GzipSize {
 			this.done = true;
 			var all: Array<PromiseLike<any>> = [];
 			var maxLenName = _.max(_.map(compilation.assets, (src, file) => file.length));
+			if (maxLenName == null)
+				return Promise.resolve();
 
 			_.each(compilation.assets, (source, file) => {
 				if (Path.extname(file) === '.map')
@@ -43,13 +45,17 @@ export default class GzipSize {
 				const datas = (rawDatas as any) as Array<[string, string]>;
 
 				var maxLenSize = _.max(_.map(datas, data => data[1].length));
-				var sepLineLen = '(gzipped)'.length + maxLenSize + maxLenName + 10;
+
+				if (maxLenSize == null)
+					maxLenSize = 0;
+
+				var sepLineLen = '(gzipped)'.length + maxLenSize + maxLenName! + 10;
 				console.log();
 				console.log(_.pad(' Gzip size ', sepLineLen, '-'));
 
 				_.each(datas, (data: any) => {
-					console.log(_.padStart(data[0], maxLenName + 2, ' ') +
-						data[2](_.padStart(data[1], maxLenSize + 2, ' ')) + ' (gzipped)');
+					console.log(_.padStart(data[0], maxLenName! + 2, ' ') +
+						data[2](_.padStart(data[1], maxLenSize! + 2, ' ')) + ' (gzipped)');
 				});
 				console.log(_.pad('', sepLineLen, '-'));
 			})

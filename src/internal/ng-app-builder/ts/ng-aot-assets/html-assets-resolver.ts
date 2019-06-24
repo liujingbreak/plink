@@ -31,10 +31,12 @@ export function replaceForHtml(content: string, resourcePath: string,
 			continue;
 		for (const name of toCheckNames) {
 			if (_.has(el.attrs, name)) {
-				const value = el.attrs[name].value;
-				if (el.attrs[name].isNg || value == null || value.text.indexOf('{{') >= 0 )
+				const value = el.attrs![name].value;
+				if (el.attrs![name].isNg || value == null || value.text.indexOf('{{') >= 0 )
 					continue;
-				dones.push(resolver.resolve(name, el.attrs[name].value, el));
+				const resolved$ = resolver.resolve(name, value, el);
+				if (resolved$)
+					dones.push(resolved$);
 			}
 		}
 	}
@@ -48,9 +50,9 @@ class AttrAssetsUrlResolver {
 	constructor(private resourcePath: string, private callback: (text: string) => Observable<string>) {
 	}
 	resolve(attrName: string, valueToken: AttributeValueAst,
-		el: TagAst): Observable<Rep> {
+		el: TagAst): Observable<Rep> | null {
 		if (!valueToken)
-			return;
+			return null;
 		if (attrName === 'srcset') {
 			// img srcset
 			const value = this.doSrcSet(valueToken.text);

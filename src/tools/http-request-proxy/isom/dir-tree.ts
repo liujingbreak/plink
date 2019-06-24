@@ -22,7 +22,7 @@ export class DirTree<T> {
 		tree.data = data;
 	}
 
-	getData(path: string): T {
+	getData(path: string): T | null | undefined {
 		var tree = this.findNode(path);
 		return tree ? tree.data : null;
 	}
@@ -36,18 +36,18 @@ export class DirTree<T> {
 				path = path.toLowerCase();
 			return this.getAllData(path.replace(/\\/g, '/').split('/'));
 		}
-		var tree = this.root;
-		var datas: T[] = [];
+		let tree = this.root;
+		const datas: T[] = [];
 		if (_has(tree, 'data'))
-			datas.push(tree.data);
+			datas.push(tree.data!);
 		path.every(name => {
 			if (_has(tree, ['map', name])) {
 				tree = tree.map[name];
 				if (_has(tree, 'data'))
-					datas.push(tree.data);
+					datas.push(tree.data!);
 				return true;
 			}
-			tree = null;
+			// tree = null;
 			return false;
 		});
 		return datas;
@@ -84,7 +84,7 @@ export class DirTree<T> {
 				tree = tree.map[name];
 				return true;
 			}
-			tree = null;
+			// tree = null;
 			return false;
 		});
 		return tree;

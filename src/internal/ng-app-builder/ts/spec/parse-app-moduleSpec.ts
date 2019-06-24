@@ -33,8 +33,8 @@ describe('parse-app-module', () => {
 				'@bk/foobar#water',
 				'foobar#tea'
 			]);
-		expect(parser._findEsImportByName('_.get').from).toBe('lodash');
-		expect(parser._findEsImportByName('env').from).toBe('@bk/env/environment');
+		expect(parser._findEsImportByName('_.get')!.from).toBe('lodash');
+		expect(parser._findEsImportByName('env')!.from).toBe('@bk/env/environment');
 		const keys: string[] = [];
 		for (const k of parser.esImportsMap.keys()) {
 			// console.log(parser.esImportsMap.get(k));

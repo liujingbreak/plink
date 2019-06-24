@@ -61,7 +61,7 @@ export default class ApiAotCompiler {
 		for(const stm of this.ast.statements) {
 			this.traverseTsAst(stm);
 		}
-		textPatcher._sortAndRemoveOverlap(this.replacements);
+		textPatcher._sortAndRemoveOverlap(this.replacements, true, this.src);
 		// Remove overlaped replacements to avoid them getting into later `vm.runInNewContext()`,
 		// We don't want to single out and evaluate lower level expression like `__api.packageName` from
 		// `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
@@ -71,7 +71,7 @@ export default class ApiAotCompiler {
 		const context = vm.createContext({__api: nodeApi});
 
 		for (const repl of this.replacements) {
-			const origText = repl.text;
+			const origText = repl.text!;
 			let res;
 			try {
 				res = vm.runInNewContext(transpileExp(origText), context);
@@ -98,7 +98,7 @@ export default class ApiAotCompiler {
 
 		if (this.replacements.length === 0)
 			return this.src;
-		textPatcher._sortAndRemoveOverlap(this.replacements);
+		textPatcher._sortAndRemoveOverlap(this.replacements, true, this.src);
 		return textPatcher._replaceSorted(this.src, this.replacements);
 	}
 

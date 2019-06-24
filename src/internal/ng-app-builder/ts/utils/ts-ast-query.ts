@@ -23,7 +23,7 @@ export default class Selector {
 	constructor(src: ts.SourceFile);
 	constructor(src: ts.SourceFile | string, file?: string) {
 		if (typeof src === 'string') {
-			this.src = ts.createSourceFile(file, src, ts.ScriptTarget.ESNext,
+			this.src = ts.createSourceFile(file || 'unknown', src, ts.ScriptTarget.ESNext,
 				true, ts.ScriptKind.TSX);
 		} else {
 			this.src = src;
@@ -56,12 +56,13 @@ export default class Selector {
 			query = arg[1];
 			callback = arg[2];
 		}
-		let res: T | null;
+		let res: T | null = null;
+		const q = new Query(query!);
 
 		this.traverse(ast, (ast, path, parents) => {
-			if (res !== undefined)
+			if (res != null)
 				return true;
-			if (new Query(query).matches(path)) {
+			if (q.matches(path)) {
 				res = callback(ast, path, parents);
 				if (res != null)
 					return true;
@@ -90,7 +91,7 @@ export default class Selector {
 			q = new Query(ast);
 			ast = this.src;
 		} else {
-			q = new Query(query);
+			q = new Query(query!);
 		}
 
 		const res: ts.Node[] = [];
@@ -112,18 +113,18 @@ export default class Selector {
 	 *  - .elements[2] > .name
 	 *  - .statements[0] :ImportSpecifier > :Identifier
 	 */
-	findFirst(query: string): ts.Node;
-	findFirst(ast: ts.Node, query: string): ts.Node;
-	findFirst(ast: ts.Node | string, query?: string): ts.Node {
+	findFirst(query: string): ts.Node | undefined;
+	findFirst(ast: ts.Node, query: string): ts.Node | undefined;
+	findFirst(ast: ts.Node | string, query?: string): ts.Node | undefined {
 		let q: Query;
 		if (typeof ast === 'string') {
 			query = ast;
 			q = new Query(ast);
 			ast = this.src;
 		} else {
-			q = new Query(query);
+			q = new Query(query!);
 		}
-		let res: ts.Node = null;
+		let res: ts.Node | undefined;
 		this.traverse(ast, (ast, path) => {
 			if (res)
 				return true;

@@ -13,6 +13,9 @@ const log = require('log4js').getLogger(api.packageName + '/css-url-loader');
 
 const urlLoader: wb.loader.Loader = function(content: string, map) {
 	var callback = this.async();
+	if (!callback) {
+		throw new Error('Does not support Webpack without async loader function');
+	}
 	var file = this.resourcePath;
 	const self = this;
 	const replacements: ReplacementInf[] = [];
@@ -24,13 +27,13 @@ const urlLoader: wb.loader.Loader = function(content: string, map) {
 		error(e) {
 			self.emitError(e);
 			log.error(e);
-			callback(e);
+			callback!(e);
 		},
 		complete() {
 			const replaced = patchText(content, replacements);
 			if (replacements.length > 0)
 				log.debug(file, replaced);
-			callback(null, replaced, map);
+			callback!(null, replaced, map);
 		}
 	});
 };
@@ -47,14 +50,16 @@ function replaceUrl(loaderCtx: wb.loader.LoaderContext, css: string, file: strin
 		}
 		subscriber.complete();
 	}).pipe(concatMap( repl => {
-		var resolvedTo = replaceAssetsUrl(file, repl.text);
+		var resolvedTo = replaceAssetsUrl(file, repl.text!);
 		if (resolvedTo.startsWith('~')) {
-			return loadModule(loaderCtx, repl.text.slice(1)).pipe(map(url => {
+			return loadModule(loaderCtx, repl.text!.slice(1))
+			.pipe(map(url => {
 				repl.text = url;
 				return repl;
 			}));
 		} else if (!resolvedTo.startsWith('/') && !resolvedTo.startsWith('#') && resolvedTo.indexOf(':') < 0) {
-			return loadModule(loaderCtx, repl.text).pipe(map(url => {
+			return loadModule(loaderCtx, repl.text != null ? repl.text! : repl.replacement!)
+			.pipe(map(url => {
 				repl.text = url;
 				return repl;
 			}));

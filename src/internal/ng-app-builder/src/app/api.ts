@@ -17,7 +17,7 @@ export default class BrowserApi {
 		BrowserApi.prototype.extend(obj);
 	}
 	static getCachedApi(name: string): BrowserApi {
-		return has.call(BrowserApi.packageApiMap, name) ? BrowserApi.packageApiMap[name] : null;
+		return has.call(BrowserApi.packageApiMap, name) ? BrowserApi.packageApiMap[name] : new BrowserApi(name);
 	}
 	default = this;
 	packageShortName: string;
@@ -41,7 +41,7 @@ export default class BrowserApi {
 
 	constructor(public packageName: string, packageConfig?: any) {
 		var m = packageNameReg.exec(packageName);
-		this.packageShortName = m[2];
+		this.packageShortName = m ? m[2] : packageName;
 		var _config = BrowserApi.prototype._config;
 		for (var propName in packageConfig) {
 			if (has.call(packageConfig, propName))

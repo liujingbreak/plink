@@ -15,7 +15,7 @@ export declare class ScssLexer extends BaseLexer<TokenType> {
     identity(type?: TokenType): Token<TokenType>;
     stringLit(quote: string): Token<TokenType>;
     spaces(): Token<TokenType>;
-    comments(): Token<TokenType>;
+    comments(): Token<TokenType> | null;
 }
 export declare class ScssParser extends BaseParser<TokenType> {
     getResUrl(text: string): Array<{

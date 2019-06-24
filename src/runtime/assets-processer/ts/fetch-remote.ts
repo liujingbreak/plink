@@ -142,7 +142,10 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
 		currentChecksum.version = checksumObj.version;
 	}
 	if (checksumObj.versions) {
-		const currVersions = currentChecksum.versions;
+		let currVersions = currentChecksum.versions;
+		if (currVersions == null) {
+			currVersions = currentChecksum.versions = {};
+		}
 		const targetVersions = checksumObj.versions;
 		for (const key of Object.keys(checksumObj.versions)) {
 			if (!_.has(targetVersions, key) || _.get(currVersions, [key, 'version']) !==

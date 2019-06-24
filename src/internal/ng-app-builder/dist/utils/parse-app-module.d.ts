@@ -37,7 +37,7 @@ export default class AppModuleParser {
      * @param importAppComponent e.g. @foo/bar/src/module#AppComponent
      */
     patchFile(file: string, fileContent: string, removableModules: string[], modulesToAdd: string[]): string;
-    protected findEsImportByName(name: string): EsImportStatement;
+    protected findEsImportByName(name: string): EsImportStatement | undefined;
     /**
      * 1. Remember those NgModule imports which are not removable
      *   (neither removable nor Typescript Identifier/CallExpression)

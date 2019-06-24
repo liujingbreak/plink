@@ -1,7 +1,8 @@
 import { NgModuleRef, ApplicationRef } from '@angular/core';
 import { createNewHosts } from '@angularclass/hmr';
 
-export default function(module: any, bootstrap: () => Promise<NgModuleRef<any>>): Promise<NgModuleRef<any>> {
+export default function(module: any, bootstrap: () => Promise<NgModuleRef<any>>):
+	Promise<NgModuleRef<any>> | undefined {
 	if (module.hot == null)
 		return bootstrap();
 	let ngModule: NgModuleRef<any>;

@@ -24,7 +24,7 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 	*[Symbol.iterator](): Iterator<Token<HtmlTokenType>> {
 		while (true) {
 			this.skip();
-			let char: string = this.la();
+			let char = this.la();
 			const start = this.position;
 			if (char == null) {
 				return;
@@ -95,11 +95,15 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 	}
 	isIdStart(laIdx = 1) {
 		const char = this.la(laIdx);
+		if (!char) {
+			this.throwError('EOF');
+			return;
+		}
 		return /[^<>()\[\]"'=`/]/.test(char) && /\S/.test(char);
 	}
 	isWhitespace() {
 		const chr = this.la();
-		return /\s/.test(chr);
+		return chr && /\s/.test(chr);
 	}
 
 	stringLit(quote: string) {
@@ -162,8 +166,8 @@ export class TemplateLexer extends BaseLexer<HtmlTokenType> {
 }
 
 export interface TagAst {
-	name?: string;
-	attrs?: {[key: string]: {isNg: boolean, value: AttributeValueAst}};
+	name: string;
+	attrs?: {[key: string]: {isNg: boolean, value?: AttributeValueAst}};
 	start: number;
 	end: number;
 	[key: string]: any;
@@ -182,23 +186,24 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 	}
 
 	getCurrentPosInfo(): string {
-		const start = this.la() ? this.la().start : null;
+		const start = this.la() ? this.la()!.start : null;
 		if (start) {
 			const lineCol = this.lexer.getLineColumn(start);
 			return `Line ${lineCol[0] + 1} column ${lineCol[1] + 1}`;
 		}
+		return '<end of file>';
 	}
 	skip() {
-		while (this.la() != null && this.la().type === HtmlTokenType.space) {
+		while (this.la() != null && this.la()!.type === HtmlTokenType.space) {
 			this.advance();
 		}
 	}
 	parse(): TagAst[] {
 		const ast: TagAst[] = [];
 		while(this.la() != null) {
-			if (this.la().type === HtmlTokenType['<']) {
+			if (this.la()!.type === HtmlTokenType['<']) {
 				ast.push(this.tag());
-			} else if (this.la().type === HtmlTokenType['</']) {
+			} else if (this.la()!.type === HtmlTokenType['</']) {
 				this.advance();
 			} else {
 				this.advance();
@@ -213,53 +218,57 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 		const last = this.advance(); // >
 		return {name, attrs, start: first.start, end: last.end};
 	}
-	attributes(): {[key: string]: {isNg: boolean, value: AttributeValueAst}} {
-		const attrs: {[key: string]: {isNg: boolean, value: AttributeValueAst}} = {};
+	attributes(): {[key: string]: {isNg: boolean, value: AttributeValueAst | undefined}} {
+		const attrs: {[key: string]: {isNg: boolean, value: AttributeValueAst | undefined}} = {};
 		while (this.la() && !this.isNextTypes(HtmlTokenType['>']) && !this.isNextTypes(HtmlTokenType['/>'])) {
 			if (this.isNgAttrName()) {
 				const key = this.ngAttrName();
 				attrs[key] = {isNg: true, value: this.attrValue()};
-			} else if (this.la().type === HtmlTokenType.identity) {
+			} else if (this.la()!.type === HtmlTokenType.identity) {
 				const key = this.attrName();
 				attrs[key] = {isNg: false, value: this.attrValue()};
 			} else if (this.isNextTypes(HtmlTokenType.space)) {
 				this.advance();
 			} else {
 				console.log('Previous tokens: ', this.lb().text);
-				this.throwError(this.la().text);
+				this.throwError(this.la()!.text);
 			}
 		}
 		return attrs;
 	}
 	isNgAttrName() {
-		const type = this.la().type;
+		if (this.la() == null)
+			this.throwError('End of file');
+		const type = this.la()!.type;
 		return type === HtmlTokenType['['] || type === HtmlTokenType['('];
 	}
 	ngAttrName() {
-		const kind = this.la().type === HtmlTokenType['['] ? HtmlTokenType[']'] : HtmlTokenType[')'];
+		if (this.la() == null)
+			this.throwError('End of file');
+		const kind = this.la()!.type === HtmlTokenType['['] ? HtmlTokenType[']'] : HtmlTokenType[')'];
 		let name: string;
 		this.advance();
 		if (this.isNgAttrName())
 			name = this.ngAttrName();
 		else
 			name = this.attrName();
-		if (this.la().type !== kind)
-			this.throwError(this.la().text);
+		if (this.la()!.type !== kind)
+			this.throwError(this.la()!.text);
 		this.advance();
 		return name;
 	}
 	attrName() {
 		return this.advance().text;
 	}
-	attrValue(): AttributeValueAst {
-		if (this.la() && this.la().type === HtmlTokenType['=']) {
+	attrValue(): AttributeValueAst | undefined {
+		if (this.la() && this.la()!.type === HtmlTokenType['=']) {
 			// let {text, start, end} = this.advance(2);
 			// return {text, start, end};
 			this.advance();
-			let start = this.la() && this.la().start;
+			let start = this.la() && this.la()!.start;
 			if (this.isNextTypes(HtmlTokenType.qm)) {
 				const endText = this.advance().text;
-				start = this.la() && this.la().start;
+				start = this.la() && this.la()!.start;
 				while (this.la() && !this.isNextTokenText(endText)) {
 					this.advance();
 				}
@@ -270,8 +279,8 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 				this.advance();
 				// console.log('value:', this.text.slice(start, end));
 				return {
-					text: this.text.slice(start, end),
-					start,
+					text: this.text.slice(start!, end),
+					start: start!,
 					end
 				};
 			}
@@ -286,12 +295,12 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 			const end = this.lb().end;
 			// console.log('value:', this.text.slice(start, end));
 			return {
-				text: this.text.slice(start, end),
-				start,
+				text: this.text.slice(start!, end),
+				start: start!,
 				end
 			};
 		} else {
-			return null;
+			return;
 		}
 	}
 }

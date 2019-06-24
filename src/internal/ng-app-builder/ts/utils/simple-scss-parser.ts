@@ -16,7 +16,7 @@ export class ScssLexer extends BaseLexer<TokenType> {
 	inParentheses = false;
 	*[Symbol.iterator](): Iterator<Token<TokenType>> {
 		while (true) {
-			const char: string = this.la();
+			let char = this.la();
 			const start = this.position;
 			if (char == null) {
 				return;
@@ -25,7 +25,8 @@ export class ScssLexer extends BaseLexer<TokenType> {
 				if (this.comments())
 					continue;
 			}
-			if (/\s/.test(this.la())) {
+			char = this.la();
+			if (char && /\s/.test(char)) {
 				this.spaces();
 				continue;
 			}
@@ -46,7 +47,7 @@ export class ScssLexer extends BaseLexer<TokenType> {
 					yield new Token(TokenType[char], this, start);
 					break;
 				default:
-					if (/[a-zA-Z0-9_\-:\$]/.test(char)) {
+					if (char && /[a-zA-Z0-9_\-:\$]/.test(char)) {
 						yield this.identity(TokenType.id);
 						break;
 					}
@@ -60,7 +61,7 @@ export class ScssLexer extends BaseLexer<TokenType> {
 	identity(type = TokenType.function) {
 		const start = this.position;
 		this.advance();
-		while (/[a-zA-Z0-9_-]/.test(this.la())) {
+		while (this.la() && /[a-zA-Z0-9_-]/.test(this.la()!)) {
 			this.advance();
 		}
 		return new Token(type, this, start);
@@ -85,7 +86,7 @@ export class ScssLexer extends BaseLexer<TokenType> {
 
 	spaces() {
 		const start = this.position;
-		while (this.la() != null && /\s/.test(this.la())) {
+		while (this.la() != null && /\s/.test(this.la()!)) {
 			this.advance();
 		}
 		return new Token(TokenType.skip, this, start);
@@ -117,20 +118,22 @@ export class ScssParser extends BaseParser<TokenType> {
 		const res: Array<{start: number, end: number, text: string}> = [];
 		while(this.la() != null) {
 			if (this.isNextTypes(TokenType.id, TokenType['(']) &&
-				this.la().text === 'url' && this.lb().text !== '@import') {
-					const start = this.la(2).end;
+				this.la()!.text === 'url' && this.lb().text !== '@import') {
+					const start = this.la(2)!.end;
 					this.advance(2); // jump over '('
 					if (this.isNextTypes(TokenType.stringLiteral)) {
 						const stringLit = this.la();
+						if (stringLit == null)
+							this.throwError('End of file');
 						this.advance();
-						res.push(stringLit);
+						res.push(stringLit!);
 					} else {
-						while(this.la() != null && this.la().type !== TokenType[')']) {
+						while(this.la() != null && this.la()!.type !== TokenType[')']) {
 							this.advance();
 						}
 						if (this.la() == null)
-							throw new Error('Unexpect end of file');
-						const end = this.la().start;
+							this.throwError('End of file');
+						const end = this.la()!.start;
 						res.push({start, end, text: text.slice(start, end)});
 					}
 			} else {
@@ -143,19 +146,19 @@ export class ScssParser extends BaseParser<TokenType> {
 	getAllImport(text: string): Array<{start: number, end: number, text: string}> {
 		const res: Array<{start: number, end: number, text: string}> = [];
 		while (this.la() != null) {
-			if (this.isNextTypes(TokenType.function, TokenType.stringLiteral) && this.la().text === '@import') {
-				res.push(this.la(2));
+			if (this.isNextTypes(TokenType.function, TokenType.stringLiteral) && this.la()!.text === '@import') {
+				res.push(this.la(2)!);
 				this.advance(2);
 			} else if (this.isNextTypes(TokenType.function, TokenType.id, TokenType['(']) &&
-				this.la().text === '@import' && this.la(2).text === 'url') {
-					const start = this.la(3).end;
+				this.la()!.text === '@import' && this.la(2)!.text === 'url') {
+					const start = this.la(3)!.end;
 					this.advance(3);
-					while(this.la() != null && this.la().type !== TokenType[')']) {
+					while(this.la() != null && this.la()!.type !== TokenType[')']) {
 						this.advance();
 					}
 					if (this.la() == null)
 						throw new Error('Unexpect end of file');
-					const end = this.la().start;
+					const end = this.la()!.start;
 					this.advance();
 					res.push({start, end, text: text.slice(start, end)});
 			} else

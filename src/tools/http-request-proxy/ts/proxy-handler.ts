@@ -81,7 +81,8 @@ export default async function doProxy(target: string, req: express.Request, res:
 			if (body)
 				logBody.info(`Hacked Response body:\n${chalk.green(_.isString(body) ? body :
 					(Buffer.isBuffer(body) ? 'buffer' : JSON.stringify(body)))}`);
-			res.status(data.res.statusCode).send(body == null ? data.body : body);
+			if (data.res.statusCode)
+				res.status(data.res.statusCode).send(body == null ? data.body : body);
 		}
 	} catch(err) {
 		log.error(err);
@@ -102,7 +103,7 @@ function send(req: express.Request, opts: any, requestDebugInfo: any, requestNum
 				reject(err);
 				return;
 			}
-			if (msg.statusCode > 299 || msg.statusCode < 200)
+			if (msg.statusCode && (msg.statusCode > 299 || msg.statusCode < 200))
 				log.warn('Status: %d %s', msg.statusCode, msg.statusMessage);
 			else
 				responseDebugInfo += `Status: ${msg.statusCode} ${msg.statusMessage}\n`;

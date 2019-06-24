@@ -13,7 +13,7 @@ describe('css-url-loader', () => {
 					done();
 				};
 			},
-			loadModule(url: string, cb: (err: Error, source: any) => string) {
+			loadModule(url: string, cb: (err: Error | null, source: any) => string) {
 				process.nextTick(() => cb(null, `module.exports = "/foobar/${url}";`));
 			},
 			emitError(err: Error) {

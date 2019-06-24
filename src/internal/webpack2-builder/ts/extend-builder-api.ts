@@ -21,7 +21,7 @@ newApi.configWebpackLater = function(this: Webpack2BuilderApi,
 	execFunc: WebpackConfigFunc) {
 
 	require('..').tapable.plugin('webpackConfig',
-		function(webpackConfig: WebpackConfig, cb: (err: Error, config: WebpackConfig) => void) {
+		function(webpackConfig: WebpackConfig, cb: (err: Error | null, config?: WebpackConfig | null) => void) {
 			Promise.resolve(execFunc(webpackConfig, Webpack))
 			.then((cfg: WebpackConfig) => cb(null, cfg))
 			.catch((err: Error) => cb(err, null));

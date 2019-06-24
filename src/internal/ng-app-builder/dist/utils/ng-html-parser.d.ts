@@ -20,21 +20,21 @@ export declare class TemplateLexer extends BaseLexer<HtmlTokenType> {
     [Symbol.iterator](): Iterator<Token<HtmlTokenType>>;
     openTagStart(): Token<HtmlTokenType>;
     closeTagStart(): Token<HtmlTokenType>;
-    isIdStart(laIdx?: number): boolean;
-    isWhitespace(): boolean;
+    isIdStart(laIdx?: number): boolean | undefined;
+    isWhitespace(): boolean | "" | null;
     stringLit(quote: string): Token<HtmlTokenType>;
-    skip(): string;
+    skip(): string | null;
     isComment(): boolean;
     comment(): boolean;
     isSwigComment(): boolean;
     swigComment(): void;
 }
 export interface TagAst {
-    name?: string;
+    name: string;
     attrs?: {
         [key: string]: {
             isNg: boolean;
-            value: AttributeValueAst;
+            value?: AttributeValueAst;
         };
     };
     start: number;
@@ -57,11 +57,11 @@ export declare class TemplateParser extends BaseParser<HtmlTokenType> {
     attributes(): {
         [key: string]: {
             isNg: boolean;
-            value: AttributeValueAst;
+            value: AttributeValueAst | undefined;
         };
     };
     isNgAttrName(): boolean;
     ngAttrName(): string;
     attrName(): string;
-    attrValue(): AttributeValueAst;
+    attrValue(): AttributeValueAst | undefined;
 }

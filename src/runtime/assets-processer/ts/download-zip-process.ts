@@ -13,7 +13,7 @@ const retryTimes = parseInt(argv[4], 10);
 process.on('uncaughtException', (err) => {
 	// tslint:disable-next-line
 	console.log(err);
-	process.send({error: err});
+	process.send && process.send({error: err});
 });
 
 async function downloadZip(fetchUrl: string) {
@@ -22,12 +22,12 @@ async function downloadZip(fetchUrl: string) {
 	const resource = fetchUrl + '?' + Math.random();
 	// const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
 	// log.info('fetch', resource);
-	process.send({log: `[pid:${process.pid}] fetch `+ resource});
+	process.send && process.send({log: `[pid:${process.pid}] fetch `+ resource});
 	await retry(async () => {
 		await new Promise<Buffer>((resolve, rej) => {
 			const writeStream = fs.createWriteStream(fileName);
 			writeStream.on('finish', () => {
-				process.send({log: 'zip file is written: ' + fileName});
+				process.send && process.send({log: 'zip file is written: ' + fileName});
 				resolve();
 			});
 			request({
@@ -44,7 +44,7 @@ async function downloadZip(fetchUrl: string) {
 		});
 		// fs.writeFileSync(Path.resolve(distDir, fileName),
 		// 	buf);
-		process.send({log: `${fileName} is written.`});
+		process.send && process.send({log: `${fileName} is written.`});
 		// const zip = new AdmZip(buf);
 		// await tryExtract(zip);
 	});
@@ -62,7 +62,7 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 				throw err;
 			}
 			console.log(err);
-			process.send({log: 'Encounter error, will retry ' + (err as Error).stack ? err.stack : err});
+			process.send && process.send({log: 'Encounter error, will retry ' + (err as Error).stack ? err.stack : err});
 		}
 		await new Promise(res => setTimeout(res, cnt * 5000));
 	}
@@ -70,6 +70,6 @@ async function retry<T>(func: (...args: any[]) => Promise<T>, ...args: any[]): P
 
 downloadZip(fetchUrl)
 .catch(err => {
-	process.send({error: err});
+	process.send && process.send({error: err});
 	process.exit(1);
 });

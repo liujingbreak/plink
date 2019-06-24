@@ -71,7 +71,7 @@ export async function changeAngularCliOptions(config: DrcpConfig,
 	context: BuilderContext,
 	builderConfig?: DevServerBuilderOptions) {
 
-	const browserTarget = targetFromTargetString(builderConfig.browserTarget);
+	const browserTarget = targetFromTargetString(builderConfig!.browserTarget);
 	const rawBrowserOptions = await context.getTargetOptions(browserTarget);
 	const browserOptions = await processBrowserBuiliderOptions(
 		config, rawBrowserOptions as any as BrowserBuilderSchema, builderConfig, true);
@@ -110,7 +110,7 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
 		config.set('publicPath', deployUrl);
 
 	const mainHmr = createMainFileForHmr(browserOptions.main);
-	if (hmr) {
+	if (hmr && builderConfig) {
 		builderConfig.hmr = true;
 		if (!browserOptions.fileReplacements)
 			browserOptions.fileReplacements = [];
@@ -126,7 +126,6 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
 	browserOptions.commonChunk = false;
 	hackTsConfig(browserOptions, config);
 	await apiSetup(browserOptions);
-
 	return browserOptions;
 }
 
@@ -160,11 +159,15 @@ function createMainFileForHmr(mainFile: string): string {
 		return false;
 	});
 
+	if (statement == null)
+		throw new Error(`${mainFile},` +
+		`can not find statement like: platformBrowserDynamic().bootstrapModule(AppModule)\n${mainHmr}`);
+
 	mainHmr = replaceCode(mainHmr, [{
 		start: statement.getStart(query.src, true),
 		end: statement.getEnd(),
 		text: ''}]);
-	mainHmr += `const bootstrap = () => ${bootCallAst.getText()};\n`;
+	mainHmr += `const bootstrap = () => ${bootCallAst!.getText()};\n`;
 	mainHmr += `if (module[ 'hot' ]) {
 	    hmrBootstrap(module, bootstrap);
 	  } else {
@@ -200,6 +203,7 @@ function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig)
 		} catch (err) {
 			console.error(red('change-cli-options - ') + `Read ${path}`, err);
 		}
+		return '';
 	};
 }
 
@@ -236,7 +240,7 @@ function overrideTsConfig(file: string, content: string,
 	const root = config().rootPath;
 	const oldJson = cjson.parse(content);
 	const preserveSymlinks = browserOptions.preserveSymlinks;
-	const pathMapping: {[key: string]: string[]} = preserveSymlinks ? undefined : {};
+	const pathMapping: {[key: string]: string[]} | undefined = preserveSymlinks ? undefined : {};
 	const pkInfo: PackageInfo = walkPackages(config, null, packageUtils, true);
 	// var packageScopes: string[] = config().packageScopes;
 	// var components = pkInfo.moduleMap;
@@ -282,8 +286,8 @@ function overrideTsConfig(file: string, content: string,
 
 		if (!preserveSymlinks) {
 			const realDir = Path.relative(root, pk.realPackagePath).replace(/\\/g, '/');
-			pathMapping[pk.longName] = [realDir];
-			pathMapping[pk.longName + '/*'] = [realDir + '/*'];
+			pathMapping![pk.longName] = [realDir];
+			pathMapping![pk.longName + '/*'] = [realDir + '/*'];
 		}
 	});
 	// if (!hasAppPackage) {
@@ -303,9 +307,9 @@ function overrideTsConfig(file: string, content: string,
 	// Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
 	if (!preserveSymlinks) {
 		const drcpDir = Path.relative(root, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
-		pathMapping['dr-comp-package'] = [drcpDir];
-		pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
-		pathMapping['*'] = ['node_modules/*'
+		pathMapping!['dr-comp-package'] = [drcpDir];
+		pathMapping!['dr-comp-package/*'] = [drcpDir + '/*'];
+		pathMapping!['*'] = ['node_modules/*'
 			, 'node_modules/@types/*'
 		];
 	}

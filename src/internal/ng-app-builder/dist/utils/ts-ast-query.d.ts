@@ -41,8 +41,8 @@ export default class Selector {
      *  - .elements[2] > .name
      *  - .statements[0] :ImportSpecifier > :Identifier
      */
-    findFirst(query: string): ts.Node;
-    findFirst(ast: ts.Node, query: string): ts.Node;
+    findFirst(query: string): ts.Node | undefined;
+    findFirst(ast: ts.Node, query: string): ts.Node | undefined;
     list(ast?: ts.Node): string;
     printAll(ast?: ts.Node): void;
     printAllNoType(ast?: ts.Node): void;

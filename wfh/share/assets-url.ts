@@ -26,7 +26,7 @@ export function assetsUrl(packageName: string, path?: string): string {
 		packageName = this.packageName;
 	}
 	return publicUrl(this.config().staticAssetsURL, this.config().outputPathMap, null,
-		packageName, path);
+		packageName, path!);
 }
 /**
  * Helper for dealing with url like "npm://<package>/<path>", "assets://<package>/<path>"
@@ -48,12 +48,12 @@ export function publicUrl(staticAssetsURL: string, outputPathMap: {[name: string
 
 	var outputPath = outputPathMap[packageName];
 	if (outputPath != null) {
-		outputPath = /^\/*(.*?)\/*$/.exec(outputPath)[1];// _.trim(outputPath, '/');
+		outputPath = /^\/*(.*?)\/*$/.exec(outputPath)![1];// _.trim(outputPath, '/');
 	} else {
 		m = /(?:@([^/]+)\/)?(\S+)/.exec(packageName);
-		outputPath = m[2];
+		outputPath = m ? m[2] : packageName;
 	}
-	var finalUrl = joinUrl(staticAssetsURL, useLocale, outputPath, path);
+	var finalUrl = joinUrl(staticAssetsURL, useLocale || '', outputPath, path);
 
 	if (!/^https?:\/\//.test(finalUrl) && finalUrl.charAt(0) !== '/')
 		finalUrl = '/' + finalUrl;

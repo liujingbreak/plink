@@ -32,11 +32,12 @@ function setupGlobals(indexHtml: string, url?: string) {
  * @param ROUTES 
  */
 export function writeRoutes(staticDir: string, htmlFile: string, mainFile: string, ROUTES: string[],
-	outputFolder?: string): Promise<string> {
+	_outputFolder?: string): Promise<string> {
 	const index = readFileSync(htmlFile, 'utf8');
 	setupGlobals(index);
-	if (outputFolder == null)
-		outputFolder = join(dirname(htmlFile), '_prerender');
+	if (_outputFolder == null)
+		_outputFolder = join(dirname(htmlFile), '_prerender');
+	const outputFolder = _outputFolder;
 	// * NOTE :: leave this as require() since this file is built Dynamically from webpack
 	log.info('main file:', mainFile);
 	const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(mainFile);

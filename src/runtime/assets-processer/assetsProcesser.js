@@ -8,10 +8,10 @@ var shell = require('shelljs');
 var mkdirp = require('mkdirp');
 var api = require('__api');
 var log = require('log4js').getLogger(api.packageName);
-const {parse: parseUrl} = require('url');
 const fetchRemote = require('./dist/fetch-remote');
 var serverFavicon = require('serve-favicon');
 const {createStaticRoute, createZipRoute} = require('./dist/static-middleware');
+const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 var buildUtils = api.buildUtils;
 
@@ -86,32 +86,7 @@ function activate() {
 		return;
 	}
 
-	var rootPath = _.trimEnd(parseUrl(api.config().staticAssetsURL).pathname, '/');
-	api.packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
-		var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
-		var assetsDir = Path.join(packagePath, assetsFolder);
-		var assetsDirMap = api.config.get('outputPathMap.' + name);
-		if (assetsDirMap != null)
-			assetsDirMap = _.trim(assetsDirMap, '/');
-
-		if (fs.existsSync(assetsDir)) {
-			var pathElement = [];
-			if (rootPath)
-				pathElement.push(rootPath);
-
-			if (assetsDirMap == null)
-				pathElement.push(parsedName.name);
-			else if (assetsDirMap !== '')
-				pathElement.push(assetsDirMap);
-
-			var path = pathElement.join('/');
-			if (path.length > 1)
-				path += '/';
-			log.info('route ' + path + ' -> ' + assetsDir);
-
-			api.use(path, createStaticRoute(assetsDir));
-		}
-	});
+	setupDevAssets(api.config().staticAssetsURL, api.use.bind(api));
 }
 
 function copyRootPackageFavicon() {

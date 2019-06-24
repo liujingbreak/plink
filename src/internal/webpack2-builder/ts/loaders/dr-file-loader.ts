@@ -11,7 +11,7 @@ import {loader as wl} from 'webpack';
 import {RawSourceMap} from 'source-map';
 import * as loaderUtils from 'loader-utils';
 var log = require('log4js').getLogger(api.packageName + '.dr-file-loader');
-let resolveSymlink: boolean = null;
+let resolveSymlink: boolean | null = null;
 
 function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: RawSourceMap):
 	string | Buffer | void | undefined {

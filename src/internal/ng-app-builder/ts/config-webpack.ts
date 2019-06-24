@@ -13,7 +13,8 @@ import ChunkInfoPlugin from './plugins/chunk-info';
 import gzipSize from './plugins/gzip-size';
 import IndexHtmlPlugin from './plugins/index-html-plugin';
 import ReadHookHost from './utils/read-hook-vfshost';
-
+import {Application} from 'express';
+import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
 export interface WepackConfigHandler {
 	/** @returns webpack configuration or Promise */
 	webpackConfig(originalConfig: any): Promise<{[name: string]: any} | void> | {[name: string]: any} | void;
@@ -23,6 +24,19 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 	drcpConfigSetting: {devMode: boolean}) {
 	// const api: typeof __api = require('__api'); // force to defer loading api until DRCP config is ready
 	console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
+
+	if (webpackConfig.plugins == null) {
+		webpackConfig.plugins = [];
+	}
+	if (webpackConfig.devServer) {
+		const devServer = webpackConfig.devServer;
+		const origin = webpackConfig.devServer.before;
+		webpackConfig.devServer.before = function after(app: Application) {
+			setupAssets(devServer.publicPath || '/', app.use.bind(app));
+			if (origin)
+				origin.apply(this, arguments);
+		};
+	}
 
 	if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
 	param.browserOptions.drcpArgs.report ||(param.browserOptions.drcpArgs.openReport)) {
@@ -49,8 +63,6 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
 		}
 	}());
 
-	// if (_.get(param, 'builderConfig.options.hmr'))
-	// 	webpackConfig.plugins.push(new HotModuleReplacementPlugin());
 	if (!drcpConfigSetting.devMode) {
 		console.log('Build in production mode');
 		webpackConfig.plugins.push(new gzipSize());
@@ -124,10 +136,13 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
 		webpackConfig.resolveLoader.modules = [];
 	}
 	webpackConfig.resolveLoader.modules.unshift(Path.join(__dirname, 'loaders'));
+	if (!webpackConfig.module) {
+		webpackConfig.module = {rules: []};
+	}
 	const rules = webpackConfig.module.rules as webpack.Rule[];
 	let hasUrlLoader = false;
 	let hasHtmlLoader = false;
-	let fileLoaderRuleIdx: number;
+	let fileLoaderRuleIdx: number | undefined;
 
 	const urlLoaderRule = {
 		test: /\.(jpg|png|gif)$/,
@@ -161,11 +176,11 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
 		}
 
 		if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
-			(rule.use as webpack.RuleSetUseItem[]).some((item) => (item as webpack.RuleSetLoader).loader === '@angular-devkit/build-optimizer/webpack-loader')) {
+			(rule.use as webpack.RuleSetUseItem[]).some((item) =>
+				(item as webpack.RuleSetLoader).loader === '@angular-devkit/build-optimizer/webpack-loader')) {
 			rule.test = (path: string) => {
-				if (!/\.js$/.test(path))
-					return;
-				return noParse.every((exclude => !path.replace(/\\/g, '/').includes(exclude)));
+				const nPath = path.replace(/\\/g, '/');
+				return noParse.every((exclude => !nPath.includes(exclude)));
 			};
 		}
 		// Angular 8 doesn't have loader for HTML
@@ -257,7 +272,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
 	});
 
 	if (!hasHtmlLoader) {
-		rules[0].oneOf.push(htmlLoaderRule);
+		rules[0].oneOf && rules[0].oneOf.push(htmlLoaderRule);
 	}
 }
 

@@ -1,17 +1,17 @@
 import serveZip from 'serve-static-zip';
 import {Response, Handler} from 'express';
 import Path from 'path';
-import api from '__api';
 import _ from 'lodash';
+import express from 'express';
 
 const ms = require('ms');
 
-export function createStaticRoute(staticDir: string, maxAgeMap?: {[extname: string]: string | number}): Handler {
+export function createStaticRoute(staticDir: string, maxAgeMap: {[extname: string]: string | number} = {}): Handler {
 	let maxAgeNumMap = parseMaxAgeMap(maxAgeMap);
-	return api.express.static(staticDir, {setHeaders: createSetHeaderFunc(maxAgeNumMap)});
+	return express.static(staticDir, {setHeaders: createSetHeaderFunc(maxAgeNumMap)});
 }
 
-export function createZipRoute(maxAgeMap?: {[extname: string]: string}):
+export function createZipRoute(maxAgeMap: {[extname: string]: string} = {}):
 serveZip.ZipResourceMiddleware {
 	const maxAgeNumMap = parseMaxAgeMap(maxAgeMap);
 	const zss = serveZip('', {setHeaders: createSetHeaderFunc(maxAgeNumMap)});

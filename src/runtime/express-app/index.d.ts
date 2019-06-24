@@ -7,6 +7,6 @@ export interface ExpressAppApi {
 	expressAppSet(callable: (app: express.Application, express: any) => void): void;
 	expressAppUse(callable: (app: express.Application, express: any) => void): void;
 	cors(): any;
-	use(path: string | any, ...rest: any[]): any;
+	use: express.Router['use'];
 	param(name: string, ...rest: any[]): any;
 }

@@ -10,3 +10,8 @@ export default class TSReadHooker {
     private createTsReadHook;
 }
 export declare function string2buffer(input: string): ArrayBuffer;
+/**
+ *
+ * @param appModulePkName package name of the one contains app.module.ts
+ * @param appModuleDir app.module.ts's directory, used to calculate relative path
+ */

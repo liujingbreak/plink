@@ -24,7 +24,7 @@ export interface Handlers {
 
 export interface StoredHandler<H> {
 	treePath: string;
-	restingRegex: RegExp | null;
+	restingRegex?: RegExp;
 	handler: H;
 }
 
@@ -34,7 +34,7 @@ export function addToHandlerTree<H extends (BodyHandler | HeaderHandler)>(
 		path = path.slice(1);
 	let leadingPath = path;
 	const splittedPath = path.split('/');
-	let restingRegex: RegExp = null;
+	let restingRegex: RegExp | undefined;
 	const paramIdx = splittedPath.findIndex(element => element.startsWith(':') || /\s*\*\s*/.test(element));
 	if (paramIdx >= 0) {
 		leadingPath = splittedPath.slice(0, paramIdx).join('/');
@@ -70,7 +70,7 @@ export function matchedHandlers<H>(tree: DirTree<StoredHandler<H>[]>, reqUrl: st
 	lookup(found, tree, reqUrl);
 	const parsedReqUrl = Url.parse(reqUrl);
 	if (parsedReqUrl.query) {
-		lookup(found, tree, parsedReqUrl.pathname);
+		lookup(found, tree, parsedReqUrl.pathname || '');
 	}
 	return found;
 }

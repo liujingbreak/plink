@@ -112,7 +112,7 @@ export function activate() {
 		if (sslSetting.httpForward !== false) {
 			const redirectHttpServer = http.createServer((req: any, res: any) => {
 				log.debug('req.headers.host: %j', req.headers.host);
-				const url = 'https://' + /([^:]+)(:[0-9]+)?/.exec(req.headers.host)[1] + ':' + port;
+				const url = 'https://' + /([^:]+)(:[0-9]+)?/.exec(req.headers.host)![1] + ':' + port;
 				log.debug('redirect to ' + url);
 				res.writeHead(307, {
 					Location: url,

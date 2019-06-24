@@ -38,7 +38,7 @@ const loader: wbLoader.Loader = function(source: string | Buffer, sourceMap?: Ra
 			repl.text = `require(${JSON.stringify(repl.text)})`;
 			return of(repl);
 		} else {
-			return loadModule(this, repl.text)
+			return loadModule(this, repl.text != null ? repl.text! : repl.replacement!)
 			.pipe(
 				map(resolved => {
 					repl.text = JSON.stringify(resolved).slice(1, resolved.length - 1);

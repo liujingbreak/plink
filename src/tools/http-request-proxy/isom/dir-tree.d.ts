@@ -14,7 +14,7 @@ export declare class DirTree<T> {
     root: TreeNode<T>;
     constructor(caseSensitive?: boolean);
     putData(path: string, data: T): void;
-    getData(path: string): T;
+    getData(path: string): T | null | undefined;
     /**
      * @return Array of data
      */

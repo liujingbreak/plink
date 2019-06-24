@@ -23,5 +23,5 @@ export function replaceHtml(filename: string, source: string): string {
 		return of(`[drcp_${randomNumStr};${text}]`);
 	})
 	.subscribe((text) => {result = text;});
-	return result;
+	return result!;
 }

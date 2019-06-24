@@ -18,6 +18,6 @@ export declare class Replacement implements ReplacementInf {
     text: string;
     constructor(start: number, end: number, text: string);
 }
-export declare function _sortAndRemoveOverlap(replacements: ReplacementInf[], removeOverlap?: boolean, text?: string): void;
+export declare function _sortAndRemoveOverlap(replacements: ReplacementInf[], removeOverlap: boolean | undefined, text: string): void;
 export declare function _replaceSorted(text: string, replacements: ReplacementInf[]): string;
 export default function replaceCode(text: string, replacements: ReplacementInf[], removeOverlap?: boolean): string;

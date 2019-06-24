@@ -4,7 +4,7 @@ import * as Path from 'path';
 // import {readTsConfig} from 'dr-comp-package/wfh/dist/ts-compiler';
 
 export function resolveImportBindName(src: ts.SourceFile, modulePath: string, propertyName: string,
-	resolveFn?: (targetPath: string, currFile: string) => string): string {
+	resolveFn?: (targetPath: string, currFile: string) => string): string | undefined | null {
 
 	let resolvedModulePath: string;
 	const selector = new Selector(src);
@@ -29,8 +29,8 @@ export function resolveImportBindName(src: ts.SourceFile, modulePath: string, pr
 	});
 
 	if (!importDecAsts || importDecAsts.length === 0)
-		return null;
-	let refName: string;
+		return undefined;
+	let refName: string | null | undefined;
 	for (const importDecAst of importDecAsts) {
 		refName = selector.findWith(importDecAst, '.importClause > .namedBindings > .elements', (ast: ts.ImportSpecifier) => {
 			if (ast.propertyName) {

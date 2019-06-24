@@ -54,7 +54,8 @@ describe('ts-ast-query', () => {
 		const file = resolve(__dirname, '../../ts/spec/app.module.ts.txt');
 		const sel = new Selector(fs.readFileSync(file, 'utf8'), file);
 		const found = sel.findFirst(':ImportDeclaration :Identifier');
-		expect(found.getText(sel.src)).toBe('NgModule');
+		expect(found != null).toBeTruthy();
+		expect(found!.getText(sel.src)).toBe('NgModule');
 	});
 
 	it('findAll should work', () => {
@@ -62,6 +63,34 @@ describe('ts-ast-query', () => {
 		const sel = new Selector(fs.readFileSync(file, 'utf8'), file);
 		const found = sel.findAll(':ImportDeclaration :Identifier');
 		console.log(found.map(ast => ast.getText(sel.src)));
+	});
+
+	it('findWith should work', () => {
+		const target = `
+		platformBrowserDynamic().bootstrapModule(AppModule)
+		  .catch(err => console.log(err));
+		`;
+		const query = new Selector(target, 'main-hmr.ts');
+		console.log('------>>>>----------');
+		// query.printAll(query.src.statements[0]);
+		const found = query.findAll(query.src.statements[0],
+			':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier');
+
+		console.log(found);
+
+		const bootCall = query.findWith(query.src.statements[0],
+			':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
+			(ast: ts.Identifier, path, parents) => {
+				console.log('------>>>>----------');
+				console.log(ast.text, (ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src));
+				if (ast.text === 'platformBrowserDynamic' &&
+				(ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src) === 'bootstrapModule' &&
+				ast.parent.parent.parent.kind === ts.SyntaxKind.CallExpression) {
+					console.log('here');
+					return ast.parent.parent.parent;
+				}
+			});
+		expect(bootCall != null).toBe(true);
 	});
 
 });

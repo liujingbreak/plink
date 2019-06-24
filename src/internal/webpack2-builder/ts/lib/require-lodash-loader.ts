@@ -71,7 +71,7 @@ export function doEs(code: string, file: string): [string, any] {
 	const patches: Array<{start: number, end: number, replacement: string}> = [];
 
 	// let lodashImported = false;
-	let requireLodashPos: [number, number] = null;
+	let requireLodashPos: [number, number] | null = null;
 	// let hasExports = false;
 	const lodashFunctions: Set<string> = new Set<string>();
 
@@ -112,39 +112,40 @@ export function doEs(code: string, file: string): [string, any] {
 
 function doTranspile(code: string,
 	patches: Array<{start: number, end: number, replacement: string}>,
-	requireLodashPos: [number, number], lodashFunctions: Set<string>, isTypescript = false): string {
-		if (requireLodashPos) {
-			if (lodashFunctions.size > 0) {
-				let code = `var _${isTypescript ? ': any' : ''} = {`;
-				let i = 0;
-				lodashFunctions.forEach(funcName => {
-					if (i++ > 0)
-						code += ', ';
-					code += `${funcName}: require('lodash/${funcName}')`;
-				});
-				code += '};';
-				patches.push({
-					start: requireLodashPos[0],
-					end: requireLodashPos[1],
-					replacement: code
-				});
-			} else {
-				patches.push({
-					start: requireLodashPos[0],
-					end: requireLodashPos[1],
-					replacement: ''
-				});
-			}
-			return patchText(code, patches);
-		} else if (patches) {
-			return patchText(code, patches);
+	requireLodashPos: [number, number] | null, lodashFunctions: Set<string>, isTypescript = false): string {
+	if (requireLodashPos) {
+		if (lodashFunctions.size > 0) {
+			let code = `var _${isTypescript ? ': any' : ''} = {`;
+			let i = 0;
+			lodashFunctions.forEach(funcName => {
+				if (i++ > 0)
+					code += ', ';
+				code += `${funcName}: require('lodash/${funcName}')`;
+			});
+			code += '};';
+			patches.push({
+				start: requireLodashPos[0],
+				end: requireLodashPos[1],
+				replacement: code
+			});
+		} else {
+			patches.push({
+				start: requireLodashPos[0],
+				end: requireLodashPos[1],
+				replacement: ''
+			});
 		}
+		return patchText(code, patches);
+	} else if (patches) {
+		return patchText(code, patches);
+	}
+	return code;
 }
 
 export class TSParser {
 	// private hasLodashCall = false;
 	// private lodashImported = false;
-	private requireLodashPos: [number, number] = null;
+	private requireLodashPos: [number, number] | null = null;
 	private lodashFunctions: Set<string> = new Set<string>();
 
 	private file: string;

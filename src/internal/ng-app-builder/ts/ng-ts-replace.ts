@@ -1,16 +1,15 @@
 /* tslint:disable max-line-length */
-import PackageBrowserInstance from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
 import { readTsConfig, transpileSingleTs } from 'dr-comp-package/wfh/dist/ts-compiler';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as log4js from 'log4js';
-import { dirname, relative, resolve } from 'path';
+import { resolve } from 'path';
 import { Observable, of, throwError } from 'rxjs';
 import * as ts from 'typescript';
 import api from '__api';
 import { replaceHtml } from './ng-aot-assets';
 import { AngularCliParam } from './ng/common';
-import AppModuleParser, { findAppModuleFileFromMain } from './utils/parse-app-module';
+import { findAppModuleFileFromMain } from './utils/parse-app-module';
 import { HookReadFunc } from './utils/read-hook-vfshost';
 import Selector from './utils/ts-ast-query';
 import ApiAotCompiler from './utils/ts-before-aot';
@@ -59,7 +58,8 @@ export default class TSReadHooker {
 		const tsconfigFile = ngParam.browserOptions.tsConfig;
 
 		// const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || api.argv.hmr;
-		const preserveSymlinks = ngParam.browserOptions.preserveSymlinks;
+		const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
+			false;
 		const tsCompilerOptions = readTsConfig(tsconfigFile);
 		// let polyfillsFile: string = '';
 		// if (ngParam.browserOptions.polyfills)
@@ -134,17 +134,17 @@ export default class TSReadHooker {
 				let content = Buffer.from(buf).toString();
 				let needLogFile = false;
 				// patch app.module.ts
-				if (appModuleFile === file) {
-					log.info('patch', file);
-					const appModulePackage = api.findPackageByFile(appModuleFile);
-					const removables = removableNgModules(appModulePackage, dirname(appModuleFile));
-					const ngModules: string[] = getRouterModules(appModulePackage, dirname(appModuleFile)) || removables;
-					// ngModules.push(api.packageName + '/src/app#DeveloperModule');
-					log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
-					content = new AppModuleParser()
-						.patchFile(file, content, removables, ngModules);
-					needLogFile = true;
-				}
+				// if (appModuleFile === file) {
+				// 	log.info('patch', file);
+				// 	const appModulePackage = api.findPackageByFile(appModuleFile);
+				// 	const removables = removableNgModules(appModulePackage, dirname(appModuleFile));
+				// 	const ngModules: string[] = getRouterModules(appModulePackage, dirname(appModuleFile)) || removables;
+				// 	// ngModules.push(api.packageName + '/src/app#DeveloperModule');
+				// 	log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
+				// 	content = new AppModuleParser()
+				// 		.patchFile(file, content, removables, ngModules);
+				// 	needLogFile = true;
+				// }
 				const tsSelector = new Selector(content, file);
 				const hasImportApi = tsSelector.findAll(':ImportDeclaration>.moduleSpecifier:StringLiteral').some(ast => {
 					return (ast as ts.StringLiteral).text === '__api';
@@ -154,9 +154,9 @@ export default class TSReadHooker {
 				changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
 				if (hasImportApi)
 					changed = apiTmplTs({packageName: compPkg.longName}) + '\n' + changed;
-				if (changed !== content && ngParam.ssr) {
-					changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
-				}
+				// if (changed !== content && ngParam.ssr) {
+				// 	changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
+				// }
 				if (needLogFile)
 					log.info(chalk.cyan(file) + ':\n' + changed);
 				const bf = string2buffer(changed);
@@ -215,75 +215,75 @@ export function string2buffer(input: string): ArrayBuffer {
 // 	};
 // }
 
-function getRouterModules(appModulePackage: PackageBrowserInstance, appModuleDir: string) {
-	const ngModules: string[] = api.config.get([api.packageName, 'ngModule']) || [];
-	const ngPackageModules = new Set(packageNames2NgModule(appModulePackage, appModuleDir,
-		api.config.get([api.packageName, 'ngPackage']) || []));
-	ngModules.forEach(m => ngPackageModules.add(m));
-	return Array.from(ngPackageModules);
-}
+// function getRouterModules(appModulePackage: PackageBrowserInstance, appModuleDir: string) {
+// 	const ngModules: string[] = api.config.get([api.packageName, 'ngModule']) || [];
+// 	const ngPackageModules = new Set(packageNames2NgModule(appModulePackage, appModuleDir,
+// 		api.config.get([api.packageName, 'ngPackage']) || []));
+// 	ngModules.forEach(m => ngPackageModules.add(m));
+// 	return Array.from(ngPackageModules);
+// }
 
-function packageNames2NgModule(appModulePk: PackageBrowserInstance, appModuleDir: string, includePackages?: string[]): string[] {
-	const res: string[] = [];
-	if (includePackages) {
-		for (const name of includePackages) {
-			let pk = api.packageInfo.moduleMap[name];
-			if (pk == null) {
-				const scope = (api.config.get('packageScopes') as string[]).find(scope => {
-					return api.packageInfo.moduleMap[`@${scope}/${name}`] != null;
-				});
-				if (scope == null) {
-					log.error('Package named: "%s" is not found with possible scope name in "%s"', name,
-						(api.config.get('packageScopes') as string[]).join(', '));
-					break;
-				}
-				pk = api.packageInfo.moduleMap[`@${scope}/${name}`];
-			}
-			eachPackage(pk);
-		}
-	} else {
-		for (const pk of api.packageInfo.allModules) {
-			eachPackage(pk);
-		}
-	}
+// function packageNames2NgModule(appModulePk: PackageBrowserInstance, appModuleDir: string, includePackages?: string[]): string[] {
+// 	const res: string[] = [];
+// 	if (includePackages) {
+// 		for (const name of includePackages) {
+// 			let pk = api.packageInfo.moduleMap[name];
+// 			if (pk == null) {
+// 				const scope = (api.config.get('packageScopes') as string[]).find(scope => {
+// 					return api.packageInfo.moduleMap[`@${scope}/${name}`] != null;
+// 				});
+// 				if (scope == null) {
+// 					log.error('Package named: "%s" is not found with possible scope name in "%s"', name,
+// 						(api.config.get('packageScopes') as string[]).join(', '));
+// 					break;
+// 				}
+// 				pk = api.packageInfo.moduleMap[`@${scope}/${name}`];
+// 			}
+// 			eachPackage(pk);
+// 		}
+// 	} else {
+// 		for (const pk of api.packageInfo.allModules) {
+// 			eachPackage(pk);
+// 		}
+// 	}
 
-	function eachPackage(pk: PackageBrowserInstance) {
-		if (pk.dr == null || pk.dr.ngModule == null)
-			return;
+// 	function eachPackage(pk: PackageBrowserInstance) {
+// 		if (pk.dr == null || pk.dr.ngModule == null)
+// 			return;
 
-		let modules = pk.dr.ngModule;
-		if (!Array.isArray(modules))
-			modules = [modules];
+// 		let modules = pk.dr.ngModule;
+// 		if (!Array.isArray(modules))
+// 			modules = [modules];
 
-		for (let name of modules) {
-			name = _.trimStart(name, './');
-			if (pk !== appModulePk) {
-				if (name.indexOf('#') < 0)
-					res.push(pk.longName + '#' + name);
-				else
-					res.push(pk.longName + '/' + name);
-			} else {
-				// package is same as the one app.module belongs to, we use relative path instead of package name
-				if (name.indexOf('#') < 0)
-					throw new Error(`In ${pk.realPackagePath}/package.json, value of "dr.ngModule" array` +
-						`must be in form of '<path>#<export NgModule name>', but here it is '${name}'`);
-				const nameParts = name.split('#');
-				name = relative(appModuleDir, nameParts[0]) + '#' + nameParts[1];
-				name = name.replace(/\\/g, '/');
-				if (!name.startsWith('.'))
-					name = './' + name;
-				res.push(name);
-			}
-		}
-	}
-	return res;
-}
+// 		for (let name of modules) {
+// 			name = _.trimStart(name, './');
+// 			if (pk !== appModulePk) {
+// 				if (name.indexOf('#') < 0)
+// 					res.push(pk.longName + '#' + name);
+// 				else
+// 					res.push(pk.longName + '/' + name);
+// 			} else {
+// 				// package is same as the one app.module belongs to, we use relative path instead of package name
+// 				if (name.indexOf('#') < 0)
+// 					throw new Error(`In ${pk.realPackagePath}/package.json, value of "dr.ngModule" array` +
+// 						`must be in form of '<path>#<export NgModule name>', but here it is '${name}'`);
+// 				const nameParts = name.split('#');
+// 				name = relative(appModuleDir, nameParts[0]) + '#' + nameParts[1];
+// 				name = name.replace(/\\/g, '/');
+// 				if (!name.startsWith('.'))
+// 					name = './' + name;
+// 				res.push(name);
+// 			}
+// 		}
+// 	}
+// 	return res;
+// }
 
 /**
  * 
  * @param appModulePkName package name of the one contains app.module.ts
  * @param appModuleDir app.module.ts's directory, used to calculate relative path
  */
-function removableNgModules(appModulePk: PackageBrowserInstance, appModuleDir: string): string[] {
-	return packageNames2NgModule(appModulePk, appModuleDir);
-}
+// function removableNgModules(appModulePk: PackageBrowserInstance, appModuleDir: string): string[] {
+// 	return packageNames2NgModule(appModulePk, appModuleDir);
+// }

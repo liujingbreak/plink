@@ -39,11 +39,11 @@ async function start() {
 		const file = Path.resolve(zipDir, name);
 		return () => {
 			// console.log(`[pid:${process.pid}] start extracting ${file}`);
-			process.send({log: `[pid:${process.pid}] start extracting ${file}`});
+			process.send && process.send({log: `[pid:${process.pid}] start extracting ${file}`});
 			return tryExtract(file)
 			.then(() => {
 				fs.unlinkSync(file);
-				process.send({done: `[pid:${process.pid}] done extracting ${file}`});
+				process.send && process.send({done: `[pid:${process.pid}] done extracting ${file}`});
 			});
 		};
 	});
@@ -54,11 +54,11 @@ async function start() {
 			} catch (e) {
 				// tslint:disable-next-line
 				console.log(e);
-				process.send({error: e});
+				process.send && process.send({error: e});
 			}
 		}
 	} else {
-		process.send({log: `[pid:${process.pid}] no downloaded file found`});
+		process.send && process.send({log: `[pid:${process.pid}] no downloaded file found`});
 	}
 }
 
@@ -69,10 +69,10 @@ async function tryExtract(file: string) {
 		const zip = new AdmZip(data);
 		zip.extractAllToAsync(zipExtractDir, true, (err) => {
 			if (err) {
-				process.send({error: util.inspect(err)});
+				process.send && process.send({error: util.inspect(err)});
 				if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
 					// tslint:disable-next-line
-					process.send({log: `[pid:${process.pid}]${os.hostname()} ${os.userInfo().username} [Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`});
+					process.send && process.send({log: `[pid:${process.pid}]${os.hostname()} ${os.userInfo().username} [Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`});
 				}
 				reject(err);
 			} else {

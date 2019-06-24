@@ -28,10 +28,10 @@ export class PrerenderForExpress {
 		this.queryPrerenderPages(routeMapFiles)
 		.then(pages => this.prerenderPages = pages);
 
-		api.eventBus.on('@dr-core/assets-processer.downloaded', () => {
+		api.eventBus.on('@dr-core/assets-processer.downloaded', async () => {
 			log.info('assets downloaded, update prerendered pages');
-			this.queryPrerenderPages(routeMapFiles)
-			.then(pages => this.prerenderPages = pages);
+			const pages = await this.queryPrerenderPages(routeMapFiles);
+			this.prerenderPages = pages;
 		});
 	}
 
@@ -77,7 +77,7 @@ export class PrerenderForExpress {
 						return rej(err);
 					this.prerenderMap = JSON.parse(content);
 					_.forEach(this.prerenderMap, (file, route) => {
-						pages[route] = null;
+						pages[route] = file;
 					});
 					resolve();
 				});

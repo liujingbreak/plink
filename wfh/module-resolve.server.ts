@@ -24,6 +24,7 @@ export = function(injector: DrPackageInjector) {
 			} catch (e) {
 				return false;
 			}
+			return true;
 		})) {
 			injector.fromDir(['node_modules/less-loader', '@dr-core/webpack2-builder/node_modules/less-loader'])
 			.factory('less', function(file) {

@@ -39,7 +39,7 @@ export default class ImportClauseTranspile {
 				const from = (node.moduleSpecifier as ts.StringLiteral).text;
 				if (this.moduleSet.has(from) || this.moduleRegs.some(reg => reg.test(from))) {
 					if (_.get(node, 'importClause.name')) {
-						const defaultName = node.importClause.name.text;
+						const defaultName = node.importClause!.name!.text;
 						log.info(`Replace: "import ${defaultName} from ${from}" in ` + this.options.file);
 						replacements.push({
 							start: stm.getStart(ast),

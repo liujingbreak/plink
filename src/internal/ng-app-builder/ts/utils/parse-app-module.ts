@@ -38,13 +38,13 @@ function _findAppModuleFileFromMain(mainFile: string): string {
 			throw new Error('Can not found "AppModule" or "AppServerModule from ' + mainFile);
 		}
 		if (found.has(lookupPath[0])) {
-			let target = Path.resolve(Path.dirname(mainFile), found.get(lookupPath[0]));
+			let target = Path.resolve(Path.dirname(mainFile), found.get(lookupPath[0])!);
 			if (!target.endsWith('.ts'))
 				target = target + '.ts';
 			return target;
 		}
 		if (found.has(lookupPath[1])) {
-			mainFile = Path.resolve(Path.dirname(mainFile), found.get(lookupPath[1]));
+			mainFile = Path.resolve(Path.dirname(mainFile), found.get(lookupPath[1])!);
 			if (!mainFile.endsWith('.ts'))
 				mainFile += '.ts';
 		}
@@ -57,7 +57,7 @@ function findFileByExportNames(file: string, ...importName: string[]): Map<strin
 	const res: Map<string, string> = new Map();
 	for(const stm of srcfile.statements) {
 		if (stm.kind === sk.ImportDeclaration && _.has(stm, 'importClause.namedBindings')) {
-			const binding = (stm as ts.ImportDeclaration).importClause.namedBindings as ts.NamedImports;
+			const binding = (stm as ts.ImportDeclaration).importClause!.namedBindings as ts.NamedImports;
 			const found = _.intersection(binding.elements.map(el => el.name.text), importName);
 			if (found && found.length > 0) {
 				const appModuleFile = ((stm as ts.ImportDeclaration).moduleSpecifier as ts.StringLiteral).text;
@@ -66,6 +66,9 @@ function findFileByExportNames(file: string, ...importName: string[]): Map<strin
 			}
 		} else if (stm.kind === sk.ExportDeclaration && (stm as ts.ExportDeclaration).exportClause) {
 			const binding = (stm as ts.ExportDeclaration).exportClause;
+			if (binding == null) {
+				throw new Error(`Unsupported "export *" statement: ${stm.getText(srcfile)}`);
+			}
 			const found = _.intersection(binding.elements.map(el => el.name.text), importName);
 			if (found && found.length > 0) {
 				const appModuleFile = ((stm as ts.ExportDeclaration).moduleSpecifier as ts.StringLiteral).text;
@@ -117,7 +120,7 @@ export default class AppModuleParser {
 		return replaceCode(fileContent, this.replacements);
 	}
 
-	protected findEsImportByName(name: string): EsImportStatement {
+	protected findEsImportByName(name: string): EsImportStatement | undefined {
 		const lookup = name.indexOf('.') > 0 ? name.split('.')[0].trim() : name;
 		return this.esImportsMap.get(lookup);
 	}
@@ -143,6 +146,8 @@ export default class AppModuleParser {
 				continue;
 			}
 			const esImport = this.findEsImportByName(exp);
+			if (esImport == null)
+				continue;
 			const realName = esImport.asNameToRealName(exp);
 			if (esImport.from.startsWith('@angular/')) {
 				keepImportEl.add(el.getText(this.sourceFile));
@@ -181,18 +186,18 @@ export default class AppModuleParser {
 			this.esImportsMap.set(from, importInfo);
 
 			if (_.get(node, 'importClause.name')) {
-				importInfo.defaultName = node.importClause.name.text;
+				importInfo.defaultName = node.importClause!.name!.text;
 				this.esImportsMap.set(importInfo.defaultName, importInfo);
 			}
 			if (_.get(node, 'importClause.namedBindings')) {
-				const nb = node.importClause.namedBindings;
+				const nb = node.importClause!.namedBindings!;
 				if (nb.kind === sk.NamespaceImport) {
 					importInfo.namespace = nb.name.text;
 					this.esImportsMap.set(importInfo.namespace, importInfo);
 				} else {
 					importInfo.nameBinding = {};
 					nb.elements.forEach(element => {
-						importInfo.nameBinding[element.name.text] = element.propertyName ? element.propertyName.text : element.name.text;
+						importInfo.nameBinding![element.name.text] = element.propertyName ? element.propertyName.text : element.name.text;
 						this.esImportsMap.set(element.name.text, importInfo);
 					});
 				}
@@ -206,6 +211,9 @@ export default class AppModuleParser {
 				const notation = exp.arguments[0] as ts.ObjectLiteralExpression;
 				const ngImports = notation.properties.find(
 					el => (el.name as ts.Identifier).text === 'imports');
+				if (ngImports == null) {
+					throw new Error('Can not find "imports" in "NgModule" ');
+				}
 				if (ngImports.kind !== sk.PropertyAssignment) {
 					throw new Error('@NgModule\' property "imports" must be plain PropertyAssignment expression');
 				}
