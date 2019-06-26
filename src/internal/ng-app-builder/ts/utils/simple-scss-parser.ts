@@ -118,7 +118,7 @@ export class ScssParser extends BaseParser<TokenType> {
 		const res: Array<{start: number, end: number, text: string}> = [];
 		while(this.la() != null) {
 			if (this.isNextTypes(TokenType.id, TokenType['(']) &&
-				this.la()!.text === 'url' && this.lb().text !== '@import') {
+				this.la()!.text === 'url' && this.lb()!.text !== '@import') {
 					const start = this.la(2)!.end;
 					this.advance(2); // jump over '('
 					if (this.isNextTypes(TokenType.stringLiteral)) {

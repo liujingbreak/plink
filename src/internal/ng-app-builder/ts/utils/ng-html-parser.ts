@@ -212,11 +212,14 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 		return ast;
 	}
 	tag(): TagAst {
-		const first = this.advance();
+		const first = this.advance()!;
 		const name = first.text.substring(1);
 		const attrs = this.attributes();
+		if (this.la() ==null) {
+			this.throwError('EOF');
+		}
 		const last = this.advance(); // >
-		return {name, attrs, start: first.start, end: last.end};
+		return {name, attrs, start: first.start, end: last!.end};
 	}
 	attributes(): {[key: string]: {isNg: boolean, value: AttributeValueAst | undefined}} {
 		const attrs: {[key: string]: {isNg: boolean, value: AttributeValueAst | undefined}} = {};
@@ -230,7 +233,7 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 			} else if (this.isNextTypes(HtmlTokenType.space)) {
 				this.advance();
 			} else {
-				console.log('Previous tokens: ', this.lb().text);
+				console.log('Previous tokens: ', this.lb()!.text);
 				this.throwError(this.la()!.text);
 			}
 		}
@@ -258,7 +261,7 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 		return name;
 	}
 	attrName() {
-		return this.advance().text;
+		return this.advance()!.text;
 	}
 	attrValue(): AttributeValueAst | undefined {
 		if (this.la() && this.la()!.type === HtmlTokenType['=']) {
@@ -267,7 +270,7 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 			this.advance();
 			let start = this.la() && this.la()!.start;
 			if (this.isNextTypes(HtmlTokenType.qm)) {
-				const endText = this.advance().text;
+				const endText = this.advance()!.text;
 				start = this.la() && this.la()!.start;
 				while (this.la() && !this.isNextTokenText(endText)) {
 					this.advance();
@@ -275,7 +278,7 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 				if (this.la() == null) {
 					this.throwError('end of file');
 				}
-				const end = this.lb().end;
+				const end = this.lb()!.end;
 				this.advance();
 				// console.log('value:', this.text.slice(start, end));
 				return {
@@ -292,7 +295,7 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
 			if (this.la() == null) {
 				this.throwError('end of file');
 			}
-			const end = this.lb().end;
+			const end = this.lb()!.end;
 			// console.log('value:', this.text.slice(start, end));
 			return {
 				text: this.text.slice(start!, end),

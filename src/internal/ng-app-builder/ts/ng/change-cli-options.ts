@@ -89,6 +89,7 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
 			console.log(currPackageName + ' - override %s: %s', prop, value);
 		}
 	}
+
 	await config.configHandlerMgr().runEach<AngularConfigHandler>((file, obj, handler) => {
 		console.log(green('change-cli-options - ') + ' run', cyan(file));
 		if (handler.angularJson)
@@ -96,6 +97,20 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
 		else
 			return obj;
 	});
+
+	if (browserOptions.fileReplacements) {
+		console.log(browserOptions.fileReplacements);
+		const cwd = process.cwd();
+		browserOptions.fileReplacements
+		.forEach(fr => {
+			Object.keys(fr).forEach(field => {
+				const value: string = fr[field];
+				if (Path.isAbsolute(value)) {
+					fr[field] = Path.relative(cwd, value);
+				}
+			});
+		});
+	}
 
 	const pkJson = lookupEntryPackage(Path.resolve(browserOptions.main));
 	if (pkJson) {
