@@ -72,19 +72,19 @@ export class DirTree<T> {
 		return tree;
 	}
 
-	findNode(path: string | string[]): TreeNode<T> {
+	findNode(path: string | string[]): TreeNode<T> | null {
 		if (!Array.isArray(path)) {
 			if (this.caseSensitive)
 				path = path.toLowerCase();
 			return this.findNode(path.replace(/\\/g, '/').split('/'));
 		}
-		var tree = this.root;
+		var tree: TreeNode<T> | null = this.root;
 		path.every(name => {
 			if (_has(tree, ['map', name])) {
-				tree = tree.map[name];
+				tree = tree!.map[name];
 				return true;
 			}
-			// tree = null;
+			tree = null;
 			return false;
 		});
 		return tree;

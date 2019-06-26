@@ -329,13 +329,14 @@ function overrideTsConfig(file: string, content: string,
 		];
 	}
 
-	var tsjson: any = {
+	var tsjson: {compilerOptions: ts.CompilerOptions, [key: string]: any} = {
 		// extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
 		include: tsInclude,
 		exclude: tsExclude,
 		compilerOptions: {
 			...require('../../misc/tsconfig.app.json').compilerOptions,
 			baseUrl: root,
+			strictNullChecks: false,
 			typeRoots: [
 				Path.resolve(root, 'node_modules/@types'),
 				Path.resolve(root, 'node_modules/@dr-types'),

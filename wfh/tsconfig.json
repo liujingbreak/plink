@@ -9,6 +9,8 @@
 		"suppressImplicitAnyIndexErrors": true,
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
+		"inlineSourceMap": true,
+		"inlineSources": true,
 		"moduleResolution": "node",
 		"skipLibCheck": false,
 		"experimentalDecorators": true,

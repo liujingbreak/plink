@@ -254,7 +254,7 @@ function ls(_argv) {
 		// 	});
 
 		var browserCompInfo = require('../../dist/build-util/ts').listBundleInfo(
-			config, argv, require('../packageMgr/packageUtils'));
+			config, require('../packageMgr/packageUtils'));
 		console.log(chalk.green(_.pad('[ BROWSER COMPONENTS ]', 50, '=')));
 		var index = 0;
 		var sorted = browserCompInfo.allModules.slice(0).sort((a, b) => b.longName.length - a.longName.length);
