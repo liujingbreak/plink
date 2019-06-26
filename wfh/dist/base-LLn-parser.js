@@ -42,11 +42,11 @@ class LookAhead {
     lb(num = 1) {
         const pos = this.currPos - (num - 1);
         if (pos < 0)
-            return undefined;
+            return null;
         return this.read(pos);
     }
     advance(count = 1) {
-        let current;
+        let current = null;
         for (let i = 0; i < count; i++) {
             current = this.la(1);
             if (current == null)

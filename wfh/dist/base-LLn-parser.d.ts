@@ -24,8 +24,8 @@ export declare abstract class LookAhead<T> {
      * @return null if EOF is reached
      */
     la(num?: number): T | null;
-    lb(num?: number): T;
-    advance(count?: number): T;
+    lb(num?: number): T | null;
+    advance(count?: number): T | null;
     /**
      * Same as `return la(1) === values[0] && la(2) === values[1]...`
      * @param values lookahead string or tokens
@@ -38,7 +38,7 @@ export declare abstract class LookAhead<T> {
      * Do not read postion less than 0
      * @param pos
      */
-    protected read(pos: number): T;
+    protected read(pos: number): T | null;
 }
 /**
  * 1. Define a "TokenType" enum

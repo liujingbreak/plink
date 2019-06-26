@@ -85,13 +85,13 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
     throw e;
   });
   return {
-    childProcess: res,
+    childProcess: res!,
     promise
   };
 }
 
 function checkTimeout<T>(origPromise: Promise<T>, timeBox = 600000): Promise<T> {
-  let timeout: NodeJS.Timer;
+  let timeout: NodeJS.Timer | null;
   return new Promise<T>((resolve, reject) => {
     origPromise.then(res => {
       if (timeout) {

@@ -99,7 +99,7 @@ function ensurePackageJsonFile(isDrcpDevMode) {
             throw err;
         });
     }
-    return Promise.resolve(null);
+    return Promise.resolve();
 }
 function needInstallWfh(workspaceJson) {
     const newWorkspaceJson = Object.assign({}, workspaceJson);

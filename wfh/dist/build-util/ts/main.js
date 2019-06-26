@@ -125,9 +125,9 @@ function addPackageToInfo(packageUtils, info, nodePaths, name, parsedName, pkJso
     catch (err) { }
     instance.init({
         isVendor: false,
-        file: mainFile ? fs.realpathSync(mainFile) : null,
+        file: mainFile ? fs.realpathSync(mainFile) : undefined,
         main: pkJson.main,
-        style: pkJson.style ? resolveStyle(name, nodePaths) : null,
+        style: pkJson.style ? resolveStyle(name, nodePaths) : undefined,
         parsedName,
         entryPages,
         entryViews,
@@ -205,7 +205,8 @@ function _readPackageChunkMap(packageUtils, config, info) {
             });
             mmap[moduleName] = instance;
             info.shortNameMap[parsedName.name] = instance;
-            info.urlPackageSet[moduleName] = 1;
+            if (info.urlPackageSet)
+                info.urlPackageSet[moduleName] = 1;
             if (_.has(bmap, bundle) && _.isArray(bmap[bundle]))
                 bmap[bundle].push(instance);
             else
@@ -239,7 +240,8 @@ function _readBundles(packageUtils, info, config, isExternal = false) {
                 });
                 mmap[moduleName] = instance;
                 info.shortNameMap[instance.shortName] = instance;
-                info.urlPackageSet[moduleName] = 1;
+                if (info.urlPackageSet)
+                    info.urlPackageSet[moduleName] = 1;
                 return instance;
             }
             catch (err) {

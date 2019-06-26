@@ -127,6 +127,9 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
             let packageName = /^((?:@[^/\\]+[/\\])?[^/\\]+)/.exec(shortPath)[1];
             if (SEP === '\\')
                 packageName = packageName.replace(/\\/g, '/');
+            if (!compDirInfo.has(packageName)) {
+                throw new Error('Cound not find package info for:' + file);
+            }
             const { tsDirs, dir } = compDirInfo.get(packageName);
             const packageRelPath = Path.relative(dir, file.path).replace(/\\/g, '/');
             [tsDirs.srcDir, tsDirs.isomDir].some(srcDir => {
@@ -166,7 +169,8 @@ function compile(compGlobs, tsProject, compDirInfo, inlineSourceMap) {
                         sFileDir = Path.dirname(realFile);
                         return Path.relative(file.base, realFile).replace(/\\/g, '/');
                     });
-                sm.sourceRoot = Path.relative(sFileDir, file.base).replace(/\\/g, '/');
+                if (sFileDir)
+                    sm.sourceRoot = Path.relative(sFileDir, file.base).replace(/\\/g, '/');
                 file.contents = Buffer.from(JSON.stringify(sm), 'utf8');
             }
             next(null, file);

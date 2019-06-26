@@ -67,11 +67,11 @@ export function symbolicLinkPackages(destDir: string) {
 			}
 			log.debug('symblink to %s', newPath);
 			if (exists) {
-				if (stat.isFile() ||
-					(stat.isSymbolicLink() && fs.realpathSync(newPath) !== Path.dirname(file.path))) {
+				if (stat!.isFile() ||
+					(stat!.isSymbolicLink() && fs.realpathSync(newPath) !== Path.dirname(file.path))) {
 					fs.unlinkSync(newPath);
 					_symbolicLink(Path.dirname(file.path), newPath);
-				} else if (stat.isDirectory()) {
+				} else if (stat!.isDirectory()) {
 					log.info('Remove installed package "%s"', Path.relative(process.cwd(), newPath));
 					fs.removeSync(newPath);
 					_symbolicLink(Path.dirname(file.path), newPath);

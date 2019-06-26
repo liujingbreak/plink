@@ -31,7 +31,7 @@ export type EachRecipeSrcCallback = (srcDir: string, recipeDir: string, recipeNa
 export function eachRecipeSrc(callback: EachRecipeSrcCallback): void;
 export function eachRecipeSrc(projectDir: string, callback: EachRecipeSrcCallback): void;
 export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
-	callback?: (srcDir: string, recipeDir: string, recipeName: string | null) => void): void {
+	callback?: (srcDir: string, recipeDir: string | null, recipeName: string | null) => void): void {
 	if (arguments.length === 1) {
 		callback = arguments[0];
 		forProject(config().projectList);
@@ -44,22 +44,22 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
 	}
 
 	function forProject(prjDirs: string[] | string) {
-		[].concat(prjDirs).forEach(prjDir => {
+		([] as string[]).concat(prjDirs).forEach(prjDir => {
 			_.each(recipe2srcDirMapForPrj(prjDir), onEachSrcRecipePair);
 			const e2eDir = Path.join(prjDir, 'e2etest');
 			if (fs.existsSync(e2eDir))
-				callback(e2eDir, null, null);
+				callback!(e2eDir, null, null);
 		});
 	}
 
 	function onEachSrcRecipePair(srcDir: string, recipeDir: string) {
-		let recipeName: string = null;
+		let recipeName: string | null = null;
 		try {
 			recipeName = require(Path.resolve(recipeDir, 'package.json')).name;
 		} catch (e) {
 			log.debug(`Can't read ${Path.resolve(recipeDir, 'package.json')}`);
 		}
-		callback(srcDir, recipeDir, recipeName);
+		callback!(srcDir, recipeDir, recipeName);
 	}
 }
 

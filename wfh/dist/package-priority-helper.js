@@ -24,7 +24,8 @@ function orderPackages(packages, run, priorityProperty) {
     const numberTypePrio = [];
     const beforePackages = {};
     const afterPackages = {};
-    priorityProperty = priorityProperty || 'priority';
+    if (priorityProperty == null)
+        priorityProperty = 'priority';
     packages.forEach(pk => {
         const priority = _.get(pk, priorityProperty);
         if (_.isNumber(priority)) {

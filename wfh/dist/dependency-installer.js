@@ -193,7 +193,7 @@ class InstallManager {
         const m = this.versionReg.exec(version);
         trackTo[name].push({
             ver: version === '*' ? '' : version,
-            verNum: m ? m[2] : null,
+            verNum: m ? m[2] : undefined,
             pre: m ? m[1] : '',
             by: byWhom,
             path

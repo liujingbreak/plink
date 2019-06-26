@@ -5,17 +5,17 @@ export default class PackageBrowserInstance {
 	bundle: string;
 	longName: string;
 	shortName: string;
-	file: string;
+	file?: string;
 	parsedName: {scope: string, name: string};
 	scopeName: string;
-	entryPages: string[];
+	entryPages?: string[];
 	i18n: string;
 	packagePath: string;
 	realPackagePath: string;
 	main: string;
-	style: string;
-	entryViews: string[];
-	browserifyNoParse: any[];
+	style?: string | null;
+	entryViews?: string[];
+	browserifyNoParse?: any[];
 	isEntryServerTemplate: boolean;
 	translatable: string;
 	dr: any;
@@ -23,6 +23,7 @@ export default class PackageBrowserInstance {
 	browser: string;
 	isVendor: boolean;
 	appType: string;
+	compiler?: any;
 
 	constructor(attrs: any) {
 		if (!(this instanceof PackageBrowserInstance)) {
@@ -32,9 +33,9 @@ export default class PackageBrowserInstance {
 			this.init(attrs);
 		}
 	}
-	init(attrs: any) {
+	init(attrs: {[key in keyof PackageBrowserInstance]?: PackageBrowserInstance[key]}) {
 		_.assign(this, attrs);
-		var parsedName = this.parsedName;
+		const parsedName = this.parsedName;
 		if (parsedName) {
 			this.shortName = parsedName.name;
 			this.scopeName = parsedName.scope;
@@ -51,7 +52,7 @@ const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 export class LazyPackageFactory {
 	packagePathMap = new DirTree<PackageBrowserInstance>();
 
-	getPackageByPath(file: string): PackageBrowserInstance {
+	getPackageByPath(file: string): PackageBrowserInstance | null {
 		let currPath = file;
 		let found: PackageBrowserInstance[];
 		found = this.packagePathMap.getAllData(file);
@@ -83,9 +84,9 @@ function createPackage(packagePath: string, pkJson: any) {
 		packagePath,
 		realPackagePath: fs.realpathSync(packagePath)
 	});
-	let entryViews: string[], entryPages: string[];
+	let entryViews: string[] | undefined, entryPages: string[] | undefined;
 	let isEntryServerTemplate = true;
-	let noParseFiles: string[];
+	let noParseFiles: string[] | undefined;
 		if (pkJson.dr) {
 		if (pkJson.dr.entryPage) {
 			isEntryServerTemplate = false;
@@ -103,7 +104,7 @@ function createPackage(packagePath: string, pkJson: any) {
 	}
 	const mainFile: string = pkJson.browser || pkJson.main;
 	instance.init({
-		file: mainFile ? fs.realpathSync(Path.resolve(packagePath, mainFile)) : null, // package.json "browser"
+		file: mainFile ? fs.realpathSync(Path.resolve(packagePath, mainFile)) : undefined, // package.json "browser"
 		main: pkJson.main, // package.json "main"
 		// style: pkJson.style ? resolveStyle(name, nodePaths) : null,
 		parsedName: packageUtils.parseName(name),

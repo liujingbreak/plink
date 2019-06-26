@@ -18,7 +18,7 @@ interface PackageJson {
 */
 class Guarder {
 	static instances: {[k: string]: Guarder} = {};
-	changes: PackageJson = null;
+	changes: PackageJson | null = null;
 	installChecksum: number | null = null;
 	isPackageJsonDirty = false;
 	isDrcpSymlink: boolean;

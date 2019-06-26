@@ -5,7 +5,7 @@ export declare function readTsConfig(tsconfigFile: string): ts.CompilerOptions;
  * @param tsCode
  */
 export declare function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOptions): string;
-export declare function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions | string): string;
+export declare function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions | string): string | undefined;
 /**
  * Exactly like ts-node, so that we can `require()` a ts file directly without `tsc`
  * @param ext

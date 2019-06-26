@@ -47,9 +47,9 @@ class TsCompiler {
 				this.files[fileName] && this.files[fileName].version.toString(),
 			getScriptSnapshot: fileName => {
 				if (this.fileContent.has(fileName))
-					return ts.ScriptSnapshot.fromString(this.fileContent.get(fileName));
+					return ts.ScriptSnapshot.fromString(this.fileContent.get(fileName)!);
 				if (ts.sys.fileExists(fileName))
-					return ts.ScriptSnapshot.fromString(ts.sys.readFile(fileName));
+					return ts.ScriptSnapshot.fromString(ts.sys.readFile(fileName)!);
 				return undefined;
 			},
 			getCurrentDirectory: () => process.cwd(),
@@ -70,7 +70,7 @@ class TsCompiler {
 
 	}
 
-	compile(fileName: string, srcCode: string): string {
+	compile(fileName: string, srcCode: string): string | undefined {
 		fileName = Path.resolve(fileName).replace(/\\/g, '/');
 		this.fileContent.set(fileName, srcCode);
 		this.fileNames.push(fileName);
@@ -78,7 +78,7 @@ class TsCompiler {
 		return this.emitFile(fileName);
 	}
 
-	protected emitFile(fileName: string): string {
+	protected emitFile(fileName: string): string | undefined {
 		const output = this.langService.getEmitOutput(fileName);
 		this.logErrors(fileName);
 		if (output.emitSkipped) {
@@ -115,7 +115,7 @@ class TsCompiler {
 }
 
 let singletonCompiler: TsCompiler;
-export function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions|string): string {
+export function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions|string): string | undefined {
 	if (typeof co === 'string') {
 		co = readTsConfig(co);
 	}

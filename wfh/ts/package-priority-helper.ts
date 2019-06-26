@@ -12,9 +12,10 @@ export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) 
 	const numberTypePrio: PackageInstance[] = [];
 	const beforePackages: {[key: string]: PackageInstance[]} = {};
 	const afterPackages: {[key: string]: PackageInstance[]} = {};
-	priorityProperty = priorityProperty || 'priority';
+	if (priorityProperty == null)
+		priorityProperty = 'priority';
 	packages.forEach(pk => {
-		const priority = _.get(pk, priorityProperty);
+		const priority = _.get(pk, priorityProperty!);
 		if (_.isNumber(priority)) {
 			numberTypePrio.push(pk);
 		} else if (_.isString(priority)) {
@@ -38,13 +39,13 @@ export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) 
 				afterPackages[targetPackageName].push(pk);
 			}
 		} else {
-			_.set(pk, priorityProperty, 5000);
+			_.set(pk, priorityProperty!, 5000);
 			numberTypePrio.push(pk);
 		}
 	});
 
 	numberTypePrio.sort(function(pk1, pk2) {
-		return _.get(pk2, priorityProperty) - _.get(pk1, priorityProperty);
+		return _.get(pk2, priorityProperty!) - _.get(pk1, priorityProperty!);
 	});
 
 	const notFound = _.difference(_.keys(beforeOrAfter), _.map(packages, pk => pk.longName));
@@ -66,7 +67,7 @@ export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) 
 
 	async function runPackage(pk: PackageInstance) {
 		await beforeHandlersFor(pk.longName);
-		log.debug(pk.longName, ' starts with priority: ', _.get(pk, priorityProperty));
+		log.debug(pk.longName, ' starts with priority: ', _.get(pk, priorityProperty!));
 		const anyRes = run(pk);
 		await Promise.resolve(anyRes);
 		log.debug(pk.longName, ' ends');

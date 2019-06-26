@@ -21,7 +21,7 @@ export function listCompDependency(pkJsonFiles: string[], write: boolean, isDrcp
 
 interface DepInfo {
 	ver: string;
-	verNum: string;
+	verNum?: string;
 	pre: string;
 	by: string;
 	path: string;
@@ -129,7 +129,7 @@ class InstallManager {
 		// var peerDepNames = Object.keys(this.peerDeps);
 		if (depNames.length === 0)
 			return;
-			const nameWidth = _.maxBy(depNames, name => name.length).length;
+		const nameWidth = _.maxBy(depNames, name => name.length)!.length;
 
 		// log.warn(Object.keys(this.componentMap));
 
@@ -206,7 +206,7 @@ class InstallManager {
 		const m = this.versionReg.exec(version);
 		trackTo[name].push({
 			ver: version === '*' ? '' : version,
-			verNum: m ? m[2] : null,
+			verNum: m ? m[2] : undefined,
 			pre: m ? m[1] : '',
 			by: byWhom,
 			path

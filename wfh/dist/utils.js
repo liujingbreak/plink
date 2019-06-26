@@ -46,7 +46,7 @@ class WordLexer extends base_LLn_parser_1.BaseLexer {
                         yield new base_LLn_parser_1.Token(WordTokenType.word, this, start);
                         break;
                     }
-                    if (first === '-' && /[0-9]/.test(this.la(2))) {
+                    if (first === '-' && this.la(2) && /[0-9]/.test(this.la(2))) {
                         this.advance();
                         this.consumeNumbers();
                         yield new base_LLn_parser_1.Token(WordTokenType.word, this, start);

@@ -16,7 +16,7 @@ declare class Guarder {
     static instances: {
         [k: string]: Guarder;
     };
-    changes: PackageJson;
+    changes: PackageJson | null;
     installChecksum: number | null;
     isPackageJsonDirty: boolean;
     isDrcpSymlink: boolean;
@@ -43,7 +43,7 @@ declare class Guarder {
      */
     markChanges(pk: PackageJson): [string, string][];
     isModulesChanged(): boolean;
-    installAsync(doNotMarkInstallNum?: boolean, useYarn?: boolean, onlyProd?: boolean, isOffline?: boolean): Promise<string>;
+    installAsync(doNotMarkInstallNum?: boolean, useYarn?: boolean, onlyProd?: boolean, isOffline?: boolean): Promise<string | undefined>;
     markInstallNum(): void;
     /**
      * Not including symlink components

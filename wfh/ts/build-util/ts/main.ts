@@ -64,7 +64,7 @@ function _walkPackages(packageUtils: any, config: any): PackageInfo {
 	const nodePaths = [config().nodePath];
 	const configBundleInfo = readBundleMapConfig(packageUtils, config);
 	const info: PackageInfo = {
-		allModules: null, // array
+		allModules: null as unknown as PackageBrowserInstance[], // array
 		moduleMap: _.clone(configBundleInfo.moduleMap),
 		shortNameMap: _.clone(configBundleInfo.shortNameMap),
 		noBundlePackageMap: {},
@@ -72,7 +72,7 @@ function _walkPackages(packageUtils: any, config: any): PackageInfo {
 		bundleUrlMap: configBundleInfo.bundleUrlMap,
 		urlPackageSet: configBundleInfo.urlPackageSet,
 		entryPageMap: {},
-		dirTree: null
+		dirTree: null as unknown as DirTree<PackageBrowserInstance>
 	};
 	const bundleMap = info.bundleMap;
 
@@ -134,9 +134,9 @@ function addPackageToInfo(packageUtils: any, info: PackageInfo, nodePaths: strin
 	} catch (err) {}
 	instance.init({
 		isVendor: false,
-		file: mainFile ? fs.realpathSync(mainFile) : null, // package.json "browser"
+		file: mainFile ? fs.realpathSync(mainFile) : undefined, // package.json "browser"
 		main: pkJson.main, // package.json "main"
-		style: pkJson.style ? resolveStyle(name, nodePaths) : null,
+		style: pkJson.style ? resolveStyle(name, nodePaths) : undefined,
 		parsedName,
 		entryPages,
 		entryViews,
@@ -217,7 +217,8 @@ function _readPackageChunkMap(packageUtils: any, config: any, info: BundleInfo) 
 			});
 			mmap[moduleName] = instance;
 			info.shortNameMap[parsedName.name] = instance;
-			info.urlPackageSet[moduleName] = 1;
+			if (info.urlPackageSet)
+				info.urlPackageSet[moduleName] = 1;
 			if (_.has(bmap, bundle) && _.isArray(bmap[bundle]))
 				bmap[bundle].push(instance);
 			else
@@ -262,7 +263,8 @@ function _readBundles(packageUtils: any, info: BundleInfo, config: any, isExtern
 				});
 				mmap[moduleName] = instance;
 				info.shortNameMap[instance.shortName] = instance;
-				info.urlPackageSet[moduleName] = 1;
+				if (info.urlPackageSet)
+					info.urlPackageSet[moduleName] = 1;
 				return instance;
 			} catch (err) {
 				log.warn(err);

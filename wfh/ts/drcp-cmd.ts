@@ -36,14 +36,18 @@ export async function pack(argv: any) {
 					const output = await promisifyExe('npm', 'pack', packagePath, {silent: true, cwd: Path.resolve('tarballs')});
 					const offset = output.indexOf('Tarball Details');
 					namePat.lastIndex = offset;
-					const name = namePat.exec(output)[1];
+					let execRes = namePat.exec(output);
+					const name = execRes ? execRes[1] : '<unknown>';
 					fileNamePat.lastIndex = namePat.lastIndex;
-					const tarball = fileNamePat.exec(output)[1];
+
+					execRes = fileNamePat.exec(output);
+					const tarball = execRes ? execRes[1] : '<unknown file>';
 					package2tarball[name] = './tarballs/' + tarball;
 					log.info(output);
 					return output;
 				} catch (e) {
 					handleExption(json.name + '@' + json.version, e);
+					return '';
 				}
 			}));
 	}, 'src', argv.projectDir);

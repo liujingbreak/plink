@@ -47,15 +47,15 @@ export abstract class LookAhead<T> {
 		return this.read(readPos);
 	}
 
-	lb(num = 1): T {
+	lb(num = 1): T | null {
 		const pos = this.currPos - (num - 1);
 		if (pos < 0)
-			return undefined;
+			return null;
 		return this.read(pos);
 	}
 
-	advance(count = 1): T {
-		let current;
+	advance(count = 1): T | null {
+		let current = null;
 		for (let i = 0; i < count; i++) {
 			current = this.la(1);
 			if (current == null)
@@ -108,7 +108,7 @@ export abstract class LookAhead<T> {
 	 * Do not read postion less than 0
 	 * @param pos 
 	 */
-	protected read(pos: number): T {
+	protected read(pos: number): T | null {
 		const cached = this.cached;
 		while (cached.length <= pos) {
 			const next = this.sourceIterator.next();
@@ -185,10 +185,10 @@ export class TokenFilter<T> extends LookAhead<Token<T>> implements Iterable<Toke
 
 	*[Symbol.iterator](): Iterator<Token<T>> {
 		while (this.la() != null) {
-			if (this.la().type === this.skipType) {
+			if (this.la()!.type === this.skipType) {
 				this.advance();
 			} else {
-				yield this.la();
+				yield this.la()!;
 				this.advance();
 			}
 		}

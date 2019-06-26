@@ -26,23 +26,23 @@ export class WordLexer extends BaseLexer<WordTokenType> {
 					yield new Token(WordTokenType.tab, this, start);
 					break;
 				default:
-					const first = this.la();
+					const first = this.la()!;
 					if (/[a-zA-Z$_]/.test(first)) {
 						this.advance();
-						while(this.la() != null && /[a-zA-Z$_0-9]/.test(this.la())) {
+						while(this.la() != null && /[a-zA-Z$_0-9]/.test(this.la()!)) {
 							this.advance();
 						}
-						if (/-/.test(this.la()))
+						if (/-/.test(this.la()!))
 							this.advance();
 						yield new Token(WordTokenType.word, this, start);
 						break;
 					}
-					if (/[0-9]/.test(this.la())) {
+					if (/[0-9]/.test(this.la()!)) {
 						this.consumeNumbers();
 						yield new Token(WordTokenType.word, this, start);
 						break;
 					}
-					if (first === '-' && /[0-9]/.test(this.la(2))) {
+					if (first === '-' && this.la(2) && /[0-9]/.test(this.la(2)!)) {
 						this.advance();
 						this.consumeNumbers();
 						yield new Token(WordTokenType.word, this, start);
@@ -62,7 +62,7 @@ export class WordLexer extends BaseLexer<WordTokenType> {
 	consumeNumbers() {
 		// if (/[0-9]/.test(this.la())) {
 		this.advance();
-		while(this.la() != null && /[0-9.]/.test(this.la())) {
+		while(this.la() != null && /[0-9.]/.test(this.la()!)) {
 			this.advance();
 		}
 		// }

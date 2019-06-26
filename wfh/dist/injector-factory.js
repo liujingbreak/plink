@@ -94,7 +94,7 @@ class DrPackageInjector extends require_injector_1.default {
 }
 exports.DrPackageInjector = DrPackageInjector;
 exports.nodeInjector = new DrPackageInjector(require.resolve, false);
-exports.webInjector = new DrPackageInjector(null, true);
+exports.webInjector = new DrPackageInjector(undefined, true);
 function emptryChainableFunction() {
     return emptyFactoryMap;
 }

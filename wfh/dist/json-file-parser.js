@@ -16,7 +16,7 @@ var JsonTokenType;
 })(JsonTokenType = exports.JsonTokenType || (exports.JsonTokenType = {}));
 class JsonLexer extends base_LLn_parser_1.BaseLexer {
     *[Symbol.iterator]() {
-        while (true) {
+        while (this.la()) {
             const char = this.la();
             const start = this.position;
             if (char == null) {

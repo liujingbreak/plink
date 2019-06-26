@@ -91,7 +91,7 @@ function ensurePackageJsonFile(isDrcpDevMode: boolean) {
 			throw err;
 		});
 	}
-	return Promise.resolve(null);
+	return Promise.resolve();
 }
 
 function needInstallWfh(workspaceJson: any) {

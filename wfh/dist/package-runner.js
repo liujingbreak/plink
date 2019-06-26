@@ -101,7 +101,6 @@ function initInjectorForNodePackages(argv) {
     };
     const drPackages = packageInfo.allModules.filter(pk => {
         if (pk.dr) {
-            log.info(pk.longName);
             setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
             return true;
         }
@@ -119,7 +118,7 @@ function initWebInjector(packages, apiPrototype) {
     });
     injector_factory_1.webInjector.fromAllPackages()
         .replaceCode('__api', '__api')
-        .substitute(/^([^{]*)\{locale\}(.*)$/, (filePath, match) => match[1] + apiPrototype.getBuildLocale() + match[2]);
+        .substitute(/^([^{]*)\{locale\}(.*)$/, (_filePath, match) => match[1] + apiPrototype.getBuildLocale() + match[2]);
     const done = injector_factory_1.webInjector.readInjectFile('module-resolve.browser');
     apiPrototype.browserInjector = injector_factory_1.webInjector;
     return done;

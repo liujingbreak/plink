@@ -31,9 +31,7 @@ interface Args {
 
 interface ComponentDirInfo {
 	tsDirs: PackageTsDirs;
-	// srcDirs?: string[];
-	// destDir?: string;
-	dir?: string;
+	dir: string;
 }
 
 /**
@@ -140,10 +138,13 @@ function compile(compGlobs: string[], tsProject: any,
 	function changePath() {
 		return through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
 			const shortPath = Path.relative(nodeModules, file.path);
-			let packageName = /^((?:@[^/\\]+[/\\])?[^/\\]+)/.exec(shortPath)[1];
+			let packageName = /^((?:@[^/\\]+[/\\])?[^/\\]+)/.exec(shortPath)![1];
 			if (SEP === '\\')
 				packageName = packageName.replace(/\\/g, '/');
-			const {tsDirs, dir} = compDirInfo.get(packageName);
+			if (!compDirInfo.has(packageName)) {
+				throw new Error('Cound not find package info for:' + file);
+			}
+			const {tsDirs, dir} = compDirInfo.get(packageName)!;
 			const packageRelPath = Path.relative(dir, file.path).replace(/\\/g, '/');
 			[tsDirs.srcDir, tsDirs.isomDir].some(srcDir => {
 				if (packageRelPath.indexOf(srcDir + '/') === 0) {
@@ -185,7 +186,8 @@ function compile(compGlobs: string[], tsProject: any,
 						sFileDir = Path.dirname(realFile);
 						return Path.relative(file.base, realFile).replace(/\\/g, '/');
 					});
-				sm.sourceRoot = Path.relative(sFileDir, file.base).replace(/\\/g, '/');
+				if (sFileDir)
+					sm.sourceRoot = Path.relative(sFileDir, file.base).replace(/\\/g, '/');
 				file.contents = Buffer.from(JSON.stringify(sm), 'utf8');
 			}
 			next(null, file);

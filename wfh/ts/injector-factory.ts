@@ -1,4 +1,4 @@
-import RJ from 'require-injector';
+import RJ, {InjectorOption} from 'require-injector';
 import {doInjectorConfig} from './require-injectors';
 import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
 // import {ResolveOption} from 'require-injector/dist/node-inject';
@@ -18,7 +18,7 @@ const emptyFactoryMap = {
 };
 
 export class DrPackageInjector extends RJ {
-	constructor(resolve: (id: string) => string, protected noNode = false) {
+	constructor(resolve: InjectorOption['resolve'], protected noNode = false) {
 		super({
 			basedir: process.cwd(),
 			resolve,
@@ -91,7 +91,7 @@ export class DrPackageInjector extends RJ {
 }
 
 export let nodeInjector = new DrPackageInjector(require.resolve, false);
-export let webInjector = new DrPackageInjector(null, true);
+export let webInjector = new DrPackageInjector(undefined, true);
 
 
 function emptryChainableFunction() {

@@ -20,7 +20,7 @@ class PackageBrowserInstance {
     }
     init(attrs) {
         _.assign(this, attrs);
-        var parsedName = this.parsedName;
+        const parsedName = this.parsedName;
         if (parsedName) {
             this.shortName = parsedName.name;
             this.scopeName = parsedName.scope;
@@ -92,7 +92,7 @@ function createPackage(packagePath, pkJson) {
     }
     const mainFile = pkJson.browser || pkJson.main;
     instance.init({
-        file: mainFile ? fs.realpathSync(Path.resolve(packagePath, mainFile)) : null,
+        file: mainFile ? fs.realpathSync(Path.resolve(packagePath, mainFile)) : undefined,
         main: pkJson.main,
         // style: pkJson.style ? resolveStyle(name, nodePaths) : null,
         parsedName: packageUtils.parseName(name),
