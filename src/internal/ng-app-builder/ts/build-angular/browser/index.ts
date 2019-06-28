@@ -12,20 +12,23 @@ import {changeAngularCliOptionsForBuild} from '../../ng/change-cli-options';
 
 
 export default createBuilder<json.JsonObject & BrowserBuilderSchema>(
-	(options, context) => {
-		return from(drcpCommon.initCli(options))
-		.pipe(
-			concatMap(config => {
-				return from(changeAngularCliOptionsForBuild(config, options));
-			}),
-			concatMap(options => {
-				return executeBrowserBuilder(options, context, {
-					webpackConfiguration: async (config) => {
-						// console.log(config);
-						return config;
-					}
-				});
-			})
-		);
-	}
+  (options, context) => {
+    return from(drcpCommon.initCli(options))
+    .pipe(
+      concatMap(config => {
+        return from(changeAngularCliOptionsForBuild(config, options));
+      }),
+      concatMap(browserOptions => {
+        return executeBrowserBuilder(browserOptions, context, {
+          webpackConfiguration: async (config) => {
+            await drcpCommon.configWebpack({
+              browserOptions,
+              ssr: false
+            }, config, {devMode: true});
+            return config;
+          }
+        });
+      })
+    );
+  }
 );

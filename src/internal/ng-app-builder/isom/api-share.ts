@@ -14,6 +14,6 @@ import trimStart from 'lodash/trimStart';
  * @return the configured Angular router path for specific (current) feature package
  */
 export function ngRouterPath(packageName: string, subPath?: string) {
-	const url = this.assetsUrl(packageName, subPath);
-	return trimStart(Url.parse(url).pathname, '/');
+  const url = this.assetsUrl(packageName, subPath);
+  return trimStart(Url.parse(url).pathname, '/');
 }

@@ -3,6 +3,7 @@
 		"tslint:recommended", "tslint-eslint-rules"
 	],
 	"rules": {
+		"max-line-length": false,
 		"array-type": false,
 		"max-classes-per-file": false,
 		"jsdoc-format": false,
@@ -68,7 +69,7 @@
 				"allowSingleLine": true
 			}
 		],
-		"indent": [true, "tabs", 4],
+		"indent": [true, "spaces", 2],
 		// "no-multi-str": 2,
 		"dot-location": [
 			2,

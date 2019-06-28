@@ -1,17 +1,17 @@
 
 
 function getLogger(name: string) {
-	return {
-		info: log,
-		error: log,
-		warn: log,
-		debug: log,
-		trace: log
-	};
+  return {
+    info: log,
+    error: log,
+    warn: log,
+    debug: log,
+    trace: log
+  };
 }
 
 function log(...args: any[]) {
-	// tslint:disable-next-line
+  // tslint:disable-next-line
 	console.log.apply(console, arguments);
 }
 

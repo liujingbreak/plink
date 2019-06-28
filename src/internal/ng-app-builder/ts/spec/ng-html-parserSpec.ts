@@ -4,67 +4,67 @@ import * as fs from 'fs';
 import * as _ from 'lodash';
 
 describe('ng-html-parser', () => {
-	let lexer: TemplateLexer;
-	beforeEach(() => {
-		lexer = new TemplateLexer('abcde');
-	});
+  let lexer: TemplateLexer;
+  beforeEach(() => {
+    lexer = new TemplateLexer('abcde');
+  });
 
-	xit('Lexer.la()  should work', () => {
-		// let lexer = new ps.Lexer('abcde');
-		expect(lexer.la()).toEqual('a');
-		expect(lexer.la(2)).toEqual('b');
-		expect(lexer.la(3)).toEqual('c');
-	});
+  xit('Lexer.la()  should work', () => {
+    // let lexer = new ps.Lexer('abcde');
+    expect(lexer.la()).toEqual('a');
+    expect(lexer.la(2)).toEqual('b');
+    expect(lexer.la(3)).toEqual('c');
+  });
 
-	xit('Lexer.advance()  should work', () => {
-		lexer.advance(2);
-		expect(lexer.la()).toEqual('c');
-		expect(lexer.la(3)).toEqual('e');
-		expect(lexer.la(7)).toEqual(null);
-	});
+  xit('Lexer.advance()  should work', () => {
+    lexer.advance(2);
+    expect(lexer.la()).toEqual('c');
+    expect(lexer.la(3)).toEqual('e');
+    expect(lexer.la(7)).toEqual(null);
+  });
 
-	xit('Lexer.isNext("cde") should work', () => {
-		lexer = new TemplateLexer('cde');
-		expect(lexer.isNext('cde')).toBeTruthy();
-		expect(lexer.isNext('cd')).toBeTruthy();
-		expect(lexer.isNext('cdef')).toBeFalsy();
-	});
+  xit('Lexer.isNext("cde") should work', () => {
+    lexer = new TemplateLexer('cde');
+    expect(lexer.isNext('cde')).toBeTruthy();
+    expect(lexer.isNext('cd')).toBeTruthy();
+    expect(lexer.isNext('cdef')).toBeFalsy();
+  });
 
-	const lexer2 = new TemplateLexer('0123\n5678\n0abcd\n');
-	xit('line and column shoud be correct', () => {
-		expect(lexer2.la(10 + 1)).toEqual('0');
-		let chr = lexer2.la();
-		while (chr != null) {
-			lexer2.advance();
-			console.log(lexer2.getCurrentPosInfo());
-			chr = lexer2.la();
-		}
-		console.log(lexer2.lineBeginPositions);
-		expect(lexer2.getLineColumn(0)).toEqual([0, 0]);
-		expect(lexer2.getLineColumn(3)).toEqual([0, 3]);
-		expect(lexer2.getLineColumn(11)).toEqual([2, 1]);
-	});
+  const lexer2 = new TemplateLexer('0123\n5678\n0abcd\n');
+  xit('line and column shoud be correct', () => {
+    expect(lexer2.la(10 + 1)).toEqual('0');
+    let chr = lexer2.la();
+    while (chr != null) {
+      lexer2.advance();
+      console.log(lexer2.getCurrentPosInfo());
+      chr = lexer2.la();
+    }
+    console.log(lexer2.lineBeginPositions);
+    expect(lexer2.getLineColumn(0)).toEqual([0, 0]);
+    expect(lexer2.getLineColumn(3)).toEqual([0, 3]);
+    expect(lexer2.getLineColumn(11)).toEqual([2, 1]);
+  });
 
-	xit('template lexer should work for test html file', () => {
-		const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
-		const lexer = new TemplateLexer(ngHtml);
-		for (const token of lexer) {
-			console.log(`type: ${TokenType[token.type]},\ttext: ` + token.text);
-		}
-	});
+  xit('template lexer should work for test html file', () => {
+    const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
+    const lexer = new TemplateLexer(ngHtml);
+    for (const token of lexer) {
+      console.log(`type: ${TokenType[token.type]},\ttext: ` + token.text);
+    }
+  });
 
-	it('parser should work for test html file', () => {
-		const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
-		const ast = new TemplateParser(ngHtml).parse();
-		console.log(JSON.stringify(ast, null, '  '));
-		for (const tag of ast) {
-			console.log(tag);
-			for (const attrValue of _.values(tag.attrs)) {
-				if (attrValue.value == null)
-					continue;
-				expect(ngHtml.substring(attrValue.value.start, attrValue.value.end)).toEqual(attrValue.value.text);
-			}
-		}
-		expect(ast[0].start).toBe(0);
-	});
+  it('parser should work for test html file', () => {
+    const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
+    const ast = new TemplateParser(ngHtml).parse();
+    console.log(JSON.stringify(ast, null, '  '));
+    for (const tag of ast) {
+      console.log(tag);
+      for (const attrValue of _.values(tag.attrs)) {
+        if (attrValue.value == null)
+          continue;
+        expect(ngHtml.substring(attrValue.value.start, attrValue.value.end)).toEqual(attrValue.value.text);
+      }
+    }
+    expect(ast[0].start).toBe(0);
+  });
 });

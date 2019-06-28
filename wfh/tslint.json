@@ -68,7 +68,7 @@
 				"allowSingleLine": true
 			}
 		],
-		"indent": [true, "tabs", 4],
+		"indent": [true, "spaces", 2],
 		// "no-multi-str": 2,
 		"dot-location": [
 			2,
@@ -148,8 +148,8 @@
 			}
 		],
 		"ter-indent": [
-			1,
-			"tab",
+			true,
+			2,
 			{
 				"SwitchCase": 1,
 				"MemberExpression": "off"

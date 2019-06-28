@@ -23,25 +23,25 @@ const {red, yellow} = require('chalk');
 const log = log4js.getLogger(api.packageName);
 
 export function compile() {
-	// return setupApiForAngularCli();
+  // return setupApiForAngularCli();
 }
 
 export let tsHandler: TsHandler = resolveImports;
 function resolveImports(src: ts.SourceFile): ReplacementInf[] {
-	return [];
+  return [];
 }
 
 export async function init() {
-	// printHelp();
-	if (_fs.existsSync('node_modules/@angular-devkit/build-angular/node_modules')) {
-		_fs.removeSync('node_modules/@angular-devkit/build-angular/node_modules');
-	}
-	await new Promise(resolve => setTimeout(resolve, 100)); // wait for delete
-	if (!checkAngularVersion())
-		throw new Error('Angular version check Error');
-	// writeTsconfig();
-	hackFixWatchpack();
-	writeTsconfig4Editor();
+  // printHelp();
+  if (_fs.existsSync('node_modules/@angular-devkit/build-angular/node_modules')) {
+    _fs.removeSync('node_modules/@angular-devkit/build-angular/node_modules');
+  }
+  await new Promise(resolve => setTimeout(resolve, 100)); // wait for delete
+  if (!checkAngularVersion())
+    throw new Error('Angular version check Error');
+  // writeTsconfig();
+  hackFixWatchpack();
+  writeTsconfig4Editor();
 }
 
 export function activate() {
@@ -69,45 +69,45 @@ export function activate() {
 // }
 
 function checkAngularVersion() {
-	const deps: {[k: string]: string} = {
-		'@angular-devkit/build-angular': '~0.800.2',
-		'@angular/cli': '~8.0.2',
-		'@angular/compiler-cli': '~8.0.0',
-		'@angular/language-service': '~8.0.0'
-	};
-	let valid = true;
-	_.each(deps, (expectVer, mod) => {
-		const ver = require(mod + '/package.json').version;
-		if (!semver.satisfies(ver, expectVer)) {
-			valid = false;
-			log.error(yellow(`Installed dependency "${mod}@`) + red(ver) + yellow(`" version is not supported, install ${expectVer} instead.`));
-		}
-	});
+  const deps: {[k: string]: string} = {
+    '@angular-devkit/build-angular': '~0.800.2',
+    '@angular/cli': '~8.0.2',
+    '@angular/compiler-cli': '~8.0.0',
+    '@angular/language-service': '~8.0.0'
+  };
+  let valid = true;
+  _.each(deps, (expectVer, mod) => {
+    const ver = require(mod + '/package.json').version;
+    if (!semver.satisfies(ver, expectVer)) {
+      valid = false;
+      log.error(yellow(`Installed dependency "${mod}@`) + red(ver) + yellow(`" version is not supported, install ${expectVer} instead.`));
+    }
+  });
 
-	try {
-		const duplicate = require.resolve('@angular-devkit/build-angular/node_modules/webpack/package.json');
-		log.error(`Duplicate dependency is found in "${duplicate}",\n
+  try {
+    const duplicate = require.resolve('@angular-devkit/build-angular/node_modules/webpack/package.json');
+    log.error(`Duplicate dependency is found in "${duplicate}",\n
 		DRCP failed to delete some files for unknow reason, please try this command again`);
-		valid = false;
-	} catch (ex) {}
+    valid = false;
+  } catch (ex) {}
 
-	if (_fs.existsSync('@angular-devkit/build-angular/node_modules/@angular-devkit')) {
-		log.error(`Duplicate dependency is found in "@angular-devkit/build-angular/node_modules/@angular-devkit",\n
+  if (_fs.existsSync('@angular-devkit/build-angular/node_modules/@angular-devkit')) {
+    log.error(`Duplicate dependency is found in "@angular-devkit/build-angular/node_modules/@angular-devkit",\n
 		DRCP failed to delete some files for unknow reason, please try this command again`);
-		valid = false;
-	}
-	if (_fs.existsSync('@angular-devkit/build-angular/node_modules/@ngtools/webpack')) {
-		log.error(`Duplicate dependency is found in "@angular-devkit/build-angular/node_modules/@ngtools/webpack",\n
+    valid = false;
+  }
+  if (_fs.existsSync('@angular-devkit/build-angular/node_modules/@ngtools/webpack')) {
+    log.error(`Duplicate dependency is found in "@angular-devkit/build-angular/node_modules/@ngtools/webpack",\n
 		DRCP failed to delete some files for unknow reason, please try this command again`);
-		valid = false;
-	}
-	try {
-		const duplicate = require.resolve('@angular-devkit/architect/node_modules/rxjs/package.json');
-		log.error(`Duplicate dependency is found in "${duplicate}",\n
+    valid = false;
+  }
+  try {
+    const duplicate = require.resolve('@angular-devkit/architect/node_modules/rxjs/package.json');
+    log.error(`Duplicate dependency is found in "${duplicate}",\n
 		DRCP failed to delete some files for unknow reason, please try this command again`);
-		valid = false;
-	} catch (ex) {}
-	return valid;
+    valid = false;
+  } catch (ex) {}
+  return valid;
 }
 
 // function printHelp() {
@@ -125,90 +125,90 @@ function checkAngularVersion() {
 // }
 
 function writeTsconfig4Editor() {
-	const tsjson: any = {
-		extends: null
-	};
-	// ------- Write tsconfig.json for Visual Code Editor --------
+  const tsjson: any = {
+    extends: null
+  };
+  // ------- Write tsconfig.json for Visual Code Editor --------
 
-	let srcDirCount = 0;
-	const root = api.config().rootPath;
+  let srcDirCount = 0;
+  const root = api.config().rootPath;
 
-	const packageToRealPath: Array<[string, string]> = [];
-	require('dr-comp-package/wfh/lib/packageMgr/packageUtils')
-	.findAllPackages((name: string, entryPath: string, parsedName: string, json: any, packagePath: string) => {
-		const realDir = _fs.realpathSync(packagePath);
-		// Path.relative(root, realDir).replace(/\\/g, '/');
-		packageToRealPath.push([name, realDir]);
-	}, 'src');
+  const packageToRealPath: Array<[string, string]> = [];
+  require('dr-comp-package/wfh/lib/packageMgr/packageUtils')
+  .findAllPackages((name: string, entryPath: string, parsedName: string, json: any, packagePath: string) => {
+    const realDir = _fs.realpathSync(packagePath);
+    // Path.relative(root, realDir).replace(/\\/g, '/');
+    packageToRealPath.push([name, realDir]);
+  }, 'src');
 
-	const recipeManager = require('dr-comp-package/wfh/dist/recipe-manager');
+  const recipeManager = require('dr-comp-package/wfh/dist/recipe-manager');
 
-	for (let proj of api.config().projectList) {
-		tsjson.include = [];
-		tsjson.extends = Path.relative(proj, require.resolve('dr-comp-package/wfh/tsconfig.json'));
-		if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
-			tsjson.extends = './' + tsjson.extends;
-		}
-		tsjson.extends = tsjson.extends.replace(/\\/g, '/');
-		recipeManager.eachRecipeSrc(proj, (srcDir: string) => {
-			let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
-			if (includeDir && includeDir !== '/')
-				includeDir += '/';
-			tsjson.include.push(includeDir + '**/*.ts');
-			tsjson.include.push(includeDir + '**/*.tsx');
-			srcDirCount++;
-		});
-		log.info('Write tsconfig.json to ' + proj);
-		const pathMapping: {[key: string]: string[]} = {};
-		for (const [name, realPath] of packageToRealPath) {
-			const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
-			pathMapping[name] = [realDir];
-			pathMapping[name + '/*'] = [realDir + '/*'];
-		}
+  for (let proj of api.config().projectList) {
+    tsjson.include = [];
+    tsjson.extends = Path.relative(proj, require.resolve('dr-comp-package/wfh/tsconfig.json'));
+    if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
+      tsjson.extends = './' + tsjson.extends;
+    }
+    tsjson.extends = tsjson.extends.replace(/\\/g, '/');
+    recipeManager.eachRecipeSrc(proj, (srcDir: string) => {
+      let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
+      if (includeDir && includeDir !== '/')
+        includeDir += '/';
+      tsjson.include.push(includeDir + '**/*.ts');
+      tsjson.include.push(includeDir + '**/*.tsx');
+      srcDirCount++;
+    });
+    log.info('Write tsconfig.json to ' + proj);
+    const pathMapping: {[key: string]: string[]} = {};
+    for (const [name, realPath] of packageToRealPath) {
+      const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
+      pathMapping[name] = [realDir];
+      pathMapping[name + '/*'] = [realDir + '/*'];
+    }
 
-		const drcpDir = Path.relative(root, _fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
-		pathMapping['dr-comp-package'] = [drcpDir];
-		pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
-		pathMapping['*'] = ['node_modules/*', 'node_modules/@types/*'];
+    const drcpDir = Path.relative(root, _fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
+    pathMapping['dr-comp-package'] = [drcpDir];
+    pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
+    pathMapping['*'] = ['node_modules/*', 'node_modules/@types/*'];
 
-		tsjson.compilerOptions = {
-			rootDir: './',
-			baseUrl: root,
-			paths: pathMapping,
-			typeRoots: [
-				Path.join(root, 'node_modules/@types'),
-				Path.join(root, 'node_modules/@dr-types'),
-				Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
-			],
-			noImplicitAny: true,
-			target: 'es2015',
-			module: 'commonjs'
-		};
-		const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
-		if (_fs.existsSync(tsconfigFile)) {
-			const existingJson = parse(_fs.readFileSync(tsconfigFile, 'utf8'));
-			const co = existingJson.compilerOptions;
-			const newCo = tsjson.compilerOptions;
-			co.typeRoots = newCo.typeRoots;
-			co.baseUrl = newCo.baseUrl;
-			co.paths = newCo.paths;
-			co.rootDir = newCo.rootDir;
+    tsjson.compilerOptions = {
+      rootDir: './',
+      baseUrl: root,
+      paths: pathMapping,
+      typeRoots: [
+        Path.join(root, 'node_modules/@types'),
+        Path.join(root, 'node_modules/@dr-types'),
+        Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
+      ],
+      noImplicitAny: true,
+      target: 'es2015',
+      module: 'commonjs'
+    };
+    const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
+    if (_fs.existsSync(tsconfigFile)) {
+      const existingJson = parse(_fs.readFileSync(tsconfigFile, 'utf8'));
+      const co = existingJson.compilerOptions;
+      const newCo = tsjson.compilerOptions;
+      co.typeRoots = newCo.typeRoots;
+      co.baseUrl = newCo.baseUrl;
+      co.paths = newCo.paths;
+      co.rootDir = newCo.rootDir;
 
-			existingJson.extends = tsjson.extends;
-			existingJson.include = tsjson.include;
+      existingJson.extends = tsjson.extends;
+      existingJson.include = tsjson.include;
 
-			_fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(existingJson, null, '  '));
-		} else {
-			_fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(tsjson, null, '  '));
-		}
-	}
+      _fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(existingJson, null, '  '));
+    } else {
+      _fs.writeFileSync(Path.resolve(proj, 'tsconfig.json'), JSON.stringify(tsjson, null, '  '));
+    }
+  }
 
 
-	if (srcDirCount > 0) {
-		log.info('\n' + boxString('To be friendly to your editor, we just added tsconfig.json file to each of your project directories,\n' +
-		'But please add "tsconfig.json" to your .gitingore file,\n' +
-		'since these tsconfig.json are generated based on your local workspace location.'));
-	}
+  if (srcDirCount > 0) {
+    log.info('\n' + boxString('To be friendly to your editor, we just added tsconfig.json file to each of your project directories,\n' +
+    'But please add "tsconfig.json" to your .gitingore file,\n' +
+    'since these tsconfig.json are generated based on your local workspace location.'));
+  }
 }
 
 
@@ -216,18 +216,18 @@ function writeTsconfig4Editor() {
  * https://github.com/webpack/watchpack/issues/61
  */
 function hackFixWatchpack() {
-	const watchpackPath = ['webpack/node_modules/watchpack', 'watchpack'].find(path => {
-		return _fs.existsSync(Path.resolve('node_modules/' + path + '/lib/DirectoryWatcher.js'));
-	});
-	if (!watchpackPath) {
-		log.warn('Can not find watchpack, please make sure Webpack is installed.');
-		return;
-	}
-	const target = Path.resolve('node_modules/' + watchpackPath + '/lib/DirectoryWatcher.js');
-	if (_fs.existsSync(target + '.drcp-bak'))
-		return;
-	log.info(`hacking ${target}\n\t to workaround issue: https://github.com/webpack/watchpack/issues/61`);
-	_fs.renameSync(target, target + '.drcp-bak');
-	_fs.writeFileSync(target,
-		_fs.readFileSync(target + '.drcp-bak', 'utf8').replace(/\WfollowSymlinks:\sfalse/g, 'followSymlinks: true'), 'utf8');
+  const watchpackPath = ['webpack/node_modules/watchpack', 'watchpack'].find(path => {
+    return _fs.existsSync(Path.resolve('node_modules/' + path + '/lib/DirectoryWatcher.js'));
+  });
+  if (!watchpackPath) {
+    log.warn('Can not find watchpack, please make sure Webpack is installed.');
+    return;
+  }
+  const target = Path.resolve('node_modules/' + watchpackPath + '/lib/DirectoryWatcher.js');
+  if (_fs.existsSync(target + '.drcp-bak'))
+    return;
+  log.info(`hacking ${target}\n\t to workaround issue: https://github.com/webpack/watchpack/issues/61`);
+  _fs.renameSync(target, target + '.drcp-bak');
+  _fs.writeFileSync(target,
+    _fs.readFileSync(target + '.drcp-bak', 'utf8').replace(/\WfollowSymlinks:\sfalse/g, 'followSymlinks: true'), 'utf8');
 }

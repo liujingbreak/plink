@@ -16,7 +16,7 @@ export default class ApiAotCompiler {
     protected _callTsHandlers(tsHandlers: Array<[string, TsHandler]>): void;
     protected traverseTsAst(ast: ts.Node, level?: number): void;
     /**
-     * keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
-     */
+       * keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
+       */
     protected goUpToParentExpress(target: ts.Node): ts.Node;
 }

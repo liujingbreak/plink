@@ -25,160 +25,160 @@ __api.default = __api;');
 
 
 export default class TSReadHooker {
-	hookFunc: HookReadFunc;
-	private realFileCache = new Map<string, string>();
-	private tsCache = new Map<string, ArrayBuffer>();
+  hookFunc: HookReadFunc;
+  private realFileCache = new Map<string, string>();
+  private tsCache = new Map<string, ArrayBuffer>();
 
-	constructor(ngParam: AngularCliParam) {
-		this.hookFunc = this.createTsReadHook(ngParam);
-	}
+  constructor(ngParam: AngularCliParam) {
+    this.hookFunc = this.createTsReadHook(ngParam);
+  }
 
-	clear() {
-		this.tsCache.clear();
-	}
+  clear() {
+    this.tsCache.clear();
+  }
 
-	private realFile(file: string, preserveSymlinks: boolean): string {
-		// log.info(`readFile ${file}`);
-		const realFile = this.realFileCache.get(file);
-		if (realFile !== undefined)
-			return realFile;
-		if (fs.lstatSync(file).isSymbolicLink()) {
-			if (!preserveSymlinks)
-				log.warn(`Reading a symlink: ${file}, but "preserveSymlinks" is false.`);
-			const rf = fs.realpathSync(file);
-			this.realFileCache.set(file, rf);
-			return rf;
-		} else
-			return file;
-	}
+  private realFile(file: string, preserveSymlinks: boolean): string {
+    // log.info(`readFile ${file}`);
+    const realFile = this.realFileCache.get(file);
+    if (realFile !== undefined)
+      return realFile;
+    if (fs.lstatSync(file).isSymbolicLink()) {
+      if (!preserveSymlinks)
+        log.warn(`Reading a symlink: ${file}, but "preserveSymlinks" is false.`);
+      const rf = fs.realpathSync(file);
+      this.realFileCache.set(file, rf);
+      return rf;
+    } else
+      return file;
+  }
 
-	private createTsReadHook(ngParam: AngularCliParam): HookReadFunc {
-		// let drcpIncludeBuf: ArrayBuffer;
+  private createTsReadHook(ngParam: AngularCliParam): HookReadFunc {
+    // let drcpIncludeBuf: ArrayBuffer;
 
-		const tsconfigFile = ngParam.browserOptions.tsConfig;
+    const tsconfigFile = ngParam.browserOptions.tsConfig;
 
-		// const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || api.argv.hmr;
-		const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
-			false;
-		const tsCompilerOptions = readTsConfig(tsconfigFile);
-		// let polyfillsFile: string = '';
-		// if (ngParam.browserOptions.polyfills)
-		// 	polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
+    // const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || api.argv.hmr;
+    const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
+      false;
+    const tsCompilerOptions = readTsConfig(tsconfigFile);
+    // let polyfillsFile: string = '';
+    // if (ngParam.browserOptions.polyfills)
+    // 	polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
 
-		const appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
-		log.info('app module file: ', appModuleFile);
+    const appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
+    log.info('app module file: ', appModuleFile);
 
-		const isAot = ngParam.browserOptions.aot;
+    const isAot = ngParam.browserOptions.aot;
 
-		return (file: string, buf: ArrayBuffer): Observable<ArrayBuffer> => {
-			try {
-				if (isAot && file.endsWith('.component.html')) {
-					const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
-					if (cached != null)
-						return of(cached);
-					return of(string2buffer(replaceHtml(file, Buffer.from(buf).toString())));
+    return (file: string, buf: ArrayBuffer): Observable<ArrayBuffer> => {
+      try {
+        if (isAot && file.endsWith('.component.html')) {
+          const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
+          if (cached != null)
+            return of(cached);
+          return of(string2buffer(replaceHtml(file, Buffer.from(buf).toString())));
 
-				} else if (!file.endsWith('.ts') || file.endsWith('.d.ts')) {
-					return of(buf);
-				}
+        } else if (!file.endsWith('.ts') || file.endsWith('.d.ts')) {
+          return of(buf);
+        }
 
-				const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
-				if (cached != null)
-					return of(cached);
-				// let normalFile = relative(process.cwd(), file);
-				// if (SEP === '\\')
-				// 	normalFile = normalFile.replace(/\\/g, '/');
-				// if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
-				// 	const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
-				// 	const content = Buffer.from(buf).toString() + hmrClient;
-				// 	log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
-				// 	const bf = string2buffer(content);
-				// 	this.tsCache.set(this.realFile(file, preserveSymlinks), bf);
-				// 	return of(bf);
-				// } else if (normalFile.endsWith('/drcp-include.ts')) {
-				// 	if (drcpIncludeBuf)
-				// 		return of(drcpIncludeBuf);
-				// 	let content = Buffer.from(buf).toString();
-				// 	const legoConfig = browserLegoConfig();
-				// 	let hmrBoot: string;
-				// 	if (hmrEnabled) {
-				// 		content = 'import hmrBootstrap from \'./hmr\';\n' + content;
-				// 		hmrBoot = 'hmrBootstrap(module, bootstrap)';
-				// 	}
-				// 	if (!ngParam.browserOptions.aot) {
-				// 		content = 'import \'core-js/es7/reflect\';\n' + content;
-				// 	}
-				// 	if (hmrBoot)
-				// 		content = content.replace(/\/\* replace \*\/bootstrap\(\)/g, hmrBoot);
-				// 	if (ngParam.ssr) {
-				// 		content += '\nconsole.log("set global.LEGO_CONFIG");';
-				// 		content += '\nObject.assign(global, {\
-				// 			__drcpEntryPage: null, \
-				// 			__drcpEntryPackage: null\
-				// 		});\n';
-				// 		content += '(global as any)';
-				// 	} else {
-				// 		content += '\nObject.assign(window, {\
-				// 			__drcpEntryPage: null, \
-				// 			__drcpEntryPackage: null\
-				// 		});\n';
-				// 		content += '\n(window as any)';
-				// 	}
-				// 	content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
-				// 	drcpIncludeBuf = string2buffer(content);
-				// 	log.info(chalk.cyan(file) + ':\n' + content);
-				// 	this.tsCache.set(this.realFile(file, preserveSymlinks), drcpIncludeBuf);
-				// 	return of(drcpIncludeBuf);
-				// }
-				const compPkg = api.findPackageByFile(file);
-				let content = Buffer.from(buf).toString();
-				let needLogFile = false;
-				// patch app.module.ts
-				// if (appModuleFile === file) {
-				// 	log.info('patch', file);
-				// 	const appModulePackage = api.findPackageByFile(appModuleFile);
-				// 	const removables = removableNgModules(appModulePackage, dirname(appModuleFile));
-				// 	const ngModules: string[] = getRouterModules(appModulePackage, dirname(appModuleFile)) || removables;
-				// 	// ngModules.push(api.packageName + '/src/app#DeveloperModule');
-				// 	log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
-				// 	content = new AppModuleParser()
-				// 		.patchFile(file, content, removables, ngModules);
-				// 	needLogFile = true;
-				// }
-				const tsSelector = new Selector(content, file);
-				const hasImportApi = tsSelector.findAll(':ImportDeclaration>.moduleSpecifier:StringLiteral').some(ast => {
-					return (ast as ts.StringLiteral).text === '__api';
-				});
-				let changed = api.browserInjector.injectToFile(file, content);
+        const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
+        if (cached != null)
+          return of(cached);
+        // let normalFile = relative(process.cwd(), file);
+        // if (SEP === '\\')
+        // 	normalFile = normalFile.replace(/\\/g, '/');
+        // if (hmrEnabled && polyfillsFile && normalFile === polyfillsFile) {
+        // 	const hmrClient = '\nimport \'webpack-hot-middleware/client\';';
+        // 	const content = Buffer.from(buf).toString() + hmrClient;
+        // 	log.info(`Append to ${normalFile}: \nimport \'webpack-hot-middleware/client\';`);
+        // 	const bf = string2buffer(content);
+        // 	this.tsCache.set(this.realFile(file, preserveSymlinks), bf);
+        // 	return of(bf);
+        // } else if (normalFile.endsWith('/drcp-include.ts')) {
+        // 	if (drcpIncludeBuf)
+        // 		return of(drcpIncludeBuf);
+        // 	let content = Buffer.from(buf).toString();
+        // 	const legoConfig = browserLegoConfig();
+        // 	let hmrBoot: string;
+        // 	if (hmrEnabled) {
+        // 		content = 'import hmrBootstrap from \'./hmr\';\n' + content;
+        // 		hmrBoot = 'hmrBootstrap(module, bootstrap)';
+        // 	}
+        // 	if (!ngParam.browserOptions.aot) {
+        // 		content = 'import \'core-js/es7/reflect\';\n' + content;
+        // 	}
+        // 	if (hmrBoot)
+        // 		content = content.replace(/\/\* replace \*\/bootstrap\(\)/g, hmrBoot);
+        // 	if (ngParam.ssr) {
+        // 		content += '\nconsole.log("set global.LEGO_CONFIG");';
+        // 		content += '\nObject.assign(global, {\
+        // 			__drcpEntryPage: null, \
+        // 			__drcpEntryPackage: null\
+        // 		});\n';
+        // 		content += '(global as any)';
+        // 	} else {
+        // 		content += '\nObject.assign(window, {\
+        // 			__drcpEntryPage: null, \
+        // 			__drcpEntryPackage: null\
+        // 		});\n';
+        // 		content += '\n(window as any)';
+        // 	}
+        // 	content += `.LEGO_CONFIG = ${JSON.stringify(legoConfig, null, '  ')};\n`;
+        // 	drcpIncludeBuf = string2buffer(content);
+        // 	log.info(chalk.cyan(file) + ':\n' + content);
+        // 	this.tsCache.set(this.realFile(file, preserveSymlinks), drcpIncludeBuf);
+        // 	return of(drcpIncludeBuf);
+        // }
+        const compPkg = api.findPackageByFile(file);
+        let content = Buffer.from(buf).toString();
+        let needLogFile = false;
+        // patch app.module.ts
+        // if (appModuleFile === file) {
+        // 	log.info('patch', file);
+        // 	const appModulePackage = api.findPackageByFile(appModuleFile);
+        // 	const removables = removableNgModules(appModulePackage, dirname(appModuleFile));
+        // 	const ngModules: string[] = getRouterModules(appModulePackage, dirname(appModuleFile)) || removables;
+        // 	// ngModules.push(api.packageName + '/src/app#DeveloperModule');
+        // 	log.info('Insert optional NgModules to AppModule:\n  ' + ngModules.join('\n  '));
+        // 	content = new AppModuleParser()
+        // 		.patchFile(file, content, removables, ngModules);
+        // 	needLogFile = true;
+        // }
+        const tsSelector = new Selector(content, file);
+        const hasImportApi = tsSelector.findAll(':ImportDeclaration>.moduleSpecifier:StringLiteral').some(ast => {
+          return (ast as ts.StringLiteral).text === '__api';
+        });
+        let changed = api.browserInjector.injectToFile(file, content);
 
-				changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
-				if (hasImportApi)
-					changed = apiTmplTs({packageName: compPkg.longName}) + '\n' + changed;
-				// if (changed !== content && ngParam.ssr) {
-				// 	changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
-				// }
-				if (needLogFile)
-					log.info(chalk.cyan(file) + ':\n' + changed);
-				const bf = string2buffer(changed);
-				this.tsCache.set(this.realFile(file, preserveSymlinks), bf);
-				return of(bf);
-			} catch (ex) {
-				log.error(ex);
-				return throwError(ex);
-			}
-		};
-	}
+        changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
+        if (hasImportApi)
+          changed = apiTmplTs({packageName: compPkg.longName}) + '\n' + changed;
+        // if (changed !== content && ngParam.ssr) {
+        // 	changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;
+        // }
+        if (needLogFile)
+          log.info(chalk.cyan(file) + ':\n' + changed);
+        const bf = string2buffer(changed);
+        this.tsCache.set(this.realFile(file, preserveSymlinks), bf);
+        return of(bf);
+      } catch (ex) {
+        log.error(ex);
+        return throwError(ex);
+      }
+    };
+  }
 }
 
 export function string2buffer(input: string): ArrayBuffer {
-	const nodeBuf = Buffer.from(input);
-	const len = nodeBuf.byteLength;
-	const newBuf = new ArrayBuffer(len);
-	const dataView = new DataView(newBuf);
-	for (let i = 0; i < len; i++) {
-		dataView.setUint8(i, nodeBuf.readUInt8(i));
-	}
-	return newBuf;
+  const nodeBuf = Buffer.from(input);
+  const len = nodeBuf.byteLength;
+  const newBuf = new ArrayBuffer(len);
+  const dataView = new DataView(newBuf);
+  for (let i = 0; i < len; i++) {
+    dataView.setUint8(i, nodeBuf.readUInt8(i));
+  }
+  return newBuf;
 }
 
 // function browserLegoConfig() {

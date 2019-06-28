@@ -12,33 +12,33 @@ const log = require('log4js').getLogger(__api.packageName + '.dev-serve-assets')
 const api = __api as ExpressAppApi & typeof __api;
 
 export default function setupAssets(deployUrl: string,
-	routeUse: express.Router['use']) {
-	const rootPath = _.trimEnd(parse(deployUrl).pathname, '/');
-	api.packageUtils.findAllPackages(
-		(name: string, entryPath: string, parsedName: {name: string}, json: any, packagePath: string) => {
-		var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
-		var assetsDir = Path.join(packagePath, assetsFolder);
-		var assetsDirMap = api.config.get('outputPathMap.' + name);
+  routeUse: express.Router['use']) {
+  const rootPath = _.trimEnd(parse(deployUrl).pathname, '/');
+  api.packageUtils.findAllPackages(
+    (name: string, entryPath: string, parsedName: {name: string}, json: any, packagePath: string) => {
+    var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
+    var assetsDir = Path.join(packagePath, assetsFolder);
+    var assetsDirMap = api.config.get('outputPathMap.' + name);
 
-		if (assetsDirMap != null)
-			assetsDirMap = _.trim(assetsDirMap, '/');
+    if (assetsDirMap != null)
+      assetsDirMap = _.trim(assetsDirMap, '/');
 
-		if (fs.existsSync(assetsDir)) {
-			var pathElement = [];
-			if (rootPath)
-				pathElement.push(rootPath);
+    if (fs.existsSync(assetsDir)) {
+      var pathElement = [];
+      if (rootPath)
+        pathElement.push(rootPath);
 
-			if (assetsDirMap == null)
-				pathElement.push(parsedName.name);
-			else if (assetsDirMap !== '')
-				pathElement.push(assetsDirMap);
+      if (assetsDirMap == null)
+        pathElement.push(parsedName.name);
+      else if (assetsDirMap !== '')
+        pathElement.push(assetsDirMap);
 
-			var path = pathElement.join('/');
-			if (path.length > 1)
-				path += '/';
-			log.info('route ' + path + ' -> ' + assetsDir);
+      var path = pathElement.join('/');
+      if (path.length > 1)
+        path += '/';
+      log.info('route ' + path + ' -> ' + assetsDir);
 
-			routeUse(path, createStaticRoute(assetsDir));
-		}
-	});
+      routeUse(path, createStaticRoute(assetsDir));
+    }
+  });
 }

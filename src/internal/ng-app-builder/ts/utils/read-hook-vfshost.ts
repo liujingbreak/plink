@@ -14,31 +14,31 @@ import { InputFileSystem } from 'webpack';
 export type FBuffer = virtualFs.FileBuffer;
 
 export interface TsFile {
-	path: Path;
-	buffer: FBuffer;
+  path: Path;
+  buffer: FBuffer;
 }
 
 export type HookReadFunc =(path: string, buffer: FBuffer) => Observable<FBuffer>;
 
 export default class ReadHookHost extends WebpackInputHost {
-	/** set this property to add a file read hook */
-	_readFunc: HookReadFunc;
+  /** set this property to add a file read hook */
+  _readFunc: HookReadFunc;
 
-	constructor(inputFileSystem: InputFileSystem, func: HookReadFunc) {
-		super(inputFileSystem);
-		this._readFunc = func;
-	}
+  constructor(inputFileSystem: InputFileSystem, func: HookReadFunc) {
+    super(inputFileSystem);
+    this._readFunc = func;
+  }
 
-	read(path: Path): Observable<FBuffer> {
-		return super.read(path).pipe(
-			concatMap((buffer: FBuffer) => {
-				const sPath: string = getSystemPath(path);
-				return this._hookRead(sPath, buffer);
-			})
-		);
-	}
+  read(path: Path): Observable<FBuffer> {
+    return super.read(path).pipe(
+      concatMap((buffer: FBuffer) => {
+        const sPath: string = getSystemPath(path);
+        return this._hookRead(sPath, buffer);
+      })
+    );
+  }
 
-	protected _hookRead(path: string, buffer: FBuffer): Observable<FBuffer> {
-		return this._readFunc(path, buffer);
-	}
+  protected _hookRead(path: string, buffer: FBuffer): Observable<FBuffer> {
+    return this._readFunc(path, buffer);
+  }
 }

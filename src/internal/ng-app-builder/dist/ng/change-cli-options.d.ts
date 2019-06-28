@@ -5,10 +5,10 @@ import { ConfigHandler, DrcpConfig } from 'dr-comp-package/wfh/dist/config-handl
 import { AngularBuilderOptions } from './common';
 export interface AngularConfigHandler extends ConfigHandler {
     /**
-     * You may override angular.json in this function
-     * @param options Angular angular.json properties under path <project>.architect.<command>.options
-     * @param builderConfig Angular angular.json properties under path <project>
-     */
+       * You may override angular.json in this function
+       * @param options Angular angular.json properties under path <project>.architect.<command>.options
+       * @param builderConfig Angular angular.json properties under path <project>
+       */
     angularJson(options: AngularBuilderOptions, builderConfig?: DevServerBuilderOptions): Promise<void> | void;
 }
 /**

@@ -20,10 +20,10 @@ export interface DrcpConfig {
 }
 export interface ConfigHandler {
     /**
-     *
-     * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
-     * @param drcpCliArgv Override command line argumemnt for DRCP
-     */
+       *
+       * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
+       * @param drcpCliArgv Override command line argumemnt for DRCP
+       */
     onConfig(configSetting: {
         [prop: string]: any;
     }, drcpCliArgv?: {
@@ -41,10 +41,10 @@ export declare class ConfigHandlerMgr {
     }>;
     constructor(files: string[]);
     /**
-     *
-     * @param func parameters: (filePath, last returned result, handler function),
-     * returns the changed result, keep the last result, if resturns undefined
-     * @returns last result
-     */
+       *
+       * @param func parameters: (filePath, last returned result, handler function),
+       * returns the changed result, keep the last result, if resturns undefined
+       * @returns last result
+       */
     runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): Promise<any>;
 }
