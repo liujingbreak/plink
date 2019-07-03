@@ -38,16 +38,12 @@ function hackAngularBuilderContext(context: BuilderContext, targetName: string,
   replacedOpts: any) {
   const getTargetOptions = context.getTargetOptions;
 
-  // const cached = new Map<string, any>();
   context.getTargetOptions = async function(target: Target) {
-    // if (cached.has(target.project + '.' + target.target)) {
-    // 	return cached.get(target.project + '.' + target.target);
-    // }
     if (target.target === targetName) {
+      // log.info('Angular cli build options', replacedOpts);
       return replacedOpts;
     }
     const origOption = await getTargetOptions.apply(context, arguments);
-    // cached.set(target.project + '.' + target.target, origOption);
     return origOption;
   };
 }
@@ -80,7 +76,7 @@ export async function changeAngularCliOptions(config: DrcpConfig,
 }
 
 async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptions: BrowserBuilderSchema,
-  builderConfig?: DevServerBuilderOptions, hmr = false) {
+  devServerConfig?: DevServerBuilderOptions, hmr = false) {
   const browserOptions = rawBrowserOptions as AngularBuilderOptions;
   for (const prop of ['deployUrl', 'outputPath', 'styles']) {
     const value = config.get([currPackageName, prop]);
@@ -93,7 +89,7 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
   await config.configHandlerMgr().runEach<AngularConfigHandler>((file, obj, handler) => {
     console.log(green('change-cli-options - ') + ' run', cyan(file));
     if (handler.angularJson)
-      return handler.angularJson(browserOptions, builderConfig);
+      return handler.angularJson(browserOptions, devServerConfig);
     else
       return obj;
   });
@@ -129,8 +125,8 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
     config.set('publicPath', deployUrl);
 
   const mainHmr = createMainFileForHmr(browserOptions.main);
-  if (hmr && builderConfig) {
-    builderConfig.hmr = true;
+  if (hmr && devServerConfig) {
+    devServerConfig.hmr = true;
     if (!browserOptions.fileReplacements)
       browserOptions.fileReplacements = [];
     browserOptions.fileReplacements.push({

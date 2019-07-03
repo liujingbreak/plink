@@ -36,9 +36,9 @@ export default function setupAssets(deployUrl: string,
       var path = pathElement.join('/');
       if (path.length > 1)
         path += '/';
-      log.info('route ' + path + ' -> ' + assetsDir);
+      log.info('route /' + path + ' -> ' + assetsDir);
 
-      routeUse(path, createStaticRoute(assetsDir));
+      routeUse('/' + path, createStaticRoute(assetsDir));
     }
   });
 }

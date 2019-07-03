@@ -98,7 +98,7 @@ function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: Ra
   }
 
   // TODO revert to ES2015 Module export, when new CSS Pipeline is in place
-  log.info('resource URL:', publicPath);
+  log.debug('resource URL:', publicPath);
   return `module.exports = ${publicPath};`;
 
 

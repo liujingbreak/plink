@@ -1,13 +1,12 @@
-import api from '__api';
+import { Observable, of } from 'rxjs';
+import { concatMap, map } from 'rxjs/operators';
 import * as wb from 'webpack';
-import {publicUrl} from 'dr-comp-package/wfh/dist/assets-url';
+import api from '__api';
+import patchText, { ReplacementInf } from '../utils/patch-text';
+import { ScssLexer, ScssParser } from '../utils/simple-scss-parser';
 // import * as Path from 'path';
 // import * as _ from 'lodash';
 import vm = require('vm');
-import patchText, {ReplacementInf} from '../utils/patch-text';
-import {Observable, of} from 'rxjs';
-import {concatMap, map} from 'rxjs/operators';
-import {ScssParser, ScssLexer} from '../utils/simple-scss-parser';
 // import {loader as wbLoader} from 'webpack';
 const log = require('log4js').getLogger(api.packageName + '/css-url-loader');
 
@@ -76,8 +75,8 @@ function loadModule(loaderCtx: wb.loader.LoaderContext, url: string) {
       if (err)
         return loadModuleSub.error(err);
       var sandbox = {
-        // Later on, Angular's postcss plugin will prefix `deployUrl/publicPath` to url string
-        __webpack_public_path__: '/',
+        // Since Angular 8.0, postcss plugin will no longer add `deployUrl/publicPath` to url string
+        __webpack_public_path__: loaderCtx._compiler.options.output!.publicPath,
         module: {
           exports: {}
         }
@@ -85,7 +84,7 @@ function loadModule(loaderCtx: wb.loader.LoaderContext, url: string) {
       vm.runInNewContext(source, vm.createContext(sandbox));
       const newUrl = sandbox.module.exports as string;
       loadModuleSub.next(newUrl);
-      log.debug('url: %s  -> %s', url, newUrl);
+      // log.warn('url: %s  -> %s', url, newUrl);
       loadModuleSub.complete();
     });
   });
@@ -98,5 +97,6 @@ function replaceAssetsUrl(file: string, url: string) {
   else if (res.isTilde)
     return `~${res.packageName}/${res.path}`;
   else
-    return publicUrl('', api.config().outputPathMap, null, res.packageName, res.path);
+    return api.assetsUrl(res.packageName, res.path);
+    // return publicUrl('', api.config().outputPathMap, null, res.packageName, res.path);
 }
