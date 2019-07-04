@@ -13,3 +13,4 @@ export default class IndexHtmlPlugin {
     constructor(options: IndexHtmlPluginOptions);
     apply(compiler: Compiler): void;
 }
+export declare function transformHtml(source: string, inlineReplace: (srcUrl: string) => string | null | void): Promise<string>;

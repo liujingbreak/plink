@@ -24,7 +24,8 @@ export default createBuilder<DevServerBuilderOptions, DevServerBuilderOutput>(
               ssr: false
             }, config, {devMode: true});
             return config;
-          }
+          },
+          indexHtml: drcpCommon.transformIndexHtml
         });
     }));
   }

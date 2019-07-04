@@ -10,6 +10,7 @@ export declare function initCli(options: any): Promise<import("dr-comp-package/w
 export declare function configWebpack(param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
     devMode: boolean;
 }): void;
+export declare function transformIndexHtml(content: string): Promise<string>;
 export declare type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
 export interface AngularCliParam {
     builderConfig?: DevServerBuilderOptions;

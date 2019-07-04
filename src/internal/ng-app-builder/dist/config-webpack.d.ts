@@ -12,3 +12,4 @@ export interface WepackConfigHandler {
 export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
     devMode: boolean;
 }): Promise<webpack.Configuration>;
+export declare function transformIndexHtml(content: string): Promise<string>;

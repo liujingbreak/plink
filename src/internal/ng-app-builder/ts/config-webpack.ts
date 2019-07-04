@@ -12,10 +12,10 @@ import TSReadHooker from './ng-ts-replace';
 import { AngularCliParam } from './ng/common';
 import ChunkInfoPlugin from './plugins/chunk-info';
 import gzipSize from './plugins/gzip-size';
-import IndexHtmlPlugin from './plugins/index-html-plugin';
+// import IndexHtmlPlugin from './plugins/index-html-plugin';
 import ReadHookHost from './utils/read-hook-vfshost';
-import {Application} from 'express';
-import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
+// import {Application} from 'express';
+// import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
 export interface WepackConfigHandler {
   /** @returns webpack configuration or Promise */
   webpackConfig(originalConfig: any): Promise<{[name: string]: any} | void> | {[name: string]: any} | void;
@@ -31,12 +31,12 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
   }
   if (webpackConfig.devServer) {
     const devServer = webpackConfig.devServer;
-    const origin = webpackConfig.devServer.before;
-    devServer.before = function after(app: Application) {
-      setupAssets(devServer.publicPath || '/', app.use.bind(app));
-      if (origin)
-        origin.apply(this, arguments);
-    };
+    // const origin = webpackConfig.devServer.before;
+    // devServer.before = function after(app: Application) {
+    //   setupAssets(devServer.publicPath || '/', app.use.bind(app));
+    //   if (origin)
+    //     origin.apply(this, arguments);
+    // };
     devServer.compress = true;
   }
 
@@ -78,10 +78,11 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
   }
 
   if (webpackConfig.target !== 'node') {
-    webpackConfig.plugins.push(new IndexHtmlPlugin({
-        indexFile: Path.resolve(param.browserOptions.index),
-        inlineChunkNames: ['runtime']
-      }));
+    // Since Angular 8.1.0, there is no indexHtmlPlugin used in Webpack configuration
+    // webpackConfig.plugins.push(new IndexHtmlPlugin({
+    //     indexFile: Path.resolve(param.browserOptions.index),
+    //     inlineChunkNames: ['runtime']
+    //   }));
   } else {
     // This is condition of Server side rendering
     // Refer to angular-cli/packages/angular_devkit/build_angular/src/angular-cli-files/models/webpack-configs/server.ts
@@ -365,11 +366,11 @@ function printConfigValue(value: any, level: number): string {
   return out;
 }
 
-// class CompileDonePlugin {
+export async function transformIndexHtml(content: string) {
+  // const plugin = new IndexHtmlPlugin({
+  //   indexFile: Path.resolve(browserOptions.index),
+  //   inlineChunkNames: ['runtime']
+  // });
+  return content;
+}
 
-// 	apply(compiler: Compiler) {
-// 		compiler.hooks.done.tap('drcp-devserver-build-webpack', (stats) => {
-// 			api.eventBus.emit('webpackDone', {success: true});
-// 		});
-// 	}
-// }

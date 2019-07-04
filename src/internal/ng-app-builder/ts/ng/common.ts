@@ -1,9 +1,9 @@
 /* tslint:disable no-console max-line-length */
-import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
+import { DevServerBuilderOptions  } from '@angular-devkit/build-angular';
 import { Schema as NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { Schema as NormalizedServerBuilderServerSchema } from '@angular-devkit/build-angular/src/server/schema';
 import {json} from '@angular-devkit/core';
-import __changeWebpackConfig from '../config-webpack';
+import __changeWebpackConfig, {transformIndexHtml as _transformIndexHtml} from '../config-webpack';
 import webpack from 'webpack';
 import api from '__api';
 
@@ -28,6 +28,11 @@ export function configWebpack(param: AngularCliParam, webpackConfig: webpack.Con
   drcpConfigSetting: {devMode: boolean}) {
   const changeWebpackConfig: typeof __changeWebpackConfig = require('../config-webpack').default;
   changeWebpackConfig(param, webpackConfig, drcpConfigSetting);
+}
+
+export function transformIndexHtml(content: string) {
+  const trans: typeof _transformIndexHtml = require('../config-webpack').transformIndexHtml;
+  return trans(content);
 }
 
 export type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;

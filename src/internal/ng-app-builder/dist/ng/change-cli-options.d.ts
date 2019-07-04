@@ -16,7 +16,7 @@ export interface AngularConfigHandler extends ConfigHandler {
  * @param config
  * @param browserOptions
  */
-export declare function changeAngularCliOptionsForBuild(config: DrcpConfig, browserOptions: BrowserBuilderSchema): Promise<AngularBuilderOptions>;
+export declare function changeAngularCliOptionsForBuild(config: DrcpConfig, browserOptions: BrowserBuilderSchema, context: BuilderContext): Promise<AngularBuilderOptions>;
 /**
  * For dev server (ng serve)
  * @param config

@@ -41,39 +41,52 @@ export default class IndexHtmlPlugin {
     compiler.hooks.emit.tapPromise('drcp-index-html-plugin', async compilation => {
       const htmlSrc = compilation.assets[this.indexOutputPath];
       let source: string = htmlSrc.source();
-      const compile = _.template(source);
-      const replacements: ReplacementInf[] = [];
-      source = compile({
-        api,
-        require
-      });
-
-      const asts = new TemplateParser(source).parse();
-      for (const ast of asts) {
-        if (ast.name.toLowerCase() === 'script' && ast.attrs) {
-          const srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'value');
-          if (srcUrl == null)
-            continue;
-          // log.warn('srcUrl', srcUrl.text);
-          const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl.text);
-          if (match && this.inlineChunkSet.has(match[1])) {
-            replacements.push({
-              start: ast.start, end: ast.end, text: '<script>' + smUrl.removeFrom(compilation.assets[match[0]].source())
-            });
-            log.info(`Inline chunk "${match[1]}" in :`, this.options.indexFile);
-          }
+      source = await transformHtml(source, (srcUrl) => {
+        const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
+        if (match && this.inlineChunkSet.has(match[1])) {
+          return smUrl.removeFrom(compilation.assets[match[0]].source());
         }
-      }
-      if (replacements.length > 0) {
-        source = replaceCode(source, replacements);
-      }
-
-      // log.warn(source);
-
-      source = await htmlLoader.compileHtml(source,
-        new MockLoaderContext(this.options.indexFile) as any);
+        return null;
+      });
 
       compilation.assets[this.indexOutputPath] = new RawSource(source);
     });
   }
+}
+
+export async function transformHtml(
+  source: string,
+  inlineReplace: (srcUrl: string) => string | null | void) {
+
+  const compile = _.template(source);
+  const replacements: ReplacementInf[] = [];
+  source = compile({
+    api,
+    require
+  });
+
+  const asts = new TemplateParser(source).parse();
+  for (const ast of asts) {
+    if (ast.name.toLowerCase() === 'script' && ast.attrs) {
+      const srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'value');
+      if (srcUrl == null)
+        continue;
+      const inlineContent = inlineReplace(srcUrl.text);
+      if (inlineContent != null) {
+        replacements.push({
+          start: ast.start, end: ast.end, text: '<script>' + inlineContent
+        });
+        log.info(`Inline "${srcUrl.text}" in :`, this.options.indexFile);
+      }
+    }
+  }
+  if (replacements.length > 0) {
+    source = replaceCode(source, replacements);
+  }
+
+  // log.warn(source);
+
+  source = await htmlLoader.compileHtml(source,
+    new MockLoaderContext(this.options.indexFile) as any);
+  return source;
 }

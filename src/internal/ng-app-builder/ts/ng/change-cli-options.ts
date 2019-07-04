@@ -16,6 +16,8 @@ import TsAstSelector from '../utils/ts-ast-query';
 import { AngularBuilderOptions } from './common';
 import apiSetup from './injector-setup';
 import ts from 'typescript';
+import {packageAssetsFolders} from '@dr-core/assets-processer/dist/dev-serve-assets';
+
 
 const {cyan, green, red} = require('chalk');
 const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
@@ -53,8 +55,8 @@ function hackAngularBuilderContext(context: BuilderContext, targetName: string,
  * @param browserOptions 
  */
 export async function changeAngularCliOptionsForBuild(config: DrcpConfig,
-  browserOptions: BrowserBuilderSchema): Promise<AngularBuilderOptions> {
-  return processBrowserBuiliderOptions(config, browserOptions);
+  browserOptions: BrowserBuilderSchema, context: BuilderContext): Promise<AngularBuilderOptions> {
+  return processBrowserBuiliderOptions(config, browserOptions, context);
 }
 
 /**
@@ -70,13 +72,18 @@ export async function changeAngularCliOptions(config: DrcpConfig,
   const browserTarget = targetFromTargetString(builderConfig!.browserTarget);
   const rawBrowserOptions = await context.getTargetOptions(browserTarget);
   const browserOptions = await processBrowserBuiliderOptions(
-    config, rawBrowserOptions as any as BrowserBuilderSchema, builderConfig, true);
+    config, rawBrowserOptions as any as BrowserBuilderSchema, context, builderConfig, true);
   hackAngularBuilderContext(context, 'build', browserOptions);
   return browserOptions;
 }
 
-async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptions: BrowserBuilderSchema,
+async function processBrowserBuiliderOptions(
+  config: DrcpConfig,
+  rawBrowserOptions: BrowserBuilderSchema,
+  context: BuilderContext,
   devServerConfig?: DevServerBuilderOptions, hmr = false) {
+
+  context.reportStatus('Change builder options');
   const browserOptions = rawBrowserOptions as AngularBuilderOptions;
   for (const prop of ['deployUrl', 'outputPath', 'styles']) {
     const value = config.get([currPackageName, prop]);
@@ -139,8 +146,29 @@ async function processBrowserBuiliderOptions(config: DrcpConfig, rawBrowserOptio
   }
 
   browserOptions.commonChunk = false;
+
   hackTsConfig(browserOptions, config);
   await apiSetup(browserOptions);
+
+  context.reportStatus('setting up assets options');
+  // Because dev-serve-assets depends on DRCP api, I have to lazy load it.
+  const forEachAssetsDir: typeof packageAssetsFolders =
+  require('@dr-core/assets-processer/dist/dev-serve-assets').packageAssetsFolders;
+  forEachAssetsDir('/', (inputDir, outputDir) => {
+    if (!browserOptions.assets) {
+      browserOptions.assets = [];
+    }
+    let input = Path.relative(process.cwd(), inputDir).replace(/\\/g, '/');
+    if (!input.startsWith('.')) {
+      input = './' + input;
+    }
+    browserOptions.assets!.push({
+      input,
+      glob: '**/*',
+      output: outputDir.endsWith('/') ? outputDir : outputDir + '/'
+    });
+  });
+  context.logger.info('browser builder options:' + JSON.stringify(browserOptions, undefined, '  '));
   return browserOptions;
 }
 

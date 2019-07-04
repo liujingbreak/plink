@@ -1,5 +1,6 @@
 import '../../ng/node-inject';
 import {executeBrowserBuilder} from '@angular-devkit/build-angular';
+
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import {json} from '@angular-devkit/core';
 import {from} from 'rxjs';
@@ -16,7 +17,7 @@ export default createBuilder<json.JsonObject & BrowserBuilderSchema>(
     return from(drcpCommon.initCli(options))
     .pipe(
       concatMap(config => {
-        return from(changeAngularCliOptionsForBuild(config, options));
+        return from(changeAngularCliOptionsForBuild(config, options, context));
       }),
       concatMap(browserOptions => {
         return executeBrowserBuilder(browserOptions, context, {
@@ -26,7 +27,8 @@ export default createBuilder<json.JsonObject & BrowserBuilderSchema>(
               ssr: false
             }, config, {devMode: true});
             return config;
-          }
+          },
+          indexHtml: drcpCommon.transformIndexHtml
         });
       })
     );
