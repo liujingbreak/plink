@@ -4,7 +4,6 @@ import { Schema as NormalizedBrowserBuilderSchema } from '@angular-devkit/build-
 import { Schema as NormalizedServerBuilderServerSchema } from '@angular-devkit/build-angular/src/server/schema';
 import {json} from '@angular-devkit/core';
 import __changeWebpackConfig, {transformIndexHtml as _transformIndexHtml} from '../config-webpack';
-import webpack from 'webpack';
 import api from '__api';
 
 export type DrcpConfig = typeof api.config;
@@ -22,17 +21,6 @@ async function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): Promise<DrcpC
   await config.init(drcpArgs);
   require('dr-comp-package/wfh/lib/logConfig')(config());
   return config;
-}
-
-export function configWebpack(param: AngularCliParam, webpackConfig: webpack.Configuration,
-  drcpConfigSetting: {devMode: boolean}) {
-  const changeWebpackConfig: typeof __changeWebpackConfig = require('../config-webpack').default;
-  changeWebpackConfig(param, webpackConfig, drcpConfigSetting);
-}
-
-export function transformIndexHtml(content: string) {
-  const trans: typeof _transformIndexHtml = require('../config-webpack').transformIndexHtml;
-  return trans(content);
 }
 
 export type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
@@ -57,4 +45,11 @@ export type AngularBuilderOptions =
 export interface DrcpBuilderOptions {
   drcpArgs: any;
   drcpConfig: string;
+}
+
+import {BuilderContext} from './builder-context';
+
+export function newContext() {
+  const constructor = require('./builder-context').BuilderContext as typeof BuilderContext;
+  return new constructor();
 }

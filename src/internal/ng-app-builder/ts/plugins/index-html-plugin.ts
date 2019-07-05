@@ -19,7 +19,8 @@ export interface IndexHtmlPluginOptions {
 }
 
 class MockLoaderContext {
-  constructor(public resourcePath: string) {}
+  resourcePath = ''; // To override super interface
+  constructor() {}
 
   loadModule(path: string, callback: (err: Error, source?: any, sourceMap?: any, module?: any) => void) {
       callback(new Error(`index.html does not support requesting relative resource URL like "${path}".` +
@@ -54,18 +55,18 @@ export default class IndexHtmlPlugin {
   }
 }
 
-export async function transformHtml(
-  source: string,
+export async function transformHtml(this: void,
+  html: string,
   inlineReplace: (srcUrl: string) => string | null | void) {
 
-  const compile = _.template(source);
+  const compile = _.template(html);
   const replacements: ReplacementInf[] = [];
-  source = compile({
+  html = compile({
     api,
     require
   });
 
-  const asts = new TemplateParser(source).parse();
+  const asts = new TemplateParser(html).parse();
   for (const ast of asts) {
     if (ast.name.toLowerCase() === 'script' && ast.attrs) {
       const srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'value');
@@ -76,17 +77,16 @@ export async function transformHtml(
         replacements.push({
           start: ast.start, end: ast.end, text: '<script>' + inlineContent
         });
-        log.info(`Inline "${srcUrl.text}" in :`, this.options.indexFile);
+        log.info(`Inline "${srcUrl.text}" in :`);
       }
     }
   }
   if (replacements.length > 0) {
-    source = replaceCode(source, replacements);
+    html = replaceCode(html, replacements);
   }
 
-  // log.warn(source);
+  // log.warn(html);
 
-  source = await htmlLoader.compileHtml(source,
-    new MockLoaderContext(this.options.indexFile) as any);
-  return source;
+  html = await htmlLoader.compileHtml(html, new MockLoaderContext());
+  return html;
 }

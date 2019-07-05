@@ -20,15 +20,16 @@ export default createBuilder<json.JsonObject & BrowserBuilderSchema>(
         return from(changeAngularCliOptionsForBuild(config, options, context));
       }),
       concatMap(browserOptions => {
+        const drcpBuilderCtx = drcpCommon.newContext();
         return executeBrowserBuilder(browserOptions, context, {
           webpackConfiguration: async (config) => {
-            await drcpCommon.configWebpack({
+            await drcpBuilderCtx.configWebpack({
               browserOptions,
               ssr: false
             }, config, {devMode: true});
             return config;
           },
-          indexHtml: drcpCommon.transformIndexHtml
+          indexHtml: (content) => drcpBuilderCtx.transformIndexHtml(content)
         });
       })
     );

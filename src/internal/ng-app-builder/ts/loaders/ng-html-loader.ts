@@ -7,7 +7,11 @@ import {Observable} from 'rxjs';
 import vm = require('vm');
 import {replaceForHtml} from '../ng-aot-assets/html-assets-resolver';
 
-const loader: wbLoader.Loader & {compileHtml: (content: string, loader: wbLoader.LoaderContext)=> Promise<string>} =
+interface LoaderContext {
+  loadModule: wbLoader.LoaderContext['loadModule'];
+  resourcePath: wbLoader.LoaderContext['resourcePath'];
+}
+const loader: wbLoader.Loader & {compileHtml: (content: string, loader: LoaderContext)=> Promise<string>} =
 function(content: string, map?: RawSourceMap) {
   var callback = this.async();
   if (!callback) {
@@ -31,7 +35,11 @@ loader.compileHtml = load;
 
 export = loader;
 
-async function load(content: string, loader: wbLoader.LoaderContext): Promise<string> {
+async function load(
+  content: string,
+  loader: LoaderContext
+  ): Promise<string> {
+
   return replaceForHtml(content, loader.resourcePath, (text: string) => {
     return new Observable<string>(subscriber => {
       // Unlike extract-loader, we does not support embedded require statement in source code 

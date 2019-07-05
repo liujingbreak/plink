@@ -9,11 +9,14 @@ import * as webpack from 'webpack';
 import { Compiler } from 'webpack';
 import api from '__api';
 import TSReadHooker from './ng-ts-replace';
+import { BuilderContext } from './ng/builder-context';
 import { AngularCliParam } from './ng/common';
 import ChunkInfoPlugin from './plugins/chunk-info';
 import gzipSize from './plugins/gzip-size';
-// import IndexHtmlPlugin from './plugins/index-html-plugin';
+import { transformHtml } from './plugins/index-html-plugin';
 import ReadHookHost from './utils/read-hook-vfshost';
+const smUrl = require('source-map-url');
+const log = require('log4js').getLogger('config-webpack');
 // import {Application} from 'express';
 // import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
 export interface WepackConfigHandler {
@@ -21,7 +24,7 @@ export interface WepackConfigHandler {
   webpackConfig(originalConfig: any): Promise<{[name: string]: any} | void> | {[name: string]: any} | void;
 }
 
-export default async function changeWebpackConfig(param: AngularCliParam, webpackConfig: webpack.Configuration,
+export default async function changeWebpackConfig(context: BuilderContext, param: AngularCliParam, webpackConfig: webpack.Configuration,
   drcpConfigSetting: {devMode: boolean}) {
   // const api: typeof __api = require('__api'); // force to defer loading api until DRCP config is ready
   console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
@@ -83,6 +86,13 @@ export default async function changeWebpackConfig(param: AngularCliParam, webpac
     //     indexFile: Path.resolve(param.browserOptions.index),
     //     inlineChunkNames: ['runtime']
     //   }));
+    webpackConfig.plugins.push(new (class DrcpBuilderAssetsPlugin {
+      apply(compiler: Compiler) {
+        compiler.hooks.emit.tapPromise('drcp-builder-assets', async compilation => {
+          context._setCompilation(compilation);
+        });
+      }
+    })());
   } else {
     // This is condition of Server side rendering
     // Refer to angular-cli/packages/angular_devkit/build_angular/src/angular-cli-files/models/webpack-configs/server.ts
@@ -366,11 +376,22 @@ function printConfigValue(value: any, level: number): string {
   return out;
 }
 
-export async function transformIndexHtml(content: string) {
-  // const plugin = new IndexHtmlPlugin({
-  //   indexFile: Path.resolve(browserOptions.index),
-  //   inlineChunkNames: ['runtime']
-  // });
-  return content;
+export async function transformIndexHtml(context: BuilderContext, content: string) {
+  try {
+    const compilation = await context.compilation;
+    const assets = compilation.assets;
+    return transformHtml(content, srcUrl => {
+      const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
+      if (match && match[1] === 'runtime') {
+        const source = assets[match[0]].source();
+        log.warn(source);
+        return smUrl.removeFrom(source);
+      }
+      return null;
+    });
+  } catch (e) {
+    log.error(e);
+    throw e;
+  }
 }
 

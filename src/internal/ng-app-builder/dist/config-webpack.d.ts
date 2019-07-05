@@ -1,5 +1,6 @@
 /// <reference types="webpack-dev-server" />
 import * as webpack from 'webpack';
+import { BuilderContext } from './ng/builder-context';
 import { AngularCliParam } from './ng/common';
 export interface WepackConfigHandler {
     /** @returns webpack configuration or Promise */
@@ -9,7 +10,7 @@ export interface WepackConfigHandler {
         [name: string]: any;
     } | void;
 }
-export default function changeWebpackConfig(param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
+export default function changeWebpackConfig(context: BuilderContext, param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
     devMode: boolean;
 }): Promise<webpack.Configuration>;
-export declare function transformIndexHtml(content: string): Promise<string>;
+export declare function transformIndexHtml(context: BuilderContext, content: string): Promise<string>;
