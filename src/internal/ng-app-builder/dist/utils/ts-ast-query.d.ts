@@ -1,4 +1,4 @@
-import * as ts from 'typescript';
+import ts from 'typescript';
 export declare function printFile(fileName: string): void;
 export default class Selector {
     src: ts.SourceFile;
@@ -6,13 +6,15 @@ export default class Selector {
     constructor(src: ts.SourceFile);
     /**
        *
-       * @param query Like CSS select := <selector element> (" " | ">") <selector element>
+       * @param query Like CSS select := ["^"] <selector element> (" " | ">") <selector element>
        *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
        *   where <index> := "[" "0"-"9" "]"
+     *
        * e.g.
        *  - .elements:ImportSpecifier > .name
        *  - .elements[2] > .name
-       *  - .statements[0] :ImportSpecifier > :Identifier
+       *  - ^.statements[0] :ImportSpecifier > :Identifier
+     * Begining with "^" means strictly comparing from first queried AST node
        * @param callback
        */
     findWith<T>(query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
@@ -67,9 +69,16 @@ export interface AstQuery extends AstCharacter {
 }
 export declare class Query {
     queryPaths: AstCharacter[][];
+    private fromRoot;
     constructor(query: string);
     matches(path: string[]): boolean;
     protected _parseDesc(singleAstDesc: string): AstQuery;
     private matchesAst;
+    /**
+     * predicte if it matches ">" connected path expression
+     * @param queryNodes all items in reversed order
+     * @param path
+     * @param testPos starts with path.length - 1
+     */
     private matchesConsecutiveNodes;
 }

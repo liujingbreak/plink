@@ -16,8 +16,6 @@ const SEP = Path.sep;
 
 require('../lib/logConfig')(config());
 const log = require('log4js').getLogger('wfh.typescript');
-
-exports.tsc = tsc;
 // exports.init = init;
 const root = config().rootPath;
 const nodeModules = Path.join(root, 'node_modules');
@@ -41,7 +39,7 @@ interface ComponentDirInfo {
  * @param {function} onCompiled () => void
  * @return void
  */
-function tsc(argv: Args, onCompiled: () => void) {
+export function tsc(argv: Args, onCompiled: () => void) {
   // const possibleSrcDirs = ['isom', 'ts'];
   var compGlobs: string[] = [];
   // var compStream = [];
@@ -146,16 +144,11 @@ function compile(compGlobs: string[], tsProject: any,
       }
       const {tsDirs, dir} = compDirInfo.get(packageName)!;
       const packageRelPath = Path.relative(dir, file.path).replace(/\\/g, '/');
-      [tsDirs.srcDir, tsDirs.isomDir].some(srcDir => {
-        if (packageRelPath.indexOf(srcDir + '/') === 0) {
-          if (srcDir === 'ts') {
-            file.path = Path.resolve(nodeModules, packageName, tsDirs.destDir,
-              shortPath.substring(packageName.length + 1 + (srcDir.length > 0 ? srcDir.length + 1 : 0)));
-          }
-          return true;
-        }
-        return false;
-      });
+
+      if (packageRelPath.startsWith(tsDirs.srcDir + '/')) {
+        file.path = Path.resolve(nodeModules, packageName, tsDirs.destDir,
+          shortPath.substring(packageName.length + 1 + (tsDirs.srcDir.length > 0 ? tsDirs.srcDir.length + 1 : 0)));
+      }
       next(null, file);
     });
   }

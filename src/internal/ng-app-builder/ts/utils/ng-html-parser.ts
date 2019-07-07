@@ -1,4 +1,7 @@
 /* tslint:disable max-classes-per-file max-line-length no-console jsdoc-format */
+/**
+ * TODO: Support parsing file with <script></script> tag contains special JS character like "<" and ">"
+ */
 import {Token, BaseParser, BaseLexer} from 'dr-comp-package/wfh/dist/base-LLn-parser';
 
 export enum HtmlTokenType {

@@ -1,3 +1,6 @@
+/**
+ * TODO: Support parsing file with <script></script> tag contains special JS character like "<" and ">"
+ */
 import { Token, BaseParser, BaseLexer } from 'dr-comp-package/wfh/dist/base-LLn-parser';
 export declare enum HtmlTokenType {
     '<' = 0,

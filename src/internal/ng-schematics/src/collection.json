@@ -1,0 +1,9 @@
+{
+  "$schema": "../../../../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "help": {
+      "description": "A helper schematic.",
+      "factory": "../dist/ng-schematics/index#help"
+    }
+  }
+}

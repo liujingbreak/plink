@@ -4,12 +4,14 @@ import {ngRouterPath} from '../../dist/api-share';
 
 import * as lodash from 'lodash';
 
-declare const LEGO_CONFIG: any & {buildLocale: string};
+// declare const LEGO_CONFIG: any & {buildLocale: string};
 let _: any = null;
-declare const __drcpEntryPage: string;
-declare const __drcpEntryPackage: string;
+// declare const __drcpEntryPage: string;
+// declare const __drcpEntryPackage: string;
 
 const packageNameReg = /(?:@([^/]+)\/)?(\S+)/;
+
+const LEGO_CONFIG: any = __api.browserApiConfig();
 
 export default class BrowserApi {
   static packageApiMap: {[k: string]: BrowserApi} = {};
@@ -25,8 +27,8 @@ export default class BrowserApi {
   _config = LEGO_CONFIG;
   buildLocale = LEGO_CONFIG.buildLocale;
 
-  entryPage = __drcpEntryPage;
-  entryPackage = __drcpEntryPackage;
+  entryPage: string | null = null; // __drcpEntryPage;
+  entryPackage: string | null  = null; // __drcpEntryPackage;
 
   _ensureLodash = ensureLodash;
   contextPath: string;

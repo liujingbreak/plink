@@ -11,7 +11,7 @@ var log = require('log4js').getLogger(api.packageName);
 const fetchRemote = require('./dist/fetch-remote');
 var serverFavicon = require('serve-favicon');
 const {createStaticRoute, createZipRoute} = require('./dist/static-middleware');
-const setupDevAssets = require('./dist/dev-serve-assets').default;
+// const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 var buildUtils = api.buildUtils;
 
@@ -86,7 +86,7 @@ function activate() {
 		return;
 	}
 
-	setupDevAssets(api.config().staticAssetsURL, api.use.bind(api));
+	// setupDevAssets(api.config().staticAssetsURL, api.use.bind(api));
 }
 
 function copyRootPackageFavicon() {

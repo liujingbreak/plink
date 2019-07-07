@@ -15,7 +15,7 @@ import { WelcomeComponent } from './welcome/welcome.component';
 })
 export class DeveloperModule { }
 
-export function getModules(baseRoute: string): Array<Type<any> | ModuleWithProviders<{}> | any[]> {
+export function getModules(baseRoute: string): Array<Type<any> | ModuleWithProviders<RouterModule>> {
   return [
     DeveloperModule,
     RouterModule.forChild([

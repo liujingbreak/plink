@@ -21,7 +21,8 @@ const log = require('log4js').getLogger('config-webpack');
 // import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
 export interface WepackConfigHandler {
   /** @returns webpack configuration or Promise */
-  webpackConfig(originalConfig: any): Promise<{[name: string]: any} | void> | {[name: string]: any} | void;
+  webpackConfig(originalConfig: webpack.Configuration):
+    Promise<webpack.Configuration> | webpack.Configuration | void;
 }
 
 export default async function changeWebpackConfig(context: BuilderContext, param: AngularCliParam, webpackConfig: webpack.Configuration,
@@ -89,7 +90,17 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     webpackConfig.plugins.push(new (class DrcpBuilderAssetsPlugin {
       apply(compiler: Compiler) {
         compiler.hooks.emit.tapPromise('drcp-builder-assets', async compilation => {
-          context._setCompilation(compilation);
+          const assets: {[assetsPath: string]: any} = compilation.assets;
+          for (const assetsPath of Object.keys(assets)) {
+            // log.warn('is ', assetsPath);
+            const match = /([^/.]+)(?:\.[^/.]+)*(\.js)$/.exec(assetsPath);
+            if (!match)
+              continue;
+            // log.warn('lookup assets', match[1]);
+            if (context.inlineAssets.has(match[1])) {
+              context.inlineAssets.set(match[1], assets[assetsPath].source());
+            }
+          }
         });
       }
     })());
@@ -198,10 +209,14 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
     if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
       (rule.use as webpack.RuleSetUseItem[]).some((item) =>
         (item as webpack.RuleSetLoader).loader === '@angular-devkit/build-optimizer/webpack-loader')) {
-      rule.test = (path: string) => {
-        const nPath = path.replace(/\\/g, '/');
-        return noParse.every((exclude => !nPath.includes(exclude)));
-      };
+
+        rule.test = (path: string) => {
+          if (!/\\.js$/.test(path)) {
+            return false;
+          }
+          const nPath = path.replace(/\\/g, '/');
+          return noParse.every((exclude => !nPath.includes(exclude)));
+        };
     }
     // Angular 8 doesn't have loader for HTML
     if (test instanceof RegExp && test.toString() === '/\\.html$/') {
@@ -378,14 +393,12 @@ function printConfigValue(value: any, level: number): string {
 
 export async function transformIndexHtml(context: BuilderContext, content: string) {
   try {
-    const compilation = await context.compilation;
-    const assets = compilation.assets;
     return transformHtml(content, srcUrl => {
       const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
-      if (match && match[1] === 'runtime') {
-        const source = assets[match[0]].source();
-        log.warn(source);
-        return smUrl.removeFrom(source);
+      if (match && context.inlineAssets.has(match[1])) {
+        const source = context.inlineAssets.get(match[1]);
+        // log.warn(source);
+        return smUrl.removeFrom(source!);
       }
       return null;
     });

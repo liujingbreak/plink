@@ -3,13 +3,11 @@ import { readTsConfig, transpileSingleTs } from 'dr-comp-package/wfh/dist/ts-com
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as log4js from 'log4js';
-import { resolve } from 'path';
 import { Observable, of, throwError } from 'rxjs';
 import * as ts from 'typescript';
-import api from '__api';
+import api, {DrcpApi} from '__api';
 import { replaceHtml } from './ng-aot-assets';
 import { AngularCliParam } from './ng/common';
-import { findAppModuleFileFromMain } from './utils/parse-app-module';
 import { HookReadFunc } from './utils/read-hook-vfshost';
 import Selector from './utils/ts-ast-query';
 import ApiAotCompiler from './utils/ts-before-aot';
@@ -22,7 +20,7 @@ var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packa
 __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
 
-
+(Object.getPrototypeOf(api) as DrcpApi).browserApiConfig = browserLegoConfig;
 
 export default class TSReadHooker {
   hookFunc: HookReadFunc;
@@ -65,14 +63,14 @@ export default class TSReadHooker {
     // if (ngParam.browserOptions.polyfills)
     // 	polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
 
-    const appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
-    log.info('app module file: ', appModuleFile);
+    // const appModuleFile = findAppModuleFileFromMain(resolve(ngParam.browserOptions.main));
+    // log.info('app module file: ', appModuleFile);
 
-    const isAot = ngParam.browserOptions.aot;
+    // const isAot = ngParam.browserOptions.aot;
 
     return (file: string, buf: ArrayBuffer): Observable<ArrayBuffer> => {
       try {
-        if (isAot && file.endsWith('.component.html')) {
+        if (file.endsWith('.component.html')) {
           const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
           if (cached != null)
             return of(cached);
@@ -99,7 +97,7 @@ export default class TSReadHooker {
         // 	if (drcpIncludeBuf)
         // 		return of(drcpIncludeBuf);
         // 	let content = Buffer.from(buf).toString();
-        // 	const legoConfig = browserLegoConfig();
+        // const legoConfig = browserLegoConfig();
         // 	let hmrBoot: string;
         // 	if (hmrEnabled) {
         // 		content = 'import hmrBootstrap from \'./hmr\';\n' + content;
@@ -181,39 +179,39 @@ export function string2buffer(input: string): ArrayBuffer {
   return newBuf;
 }
 
-// function browserLegoConfig() {
-// 	var browserPropSet: any = {};
-// 	var legoConfig: any = {}; // legoConfig is global configuration properties which apply to all entries and modules
-// 	_.each([
-// 		'staticAssetsURL', 'serverURL', 'packageContextPathMapping',
-// 		'locales', 'devMode', 'outputPathMap'
-// 	], prop => browserPropSet[prop] = 1);
-// 	_.each(api.config().browserSideConfigProp, prop => browserPropSet[prop] = true);
-// 	_.forOwn(browserPropSet, (nothing, propPath) => _.set(legoConfig, propPath, _.get(api.config(), propPath)));
-// 	var compressedInfo = compressOutputPathMap(legoConfig.outputPathMap);
-// 	legoConfig.outputPathMap = compressedInfo.diffMap;
-// 	legoConfig._outputAsNames = compressedInfo.sames;
-// 	legoConfig.buildLocale = api.getBuildLocale();
-// 	log.debug('DefinePlugin LEGO_CONFIG: ', legoConfig);
-// 	return legoConfig;
-// }
+function browserLegoConfig() {
+  var browserPropSet: any = {};
+  var legoConfig: any = {}; // legoConfig is global configuration properties which apply to all entries and modules
+  _.each([
+    'staticAssetsURL', 'serverURL', 'packageContextPathMapping',
+    'locales', 'devMode', 'outputPathMap'
+  ], prop => browserPropSet[prop] = 1);
+  _.each(api.config().browserSideConfigProp, prop => browserPropSet[prop] = true);
+  _.forOwn(browserPropSet, (nothing, propPath) => _.set(legoConfig, propPath, _.get(api.config(), propPath)));
+  var compressedInfo = compressOutputPathMap(legoConfig.outputPathMap);
+  legoConfig.outputPathMap = compressedInfo.diffMap;
+  legoConfig._outputAsNames = compressedInfo.sames;
+  legoConfig.buildLocale = api.getBuildLocale();
+  log.debug('DefinePlugin LEGO_CONFIG: ', legoConfig);
+  return legoConfig;
+}
 
-// function compressOutputPathMap(pathMap: any) {
-// 	var newMap: any = {};
-// 	var sameAsNames: string[] = [];
-// 	_.each(pathMap, (value, key) => {
-// 		var parsed = api.packageUtils.parseName(key);
-// 		if (parsed.name !== value) {
-// 			newMap[key] = value;
-// 		} else {
-// 			sameAsNames.push(key);
-// 		}
-// 	});
-// 	return {
-// 		sames: sameAsNames,
-// 		diffMap: newMap
-// 	};
-// }
+function compressOutputPathMap(pathMap: any) {
+  var newMap: any = {};
+  var sameAsNames: string[] = [];
+  _.each(pathMap, (value, key) => {
+    var parsed = api.packageUtils.parseName(key);
+    if (parsed.name !== value) {
+      newMap[key] = value;
+    } else {
+      sameAsNames.push(key);
+    }
+  });
+  return {
+    sames: sameAsNames,
+    diffMap: newMap
+  };
+}
 
 // function getRouterModules(appModulePackage: PackageBrowserInstance, appModuleDir: string) {
 // 	const ngModules: string[] = api.config.get([api.packageName, 'ngModule']) || [];

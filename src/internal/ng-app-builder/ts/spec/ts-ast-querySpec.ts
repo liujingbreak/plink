@@ -25,18 +25,20 @@ describe('ts-ast-query', () => {
   it('Query should work', () => {
     // const file = resolve(__dirname, '../../ts/spec/app.module.ts.txt');
     // const sel = new Selector(fs.readFileSync(file, 'utf8'), file);
-    let q = new Query('.statements:VariableStatement .namedBindings .elements[0] > :Identifier');
+    let q = new Query('.statements:VariableStatement  .namedBindings .elements[0] > :Identifier');
     console.log(q.queryPaths);
-    expect(q.queryPaths).toEqual([
+    expect(q.queryPaths.slice(0).map(c => c.slice(0).reverse()).reverse()).toEqual([
       [{ propertyName: 'statements', kind: 'VariableStatement' }],
       [{ propertyName: 'namedBindings' }],
       [{ propertyName: 'elements', propIndex: 0 }, { kind: 'Identifier' }]
     ]);
     expect((q as any).matchesConsecutiveNodes(
-        [(q as any)._parseDesc('.foobar:Abc'), (q as any)._parseDesc(':Off')], ['.foobar[3]:Abc', '.end:Off'], 1
+        [(q as any)._parseDesc('.foobar:Abc'), (q as any)._parseDesc(':Off')].reverse(),
+        ['.foobar[3]:Abc', '.end:Off'], 1
       )).toBe(true);
     expect((q as any).matchesConsecutiveNodes(
-        [(q as any)._parseDesc('.foobar:Abc'), (q as any)._parseDesc(':Off')], ['.foobar[3]:Abc', '.end:Off'], 0
+        [(q as any)._parseDesc('.foobar:Abc'), (q as any)._parseDesc(':Off')].reverse(),
+        ['.foobar[3]:Abc', '.end:Off'], 0
       )).toBe(false);
 
     expect(q.matches(
@@ -61,8 +63,11 @@ describe('ts-ast-query', () => {
   it('findAll should work', () => {
     const file = resolve(__dirname, '../../ts/spec/app.module.ts.txt');
     const sel = new Selector(fs.readFileSync(file, 'utf8'), file);
-    const found = sel.findAll(':ImportDeclaration :Identifier');
-    console.log(found.map(ast => ast.getText(sel.src)));
+    const found = sel.findAll(':ImportDeclaration :Identifier').map(ast => ast.getText(sel.src));
+
+    console.log(found);
+
+    expect(found.length).toBe(18);
   });
 
   it('findWith should work', () => {
@@ -72,21 +77,21 @@ describe('ts-ast-query', () => {
 		`;
     const query = new Selector(target, 'main-hmr.ts');
     console.log('------>>>>----------');
-    // query.printAll(query.src.statements[0]);
-    const found = query.findAll(query.src.statements[0],
-      ':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier');
+    query.printAll(query.src);
+    // const found = query.findAll(query.src,
+    //   ':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier');
 
-    console.log(found);
+    // console.log(found);
 
-    const bootCall = query.findWith(query.src.statements[0],
-      ':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
+    const bootCall = query.findWith(query.src,
+      '^.statements>:CallExpression :PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
       (ast: ts.Identifier, path, parents) => {
-        console.log('------>>>>----------');
-        console.log(ast.text, (ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src));
+        // console.log('------>>>>----------');
+        // console.log(ast.text, (ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src));
         if (ast.text === 'platformBrowserDynamic' &&
         (ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src) === 'bootstrapModule' &&
         ast.parent.parent.parent.kind === ts.SyntaxKind.CallExpression) {
-          console.log('here');
+          // console.log('here');
           return ast.parent.parent.parent;
         }
       });

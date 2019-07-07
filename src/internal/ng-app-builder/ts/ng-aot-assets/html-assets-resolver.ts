@@ -20,7 +20,7 @@ export function replaceForHtml(content: string, resourcePath: string,
   try {
     ast = new TemplateParser(content).parse();
   } catch (e) {
-    log.error(content);
+    log.error(`${resourcePath}: template parsing failed\n${content}`, e);
     throw e;
   }
   // const proms: Array<PromiseLike<any>> = [];

@@ -2,14 +2,22 @@ import webpack, {compilation} from 'webpack';
 import {AngularCliParam} from './common';
 import changeWebpackConfig, {transformIndexHtml} from '../config-webpack';
 
+export interface BuilderContextOptions {
+    inlineChunks: string[];
+}
+
 export class BuilderContext {
-    compilation: Promise<compilation.Compilation>;
+    inlineAssets: Map<string, string|null> = new Map();
+    options: BuilderContextOptions;
     _setCompilation: (value: compilation.Compilation) => void;
 
-    constructor() {
-        this.compilation = new Promise<compilation.Compilation>(resolve => {
-            this._setCompilation = resolve;
-        });
+    constructor(opt?: BuilderContextOptions) {
+        if (opt) {
+            this.options = opt;
+        } else {
+            this.options = {inlineChunks: ['runtime']};
+        }
+        this.options.inlineChunks.forEach(chunkName => this.inlineAssets.set(chunkName, null));
     }
 
     configWebpack(param: AngularCliParam, webpackConfig: webpack.Configuration,

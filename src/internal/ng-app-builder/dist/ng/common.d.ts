@@ -17,5 +17,5 @@ export interface DrcpBuilderOptions {
     drcpArgs: any;
     drcpConfig: string;
 }
-import { BuilderContext } from './builder-context';
-export declare function newContext(): BuilderContext;
+import { BuilderContext, BuilderContextOptions } from './builder-context';
+export declare function newContext(options?: BuilderContextOptions): BuilderContext;

@@ -11,7 +11,7 @@ const log = require('log4js').getLogger('wfh.nodeApi');
 module.exports = NodeApi;
 module.exports.default = NodeApi; // To be available for ES6/TS import syntax 
 
-var suppressWarn4Urls = config.get('suppressWarning.assetsUrl', []).map(line => new RegExp(line));
+// var suppressWarn4Urls = config.get('suppressWarning.assetsUrl', []).map(line => new RegExp(line));
 
 function NodeApi(name, packageInstance) {
 	this.packageName = name;
@@ -69,34 +69,34 @@ NodeApi.prototype = {
 				isPage: match[1] != null || _.startsWith(url, 'page://'),
 				locale: match[1]
 			};
-		} else if (url.length > 1 && !url.startsWith(this.config.publicPath) && url.charAt(0) === '/' && url.charAt(1) !== '/' && url !== '/favicon.ico') {
-			let m = /^\/(?:([^/]+)\/)?([^/].*)$/.exec(url);
-			if (m && m[1]) {
-				var nameMap = this.packageInfo.shortNameMap;
-				if (_.has(nameMap, m[1])) {
-					let packageName = nameMap[m[1]].longName;
-					let injectedPackageName = npmimportCssLoader.getInjectedPackage(packageName, sourceFile, this.browserInjector);
-					if (injectedPackageName)
-						packageName = injectedPackageName;
-					if (log.isDebugEnabled()) {
-						let msg = `Replace assets URL "${chalk.yellow(url)}" to "assets://${packageName}/${m[2]}"` +
-							`in\n  ${chalk.blue(Path.relative(this.config().rootPath, sourceFile))}`;
-						log.debug(msg);
-					}
-					return {
-						packageName,
-						path: m[2],
-						isTilde: false,
-						isPage: false
-					};
-				}
-			}
-			if (!suppressWarn4Urls.some(path => path.test(url))) {
-				let msg = `Problematic assets URL format "${chalk.yellow(url)}" used in\n` +
-					`  ${chalk.blue(Path.relative(this.config().rootPath, sourceFile))}\n`;
-				msg += '  Valid path should be a "relative path" or in format as "assets://<package>/<path>", "~<package>/<path>", "page://<package>/<path>"';
-				log.warn(msg);
-			}
+		// } else if (url.length > 1 && !url.startsWith(this.config.publicPath) && url.charAt(0) === '/' && url.charAt(1) !== '/' && url !== '/favicon.ico') {
+			// 	let m = /^\/(?:([^/]+)\/)?([^/].*)$/.exec(url);
+			// 	if (m && m[1]) {
+			// 		var nameMap = this.packageInfo.shortNameMap;
+			// 		if (_.has(nameMap, m[1])) {
+			// 			let packageName = nameMap[m[1]].longName;
+			// 			let injectedPackageName = npmimportCssLoader.getInjectedPackage(packageName, sourceFile, this.browserInjector);
+			// 			if (injectedPackageName)
+			// 				packageName = injectedPackageName;
+			// 			if (log.isDebugEnabled()) {
+			// 				let msg = `Replace assets URL "${chalk.yellow(url)}" to "assets://${packageName}/${m[2]}"` +
+			// 					`in\n  ${chalk.blue(Path.relative(this.config().rootPath, sourceFile))}`;
+			// 				log.debug(msg);
+			// 			}
+			// 			return {
+			// 				packageName,
+			// 				path: m[2],
+			// 				isTilde: false,
+			// 				isPage: false
+			// 			};
+			// 		}
+			// 	}
+			// if (!suppressWarn4Urls.some(path => path.test(url))) {
+			// 	let msg = `Problematic assets URL format "${chalk.yellow(url)}" used in\n` +
+			// 		`  ${chalk.blue(Path.relative(this.config().rootPath, sourceFile))}\n`;
+			// 	msg += '  Valid path should be a "relative path" or in format as "assets://<package>/<path>", "~<package>/<path>", "page://<package>/<path>"';
+			// 	log.warn(msg);
+			// }
 			//throw new Error(msg);
 			return url;
 		} else {

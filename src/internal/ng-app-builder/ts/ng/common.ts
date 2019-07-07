@@ -47,9 +47,9 @@ export interface DrcpBuilderOptions {
   drcpConfig: string;
 }
 
-import {BuilderContext} from './builder-context';
+import {BuilderContext, BuilderContextOptions} from './builder-context';
 
-export function newContext() {
+export function newContext(options?: BuilderContextOptions) {
   const constructor = require('./builder-context').BuilderContext as typeof BuilderContext;
-  return new constructor();
+  return new constructor(options);
 }

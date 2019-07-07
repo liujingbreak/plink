@@ -1,9 +1,9 @@
-import * as ts from 'typescript';
-import {SyntaxKind as sk} from 'typescript';
 import * as fs from 'fs';
 // import api from '__api';
-import * as _ from 'lodash';
-const {green, red, yellow} = require('chalk');
+import _ from 'lodash';
+import ts from 'typescript';
+import { SyntaxKind as sk } from 'typescript';
+const {green, yellow} = require('chalk');
 // const log = require('log4js').getLogger('ts-ast-query');
 
 export function printFile(fileName: string) {
@@ -32,13 +32,15 @@ export default class Selector {
 
   /**
 	 * 
-	 * @param query Like CSS select := <selector element> (" " | ">") <selector element>
+	 * @param query Like CSS select := ["^"] <selector element> (" " | ">") <selector element>
 	 *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
 	 *   where <index> := "[" "0"-"9" "]"
+   * 
 	 * e.g.
 	 *  - .elements:ImportSpecifier > .name
 	 *  - .elements[2] > .name
-	 *  - .statements[0] :ImportSpecifier > :Identifier
+	 *  - ^.statements[0] :ImportSpecifier > :Identifier
+   * Begining with "^" means strictly comparing from first queried AST node
 	 * @param callback 
 	 */
   findWith<T>(query: string, callback: (ast: ts.Node, path: string[], parents: ts.Node[]) => T): T | null;
@@ -95,7 +97,7 @@ export default class Selector {
     }
 
     const res: ts.Node[] = [];
-    this.traverse(ast, (ast, path, parents, isLeaf) => {
+    this.traverse(ast, (ast, path, _parents, _isLeaf) => {
       if (q.matches(path)) {
         res.push(ast);
       }
@@ -119,7 +121,7 @@ export default class Selector {
     let q: Query;
     if (typeof ast === 'string') {
       query = ast;
-      q = new Query(ast);
+      q = new Query(query);
       ast = this.src;
     } else {
       q = new Query(query!);
@@ -138,7 +140,7 @@ export default class Selector {
 
   list(ast: ts.Node = this.src) {
     let out = '';
-    this.traverse(ast, (node, path, parents, noChild) => {
+    this.traverse(ast, (node, path, _parents, noChild) => {
       if (noChild) {
         out += path.join('>') + ' ' + node.getText(this.src);
         out += '\n';
@@ -148,7 +150,7 @@ export default class Selector {
   }
 
   printAll(ast: ts.Node = this.src) {
-    this.traverse(ast, (node, path, parents, noChild) => {
+    this.traverse(ast, (node, path, _parents, noChild) => {
       if (noChild) {
         // tslint:disable-next-line:no-console
         console.log(path.join('>'), green(node.getText(this.src)));
@@ -157,7 +159,7 @@ export default class Selector {
   }
 
   printAllNoType(ast: ts.Node = this.src) {
-    this.traverse(ast, (node, path, parents, noChild) => {
+    this.traverse(ast, (node, path, _parents, noChild) => {
       if (noChild) {
         // tslint:disable-next-line:no-console
         console.log(path.map(name => name.split(':')[0]).join('>'), green(node.getText(this.src)));
@@ -176,16 +178,14 @@ export default class Selector {
 
     let needPopPathEl = false;
 
-    if (parents.length > 0) { // `> 1` to skip source file
+    // if (ast.kind !== ts.SyntaxKind.SourceFile) {
       // let propName = parents[parents.length - 1] === this.src ? '' : this._findParentPropName(ast, parents);
-      let pathEl = ':' + sk[ast.kind];
-      if (propName)
-        pathEl = '.' + propName + pathEl;
-      else
-        pathEl = red(pathEl);
-      pathEls.push(pathEl);
-      needPopPathEl = true;
-    }
+    let pathEl = ':' + sk[ast.kind];
+    if (propName)
+      pathEl = '.' + propName + pathEl;
+    pathEls.push(pathEl);
+    needPopPathEl = true;
+    // }
 
     const res = cb(ast, pathEls, parents, ast.getChildCount(this.src) <= 0);
 
@@ -262,17 +262,26 @@ export interface AstQuery extends AstCharacter {
 }
 
 export class Query {
-  queryPaths: AstCharacter[][];
+  queryPaths: AstCharacter[][]; // in reversed order
+  private fromRoot = false;
 
   constructor(query: string) {
-    this.queryPaths = query.trim().replace(/\s*>\s*/g, '>').split(' ').map(paths => paths.split('>')
-      .map(singleAstDesc => this._parseDesc(singleAstDesc)));
+    if (query.startsWith('^')) {
+      query = query.slice(1);
+      this.fromRoot = true;
+    }
+    this.queryPaths = query.trim()
+      .replace(/\s*>\s*/g, '>')
+      .split(/\s+/)
+      .map(paths => paths.split('>')
+        .map(singleAstDesc => this._parseDesc(singleAstDesc)).reverse())
+      .reverse();
   }
 
   matches(path: string[]): boolean {
     let testPos = path.length - 1;
     const startTestPos = testPos;
-    for (const consecutiveNodes of this.queryPaths.slice(0).reverse()) {
+    for (const consecutiveNodes of this.queryPaths.slice(0)) {
       while (true) {
         if (this.matchesConsecutiveNodes(consecutiveNodes, path, testPos)) {
           testPos -= consecutiveNodes.length;
@@ -286,7 +295,7 @@ export class Query {
           return false;
       }
     }
-    return true;
+    return this.fromRoot ? testPos === 0 : true;
   }
 
   protected _parseDesc(singleAstDesc: string): AstQuery {
@@ -320,10 +329,16 @@ export class Query {
     return true;
   }
 
+  /**
+   * predicte if it matches ">" connected path expression 
+   * @param queryNodes all items in reversed order
+   * @param path 
+   * @param testPos starts with path.length - 1
+   */
   private matchesConsecutiveNodes(queryNodes: AstCharacter[], path: string[], testPos: number) {
     if (queryNodes.length > testPos + 1)
       return false;
-    for (const query of queryNodes.slice(0).reverse()) {
+    for (const query of queryNodes.slice(0)) {
       const target = this._parseDesc(path[testPos--]);
       if (!this.matchesAst(query, target))
         return false;

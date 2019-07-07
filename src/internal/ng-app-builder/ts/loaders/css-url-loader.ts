@@ -25,7 +25,7 @@ const urlLoader: wb.loader.Loader = function(content: string, map) {
     },
     error(e) {
       self.emitError(e);
-      log.error(e);
+      log.error(file, e);
       callback!(e);
     },
     complete() {

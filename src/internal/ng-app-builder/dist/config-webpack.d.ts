@@ -4,11 +4,7 @@ import { BuilderContext } from './ng/builder-context';
 import { AngularCliParam } from './ng/common';
 export interface WepackConfigHandler {
     /** @returns webpack configuration or Promise */
-    webpackConfig(originalConfig: any): Promise<{
-        [name: string]: any;
-    } | void> | {
-        [name: string]: any;
-    } | void;
+    webpackConfig(originalConfig: webpack.Configuration): Promise<webpack.Configuration> | webpack.Configuration | void;
 }
 export default function changeWebpackConfig(context: BuilderContext, param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
     devMode: boolean;

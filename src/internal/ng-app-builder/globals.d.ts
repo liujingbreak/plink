@@ -45,6 +45,11 @@ interface _DrcpNgApi {
 	 * @return undefined If current compilation is not in prerender/SSR mode
 	 */
 	ssrRequire(path: string): any;
+
+	/**
+	 * Internal used
+	 */
+	browserApiConfig(): any;
 }
 interface _DrcpApi {
 	packageName: string;

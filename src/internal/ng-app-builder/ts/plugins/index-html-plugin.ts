@@ -9,7 +9,7 @@ import * as _ from 'lodash';
 import replaceCode, {ReplacementInf} from '../utils/patch-text';
 import htmlLoader = require('../loaders/ng-html-loader');
 import * as Path from 'path';
-const smUrl = require('source-map-url');
+  const smUrl = require('source-map-url');
 import api from '__api';
 const log = require('log4js').getLogger(api.packageName + '.index-html-plugin');
 
@@ -65,6 +65,9 @@ export async function transformHtml(this: void,
     api,
     require
   });
+  // Following line must be prior to `TemplateParser.parse()`, TemplateParser
+  // has limitation in parsing `<script>inline code ...</script>`
+  html = await htmlLoader.compileHtml(html, new MockLoaderContext());
 
   const asts = new TemplateParser(html).parse();
   for (const ast of asts) {
@@ -77,16 +80,13 @@ export async function transformHtml(this: void,
         replacements.push({
           start: ast.start, end: ast.end, text: '<script>' + inlineContent
         });
-        log.info(`Inline "${srcUrl.text}" in :`);
+        log.info(`Inline "${srcUrl.text}"`);
       }
     }
   }
   if (replacements.length > 0) {
     html = replaceCode(html, replacements);
   }
-
   // log.warn(html);
-
-  html = await htmlLoader.compileHtml(html, new MockLoaderContext());
   return html;
 }

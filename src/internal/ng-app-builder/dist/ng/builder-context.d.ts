@@ -1,10 +1,14 @@
 /// <reference types="webpack-dev-server" />
 import webpack, { compilation } from 'webpack';
 import { AngularCliParam } from './common';
+export interface BuilderContextOptions {
+    inlineChunks: string[];
+}
 export declare class BuilderContext {
-    compilation: Promise<compilation.Compilation>;
+    inlineAssets: Map<string, string | null>;
+    options: BuilderContextOptions;
     _setCompilation: (value: compilation.Compilation) => void;
-    constructor();
+    constructor(opt?: BuilderContextOptions);
     configWebpack(param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
         devMode: boolean;
     }): void;
