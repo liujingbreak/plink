@@ -198,6 +198,9 @@ function writeTsconfig4Editor() {
 	for (let proj of api.config().projectList) {
 		tsjson.include = [];
 		tsjson.extends = Path.relative(proj, require.resolve('dr-comp-package/wfh/tsconfig.json'));
+		if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
+		tsjson.extends = './' + tsjson.extends;
+	}
 		require('dr-comp-package/wfh/dist/recipe-manager').eachRecipeSrc(proj, (srcDir: string) => {
 			let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
 			if (includeDir && includeDir !== '/')
