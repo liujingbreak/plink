@@ -176,8 +176,6 @@ function checkAngularVersion() {
 
 function writeTsconfig4Editor() {
 	const tsjson: any = {
-		// extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
-		extends: require.resolve('dr-comp-package/wfh/tsconfig.json'),
 		// include: tsInclude,
 		compilerOptions: {
 			baseUrl: '.',
@@ -199,6 +197,7 @@ function writeTsconfig4Editor() {
 
 	for (let proj of api.config().projectList) {
 		tsjson.include = [];
+		tsjson.extends = Path.relative(proj, require.resolve('dr-comp-package/wfh/tsconfig.json'));
 		require('dr-comp-package/wfh/dist/recipe-manager').eachRecipeSrc(proj, (srcDir: string) => {
 			let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
 			if (includeDir && includeDir !== '/')
@@ -229,6 +228,7 @@ function writeTsconfig4Editor() {
 				Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
 			],
 			noImplicitAny: true,
+			strictNullChecks: true,
 			target: 'es2015',
 			module: 'commonjs'
 		};
