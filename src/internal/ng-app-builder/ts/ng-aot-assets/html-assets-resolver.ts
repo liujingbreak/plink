@@ -27,8 +27,8 @@ export function replaceForHtml(content: string, resourcePath: string,
 	const dones: Observable<Rep>[] = [];
 	const resolver = new AttrAssetsUrlResolver(resourcePath, callback);
 	for (const el of ast) {
-		if (el.name === 'script')
-			continue;
+		// if (el.name === 'script')
+		// 	continue;
 		for (const name of toCheckNames) {
 			if (_.has(el.attrs, name)) {
 				const value = el.attrs[name].value;
@@ -83,8 +83,9 @@ class AttrAssetsUrlResolver {
 	private resolveUrl(href: string) {
 		if (href === '')
 			return href;
-		var res = api.normalizeAssetsUrl(href, this.resourcePath);
-		if (_.isObject(res)) {
+		var normalUrlObj = api.normalizeAssetsUrl(href, this.resourcePath);
+		if (_.isObject(normalUrlObj)) {
+		const res = normalUrlObj as any;
 			const resolved = res.isPage ?
 				api.entryPageUrl(res.packageName, res.path, res.locale) :
 				api.assetsUrl(res.packageName, res.path);
@@ -97,8 +98,9 @@ class AttrAssetsUrlResolver {
 
 	private doLoadAssets(src: string): Observable<string> {
 		if (src.startsWith('assets://') || src.startsWith('page://')) {
-			const res = api.normalizeAssetsUrl(src, this.resourcePath);
-			if (_.isObject(res)) {
+			const normalUrlObj =  api.normalizeAssetsUrl(src, this.resourcePath);
+			if (_.isObject(normalUrlObj)) {
+		const res = normalUrlObj as any;
 				return of(res.isPage ?
 					api.entryPageUrl(res.packageName, res.path, res.locale) :
 					api.assetsUrl(res.packageName, res.path));
