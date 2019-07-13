@@ -135,7 +135,7 @@ class InstallManager {
 
     if (depNames.length > 0) {
       let printOut = _.pad(' Associated Components Dependencies & ' + chalk.cyan('Components Peer Dependencies'), 60, '-') + '\n';
-      printOut += _.padStart('Dependency ', nameWidth + 13) + '| By\n';
+      printOut += _.padStart('Dependency ', nameWidth + 13) + '| Dependent\n';
       printOut += _.repeat('-', nameWidth + 13) + '|' + _.repeat('-', 10) + '\n';
       let countDep = 0;
       for (const name of depNames) {
@@ -164,12 +164,14 @@ class InstallManager {
     mkdirpSync(config().destDir);
     if (write) {
       // _.assign(mainPkjson.dependencies, newDepJson);
-      _.each(mainDeps, (ver, name) => {
+      const deleted: string[] = [];
+      _.each(mainDeps, (_ver, name) => {
         if (_.get(this.componentMap, [name, 'toInstall']) as any === false) {
           delete mainDeps[name];
-          log.info(chalk.blue('Remove source linked dependency: ' + name));
+          deleted.push(name);
         }
       });
+      log.info(chalk.blue('source linked dependency: ' + deleted.join(', ')));
       recipeManager.eachRecipeSrc((srcDir: string, recipeDir: string, recipeName: string) => {
         if (recipeName && _.has(mainDeps, recipeName)) {
           delete mainDeps[recipeName];
