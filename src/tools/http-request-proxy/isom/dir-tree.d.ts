@@ -16,8 +16,8 @@ export declare class DirTree<T> {
     putData(path: string, data: T): void;
     getData(path: string): T;
     /**
-     * @return Array of data
-     */
+       * @return Array of data
+       */
     getAllData(path: string | string[]): T[];
     ensureNode(path: string | string[]): TreeNode<T>;
     findNode(path: string | string[]): TreeNode<T>;

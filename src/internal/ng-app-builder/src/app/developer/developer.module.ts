@@ -6,11 +6,11 @@ import { Dev404Component } from './dev404/dev404.component';
 import {httpInterceptorProviders} from './prerender-http-interceptor.service';
 
 @NgModule({
-	imports: [
-		CommonModule,
-		DeveloperRoutingModule
-	],
-	declarations: [Dev404Component],
-	providers: [httpInterceptorProviders]
+  imports: [
+    CommonModule,
+    DeveloperRoutingModule
+  ],
+  declarations: [Dev404Component],
+  providers: [httpInterceptorProviders]
 })
 export class DeveloperModule { }

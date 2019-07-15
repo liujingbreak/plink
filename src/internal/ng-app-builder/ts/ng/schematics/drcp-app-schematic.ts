@@ -6,11 +6,11 @@ const NM_DIR = Path.sep + 'node_modules' + Path.sep;
 // per file.
 export function drcpApp(/*options: any*/): Rule {
   return (tree: Tree, _context: SchematicContext) => {
-	tree.visit((path: string/*, entry: FileEntry*/) => {
-		if (path.startsWith(NM_DIR))
-			return;
-		// console.log(path);
-	});
-	return tree;
+  tree.visit((path: string/*, entry: FileEntry*/) => {
+    if (path.startsWith(NM_DIR))
+      return;
+    // console.log(path);
+  });
+  return tree;
   };
 }

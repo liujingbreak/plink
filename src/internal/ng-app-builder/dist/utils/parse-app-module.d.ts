@@ -29,23 +29,23 @@ export default class AppModuleParser {
     fileContent: string;
     sourceFile: ts.SourceFile;
     /**
-     *
-     * @param file file path
-     * @param fileContent file content
-     * @param removableModules array of <ES module path>#<export name>, e.g. @foo/bar/src/module#DocRoute
-     * @param modulesToAdd array of <ES module path>#<export name>, e.g. @foo/bar/src/module#DocRoute
-     * @param importAppComponent e.g. @foo/bar/src/module#AppComponent
-     */
+       *
+       * @param file file path
+       * @param fileContent file content
+       * @param removableModules array of <ES module path>#<export name>, e.g. @foo/bar/src/module#DocRoute
+       * @param modulesToAdd array of <ES module path>#<export name>, e.g. @foo/bar/src/module#DocRoute
+       * @param importAppComponent e.g. @foo/bar/src/module#AppComponent
+       */
     patchFile(file: string, fileContent: string, removableModules: string[], modulesToAdd: string[]): string;
     protected findEsImportByName(name: string): EsImportStatement;
     /**
-     * 1. Remember those NgModule imports which are not removable
-     *   (neither removable nor Typescript Identifier/CallExpression)
-     * 2. Remove ES import statement which are removable
-     * 3. Add new ES import statement
-     * 4. Replace whole NgModule imports arrary with those not removables and newly added
-     * @param ngImportArrayExp
-     */
+       * 1. Remember those NgModule imports which are not removable
+       *   (neither removable nor Typescript Identifier/CallExpression)
+       * 2. Remove ES import statement which are removable
+       * 3. Add new ES import statement
+       * 4. Replace whole NgModule imports arrary with those not removables and newly added
+       * @param ngImportArrayExp
+       */
     protected checkAndPatch(ngImportArrayExp: ts.ArrayLiteralExpression): void;
     protected traverseTsAst(ast: ts.Node, level?: number): void;
     protected appendNgImports(): void;

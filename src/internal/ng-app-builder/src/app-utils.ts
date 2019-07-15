@@ -20,13 +20,13 @@ export class AppComponent {
 ```
  */
 export function appInjector(injector?: Injector): Injector {
-	if (injector) {
-	  appInjectorRef = injector;
-	}
+  if (injector) {
+    appInjectorRef = injector;
+  }
 
-	return appInjectorRef;
+  return appInjectorRef;
 }
 
 export function isPlatformServer() {
-	return isServer(appInjectorRef.get(PLATFORM_ID));
+  return isServer(appInjectorRef.get(PLATFORM_ID));
 }

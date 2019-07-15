@@ -29,21 +29,21 @@ export declare class ProxyInstanceForBrowser {
         [k: string]: any;
     }): ProxyInstanceForBrowser;
     /**
-     * @deprecated
-     * @param {*} path sub path after '/http-request-proxy'
-     * @param {*} handler (url: string, method:string,
-     * 	responseHeaders: {[name: string]:string}, responseBody: string | Buffer) => null | Promise<string>
-     */
+       * @deprecated
+       * @param {*} path sub path after '/http-request-proxy'
+       * @param {*} handler (url: string, method:string,
+       * 	responseHeaders: {[name: string]:string}, responseBody: string | Buffer) => null | Promise<string>
+       */
     interceptResponse(path: string, handler: BodyHandler): void;
     /** @deprecated */
     interceptRequest(path: string, handler: BodyHandler): void;
     /**
-     *
-     * @param path {string} a URI string in format of Url's pathname, support path parameterized path name
-     *  begin with ":" or wildcard "*", e.g.
-     *   "/foo/bar/:id/resting-path", "/foo/bar/*" and "*"
-     * @param handler
-     */
+       *
+       * @param path {string} a URI string in format of Url's pathname, support path parameterized path name
+       *  begin with ":" or wildcard "*", e.g.
+       *   "/foo/bar/:id/resting-path", "/foo/bar/*" and "*"
+       * @param handler
+       */
     mockResponse(path: string, handler: BodyHandler): void;
     /**@deprecated */
     interceptResHeader(path: string, handler: HeaderHandler): void;

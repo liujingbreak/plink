@@ -2,8 +2,8 @@
 import './node-inject';
 
 import {
-	BuildEvent,
-	BuilderConfiguration
+  BuildEvent,
+  BuilderConfiguration
   } from '@angular-devkit/architect';
   import { WebpackBuilder } from '@angular-devkit/build-webpack';
   import { normalize, resolve, virtualFs } from '@angular-devkit/core';
@@ -18,54 +18,54 @@ import {BrowserBuilder as GoogleBrowserBuilder, getBrowserLoggingCb} from '@angu
 import * as drcpCommon from './common';
 
 export default class BrowserBuilder extends GoogleBrowserBuilder {
-	run(builderConfig: BuilderConfiguration<BrowserBuilderSchema>): Observable<BuildEvent> {
-	const root = this.context.workspace.root;
-	const projectRoot = resolve(root, builderConfig.root);
-	const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<fs.Stats>);
-	const webpackBuilder = new WebpackBuilder({ ...this.context, host });
+  run(builderConfig: BuilderConfiguration<BrowserBuilderSchema>): Observable<BuildEvent> {
+  const root = this.context.workspace.root;
+  const projectRoot = resolve(root, builderConfig.root);
+  const host = new virtualFs.AliasHost(this.context.host as virtualFs.Host<fs.Stats>);
+  const webpackBuilder = new WebpackBuilder({ ...this.context, host });
 
-	const options = normalizeBuilderSchema(
-		host,
-		root,
-		builderConfig
-	);
+  const options = normalizeBuilderSchema(
+    host,
+    root,
+    builderConfig
+  );
 
-	return of(null).pipe(
-		concatMap(() => options.deleteOutputPath
-		? (this as any)._deleteOutputDir(root, normalize(options.outputPath), this.context.host)
-		: of(null)),
-		concatMap(() => {
-			return drcpCommon.compile(builderConfig.root, options,
-				() => this.buildWebpackConfig(root, projectRoot, host, options));
-		}),
-		concatMap((webpackConfig) => {
-			return webpackBuilder.runWebpack(webpackConfig, getBrowserLoggingCb(options.verbose));
-		}),
-		concatMap((buildEvent) => {
-		if (buildEvent.success && !options.watch && options.serviceWorker) {
-			return new Observable<BuildEvent>(obs => {
-				augmentAppWithServiceWorker(
-					this.context.host,
-					root,
-					projectRoot,
-					resolve(root, normalize(options.outputPath)),
-					options.baseHref || '/',
-					options.ngswConfigPath
-				).then(
-					() => {
-						obs.next({ success: true });
-						obs.complete();
-					},
-					(err: Error) => {
-						obs.error(err);
-					}
-				);
-			});
-		} else {
-			return of(buildEvent);
-		}
-		})
-	);
+  return of(null).pipe(
+    concatMap(() => options.deleteOutputPath
+    ? (this as any)._deleteOutputDir(root, normalize(options.outputPath), this.context.host)
+    : of(null)),
+    concatMap(() => {
+      return drcpCommon.compile(builderConfig.root, options,
+        () => this.buildWebpackConfig(root, projectRoot, host, options));
+    }),
+    concatMap((webpackConfig) => {
+      return webpackBuilder.runWebpack(webpackConfig, getBrowserLoggingCb(options.verbose));
+    }),
+    concatMap((buildEvent) => {
+    if (buildEvent.success && !options.watch && options.serviceWorker) {
+      return new Observable<BuildEvent>(obs => {
+        augmentAppWithServiceWorker(
+          this.context.host,
+          root,
+          projectRoot,
+          resolve(root, normalize(options.outputPath)),
+          options.baseHref || '/',
+          options.ngswConfigPath
+        ).then(
+          () => {
+            obs.next({ success: true });
+            obs.complete();
+          },
+          (err: Error) => {
+            obs.error(err);
+          }
+        );
+      });
+    } else {
+      return of(buildEvent);
+    }
+    })
+  );
   }
 
 }
