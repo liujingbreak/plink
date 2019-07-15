@@ -19,25 +19,25 @@ export declare abstract class LookAhead<T> {
     constructor(source: Iterable<T>);
     readonly position: number;
     /**
-     * look ahead for 1 character
-     * @param num default is 1
-     * @return null if EOF is reached
-     */
+       * look ahead for 1 character
+       * @param num default is 1
+       * @return null if EOF is reached
+       */
     la(num?: number): T | null;
     lb(num?: number): T;
     advance(count?: number): T;
     /**
-     * Same as `return la(1) === values[0] && la(2) === values[1]...`
-     * @param values lookahead string or tokens
-     */
+       * Same as `return la(1) === values[0] && la(2) === values[1]...`
+       * @param values lookahead string or tokens
+       */
     isNext(...values: T[]): boolean;
     _isNext<C>(values: C[], isEqual?: (a: T, b: C) => boolean): boolean;
     throwError(unexpected?: string): void;
     abstract getCurrentPosInfo(): string;
     /**
-     * Do not read postion less than 0
-     * @param pos
-     */
+       * Do not read postion less than 0
+       * @param pos
+       */
     protected read(pos: number): T;
 }
 /**
@@ -65,8 +65,8 @@ export declare abstract class BaseLexer<T> extends LookAhead<string> implements 
     getText(startPos: number): string;
     getCurrentPosInfo(): string;
     /**
-     * @return zero-based [line, column] value
-     * */
+       * @return zero-based [line, column] value
+       * */
     getLineColumn(pos: number): [number, number];
 }
 export declare class TokenFilter<T> extends LookAhead<Token<T>> implements Iterable<Token<T>> {

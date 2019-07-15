@@ -25,34 +25,34 @@ declare class Guarder {
     protected lastInstalled: string[];
     constructor(rootPath: string);
     /**
-     * Backup package.json
-     * @param {*} backupFileContent
-     */
+       * Backup package.json
+       * @param {*} backupFileContent
+       */
     beforeChange(backupFileContent?: any): void;
     /**
-     * Get last changed package.json json from dr.package.json or memory
-     * @returns {JSON} a cloned package.json
-     */
+       * Get last changed package.json json from dr.package.json or memory
+       * @returns {JSON} a cloned package.json
+       */
     getChanges(): PackageJson;
     getJsonFile(): string;
     /**
-     * Mark changes without writing dr.package.json
-     * return a complete list of this time marked dependencies together with last time marked
-     * @param {object} pk package.json
-     * @return changed list [string, string][]
-     */
+       * Mark changes without writing dr.package.json
+       * return a complete list of this time marked dependencies together with last time marked
+       * @param {object} pk package.json
+       * @return changed list [string, string][]
+       */
     markChanges(pk: PackageJson): [string, string][];
     isModulesChanged(): boolean;
     installAsync(doNotMarkInstallNum?: boolean, useYarn?: boolean, onlyProd?: boolean, isOffline?: boolean): Promise<string>;
     markInstallNum(): void;
     /**
-     * Not including symlink components
-     */
+       * Not including symlink components
+       */
     _countPackages(): string[];
     /**
-     * Mark changes and writing dr.package.json, and restore package.json and create dr.yarn.lock
-     * @param {*} dependencies
-     */
+       * Mark changes and writing dr.package.json, and restore package.json and create dr.yarn.lock
+       * @param {*} dependencies
+       */
     afterChange(): void;
     afterChangeFail(): void;
 }
