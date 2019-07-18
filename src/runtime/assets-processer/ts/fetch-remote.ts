@@ -22,7 +22,7 @@ interface OldChecksum {
   changeFetchUrl?: string;
 }
 
-interface Checksum extends OldChecksum {
+export interface Checksum extends OldChecksum {
   versions?: {[key: string]: {version: number, path: string}};
 }
 
@@ -141,10 +141,10 @@ async function run(setting: Setting, szip: ZipResourceMiddleware) {
     downloads.push(file);
     currentChecksum.version = checksumObj.version;
   }
-  if (checksumObj.versions) {
-    const currVersions = currentChecksum.versions;
-    const targetVersions = checksumObj.versions;
-    for (const key of Object.keys(checksumObj.versions)) {
+  const currVersions = currentChecksum.versions;
+  const targetVersions = checksumObj.versions;
+  if (currVersions && targetVersions) {
+    for (const key of Object.keys(targetVersions)) {
       if (!_.has(targetVersions, key) || _.get(currVersions, [key, 'version']) !==
         _.get(targetVersions, [key, 'version'])) {
           const file = await downloadZip(targetVersions[key].path, szip);
