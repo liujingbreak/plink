@@ -1,9 +1,9 @@
 /* tslint:disable no-console */
 import * as Path from 'path';
-// import vm = require('vm');
-// import * as fs from 'fs';
-import {readTsConfig, registerExtension} from './ts-compiler';
+const {parse} = require('comment-json');
 const {cyan, green} = require('chalk');
+import {register as registerTsNode} from 'ts-node';
+import fs from 'fs';
 
 export interface DrcpConfig {
   done: Promise<void>;
@@ -28,17 +28,38 @@ export interface ConfigHandler {
 }
 
 export class ConfigHandlerMgr {
+  static _tsNodeRegistered = false;
+
   static initConfigHandlers(files: string[]): Array<{file: string, handler: ConfigHandler}> {
     // const files = browserOptions.drcpConfig ? browserOptions.drcpConfig.split(/\s*[,;:]\s*/) : [];
     const exporteds: Array<{file: string, handler: ConfigHandler}> = [];
-    const compilerOpt = readTsConfig(require.resolve('dr-comp-package/wfh/tsconfig.json'));
-    delete compilerOpt.rootDir;
-    delete compilerOpt.rootDirs;
-    registerExtension('.ts', compilerOpt);
-    files.forEach(file => {
-      const exp = require(Path.resolve(file));
-      exporteds.push({file, handler: exp.default ? exp.default : exp});
-    });
+
+    if (!ConfigHandlerMgr._tsNodeRegistered) {
+      ConfigHandlerMgr._tsNodeRegistered = true;
+      // const compilerOpt = readTsConfig(require.resolve('dr-comp-package/wfh/tsconfig.json'));
+      // delete compilerOpt.rootDir;
+      // delete compilerOpt.rootDirs;
+      // registerExtension('.ts', compilerOpt);
+      const tsConfigOptions = parse(fs.readFileSync(fs.existsSync('tsconfig.json') ?
+        'tsconfig.json' : require.resolve('dr-comp-package/wfh/tsconfig.json'), 'utf8'));
+      registerTsNode({
+        typeCheck: true,
+        compilerOptions: tsConfigOptions.compilerOptions
+        // transformers: {
+        //   before: [
+        //     context => (src) => {
+        //       console.log('ts-node compiles:', src.fileName);
+        //       console.log(src.text);
+        //       return src;
+        //     }
+        //   ]
+        // }
+      });
+      files.forEach(file => {
+        const exp = require(Path.resolve(file));
+        exporteds.push({file, handler: exp.default ? exp.default : exp});
+      });
+    }
     return exporteds;
   }
   protected configHandlers: Array<{file: string, handler: ConfigHandler}>;

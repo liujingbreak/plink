@@ -86,6 +86,7 @@
     "vinyl-buffer": "^1.0.1",
     "vinyl-paths": "^2.1.0",
     "vinyl-source-stream": "^1.1.0",
+    "ts-node": "~8.3.0",
     "yamlify": "^0.2.0",
     "yamljs": "^0.3.0",
     "yargs": "^12.0.1",
