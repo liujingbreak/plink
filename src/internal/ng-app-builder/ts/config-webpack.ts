@@ -393,11 +393,10 @@ function printConfigValue(value: any, level: number): string {
 
 export async function transformIndexHtml(context: BuilderContext, content: string) {
   try {
-    return transformHtml(content, srcUrl => {
+    return transformHtml(content, context.ngBuildOption.browserOptions, srcUrl => {
       const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
       if (match && context.inlineAssets.has(match[1])) {
         const source = context.inlineAssets.get(match[1]);
-        // log.warn(source);
         return smUrl.removeFrom(source!);
       }
       return null;

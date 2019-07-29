@@ -281,7 +281,7 @@ export class TemplateParser extends BaseParser<HtmlTokenType> {
         if (this.la() == null) {
           this.throwError('end of file');
         }
-        const end = this.lb()!.end;
+        const end = this.la()!.start;
         this.advance();
         // console.log('value:', this.text.slice(start, end));
         return {

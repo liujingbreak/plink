@@ -49,7 +49,7 @@ export interface DrcpBuilderOptions {
 
 import {BuilderContext, BuilderContextOptions} from './builder-context';
 
-export function newContext(options?: BuilderContextOptions) {
+export function newContext(ngBuildOption: AngularCliParam, options?: BuilderContextOptions) {
   const constructor = require('./builder-context').BuilderContext as typeof BuilderContext;
-  return new constructor(options);
+  return new constructor(ngBuildOption, options);
 }

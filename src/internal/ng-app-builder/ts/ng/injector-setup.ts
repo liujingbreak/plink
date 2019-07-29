@@ -2,7 +2,7 @@ import {parse} from 'url';
 import Path from 'path';
 // import api from '__api';
 import _ from 'lodash';
-import {ngRouterPath} from '../../isom/api-share';
+import {createNgRouterPath} from '../../isom/api-share';
 import {initInjectorForNodePackages, initWebInjector} from 'dr-comp-package/wfh/dist/package-runner';
 import {AngularBuilderOptions} from './common';
 
@@ -17,7 +17,7 @@ export default async function(browserOptions: AngularBuilderOptions, ssr = false
     deployUrl,
     ssr,
     ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
-    ngRouterPath,
+    ngRouterPath: createNgRouterPath(browserOptions.baseHref),
     ssrRequire(requirePath: string) {
       if (ssr)
         return require(Path.join(this.__dirname, requirePath));

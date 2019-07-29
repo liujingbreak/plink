@@ -18,4 +18,4 @@ export interface DrcpBuilderOptions {
     drcpConfig: string;
 }
 import { BuilderContext, BuilderContextOptions } from './builder-context';
-export declare function newContext(options?: BuilderContextOptions): BuilderContext;
+export declare function newContext(ngBuildOption: AngularCliParam, options?: BuilderContextOptions): BuilderContext;

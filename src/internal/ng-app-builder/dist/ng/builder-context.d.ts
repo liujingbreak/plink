@@ -5,11 +5,12 @@ export interface BuilderContextOptions {
     inlineChunks: string[];
 }
 export declare class BuilderContext {
+    ngBuildOption: AngularCliParam;
     inlineAssets: Map<string, string | null>;
     options: BuilderContextOptions;
     _setCompilation: (value: compilation.Compilation) => void;
-    constructor(opt?: BuilderContextOptions);
-    configWebpack(param: AngularCliParam, webpackConfig: webpack.Configuration, drcpConfigSetting: {
+    constructor(ngBuildOption: AngularCliParam, opt?: BuilderContextOptions);
+    configWebpack(webpackConfig: webpack.Configuration, drcpConfigSetting: {
         devMode: boolean;
     }): void;
     transformIndexHtml(content: string): Promise<string>;

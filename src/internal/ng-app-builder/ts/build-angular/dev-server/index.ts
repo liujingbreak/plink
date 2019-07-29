@@ -16,14 +16,14 @@ export default createBuilder<DevServerBuilderOptions, DevServerBuilderOutput>(
         return from(changeAngularCliOptions(drcpConfig, context, options));
       }),
       concatMap((browserOptions) => {
-        const drcpBuilderCtx = drcpCommon.newContext();
+        const drcpBuilderCtx = drcpCommon.newContext({
+          builderConfig: options,
+          browserOptions,
+          ssr: false
+        });
         return executeDevServerBuilder(options, context, {
           webpackConfiguration: async (config) => {
-            await drcpBuilderCtx.configWebpack({
-              builderConfig: options,
-              browserOptions,
-              ssr: false
-            }, config, {devMode: true});
+            await drcpBuilderCtx.configWebpack( config, {devMode: true});
             return config;
           },
           indexHtml: (content) => drcpBuilderCtx.transformIndexHtml(content)

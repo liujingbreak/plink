@@ -16,6 +16,7 @@ const log = require('log4js').getLogger(api.packageName + '.index-html-plugin');
 export interface IndexHtmlPluginOptions {
   indexFile: string;
   inlineChunkNames: string[];
+  baseHref?: string;
 }
 
 class MockLoaderContext {
@@ -42,7 +43,7 @@ export default class IndexHtmlPlugin {
     compiler.hooks.emit.tapPromise('drcp-index-html-plugin', async compilation => {
       const htmlSrc = compilation.assets[this.indexOutputPath];
       let source: string = htmlSrc.source();
-      source = await transformHtml(source, (srcUrl) => {
+      source = await transformHtml(source, {baseHref: this.options.baseHref}, (srcUrl) => {
         const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
         if (match && this.inlineChunkSet.has(match[1])) {
           return smUrl.removeFrom(compilation.assets[match[0]].source());
@@ -57,6 +58,7 @@ export default class IndexHtmlPlugin {
 
 export async function transformHtml(this: void,
   html: string,
+  buildOptions: {baseHref?: string},
   inlineReplace: (srcUrl: string) => string | null | void) {
 
   const compile = _.template(html);
@@ -71,8 +73,10 @@ export async function transformHtml(this: void,
 
   const asts = new TemplateParser(html).parse();
   for (const ast of asts) {
-    if (ast.name.toLowerCase() === 'script' && ast.attrs) {
-      const srcUrl = _.get(ast.attrs.src || ast.attrs.SRC, 'value');
+    const tagName = ast.name.toLowerCase();
+    const attrs = ast.attrs;
+    if (tagName === 'script' && attrs) {
+      const srcUrl = _.get(attrs.src || attrs.SRC, 'value');
       if (srcUrl == null)
         continue;
       const inlineContent = inlineReplace(srcUrl.text);
@@ -82,7 +86,15 @@ export async function transformHtml(this: void,
         });
         log.info(`Inline "${srcUrl.text}"`);
       }
+    } else if (buildOptions.baseHref && tagName === 'base') {
+      const href: string | undefined = _.get<any, any>(attrs, 'href.value.text');
+      if (href !== buildOptions.baseHref!) {
+        const baseHrefHtml = html.slice(ast.start, ast.end);
+        log.error(`In your index HTML, ${baseHrefHtml} is inconsistent to Angular cli configuration 'baseHref="${buildOptions.baseHref}"',\n` +
+          `you need to remove ${baseHrefHtml} from index HTML file, let Angular insert for you.`);
+      }
     }
+    // console.log(tagName, attrs);
   }
   if (replacements.length > 0) {
     html = replaceCode(html, replacements);

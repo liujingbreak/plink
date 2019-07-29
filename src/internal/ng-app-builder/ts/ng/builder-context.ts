@@ -9,9 +9,10 @@ export interface BuilderContextOptions {
 export class BuilderContext {
     inlineAssets: Map<string, string|null> = new Map();
     options: BuilderContextOptions;
+
     _setCompilation: (value: compilation.Compilation) => void;
 
-    constructor(opt?: BuilderContextOptions) {
+    constructor(public ngBuildOption: AngularCliParam, opt?: BuilderContextOptions) {
         if (opt) {
             this.options = opt;
         } else {
@@ -20,9 +21,9 @@ export class BuilderContext {
         this.options.inlineChunks.forEach(chunkName => this.inlineAssets.set(chunkName, null));
     }
 
-    configWebpack(param: AngularCliParam, webpackConfig: webpack.Configuration,
+    configWebpack(webpackConfig: webpack.Configuration,
         drcpConfigSetting: {devMode: boolean}) {
-        changeWebpackConfig(this, param, webpackConfig, drcpConfigSetting);
+        changeWebpackConfig(this, this.ngBuildOption, webpackConfig, drcpConfigSetting);
     }
 
     transformIndexHtml(content: string) {

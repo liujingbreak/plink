@@ -23,6 +23,10 @@ To be supported by `ng <command>` command:
 - Also avoid being changed from project to project which eventually will lead to too fragmented to share resuable components. So all projects can always share same best-practise build script.
 
 - Expand webpack config file to support 3rd-party webpack features that angular cli does not provide.
+  - Support using lodash template in index.html
+  - Dynamic change Angular cli configuration by Typescript
+  - Allow more Webpack customized configuration
+  - Inline `runtime` chunk into index.html
 
 - ~~Enable Angular 6 project to be built with legacy AngularJS project (which is compiled by different webpack loaders and plugins)~~
 
