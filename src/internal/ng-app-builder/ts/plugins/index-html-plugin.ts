@@ -70,7 +70,7 @@ export async function transformHtml(this: void,
   // Following line must be prior to `TemplateParser.parse()`, TemplateParser
   // has limitation in parsing `<script>inline code ...</script>`
   html = await htmlLoader.compileHtml(html, new MockLoaderContext());
-
+  let hasBaseHref = false;
   const asts = new TemplateParser(html).parse();
   for (const ast of asts) {
     const tagName = ast.name.toLowerCase();
@@ -86,7 +86,10 @@ export async function transformHtml(this: void,
         });
         log.info(`Inline "${srcUrl.text}"`);
       }
-    } else if (buildOptions.baseHref && tagName === 'base') {
+    } else if (tagName === 'base') {
+      hasBaseHref = true;
+      if (!buildOptions.baseHref)
+        continue;
       const href: string | undefined = _.get<any, any>(attrs, 'href.value.text');
       if (href !== buildOptions.baseHref!) {
         const baseHrefHtml = html.slice(ast.start, ast.end);
@@ -95,6 +98,11 @@ export async function transformHtml(this: void,
       }
     }
     // console.log(tagName, attrs);
+  }
+  if (!hasBaseHref && !buildOptions.baseHref) {
+    const msg = 'There is neither <base href> tag in index HTML, nor Angular cli configuration "baseHref" being set';
+    log.error('Error:', msg);
+    throw new Error(msg);
   }
   if (replacements.length > 0) {
     html = replaceCode(html, replacements);
