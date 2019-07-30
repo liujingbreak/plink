@@ -53,9 +53,10 @@ export default async function changeWebpackConfig(context: BuilderContext, param
 
   // webpackConfig.module.noParse = (file: string) => noParse.some(name => file.replace(/\\/g, '/').includes(name));
 
-  const ngCompilerPlugin: any = webpackConfig.plugins.find((plugin: any) => {
+  // Change AngularCompilerPlugin's option
+  const ngCompilerPlugin = webpackConfig.plugins.find((plugin: any) => {
     return (plugin instanceof AngularCompilerPlugin);
-  });
+  }) as AngularCompilerPlugin;
   if (ngCompilerPlugin == null)
     throw new Error('Can not find AngularCompilerPlugin');
   // Hack angular/packages/ngtools/webpack/src/angular_compiler_plugin.ts !!!!
@@ -69,7 +70,13 @@ export default async function changeWebpackConfig(context: BuilderContext, param
   (webpackConfig.plugins as any[]).unshift(new class {
     apply(compiler: Compiler) {
       const hooker = new TSReadHooker(param);
-      (ngCompilerPlugin as any)._options.host = new ReadHookHost((compiler as any).inputFileSystem, hooker.hookFunc);
+      ngCompilerPlugin.options.host = new ReadHookHost((compiler as any).inputFileSystem, hooker.hookFunc);
+      // Due to https://github.com/angular/angular-cli/pull/12969
+      ngCompilerPlugin.options.directTemplateLoading = false;
+      // TODO: Once Angular cli (v8.1.x) upgrades to allow changing directTemplateLoading, we should remove
+      // below hack code.
+      ((ngCompilerPlugin as any)._transformers as any[]).splice(0);
+      (ngCompilerPlugin as any)._makeTransformers();
       compiler.hooks.watchRun.tapPromise('ts-read-hook', async () => {
         hooker.clear();
       });
@@ -186,12 +193,12 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
     }]
   };
   const htmlLoaderRule = {
-    test: /\\.html$/,
+    test: /\.html$/,
     use: [
-      {loader: 'raw-loader'},
-      {loader: 'ng-html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
+      {loader: 'raw-loader'}
+      // {loader: 'ng-html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
       // {loader: '@dr/translate-generator'},
-      {loader: '@dr/template-builder'}
+      // {loader: '@dr/template-builder'}
     ]
   };
   rules.forEach((rule, ruleIdx) => {
@@ -269,12 +276,11 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
     console.log('Insert url-loader');
     rules.splice(fileLoaderRuleIdx + 1, 0, urlLoaderRule);
   }
-  if (param.browserOptions.aot) {
-    rules.unshift({
-      test: /\.ngfactory.js$/,
-      use: [{loader: '@dr-core/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader'}]
-    });
-  }
+  rules.unshift({
+    test: /\.(?:ngfactory\.js|component\.html)$/,
+    use: [{loader: '@dr-core/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader'}]
+  });
+
   rules.unshift({
     oneOf: [
     {

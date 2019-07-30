@@ -58,7 +58,7 @@
     "highlight.js": "~9.12.0",
     "postcss": "^6.0.22",
     "css-selector-tokenizer": "^0.7.0",
-    "loader-utils": "^1.1.0",
+    "loader-utils": "^1.2.3",
     "pify": "^3.0.0",
     "react-hot-loader": "^4.1.1",
     "sass-loader": "^7.0.1",

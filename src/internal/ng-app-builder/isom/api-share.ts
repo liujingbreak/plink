@@ -3,7 +3,7 @@ import trimStart from 'lodash/trimStart';
 
 
 
-export function createNgRouterPath(baseHref?: string) {
+export function createNgRouterPath(baseHrefPath?: string) {
   /**@function ngRouterPath
    * @memberOf __api
    * e.g.
@@ -19,10 +19,9 @@ export function createNgRouterPath(baseHref?: string) {
   return function ngRouterPath(packageName: string, subPath?: string) {
     const url = this.assetsUrl(packageName, subPath);
     const currUrl = Url.parse(url).pathname || '';
-    if (baseHref) {
-      baseHref = Url.parse(baseHref).pathname || '';
-      if (currUrl.indexOf(baseHref)) {
-        return trimStart(currUrl.slice(baseHref.length), '/');
+    if (baseHrefPath) {
+      if (currUrl.indexOf(baseHrefPath) === 0) {
+        return trimStart(currUrl.slice(baseHrefPath.length), '/');
       }
     }
     return trimStart(currUrl, '/');

@@ -17,7 +17,7 @@ export default async function(browserOptions: AngularBuilderOptions, ssr = false
     deployUrl,
     ssr,
     ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
-    ngRouterPath: createNgRouterPath(browserOptions.baseHref),
+    ngRouterPath: createNgRouterPath(browserOptions.baseHref ? parse(browserOptions.baseHref).pathname : undefined),
     ssrRequire(requirePath: string) {
       if (ssr)
         return require(Path.join(this.__dirname, requirePath));

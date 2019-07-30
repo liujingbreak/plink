@@ -27,6 +27,8 @@ To be supported by `ng <command>` command:
   - Dynamic change Angular cli configuration by Typescript
   - Allow more Webpack customized configuration
   - Inline `runtime` chunk into index.html
+  - Remind duplicate `<base href>` in index HTML when a developer setup a baseHref in Angular cli configuration.
+  - Use file-loader to deal with `<img src>` in component template
 
 - ~~Enable Angular 6 project to be built with legacy AngularJS project (which is compiled by different webpack loaders and plugins)~~
 

@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as log4js from 'log4js';
 import { Observable, of, throwError } from 'rxjs';
+import {map} from 'rxjs/operators';
 import * as ts from 'typescript';
 import api, {DrcpApi} from '__api';
 import { replaceHtml } from './ng-aot-assets';
@@ -74,7 +75,8 @@ export default class TSReadHooker {
           const cached = this.tsCache.get(this.realFile(file, preserveSymlinks));
           if (cached != null)
             return of(cached);
-          return of(string2buffer(replaceHtml(file, Buffer.from(buf).toString())));
+          return replaceHtml(file, Buffer.from(buf).toString())
+            .pipe(map(output => string2buffer(output)));
 
         } else if (!file.endsWith('.ts') || file.endsWith('.d.ts')) {
           return of(buf);
