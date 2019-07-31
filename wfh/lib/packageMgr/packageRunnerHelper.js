@@ -44,7 +44,8 @@ function runBuilderComponentsWith(funcName, builderComponents, argv, skips, skip
 			var found = cache.get(file);
 			if (!found) {
 				found = packageInfo.dirTree.getAllData(file).pop();
-				cache.set(file, found);
+				if (found)
+					cache.set(file, found);
 			}
 			return found;
 		};

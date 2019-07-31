@@ -71,7 +71,7 @@ interface _DrcpApi {
 	config: DrcpConfig;
 	argv: any;
 	browserInjector: RequireInjector;
-	findPackageByFile(path: string): PackageBrowserInstance;
+	findPackageByFile(path: string): PackageBrowserInstance | undefined;
 	getNodeApiForPackage<T extends _DrcpApi>(pk: {longName: string}): T;
 	extend(target: any): void;
 	isBrowser(): boolean;

@@ -152,7 +152,7 @@ export default class TSReadHooker {
         let changed = api.browserInjector.injectToFile(file, content);
 
         changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
-        if (hasImportApi)
+        if (hasImportApi && compPkg)
           changed = apiTmplTs({packageName: compPkg.longName}) + '\n' + changed;
         // if (changed !== content && ngParam.ssr) {
         // 	changed = 'import "@dr-core/ng-app-builder/src/drcp-include";\n' + changed;

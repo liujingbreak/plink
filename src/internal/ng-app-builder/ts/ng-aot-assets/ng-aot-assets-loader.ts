@@ -3,7 +3,7 @@ import api from '__api';
 import replaceCode, {ReplacementInf} from '../utils/patch-text';
 import {randomNumStr} from './index';
 import {loader as wbLoader} from 'webpack';
-import {Observable, Subject} from 'rxjs';
+import {Observable, Subject, of} from 'rxjs';
 import {mergeMap, map, toArray} from 'rxjs/operators';
 import vm = require('vm');
 import * as _ from 'lodash';
@@ -17,35 +17,36 @@ const loader: wbLoader.Loader = function(source: string | Buffer, sourceMap?: Ra
     this.emitError('loader does not support sync mode');
     throw new Error('loader does not support sync mode');
   }
-  // if (!this.resourcePath.endsWith('.ngfactory.js'))
-  //   return callback(null, source, sourceMap);
   let str: string;
   if (typeof source !== 'string')
     str = source.toString();
   else
     str = source;
 
-  // let toBeReplaced: ReplacementInf[];
   const subj = new Subject<ReplacementInf>();
   subj.pipe(mergeMap(repl => {
-    // const beginChar = str.charAt(repl.start-1);
-    // const endChar = str.charAt(repl.end);
+    const match = /\.(?:t|j)sx?$/.exec(this.resourcePath);
+    if (match) {
+      // So far for Angular 8.1.x, all files are .component.html,
+      // following logic will not be run at all.
+      const prevChar = str.charAt(repl.start-1);
+      const postChar = str.charAt(repl.end);
 
-    // if ((beginChar === '"' || beginChar === '\'') && endChar === beginChar) {
-    //   // a string literal
-    //   repl.start--;
-    //   repl.end++;
-    //   repl.text = `require(${JSON.stringify(repl.text)})`;
-    //   return of(repl);
-    // } else {
-      return loadModule(this, repl.text != null ? repl.text! : repl.replacement!)
-      .pipe(
-        map(resolved => {
-          repl.text = resolved;
-          return repl;
-        })
-      );
-    // }
+      if ((prevChar === '"' || prevChar === '\'') && postChar === prevChar) {
+        // our placeholder is within a string literal, remove quotation mark
+        repl.start--;
+        repl.end++;
+        repl.text = `require(${JSON.stringify(repl.text)})`;
+        return of(repl);
+      }
+    }
+    return loadModule(this, repl.text != null ? repl.text! : repl.replacement!)
+    .pipe(
+      map(resolved => {
+        repl.text = resolved;
+        return repl;
+      })
+    );
   }), toArray())
   .subscribe(replacements => {
     if (replacements.length === 0) {

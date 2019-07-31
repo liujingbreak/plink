@@ -277,7 +277,12 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
     rules.splice(fileLoaderRuleIdx + 1, 0, urlLoaderRule);
   }
   rules.unshift({
-    test: /\.(?:ngfactory\.js|component\.html)$/,
+    // test: /\.(?:ngfactory\.js|component\.html)$/,
+    test: file => {
+      if (file.endsWith('.component.html'))
+        return true;
+      return !!api.findPackageByFile(file);
+    },
     use: [{loader: '@dr-core/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader'}]
   });
 
