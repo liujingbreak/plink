@@ -8,6 +8,7 @@ import { getTsDirsOfPackage } from 'dr-comp-package/wfh/dist/utils';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as Path from 'path';
+import Url from 'url';
 import { sys } from 'typescript';
 import { DrcpSetting } from '../configurable';
 import { findAppModuleFileFromMain } from '../utils/parse-app-module';
@@ -67,12 +68,15 @@ export async function changeAngularCliOptionsForBuild(config: DrcpConfig,
  */
 export async function changeAngularCliOptions(config: DrcpConfig,
   context: BuilderContext,
-  builderConfig?: DevServerBuilderOptions) {
+  builderConfig: DevServerBuilderOptions) {
 
   const browserTarget = targetFromTargetString(builderConfig!.browserTarget);
-  const rawBrowserOptions = await context.getTargetOptions(browserTarget);
+  const rawBrowserOptions = await context.getTargetOptions(browserTarget) as any as BrowserBuilderSchema;
+  if (!rawBrowserOptions.deployUrl)
+    rawBrowserOptions.deployUrl = '/';
+
   const browserOptions = await processBrowserBuiliderOptions(
-    config, rawBrowserOptions as any as BrowserBuilderSchema, context, builderConfig, true);
+    config, rawBrowserOptions, context, builderConfig, true);
   hackAngularBuilderContext(context, 'build', browserOptions);
   return browserOptions;
 }
@@ -103,7 +107,18 @@ async function processBrowserBuiliderOptions(
 
   if (!browserOptions.deployUrl)
     browserOptions.deployUrl = '/';
-    // if static assets's URL is not led by '/', it will be considered as relative path in ng-html-loader
+  // if static assets's URL is not led by '/', it will be considered as relative path in ng-html-loader
+
+  if (devServerConfig) {
+    const parsedUrl = Url.parse(browserOptions.deployUrl);
+    if (parsedUrl.host == null) {
+      parsedUrl.hostname = 'localhost';
+      parsedUrl.port = devServerConfig.port + '';
+      parsedUrl.protocol = 'http';
+      rawBrowserOptions.deployUrl = Url.format(parsedUrl);
+    }
+    devServerConfig.servePath = parsedUrl.pathname; // In case deployUrl has host, ng cli will report error for null servePath
+  }
 
   if (browserOptions.fileReplacements) {
     console.log(browserOptions.fileReplacements);

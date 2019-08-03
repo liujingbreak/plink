@@ -3,7 +3,7 @@
   "description": "express app",
   "version": "1.0.14",
   "main": "dist/app.js",
-  "types": "index.d.ts",
+  "types": "dist/routes.d.ts",
   "dependencies": {
     "cors": "^2.8.4",
     "body-parser": "~1.18.1",

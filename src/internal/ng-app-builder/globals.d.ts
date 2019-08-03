@@ -3,7 +3,6 @@
 import NodePackage from 'dr-comp-package/wfh/dist/packageNodeInstance';
 import PackageBrowserInstance from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
 import { EventEmitter } from 'events';
-import {ExpressAppApi} from '@dr-core/express-app';
 import {Webpack2BuilderApi} from '@dr-core/webpack2-builder/main';
 import {PackageInfo} from 'dr-comp-package/wfh/dist/build-util/ts';
 import {DrcpConfig} from 'dr-comp-package/wfh/dist/config-handler';
@@ -90,8 +89,9 @@ interface _DrcpApi {
 	addBrowserSideConfig(name: string, value: any): void;
 	[key: string]: any;
 }
-export type DrcpApi = _DrcpApi & ExpressAppApi & Webpack2BuilderApi & _DrcpNgApi;
+export type DrcpApi = _DrcpApi & Webpack2BuilderApi & _DrcpNgApi;
 
+import ExpressAppApi from '@dr-core/express-app/dist/api-types';
 declare global {
-	export var __api: DrcpApi;
+	export var __api: DrcpApi & ExpressAppApi;
 }

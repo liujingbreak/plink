@@ -9,7 +9,7 @@ var cookieParser = require('cookie-parser');
 import bodyParser from 'body-parser';
 var engines = require('consolidate');
 var swig = require('swig-templates');
-var setupApi = require('../setupApi');
+import {setupApi, applyPackageDefinedAppSetting, createPackageDefinedRouters} from './routes';
 import api from '__api';
 var log = log4js.getLogger(api.packageName);
 var compression = require('compression');
@@ -23,7 +23,7 @@ export = {
   activate() {
     app = express();
     setupApi(api, app);
-    api.eventBus.on('packagesActivated', function(packageCache) {
+    api.eventBus.on('packagesActivated', function() {
       log.info('packagesActivated');
       process.nextTick(() => {
         create(app, api.config());
@@ -63,7 +63,7 @@ function create(app: express.Express, setting: any) {
   app.set('view engine', 'html');
   app.set('x-powered-by', false);
   app.set('env', api.config().devMode ? 'development' : 'production');
-  setupApi.applyPackageDefinedAppSetting(app);
+  applyPackageDefinedAppSetting(app);
   // uncomment after placing your favicon in /public
   // app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
   // app.use(logger('dev'));
@@ -86,7 +86,7 @@ function create(app: express.Express, setting: any) {
   app.use(cookieParser());
   app.use(compression());
   // setupApi.createPackageDefinedMiddleware(app);
-  setupApi.createPackageDefinedRouters(app);
+  createPackageDefinedRouters(app);
 
   const hashFile = Path.join(api.config().rootPath, 'githash-server.txt');
   if (fs.existsSync(hashFile)) {

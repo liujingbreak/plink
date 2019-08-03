@@ -2,7 +2,8 @@
   "name": "@dr-core/assets-processer",
   "version": "1.0.41",
   "description": "Copy assets to destDir folder only when devMode is false",
-  "main": "assetsProcesser.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dr": {
     "type": [
       "builder",
@@ -57,7 +58,9 @@
     "adm-zip": "^0.4.13",
     "@types/adm-zip": "^0.4.32",
     "serve-static-zip": "^1.0.3",
-    "pify": "~4.0.1"
+    "pify": "~4.0.1",
+    "http-proxy-middleware": "^0.19.1",
+    "@types/through2": "^2.0.34"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
