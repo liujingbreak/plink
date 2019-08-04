@@ -33,6 +33,9 @@
           "ttf": "365 days",
           "woff": "365 days",
           "woff2": "365 days"
+        },
+        "resourcePathRewrite": {
+          "^/[^/]+": "<%=match[0]%>/index.html"
         }
       }
     },
@@ -42,6 +45,9 @@
         "fetchLogErrPerTimes": 1,
         "fetchIntervalSec": 30,
         "cacheControlMaxAge": {
+        },
+        "indexHtmlProxy": {
+          "target": "http://localhost:4200"
         }
       }
     }

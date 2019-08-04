@@ -6,9 +6,10 @@ import _ from 'lodash';
 import api from '__api';
 const es = require('event-stream');
 const log = require('log4js').getLogger(api.packageName);
-const fetchRemote = require('./dist/fetch-remote');
+import * as fetchRemote from './fetch-remote';
 const serverFavicon = require('serve-favicon');
-const {createStaticRoute, createZipRoute} = require('./dist/static-middleware');
+import {createStaticRoute, createZipRoute} from './static-middleware';
+import resourcePathRewrite from './index-html-route';
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 const buildUtils = api.buildUtils;
@@ -62,6 +63,9 @@ export function activate() {
   });
   log.info('cache control', maxAgeMap);
   log.info('Serve static dir', staticFolder);
+
+  resourcePathRewrite();
+
   const zss = createZipRoute(maxAgeMap);
   api.use('/', zss.handler);
   api.use('/', createStaticRoute(staticFolder, maxAgeMap));
