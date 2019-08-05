@@ -76,7 +76,7 @@ export default class Selector {
   /**
 	 * 
 	 * @param ast root AST node
-	 * @param query Like CSS select := <selector element> (" " | ">") <selector element>
+	 * @param query Like CSS select := ["^"] <selector element> (" " | ">") <selector element>
 	 *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
 	 *   where <index> := "[" "0"-"9" "]"
 	 * e.g.
@@ -107,7 +107,7 @@ export default class Selector {
   /**
 	 * 
 	 * @param ast root AST node
-	 * @param query Like CSS select := <selector element> (" " | ">") <selector element>
+	 * @param query Like CSS select := ["^"] <selector element> (" " | ">") <selector element>
 	 *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
 	 *   where <index> := "[" "0"-"9" "]"
 	 * e.g.

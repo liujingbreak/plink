@@ -1,0 +1,52 @@
+import { Component, OnInit, ViewChild, TemplateRef, ElementRef, Renderer2 } from '@angular/core';
+import { MatBottomSheet } from '@angular/material';
+import { takeUntil, finalize, take, switchMap, map, mergeMap, retryWhen, delay } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { forkJoin, ReplaySubject, of, throwError } from 'rxjs';
+import get from 'lodash/get';
+import sortBy from 'lodash/sortBy';
+const Big = require('big.js');
+
+import { ElDialogService } from '@bk/employee-loan/app/el-core';
+import { ApiResponse } from '@bk/employee-loan/app/el-core/types';
+import { BaseRouteComponent } from '@bk/module-core/base-route-component/base-route.component';
+import { CommonAnimBase } from '@bk/animation/common-anim.directive';
+import {
+  ApplyService as employeeApplyService,
+  CreateOrUpdateRequest,
+  LoanPurpose,
+  Purpose,
+  LastLoan,
+  CreateOrUpdate,
+  Maturity,
+  CreditLimit,
+  TrialRequest,
+  Trial,
+  TrialBillList,
+  FeeItemList
+} from '@bk/employee-loan/app/apply/apply.service';
+import { ApplyService, Coupon } from './apply.service';
+import { MonthSheetComponent } from './monthSheet/monthSheet.component';
+import { PurposeSheetComponent } from './purposeSheet/purposeSheet.component';
+import { CouponSheetComponent } from './couponSheet/couponSheet.component';
+import { ByjUserService } from '../core/user.service';
+
+@Component({
+  selector: 'byj-apply',
+  templateUrl: 'apply.component.html',
+  styleUrls: ['apply.component.scss']
+})
+export class ApplyComponent extends BaseRouteComponent implements OnInit {
+
+
+  _onDestroy = new ReplaySubject<void>(1);
+
+  @ViewChild('repaylistTemp') repaylistTemp: TemplateRef<any>;
+  @ViewChild('repaylistTemp2', {read: TemplateRef}) repaylistTemp2: TemplateRef<any>;
+  @ViewChild('repaylistTemp3', {static: false}) repaylistTemp3: TemplateRef<any>;
+  @ViewChild('repaylistTemp3', {'static': false}) repaylistTemp3: TemplateRef<any>;
+  @ViewChild('repaylistTemp3', {static}) repaylistTemp3: TemplateRef<any>;
+
+}
+
+BaseRouteComponent.extendLifecycleHooks(ApplyComponent);

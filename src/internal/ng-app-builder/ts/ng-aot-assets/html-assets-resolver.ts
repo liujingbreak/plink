@@ -63,6 +63,11 @@ class AttrAssetsUrlResolver {
       const url = this.doLoadAssets(valueToken.text);
       return url.pipe(map(url => new Rep(valueToken.start, valueToken.end, url)));
     } else if (attrName === 'routerLink') {
+      if (valueToken.text.startsWith('assets://')) {
+        const replWith = '/' + api.ngRouterPath(valueToken.text);
+        log.warn(`Use "${replWith}" instead of "%s" in routerLink attribute (%s)`, valueToken.text, this.resourcePath);
+        return of (new Rep(valueToken.start, valueToken.end, replWith));
+      }
       const url = this.resolveUrl(valueToken.text);
       const parsedUrl = Url.parse(url, false, true);
       return of(new Rep(valueToken.start, valueToken.end, parsedUrl.path + (parsedUrl.hash ? parsedUrl.hash : '')));

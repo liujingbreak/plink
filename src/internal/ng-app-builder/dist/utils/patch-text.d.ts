@@ -8,6 +8,9 @@
  */
 export interface ReplacementInf {
     start: number;
+    /**
+     * excluded index
+     */
     end: number;
     text?: string;
     replacement?: string;
@@ -16,6 +19,12 @@ export declare class Replacement implements ReplacementInf {
     start: number;
     end: number;
     text: string;
+    /**
+     * Replacement
+     * @param start included index
+     * @param end excluded index
+     * @param text
+     */
     constructor(start: number, end: number, text: string);
 }
 export declare function _sortAndRemoveOverlap(replacements: ReplacementInf[], removeOverlap: boolean | undefined, text: string): void;

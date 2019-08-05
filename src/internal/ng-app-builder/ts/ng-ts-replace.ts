@@ -12,6 +12,7 @@ import { AngularCliParam } from './ng/common';
 import { HookReadFunc } from './utils/read-hook-vfshost';
 import Selector from './utils/ts-ast-query';
 import ApiAotCompiler from './utils/ts-before-aot';
+import {transform as transformViewChild} from './utils/upgrade-viewchild-ng8';
 const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName);
@@ -150,6 +151,7 @@ export default class TSReadHooker {
           return (ast as ts.StringLiteral).text === '__api';
         });
         let changed = api.browserInjector.injectToFile(file, content);
+        changed = transformViewChild(changed, file);
 
         changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
         if (hasImportApi && compPkg)

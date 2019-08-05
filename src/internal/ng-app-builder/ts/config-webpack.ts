@@ -42,6 +42,11 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     //     origin.apply(this, arguments);
     // };
     devServer.compress = true;
+    if (devServer.headers == null)
+      devServer.headers = {};
+    // CORS enablement
+    devServer.headers['Access-Control-Allow-Origin'] = '*';
+    devServer.headers['Access-Control-Allow-Headers'] = '*';
   }
 
   if (_.get(param, 'builderConfig.options.drcpArgs.report') ||

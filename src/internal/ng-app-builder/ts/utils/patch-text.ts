@@ -11,12 +11,21 @@ import util = require('util');
  */
 export interface ReplacementInf {
   start: number;
+  /**
+   * excluded index
+   */
   end: number;
   text?: string;
   replacement?: string;
 }
 
 export class Replacement implements ReplacementInf {
+  /**
+   * Replacement
+   * @param start included index
+   * @param end excluded index
+   * @param text
+   */
   constructor(public start: number, public end: number,
     public text: string) {
     assert.notEqual(text, null, 'replacement text should not be null or undefined');
