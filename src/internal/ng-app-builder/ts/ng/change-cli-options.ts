@@ -110,7 +110,7 @@ async function processBrowserBuiliderOptions(
   // if static assets's URL is not led by '/', it will be considered as relative path in ng-html-loader
 
   if (devServerConfig) {
-    const parsedUrl = Url.parse(browserOptions.deployUrl);
+    const parsedUrl = Url.parse(browserOptions.deployUrl, true, true);
     if (parsedUrl.host == null) {
       parsedUrl.hostname = 'localhost';
       parsedUrl.port = devServerConfig.port + '';

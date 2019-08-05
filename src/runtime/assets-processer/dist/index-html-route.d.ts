@@ -1,1 +1,2 @@
-export default function resourcePathRewrite(): void;
+export declare function proxyToDevServer(): void;
+export declare function fallbackIndexHtml(): void;

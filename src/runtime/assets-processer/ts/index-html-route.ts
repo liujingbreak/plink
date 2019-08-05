@@ -2,12 +2,13 @@ import proxy from 'http-proxy-middleware';
 import {NextFunction, Request} from 'express';
 import api from '__api';
 import _ from 'lodash';
+import Url from 'url';
 const log = require('log4js').getLogger(api.packageName);
 
 interface ReqWithNextCb extends Request {
   __goNext: NextFunction;
 }
-function proxyToDevServer() {
+export function proxyToDevServer() {
   const config: proxy.Config | undefined = api.config.get(api.packageName).indexHtmlProxy;
   if (config == null)
     return;
@@ -16,7 +17,7 @@ function proxyToDevServer() {
 
   config.onError = (err, req, res) => {
     if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
-      log.warn('Can not connect to %s, farward to local static resource', config.target);
+      log.warn('Can not connect to %s%s, farward to local static resource', config.target, req.url);
       return (req as ReqWithNextCb).__goNext();
     }
     log.warn(err);
@@ -30,9 +31,8 @@ function proxyToDevServer() {
   });
 }
 
-export default function resourcePathRewrite() {
-  proxyToDevServer();
-  const ruleObj: {[key: string]: string} = api.config.get(api.packageName).resourcePathRewrite;
+export function fallbackIndexHtml() {
+  const ruleObj: {[key: string]: string} = api.config.get(api.packageName).fallbackIndexHtml;
 
   const rules: Array<{reg: RegExp, tmpl: _.TemplateExecutor}> = [];
 
@@ -43,17 +43,19 @@ export default function resourcePathRewrite() {
     });
   });
 
-  api.use((req, res, next) => {
+  api.use('/', (req, res, next) => {
     if (req.method !== 'GET')
       return next();
 
     rules.some(({reg, tmpl}) => {
-      const match = reg.exec(req.path);
+      const orig = req.url;
+      const match = reg.exec(req.url);
       if (!match)
         return false;
-      const origin = req.path;
-      req.path = tmpl({match});
-      log.info('rewrite path %s to %s', origin, req.path);
+      // Reference to https://github.com/kapouer/express-urlrewrite/blob/master/index.js#L45
+      req.url = req.originalUrl = tmpl({match});
+      log.debug('rewrite url %s to %s', orig, req.url);
+      req.query = Url.parse(req.url, true, true).query;
       return true;
     });
     next();

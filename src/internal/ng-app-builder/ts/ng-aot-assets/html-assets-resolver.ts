@@ -64,7 +64,7 @@ class AttrAssetsUrlResolver {
       return url.pipe(map(url => new Rep(valueToken.start, valueToken.end, url)));
     } else if (attrName === 'routerLink') {
       const url = this.resolveUrl(valueToken.text);
-      const parsedUrl = Url.parse(url);
+      const parsedUrl = Url.parse(url, false, true);
       return of(new Rep(valueToken.start, valueToken.end, parsedUrl.path + (parsedUrl.hash ? parsedUrl.hash : '')));
     } else { // href, ng-src, routerLink
       const url = this.resolveUrl(valueToken.text);

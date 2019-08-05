@@ -9,7 +9,7 @@ const log = require('log4js').getLogger(api.packageName);
 import * as fetchRemote from './fetch-remote';
 const serverFavicon = require('serve-favicon');
 import {createStaticRoute, createZipRoute} from './static-middleware';
-import resourcePathRewrite from './index-html-route';
+import {fallbackIndexHtml, proxyToDevServer} from './index-html-route';
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 const buildUtils = api.buildUtils;
@@ -64,12 +64,16 @@ export function activate() {
   log.info('cache control', maxAgeMap);
   log.info('Serve static dir', staticFolder);
 
-  resourcePathRewrite();
+  proxyToDevServer();
 
   const zss = createZipRoute(maxAgeMap);
   api.use('/', zss.handler);
-  api.use('/', createStaticRoute(staticFolder, maxAgeMap));
+  const staticHandler = createStaticRoute(staticFolder, maxAgeMap);
+  api.use('/', staticHandler);
   api.use('/', createStaticRoute(api.config.resolve('dllDestDir'), maxAgeMap));
+
+  fallbackIndexHtml();
+  api.use('/', staticHandler); // Serve fallbacked request to index.html
 
   api.eventBus.on('appCreated', () => {
     // appCreated event is emitted by express-app

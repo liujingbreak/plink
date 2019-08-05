@@ -34,7 +34,7 @@
           "woff": "365 days",
           "woff2": "365 days"
         },
-        "resourcePathRewrite": {
+        "fallbackIndexHtml": {
           "^/[^/]+": "<%=match[0]%>/index.html"
         }
       }

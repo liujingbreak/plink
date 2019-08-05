@@ -53,7 +53,7 @@ export function activate() {
 // 		return;
 // 	const deployUrl = webpackConfig.output.publicPath || api.config.get('publicPath');
 
-// 	const publicUrlObj = Url.parse(deployUrl);
+// 	const publicUrlObj = Url.parse(deployUrl, true, true);
 // 	Object.assign(Object.getPrototypeOf(api), {
 // 		deployUrl,
 // 		ssr: ngParam.ssr,
