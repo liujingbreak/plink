@@ -9,6 +9,7 @@ export interface BuilderContextOptions {
 export class BuilderContext {
     inlineAssets: Map<string, string|null> = new Map();
     options: BuilderContextOptions;
+    webpackRunCount = 0;
 
     _setCompilation: (value: compilation.Compilation) => void;
 

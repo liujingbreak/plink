@@ -81,6 +81,13 @@ interface _DrcpApi {
 	assetsUrl(packageName: string, path?: string): string;
 	entryPageUrl(packageName: string, path?: string, locale?: string): string;
 	/**
+	 * @param {string} url
+	 * @param {string} sourceFile
+	 * @return {string} | {packageName: string, path: string, isTilde: boolean, isPage: boolean}, returns string if it is a relative path, or object if
+	 * it is in format of /^(?:assets:\/\/|~|page(?:-([^:]+))?:\/\/)((?:@[^\/]+\/)?[^\/]+)?\/(.*)$/
+	 */
+	normalizeAssetsUrl(url: string, sourceFile: string): string | {packageName: string, path: string, isTilde: boolean, isPage: boolean};
+	/**
 	 * Only available in Node Server side, meaning you have to use `__api.serverUrl(...)`
 	 * in client side JS/TS code.
 	 */

@@ -50,20 +50,24 @@ function replaceUrl(loaderCtx: wb.loader.LoaderContext, css: string, file: strin
     subscriber.complete();
   }).pipe(concatMap( repl => {
     var resolvedTo = replaceAssetsUrl(file, repl.text!);
+    // log.info('%s -> %s', repl.text, resolvedTo);
     if (resolvedTo.startsWith('~')) {
-      return loadModule(loaderCtx, repl.text!.slice(1))
+      return loadModule(loaderCtx, resolvedTo!.slice(1))
       .pipe(map(url => {
         repl.text = url;
         return repl;
       }));
     } else if (!resolvedTo.startsWith('/') && !resolvedTo.startsWith('#') && resolvedTo.indexOf(':') < 0) {
-      return loadModule(loaderCtx, repl.text != null ? repl.text! : repl.replacement!)
+      if (!resolvedTo.startsWith('.'))
+        resolvedTo = './' + resolvedTo; // Fix AOT mode in Angular 8.2.x
+      return loadModule(loaderCtx, resolvedTo)
       .pipe(map(url => {
         repl.text = url;
         return repl;
       }));
     } else {
       log.debug('url: %s  -> %s', repl.text, resolvedTo);
+      repl.text = resolvedTo;
       return of(repl);
     }
   }));
