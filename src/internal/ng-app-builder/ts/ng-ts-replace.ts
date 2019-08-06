@@ -61,6 +61,7 @@ export default class TSReadHooker {
     const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
       false;
     const tsCompilerOptions = readTsConfig(tsconfigFile);
+    const ng8Compliant = api.config.get(api.packageName + '.ng8Compliant', true);
     // let polyfillsFile: string = '';
     // if (ngParam.browserOptions.polyfills)
     // 	polyfillsFile = ngParam.browserOptions.polyfills.replace(/\\/g, '/');
@@ -151,7 +152,9 @@ export default class TSReadHooker {
           return (ast as ts.StringLiteral).text === '__api';
         });
         let changed = api.browserInjector.injectToFile(file, content);
-        changed = transformViewChild(changed, file);
+
+        if (ng8Compliant)
+          changed = transformViewChild(changed, file);
 
         changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
         if (hasImportApi && compPkg)

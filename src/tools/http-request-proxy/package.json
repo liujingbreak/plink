@@ -1,6 +1,6 @@
 {
   "name": "@dr/http-request-proxy",
-  "version": "5.0.12",
+  "version": "5.1.0",
   "description": "Http proxy server by LJ",
   "main": "dist/server.js",
   "types": "dist/server.d.ts",
@@ -10,8 +10,7 @@
     "config": {
       "server": {
         "trackRequestStream": false,
-        "proxies": {
-        },
+        "proxies": {},
         "timeout": 60000
       }
     },
@@ -33,5 +32,8 @@
     "chalk": "^2.4.1"
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "__processed_by_ivy_ngcc__": {
+    "main": "8.2.0"
+  }
 }

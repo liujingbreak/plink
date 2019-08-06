@@ -70,10 +70,10 @@ export function activate() {
 
 function checkAngularVersion() {
   const deps: {[k: string]: string} = {
-    '@angular-devkit/build-angular': '~0.801.0',
-    '@angular/cli': '~8.1.0',
-    '@angular/compiler-cli': '~8.1.0',
-    '@angular/language-service': '~8.1.0'
+    '@angular-devkit/build-angular': '~0.802.0',
+    '@angular/cli': '~8.2.0',
+    '@angular/compiler-cli': '~8.2.0',
+    '@angular/language-service': '~8.2.0'
   };
   let valid = true;
   _.each(deps, (expectVer, mod) => {

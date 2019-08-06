@@ -1,6 +1,6 @@
 {
   "name": "@dr/ng-schematics",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "main": "dist/main.js",
   "description": "DRCP Angular command line schematics",
   "dr": {

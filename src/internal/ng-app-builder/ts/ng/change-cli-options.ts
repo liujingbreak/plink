@@ -359,6 +359,7 @@ function overrideTsConfig(file: string, content: string,
 
   excludePath = excludePath.map(expath =>
     Path.relative(Path.dirname(file), expath).replace(/\\/g, '/'));
+  excludePath.push('**/*.d.ts');
   console.log(excludePath);
   tsExclude.push(...excludePath);
 
@@ -382,8 +383,9 @@ function overrideTsConfig(file: string, content: string,
       strictNullChecks: false,
       typeRoots: [
         Path.resolve(root, 'node_modules/@types'),
-        Path.resolve(root, 'node_modules/@dr-types'),
-        Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
+        Path.resolve(root, 'node_modules/@dr-types')
+        // Below is NodeJS only, which will break Angular Ivy engine
+        // Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
       ],
       // module: 'esnext',
       preserveSymlinks,

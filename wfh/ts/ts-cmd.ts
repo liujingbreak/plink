@@ -199,7 +199,7 @@ function compile(compGlobs: string[], tsProject: any,
         /* tslint:disable no-console */
         console.log('\n---------- Failed to compile Typescript files, check out below error message -------------\n');
         compileErrors.forEach(msg => log.error(msg));
-        return reject(new Error(compileErrors.join(',')));
+        return reject(new Error('Failed to compile Typescript files'));
       }
       resolve();
     });

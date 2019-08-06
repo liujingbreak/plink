@@ -161,9 +161,9 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     return lastResult;
   });
 
-  const wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.js`;
+  const wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}-${process.pid}.config.js`;
   fs.writeFileSync(wfname, printConfig(webpackConfig));
-  console.log('If you are wondering what kind of Webapck config file is used internally, checkout ' + wfname);
+  console.log(`If you are wondering what kind of Webapck config file is used internally, checkout ${wfname}`);
   return webpackConfig;
 }
 
