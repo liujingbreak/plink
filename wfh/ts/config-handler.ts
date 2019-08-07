@@ -40,11 +40,16 @@ export class ConfigHandlerMgr {
       // delete compilerOpt.rootDir;
       // delete compilerOpt.rootDirs;
       // registerExtension('.ts', compilerOpt);
-      const tsConfigOptions = parse(fs.readFileSync(fs.existsSync('tsconfig.json') ?
-        'tsconfig.json' : require.resolve('dr-comp-package/wfh/tsconfig.json'), 'utf8'));
+      const {compilerOptions} = parse(
+        fs.readFileSync(fs.existsSync('tsconfig.json') ?
+        'tsconfig.json' : require.resolve('dr-comp-package/wfh/tsconfig.json'), 'utf8')
+      );
+
+      compilerOptions.module = 'commonjs';
+
       registerTsNode({
         typeCheck: true,
-        compilerOptions: tsConfigOptions.compilerOptions
+        compilerOptions
         // transformers: {
         //   before: [
         //     context => (src) => {

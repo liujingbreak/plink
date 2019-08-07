@@ -2,7 +2,7 @@
 import {DrPackageInjector} from './dist/injector-factory';
 import * as _ from 'lodash';
 
-export = function(injector: DrPackageInjector) {
+export default function(injector: DrPackageInjector) {
   // var _ = require('lodash');
   const config = require('./lib/config');
   let less: any;

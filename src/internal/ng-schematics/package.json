@@ -18,7 +18,7 @@
   "author": "",
   "license": "MIT",
   "schematics": "./src/collection.json",
-  "dependencies": {
+  "--dependencies": {
     "@angular-devkit/core": "^8.1.0",
     "@angular-devkit/schematics": "^8.1.0",
     "@types/jasmine": "^3.3.9",

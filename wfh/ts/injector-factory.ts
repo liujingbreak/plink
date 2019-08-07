@@ -80,7 +80,10 @@ export class DrPackageInjector extends RJ {
       const file1 = fs.existsSync(file + '.ts') ? file + '.ts' : file + '.js';
       if (fs.existsSync(file1)) {
         log.debug('execute internal ' + file1);
-        require(file1)(this);
+        let exported = require(file1);
+        if (exported.default)
+          exported = exported.default;
+        exported(this);
       } else {
         log.info(file1 + ' doesn\'t exist');
       }

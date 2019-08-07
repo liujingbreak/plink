@@ -21,5 +21,5 @@ export declare function link(onPkJsonFile: (filePath: string, recipeDir: string)
 /**
  * @return array of linked package's package.json file path
  */
-export declare function linkComponentsAsync(): Promise<{}>;
-export declare function clean(): Promise<{}>;
+export declare function linkComponentsAsync(): Promise<unknown>;
+export declare function clean(): Promise<unknown>;
