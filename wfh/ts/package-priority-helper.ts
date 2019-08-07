@@ -3,7 +3,6 @@ import PackageNodeInstance from './packageNodeInstance';
 import PackageBrowserInstance from './build-util/ts/package-instance';
 const log = require('log4js').getLogger('packagePriorityHelper');
 
-const beforeOrAfter: {[key: string]: number} = {};
 const priorityStrReg = /(before|after)\s+(\S+)/;
 export type PackageInstance = PackageBrowserInstance | PackageNodeInstance;
 
@@ -14,6 +13,8 @@ export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) 
   const afterPackages: {[key: string]: PackageInstance[]} = {};
   if (priorityProperty == null)
     priorityProperty = 'priority';
+
+  const beforeOrAfter: Map<string, string[]> = new Map();
   packages.forEach(pk => {
     const priority = _.get(pk, priorityProperty!);
     if (_.isNumber(priority)) {
@@ -28,13 +29,13 @@ export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) 
       if (res[1] === 'before') {
         if (!beforePackages[targetPackageName]) {
           beforePackages[targetPackageName] = [];
-          beforeOrAfter[targetPackageName] = 1; // track target package
+          beforeOrAfter.set(targetPackageName, [pk.longName, priorityProperty!]); // track target package
         }
         beforePackages[targetPackageName].push(pk);
       } else if (res[1] === 'after') {
         if (!afterPackages[targetPackageName]) {
           afterPackages[targetPackageName] = [];
-          beforeOrAfter[targetPackageName] = 1; // track target package
+          beforeOrAfter.set(targetPackageName, [pk.longName, priorityProperty!]); // track target package
         }
         afterPackages[targetPackageName].push(pk);
       }
@@ -48,9 +49,13 @@ export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) 
     return _.get(pk2, priorityProperty!) - _.get(pk1, priorityProperty!);
   });
 
-  const notFound = _.difference(_.keys(beforeOrAfter), _.map(packages, pk => pk.longName));
+  const pkNames = packages.map(p => p.longName);
+
+  const notFound = _.difference(Array.from(beforeOrAfter.keys()), pkNames)
+  .map(name => name + ` by ${beforeOrAfter.get(name)!.join('\'s ')}`);
   if (notFound.length > 0) {
-    const err = 'Priority depended packages are not found: ' +  notFound;
+    const err = 'Priority depended packages are not found: ' +  notFound +
+      '\nTotal packages available:\n' + pkNames.join('\n');
     log.error(err);
     return Promise.reject(new Error(err));
   }
