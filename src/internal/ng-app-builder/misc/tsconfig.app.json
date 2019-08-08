@@ -22,7 +22,6 @@
 		"declaration": false,
 		"sourceMap": true,
 		"module": "es2015",
-		"allowJs": true,
 		"skipLibCheck": true,
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
