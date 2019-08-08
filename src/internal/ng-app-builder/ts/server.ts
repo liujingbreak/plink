@@ -169,7 +169,7 @@ function writeTsconfig4Editor() {
     const drcpDir = Path.relative(root, _fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
     pathMapping['dr-comp-package'] = [drcpDir];
     pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
-    pathMapping['*'] = ['node_modules/*', 'node_modules/@types/*'];
+    // pathMapping['*'] = ['node_modules/*', 'node_modules/@types/*'];
 
     tsjson.compilerOptions = {
       rootDir: './',

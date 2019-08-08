@@ -74,7 +74,7 @@ export class DrPackageInjector extends RJ {
     if (!fileNameWithoutExt)
       fileNameWithoutExt = 'module-resolve.server';
     _.uniq([
-      Path.resolve(__dirname, '..', fileNameWithoutExt),
+      Path.resolve('./', fileNameWithoutExt),
       Path.resolve(process.cwd(), fileNameWithoutExt)
     ]).forEach(file => {
       const file1 = fs.existsSync(file + '.ts') ? file + '.ts' : file + '.js';
