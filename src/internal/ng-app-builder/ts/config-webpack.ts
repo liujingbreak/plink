@@ -30,6 +30,9 @@ export default async function changeWebpackConfig(context: BuilderContext, param
   // const api: typeof __api = require('__api'); // force to defer loading api until DRCP config is ready
   console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
 
+  // if (webpackConfig.resolve && webpackConfig.resolve.mainFields) {
+  //   webpackConfig.resolve.mainFields = ['browser', 'main', 'module'];
+  // }
   if (webpackConfig.plugins == null) {
     webpackConfig.plugins = [];
   }
@@ -168,8 +171,8 @@ export default async function changeWebpackConfig(context: BuilderContext, param
 }
 
 function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configuration) {
-  const noParse = (api.config.get([api.packageName, 'buildOptimizerExclude'], []) as string[]);
-  noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]);
+  // const noParse = (api.config.get([api.packageName, 'buildOptimizerExclude'], []) as string[]);
+  // noParse.push(...api.config.get([api.packageName, 'build-optimizer:exclude'], []) as string[]);
 
   // const devMode = webpackConfig.mode === 'development';
   if (webpackConfig.resolveLoader == null) {
@@ -218,18 +221,27 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
       }
     }
 
-    if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
-      (rule.use as webpack.RuleSetUseItem[]).some((item) =>
-        (item as webpack.RuleSetLoader).loader === '@angular-devkit/build-optimizer/webpack-loader')) {
+    // if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
+    //   (rule.use as webpack.RuleSetUseItem[]).some((item) =>
+    //     /@angular-devkit[/\\]build-optimizer[/\\].*[/\\]webpack-loader/.test(
+    //     (item as webpack.RuleSetLoader).loader!))) {
 
-        rule.test = (path: string) => {
-          if (!/\\.js$/.test(path)) {
-            return false;
-          }
-          const nPath = path.replace(/\\/g, '/');
-          return noParse.every((exclude => !nPath.includes(exclude)));
-        };
-    }
+    //     let origTest: (p: string) => boolean;
+    //     if (rule.test instanceof RegExp) {
+    //       origTest = (path: string) => (rule.test as RegExp).test(path);
+    //     } else if (typeof rule.test === 'function') {
+    //       origTest = rule.test;
+    //     } else {
+    //       throw new Error('Does not support module.rule\'s test condition type for @angular-devkit/build-optimizer, inform the author to update config-webpack.ts');
+    //     }
+    //     rule.test = (path: string) => {
+    //       if (origTest(path)) {
+    //         const nPath = path.replace(/\\/g, '/');
+    //         return noParse.every((exclude => !nPath.includes(exclude)));
+    //       }
+    //       return false;
+    //     };
+    // }
     // Angular 8 doesn't have loader for HTML
     if (test instanceof RegExp && test.toString() === '/\\.html$/') {
       hasHtmlLoader = true;

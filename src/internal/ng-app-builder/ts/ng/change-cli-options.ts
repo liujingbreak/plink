@@ -368,8 +368,11 @@ function overrideTsConfig(file: string, content: string,
     const drcpDir = Path.relative(root, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
     pathMapping!['dr-comp-package'] = [drcpDir];
     pathMapping!['dr-comp-package/*'] = [drcpDir + '/*'];
-    pathMapping!['*'] = ['node_modules/*'
-      , 'node_modules/@types/*'
+
+    pathMapping!['@angular/*'] = ['node_modules/@angular/*'];
+    pathMapping!['@angularclass/*'] = ['node_modules/@angular/*'];
+    pathMapping!['*'] = [// 'node_modules/*',
+      'node_modules/@types/*'
     ];
   }
 
@@ -380,6 +383,7 @@ function overrideTsConfig(file: string, content: string,
     compilerOptions: {
       ...require('../../misc/tsconfig.app.json').compilerOptions,
       baseUrl: root,
+      // baseUrl: '.',
       strictNullChecks: false,
       typeRoots: [
         Path.resolve(root, 'node_modules/@types'),
