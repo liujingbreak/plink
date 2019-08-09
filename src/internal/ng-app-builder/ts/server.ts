@@ -174,6 +174,7 @@ function writeTsconfig4Editor() {
     tsjson.compilerOptions = {
       rootDir: './',
       baseUrl: root,
+      noResolve: true,
       paths: pathMapping,
       typeRoots: [
         Path.join(root, 'node_modules/@types'),

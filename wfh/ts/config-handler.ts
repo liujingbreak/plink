@@ -46,6 +46,7 @@ export class ConfigHandlerMgr {
       );
 
       compilerOptions.module = 'commonjs';
+      compilerOptions.isolatedModules = true;
 
       registerTsNode({
         typeCheck: true,

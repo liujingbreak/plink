@@ -122,7 +122,7 @@ export function transpileAndCheck(tsCode: string, filename: string, co: ts.Compi
   co.declaration = false;
   co.declarationMap = false;
   co.inlineSourceMap = true;
-  co.sourceMap = false;
+  co.sourceMap = true;
   if (singletonCompiler == null)
     singletonCompiler = new TsCompiler(co);
   return singletonCompiler.compile(filename, tsCode);

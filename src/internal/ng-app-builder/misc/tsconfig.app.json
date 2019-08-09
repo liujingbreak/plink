@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		"baseUrl": ".",
 	 	"typeRoots": [
 			"node_modules/@types",
 			"node_modules/@dr-types",
@@ -30,6 +31,12 @@
 		"moduleResolution": "Node",
 		"preserveSymlinks": false,
 		"importHelpers": true,
-		"downlevelIteration": true
+		"downlevelIteration": true,
+		"strictNullChecks": false,
+		"resolveJsonModule": true,
+		"paths": {
+			"@angular/*": ["node_modules/@angular/*"],
+			"@angularclass/*": ["node_modules/@angularclass/*"]
+		}
 	}
 }

@@ -18,13 +18,12 @@ import { AngularBuilderOptions } from './common';
 import apiSetup from './injector-setup';
 import ts from 'typescript';
 import {packageAssetsFolders} from '@dr-core/assets-processer/dist/dev-serve-assets';
-
+import appTsconfig from '../../misc/tsconfig.app.json';
 
 const {cyan, green, red} = require('chalk');
 const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 const currPackageName = require('../../package.json').name;
-const cjson = require('comment-json');
 const log = require('log4js').getLogger('@dr-core/ng-app-builder.change-cli-options');
 export interface AngularConfigHandler extends ConfigHandler {
   /**
@@ -296,7 +295,12 @@ function overrideTsConfig(file: string, content: string,
   browserOptions: AngularBuilderOptions, config: DrcpConfig): string {
 
   const root = config().rootPath;
-  const oldJson = cjson.parse(content);
+  const result = ts.parseConfigFileTextToJson(file, content);
+  if (result.error) {
+    log.error(result.error);
+    throw new Error(`${file} contains incorrect configuration`);
+  }
+  const oldJson = result.config;
   const preserveSymlinks = browserOptions.preserveSymlinks;
   const pathMapping: {[key: string]: string[]} | undefined = preserveSymlinks ? undefined : {};
   const pkInfo: PackageInfo = walkPackages(config, null, packageUtils, true);
@@ -368,23 +372,15 @@ function overrideTsConfig(file: string, content: string,
     const drcpDir = Path.relative(root, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
     pathMapping!['dr-comp-package'] = [drcpDir];
     pathMapping!['dr-comp-package/*'] = [drcpDir + '/*'];
-
-    pathMapping!['@angular/*'] = ['node_modules/@angular/*'];
-    pathMapping!['@angularclass/*'] = ['node_modules/@angular/*'];
-    pathMapping!['*'] = [// 'node_modules/*',
-      'node_modules/@types/*'
-    ];
   }
 
-  var tsjson: {compilerOptions: ts.CompilerOptions, [key: string]: any} = {
+  var tsjson: {compilerOptions: any, [key: string]: any} = {
     // extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
     include: tsInclude,
     exclude: tsExclude,
     compilerOptions: {
-      ...require('../../misc/tsconfig.app.json').compilerOptions,
+      ...appTsconfig.compilerOptions,
       baseUrl: root,
-      // baseUrl: '.',
-      strictNullChecks: false,
       typeRoots: [
         Path.resolve(root, 'node_modules/@types'),
         Path.resolve(root, 'node_modules/@dr-types')
@@ -393,17 +389,29 @@ function overrideTsConfig(file: string, content: string,
       ],
       // module: 'esnext',
       preserveSymlinks,
-      paths: pathMapping
+      ...oldJson.compilerOptions,
+      paths: {...appTsconfig.compilerOptions.paths, ...pathMapping}
     },
     angularCompilerOptions: {
       // trace: true
+      ...oldJson.angularCompilerOptions
     }
   };
   if (oldJson.extends) {
     tsjson.extends = oldJson.extends;
   }
-  Object.assign(tsjson.compilerOptions, oldJson.compilerOptions);
-  Object.assign(tsjson.angularCompilerOptions, oldJson.angularCompilerOptions);
+
+  if (oldJson.compilerOptions.paths) {
+    Object.assign(tsjson.compilerOptions.paths, oldJson.compilerOptions.paths);
+  }
+  if (oldJson.include) {
+    tsjson.include = _.union((tsjson.include as string[]).concat(oldJson.include));
+  }
+  if (oldJson.exclude) {
+    tsjson.exclude = _.union((tsjson.exclude as string[]).concat(oldJson.exclude));
+  }
+  if (oldJson.files)
+    tsjson.files = oldJson.files;
   // console.log(green('change-cli-options - ') + `${file}:\n`, JSON.stringify(tsjson, null, '  '));
   log.info(`${file}:\n${JSON.stringify(tsjson, null, '  ')}`);
   return JSON.stringify(tsjson, null, '  ');
