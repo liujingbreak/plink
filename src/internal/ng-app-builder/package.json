@@ -17,8 +17,7 @@
     "config": {
       "server": {
         "outputPath": "dist/static",
-        "excludePackage": [],
-        "excludePath": [],
+        "tsconfigInclude": [],
         "buildOptimizerExclude": [],
         "build-optimizer:exclude": [],
         "ng8Compliant": true

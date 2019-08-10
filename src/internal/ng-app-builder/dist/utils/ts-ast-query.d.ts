@@ -1,9 +1,15 @@
 import ts from 'typescript';
 export declare function printFile(fileName: string): void;
+export interface WalkCallback {
+    query: string;
+    callback: (ast: ts.Node, path: string[], parents?: ts.Node[]) => true | void;
+}
 export default class Selector {
     src: ts.SourceFile;
     constructor(src: string, file: string);
     constructor(src: ts.SourceFile);
+    walkAst(handlers: WalkCallback[]): void;
+    walkAst(ast: ts.Node, handlers: WalkCallback[]): void;
     /**
        *
        * @param query Like CSS select := ["^"] <selector element> (" " | ">") <selector element>
@@ -54,10 +60,10 @@ export default class Selector {
        * @param cb return true to skip traversing child node
        * @param level default 0
        */
-    traverse(ast: ts.Node, cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => boolean | void, propName?: string, parents?: ts.Node[], pathEls?: string[]): void;
+    traverse(ast: ts.Node, cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void, propName?: string, parents?: ts.Node[], pathEls?: string[]): void;
     pathForAst(ast: ts.Node): string;
     protected propNameForAst(ast: ts.Node): string;
-    protected traverseArray(nodes: ts.NodeArray<ts.Node>, cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => boolean | void, propName?: string, parents?: ts.Node[], pathEls?: string[]): void;
+    protected traverseArray(nodes: ts.NodeArray<ts.Node>, cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void, propName?: string, parents?: ts.Node[], pathEls?: string[]): void;
 }
 export interface AstCharacter {
     propertyName?: string;

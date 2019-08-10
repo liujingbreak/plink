@@ -88,6 +88,9 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       compiler.hooks.watchRun.tapPromise('ts-read-hook', async () => {
         hooker.clear();
       });
+      compiler.hooks.done.tapPromise('ts-read-hook', async () => {
+        hooker.logFileCount();
+      });
     }
   }());
 

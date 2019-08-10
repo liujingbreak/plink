@@ -9,6 +9,11 @@ export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
     undefined, tsconfigFile).options;
 }
 
+export function jsonToCompilerOptions(jsonCompilerOpt: any, file = 'tsconfig.json'): ts.CompilerOptions {
+  return ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, process.cwd().replace(/\\/g, '/'),
+  undefined, file).options;
+}
+
 /**
  * Refer to https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#transpiling-a-single-file
  * @param tsCode 
@@ -122,7 +127,7 @@ export function transpileAndCheck(tsCode: string, filename: string, co: ts.Compi
   co.declaration = false;
   co.declarationMap = false;
   co.inlineSourceMap = true;
-  co.sourceMap = true;
+  // co.sourceMap = true;
   if (singletonCompiler == null)
     singletonCompiler = new TsCompiler(co);
   return singletonCompiler.compile(filename, tsCode);

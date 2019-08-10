@@ -130,6 +130,9 @@ export default class ApiAotCompiler {
         return;
       }
     }
+    // else if (ast.kind === sk.Identifier && ast.getText() === '__api') {
+    //   this.replacements.push({start: ast.getStart(), end: ast.getEnd(), text: '"__api"'});
+    // }
     ast.forEachChild((sub: ts.Node) => {
       this.traverseTsAst(sub, level + 1);
     });

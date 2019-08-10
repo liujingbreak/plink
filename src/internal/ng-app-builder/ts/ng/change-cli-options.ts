@@ -4,13 +4,13 @@ import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { PackageInfo } from 'dr-comp-package/wfh/dist/build-util/ts';
 import { ConfigHandler, DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
-import { getTsDirsOfPackage } from 'dr-comp-package/wfh/dist/utils';
+// import { getTsDirsOfPackage } from 'dr-comp-package/wfh/dist/utils';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import Url from 'url';
 import { sys } from 'typescript';
-import { DrcpSetting } from '../configurable';
+import { DrcpSetting as NgAppBuilderSetting } from '../configurable';
 import { findAppModuleFileFromMain } from '../utils/parse-app-module';
 import replaceCode from '../utils/patch-text';
 import TsAstSelector from '../utils/ts-ast-query';
@@ -19,6 +19,7 @@ import apiSetup from './injector-setup';
 import ts from 'typescript';
 import {packageAssetsFolders} from '@dr-core/assets-processer/dist/dev-serve-assets';
 import appTsconfig from '../../misc/tsconfig.app.json';
+import {addSourceFiles} from './add-tsconfig-file';
 
 const {cyan, green, red} = require('chalk');
 const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
@@ -311,40 +312,37 @@ function overrideTsConfig(file: string, content: string,
   let ngPackages: PackageInstances = pkInfo.allModules;
 
   // const excludePkSet = new Set<string>();
-  const excludePackage: DrcpSetting['excludePackage'] = config.get(currPackageName + '.excludePackage') || [];
-  let excludePath: string[] = config.get(currPackageName + '.excludePath') || [];
+  // const excludePackage: NgAppBuilderSetting['excludePackage'] = config.get(currPackageName + '.excludePackage') || [];
+  // let excludePath: string[] = config.get(currPackageName + '.excludePath') || [];
 
-  ngPackages = ngPackages.filter(comp =>
-    !excludePackage.some(reg => _.isString(reg) ? comp.longName.includes(reg) : reg.test(comp.longName)) &&
-    (comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk' ||
-      hasIsomorphicDir(comp.json, comp.packagePath)));
+  // ngPackages = ngPackages.filter(comp =>
+  //   !excludePackage.some(reg => _.isString(reg) ? comp.longName.includes(reg) : reg.test(comp.longName)) &&
+  //   (comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk' ||
+  //     hasIsomorphicDir(comp.json, comp.packagePath)));
 
-  const tsInclude: string[] = oldJson.include || [];
-  const tsExclude: string[] = oldJson.exclude || [];
+  // const tsInclude: string[] = oldJson.include || [];
+  // const tsExclude: string[] = oldJson.exclude || [];
   const appModuleFile = findAppModuleFileFromMain(Path.resolve(browserOptions.main));
   const appPackageJson = lookupEntryPackage(appModuleFile);
   if (appPackageJson == null)
     throw new Error('Error, can not find package.json of ' + appModuleFile);
 
-  // let hasAppPackage = false;
   ngPackages.forEach(pk => {
-    // TODO: doc for dr.ngAppModule
-    const isNgAppModule: boolean = pk.longName === appPackageJson.name;
-    const dir = Path.relative(Path.dirname(file),
-      isNgAppModule ? pk.realPackagePath : (preserveSymlinks? pk.packagePath : pk.realPackagePath))
-      .replace(/\\/g, '/');
-    if (isNgAppModule) {
-      // hasAppPackage = true;
-      tsInclude.unshift(dir + '/**/*.ts');
-      // entry package must be at first of TS include list, otherwise will encounter:
-      // "Error: No NgModule metadata found for 'AppModule'
-    } else {
-      tsInclude.push(dir + '/**/*.ts');
-    }
-    tsExclude.push(dir + '/ts',
-      dir + '/spec',
-      dir + '/dist',
-      dir + '/**/*.spec.ts');
+    // const isNgAppModule: boolean = pk.longName === appPackageJson.name;
+    // const dir = Path.relative(Path.dirname(file),
+    //   isNgAppModule ? pk.realPackagePath : (preserveSymlinks? pk.packagePath : pk.realPackagePath))
+    //   .replace(/\\/g, '/');
+    // if (isNgAppModule) {
+    //   tsInclude.unshift(dir + '/**/*.ts');
+    //   // entry package must be at first of TS include list, otherwise will encounter:
+    //   // "Error: No NgModule metadata found for 'AppModule'
+    // } else {
+    //   tsInclude.push(dir + '/**/*.ts');
+    // }
+    // tsExclude.push(dir + '/ts',
+    //   dir + '/spec',
+    //   dir + '/dist',
+    //   dir + '/**/*.spec.ts');
 
     if (!preserveSymlinks) {
       const realDir = Path.relative(root, pk.realPackagePath).replace(/\\/g, '/');
@@ -352,20 +350,18 @@ function overrideTsConfig(file: string, content: string,
       pathMapping![pk.longName + '/*'] = [realDir + '/*'];
     }
   });
-  // if (!hasAppPackage) {
-  // 	tsInclude.unshift(Path.dirname(browserOptions.main).replace(/\\/g, '/') + '/**/*.ts');
-  // }
-  tsInclude.push(Path.relative(Path.dirname(file), preserveSymlinks ?
-      'node_modules/dr-comp-package/wfh/share' :
-      fs.realpathSync('node_modules/dr-comp-package/wfh/share'))
-    .replace(/\\/g, '/'));
-  tsExclude.push('**/test.ts');
 
-  excludePath = excludePath.map(expath =>
-    Path.relative(Path.dirname(file), expath).replace(/\\/g, '/'));
-  excludePath.push('**/*.d.ts');
-  console.log(excludePath);
-  tsExclude.push(...excludePath);
+  // tsInclude.push(Path.relative(Path.dirname(file), preserveSymlinks ?
+  //     'node_modules/dr-comp-package/wfh/share' :
+  //     fs.realpathSync('node_modules/dr-comp-package/wfh/share'))
+  //   .replace(/\\/g, '/'));
+  // tsExclude.push('**/test.ts');
+
+  // excludePath = excludePath.map(expath =>
+  //   Path.relative(Path.dirname(file), expath).replace(/\\/g, '/'));
+  // excludePath.push('**/*.d.ts');
+  // console.log(excludePath);
+  // tsExclude.push(...excludePath);
 
   // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
   if (!preserveSymlinks) {
@@ -374,10 +370,15 @@ function overrideTsConfig(file: string, content: string,
     pathMapping!['dr-comp-package/*'] = [drcpDir + '/*'];
   }
 
-  var tsjson: {compilerOptions: any, [key: string]: any} = {
+  var tsjson: {compilerOptions: any, [key: string]: any, files?: string[], include: string[]} = {
     // extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
-    include: tsInclude,
-    exclude: tsExclude,
+    include: (config.get(currPackageName) as NgAppBuilderSetting)
+      .tsconfigInclude
+      .map(preserveSymlinks ? p => p : globRealPath)
+      .map(
+        pattern => Path.relative(Path.dirname(file), pattern).replace(/\\/g, '/')
+      ),
+    exclude: [], // tsExclude,
     compilerOptions: {
       ...appTsconfig.compilerOptions,
       baseUrl: root,
@@ -412,16 +413,31 @@ function overrideTsConfig(file: string, content: string,
   }
   if (oldJson.files)
     tsjson.files = oldJson.files;
+
+  const sourceFiles: typeof addSourceFiles = require('./add-tsconfig-file').addSourceFiles;
+
+  if (!tsjson.files)
+    tsjson.files = [];
+  tsjson.files.push(...sourceFiles(tsjson.compilerOptions, tsjson.files, file,
+    browserOptions.fileReplacements));
   // console.log(green('change-cli-options - ') + `${file}:\n`, JSON.stringify(tsjson, null, '  '));
   log.info(`${file}:\n${JSON.stringify(tsjson, null, '  ')}`);
   return JSON.stringify(tsjson, null, '  ');
 }
 
-function hasIsomorphicDir(pkJson: any, packagePath: string) {
-  const fullPath = Path.resolve(packagePath, getTsDirsOfPackage(pkJson).isomDir);
-  try {
-    return fs.statSync(fullPath).isDirectory();
-  } catch (e) {
-    return false;
+function globRealPath(glob: string) {
+  const res = /^([^*]+)\/[^/*]*\*/.exec(glob);
+  if (res) {
+    return fs.realpathSync(res[1]).replace(/\\/g, '/') + res.input.slice(res[1].length);
   }
+  return glob;
 }
+
+// function hasIsomorphicDir(pkJson: any, packagePath: string) {
+//   const fullPath = Path.resolve(packagePath, getTsDirsOfPackage(pkJson).isomDir);
+//   try {
+//     return fs.statSync(fullPath).isDirectory();
+//   } catch (e) {
+//     return false;
+//   }
+// }

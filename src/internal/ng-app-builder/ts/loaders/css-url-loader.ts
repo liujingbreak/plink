@@ -8,7 +8,7 @@ import { ScssLexer, ScssParser } from '../utils/simple-scss-parser';
 // import * as _ from 'lodash';
 import vm = require('vm');
 // import {loader as wbLoader} from 'webpack';
-const log = require('log4js').getLogger(api.packageName + '/css-url-loader');
+const log = require('log4js').getLogger(api.packageName + '.css-url-loader');
 
 const urlLoader: wb.loader.Loader = function(content: string, map) {
   var callback = this.async();
@@ -22,6 +22,7 @@ const urlLoader: wb.loader.Loader = function(content: string, map) {
   replaceUrl(this, content, file).subscribe({
     next(repl) {
       replacements.push(repl);
+      log.debug('final url', repl.text);
     },
     error(e) {
       self.emitError(e);
@@ -30,8 +31,8 @@ const urlLoader: wb.loader.Loader = function(content: string, map) {
     },
     complete() {
       const replaced = patchText(content, replacements);
-      if (replacements.length > 0)
-        log.debug(file, replaced);
+      // if (replacements.length > 0)
+      //   log.debug(file, replaced);
       callback!(null, replaced, map);
     }
   });
@@ -50,7 +51,7 @@ function replaceUrl(loaderCtx: wb.loader.LoaderContext, css: string, file: strin
     subscriber.complete();
   }).pipe(concatMap( repl => {
     var resolvedTo = replaceAssetsUrl(file, repl.text!);
-    // log.info('%s -> %s', repl.text, resolvedTo);
+    log.info('%s -> %s (%s)', repl.text, resolvedTo, file);
     if (resolvedTo.startsWith('~')) {
       return loadModule(loaderCtx, resolvedTo!.slice(1))
       .pipe(map(url => {
@@ -60,9 +61,11 @@ function replaceUrl(loaderCtx: wb.loader.LoaderContext, css: string, file: strin
     } else if (!resolvedTo.startsWith('/') && !resolvedTo.startsWith('#') && resolvedTo.indexOf(':') < 0) {
       if (!resolvedTo.startsWith('.'))
         resolvedTo = './' + resolvedTo; // Fix AOT mode in Angular 8.2.x
+      log.debug('loadModule', resolvedTo);
       return loadModule(loaderCtx, resolvedTo)
       .pipe(map(url => {
         repl.text = url;
+        log.debug('loadModule done', url);
         return repl;
       }));
     } else {

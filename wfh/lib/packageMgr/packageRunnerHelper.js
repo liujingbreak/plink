@@ -39,7 +39,7 @@ function runBuilderComponentsWith(funcName, builderComponents, argv, skips, skip
 	return initWebInjector(packageInfo, proto)
 	.then(() => {
 		proto.packageInfo = packageInfo;
-		var cache = LRU(20);
+		var cache = new LRU({max: 20, maxAge: 20000});
 		proto.findPackageByFile = function(file) {
 			var found = cache.get(file);
 			if (!found) {

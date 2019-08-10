@@ -6,19 +6,19 @@
 import * as path from 'path';
 import api from '__api';
 import * as _ from 'lodash';
-// import * as fs from 'fs';
+import LRU from 'lru-cache';
 import {loader as wl} from 'webpack';
 import {RawSourceMap} from 'source-map';
 import * as loaderUtils from 'loader-utils';
+import fs from 'fs';
 var log = require('log4js').getLogger(api.packageName + '.dr-file-loader');
-let resolveSymlink: boolean | null = null;
+
+const realpathCache = new LRU<string, string>({max: 100, maxAge: 30000});
 
 function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: RawSourceMap):
   string | Buffer | void | undefined {
   if (!this.emitFile)
     throw new Error('File Loader\n\nemitFile is required from module system');
-  if (resolveSymlink === null)
-    resolveSymlink = _.get(this, '_compiler.options.resolve.symlinks');
   if (this.cacheable)
     this.cacheable();
   // var callback = this.async();
@@ -54,30 +54,7 @@ function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: Ra
   const drcpOutputDir = drPackageOutputPath(this);
   outputPath = drcpOutputDir + '/' + _.trimStart(outputPath, '/');
   outputPath = _.trimStart(outputPath, '/');
-  // console.log(drPackageOutputPath(this));
-  // ------- DRCP: not supporting useRelativePath --------
-  // if (options.useRelativePath) {
-  // 	const filePath = this.resourcePath;
 
-  // 	const issuer = options.context
-  // 	? context
-  // 	: this._module && this._module.issuer && this._module.issuer.context;
-
-  // 	const relativeUrl =
-  // 	issuer &&
-  // 	path
-  // 		.relative(issuer, filePath)
-  // 		.split(path.sep)
-  // 		.join('/');
-
-  // 	const relativePath = relativeUrl && `${path.dirname(relativeUrl)}/`;
-  // 	// eslint-disable-next-line no-bitwise
-  // 	if (~relativePath.indexOf('../')) {
-  // 	outputPath = path.posix.join(outputPath, relativePath, url);
-  // 	} else {
-  // 	outputPath = path.posix.join(relativePath, url);
-  // 	}
-  // }
   let publicPath = `__webpack_public_path__ + ${JSON.stringify(outputPath)}`;
 
   if (options.publicPath) {
@@ -100,30 +77,6 @@ function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: Ra
   // TODO revert to ES2015 Module export, when new CSS Pipeline is in place
   log.debug('resource URL:', publicPath);
   return `module.exports = ${publicPath};`;
-
-
-  // var filePath = this.resourcePath;
-  // var browserPackage = api.findPackageByFile(filePath);
-  // let outputPath = _.trimStart(api.config.get(['outputPathMap', browserPackage.longName]), '/');
-
-  // let packageDir;
-  // if (browserPackage.realPackagePath.startsWith(process.cwd()) || resolveSymlink) {
-  // 	packageDir = browserPackage.realPackagePath;
-  // 	filePath = fs.realpathSync(filePath);
-  // } else {
-  // 	packageDir = browserPackage.packagePath;
-  // }
-  // outputPath = path.join(outputPath, path.dirname(path.relative(packageDir, filePath)));
-
-  // url = path.join(outputPath, url.split('/').pop()).replace(/\\/g, '/'); // only file name part
-  // url = url.replace(/(^|\/)node_modules(\/|$)/g, '$1n-m$2').replace(/@/g, 'a');
-
-  // var publicPath = '__webpack_public_path__ + ' + JSON.stringify(url);
-
-  // if (options.emitFile === undefined || options.emitFile) {
-  // 	this.emitFile(url, content, sourceMap);
-  // }
-  // callback(null, 'module.exports = ' + publicPath + ';');
 }
 
 namespace loader {
@@ -138,14 +91,21 @@ export = loader;
  * @return [<> , <emit >]
  */
 function drPackageOutputPath(this: unknown, loaderCtx: wl.LoaderContext) {
-  if (resolveSymlink === null)
-    resolveSymlink = _.get(this, '_compiler.options.resolve.symlinks');
-  var dir = loaderCtx.context;
+  const dir = loaderCtx.context;
+  let realpathDir = realpathCache.get(dir);
+  if (!realpathDir) {
+    realpathDir = fs.realpathSync(dir);
+    realpathCache.set(dir, realpathDir);
+  }
   var browserPackage = api.findPackageByFile(dir);
+
+  // debug
+  log.debug(`context: ${realpathDir}, browserPackage: ${browserPackage && browserPackage.longName}`);
+
   if (browserPackage) {
     let outDir = _.trimStart(api.config.get(['outputPathMap', browserPackage.longName]), '/');
-    let sourcePkgDir = resolveSymlink ? browserPackage.realPackagePath : browserPackage.packagePath;
-    let relativeInPkg = path.relative(sourcePkgDir, dir).replace(/\\/g, '/');
+    let sourcePkgDir = browserPackage.realPackagePath;
+    let relativeInPkg = path.relative(sourcePkgDir, realpathDir).replace(/\\/g, '/');
     return outDir + '/' + relativeInPkg;
   } else {
     return path.relative(loaderCtx.rootContext, dir).replace(/\\/g, '/')

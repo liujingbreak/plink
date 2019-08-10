@@ -15,6 +15,10 @@ export function printFile(fileName: string) {
   new Selector(fs.readFileSync(fileName, 'utf8'), fileName).printAll();
 }
 
+export interface WalkCallback {
+  query: string;
+  callback: (ast: ts.Node, path: string[], parents?: ts.Node[]) => true | void;
+}
 // type Callback = (ast: ts.Node, path: string[]) => boolean | void;
 export default class Selector {
   src: ts.SourceFile;
@@ -28,6 +32,33 @@ export default class Selector {
     } else {
       this.src = src;
     }
+  }
+
+  walkAst(handlers: WalkCallback[]): void;
+  walkAst(ast: ts.Node, handlers: WalkCallback[]): void;
+  walkAst(ast: ts.Node|WalkCallback[] , handlers?: WalkCallback[]): void {
+    if (Array.isArray(ast)) {
+      handlers = ast;
+      ast = this.src;
+    }
+
+    const queryMap: {[str: string]: Query} = {};
+    if (!handlers)
+      return;
+    handlers.forEach(h => queryMap[h.query] = new Query(h.query));
+
+    this.traverse(ast, (ast, path, parents) => {
+      let skip = false;
+      handlers!.some(h => {
+        if (queryMap[h.query].matches(path)) {
+          h.callback(ast, path, parents);
+          return true;
+        }
+        return false;
+      });
+      if (skip)
+        return true;
+    });
   }
 
   /**
@@ -173,7 +204,7 @@ export default class Selector {
 	 * @param level default 0
 	 */
   traverse(ast: ts.Node,
-    cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => boolean | void,
+    cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void,
     propName = '', parents: ts.Node[] = [], pathEls: string[] = []) {
 
     let needPopPathEl = false;
@@ -241,7 +272,7 @@ export default class Selector {
   }
 
   protected traverseArray(nodes: ts.NodeArray<ts.Node>,
-    cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => boolean | void,
+    cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void,
     propName = '', parents: ts.Node[] = [], pathEls: string[] = []) {
 
     let i = 0;

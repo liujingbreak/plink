@@ -6,7 +6,7 @@ import {PackageInfo, packageInstance} from './build-util/ts';
 // import Package from './packageNodeInstance';
 import {orderPackages} from './package-priority-helper';
 import {walkPackages} from './build-util/ts';
-const LRU = require('lru-cache');
+import LRU from 'lru-cache';
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
 // const NodeApi = require('../lib/nodeApi');
@@ -82,7 +82,7 @@ export function initInjectorForNodePackages(argv: {[key: string]: any}):
   proto.argv = argv;
   const packageInfo: PackageInfo = walkPackages(config, packageUtils);
   proto.packageInfo = packageInfo;
-  const cache = LRU(20);
+  const cache = new LRU({max: 20, maxAge: 20000});
   proto.findPackageByFile = function(file: string) {
     var found = cache.get(file);
     if (!found) {

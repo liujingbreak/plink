@@ -1,55 +1,24 @@
-import { NgModule, ErrorHandler } from '@angular/core'; // ErrorHandler
-import { BrowserModule, BrowserTransferStateModule } from '@angular/platform-browser';
-import { HttpClientModule } from '@angular/common/http';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { RouterModule, Routes } from '@angular/router';
-// Following statements are for testing parse-app-module
-import { environment as env } from '@bk/env/environment';
-import * as _ from 'lodash';
-// end
-import { UserModule } from '@bk/module-user';
-import { CoreModule } from '@bk/module-core';
-import { RealNameModule } from '@bk/module-real-name';
-import { AgreementModule } from '@bk/module-agreement';
-import { ApplyLazyModule } from '@bk/module-apply/apply-lazy.module';
-import { AppComponent } from './app.component';
-import { SnowplowService } from '@bk/module-snowplow';
+import { Injectable } from '@angular/core';
 
-const appRoutes: Routes = [
-  {
-    path: __api.ngBaseRouterPath,
-    pathMatch: 'full',
-    redirectTo: `/${__api.ngRouterPath('@bk/module-real-name', '')}`
-  },
-  { path: '**', redirectTo: `/${__api.ngRouterPath('')}` }
-];
+@Injectable({
+  providedIn: 'root'
+})
+export class DevModeService {
+  clickNum: number = 0;
 
-export class SnowplowErrorHandler extends ErrorHandler {
-  private snowplow = new SnowplowService();
+  trigger() {
+    if (this.clickNum > 10) {
+      this.setDevMode();
+      alert(__api);
+    }
+    this.clickNum += 1;
+  }
 
-  handleError(err: any): void {
-    this.snowplow.trackError(err);
-    super.handleError(err);
+  setDevMode() {
+    sessionStorage.setItem('employee-loan-devmode', 'true');
+  }
+
+  isDevMode() {
+    return sessionStorage.getItem('employee-loan-devmode') === 'true';
   }
 }
-
-// tslint:disable-next-line:max-classes-per-file
-@NgModule({
-  declarations: [AppComponent],
-  imports: [
-    BrowserModule.withServerTransition({ appId: __api.packageShortName }),
-    /**/BrowserTransferStateModule,
-    BrowserAnimationsModule, // ok
-    HttpClientModule,
-    CoreModule,
-    UserModule,
-    RealNameModule,
-    AgreementModule,
-    ApplyLazyModule,
-    RouterModule.forRoot(appRoutes, { enableTracing: false })
-  ],
-  providers: [{ provide: ErrorHandler, useValue: new SnowplowErrorHandler() }],
-  bootstrap: [AppComponent]
-})
-export class AppModule {}
-export { AppComponent };

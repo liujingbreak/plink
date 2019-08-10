@@ -2,7 +2,8 @@
 import * as Path from 'path';
 const {parse} = require('comment-json');
 const {cyan, green} = require('chalk');
-import {register as registerTsNode} from 'ts-node';
+// import {register as registerTsNode} from 'ts-node';
+import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 
 export interface DrcpConfig {
@@ -31,36 +32,35 @@ export class ConfigHandlerMgr {
   static _tsNodeRegistered = false;
 
   static initConfigHandlers(files: string[]): Array<{file: string, handler: ConfigHandler}> {
-    // const files = browserOptions.drcpConfig ? browserOptions.drcpConfig.split(/\s*[,;:]\s*/) : [];
     const exporteds: Array<{file: string, handler: ConfigHandler}> = [];
 
     if (!ConfigHandlerMgr._tsNodeRegistered) {
       ConfigHandlerMgr._tsNodeRegistered = true;
-      // const compilerOpt = readTsConfig(require.resolve('dr-comp-package/wfh/tsconfig.json'));
-      // delete compilerOpt.rootDir;
-      // delete compilerOpt.rootDirs;
-      // registerExtension('.ts', compilerOpt);
+
       const {compilerOptions} = parse(
-        fs.readFileSync(fs.existsSync('tsconfig.json') ?
-        'tsconfig.json' : require.resolve('dr-comp-package/wfh/tsconfig.json'), 'utf8')
+        fs.readFileSync(require.resolve('dr-comp-package/wfh/tsconfig.json'), 'utf8')
       );
 
       compilerOptions.module = 'commonjs';
       compilerOptions.isolatedModules = true;
+      compilerOptions.noUnusedLocals = false;
+      // console.log(compilerOptions);
+      const co = jsonToCompilerOptions(compilerOptions);
 
-      registerTsNode({
-        typeCheck: true,
-        compilerOptions
-        // transformers: {
-        //   before: [
-        //     context => (src) => {
-        //       console.log('ts-node compiles:', src.fileName);
-        //       console.log(src.text);
-        //       return src;
-        //     }
-        //   ]
-        // }
-      });
+      registerExtension('.ts', co);
+      // registerTsNode({
+      //   typeCheck: true,
+      //   compilerOptions
+      //   // transformers: {
+      //   //   before: [
+      //   //     context => (src) => {
+      //   //       console.log('ts-node compiles:', src.fileName);
+      //   //       console.log(src.text);
+      //   //       return src;
+      //   //     }
+      //   //   ]
+      //   // }
+      // });
       files.forEach(file => {
         const exp = require(Path.resolve(file));
         exporteds.push({file, handler: exp.default ? exp.default : exp});
