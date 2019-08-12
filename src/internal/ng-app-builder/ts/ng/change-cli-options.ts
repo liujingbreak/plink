@@ -386,7 +386,7 @@ function overrideTsConfig(file: string, content: string,
         Path.resolve(root, 'node_modules/@types'),
         Path.resolve(root, 'node_modules/@dr-types')
         // Below is NodeJS only, which will break Angular Ivy engine
-        // Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
+        ,Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
       ],
       // module: 'esnext',
       preserveSymlinks,

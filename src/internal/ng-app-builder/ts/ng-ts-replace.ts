@@ -13,6 +13,7 @@ import { HookReadFunc } from './utils/read-hook-vfshost';
 import Selector from './utils/ts-ast-query';
 import ApiAotCompiler from './utils/ts-before-aot';
 import {transform as transformViewChild} from './utils/upgrade-viewchild-ng8';
+import LRU from 'lru-cache';
 const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName + '.ng-ts-replace');
@@ -28,8 +29,8 @@ export default class TSReadHooker {
   hookFunc: HookReadFunc;
   templateFileCount = 0;
   tsFileCount = 0;
-  private realFileCache = new Map<string, string>();
-  private tsCache = new Map<string, ArrayBuffer>();
+  private realFileCache = new LRU<string, string>({max: 100, maxAge: 20000});
+  private tsCache = new LRU<string, ArrayBuffer>({max: 100, maxAge: 20000});
 
 
   constructor(ngParam: AngularCliParam) {
@@ -37,7 +38,7 @@ export default class TSReadHooker {
   }
 
   clear() {
-    this.tsCache.clear();
+    this.tsCache = new LRU<string, ArrayBuffer>({max: 100, maxAge: 20000});
     this.templateFileCount = 0;
     this.tsFileCount = 0;
   }

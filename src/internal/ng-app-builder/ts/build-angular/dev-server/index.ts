@@ -1,10 +1,12 @@
+// tslint:disable no-console
 import '../../ng/node-inject';
+import _ from 'lodash';
 import {executeDevServerBuilder, DevServerBuilderOptions, DevServerBuilderOutput} from '@angular-devkit/build-angular';
 import {
   createBuilder
 } from '@angular-devkit/architect';
 import {from} from 'rxjs';
-import {concatMap} from 'rxjs/operators';
+import {concatMap, tap} from 'rxjs/operators';
 import * as drcpCommon from '../../ng/common';
 import {changeAngularCliOptions} from '../../ng/change-cli-options';
 
@@ -28,6 +30,20 @@ export default createBuilder<DevServerBuilderOptions, DevServerBuilderOutput>(
           },
           indexHtml: (content) => drcpBuilderCtx.transformIndexHtml(content)
         });
-    }));
+      }),
+      tap(() => {
+        console.log(drawPuppy('You may also run "node app" and access from http://localhost:14333'));
+      })
+    );
   }
 );
+
+function drawPuppy(slogon = 'Congrads!', message = '') {
+
+  console.log('\n   ' + _.repeat('-', slogon.length) + '\n' +
+    ` < ${slogon} >\n` +
+    '   ' + _.repeat('-', slogon.length) + '\n' +
+    '\t\\   ^__^\n\t \\  (oo)\\_______\n\t    (__)\\       )\\/\\\n\t        ||----w |\n\t        ||     ||');
+  if (message)
+    console.log(message);
+}
