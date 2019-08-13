@@ -52,11 +52,15 @@ export default async function changeWebpackConfig(context: BuilderContext, param
         const old = res.setHeader;
         // const oldEnd = res.end;
         res.setHeader = function() {
-          if (res.finished) {
-            log.warn('Cannot set headers after they are sent to the client');
-            return;
+          try {
+            old.apply(res, arguments);
+          } catch (e) {
+            if (e.code === 'ERR_HTTP_HEADERS_SENT') {
+              log.warn('Cannot set headers after they are sent to the client');
+            } else {
+              throw e;
+            }
           }
-          old.apply(res, arguments);
         };
 
         // res.end = function() {
