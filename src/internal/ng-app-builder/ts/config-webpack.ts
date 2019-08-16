@@ -62,13 +62,6 @@ export default async function changeWebpackConfig(context: BuilderContext, param
             }
           }
         };
-
-        // res.end = function() {
-        //   if (res.finished) {
-        //     log.warn('Cannot call response.end() after they are sent to the client');
-        //     return;
-        //   }
-        // };
         next();
       });
       if (origin)
@@ -254,27 +247,6 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
       }
     }
 
-    // if (test instanceof RegExp && test.toString() === '/\\.js$/' && rule.use &&
-    //   (rule.use as webpack.RuleSetUseItem[]).some((item) =>
-    //     /@angular-devkit[/\\]build-optimizer[/\\].*[/\\]webpack-loader/.test(
-    //     (item as webpack.RuleSetLoader).loader!))) {
-
-    //     let origTest: (p: string) => boolean;
-    //     if (rule.test instanceof RegExp) {
-    //       origTest = (path: string) => (rule.test as RegExp).test(path);
-    //     } else if (typeof rule.test === 'function') {
-    //       origTest = rule.test;
-    //     } else {
-    //       throw new Error('Does not support module.rule\'s test condition type for @angular-devkit/build-optimizer, inform the author to update config-webpack.ts');
-    //     }
-    //     rule.test = (path: string) => {
-    //       if (origTest(path)) {
-    //         const nPath = path.replace(/\\/g, '/');
-    //         return noParse.every((exclude => !nPath.includes(exclude)));
-    //       }
-    //       return false;
-    //     };
-    // }
     // Angular 8 doesn't have loader for HTML
     if (test instanceof RegExp && test.toString() === '/\\.html$/') {
       hasHtmlLoader = true;

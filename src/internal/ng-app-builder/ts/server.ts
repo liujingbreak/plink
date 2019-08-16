@@ -32,11 +32,6 @@ function resolveImports(src: ts.SourceFile): ReplacementInf[] {
 }
 
 export async function init() {
-  // printHelp();
-  if (_fs.existsSync('node_modules/@angular-devkit/build-angular/node_modules')) {
-    _fs.removeSync('node_modules/@angular-devkit/build-angular/node_modules');
-  }
-  await new Promise(resolve => setTimeout(resolve, 100)); // wait for delete
   if (!checkAngularVersion())
     throw new Error('Angular version check Error');
   // writeTsconfig();
