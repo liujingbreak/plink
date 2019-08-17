@@ -85,8 +85,6 @@ function create(app: express.Express, setting: any) {
   }));
   app.use(cookieParser());
   app.use(compression());
-  // setupApi.createPackageDefinedMiddleware(app);
-  createPackageDefinedRouters(app);
 
   const hashFile = Path.join(api.config().rootPath, 'githash-server.txt');
   if (fs.existsSync(hashFile)) {
@@ -100,6 +98,7 @@ function create(app: express.Express, setting: any) {
       res.send(githash);
     });
   }
+  createPackageDefinedRouters(app);
   // error handlers
   // catch 404 and forward to error handler
   app.use(function(req, res, next) {
