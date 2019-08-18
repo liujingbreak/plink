@@ -33,28 +33,5 @@ declare interface require {
 }
 declare function drTranslate(key: string): string;
 
-// interface DeprecatedFileReplacment {
-//   /**
-//    * The file that should be replaced.
-//    */
-//   src: string;
-
-//   /**
-//    * The file that should replace.
-//    */
-//   replaceWith: string;
-// }
-
-// interface CurrentFileReplacement {
-//   /**
-//    * The file that should be replaced.
-//    */
-//   replace: string;
-
-//   /**
-//    * The file that should replace.
-//    */
-//   with: string;
-// }
-
-// declare type FileReplacements = DeprecatedFileReplacment | CurrentFileReplacement;
+declare module '*.html';
+declare module '*.scss';
