@@ -18,10 +18,13 @@ export function proxyToDevServer() {
   config.onError = (err, req, res) => {
     if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
       log.warn('Can not connect to %s%s, farward to local static resource', config.target, req.url);
-      return (req as ReqWithNextCb).__goNext();
+      if ((req as ReqWithNextCb).__goNext)
+        return (req as ReqWithNextCb).__goNext();
+      return;
     }
     log.warn(err);
-    (req as ReqWithNextCb).__goNext(err);
+    if ((req as ReqWithNextCb).__goNext)
+      (req as ReqWithNextCb).__goNext(err);
   };
 
   const proxyHandler = proxy(config);
