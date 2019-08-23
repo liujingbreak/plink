@@ -243,44 +243,10 @@ function ls(_argv) {
 		const config = require('../config');
 		yield config.init(_argv);
 		require('../logConfig')(config());
-		// require('log4js').getLogger('lib.injector').setLevel('warn');
-		// require('log4js').getLogger('packagePriorityHelper').setLevel('warn');
 
-		// var {nodeInjector} = require('../../dist/injector-factory');
-		// var injector = nodeInjector;
-		// injector.fromComponent('@dr-core/build-util')
-		// 	.factory('__api', function() {
-		// 		return {compileNodePath: [config().nodePath]};
-		// 	});
-
-		var browserCompInfo = require('../../dist/build-util/ts').listBundleInfo(
-			config, require('../packageMgr/packageUtils'));
-		console.log(chalk.green(_.pad('[ BROWSER COMPONENTS ]', 50, '=')));
-		var index = 0;
-		var sorted = browserCompInfo.allModules.slice(0).sort((a, b) => b.longName.length - a.longName.length);
-		var maxNameLen = sorted[0].longName.length;
-
-		_.each(browserCompInfo.bundleMap, (packages, bundle) => {
-			console.log(chalk.cyan('Webpack chunk ' + _.pad(' ' + bundle + ' ', 50, '-')));
-			_.each(packages, pk => {
-				if (pk.isOtherEntry)
-					return;
-				var path = pk.realPackagePath ? pk.realPackagePath : pk.packagePath;
-				console.log(' ' + (++index) + '. ' + _.padEnd(pk.longName, maxNameLen + 3) +
-					(path ? chalk.blue(Path.relative(config().rootPath, path)) : ''));
-			});
-		});
-
-		if (_.size(browserCompInfo.noChunkPackageMap) > 0) {
-			console.log('No bundle setting packages: ');
-			_.each(browserCompInfo.noChunkPackageMap, pk => {
-				if (pk.isOtherEntry)
-					return;
-				var path = pk.realPackagePath ? pk.realPackagePath : pk.packagePath;
-				console.log(' ' + (++index) + '. ' + _.padEnd(pk.longName, maxNameLen + 3) +
-					(path ? chalk.blue(Path.relative(config().rootPath, path)) : ''));
-			});
-		}
+		const pmgr = require('../../dist/package-mgr');
+		console.log('==============[ LINKED PACKAGES IN PROJECT ]==============\n')
+		console.log(pmgr.listPackagesByProjects());
 
 		console.log('\n' + chalk.green(_.pad('[ SERVER COMPONENTS ]', 50, '=')) + '\n');
 		var list = yield require('../packageMgr/packageRunner').listServerComponents();
@@ -317,12 +283,10 @@ function listProject(_argv, projects) {
 	if (projects && projects.length > 0) {
 		let str = _.pad(' Projects directory ', 40, ' ');
 		str += '\n \n';
-		//var nameLen = _.maxBy(projects, dir => dir.length).length + 3;
 		_.each(projects, (dir, i) => {
 			dir = Path.resolve(rootPath, dir);
 			str += _.padEnd(i + 1 + '. ', 5, ' ') + dir;
 			str += '\n';
-			//return _updateProjectFolder(dir);
 		});
 		console.log(boxString(str));
 		return projects;
