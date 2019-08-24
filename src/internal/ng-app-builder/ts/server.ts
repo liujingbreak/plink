@@ -169,7 +169,7 @@ function writeTsconfig4Editor() {
     tsjson.compilerOptions = {
       rootDir: './',
       baseUrl: root,
-      noResolve: true,
+      // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
       paths: pathMapping,
       typeRoots: [
         Path.join(root, 'node_modules/@types'),
