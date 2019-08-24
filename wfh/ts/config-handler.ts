@@ -46,7 +46,6 @@ export class ConfigHandlerMgr {
       compilerOptions.noUnusedLocals = false;
       // console.log(compilerOptions);
       const co = jsonToCompilerOptions(compilerOptions);
-
       registerExtension('.ts', co);
       // registerTsNode({
       //   typeCheck: true,
