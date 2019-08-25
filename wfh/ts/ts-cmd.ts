@@ -52,11 +52,11 @@ export function tsc(argv: Args, onCompiled: () => void) {
     importHelpers: true,
     outDir: '',
     baseUrl: root,
-    rootDir: undefined,
-    typeRoots: [
-      Path.join(root, 'node_modules/@types'),
-      Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
-    ]
+    rootDir: undefined
+    // typeRoots: [
+    //   Path.join('node_modules/@types'),
+    //   Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
+    // ]
   }));
   if (argv.package.length > 0)
     packageUtils.findAllPackages(argv.package, onComponent, 'src');

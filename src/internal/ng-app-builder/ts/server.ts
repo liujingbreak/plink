@@ -171,11 +171,11 @@ function writeTsconfig4Editor() {
       baseUrl: root,
       // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
       paths: pathMapping,
-      typeRoots: [
-        Path.join(root, 'node_modules/@types'),
-        Path.join(root, 'node_modules/@dr-types'),
-        Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
-      ],
+      // typeRoots: [
+      //   Path.join(root, 'node_modules/@types'),
+      //   Path.join(root, 'node_modules/@dr-types'),
+      //   Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
+      // ],
       noImplicitAny: true,
       target: 'es2015',
       module: 'commonjs'

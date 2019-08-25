@@ -1,7 +1,7 @@
 {
-  "name": "@dr-types/drcp-types",
-  "version": "1.0.2",
+  "name": "@types/drcp-types",
+  "version": "1.0.0",
   "main": "",
-  "license": "MIT",
-  "dr": {}
+  "dr": {},
+  "license": "MIT"
 }

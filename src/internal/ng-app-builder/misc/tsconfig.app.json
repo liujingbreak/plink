@@ -1,11 +1,6 @@
 {
 	"compilerOptions": {
 		"baseUrl": ".",
-	 	"typeRoots": [
-			"node_modules/@types",
-			"node_modules/@dr-types",
-			"node_modules/dr-comp-package/wfh/types"
-		],
 		"jsx": "preserve",
 		"noImplicitAny": true,
 		"suppressImplicitAnyIndexErrors": true,

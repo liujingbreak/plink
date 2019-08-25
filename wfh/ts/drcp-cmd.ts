@@ -29,6 +29,7 @@ export async function pack(argv: any) {
   });
   const namePat = /name:\s+([^ \n\r]+)/mi;
   const fileNamePat = /filename:\s+([^ \n\r]+)/mi;
+  // tslint:disable-next-line: max-line-length
   packageUtils.findAllPackages((name: string, entryPath: string, parsedName: string, json: any, packagePath: string) => {
     promises.push(
       q.add<string>(async () => {

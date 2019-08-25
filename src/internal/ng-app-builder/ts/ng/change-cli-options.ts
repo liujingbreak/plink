@@ -305,44 +305,16 @@ function overrideTsConfig(file: string, content: string,
   const preserveSymlinks = browserOptions.preserveSymlinks;
   const pathMapping: {[key: string]: string[]} | undefined = preserveSymlinks ? undefined : {};
   const pkInfo: PackageInfo = walkPackages(config, null, packageUtils, true);
-  // var packageScopes: string[] = config().packageScopes;
-  // var components = pkInfo.moduleMap;
 
   type PackageInstances = typeof pkInfo.allModules;
   let ngPackages: PackageInstances = pkInfo.allModules;
 
-  // const excludePkSet = new Set<string>();
-  // const excludePackage: NgAppBuilderSetting['excludePackage'] = config.get(currPackageName + '.excludePackage') || [];
-  // let excludePath: string[] = config.get(currPackageName + '.excludePath') || [];
-
-  // ngPackages = ngPackages.filter(comp =>
-  //   !excludePackage.some(reg => _.isString(reg) ? comp.longName.includes(reg) : reg.test(comp.longName)) &&
-  //   (comp.dr && comp.dr.angularCompiler || comp.parsedName.scope === 'bk' ||
-  //     hasIsomorphicDir(comp.json, comp.packagePath)));
-
-  // const tsInclude: string[] = oldJson.include || [];
-  // const tsExclude: string[] = oldJson.exclude || [];
   const appModuleFile = findAppModuleFileFromMain(Path.resolve(browserOptions.main));
   const appPackageJson = lookupEntryPackage(appModuleFile);
   if (appPackageJson == null)
     throw new Error('Error, can not find package.json of ' + appModuleFile);
 
   ngPackages.forEach(pk => {
-    // const isNgAppModule: boolean = pk.longName === appPackageJson.name;
-    // const dir = Path.relative(Path.dirname(file),
-    //   isNgAppModule ? pk.realPackagePath : (preserveSymlinks? pk.packagePath : pk.realPackagePath))
-    //   .replace(/\\/g, '/');
-    // if (isNgAppModule) {
-    //   tsInclude.unshift(dir + '/**/*.ts');
-    //   // entry package must be at first of TS include list, otherwise will encounter:
-    //   // "Error: No NgModule metadata found for 'AppModule'
-    // } else {
-    //   tsInclude.push(dir + '/**/*.ts');
-    // }
-    // tsExclude.push(dir + '/ts',
-    //   dir + '/spec',
-    //   dir + '/dist',
-    //   dir + '/**/*.spec.ts');
 
     if (!preserveSymlinks) {
       const realDir = Path.relative(root, pk.realPackagePath).replace(/\\/g, '/');
@@ -350,18 +322,6 @@ function overrideTsConfig(file: string, content: string,
       pathMapping![pk.longName + '/*'] = [realDir + '/*'];
     }
   });
-
-  // tsInclude.push(Path.relative(Path.dirname(file), preserveSymlinks ?
-  //     'node_modules/dr-comp-package/wfh/share' :
-  //     fs.realpathSync('node_modules/dr-comp-package/wfh/share'))
-  //   .replace(/\\/g, '/'));
-  // tsExclude.push('**/test.ts');
-
-  // excludePath = excludePath.map(expath =>
-  //   Path.relative(Path.dirname(file), expath).replace(/\\/g, '/'));
-  // excludePath.push('**/*.d.ts');
-  // console.log(excludePath);
-  // tsExclude.push(...excludePath);
 
   // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
   if (!preserveSymlinks) {
@@ -382,12 +342,12 @@ function overrideTsConfig(file: string, content: string,
     compilerOptions: {
       ...appTsconfig.compilerOptions,
       baseUrl: root,
-      typeRoots: [
-        Path.resolve(root, 'node_modules/@types'),
-        Path.resolve(root, 'node_modules/@dr-types')
-        // Below is NodeJS only, which will break Angular Ivy engine
-        ,Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
-      ],
+      // typeRoots: [
+      //   Path.resolve(root, 'node_modules/@types'),
+      //   Path.resolve(root, 'node_modules/@dr-types'),
+      //   // Below is NodeJS only, which will break Angular Ivy engine
+      //   Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
+      // ],
       // module: 'esnext',
       preserveSymlinks,
       ...oldJson.compilerOptions,

@@ -6,7 +6,7 @@
   "bin": {
     "drcp": "bin/drcp.js"
   },
-  "packages": ["src/internal", "src/runtime", "src/tools"],
+  "packages": ["src/internal", "src/runtime", "src/tools", "wfh/types"],
   "dr": {
   },
   "scripts": {

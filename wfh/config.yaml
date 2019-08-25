@@ -27,6 +27,7 @@ packageScopes:
   - bk-core
   - dr
   - dr-core
+  - types
 
 # Only build out i18n bundles for following locales, e.g. for angularjs it means only
 # some locales for file match pattern:
