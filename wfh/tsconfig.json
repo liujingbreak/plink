@@ -4,7 +4,7 @@
 		"outDir": "dist",
 		"declaration": true,
 		"module":"commonjs",
-		"target":"es2016",
+		"target":"es2015",
 		"noImplicitAny": true,
 		"suppressImplicitAnyIndexErrors": true,
 		"allowSyntheticDefaultImports": true,
@@ -12,7 +12,6 @@
 		"inlineSourceMap": true,
 		"inlineSources": true,
 		"moduleResolution": "node",
-		"skipLibCheck": false,
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
 		"noUnusedLocals": true,
@@ -27,5 +26,7 @@
 		"pretty": true
 	},
 	
-	"include": ["ts/**/*.ts"]
+	"include": [
+		"ts/**/*.ts"
+	]
 }

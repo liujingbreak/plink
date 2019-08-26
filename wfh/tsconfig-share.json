@@ -1,11 +1,7 @@
 {
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
-		"rootDir": "share",
-		"typeRoots": [
-			"../node_modules/@types",
-			"types"
-		]
+		"rootDir": "share"
 	},
 	"include": [
 		"share/**/*.ts"

@@ -18,7 +18,9 @@ dr-comp-package is written partially in plain Javascript and partially in Typesc
   ├─ package.json
 ```
 To compile Typescript part, go to `wfh` folder where `tsconfig.json` is, run 
+
 ```bash
+rm ../node_modules/@types/drcp-types # Important, other wise there will be a mutual reference in d.ts file
 ../node_modules/.bin/tsc -p tsconfig-share.json
 ../node_modules/.bin/tsc
 ```

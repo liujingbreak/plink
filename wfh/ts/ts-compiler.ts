@@ -126,7 +126,7 @@ export function transpileAndCheck(tsCode: string, filename: string, co: ts.Compi
   }
   co.declaration = false;
   co.declarationMap = false;
-  co.inlineSourceMap = true;
+  // co.inlineSourceMap = true;
   // co.sourceMap = true;
   if (singletonCompiler == null)
     singletonCompiler = new TsCompiler(co);
@@ -141,6 +141,8 @@ export function transpileAndCheck(tsCode: string, filename: string, co: ts.Compi
 export function registerExtension(ext: string, compilerOpt: ts.CompilerOptions) {
   const old = require.extensions[ext] || require.extensions['.js'];
   // compilerOpt.inlineSources = true;
+  compilerOpt.inlineSourceMap = false;
+  compilerOpt.inlineSources = false;
   require.extensions[ext] = function(m: any, filename) {
     //   if (shouldIgnore(filename, ignore)) {
     // 	return old(m, filename);

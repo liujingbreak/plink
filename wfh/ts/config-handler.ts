@@ -2,8 +2,8 @@
 import * as Path from 'path';
 const {parse} = require('comment-json');
 const {cyan, green} = require('chalk');
-// import {register as registerTsNode} from 'ts-node';
-import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
+import {register as registerTsNode} from 'ts-node';
+// import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 
 export interface DrcpConfig {
@@ -44,22 +44,22 @@ export class ConfigHandlerMgr {
       compilerOptions.module = 'commonjs';
       compilerOptions.isolatedModules = true;
       compilerOptions.noUnusedLocals = false;
-      // console.log(compilerOptions);
-      const co = jsonToCompilerOptions(compilerOptions);
-      registerExtension('.ts', co);
-      // registerTsNode({
-      //   typeCheck: true,
-      //   compilerOptions
-      //   // transformers: {
-      //   //   before: [
-      //   //     context => (src) => {
-      //   //       console.log('ts-node compiles:', src.fileName);
-      //   //       console.log(src.text);
-      //   //       return src;
-      //   //     }
-      //   //   ]
-      //   // }
-      // });
+
+      // const co = jsonToCompilerOptions(compilerOptions);
+      // registerExtension('.ts', co);
+      registerTsNode({
+        typeCheck: true,
+        compilerOptions
+        // ,transformers: {
+        //   after: [
+        //     context => (src) => {
+        //       console.log('ts-node compiles:', src.fileName);
+        //       console.log(src.text);
+        //       return src;
+        //     }
+        //   ]
+        // }
+      });
       files.forEach(file => {
         const exp = require(Path.resolve(file));
         exporteds.push({file, handler: exp.default ? exp.default : exp});

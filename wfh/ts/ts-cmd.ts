@@ -52,7 +52,8 @@ export function tsc(argv: Args, onCompiled: () => void) {
     importHelpers: true,
     outDir: '',
     baseUrl: root,
-    rootDir: undefined
+    rootDir: undefined,
+    skipLibCheck: false
     // typeRoots: [
     //   Path.join('node_modules/@types'),
     //   Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
