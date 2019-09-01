@@ -230,9 +230,6 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
     test: /\.html$/,
     use: [
       {loader: 'raw-loader'}
-      // {loader: 'ng-html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
-      // {loader: '@dr/translate-generator'},
-      // {loader: '@dr/template-builder'}
     ]
   };
   rules.forEach((rule, ruleIdx) => {
@@ -315,7 +312,6 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
       use: [
         {loader: 'html-loader', options: {attrs: 'img:src'}},
         {loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader')}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
-        // {loader: '@dr/translate-generator'},
         {loader: '@dr-core/webpack2-builder/lib/jade-to-html-loader'}
       ]
     },

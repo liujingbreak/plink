@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 var _ = require('lodash');
 //var log = require('log4js').getLogger('gzipSizePlugin');
 var Path = require('path');

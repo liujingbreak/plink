@@ -1,3 +1,8 @@
+#  This package is deprecated!
+
+
+
+---------------
 Text Translation & i18n
 =======
 - Package 结构 - 哪里存放i18n资源

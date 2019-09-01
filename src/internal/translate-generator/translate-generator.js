@@ -14,16 +14,16 @@ var config;
 // var transformAdded = false;
 
 // add webpack plugin
-require('@dr-core/webpack2-builder').tapable.plugin('webpackConfig', function(webpackConfig, cb) {
-	webpackConfig.plugins.push(function() {
-		this.plugin('watch-run', function(compiler, cb) {
-			log.info('Clear i18n resource cache !');
-			require('./loader').clearCache();
-			cb(null);
-		});
-	});
-	cb(null, webpackConfig);
-});
+// require('@dr-core/webpack2-builder').tapable.plugin('webpackConfig', function(webpackConfig, cb) {
+// 	webpackConfig.plugins.push(function() {
+// 		this.plugin('watch-run', function(compiler, cb) {
+// 			log.info('Clear i18n resource cache !');
+// 			require('./loader').clearCache();
+// 			cb(null);
+// 		});
+// 	});
+// 	cb(null, webpackConfig);
+// });
 
 exports.compile = function() {
 	config = api.config;
@@ -53,7 +53,6 @@ exports.compile = function() {
 exports.scanPackage = scanPackage;
 exports.htmlReplacer = require('./translate-replacer').htmlReplacer;
 
-exports.activate = function() {};
 var readFileAsync = Promise.promisify(fs.readFile);
 var writeFileAsync = Promise.promisify(fs.writeFile);
 

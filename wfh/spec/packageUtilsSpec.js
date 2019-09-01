@@ -34,8 +34,7 @@ describe('packageUtils', function() {
 			var builders = [
 				'@dr-core/assets-processer',
 				//'@dr-core/browserify-builder',
-				'@dr/translate-generator',
-				'@dr/template-builder',
+				// '@dr/translate-generator',
 				'@dr/readme-docs',
 				'@dr/light-lodash',
 				'@dr/handlebars-tmpl-builder',

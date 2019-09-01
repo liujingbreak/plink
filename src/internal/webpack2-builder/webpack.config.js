@@ -76,7 +76,7 @@ module.exports = function(webpackConfigEntry, noParseChecker, file2ChunkName,
 						//{loader: 'html-minify-loader'},
 						{loader: 'lib/html-loader'}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
 						{loader: '@dr/translate-generator'},
-						{loader: '@dr/template-builder'}
+						// {loader: '@dr/template-builder'}
 					]
 				},
 				{

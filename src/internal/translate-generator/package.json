@@ -1,14 +1,10 @@
 {
   "name": "@dr/translate-generator",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A tool to scan source package files and generate translatable files",
   "main": "translate-generator.js",
   "loader": "loader",
-  "dr": {
-    "type": [
-      "builder",
-      "server"
-    ],
+  "---deprecated.dr": {
     "builderPriority": 0,
     "config": {
       "server": {
@@ -18,7 +14,7 @@
       }
     }
   },
-  "dependencies": {
+  "---deprected.dependencies": {
     "acorn": "^5.3.0",
     "acorn-jsx": "^4.1.0",
     "acorn-dynamic-import": "^3.0.0",
