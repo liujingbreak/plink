@@ -16,6 +16,12 @@ process.on('uncaughtException', (err) => {
   process.send && process.send({error: err});
 });
 
+process.on('unhandledRejection', (err) => {
+  // tslint:disable-next-line
+  console.log(err);
+  process.send && process.send({error: err});
+});
+
 async function downloadZip(fetchUrl: string) {
   // tslint:disable-next-line
 	// log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);

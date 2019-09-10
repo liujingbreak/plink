@@ -11,7 +11,14 @@ const pify = require('pify');
 
 process.on('uncaughtException', (err) => {
   // tslint:disable-next-line
-	console.log(err);
+  console.log(err);
+  process.send && process.send({error: err});
+});
+
+process.on('unhandledRejection', (err) => {
+  // tslint:disable-next-line
+  console.log(err);
+  process.send && process.send({error: err});
 });
 
 if (!process.send) {
@@ -27,14 +34,6 @@ const readFileAsync: (file: string, code?: string) => Promise<Buffer> = pify(fs.
 async function start() {
   const fileNames = fs.readdirSync(zipDir);
   const proms = fileNames.filter(name => Path.extname(name).toLowerCase() === '.zip')
-  // .sort((name1, name2) => {
-  // 	const match1 = /[0-9]+/.exec(name1);
-  // 	const match2 = /[0-9]+/.exec(name2);
-  // 	if (match1 && match1[0] && match2 && match2[0]) {
-  // 		return parseInt(match1[0], 10) - parseInt(match2[0], 10);
-  // 	}
-  // 	return 0;
-  // })
   .map(name => {
     const file = Path.resolve(zipDir, name);
     return () => {
@@ -83,4 +82,3 @@ async function tryExtract(file: string) {
 }
 
 start();
-// setTimeout(start, 100);
