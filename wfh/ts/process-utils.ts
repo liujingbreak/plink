@@ -1,6 +1,5 @@
 /* tslint:disable:no-console indent */
 import {spawn as sysSpawn, ChildProcess, SpawnOptions} from 'child_process';
-const crossSpawn: typeof sysSpawn = require('cross-spawn');
 export const isWindows = process.platform === 'win32';
 
 export interface Option extends SpawnOptions {
@@ -46,7 +45,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
   }
   let res: ChildProcess;
   const promise = checkTimeout(new Promise<string>((resolve, reject) => {
-    res = crossSpawn(command, args as string[], opts);
+    res = sysSpawn(command, args as string[], opts);
     // console.log(command, args);
     let output: string;
     if (opts && opts.silent) {
