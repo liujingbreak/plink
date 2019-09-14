@@ -77,7 +77,7 @@ export function activate() {
 
   api.eventBus.on('appCreated', () => {
     // appCreated event is emitted by express-app
-    fetchRemote.start(zss);
+    fetchRemote.start();
   });
 
   if (!api.config().devMode) {

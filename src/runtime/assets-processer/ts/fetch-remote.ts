@@ -1,38 +1,20 @@
-import api from '__api';
-import request from 'request';
-import * as Url from 'url';
+// import api from '__api';
+// import request from 'request';
+// import * as Url from 'url';
 import * as _ from 'lodash';
 import os from 'os';
 import Path from 'path';
-// import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
 import cluster from 'cluster';
-import {ZipResourceMiddleware} from 'serve-static-zip';
+import {filter, switchMap, retry as retryOpt, skip, take} from 'rxjs/operators';
 import {fork, ChildProcess} from 'child_process';
-// const chokidar = require('chokidar');
-const log = require('log4js').getLogger(api.packageName + '.fetch-remote');
+import {Checksum, currChecksumFile, WithMailServerConfig as Setting} from './fetch-types';
+import {ImapManager} from './fetch-remote-imap';
+const log = require('log4js').getLogger('@dr-core/assets-processer.fetch-remote');
 
 const pm2InstanceId = process.env.NODE_APP_INSTANCE;
 const isPm2 = cluster.isWorker && pm2InstanceId != null;
 const isMainProcess = !isPm2 || pm2InstanceId === '0';
-
-interface OldChecksum {
-  version: number;
-  path: string;
-  changeFetchUrl?: string;
-}
-
-export interface Checksum extends OldChecksum {
-  versions?: {[key: string]: {version: number, path: string}};
-}
-
-interface Setting {
-  fetchUrl: string;
-  fetchRetry: number;
-  fetchLogErrPerTimes: number;
-  fetchIntervalSec: number;
-  downloadMode: 'memory' | 'fork' | null;
-}
 
 let setting: Setting;
 // let currVersion: number = Number.NEGATIVE_INFINITY;
@@ -42,21 +24,22 @@ let currentChecksum: Checksum = {
   versions: {}
 };
 
-const currChecksumFile = api.config.resolve('destDir', 'assets-processer.checksum.json');
-let timer: NodeJS.Timer;
-let stopped = false;
-let errCount = 0;
-let zipDownloadDir: string;
-let watcher: any;
 
-export async function start(serveStaticZip: ZipResourceMiddleware) {
+// let timer: NodeJS.Timer;
+// let stopped = false;
+// let errCount = 0;
+let zipDownloadDir = Path.dirname(currChecksumFile);
+// let watcher: any;
+let imap: ImapManager;
+
+export async function start() {
   // tslint:disable-next-line
 	log.info(`[memory status] total ${Math.floor(os.totalmem() / 1048576)}Mb, free ${Math.floor(os.freemem() / 1048576)}Mb\n` +
     `[num of CPU] ${os.cpus().length}`);
 
+  const api: typeof __api = require('__api');
   setting = api.config.get(api.packageName);
-  const fetchUrl = setting.fetchUrl;
-  if (fetchUrl == null) {
+  if (setting.fetchMailServer == null) {
     log.info('No fetchUrl configured, skip fetching resource.');
     return Promise.resolve();
   }
@@ -67,12 +50,11 @@ export async function start(serveStaticZip: ZipResourceMiddleware) {
     log.info('This process is not main process');
     return;
   }
-  zipDownloadDir = api.config.resolve('destDir', 'assets-processer');
-  if (!fs.existsSync(zipDownloadDir))
-    fs.mkdirpSync(zipDownloadDir);
+  // if (!fs.existsSync(zipDownloadDir))
+  //   fs.mkdirpSync(zipDownloadDir);
   const fileNames = fs.readdirSync(zipDownloadDir).filter(name => Path.extname(name) === '.zip');
   if (fileNames.length > 0) {
-    await retry(20, forkExtractExstingZip);
+    await retry(2, forkExtractExstingZip);
   }
 
   if (setting.fetchRetry == null)
@@ -81,128 +63,164 @@ export async function start(serveStaticZip: ZipResourceMiddleware) {
     currentChecksum = Object.assign(currentChecksum, fs.readJSONSync(currChecksumFile));
     log.info('Found saved checksum file after reboot\n', JSON.stringify(currentChecksum, null, '  '));
   }
-  return runRepeatly(setting, serveStaticZip);
+  // await runRepeatly(setting);
+  log.info('start watch mail');
+  imap = new ImapManager((api.config.get(api.packageName) as Setting)
+    .fetchMailServer.env);
+  imap.checksumState.pipe(
+    filter(cs => cs != null),
+    switchMap(cs => checkAndDownload(cs!, imap)),
+    retryOpt(3)
+  ).subscribe();
+  await imap.startWatchMail();
 }
 
 /**
  * It seems ok to quit process without calling this function
  */
 export function stop() {
-  stopped = true;
-  if (watcher)
-    watcher.close();
-  if (timer) {
-    clearTimeout(timer);
-  }
+  imap.stopWatch();
+  // stopped = true;
+  // if (watcher)
+  //   watcher.close();
+  // if (timer) {
+  //   clearTimeout(timer);
+  // }
 }
 
-// function updateServerStatic(path: string, serveStaticZip: ZipResourceMiddleware) {
-// 	log.info('read %s', path);
-// 	try {
-// 		serveStaticZip.updateZip(fs.readFileSync(Path.resolve(zipDownloadDir, path)));
-// 	} catch (e) {
-// 		log.warn('Failed to update from ' + path, e);
-// 	}
+// async function runRepeatly(setting: Setting): Promise<void> {
+//   while (true) {
+//     if (stopped)
+//       return;
+
+//     try {
+//       await new Promise(resolve => setTimeout(resolve, 20000));
+//     } catch (err) {
+//       log.error(err);
+//     }
+//   }
 // }
 
-function runRepeatly(setting: Setting, szip: ZipResourceMiddleware): Promise<void> {
-  if (stopped)
-    return Promise.resolve();
-  return run(setting, szip)
-  .catch(error => log.error(error))
-  .then(() => {
-    if (stopped)
-      return;
-    timer = setTimeout(() => {
-      runRepeatly(setting, szip);
-    }, setting.fetchIntervalSec * 1000);
-  });
-}
-async function run(setting: Setting, szip: ZipResourceMiddleware) {
-  let checksumObj: Checksum;
-  try {
-    checksumObj = await retry(setting.fetchRetry, fetch, setting.fetchUrl);
-  } catch (err) {
-    if (errCount++ % setting.fetchLogErrPerTimes === 0) {
-      throw err;
-    }
-    return;
-  }
-  if (checksumObj == null)
-    return;
-
-  if (checksumObj.changeFetchUrl) {
-    setting.fetchUrl = checksumObj.changeFetchUrl;
-    log.info('Change fetch URL to', setting.fetchUrl);
-  }
-  let downloads: string[] = [];
-  if (checksumObj.version != null && currentChecksum.version !== checksumObj.version) {
-    const file = await downloadZip(checksumObj.path, szip);
-    downloads.push(file);
-    currentChecksum.version = checksumObj.version;
-  }
+async function checkAndDownload(checksumObj: Checksum, imap: ImapManager) {
+  let toUpdateApps: string[] = [];
   if (checksumObj.versions) {
     let currVersions = currentChecksum.versions;
     if (currVersions == null) {
       currVersions = currentChecksum.versions = {};
     }
     const targetVersions = checksumObj.versions;
-    for (const key of Object.keys(targetVersions)) {
-      if (!_.has(targetVersions, key) || _.get(currVersions, [key, 'version']) !==
-        _.get(targetVersions, [key, 'version'])) {
-          const file = await downloadZip(targetVersions[key].path, szip);
-          currVersions[key] = targetVersions[key];
-          downloads.push(file);
-        }
+    for (const appName of Object.keys(targetVersions)) {
+      if (currVersions[appName] == null ||
+        ( targetVersions[appName] &&
+          currVersions[appName].version < targetVersions[appName].version)
+      ) {
+        log.info(`Find updated version of ${appName}`);
+        toUpdateApps.push(appName);
+      }
     }
   }
 
-  if (downloads.length > 0) {
-    fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, '  '), 'utf8');
-    // downloads.forEach(file => updateServerStatic(file, szip));
-    if (setting.downloadMode === 'fork') {
-      await retry(20, forkExtractExstingZip);
-    }
-    api.eventBus.emit(api.packageName + '.downloaded');
+  if (toUpdateApps.length > 0) {
+    imap.fetchAppDuringWatchAction(...toUpdateApps);
+    log.info('waiting for zip file written');
+    await imap.fileWritingState.pipe(
+      skip(1),
+      filter(writing => !writing),
+      take(toUpdateApps.length)
+      ).toPromise();
+    log.info('waiting for zip file written - done');
+    await retry(2, forkExtractExstingZip);
+    toUpdateApps.forEach(name => {
+      currentChecksum.versions![name] = checksumObj.versions![name];
+    });
   }
 }
+
+// async function run(setting: Setting) {
+//   let checksumObj: Checksum;
+//   try {
+//     checksumObj = await retry(setting.fetchRetry, fetch, setting.fetchUrl);
+//   } catch (err) {
+//     if (errCount++ % setting.fetchLogErrPerTimes === 0) {
+//       throw err;
+//     }
+//     return;
+//   }
+//   if (checksumObj == null)
+//     return;
+
+//   if (checksumObj.changeFetchUrl) {
+//     setting.fetchUrl = checksumObj.changeFetchUrl;
+//     log.info('Change fetch URL to', setting.fetchUrl);
+//   }
+//   let downloads: string[] = [];
+//   // if (checksumObj.version != null && currentChecksum.version !== checksumObj.version && checksumObj.path) {
+//   //   const file = await downloadZip(checksumObj.path);
+//   //   downloads.push(file);
+//   //   currentChecksum.version = checksumObj.version;
+//   // }
+//   if (checksumObj.versions) {
+//     let currVersions = currentChecksum.versions;
+//     if (currVersions == null) {
+//       currVersions = currentChecksum.versions = {};
+//     }
+//     const targetVersions = checksumObj.versions;
+//     for (const key of Object.keys(targetVersions)) {
+//       if (!_.has(targetVersions, key) || _.get(currVersions, [key, 'version']) !==
+//         _.get(targetVersions, [key, 'version'])) {
+//           const file = await downloadZip(targetVersions[key].path);
+//           currVersions[key] = targetVersions[key];
+//           downloads.push(file);
+//         }
+//     }
+//   }
+
+//   if (downloads.length > 0) {
+//     fs.writeFileSync(currChecksumFile, JSON.stringify(currentChecksum, null, '  '), 'utf8');
+//     // downloads.forEach(file => updateServerStatic(file, szip));
+//     if (setting.downloadMode === 'fork') {
+//       await retry(20, forkExtractExstingZip);
+//     }
+//     api.eventBus.emit(api.packageName + '.downloaded');
+//   }
+// }
 
 // let downloadCount = 0;
 
-async function downloadZip(path: string, szip: ZipResourceMiddleware) {
-  // tslint:disable-next-line
-	// log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
-  const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
-  // const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
-  const newName = path.replace(/[\\/]/g, '_');
-  const downloadTo = Path.resolve(zipDownloadDir, newName);
-  log.info('fetch', resource);
-  await retry<string>(setting.fetchRetry, forkDownloadzip, resource, downloadTo);
-  return downloadTo;
-}
+// async function downloadZip(path: string) {
+//   // tslint:disable-next-line
+// 	// log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
+//   const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
+//   // const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
+//   const newName = path.replace(/[\\/]/g, '_');
+//   const downloadTo = Path.resolve(zipDownloadDir, newName);
+//   log.info('fetch', resource);
+//   await retry<string>(setting.fetchRetry, forkDownloadzip, resource, downloadTo);
+//   return downloadTo;
+// }
 
-function fetch(fetchUrl: string): Promise<any> {
-  const checkUrl = fetchUrl + '?' + Math.random();
-  log.debug('check', checkUrl);
-  return new Promise((resolve, rej) => {
-    request.get(checkUrl,
-      {headers: {Referer: Url.resolve(checkUrl, '/')}}, (error: any, response: request.Response, body: any) => {
-      if (error) {
-        return rej(new Error(error));
-      }
-      if (response.statusCode < 200 || response.statusCode > 302) {
-        return rej(new Error(`status code ${response.statusCode}\nresponse:\n${response}\nbody:\n${body}`));
-      }
-      try {
-        if (typeof body === 'string')
-          body = JSON.parse(body);
-      } catch (ex) {
-        rej(ex);
-      }
-      resolve(body);
-    });
-  });
-}
+// function fetch(fetchUrl: string): Promise<any> {
+//   const checkUrl = fetchUrl + '?' + Math.random();
+//   log.debug('check', checkUrl);
+//   return new Promise((resolve, rej) => {
+//     request.get(checkUrl,
+//       {headers: {Referer: Url.resolve(checkUrl, '/')}}, (error: any, response: request.Response, body: any) => {
+//       if (error) {
+//         return rej(new Error(error));
+//       }
+//       if (response.statusCode < 200 || response.statusCode > 302) {
+//         return rej(new Error(`status code ${response.statusCode}\nresponse:\n${response}\nbody:\n${body}`));
+//       }
+//       try {
+//         if (typeof body === 'string')
+//           body = JSON.parse(body);
+//       } catch (ex) {
+//         rej(ex);
+//       }
+//       resolve(body);
+//     });
+//   });
+// }
 
 async function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> {
   for (let cnt = 0;;) {
@@ -220,12 +238,13 @@ async function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...
   }
 }
 
-function forkDownloadzip(resource: string, toFileName: string): Promise<string> {
-  return forkProcess('download', 'node_modules/' + api.packageName + '/dist/download-zip-process.js', [
-    resource, toFileName, setting.fetchRetry + ''
-  ]);
-}
+// function forkDownloadzip(resource: string, toFileName: string): Promise<string> {
+//   return forkProcess('download', 'node_modules/' + api.packageName + '/dist/download-zip-process.js', [
+//     resource, toFileName, setting.fetchRetry + ''
+//   ]);
+// }
 function forkExtractExstingZip() {
+  const api: typeof __api = require('__api');
   return forkProcess('extract', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
     zipDownloadDir,
     api.config.resolve('staticDir')

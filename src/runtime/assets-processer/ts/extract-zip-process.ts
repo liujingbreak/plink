@@ -36,14 +36,13 @@ async function start() {
   const proms = fileNames.filter(name => Path.extname(name).toLowerCase() === '.zip')
   .map(name => {
     const file = Path.resolve(zipDir, name);
-    return () => {
-      // console.log(`[pid:${process.pid}] start extracting ${file}`);
+    return async () => {
+      console.log(`[pid:${process.pid}] start extracting ${file}`);
       process.send && process.send({log: `[pid:${process.pid}] start extracting ${file}`});
-      return tryExtract(file)
-      .then(() => {
-        fs.unlinkSync(file);
-        process.send && process.send({done: `[pid:${process.pid}] done extracting ${file}`});
-      });
+      await tryExtract(file);
+      fs.unlinkSync(file);
+      console.log('done', file);
+      process.send && process.send({done: `[pid:${process.pid}] done extracting ${file}`});
     };
   });
   if (proms.length > 0) {

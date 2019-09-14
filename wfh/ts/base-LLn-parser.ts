@@ -13,18 +13,12 @@ export class Token<T> {
   }
 }
 
-export enum Channel {
-  normal,
-  full
-}
-
 export abstract class LookAhead<T> {
   cached: T[];
   // channels: {[channel: string]: T[]} = {};
   // channelPos: {[channel: string]: number} = {};
   sourceIterator: Iterator<T>;
   isString: boolean;
-  channel = Channel.normal;
   protected currPos = -1;
 
   constructor(source: Iterable<T>) {
