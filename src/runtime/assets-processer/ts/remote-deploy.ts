@@ -1,11 +1,11 @@
 // tslint:disable: no-console
-import { ImapManager } from './fetch-remote-imap';
 import fs from 'fs-extra';
 import _gulp from 'gulp';
 import { basename, dirname, resolve } from 'path';
-import { timer, defer, from } from 'rxjs';
-import { catchError, map, retry, skip, take, filter } from 'rxjs/operators';
+import { defer, from, timer } from 'rxjs';
+import { catchError, map, retry } from 'rxjs/operators';
 import api from '__api';
+import { ImapManager } from './fetch-remote-imap';
 const log = require('log4js').getLogger(api.packageName + '.remote-deploy');
 // process.on('uncaughtException', err => {
 //   // tslint:disable-next-line: no-console
