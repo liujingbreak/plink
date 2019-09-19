@@ -424,7 +424,17 @@ export class ImapManager {
   async fetchOtherZips(appName: string) {
     let appNames = Object.keys(this.checksumState.getValue()!.versions!)
     .filter(app => app !== appName);
+
+    let fileWrittenProm: Promise<boolean> | undefined;
+
     await connectImap(async ctx => {
+
+      fileWrittenProm = ctx.fileWritingState.pipe(
+        skip(1),
+        filter(writing => !writing),
+        take(appNames.length)
+      ).toPromise();
+
       for (const app of appNames) {
         log.info('fetch other zip: ' + app);
         const idx = await ctx.findMail(ctx.lastIndex, `bkjk-pre-build(${this.env}-${app})`);
@@ -432,15 +442,11 @@ export class ImapManager {
           log.info(`mail "bkjk-pre-build(${this.env}-${app})" is not Found, skip download zip`);
           continue;
         }
-        const reply = ctx.waitForFetch(idx, false, Path.resolve(this.zipDownloadDir, app + '.zip'));
-        await ctx.fileWritingState.pipe(
-          skip(1),
-          filter(writing => !writing),
-          take(appNames.length)
-        ).toPromise();
-        await reply;
+        await ctx.waitForFetch(idx, false, Path.resolve(this.zipDownloadDir, app + '.zip'));
       }
     });
+    if (fileWrittenProm)
+      await fileWrittenProm;
     return appNames;
   }
 
