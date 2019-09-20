@@ -18,7 +18,7 @@
         "fetchRetry": 5,
         "downloadMode": "fork",
         "fetchLogErrPerTimes": 20,
-        "fetchIntervalSec": 300,
+        "fetchIntervalSec": 90,
         "cacheControlMaxAge": {
           "js": "365 days",
           "css": "365 days",
@@ -38,10 +38,10 @@
           "^/[^/]+": "<%=match[0]%>/index.html"
         },
         "fetchMailServer": {
-          "imap": "imap.163.com",
-          "smtp": "smtp.163.com",
+          "imap": "A.imap.com",
+          "smtp": "B.smtp.com",
           "user": "somebody",
-          "loginSecret": "you guess"
+          "loginSecret": "fake one"
         }
       }
     },
@@ -49,10 +49,10 @@
       "server": {
         "fetchRetry": 0,
         "fetchLogErrPerTimes": 1,
-        "fetchIntervalSec": 30,
+        "fetchIntervalSec": 60,
         "cacheControlMaxAge": {
         },
-        "fetchMailServer": false,
+        "fetchMailServer": null,
         "indexHtmlProxy": {
           "target": "http://localhost:4200"
         }

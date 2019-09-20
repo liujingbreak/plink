@@ -10,7 +10,7 @@ export interface WithMailServerConfig {
   // fetchUrl: string;
   fetchRetry: number;
   // fetchLogErrPerTimes: number;
-  // fetchIntervalSec: number;
+  fetchIntervalSec: number;
   downloadMode: 'memory' | 'fork' | null;
 }
 interface OldChecksum {

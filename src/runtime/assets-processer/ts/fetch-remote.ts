@@ -6,7 +6,7 @@ import os from 'os';
 import Path from 'path';
 import fs from 'fs-extra';
 import cluster from 'cluster';
-import {filter, switchMap, retry as retryOpt, skip, take} from 'rxjs/operators';
+import {filter, switchMap, skip, take} from 'rxjs/operators';
 import {fork, ChildProcess} from 'child_process';
 import {Checksum, currChecksumFile, WithMailServerConfig as Setting} from './fetch-types';
 import {ImapManager} from './fetch-remote-imap';
@@ -38,10 +38,11 @@ export async function start() {
     `[num of CPU] ${os.cpus().length}`);
 
   const api: typeof __api = require('__api');
+
   setting = api.config.get(api.packageName);
-  if (setting.fetchMailServer == null) {
+  if (!setting.fetchMailServer) {
     log.info('No fetchUrl configured, skip fetching resource.');
-    return Promise.resolve();
+    return;
   }
 
   if (setting.downloadMode !== 'memory'  && !isMainProcess) {
@@ -63,16 +64,15 @@ export async function start() {
     currentChecksum = Object.assign(currentChecksum, fs.readJSONSync(currChecksumFile));
     log.info('Found saved checksum file after reboot\n', JSON.stringify(currentChecksum, null, '  '));
   }
-  // await runRepeatly(setting);
-  log.info('start watch mail');
-  imap = new ImapManager((api.config.get(api.packageName) as Setting)
-    .fetchMailServer.env);
+  log.info('start poll mail');
+
+  imap = new ImapManager(setting.fetchMailServer.env);
   imap.checksumState.pipe(
     filter(cs => cs != null),
-    switchMap(cs => checkAndDownload(cs!, imap)),
-    retryOpt(3)
+    switchMap(cs => checkAndDownload(cs!, imap))
   ).subscribe();
-  await imap.startWatchMail();
+
+  await imap.startWatchMail(setting.fetchIntervalSec * 1000);
 }
 
 /**

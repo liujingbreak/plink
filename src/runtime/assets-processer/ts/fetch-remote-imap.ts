@@ -394,7 +394,8 @@ export class ImapManager {
 
   private ctx: ImapCommandContext;
 
-  constructor(public env: string) {}
+  constructor(public env: string) {
+  }
 
   async fetchUpdateCheckSum(appName: string): Promise<Checksum> {
     let cs: Checksum | undefined;
@@ -450,7 +451,7 @@ export class ImapManager {
     return appNames;
   }
 
-  async startWatchMail() {
+  async startWatchMail(pollInterval = 60000) {
     this.watching = true;
     while (this.watching) {
       await connectImap(async ctx => {
@@ -471,7 +472,7 @@ export class ImapManager {
         // await new Promise(resolve => setTimeout(resolve, 30000)); // 30 sec
         delete this.ctx;
       });
-      await new Promise(resolve => setTimeout(resolve, 60000)); // 60 sec
+      await new Promise(resolve => setTimeout(resolve, pollInterval)); // 60 sec
     }
   }
 
