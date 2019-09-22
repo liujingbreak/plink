@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -10,12 +10,8 @@
   "dr": {
   },
   "scripts": {
-    "start": "node app.js",
-    "init": "node bin/drcp.js init",
-    "project": "node bin/drcp.js project -a .",
-    "lint": "node bin/drcp.js lint",
-    "test": "node bin/drcp.js test",
-    "e2e": "node bin/drcp.js e2e --browser chrome"
+    "build:wfh": "rm -f node_modules/@types/drcp-types && cd wfh && tsc",
+    "watch:wfh": "rm -f node_modules/@types/drcp-types && cd wfh && tsc -w"
   },
   "repository": {
     "type": "git",
@@ -73,7 +69,8 @@
     "prettier": "1.13.5",
     "pretty-quick": "^1.6.0",
     "promise-queue": "^2.2.5",
-    "require-injector": "^5.1.3",
+    "require-injector": "^5.1.6",
+    "rxjs": "~6.4.0",
     "resolve": "^1.4.0",
     "semver": "^5.4.1",
     "shelljs": "^0.7.8",

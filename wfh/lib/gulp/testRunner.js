@@ -6,8 +6,8 @@ var packageUtils = require('../packageMgr/packageUtils');
 var log = require('log4js').getLogger('test.' + Path.basename(__filename, '.js'));
 var chalk = require('chalk');
 var config = require('../config');
-var Package = require('../packageMgr/packageNodeInstance');
-var NodeApi = require('../nodeApi');
+// var Package = require('../packageMgr/packageNodeInstance');
+var NodeApi = require('../../dist/package-mgr/node-package-api');
 var {nodeInjector} = require('../../dist/injector-factory');
 const {LazyPackageFactory} = require('../../dist/build-util/ts/package-instance');
 // var LRU = require('lru-cache');
@@ -41,17 +41,15 @@ function defaultConfig() {
 	};
 }
 
+const lazyPackageFac = new LazyPackageFactory();
 function runUnitTest(argv) {
+	nodeInjector.fromRoot()
+		.value('__injector', nodeInjector)
+		.factory('__api', (sourceFilePath) => {
+			const packageInstance = lazyPackageFac.getPackageByPath(sourceFilePath);
+			return getApiForPackage(packageInstance, NodeApi);
+		});
 	if (argv.f) {
-		for (const singleFile of argv.f) {
-			let pk = new LazyPackageFactory().getPackageByPath(Path.resolve(singleFile));
-			nodeInjector.fromComponent(pk.longName, pk.packagePath)
-			.value('__injector', nodeInjector)
-			.value('__api', getApiForPackage(pk));
-			nodeInjector.fromComponent(pk.longName, pk.realPackagePath)
-			.value('__injector', nodeInjector)
-			.value('__api', getApiForPackage(pk));
-		}
 		return runJasmine(defaultConfig(), [].concat(argv.f), argv.spec);
 	}
 	var jasmineSetting = defaultConfig();
@@ -64,27 +62,27 @@ function runUnitTest(argv) {
 		jasmineSetting.helpers.push(wfhPath + 'spec/helpers/**/*.js');
 	}
 	var packages = argv.package && argv.package.length === 0 ? null : argv.package;
-	packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
-		// inject global modules start
-		var pkInstance = new Package({
-			moduleName: parsedName.name,
-			name,
-			longName: name,
-			scope: parsedName.scope,
-			path: packagePath,
-			priority: json.dr ? json.dr.builderPriority : null
-		});
-		nodeInjector.fromComponent(name, packagePath)
-			.value('__injector', nodeInjector)
-			.factory('__api', function() {
-				return getApiForPackage(pkInstance);
-			});
-		nodeInjector.fromComponent(name, fs.realpathSync(packagePath))
-			.value('__injector', nodeInjector)
-			.factory('__api', function() {
-				return getApiForPackage(pkInstance);
-			});
-	});
+	// packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
+	// 	// inject global modules start
+	// 	var pkInstance = new Package({
+	// 		moduleName: parsedName.name,
+	// 		name,
+	// 		longName: name,
+	// 		scope: parsedName.scope,
+	// 		path: packagePath,
+	// 		priority: json.dr ? json.dr.builderPriority : null
+	// 	});
+	// 	nodeInjector.fromComponent(name, packagePath)
+	// 		.value('__injector', nodeInjector)
+	// 		.factory('__api', function() {
+	// 			return getApiForPackage(pkInstance);
+	// 		});
+	// 	nodeInjector.fromComponent(name, fs.realpathSync(packagePath))
+	// 		.value('__injector', nodeInjector)
+	// 		.factory('__api', function() {
+	// 			return getApiForPackage(pkInstance);
+	// 		});
+	// });
 	packageUtils.findAllPackages(packages, (name, entryPath, parsedName, json, packagePath) => {
 		if (!fs.existsSync(Path.join(packagePath, 'spec')) && !fs.existsSync(Path.join(packagePath, 'dist', 'spec'))) {
 			return;
@@ -96,17 +94,6 @@ function runUnitTest(argv) {
 			relativePkPath + '/dist/spec/**/*[sS]pec.js');
 		jasmineSetting.helpers.push(relativePkPath + '/spec/helpers/**/*[sS]pec.js');
 	}, 'src');
-	// var cache = LRU(20);
-	// var proto = NodeApi.prototype;
-	// proto.findPackageByFile = function(file) {
-	// 	var found = cache.get(file);
-	// 	if (!found) {
-	// 		found = packageInfo.dirTree.getAllData(file).pop();
-	// 		cache.set(file, found);
-	// 	}
-	// 	return found;
-	// };
-	// log.info(jasmineSetting.spec_files);
 	return runJasmine(jasmineSetting);
 }
 

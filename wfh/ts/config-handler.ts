@@ -53,6 +53,7 @@ export class ConfigHandlerMgr {
         // ,transformers: {
         //   after: [
         //     context => (src) => {
+        //       console.log(compilerOptions);
         //       console.log('ts-node compiles:', src.fileName);
         //       console.log(src.text);
         //       return src;

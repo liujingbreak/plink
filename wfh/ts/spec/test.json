@@ -1,0 +1,8 @@
+{
+  "prop1": "value1",
+  "prop2": 123,
+  "prop3": [456],
+  "prop4": {
+    "sp": true
+  }
+}

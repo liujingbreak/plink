@@ -30,20 +30,22 @@ export interface ImapCommandContext {
 export declare function connectImap(callback: (context: ImapCommandContext) => Promise<any>): Promise<void>;
 export declare class ImapManager {
     env: string;
-    zipDownloadDir: string;
+    zipDownloadDir?: string | undefined;
     checksumState: BehaviorSubject<Checksum | null>;
     fileWritingState: ImapCommandContext['fileWritingState'];
     watching: boolean;
     private toFetchAppsState;
     private ctx;
-    constructor(env: string);
+    constructor(env: string, zipDownloadDir?: string | undefined);
+    fetchChecksum(): Promise<Checksum | undefined>;
     fetchUpdateCheckSum(appName: string): Promise<Checksum>;
     /**
      * Done when files are written
      * @param appName exclude app
      */
     fetchOtherZips(appName: string): Promise<string[]>;
-    startWatchMail(): Promise<void>;
+    startWatchMail(pollInterval?: number): Promise<void>;
+    checkMailForUpdate(): Promise<void>;
     fetchAppDuringWatchAction(...appNames: string[]): void;
     sendFileAndUpdatedChecksum(appName: string, file: string): Promise<void>;
     stopWatch(): void;

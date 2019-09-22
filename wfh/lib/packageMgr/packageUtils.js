@@ -247,7 +247,7 @@ class EntryFileFinder {
 		if (!pj.dependencies) {
 			return;
 		}
-		
+
 		_.forOwn(Object.assign({}, pj.dependencies, pj.devDependencies), function(version, name) {
 			if (isInstalled) {
 				if (_.has(self.packageRecipeMap, name)) {

@@ -147,8 +147,8 @@ function browserLegoConfig() {
   var compressedInfo = compressOutputPathMap(legoConfig.outputPathMap);
   legoConfig.outputPathMap = compressedInfo.diffMap;
   legoConfig._outputAsNames = compressedInfo.sames;
-  legoConfig.buildLocale = api.getBuildLocale();
-  log.debug('DefinePlugin LEGO_CONFIG: ', legoConfig);
+  // legoConfig.buildLocale = api.getBuildLocale();
+  // log.debug('DefinePlugin LEGO_CONFIG: ', legoConfig);
   return legoConfig;
 }
 

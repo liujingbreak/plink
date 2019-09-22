@@ -1,5 +1,5 @@
 import ts from 'typescript';
-export declare function printFile(fileName: string): void;
+export declare function printFile(file: string): void;
 export interface WalkCallback {
     query: string;
     callback: (ast: ts.Node, path: string[], parents?: ts.Node[]) => true | void;

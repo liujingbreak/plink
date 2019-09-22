@@ -103,10 +103,6 @@ function addupConfigs(onEachYaml) {
 	return Promise.resolve(null);
 }
 
-/**
- * @param {object} setting hash object to be added to
- * @param {object} configJson component's package.json -> "dr.config.<environment>"
- */
 function _addupCompConfigProp(componentConfigs, compName, browserSideConfigProp, configJson) {
 	if (!configJson)
 		return;
@@ -247,7 +243,6 @@ function _lintPackageAsync(eslint, fullName, json, packagePath, pkTsDirs, fix) {
 	log.debug('Use', rcfile);
 	packagePath = packagePath.replace(/\\/g, '/');
 	return new Promise((resolve, reject) => {
-		
 		var tsDestDir = _.get(json, 'dr.ts.dest', 'dist');
 		var stream = gulp.src([packagePath + '/**/*.{js,jsx}',
 			`!${packagePath}/${pkTsDirs.isomDir}/**/*`,
@@ -475,5 +470,5 @@ function _srcRecipeMap() {
 }
 
 function runPackages(argv) {
-	return require('../../dist/package-runner').runPackages(argv);
+	return require('../../dist/package-runner').runSinglePackage(argv);
 }

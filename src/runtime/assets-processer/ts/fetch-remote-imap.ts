@@ -7,22 +7,29 @@ import { connect as tslConnect, ConnectionOptions, TLSSocket } from 'tls';
 import fs from 'fs-extra';
 import * as _ from 'lodash';
 import Path from 'path';
-import {Checksum, WithMailServerConfig, currChecksumFile} from './fetch-types';
+import {Checksum, WithMailServerConfig} from './fetch-types';
 import api from '__api';
 // import {Socket} from 'net';
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote-imap');
 
+const setting = api.config.get(api.packageName) as WithMailServerConfig;
+const env = setting.fetchMailServer ? setting.fetchMailServer.env : 'local';
+
+
+const currChecksumFile = Path.resolve('checksum.' + (setting.fetchMailServer ? env : 'local') + '.json');
 
 export async function sendMail(subject: string, text: string, file?: string) {
   log.info('login');
+  if (!setting.fetchMailServer) {
+    log.warn('fetchMailServer is not configured! Skip sendMail');
+    return;
+  }
   const {
-    fetchMailServer: {
-      user: EMAIL,
-      loginSecret: SECRET,
-      // imap: IMAP,
-      smtp: SMTP
-    }
-  } = api.config.get(api.packageName) as WithMailServerConfig;
+    user: EMAIL,
+    loginSecret: SECRET,
+    // imap: IMAP,
+    smtp: SMTP
+  } = setting.fetchMailServer;
 
   const transporter = createTransport({
     host: SMTP,
@@ -112,14 +119,16 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
   let cmdIdx = 1;
   const fileWritingState = new BehaviorSubject<Set<string>>(new Set<string>());
 
+  if (!setting.fetchMailServer) {
+    log.warn('fetchMailServer is not configured! Skip sendMail');
+    return;
+  }
   const {
-    fetchMailServer: {
       user: EMAIL,
       loginSecret: SECRET,
       imap: IMAP
       // smtp: SMTP
-    }
-  } = api.config.get(api.packageName) as WithMailServerConfig;
+  } = setting.fetchMailServer;
 
   const context: {[k in keyof ImapCommandContext]?: ImapCommandContext[k]} = {};
 
@@ -154,8 +163,6 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
       .on('error', err => reject(err))
       .on('timeout', () => reject(new Error('Timeout')));
       socket.on('data', (data: Buffer) => _onResponse(data.toString('utf8')));
-
-      return socket;
     });
   // tslint:disable-next-line: no-console
     console.log(await waitForReply());
@@ -348,6 +355,7 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
           }
           if (!fileWriter) {
             attachementFile = overrideFileName || Path.resolve('dist/' + fileName);
+            fs.mkdirpSync(Path.dirname(attachementFile));
             fileWriter = fs.createWriteStream(attachementFile);
             fileWritingState.getValue().add(attachementFile);
             fileWritingState.next(fileWritingState.getValue());
@@ -384,24 +392,33 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
 }
 
 export class ImapManager {
-  zipDownloadDir = Path.resolve();
   // checksum: Checksum;
   checksumState = new BehaviorSubject<Checksum | null>(null);
   fileWritingState: ImapCommandContext['fileWritingState'];
   watching = false;
   private toFetchAppsState = new BehaviorSubject<string[]>([]);
+  // private  zipDownloadDir: string;
   // private imapActions = new Subject<(ctx: ImapCommandContext) => Promise<any>>();
 
   private ctx: ImapCommandContext;
 
-  constructor(public env: string) {
+  constructor(public env: string, public zipDownloadDir?: string) {
+    if (zipDownloadDir == null)
+      this.zipDownloadDir = Path.resolve(Path.dirname(currChecksumFile), 'deploy-static-' + env);
   }
 
-  async fetchUpdateCheckSum(appName: string): Promise<Checksum> {
+  async fetchChecksum(): Promise<Checksum | undefined>  {
     let cs: Checksum | undefined;
     await connectImap(async ctx => {
       cs = await this._fetchChecksum(ctx);
     });
+    log.info('fetched checksum:', cs);
+    this.checksumState.next(cs!);
+    return cs;
+  }
+
+  async fetchUpdateCheckSum(appName: string): Promise<Checksum> {
+    let cs = await this.fetchChecksum();
     log.info('fetched checksum:', cs);
     if (cs!.versions![appName] == null) {
       cs!.versions![appName] = {
@@ -443,7 +460,7 @@ export class ImapManager {
           log.info(`mail "bkjk-pre-build(${this.env}-${app})" is not Found, skip download zip`);
           continue;
         }
-        await ctx.waitForFetch(idx, false, Path.resolve(this.zipDownloadDir, app + '.zip'));
+        await ctx.waitForFetch(idx, false, Path.resolve(this.zipDownloadDir!, app + '.zip'));
       }
     });
     if (fileWrittenProm)
@@ -454,26 +471,30 @@ export class ImapManager {
   async startWatchMail(pollInterval = 60000) {
     this.watching = true;
     while (this.watching) {
-      await connectImap(async ctx => {
-        this.ctx = ctx;
-        this.fileWritingState = ctx.fileWritingState;
-
-        const cs = await this._fetchChecksum(ctx);
-        this.checksumState.next(cs!);
-
-        const toFetchApps = this.toFetchAppsState.getValue();
-        if (toFetchApps.length > 0) {
-          this.toFetchAppsState.next([]);
-          for (const appName of toFetchApps) {
-            await this.fetchAttachment(appName);
-          }
-        }
-        // await ctx.waitForReply('SUBSCRIBE INBOX');
-        // await new Promise(resolve => setTimeout(resolve, 30000)); // 30 sec
-        delete this.ctx;
-      });
+      await this.checkMailForUpdate();
       await new Promise(resolve => setTimeout(resolve, pollInterval)); // 60 sec
     }
+  }
+
+  async checkMailForUpdate() {
+    await connectImap(async ctx => {
+      this.ctx = ctx;
+      this.fileWritingState = ctx.fileWritingState;
+
+      const cs = await this._fetchChecksum(ctx);
+      this.checksumState.next(cs!);
+
+      const toFetchApps = this.toFetchAppsState.getValue();
+      if (toFetchApps.length > 0) {
+        this.toFetchAppsState.next([]);
+        for (const appName of toFetchApps) {
+          await this.fetchAttachment(appName);
+        }
+      }
+      // await ctx.waitForReply('SUBSCRIBE INBOX');
+      // await new Promise(resolve => setTimeout(resolve, 30000)); // 30 sec
+      delete this.ctx;
+    });
   }
 
   fetchAppDuringWatchAction(...appNames: string[]) {
@@ -493,7 +514,7 @@ export class ImapManager {
     const idx = await this.ctx.findMail(this.ctx.lastIndex, `bkjk-pre-build(${this.env}-${app})`);
     if (idx == null)
       throw new Error('Cant find mail: ' + `bkjk-pre-build(${this.env}-${app})`);
-    await this.ctx.waitForFetch(idx!, false, Path.resolve(this.zipDownloadDir, `${app}.zip`));
+    await this.ctx.waitForFetch(idx!, false, Path.resolve(this.zipDownloadDir!, `${app}.zip`));
   }
 
   private async _fetchChecksum(ctx: ImapCommandContext) {

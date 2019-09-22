@@ -17,6 +17,14 @@ export class DirTree<T> {
 
   constructor(private caseSensitive = false) {}
 
+  putRootData(data: T) {
+    this.root.data = data;
+  }
+
+  getRootData() {
+    return this.root.data;
+  }
+
   putData(path: string, data: T) {
     var tree = this.ensureNode(path);
     tree.data = data;
@@ -34,7 +42,7 @@ export class DirTree<T> {
     if (!Array.isArray(path)) {
       if (this.caseSensitive)
         path = path.toLowerCase();
-      return this.getAllData(path.replace(/\\/g, '/').split('/'));
+      return this.getAllData(path.split(/[/\\]/));
     }
     let tree = this.root;
     const datas: T[] = [];
@@ -57,7 +65,7 @@ export class DirTree<T> {
     if (!Array.isArray(path)) {
       if (this.caseSensitive)
         path = path.toLowerCase();
-      return this.ensureNode(path.replace(/\\/g, '/').split('/'));
+      return this.ensureNode(path.split(/[/\\]/));
     }
     var tree = this.root;
     _each(path, name => {
@@ -76,7 +84,7 @@ export class DirTree<T> {
     if (!Array.isArray(path)) {
       if (this.caseSensitive)
         path = path.toLowerCase();
-      return this.findNode(path.replace(/\\/g, '/').split('/'));
+      return this.findNode(path.split(/[/\\]/));
     }
     var tree: TreeNode<T> | null = this.root;
     path.every(name => {

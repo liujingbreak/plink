@@ -23,7 +23,8 @@
 			"es2015",
 			"dom"
 		],
-		"pretty": true
+		"pretty": true,
+		"rootDir": "ts"
 	},
 	
 	"include": [

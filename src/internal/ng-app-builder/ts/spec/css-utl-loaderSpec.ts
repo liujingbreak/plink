@@ -1,6 +1,7 @@
 // tslint:disable:no-console
 import loader = require('../loaders/css-url-loader');
 import * as wb from 'webpack';
+import {resolve} from 'url';
 
 describe('css-url-loader', () => {
   it('should resolve relative url()', (done: any) => {
@@ -21,13 +22,14 @@ describe('css-url-loader', () => {
         };
       },
       loadModule(url: string, cb: (err: Error | null, source: any) => string) {
-        process.nextTick(() => cb(null, `module.exports = __webpack_public_path__ + "foobar/${url}";`));
+        // Mimic Angular 8.0, postcss plugin
+        url = resolve('foobar/currFile', url);
+        process.nextTick(() => cb(null, `module.exports = __webpack_public_path__ + "${url}";`));
       },
       emitError(err: Error) {
         done.fail(err);
       }
     };
-    loader.call(context, '.test {background: url(abc.jpg)}\n\
-.test2 {background: url(efg.svg#filter-id)}', null);
+    loader.call(context, '.test {background: url(abc.jpg)}\n.test2 {background: url(efg.svg#filter-id)}', null);
   });
 });

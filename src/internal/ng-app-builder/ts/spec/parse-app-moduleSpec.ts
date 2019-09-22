@@ -9,7 +9,7 @@ class TestableParser extends AppModuleParser {
   }
 }
 
-describe('parse-app-module', () => {
+xdescribe('parse-app-module', () => {
   let parser: TestableParser;
   let source: string;
   let patched: string;

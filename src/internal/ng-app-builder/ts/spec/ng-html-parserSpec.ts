@@ -62,6 +62,7 @@ describe('ng-html-parser', () => {
       for (const attrValue of _.values(tag.attrs)) {
         if (attrValue.value == null)
           continue;
+
         expect(attrValue.value.start).not.toBe(attrValue.value.end);
         expect(ngHtml.substring(attrValue.value.start, attrValue.value.end)).toEqual(attrValue.value.text);
       }

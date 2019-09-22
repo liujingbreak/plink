@@ -53,7 +53,9 @@ export function tsc(argv: Args, onCompiled: () => void) {
     outDir: '',
     baseUrl: root,
     rootDir: undefined,
-    skipLibCheck: false
+    skipLibCheck: false,
+    inlineSourceMap: false,
+    sourceMap: true
     // typeRoots: [
     //   Path.join('node_modules/@types'),
     //   Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
@@ -169,23 +171,26 @@ function compile(compGlobs: string[], tsProject: any,
 
     const jsStream = tsResult.js
     .pipe(changePath())
-    .pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.', {includeContent: false, sourceRoot: ''}))
-    .pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
-      if (file.extname === '.map') {
-        const sm = JSON.parse(file.contents.toString());
-        let sFileDir;
-        sm.sources =
-          sm.sources.map( (spath: string) => {
-            const realFile = fs.realpathSync(spath);
-            sFileDir = Path.dirname(realFile);
-            return Path.relative(file.base, realFile).replace(/\\/g, '/');
-          });
-        if (sFileDir)
-          sm.sourceRoot = Path.relative(sFileDir, file.base).replace(/\\/g, '/');
-        file.contents = Buffer.from(JSON.stringify(sm), 'utf8');
-      }
-      next(null, file);
-    }));
+    .pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.'));
+    // LJ: Let's try to use --sourceMap with --inlineSource, so that I don't need to change file path in source map
+    // which is outputed
+
+    // .pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
+    //   if (file.extname === '.map') {
+    //     const sm = JSON.parse(file.contents.toString());
+    //     let sFileDir;
+    //     sm.sources =
+    //       sm.sources.map( (spath: string) => {
+    //         const realFile = fs.realpathSync(spath);
+    //         sFileDir = Path.dirname(realFile);
+    //         return Path.relative(file.base, realFile).replace(/\\/g, '/');
+    //       });
+    //     if (sFileDir)
+    //       sm.sourceRoot = Path.relative(sFileDir, file.base).replace(/\\/g, '/');
+    //     file.contents = Buffer.from(JSON.stringify(sm), 'utf8');
+    //   }
+    //   next(null, file);
+    // }));
 
     const all = merge([jsStream, tsResult.dts.pipe(changePath())])
     .pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {

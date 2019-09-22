@@ -29,6 +29,7 @@ if (!process.send) {
 const argv = process.argv;
 const zipDir = argv[2];
 const zipExtractDir = argv[3];
+const deleteOption = argv[4];
 
 const readFileAsync: (file: string, code?: string) => Promise<Buffer> = pify(fs.readFile);
 async function start() {
@@ -40,7 +41,9 @@ async function start() {
       console.log(`[pid:${process.pid}] start extracting ${file}`);
       process.send && process.send({log: `[pid:${process.pid}] start extracting ${file}`});
       await tryExtract(file);
-      fs.unlinkSync(file);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (deleteOption !== 'keep')
+        fs.unlinkSync(file);
       console.log('done', file);
       process.send && process.send({done: `[pid:${process.pid}] done extracting ${file}`});
     };

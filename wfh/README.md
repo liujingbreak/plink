@@ -24,6 +24,8 @@ rm ../node_modules/@types/drcp-types # Important, other wise there will be a mut
 ../node_modules/.bin/tsc -p tsconfig-share.json
 ../node_modules/.bin/tsc
 ```
+
+Or just at root directory, run `npm run build`
 # Below doc is deprecated
 --------------------
 

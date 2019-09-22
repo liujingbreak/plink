@@ -6,13 +6,13 @@ import { SyntaxKind as sk } from 'typescript';
 const {green, yellow} = require('chalk');
 // const log = require('log4js').getLogger('ts-ast-query');
 
-export function printFile(fileName: string) {
-  if (!fileName) {
+export function printFile(file: string) {
+  if (!file) {
     // tslint:disable-next-line
-		console.log('Usage:\n' + green('drcp run @dr-core/ng-app-builder/dist/utils/ts-ast-query --file <ts file>'));
+		console.log('Usage:\n' + green('drcp run ts/utils/ts-ast-query.ts#printFile ng-app-builder --arguments <ts file>'));
     return;
   }
-  new Selector(fs.readFileSync(fileName, 'utf8'), fileName).printAll();
+  new Selector(fs.readFileSync(file, 'utf8'), file).printAll();
 }
 
 export interface WalkCallback {

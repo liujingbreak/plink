@@ -1,11 +1,19 @@
 // tslint:disable no-console
-
+/**
+ * drcp test -f ../web-fun-house/src/runtime/assets-processer/ts/spec/fetch-remote-imapSpec.ts -c dist/config.local.yaml conf/remote-deploy-test.yaml
+ */
 import * as fetchImap from '../fetch-remote-imap';
 import Path from 'path';
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 5 * 60 * 1000;
 
 describe('fetch-remote-imap', () => {
+
+  it('can connect to server', async () => {
+    fetchImap.connectImap(async () => {
+      // await context.waitForReply('');
+    });
+  });
 
   xit('can send mail', async () => {
     await fetchImap.retrySendMail(
@@ -15,7 +23,7 @@ describe('fetch-remote-imap', () => {
   });
 
   xit('can recieve mail', async () => {
-    const appName = 'Hellow world';
+    const appName = 'bcl';
     await fetchImap.connectImap(async context => {
       const foundIdx = await context.findMail(context.lastIndex, `build artifact: ${appName}:`);
       if (foundIdx == null)

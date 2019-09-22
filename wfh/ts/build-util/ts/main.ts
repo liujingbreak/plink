@@ -304,3 +304,4 @@ function createPackageDirTree(packageInfo: PackageInfo) {
   log.info('Total %s node packages', count);
   packageInfo.dirTree = tree;
 }
+

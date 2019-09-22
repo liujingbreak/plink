@@ -1,4 +1,4 @@
-import Path from 'path';
+// import Path from 'path';
 export interface WithMailServerConfig {
   fetchMailServer: {
     imap: string;
@@ -6,7 +6,7 @@ export interface WithMailServerConfig {
     user: string;
     loginSecret: string;
     env: string;
-  };
+  } | null | undefined;
   // fetchUrl: string;
   fetchRetry: number;
   // fetchLogErrPerTimes: number;
@@ -21,7 +21,7 @@ interface OldChecksum {
 
 type OldChecksumOptional = {[k in keyof OldChecksum]?: OldChecksum[k]};
 export interface Checksum extends OldChecksumOptional {
-  versions?: {[key: string]: {version: number, path: string}};
+  versions?: {[key: string]: {version: number, path?: string}};
 }
 
-export const currChecksumFile = Path.resolve('checksum.json');
+// export const currChecksumFile = Path.resolve('checksum.json');

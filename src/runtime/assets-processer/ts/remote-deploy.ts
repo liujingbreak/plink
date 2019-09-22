@@ -33,42 +33,47 @@ export function main() {
 
 async function mailDeployStaticRes() {
   console.log('Remote deploy (mail)...');
-  let {env, configName, zipFile, buildStaticOnly} = api.argv;
+  let {env, appName, src, buildStaticOnly} = api.argv;
 
-  if (env == null || configName == null) {
+  if (env == null || appName == null) {
     // tslint:disable-next-line: no-console
     console.log('missing command arguments,', api.argv);
     process.exit(1);
     return;
   }
+  const installDir = resolve('install-' + env);
 
-  zipFile = await checkZipFile(zipFile);
+  if (!fs.existsSync(installDir))
+    fs.mkdirpSync(installDir);
+  const imap = new ImapManager(env, installDir);
 
-  const imap = new ImapManager(env);
-  await imap.sendFileAndUpdatedChecksum(configName, zipFile);
+  const zipFile = await checkZipFile(src, installDir, appName);
+
+
+  await imap.sendFileAndUpdatedChecksum(appName, zipFile);
 
   if (buildStaticOnly === 'false') {
-    await imap.fetchOtherZips(configName);
+    await imap.fetchOtherZips(appName);
   }
 }
 
-async function checkZipFile(zipFile: string) {
-  const defaultZip = resolve(__dirname, '../webui-static.zip');
+async function checkZipFile(zipFileOrDir: string, installDir: string, appName: string) {
 
-  zipFile = zipFile ? resolve(zipFile) : resolve(__dirname, '../webui-static.zip');
+  zipFileOrDir = zipFileOrDir ? resolve(zipFileOrDir) : resolve(installDir, `${appName}.zip`);
 
-  if (!fs.existsSync(zipFile)) {
-    console.error('\n%s not exist, quit!', zipFile);
-    throw new Error(`${zipFile} not exist`);
+  if (!fs.existsSync(zipFileOrDir)) {
+    console.error('\n%s not exist, quit!', zipFileOrDir);
+    throw new Error(`${zipFileOrDir} not exist`);
   }
-  if (fs.statSync(zipFile).isDirectory()) {
-    console.log(`${zipFile} is a directory, zipping into ${defaultZip}`);
+  if (fs.statSync(zipFileOrDir).isDirectory()) {
+    const destZip = resolve(installDir, `${appName}.zip`);
+    console.log(`${zipFileOrDir} is a directory, zipping into ${destZip}`);
     const gulp: typeof _gulp = require('gulp');
     const through2 = require('through2');
     const zip = require('gulp-zip');
 
     await new Promise((resolve, reject) => {
-      gulp.src(zipFile + '/**/*')
+      gulp.src(zipFileOrDir + '/**/*')
       .pipe<NodeJS.ReadWriteStream>(
         through2.obj(function(file: any, encoding: string, cb: (...args: any[]) => void) {
           console.log('- zip content:', file.path);
@@ -76,13 +81,30 @@ async function checkZipFile(zipFile: string) {
       }, function flush(callback: () => void) {
         callback();
       }))
-      .pipe<NodeJS.ReadWriteStream>(zip(basename(defaultZip)))
-      .pipe(gulp.dest(dirname(defaultZip)))
+      .pipe<NodeJS.ReadWriteStream>(zip(basename(destZip)))
+      .pipe(gulp.dest(dirname(destZip)))
       .on('end', () => resolve())
       .on('error', err => reject(err));
     });
     console.log('zipped');
-    zipFile = defaultZip;
+    zipFileOrDir = destZip;
   }
-  return zipFile;
+  return zipFileOrDir;
+}
+
+/**
+ * drcp run ts/remote-deploy.ts#fetchAllZips --env test -c conf/remote-deploy-test.yaml
+ */
+export async function fetchAllZips() {
+  const env = api.argv.env;
+  if (env == null) {
+    throw new Error('Missing arguments "--env <environment>"');
+  }
+  const installDir = resolve('install-' + env);
+
+  if (!fs.existsSync(installDir))
+    fs.mkdirpSync(installDir);
+  const imap = new ImapManager(env, installDir);
+  await imap.fetchChecksum();
+  await imap.fetchOtherZips('');
 }

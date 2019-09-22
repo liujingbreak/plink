@@ -57,7 +57,7 @@ describe('ts-ast-query', () => {
     const sel = new Selector(fs.readFileSync(file, 'utf8'), file);
     const found = sel.findFirst(':ImportDeclaration :Identifier');
     expect(found != null).toBeTruthy();
-    expect(found!.getText(sel.src)).toBe('NgModule');
+    expect(found!.getText(sel.src)).toBe('Injectable');
   });
 
   it('findAll should work', () => {
@@ -67,7 +67,7 @@ describe('ts-ast-query', () => {
 
     console.log(found);
 
-    expect(found.length).toBe(18);
+    expect(found.length).toBe(1);
   });
 
   it('findWith should work', () => {
@@ -119,8 +119,8 @@ describe('ts-ast-util', () => {
   it('resolveImportBindName', () => {
     const src = ts.createSourceFile(testFile, testContent, ts.ScriptTarget.ESNext,
       true, ts.ScriptKind.TSX);
-    const res = resolveImportBindName(src, '@bk/env/environment', 'environment');
-    expect(res).toBe('env');
+    const res = resolveImportBindName(src, '@angular/core', 'Injectable');
+    expect(res).toBe('Injectable');
   });
 
   it('resolveImportBindName for import name space binding', () => {

@@ -1,17 +1,18 @@
 /* tslint:disable max-line-length */
-import NodePackage from './packageNodeInstance';
-import Events = require('events');
 import * as _ from 'lodash';
-import {PackageInfo, packageInstance} from './build-util/ts';
-// import Package from './packageNodeInstance';
-import {orderPackages} from './package-priority-helper';
-import {walkPackages} from './build-util/ts';
 import LRU from 'lru-cache';
-const config = require('../lib/config');
-const packageUtils = require('../lib/packageMgr/packageUtils');
+import { LazyPackageFactory, PackageInfo, packageInstance as PackageBrowserInstance, walkPackages } from './build-util/ts';
 // const NodeApi = require('../lib/nodeApi');
 // const {nodeInjector} = require('../lib/injectorFactory');
-import {webInjector, nodeInjector} from './injector-factory';
+import { nodeInjector, webInjector } from './injector-factory';
+import _NodeApi from './package-mgr/node-package-api';
+// import Package from './packageNodeInstance';
+import { orderPackages, PackageInstance } from './package-priority-helper';
+import NodePackage from './packageNodeInstance';
+import Events = require('events');
+
+const config = require('../lib/config');
+const packageUtils = require('../lib/packageMgr/packageUtils');
 
 const log = require('log4js').getLogger('package-runner');
 
@@ -41,6 +42,66 @@ export class ServerRunner {
 }
 
 const apiCache: {[name: string]: any} = {};
+// const packageTree = new DirTree<PackageBrowserInstance>();
+const lazyPackageFactory = new LazyPackageFactory();
+
+/**
+ * Lazily init injector for packages and run specific package only,
+ * no fully scanning or ordering on all packages
+ */
+export async function runSinglePackage(argv: {target: string, arguments: string[], [key: string]: any}) {
+  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
+  const proto = NodeApi.prototype;
+  proto.argv = argv;
+  let packageInfo: PackageInfo;
+
+  Object.defineProperty(proto, 'packageInfo', {
+    get() {
+      if (packageInfo == null)
+        packageInfo = walkPackages(config, packageUtils);
+      return packageInfo;
+    }
+  });
+  const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
+  proto.findPackageByFile = function(file: string): PackageBrowserInstance | undefined {
+    let found = cache.get(file);
+    if (!found) {
+      found = lazyPackageFactory.getPackageByPath(file)!;
+      if (found)
+        cache.set(file, found);
+    }
+    return found;
+  };
+  proto.getNodeApiForPackage = function(packageInstance: any) {
+    return getApiForPackage(packageInstance, NodeApi);
+  };
+  nodeInjector.fromRoot()
+  .value('__injector', nodeInjector)
+  .factory('__api', (sourceFilePath: string) => {
+    const packageInstance = proto.findPackageByFile(sourceFilePath);
+    return getApiForPackage(packageInstance, NodeApi);
+  });
+  // console.log(nodeInjector.dirTree.traverse());
+
+  const [file, func] = argv.target.split('#');
+  const packageScopes = config().packageScopes;
+  let guessingFile = file;
+  for (const scope of packageScopes) {
+    try {
+      require.resolve(guessingFile);
+      break;
+    } catch (ex) {
+      guessingFile = `@${scope}/${file}`;
+    }
+  }
+  const _exports = require(guessingFile);
+  if (!_.has(_exports, func)) {
+    log.error(`There is no export function: ${func}, existing export members are:\n` +
+    `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
+    return;
+  }
+  await Promise.resolve(_exports[func].apply(global, argv.arguments || []));
+}
 
 export function runPackages(argv: {target: string, package: string[], [key: string]: any}) {
   // const NodeApi = require('../lib/nodeApi');
@@ -61,7 +122,7 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
     }
     return false;
   });
-  return orderPackages(components, (pkInstance: packageInstance)  => {
+  return orderPackages(components, (pkInstance: PackageInstance)  => {
     const mod = pkInstance.longName + '/' + fileToRun;
     log.info('require(%s)', JSON.stringify(mod));
     const fileExports: any = require(mod);
@@ -76,18 +137,19 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
 }
 
 export function initInjectorForNodePackages(argv: {[key: string]: any}):
-  [packageInstance[], {eventBus: Events}] {
-  const NodeApi = require('../lib/nodeApi');
+  [PackageBrowserInstance[], {eventBus: Events}] {
+  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
   proto.argv = argv;
   const packageInfo: PackageInfo = walkPackages(config, packageUtils);
   proto.packageInfo = packageInfo;
-  const cache = new LRU({max: 20, maxAge: 20000});
-  proto.findPackageByFile = function(file: string) {
+  const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
+  proto.findPackageByFile = function(file: string): PackageBrowserInstance | undefined {
     var found = cache.get(file);
     if (!found) {
       found = packageInfo.dirTree.getAllData(file).pop();
-      cache.set(file, found);
+      if (found)
+        cache.set(file, found);
     }
     return found;
   };
@@ -104,7 +166,7 @@ export function initInjectorForNodePackages(argv: {[key: string]: any}):
   return [drPackages, proto];
 }
 
-export function initWebInjector(packages: packageInstance[], apiPrototype: any) {
+export function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any) {
   _.each(packages, pack => {
     if (pack.dr) {
       // no vendor package's path information
@@ -121,7 +183,7 @@ export function initWebInjector(packages: packageInstance[], apiPrototype: any) 
   return done;
 }
 
-function setupNodeInjectorFor(pkInstance: packageInstance, NodeApi: any) {
+function setupNodeInjectorFor(pkInstance: PackageBrowserInstance, NodeApi: typeof _NodeApi ) {
   function apiFactory() {
     return getApiForPackage(pkInstance, NodeApi);
   }
@@ -134,7 +196,7 @@ function setupNodeInjectorFor(pkInstance: packageInstance, NodeApi: any) {
   // nodeInjector.default = nodeInjector; // For ES6 import syntax
 }
 
-function getApiForPackage(pkInstance: any, NodeApi: any) {
+function getApiForPackage(pkInstance: any, NodeApi: typeof _NodeApi) {
   if (_.has(apiCache, pkInstance.longName)) {
     return apiCache[pkInstance.longName];
   }
@@ -146,3 +208,4 @@ function getApiForPackage(pkInstance: any, NodeApi: any) {
   api.default = api; // For ES6 import syntax
   return api;
 }
+

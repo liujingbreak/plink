@@ -8,15 +8,13 @@ import fs from 'fs-extra';
 import cluster from 'cluster';
 import {filter, switchMap, skip, take} from 'rxjs/operators';
 import {fork, ChildProcess} from 'child_process';
-import {Checksum, currChecksumFile, WithMailServerConfig as Setting} from './fetch-types';
+import {Checksum, WithMailServerConfig as Setting} from './fetch-types';
 import {ImapManager} from './fetch-remote-imap';
+import api from '__api';
 const log = require('log4js').getLogger('@dr-core/assets-processer.fetch-remote');
 
-const pm2InstanceId = process.env.NODE_APP_INSTANCE;
-const isPm2 = cluster.isWorker && pm2InstanceId != null;
-const isMainProcess = !isPm2 || pm2InstanceId === '0';
+const {/*pm2InstanceId, isPm2,*/ isMainProcess} = getPm2Info();
 
-let setting: Setting;
 // let currVersion: number = Number.NEGATIVE_INFINITY;
 let currentChecksum: Checksum = {
   version: Number.NEGATIVE_INFINITY,
@@ -24,22 +22,22 @@ let currentChecksum: Checksum = {
   versions: {}
 };
 
-
+const setting = (api.config.get(api.packageName) as Setting);
+const env = setting.fetchMailServer ? setting.fetchMailServer.env : 'local';
 // let timer: NodeJS.Timer;
 // let stopped = false;
 // let errCount = 0;
-let zipDownloadDir = Path.dirname(currChecksumFile);
+const currChecksumFile = Path.resolve(`checksum.${env}.json`);
+
+export const zipDownloadDir = Path.resolve(Path.dirname(currChecksumFile), 'deploy-static-' + env);
 // let watcher: any;
 let imap: ImapManager;
 
-export async function start() {
+export async function start(imap: ImapManager) {
   // tslint:disable-next-line
 	log.info(`[memory status] total ${Math.floor(os.totalmem() / 1048576)}Mb, free ${Math.floor(os.freemem() / 1048576)}Mb\n` +
     `[num of CPU] ${os.cpus().length}`);
 
-  const api: typeof __api = require('__api');
-
-  setting = api.config.get(api.packageName);
   if (!setting.fetchMailServer) {
     log.info('No fetchUrl configured, skip fetching resource.');
     return;
@@ -51,28 +49,35 @@ export async function start() {
     log.info('This process is not main process');
     return;
   }
-  // if (!fs.existsSync(zipDownloadDir))
-  //   fs.mkdirpSync(zipDownloadDir);
-  const fileNames = fs.readdirSync(zipDownloadDir).filter(name => Path.extname(name) === '.zip');
-  if (fileNames.length > 0) {
-    await retry(2, forkExtractExstingZip);
+  if (!fs.existsSync(zipDownloadDir))
+    fs.mkdirpSync(zipDownloadDir);
+
+  const installDir = Path.resolve('install-' + setting.fetchMailServer.env);
+  if (fs.existsSync(installDir)) {
+    fs.mkdirpSync(Path.resolve('dist/static'));
+    const fileNames = fs.readdirSync(installDir).filter(name => Path.extname(name) === '.zip');
+    if (fileNames.length > 0) {
+      await retry(2, () => forkExtractExstingZip(installDir, true));
+    }
   }
 
   if (setting.fetchRetry == null)
     setting.fetchRetry = 3;
+
   if (fs.existsSync(currChecksumFile)) {
     currentChecksum = Object.assign(currentChecksum, fs.readJSONSync(currChecksumFile));
     log.info('Found saved checksum file after reboot\n', JSON.stringify(currentChecksum, null, '  '));
   }
   log.info('start poll mail');
 
-  imap = new ImapManager(setting.fetchMailServer.env);
   imap.checksumState.pipe(
     filter(cs => cs != null),
     switchMap(cs => checkAndDownload(cs!, imap))
   ).subscribe();
 
-  await imap.startWatchMail(setting.fetchIntervalSec * 1000);
+  // await imap.checkMailForUpdate();
+
+  // await imap.startWatchMail(setting.fetchIntervalSec * 1000);
 }
 
 /**
@@ -86,6 +91,17 @@ export function stop() {
   // if (timer) {
   //   clearTimeout(timer);
   // }
+}
+
+export function getPm2Info() {
+  const pm2InstanceId = process.env.NODE_APP_INSTANCE;
+  const isPm2 = cluster.isWorker && pm2InstanceId != null;
+  const isMainProcess = !isPm2 || pm2InstanceId === '0';
+  return {
+    isPm2,
+    pm2InstanceId,
+    isMainProcess
+  };
 }
 
 // async function runRepeatly(setting: Setting): Promise<void> {
@@ -222,7 +238,7 @@ async function checkAndDownload(checksumObj: Checksum, imap: ImapManager) {
 //   });
 // }
 
-async function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> {
+export async function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> {
   for (let cnt = 0;;) {
     try {
       return await func(...args);
@@ -243,11 +259,12 @@ async function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...
 //     resource, toFileName, setting.fetchRetry + ''
 //   ]);
 // }
-function forkExtractExstingZip() {
+export function forkExtractExstingZip(zipDir?: string, doNotDelete = false) {
   const api: typeof __api = require('__api');
   return forkProcess('extract', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
-    zipDownloadDir,
-    api.config.resolve('staticDir')
+    zipDir ? zipDir : zipDownloadDir,
+    api.config.resolve('staticDir'),
+    doNotDelete ? 'keep' : 'delete'
   ]);
 }
 

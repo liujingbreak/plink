@@ -10,6 +10,9 @@ import * as fetchRemote from './fetch-remote';
 const serverFavicon = require('serve-favicon');
 import {createStaticRoute, createZipRoute} from './static-middleware';
 import {fallbackIndexHtml, proxyToDevServer} from './index-html-route';
+import {activate as activateCd} from './content-deployer/cd-server';
+import {ImapManager} from './fetch-remote-imap';
+import {WithMailServerConfig} from './fetch-types';
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 const buildUtils = api.buildUtils;
@@ -75,9 +78,14 @@ export function activate() {
   fallbackIndexHtml();
   api.use('/', staticHandler); // Serve fallbacked request to index.html
 
+  const mailSetting = (api.config.get(api.packageName) as WithMailServerConfig).fetchMailServer;
+  const imap = new ImapManager(mailSetting ? mailSetting.env : 'local');
+
+  api.expressAppSet(app => activateCd(app, imap));
+
   api.eventBus.on('appCreated', () => {
     // appCreated event is emitted by express-app
-    fetchRemote.start();
+    fetchRemote.start(imap);
   });
 
   if (!api.config().devMode) {

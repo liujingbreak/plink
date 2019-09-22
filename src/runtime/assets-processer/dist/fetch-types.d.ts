@@ -5,8 +5,9 @@ export interface WithMailServerConfig {
         user: string;
         loginSecret: string;
         env: string;
-    };
+    } | null | undefined;
     fetchRetry: number;
+    fetchIntervalSec: number;
     downloadMode: 'memory' | 'fork' | null;
 }
 interface OldChecksum {
@@ -21,9 +22,8 @@ export interface Checksum extends OldChecksumOptional {
     versions?: {
         [key: string]: {
             version: number;
-            path: string;
+            path?: string;
         };
     };
 }
-export declare const currChecksumFile: string;
 export {};

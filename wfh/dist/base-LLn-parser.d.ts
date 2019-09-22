@@ -6,15 +6,10 @@ export declare class Token<T> {
     lineColumn: [number, number];
     constructor(type: T, lexer: BaseLexer<T>, start: number);
 }
-export declare enum Channel {
-    normal = 0,
-    full = 1
-}
 export declare abstract class LookAhead<T> {
     cached: T[];
     sourceIterator: Iterator<T>;
     isString: boolean;
-    channel: Channel;
     protected currPos: number;
     constructor(source: Iterable<T>);
     readonly position: number;

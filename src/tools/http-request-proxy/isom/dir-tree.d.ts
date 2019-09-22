@@ -13,6 +13,8 @@ export declare class DirTree<T> {
     private caseSensitive;
     root: TreeNode<T>;
     constructor(caseSensitive?: boolean);
+    putRootData(data: T): void;
+    getRootData(): T | undefined;
     putData(path: string, data: T): void;
     getData(path: string): T | null | undefined;
     /**

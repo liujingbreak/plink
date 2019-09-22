@@ -159,6 +159,7 @@ export abstract class BaseLexer<T> extends LookAhead<string> implements Iterable
 
   getCurrentPosInfo(): string {
     const [line, col] = this.getLineColumn(this.currPos);
+    // tslint:disable-next-line:max-line-length
     return `get ${JSON.stringify(this.la())}, at line ${line + 1}, column ${col + 1}, after ${JSON.stringify(this.lb())}`;
   }
 

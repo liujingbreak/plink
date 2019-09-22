@@ -91,22 +91,22 @@ function drcpCommand(startTime) {
 			.then(() => cli.ls(argv));
 		}
 	})
-	.command('run <target> [package..]', 'Run specific exported function of specific packages one by one, in random order', {
+	.command('run <target>', 'Run specific module\'s exported function', {
 		builder: yargs => {
 			yargs
 			.positional('target', {
-				desc: 'FilePath and exported function name, eg. \n' + chalk.green('dist/prerender.js#prepare') + ', function can async and return Promise\n' +
-					`${chalk.green('ts/prerender.ts#prepare')}, run Typescript file directly`,
+				desc: 'module which can be resolved by Node.js followed by "#" and exported function name, eg. \n' +
+					chalk.green('your-package/dist/foobar.js#myFunction') + ', function can be async and return Promise\n',
 				type: 'string'
 			})
-			.positional('package', {describe: 'Default is all component packages which have "dr" property in package.json file'})
+			// .positional('package', {describe: 'Default is all component packages which have "dr" property in package.json file'})
 			.options({
 				arguments: {
 					desc: 'argument array to be passed to <target>',
 					type: 'array'
 				}
 			})
-			.usage('drcp run <target> [package1 package2 ...]\ne.g. drcp run dist/file.js#exec\n' +
+			.usage('drcp run <target>\ne.g. drcp run forbar-package/dist/file#exec\n' +
 				'execute function from all packages one after one, after all api.eventBus will emit ServerRunnerEvent "done"');
 		},
 		handler: argv => {
@@ -232,10 +232,17 @@ function drcpCommand(startTime) {
 			});
 		}
 	})
-	.command('pack [project-dir..]', 'npm pack every pakage into tarball files', {
+	.command('pack [packages..]', 'npm pack every pakage into tarball files', {
 		builder: yargs => {
-			yargs.positional('project-dir', {
-				desc: 'project directories to be looked up for all components which need to be packed to tarball files'
+			yargs.positional('packages', {
+				desc: 'components which need to be packed to tarball files'
+			})
+			.options({
+				pj: {
+					describe: 'project directories to be looked up for all components which need to be packed to tarball files',
+					type: 'string',
+					alias: 'project'
+				}
 			});
 		},
 		handler: argv => {
