@@ -41,9 +41,9 @@ export declare class ImapManager {
     fetchUpdateCheckSum(appName: string): Promise<Checksum>;
     /**
      * Done when files are written
-     * @param appName exclude app
+     * @param excludeApp exclude app
      */
-    fetchOtherZips(appName: string): Promise<string[]>;
+    fetchOtherZips(excludeApp?: string): Promise<string[]>;
     startWatchMail(pollInterval?: number): Promise<void>;
     checkMailForUpdate(): Promise<void>;
     fetchAppDuringWatchAction(...appNames: string[]): void;

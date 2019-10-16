@@ -437,11 +437,11 @@ export class ImapManager {
 
   /**
    * Done when files are written
-   * @param appName exclude app
+   * @param excludeApp exclude app
    */
-  async fetchOtherZips(appName: string) {
+  async fetchOtherZips(excludeApp?: string) {
     let appNames = Object.keys(this.checksumState.getValue()!.versions!)
-    .filter(app => app !== appName);
+    .filter(app => app !== excludeApp);
 
     let fileWrittenProm: Promise<boolean> | undefined;
 

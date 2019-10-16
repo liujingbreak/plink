@@ -33,9 +33,13 @@ export function main() {
 
 async function mailDeployStaticRes() {
   console.log('Remote deploy (mail)...');
-  let {env, appName, src, buildStaticOnly} = api.argv;
+  let {env, src, buildStaticOnly} = api.argv;
+  let appName: string | undefined;
+  if (api.argv.appName) {
+    appName = api.argv.appName;
+  }
 
-  if (env == null || appName == null) {
+  if (env == null) {
     // tslint:disable-next-line: no-console
     console.log('missing command arguments,', api.argv);
     process.exit(1);
@@ -47,10 +51,12 @@ async function mailDeployStaticRes() {
     fs.mkdirpSync(installDir);
   const imap = new ImapManager(env, installDir);
 
-  const zipFile = await checkZipFile(src, installDir, appName);
-
-
-  await imap.sendFileAndUpdatedChecksum(appName, zipFile);
+  if (appName) {
+    const zipFile = await checkZipFile(src, installDir, appName);
+    await imap.sendFileAndUpdatedChecksum(appName, zipFile);
+  } else {
+    await imap.fetchChecksum();
+  }
 
   if (buildStaticOnly === 'false') {
     await imap.fetchOtherZips(appName);
