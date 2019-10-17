@@ -112,7 +112,7 @@ async function processBrowserBuiliderOptions(
   if (devServerConfig) {
     const parsedUrl = Url.parse(browserOptions.deployUrl, true, true);
     if (parsedUrl.host == null) {
-      parsedUrl.hostname = 'localhost';
+      parsedUrl.hostname = 'localhost'; // TODO: do not hard code localhost, use a IP or hostname instead
       parsedUrl.port = devServerConfig.port + '';
       parsedUrl.protocol = 'http';
       rawBrowserOptions.deployUrl = Url.format(parsedUrl);

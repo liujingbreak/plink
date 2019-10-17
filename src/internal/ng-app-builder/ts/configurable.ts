@@ -26,5 +26,5 @@ export interface DrcpSetting {
 	 * e.g.
 	 * 'node_modules/mermaid'
 	 */
-  buildOptimizerExclude: string[];
+  // buildOptimizerExclude: string[];
 }

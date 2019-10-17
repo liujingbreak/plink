@@ -18,8 +18,6 @@
       "server": {
         "outputPath": "dist/static",
         "tsconfigInclude": [],
-        "buildOptimizerExclude": [],
-        "build-optimizer:exclude": [],
         "ng8Compliant": true
       }
     }
