@@ -1,4 +1,4 @@
-import {RawSourceMap} from 'source-map';
+// import {RawSourceMap} from 'source-map';
 import api from '__api';
 import {loader as wbLoader} from 'webpack';
 const log = require('log4js').getLogger('ng-html-loader');
@@ -6,6 +6,8 @@ import * as _ from 'lodash';
 import {Observable} from 'rxjs';
 import vm = require('vm');
 import {replaceForHtml} from '../ng-aot-assets/html-assets-resolver';
+
+type RawSourceMap = Parameters<wbLoader.LoaderContext['callback']>[2];
 
 interface LoaderContext {
   loadModule: wbLoader.LoaderContext['loadModule'];

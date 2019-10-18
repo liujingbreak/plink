@@ -9,10 +9,12 @@ export declare class BuilderContext {
     inlineAssets: Map<string, string | null>;
     options: BuilderContextOptions;
     webpackRunCount: number;
+    readyMessage: string;
     _setCompilation: (value: compilation.Compilation) => void;
     constructor(ngBuildOption: AngularCliParam, opt?: BuilderContextOptions);
     configWebpack(webpackConfig: webpack.Configuration, drcpConfigSetting: {
         devMode: boolean;
     }): void;
     transformIndexHtml(content: string): Promise<string>;
+    printReady(): void;
 }

@@ -1,4 +1,4 @@
-import {RawSourceMap} from 'source-map';
+// import {RawSourceMap} from 'source-map';
 import api from '__api';
 import replaceCode, {ReplacementInf} from '../utils/patch-text';
 import {randomNumStr} from './index';
@@ -10,6 +10,8 @@ import * as _ from 'lodash';
 // const log = require('log4js').getLogger('ng-app-builder.ng-aot-assets');
 
 const pattern = new RegExp(`\\[drcp_${randomNumStr};([^\\]]*)\\]`, 'g');
+
+type RawSourceMap = Parameters<wbLoader.LoaderContext['callback']>[2];
 
 const loader: wbLoader.Loader = function(source: string | Buffer, sourceMap?: RawSourceMap) {
   const callback = this.async();

@@ -20,8 +20,10 @@ import ts from 'typescript';
 import {packageAssetsFolders} from '@dr-core/assets-processer/dist/dev-serve-assets';
 import appTsconfig from '../../misc/tsconfig.app.json';
 import {addSourceFiles} from './add-tsconfig-file';
+import {getLanIPv4} from 'dr-comp-package/wfh/dist/utils/network-util';
+import chalk from 'chalk';
 
-const {cyan, green, red} = require('chalk');
+const {cyan, green, red} = chalk;
 const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 const currPackageName = require('../../package.json').name;
@@ -112,10 +114,14 @@ async function processBrowserBuiliderOptions(
   if (devServerConfig) {
     const parsedUrl = Url.parse(browserOptions.deployUrl, true, true);
     if (parsedUrl.host == null) {
-      parsedUrl.hostname = 'localhost'; // TODO: do not hard code localhost, use a IP or hostname instead
+      parsedUrl.hostname = getLanIPv4();
       parsedUrl.port = devServerConfig.port + '';
       parsedUrl.protocol = 'http';
       rawBrowserOptions.deployUrl = Url.format(parsedUrl);
+      // TODO: print right after server is successfully started
+      setTimeout(() =>
+        console.log(chalk.red(`Current dev server resource is hosted on ${parsedUrl.hostname},\nif your network is reconnected or local IP address is ` +
+        ' changed, you will need to restart this dev server!')), 5000);
     }
     devServerConfig.servePath = parsedUrl.pathname; // In case deployUrl has host, ng cli will report error for null servePath
   }
