@@ -42,27 +42,6 @@ export async function init() {
 export function activate() {
 }
 
-// async function setupApiForAngularCli() {
-// 	const ngParam: AngularCliParam = api.config()._angularCli;
-// 	if (!ngParam || api.ngEntryComponent)
-// 		return;
-// 	const deployUrl = webpackConfig.output.publicPath || api.config.get('publicPath');
-
-// 	const publicUrlObj = Url.parse(deployUrl, true, true);
-// 	Object.assign(Object.getPrototypeOf(api), {
-// 		deployUrl,
-// 		ssr: ngParam.ssr,
-// 		ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
-// 		ngRouterPath,
-// 		ssrRequire(requirePath: string) {
-// 			if (ngParam.ssr)
-// 				return require(Path.join(this.__dirname, requirePath));
-// 		}
-// 	});
-// 	await changeWebpackConfig(ngParam, webpackConfig, api.config());
-// 	log.info('Setup api object for Angular');
-// }
-
 function checkAngularVersion() {
   const deps: {[k: string]: string} = {
     '@angular-devkit/build-angular': '~0.802.0',
