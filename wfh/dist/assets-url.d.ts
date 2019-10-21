@@ -1,6 +1,7 @@
+import NodeApi from '../dist/package-mgr/node-package-api';
 export declare function patchToApi(apiPrototype: any): void;
 export declare function entryPageUrl(packageName: string, path: string, locale: string): string;
-export declare function assetsUrl(packageName: string, path?: string): string;
+export declare function assetsUrl(this: NodeApi, packageName: string, path?: string): string;
 /**
  * Helper for dealing with url like "npm://<package>/<path>", "assets://<package>/<path>"
  * @param {string} staticAssetsURL, like Webpack's output.publicPath

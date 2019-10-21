@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -11,7 +11,8 @@
   },
   "scripts": {
     "build:wfh": "rm -f node_modules/@types/drcp-types && cd wfh && tsc",
-    "watch:wfh": "rm -f node_modules/@types/drcp-types && cd wfh && tsc -w"
+    "watch:wfh": "rm -f node_modules/@types/drcp-types && cd wfh && tsc -w",
+    "build:wfh:share": "rm -f node_modules/@types/drcp-types && cd wfh && tsc -p tsconfig-share.json"
   },
   "repository": {
     "type": "git",

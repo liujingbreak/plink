@@ -1,4 +1,5 @@
 import * as Url from 'url';
+import NodeApi from '../dist/package-mgr/node-package-api';
 
 export function patchToApi(apiPrototype: any) {
   apiPrototype.assetsUrl = assetsUrl;
@@ -20,7 +21,7 @@ export function entryPageUrl(packageName: string, path: string, locale: string):
     locale, packageName, path);
 }
 
-export function assetsUrl(packageName: string, path?: string): string {
+export function assetsUrl(this: NodeApi, packageName: string, path?: string): string {
   if (path === undefined) {
     path = arguments[0];
     packageName = this.packageName;
@@ -40,12 +41,18 @@ export function assetsUrl(packageName: string, path?: string): string {
  */
 export function publicUrl(staticAssetsURL: string, outputPathMap: {[name: string]: string},
   useLocale: string | null, packageName: string, path: string) {
-  var m = /^(?:assets:\/\/|~|npm:\/\/|page(?:-([^:]+))?:\/\/)((?:@[^/]+\/)?[^/@][^/]*)?(?:\/([^@].*)?)?$/.exec(path);
+  var m = /^(assets:\/\/|~|npm:\/\/|page(?:-([^:]+))?:\/\/)((?:@[^/]+\/)?[^/@][^/]*)?(?:\/([^@].*)?)?$/.exec(path);
   if (m) {
-    packageName = m[2];
-    path = m[3];
+    if (m[1] && !m[3]) {
+      throw new Error(`Can not resolve package name from "${path}"`);
+    }
+    if (packageName == null)
+      packageName = m[3];
+    path = m[4];
   }
-
+  if (packageName == null) {
+    throw new Error(`Can not resolve package name from "${path}"`);
+  }
   var outputPath = outputPathMap[packageName];
   if (outputPath != null) {
     outputPath = /^\/*(.*?)\/*$/.exec(outputPath)![1];// _.trim(outputPath, '/');
