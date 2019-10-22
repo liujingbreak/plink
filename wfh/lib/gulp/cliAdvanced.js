@@ -470,5 +470,5 @@ function _srcRecipeMap() {
 }
 
 function runPackages(argv) {
-	return require('../../dist/package-runner').runSinglePackage(argv);
+	return require('../../dist/package-runner').runSinglePackage(argv, argv._);
 }

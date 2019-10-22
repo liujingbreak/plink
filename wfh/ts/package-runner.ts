@@ -100,7 +100,7 @@ export async function runSinglePackage(argv: {target: string, arguments: string[
     `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
     return;
   }
-  await Promise.resolve(_exports[func].apply(global, argv.arguments || []));
+  await Promise.resolve(_exports[func].apply(global, argv._.slice(1) || []));
 }
 
 export function runPackages(argv: {target: string, package: string[], [key: string]: any}) {

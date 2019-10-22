@@ -1,5 +1,11 @@
 import * as Url from 'url';
-import NodeApi from '../dist/package-mgr/node-package-api';
+
+export interface PackageApi {
+  packageName: string;
+  config(): {[key: string]: any};
+  isDefaultLocale(): boolean;
+  getBuildLocale(): string;
+}
 
 export function patchToApi(apiPrototype: any) {
   apiPrototype.assetsUrl = assetsUrl;
@@ -9,19 +15,17 @@ export function patchToApi(apiPrototype: any) {
   apiPrototype.serverUrl = serverUrl;
 }
 
-export function entryPageUrl(packageName: string, path: string, locale: string): string {
+export function entryPageUrl(this: PackageApi, packageName: string, path: string, locale: string): string {
   if (arguments.length === 1) {
     path = arguments[0];
     packageName = this.packageName;
   }
-  if (!locale)
-    locale = this.isDefaultLocale() ? null : this.getBuildLocale();
   path = path.replace(/([^./\\]+\.)[^?./\\]+(\?.*)?$/, '$1html$2');
   return publicUrl(this.config().staticAssetsURL, this.config().outputPathMap,
-    locale, packageName, path);
+    locale ? locale : (this.isDefaultLocale() ? null : this.getBuildLocale()), packageName, path);
 }
 
-export function assetsUrl(this: NodeApi, packageName: string, path?: string): string {
+export function assetsUrl(this: PackageApi, packageName: string, path?: string): string {
   if (path === undefined) {
     path = arguments[0];
     packageName = this.packageName;

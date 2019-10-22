@@ -2,7 +2,7 @@
 /* no import-lodash-loader */
 var has = Object.prototype.hasOwnProperty;
 var _ = null;
-var assetsUrl = require('dr-comp-package/wfh/dist/assets-url');
+var assetsUrl = require('dr-comp-package/wfh/share/assets-url');
 
 module.exports = BrowserApi;
 module.exports.default = BrowserApi;

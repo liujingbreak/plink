@@ -106,7 +106,7 @@ function drcpCommand(startTime) {
 					type: 'array'
 				}
 			})
-			.usage('drcp run <target>\ne.g. drcp run forbar-package/dist/file#exec\n' +
+			.usage('drcp run <target>\ne.g. drcp run forbar-package/dist/file#function argument...\n' +
 				'execute function from all packages one after one, after all api.eventBus will emit ServerRunnerEvent "done"');
 		},
 		handler: argv => {

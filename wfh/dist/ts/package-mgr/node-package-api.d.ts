@@ -1,9 +1,8 @@
 /// <reference types="node" />
 import EventEmitter from 'events';
 import Inject from 'require-injector';
-import * as assetsUrl from '../../dist/assets-url';
 import { PackageInfo, packageInstance as PackageInstance } from '../build-util/ts';
-declare class NodeApi implements assetsUrl.PackageApi {
+declare class NodeApi {
     packageName: string;
     packageInstance: PackageInstance;
     packageShortName: string;
@@ -45,7 +44,5 @@ declare class NodeApi implements assetsUrl.PackageApi {
     joinContextPath(path: string): string;
     _contextPath(packageName?: string): any;
     parsePackageName(packageName: string): any;
-    isDefaultLocale(): boolean;
-    getBuildLocale(): any;
 }
 export = NodeApi;

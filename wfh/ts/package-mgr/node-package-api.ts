@@ -16,7 +16,7 @@ import _ from 'lodash';
 
 // var suppressWarn4Urls = config.get('suppressWarning.assetsUrl', []).map(line => new RegExp(line));
 
-class NodeApi {
+class NodeApi implements assetsUrl.PackageApi {
   packageShortName: string;
   contextPath: string;
   buildUtils = require('../../lib/gulp/buildUtils');
@@ -113,6 +113,13 @@ class NodeApi {
 
   parsePackageName(packageName: string) {
     return this.packageUtils.parseName(packageName);
+  }
+
+  isDefaultLocale() {
+    return this.config.get('locales[0]') === this.getBuildLocale();
+  }
+  getBuildLocale() {
+    return this.argv.locale || this.config.get('locales[0]');
   }
 
 //   getBuildLocale() {
