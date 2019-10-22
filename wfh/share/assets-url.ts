@@ -5,6 +5,8 @@ export interface PackageApi {
   config(): {[key: string]: any};
   isDefaultLocale(): boolean;
   getBuildLocale(): string;
+  isNode(): boolean;
+  _contextPath(packageName?: string): string;
 }
 
 export function patchToApi(apiPrototype: any) {
@@ -90,7 +92,7 @@ function joinUrl(...pathEls: string[]) {
   return joined;
 }
 
-export function serverUrl(packageNameOrPath: string, path?: string): string {
+export function serverUrl(this: PackageApi, packageNameOrPath: string, path?: string): string {
   if (!this.isNode()) {
     // tslint:disable-next-line
 		throw new Error(`api.serverUrl() only available at server side during compile-time and runtime, use "__api.serverUrl('${packageNameOrPath}', '${path}')" instead` );
@@ -99,5 +101,5 @@ export function serverUrl(packageNameOrPath: string, path?: string): string {
     path = packageNameOrPath;
     packageNameOrPath = this.packageName;
   }
-  return Url.resolve(this.config().staticAssetsURL, this._contextPath(packageNameOrPath) + '/' + path);
+  return Url.resolve('/', this._contextPath(packageNameOrPath) + '/' + path);
 }

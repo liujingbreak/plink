@@ -5,6 +5,8 @@ export interface PackageApi {
     };
     isDefaultLocale(): boolean;
     getBuildLocale(): string;
+    isNode(): boolean;
+    _contextPath(packageName?: string): string;
 }
 export declare function patchToApi(apiPrototype: any): void;
 export declare function entryPageUrl(this: PackageApi, packageName: string, path: string, locale: string): string;
@@ -22,4 +24,4 @@ export declare function assetsUrl(this: PackageApi, packageName: string, path?: 
 export declare function publicUrl(staticAssetsURL: string, outputPathMap: {
     [name: string]: string;
 }, useLocale: string | null, packageName: string, path: string): string;
-export declare function serverUrl(packageNameOrPath: string, path?: string): string;
+export declare function serverUrl(this: PackageApi, packageNameOrPath: string, path?: string): string;
