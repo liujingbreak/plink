@@ -8,9 +8,14 @@ export interface PackageApi {
     isNode(): boolean;
     _contextPath(packageName?: string): string;
 }
+export interface ExtendedApi {
+    assetsUrl: typeof assetsUrl;
+    entryPageUrl: typeof entryPageUrl;
+    serverUrl: typeof serverUrl;
+}
 export declare function patchToApi(apiPrototype: any): void;
 export declare function entryPageUrl(this: PackageApi, packageName: string, path: string, locale: string): string;
-export declare function assetsUrl(this: PackageApi, packageName: string, path?: string): string;
+export declare function assetsUrl(this: PackageApi, packageName: string | null, path?: string): string;
 /**
  * Helper for dealing with url like "npm://<package>/<path>", "assets://<package>/<path>"
  * @param {string} staticAssetsURL, like Webpack's output.publicPath
@@ -23,5 +28,5 @@ export declare function assetsUrl(this: PackageApi, packageName: string, path?: 
  */
 export declare function publicUrl(staticAssetsURL: string, outputPathMap: {
     [name: string]: string;
-}, useLocale: string | null, packageName: string, path: string): string;
+}, useLocale: string | null, packageName: string | null, path: string): string;
 export declare function serverUrl(this: PackageApi, packageNameOrPath: string, path?: string): string;

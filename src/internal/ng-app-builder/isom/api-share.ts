@@ -1,7 +1,7 @@
 import Url from 'url';
 import trimStart from 'lodash/trimStart';
-
-
+import {ExtendedApi} from 'dr-comp-package/wfh/dist/assets-url';
+import NodeApi from 'dr-comp-package/wfh/dist/package-mgr/node-package-api';
 
 export function createNgRouterPath(baseHrefPath?: string) {
   /**@function ngRouterPath
@@ -16,10 +16,11 @@ export function createNgRouterPath(baseHrefPath?: string) {
    * ```
    * @return the configured Angular router path for specific (current) feature package
    */
-  return function ngRouterPath(packageName: string, subPath?: string) {
+  return function ngRouterPath(this: ExtendedApi & NodeApi, packageName: string, subPath?: string) {
     const url = this.assetsUrl(packageName, subPath);
     const currUrl = Url.parse(url).pathname || '';
     if (baseHrefPath) {
+      baseHrefPath = Url.parse(baseHrefPath).pathname || '';
       if (currUrl.indexOf(baseHrefPath) === 0) {
         return trimStart(currUrl.slice(baseHrefPath.length), '/');
       }

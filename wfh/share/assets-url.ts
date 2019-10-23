@@ -9,6 +9,12 @@ export interface PackageApi {
   _contextPath(packageName?: string): string;
 }
 
+export interface ExtendedApi {
+  assetsUrl: typeof assetsUrl;
+  entryPageUrl: typeof entryPageUrl;
+  serverUrl: typeof serverUrl;
+}
+
 export function patchToApi(apiPrototype: any) {
   apiPrototype.assetsUrl = assetsUrl;
 
@@ -27,7 +33,8 @@ export function entryPageUrl(this: PackageApi, packageName: string, path: string
     locale ? locale : (this.isDefaultLocale() ? null : this.getBuildLocale()), packageName, path);
 }
 
-export function assetsUrl(this: PackageApi, packageName: string, path?: string): string {
+// export function assetsUrl(this: PackageApi, path: string): string;
+export function assetsUrl(this: PackageApi, packageName: string | null, path?: string): string {
   if (path === undefined) {
     path = arguments[0];
     packageName = this.packageName;
@@ -46,27 +53,32 @@ export function assetsUrl(this: PackageApi, packageName: string, path?: string):
  * @return {string}
  */
 export function publicUrl(staticAssetsURL: string, outputPathMap: {[name: string]: string},
-  useLocale: string | null, packageName: string, path: string) {
+  useLocale: string | null, packageName: string | null, path: string) {
   var m = /^(assets:\/\/|~|npm:\/\/|page(?:-([^:]+))?:\/\/)((?:@[^/]+\/)?[^/@][^/]*)?(?:\/([^@].*)?)?$/.exec(path);
   if (m) {
     if (m[1] && !m[3]) {
       throw new Error(`Can not resolve package name from "${path}"`);
     }
-    if (packageName == null)
+    if (m[3])
       packageName = m[3];
     path = m[4];
   }
-  if (packageName == null) {
-    throw new Error(`Can not resolve package name from "${path}"`);
-  }
-  var outputPath = outputPathMap[packageName];
-  if (outputPath != null) {
-    outputPath = /^\/*(.*?)\/*$/.exec(outputPath)![1];// _.trim(outputPath, '/');
+  // if (packageName == null) {
+  //   throw new Error(`Can not resolve package name from "${path}"`);
+  // }
+  let finalUrl: string;
+  if (packageName) {
+    let outputPath = outputPathMap[packageName];
+    if (outputPath != null) {
+      outputPath = /^\/*(.*?)\/*$/.exec(outputPath)![1];// _.trim(outputPath, '/');
+    } else {
+      m = /(?:@([^/]+)\/)?(\S+)/.exec(packageName);
+      outputPath = m ? m[2] : packageName;
+    }
+    finalUrl = joinUrl(staticAssetsURL, useLocale || '', outputPath, path);
   } else {
-    m = /(?:@([^/]+)\/)?(\S+)/.exec(packageName);
-    outputPath = m ? m[2] : packageName;
+    finalUrl = joinUrl(staticAssetsURL, useLocale || '', path);
   }
-  var finalUrl = joinUrl(staticAssetsURL, useLocale || '', outputPath, path);
 
   if (!/^https?:\/\//.test(finalUrl) && finalUrl.charAt(0) !== '/')
     finalUrl = '/' + finalUrl;

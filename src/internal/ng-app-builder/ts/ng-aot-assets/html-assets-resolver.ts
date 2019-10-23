@@ -47,7 +47,11 @@ export function replaceForHtml(content: string, resourcePath: string,
 }
 
 class AttrAssetsUrlResolver {
+  packagename: string | undefined;
   constructor(private resourcePath: string, private callback: (text: string) => Observable<string>) {
+    const pk = api.findPackageByFile(resourcePath);
+    if (pk)
+      this.packagename = pk.longName;
   }
   resolve(attrName: string, valueToken: AttributeValueAst,
     el: TagAst): Observable<Rep> | null {
@@ -64,7 +68,9 @@ class AttrAssetsUrlResolver {
       return url.pipe(map(url => new Rep(valueToken.start, valueToken.end, url)));
     } else if (attrName === 'routerLink') {
       if (valueToken.text.startsWith('assets://')) {
-        const replWith = '/' + api.ngRouterPath(valueToken.text);
+        const replWith = '/' + (this.packagename ?
+            api.ngRouterPath(this.packagename, valueToken.text) :
+            api.ngRouterPath(valueToken.text));
         log.warn(`Use "${replWith}" instead of "%s" in routerLink attribute (%s)`, valueToken.text, this.resourcePath);
         return of (new Rep(valueToken.start, valueToken.end, replWith));
       }

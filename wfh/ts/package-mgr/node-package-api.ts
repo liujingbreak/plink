@@ -136,5 +136,4 @@ class NodeApi implements assetsUrl.PackageApi {
 }
 NodeApi.prototype.eventBus = new EventEmitter();
 assetsUrl.patchToApi(NodeApi.prototype);
-
 export = NodeApi;
