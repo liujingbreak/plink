@@ -34,6 +34,7 @@ function resolveImports(src: ts.SourceFile): ReplacementInf[] {
 export async function init() {
   if (!checkAngularVersion())
     throw new Error('Angular version check Error');
+  checkAngularCliDepVersion();
   // writeTsconfig();
   hackFixWatchpack();
   writeTsconfig4Editor();
@@ -84,19 +85,20 @@ function checkAngularVersion() {
   return valid;
 }
 
-// function printHelp() {
-// 	// tslint:disable no-console
-// 	console.log('\n\n  If you want to narrow down to only specific modules for Angular to build/serve, try\n    ' +
-// 		yellow('drcp init --prop @dr-core/ng-app-builder.packages=<packageName,...>') + '\n  ' +
-// 		'Or through a configuration file:\n' +
-// 		yellow('    drcp init -c <other files> modules.yaml\n') +
-// 		'  modules.yaml:\n' +
-// 		cyan('  '.repeat(1) + '@dr-core/ng-app-builder:\n' +
-// 			'  '.repeat(2) + 'packages:\n' +
-// 			'  '.repeat(3) + '- <packageName 1>\n' +
-// 			'  '.repeat(3) + '- <packageName 2>\n')
-// 	);
-// }
+function checkAngularCliDepVersion() {
+  const ngDeps: {[name: string]: string} = require('@angular-devkit/build-angular/package.json').dependencies;
+  const ourDeps: {[name: string]: string} = require('../package.json').dependencies;
+
+  let msg = '';
+  for (const ngDep of Object.keys(ngDeps)) {
+    if (_.has(ourDeps, ngDep) && ourDeps[ngDep] !== ngDeps[ngDep]) {
+      msg += `Different version of dependency between @angular-devkit/build-angular and ng-app-builder:\n  ${ngDep}@${ngDeps[ngDep]} vs ${ngDep}@${ourDeps[ngDep]}\n`;
+    }
+  }
+  if (msg.length > 0) {
+    throw new Error(`You need to contact author of ng-app-builder for:\n${msg}`);
+  }
+}
 
 function writeTsconfig4Editor() {
   const tsjson: any = {
