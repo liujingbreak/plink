@@ -95,8 +95,12 @@ function drcpCommand(startTime) {
 		builder: yargs => {
 			yargs
 			.positional('target', {
-				desc: 'module which can be resolved by Node.js followed by "#" and exported function name, eg. \n' +
-					chalk.green('your-package/dist/foobar.js#myFunction') + ', function can be async and return Promise\n',
+				desc: 'JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n' +
+				'e.g. \n' +
+				chalk.green('package-name/dist/foobar.js#myFunction') +
+					', function can be async which returns Promise\n' +
+				chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
+					', relative or absolute path\n',
 				type: 'string'
 			})
 			// .positional('package', {describe: 'Default is all component packages which have "dr" property in package.json file'})
@@ -106,8 +110,9 @@ function drcpCommand(startTime) {
 					type: 'array'
 				}
 			})
-			.usage('drcp run <target>\ne.g. drcp run forbar-package/dist/file#function argument...\n' +
-				'execute function from all packages one after one, after all api.eventBus will emit ServerRunnerEvent "done"');
+			.usage(chalk.green('drcp run <target> [arguments...]\n') +
+				`e.g.\n  ${chalk.green('drcp run forbar-package/dist/file#function argument1 argument2...')}\n` +
+				'execute exported function of TS/JS file from specific package or path');
 		},
 		handler: argv => {
 			require('./config').init(argv)

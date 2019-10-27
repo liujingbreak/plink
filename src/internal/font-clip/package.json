@@ -1,0 +1,44 @@
+{
+  "name": "font-clip",
+  "version": "1.0.0",
+  "main": "dist/font-clip.js",
+  "types": "dist/font-clip.d.ts",
+  "description": "Web font file clip tool",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "homepage": "https://gitee.com/liujingbreak/dr-comp-package/tree/master/src/internal/font-clip",
+  "dr": {},
+  "sideEffects": false,
+  "dependencies": {
+    "iconv-lite": "~0.5.0",
+    "fonteditor-core": "2.0.4",
+    "fs-extra": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^5.1.0"
+  },
+  "author": "liujing.break@163.com",
+  "keywords": [
+    "font",
+    "webfont",
+    "icon",
+    "iconfont",
+    "font-face",
+    "compress",
+    "minify",
+    "font-cli",
+    "otf",
+    "ttf",
+    "woff",
+    "eot",
+    "svg",
+    "ttf2eot",
+    "ttf2woff",
+    "ttf2svg",
+    "svg2ttf",
+    "css",
+    "base64"
+  ],
+  "license": "MIT"
+}
