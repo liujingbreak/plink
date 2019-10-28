@@ -11,9 +11,19 @@ declare module 'fonteditor-core' {
   export interface Font {
     get(): {[key: string]: any};
     write(opt: {type: fontFileType, hinting?: boolean, deflate?: null | Function}): Buffer;
+    /**
+     * optimize glyf
+     */
     optimize(): void;
     compound2simple(): void;
+    /**
+     * sort glyf
+     */
     sort(): void;
+    /**
+     * find glyf
+     * @param opt 
+     */
     find(opt: {filter: (glyf: any) => void}): any;
   }
   interface FontFactory {

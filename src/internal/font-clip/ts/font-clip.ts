@@ -21,7 +21,7 @@ export function convert(str: string) {
  * @param source source file
  * @param clipChars subset
  */
-export async function clipToWoff2(source: string, destDir: string, clipChars?: string | null) {
+export async function clipToWoff2(source: string, destDir: string, toFormats: CreateOpt['type'][] = ['woff2'], clipChars?: string | null) {
   if (!source) {
     source = Path.resolve(__dirname, '../example-font/PingFang Regular.ttf');
   }
@@ -37,20 +37,41 @@ export async function clipToWoff2(source: string, destDir: string, clipChars?: s
     hinting: true,
     compound2simple: true
   });
-  await woff2.init();
+  // font.optimize();
+  // font.compound2simple();
+  if (toFormats.includes('woff2'))
+    await woff2.init();
 
   fs.mkdirpSync(destDir);
-  const file = Path.resolve(destDir, Path.basename(source, Path.extname(source)) + '.woff2');
-  await writeFileAsync(file,
-    font.write({
-    type: 'woff2',
-    hinting: true
+  return Promise.all(toFormats.map(format => {
+    const file = Path.resolve(destDir, Path.basename(source, Path.extname(source)) + '.' + format);
+    // tslint:disable-next-line: no-console
+    console.log('[font-clip] write', file);
+    return writeFileAsync(file,
+      font.write({
+      type: format,
+      hinting: true
+    }));
   }));
 }
 
 export function example(subset?: string) {
-  const src = Path.resolve(__dirname, '../example-font/PingFang Regular.ttf');
-  return clipToWoff2(src, Path.resolve(Path.dirname(src), 'gen'), subset);
+  return Promise.all([
+    Path.resolve(__dirname, '../example-font/PingFang Regular.ttf'),
+    Path.resolve(__dirname, '../example-font/PingFang Medium.ttf'),
+    Path.resolve(__dirname, '../example-font/PingFang Bold.ttf')
+  ].map(src => clipToWoff2(src, Path.resolve(Path.dirname(src), 'gen'), ['woff','woff2'], subset)));
+}
+
+export function notoSans(subset?: string) {
+  return Promise.all([
+    Path.resolve(__dirname, '../example-font/NotoSansSC-Black.otf'),
+    Path.resolve(__dirname, '../example-font/NotoSansSC-Bold.otf'),
+    Path.resolve(__dirname, '../example-font/NotoSansSC-Light.otf'),
+    Path.resolve(__dirname, '../example-font/NotoSansSC-Medium.otf'),
+    Path.resolve(__dirname, '../example-font/NotoSansSC-Regular.otf'),
+    Path.resolve(__dirname, '../example-font/NotoSansSC-Thin.otf')
+  ].map(src => clipToWoff2(src, Path.resolve(Path.dirname(src), 'gen'), ['woff','woff2'], subset)));
 }
 
 /**

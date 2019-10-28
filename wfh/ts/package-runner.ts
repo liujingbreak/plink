@@ -85,30 +85,25 @@ export async function runSinglePackage(argv: {target: string, arguments: string[
   // console.log(nodeInjector.dirTree.traverse());
 
   const [file, func] = argv.target.split('#');
-  const guessingFile: string[] = [file];
-  if (!file.startsWith('.')) {
-    let foundModule = false;
-    for (const scope of config().packageScopes) {
-      guessingFile.push(`@${scope}/${file}`);
-      try {
-        require.resolve(guessingFile[guessingFile.length - 1]);
-        foundModule = true;
-        break;
-      } catch (ex) {}
+  const guessingFile: string[] = [
+    file,
+    Path.resolve(file),
+    ...(config().packageScopes as string[]).map(scope => `@${scope}/${file}`)
+  ];
+  const foundModule = guessingFile.find(target => {
+    try {
+      require.resolve(target);
+      return true;
+    } catch (ex) {
+      return false;
     }
-    if (!foundModule) {
-      guessingFile.push(Path.resolve(file));
-      try {
-        require.resolve(guessingFile[guessingFile.length - 1]);
-        foundModule = true;
-      } catch (ex) {
-      }
-    }
-    if (!foundModule) {
-      throw new Error(`Could not find target module from paths like:\n${guessingFile.join('\n')}`);
-    }
+  });
+
+  if (!foundModule) {
+    throw new Error(`Could not find target module from paths like:\n${guessingFile.join('\n')}`);
   }
-  const _exports = require(guessingFile[guessingFile.length - 1]);
+
+  const _exports = require(foundModule);
   if (!_.has(_exports, func)) {
     log.error(`There is no export function: ${func}, existing export members are:\n` +
     `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
