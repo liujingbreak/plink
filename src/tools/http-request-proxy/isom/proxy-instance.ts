@@ -26,17 +26,16 @@ export function intercept(req: express.Request, headers: {[k: string]: any}, bod
   var handlers: BodyHandler[] = pm.matchedHandlers(resHandlers, req.url);
   if (handlers.length > 0) {
     bodyHandlerProm = Promise.resolve({req, headers, body});
-    handlers.forEach(func => {
-      bodyHandlerProm = bodyHandlerProm.then(data => {
-        const resolvedRes = func(data.req, data.headers, data.body, data.result, {});
-        if (resolvedRes != null) {
-          return Promise.resolve(resolvedRes)
-          .then(result => {
-            return Object.assign(data, {result});
-          });
-        }
-        return Promise.resolve(data);
-      });
+    const func = handlers[handlers.length - 1];
+    bodyHandlerProm = bodyHandlerProm.then(data => {
+      const resolvedRes = func(data.req, data.headers, data.body, data.result, {});
+      if (resolvedRes != null) {
+        return Promise.resolve(resolvedRes)
+        .then(result => {
+          return Object.assign(data, {result});
+        });
+      }
+      return Promise.resolve(data);
     });
     bodyHandlerProm = bodyHandlerProm.then(data => data.result);
   } else {
