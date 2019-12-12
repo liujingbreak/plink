@@ -38,32 +38,30 @@ export async function activate(app: Application, imap: ImapManager) {
     const nVersion = parseInt(req.params.version, 10);
     const existing = checksum.versions![req.params.app];
 
-    if (isPm2 && !isMainProcess) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-    }
-
-    if (existing && existing.version >= nVersion) {
-      // I want to cancel recieving request body asap
-      // https://stackoverflow.com/questions/18367824/how-to-cancel-http-upload-from-data-events
-      res.header('Connection', 'close');
-      res.status(409).send(`REJECT from ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(checksum, null, '  ')}`);
-      req.socket.end();
-      res.connection.end();
-      return;
-    }
-
-    checksum.versions![req.params.app] = {version: parseInt(req.params.version, 10)};
-    if (isPm2) {
-      process.send!({
-        type : 'process:msg',
-        data: {
-          'cd-server:checksum updating': checksum,
-          pid: process.pid
-        }
-      } as Pm2Packet);
-    }
     if (req.method === 'PUT') {
       log.info('recieving data');
+      if (isPm2 && !isMainProcess) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+      if (existing && existing.version >= nVersion) {
+        // I want to cancel recieving request body asap
+        // https://stackoverflow.com/questions/18367824/how-to-cancel-http-upload-from-data-events
+        res.header('Connection', 'close');
+        res.status(409).send(`REJECT from ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(checksum, null, '  ')}`);
+        req.socket.end();
+        res.connection.end();
+        return;
+      }
+      checksum.versions![req.params.app] = {version: parseInt(req.params.version, 10)};
+      if (isPm2) {
+        process.send!({
+          type : 'process:msg',
+          data: {
+            'cd-server:checksum updating': checksum,
+            pid: process.pid
+          }
+        } as Pm2Packet);
+      }
       let countBytes = 0;
       req.on('data', (data: Buffer) => {
         countBytes += data.byteLength;
