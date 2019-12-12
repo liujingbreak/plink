@@ -177,6 +177,9 @@ function hackHeaders(target: string, req: express.Request): {[k: string]: any} {
   var parsedTarget = Url.parse(target);
   toHeaders.host = parsedTarget.host;
   delete toHeaders.origin;
+  if (req.method === 'POST') {
+    toHeaders.origin = parsedTarget.protocol! + '//' + parsedTarget.host;
+  }
   if (toHeaders.referer) {
     // tslint:disable-next-line:max-line-length
     toHeaders.referer = `${parsedTarget.protocol}//${parsedTarget.host}${Url.parse(toHeaders.referer as string).pathname}`;
