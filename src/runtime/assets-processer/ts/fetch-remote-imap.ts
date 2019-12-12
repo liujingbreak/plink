@@ -1,14 +1,17 @@
 import { createTransport } from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
-import { Subject, Observable, from, BehaviorSubject } from 'rxjs';
-import { map, concatMap, takeWhile, takeLast, mapTo, distinctUntilChanged,
+import {Observable, BehaviorSubject } from 'rxjs';
+import { map, /*concatMap, takeWhile, takeLast, mapTo,*/ tap, distinctUntilChanged,
   skip, filter, take} from 'rxjs/operators';
 import { connect as tslConnect, ConnectionOptions, TLSSocket } from 'tls';
 import fs from 'fs-extra';
 import * as _ from 'lodash';
 import Path from 'path';
 import {Checksum, WithMailServerConfig} from './fetch-types';
+import {createServerDataHandler, parseLinesOfTokens, ImapTokenType, StringLit} from './mail/imap-msg-parser';
 import api from '__api';
+import { LookAhead, Token } from 'dr-comp-package/wfh/dist/async-LLn-parser';
+import {parse as parseRfc822} from './mail/rfc822-parser';
 // import {Socket} from 'net';
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote-imap');
 
@@ -76,16 +79,16 @@ export async function retrySendMail(subject: string, text: string, file?: string
   }
 }
 
-enum FetchState {
-  start = 0,
-  headers,
-  headersEnd,
-  textHeaders,
-  textBody,
-  attachmentHeaders,
-  attachementBody,
-  end
-}
+// enum FetchState {
+//   start = 0,
+//   headers,
+//   headersEnd,
+//   textHeaders,
+//   textBody,
+//   attachmentHeaders,
+//   attachementBody,
+//   end
+// }
 
 export interface ImapFetchData {
   headers: {[key: string]: string[] | undefined};
@@ -99,10 +102,10 @@ export interface ImapCommandContext {
    */
   lastIndex: number;
   fileWritingState: Observable<boolean>;
-  waitForReply(command?: string, onLine?: (line: string, tag: string) => Promise<any>): Promise<string|null>;
+  waitForReply(command?: string, onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<any>): Promise<string[]|null>;
   findMail(fromIndx: number, subject: string): Promise<number | undefined>;
   waitForFetch(mailIdx: string | number, headerOnly?: boolean, overrideFileName?: string): Promise<ImapFetchData>;
-  waitForFetchText(index: number): Promise<string>;
+  waitForFetchText(index: number): Promise<string | undefined>;
 }
 
 /**
@@ -113,8 +116,7 @@ export interface ImapCommandContext {
  * https://tools.ietf.org/html/rfc2971
  */
 export async function connectImap(callback: (context: ImapCommandContext) => Promise<any>) {
-  let buf = '';
-  const lineSubject = new Subject<string>();
+
   let logEnabled = true;
   let cmdIdx = 1;
   const fileWritingState = new BehaviorSubject<Set<string>>(new Set<string>());
@@ -144,9 +146,12 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
     distinctUntilChanged()
   );
 
-  // context.fileWritingState.subscribe(size => {
-  //   log.warn('writing files:', size);
-  // });
+  const serverResHandler = createServerDataHandler();
+  serverResHandler.output.pipe(
+    tap(msg => {
+      if (msg != null) log.debug('  <- ' + msg.map(token => token.text).join(' '));
+    })
+  ).subscribe();
 
   let socket: TLSSocket|undefined;
   try {
@@ -162,28 +167,26 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
       })
       .on('error', err => reject(err))
       .on('timeout', () => reject(new Error('Timeout')));
-      socket.on('data', (data: Buffer) => _onResponse(data.toString('utf8')));
+      socket.on('data', (data: Buffer) => {
+        // console.log(data.toString());
+        serverResHandler.input(data);
+      });
     });
-  // tslint:disable-next-line: no-console
-    console.log(await waitForReply());
+
+    await waitForReply();
     await waitForReply('ID ("name" "com.tencent.foxmail" "version" "7.2.9.79")');
     await waitForReply(`LOGIN ${EMAIL} ${SECRET}`);
-    await waitForReply('SELECT INBOX');
-
-    let fromIndx: number;
-    await waitForReply('SEARCH *', async line => {
-      if (fromIndx != null)
-        return;
-      const m = /\*\s+SEARCH\s+(\d+)?/.exec(line);
-      if (m) {
-        fromIndx = parseInt(m[1], 10);
+    await waitForReply('SELECT INBOX', async la => {
+      const exitsTk = await la.la(3);
+      if (exitsTk && exitsTk.text.toUpperCase() === 'EXISTS') {
+        context.lastIndex = parseInt((await la.la(2))!.text, 10);
       }
     });
 
-    context.lastIndex = fromIndx!;
     await callback(context as ImapCommandContext);
     await waitForReply('LOGOUT');
   } catch (ex) {
+    log.error(ex);
     try {
       await waitForReply('LOGOUT');
     } catch (er) {}
@@ -192,62 +195,48 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
     throw ex;
   }
 
+  serverResHandler.input(null);
   socket.end();
 
-  function _onResponse(res: string) {
-    buf += res;
-    if (res.indexOf('\n') < 0)
-      return;
-    const lines = buf.split(/(?:\r\n|\r|\n)/);
-    buf = lines[lines.length - 1];
-    lines.slice(0, lines.length - 1).forEach(line => _onEachLine(line));
-  }
-
-  function _onEachLine(line: string) {
-    if (logEnabled)
-      log.debug('  <=', line);
-    lineSubject.next(line);
-  }
-
   async function waitForFetchText(index: number) {
-    let buf = '';
-    await waitForReply(`FETCH ${index} BODY[1]`, async line => {
-      buf += line + '\n';
+    let body1: string | undefined;
+    await waitForReply(`FETCH ${index} BODY[1]`, async la => {
+      while ((await la.la()) != null) {
+        const token = await la.advance();
+        if (token.text === 'BODY' && (await la.la())!.text === '[1]') {
+          await la.advance();
+          body1 = ((await la.advance()) as unknown as StringLit).data.toString('utf8');
+        }
+      }
     });
+
     // log.warn(buf);
-    return /^\*\s+\d+\s+FETCH\s+\(.*?\{\d+\}([^]*)\)$/m.exec(buf)![1];
+    // return /^\*\s+\d+\s+FETCH\s+\(.*?\{\d+\}([^]*)\)$/m.exec(buf)![1];
+    return body1;
   }
 
-  function waitForReply(command?: string, onLine?: (line: string, tag: string) => Promise<any>) {
+  function waitForReply(command?: string, onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<any>) {
     let tag: string;
     if (command)
       tag = 'a' + (cmdIdx++);
 
-    let source: Observable<string> = lineSubject;
-    if (onLine) {
-      source = source.pipe(
-        concatMap(line => {
-          return from(onLine(line, tag)).pipe(mapTo(line));
-        })
-      );
-    }
-    const prom = source.pipe(
-      map(line => {
-        const match = /^(\S+)\s+(OK|NO|BAD)(?=(\s|$))/i.exec(line);
-        if (match && (!tag || tag === match[1])) {
-          if (match[2] === 'OK' || match[2] === 'NO') {
-            // log.info(`\t${command} replied`);
-            return line.slice(match[0].length);
-          } else {
-            throw new Error(`Reply: ${line}`);
+    const prom = parseLinesOfTokens(serverResHandler.output, async la => {
+      const resTag = await la.la();
+      if (!tag && resTag!.text === '*' || resTag!.text === tag) {
+        await la.advance();
+        const state = await la.la();
+        let returnText = '';
+        if (/OK|NO/.test(state!.text)) {
+          returnText += (await la.advance()).text;
+          while ((await la.la()) != null) {
+            returnText += ' ' + (await la.advance()).text;
           }
-        } else {
-          return null;
         }
-      }),
-      takeWhile(result => result == null, true),
-      takeLast(1)
-    ).toPromise();
+        return returnText;
+      } else if (onLine) {
+        await onLine(la, tag);
+      }
+    });
 
     if (command) {
       const cmd = tag! + ' ' + command;
@@ -260,112 +249,121 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
   }
 
   async function waitForFetch(mailIdx: string | number = '*', headerOnly = true, overrideFileName?: string): Promise<ImapFetchData> {
-    let state: FetchState = FetchState.start;
+    // let state: FetchState = FetchState.start;
     let headers: {
       subject?: string[];
       'content-type'?: string[];
       [key: string]: string[] | undefined;
     } = {};
-    let lastHeaderName: string;
-    let boundary: string;
+    // let lastHeaderName: string;
+    // let boundary: string;
     let textBody: string = '';
     let fileName: string;
-    let fileWriter: fs.WriteStream;
-    let attachementFile: string;
+    // let fileWriter: fs.WriteStream;
+    // let attachementFile: string;
 
     const originLogEnabled = logEnabled;
     logEnabled = headerOnly;
-    await waitForReply(`FETCH ${mailIdx} RFC822${headerOnly ? '.HEADER' : ''}`, (line) => {
-      switch (state) {
-        case FetchState.start:
-          if (/^\*\s+[0-9]+\s+FETCH\s+/.test(line)) {
-            state = FetchState.headers;
-          }
-          break;
-        case FetchState.headers:
-          if (/^\s/.test(line)) {
-            const items = headers[lastHeaderName]!;
-            items.push(...line.split(';').map(item => item.trim()).filter(item => item.length > 0));
-            break;
-          }
-          if (line.length === 0) {
-            state = FetchState.headersEnd;
-
-            const normalizedHeaders: typeof headers = {};
-            Object.keys(headers).forEach(key => normalizedHeaders[key.toLowerCase()] = headers[key]);
-            headers = normalizedHeaders;
-
-            const contentType = headers['content-type'];
-            if (!contentType) {
-              throw new Error(`missing Content-Type in headers: ${JSON.stringify(headers, null, '  ')}`);
-            }
-            // https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
-            if (contentType[0] !== 'multipart/mixed') {
-              return Promise.resolve('No support for content-type: ' + contentType[0]);
-            }
-            boundary = contentType.find(item => item.startsWith('boundary='))!;
-            boundary = '--' + /^["']?(.*?)["']?$/.exec(boundary.slice('boundary='.length))![1];
-            break;
-          }
-          const m = /^([^:]+)\:(.*)$/.exec(line);
-          if (m) {
-            headers[m[1]] = m[2].split(';').map(item => item.trim()).filter(item => item.length > 0);
-            lastHeaderName = m[1];
-          }
-          break;
-        case FetchState.headersEnd:
-          if (line === boundary) {
-            state = FetchState.textHeaders;
-          }
-          break;
-        case FetchState.textHeaders:
-          if (line.length === 0)
-            state = FetchState.textBody;
-          break;
-        case FetchState.textBody:
-          if (line === boundary) {
-            textBody = textBody.slice(0, textBody.length - 1);
-            state = FetchState.attachmentHeaders;
-            break;
-          }
-          textBody += line + '\n';
-          break;
-        case FetchState.attachmentHeaders:
-          if (line.length === 0) {
-            state = FetchState.attachementBody;
-            break;
-          }
-          if (!fileName) {
-            const found = /filename=["' ]?([^'" ]+)["' ]?$/.exec(line);
-            if (found)
-              fileName = found[1];
-          }
-          break;
-        case FetchState.attachementBody:
-          if (line.indexOf(boundary) >=0 ) {
-            state = FetchState.end;
-            if (fileWriter) {
-              fileWriter.end(() => {
-                log.info('file end done:', attachementFile);
-                fileWritingState.getValue().delete(attachementFile);
-                fileWritingState.next(fileWritingState.getValue());
-              });
-            }
-            break;
-          }
-          if (!fileWriter) {
-            attachementFile = overrideFileName || Path.resolve('dist/' + fileName);
-            fs.mkdirpSync(Path.dirname(attachementFile));
-            fileWriter = fs.createWriteStream(attachementFile);
-            fileWritingState.getValue().add(attachementFile);
-            fileWritingState.next(fileWritingState.getValue());
-            log.info('Create attachement file: ', attachementFile);
-          }
-          // log.warn('boundary', boundary);
-          // TODO: wait for drained
-          fileWriter.write(Buffer.from(line, 'base64'));
-        default:
+    await waitForReply(`FETCH ${mailIdx} RFC822${headerOnly ? '.HEADER' : ''}`, async (la) => {
+      while ((await la.la()) != null) {
+        const tk = await la.advance();
+        if (tk.type !== ImapTokenType.stringLit) {
+          log.warn(tk.text);
+        } else {
+          // log.warn('string literal:\n', (tk as any as StringLit).data.toString('utf8'));
+          // parseRfc822((tk as any as StringLit).data);
+        }
       }
+      // switch (state) {
+      //   case FetchState.start:
+      //     if (/^\*\s+[0-9]+\s+FETCH\s+/.test(line)) {
+      //       state = FetchState.headers;
+      //     }
+      //     break;
+      //   case FetchState.headers:
+      //     if (/^\s/.test(line)) {
+      //       const items = headers[lastHeaderName]!;
+      //       items.push(...line.split(';').map(item => item.trim()).filter(item => item.length > 0));
+      //       break;
+      //     }
+      //     if (line.length === 0) {
+      //       state = FetchState.headersEnd;
+
+      //       const normalizedHeaders: typeof headers = {};
+      //       Object.keys(headers).forEach(key => normalizedHeaders[key.toLowerCase()] = headers[key]);
+      //       headers = normalizedHeaders;
+
+      //       const contentType = headers['content-type'];
+      //       if (!contentType) {
+      //         throw new Error(`missing Content-Type in headers: ${JSON.stringify(headers, null, '  ')}`);
+      //       }
+      //       // https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
+      //       if (contentType[0] !== 'multipart/mixed') {
+      //         return Promise.resolve('No support for content-type: ' + contentType[0]);
+      //       }
+      //       boundary = contentType.find(item => item.startsWith('boundary='))!;
+      //       boundary = '--' + /^["']?(.*?)["']?$/.exec(boundary.slice('boundary='.length))![1];
+      //       break;
+      //     }
+      //     const m = /^([^:]+)\:(.*)$/.exec(line);
+      //     if (m) {
+      //       headers[m[1]] = m[2].split(';').map(item => item.trim()).filter(item => item.length > 0);
+      //       lastHeaderName = m[1];
+      //     }
+      //     break;
+      //   case FetchState.headersEnd:
+      //     if (line === boundary) {
+      //       state = FetchState.textHeaders;
+      //     }
+      //     break;
+      //   case FetchState.textHeaders:
+      //     if (line.length === 0)
+      //       state = FetchState.textBody;
+      //     break;
+      //   case FetchState.textBody:
+      //     if (line === boundary) {
+      //       textBody = textBody.slice(0, textBody.length - 1);
+      //       state = FetchState.attachmentHeaders;
+      //       break;
+      //     }
+      //     textBody += line + '\n';
+      //     break;
+      //   case FetchState.attachmentHeaders:
+      //     if (line.length === 0) {
+      //       state = FetchState.attachementBody;
+      //       break;
+      //     }
+      //     if (!fileName) {
+      //       const found = /filename=["' ]?([^'" ]+)["' ]?$/.exec(line);
+      //       if (found)
+      //         fileName = found[1];
+      //     }
+      //     break;
+      //   case FetchState.attachementBody:
+      //     if (line.indexOf(boundary) >=0 ) {
+      //       state = FetchState.end;
+      //       if (fileWriter) {
+      //         fileWriter.end(() => {
+      //           log.info('file end done:', attachementFile);
+      //           fileWritingState.getValue().delete(attachementFile);
+      //           fileWritingState.next(fileWritingState.getValue());
+      //         });
+      //       }
+      //       break;
+      //     }
+      //     if (!fileWriter) {
+      //       attachementFile = overrideFileName || Path.resolve('dist/' + fileName);
+      //       fs.mkdirpSync(Path.dirname(attachementFile));
+      //       fileWriter = fs.createWriteStream(attachementFile);
+      //       fileWritingState.getValue().add(attachementFile);
+      //       fileWritingState.next(fileWritingState.getValue());
+      //       log.info('Create attachement file: ', attachementFile);
+      //     }
+      //     // log.warn('boundary', boundary);
+      //     // TODO: wait for drained
+      //     fileWriter.write(Buffer.from(line, 'base64'));
+      //   default:
+      // }
       return Promise.resolve(0);
     });
     logEnabled = originLogEnabled;
@@ -387,8 +385,6 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
     }
     return undefined;
   }
-
-  // return socket;
 }
 
 export class ImapManager {
@@ -523,7 +519,22 @@ export class ImapManager {
     if (idx == null) {
       return {versions: {}};
     }
-    return JSON.parse(await ctx.waitForFetchText(idx!)) as Checksum;
+    const jsonStr = await ctx.waitForFetchText(idx!);
+    if (jsonStr == null) {
+      throw new Error('Empty JSON text');
+    }
+    return JSON.parse(jsonStr) as Checksum;
   }
 
+}
+
+export async function testMail(imap: string, user: string, loginSecret: string) {
+  log.debug = log.info;
+  api.config.set([api.packageName, 'fetchMailServer'], {
+    imap, user, loginSecret
+  } as WithMailServerConfig['fetchMailServer']);
+  await connectImap(async ctx => {
+    // log.info('Fetch mail %d as text :\n' + (await ctx.waitForFetchText(ctx.lastIndex)), ctx.lastIndex);
+    log.info('Fetch mail %d:\n' + await ctx.waitForFetch(ctx.lastIndex, false), ctx.lastIndex);
+  });
 }

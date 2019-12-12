@@ -1,5 +1,7 @@
 import { Observable, BehaviorSubject } from 'rxjs';
 import { Checksum } from './fetch-types';
+import { ImapTokenType } from './mail/imap-msg-parser';
+import { LookAhead, Token } from 'dr-comp-package/wfh/dist/async-LLn-parser';
 export declare function sendMail(subject: string, text: string, file?: string): Promise<void>;
 export declare function retrySendMail(subject: string, text: string, file?: string): Promise<void>;
 export interface ImapFetchData {
@@ -15,10 +17,10 @@ export interface ImapCommandContext {
      */
     lastIndex: number;
     fileWritingState: Observable<boolean>;
-    waitForReply(command?: string, onLine?: (line: string, tag: string) => Promise<any>): Promise<string | null>;
+    waitForReply(command?: string, onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<any>): Promise<string[] | null>;
     findMail(fromIndx: number, subject: string): Promise<number | undefined>;
     waitForFetch(mailIdx: string | number, headerOnly?: boolean, overrideFileName?: string): Promise<ImapFetchData>;
-    waitForFetchText(index: number): Promise<string>;
+    waitForFetchText(index: number): Promise<string | undefined>;
 }
 /**
  * IMAP specification
@@ -52,3 +54,4 @@ export declare class ImapManager {
     private fetchAttachment;
     private _fetchChecksum;
 }
+export declare function testMail(imap: string, user: string, loginSecret: string): Promise<void>;

@@ -124,7 +124,7 @@ async function changePackageJson(package2tarball: {[name: string]: string}) {
 
     const foundDeps = deps.properties.filter(({name}) => _.has(package2tarball, JSON.parse(name.text)));
     for (const foundDep of foundDeps) {
-      const verToken = foundDep.value as Token;
+      const verToken = foundDep.value as Token<string>;
       const newVersion = package2tarball[JSON.parse(foundDep.name.text)];
       log.info(`Update package.json: ${verToken.text} => ${newVersion}`);
       replacements.push({

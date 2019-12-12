@@ -1,10 +1,11 @@
-import {Observable, Subscriber, from, OperatorFunction} from 'rxjs';
-import {map} from 'rxjs/operators';
-export class Chunk<V> {
-  type: any;
+import {Observable, Subscriber, from, OperatorFunction, queueScheduler} from 'rxjs';
+import {map, observeOn} from 'rxjs/operators';
+export class Chunk<V, T> {
+  type: T;
   values?: V[] = [];
   end?: number;
   isClosed = false;
+  trackValue = true;
 
   constructor(
     public pos: number, public line: number, public col: number
@@ -17,36 +18,39 @@ export class Chunk<V> {
   }
 }
 
-export class Token extends Chunk<string> {
+export class Token<T> extends Chunk<string, T> {
   text: string;
 }
-
-export type ParseLex<I> = (la: LookAheadObservable<I>, sub: Subscriber<Chunk<I>>) => Promise<any>;
-export type ParseGrammar<A> = (la: LookAhead<Token>) => Promise<A>;
+/**
+ * You can define a lexer as a function
+ */
+export type ParseLex<I, T> = (la: LookAheadObservable<I,T>, sub: Subscriber<Chunk<I, T>>) => Promise<any>;
+export type ParseGrammar<A, T> = (la: LookAhead<Token<T>, T>) => Promise<A>;
 /**
  * Parser
  * @param input string type
  * @param parseLex 
  * @param parseGrammar 
  */
-export function parser<I, A>(
+export function parser<I, A, T>(
   name: string,
-  input: Observable<I[]>,
-  parseLex: ParseLex<I>,
-  pipeOperators: OperatorFunction<Token, Token>[] | null,
-  parseGrammar: ParseGrammar<A>
+  input: Observable<Iterable<I>>,
+  parseLex: ParseLex<I, T>,
+  pipeOperators: Iterable<OperatorFunction<Token<T>, Token<T>>> | null,
+  parseGrammar: ParseGrammar<A, T>
 ): Promise<A> {
 
-  const _parseGrammarObs = (la: LookAhead<Token>) => {
+  const _parseGrammarObs = (la: LookAhead<Token<T>, T>) => {
     return from(parseGrammar(la));
   };
 
-  let tokens = input.pipe(mapChunks<I>(name + '-lexer', parseLex))
-  .pipe(
+  let tokens = input.pipe(
+    observeOn(queueScheduler),
+    mapChunks(name + '-lexer', parseLex),
     map(chunk => {
-      (chunk as Token).text = chunk.values!.join('');
+      (chunk as Token<T>).text = chunk.values!.join('');
       delete chunk.values;
-      return chunk as Token;
+      return chunk as Token<T>;
     })
   );
   if (pipeOperators) {
@@ -61,9 +65,9 @@ export function parser<I, A>(
 }
 
 export function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => Observable<O>):
-(input: Observable<I[]>)=> Observable<O> {
+(input: Observable<Iterable<I>>)=> Observable<O> {
 
-  return function(input: Observable<I[]>) {
+  return function(input: Observable<Iterable<I>>) {
     return new Observable<O>(sub => {
       const la = new LookAhead<I>(name);
       input.subscribe(input => la._write(input),
@@ -79,22 +83,26 @@ export function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => Ob
   };
 }
 
-export function mapChunks<I>(
+export function mapChunks<I, T>(
   name: string,
-  parse: ParseLex<I>
-): (input: Observable<I[]>)=> Observable<Chunk<I>> {
+  parse: ParseLex<I, T>
+): (input: Observable<Iterable<I>>)=> Observable<Chunk<I, T>> {
 
-  return function(input: Observable<I[]>) {
-    return new Observable<Chunk<I>>(sub => {
-      const la = new LookAhead<I>(name);
+  return function(input: Observable<Iterable<I>>) {
+    return new Observable<Chunk<I, T>>(sub => {
+      const la = new LookAhead<I, T>(name);
       input.subscribe(input => la._write(input),
         err => sub.error(err),
         () => la._final()
       );
-      const la$: LookAheadObservable<I> = la as any;
+      const la$ = la as LookAheadObservable<I, T>;
+
       la$.startToken = la.startChunk;
-      la$.emitToken = function(this: LookAheadObservable<I>) {
-        sub.next(this.closeChunk());
+
+      la$.emitToken = function(this: LookAheadObservable<I, T>) {
+        const chunk = this.closeChunk();
+        sub.next(chunk);
+        return chunk;
       };
       parse(la$, sub)
       .then(() => sub.complete());
@@ -102,23 +110,23 @@ export function mapChunks<I>(
   };
 }
 
-export class LookAhead<T> {
+export class LookAhead<T, TT = any> {
   cached: Array<T|null>;
   lastConsumed: T|undefined|null;
-  isString: boolean;
+  // isString: boolean;
   line = 1;
   column = 1;
   protected currPos = 0;
   private cacheStartPos = 0; // Currently is always same as currPos
   private readResolve: (value: T | null) => void | undefined;
   private waitForPos: number | undefined;
-  private currChunk: Chunk<T>;
+  private currChunk: Chunk<T, TT>;
 
   constructor(protected name: string) {
     this.cached = [];
   }
 
-  _write(values: Array<T|null>) {
+  _write(values: Iterable<T|null>) {
     this.cached.push(...values);
 
     if (this.readResolve != null) {
@@ -178,7 +186,7 @@ export class LookAhead<T> {
             }
             this.cached.shift();
             this.cacheStartPos++;
-            if (this.currChunk && !this.currChunk.isClosed) {
+            if (this.currChunk && !this.currChunk.isClosed && this.currChunk.trackValue) {
               this.currChunk.values!.push(value);
             }
             currValue = value;
@@ -204,13 +212,13 @@ export class LookAhead<T> {
   async _isNext<C>(values: C[], isEqual = (a: T, b: C) => a as any === b): Promise<boolean> {
     let compareTo: C[]| string;
     let compareFn: (...arg: any[]) => boolean;
-    if (this.isString) {
-      compareTo = values.join('');
-      compareFn = (a: string, b: string) => a === b;
-    } else {
-      compareTo = values;
-      compareFn = isEqual;
-    }
+    // if (this.isString) {
+    //   compareTo = values.join('');
+    //   compareFn = (a: string, b: string) => a === b;
+    // } else {
+    compareTo = values;
+    compareFn = isEqual;
+    // }
     let i = 0;
     const l = compareTo.length;
     let next = await this.la(i + 1);
@@ -235,11 +243,13 @@ export class LookAhead<T> {
     return `offset ${this.currPos} [${this.line}:${this.column}]`;
   }
 
-  startChunk<TK>(type: TK) {
+  startChunk(type: TT, trackValue = true) {
     if (this.currChunk && !this.currChunk.isClosed)
       this.currChunk.close(this.currPos);
-    this.currChunk = new Chunk<T>(this.currPos, this.line, this.column);
+    this.currChunk = new Chunk<T, TT>(this.currPos, this.line, this.column);
+    this.currChunk.trackValue = trackValue;
     this.currChunk.type = type;
+    return this.currChunk;
   }
 
   closeChunk() {
@@ -266,8 +276,8 @@ export class LookAhead<T> {
   }
 }
 
-export interface LookAheadObservable<T> extends LookAhead<T> {
-  startToken: LookAhead<T>['startChunk'];
-  emitToken(): void;
+export interface LookAheadObservable<V, T> extends LookAhead<V, T> {
+  startToken: LookAhead<V, T>['startChunk'];
+  emitToken(): Chunk<V, T>;
 }
 

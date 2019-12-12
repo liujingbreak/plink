@@ -46,7 +46,7 @@ describe('fetch-remote-imap', () => {
     });
   });
 
-  it('can fetch checksum and zips from mail server', async () => {
+  xit('can fetch checksum and zips from mail server', async () => {
     const mgr = new fetchImap.ImapManager('dev');
     console.log(await mgr.fetchUpdateCheckSum('testApp'));
     // console.log('---------fetchOtherZips starts ----------');

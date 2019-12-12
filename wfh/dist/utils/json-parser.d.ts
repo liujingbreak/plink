@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { Token } from '../async-LLn-parser';
 import { Readable } from 'stream';
-export default function parse(reader: Readable, onToken?: (token: Token) => void): Promise<ObjectAst>;
+export default function parse(reader: Readable, onToken?: (token: Token<string>) => void): Promise<ObjectAst>;
 export { Token };
 declare enum AstType {
     object = 0,
@@ -14,13 +14,13 @@ export interface Ast {
 }
 export interface ObjectAst extends Ast {
     properties: {
-        name: Token;
-        value: Ast | Token;
+        name: Token<string>;
+        value: Ast | Token<string>;
     }[];
 }
 export interface ArrayAst extends Ast {
-    items: Array<Ast | Token>;
+    items: Array<Ast | Token<string>>;
 }
 export interface ValueAst extends Ast {
-    value: Token;
+    value: Token<string>;
 }

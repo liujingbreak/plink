@@ -4,7 +4,7 @@ import {Observable, Subscriber} from 'rxjs';
 import {tap} from 'rxjs/operators';
 import {Readable} from 'stream';
 
-export default function parse(reader: Readable, onToken?: (token: Token) => void) {
+export default function parse(reader: Readable, onToken?: (token: Token<string>) => void) {
   const input = new Observable<string[]>(sub => {
     reader.on('data', (buf: string) => sub.next(buf.split('')));
     reader.on('end', () => sub.complete());
@@ -17,7 +17,9 @@ export default function parse(reader: Readable, onToken?: (token: Token) => void
 
 export {Token};
 
-async function parseLex(strLookAhead: LookAheadObservable<string>, tokenSub: Subscriber<Chunk<string>>) {
+async function parseLex(
+  strLookAhead: LookAheadObservable<string, string>,
+  tokenSub: Subscriber<Chunk<string, string>>) {
   let char = await strLookAhead.la();
   while (char != null) {
     if (/[{}\[\],:]/.test(char)) {
@@ -60,7 +62,7 @@ async function parseLex(strLookAhead: LookAheadObservable<string>, tokenSub: Sub
   }
 }
 
-type Lexer = LookAhead<Token>;
+type Lexer = LookAhead<Token<string>, string>;
 
 enum AstType {
   object = 0,
@@ -74,15 +76,15 @@ export interface Ast {
 }
 
 export interface ObjectAst extends Ast {
-  properties: {name: Token, value: Ast|Token}[];
+  properties: {name: Token<string>, value: Ast|Token<string>}[];
 }
 
 export interface ArrayAst extends Ast {
-  items: Array<Ast | Token>;
+  items: Array<Ast | Token<string>>;
 }
 
 export interface ValueAst extends Ast {
-  value: Token;
+  value: Token<string>;
 }
 
 async function parseGrammar(tokenLa: Lexer) {
