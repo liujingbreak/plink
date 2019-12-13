@@ -32,7 +32,6 @@ export declare class LookAhead<T, TT = any> {
     protected name: string;
     cached: Array<T | null>;
     lastConsumed: T | undefined | null;
-    isString: boolean;
     line: number;
     column: number;
     protected currPos: number;
@@ -51,13 +50,15 @@ export declare class LookAhead<T, TT = any> {
        */
     la(num?: number): Promise<T | null>;
     advance(count?: number): Promise<T>;
+    isNext(...values: T[]): Promise<boolean>;
     /**
        * Same as `return la(1) === values[0] && la(2) === values[1]...`
        * @param values lookahead string or tokens
        */
-    isNext(...values: T[]): Promise<boolean>;
-    _isNext<C>(values: C[], isEqual?: (a: T, b: C) => boolean): Promise<boolean>;
-    throwError(unexpected?: string, stack?: any): void;
+    isNextWith<C>(values: C[], isEqual?: (a: T, b: C) => boolean): Promise<boolean>;
+    assertAdvance(...values: T[]): Promise<boolean>;
+    assertAdvanceWith<C>(values: C[], isEqual?: (a: T, b: C) => boolean): Promise<boolean>;
+    throwError(unexpected?: string, stack?: any, expect?: string): void;
     getCurrentPosInfo(): string;
     startChunk(type: TT, trackValue?: boolean): Chunk<T, TT>;
     closeChunk(): Chunk<T, TT>;

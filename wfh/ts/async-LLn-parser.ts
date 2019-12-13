@@ -1,5 +1,6 @@
 import {Observable, Subscriber, from, OperatorFunction, queueScheduler} from 'rxjs';
 import {map, observeOn} from 'rxjs/operators';
+import util from 'util';
 export class Chunk<V, T> {
   type: T;
   values?: V[] = [];
@@ -201,31 +202,24 @@ export class LookAhead<T, TT = any> {
     });
   }
 
+  isNext(...values: T[]) {
+    return this.isNextWith(values);
+  }
   /**
 	 * Same as `return la(1) === values[0] && la(2) === values[1]...`
 	 * @param values lookahead string or tokens
 	 */
-  async isNext(...values: T[]): Promise<boolean> {
-    return this._isNext<T>(values);
-  }
-
-  async _isNext<C>(values: C[], isEqual = (a: T, b: C) => a as any === b): Promise<boolean> {
+  async isNextWith<C>(values: C[], isEqual = (a: T, b: C) => a as any === b): Promise<boolean> {
     let compareTo: C[]| string;
     let compareFn: (...arg: any[]) => boolean;
-    // if (this.isString) {
-    //   compareTo = values.join('');
-    //   compareFn = (a: string, b: string) => a === b;
-    // } else {
     compareTo = values;
     compareFn = isEqual;
-    // }
     let i = 0;
     const l = compareTo.length;
-    let next = await this.la(i + 1);
     while (true) {
       if (i === l)
         return true;
-      next = await this.la(i + 1);
+      const next = await this.la(i + 1);
       if (next == null)
         return false; // EOF
       else if (!compareFn(next, compareTo[i]))
@@ -234,9 +228,34 @@ export class LookAhead<T, TT = any> {
     }
   }
 
-  throwError(unexpected = 'End-of-stream', stack?: any) {
+  assertAdvance(...values: T[]) {
+    return this.assertAdvanceWith(values);
+  }
+
+  async assertAdvanceWith<C>(values: C[], isEqual = (a: T, b: C) => a as any === b) {
+    let compareTo: C[]| string;
+    let compareFn: (...arg: any[]) => boolean;
+    compareTo = values;
+    compareFn = isEqual;
+    let i = 0;
+    const l = compareTo.length;
+    while (true) {
+      if (i === l)
+        return true;
+      const next = await this.advance(i + 1);
+      if (next == null)
+        this.throwError('EOF', new Error().stack); // EOF
+      else if (!compareFn(next, compareTo[i]))
+        this.throwError(util.inspect(next), new Error().stack, compareTo[i] + '');
+      i++;
+    }
+  }
+
+  throwError(unexpected = 'End-of-stream', stack?: any, expect?: string) {
     // tslint:disable-next-line: max-line-length
-    throw new Error(`In ${this.name} unexpected ${JSON.stringify(unexpected)} at ${this.getCurrentPosInfo()}, ${stack ? 'previous stack:' + stack : ''}`);
+    throw new Error(`In ${this.name} unexpected ${JSON.stringify(unexpected)}`+
+    (expect ? `(expecting "${expect}")` : '') +
+    `at ${this.getCurrentPosInfo()}, ${stack ? 'previous stack:' + stack : ''}`);
   }
 
   getCurrentPosInfo(): string {
