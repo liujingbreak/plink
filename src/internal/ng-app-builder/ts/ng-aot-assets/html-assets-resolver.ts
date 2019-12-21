@@ -124,11 +124,8 @@ class AttrAssetsUrlResolver {
       return of(src);
     if (src.charAt(0) === '/')
       return of(src);
-    if (src.charAt(0) === '~') {
-      src = src.substring(1);
-    } else if (src.startsWith('npm://')) {
-      src = src.substring('npm://'.length);
-    } else if (src.charAt(0) !== '.' && src.trim().length > 0 && src.indexOf('{') < 0)
+
+    if ((!src.startsWith('npm://')) && src.charAt(0) !== '~' && src.charAt(0) !== '.' && src.trim().length > 0 && src.indexOf('{') < 0)
       src = './' + src;
 
     return this.callback(src);
