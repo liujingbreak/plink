@@ -2,7 +2,10 @@ import Query from './utils/ts-ast-query';
 import fs from 'fs';
 import ts from 'typescript';
 import Path from 'path';
+import api from '__api';
+const log = require('log4js').getLogger(api.packageName + '.ts-deps');
 
+const rootPath = Path.resolve();
 export default class TsDependencyGraph {
   // unresolved: Array<{module: string, srcFile: string}> = [];
   walked = new Set<string>();
@@ -47,6 +50,7 @@ export default class TsDependencyGraph {
       if (resolved) {
         const dep = resolved.resolvedFileName;
         if (dep.endsWith('.ts') && !dep.endsWith('.d.ts') && !this.walked.has(dep)) {
+          log.debug('dep: ' + Path.relative(rootPath, dep) + ',\n  from ' + Path.relative(rootPath, file));
           this.walked.add(dep);
           this.toWalk.push(dep);
         }
