@@ -4,12 +4,13 @@
  */
 import * as fetchImap from '../fetch-remote-imap';
 import Path from 'path';
+const log = require('log4js').getLogger('fetch-remote-imapSpec');
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 5 * 60 * 1000;
 
 describe('fetch-remote-imap', () => {
 
-  it('can connect to server', async () => {
+  xit('can connect to server', async () => {
     fetchImap.connectImap(async () => {
       // await context.waitForReply('');
     });
@@ -22,21 +23,23 @@ describe('fetch-remote-imap', () => {
     );
   });
 
-  xit('can recieve mail', async () => {
-    const appName = 'bcl';
+  it('can recieve mail', async () => {
     await fetchImap.connectImap(async context => {
-      const foundIdx = await context.findMail(context.lastIndex, `build artifact: ${appName}:`);
+      const foundIdx = await context.findMail(context.lastIndex, 'build artifact:bkjk-pre-build(test-admin)');
       if (foundIdx == null)
-        throw new Error(`Can not find mail for "${appName}"`);
+        throw new Error('Can not find the mail');
+      log.info('--- find mail index ---', foundIdx);
+      // const foundIdx = 8;
       const targetMail = await context.waitForFetch(foundIdx, false);
       console.log(targetMail);
+      log.info('can recieve mail - done');
     });
   });
 
   xit('can recieve mail only with text body', async () => {
     const appName = 'Hellow world';
     await fetchImap.connectImap(async context => {
-      const foundIdx = await context.findMail(context.lastIndex, `build artifact: ${appName}:`);
+      const foundIdx = await context.findMail(context.lastIndex, `build artifact:bkjk-pre-build(test-${appName})`);
       if (foundIdx == null)
         throw new Error(`Can not find mail for "${appName}"`);
       const text = await context.waitForFetchText(foundIdx);

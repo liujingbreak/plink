@@ -111,39 +111,79 @@ export function mapChunks<I, T>(
   };
 }
 
+interface LookAheadState<T, TT> {
+  line: number;
+  column: number;
+  currPos: number;
+  cacheStartPos: number;
+  currChunk: Chunk<T, TT>;
+}
 export class LookAhead<T, TT = any> {
+  static WAIT_ERROR: 'WAIT_ERROR';
   cached: Array<T|null>;
-  lastConsumed: T|undefined|null;
-  // isString: boolean;
   line = 1;
   column = 1;
-  protected currPos = 0;
-  private cacheStartPos = 0; // Currently is always same as currPos
-  private readResolve: (value: T | null) => void | undefined;
+  lastConsumed: T;
+  private currPos = 0;
+  private cacheStartPos = 0;
+  private readResolve: () => void | undefined;
   private waitForPos: number | undefined;
   private currChunk: Chunk<T, TT>;
+
+  private savedState: LookAheadState<T, TT> = {} as LookAheadState<T, TT>;
 
   constructor(protected name: string) {
     this.cached = [];
   }
 
+  // _retryOnRefuel<R>(parseCb: (ctx: LookAhead<T, TT>) => R): R | Promise<R> {
+  //   this.saveState();
+  //   try {
+  //     return parseCb(this);
+  //   } catch (e) {
+  //     if (e.message === LookAhead.WAIT_ERROR) {
+  //       return new Promise(resolve => {
+  //         this.readResolve = resolve;
+  //         this.restoreState();
+  //       }).then(() => {
+  //         return this.retryOnRefuel(parseCb);
+  //       }).catch(e => {
 
-  // _writeBuf(buf: Uint8Array) {
-  //   this.cached = this.cached.concat(Array.from(buf));
+  //       });
+  //     }
+  //     throw e;
+  //   }
   // }
+
+  async retryOnRefuel<R>(parseCb: (ctx: LookAhead<T, TT>) => R): Promise<R> {
+    while (true) {
+      this.saveState();
+      try {
+        const res = await Promise.resolve(parseCb(this));
+        return res;
+      } catch (e) {
+        if (e.code === 'WAIT') {
+          this.restoreState();
+          await new Promise(resolve => {
+            this.readResolve = resolve;
+          });
+        } else {
+          throw e;
+        }
+      }
+    }
+  }
 
   _write(values: Iterable<T|null>) {
     for (const v of values)
       this.cached.push(v);
-    // console.log('_writeAndResolve resolve ', this.cached.length);
 
     if (this.readResolve != null) {
       const resolve = this.readResolve;
-      const cacheOffset = this.waitForPos! - this.cacheStartPos;
-      if (cacheOffset < this.cached.length) {
+      if (this.waitForPos! < this.cacheStartPos + this.cached.length) {
         delete this.readResolve;
         delete this.waitForPos;
-        resolve(this.cached[cacheOffset]);
+        resolve();
       }
     }
   }
@@ -161,23 +201,17 @@ export class LookAhead<T, TT = any> {
 	 * @param num default is 1
 	 * @return null if EOF is reached
 	 */
-  la(num = 1): Promise<T | null> {
+  la(num = 1): T | null {
     const readPos = this.currPos + num - 1;
     return this.read(readPos);
   }
 
-  // lb(num = 1): T | null {
-  //   const pos = this.currPos - (num - 1);
-  //   if (pos < 0)
-  //     return null;
-  //   return this.read(pos);
-  // }
-
-  async advance(count = 1): Promise<T> {
+  advance(count = 1): T {
+    // return new Promise(resolve => {
     let currValue: T;
     let i = 0;
     while (i++ < count) {
-      const value = await this.la(1);
+      const value = this.la(1);
       if (value == null) {
         this.throwError('Unexpect EOF'); // , stack);
         break;
@@ -208,7 +242,7 @@ export class LookAhead<T, TT = any> {
 	 * Same as `return la(1) === values[0] && la(2) === values[1]...`
 	 * @param values lookahead string or tokens
 	 */
-  async isNextWith<C>(values: C[], isEqual = (a: T, b: C) => a as any === b): Promise<boolean> {
+  isNextWith<C>(values: C[], isEqual = (a: T, b: C) => a as any === b): boolean {
     let compareTo: C[]| string;
     let compareFn: (...arg: any[]) => boolean;
     compareTo = values;
@@ -218,7 +252,7 @@ export class LookAhead<T, TT = any> {
     while (true) {
       if (i === l)
         return true;
-      const next = await this.la(i + 1);
+      const next = this.la(i + 1);
       if (next == null)
         return false; // EOF
       else if (!compareFn(next, compareTo[i]))
@@ -245,7 +279,7 @@ export class LookAhead<T, TT = any> {
       if (next == null)
         this.throwError('EOF', new Error().stack); // EOF
       else if (!compareFn(next, compareTo[i]))
-        this.throwError(util.inspect(next), new Error().stack, compareTo.join(','));
+        this.throwError(util.inspect(next), new Error().stack, compareTo[i] + '');
       i++;
     }
   }
@@ -274,23 +308,49 @@ export class LookAhead<T, TT = any> {
     return this.currChunk.close(this.currPos);
   }
 
+  private saveState() {
+    this.savedState.line = this.line;
+    this.savedState.column = this.column;
+    this.savedState.currPos = this.currPos;
+    this.savedState.currChunk = this.currChunk;
+    this.savedState.cacheStartPos = this.cacheStartPos;
+  }
+
+  private restoreState() {
+    this.line = this.savedState.line;
+    this.column = this.savedState.column;
+    this.currPos = this.savedState.currPos;
+    this.currChunk = this.savedState.currChunk;
+    this.cacheStartPos = this.savedState.cacheStartPos;
+  }
+
   /**
 	 * Do not read postion less than 0
 	 * @param pos 
 	 */
-  protected read(pos: number): Promise<T | null> {
+  private read(pos: number): T | null {
     const cacheOffset = pos - this.cacheStartPos;
     if (cacheOffset < 0) {
       throw new Error(`Can not read behind stream cache, at position: ${pos}`);
     }
     if (cacheOffset < this.cached.length) {
-      return Promise.resolve(this.cached[cacheOffset]);
+      return this.cached[cacheOffset];
     } else {
       this.waitForPos = pos;
-      return new Promise(resolve => {
-        this.readResolve = resolve;
-      });
+      const err = new WaitError();
+      throw err;
+      // return new Promise(resolve => {
+      //   this.readResolve = resolve;
+      // });
     }
+  }
+}
+
+class WaitError extends Error {
+  code = 'WAIT';
+
+  constructor() {
+    super();
   }
 }
 

@@ -14,11 +14,12 @@ import Path from 'path';
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
 
-describe('async-LLn-parser', () => {
+describe('LLn-parser', () => {
   it('json-parser', async () => {
     const str = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/test.json'), {encoding: 'utf8'});
     const reader = fs.createReadStream(Path.resolve(__dirname, '../../ts/spec/test.json'), {encoding: 'utf8'});
     const ast = await parseJson(reader, token => {
+      // console.log('token: ', token.text);
       expect(str.slice(token.pos, token.end)).toBe(token.text);
     });
     console.log('AST:', JSON.stringify(ast, null, '  '));

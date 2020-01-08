@@ -1,11 +1,12 @@
 
 import { ParseGrammar, ParseLex, Token,
   mapChunks, mapChunksObs, LookAheadObservable } from 'dr-comp-package/wfh/dist/async-LLn-parser';
-import {Readable} from 'stream';
 import {Subject, queueScheduler, from} from 'rxjs';
 import {observeOn, map, share} from 'rxjs/operators';
 import _ from 'lodash';
-import util from 'util';
+import fs from 'fs-extra';
+import Path from 'path';
+const log = require('log4js').getLogger('@dr-core/assets-processer.rfc822-parser');
 
 export enum RCF822TokenType {
   CRLF,
@@ -14,10 +15,11 @@ export enum RCF822TokenType {
   quoteStr,
   ATOM,
   BOUNDARY,
-  PART_BODY
+  PART_BODY,
+  DOUBLE_DASH
 }
 
-interface PartBodyToken {
+interface PartBodyToken extends Token<RCF822TokenType> {
   data: Buffer;
 }
 
@@ -30,27 +32,40 @@ const COLON_MARK = ':'.charCodeAt(0);
 const SEMI_COL = ';'.charCodeAt(0);
 const WS = ' '.charCodeAt(0);
 const TAB = '\t'.charCodeAt(0);
+const DASH = '-'.charCodeAt(0);
 // const DASH = '-'.charCodeAt(0);
+
+const TEMP_DIR = 'dist/assets-processer/rfc822';
+export interface RCF822ParseResult {
+  headers: RCF822HeaderType[];
+  parts: {
+    headers: RCF822HeaderType[];
+    body?: Buffer;
+    file?: string;
+  }[];
+}
+
+export interface RCF822HeaderType {
+  key: string;
+  value: string[];
+}
 
 class RfcParserContext {
   private boundary: number[] | undefined;
 
   private multipartStarted = false;
 
-  setBoundary(str: string) {
-    const chrs: number[] = new Array(str.length);
-
-    for (let i = 0, l = str.length; i < l; i++) {
-      chrs[i] = str.charCodeAt(i);
-    }
-    this.boundary = chrs;
+  constructor(private origBuffer: ArrayBuffer) {
   }
+
+
 
   parseLexer: ParseLex<number, RCF822TokenType> = async (la) => {
     let chrCode = await la.la();
     while (chrCode != null) {
       const chr = String.fromCharCode(chrCode);
       if (this.multipartStarted && await la.isNext(CR, LF, CR, LF)) {
+        // part header must be over
         la.startToken(RCF822TokenType.CRLF);
         await la.advance(2);
         la.emitToken();
@@ -58,14 +73,19 @@ class RfcParserContext {
         la.startToken(RCF822TokenType.CRLF);
         await la.advance(2);
         la.emitToken();
+        await this.parsePartBodyToken(la);
 
-        await this.parsePart(la);
-        // console.log('>>>>>>>>>>>>>>>>>>>>', Buffer.from(arr).toString('utf8'));
+      } else if (this.multipartStarted && await la.isNext(DASH, DASH)) {
+        la.startToken(RCF822TokenType.DOUBLE_DASH);
+        await la.advance(2); // end of whole message
+        la.emitToken();
+        break;
       } else if (this.boundary && await la.isNext(...this.boundary)) {
         la.startToken(RCF822TokenType.BOUNDARY);
         await la.advance(this.boundary.length);
         la.emitToken();
         this.multipartStarted = true;
+        // console.log('multipartStarted true');
       } else if (await la.isNext(CR, LF)) {
         la.startToken(RCF822TokenType.CRLF);
         await la.advance(2);
@@ -90,26 +110,73 @@ class RfcParserContext {
     }
   }
 
-  async parsePart(la: LookAheadObservable<number, RCF822TokenType>) {
-    const arr: number[] = [];
-    const tk = la.startToken(RCF822TokenType.PART_BODY);
-    tk.trackValue = false;
-    while ((await la.la()) != null) {
-      if (await la.isNext(CR, LF, CR, LF, ...this.boundary!)) {
-        la.emitToken();
-        this.multipartStarted = false;
-        (tk as unknown as PartBodyToken).data = Buffer.from(arr);
-        // await la.advance(4 + this.boundary!.length);
+  parseGrammar: ParseGrammar<RCF822ParseResult, RCF822TokenType> = async (la) => {
+    let result: RCF822ParseResult = {
+      headers: await this.parseHeaders(la),
+      parts: []
+    };
+
+    // console.log('boundary:', String.fromCharCode(...this.boundary!));
+
+    let tk = await la.la();
+    while (tk != null) {
+      // console.log('tk:', tk.text);
+      await la.assertAdvanceWith([RCF822TokenType.BOUNDARY], compareTokenType);
+      if ((await la.la())!.type === RCF822TokenType.DOUBLE_DASH) {
         break;
       }
-      arr.push(await la.advance());
+      const partHeaders = await this.parseHeaders(la);
+      const partBody = await la.advance() as PartBodyToken;
+      await la.assertAdvanceWith([RCF822TokenType.CRLF], compareTokenType);
+
+      this.onParseEachPart(result, partHeaders, partBody);
+      // console.log('rfc token: ' + RCF822TokenType[(await la.advance()).type]);
+      tk = await la.la();
     }
+    return result as RCF822ParseResult;
   }
 
-  async parseHeaders(la: Parameters<RfcParserContext['parseGrammar']>[0]) {
+  private onParseEachPart(result: RCF822ParseResult,
+    partHeaders: RCF822ParseResult['headers'],
+    partBody: PartBodyToken) {
+    const encodingHeader = partHeaders.find(header => header.key === 'Content-Transfer-Encoding');
+    const isBase64 = encodingHeader && encodingHeader.value[0] === 'base64';
+
+    if (isBase64) {
+      partBody.data = Buffer.from(partBody.data.toString(), 'base64');
+    }
+    const attachmentHeader = partHeaders.find(header => header.key === 'Content-Disposition');
+    let attachmentName: string | undefined;
+
+    if (attachmentHeader && attachmentHeader.value[0] === 'attachment') {
+      const m = /^([^=]*)=["]?([^"]*)["]?$/.exec(attachmentHeader.value[1]);
+      if (m && m[1] === 'filename') {
+        attachmentName = Path.resolve(TEMP_DIR, m[2]);
+        fs.mkdirpSync(TEMP_DIR);
+        fs.writeFileSync(attachmentName, partBody.data);
+        log.info(attachmentName + ' is written');
+      }
+    }
+
+    result.parts.push({
+      headers: partHeaders,
+      body: attachmentName ? undefined : partBody.data,
+      file: attachmentName ? attachmentName : undefined
+    });
+  }
+
+  private setBoundary(str: string) {
+    const chrs: number[] = new Array(str.length);
+
+    for (let i = 0, l = str.length; i < l; i++) {
+      chrs[i] = str.charCodeAt(i);
+    }
+    this.boundary = chrs;
+  }
+
+  private async parseHeaders(la: Parameters<RfcParserContext['parseGrammar']>[0]) {
     const headers: {key: string, value: string[]}[] = [];
     let nextTk = await la.la();
-
 
     while (nextTk != null) {
       if (nextTk.type === RCF822TokenType.ATOM && (await la.la(2)) && (await la.la(2))!.type === RCF822TokenType[':']) {
@@ -138,7 +205,7 @@ class RfcParserContext {
           let boundary: string | undefined;
           for (const valueItem of value.slice(1)) {
             const m = /^([^=]*)=["]?([^"]*)["]?$/.exec(valueItem);
-            if (m) {
+            if (m && m[1] === 'boundary') {
               boundary = m[2];
               break;
             }
@@ -162,33 +229,35 @@ class RfcParserContext {
     return headers;
   }
 
-  parseGrammar: ParseGrammar<void, RCF822TokenType> = async (la) => {
-    await this.parseHeaders(la);
-    // console.log('headers', headers);
-    // https://tools.ietf.org/html/rfc2387
-    let tk = await la.la();
-    while (tk != null) {
-      if (tk.type === RCF822TokenType.BOUNDARY) {
-        await la.advance();
-        if (await la.isNextWith([RCF822TokenType.CRLF], compareTokenType)) {
-          const partHeaders = await this.parseHeaders(la);
-          // tslint:disable-next-line: no-console
-          console.log(partHeaders);
-        } else {
-          await la.assertAdvanceWith(['--'], (tk, a) => tk.text === a);
-          break;
-        }
-      } else if (tk.type === RCF822TokenType.PART_BODY) {
-        // tslint:disable-next-line: no-console
-        console.log((tk as unknown as PartBodyToken).data.toString('utf-8'));
-        await la.advance();
-      } else {
-        await la.assertAdvanceWith([RCF822TokenType.CRLF], compareTokenType);
-      }
-      tk = await la.la();
-    }
+  /**
+   * Generate tokens: PART_BODY CRLF BOUNDARY
+   * @param la 
+   */
+  private async parsePartBodyToken(la: LookAheadObservable<number, RCF822TokenType>) {
+    const tk = la.startToken(RCF822TokenType.PART_BODY);
+    tk.trackValue = false;
+    const origBufferOffset = la.position;
 
+    while ((await la.la()) != null) {
+
+      if (await la.isNext(CR, LF, ...this.boundary!)) {
+        (tk as unknown as PartBodyToken).data = Buffer.from(this.origBuffer, origBufferOffset, la.position - origBufferOffset);
+
+        la.emitToken();
+
+        la.startToken(RCF822TokenType.CRLF);
+        await la.advance(2);
+        la.emitToken();
+
+        la.startToken(RCF822TokenType.BOUNDARY);
+        await la.advance(this.boundary!.length);
+        la.emitToken();
+        break;
+      }
+      await la.advance();
+    }
   }
+
 }
 
 async function quoteStr(la: LookAheadObservable<number, RCF822TokenType>) {
@@ -276,16 +345,17 @@ function compareTokenType<T>(tk: Token<T>, type: T) {
 }
 
 
-export async function parse(readable: Readable | Buffer) {
+export function parse(readable: Buffer) {
   const input = new Subject<Uint8Array>();
 
-  const pctx = new RfcParserContext();
+  const pctx = new RfcParserContext(readable.buffer);
 
   const done = input.pipe(
     observeOn(queueScheduler),
     mapChunks<number, RCF822TokenType>('RCF822-lexer', (la, sub) => pctx.parseLexer(la, sub)),
     map(chunk => {
-      (chunk as Token<RCF822TokenType>).text = Buffer.from(Uint8Array.from(chunk.values!)).toString();
+      if (chunk.values)
+        (chunk as Token<RCF822TokenType>).text = Buffer.from(Uint8Array.from(chunk.values!)).toString();
       // if (chunk.type === RCF822TokenType.ATOM)
       // (chunk as Token<RCF822TokenType>).text = chunk.values!.join();
       delete chunk.values;
@@ -302,5 +372,5 @@ export async function parse(readable: Readable | Buffer) {
   } else {
     // TODO:
   }
-  await done;
+  return done;
 }

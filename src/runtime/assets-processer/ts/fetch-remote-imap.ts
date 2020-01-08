@@ -11,7 +11,8 @@ import {Checksum, WithMailServerConfig} from './fetch-types';
 import {createServerDataHandler, parseLinesOfTokens, ImapTokenType, StringLit} from './mail/imap-msg-parser';
 import api from '__api';
 import { LookAhead, Token } from 'dr-comp-package/wfh/dist/async-LLn-parser';
-import {parse as parseRfc822} from './mail/rfc822-parser';
+import {parse as parseRfc822, RCF822ParseResult} from './mail/rfc822-parser';
+
 // import {Socket} from 'net';
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote-imap');
 
@@ -79,21 +80,10 @@ export async function retrySendMail(subject: string, text: string, file?: string
   }
 }
 
-// enum FetchState {
-//   start = 0,
-//   headers,
-//   headersEnd,
-//   textHeaders,
-//   textBody,
-//   attachmentHeaders,
-//   attachementBody,
-//   end
-// }
-
 export interface ImapFetchData {
   headers: {[key: string]: string[] | undefined};
-  textBody?: string;
-  fileName?: string;
+  texts: string[];
+  files: string[];
 }
 
 export interface ImapCommandContext {
@@ -102,7 +92,8 @@ export interface ImapCommandContext {
    */
   lastIndex: number;
   fileWritingState: Observable<boolean>;
-  waitForReply(command?: string, onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<any>): Promise<string[]|null>;
+  waitForReply<R = any>(command?: string,
+    onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<R>): Promise<R | null>;
   findMail(fromIndx: number, subject: string): Promise<number | undefined>;
   waitForFetch(mailIdx: string | number, headerOnly?: boolean, overrideFileName?: string): Promise<ImapFetchData>;
   waitForFetchText(index: number): Promise<string | undefined>;
@@ -149,7 +140,7 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
   const serverResHandler = createServerDataHandler();
   serverResHandler.output.pipe(
     tap(msg => {
-      if (msg != null) log.debug('  <- ' + msg.map(token => token.text).join(' '));
+      // if (msg != null) log.debug('  <- ' + msg.map(token => token.text).join(' '));
     })
   ).subscribe();
 
@@ -215,11 +206,12 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
     return body1;
   }
 
-  function waitForReply(command?: string, onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<any>) {
+  function waitForReply<R = any>(command?: string, onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<R>): Promise<R | null> {
     let tag: string;
     if (command)
       tag = 'a' + (cmdIdx++);
 
+    let result: R | null = null;
     const prom = parseLinesOfTokens(serverResHandler.output, async la => {
       const resTag = await la.la();
       if (!tag && resTag!.text === '*' || resTag!.text === tag) {
@@ -234,7 +226,7 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
         }
         return returnText;
       } else if (onLine) {
-        await onLine(la, tag);
+        result = await onLine(la, tag);
       }
     });
 
@@ -245,140 +237,47 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
       log.debug('=>', cmd);
     }
 
-    return prom;
+    return prom.then(() => result);
   }
 
   async function waitForFetch(mailIdx: string | number = '*', headerOnly = true, overrideFileName?: string): Promise<ImapFetchData> {
-    // let state: FetchState = FetchState.start;
-    let headers: {
-      subject?: string[];
-      'content-type'?: string[];
-      [key: string]: string[] | undefined;
-    } = {};
-    // let lastHeaderName: string;
-    // let boundary: string;
-    let textBody: string = '';
-    let fileName: string;
-    // let fileWriter: fs.WriteStream;
-    // let attachementFile: string;
-
     const originLogEnabled = logEnabled;
     logEnabled = headerOnly;
-    await waitForReply(`FETCH ${mailIdx} RFC822${headerOnly ? '.HEADER' : ''}`, async (la) => {
+    const result = await waitForReply(`FETCH ${mailIdx} RFC822${headerOnly ? '.HEADER' : ''}`, async (la) => {
+      let msg: RCF822ParseResult | undefined;
       while ((await la.la()) != null) {
         const tk = await la.advance();
         if (tk.type !== ImapTokenType.stringLit) {
-          log.warn(tk.text);
+          // log.debug(tk.text);
         } else {
-          // log.warn('string literal:\n', (tk as any as StringLit).data.toString('utf8'));
-          // parseRfc822((tk as any as StringLit).data);
+          // log.debug('string literal:\n', (tk as unknown as StringLit).data.byteLength);
+          // const writtenFile = `email-${new Date().getTime()}.txt`;
+          // fs.writeFileSync(writtenFile, (tk as unknown as StringLit).data, 'utf8');
+          // log.debug(`writen to ${writtenFile}`);
+          msg = await parseRfc822((tk as StringLit).data);
         }
       }
-      // switch (state) {
-      //   case FetchState.start:
-      //     if (/^\*\s+[0-9]+\s+FETCH\s+/.test(line)) {
-      //       state = FetchState.headers;
-      //     }
-      //     break;
-      //   case FetchState.headers:
-      //     if (/^\s/.test(line)) {
-      //       const items = headers[lastHeaderName]!;
-      //       items.push(...line.split(';').map(item => item.trim()).filter(item => item.length > 0));
-      //       break;
-      //     }
-      //     if (line.length === 0) {
-      //       state = FetchState.headersEnd;
-
-      //       const normalizedHeaders: typeof headers = {};
-      //       Object.keys(headers).forEach(key => normalizedHeaders[key.toLowerCase()] = headers[key]);
-      //       headers = normalizedHeaders;
-
-      //       const contentType = headers['content-type'];
-      //       if (!contentType) {
-      //         throw new Error(`missing Content-Type in headers: ${JSON.stringify(headers, null, '  ')}`);
-      //       }
-      //       // https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
-      //       if (contentType[0] !== 'multipart/mixed') {
-      //         return Promise.resolve('No support for content-type: ' + contentType[0]);
-      //       }
-      //       boundary = contentType.find(item => item.startsWith('boundary='))!;
-      //       boundary = '--' + /^["']?(.*?)["']?$/.exec(boundary.slice('boundary='.length))![1];
-      //       break;
-      //     }
-      //     const m = /^([^:]+)\:(.*)$/.exec(line);
-      //     if (m) {
-      //       headers[m[1]] = m[2].split(';').map(item => item.trim()).filter(item => item.length > 0);
-      //       lastHeaderName = m[1];
-      //     }
-      //     break;
-      //   case FetchState.headersEnd:
-      //     if (line === boundary) {
-      //       state = FetchState.textHeaders;
-      //     }
-      //     break;
-      //   case FetchState.textHeaders:
-      //     if (line.length === 0)
-      //       state = FetchState.textBody;
-      //     break;
-      //   case FetchState.textBody:
-      //     if (line === boundary) {
-      //       textBody = textBody.slice(0, textBody.length - 1);
-      //       state = FetchState.attachmentHeaders;
-      //       break;
-      //     }
-      //     textBody += line + '\n';
-      //     break;
-      //   case FetchState.attachmentHeaders:
-      //     if (line.length === 0) {
-      //       state = FetchState.attachementBody;
-      //       break;
-      //     }
-      //     if (!fileName) {
-      //       const found = /filename=["' ]?([^'" ]+)["' ]?$/.exec(line);
-      //       if (found)
-      //         fileName = found[1];
-      //     }
-      //     break;
-      //   case FetchState.attachementBody:
-      //     if (line.indexOf(boundary) >=0 ) {
-      //       state = FetchState.end;
-      //       if (fileWriter) {
-      //         fileWriter.end(() => {
-      //           log.info('file end done:', attachementFile);
-      //           fileWritingState.getValue().delete(attachementFile);
-      //           fileWritingState.next(fileWritingState.getValue());
-      //         });
-      //       }
-      //       break;
-      //     }
-      //     if (!fileWriter) {
-      //       attachementFile = overrideFileName || Path.resolve('dist/' + fileName);
-      //       fs.mkdirpSync(Path.dirname(attachementFile));
-      //       fileWriter = fs.createWriteStream(attachementFile);
-      //       fileWritingState.getValue().add(attachementFile);
-      //       fileWritingState.next(fileWritingState.getValue());
-      //       log.info('Create attachement file: ', attachementFile);
-      //     }
-      //     // log.warn('boundary', boundary);
-      //     // TODO: wait for drained
-      //     fileWriter.write(Buffer.from(line, 'base64'));
-      //   default:
-      // }
-      return Promise.resolve(0);
+      return {
+        headers: msg ? msg.headers.reduce((prev, curr) => {
+          prev[curr.key.toLowerCase()] = curr.value;
+          return prev;
+        }, {} as ImapFetchData['headers']) : {},
+        texts: msg ? msg.parts.filter(part => part.body != null).map(part => part.body!.toString()) : [],
+        files: msg ? msg.parts.filter(part => part.file != null).map(part => part.file!) : []
+      } as ImapFetchData;
     });
     logEnabled = originLogEnabled;
 
-    return {
-      headers,
-      textBody,
-      fileName: fileName!
-    };
+    return result!;
   }
 
   async function findMail(fromIndx: number, subject: string): Promise<number | undefined> {
     log.info('findMail', fromIndx, subject);
     while (fromIndx > 0) {
       const res = await waitForFetch(fromIndx);
+      if (res.headers.subject) {
+        log.debug(res.headers.subject);
+      }
       if (res.headers.subject && res.headers.subject[0].indexOf(subject) >= 0)
         return fromIndx;
       fromIndx--;

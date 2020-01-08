@@ -2,9 +2,9 @@ import { ParseGrammar, ParseLex, Token, LookAhead, mapChunks, mapChunksObs } fro
 import { Subject, Observable, queueScheduler, from } from 'rxjs';
 import {observeOn, map, takeWhile, concatMap, takeLast, share} from 'rxjs/operators';
 import { connect as tslConnect, ConnectionOptions, TLSSocket } from 'tls';
-import fs from 'fs';
+// import fs from 'fs';
 
-let fileWritingIdx = 1;
+// let fileWritingIdx = 1;
 // import {Subscriber} from 'rxjs';
 
 export enum ImapTokenType {
@@ -18,7 +18,7 @@ export enum ImapTokenType {
   // nil
 }
 
-export interface StringLit {
+export interface StringLit extends Token<ImapTokenType.stringLit> {
   data: Buffer;
 }
 
@@ -28,6 +28,12 @@ const CR = '\r'.charCodeAt(0);
 const LF = '\n'.charCodeAt(0);
 
 const parseLex: ParseLex<number, ImapTokenType> = async function(reply, sub) {
+  // const origWrite = reply._writeAndResolve;
+  // reply._writeAndResolve = function(bytes) {
+  //   fs.writeFileSync('imap-msg-parser.parseLex.log.txt', Buffer.from(Array.from(bytes)).toString('utf8'), {flag: 'a'});
+  //   origWrite.apply(this, arguments);
+  // };
+
   let nextByte =  await reply.la();
   while (nextByte != null) {
     const next = String.fromCharCode(nextByte);
@@ -121,9 +127,10 @@ async function parseLiteralString(reply: Parameters<ParseLex<number, ImapTokenTy
   }
 
   const numByte = parseInt(numStr, 10);
-  const buf = Buffer.alloc(numByte);  // console.log('numByte', numByte);
+  const buf = Buffer.alloc(numByte);
 
   let i = 0;
+  // console.time('stringlit');
   while (i < numByte) {
     next = await reply.la();
     if (next == null) {
@@ -133,9 +140,8 @@ async function parseLiteralString(reply: Parameters<ParseLex<number, ImapTokenTy
     buf.writeUInt8(char, i);
     i++;
   }
-  (chunk as unknown as StringLit).data = buf;
-  // console.log('parseLiteralString()', chunk);
-  fs.writeFile(`temp-${process.pid}-${fileWritingIdx++}.txt`, buf, () => {});
+  // console.timeEnd('stringlit');
+  (chunk as StringLit).data = buf;
   reply.emitToken();
 }
 
@@ -171,7 +177,7 @@ async function parseLines(lineSubject: Subject<Token<ImapTokenType>[]>, la: Look
 }
 
 export function createServerDataHandler(): {input: (buf: Buffer | null) =>void, output: Observable<Token<ImapTokenType>[]>} {
-  const input = new Subject<Uint8Array | null>();
+  const input = new Subject<Buffer | null>();
 
   const parseServerReply: ParseGrammar<Subject<Token<ImapTokenType>[]>, ImapTokenType> = async (la) => {
     const lineSubject = new Subject<Token<ImapTokenType>[]>();
@@ -184,8 +190,8 @@ export function createServerDataHandler(): {input: (buf: Buffer | null) =>void, 
 
   const output = input.pipe(
     observeOn(queueScheduler),
-    takeWhile<Uint8Array>(data => data != null),
-    // tap(data => console.log('##### input buffer length: ', data.length)),
+    takeWhile<Buffer>(data => data != null),
+    // tap(data => fs.writeFileSync('imap-msg-parser-log.txt', data.toString('utf8'), {flag: 'a'})),
     mapChunks(name + '-lexer', parseLex),
     map(chunk => {
       const buf = Buffer.from(Uint8Array.from(chunk.values!));
