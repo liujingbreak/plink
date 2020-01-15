@@ -217,6 +217,11 @@ class RfcParserContext {
 
       } else if (await la.isNextWith<RCF822TokenType>([RCF822TokenType.CRLF, RCF822TokenType.CRLF], compareTokenType)) {
         await la.advance(2);
+        let next = await la.la();
+        while (next && next.type === RCF822TokenType.CRLF) {
+          await la.advance();
+          next = await la.la();
+        }
         break;
       } else if (await la.isNextWith([RCF822TokenType.CRLF], compareTokenType)) {
         await la.advance();
@@ -346,6 +351,7 @@ function compareTokenType<T>(tk: Token<T>, type: T) {
 
 
 export function parse(readable: Buffer) {
+  // fs.writeFileSync('email-temp.txt', readable.toString('utf8'), 'utf8');
   const input = new Subject<Uint8Array>();
 
   const pctx = new RfcParserContext(readable.buffer);
@@ -356,8 +362,6 @@ export function parse(readable: Buffer) {
     map(chunk => {
       if (chunk.values)
         (chunk as Token<RCF822TokenType>).text = Buffer.from(Uint8Array.from(chunk.values!)).toString();
-      // if (chunk.type === RCF822TokenType.ATOM)
-      // (chunk as Token<RCF822TokenType>).text = chunk.values!.join();
       delete chunk.values;
       return [chunk as Token<RCF822TokenType>];
     }),

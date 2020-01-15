@@ -97,6 +97,7 @@ export interface ImapCommandContext {
   findMail(fromIndx: number, subject: string): Promise<number | undefined>;
   waitForFetch(mailIdx: string | number, headerOnly?: boolean, overrideFileName?: string): Promise<ImapFetchData>;
   waitForFetchText(index: number): Promise<string | undefined>;
+  appendMail(subject: string, content: string): Promise<void|null>;
 }
 
 /**
@@ -136,6 +137,20 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
     }),
     distinctUntilChanged()
   );
+
+  context.appendMail = (subject: string, content: string) => {
+    const mailBody = `Date: Mon, 7 Feb 2020 21:52:25 -0800 (PST)
+      From: Credit team build machine
+      Subject: ${subject}
+      To: Admininstrator
+      Message-Id: <B27397-0100000@Blurdybloop.COM>
+      MIME-Version: 1.0
+      Content-Type: TEXT/PLAIN; CHARSET=US-ASCII
+      
+      ${content}
+      `.replace(/^[ ]+/mg, '').replace(/\r/g, '').replace(/\n/g, '\r\n');
+    return waitForReply(`APPEND INBOX {${mailBody.length}}\r\n` + mailBody);
+  };
 
   const serverResHandler = createServerDataHandler();
   serverResHandler.output.pipe(
@@ -268,6 +283,10 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
     });
     logEnabled = originLogEnabled;
 
+    if (overrideFileName && result!.files[0]) {
+      fs.renameSync(result!.files[0], overrideFileName);
+    }
+
     return result!;
   }
 
@@ -361,6 +380,12 @@ export class ImapManager {
     if (fileWrittenProm)
       await fileWrittenProm;
     return appNames;
+  }
+
+  async appendMail(subject: string, content: string) {
+    await connectImap(async ctx => {
+      await ctx.appendMail(subject, content);
+    });
   }
 
   async startWatchMail(pollInterval = 60000) {

@@ -23,9 +23,15 @@ describe('fetch-remote-imap', () => {
     );
   });
 
-  it('can recieve mail', async () => {
+  it('can append mail by IMAP', async () => {
     await fetchImap.connectImap(async context => {
-      const foundIdx = await context.findMail(context.lastIndex, 'build artifact:bkjk-pre-build(test-admin)');
+      await context.appendMail('hellow world', 'test mail');
+    });
+  });
+
+  xit('can recieve mail', async () => {
+    await fetchImap.connectImap(async context => {
+      const foundIdx = await context.findMail(context.lastIndex, 'build artifact:bkjk-pre-build(prod-admin-bcl)');
       if (foundIdx == null)
         throw new Error('Can not find the mail');
       log.info('--- find mail index ---', foundIdx);

@@ -10,7 +10,7 @@ export declare enum ImapTokenType {
     atom = 6,
     CRLF = 7
 }
-export interface StringLit {
+export interface StringLit extends Token<ImapTokenType.stringLit> {
     data: Buffer;
 }
 export declare function createServerDataHandler(): {

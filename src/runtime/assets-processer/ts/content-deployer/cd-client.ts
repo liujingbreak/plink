@@ -18,6 +18,7 @@ export interface Options {
   version: number;
   numOfNode: number;
   numOfConc: number; // number of concurrent request
+  secret?: string;
 }
 
 export interface ServerMetaInfo {
@@ -100,7 +101,11 @@ enum SendState {
 }
 export function sendRequest(opt: Options, buffer?: Buffer): Promise<string> {
   const urlObj = Url.parse(opt.url, true);
-  const url = opt.url + `/${opt.appName}/${opt.version}`;
+  let url = opt.url + `/${opt.appName}/${opt.version}`;
+
+  if (opt.secret) {
+    url += '?whisper=' + encodeURIComponent(opt.secret);
+  }
   // const urlObj = new URL(opt.url);
   let sendState = SendState.ready;
 

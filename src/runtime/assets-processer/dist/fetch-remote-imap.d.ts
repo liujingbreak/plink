@@ -8,8 +8,8 @@ export interface ImapFetchData {
     headers: {
         [key: string]: string[] | undefined;
     };
-    textBody?: string;
-    fileName?: string;
+    texts: string[];
+    files: string[];
 }
 export interface ImapCommandContext {
     /**
@@ -17,10 +17,11 @@ export interface ImapCommandContext {
      */
     lastIndex: number;
     fileWritingState: Observable<boolean>;
-    waitForReply(command?: string, onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<any>): Promise<string[] | null>;
+    waitForReply<R = any>(command?: string, onLine?: (la: LookAhead<Token<ImapTokenType>>, tag: string) => Promise<R>): Promise<R | null>;
     findMail(fromIndx: number, subject: string): Promise<number | undefined>;
     waitForFetch(mailIdx: string | number, headerOnly?: boolean, overrideFileName?: string): Promise<ImapFetchData>;
     waitForFetchText(index: number): Promise<string | undefined>;
+    appendMail(subject: string, content: string): Promise<void | null>;
 }
 /**
  * IMAP specification
@@ -46,6 +47,7 @@ export declare class ImapManager {
      * @param excludeApp exclude app
      */
     fetchOtherZips(excludeApp?: string): Promise<string[]>;
+    appendMail(subject: string, content: string): Promise<void>;
     startWatchMail(pollInterval?: number): Promise<void>;
     checkMailForUpdate(): Promise<void>;
     fetchAppDuringWatchAction(...appNames: string[]): void;

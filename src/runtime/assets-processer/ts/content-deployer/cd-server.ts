@@ -8,6 +8,7 @@ import Path from 'path';
 import {ImapManager} from '../fetch-remote-imap';
 import fs from 'fs-extra';
 import _ from 'lodash';
+import api from '__api';
 const log = require('log4js').getLogger('@dr/assets-processer.cd-server');
 
 interface Pm2Packet {
@@ -19,6 +20,8 @@ interface Pm2Packet {
 interface Pm2Bus {
   on(event: 'process:msg', cb: (packet: Pm2Packet) => void): void;
 }
+
+const requireToken = api.config.get([api.packageName, 'requireToken'], false);
 
 export async function activate(app: Application, imap: ImapManager) {
   let fwriter: fs.WriteStream | undefined;
@@ -33,7 +36,15 @@ export async function activate(app: Application, imap: ImapManager) {
     initPm2();
   }
 
+  imap.appendMail(`server ${os.hostname} ${process.pid} activates`, new Date() + '');
+
   app.use('/_install/:app/:version', async (req, res) => {
+    if (requireToken && req.query.whisper !== generateToken()) {
+      res.header('Connection', 'close');
+      res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
+      req.socket.end();
+      res.connection.end();
+    }
     log.info(`${req.method} [${os.hostname}]app: ${req.params.app}, version: ${req.params.version}\n${util.inspect(req.headers)}`);
     const nVersion = parseInt(req.params.version, 10);
     const existing = checksum.versions![req.params.app];
@@ -100,6 +111,10 @@ export async function activate(app: Application, imap: ImapManager) {
     }
   });
 
+  app.get('/_time', (req, res) => {
+    res.send(generateToken());
+  });
+
   function onZipFileWritten() {
     if (isPm2 && !isMainProcess) {
       process.send!({
@@ -142,6 +157,12 @@ export async function activate(app: Application, imap: ImapManager) {
       }
     });
   }
-
 }
 
+export function generateToken() {
+  const date = new Date();
+  const token = date.getDate() + '' + date.getHours();
+  // tslint:disable-next-line: no-console
+  console.log(token);
+  return token;
+}

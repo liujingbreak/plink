@@ -7,6 +7,7 @@ export interface Options {
     version: number;
     numOfNode: number;
     numOfConc: number;
+    secret?: string;
 }
 export interface ServerMetaInfo {
     checksum: Checksum;

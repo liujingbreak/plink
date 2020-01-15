@@ -33,7 +33,7 @@ export function main() {
 
 async function mailDeployStaticRes() {
   console.log('Remote deploy (mail)...');
-  let {env, src, buildStaticOnly} = api.argv;
+  let {env, src} = api.argv;
   let appName: string | undefined;
   if (api.argv.appName) {
     appName = api.argv.appName;
@@ -52,18 +52,25 @@ async function mailDeployStaticRes() {
   const imap = new ImapManager(env, installDir);
 
   if (appName) {
-    const zipFile = await checkZipFile(src, installDir, appName);
-    await imap.sendFileAndUpdatedChecksum(appName, zipFile);
+    await checkZipFile(src, installDir, appName);
+    // await imap.sendFileAndUpdatedChecksum(appName, zipFile);
+    await imap.fetchUpdateCheckSum(appName);
   } else {
     await imap.fetchChecksum();
   }
 
-  if (buildStaticOnly === 'false') {
-    await imap.fetchOtherZips(appName);
-  }
+  // if (buildStaticOnly === 'false') {
+  //   await imap.fetchOtherZips(appName);
+  // }
 }
 
-async function checkZipFile(zipFileOrDir: string, installDir: string, appName: string) {
+/**
+ * Pack directory into zip file
+ * @param zipFileOrDir 
+ * @param installDir 
+ * @param appName 
+ */
+export async function checkZipFile(zipFileOrDir: string, installDir: string, appName: string) {
 
   zipFileOrDir = zipFileOrDir ? resolve(zipFileOrDir) : resolve(installDir, `${appName}.zip`);
 
@@ -99,7 +106,7 @@ async function checkZipFile(zipFileOrDir: string, installDir: string, appName: s
 }
 
 /**
- * drcp run ts/remote-deploy.ts#fetchAllZips --env test -c conf/remote-deploy-test.yaml
+ * drcp run assets-processer/ts/remote-deploy.ts#fetchAllZips --env test -c conf/remote-deploy-test.yaml
  */
 export async function fetchAllZips() {
   const env = api.argv.env;

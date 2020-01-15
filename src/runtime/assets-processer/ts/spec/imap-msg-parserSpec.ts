@@ -65,7 +65,7 @@ xdescribe('imap-msg-parser', () => {
 
 describe('rfc822-parser', () => {
   it('parse()', async () => {
-    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg.txt'));
+    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg-2.txt'));
     const result = await parse(buf);
 
     for (const part of result.parts) {
