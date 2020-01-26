@@ -1,4 +1,4 @@
-import { Observable, Subscriber, OperatorFunction } from 'rxjs';
+import { Observable, OperatorFunction, Subscriber } from 'rxjs';
 export declare class Chunk<V, T> {
     pos: number;
     line: number;
@@ -17,16 +17,16 @@ export declare class Token<T> extends Chunk<string, T> {
 /**
  * You can define a lexer as a function
  */
-export declare type ParseLex<I, T> = (la: LookAheadObservable<I, T>, sub: Subscriber<Chunk<I, T>>) => Promise<any>;
-export declare type ParseGrammar<A, T> = (la: LookAhead<Token<T>, T>) => Promise<A>;
+export declare type ParseLex<I, T> = (la: LookAheadObservable<I, T>, sub: Subscriber<Chunk<I, T>>) => void;
+export declare type ParseGrammar<A, T> = (la: LookAhead<Token<T>, T>) => A;
 /**
  * Parser
  * @param input string type
  * @param parseLex
  * @param parseGrammar
  */
-export declare function parser<I, A, T>(name: string, input: Observable<Iterable<I>>, parseLex: ParseLex<I, T>, pipeOperators: Iterable<OperatorFunction<Token<T>, Token<T>>> | null, parseGrammar: ParseGrammar<A, T>): Promise<A>;
-export declare function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => Observable<O>): (input: Observable<Iterable<I>>) => Observable<O>;
+export declare function parser<I, A, T>(name: string, input: Observable<Iterable<I>>, parseLex: ParseLex<I, T>, pipeOperators: Iterable<OperatorFunction<Token<T>, Token<T>>> | null, parseGrammar: ParseGrammar<A, T>): A | undefined;
+export declare function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => O): (input: Observable<Iterable<I>>) => Observable<O>;
 export declare function mapChunks<I, T>(name: string, parse: ParseLex<I, T>): (input: Observable<Iterable<I>>) => Observable<Chunk<I, T>>;
 export declare class LookAhead<T, TT = any> {
     protected name: string;

@@ -1,5 +1,5 @@
-import {Observable, Subscriber, from, OperatorFunction, queueScheduler} from 'rxjs';
-import {map, observeOn} from 'rxjs/operators';
+import { Observable, OperatorFunction, Subscriber } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import util from 'util';
 export class Chunk<V, T> {
   type: T;
@@ -25,8 +25,8 @@ export class Token<T> extends Chunk<string, T> {
 /**
  * You can define a lexer as a function
  */
-export type ParseLex<I, T> = (la: LookAheadObservable<I,T>, sub: Subscriber<Chunk<I, T>>) => Promise<any>;
-export type ParseGrammar<A, T> = (la: LookAhead<Token<T>, T>) => Promise<A>;
+export type ParseLex<I, T> = (la: LookAheadObservable<I,T>, sub: Subscriber<Chunk<I, T>>) => void;
+export type ParseGrammar<A, T> = (la: LookAhead<Token<T>, T>) => A;
 /**
  * Parser
  * @param input string type
@@ -39,14 +39,14 @@ export function parser<I, A, T>(
   parseLex: ParseLex<I, T>,
   pipeOperators: Iterable<OperatorFunction<Token<T>, Token<T>>> | null,
   parseGrammar: ParseGrammar<A, T>
-): Promise<A> {
+): A | undefined {
 
   const _parseGrammarObs = (la: LookAhead<Token<T>, T>) => {
-    return from(parseGrammar(la));
+    return parseGrammar(la);
   };
 
   let tokens = input.pipe(
-    observeOn(queueScheduler),
+    // observeOn(queueScheduler),
     mapChunks(name + '-lexer', parseLex),
     map(chunk => {
       (chunk as Token<T>).text = chunk.values!.join('');
@@ -59,13 +59,18 @@ export function parser<I, A, T>(
       tokens = tokens.pipe(operator);
   }
 
-  return tokens.pipe(
+  let result: A | undefined;
+  tokens.pipe(
     map(token => [token]),
-    mapChunksObs(name + '-parser', _parseGrammarObs)
-  ).toPromise();
+    mapChunksObs(name + '-parser', _parseGrammarObs),
+    tap(ast => {
+      result = ast;
+    })
+  ).subscribe();
+  return result;
 }
 
-export function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => Observable<O>):
+export function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => O):
 (input: Observable<Iterable<I>>)=> Observable<O> {
 
   return function(input: Observable<Iterable<I>>) {
@@ -73,13 +78,17 @@ export function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => Ob
       const la = new LookAhead<I>(name);
       input.subscribe(input => la._write(input),
         err => sub.error(err),
-        () => la._final()
+        () => {
+          la._final();
+        }
       );
-      parse(la).subscribe(
-        ouput => sub.next(ouput),
-        err => sub.error(err),
-        () => sub.complete()
-      );
+      try {
+        sub.next(parse(la));
+        sub.complete();
+      } catch (err) {
+        sub.error(err);
+      }
+
     });
   };
 }
@@ -92,21 +101,23 @@ export function mapChunks<I, T>(
   return function(input: Observable<Iterable<I>>) {
     return new Observable<Chunk<I, T>>(sub => {
       const la = new LookAhead<I, T>(name);
+
       input.subscribe(input => la._write(input),
         err => sub.error(err),
-        () => la._final()
+        () => {
+          la._final();
+          const la$ = la as LookAheadObservable<I, T>;
+          la$.startToken = la.startChunk;
+
+          la$.emitToken = function(this: LookAheadObservable<I, T>) {
+            const chunk = this.closeChunk();
+            sub.next(chunk);
+            return chunk;
+          };
+          parse(la$, sub);
+          sub.complete();
+        }
       );
-      const la$ = la as LookAheadObservable<I, T>;
-
-      la$.startToken = la.startChunk;
-
-      la$.emitToken = function(this: LookAheadObservable<I, T>) {
-        const chunk = this.closeChunk();
-        sub.next(chunk);
-        return chunk;
-      };
-      parse(la$, sub)
-      .then(() => sub.complete());
     });
   };
 }

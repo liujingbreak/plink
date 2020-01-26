@@ -248,7 +248,7 @@ export async function clean() {
 }
 
 function linkToRecipeFile(srcDir: string, recipeDir: string, onPkJsonFile: (filePath: string, recipeDir: string) => void) {
-  return gulp.src('')
+  return gulp.src('.')
     .pipe(findPackageJson(srcDir, true))
     .pipe(through.obj(function(file: any, enc: string, next: (...arg: any[]) => void) {
       log.debug('Found recipeDir %s: file: %s', recipeDir, file.path);

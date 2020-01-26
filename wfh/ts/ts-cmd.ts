@@ -10,7 +10,6 @@ const through = require('through2');
 const chokidar = require('chokidar');
 const merge = require('merge2');
 const sourcemaps = require('gulp-sourcemaps');
-// const mapSources = require('@gulp-sourcemaps/map-sources');
 const config = require('../lib/config');
 const SEP = Path.sep;
 

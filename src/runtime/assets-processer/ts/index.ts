@@ -13,6 +13,7 @@ import {fallbackIndexHtml, proxyToDevServer} from './index-html-route';
 import {activate as activateCd} from './content-deployer/cd-server';
 import {ImapManager} from './fetch-remote-imap';
 import {WithMailServerConfig} from './fetch-types';
+import serveIndex from 'serve-index';
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 const buildUtils = api.buildUtils;
@@ -45,6 +46,7 @@ export function activate() {
   var staticFolder = api.config.resolve('staticDir');
   log.debug('express static path: ' + staticFolder);
 
+
   var favicon = findFavicon();
   if (favicon)
     api.use(serverFavicon(favicon));
@@ -74,6 +76,14 @@ export function activate() {
   const staticHandler = createStaticRoute(staticFolder, maxAgeMap);
   api.use('/', staticHandler);
   api.use('/', createStaticRoute(api.config.resolve('dllDestDir'), maxAgeMap));
+
+  if (api.config.get([api.packageName, 'serveIndex'])) {
+    const stylesheet = Path.resolve(__dirname, '../serve-index.css');
+    api.use('/', serveIndex(staticFolder, {icons: true, stylesheet}));
+  } else {
+    log.info(`If you want to serve directory index page of static resource folder ${staticFolder}\n` +
+      ` start command with "--prop ${api.packageName}.serveIndex=true staticDir=<resource directory>`);
+  }
 
   fallbackIndexHtml();
   api.use('/', staticHandler); // Serve fallbacked request to index.html

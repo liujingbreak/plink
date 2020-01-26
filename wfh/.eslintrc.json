@@ -58,7 +58,7 @@
       "single"
     ],
     "no-undef": 2,
-    "no-unused-vars": [2, {
+    "no-unused-vars": [1, {
       "args": "none"
     }],
     "strict": 0,

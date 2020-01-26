@@ -74,7 +74,7 @@ DependencyHelper.prototype = {
 			cssPackageMap: entryPackage2css
 		};
 	},
-	_traverseDep: function(m, packagesDepMap, splitPackageDepMap, traveled, level, initial) {
+	_traverseDep(m, packagesDepMap, splitPackageDepMap, traveled, level, initial) {
 		for (let dep of m.dependencies) {
 			if (!dep.module || !dep.request)
 				continue;

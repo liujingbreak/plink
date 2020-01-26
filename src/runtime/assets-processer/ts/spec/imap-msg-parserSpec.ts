@@ -2,6 +2,7 @@
 
 import {createServerDataHandler, parseLinesOfTokens, ImapTokenType} from '../mail/imap-msg-parser';
 import {parse} from '../mail/rfc822-parser';
+import {parse as parseSync} from '../mail/rfc822-sync-parser';
 import fs from 'fs';
 import Path from 'path';
 
@@ -64,10 +65,21 @@ xdescribe('imap-msg-parser', () => {
 });
 
 describe('rfc822-parser', () => {
-  it('parse()', async () => {
+  xit('parse()', async () => {
     const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg-2.txt'));
+    console.time('async');
     const result = await parse(buf);
+    console.timeEnd('async');
+    for (const part of result.parts) {
+      console.log(part);
+    }
+  });
 
+  it('parse()', () => {
+    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg-2.txt'));
+    console.time('sync');
+    const result = parseSync(buf);
+    console.timeEnd('sync');
     for (const part of result.parts) {
       console.log(part);
     }

@@ -1,3 +1,4 @@
+/* eslint-disable valid-jsdoc */
 /* eslint max-lines: 1 */
 var api = require('__api');
 var fs = require('fs-extra');
@@ -302,7 +303,7 @@ function entryHtmlCssScopePlugin(moduleDep) {
 					depInfo = moduleDep.listCommonJsDepMap(compilation);
 				var initialScopes = depInfo.cssPackageMap.get(comp.longName);
 				if (initialScopes) {
-					for (let depComp of initialScopes) {
+					for (const depComp of initialScopes) {
 						let cls = _.get(depComp.longName, 'dr.cssScope');
 						html.addClass(_.isString(cls) ? cls : depComp.shortName.replace('.', '_'));
 					}

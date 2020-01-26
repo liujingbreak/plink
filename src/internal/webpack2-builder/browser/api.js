@@ -87,7 +87,7 @@ BrowserApi.prototype = {
 		return searchMap;
 	},
 
-	_joinUrl: function(url, url2, urlN) {
+	_joinUrl(url, url2, urlN) {
 		var joined = arguments[0];
 		for (var i = 1, l = arguments.length; i < l; i++) {
 			if (arguments[i] == null || arguments[i].length === 0)

@@ -38,7 +38,7 @@ module.exports = function(wconfig) {
 		// Insert chunks
 		var entryHtmlPlugin = _.find(wconfig.plugins, plugin => plugin instanceof mutilEntryHtmlPlugin);
 		var promises = [];
-		for (let fname of refDll) {
+		for (const fname of refDll) {
 			let libPath = /^(.*?)(?:\.js|-manifest\.json)?$/.exec(fname)[1];
 			// js chunk
 			var foundJs = false;
@@ -46,7 +46,7 @@ module.exports = function(wconfig) {
 				Path.join(dllDir, libPath + '.js'),
 				libPath + '.js'
 			];
-			for (let testPath of testPaths) {
+			for (const testPath of testPaths) {
 				if (!fs.existsSync(testPath))
 					continue;
 				let url = Path.relative(dllDir, testPath).replace(/\\/g, '/');
@@ -60,7 +60,7 @@ module.exports = function(wconfig) {
 				Path.join(dllDir, libPath + '.css'),
 				libPath + '.css'
 			];
-			for (let testPath of testPaths) {
+			for (const testPath of testPaths) {
 				if (!fs.existsSync(testPath))
 					continue;
 				let url = Path.relative(dllDir, testPath).replace(/\\/g, '/');
@@ -73,7 +73,7 @@ module.exports = function(wconfig) {
 				libPath + '-manifest.json'
 			];
 			var foundMani = false;
-			for (let testPath of testPaths) {
+			for (const testPath of testPaths) {
 				if (!fs.existsSync(testPath))
 					continue;
 				addDllRefPluginFor(testPath, wconfig.plugins);

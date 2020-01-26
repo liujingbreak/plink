@@ -41,7 +41,7 @@ module.exports = {
 		return pref;
 	},
 
-	_getOtherLocaleUrl: function(lang) {
+	_getOtherLocaleUrl(lang) {
 		var _ = this._ensureLodash();
 		lang = _.trim(lang, '/');
 		var url;
