@@ -371,7 +371,7 @@ function bumpProjectsAsync(projects, versionType) {
 function bumpVersion(versionType) {
 	var type = 'patch';
 	if (versionType) {
-		if (!{major: 1, minor: 1, patch: 1, prerelease: 1}.hasOwnProperty(versionType)) {
+		if (!Object.prototype.hasOwnProperty.call({major: 1, minor: 1, patch: 1, prerelease: 1}, versionType)) {
 			log.info(chalk.red('expecting bump type is one of "major|minor|patch|prerelease", but get: ' + versionType));
 			throw new Error('Invalid -v parameter');
 		}
@@ -385,11 +385,11 @@ function bumpVersion(versionType) {
 function publish(argv) {
 	var promises = [];
 	//var count = 0;
-	var Q = require('promise-queue');
-	var q = new Q(5, Infinity);
+	const {queue} = require('../../dist/utils/promise-queque');
+	const {add} = queue(3);
 	packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
 		promises.push(
-			q.add(() => {
+			add(() => {
 				return buildUtils.promisifyExe('npm', 'publish', packagePath, {silent: true});
 			})
 			.then(sucess).catch(e => handleExption(json.name + '@' + json.version, e))
@@ -400,7 +400,7 @@ function publish(argv) {
 			return;
 		var data = JSON.parse(fs.readFileSync(Path.join(recipeDir, 'package.json'), 'utf8'));
 		promises.push(
-			q.add(() => {
+			add(() => {
 				return buildUtils.promisifyExe('npm', 'publish', recipeDir, {silent: true});
 			})
 			.then(sucess)
@@ -426,11 +426,11 @@ function unpublish(argv) {
 	var promises = [];
 	var count = 0;
 
-	var Q = require('promise-queue');
-	var q = new Q(5, Infinity);
+	const {queue} = require('../../dist/utils/promise-queque');
+	const {add} = queue(3);
 	packageUtils.findAllPackages((name, entryPath, parsedName, json, packagePath) => {
 		promises.push(
-			q.add(() => {
+			add(() => {
 				log.info('unpublish ' + json.name + '@' + json.version);
 				return buildUtils.promisifyExe('npm', 'unpublish', json.name + '@' + json.version);
 			})
@@ -441,7 +441,7 @@ function unpublish(argv) {
 		if (!recipeDir)
 			return;
 		promises.push(
-			q.add(() => {
+			add(() => {
 				var data = JSON.parse(fs.readFileSync(Path.join(recipeDir, 'package.json'), 'utf8'));
 				log.info('unpublish ' + data.name + '@' + data.version);
 				return buildUtils.promisifyExe('npm', 'unpublish', data.name + '@' + data.version);

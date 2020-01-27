@@ -172,9 +172,13 @@ class RfcParserContext {
     this.boundary = chrs;
   }
 
-  private parseHeaders(la: Parameters<RfcParserContext['parseGrammar']>[0]) {
+  private laToken(): Token<RCF822TokenType> | null {
+
+  }
+
+  private parseHeaders() {
     const headers: {key: string, value: string[]}[] = [];
-    let nextTk = la.la();
+    let nextTk = this.laToken();
 
     while (nextTk != null) {
       if (nextTk.type === RCF822TokenType.ATOM && (la.la(2)) && (la.la(2))!.type === RCF822TokenType[':']) {

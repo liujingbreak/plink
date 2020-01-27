@@ -122,13 +122,13 @@ export function mapChunks<I, T>(
   };
 }
 
-interface LookAheadState<T, TT> {
-  line: number;
-  column: number;
-  currPos: number;
-  cacheStartPos: number;
-  currChunk: Chunk<T, TT>;
-}
+// interface LookAheadState<T, TT> {
+//   line: number;
+//   column: number;
+//   currPos: number;
+//   cacheStartPos: number;
+//   currChunk: Chunk<T, TT>;
+// }
 export class LookAhead<T, TT = any> {
   static WAIT_ERROR: 'WAIT_ERROR';
   cached: Array<T|null>;
@@ -137,66 +137,19 @@ export class LookAhead<T, TT = any> {
   lastConsumed: T;
   private currPos = 0;
   private cacheStartPos = 0;
-  private readResolve: () => void | undefined;
-  private waitForPos: number | undefined;
+  // private readResolve: () => void | undefined;
+  // private waitForPos: number | undefined;
   private currChunk: Chunk<T, TT>;
 
-  private savedState: LookAheadState<T, TT> = {} as LookAheadState<T, TT>;
+  // private savedState: LookAheadState<T, TT> = {} as LookAheadState<T, TT>;
 
-  constructor(protected name: string) {
+  constructor(protected name: string, private onDrain?: () => void) {
     this.cached = [];
-  }
-
-  // _retryOnRefuel<R>(parseCb: (ctx: LookAhead<T, TT>) => R): R | Promise<R> {
-  //   this.saveState();
-  //   try {
-  //     return parseCb(this);
-  //   } catch (e) {
-  //     if (e.message === LookAhead.WAIT_ERROR) {
-  //       return new Promise(resolve => {
-  //         this.readResolve = resolve;
-  //         this.restoreState();
-  //       }).then(() => {
-  //         return this.retryOnRefuel(parseCb);
-  //       }).catch(e => {
-
-  //       });
-  //     }
-  //     throw e;
-  //   }
-  // }
-
-  async retryOnRefuel<R>(parseCb: (ctx: LookAhead<T, TT>) => R): Promise<R> {
-    while (true) {
-      this.saveState();
-      try {
-        const res = await Promise.resolve(parseCb(this));
-        return res;
-      } catch (e) {
-        if (e.code === 'WAIT') {
-          this.restoreState();
-          await new Promise(resolve => {
-            this.readResolve = resolve;
-          });
-        } else {
-          throw e;
-        }
-      }
-    }
   }
 
   _write(values: Iterable<T|null>) {
     for (const v of values)
       this.cached.push(v);
-
-    if (this.readResolve != null) {
-      const resolve = this.readResolve;
-      if (this.waitForPos! < this.cacheStartPos + this.cached.length) {
-        delete this.readResolve;
-        delete this.waitForPos;
-        resolve();
-      }
-    }
   }
 
   _final() {
@@ -319,21 +272,21 @@ export class LookAhead<T, TT = any> {
     return this.currChunk.close(this.currPos);
   }
 
-  private saveState() {
-    this.savedState.line = this.line;
-    this.savedState.column = this.column;
-    this.savedState.currPos = this.currPos;
-    this.savedState.currChunk = this.currChunk;
-    this.savedState.cacheStartPos = this.cacheStartPos;
-  }
+  // private saveState() {
+  //   this.savedState.line = this.line;
+  //   this.savedState.column = this.column;
+  //   this.savedState.currPos = this.currPos;
+  //   this.savedState.currChunk = this.currChunk;
+  //   this.savedState.cacheStartPos = this.cacheStartPos;
+  // }
 
-  private restoreState() {
-    this.line = this.savedState.line;
-    this.column = this.savedState.column;
-    this.currPos = this.savedState.currPos;
-    this.currChunk = this.savedState.currChunk;
-    this.cacheStartPos = this.savedState.cacheStartPos;
-  }
+  // private restoreState() {
+  //   this.line = this.savedState.line;
+  //   this.column = this.savedState.column;
+  //   this.currPos = this.savedState.currPos;
+  //   this.currChunk = this.savedState.currChunk;
+  //   this.cacheStartPos = this.savedState.cacheStartPos;
+  // }
 
   /**
 	 * Do not read postion less than 0
@@ -344,24 +297,23 @@ export class LookAhead<T, TT = any> {
     if (cacheOffset < 0) {
       throw new Error(`Can not read behind stream cache, at position: ${pos}`);
     }
-    if (cacheOffset < this.cached.length) {
-      return this.cached[cacheOffset];
-    } else {
-      this.waitForPos = pos;
-      const err = new WaitError();
-      throw err;
-      // return new Promise(resolve => {
-      //   this.readResolve = resolve;
-      // });
+    while (true) {
+      if (cacheOffset < this.cached.length) {
+        return this.cached[cacheOffset];
+      } else {
+        if (this.onDrain) {
+          this.onDrain();
+          continue;
+        }
+        throw new Error(`The internal buffer is drained early at ${pos}`);
+        // this.waitForPos = pos;
+        // const err = new WaitError();
+        // throw err;
+        // return new Promise(resolve => {
+        //   this.readResolve = resolve;
+        // });
+      }
     }
-  }
-}
-
-class WaitError extends Error {
-  code = 'WAIT';
-
-  constructor() {
-    super();
   }
 }
 

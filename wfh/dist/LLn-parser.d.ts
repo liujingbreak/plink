@@ -30,6 +30,7 @@ export declare function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I
 export declare function mapChunks<I, T>(name: string, parse: ParseLex<I, T>): (input: Observable<Iterable<I>>) => Observable<Chunk<I, T>>;
 export declare class LookAhead<T, TT = any> {
     protected name: string;
+    private onDrain?;
     static WAIT_ERROR: 'WAIT_ERROR';
     cached: Array<T | null>;
     line: number;
@@ -37,12 +38,8 @@ export declare class LookAhead<T, TT = any> {
     lastConsumed: T;
     private currPos;
     private cacheStartPos;
-    private readResolve;
-    private waitForPos;
     private currChunk;
-    private savedState;
-    constructor(name: string);
-    retryOnRefuel<R>(parseCb: (ctx: LookAhead<T, TT>) => R): Promise<R>;
+    constructor(name: string, onDrain?: (() => void) | undefined);
     _write(values: Iterable<T | null>): void;
     _final(): void;
     readonly position: number;
@@ -65,8 +62,6 @@ export declare class LookAhead<T, TT = any> {
     getCurrentPosInfo(): string;
     startChunk(type: TT, trackValue?: boolean): Chunk<T, TT>;
     closeChunk(): Chunk<T, TT>;
-    private saveState;
-    private restoreState;
     /**
        * Do not read postion less than 0
        * @param pos

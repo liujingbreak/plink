@@ -1,5 +1,5 @@
 
-import Q from 'promise-queue';
+import {queueUp, queue} from './utils/promise-queque';
 import * as _ from 'lodash';
 import * as fs from 'fs-extra';
 import * as Path from 'path';
@@ -25,9 +25,9 @@ export async function pack(argv: any) {
   if (argv.packages) {
     const pgPaths: string[] = argv.packages;
 
-    const q = new Q(5, Infinity);
-    const done = pgPaths.map(packageDir => q.add(() => npmPack(packageDir)));
-    let tarInfos = await Promise.all(done);
+    const done = queueUp(3, pgPaths.map(packageDir => () => npmPack(packageDir)));
+    let tarInfos = await done;
+
     tarInfos = tarInfos.filter(item => item != null);
     tarInfos.forEach(item => {
       package2tarball[item!.name] = './tarballs/' + item!.filename;
@@ -40,9 +40,7 @@ export async function pack(argv: any) {
 
 export async function packProject(argv: any) {
   fs.mkdirpSync('tarballs');
-  const promises: Promise<any>[] = [];
   // var count = 0;
-  const q = new Q(5, Infinity);
   const recipe2packages: {[recipe: string]: {[name: string]: string}} = {};
   const package2tarball: {[name: string]: string} = {};
 
@@ -53,14 +51,15 @@ export async function packProject(argv: any) {
     recipe2packages[data.name + '@' + data.version] = data.dependencies;
   });
 
+  const packActions = [] as Array<ReturnType<typeof npmPack>>;
+  const {add} = queue(3);
   // tslint:disable-next-line: max-line-length
   packageUtils.findAllPackages((name: string, entryPath: string, parsedName: string, json: any, packagePath: string) => {
-    promises.push(
-      q.add(() => npmPack(packagePath)));
+    packActions.push(add(() => npmPack(packagePath)));
   }, 'src', argv.projectDir);
 
 
-  let tarInfos = await Promise.all(promises);
+  let tarInfos = await Promise.all(packActions);
   tarInfos = tarInfos.filter(item => item != null);
   tarInfos.forEach(item => {
     package2tarball[item!.name] = './tarballs/' + item!.filename;
