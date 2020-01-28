@@ -66,7 +66,7 @@ xdescribe('imap-msg-parser', () => {
 
 describe('rfc822-parser', () => {
   xit('parse()', async () => {
-    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg-2.txt'));
+    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg.txt'));
     console.time('async');
     const result = await parse(buf);
     console.timeEnd('async');
@@ -75,13 +75,38 @@ describe('rfc822-parser', () => {
     }
   });
 
-  it('parse()', () => {
-    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg-2.txt'));
+  xit('sync parse() case 1', () => {
+    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg.txt'));
     console.time('sync');
     const result = parseSync(buf);
     console.timeEnd('sync');
     for (const part of result.parts) {
       console.log(part);
     }
+  });
+
+  it('sync parse() case 2', () => {
+    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/rfc822-msg-2.txt'));
+    console.time('sync');
+    const result = parseSync(buf);
+    console.timeEnd('sync');
+    for (const part of result.parts) {
+      console.log(part.headers);
+      if (part.file)
+        console.log(part.file);
+      else
+        console.log(part.body!.toString('utf8'));
+    }
+  });
+
+  it('sync parse() message without attachment', () => {
+    const buf = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/plain-msg.txt'));
+    console.time('sync');
+    const result = parseSync(buf);
+    console.timeEnd('sync');
+    console.log(result);
+    // for (const part of result.parts) {
+    //   console.log(part);
+    // }
   });
 });

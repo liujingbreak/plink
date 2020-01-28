@@ -1,4 +1,4 @@
-> https://tools.ietf.org/html/rfc1730
+> https://tools.ietf.org/html/rfc3501
 
 ## 4. Data Formats
 IMAP4 uses textual commands and responses.  Data in IMAP4 can be in

@@ -1,0 +1,15 @@
+X-Mda-Received: from <sina.com>([<10.41.27.186>])
+ by <mda-14-115.mda.fmail.dbl.sinanode.com> with LMTP id <439572>
+ Jan 16 2020 16:48:20 +0800 (CST)
+X-Sina-MID:047BC7DF5A4EAE493360B6D36AD02BD97E00000000000003
+X-Sina-Attnum:0
+Date: Mon, 7 Feb 2020 21:52:25 -0800 (PST)
+From: Credit team build machine
+Subject: server creditappfrontend-bog262od1fscl0p882mg-5d69db9fc5-ttntx 71 activates
+To: Admininstrator
+Message-Id: <B27397-0100000@Blurdybloop.COM>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; CHARSET=US-ASCII
+
+Thu Jan 16 2020 16:48:19 GMT+0800 (CST)
+

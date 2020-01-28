@@ -11,7 +11,7 @@ import {Checksum, WithMailServerConfig} from './fetch-types';
 import {createServerDataHandler, parseLinesOfTokens, ImapTokenType, StringLit} from './mail/imap-msg-parser';
 import api from '__api';
 import { LookAhead, Token } from 'dr-comp-package/wfh/dist/async-LLn-parser';
-import {parse as parseRfc822, RCF822ParseResult} from './mail/rfc822-parser';
+import {parse as parseRfc822, RCF822ParseResult} from './mail/rfc822-sync-parser';
 
 // import {Socket} from 'net';
 const log = require('log4js').getLogger(api.packageName + '.fetch-remote-imap');
@@ -155,7 +155,9 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
   const serverResHandler = createServerDataHandler();
   serverResHandler.output.pipe(
     tap(msg => {
-      // if (msg != null) log.debug('  <- ' + msg.map(token => token.text).join(' '));
+      if (msg != null)
+        // tslint:disable-next-line: no-console
+        console.log('  <- ' + msg.map(token => token.text).join(' '));
     })
   ).subscribe();
 
@@ -188,6 +190,7 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
         context.lastIndex = parseInt((await la.la(2))!.text, 10);
       }
     });
+    await waitForReply('SEARCH ALL');
 
     await callback(context as ImapCommandContext);
     await waitForReply('LOGOUT');
@@ -269,7 +272,7 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
           // const writtenFile = `email-${new Date().getTime()}.txt`;
           // fs.writeFileSync(writtenFile, (tk as unknown as StringLit).data, 'utf8');
           // log.debug(`writen to ${writtenFile}`);
-          msg = await parseRfc822((tk as StringLit).data);
+          msg = parseRfc822((tk as StringLit).data);
         }
       }
       return {
@@ -458,7 +461,9 @@ export async function testMail(imap: string, user: string, loginSecret: string) 
     imap, user, loginSecret
   } as WithMailServerConfig['fetchMailServer']);
   await connectImap(async ctx => {
-    // log.info('Fetch mail %d as text :\n' + (await ctx.waitForFetchText(ctx.lastIndex)), ctx.lastIndex);
-    log.info('Fetch mail %d:\n' + await ctx.waitForFetch(ctx.lastIndex, false), ctx.lastIndex);
+    await ctx.waitForReply('SEARCH HEAD Subject "build artifact: bkjk-pre-build"');
+    // tslint:disable-next-line: no-console
+    // console.log('Fetch mail %d as text :\n', ctx.lastIndex - 1, (await ctx.waitForFetch(ctx.lastIndex - 1)), ctx.lastIndex);
+    // log.info('Fetch mail %d:\n' + await ctx.waitForFetch(ctx.lastIndex, false), ctx.lastIndex);
   });
 }

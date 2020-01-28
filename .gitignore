@@ -9,7 +9,6 @@ node_modules
 *.log
 /tsconfig.json
 *.bak
-/.eslintrc.json
 /tslint.json
 /dr.backup.package.json
 **/*.js.map

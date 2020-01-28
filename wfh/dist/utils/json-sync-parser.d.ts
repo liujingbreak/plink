@@ -1,6 +1,7 @@
-import { Token } from '../LLn-parser';
-export default function parse(content: string, onToken?: (token: Token<string>) => void): ObjectAst | undefined;
-export { Token };
+import { Chunk } from '../LLn-parser';
+export declare type Token = Chunk<string, string> & {
+    text: string;
+};
 declare enum AstType {
     object = 0,
     array = 1,
@@ -12,13 +13,15 @@ export interface Ast {
 }
 export interface ObjectAst extends Ast {
     properties: {
-        name: Token<string>;
-        value: Ast | Token<string>;
+        name: Token;
+        value: Ast | Token;
     }[];
 }
 export interface ArrayAst extends Ast {
-    items: Array<Ast | Token<string>>;
+    items: Array<Ast | Token>;
 }
 export interface ValueAst extends Ast {
-    value: Token<string>;
+    value: Token;
 }
+export default function parse(content: string): ObjectAst;
+export {};

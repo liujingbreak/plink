@@ -55,7 +55,7 @@ class RfcParserContext {
 
   private multipartStarted = false;
 
-  constructor(private origBuffer: ArrayBuffer) {
+  constructor(private origBuffer: Uint8Array) {
   }
 
 
@@ -353,7 +353,7 @@ function compareTokenType<T>(tk: Token<T>, type: T) {
 export function parse(readable: Buffer) {
   // fs.writeFileSync('email-temp.txt', readable.toString('utf8'), 'utf8');
 
-  const pctx = new RfcParserContext(readable.buffer);
+  const pctx = new RfcParserContext(readable);
 
   const done = of(readable).pipe(
     observeOn(queueScheduler),

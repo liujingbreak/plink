@@ -18,11 +18,9 @@ describe('JSON parser', () => {
     console.log('AST:', JSON.stringify(ast, null, '  '));
   });
 
-  it('json-parser', () => {
+  it('sync json-parser', () => {
     const str = fs.readFileSync(Path.resolve(__dirname, '../../ts/spec/test.json'), {encoding: 'utf8'});
-    const ast = parseJsonSync(str, token => {
-      expect(str.slice(token.pos, token.end)).toBe(token.text);
-    });
+    const ast = parseJsonSync(str);
     console.log('AST:', JSON.stringify(ast, null, '  '));
   });
 

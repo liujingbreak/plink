@@ -1,62 +1,53 @@
 
-import { from } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { LookAhead, LookAheadObservable, parser, Token } from '../LLn-parser';
+import { Chunk, Grammar, Lexer, parser } from '../LLn-parser';
 
-export default function parse(content: string, onToken?: (token: Token<string>) => void) {
-  const operators = onToken ? [tap(onToken)] : null;
+export type Token = Chunk<string, string> & {text: string};
 
-  // from([content.split('')]).pipe(observeOn(queueScheduler)).subscribe(s => console.log(s));
-  return parser('JSON', from([content.split('')]), parseLex, operators, parseGrammar);
-}
-
-export { Token };
-
-function parseLex(
-  strLookAhead: LookAheadObservable<string, string>) {
+const lexer: Lexer<string, string, Token> = function(
+  strLookAhead, emitter) {
   let char = strLookAhead.la();
-  while (char != null) {
-    if (/[{}\[\],:]/.test(char)) {
-      strLookAhead.startToken(char);
-      strLookAhead.advance();
-      strLookAhead.emitToken();
-    } else if (/\s/.test(char)) {
-      do {
-        strLookAhead.advance();
-        char = strLookAhead.la();
-      } while (char && /\s/.test(char));
-    } else if (/["']/.test(char)) {
-      strLookAhead.startToken('stringLiteral');
-      const openChar = strLookAhead.advance();
-      while (true) {
-        const la = strLookAhead.la();
-        if (la == null) {
-          return strLookAhead.throwError();
-        }
-        if (la === '\\') {
-          strLookAhead.advance(2);
-        } else if (la === openChar) {
-          strLookAhead.advance();
-          strLookAhead.emitToken();
-          break;
-        } else {
-          strLookAhead.advance();
-        }
-      }
-    } else {
-      strLookAhead.startToken('other');
-      let next: string | null;
-      do {
-        strLookAhead.advance();
-        next = strLookAhead.la();
-      } while (next != null && !/[{}\[\],:\s'"]/.test(next));
-      strLookAhead.emitToken();
-    }
-    char = strLookAhead.la();
+  if (char == null) {
+    emitter.end();
+    return;
   }
-}
-
-type Lexer = LookAhead<Token<string>, string>;
+  if (/[{}\[\],:]/.test(char)) {
+    strLookAhead.startChunk(char);
+    strLookAhead.advance();
+    emitter.emit();
+  } else if (/\s/.test(char)) {
+    do {
+      strLookAhead.advance();
+      char = strLookAhead.la();
+    } while (char && /\s/.test(char));
+  } else if (/["']/.test(char)) {
+    strLookAhead.startChunk('stringLiteral');
+    const openChar = strLookAhead.advance();
+    while (true) {
+      const la = strLookAhead.la();
+      if (la == null) {
+        return strLookAhead.throwError();
+      }
+      if (la === '\\') {
+        strLookAhead.advance(2);
+      } else if (la === openChar) {
+        strLookAhead.advance();
+        emitter.emit();
+        return;
+      } else {
+        strLookAhead.advance();
+      }
+    }
+  } else {
+    strLookAhead.startChunk('other');
+    let next: string | null;
+    do {
+      strLookAhead.advance();
+      next = strLookAhead.la();
+    } while (next != null && !/[{}\[\],:\s'"]/.test(next));
+    emitter.emit();
+  }
+  char = strLookAhead.la();
+};
 
 enum AstType {
   object = 0,
@@ -70,22 +61,22 @@ export interface Ast {
 }
 
 export interface ObjectAst extends Ast {
-  properties: {name: Token<string>, value: Ast|Token<string>}[];
+  properties: {name: Token, value: Ast|Token}[];
 }
 
 export interface ArrayAst extends Ast {
-  items: Array<Ast | Token<string>>;
+  items: Array<Ast | Token>;
 }
 
 export interface ValueAst extends Ast {
-  value: Token<string>;
+  value: Token;
 }
 
-function parseGrammar(tokenLa: Lexer) {
+const grammar: Grammar<Token, ObjectAst> = function(tokenLa) {
   return doObject(tokenLa);
-}
+};
 
-function doObject(lexer: Lexer): ObjectAst {
+function doObject(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ObjectAst {
   const ast: ObjectAst = {
     type: AstType.object,
     properties: []
@@ -109,7 +100,7 @@ function doObject(lexer: Lexer): ObjectAst {
   return ast;
 }
 
-function doArray(lexer: Lexer): ArrayAst {
+function doArray(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ArrayAst {
   const ast: ArrayAst = {
     type: AstType.array,
     items: []
@@ -131,7 +122,7 @@ function doArray(lexer: Lexer): ArrayAst {
   return ast;
 }
 
-function doValue(lexer: Lexer) {
+function doValue(lexer: Parameters<Grammar<Token, ObjectAst>>[0]) {
   const next = lexer.la();
   if (next === null) {
     throw new Error('Unexpect EOF');
@@ -145,4 +136,12 @@ function doValue(lexer: Lexer) {
   } else {
     throw new Error(`Unexpect '${next.text}' at ${next.line}:${next.col}`);
   }
+}
+
+export default function parse(content: string) {
+  const jsonParser = parser<string, string, Token, ObjectAst>(
+    'JSON', lexer, grammar);
+  jsonParser.write(content);
+  jsonParser.end();
+  return jsonParser.getResult();
 }
