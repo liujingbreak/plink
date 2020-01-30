@@ -190,7 +190,7 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
         context.lastIndex = parseInt((await la.la(2))!.text, 10);
       }
     });
-    await waitForReply('SEARCH ALL');
+    // await waitForReply('SEARCH ALL');
 
     await callback(context as ImapCommandContext);
     await waitForReply('LOGOUT');
@@ -457,9 +457,10 @@ export class ImapManager {
 
 export async function testMail(imap: string, user: string, loginSecret: string) {
   log.debug = log.info;
-  api.config.set([api.packageName, 'fetchMailServer'], {
-    imap, user, loginSecret
-  } as WithMailServerConfig['fetchMailServer']);
+  if (imap)
+    api.config.set([api.packageName, 'fetchMailServer'], {
+      imap, user, loginSecret
+    } as WithMailServerConfig['fetchMailServer']);
   await connectImap(async ctx => {
     await ctx.waitForReply('SEARCH HEAD Subject "build artifact: bkjk-pre-build"');
     // tslint:disable-next-line: no-console

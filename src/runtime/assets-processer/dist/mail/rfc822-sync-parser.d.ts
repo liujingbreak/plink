@@ -11,6 +11,7 @@ export declare enum RCF822TokenType {
 }
 export interface RCF822ParseResult {
     headers: RCF822HeaderType[];
+    textBody?: string;
     parts: {
         headers: RCF822HeaderType[];
         body?: Buffer;
