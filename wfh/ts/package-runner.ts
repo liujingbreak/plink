@@ -1,7 +1,7 @@
 /* tslint:disable max-line-length */
 import * as _ from 'lodash';
 import LRU from 'lru-cache';
-import { LazyPackageFactory, PackageInfo, packageInstance as PackageBrowserInstance, walkPackages } from './build-util/ts';
+import { PackageInfo, packageInstance as PackageBrowserInstance, walkPackages } from './build-util/ts';
 // const NodeApi = require('../lib/nodeApi');
 // const {nodeInjector} = require('../lib/injectorFactory');
 import { nodeInjector, webInjector } from './injector-factory';
@@ -11,6 +11,7 @@ import { orderPackages, PackageInstance } from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
 import Events = require('events');
 import Path from 'path';
+import {createLazyPackageFileFinder} from './package-utils';
 
 const config = require('../lib/config');
 const packageUtils = require('../lib/packageMgr/packageUtils');
@@ -44,7 +45,6 @@ export class ServerRunner {
 
 const apiCache: {[name: string]: any} = {};
 // const packageTree = new DirTree<PackageBrowserInstance>();
-const lazyPackageFactory = new LazyPackageFactory();
 
 /**
  * Lazily init injector for packages and run specific package only,
@@ -63,16 +63,7 @@ export async function runSinglePackage(argv: {target: string, arguments: string[
       return packageInfo;
     }
   });
-  const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
-  proto.findPackageByFile = function(file: string): PackageBrowserInstance | undefined {
-    let found = cache.get(file);
-    if (!found) {
-      found = lazyPackageFactory.getPackageByPath(file)!;
-      if (found)
-        cache.set(file, found);
-    }
-    return found;
-  };
+  proto.findPackageByFile = createLazyPackageFileFinder();
   proto.getNodeApiForPackage = function(packageInstance: any) {
     return getApiForPackage(packageInstance, NodeApi);
   };
@@ -217,4 +208,5 @@ function getApiForPackage(pkInstance: any, NodeApi: typeof _NodeApi) {
   api.default = api; // For ES6 import syntax
   return api;
 }
+
 

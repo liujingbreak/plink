@@ -4,10 +4,10 @@ export default class PackageBrowserInstance {
     shortName: string;
     file?: string;
     parsedName: {
-        scope: string;
+        scope?: string;
         name: string;
     };
-    scopeName: string;
+    scopeName?: string;
     entryPages?: string[];
     i18n: string;
     packagePath: string;
@@ -29,9 +29,4 @@ export default class PackageBrowserInstance {
         [key in keyof PackageBrowserInstance]?: PackageBrowserInstance[key];
     }): void;
     toString(): string;
-}
-import { DirTree } from 'require-injector/dist/dir-tree';
-export declare class LazyPackageFactory {
-    packagePathMap: DirTree<PackageBrowserInstance>;
-    getPackageByPath(file: string): PackageBrowserInstance | null;
 }
