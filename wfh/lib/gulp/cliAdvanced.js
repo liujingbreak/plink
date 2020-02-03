@@ -298,7 +298,7 @@ function bumpDirsAsync(dirs, versionType) {
 	});
 
 	return new Promise(resolve => {
-		gulp.src('')
+		gulp.src('.')
 		.pipe(findPackageJson(bumpDirs))
 		.pipe(through.obj(function(file, enc, next) {
 			file.base = '/';

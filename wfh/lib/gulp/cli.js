@@ -154,8 +154,6 @@ function _initDependency(isDrcpSymlink) {
 		_writeGitHook(prjdir);
 		maybeCopyTemplate(Path.resolve(__dirname, '../../.eslintrc.json'), prjdir + '/.eslintrc.json');
 		maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
-		maybeCopyTemplate(Path.resolve(__dirname, '../../prettier.config.js'), prjdir + '/prettier.config.js');
-		maybeCopyTemplate(Path.resolve(__dirname, '../../.prettierignore'), prjdir + '/.prettierignore');
 	});
 
 	return Promise.coroutine(function*() {
