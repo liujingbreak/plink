@@ -24,6 +24,7 @@ interface Args {
   project: string[];
   watch: boolean;
   sourceMap: string;
+  tsx: boolean;
 }
 
 interface ComponentDirInfo {
@@ -43,7 +44,7 @@ export function tsc(argv: Args, onCompiled: () => void) {
   var compGlobs: string[] = [];
   // var compStream = [];
   const compDirInfo: Map<string, ComponentDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
-  const baseTsconfig = require('../tsconfig.json');
+  const baseTsconfig = argv.tsx ? require('../tsconfig-tsx.json') : require('../tsconfig.json');
 
   const tsProject = ts.createProject(Object.assign({}, baseTsconfig.compilerOptions, {
     typescript: require('typescript'),
@@ -81,7 +82,8 @@ export function tsc(argv: Args, onCompiled: () => void) {
       dir: packagePath
     });
     srcDirs.forEach(srcDir => {
-      compGlobs.push(Path.resolve(packagePath, srcDir).replace(/\\/g, '/') + '/**/*.ts');
+      compGlobs.push(Path.resolve(packagePath, srcDir).replace(/\\/g, '/') +
+        (argv.tsx ? '/**/*.tsx' : '/**/*.ts'));
     });
   }
 
@@ -103,7 +105,8 @@ export function tsc(argv: Args, onCompiled: () => void) {
 
     for (const info of compDirInfo.values()) {
       [info.tsDirs.srcDir, info.tsDirs.isomDir].forEach(srcDir => {
-        watchDirs.push(Path.join(info.dir, srcDir).replace(/\\/g, '/') + '/**/*.ts');
+        watchDirs.push(Path.join(info.dir, srcDir).replace(/\\/g, '/') +
+          (argv.tsx ? '/**/*.tsx' : '/**/*.ts'));
       });
     }
     const watcher = chokidar.watch(watchDirs, {ignored: /(\.d\.ts|\.js)$/ });

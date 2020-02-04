@@ -135,6 +135,11 @@ function drcpCommand(startTime) {
 					type: 'array',
 					alias: 'project'
 				},
+				tsx: {
+					describe: 'Compile web ui tsx source',
+					type: 'boolean',
+					'default': false
+				},
 				'source-map': {
 					describe: 'Source map style',
 					choices: ['inline', 'file'],

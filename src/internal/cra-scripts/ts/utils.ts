@@ -1,5 +1,6 @@
 // tslint:disable: no-console
 import util, { isRegExp } from 'util';
+import {CommandOption} from './build-options';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -54,4 +55,22 @@ function printConfigValue(value: any, level: number): string {
     out += ' unknown';
   }
   return out;
+}
+
+export function getCmdOptions(): CommandOption {
+  return {
+    buildTarget: process.env.REACT_APP__cra_build_target as any,
+    buildType: process.env.REACT_APP_cra_build_type as any
+  };
+}
+
+export function saveCmdArgToEnv() {
+  const argv = process.argv.slice(2);
+  console.log(`saveCmdArgToEnv() ${process.argv}`);
+  if (argv.length > 0) {
+    process.env.REACT_APP_cra_build_type = argv[0];
+  }
+  if (argv.length > 1) {
+    process.env.REACT_APP__cra_build_target = argv[1];
+  }
 }

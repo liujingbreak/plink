@@ -5,16 +5,30 @@ import fs from 'fs-extra';
 import {Configuration, RuleSetRule, Compiler} from 'webpack';
 // import { RawSource } from 'webpack-sources';
 const ProgressPlugin = require('webpack/lib/ProgressPlugin');
-import {drawPuppy, printConfig} from './utils';
+import {drawPuppy, printConfig, getCmdOptions} from './utils';
 import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
+import change4lib from './webpack-lib';
 // import chalk from 'chalk';
 
-const origWebpackConfig = require('react-scripts/config/webpack.config');
+
 
 const findPackageByFile = createLazyPackageFileFinder();
 
+
 export = function(webpackEnv: string) {
+
   drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check:\n  ${Path.resolve('/logs')}\n  ${__filename}`);
+
+  const cmdOption = getCmdOptions();
+
+  // `npm run build` by default is in production mode, below hacks the way react-scripts does
+  if (process.argv.indexOf('--dev') >= 0) {
+    console.log('Development mode!!!');
+    webpackEnv = 'development';
+  } else {
+    process.env.GENERATE_SOURCEMAP = 'false';
+  }
+  const origWebpackConfig = require('react-scripts/config/webpack.config');
   const config: Configuration = origWebpackConfig(webpackEnv);
   // Make sure babel compiles source folder out side of current src directory
   changeBabelLoader(config);
@@ -54,12 +68,12 @@ export = function(webpackEnv: string) {
   });
   config.plugins!.push(new (class {
     apply(compiler: Compiler) {
-      compiler.hooks.emit.tap('angular-cli-stats', compilation => {
+      compiler.hooks.emit.tap('drcp-cli-stats', compilation => {
         setTimeout(() => {
           console.log('');
           console.log(compilation.getStats().toString('normal'));
           console.log('');
-        }, 100);
+        }, 0);
         // const data = JSON.stringify(compilation.getStats().toJson('normal'));
         // compilation.assets['stats.json'] = new RawSource(data);
       });
@@ -74,6 +88,9 @@ export = function(webpackEnv: string) {
   if (ssrConfig) {
     ssrConfig(config);
   }
+
+  if (cmdOption.buildType === 'lib')
+    change4lib(cmdOption.buildTarget, config);
 
   fs.mkdirpSync('logs');
   fs.writeFile('logs/webpack.config.debug.js', printConfig(config), (err) => {
@@ -107,5 +124,3 @@ function changeBabelLoader(config: Configuration) {
     return false;
   }
 }
-
-

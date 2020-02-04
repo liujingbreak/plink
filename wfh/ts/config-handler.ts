@@ -29,9 +29,9 @@ export interface ConfigHandler {
 }
 
 export class ConfigHandlerMgr {
-  static _tsNodeRegistered = false;
+  private static _tsNodeRegistered = false;
 
-  static initConfigHandlers(files: string[]): Array<{file: string, handler: ConfigHandler}> {
+  private static initConfigHandlers(files: string[]): Array<{file: string, handler: ConfigHandler}> {
     const exporteds: Array<{file: string, handler: ConfigHandler}> = [];
 
     if (!ConfigHandlerMgr._tsNodeRegistered) {

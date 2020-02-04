@@ -1,18 +1,17 @@
 // tslint:disable: no-console
-import {drawPuppy} from './utils';
-// import Path from 'path';
+import {drawPuppy, saveCmdArgToEnv} from './utils';
 
 drawPuppy('Loading my poo...');
 require('source-map-support/register');
 
-// import Injector from 'require-injector';
 import Module from 'module';
 import {sep} from 'path';
-// let origClearConsole: () => void;
+
 poo();
 
-function poo() {
+saveCmdArgToEnv();
 
+function poo() {
   require('dr-comp-package/bin/nodePath').setContextPath(process.cwd());
 
   // origClearConsole = require('react-dev-utils/clearConsole');
@@ -59,6 +58,3 @@ function clearConsole() {
   // origClearConsole();
   drawPuppy('pooed on create-react-app');
 }
-// function resolve(module: Module, target: string) {
-//   return Path.resolve(Path.dirname(module.filename), target).replace(/\\/g, '/');
-// }

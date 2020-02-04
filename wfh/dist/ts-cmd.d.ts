@@ -3,6 +3,7 @@ interface Args {
     project: string[];
     watch: boolean;
     sourceMap: string;
+    tsx: boolean;
 }
 /**
  * @param {object} argv

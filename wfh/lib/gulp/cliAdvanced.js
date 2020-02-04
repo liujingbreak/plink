@@ -133,13 +133,13 @@ function clean(onlySymlink) {
 }
 
 function lint(argv) {
-	var eslint = require('gulp-eslint');
+	// var eslint = require('gulp-eslint');
 	var tslint = require('gulp-tslint');
 
 	// let program = tslint.Linter.createPrograme('');
 	var prom = Promise.resolve();
 	var errors = [];
-	const getPackDirs = require('../../dist/utils').getTsDirsOfPackage;
+	// const getPackDirs = require('../../dist/utils').getTsDirsOfPackage;
 	if (argv.package && argv.package.length > 0) {
 		packageUtils.lookForPackages(argv.package, (fullName, entryPath, parsedName, json, packagePath) => {
 			if (json.dr && json.dr.noLint === true) {
@@ -148,11 +148,11 @@ function lint(argv) {
 			}
 			packagePath = fs.realpathSync(packagePath);
 			prom = prom.catch(err => errors.push(err))
-			.then(() => {
-				log.info('Checking ', packagePath);
-				return _lintPackageAsync(eslint, fullName, json, packagePath, getPackDirs(json), argv.fix);
-			})
-			.catch(err => errors.push(err))
+			// .then(() => {
+			// 	log.info('Checking ', packagePath);
+			// 	return _lintPackageAsync(eslint, fullName, json, packagePath, getPackDirs(json), argv.fix);
+			// })
+			// .catch(err => errors.push(err))
 			.then(() => {
 				return _tsLintPackageAsync(tslint, fullName, json, packagePath, argv.fix);
 			});
@@ -165,11 +165,11 @@ function lint(argv) {
 			}
 			packagePath = fs.realpathSync(packagePath);
 			prom = prom.catch(err => errors.push(err))
-			.then(() => {
-				log.info('Checking ', packagePath);
-				return _lintPackageAsync(eslint, fullName, json, packagePath, getPackDirs(json), argv.fix);
-			})
-			.catch(err => errors.push(err))
+			// .then(() => {
+			// 	log.info('Checking ', packagePath);
+			// 	return _lintPackageAsync(eslint, fullName, json, packagePath, getPackDirs(json), argv.fix);
+			// })
+			// .catch(err => errors.push(err))
 			.then(() => {
 				return _tsLintPackageAsync(tslint, fullName, json, packagePath, argv.fix);
 			});
@@ -199,6 +199,7 @@ function _tsLintPackageAsync(tslint, fullName, json, packagePath, fix) {
 	log.debug('Use', rcfile);
 	let packagePath0 = packagePath.replace(/\\/g, '/');
 
+	// TODO: use require('../../dist/utils').getTsDirsOfPackage;
 	// Unlike ESlint, TSLint fix does not write file to stream, but use fs.writeFileSync() instead
 	return new Promise((resolve, reject) => {
 		var tsDestDir = _.get(json, 'dr.ts.dest', 'dist');
@@ -225,45 +226,45 @@ function _tsLintPackageAsync(tslint, fullName, json, packagePath, fix) {
 	});
 }
 
-function _lintPackageAsync(eslint, fullName, json, packagePath, pkTsDirs, fix) {
-	if (fix)
-		log.info('Fixing typescript file ...');
+// function _lintPackageAsync(eslint, fullName, json, packagePath, pkTsDirs, fix) {
+// 	if (fix)
+// 		log.info('Fixing typescript file ...');
 
-	let dir;
-	// packagePath = fs.realpathSync(packagePath);
-	log.debug('ESlint Scan', packagePath);
-	if (fullName === 'dr-comp-package')
-		packagePath = packagePath + '/wfh';
-	for (let pDir = packagePath; dir !== pDir; pDir = Path.dirname(dir)) {
-		dir = pDir;
-		if (fs.existsSync(dir + '/.eslintrc.json'))
-			break;
-	}
-	let rcfile = Path.resolve(dir, '.eslintrc.json');
-	log.debug('Use', rcfile);
-	packagePath = packagePath.replace(/\\/g, '/');
-	return new Promise((resolve, reject) => {
-		var tsDestDir = _.get(json, 'dr.ts.dest', 'dist');
-		var stream = gulp.src([packagePath + '/**/*.{js,jsx}',
-			`!${packagePath}/${pkTsDirs.isomDir}/**/*`,
-			`!${packagePath}/${tsDestDir}/**/*`,
-			`!${packagePath}/spec/**/*`,
-			`!${packagePath}/${_.get(json, 'dr.assetsDir', 'assets')}/**/*`,
-			`!${packagePath}/node_modules/**/*`], {base: packagePath})
-		// .pipe(through.obj(function(file, en, next) {
-		// 	log.info(Path.relative(packagePath, file.path));
-		// 	next(null, file);
-		// }))
-		.pipe(eslint({fix, configFile: rcfile}))
-		.pipe(eslint.format())
-		.pipe(eslint.failAfterError())
-		.on('error', err => reject(err));
-		if (fix)
-			stream = stream.pipe(gulp.dest(packagePath));
-		stream.resume();
-		stream.on('end', () => resolve(null));
-	});
-}
+// 	let dir;
+// 	// packagePath = fs.realpathSync(packagePath);
+// 	log.debug('ESlint Scan', packagePath);
+// 	if (fullName === 'dr-comp-package')
+// 		packagePath = packagePath + '/wfh';
+// 	for (let pDir = packagePath; dir !== pDir; pDir = Path.dirname(dir)) {
+// 		dir = pDir;
+// 		if (fs.existsSync(dir + '/.eslintrc.json'))
+// 			break;
+// 	}
+// 	let rcfile = Path.resolve(dir, '.eslintrc.json');
+// 	log.debug('Use', rcfile);
+// 	packagePath = packagePath.replace(/\\/g, '/');
+// 	return new Promise((resolve, reject) => {
+// 		var tsDestDir = _.get(json, 'dr.ts.dest', 'dist');
+// 		var stream = gulp.src([packagePath + '/**/*.{js,jsx}',
+// 			`!${packagePath}/${pkTsDirs.isomDir}/**/*`,
+// 			`!${packagePath}/${tsDestDir}/**/*`,
+// 			`!${packagePath}/spec/**/*`,
+// 			`!${packagePath}/${_.get(json, 'dr.assetsDir', 'assets')}/**/*`,
+// 			`!${packagePath}/node_modules/**/*`], {base: packagePath})
+// 		// .pipe(through.obj(function(file, en, next) {
+// 		// 	log.info(Path.relative(packagePath, file.path));
+// 		// 	next(null, file);
+// 		// }))
+// 		.pipe(eslint({fix, configFile: rcfile}))
+// 		.pipe(eslint.format())
+// 		.pipe(eslint.failAfterError())
+// 		.on('error', err => reject(err));
+// 		if (fix)
+// 			stream = stream.pipe(gulp.dest(packagePath));
+// 		stream.resume();
+// 		stream.on('end', () => resolve(null));
+// 	});
+// }
 
 function deeplyMergeJson(target, src, customizer) {
 	_.each(src, (sValue, key) => {

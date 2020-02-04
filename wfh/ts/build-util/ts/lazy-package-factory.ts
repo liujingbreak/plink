@@ -70,9 +70,9 @@ function createPackage(packagePath: string, pkJson: any) {
       noParseFiles = [].concat(pkJson.dr.browserifyNoParse).map(trimNoParseSetting);
     }
   }
-  const mainFile: string = pkJson.browser || pkJson.main;
+  // const mainFile: string = pkJson.browser || pkJson.main;
   instance.init({
-    file: mainFile ? fs.realpathSync(Path.resolve(packagePath, mainFile)) : undefined, // package.json "browser"
+    // file: mainFile ? Path.resolve(instance.realPackagePath, mainFile) : undefined, // package.json "browser"
     main: pkJson.main, // package.json "main"
     // style: pkJson.style ? resolveStyle(name, nodePaths) : null,
     parsedName: parseName(name),

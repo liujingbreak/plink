@@ -31,11 +31,8 @@ export interface ConfigHandler {
     }): Promise<void> | void;
 }
 export declare class ConfigHandlerMgr {
-    static _tsNodeRegistered: boolean;
-    static initConfigHandlers(files: string[]): Array<{
-        file: string;
-        handler: ConfigHandler;
-    }>;
+    private static _tsNodeRegistered;
+    private static initConfigHandlers;
     protected configHandlers: Array<{
         file: string;
         handler: ConfigHandler;
