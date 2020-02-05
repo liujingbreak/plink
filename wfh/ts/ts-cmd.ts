@@ -53,7 +53,7 @@ export function tsc(argv: Args, onCompiled: () => void) {
     outDir: '',
     baseUrl: root,
     rootDir: undefined,
-    skipLibCheck: false,
+    skipLibCheck: true,
     inlineSourceMap: false,
     sourceMap: true
     // typeRoots: [

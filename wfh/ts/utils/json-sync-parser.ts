@@ -108,8 +108,11 @@ function doArray(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ArrayAst {
   lexer.advance();
   let next = lexer.la();
   while (next != null && next.type !== ']') {
+
     if (next.type !== ',') {
       ast.items.push(doValue(lexer));
+    } else {
+      lexer.advance();
     }
     next = lexer.la();
   }

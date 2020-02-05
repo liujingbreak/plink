@@ -6,7 +6,7 @@ import * as Path from 'path';
 import {promisifyExe} from './process-utils';
 import {boxString} from './utils';
 import * as recipeManager from './recipe-manager';
-import jsonParser, {ObjectAst, Token} from './utils/json-parser';
+import jsonParser, {ObjectAst, Token} from './utils/json-sync-parser';
 import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
 const config = require('../lib/config');
 require('../lib/logConfig')(config());
@@ -98,14 +98,14 @@ async function npmPack(packagePath: string):
   }
 }
 
-async function changePackageJson(package2tarball: {[name: string]: string}) {
+function changePackageJson(package2tarball: {[name: string]: string}) {
   if (!fs.existsSync('package.json')) {
     // tslint:disable-next-line:no-console
     console.log('Could not find package.json.');
     return;
   }
-  const pkj = fs.createReadStream('package.json', 'utf8');
-  const ast = await jsonParser(pkj);
+  const pkj = fs.readFileSync('package.json', 'utf8');
+  const ast = jsonParser(pkj);
   const depsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'dependencies');
   const devDepsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'devDependencies');
   const replacements: ReplacementInf[] = [];
@@ -123,7 +123,7 @@ async function changePackageJson(package2tarball: {[name: string]: string}) {
 
     const foundDeps = deps.properties.filter(({name}) => _.has(package2tarball, JSON.parse(name.text)));
     for (const foundDep of foundDeps) {
-      const verToken = foundDep.value as Token<string>;
+      const verToken = foundDep.value as Token;
       const newVersion = package2tarball[JSON.parse(foundDep.name.text)];
       log.info(`Update package.json: ${verToken.text} => ${newVersion}`);
       replacements.push({
