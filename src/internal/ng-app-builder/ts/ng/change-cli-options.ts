@@ -143,7 +143,7 @@ async function processBrowserBuiliderOptions(
   const pkJson = lookupEntryPackage(Path.resolve(browserOptions.main));
   if (pkJson) {
     console.log(green('change-cli-options - ') + `Set entry package ${cyan(pkJson.name)}'s output path to /`);
-    config.set(['outputPathMap', pkJson.name], '/');
+    config.set(['outputPathMap', pkJson.name], '/'); // static assets in entry package should always be output to root path
   }
   // Be compatible to old DRCP build tools
   const {deployUrl} = browserOptions;
@@ -386,8 +386,12 @@ function overrideTsConfig(file: string, content: string,
     tsjson.files = [];
   tsjson.files.push(...sourceFiles(tsjson.compilerOptions, tsjson.files, file,
     browserOptions.fileReplacements));
-  // console.log(green('change-cli-options - ') + `${file}:\n`, JSON.stringify(tsjson, null, '  '));
-  log.info(`${file}:\n${JSON.stringify(tsjson, null, '  ')}`);
+
+  const reportFile = config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json');
+  fs.writeFile(reportFile, JSON.stringify(tsjson, null, '  '), () => {
+    log.info(`Compilation tsconfig.json file:\n  ${chalk.blueBright(reportFile)}`);
+  });
+
   return JSON.stringify(tsjson, null, '  ');
 }
 

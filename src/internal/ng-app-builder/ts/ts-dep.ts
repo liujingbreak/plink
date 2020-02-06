@@ -2,14 +2,20 @@ import Query from './utils/ts-ast-query';
 import fs from 'fs';
 import ts from 'typescript';
 import Path from 'path';
-import api from '__api';
-const log = require('log4js').getLogger(api.packageName + '.ts-deps');
+import {EOL as eol} from 'os';
+import { createWriteStream } from 'fs-extra';
+const cwd = process.cwd();
+// import api from '__api';
+// const log = require('log4js').getLogger(api.packageName + '.ts-deps');
 
-const rootPath = Path.resolve();
 export default class TsDependencyGraph {
-  // unresolved: Array<{module: string, srcFile: string}> = [];
-  walked = new Set<string>();
+  requestMap = new Map<string, string[]>(); // key is file that requested, value is who requests
+  /**
+   * Angular style lazy route loading grammar 
+   */
+  loadChildren = new Set<string>();
   toWalk: string[] = [];
+
   private resCache: ts.ModuleResolutionCache;
   private host: ts.CompilerHost;
   private replacements = new Map<string, string>();
@@ -44,15 +50,63 @@ export default class TsDependencyGraph {
     this._walk();
   }
 
+  report(logFile: string) {
+
+    const g = this;
+    // const logFile = api.config.resolve('destDir', 'ng-app-builder.report', 'ts-deps.txt');
+
+    const reportOut = createWriteStream(logFile);
+    reportOut.write(new Date().toLocaleString());
+    reportOut.write(eol);
+    // TODO: optimize - use a _.sortedIndex to make a sorted map, or use a separate worker process
+    const sortedEntries = Array.from(g.requestMap.entries()).sort((entry1, entry2) => entry1[0] > entry2[0] ? 1 : -1);
+    let i = 0;
+    for (const [dep, by] of sortedEntries) {
+      const pad = 4 - (i + '').length;
+      reportOut.write(' '.repeat(pad));
+      reportOut.write(i++ + '. ');
+      reportOut.write(Path.relative(cwd, dep));
+      reportOut.write(eol);
+      for (const singleBy of by) {
+        reportOut.write('        - ' + Path.relative(cwd, singleBy));
+        reportOut.write(eol);
+      }
+    }
+
+    return new Promise(resolve => reportOut.end(resolve));
+
+  }
+
+  /**
+   * 
+   * @param requestDep 
+   * @param by 
+   * @returns true if it is requested at first time
+   */
+  private checkResolved(requestDep: string, by: string): boolean {
+    const byList = this.requestMap.get(requestDep);
+    if (byList) {
+      byList.push(by);
+      return false;
+    } else {
+      this.requestMap.set(requestDep, [by]);
+      return true;
+    }
+  }
+
   private _walk() {
-    const resolve = (path: string, file: string) => {
+    const resolve = (path: string, file: string, cb?: (resolvedFile: string) => void) => {
       const resolved = ts.resolveModuleName(path, file, this.co, this.host, this.resCache).resolvedModule;
       if (resolved) {
         const dep = resolved.resolvedFileName;
-        if (dep.endsWith('.ts') && !dep.endsWith('.d.ts') && !this.walked.has(dep)) {
-          log.debug('dep: ' + Path.relative(rootPath, dep) + ',\n  from ' + Path.relative(rootPath, file));
-          this.walked.add(dep);
-          this.toWalk.push(dep);
+        if (dep.endsWith('.ts') && !dep.endsWith('.d.ts')) {
+          if (this.checkResolved(dep, file)) {
+          // log.debug('dep: ' + Path.relative(rootPath, dep) + ',\n  from ' + Path.relative(rootPath, file));
+            this.toWalk.push(dep);
+            if (cb) {
+              cb(dep);
+            }
+          }
         }
       } else {
         // this.unresolved.push({module: path, srcFile: file});
@@ -65,6 +119,8 @@ export default class TsDependencyGraph {
 
       const replaced = this.replacements.get(file);
       const q = new Query(this.readFile!(replaced || file), file);
+
+      const self = this;
 
       q.walkAst(q.src, [
         {
@@ -85,7 +141,9 @@ export default class TsDependencyGraph {
                   // We found lazy route module
                   // tslint:disable-next-line:no-console
                   console.log('lazy route module:', lazyModule);
-                  resolve(lazyModule.slice(0, hashTag), file);
+                  resolve(lazyModule.slice(0, hashTag), file, resolved => {
+                    self.loadChildren.add(resolved);
+                  });
                 }
               }
             }

@@ -18,6 +18,7 @@ import ReadHookHost from './utils/read-hook-vfshost';
 const smUrl = require('source-map-url');
 const log = require('log4js').getLogger('config-webpack');
 import {Application} from 'express';
+import chalk from 'chalk';
 // import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
 export interface WepackConfigHandler {
   /** @returns webpack configuration or Promise */
@@ -117,9 +118,29 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     }
   }());
 
+  if (param.browserOptions.statsJson) {
+    log.warn('You have enbabled "statsJson: true" in Angular.json or Command line, it will generate a big file in output directory\n' +
+      'Suggest you to remove it before deploy the whole output resource to somewhere, or you should disable this option,\n' +
+      'cuz\' ng-app-builder will generate another stats.json file in its report directory for production mode');
+  }
+
   if (!drcpConfigSetting.devMode) {
     console.log('Build in production mode');
-    webpackConfig.plugins.push(new gzipSize());
+    webpackConfig.plugins.push(
+      new gzipSize(),
+      new (class {
+        apply(compiler: Compiler) {
+          compiler.hooks.emit.tap('angular-cli-stats', compilation => {
+            const data = JSON.stringify(compilation.getStats().toJson('verbose'));
+            const reportFile = api.config.resolve('destDir', 'ng-app-builder.report', 'webpack-stats.json');
+            fs.writeFile(reportFile, data,
+              (err) => {
+                if (err) return log.error(err);
+                log.info(`Webpack compilation stats is written to ${reportFile}`);
+            });
+          });
+      }})()
+    );
   }
 
   if (webpackConfig.target !== 'node') {
@@ -190,9 +211,10 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     return lastResult;
   });
 
-  const wfname = `dist/webpack-${param.ssr ? 'ssr' : 'browser'}.config.${++context.webpackRunCount}.js`;
+  const wfname = api.config.resolve('destDir', 'ng-app-builder.report',
+    `webpack-${param.ssr ? 'ssr' : 'browser'}.config.${++context.webpackRunCount}.js`);
   fs.writeFileSync(wfname, printConfig(webpackConfig));
-  console.log(`If you are wondering what kind of Webapck config file is used internally, checkout ${wfname}`);
+  console.log(`If you are wondering what kind of Webapck config file is used internally, checkout ${chalk.blueBright(wfname)}`);
   return webpackConfig;
 }
 

@@ -5,12 +5,15 @@ import { Schema as NormalizedServerBuilderServerSchema } from '@angular-devkit/b
 import {json} from '@angular-devkit/core';
 import __changeWebpackConfig, {transformIndexHtml as _transformIndexHtml} from '../config-webpack';
 import api from '__api';
+import fs from 'fs-extra';
 
 export type DrcpConfig = typeof api.config;
 
 export async function initCli(options: any) {
   const drcpConfigFiles = options.drcpConfig ? (options.drcpConfig as string).split(/\s*[,;:]\s*/) : [];
-  return initDrcp(options.drcpArgs, drcpConfigFiles);
+  const config = await initDrcp(options.drcpArgs, drcpConfigFiles);
+  fs.mkdirpSync(config.resolve('destDir', 'ng-app-builder.report'));
+  return config;
 }
 async function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): Promise<DrcpConfig> {
   var config = require('dr-comp-package/wfh/lib/config');

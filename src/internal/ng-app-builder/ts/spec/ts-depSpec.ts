@@ -11,7 +11,7 @@ describe('ts-dep', () => {
     const graph = new Graph(co);
     graph.walkForDependencies(file);
 
-    console.log(graph.walked);
+    console.log(graph.requestMap);
     // expect(graph.unresolved.length).toBe(0);
   });
 
@@ -43,7 +43,7 @@ describe('ts-dep', () => {
     const graph = new Graph(co, replacements);
     graph.walkForDependencies(file);
 
-    console.log(graph.walked);
+    console.log(graph.requestMap);
     // expect(Array.from(graph.walked.values())
     //   .every(file => file.indexOf('node_modules') >= 0)
     // ).toBe(true);
