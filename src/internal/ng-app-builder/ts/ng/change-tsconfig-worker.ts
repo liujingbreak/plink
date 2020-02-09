@@ -1,4 +1,4 @@
-import {parentPort, workerData, isMainThread} from 'worker_threads';
+import {parentPort, workerData} from 'worker_threads';
 import {createTsConfig, ParialBrowserOptions} from './change-tsconfig';
 import {initCli, DrcpBuilderOptions} from './common';
 import {injectorSetup} from './injector-setup';
@@ -8,7 +8,7 @@ import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
 
 export interface Data {
   tsconfigFile: string;
-  reportFile: string;
+  reportDir: string;
   config: DrcpSetting;
   ngOptions: ParialBrowserOptions;
   packageInfo: PackageInfo;
@@ -17,31 +17,27 @@ export interface Data {
   drcpBuilderOptions: DrcpBuilderOptions;
 }
 
-if (!isMainThread) {
-  const {
-    tsconfigFile,
-    reportFile,
-    config,
-    ngOptions,
-    packageInfo,
-    deployUrl,
-    baseHref,
-    drcpBuilderOptions
-  } = workerData as Data;
+const {
+  tsconfigFile,
+  reportDir,
+  config,
+  ngOptions,
+  packageInfo,
+  deployUrl,
+  baseHref,
+  drcpBuilderOptions
+} = workerData as Data;
 
-  // console.log('hey');
-  // console.log(workerData);
+// tslint:disable: no-console
+// console.log(workerData);
+memstats();
+initCli(drcpBuilderOptions)
+.then((drcpConfig) => {
+  return injectorSetup(packageInfo, drcpBuilderOptions.drcpArgs, deployUrl, baseHref);
+}).then(() => {
+  const create: typeof createTsConfig = require('./change-tsconfig').createTsConfig;
+  const content = create(tsconfigFile, ngOptions, config, packageInfo, reportDir);
 
-  initCli(drcpBuilderOptions)
-  .then((drcpConfig) => {
-    return injectorSetup(packageInfo, drcpBuilderOptions.drcpArgs, deployUrl, baseHref);
-  }).then(() => {
-    const create: typeof createTsConfig = require('./change-tsconfig').createTsConfig;
-    const content = create(tsconfigFile, ngOptions, config, packageInfo, reportFile);
-
-    parentPort!.postMessage(content);
-    memstats();
-    process.exit(0);
-  });
-
-}
+  parentPort!.postMessage({log: memstats()});
+  parentPort!.postMessage({result: content});
+});

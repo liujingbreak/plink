@@ -19,11 +19,11 @@ export function createTsConfig(file: string,
   browserOptions: ParialBrowserOptions,
   config: NgAppBuilderSetting,
   packageInfo: PackageInfo,
-  reportFile: string) {
+  reportDir: string) {
 
   // const reportFile = config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json');
   return overrideTsConfig(file, packageInfo, browserOptions,
-    config, reportFile);
+    config, reportDir);
 }
 
 /**
@@ -37,7 +37,7 @@ export function createTsConfig(file: string,
  */
 function overrideTsConfig(file: string, pkInfo: PackageInfo,
   browserOptions: ParialBrowserOptions,
-  config: NgAppBuilderSetting, reportFile: string): string {
+  config: NgAppBuilderSetting, reportDir: string): string {
 
   const root = process.cwd();
   const result = ts.parseConfigFileTextToJson(file, fs.readFileSync(file, 'utf8'));
@@ -121,8 +121,8 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
 
   if (!tsjson.files)
     tsjson.files = [];
-  tsjson.files.push(...sourceFiles(tsjson.compilerOptions, tsjson.files, file,
-    browserOptions.fileReplacements, reportFile));
+  tsjson.files.push(...(sourceFiles(tsjson.compilerOptions, tsjson.files, file,
+    browserOptions.fileReplacements, reportDir)));
 
   return JSON.stringify(tsjson, null, '  ');
 }

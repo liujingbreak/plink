@@ -190,7 +190,8 @@ async function processBrowserBuiliderOptions(
       output: outputDir.endsWith('/') ? outputDir : outputDir + '/'
     });
   });
-  context.logger.info('browser builder options:' + JSON.stringify(browserOptions, undefined, '  '));
+  fs.writeFile(config.resolve('destDir', 'ng-app-builder.report', 'angular-cli-options.json'),
+  JSON.stringify(browserOptions, undefined, '  '), () => {});
   return browserOptions;
 }
 
@@ -254,6 +255,8 @@ async function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpC
   const tsConfigFile = Path.resolve(browserOptions.tsConfig);
 
   const newTsConfig = await createTsConfigInWorker(tsConfigFile, browserOptions, config, packagesInfo);
+  fs.writeFile(config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json'), newTsConfig, () => {
+  });
 
   sys.readFile = function(path: string, encoding?: string): string {
     const res: string = oldReadFile.apply(sys, arguments);
@@ -294,17 +297,16 @@ function createTsConfigInWorker(tsconfigFile: string,
   config: DrcpConfig,
   packageInfo: ExtractPromise<ReturnType<typeof injectorSetup>>) {
 
-  const reportFile = config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json');
+  const reportDir = config.resolve('destDir', 'ng-app-builder.report');
 
   memstats();
+  const workerLog = require('log4js').getLogger('@dr-core/ng-app-builder.worker');
 
   return new Promise<string>((resolve, rej) => {
-    const file = require.resolve('./change-tsconfig-worker.js');
-    console.log('Call worker', file);
 
     const workerData: Data = {
       tsconfigFile,
-      reportFile,
+      reportDir,
       config: config.get(currPackageName),
       ngOptions: {
         preserveSymlinks: browserOptions.preserveSymlinks,
@@ -316,11 +318,19 @@ function createTsConfigInWorker(tsconfigFile: string,
       baseHref: browserOptions.baseHref,
       deployUrl: browserOptions.deployUrl
     };
-    const worker = new Worker(file, {workerData});
+    const worker = new Worker(require.resolve('./change-tsconfig-worker.js'), {workerData});
     worker.on('error', rej);
-    worker.once('message', (res: string) => {
-      resolve(res);
-      worker.off('error', rej);
+    worker.on('message', (msg) => {
+      if (msg.log) {
+        workerLog.info(msg.log);
+      }
+      if (msg.result) {
+        resolve(msg.result);
+      }
+      // worker.off('error', rej);
+    });
+    worker.on('exit', () => {
+      log.info('worker exits');
     });
   });
 }

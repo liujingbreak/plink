@@ -1,10 +1,15 @@
 import chalk from 'chalk';
-import {isMainThread} from 'worker_threads';
+import { isMainThread, threadId } from 'worker_threads';
 export default function() {
-  let stats = `[${process.pid}, is main:${isMainThread}]`;
+  let stats = `[${isMainThread ? 'pid:' + process.pid : 'thread:' + threadId}]`;
   const mem = process.memoryUsage();
   for (const key of Object.keys(mem)) {
-    stats += `${key}: ${mem[key]/1024/1024}M, `;
+    stats += `${key}: ${Math.ceil(mem[key]/1024/1024)}M, `;
   }
-  return chalk.greenBright(stats);
+  const report = chalk.cyanBright(stats);
+
+  // tslint:disable-next-line: no-console
+  console.log(report);
+  return report;
 }
+
