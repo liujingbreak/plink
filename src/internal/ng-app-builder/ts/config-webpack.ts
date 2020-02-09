@@ -19,6 +19,7 @@ const smUrl = require('source-map-url');
 const log = require('log4js').getLogger('config-webpack');
 import {Application} from 'express';
 import chalk from 'chalk';
+import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
 // import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
 export interface WepackConfigHandler {
   /** @returns webpack configuration or Promise */
@@ -114,6 +115,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       });
       compiler.hooks.done.tapPromise('ts-read-hook', async () => {
         hooker.logFileCount();
+        memstats();
       });
     }
   }());

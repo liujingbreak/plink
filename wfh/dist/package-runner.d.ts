@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { packageInstance as PackageBrowserInstance } from './build-util/ts';
+import { PackageInfo, packageInstance as PackageBrowserInstance } from './build-util/ts';
 import NodePackage from './packageNodeInstance';
 import Events = require('events');
 export interface ServerRunnerEvent {
@@ -27,7 +27,7 @@ export declare function runPackages(argv: {
 }): Promise<void>;
 export declare function initInjectorForNodePackages(argv: {
     [key: string]: any;
-}): [PackageBrowserInstance[], {
+}, packageInfo: PackageInfo): [PackageBrowserInstance[], {
     eventBus: Events;
 }];
 export declare function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any): Promise<void>;

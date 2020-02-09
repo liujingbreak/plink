@@ -12,7 +12,7 @@ import {changeAngularCliOptions} from '../../ng/change-cli-options';
 
 export default createBuilder<DevServerBuilderOptions, DevServerBuilderOutput>(
   (options, context) => {
-    return from(drcpCommon.initCli(options))
+    return from(drcpCommon.initCli(options as any))
     .pipe(
       concatMap(drcpConfig => {
         return from(changeAngularCliOptions(drcpConfig, context, options));

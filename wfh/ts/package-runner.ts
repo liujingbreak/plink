@@ -108,7 +108,7 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
   const includeNameSet = new Set<string>();
   argv.package.forEach(name => includeNameSet.add(name));
   const [fileToRun, funcToRun] = (argv.target as string).split('#');
-  const [packages, proto] = initInjectorForNodePackages(argv);
+  const [packages, proto] = initInjectorForNodePackages(argv, walkPackages(config, packageUtils));
   const components = packages.filter(pk => {
     // setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
     if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
@@ -136,12 +136,12 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
   });
 }
 
-export function initInjectorForNodePackages(argv: {[key: string]: any}):
+export function initInjectorForNodePackages(argv: {[key: string]: any}, packageInfo: PackageInfo):
   [PackageBrowserInstance[], {eventBus: Events}] {
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
   proto.argv = argv;
-  const packageInfo: PackageInfo = walkPackages(config, packageUtils);
+  // const packageInfo: PackageInfo = walkPackages(config, packageUtils);
   proto.packageInfo = packageInfo;
   const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
   proto.findPackageByFile = function(file: string): PackageBrowserInstance | undefined {

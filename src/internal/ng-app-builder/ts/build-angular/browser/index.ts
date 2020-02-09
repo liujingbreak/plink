@@ -14,7 +14,7 @@ import {changeAngularCliOptionsForBuild} from '../../ng/change-cli-options';
 
 export default createBuilder<json.JsonObject & BrowserBuilderSchema>(
   (options, context) => {
-    return from(drcpCommon.initCli(options))
+    return from(drcpCommon.initCli(options as any))
     .pipe(
       concatMap(config => {
         return from(changeAngularCliOptionsForBuild(config, options, context));

@@ -4,7 +4,7 @@ import { Schema as NormalizedServerBuilderServerSchema } from '@angular-devkit/b
 import { json } from '@angular-devkit/core';
 import api from '__api';
 export declare type DrcpConfig = typeof api.config;
-export declare function initCli(options: any): Promise<import("dr-comp-package/wfh/dist/config-handler").DrcpConfig>;
+export declare function initCli(options: DrcpBuilderOptions): Promise<import("dr-comp-package/wfh/dist/config-handler").DrcpConfig>;
 export declare type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
 export interface AngularCliParam {
     builderConfig?: DevServerBuilderOptions;

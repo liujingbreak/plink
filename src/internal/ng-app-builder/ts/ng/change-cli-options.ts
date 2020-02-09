@@ -2,32 +2,31 @@
 import { BuilderContext, Target, targetFromTargetString } from '@angular-devkit/architect';
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
-import { PackageInfo } from 'dr-comp-package/wfh/dist/build-util/ts';
+import { packageAssetsFolders } from '@dr-core/assets-processer/dist/dev-serve-assets';
+import chalk from 'chalk';
 import { ConfigHandler, DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
+import { getLanIPv4 } from 'dr-comp-package/wfh/dist/utils/network-util';
 // import { getTsDirsOfPackage } from 'dr-comp-package/wfh/dist/utils';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as Path from 'path';
+import {Worker} from 'worker_threads';
+import ts, { sys } from 'typescript';
 import Url from 'url';
-import { sys } from 'typescript';
-import { DrcpSetting as NgAppBuilderSetting } from '../configurable';
-import { findAppModuleFileFromMain } from '../utils/parse-app-module';
 import replaceCode from '../utils/patch-text';
 import TsAstSelector from '../utils/ts-ast-query';
 import { AngularBuilderOptions } from './common';
-import apiSetup from './injector-setup';
-import ts from 'typescript';
-import {packageAssetsFolders} from '@dr-core/assets-processer/dist/dev-serve-assets';
-import appTsconfig from '../../misc/tsconfig.app.json';
-import {addSourceFiles} from './add-tsconfig-file';
-import {getLanIPv4} from 'dr-comp-package/wfh/dist/utils/network-util';
-import chalk from 'chalk';
+import injectorSetup from './injector-setup';
+import { DrcpBuilderOptions } from '../../dist/server';
+import {Data} from './change-tsconfig-worker';
+import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
 
 const {cyan, green, red} = chalk;
-const {walkPackages} = require('dr-comp-package/wfh/dist/build-util/ts');
-const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 const currPackageName = require('../../package.json').name;
 const log = require('log4js').getLogger('@dr-core/ng-app-builder.change-cli-options');
+
+type ExtractPromise<P> = P extends Promise<infer T> ? T : unknown;
+
 export interface AngularConfigHandler extends ConfigHandler {
   /**
 	 * You may override angular.json in this function
@@ -123,7 +122,8 @@ async function processBrowserBuiliderOptions(
         console.log(chalk.red(`Current dev server resource is hosted on ${parsedUrl.hostname},\nif your network is reconnected or local IP address is ` +
         ' changed, you will need to restart this dev server!')), 5000);
     }
-    devServerConfig.servePath = parsedUrl.pathname; // In case deployUrl has host, ng cli will report error for null servePath
+    if (parsedUrl.pathname)
+      devServerConfig.servePath = parsedUrl.pathname; // In case deployUrl has host, ng cli will report error for null servePath
   }
 
   if (browserOptions.fileReplacements) {
@@ -168,8 +168,9 @@ async function processBrowserBuiliderOptions(
 
   browserOptions.commonChunk = false;
 
-  hackTsConfig(browserOptions, config);
-  await apiSetup(browserOptions);
+  const packagesInfo = await injectorSetup(config, browserOptions);
+  await hackTsConfig(browserOptions, config, packagesInfo);
+
 
   context.reportStatus('setting up assets options');
   // Because dev-serve-assets depends on DRCP api, I have to lazy load it.
@@ -246,9 +247,13 @@ function createMainFileForHmr(mainFile: string): string {
 }
 
 // Hack ts.sys, so far it is used to read tsconfig.json
-function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig) {
+async function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig,
+  packagesInfo: ExtractPromise<ReturnType<typeof injectorSetup>>) {
+
   const oldReadFile = sys.readFile;
   const tsConfigFile = Path.resolve(browserOptions.tsConfig);
+
+  const newTsConfig = await createTsConfigInWorker(tsConfigFile, browserOptions, config, packagesInfo);
 
   sys.readFile = function(path: string, encoding?: string): string {
     const res: string = oldReadFile.apply(sys, arguments);
@@ -261,7 +266,7 @@ function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig)
     }
     try {
       if (path === tsConfigFile)
-        return cachedTsConfigFor(path, res, browserOptions, config);
+        return newTsConfig;
       else
         return res;
     } catch (err) {
@@ -284,130 +289,40 @@ function lookupEntryPackage(lookupDir: string): any {
   return null;
 }
 
-/**
- * Angular cli will read tsconfig.json twice due to some junk code, 
- * let's memoize the result by file path as cache key.
- */
-const cachedTsConfigFor = _.memoize(overrideTsConfig);
-/**
- * Let's override tsconfig.json files for Angular at rutime :)
- * - Read into memory
- * - Do not override properties of compilerOptions,angularCompilerOptions that exists in current file
- * - "extends" must be ...
- * - Traverse packages to build proper includes and excludes list and ...
- * - Find file where AppModule is in, find its package, move its directory to top of includes list,
- * 	which fixes ng cli windows bug
- */
-function overrideTsConfig(file: string, content: string,
-  browserOptions: AngularBuilderOptions, config: DrcpConfig): string {
-
-  const root = config().rootPath;
-  const result = ts.parseConfigFileTextToJson(file, content);
-  if (result.error) {
-    log.error(result.error);
-    throw new Error(`${file} contains incorrect configuration`);
-  }
-  const oldJson = result.config;
-  const preserveSymlinks = browserOptions.preserveSymlinks;
-  const pathMapping: {[key: string]: string[]} | undefined = preserveSymlinks ? undefined : {};
-  const pkInfo: PackageInfo = walkPackages(config, null, packageUtils, true);
-
-  type PackageInstances = typeof pkInfo.allModules;
-  let ngPackages: PackageInstances = pkInfo.allModules;
-
-  const appModuleFile = findAppModuleFileFromMain(Path.resolve(browserOptions.main));
-  const appPackageJson = lookupEntryPackage(appModuleFile);
-  if (appPackageJson == null)
-    throw new Error('Error, can not find package.json of ' + appModuleFile);
-
-  ngPackages.forEach(pk => {
-
-    if (!preserveSymlinks) {
-      const realDir = Path.relative(root, pk.realPackagePath).replace(/\\/g, '/');
-      pathMapping![pk.longName] = [realDir];
-      pathMapping![pk.longName + '/*'] = [realDir + '/*'];
-    }
-  });
-
-  // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
-  if (!preserveSymlinks) {
-    const drcpDir = Path.relative(root, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
-    pathMapping!['dr-comp-package'] = [drcpDir];
-    pathMapping!['dr-comp-package/*'] = [drcpDir + '/*'];
-  }
-
-  var tsjson: {compilerOptions: any, [key: string]: any, files?: string[], include: string[]} = {
-    // extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
-    include: (config.get(currPackageName) as NgAppBuilderSetting)
-      .tsconfigInclude
-      .map(preserveSymlinks ? p => p : globRealPath)
-      .map(
-        pattern => Path.relative(Path.dirname(file), pattern).replace(/\\/g, '/')
-      ),
-    exclude: [], // tsExclude,
-    compilerOptions: {
-      ...appTsconfig.compilerOptions,
-      baseUrl: root,
-      // typeRoots: [
-      //   Path.resolve(root, 'node_modules/@types'),
-      //   Path.resolve(root, 'node_modules/@dr-types'),
-      //   // Below is NodeJS only, which will break Angular Ivy engine
-      //   Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
-      // ],
-      // module: 'esnext',
-      preserveSymlinks,
-      ...oldJson.compilerOptions,
-      paths: {...appTsconfig.compilerOptions.paths, ...pathMapping}
-    },
-    angularCompilerOptions: {
-      // trace: true
-      ...oldJson.angularCompilerOptions
-    }
-  };
-  if (oldJson.extends) {
-    tsjson.extends = oldJson.extends;
-  }
-
-  if (oldJson.compilerOptions.paths) {
-    Object.assign(tsjson.compilerOptions.paths, oldJson.compilerOptions.paths);
-  }
-  if (oldJson.include) {
-    tsjson.include = _.union((tsjson.include as string[]).concat(oldJson.include));
-  }
-  if (oldJson.exclude) {
-    tsjson.exclude = _.union((tsjson.exclude as string[]).concat(oldJson.exclude));
-  }
-  if (oldJson.files)
-    tsjson.files = oldJson.files;
-
-  const sourceFiles: typeof addSourceFiles = require('./add-tsconfig-file').addSourceFiles;
-
-  if (!tsjson.files)
-    tsjson.files = [];
-  tsjson.files.push(...sourceFiles(tsjson.compilerOptions, tsjson.files, file,
-    browserOptions.fileReplacements));
+function createTsConfigInWorker(tsconfigFile: string,
+  browserOptions: AngularBuilderOptions,
+  config: DrcpConfig,
+  packageInfo: ExtractPromise<ReturnType<typeof injectorSetup>>) {
 
   const reportFile = config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json');
-  fs.writeFile(reportFile, JSON.stringify(tsjson, null, '  '), () => {
-    log.info(`Compilation tsconfig.json file:\n  ${chalk.blueBright(reportFile)}`);
+
+  memstats();
+
+  return new Promise<string>((resolve, rej) => {
+    const file = require.resolve('./change-tsconfig-worker.js');
+    console.log('Call worker', file);
+
+    const workerData: Data = {
+      tsconfigFile,
+      reportFile,
+      config: config.get(currPackageName),
+      ngOptions: {
+        preserveSymlinks: browserOptions.preserveSymlinks,
+        main: browserOptions.main,
+        fileReplacements: JSON.parse(JSON.stringify(browserOptions.fileReplacements))
+      },
+      packageInfo,
+      drcpBuilderOptions: JSON.parse(JSON.stringify({drcpArgs: browserOptions.drcpArgs, drcpConfig: browserOptions.drcpConfig})) as DrcpBuilderOptions,
+      baseHref: browserOptions.baseHref,
+      deployUrl: browserOptions.deployUrl
+    };
+    const worker = new Worker(file, {workerData});
+    worker.on('error', rej);
+    worker.once('message', (res: string) => {
+      resolve(res);
+      worker.off('error', rej);
+    });
   });
-
-  return JSON.stringify(tsjson, null, '  ');
 }
 
-function globRealPath(glob: string) {
-  const res = /^([^*]+)\/[^/*]*\*/.exec(glob);
-  if (res) {
-    return fs.realpathSync(res[1]).replace(/\\/g, '/') + res.input.slice(res[1].length);
-  }
-  return glob;
-}
 
-// function hasIsomorphicDir(pkJson: any, packagePath: string) {
-//   const fullPath = Path.resolve(packagePath, getTsDirsOfPackage(pkJson).isomDir);
-//   try {
-//     return fs.statSync(fullPath).isDirectory();
-//   } catch (e) {
-//     return false;
-//   }
-// }

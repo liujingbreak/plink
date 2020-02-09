@@ -1,10 +1,11 @@
 {
   "name": "dr-comp-package",
-  "version": "0.8.18",
+  "version": "0.8.19",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
-    "drcp": "bin/drcp.js"
+    "drcp": "bin/drcp.js",
+    "opj": "bin/drcp.js"
   },
   "packages": ["src/internal", "src/runtime", "src/tools", "wfh/types"],
   "dr": {
@@ -31,7 +32,7 @@
     "ts-node": "~8.3.0",
     "@types/js-yaml": "3.10.1",
     "@types/lodash": "^4.14.92",
-    "@types/node": "10.9.4",
+    "@types/node": "^12.12.26",
     "jasmine": "~3.5.0",
     "@types/jasmine": "~3.3.2",
     "source-map-support": "~0.5.16",
@@ -69,7 +70,7 @@
     "pify": "^3.0.0",
     "prettier": "1.13.5",
     "pretty-quick": "^1.6.0",
-    "require-injector": "^5.1.6",
+    "require-injector": "^5.1.7",
     "rxjs": "~6.4.0",
     "resolve": "^1.15.00",
     "semver": "^5.4.1",
@@ -89,6 +90,7 @@
     "yargs": "^12.0.1",
     "tslib": "^1.9.3",
     "@types/react": "^16.9.19",
-    "@types/react-dom": "^16.9.5"
+    "@types/react-dom": "^16.9.5",
+    "open": "^7.0.2"
   }
 }

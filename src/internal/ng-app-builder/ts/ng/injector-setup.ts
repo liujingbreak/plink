@@ -3,21 +3,34 @@ import Path from 'path';
 // import api from '__api';
 import _ from 'lodash';
 import {createNgRouterPath} from '../../isom/api-share';
+import {walkPackages } from 'dr-comp-package/wfh/dist/build-util/ts/main';
 import {initInjectorForNodePackages, initWebInjector} from 'dr-comp-package/wfh/dist/package-runner';
 import {AngularBuilderOptions} from './common';
+import { DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
+const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 
-export default async function(browserOptions: AngularBuilderOptions, ssr = false) {
-  const [pks, apiProto] = initInjectorForNodePackages(browserOptions.drcpArgs);
+export default async function(config: DrcpConfig, browserOptions: AngularBuilderOptions, ssr = false): Promise<ReturnType<typeof walkPackages>> {
+  const packageInfo = walkPackages(config, packageUtils);
+  await injectorSetup(packageInfo, browserOptions.drcpArgs, browserOptions.deployUrl, browserOptions.baseHref, ssr);
+  return packageInfo;
+}
+
+export async function injectorSetup(packageInfo: ReturnType<typeof walkPackages>,
+  drcpArgs: AngularBuilderOptions['drcpArgs'],
+  deployUrl: AngularBuilderOptions['deployUrl'],
+  baseHref: AngularBuilderOptions['baseHref'], ssr = false) {
+
+  const [pks, apiProto] = initInjectorForNodePackages(drcpArgs, packageInfo);
   await initWebInjector(pks, apiProto);
 
-  const deployUrl = browserOptions.deployUrl || '';
+  const publicUrlObj = parse(deployUrl || '');
+  const baseHrefPath = baseHref ? parse(baseHref).pathname : undefined;
 
-  const publicUrlObj = parse(deployUrl);
   Object.assign(apiProto, {
     deployUrl,
     ssr,
-    ngBaseRouterPath: _.trim(publicUrlObj.pathname, '/'),
-    ngRouterPath: createNgRouterPath(browserOptions.baseHref ? parse(browserOptions.baseHref).pathname : undefined),
+    ngBaseRouterPath: publicUrlObj.pathname ? _.trim(publicUrlObj.pathname, '/') : '',
+    ngRouterPath: createNgRouterPath(baseHrefPath ? baseHrefPath : undefined),
     ssrRequire(requirePath: string) {
       if (ssr)
         return require(Path.join(this.__dirname, requirePath));

@@ -6,10 +6,12 @@ import {json} from '@angular-devkit/core';
 import __changeWebpackConfig, {transformIndexHtml as _transformIndexHtml} from '../config-webpack';
 import api from '__api';
 import fs from 'fs-extra';
+import nodeCheck from 'dr-comp-package/wfh/dist/utils/node-version-check';
 
 export type DrcpConfig = typeof api.config;
 
-export async function initCli(options: any) {
+export async function initCli(options: DrcpBuilderOptions) {
+  await nodeCheck();
   const drcpConfigFiles = options.drcpConfig ? (options.drcpConfig as string).split(/\s*[,;:]\s*/) : [];
   const config = await initDrcp(options.drcpArgs, drcpConfigFiles);
   fs.mkdirpSync(config.resolve('destDir', 'ng-app-builder.report'));

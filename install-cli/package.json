@@ -4,7 +4,8 @@
   "description": "dr-comp-package command line interface",
   "main": "bin/cli.js",
   "bin": {
-    "drcp": "bin/drcp.js"
+    "drcp": "bin/drcp.js",
+    "opj": "bin/drcp.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

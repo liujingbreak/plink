@@ -50,12 +50,12 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
     let output: string;
     if (opts && opts.silent) {
       output = '';
-      res.stdout.setEncoding('utf-8');
-      res.stdout.on('data', (chunk) => {
+      res.stdout!.setEncoding('utf-8');
+      res.stdout!.on('data', (chunk) => {
         output += chunk;
       });
-      res.stderr.setEncoding('utf-8');
-      res.stderr.on('data', (chunk) => {
+      res.stderr!.setEncoding('utf-8');
+      res.stderr!.on('data', (chunk) => {
         output += chunk;
       });
     }

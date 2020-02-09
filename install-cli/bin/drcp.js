@@ -5,7 +5,7 @@ const Path = require('path');
 nodePath();
 
 try {
-	require(Path.resolve('node_modules/dr-comp-package/bin/dr'));
+	require(Path.resolve('node_modules/dr-comp-package/wfh/dist/cmd-bootstrap'));
 } catch (e) {
 	console.log(e);
 	console.log('There is no local dr-comp-package installed.\n' +

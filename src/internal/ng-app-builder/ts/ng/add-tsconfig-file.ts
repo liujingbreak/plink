@@ -1,16 +1,22 @@
+/**
+ * This file will run in worker thread
+ */
 import Graph from '../ts-dep';
 import {jsonToCompilerOptions} from 'dr-comp-package/wfh/dist/ts-compiler';
 import api from '__api';
 import { sys } from 'typescript';
-import { AngularBuilderOptions } from './common';
 import Path from 'path';
 import chalk from 'chalk';
-
+import { AngularBuilderOptions } from './common';
 const log = require('log4js').getLogger('add-tsconfig-file');
 
+  // initCli(browserOptions)
+  // .then(drcpConfig => {
+  //   return injectorSetup(pkInfo, drcpConfig, browserOptions);
+  // });
 
 export function addSourceFiles(compilerOptions: any, entryFiles: string[], tsconfigFile: string,
-  fileReplacements: AngularBuilderOptions['fileReplacements']): string[] {
+  fileReplacements: AngularBuilderOptions['fileReplacements'], reportFile: string): string[] {
 
   const projDir = Path.dirname(tsconfigFile);
   const g = new Graph(jsonToCompilerOptions(compilerOptions), fileReplacements,
@@ -26,14 +32,17 @@ export function addSourceFiles(compilerOptions: any, entryFiles: string[], tscon
   }
   log.info(`${chalk.redBright(g.requestMap.size + '')} TS file included`);
 
-  const logFile = api.config.resolve('destDir', 'ng-app-builder.report', 'ts-deps.txt');
-  g.report(logFile)
+  g.report(reportFile)
   .then(() => {
-    log.info('All TS file names are listed in:\n  ' + chalk.blueBright(logFile));
+    log.info('All TS file names are listed in:\n  ' + chalk.blueBright(reportFile));
   });
   // I must put all walked ts dependencies in Tsconfig json file, since some are package file located in
   // node_modules, by default Angular or tsc will exclude them
   return Array.from(g.requestMap.keys())
     .map(file => Path.relative(projDir, file).replace(/\\/g, '/'));
 }
+
+
+
+
 
