@@ -20,6 +20,7 @@ import injectorSetup from './injector-setup';
 import { DrcpBuilderOptions } from '../../dist/server';
 import {Data} from './change-tsconfig-worker';
 import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
+import {createTsConfig as _createTsConfig} from './change-tsconfig';
 
 const {cyan, green, red} = chalk;
 const currPackageName = require('../../package.json').name;
@@ -254,7 +255,8 @@ async function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpC
   const oldReadFile = sys.readFile;
   const tsConfigFile = Path.resolve(browserOptions.tsConfig);
 
-  const newTsConfig = await createTsConfigInWorker(tsConfigFile, browserOptions, config, packagesInfo);
+  const newTsConfig = true ? createTsConfigSync(tsConfigFile, browserOptions, config, packagesInfo) :
+    await createTsConfigInWorker(tsConfigFile, browserOptions, config, packagesInfo);
   fs.writeFile(config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json'), newTsConfig, () => {
   });
 
@@ -290,6 +292,16 @@ function lookupEntryPackage(lookupDir: string): any {
     lookupDir = Path.dirname(lookupDir);
   }
   return null;
+}
+
+function createTsConfigSync(tsconfigFile: string,
+  browserOptions: AngularBuilderOptions,
+  config: DrcpConfig,
+  packageInfo: ExtractPromise<ReturnType<typeof injectorSetup>>) {
+  const {createTsConfig} = require('./change-tsconfig') as {createTsConfig: typeof _createTsConfig};
+  memstats();
+  return createTsConfig(tsconfigFile, browserOptions, config.get(currPackageName),
+    packageInfo, config.resolve('destDir', 'ng-app-builder.report'));
 }
 
 function createTsConfigInWorker(tsconfigFile: string,

@@ -27,19 +27,33 @@ export function addSourceFiles(compilerOptions: any, entryFiles: string[], tscon
       return api.browserInjector.injectToFile(file, content || '');
     });
 
-  parentPort!.postMessage({log: 'TS entris:\n' + entryFiles.map(file => '  ' + chalk.cyan(file)).join('\n')});
+  let msg = 'TS entris:\n' + entryFiles.map(file => '  ' + chalk.cyan(file)).join('\n');
+  if (parentPort)
+    parentPort.postMessage({log: msg});
 
   for (const entryFile of entryFiles) {
     g.walkForDependencies(Path.resolve(projDir, entryFile));
   }
-  parentPort!.postMessage({log: `${chalk.redBright(g.requestMap.size + '')} TS file included`});
+
+  msg = `${chalk.redBright(g.requestMap.size + '')} TS file included`;
+  if (parentPort)
+    parentPort.postMessage({log: msg});
+  else
+    console.log(msg);
 
   g.report(Path.resolve(reportDir, 'deps.txt'))
   .then(() => {
-    parentPort!.postMessage({log: 'All TS file names are listed in:\n  ' + chalk.blueBright(Path.resolve(reportDir, 'deps.txt'))});
+    const msg = 'All TS file names are listed in:\n  ' + chalk.blueBright(Path.resolve(reportDir, 'deps.txt'));
+    if (parentPort)
+      parentPort.postMessage({log: msg});
+    else
+      console.log(msg);
   })
   .catch(ex => {
-    parentPort!.postMessage({log: ex.toString()});
+    if (parentPort)
+      parentPort.postMessage({log: ex.toString()});
+    else
+      console.log(ex.toString());
   });
   // I must put all walked ts dependencies in Tsconfig json file, since some are package file located in
   // node_modules, by default Angular or tsc will exclude them
