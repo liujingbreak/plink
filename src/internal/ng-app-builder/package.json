@@ -18,6 +18,7 @@
       "server": {
         "outputPath": "dist/static",
         "tsconfigInclude": [],
+        "useThread": true,
         "ng8Compliant": true
       }
     }

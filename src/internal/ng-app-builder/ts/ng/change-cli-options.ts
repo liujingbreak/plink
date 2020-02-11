@@ -128,7 +128,6 @@ async function processBrowserBuiliderOptions(
   }
 
   if (browserOptions.fileReplacements) {
-    console.log(browserOptions.fileReplacements);
     const cwd = process.cwd();
     browserOptions.fileReplacements
     .forEach(fr => {
@@ -255,8 +254,10 @@ async function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpC
   const oldReadFile = sys.readFile;
   const tsConfigFile = Path.resolve(browserOptions.tsConfig);
 
-  const newTsConfig = true ? createTsConfigSync(tsConfigFile, browserOptions, config, packagesInfo) :
-    await createTsConfigInWorker(tsConfigFile, browserOptions, config, packagesInfo);
+  const useThread = config.get(currPackageName + '.useThread', true);
+  const newTsConfig = useThread ?
+    await createTsConfigInWorker(tsConfigFile, browserOptions, config, packagesInfo) :
+    createTsConfigSync(tsConfigFile, browserOptions, config, packagesInfo);
   fs.writeFile(config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json'), newTsConfig, () => {
   });
 
