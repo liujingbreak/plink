@@ -1,8 +1,9 @@
 import { createTransport } from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import {Observable, BehaviorSubject } from 'rxjs';
-import { map, /*concatMap, takeWhile, takeLast, mapTo,*/ tap, distinctUntilChanged,
-  skip, filter, take} from 'rxjs/operators';
+import { map, /*concatMap, takeWhile, takeLast, mapTo,*/ tap, distinctUntilChanged
+  // skip, filter, take
+} from 'rxjs/operators';
 import { connect as tslConnect, ConnectionOptions, TLSSocket } from 'tls';
 import fs from 'fs-extra';
 import * as _ from 'lodash';
@@ -309,13 +310,10 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
 }
 
 export class ImapManager {
-  // checksum: Checksum;
   checksumState = new BehaviorSubject<Checksum | null>(null);
   fileWritingState: ImapCommandContext['fileWritingState'];
   watching = false;
   private toFetchAppsState = new BehaviorSubject<string[]>([]);
-  // private  zipDownloadDir: string;
-  // private imapActions = new Subject<(ctx: ImapCommandContext) => Promise<any>>();
 
   private ctx: ImapCommandContext;
 
@@ -324,32 +322,32 @@ export class ImapManager {
       this.zipDownloadDir = Path.resolve(Path.dirname(currChecksumFile), 'deploy-static-' + env);
   }
 
-  async fetchChecksum(): Promise<Checksum | undefined>  {
-    let cs: Checksum | undefined;
-    await connectImap(async ctx => {
-      cs = await this._fetchChecksum(ctx);
-    });
-    log.info('fetched checksum:', cs);
-    this.checksumState.next(cs!);
-    return cs;
+  async fetchChecksum() {
+  //   let cs: Checksum | undefined;
+  //   await connectImap(async ctx => {
+  //     cs = await this._fetchChecksum(ctx);
+  //   });
+  //   log.info('fetched checksum:', cs);
+  //   this.checksumState.next(cs!);
+  //   return cs;
   }
 
-  async fetchUpdateCheckSum(appName: string): Promise<Checksum> {
-    let cs = await this.fetchChecksum();
-    log.info('fetched checksum:', cs);
-    if (cs!.versions![appName] == null) {
-      cs!.versions![appName] = {
-        version: 0,
-        path: '<see attachement file name>'
-      };
-    }
-    cs!.versions![appName].version++;
-    this.checksumState.next(cs!);
-    fs.mkdirpSync(Path.dirname(currChecksumFile));
-    const checksumStr = JSON.stringify(cs!, null, '  ');
-    fs.writeFileSync(currChecksumFile, checksumStr);
-    log.info('write %s\n%s', currChecksumFile, checksumStr);
-    return cs!;
+  async fetchUpdateCheckSum(appName: string) {
+  //   let cs = await this.fetchChecksum();
+  //   log.info('fetched checksum:', cs);
+  //   if (cs!.versions![appName] == null) {
+  //     cs!.versions![appName] = {
+  //       version: 0,
+  //       path: '<see attachement file name>'
+  //     };
+  //   }
+  //   cs!.versions![appName].version++;
+  //   this.checksumState.next(cs!);
+  //   fs.mkdirpSync(Path.dirname(currChecksumFile));
+  //   const checksumStr = JSON.stringify(cs!, null, '  ');
+  //   fs.writeFileSync(currChecksumFile, checksumStr);
+  //   log.info('write %s\n%s', currChecksumFile, checksumStr);
+  //   return cs!;
   }
 
   /**
@@ -357,32 +355,32 @@ export class ImapManager {
    * @param excludeApp exclude app
    */
   async fetchOtherZips(excludeApp?: string) {
-    let appNames = Object.keys(this.checksumState.getValue()!.versions!)
-    .filter(app => app !== excludeApp);
+  //   let appNames = Object.keys(this.checksumState.getValue()!.versions!)
+  //   .filter(app => app !== excludeApp);
 
-    let fileWrittenProm: Promise<boolean> | undefined;
+  //   let fileWrittenProm: Promise<boolean> | undefined;
 
-    await connectImap(async ctx => {
+  //   await connectImap(async ctx => {
 
-      fileWrittenProm = ctx.fileWritingState.pipe(
-        skip(1),
-        filter(writing => !writing),
-        take(appNames.length)
-      ).toPromise();
+  //     fileWrittenProm = ctx.fileWritingState.pipe(
+  //       skip(1),
+  //       filter(writing => !writing),
+  //       take(appNames.length)
+  //     ).toPromise();
 
-      for (const app of appNames) {
-        log.info('fetch other zip: ' + app);
-        const idx = await ctx.findMail(ctx.lastIndex, `bkjk-pre-build(${this.env}-${app})`);
-        if (!idx) {
-          log.info(`mail "bkjk-pre-build(${this.env}-${app})" is not Found, skip download zip`);
-          continue;
-        }
-        await ctx.waitForFetch(idx, false, Path.resolve(this.zipDownloadDir!, app + '.zip'));
-      }
-    });
-    if (fileWrittenProm)
-      await fileWrittenProm;
-    return appNames;
+  //     for (const app of appNames) {
+  //       log.info('fetch other zip: ' + app);
+  //       const idx = await ctx.findMail(ctx.lastIndex, `bkjk-pre-build(${this.env}-${app})`);
+  //       if (!idx) {
+  //         log.info(`mail "bkjk-pre-build(${this.env}-${app})" is not Found, skip download zip`);
+  //         continue;
+  //       }
+  //       await ctx.waitForFetch(idx, false, Path.resolve(this.zipDownloadDir!, app + '.zip'));
+  //     }
+  //   });
+  //   if (fileWrittenProm)
+  //     await fileWrittenProm;
+  //   return appNames;
   }
 
   async appendMail(subject: string, content: string) {
@@ -391,13 +389,13 @@ export class ImapManager {
     });
   }
 
-  async startWatchMail(pollInterval = 60000) {
-    this.watching = true;
-    while (this.watching) {
-      await this.checkMailForUpdate();
-      await new Promise(resolve => setTimeout(resolve, pollInterval)); // 60 sec
-    }
-  }
+  // async startWatchMail(pollInterval = 60000) {
+  //   this.watching = true;
+  //   while (this.watching) {
+  //     await this.checkMailForUpdate();
+  //     await new Promise(resolve => setTimeout(resolve, pollInterval)); // 60 sec
+  //   }
+  // }
 
   async checkMailForUpdate() {
     await connectImap(async ctx => {
@@ -424,27 +422,27 @@ export class ImapManager {
     this.toFetchAppsState.next(appNames);
   }
 
-  async sendFileAndUpdatedChecksum(appName: string, file: string) {
-    const cs = await this.fetchUpdateCheckSum(appName);
-    await retrySendMail(`bkjk-pre-build(${this.env}-${appName})`, JSON.stringify(cs, null, '  '), file);
-  }
+  // async sendFileAndUpdatedChecksum(appName: string, file: string) {
+  //   const cs = await this.fetchUpdateCheckSum(appName);
+  //   await retrySendMail(`bkjk-pre-build(${this.env}-${appName})`, JSON.stringify(cs, null, '  '), file);
+  // }
 
   stopWatch() {
     this.watching = false;
   }
 
   private async fetchAttachment(app: string) {
-    const idx = await this.ctx.findMail(this.ctx.lastIndex, `bkjk-pre-build(${this.env}-${app})`);
-    if (idx == null)
-      throw new Error('Cant find mail: ' + `bkjk-pre-build(${this.env}-${app})`);
-    await this.ctx.waitForFetch(idx!, false, Path.resolve(this.zipDownloadDir!, `${app}.zip`));
+    // const idx = await this.ctx.findMail(this.ctx.lastIndex, `bkjk-pre-build(${this.env}-${app})`);
+    // if (idx == null)
+    //   throw new Error('Cant find mail: ' + `bkjk-pre-build(${this.env}-${app})`);
+    // await this.ctx.waitForFetch(idx!, false, Path.resolve(this.zipDownloadDir!, `${app}.zip`));
   }
 
   private async _fetchChecksum(ctx: ImapCommandContext) {
     const idx = await ctx.findMail(ctx.lastIndex, `bkjk-pre-build(${this.env}-`);
     log.info('_fetchChecksum, index:', idx);
     if (idx == null) {
-      return {versions: {}};
+      return [];
     }
     const jsonStr = await ctx.waitForFetchText(idx!);
     if (jsonStr == null) {
@@ -463,8 +461,5 @@ export async function testMail(imap: string, user: string, loginSecret: string) 
     } as WithMailServerConfig['fetchMailServer']);
   await connectImap(async ctx => {
     await ctx.waitForReply('SEARCH HEAD Subject "build artifact: bkjk-pre-build"');
-    // tslint:disable-next-line: no-console
-    // console.log('Fetch mail %d as text :\n', ctx.lastIndex - 1, (await ctx.waitForFetch(ctx.lastIndex - 1)), ctx.lastIndex);
-    // log.info('Fetch mail %d:\n' + await ctx.waitForFetch(ctx.lastIndex, false), ctx.lastIndex);
   });
 }

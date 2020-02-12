@@ -1,6 +1,6 @@
 {
   "name": "@dr/http-request-proxy",
-  "version": "5.1.3",
+  "version": "5.1.4",
   "description": "Http proxy server by LJ",
   "main": "dist/server.js",
   "types": "dist/server.d.ts",

@@ -111,9 +111,9 @@ function create(app: express.Express, setting: any) {
   // development error handler
   // will print stacktrace
   if (setting.devMode || app.get('env') === 'development') {
-    app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
+    app.use(function(err: any, req: Request, res: Response, next: NextFunction) {
       res.status((err as any).status || 500);
-      log.error(req.originalUrl, err);
+      log.error(req.originalUrl, err.inspect ? err.inspect() : err);
       res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
         message: err.message,
         error: err

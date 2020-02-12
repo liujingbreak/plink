@@ -44,7 +44,7 @@ const api = __api as ExpressAppApi & typeof __api;
 // }
 
 export function packageAssetsFolders(deployUrl: string, onEach: (dir: string, outputDir: string) => void) {
-  const rootPath = _.trimEnd(parse(deployUrl).pathname, '/');
+  const rootPath = _.trimEnd(parse(deployUrl).pathname || '', '/');
   api.packageUtils.findAllPackages(
     (name: string, entryPath: string, parsedName: {name: string}, json: any, packagePath: string) => {
     var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';

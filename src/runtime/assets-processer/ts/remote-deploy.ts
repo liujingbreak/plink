@@ -6,6 +6,9 @@ import { defer, from, timer } from 'rxjs';
 import { catchError, map, retry } from 'rxjs/operators';
 import api from '__api';
 import { ImapManager } from './fetch-remote-imap';
+import {Checksum} from './fetch-types';
+import Path from 'path';
+import crypto from 'crypto';
 const log = require('log4js').getLogger(api.packageName + '.remote-deploy');
 // process.on('uncaughtException', err => {
 //   // tslint:disable-next-line: no-console
@@ -53,15 +56,10 @@ async function mailDeployStaticRes() {
 
   if (appName) {
     await checkZipFile(src, installDir, appName);
-    // await imap.sendFileAndUpdatedChecksum(appName, zipFile);
     await imap.fetchUpdateCheckSum(appName);
   } else {
     await imap.fetchChecksum();
   }
-
-  // if (buildStaticOnly === 'false') {
-  //   await imap.fetchOtherZips(appName);
-  // }
 }
 
 /**
@@ -120,4 +118,54 @@ export async function fetchAllZips() {
   const imap = new ImapManager(env, installDir);
   await imap.fetchChecksum();
   await imap.fetchOtherZips('');
+}
+
+type ChecksumItem = Checksum extends Array<infer I> ? I : unknown;
+/**
+ * Call this file to generate checksum files in build process
+ */
+export async function digestInstallingFiles(rootDir?: string) {
+  if (rootDir == null) {
+    rootDir = Path.resolve();
+  }
+  const list = fs.readdirSync(rootDir);
+  for (const name of list) {
+    const match = /^install-([^]+)$/.exec(name);
+    if (match == null || !fs.statSync(Path.resolve(rootDir, name)).isDirectory())
+      continue;
+    const env = match[1];
+    const files = fs.readdirSync(Path.resolve(rootDir, name));
+
+    const checksumDones: Promise<ChecksumItem>[] = [];
+
+    for (const file of files) {
+      if (!file.endsWith('.zip'))
+        continue;
+      const hash = crypto.createHash('sha256');
+      const zip = Path.resolve(rootDir, name, file);
+      const input = fs.createReadStream(zip);
+      const done = new Promise<ChecksumItem>(resolve => {
+        const stream = input.pipe(hash);
+        stream.on('readable', () => {
+          const buf = stream.read() as Buffer;
+          if (buf) {
+            const now = new Date();
+            resolve({
+              sha256: buf.toString('hex'),
+              file: (name + '/' + file).replace(/\\/g, '/'),
+              created: now.toLocaleString(),
+              createdTime: now.getTime()
+            });
+            stream.resume();
+          }
+        });
+      });
+      checksumDones.push(done);
+    }
+
+    const checksum = await Promise.all(checksumDones);
+    const checksumText = JSON.stringify(checksum, null, '  ');
+    console.log(`checksum.${env}.json:\n`, checksumText);
+    fs.writeFileSync(Path.resolve(rootDir, `checksum.${env}.json`), checksumText);
+  }
 }

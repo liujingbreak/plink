@@ -13,15 +13,12 @@ export interface WithMailServerConfig {
   fetchIntervalSec: number;
   downloadMode: 'memory' | 'fork' | null;
 }
-interface OldChecksum {
-  version: number;
-  path: string;
-  changeFetchUrl?: string;
-}
 
-type OldChecksumOptional = {[k in keyof OldChecksum]?: OldChecksum[k]};
-export interface Checksum extends OldChecksumOptional {
-  versions?: {[key: string]: {version: number, path?: string}};
-}
+export type Checksum = {
+  sha256: string;
+  file: string;
+  created: string;
+  createdTime: number;
+}[];
 
 // export const currChecksumFile = Path.resolve('checksum.json');

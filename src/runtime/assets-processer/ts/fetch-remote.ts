@@ -6,7 +6,7 @@ import os from 'os';
 import Path from 'path';
 import fs from 'fs-extra';
 import cluster from 'cluster';
-import {filter, switchMap, skip, take} from 'rxjs/operators';
+import {filter, switchMap /*skip, take*/} from 'rxjs/operators';
 import {fork, ChildProcess} from 'child_process';
 import {Checksum, WithMailServerConfig as Setting} from './fetch-types';
 import {ImapManager} from './fetch-remote-imap';
@@ -16,11 +16,7 @@ const log = require('log4js').getLogger('@dr-core/assets-processer.fetch-remote'
 const {/*pm2InstanceId, isPm2,*/ isMainProcess} = getPm2Info();
 
 // let currVersion: number = Number.NEGATIVE_INFINITY;
-let currentChecksum: Checksum = {
-  version: Number.NEGATIVE_INFINITY,
-  path: '',
-  versions: {}
-};
+let currentChecksum: Checksum = [];
 
 const setting = (api.config.get(api.packageName) as Setting);
 const env = setting.fetchMailServer ? setting.fetchMailServer.env : 'local';
@@ -118,38 +114,38 @@ export function getPm2Info() {
 // }
 
 async function checkAndDownload(checksumObj: Checksum, imap: ImapManager) {
-  let toUpdateApps: string[] = [];
-  if (checksumObj.versions) {
-    let currVersions = currentChecksum.versions;
-    if (currVersions == null) {
-      currVersions = currentChecksum.versions = {};
-    }
-    const targetVersions = checksumObj.versions;
-    for (const appName of Object.keys(targetVersions)) {
-      if (currVersions[appName] == null ||
-        ( targetVersions[appName] &&
-          currVersions[appName].version < targetVersions[appName].version)
-      ) {
-        log.info(`Find updated version of ${appName}`);
-        toUpdateApps.push(appName);
-      }
-    }
-  }
+  // let toUpdateApps: string[] = [];
+  // if (checksumObj.versions) {
+  //   let currVersions = currentChecksum.versions;
+  //   if (currVersions == null) {
+  //     currVersions = currentChecksum.versions = {};
+  //   }
+  //   const targetVersions = checksumObj.versions;
+  //   for (const appName of Object.keys(targetVersions)) {
+  //     if (currVersions[appName] == null ||
+  //       ( targetVersions[appName] &&
+  //         currVersions[appName].version < targetVersions[appName].version)
+  //     ) {
+  //       log.info(`Find updated version of ${appName}`);
+  //       toUpdateApps.push(appName);
+  //     }
+  //   }
+  // }
 
-  if (toUpdateApps.length > 0) {
-    imap.fetchAppDuringWatchAction(...toUpdateApps);
-    log.info('waiting for zip file written');
-    await imap.fileWritingState.pipe(
-      skip(1),
-      filter(writing => !writing),
-      take(toUpdateApps.length)
-      ).toPromise();
-    log.info('waiting for zip file written - done');
-    await retry(2, forkExtractExstingZip);
-    toUpdateApps.forEach(name => {
-      currentChecksum.versions![name] = checksumObj.versions![name];
-    });
-  }
+  // if (toUpdateApps.length > 0) {
+  //   imap.fetchAppDuringWatchAction(...toUpdateApps);
+  //   log.info('waiting for zip file written');
+  //   await imap.fileWritingState.pipe(
+  //     skip(1),
+  //     filter(writing => !writing),
+  //     take(toUpdateApps.length)
+  //     ).toPromise();
+  //   log.info('waiting for zip file written - done');
+  //   await retry(2, forkExtractExstingZip);
+  //   toUpdateApps.forEach(name => {
+  //     currentChecksum.versions![name] = checksumObj.versions![name];
+  //   });
+  // }
 }
 
 // async function run(setting: Setting) {
@@ -308,12 +304,12 @@ async function forkProcess(name: string, filePath: string, args: string[], onPro
       }
     });
     let output = '';
-    child.stdout.setEncoding('utf-8');
-    child.stdout.on('data', (chunk) => {
+    child.stdout!.setEncoding('utf-8');
+    child.stdout!.on('data', (chunk) => {
       output += chunk;
     });
-    child.stderr.setEncoding('utf-8');
-    child.stderr.on('data', (chunk) => {
+    child.stderr!.setEncoding('utf-8');
+    child.stderr!.on('data', (chunk) => {
       output += chunk;
     });
   });

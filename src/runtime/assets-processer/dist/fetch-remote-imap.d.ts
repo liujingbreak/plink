@@ -1,5 +1,4 @@
 import { Observable, BehaviorSubject } from 'rxjs';
-import { Checksum } from './fetch-types';
 import { ImapTokenType } from './mail/imap-msg-parser';
 import { LookAhead, Token } from 'dr-comp-package/wfh/dist/async-LLn-parser';
 export declare function sendMail(subject: string, text: string, file?: string): Promise<void>;
@@ -34,24 +33,27 @@ export declare function connectImap(callback: (context: ImapCommandContext) => P
 export declare class ImapManager {
     env: string;
     zipDownloadDir?: string | undefined;
-    checksumState: BehaviorSubject<Checksum | null>;
+    checksumState: BehaviorSubject<{
+        sha256: string;
+        file: string;
+        created: string;
+        createdTime: number;
+    }[] | null>;
     fileWritingState: ImapCommandContext['fileWritingState'];
     watching: boolean;
     private toFetchAppsState;
     private ctx;
     constructor(env: string, zipDownloadDir?: string | undefined);
-    fetchChecksum(): Promise<Checksum | undefined>;
-    fetchUpdateCheckSum(appName: string): Promise<Checksum>;
+    fetchChecksum(): Promise<void>;
+    fetchUpdateCheckSum(appName: string): Promise<void>;
     /**
      * Done when files are written
      * @param excludeApp exclude app
      */
-    fetchOtherZips(excludeApp?: string): Promise<string[]>;
+    fetchOtherZips(excludeApp?: string): Promise<void>;
     appendMail(subject: string, content: string): Promise<void>;
-    startWatchMail(pollInterval?: number): Promise<void>;
     checkMailForUpdate(): Promise<void>;
     fetchAppDuringWatchAction(...appNames: string[]): void;
-    sendFileAndUpdatedChecksum(appName: string, file: string): Promise<void>;
     stopWatch(): void;
     private fetchAttachment;
     private _fetchChecksum;

@@ -64,8 +64,8 @@ describe('fetch-remote-imap', () => {
   });
 
   xit('can send build mail with zip file', async ()=> {
-    let mgr = new fetchImap.ImapManager('dev');
-    await mgr.sendFileAndUpdatedChecksum('testApp1', Path.resolve(__dirname, '../../ts/spec/fetch-remote-attachment.zip'));
+    // let mgr = new fetchImap.ImapManager('dev');
+    // await mgr.sendFileAndUpdatedChecksum('testApp1', Path.resolve(__dirname, '../../ts/spec/fetch-remote-attachment.zip'));
 
     // mgr = new fetchImap.ImapManager('dev');
     // await mgr.sendFileAndUpdatedChecksum(Path.resolve(__dirname, '../../ts/spec/fetch-remote-attachment.zip'));

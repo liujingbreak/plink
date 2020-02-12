@@ -7,12 +7,12 @@ export default async function ensureNodeVersion(): Promise<void> {
     if (parseInt(match[1].split('.')[0], 10) < 12) {
       // tslint:disable-next-line: no-console
       console.log('Please upgrade Node.js version to v12, current version: ' + match[1]);
-      try {
-        await require('open')('https://nodejs.org/');
-      } catch (ex) {
-        // It is OK for errors, probably dependency 'open' is not installed yet
-      }
-      throw new Error('Please upgrade Node.js version to v12');
+      // try {
+      //   await require('open')('https://nodejs.org/');
+      // } catch (ex) {
+      //   // It is OK for errors, probably dependency 'open' is not installed yet
+      // }
+      // throw new Error('Please upgrade Node.js version to v12');
     }
   } else {
     // tslint:disable-next-line: no-console

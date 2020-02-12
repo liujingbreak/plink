@@ -175,7 +175,7 @@ function hackHeaders(target: string, req: express.Request): {[k: string]: any} {
     'x-forwarded-for': req.ip
   });
   var parsedTarget = Url.parse(target);
-  toHeaders.host = parsedTarget.host;
+  toHeaders.host = parsedTarget.host!;
   delete toHeaders.origin;
   if (req.method === 'POST') {
     toHeaders.origin = parsedTarget.protocol! + '//' + parsedTarget.host;

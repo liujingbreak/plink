@@ -10,3 +10,7 @@ export declare function checkZipFile(zipFileOrDir: string, installDir: string, a
  * drcp run assets-processer/ts/remote-deploy.ts#fetchAllZips --env test -c conf/remote-deploy-test.yaml
  */
 export declare function fetchAllZips(): Promise<void>;
+/**
+ * Call this file to generate checksum files in build process
+ */
+export declare function digestInstallingFiles(rootDir?: string): Promise<void>;

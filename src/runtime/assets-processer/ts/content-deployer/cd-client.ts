@@ -6,16 +6,14 @@ import api from '__api';
 import { Checksum } from '../fetch-types';
 import util from 'util';
 import fs from 'fs';
+import crypto from 'crypto';
 // import PromQ from 'promise-queue';
 const log = require('log4js').getLogger(api.packageName + '.cd-client');
 
 const RES_SKIP = 'Skip sending';
 export interface Options {
-  // host: string;
-  // port: number;
   url: string;
-  appName: string;
-  version: number;
+  file: string;
   numOfNode: number;
   numOfConc: number; // number of concurrent request
   secret?: string;
@@ -30,10 +28,6 @@ export async function sendAppZip(opt: Options = {} as Options, file?: string) {
   const argv = api.argv;
   if (!opt.url)
     opt.url = argv.url;
-  if (!opt.appName)
-    opt.appName = argv.appName;
-  if (!opt.version)
-    opt.version = api.argv.appVersion;
 
   if (opt.numOfNode == null) {
     if (argv.numOfNode == null)
@@ -52,14 +46,21 @@ export async function sendAppZip(opt: Options = {} as Options, file?: string) {
   if (file == null)
     file = api.argv.file;
 
-  if (!opt.url || !opt.appName || !opt.version) {
-    throw new Error(`Missing arguments: app-name, appVersion, url... in ${opt}`);
+  if (!opt.url) {
+    throw new Error(`Missing arguments: url... in ${opt}`);
   }
   log.info(opt);
 
   let sendCount = 0;
 
   const bufferToSend = file ? fs.readFileSync(file) : undefined;
+  let sha = '';
+  if (bufferToSend) {
+    const hash = crypto.createHash('sha256');
+    hash.update(bufferToSend);
+    sha = hash.digest('hex');
+  }
+
 
   return new Promise((resolve, reject) => {
     // const concurQ = new PromQ(opt.numOfConc, 20);
@@ -73,9 +74,9 @@ export async function sendAppZip(opt: Options = {} as Options, file?: string) {
     async function send() {
       sendCount++;
       try {
-        log.info('#%s sending App: %s', sendCount, opt.appName);
-        const reply = await sendRequest(opt, bufferToSend);
-        const match = /\[ACCEPT\] \s*(\S+)\s+pid:/.exec(reply);
+        log.info('#%s sending App: %s', sendCount, opt.file, sha);
+        const reply = await sendRequest(opt, sha, bufferToSend);
+        const match = /^\[ACCEPT\] \s*(\S+)\s+pid:/.exec(reply);
         if (match && match[1])
         finishedSet.add(match[1]);
       } catch (ex) {
@@ -99,14 +100,14 @@ export async function sendAppZip(opt: Options = {} as Options, file?: string) {
 enum SendState {
   ready = 0, sending, sent
 }
-export function sendRequest(opt: Options, buffer?: Buffer): Promise<string> {
+function sendRequest(opt: Options, sha: string, buffer?: Buffer): Promise<string> {
   const urlObj = Url.parse(opt.url, true);
-  let url = opt.url + `/${opt.appName}/${opt.version}`;
+  let url = opt.url + `/${encodeURIComponent(opt.file)}/${encodeURIComponent(sha)}`;
 
   if (opt.secret) {
     url += '?whisper=' + encodeURIComponent(opt.secret);
   }
-  // const urlObj = new URL(opt.url);
+
   let sendState = SendState.ready;
 
   return new Promise<string>((resolve, reject) => {
