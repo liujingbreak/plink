@@ -184,9 +184,11 @@ function _writeGitHook(project) {
 			`cd "${rootPath}"\n` +
 			// 'drcp init\n' +
 			// 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
-			`drcp lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
-		fs.writeFileSync(gitPath + '/pre-commit', hookStr);
-		console.log('Write ' + gitPath + '/pre-commit');
+			`node node_modules/dr-comp-package/bin/drcp.js lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
+		if (fs.existsSync(gitPath + '/pre-commit'))
+			fs.unlink(gitPath + '/pre-commit');
+		fs.writeFileSync(gitPath + '/pre-push', hookStr);
+		console.log('Write ' + gitPath + '/pre-push');
 		if (!isWin32)
 			shell.chmod('-R', '+x', project + '/.git/hooks/*');
 	}

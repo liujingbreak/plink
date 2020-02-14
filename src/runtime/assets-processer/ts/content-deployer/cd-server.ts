@@ -55,7 +55,8 @@ export async function activate(app: Application, imap: ImapManager) {
       return;
     }
 
-    if (req.method === 'GET' && req.originalUrl === '/_stat' || req.originalUrl === '/_stat/') {
+
+    if (req.method === 'GET' && /^\/_stat([#?/]|$)/.test(req.originalUrl)) {
       res.contentType('json');
       res.send(JSON.stringify({
         isMainProcess,
