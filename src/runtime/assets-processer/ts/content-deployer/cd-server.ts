@@ -250,7 +250,13 @@ export function generateToken() {
 
 function readChecksumFile(): Map<string, ChecksumItem> {
   const env = mailSetting ? mailSetting.env : 'local';
-  const checksum = JSON.parse(fs.readFileSync(Path.resolve('checksum.' + env + '.json'), 'utf8')) as Checksum;
+  const checksumFile = Path.resolve('checksum.' + env + '.json');
+  let checksum: Checksum;
+  if (fs.existsSync(checksumFile)) {
+    checksum = JSON.parse(fs.readFileSync(checksumFile, 'utf8'));
+  } else {
+    checksum = [];
+  }
   return checksum.reduce((map, val) => map.set(val.file, val), new Map<string, ChecksumItem>());
 }
 
