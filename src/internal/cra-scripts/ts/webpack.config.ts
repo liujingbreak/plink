@@ -4,12 +4,11 @@ import Path from 'path';
 import fs from 'fs-extra';
 import {Configuration, RuleSetRule, Compiler} from 'webpack';
 // import { RawSource } from 'webpack-sources';
-const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 import {drawPuppy, printConfig, getCmdOptions} from './utils';
 import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 // import chalk from 'chalk';
-
+const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 
 
 const findPackageByFile = createLazyPackageFileFinder();

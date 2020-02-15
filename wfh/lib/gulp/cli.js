@@ -8,6 +8,7 @@ var Promise = require('bluebird');
 var buildUtils = require('./buildUtils');
 var PackageJsonGuarder = require('../../dist/package-json-guarder').getInstance;
 const {boxString} = require('../../dist/utils');
+const cleanInvalidSymlinks = require('../../dist/utils/symlinks').default;
 
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
 var startTime;
@@ -82,15 +83,16 @@ function init(_argv, noPuppy) {
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates/app-template.js'), rootPath + '/app.js');
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.server.tmpl.js '), rootPath + '/module-resolve.server.js');
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.browser.tmpl.js'), rootPath + '/module-resolve.browser.js');
+	cleanInvalidSymlinks()
+	.then(() => {
+		// var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
+		// if (fs.lstatSync(drcpFolder).isSymbolicLink())
+		// 	removeProject(_argv, [fs.realpathSync(drcpFolder)]);
 
-	// var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
-	// if (fs.lstatSync(drcpFolder).isSymbolicLink())
-	// 	removeProject(_argv, [fs.realpathSync(drcpFolder)]);
-
-	packageJsonGuarder.beforeChange();
-	var wi = new WorkspaceInstaller(null, argv.yarn, argv.production, argv.offline);
-	var initProm = wi.run(packageJsonGuarder.isModulesChanged());
-	return initProm.then(() => {
+		packageJsonGuarder.beforeChange();
+		var wi = new WorkspaceInstaller(null, argv.yarn, argv.production, argv.offline);
+		return wi.run(packageJsonGuarder.isModulesChanged());
+	}).then(() => {
 		packageJsonGuarder.afterChange();
 		if (!noPuppy)
 			_drawPuppy();
@@ -245,7 +247,7 @@ function ls(_argv) {
 		require('../logConfig')(config());
 
 		const pmgr = require('../../dist/package-mgr');
-		console.log('==============[ LINKED PACKAGES IN PROJECT ]==============\n')
+		console.log('==============[ LINKED PACKAGES IN PROJECT ]==============\n');
 		console.log(pmgr.listPackagesByProjects());
 
 		console.log('\n' + chalk.green(_.pad('[ SERVER COMPONENTS ]', 50, '=')) + '\n');
@@ -343,6 +345,12 @@ function clean(_argv) {
 				} catch (e) {
 					if (fs.existsSync(moduleDir))
 						fs.unlinkSync(moduleDir);
+				}
+				const hookDir = Path.resolve(prjdir, '.git', 'hooks');
+				for (const hook of ['pre-commit', 'pre-push']) {
+					if (fs.existsSync(Path.resolve(hookDir, hook))) {
+						fs.unlink(Path.resolve(hookDir, hook));
+					}
 				}
 			});
 			fs.remove(Path.resolve(rootPath, 'config.yaml'));

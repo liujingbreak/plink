@@ -1,18 +1,16 @@
 import {Configuration, Compiler, RuleSetRule} from 'webpack';
-import {findPackageJson} from './build-target-helper';
-import fs from 'fs-extra';
+import {findPackage} from './build-target-helper';
+// import fs from 'fs-extra';
 import Path from 'path';
 // import {getCmdOptions} from './utils';
 
 export default function change(buildPackage: string, config: Configuration) {
 
-  const jsonFile = findPackageJson(buildPackage);
-  const pkJson = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
+  const {dir: pkDir, packageJson: pkJson} = findPackage(buildPackage);
 
-  const pkDir = Path.dirname(jsonFile);
   config.entry = Path.resolve(pkDir, pkJson.dr.buildEntry.lib);
 
-  config.output!.path = Path.resolve(pkDir, 'build');
+  config.output!.path = Path.resolve(pkDir, 'build'); // Have to override it cuz' react-scripts assign `undefined` in non-production env
   config.output!.filename = 'lib-bundle.js';
   config.output!.libraryTarget = 'commonjs2';
   config.optimization!.runtimeChunk = false;

@@ -5,6 +5,7 @@ import * as _ from 'lodash';
 import * as Path from 'path';
 import gulp from 'gulp';
 import * as fs from 'fs-extra';
+import scanNodeModules from './utils/symlinks';
 const findPackageJson = require('../lib/gulp/findPackageJson');
 const rwPackageJson = require('./rwPackageJson');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
@@ -218,17 +219,18 @@ export function linkComponentsAsync() {
 
 export async function clean() {
   await config.done;
-  linkListFile = config.resolve('destDir', 'link-list.json');
+  await scanNodeModules('all');
+  // linkListFile = config.resolve('destDir', 'link-list.json');
   const recipes: string[] = [];
-  let removalProms: Promise<void>[] = [];
-  if (fs.existsSync(linkListFile)) {
-    const list: string[] = JSON.parse(fs.readFileSync(linkListFile, 'utf8'));
-    removalProms = list.map(linkPath => {
-      log.info('Removing symbolic link file %s', linkPath);
-      return fs.remove(Path.resolve(config().rootPath, linkPath));
-    });
-  }
-  await Promise.all(removalProms);
+  // let removalProms: Promise<void>[] = [];
+  // if (fs.existsSync(linkListFile)) {
+  //   const list: string[] = JSON.parse(fs.readFileSync(linkListFile, 'utf8'));
+  //   removalProms = list.map(linkPath => {
+  //     log.info('Removing symbolic link file %s', linkPath);
+  //     return fs.remove(Path.resolve(config().rootPath, linkPath));
+  //   });
+  // }
+  // await Promise.all(removalProms);
 
   eachRecipeSrc(function(src: string, recipeDir: string) {
     if (recipeDir)

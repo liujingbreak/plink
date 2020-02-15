@@ -1,3 +1,7 @@
+import {getCmdOptions} from './utils';
+import {findPackage} from './build-target-helper';
+import Path from 'path';
+const paths: CraScriptsPaths = require('react-scripts/config/paths');
 
 export interface CraScriptsPaths {
   dotenv: string; // resolveApp('.env'),
@@ -14,5 +18,19 @@ export interface CraScriptsPaths {
   testsSetup: string; // resolveModule(resolveApp, 'src/setupTests'),
   proxySetup: string; // resolveApp('src/setupProxy.js'),
   appNodeModules: string; // resolveApp('node_modules'),
-  publicUrlOrPath: string; // string;
+  publicUrl: string; // string;
+  servedPath: string; // getServedPath(resolveApp('package.json')),
+}
+
+export default function() {
+  const cmdOption = getCmdOptions();
+  // console.log('[debug] ', cmdOption);
+  if (cmdOption.buildType === 'lib') {
+    const {dir, packageJson: pkJson} = findPackage(cmdOption.buildTarget);
+    paths.appBuild = Path.resolve(dir, 'build');
+    paths.appIndexJs = Path.resolve(dir, pkJson.dr.buildEntry.lib);
+    // tslint:disable-next-line: no-console
+    console.log('[cra-scripts-paths] changed react-scripts paths:\n', paths);
+  }
+  return paths;
 }

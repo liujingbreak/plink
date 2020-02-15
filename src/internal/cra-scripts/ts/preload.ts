@@ -1,11 +1,16 @@
 // tslint:disable: no-console
+/**
+ * Do not actually import entity other than "type" from here
+ * Because we have not set node path yet.
+ */
 import {drawPuppy, saveCmdArgToEnv} from './utils';
+import _getPaths from './cra-scripts-paths';
 
 drawPuppy('Loading my poo...');
 require('source-map-support/register');
 
 import Module from 'module';
-import {sep} from 'path';
+import {sep, resolve, dirname} from 'path';
 
 poo();
 
@@ -13,13 +18,13 @@ saveCmdArgToEnv();
 
 function poo() {
   require('dr-comp-package/bin/nodePath').setContextPath(process.cwd());
-
-  // origClearConsole = require('react-dev-utils/clearConsole');
+  const getPaths: typeof _getPaths = require('./cra-scripts-paths').default;
 
   const reactScriptsPath = `${sep}node_modules${sep}react-scripts${sep}`;
   const reactDevUtilsPath = `${sep}node_modules${sep}react-dev-utils${sep}`;
 
   const superReq = Module.prototype.require;
+
   // TODO: Should use require-injector new version
   Module.prototype.require = function(this: Module, target) {
     if (this.filename.indexOf(reactScriptsPath) >= 0) {
@@ -36,14 +41,11 @@ function poo() {
         default:
           if (target.endsWith('/clearConsole')) {
             return clearConsole;
+          } else if (target.endsWith('/paths') &&
+            resolve(dirname(this.filename), target).endsWith('/react-scripts/config/paths')) {
+            console.log(`[preload] source: ${this.filename},\n  target: react-scripts/config/paths`);
+            return getPaths();
           }
-          // else if (target.endsWith('/paths') && resolve(this, target).endsWith('/react-scripts/config/paths')) {
-          //   if (craPaths == null) {
-          //     const origExports = superReq.call(this, target);
-          //     origExports.appSrc.push('');
-          //   }
-          //   return craPaths;
-          // }
       }
     } else if (this.filename.indexOf(reactDevUtilsPath) >= 0) {
       if (target.endsWith('/clearConsole')) {
