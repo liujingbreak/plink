@@ -4,7 +4,7 @@
  * Because we have not set node path yet.
  */
 import {drawPuppy, saveCmdArgToEnv} from './utils';
-import _getPaths from './cra-scripts-paths';
+import _getPathsFactory from './cra-scripts-paths';
 
 drawPuppy('Loading my poo...');
 require('source-map-support/register');
@@ -18,7 +18,8 @@ saveCmdArgToEnv();
 
 function poo() {
   require('dr-comp-package/bin/nodePath').setContextPath(process.cwd());
-  const getPaths: typeof _getPaths = require('./cra-scripts-paths').default;
+  const getPathsFactory: typeof _getPathsFactory = require('./cra-scripts-paths').default;
+  const getCraPaths = getPathsFactory();
 
   const reactScriptsPath = `${sep}node_modules${sep}react-scripts${sep}`;
   const reactDevUtilsPath = `${sep}node_modules${sep}react-dev-utils${sep}`;
@@ -42,9 +43,10 @@ function poo() {
           if (target.endsWith('/clearConsole')) {
             return clearConsole;
           } else if (target.endsWith('/paths') &&
-            resolve(dirname(this.filename), target).endsWith('/react-scripts/config/paths')) {
+            /[\\/]react-scripts[\\/]config[\\/]paths$/.test(
+              resolve(dirname(this.filename), target))) {
             console.log(`[preload] source: ${this.filename},\n  target: react-scripts/config/paths`);
-            return getPaths();
+            return getCraPaths();
           }
       }
     } else if (this.filename.indexOf(reactDevUtilsPath) >= 0) {

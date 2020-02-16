@@ -22,15 +22,21 @@ export interface CraScriptsPaths {
   servedPath: string; // getServedPath(resolveApp('package.json')),
 }
 
-export default function() {
-  const cmdOption = getCmdOptions();
-  // console.log('[debug] ', cmdOption);
-  if (cmdOption.buildType === 'lib') {
-    const {dir, packageJson: pkJson} = findPackage(cmdOption.buildTarget);
-    paths.appBuild = Path.resolve(dir, 'build');
-    paths.appIndexJs = Path.resolve(dir, pkJson.dr.buildEntry.lib);
-    // tslint:disable-next-line: no-console
-    console.log('[cra-scripts-paths] changed react-scripts paths:\n', paths);
-  }
-  return paths;
+export default function factory() {
+  let changedPaths: CraScriptsPaths | undefined;
+  return function() {
+    if (changedPaths == null) {
+      changedPaths = paths;
+      const cmdOption = getCmdOptions();
+      // console.log('[debug] ', cmdOption);
+      if (cmdOption.buildType === 'lib') {
+        const {dir} = findPackage(cmdOption.buildTarget);
+        changedPaths.appBuild = Path.resolve(dir, 'build');
+        changedPaths.appIndexJs = Path.resolve(dir, 'public_api.ts');
+        // tslint:disable-next-line: no-console
+        console.log('[cra-scripts-paths] changed react-scripts paths:\n', changedPaths);
+      }
+    }
+    return changedPaths;
+  };
 }

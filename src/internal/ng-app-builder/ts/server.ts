@@ -153,6 +153,7 @@ function writeTsconfig4Editor() {
       // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
       paths: pathMapping,
       skipLibCheck: false,
+      jsx: 'preserve',
       // typeRoots: [
       //   Path.join(root, 'node_modules/@types'),
       //   Path.join(root, 'node_modules/@dr-types'),

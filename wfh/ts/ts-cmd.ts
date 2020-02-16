@@ -20,17 +20,20 @@ const root = config().rootPath;
 const nodeModules = Path.join(root, 'node_modules');
 
 interface Args {
-  package: string[];
-  project: string[];
-  watch: boolean;
-  sourceMap: string;
-  tsx: boolean;
+  package?: string[];
+  project?: string[];
+  watch?: boolean;
+  sourceMap?: string;
+  jsx?: boolean;
+  ed?: boolean;
 }
 
 interface ComponentDirInfo {
   tsDirs: PackageTsDirs;
   dir: string;
 }
+
+type EmitList = Array<[string, number]>;
 
 /**
  * @param {object} argv
@@ -39,13 +42,13 @@ interface ComponentDirInfo {
  * @param {function} onCompiled () => void
  * @return void
  */
-export function tsc(argv: Args, onCompiled: () => void) {
+export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   // const possibleSrcDirs = ['isom', 'ts'];
   var compGlobs: string[] = [];
   // var compStream = [];
   const compDirInfo: Map<string, ComponentDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
-  const baseTsconfig = argv.tsx ? require('../tsconfig-tsx.json') : require('../tsconfig.json');
-
+  const baseTsconfig = argv.jsx ? require('../tsconfig-tsx.json') : require('../tsconfig.json');
+  let promCompile = Promise.resolve( [] as EmitList);
   const tsProject = ts.createProject(Object.assign({}, baseTsconfig.compilerOptions, {
     typescript: require('typescript'),
     // Compiler options
@@ -55,13 +58,14 @@ export function tsc(argv: Args, onCompiled: () => void) {
     rootDir: undefined,
     skipLibCheck: true,
     inlineSourceMap: false,
-    sourceMap: true
+    sourceMap: true,
+    emitDeclarationOnly: argv.ed
     // typeRoots: [
     //   Path.join('node_modules/@types'),
     //   Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
     // ]
   }));
-  if (argv.package.length > 0)
+  if (argv.package && argv.package.length > 0)
     packageUtils.findAllPackages(argv.package, onComponent, 'src');
   else if (argv.project && argv.project.length > 0) {
     packageUtils.findAllPackages(onComponent, 'src', argv.project);
@@ -82,22 +86,25 @@ export function tsc(argv: Args, onCompiled: () => void) {
       dir: packagePath
     });
     srcDirs.forEach(srcDir => {
-      compGlobs.push(Path.resolve(packagePath, srcDir).replace(/\\/g, '/') +
-        (argv.tsx ? '/**/*.tsx' : '/**/*.ts'));
+      const relPath = Path.resolve(packagePath, srcDir).replace(/\\/g, '/');
+      compGlobs.push(relPath + '/**/*.ts', relPath + '/**/*.tsx');
     });
   }
 
-  const delayCompile = _.debounce(() => {
+  const delayCompile = _.debounce(async () => {
     const toCompile = compGlobs;
     compGlobs = [];
-    promCompile = promCompile.catch(() => {})
-      .then(() => compile(toCompile, tsProject, compDirInfo, argv.sourceMap === 'inline'))
-      .catch(() => {});
+
+    promCompile = promCompile.catch(() => [] as EmitList)
+      .then(() => compile(toCompile, tsProject, compDirInfo, argv.sourceMap === 'inline', argv.ed))
+      .catch(() => [] as EmitList);
     if (onCompiled)
-      promCompile = promCompile.then(onCompiled);
+      promCompile = promCompile.then(emitted => {
+        onCompiled(emitted);
+        return emitted;
+      });
   }, 200);
 
-  var promCompile = Promise.resolve();
   if (argv.watch) {
     log.info('Watch mode');
     const watchDirs: string[] = [];
@@ -105,8 +112,8 @@ export function tsc(argv: Args, onCompiled: () => void) {
 
     for (const info of compDirInfo.values()) {
       [info.tsDirs.srcDir, info.tsDirs.isomDir].forEach(srcDir => {
-        watchDirs.push(Path.join(info.dir, srcDir).replace(/\\/g, '/') +
-          (argv.tsx ? '/**/*.tsx' : '/**/*.ts'));
+        const relPath = Path.join(info.dir, srcDir).replace(/\\/g, '/');
+        watchDirs.push(relPath + '/**/*.ts', relPath + '/**/*.tsx');
       });
     }
     const watcher = chokidar.watch(watchDirs, {ignored: /(\.d\.ts|\.js)$/ });
@@ -114,7 +121,7 @@ export function tsc(argv: Args, onCompiled: () => void) {
     watcher.on('change', (path: string) => onChangeFile(path, 'changed'));
     watcher.on('unlink', (path: string) => onChangeFile(path, 'removed'));
   } else {
-    return compile(compGlobs, tsProject, compDirInfo, argv.sourceMap === 'inline');
+    return compile(compGlobs, tsProject, compDirInfo, argv.sourceMap === 'inline', argv.ed);
   }
 
   function onChangeFile(path: string, reason: string) {
@@ -128,7 +135,7 @@ export function tsc(argv: Args, onCompiled: () => void) {
 }
 
 function compile(compGlobs: string[], tsProject: any,
-  compDirInfo: Map<string, ComponentDirInfo>, inlineSourceMap: boolean) {
+  compDirInfo: Map<string, ComponentDirInfo>, inlineSourceMap: boolean, emitTdsOnly = false) {
   const gulpBase = root + SEP;
   const startTime = new Date().getTime();
 
@@ -148,9 +155,9 @@ function compile(compGlobs: string[], tsProject: any,
         throw new Error('Cound not find package info for:' + file);
       }
       const {tsDirs, dir} = compDirInfo.get(packageName)!;
-      const packageRelPath = Path.relative(dir, file.path).replace(/\\/g, '/');
+      const packageRelPath = Path.relative(dir, file.path);
 
-      if (packageRelPath.startsWith(tsDirs.srcDir + '/')) {
+      if (!Path.relative(tsDirs.srcDir, packageRelPath).startsWith('..')) {
         file.path = Path.resolve(nodeModules, packageName, tsDirs.destDir,
           shortPath.substring(packageName.length + 1 + (tsDirs.srcDir.length > 0 ? tsDirs.srcDir.length + 1 : 0)));
       }
@@ -158,7 +165,7 @@ function compile(compGlobs: string[], tsProject: any,
     });
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise<EmitList>((resolve, reject) => {
     const compileErrors: string[] = [];
     const tsResult = gulp.src(compGlobs)
     .pipe(sourcemaps.init())
@@ -171,9 +178,6 @@ function compile(compGlobs: string[], tsProject: any,
       compileErrors.push(err.message);
     });
 
-    const jsStream = tsResult.js
-    .pipe(changePath())
-    .pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.'));
     // LJ: Let's try to use --sourceMap with --inlineSource, so that I don't need to change file path in source map
     // which is outputed
 
@@ -193,11 +197,22 @@ function compile(compGlobs: string[], tsProject: any,
     //   }
     //   next(null, file);
     // }));
+    const streams: any[] = [];
+    if (!emitTdsOnly) {
+      streams.push(tsResult.js
+        .pipe(changePath())
+        .pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.')));
+    }
+    streams.push(tsResult.dts.pipe(changePath()));
 
-    const all = merge([jsStream, tsResult.dts.pipe(changePath())])
+    const emittedList = [] as EmitList;
+    const all = merge(streams)
     .pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
-      log.info('%s %s Kb', Path.relative(nodeModules, file.path),
-        chalk.blue(Math.round(file.contents.length / 1024 * 10) / 10));
+      const displayPath = Path.relative(nodeModules, file.path);
+      const displaySize = Math.round(file.contents.length / 1024 * 10) / 10;
+
+      log.info('%s %s Kb', displayPath, chalk.blue(displaySize));
+      emittedList.push([displayPath, displaySize]);
       next(null, file);
     }))
     .pipe(gulp.dest(root));
@@ -209,12 +224,13 @@ function compile(compGlobs: string[], tsProject: any,
         compileErrors.forEach(msg => log.error(msg));
         return reject(new Error('Failed to compile Typescript files'));
       }
-      resolve();
+      resolve(emittedList);
     });
     all.on('error', reject);
   })
-  .then(() => {
+  .then(emittedList => {
     printDuration(false);
+    return emittedList;
   })
   .catch(err => {
     printDuration(true);

@@ -57,7 +57,7 @@
     "gulp-eslint": "^6.0.0",
     "gulp-sourcemaps": "^2.6.5",
     "gulp-tslint": "^8.1.4",
-    "gulp-typescript": "^5.0.1",
+    "gulp-typescript": "^6.0.0-alpha.1",
     "gulp-util": "^3.0.8",
     "js-yaml": "^3.10.0",
     "json-lint": "^0.1.0",

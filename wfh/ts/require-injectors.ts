@@ -12,8 +12,8 @@ export {FactoryMapInterf, RequireInjector};
 // }
 
 export interface InjectorConfigHandler {
-  setupNodeInjector(factory: DrPackageInjector): void;
-  setupWebInjector(factory: DrPackageInjector): void;
+  setupNodeInjector?(factory: DrPackageInjector): void;
+  setupWebInjector?(factory: DrPackageInjector): void;
 }
 
 export function doInjectorConfig(factory: DrPackageInjector, isNode = false): Promise<void> {

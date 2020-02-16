@@ -135,8 +135,14 @@ function drcpCommand(startTime) {
 					type: 'array',
 					alias: 'project'
 				},
-				tsx: {
-					describe: 'Compile web ui tsx source',
+				jsx: {
+					describe: 'Compile web ui tsx source into jsx',
+					type: 'boolean',
+					'default': false
+				},
+				ed: {
+					alias: 'emitDeclarationOnly',
+					describe: 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.',
 					type: 'boolean',
 					'default': false
 				},

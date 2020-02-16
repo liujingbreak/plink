@@ -16,4 +16,4 @@ export interface CraScriptsPaths {
     publicUrl: string;
     servedPath: string;
 }
-export default function (): CraScriptsPaths;
+export default function factory(): () => CraScriptsPaths;

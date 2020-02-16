@@ -16,7 +16,7 @@
 		"emitDecoratorMetadata": true,
 		"noUnusedLocals": true,
 		"preserveSymlinks": false,
-		"downlevelIteration": true,
+		"downlevelIteration": false,
 		"strictNullChecks": true,
 		"resolveJsonModule": true,
 		"lib": ["es2016",

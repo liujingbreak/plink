@@ -1,6 +1,8 @@
 // tslint:disable: no-console
 import util, { isRegExp } from 'util';
 import {CommandOption} from './build-options';
+import fs from 'fs';
+import Path from 'path';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -72,5 +74,20 @@ export function saveCmdArgToEnv() {
   }
   if (argv.length > 1) {
     process.env.REACT_APP__cra_build_target = argv[1];
+  }
+}
+
+export function findDrcpProjectDir() {
+  const target = 'dr-comp-package/package.json';
+  const paths = require.resolve.paths(target);
+  for (let p of paths!) {
+    if (fs.existsSync(Path.resolve(p, target))) {
+      if (/[\\/]node_modules$/.test(p)) {
+        if (fs.lstatSync(p).isSymbolicLink())
+          p = fs.realpathSync(p);
+        return p.slice(0, - '/node_modules'.length);
+      }
+      return p;
+    }
   }
 }
