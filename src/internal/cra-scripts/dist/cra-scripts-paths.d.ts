@@ -13,7 +13,10 @@ export interface CraScriptsPaths {
     testsSetup: string;
     proxySetup: string;
     appNodeModules: string;
-    publicUrl: string;
-    servedPath: string;
+    publicUrlOrPath: string;
+    ownPath: string;
+    ownNodeModules: string;
+    appTypeDeclarations: string;
+    ownTypeDeclarations: string;
 }
 export default function factory(): () => CraScriptsPaths;

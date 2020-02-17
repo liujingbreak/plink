@@ -34,6 +34,8 @@ export function linkDrcp() {
   const sourceDir = Path.resolve(__dirname, '../../..');
   fs.symlinkSync(Path.relative(Path.resolve('node_modules'), sourceDir),
     Path.resolve('node_modules', 'dr-comp-package'), isWin32 ? 'junction' : 'dir');
+  // tslint:disable-next-line: no-console
+  console.log(Path.resolve('node_modules', 'dr-comp-package') + ' is created');
 }
 
 async function checkDir(dir: string, deleteAll = false) {

@@ -7,6 +7,7 @@ import {Configuration, RuleSetRule, Compiler} from 'webpack';
 import {drawPuppy, printConfig, getCmdOptions} from './utils';
 import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
+import {findPackage} from './build-target-helper';
 // import chalk from 'chalk';
 const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 
@@ -31,6 +32,13 @@ export = function(webpackEnv: string) {
   const config: Configuration = origWebpackConfig(webpackEnv);
   // Make sure babel compiles source folder out side of current src directory
   changeBabelLoader(config);
+
+  if (cmdOption.buildType === 'app') {
+    const {packageJson} = findPackage(cmdOption.buildTarget);
+    // TODO: do not hard code
+    config.resolve!.alias!['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
+    console.log(packageJson.name + '/' + packageJson.dr['cra-start-entry']);
+  }
 
   // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
   if (config.resolve && config.resolve.plugins) {
