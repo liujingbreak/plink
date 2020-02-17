@@ -1,4 +1,4 @@
-
+import {renderDom} from './my-component/MyComponent';
 const container = document.getElementById('root')!;
 
-container.innerHTML = 'Render you React component here';
+renderDom(container);
