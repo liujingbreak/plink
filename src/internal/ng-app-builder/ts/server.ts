@@ -167,6 +167,9 @@ function writeTsconfig4Editor() {
     if (_fs.existsSync(tsconfigFile)) {
       const existingJson = parse(_fs.readFileSync(tsconfigFile, 'utf8'));
       const co = existingJson.compilerOptions;
+      if (!co.jsx) {
+        co.jsx = 'preserve';
+      }
       const newCo = tsjson.compilerOptions;
       co.typeRoots = newCo.typeRoots;
       co.baseUrl = newCo.baseUrl;

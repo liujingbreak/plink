@@ -45,4 +45,5 @@ export declare class ConfigHandlerMgr {
        * @returns last result
        */
     runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): Promise<any>;
+    runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): any;
 }

@@ -8,6 +8,9 @@ import {drawPuppy, printConfig, getCmdOptions} from './utils';
 import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 import {findPackage} from './build-target-helper';
+import {ConfigHandlerMgr} from 'dr-comp-package/wfh/dist/config-handler';
+import {ConfigureHandler} from './types';
+
 // import chalk from 'chalk';
 const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 
@@ -33,12 +36,13 @@ export = function(webpackEnv: string) {
   // Make sure babel compiles source folder out side of current src directory
   changeBabelLoader(config);
 
+  const {dir, packageJson} = findPackage(cmdOption.buildTarget);
   if (cmdOption.buildType === 'app') {
-    const {packageJson} = findPackage(cmdOption.buildTarget);
     // TODO: do not hard code
     config.resolve!.alias!['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
     console.log(packageJson.name + '/' + packageJson.dr['cra-start-entry']);
   }
+
 
   // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
   if (config.resolve && config.resolve.plugins) {
@@ -98,6 +102,14 @@ export = function(webpackEnv: string) {
 
   if (cmdOption.buildType === 'lib')
     change4lib(cmdOption.buildTarget, config);
+
+  const configFileInPackage = Path.resolve(dir, _.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
+  if (fs.existsSync(configFileInPackage)) {
+    const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
+    cfgMgr.runEachSync<ConfigureHandler>((cfgFile, result, handler) => {
+      handler.webpack(config, webpackEnv, cmdOption);
+    });
+  }
 
   fs.mkdirpSync('logs');
   fs.writeFile('logs/webpack.config.debug.js', printConfig(config), (err) => {

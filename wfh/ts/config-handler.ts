@@ -90,4 +90,15 @@ export class ConfigHandlerMgr {
     }
     return lastRes;
   }
+
+  runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any) {
+    let lastRes: any;
+    for (const {file, handler} of this.configHandlers) {
+      console.log(green(Path.basename(__filename, '.js') + ' - ') + ' run', cyan(file));
+      const currRes = func(file, lastRes, handler as any as H);
+      if (currRes !== undefined)
+        lastRes = currRes;
+    }
+    return lastRes;
+  }
 }

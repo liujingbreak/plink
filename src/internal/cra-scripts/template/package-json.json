@@ -1,0 +1,24 @@
+{
+  "name": "<%= name %>",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/lib-bundle.js",
+  "types": "build/public_api.d.ts",
+  "dr": {
+    "ts": {
+      "src": "",
+      "dest": "build"
+    },
+    "cra-lib-entry": "public_api.ts",
+    "cra-start-entry": "start.tsx",
+    "config-overrides-path": "config-overrides.ts"
+  },
+  "sideEffects": false,
+  "dependencies": {
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

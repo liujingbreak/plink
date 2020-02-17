@@ -1,0 +1,4 @@
+
+const container = document.getElementById('root')!;
+
+container.innerHTML = 'Render you React component here';
