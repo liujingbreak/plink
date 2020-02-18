@@ -41,7 +41,7 @@ function copyTempl(to: string, pkName: string, dryrun: boolean) {
         const pkJsonStr = fs.readFileSync(Path.resolve(templDir, sub), 'utf8');
         const newFile = Path.resolve(to, 'package.json');
         if (!dryrun)
-          fs.writeFile(newFile, _.template(pkJsonStr)({name: Path.basename('@bk/' + pkName)}));
+          fs.writeFile(newFile, _.template(pkJsonStr)({name: '@bk/' + Path.basename(pkName)}));
         console.log(`[cra-scripts cmd] ${chalk.green(Path.relative(Path.resolve(), newFile))} is created`);
         continue;
       }
