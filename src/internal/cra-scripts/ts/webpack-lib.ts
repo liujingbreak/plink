@@ -1,4 +1,4 @@
-import {Configuration, Compiler, RuleSetRule} from 'webpack';
+import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
 import {findPackage} from './build-target-helper';
 import childProc from 'child_process';
 // import fs from 'fs-extra';
@@ -36,8 +36,7 @@ export default function change(buildPackage: string, config: Configuration) {
       (! (plugin instanceof HtmlWebpackPlugin));
   });
 
-  for (const rule of config.module!.rules)
-    findAndChangeRule(rule);
+  findAndChangeRule(config.module!.rules);
 
 
   const reqSet = new Set<string>();
@@ -74,19 +73,30 @@ export default function change(buildPackage: string, config: Configuration) {
 }
 
 
-function findAndChangeRule(rule: RuleSetRule) {
+function findAndChangeRule(rules: RuleSetRule[]): void {
   // TODO: check in case CRA will use Rule.use instead of "loader"
-  if (Array.isArray(rule.use)) {
-    const found = rule.use.findIndex(
+  checkSet(rules);
+  for (const rule of rules) {
+    if (Array.isArray(rule.use)) {
+      checkSet(rule.use);
+
+    } else if (Array.isArray(rule.loader)) {
+        checkSet(rule.loader);
+    } else if (rule.oneOf) {
+      return findAndChangeRule(rule.oneOf);
+    }
+  }
+
+  function checkSet(set: (RuleSetRule | RuleSetUseItem)[]) {
+    const found = set.findIndex(
       use => (use as any).loader && (use as any).loader.indexOf(MiniCssExtractPlugin.loader) >= 0);
     // const found = rule.use.findIndex(use => (use as any).loader && (use as any).loader.indexOf('mini-css-extract-plugin') >= 0);
     if (found >= 0) {
-      rule.use.splice(found, 1);
-      rule.use.unshift(require.resolve('style-loader'));
+      set.splice(found, 1);
+      set.unshift(require.resolve('style-loader'));
     }
-  } else if (rule.oneOf) {
-    return rule.oneOf.forEach(findAndChangeRule);
   }
+  return;
 }
 
 function forkTsc(targetPackage: string) {

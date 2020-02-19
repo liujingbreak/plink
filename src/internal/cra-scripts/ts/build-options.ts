@@ -6,4 +6,5 @@ export interface BuildOptions {
 export interface CommandOption {
   buildType: 'lib' | 'app';
   buildTarget: string;
+  watch: boolean;
 }

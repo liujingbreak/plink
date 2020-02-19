@@ -2,7 +2,7 @@
 import _ from 'lodash';
 import Path from 'path';
 import fs from 'fs-extra';
-import {Configuration, RuleSetRule, Compiler} from 'webpack';
+import {Configuration, RuleSetRule, Compiler, RuleSetUseItem, RuleSetLoader} from 'webpack';
 // import { RawSource } from 'webpack-sources';
 import {drawPuppy, printConfig, getCmdOptions} from './utils';
 import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
@@ -26,15 +26,22 @@ export = function(webpackEnv: string) {
 
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
   if (process.argv.indexOf('--dev') >= 0) {
-    console.log('Development mode!!!');
+    console.log('Development mode is on');
+    webpackEnv = 'development';
+  } else if (cmdOption.watch) {
+    console.log('Development mode is on, watch mode is on');
     webpackEnv = 'development';
   } else {
     process.env.GENERATE_SOURCEMAP = 'false';
   }
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   const config: Configuration = origWebpackConfig(webpackEnv);
+
+  if (cmdOption.watch) {
+    config.watch = true;
+  }
   // Make sure babel compiles source folder out side of current src directory
-  changeBabelLoader(config);
+  findAndChangeRule(config.module!.rules);
 
   const {dir, packageJson} = findPackage(cmdOption.buildTarget);
   if (cmdOption.buildType === 'app') {
@@ -118,28 +125,59 @@ export = function(webpackEnv: string) {
   return config;
 };
 
-function changeBabelLoader(config: Configuration) {
+function findAndChangeRule(rules: RuleSetRule[]): void {
   const craPaths = require('react-scripts/config/paths');
-  config.module!.rules.some(findAndChangeRule);
+  // TODO: check in case CRA will use Rule.use instead of "loader"
+  checkSet(rules);
+  for (const rule of rules) {
+    if (Array.isArray(rule.use)) {
+      checkSet(rule.use);
 
-  function findAndChangeRule(rule: RuleSetRule) {
-    // TODO: check in case CRA will use Rule.use instead of "loader"
-    if (rule.include && typeof rule.loader === 'string' && rule.loader.indexOf(Path.sep + 'babel-loader' + Path.sep)) {
-      delete rule.include;
-      const origTest = rule.test;
-      rule.test = (file) => {
-        const pk = findPackageByFile(file);
-
-        const yes = ((pk && pk.dr) || file.startsWith(craPaths.appSrc)) &&
-          (origTest instanceof RegExp) ? origTest.test(file) :
-            (origTest instanceof Function ? origTest(file) : origTest === file);
-        // console.log(file, yes);
-        return yes;
-      };
-      return true;
+    } else if (Array.isArray(rule.loader)) {
+        checkSet(rule.loader);
     } else if (rule.oneOf) {
-      return rule.oneOf.some(findAndChangeRule);
+      return findAndChangeRule(rule.oneOf);
     }
-    return false;
   }
+
+  function checkSet(set: (RuleSetRule | RuleSetUseItem)[]) {
+    for (let i = 0; i < set.length ; i++) {
+      const rule = set[i];
+      if (typeof rule === 'string' && (rule.indexOf('file-loader') >= 0 || rule.indexOf('url-loader') >= 0)) {
+        set[i] = {
+          loader: rule,
+          options: {
+            outputPath(url: string, resourcePath: string, context: string) {
+              const pk = findPackageByFile(resourcePath);
+              return `${(pk ? pk.shortName : 'external')}/${url}`;
+            }
+          }
+        };
+      } else if ((typeof (rule as RuleSetRule | RuleSetLoader).loader) === 'string' &&
+        (((rule as RuleSetRule | RuleSetLoader).loader as string).indexOf('file-loader') >= 0 ||
+        ((rule as RuleSetRule | RuleSetLoader).loader as string).indexOf('url-loader') >= 0
+        )) {
+        ((set[i] as RuleSetRule | RuleSetLoader).options as any)!.outputPath = (url: string, resourcePath: string, context: string) => {
+          const pk = findPackageByFile(resourcePath);
+          return `${(pk ? pk.shortName : 'external')}/${url}`;
+        };
+      }
+
+      if ((rule as RuleSetRule).include && typeof (rule as RuleSetRule).loader === 'string' &&
+        (rule as RuleSetLoader).loader!.indexOf(Path.sep + 'babel-loader' + Path.sep)) {
+        delete (rule as RuleSetRule).include;
+        const origTest = (rule as RuleSetRule).test;
+        (rule as RuleSetRule).test = (file) => {
+          const pk = findPackageByFile(file);
+
+          const yes = ((pk && pk.dr) || file.startsWith(craPaths.appSrc)) &&
+            (origTest instanceof RegExp) ? origTest.test(file) :
+              (origTest instanceof Function ? origTest(file) : origTest === file);
+          // console.log(`[webpack.config] babel-loader: ${file}`, yes);
+          return yes;
+        };
+      }
+    }
+  }
+  return;
 }

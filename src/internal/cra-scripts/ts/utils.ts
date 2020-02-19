@@ -60,9 +60,12 @@ function printConfigValue(value: any, level: number): string {
 }
 
 export function getCmdOptions(): CommandOption {
+  const buildTarget = process.env.REACT_APP_cra_build_target as any;
+  const buildType = process.env.REACT_APP_cra_build_type as any;
   return {
-    buildTarget: process.env.REACT_APP_cra_build_target as any,
-    buildType: process.env.REACT_APP_cra_build_type as any
+    buildTarget,
+    buildType,
+    watch: buildType === 'lib' && process.argv.indexOf('--watch') >= 0
   };
 }
 
@@ -91,3 +94,4 @@ export function findDrcpProjectDir() {
     }
   }
 }
+

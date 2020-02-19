@@ -20,7 +20,7 @@ export function genPackage(path: string, dryrun = false) {
   fs.mkdirpSync(dir);
 
   copyTempl(dir, Path.basename(path), dryrun);
-  console.log('[cra-scripts cmd] You need to run `drcp init`');
+  console.log(`[cra-scripts cmd] ${chalk.redBright('You need to run')} \`drcp init\``);
 }
 
 function copyTempl(to: string, pkName: string, dryrun: boolean) {
