@@ -4,8 +4,7 @@ import * as Path from 'path';
 import os = require('os');
 import fs from 'fs';
 import checkNode from './utils/node-version-check';
-
-
+import checkSymlinks from './utils/symlinks';
 
 import {removeProjectSymlink} from './project-dir';
 // const versionChecker = require('../lib/versionChecker');
@@ -35,6 +34,7 @@ checkNode().then((nodeIsOk) => {
   var cmdPromise;
   if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink()) {
     isSymbolicLink = true;
+    checkSymlinks();
     cmdPromise = ensurePackageJsonFile(isSymbolicLink)
     // .then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
     .then(() => '')
