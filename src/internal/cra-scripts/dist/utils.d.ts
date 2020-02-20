@@ -6,4 +6,5 @@ export declare const getCmdOptions: typeof _getCmdOptions & _.MemoizedFunction;
 declare function _getCmdOptions(): CommandOption;
 export declare function saveCmdArgToEnv(): void;
 export declare function findDrcpProjectDir(): string | undefined;
+export declare function craVersionCheck(): void;
 export {};

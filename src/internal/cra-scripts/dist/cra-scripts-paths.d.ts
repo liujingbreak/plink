@@ -19,4 +19,4 @@ export interface CraScriptsPaths {
     appTypeDeclarations: string;
     ownTypeDeclarations: string;
 }
-export default function factory(): () => CraScriptsPaths;
+export default function paths(): CraScriptsPaths;

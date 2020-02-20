@@ -5,7 +5,7 @@
  */
 require('dr-comp-package/bin/nodePath').setContextPath(process.cwd());
 import {drawPuppy, saveCmdArgToEnv} from './utils';
-import _getPathsFactory from './cra-scripts-paths';
+import _paths from './cra-scripts-paths';
 import {getCmdOptions} from './utils';
 import Path from 'path';
 import fs from 'fs-extra';
@@ -23,9 +23,7 @@ saveCmdArgToEnv();
 
 function poo() {
 
-  const getPathsFactory: typeof _getPathsFactory = require('./cra-scripts-paths').default;
-
-  const getCraPaths = getPathsFactory();
+  const getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
 
   const reactScriptsPath = `${sep}node_modules${sep}react-scripts${sep}`;
   const reactDevUtilsPath = `${sep}node_modules${sep}react-dev-utils${sep}`;

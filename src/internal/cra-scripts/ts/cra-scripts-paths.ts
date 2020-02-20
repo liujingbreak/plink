@@ -2,7 +2,7 @@ import {getCmdOptions} from './utils';
 import {findPackage} from './build-target-helper';
 import Path from 'path';
 import _ from 'lodash';
-const paths: CraScriptsPaths = require('react-scripts/config/paths');
+
 
 export interface CraScriptsPaths {
   dotenv: string;
@@ -27,30 +27,25 @@ export interface CraScriptsPaths {
   ownTypeDeclarations: string;
 }
 
-export default function factory() {
-  let changedPaths: CraScriptsPaths | undefined;
-  return (): CraScriptsPaths => {
-    if (changedPaths == null) {
-      changedPaths = paths;
-      const cmdOption = getCmdOptions();
-      const {dir, packageJson} = findPackage(cmdOption.buildTarget);
-      // console.log('[debug] ', cmdOption);
-      if (cmdOption.buildType === 'lib') {
-        changedPaths.appBuild = Path.resolve(dir, 'build');
-        changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-build-entry', 'public_api.ts'));
-      } else if (cmdOption.buildType === 'app') {
-        // const {dir} = findPackage(cmdOption.buildTarget);
-        // changedPaths.appBuild = Path.resolve(dir, 'build');
-        // changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-serve-entry', 'serve_index.ts'));
-      }
-      // tslint:disable-next-line: no-console
-      console.log('[cra-scripts-paths] changed react-scripts paths:\n', changedPaths);
-    }
-
-    if (changedPaths == null) {
-      changedPaths = paths;
-    }
-    // console.log(changedPaths);
-    return changedPaths;
-  };
+export default function paths() {
+  const cmdPublicUrl = getCmdOptions().argv.get('publicUrl') || getCmdOptions().argv.get('public-url');
+  if (cmdPublicUrl) {
+    process.env.PUBLIC_URL = cmdPublicUrl + '';
+  }
+  const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
+  const changedPaths = paths;
+  const cmdOption = getCmdOptions();
+  const {dir, packageJson} = findPackage(cmdOption.buildTarget);
+  // console.log('[debug] ', cmdOption);
+  if (cmdOption.buildType === 'lib') {
+    changedPaths.appBuild = Path.resolve(dir, 'build');
+    changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-build-entry', 'public_api.ts'));
+  } else if (cmdOption.buildType === 'app') {
+    // const {dir} = findPackage(cmdOption.buildTarget);
+    // changedPaths.appBuild = Path.resolve(dir, 'build');
+    // changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-serve-entry', 'serve_index.ts'));
+  }
+    // tslint:disable-next-line: no-console
+    // console.log('[cra-scripts-paths] changed react-scripts paths:\n', changedPaths);
+  return changedPaths;
 }

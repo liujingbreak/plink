@@ -15,5 +15,9 @@ const drcpConfig = require('dr-comp-package/wfh/lib/config');
   console.log('[drcp-tsc] declaration files emitted:');
   // tslint:disable-next-line: no-console
   emitted.forEach(info => console.log(`[drcp-tsc] emitted: ${info[0]} ${info[1]}Kb`));
+})
+.catch(err => {
+  console.error('[child-process tsc] Typescript compilation contains errors');
+  console.error(err);
 });
 

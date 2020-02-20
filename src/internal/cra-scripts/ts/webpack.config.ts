@@ -23,20 +23,17 @@ export = function(webpackEnv: string) {
   drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check:\n  ${Path.resolve('/logs')}\n  ${__filename}`);
 
   const cmdOption = getCmdOptions();
-
+  // console.log('webpackEnv=', webpackEnv);
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
-  if (process.argv.indexOf('--dev') >= 0) {
-    console.log('Development mode is on');
+  if (cmdOption.argv.get('dev') || cmdOption.argv.get('watch')) {
     webpackEnv = 'development';
-  } else if (cmdOption.watch) {
-    console.log('Development mode is on, watch mode is on');
-    webpackEnv = 'development';
+    console.log('Development mode is on:', webpackEnv);
   } else {
     process.env.GENERATE_SOURCEMAP = 'false';
   }
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   const config: Configuration = origWebpackConfig(webpackEnv);
-
+  console.log(__filename, config.output!.publicPath);
   // Make sure babel compiles source folder out side of current src directory
   findAndChangeRule(config.module!.rules);
 

@@ -4,6 +4,7 @@ import {CommandOption} from './build-options';
 import fs from 'fs';
 import Path from 'path';
 import _ from 'lodash';
+import {gt} from 'semver';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -65,11 +66,34 @@ export const getCmdOptions = _.memoize(_getCmdOptions);
 function _getCmdOptions(): CommandOption {
   const buildTarget = process.env.REACT_APP_cra_build_target as any;
   const buildType = process.env.REACT_APP_cra_build_type as any;
+  const argvMap = cliArgvMap();
+  console.log('[command argv]', Array.from(argvMap.entries()).map(en => Array.from(en)));
+  if (argvMap.get('dev') || argvMap.get('watch')) {
+    process.env.NODE_ENV = 'development';
+  }
+
   return {
     buildTarget,
     buildType,
-    watch: buildType === 'lib' && process.argv.indexOf('--watch') >= 0
+    watch: buildType === 'lib' && !!argvMap.get('watch'),
+    argv: argvMap
   };
+}
+
+function cliArgvMap(): Map<string, string|boolean> {
+  const argvMap = new Map<string, string|boolean>();
+  const argv = process.argv.slice(2);
+  for (let i = 0, l = argv.length; i < l; i++) {
+    if (argv[i].startsWith('-')) {
+      const key = argv[i].slice(argv[i].lastIndexOf('-') + 1);
+      if ( i >= argv.length - 1 || (argv[i + 1] && argv[i + 1].startsWith('-'))) {
+        argvMap.set(key, true);
+      } else {
+        argvMap.set(key, argv[++i]);
+      }
+    }
+  }
+  return argvMap;
 }
 
 export function saveCmdArgToEnv() {
@@ -98,3 +122,9 @@ export function findDrcpProjectDir() {
   }
 }
 
+export function craVersionCheck() {
+  const craPackage = require(Path.resolve('node_modules/react-scripts/package.json'));
+  if (!gt(craPackage.version, '3.4.0')) {
+    throw new Error(`react-scripts version must be greater than 3.4.0, current installed version is ${craPackage.version}`);
+  }
+}
