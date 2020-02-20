@@ -3,6 +3,7 @@ import util, { isRegExp } from 'util';
 import {CommandOption} from './build-options';
 import fs from 'fs';
 import Path from 'path';
+import _ from 'lodash';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -59,7 +60,9 @@ function printConfigValue(value: any, level: number): string {
   return out;
 }
 
-export function getCmdOptions(): CommandOption {
+export const getCmdOptions = _.memoize(_getCmdOptions);
+
+function _getCmdOptions(): CommandOption {
   const buildTarget = process.env.REACT_APP_cra_build_target as any;
   const buildType = process.env.REACT_APP_cra_build_type as any;
   return {

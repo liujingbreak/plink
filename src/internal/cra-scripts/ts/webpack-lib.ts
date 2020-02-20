@@ -4,6 +4,8 @@ import childProc from 'child_process';
 // import fs from 'fs-extra';
 import Path from 'path';
 import {findDrcpProjectDir} from './utils';
+import { getCmdOptions } from '../dist/utils';
+// import {HotModuleReplacementPlugin} from 'webpack';
 // const EsmWebpackPlugin = require("@purtuga/esm-webpack-plugin");
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
@@ -27,13 +29,18 @@ export default function change(buildPackage: string, config: Configuration) {
 
   const InlineChunkHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InlineChunkHtmlPlugin'));
   const InterpolateHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InterpolateHtmlPlugin'));
+  const ForkTsCheckerWebpackPlugin = require(Path.resolve('node_modules/react-dev-utils/ForkTsCheckerWebpackPlugin'));
   const HtmlWebpackPlugin = require(Path.resolve('node_modules/html-webpack-plugin'));
+  const {HotModuleReplacementPlugin} = require(Path.resolve('node_modules/webpack'));
 
   config.plugins = config.plugins!.filter(plugin => {
-    return (!(plugin instanceof MiniCssExtractPlugin)) &&
-      (! (plugin instanceof InlineChunkHtmlPlugin)) &&
-      (! (plugin instanceof InterpolateHtmlPlugin)) &&
-      (! (plugin instanceof HtmlWebpackPlugin));
+
+    return [MiniCssExtractPlugin,
+      ForkTsCheckerWebpackPlugin,
+      InlineChunkHtmlPlugin,
+      HotModuleReplacementPlugin,
+      HtmlWebpackPlugin,
+      InterpolateHtmlPlugin].every(cls => !(plugin instanceof cls));
   });
 
   findAndChangeRule(config.module!.rules);
@@ -109,8 +116,13 @@ function forkTsc(targetPackage: string) {
     execArgv.splice(execArgvRmPos, 2);
   }
   // console.log('[webpack-lib] ' + Path.resolve(__dirname, 'build-lib', 'drcp-tsc.js'), drcpHome);
+
+  const forkArgs = [targetPackage];
+  if (getCmdOptions().watch)
+    forkArgs.push('--watch');
+
   const cp = childProc.fork(Path.resolve(__dirname, 'build-lib', 'drcp-tsc.js'),
-    [targetPackage], {
+    forkArgs, {
       cwd: drcpHome,
       execArgv,
       stdio: 'inherit'

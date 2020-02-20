@@ -37,9 +37,6 @@ export = function(webpackEnv: string) {
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   const config: Configuration = origWebpackConfig(webpackEnv);
 
-  if (cmdOption.watch) {
-    config.watch = true;
-  }
   // Make sure babel compiles source folder out side of current src directory
   findAndChangeRule(config.module!.rules);
 
