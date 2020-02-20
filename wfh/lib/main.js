@@ -33,7 +33,7 @@ require('./cmd-args').nodeAppCommand(function(argv) {
 		});
 		shutdownable = pkMgr.runServer(argv)
 		.catch(err => {
-			log.error('Failed to start server:', err);
+			log.error('Failed to start server', err.stack || err.toString());
 			process.exit(1); // Log4js "log4jsReloadSeconds" will hang process event loop, so we have to explicitly quit.
 		});
 	} catch (err) {

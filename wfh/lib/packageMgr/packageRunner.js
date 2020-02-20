@@ -41,7 +41,7 @@ function runServer(argv) {
 	return Promise.coroutine(function*() {
 		packagesTypeMap = yield requireServerPackages();
 		deactivateOrder = [];
-		yield activateCoreComponents()
+		yield activateCoreComponents();
 		yield activateNormalComponents();
 		var newRunner = new ServerRunner();
 		deactivateOrder.reverse();
@@ -49,7 +49,7 @@ function runServer(argv) {
 		yield new Promise(resolve => setTimeout(resolve, 500));
 		return () => {
 			newRunner.shutdownServer();
-		}
+		};
 	})();
 }
 
@@ -83,8 +83,8 @@ function requireServerPackages(dontLoad) {
 			} else {
 				packageCache[p.shortName] = p;
 			}
-			if (!dontLoad)
-				p.exports = require(p.moduleName);
+			// if (!dontLoad)
+			// 	p.exports = require(p.moduleName);
 		});
 		eventBus.emit('loadEnd', packageCache);
 		return packagesTypeMap;
