@@ -6,6 +6,7 @@ var chalk = require('chalk');
 exports.drcpCommand = drcpCommand;
 
 var WIDTH = Math.min(130, yargs.terminalWidth());
+process.title = 'OneProject - command line';
 
 function drcpCommand(startTime) {
 	var cli = require('./gulp/cli');

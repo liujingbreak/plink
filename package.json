@@ -1,6 +1,6 @@
 {
   "name": "dr-comp-package",
-  "version": "0.8.29",
+  "version": "0.8.30",
   "description": "DR web components package developer toolkit",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -62,7 +62,7 @@
     "js-yaml": "^3.10.0",
     "json-lint": "^0.1.0",
     "lodash": "^4.17.4",
-    "log4js": "^2.6.0",
+    "log4js": "^6.1.2",
     "lru-cache": "^5.1.1",
     "@types/lru-cache": "^5.1.0",
     "merge2": "1.2.1",

@@ -14,6 +14,7 @@ import {activate as activateCd} from './content-deployer/cd-server';
 import {ImapManager} from './fetch-remote-imap';
 import {WithMailServerConfig} from './fetch-types';
 import serveIndex from 'serve-index';
+import chalk from 'chalk';
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 const buildUtils = api.buildUtils;
@@ -79,10 +80,11 @@ export function activate() {
 
   if (api.config.get([api.packageName, 'serveIndex'])) {
     const stylesheet = Path.resolve(__dirname, '../serve-index.css');
+    process.title = 'File server on ' + staticFolder;
     api.use('/', serveIndex(staticFolder, {icons: true, stylesheet}));
   } else {
-    log.info(`If you want to serve directory index page of static resource folder ${staticFolder}\n` +
-      ` start command with "--prop ${api.packageName}.serveIndex=true staticDir=<resource directory>`);
+    log.info(chalk.blueBright(`If you want to serve directory index page of static resource folder ${staticFolder}\n` +
+      ` start command with "-c --prop ${api.packageName}.serveIndex=true staticDir=<resource directory>`));
   }
 
   fallbackIndexHtml();
