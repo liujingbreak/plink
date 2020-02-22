@@ -17,7 +17,7 @@ export default function change(buildPackage: string, config: Configuration) {
 
   config.output!.path = Path.resolve(pkDir, 'build'); // Have to override it cuz' react-scripts assign `undefined` in non-production env
   config.output!.filename = 'lib-bundle.js';
-  config.output!.libraryTarget = 'commonjs2';
+  config.output!.libraryTarget = 'umd';
   config.optimization!.runtimeChunk = false;
   if (config.optimization && config.optimization.splitChunks) {
     config.optimization.splitChunks = {
@@ -55,8 +55,9 @@ export default function change(buildPackage: string, config: Configuration) {
     (context: any, request: any, callback: (error?: any, result?: any) => void ) => {
       // TODO: Should be configurable
       if ((!request.startsWith('.') && request !== config.entry &&
-        !/[?!]/.test(request) &&
-        !/[\\/]@babel[\\/]/.test(request)) || request.indexOf('/bklib.min') >= 0) {
+        !/[?!]/.test(request)) && (!/[\\/]@babel[\\/]runtime[\\/]/.test(request))
+         ||
+        request.indexOf('/bklib.min') >= 0) {
         // console.log('external request:', request, `(${context})`);
         reqSet.add(request);
         return callback(null, 'commonjs ' + request);
