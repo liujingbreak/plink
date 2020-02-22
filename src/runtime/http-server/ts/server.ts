@@ -5,6 +5,7 @@ import * as Path from 'path';
 // var Promise = require('bluebird');
 import * as log4js from 'log4js';
 import api from '__api';
+import {getLanIPv4} from 'dr-comp-package/wfh/dist/utils/network-util';
 
 var config: any;
 const log = log4js.getLogger(api.packageName);
@@ -83,7 +84,7 @@ export function activate() {
       onError(server, port, err);
     });
     server.on('listening', () => {
-      onListening(server, 'HTTP Server');
+      onListening(server, 'HTTP server', port);
       api.eventBus.emit('serverStarted', {});
     });
   }
@@ -91,7 +92,7 @@ export function activate() {
   function startHttpsServer(app: any) {
     log.info('start HTTPS');
     const startPromises = [];
-    var port: number | string = sslSetting.port ? sslSetting.port : 433;
+    let port: number | string = sslSetting.port ? sslSetting.port : 433;
     port = typeof(port) === 'number' ? port : normalizePort(port as string);
     server = https.createServer({
       key: fs.readFileSync(sslSetting.key),
@@ -120,7 +121,8 @@ export function activate() {
         });
         res.end('');
       });
-      redirectHttpServer.listen(config().port ? config().port : 80);
+      port = config().port ? config().port : 80;
+      redirectHttpServer.listen(port);
       redirectHttpServer.on('error', (error: Error) => {
         onError(server, port, error);
       });
@@ -129,11 +131,12 @@ export function activate() {
         redirectHttpServer.on('listening', () => resolve(redirectHttpServer));
       }));
     }
+
     Promise.all(startPromises)
     .then((servers: any[]) => {
-      onListening(servers[0], 'HTTPS server');
+      onListening(servers[0], 'HTTPS server', port);
       if (servers.length > 1)
-        onListening(servers[1], 'HTTP Forwarding server');
+        onListening(servers[1], 'HTTP Forwarding server', port);
       api.eventBus.emit('serverStarted', {});
     });
   }
@@ -155,10 +158,9 @@ export function activate() {
   /**
 	 * Event listener for HTTP server "listening" event.
 	 */
-  function onListening(server: http.Server | https.Server, title: string) {
-    const addr = server.address();
-    const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + JSON.stringify(addr, null, '\t');
-    log.info('%s is listening on %s', title ? title : '', bind);
+  function onListening(server: http.Server | https.Server, title: string, port: number | string) {
+    const addr = getLanIPv4();
+    log.info(`${title} is listening on ${addr}:${port}`);
   }
 
   /**
