@@ -116,7 +116,7 @@ async function processBrowserBuiliderOptions(
     if (parsedUrl.host == null) {
       parsedUrl.hostname = getLanIPv4();
       parsedUrl.port = devServerConfig.port + '';
-      parsedUrl.protocol = 'http';
+      parsedUrl.protocol = devServerConfig && devServerConfig.ssl ? 'https' : 'http';
       rawBrowserOptions.deployUrl = Url.format(parsedUrl);
       // TODO: print right after server is successfully started
       setTimeout(() =>
