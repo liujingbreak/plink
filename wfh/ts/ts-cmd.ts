@@ -87,7 +87,10 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     });
     srcDirs.forEach(srcDir => {
       const relPath = Path.resolve(packagePath, srcDir).replace(/\\/g, '/');
-      compGlobs.push(relPath + '/**/*.ts', relPath + '/**/*.tsx');
+      compGlobs.push(relPath + '/**/*.ts');
+      if (argv.jsx) {
+        compGlobs.push(relPath + '/**/*.tsx');
+      }
     });
   }
 
@@ -113,7 +116,10 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     for (const info of compDirInfo.values()) {
       [info.tsDirs.srcDir, info.tsDirs.isomDir].forEach(srcDir => {
         const relPath = Path.join(info.dir, srcDir).replace(/\\/g, '/');
-        watchDirs.push(relPath + '/**/*.ts', relPath + '/**/*.tsx');
+        watchDirs.push(relPath + '/**/*.ts');
+        if (argv.jsx) {
+          watchDirs.push(relPath + '/**/*.tsx');
+        }
       });
     }
     const watcher = chokidar.watch(watchDirs, {ignored: /(\.d\.ts|\.js)$/ });

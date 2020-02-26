@@ -64,7 +64,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
     });
     res.on('exit', function(code, signal) {
       if (code !== 0 && signal !== 'SIGINT') {
-        const errMsg = `Child process exit with code ${code}, signal ` + signal;
+        const errMsg = `Child process "${command} ${args.join(' ')}" exit with code ${code}, signal ` + signal;
         if (opts == null || opts.silent !== true) {
           console.log(errMsg);
           if (output) {

@@ -76,6 +76,13 @@ export async function activate(app: Application, imap: ImapManager) {
   });
 
   app.use<{file: string, hash: string}>('/_install/:file/:hash', async (req, res, next) => {
+    if (requireToken && req.query.whisper !== generateToken()) {
+      res.header('Connection', 'close');
+      res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
+      req.socket.end();
+      res.connection.end();
+      return;
+    }
     const existing = filesHash.get(req.params.file);
     log.info(`${req.method} [${os.hostname}]file: ${req.params.file}, hash: ${req.params.hash},\nexisting file: ${existing ? existing : '<NO>'}` +
       `\n${util.inspect(req.headers)}`);
