@@ -88,6 +88,14 @@ export async function activate(app: Application, imap: ImapManager) {
       `\n${util.inspect(req.headers)}`);
 
     if (req.method === 'PUT') {
+      if (requireToken && req.query.whisper !== generateToken()) {
+        res.header('Connection', 'close');
+        res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
+        req.socket.end();
+        res.connection.end();
+        return;
+      }
+
       log.info('recieving data');
       if (isPm2 && !isMainProcess) {
         await new Promise(resolve => setTimeout(resolve, 800));
