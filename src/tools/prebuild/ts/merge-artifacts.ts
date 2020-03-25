@@ -14,8 +14,7 @@ export async function prepare() {
 
   await spawn('git', 'fetch', 'origin', {cwd: rootDir}).promise;
 
-  const res = await spawn('git', 'status', {cwd: rootDir, silent: true}).promise;
-  const currBranch = /^On branch (.*)$/m.exec(res)![1];
+  const currBranch = await getCurrBranchName();
 
   if (currBranch === 'release-server') {
     // tslint:disable-next-line: no-console
@@ -25,10 +24,8 @@ export async function prepare() {
 
   try {
     await spawn('git', 'branch', '-D', 'release-server', {cwd: rootDir}).promise;
-  } catch (e) {
-    // tslint:disable-next-line: no-console
-    console.log(e.message);
-  }
+  } catch (e) {}
+  await cleanupRepo();
 
   await spawn('git', 'checkout', '-b', 'release-server', 'origin/release-server', {cwd: rootDir}).promise;
   if (fs.existsSync(tempDir)) {
@@ -50,6 +47,17 @@ export async function prepare() {
     }
   }
   await spawn('git', 'checkout', currBranch, {cwd: rootDir}).promise;
+}
+
+async function cleanupRepo() {
+  try {
+    await spawn('git', 'reset', '--hard', 'HEAD', {cwd: rootDir}).promise;
+  } catch (e) {
+  }
+  try {
+    await spawn('git', 'clean', '-f', '-d', {cwd: rootDir}).promise;
+  } catch (e) {
+  }
 }
 
 export function mergeBack() {
@@ -102,4 +110,21 @@ export async function checkRemote() {
     console.log('Your git remote must have a "origin" pointing to ', officeGitUrl);
     throw new Error('Your git remote must has a "origin" pointing to ' + officeGitUrl);
   }
+}
+
+export async function getCurrBranchName() {
+  const res = await spawn('git', 'status', {cwd: rootDir, silent: true}).promise;
+  let currBranch: string | undefined;
+  [/^On branch (.*)$/m, /^HEAD detached at (\S+)$/m].some(reg => {
+    const m = reg.exec(res);
+    if (m) {
+      currBranch = m[1];
+      return true;
+    }
+    return false;
+  });
+  if (currBranch == null) {
+    throw new Error(`Can not understand which is current branch:\n ${res}`);
+  }
+  return currBranch;
 }

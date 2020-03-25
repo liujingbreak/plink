@@ -3,13 +3,14 @@ import { spawn } from 'dr-comp-package/wfh/dist/process-utils';
 import Path from 'path';
 import fs from 'fs-extra';
 import moment from 'moment';
-import { mergeBack } from './merge-artifacts';
+import { mergeBack, getCurrBranchName } from './merge-artifacts';
 import { digestInstallingFiles, checkZipFile } from '@dr-core/assets-processer/dist/remote-deploy';
 import { send } from './_send-patch';
-let pkJson: {name: string; version: string; devDependencies: any};
+
+let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
 
 export async function main(env: string, appName: string, buildStaticOnly: string, secret: string) {
-  const rootDir = Path.resolve();
+  const rootDir = Path.resolve(__dirname, '../..');
 
   // const [env, appName, buildStaticOnly] = process.argv.slice(2);
   if (env == null || appName == null || buildStaticOnly == null) {
@@ -31,14 +32,25 @@ export async function main(env: string, appName: string, buildStaticOnly: string
   let zipFile: string | undefined;
 
   if (appName !== 'node-server') {
+    // // send email
+    // const cmdArgs = [
+    //   '-c', Path.resolve(rootDir, 'conf', `remote-deploy-${env}.yaml`),
+    //   '--env', env,
+    //   // '--app-name', appName,
+    //   '--src', zipSrc,
+    //   '--build-static-only',
+    //   buildStaticOnly
+    // ];
     const installDir = Path.resolve('install-' + env);
     if (!fs.existsSync(installDir)) {
       fs.mkdirpSync(installDir);
     }
     zipFile = await checkZipFile(zipSrc, installDir, appName);
   } else {
-    digestInstallingFiles();
+    await digestInstallingFiles();
   }
+
+  // const zipDir = Path.resolve('install-' + env);
 
   try {
     await spawn('git', 'branch', '-D', releaseBranch, { cwd: rootDir }).promise;
@@ -46,8 +58,7 @@ export async function main(env: string, appName: string, buildStaticOnly: string
     console.log(e.message);
   }
 
-  const res = await spawn('git', 'status', { cwd: rootDir, silent: true }).promise;
-  const currBranch = /^On branch (.*)$/m.exec(res)![1];
+  const currBranch = await getCurrBranchName();
 
   if (buildStaticOnly === 'true' && zipFile) {
     // Dynamically push to Node server
@@ -72,14 +83,14 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
   removeDevDeps();
   changeGitIgnore();
   await spawn('git', 'add', '.', { cwd: rootDir }).promise;
-  const hookFiles = [Path.resolve('.git/hooks/pre-push'), Path.resolve('.git/hooks/pre-commit')];
+  const hookFiles = [Path.resolve(__dirname, '../../.git/hooks/pre-push'), Path.resolve(__dirname, '../../.git/hooks/pre-commit')];
   for (const gitHooks of hookFiles) {
     if (fs.existsSync(gitHooks)) {
       fs.removeSync(gitHooks);
     }
-    await spawn('git', 'commit', '-m', `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
-    await spawn('git', 'push', '-f', 'origin', releaseBranch, { cwd: rootDir }).promise;
   }
+  await spawn('git', 'commit', '-m', `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
+  await spawn('git', 'push', '-f', 'origin', releaseBranch, { cwd: rootDir }).promise;
 }
 
 async function addTag(rootDir: string) {
