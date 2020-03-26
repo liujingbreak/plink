@@ -1,0 +1,26 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const commander_1 = require("commander");
+const package_json_1 = tslib_1.__importDefault(require("../package.json"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const cfg = require('dr-comp-package/wfh/lib/config.js');
+const package_runner_1 = require("dr-comp-package/wfh/dist/package-runner");
+const program = new commander_1.Command();
+program.version(package_json_1.default.version);
+program.usage('Run prebuild and deploy scripts');
+program.option('-c, --config <config-file>', 'Read config files, if there are multiple files, the latter one overrides previous one', (curr, prev) => prev.concat(curr), []);
+program.option('--prop <property-path=value as JSON | literal>', '<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n', (curr, prev) => prev.concat(curr), []);
+const deployCmd = program.command('deploy <env> <app> [scripts-file#function]')
+    .option('--static', 'as an static resource build', true)
+    .action((env, app, scriptsFile) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+    yield cfg.init({ c: program.opts().config.length === 0 ? undefined : program.opts().config });
+    // console.log(Path.resolve(__dirname, '_send-patch.js'));
+    yield package_runner_1.runSinglePackage({
+        target: path_1.default.resolve(__dirname, '_send-patch.js') + '#test',
+        arguments: [deployCmd.opts().static]
+    });
+}));
+program.parseAsync(process.argv);
+
+//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5vZGVfbW9kdWxlcy9AYmsvcHJlYnVpbGQvdHMvY2xpLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7OztBQUFBLHlDQUFrQztBQUNsQywyRUFBaUM7QUFDakMsd0RBQXdCO0FBQ3hCLE1BQU0sR0FBRyxHQUFHLE9BQU8sQ0FBQyxtQ0FBbUMsQ0FBQyxDQUFDO0FBQ3pELDRFQUF5RTtBQUV6RSxNQUFNLE9BQU8sR0FBRyxJQUFJLG1CQUFPLEVBQUUsQ0FBQztBQUU5QixPQUFPLENBQUMsT0FBTyxDQUFDLHNCQUFFLENBQUMsT0FBTyxDQUFDLENBQUM7QUFDNUIsT0FBTyxDQUFDLEtBQUssQ0FBQyxpQ0FBaUMsQ0FBQyxDQUFDO0FBQ2pELE9BQU8sQ0FBQyxNQUFNLENBQUMsNEJBQTRCLEVBQ3pDLHVGQUF1RixFQUN2RixDQUFDLElBQUksRUFBRSxJQUFJLEVBQUUsRUFBRSxDQUFDLElBQUksQ0FBQyxNQUFNLENBQUMsSUFBSSxDQUFDLEVBQUUsRUFBYyxDQUFDLENBQUM7QUFDbkQsT0FBTyxDQUFDLE1BQU0sQ0FBQyxnREFBZ0QsRUFDL0QsOElBQThJLEVBQzlJLENBQUMsSUFBSSxFQUFFLElBQUksRUFBRSxFQUFFLENBQUMsSUFBSSxDQUFDLE1BQU0sQ0FBQyxJQUFJLENBQUMsRUFBRSxFQUFjLENBQUMsQ0FBQztBQUVyRCxNQUFNLFNBQVMsR0FBRyxPQUFPLENBQUMsT0FBTyxDQUFDLDRDQUE0QyxDQUFDO0tBQzlFLE1BQU0sQ0FBQyxVQUFVLEVBQUUsNkJBQTZCLEVBQUUsSUFBSSxDQUFDO0tBQ3ZELE1BQU0sQ0FBQyxDQUFPLEdBQUcsRUFBRSxHQUFHLEVBQUUsV0FBVyxFQUFFLEVBQUU7SUFDdEMsTUFBTSxHQUFHLENBQUMsSUFBSSxDQUFDLEVBQUMsQ0FBQyxFQUFHLE9BQU8sQ0FBQyxJQUFJLEVBQUUsQ0FBQyxNQUFtQixDQUFDLE1BQU0sS0FBSyxDQUFDLENBQUMsQ0FBQyxDQUFDLFNBQVMsQ0FBQyxDQUFDLENBQUMsT0FBTyxDQUFDLElBQUksRUFBRSxDQUFDLE1BQU0sRUFBQyxDQUFDLENBQUM7SUFDMUcsMERBQTBEO0lBQzFELE1BQU0saUNBQWdCLENBQUM7UUFDckIsTUFBTSxFQUFFLGNBQUksQ0FBQyxPQUFPLENBQUMsU0FBUyxFQUFFLGdCQUFnQixDQUFDLEdBQUcsT0FBTztRQUMzRCxTQUFTLEVBQUUsQ0FBQyxTQUFTLENBQUMsSUFBSSxFQUFFLENBQUMsTUFBTSxDQUFDO0tBQ3JDLENBQUMsQ0FBQztBQUNMLENBQUMsQ0FBQSxDQUFDLENBQUM7QUFFSCxPQUFPLENBQUMsVUFBVSxDQUFDLE9BQU8sQ0FBQyxJQUFJLENBQUMsQ0FBQyIsImZpbGUiOiJub2RlX21vZHVsZXMvQGJrL3ByZWJ1aWxkL2Rpc3QvY2xpLmpzIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtDb21tYW5kfSBmcm9tICdjb21tYW5kZXInO1xuaW1wb3J0IHBrIGZyb20gJy4uL3BhY2thZ2UuanNvbic7XG5pbXBvcnQgUGF0aCBmcm9tICdwYXRoJztcbmNvbnN0IGNmZyA9IHJlcXVpcmUoJ2RyLWNvbXAtcGFja2FnZS93ZmgvbGliL2NvbmZpZy5qcycpO1xuaW1wb3J0IHtydW5TaW5nbGVQYWNrYWdlfSBmcm9tICdkci1jb21wLXBhY2thZ2Uvd2ZoL2Rpc3QvcGFja2FnZS1ydW5uZXInO1xuXG5jb25zdCBwcm9ncmFtID0gbmV3IENvbW1hbmQoKTtcblxucHJvZ3JhbS52ZXJzaW9uKHBrLnZlcnNpb24pO1xucHJvZ3JhbS51c2FnZSgnUnVuIHByZWJ1aWxkIGFuZCBkZXBsb3kgc2NyaXB0cycpO1xucHJvZ3JhbS5vcHRpb24oJy1jLCAtLWNvbmZpZyA8Y29uZmlnLWZpbGU+JyxcbiAgJ1JlYWQgY29uZmlnIGZpbGVzLCBpZiB0aGVyZSBhcmUgbXVsdGlwbGUgZmlsZXMsIHRoZSBsYXR0ZXIgb25lIG92ZXJyaWRlcyBwcmV2aW91cyBvbmUnLFxuICAoY3VyciwgcHJldikgPT4gcHJldi5jb25jYXQoY3VyciksIFtdIGFzIHN0cmluZ1tdKTtcbiAgcHJvZ3JhbS5vcHRpb24oJy0tcHJvcCA8cHJvcGVydHktcGF0aD12YWx1ZSBhcyBKU09OIHwgbGl0ZXJhbD4nLFxuICAnPHByb3BlcnR5LXBhdGg+PTx2YWx1ZSBhcyBKU09OIHwgbGl0ZXJhbD4gLi4uIGRpcmVjdGx5IHNldCBjb25maWd1cmF0aW9uIHByb3BlcnRpZXMsIHByb3BlcnR5IG5hbWUgaXMgbG9kYXNoLnNldCgpIHBhdGgtbGlrZSBzdHJpbmdcXG4gZS5nLlxcbicsXG4gIChjdXJyLCBwcmV2KSA9PiBwcmV2LmNvbmNhdChjdXJyKSwgW10gYXMgc3RyaW5nW10pO1xuXG5jb25zdCBkZXBsb3lDbWQgPSBwcm9ncmFtLmNvbW1hbmQoJ2RlcGxveSA8ZW52PiA8YXBwPiBbc2NyaXB0cy1maWxlI2Z1bmN0aW9uXScpXG4ub3B0aW9uKCctLXN0YXRpYycsICdhcyBhbiBzdGF0aWMgcmVzb3VyY2UgYnVpbGQnLCB0cnVlKVxuLmFjdGlvbihhc3luYyAoZW52LCBhcHAsIHNjcmlwdHNGaWxlKSA9PiB7XG4gIGF3YWl0IGNmZy5pbml0KHtjOiAocHJvZ3JhbS5vcHRzKCkuY29uZmlnIGFzIHN0cmluZ1tdKS5sZW5ndGggPT09IDAgPyB1bmRlZmluZWQgOiBwcm9ncmFtLm9wdHMoKS5jb25maWd9KTtcbiAgLy8gY29uc29sZS5sb2coUGF0aC5yZXNvbHZlKF9fZGlybmFtZSwgJ19zZW5kLXBhdGNoLmpzJykpO1xuICBhd2FpdCBydW5TaW5nbGVQYWNrYWdlKHtcbiAgICB0YXJnZXQ6IFBhdGgucmVzb2x2ZShfX2Rpcm5hbWUsICdfc2VuZC1wYXRjaC5qcycpICsgJyN0ZXN0JyxcbiAgICBhcmd1bWVudHM6IFtkZXBsb3lDbWQub3B0cygpLnN0YXRpY11cbiAgfSk7XG59KTtcblxucHJvZ3JhbS5wYXJzZUFzeW5jKHByb2Nlc3MuYXJndik7XG4iXX0=

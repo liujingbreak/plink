@@ -35,3 +35,8 @@ export async function send(env: string, configName: string, zipFile: string, sec
     throw ex;
   }
 }
+
+export function test() {
+  console.log('test');
+}
+

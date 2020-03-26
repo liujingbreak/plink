@@ -4,9 +4,16 @@
   "description": "Prebuild for monorepo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "prebuild": "dist/cli"
+  },
   "dr": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "commander": "~5.0.0",
+    "boxen": "~4.2.0"
   },
   "author": "LJ",
   "license": "MIT"
