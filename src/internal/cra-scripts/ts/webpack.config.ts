@@ -3,14 +3,13 @@ import _ from 'lodash';
 import Path from 'path';
 import fs from 'fs-extra';
 import {Configuration, RuleSetRule, Compiler, RuleSetUseItem, RuleSetLoader} from 'webpack';
-// import { RawSource } from 'webpack-sources';
+import { RawSource } from 'webpack-sources';
 import {drawPuppy, printConfig, getCmdOptions} from './utils';
 import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 import {findPackage} from './build-target-helper';
 import {ConfigHandlerMgr} from 'dr-comp-package/wfh/dist/config-handler';
 import {ConfigureHandler} from './types';
-
 // import chalk from 'chalk';
 const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 
@@ -36,6 +35,7 @@ export = function(webpackEnv: string) {
   console.log(__filename, config.output!.publicPath);
   // Make sure babel compiles source folder out side of current src directory
   findAndChangeRule(config.module!.rules);
+  insertLessLoaderRule(config.module!.rules);
 
   const {dir, packageJson} = findPackage(cmdOption.buildTarget);
   if (cmdOption.buildType === 'app') {
@@ -81,9 +81,11 @@ export = function(webpackEnv: string) {
   config.plugins!.push(new (class {
     apply(compiler: Compiler) {
       compiler.hooks.emit.tap('drcp-cli-stats', compilation => {
+        const stats = compilation.getStats();
+        compilation.assets['stats.json'] = new RawSource(JSON.stringify(stats.toJson('verbose')));
         setTimeout(() => {
           console.log('');
-          console.log(compilation.getStats().toString('normal'));
+          console.log(stats.toString('normal'));
           console.log('');
         }, 0);
         // const data = JSON.stringify(compilation.getStats().toJson('normal'));
@@ -118,6 +120,51 @@ export = function(webpackEnv: string) {
   });
   return config;
 };
+
+function insertLessLoaderRule(origRules: RuleSetRule[]): void {
+  const rulesAndParents: [RuleSetRule, number, RuleSetRule[]][] = origRules.map((rule, idx, set) => [rule, idx, set]);
+
+  // tslint:disable-next-line: prefer-for-of
+  for (let i = 0; i < rulesAndParents.length; i++) {
+    const rule = rulesAndParents[i][0];
+    const parentRules = rulesAndParents[i][2];
+    const idx = rulesAndParents[i][1];
+    if (rule.test) {
+      if (rule.test.toString() === '/\\.(scss|sass)$/') {
+        const use = rule.use as RuleSetLoader[];
+        const postCss = use.find(item => item.loader && item.loader.indexOf('postcss-loader') >= 0);
+        // console.log(chalk.redBright('' + i));
+        parentRules.splice(idx, 0,
+          createLessLoaderRule(postCss!));
+        break;
+      }
+    } else if (rule.oneOf) {
+      rule.oneOf.forEach((r, idx, list) => {
+        rulesAndParents.push([r, idx, list]);
+      });
+    }
+  }
+}
+
+function createLessLoaderRule(postCssLoaderRule: RuleSetUseItem): RuleSetRule {
+  return {
+    test: /\.less$/,
+    use: [
+      require.resolve('style-loader'),
+      {
+        loader: require.resolve('css-loader'),
+        options: {
+          importLoaders: 2,
+          sourceMap: process.env.GENERATE_SOURCEMAP !== 'false'
+        }
+      },
+      postCssLoaderRule,
+      {
+        loader: 'less-loader'
+      }
+    ]
+  };
+}
 
 function findAndChangeRule(rules: RuleSetRule[]): void {
   const craPaths = require('react-scripts/config/paths');
