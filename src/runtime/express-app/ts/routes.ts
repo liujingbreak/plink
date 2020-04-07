@@ -49,7 +49,7 @@ export function setupApi(api: ExpressAppApi & DrcpApi, app: Application) {
 	 * same as app.use('/<package-path>', router);
 	 * @return {[type]} [description]
 	 */
-  apiPrototype.router = function() {
+  apiPrototype.router = function(this: typeof api) {
     var self = this;
     var calleePackageName = this.packageName;
     if (self._router) {

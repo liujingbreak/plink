@@ -68,7 +68,7 @@ function create(app: express.Express, setting: any) {
   // app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
   // app.use(logger('dev'));
   app.use(log4js.connectLogger(log, {
-    level: 'INFO'
+    level: 'DEBUG'
   }));
   app.use(bodyParser.json({
     limit: '50mb'

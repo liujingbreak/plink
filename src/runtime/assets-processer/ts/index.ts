@@ -15,6 +15,7 @@ import {ImapManager} from './fetch-remote-imap';
 import {WithMailServerConfig} from './fetch-types';
 import serveIndex from 'serve-index';
 import chalk from 'chalk';
+// import {createResponseTimestamp} from './utils';
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 const buildUtils = api.buildUtils;
@@ -70,6 +71,7 @@ export function activate() {
   log.info('cache control', maxAgeMap);
   log.info('Serve static dir', staticFolder);
 
+  // api.use('/', createResponseTimestamp);
   proxyToDevServer();
 
   const zss = createZipRoute(maxAgeMap);

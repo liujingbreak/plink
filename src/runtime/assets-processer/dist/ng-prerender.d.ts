@@ -12,7 +12,7 @@ export declare class PrerenderForExpress {
        * @param routeMapFiles array of dist/static/<app>/_prerender/prerender-routes.json
        */
     constructor(...routeMapFiles: string[]);
-    asMiddleware(): (req: Request<import("express-serve-static-core").ParamsDictionary>, res: Response, next: NextFunction) => void;
+    asMiddleware(): (req: Request<import("express-serve-static-core").ParamsDictionary>, res: Response<any>, next: NextFunction) => void;
     protected queryPrerenderPages(routeMapFiles: string[]): Promise<{
         [route: string]: string;
     }>;
