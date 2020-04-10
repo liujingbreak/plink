@@ -19,7 +19,7 @@ var countRequest = 0;
 var SKIP_RES_HEADERS = [
   'transfer-encoding',
   'content-encoding',
-  'cache-control',
+  // 'cache-control',
   'access-control-allow-origin'
 ];
 var SKIP_RES_HEADERS_SET = SKIP_RES_HEADERS.reduce((set: {[k: string]: boolean}, name) => {
