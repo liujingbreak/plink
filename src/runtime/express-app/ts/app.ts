@@ -86,6 +86,11 @@ function create(app: express.Express, setting: any) {
   app.use(cookieParser());
   app.use(compression());
 
+  const nodeVer = process.version;
+  app.use((req, res, next) => {
+    res.setHeader('X-Nodejs', nodeVer);
+    next();
+  });
   const hashFile = Path.join(api.config().rootPath, 'githash-server.txt');
   if (fs.existsSync(hashFile)) {
     const githash = fs.readFileSync(hashFile, 'utf8');
