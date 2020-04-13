@@ -15,7 +15,7 @@ import {ImapManager} from './fetch-remote-imap';
 import {WithMailServerConfig} from './fetch-types';
 import serveIndex from 'serve-index';
 import chalk from 'chalk';
-// import {createResponseTimestamp} from './utils';
+import {commandProxy} from './utils';
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 const buildUtils = api.buildUtils;
@@ -73,6 +73,14 @@ export function activate() {
 
   // api.use('/', createResponseTimestamp);
   proxyToDevServer();
+
+  const httpProxySet = api.config.get([api.packageName, 'httpProxy']) as {[proxyPath: string]: string};
+  if (httpProxySet) {
+    for (const proxyPath of Object.keys(httpProxySet)) {
+      log.info(`Enable HTTP proxy ${proxyPath} -> ${httpProxySet[proxyPath]}`);
+      commandProxy(proxyPath, httpProxySet[proxyPath]);
+    }
+  }
 
   const zss = createZipRoute(maxAgeMap);
   api.use('/', zss.handler);
