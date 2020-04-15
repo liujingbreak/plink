@@ -8,7 +8,10 @@ const ms = require('ms');
 
 export function createStaticRoute(staticDir: string, maxAgeMap: {[extname: string]: string | number} = {}): Handler {
   let maxAgeNumMap = parseMaxAgeMap(maxAgeMap);
-  return express.static(staticDir, {setHeaders: createSetHeaderFunc(maxAgeNumMap)});
+  return express.static(staticDir, {
+    setHeaders: createSetHeaderFunc(maxAgeNumMap),
+    redirect: false
+  });
 }
 
 export function createZipRoute(maxAgeMap: {[extname: string]: string} = {}):
