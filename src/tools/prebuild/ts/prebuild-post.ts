@@ -46,7 +46,9 @@ export async function main(env: string, appName: string, buildStaticOnly: string
       fs.mkdirpSync(installDir);
     }
     zipFile = await checkZipFile(zipSrc, installDir, appName);
-  } else {
+  }
+
+  if (appName === 'node-server' || buildStaticOnly !== 'true') {
     await digestInstallingFiles();
   }
 

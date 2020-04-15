@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/assets-processer",
-  "version": "1.1.36",
+  "version": "1.1.37",
   "description": "Copy assets to destDir folder only when devMode is false",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -35,7 +35,7 @@
           "woff2": "365 days"
         },
         "fallbackIndexHtml": {
-          "^/[^/]+": "<%=match[0]%>/index.html"
+          "^/[^/?#]+": "<%=match[0]%>/index.html"
         },
         "httpProxy": [],
         "fetchMailServer": {
