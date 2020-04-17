@@ -86,7 +86,7 @@ export async function activate(app: Application, imap: ImapManager) {
       return;
     }
     const existing = filesHash.get(req.params.file);
-    log.info(`${req.method} [${os.hostname}]file: ${req.params.file}, hash: ${req.params.hash},\nexisting file: ${existing ? existing : '<NO>'}` +
+    log.info(`${req.method} [${os.hostname}]file: ${req.params.file}, hash: ${req.params.hash},\nexisting file: ${existing ? existing.file + ' / ' + existing.sha256 : '<NO>'}` +
       `\n${util.inspect(req.headers)}`);
 
     if (req.method === 'PUT') {

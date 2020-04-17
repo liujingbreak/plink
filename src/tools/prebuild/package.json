@@ -1,11 +1,11 @@
 {
   "name": "@bk/prebuild",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Prebuild for monorepo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "prebuild": "dist/cli"
+    "prebuild": "dist/cli.js"
   },
   "dr": {},
   "scripts": {
