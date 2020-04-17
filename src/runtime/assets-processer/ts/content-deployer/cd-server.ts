@@ -11,6 +11,8 @@ import _ from 'lodash';
 import memstat from 'dr-comp-package/wfh/dist/utils/mem-stats';
 import crypto, {Hash} from 'crypto';
 import api from '__api';
+import {stringifyListAllVersions} from '@bk/prebuild/dist/artifacts';
+
 const log = require('log4js').getLogger('@dr/assets-processer.cd-server');
 
 interface Pm2Packet {
@@ -211,6 +213,14 @@ export async function activate(app: Application, imap: ImapManager) {
   app.use('/_time', (req, res) => {
     res.send(generateToken());
   });
+
+
+  const router = api.express.Router();
+  router.get('/_githash', async (req, res) => {
+    res.setHeader('content-type', 'text/plain');
+    res.send(await stringifyListAllVersions());
+  });
+  app.use('/', router);
 
   function onZipFileWritten() {
     if (isPm2 && !isMainProcess) {

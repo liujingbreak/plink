@@ -83,6 +83,7 @@ export function activate() {
   }
 
   const zss = createZipRoute(maxAgeMap);
+
   api.use('/', zss.handler);
   const staticHandler = createStaticRoute(staticFolder, maxAgeMap);
   api.use('/', staticHandler);
@@ -96,14 +97,12 @@ export function activate() {
     log.info(chalk.blueBright(`If you want to serve directory index page of static resource folder ${staticFolder}\n` +
       ` start command with "-c --prop ${api.packageName}.serveIndex=true staticDir=<resource directory>`));
   }
-
+  api.expressAppUse(app => activateCd(app, imap));
   fallbackIndexHtml();
   api.use('/', staticHandler); // Serve fallbacked request to index.html
 
   const mailSetting = (api.config.get(api.packageName) as WithMailServerConfig).fetchMailServer;
   const imap = new ImapManager(mailSetting ? mailSetting.env : 'local');
-
-  api.expressAppSet(app => activateCd(app, imap));
 
   api.eventBus.on('appCreated', () => {
     // appCreated event is emitted by express-app

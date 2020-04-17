@@ -1,6 +1,6 @@
 {
   "name": "@bk/prebuild",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Prebuild for monorepo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,9 @@
   },
   "dependencies": {
     "commander": "~5.0.0",
-    "boxen": "~4.2.0"
+    "boxen": "~4.2.0",
+    "adm-zip": "^0.4.14",
+    "@types/adm-zip": "^0.4.33"
   },
   "author": "LJ",
   "license": "MIT"
