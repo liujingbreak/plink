@@ -19,7 +19,7 @@ export async function send(env: string, configName: string, zipFile: string, sec
   const sendAppZip: typeof _sendAppZip = require('@dr-core/assets-processer/dist/content-deployer/cd-client').sendAppZip;
 
   // tslint:disable-next-line:no-console
-  console.log('Push App %s version: %s', configName);
+  console.log('Pushing App "%s" to remote %s', configName, url);
   try {
     await sendAppZip({
       file: `install-${env}/${configName}.zip`,

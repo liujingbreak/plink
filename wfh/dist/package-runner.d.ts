@@ -31,3 +31,6 @@ export declare function initInjectorForNodePackages(argv: {
     eventBus: Events;
 }];
 export declare function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any): Promise<void>;
+export declare function prepareLazyNodeInjector(argv: {
+    [key: string]: any;
+}): void;

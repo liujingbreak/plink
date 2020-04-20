@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import * as Path from 'path';
 import * as _ from 'lodash';
 import boxen, {BorderStyle} from 'boxen';
-
+import {ZipFile} from 'yazl';
+import moment from 'moment';
 
 type UnpackPromise<P> = P extends Promise<infer T> ? T : unknown;
 
@@ -68,5 +69,20 @@ export async function stringifyListAllVersions() {
     }
   }
   return buf;
+}
+
+export function writeMockZip(writeTo: string, content: string) {
+  const zipFile = new ZipFile();
+  const prom = new Promise(resolve => {
+    zipFile.outputStream.pipe(fs.createWriteStream(writeTo))
+    .on('close', resolve);
+  });
+
+  const current = moment();
+  const fileName = `fake-${current.format('YYMMDD')}-${current.format('HHmmss')}.txt`;
+
+  zipFile.addBuffer(Buffer.from(content), fileName);
+  zipFile.end();
+  return prom;
 }
 

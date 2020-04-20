@@ -51,29 +51,7 @@ const apiCache: {[name: string]: any} = {};
  * no fully scanning or ordering on all packages
  */
 export async function runSinglePackage(argv: {target: string, arguments: string[], [key: string]: any}) {
-  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
-  const proto = NodeApi.prototype;
-  proto.argv = argv;
-  let packageInfo: PackageInfo;
-
-  Object.defineProperty(proto, 'packageInfo', {
-    get() {
-      if (packageInfo == null)
-        packageInfo = walkPackages(config, packageUtils);
-      return packageInfo;
-    }
-  });
-  proto.findPackageByFile = createLazyPackageFileFinder();
-  proto.getNodeApiForPackage = function(packageInstance: any) {
-    return getApiForPackage(packageInstance, NodeApi);
-  };
-  nodeInjector.fromRoot()
-  .value('__injector', nodeInjector)
-  .factory('__api', (sourceFilePath: string) => {
-    const packageInstance = proto.findPackageByFile(sourceFilePath);
-    return getApiForPackage(packageInstance, NodeApi);
-  });
-  // console.log(nodeInjector.dirTree.traverse());
+  prepareLazyNodeInjector(argv);
 
   const [file, func] = argv.target.split('#');
   const guessingFile: string[] = [
@@ -181,6 +159,31 @@ export function initWebInjector(packages: PackageBrowserInstance[], apiPrototype
   const done = webInjector.readInjectFile('module-resolve.browser');
   apiPrototype.browserInjector = webInjector;
   return done;
+}
+
+export function prepareLazyNodeInjector(argv: {[key: string]: any}) {
+  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
+  const proto = NodeApi.prototype;
+  proto.argv = argv;
+  let packageInfo: PackageInfo;
+
+  Object.defineProperty(proto, 'packageInfo', {
+    get() {
+      if (packageInfo == null)
+        packageInfo = walkPackages(config, packageUtils);
+      return packageInfo;
+    }
+  });
+  proto.findPackageByFile = createLazyPackageFileFinder();
+  proto.getNodeApiForPackage = function(packageInstance: any) {
+    return getApiForPackage(packageInstance, NodeApi);
+  };
+  nodeInjector.fromRoot()
+  .value('__injector', nodeInjector)
+  .factory('__api', (sourceFilePath: string) => {
+    const packageInstance = proto.findPackageByFile(sourceFilePath);
+    return getApiForPackage(packageInstance, NodeApi);
+  });
 }
 
 function setupNodeInjectorFor(pkInstance: PackageBrowserInstance, NodeApi: typeof _NodeApi ) {

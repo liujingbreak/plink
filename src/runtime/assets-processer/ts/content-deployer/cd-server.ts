@@ -1,7 +1,7 @@
-import {Application} from 'express';
+import {Application, Request} from 'express';
 import os from 'os';
 import {Checksum, WithMailServerConfig} from '../fetch-types';
-import util from 'util';
+import * as util from 'util';
 import _pm2 from '@growth/pm2';
 import {getPm2Info, zipDownloadDir, forkExtractExstingZip, retry} from '../fetch-remote';
 import Path from 'path';
@@ -77,120 +77,6 @@ export async function activate(app: Application, imap: ImapManager) {
     }
   });
 
-  app.use<{file: string, hash: string}>('/_install/:file/:hash', async (req, res, next) => {
-    if (requireToken && req.query.whisper !== generateToken()) {
-      res.header('Connection', 'close');
-      res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
-      req.socket.end();
-      res.connection.end();
-      return;
-    }
-    const existing = filesHash.get(req.params.file);
-    log.info(`${req.method} [${os.hostname}]file: ${req.params.file}, hash: ${req.params.hash},\nexisting file: ${existing ? existing.file + ' / ' + existing.sha256 : '<NO>'}` +
-      `\n${util.inspect(req.headers)}`);
-
-    if (req.method === 'PUT') {
-      if (requireToken && req.query.whisper !== generateToken()) {
-        res.header('Connection', 'close');
-        res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
-        req.socket.end();
-        res.connection.end();
-        return;
-      }
-
-      log.info('recieving data');
-      if (isPm2 && !isMainProcess) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-      if (existing && existing.sha256 === req.params.hash) {
-        // I want to cancel recieving request body asap
-        // https://stackoverflow.com/questions/18367824/how-to-cancel-http-upload-from-data-events
-        res.header('Connection', 'close');
-        res.status(409).send(`[REJECT] ${os.hostname()} pid: ${process.pid}:` +
-        `- found existing: ${JSON.stringify(existing, null, '  ')}\n` +
-        `- hashs:\n  ${JSON.stringify(filesHash, null, '  ')}`);
-        req.socket.end();
-        res.connection.end();
-        return;
-      }
-
-      const now = new Date();
-      const newChecksumItem: ChecksumItem = {
-        file: req.params.file,
-        sha256: req.params.hash,
-        created: now.toLocaleString(),
-        createdTime: now.getTime()
-      };
-
-      // checksum.versions![req.params.app] = {version: parseInt(req.params.version, 10)};
-
-      let countBytes = 0;
-
-      let hash: Hash;
-      let hashDone: Promise<string>;
-
-      req.on('data', (data: Buffer) => {
-        countBytes += data.byteLength;
-        if (hash == null) {
-          hash = crypto.createHash('sha256');
-          hashDone = new Promise(resolve => {
-            hash.on('readable', () => {
-              const data = hash.read();
-              if (data) {
-                resolve(data.toString('hex'));
-              }
-            });
-          });
-        }
-        hash.write(data);
-
-        if (fwriter == null) {
-          let fileBaseName = Path.basename(req.params.file);
-          const dot = fileBaseName.lastIndexOf('.');
-          if (dot >=0 )
-            fileBaseName = fileBaseName.slice(0, dot);
-          writingFile = Path.resolve(zipDownloadDir, `${fileBaseName.slice(0, fileBaseName.lastIndexOf('.'))}.${process.pid}.zip`);
-          fwriter = fs.createWriteStream(writingFile);
-        }
-        fwriter.write(data);
-      });
-      req.on('end', async () => {
-        log.info(`${writingFile} is written with ${countBytes} bytes`);
-        let sha: string | undefined;
-        if (hash) {
-          hash.end();
-          sha = await hashDone;
-        }
-        if (sha !== newChecksumItem.sha256) {
-          res.send(`[WARN] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}\n` +
-            `Recieved file is corrupted with hash ${sha},\nwhile expecting file hash is ${newChecksumItem.sha256}`);
-          fwriter!.end(onZipFileWritten);
-          fwriter = undefined;
-          return;
-        }
-
-        fwriter!.end(onZipFileWritten);
-        fwriter = undefined;
-        res.send(`[ACCEPT] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}`);
-
-        filesHash.set(newChecksumItem.file, newChecksumItem);
-        writeChecksumFile(filesHash);
-        if (isPm2) {
-          const msg: Pm2Packet = {
-            type : 'process:msg',
-            data: {
-              'cd-server:checksum updating': newChecksumItem,
-              pid: process.pid
-            }
-          };
-          process.send!(msg);
-        }
-      });
-    } else {
-      next();
-    }
-  });
-
   let checkedSeq = '';
 
   app.use('/_checkmail/:seq', (req, res, next) => {
@@ -220,6 +106,80 @@ export async function activate(app: Application, imap: ImapManager) {
     res.setHeader('content-type', 'text/plain');
     res.send(await stringifyListAllVersions());
   });
+
+  router.put<{file: string, hash: string}>('/_install/:file/:hash', async (req, res, next) => {
+
+    if (requireToken && req.query.whisper !== generateToken()) {
+      res.header('Connection', 'close');
+      res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
+      req.socket.end();
+      res.connection.end();
+      return;
+    }
+    const existing = filesHash.get(req.params.file);
+    log.info(`${req.method} [${os.hostname}]file: ${req.params.file}, hash: ${req.params.hash},\nexisting file: ${existing ? existing.file + ' / ' + existing.sha256 : '<NO>'}` +
+      `\n${util.inspect(req.headers)}`);
+
+    if (requireToken && req.query.whisper !== generateToken()) {
+      res.header('Connection', 'close');
+      res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
+      req.socket.end();
+      res.connection.end();
+      return;
+    }
+
+    log.info('recieving data');
+    if (isPm2 && !isMainProcess) {
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+    if (existing && existing.sha256 === req.params.hash) {
+      // I want to cancel recieving request body asap
+      // https://stackoverflow.com/questions/18367824/how-to-cancel-http-upload-from-data-events
+      res.header('Connection', 'close');
+      res.status(409).send(`[REJECT] ${os.hostname()} pid: ${process.pid}:` +
+      `- found existing: ${JSON.stringify(existing, null, '  ')}\n` +
+      `- hashs:\n  ${JSON.stringify(filesHash, null, '  ')}`);
+      req.socket.end();
+      res.connection.end();
+      return;
+    }
+
+    const now = new Date();
+    const newChecksumItem: ChecksumItem = {
+      file: req.params.file,
+      sha256: req.params.hash,
+      created: now.toLocaleString(),
+      createdTime: now.getTime()
+    };
+
+    const contentLen = req.headers['content-length'];
+    // checksum.versions![req.params.app] = {version: parseInt(req.params.version, 10)};
+    try {
+      await readResponseToBuffer(req, req.params.hash, contentLen ? parseInt(contentLen, 10) : 10 * 1024 * 1024);
+    } catch (e) {
+      if (e.message === 'sha256 not match') {
+        res.send(`[WARN] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}\n` +
+          `Recieved file is corrupted with hash ${e.sha256},\nwhile expecting file hash is ${newChecksumItem.sha256}`);
+      } else {
+        res.status(500);
+        res.send(e.stack);
+      }
+    }
+    res.send(`[ACCEPT] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}`);
+    writeChecksumFile(filesHash);
+    if (isPm2) {
+      const msg: Pm2Packet = {
+        type : 'process:msg',
+        data: {
+          'cd-server:checksum updating': newChecksumItem,
+          pid: process.pid
+        }
+      };
+      process.send!(msg);
+    }
+  });
+
+
   app.use('/', router);
 
   function onZipFileWritten() {
@@ -274,12 +234,88 @@ export function generateToken() {
   return token;
 }
 
+function readResponseToBuffer(req: Request<{file: string, hash: string}>, expectSha256: string, length: number)
+  : Promise<{hash: string, content: Buffer}> {
+  let countBytes = 0;
+
+  let hash: Hash;
+  let hashDone: Promise<string>;
+
+  req.on('data', (data: Buffer) => {
+    countBytes += data.byteLength;
+    log.info(`Recieving, ${countBytes} bytes`);
+    if (hash == null) {
+      hash = crypto.createHash('sha256');
+      hashDone = new Promise(resolve => {
+        hash.on('readable', () => {
+          const data = hash.read();
+          if (data) {
+            resolve(data.toString('hex'));
+          }
+        });
+      });
+    }
+    hash.write(data);
+
+    // if (fwriter == null) {
+    //   let fileBaseName = Path.basename(req.params.file);
+    //   const dot = fileBaseName.lastIndexOf('.');
+    //   if (dot >=0 )
+    //     fileBaseName = fileBaseName.slice(0, dot);
+    //   writingFile = Path.resolve(zipDownloadDir, `${fileBaseName.slice(0, fileBaseName.lastIndexOf('.'))}.${process.pid}.zip`);
+    //   fs.mkdirpSync(Path.dirname(writingFile));
+    //   fwriter = fs.createWriteStream(writingFile);
+    // }
+    // fwriter.write(data);
+  });
+  req.on('end', async () => {
+    log.info(`Total recieved ${countBytes} bytes`);
+    let sha: string | undefined;
+    if (hash) {
+      hash.end();
+      sha = await hashDone;
+    }
+    if (sha !== expectSha256) {
+      const err = new Error('sha256 not match');
+      (err as any).sha256 = sha;
+      // TODO:
+      // res.send(`[WARN] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}\n` +
+      //   `Recieved file is corrupted with hash ${sha},\nwhile expecting file hash is ${newChecksumItem.sha256}`);
+      // fwriter!.end(onZipFileWritten);
+      // fwriter = undefined;
+      throw err;
+    }
+
+    // fwriter!.end(onZipFileWritten);
+    // fwriter = undefined;
+    // res.send(`[ACCEPT] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}`);
+
+    // filesHash.set(newChecksumItem.file, newChecksumItem);
+    // writeChecksumFile(filesHash);
+    // if (isPm2) {
+    //   const msg: Pm2Packet = {
+    //     type : 'process:msg',
+    //     data: {
+    //       'cd-server:checksum updating': newChecksumItem,
+    //       pid: process.pid
+    //     }
+    //   };
+    //   process.send!(msg);
+    // }
+  });
+}
+
 function readChecksumFile(): Map<string, ChecksumItem> {
   const env = mailSetting ? mailSetting.env : 'local';
   const checksumFile = Path.resolve('checksum.' + env + '.json');
   let checksum: Checksum;
   if (fs.existsSync(checksumFile)) {
-    checksum = JSON.parse(fs.readFileSync(checksumFile, 'utf8'));
+    try {
+      checksum = JSON.parse(fs.readFileSync(checksumFile, 'utf8'));
+    } catch (e) {
+      log.warn(e);
+      checksum = [];
+    }
   } else {
     checksum = [];
   }

@@ -97,7 +97,7 @@ export function activate() {
     log.info(chalk.blueBright(`If you want to serve directory index page of static resource folder ${staticFolder}\n` +
       ` start command with "-c --prop ${api.packageName}.serveIndex=true staticDir=<resource directory>`));
   }
-  api.expressAppUse(app => activateCd(app, imap));
+  api.expressAppSet(app => activateCd(app, imap));
   fallbackIndexHtml();
   api.use('/', staticHandler); // Serve fallbacked request to index.html
 

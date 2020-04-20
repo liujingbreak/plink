@@ -16,7 +16,7 @@ export interface DrcpConfig {
   (): {[property: string]: any};
   load(): Promise<{[property: string]: any}>;
   reload(): Promise<{[property: string]: any}>;
-  init(): Promise<{[property: string]: any}>;
+  init(argv?: {[arg: string]: any}): Promise<{[property: string]: any}>;
 }
 
 export interface ConfigHandler {

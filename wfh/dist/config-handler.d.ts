@@ -14,7 +14,9 @@ export interface DrcpConfig {
     reload(): Promise<{
         [property: string]: any;
     }>;
-    init(): Promise<{
+    init(argv?: {
+        [arg: string]: any;
+    }): Promise<{
         [property: string]: any;
     }>;
 }
