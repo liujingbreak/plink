@@ -4,7 +4,7 @@ var fs = require('fs-extra');
 
 module.exports = function(configObj) {
 	var {rootPath, log4jsReloadSeconds: reloadSec} = configObj;
-	var log4js = require('log4js');
+	var log4js = require(Path.resolve('node_modules/log4js'));
 	// var log4jsConfig = Path.resolve(__dirname, 'gulp/templates/log4js.json');
 	var log4jsConfig = Path.join(rootPath, 'log4js.js');
 	if (!fs.existsSync(log4jsConfig)) {

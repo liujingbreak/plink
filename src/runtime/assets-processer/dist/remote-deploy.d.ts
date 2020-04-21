@@ -5,7 +5,7 @@ export declare function main(): void;
  * @param installDir
  * @param appName
  */
-export declare function checkZipFile(zipFileOrDir: string, installDir: string, appName: string): Promise<string>;
+export declare function checkZipFile(zipFileOrDir: string, installDir: string, appName: string, excludePat?: RegExp | string): Promise<string>;
 /**
  * drcp run assets-processer/ts/remote-deploy.ts#fetchAllZips --env test -c conf/remote-deploy-test.yaml
  */

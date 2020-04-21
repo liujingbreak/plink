@@ -1,3 +1,12 @@
+# Utilities
+## Functions
+| `utils.ts` functions | Description
+|- |-
+| `createResponseTimestamp()` | Middleware for printing each response process duration time to log 
+| `commandProxy()` | Create an HTTP request proxy middleware and use for specific request path
+
+
+# Deploy and file server runtime
 ## Use case
 
 A cheap version of Static Content update mechnism, in which case we don't need involve any

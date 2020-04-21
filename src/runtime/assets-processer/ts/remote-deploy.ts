@@ -1,7 +1,9 @@
 // tslint:disable: no-console
 import fs from 'fs-extra';
 import _gulp from 'gulp';
-import { basename, dirname, resolve } from 'path';
+import {ZipFile} from 'yazl';
+import glob from 'glob';
+import { resolve } from 'path';
 import { defer, from, timer } from 'rxjs';
 import { catchError, map, retry } from 'rxjs/operators';
 import api from '__api';
@@ -10,17 +12,6 @@ import {Checksum} from './fetch-types';
 import Path from 'path';
 import crypto from 'crypto';
 const log = require('log4js').getLogger(api.packageName + '.remote-deploy');
-// process.on('uncaughtException', err => {
-//   // tslint:disable-next-line: no-console
-//   console.error('uncaughtException', err);
-//   process.exit(1);
-// });
-
-// process.on('unhandledRejection', err => {
-//   // tslint:disable-next-line: no-console
-//   console.error('unhandledRejection', err);
-//   process.exit(1);
-// });
 
 export function main() {
     defer(() => from(mailDeployStaticRes())).pipe(
@@ -68,7 +59,7 @@ async function mailDeployStaticRes() {
  * @param installDir 
  * @param appName 
  */
-export async function checkZipFile(zipFileOrDir: string, installDir: string, appName: string) {
+export async function checkZipFile(zipFileOrDir: string, installDir: string, appName: string, excludePat?: RegExp | string) {
 
   zipFileOrDir = zipFileOrDir ? resolve(zipFileOrDir) : resolve(installDir, `${appName}.zip`);
 
@@ -78,26 +69,32 @@ export async function checkZipFile(zipFileOrDir: string, installDir: string, app
   }
   if (fs.statSync(zipFileOrDir).isDirectory()) {
     const destZip = resolve(installDir, `${appName}.zip`);
-    console.log(`${zipFileOrDir} is a directory, zipping into ${destZip}`);
-    const gulp: typeof _gulp = require('gulp');
-    const through2 = require('through2');
-    const zip = require('gulp-zip');
+    log.info(`${zipFileOrDir} is a directory, zipping into ${destZip}`);
 
-    await new Promise((resolve, reject) => {
-      gulp.src(zipFileOrDir + '/**/*')
-      .pipe<NodeJS.ReadWriteStream>(
-        through2.obj(function(file: any, encoding: string, cb: (...args: any[]) => void) {
-          console.log('- zip content:', file.path);
-          cb(null, file);
-      }, function flush(callback: () => void) {
-        callback();
-      }))
-      .pipe<NodeJS.ReadWriteStream>(zip(basename(destZip)))
-      .pipe(gulp.dest(dirname(destZip)))
-      .on('end', () => resolve())
-      .on('error', err => reject(err));
+    const zipFile = new ZipFile();
+    const zipDone = new Promise(resolve => {
+      zipFile.outputStream.pipe(fs.createWriteStream(destZip))
+      .on('close', resolve);
     });
-    console.log('zipped');
+
+    if (excludePat && typeof excludePat === 'string') {
+      excludePat = new RegExp(excludePat);
+    }
+
+    glob(zipFileOrDir + '/**/*', {nodir: true}, (err, matches) => {
+      for (let item of matches) {
+        item = item.replace(/[/\\]/, '/');
+        if (excludePat == null || !(excludePat as RegExp).test(item)) {
+          log.info(`- zip content: ${item}`);
+          zipFile.addFile(item, Path.posix.relative(zipFileOrDir, item));
+        }
+      }
+      zipFile.end({forceZip64Format: false});
+    });
+
+    await zipDone;
+
+    log.info(destZip + ' is zipped: ' + fs.existsSync(destZip));
     zipFileOrDir = destZip;
   }
   return zipFileOrDir;

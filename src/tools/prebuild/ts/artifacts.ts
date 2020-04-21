@@ -2,7 +2,7 @@ import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as Path from 'path';
 import * as _ from 'lodash';
-import boxen, {BorderStyle} from 'boxen';
+// import boxen, {BorderStyle} from 'boxen';
 import {ZipFile} from 'yazl';
 import moment from 'moment';
 
@@ -53,7 +53,7 @@ export async function stringifyListVersions(env: string) {
   const res = await listVersions(env);
   let buf = '';
   for (const [app, githash] of res.entries()) {
-    buf += boxen(` ${env} - ${app}\n${githash}\n`, {margin: 1, borderStyle: BorderStyle.Round});
+    buf += ` ${env} - ${app}\n${githash}\n`;
     buf += '\n';
   }
   return buf;
@@ -64,7 +64,7 @@ export async function stringifyListAllVersions() {
   let buf = '';
   for (const [env, appHash] of envMap.entries()) {
     for (const [app, githash] of appHash.entries()) {
-      buf += boxen(`  ${env} - ${app}\n${githash}\n`, {margin: 1, borderStyle: BorderStyle.Round});
+      buf += `  ${env} - ${app}\n${githash}\n`;
       buf += '\n';
     }
   }
@@ -82,7 +82,7 @@ export function writeMockZip(writeTo: string, content: string) {
   const fileName = `fake-${current.format('YYMMDD')}-${current.format('HHmmss')}.txt`;
 
   zipFile.addBuffer(Buffer.from(content), fileName);
-  zipFile.end();
+  zipFile.end({forceZip64Format: false});
   return prom;
 }
 

@@ -194,6 +194,17 @@ class Guarder {
       console.log(err);
       throw err;
     }
+
+    try {
+      if (!useYarn) {
+        await processUtils.exe('npm', 'dedupe', {cwd: this.rootPath}).promise;
+      }
+    } catch (err) {
+      console.log('Sorry, npm dedupe failed');
+      console.log(err);
+      throw err;
+    }
+
     if (this.isDrcpSymlink) {
       await new Promise(resolve => setTimeout(() => resolve(res), 500));
       try {

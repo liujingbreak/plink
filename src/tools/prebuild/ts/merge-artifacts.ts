@@ -2,6 +2,8 @@
 import {spawn} from 'dr-comp-package/wfh/dist/process-utils';
 import {resolve, basename} from 'path';
 import fs from 'fs-extra';
+import api from '__api';
+
 const log = require('log4js').getLogger('merge-artifacts');
 
 const rootDir = resolve();
@@ -10,24 +12,27 @@ const tempDir = resolve(rootDir, 'dist/merge-temp');
 const envs = ['local', 'dev', 'test', 'stage', 'prod'];
 
 export async function prepare() {
+  const setting = api.config.get(api.packageName);
+  let releaseBranch = setting.prebuildReleaseBranch;
+
   await checkRemote();
 
   await spawn('git', 'fetch', 'origin', {cwd: rootDir}).promise;
 
   const currBranch = await getCurrBranchName();
 
-  if (currBranch === 'release-server') {
+  if (currBranch === releaseBranch) {
     // tslint:disable-next-line: no-console
     console.log('Current branch is release-server which should not be your build targeting branch,\nplease checkout another branch to procede!');
     throw new Error('please checkout another branch to procede!');
   }
 
   try {
-    await spawn('git', 'branch', '-D', 'release-server', {cwd: rootDir}).promise;
+    await spawn('git', 'branch', '-D', releaseBranch, {cwd: rootDir}).promise;
   } catch (e) {}
   await cleanupRepo();
 
-  await spawn('git', 'checkout', '-b', 'release-server', 'origin/release-server', {cwd: rootDir}).promise;
+  await spawn('git', 'checkout', '-b', releaseBranch, 'origin/' + releaseBranch, {cwd: rootDir}).promise;
   if (fs.existsSync(tempDir)) {
     fs.removeSync(tempDir);
   }

@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/assets-processer",
-  "version": "1.1.39",
+  "version": "1.1.42",
   "description": "Copy assets to destDir folder only when devMode is false",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -67,13 +67,16 @@
     "iconv": "~2.3.5"
   },
   "dependencies": {
+    "@types/glob": "^7.1.1",
+    "glob": "^7.1.2",
     "request": "2.88.0",
     "@types/request": "~2.48.3",
     "through2": "^2.0.3",
     "shelljs": "^0.7.8",
     "mkdirp": "^0.5.1",
     "serve-favicon": "^2.4.4",
-    "gulp-zip": "4.1.0",
+    "yazl": "2.5.1",
+    "@types/yazl": "2.4.2",
     "gulp-unzip": "1.0.0",
     "adm-zip": "^0.4.14",
     "@types/adm-zip": "^0.4.33",

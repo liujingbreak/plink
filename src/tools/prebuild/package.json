@@ -1,13 +1,25 @@
 {
   "name": "@bk/prebuild",
-  "version": "1.0.3",
+  "version": "1.0.7",
   "description": "Prebuild for monorepo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "prebuild": "dist/cli.js"
   },
-  "dr": {},
+  "dr": {
+    "config": {
+      "server": {
+        "prebuildGitRemote": "origin",
+        "prebuildReleaseBranch": "release-server"
+      }
+    },
+    "config.local": {
+      "server": {
+        "prebuildReleaseBranch": "release-server-local"
+      }
+    }
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

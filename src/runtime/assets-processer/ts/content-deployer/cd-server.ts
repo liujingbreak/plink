@@ -13,7 +13,7 @@ import crypto, {Hash} from 'crypto';
 import api from '__api';
 import {stringifyListAllVersions} from '@bk/prebuild/dist/artifacts';
 
-const log = require('log4js').getLogger('@dr/assets-processer.cd-server');
+const log = require('log4js').getLogger(api.packageName + '.cd-server');
 
 interface Pm2Packet {
   type: 'process:msg';
@@ -31,12 +31,15 @@ interface Pm2Bus {
 
 type ChecksumItem = Checksum extends Array<infer I> ? I : unknown;
 
+interface RecievedData {
+  hash?: string; content: Buffer; length: number;
+}
+
 const requireToken = api.config.get([api.packageName, 'requireToken'], false);
 const mailSetting = (api.config.get(api.packageName) as WithMailServerConfig).fetchMailServer;
 
 
 export async function activate(app: Application, imap: ImapManager) {
-  let fwriter: fs.WriteStream | undefined;
   let writingFile: string | undefined;
 
   let filesHash = readChecksumFile();
@@ -153,9 +156,10 @@ export async function activate(app: Application, imap: ImapManager) {
     };
 
     const contentLen = req.headers['content-length'];
+    let recieved: RecievedData;
     // checksum.versions![req.params.app] = {version: parseInt(req.params.version, 10)};
     try {
-      await readResponseToBuffer(req, req.params.hash, contentLen ? parseInt(contentLen, 10) : 10 * 1024 * 1024);
+      recieved = await readResponseToBuffer(req, req.params.hash, contentLen ? parseInt(contentLen, 10) : 10 * 1024 * 1024);
     } catch (e) {
       if (e.message === 'sha256 not match') {
         res.send(`[WARN] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}\n` +
@@ -166,6 +170,15 @@ export async function activate(app: Application, imap: ImapManager) {
       }
     }
     res.send(`[ACCEPT] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}`);
+
+    let fileBaseName = Path.basename(req.params.file);
+    const dot = fileBaseName.lastIndexOf('.');
+    if (dot >=0 )
+      fileBaseName = fileBaseName.slice(0, dot);
+    writingFile = Path.resolve(zipDownloadDir, `${fileBaseName.slice(0, fileBaseName.lastIndexOf('.'))}.${process.pid}.zip`);
+    fs.mkdirpSync(Path.dirname(writingFile));
+    fs.writeFile(writingFile, recieved!.content, onZipFileWritten);
+    filesHash.set(newChecksumItem.file, newChecksumItem);
     writeChecksumFile(filesHash);
     if (isPm2) {
       const msg: Pm2Packet = {
@@ -235,15 +248,18 @@ export function generateToken() {
 }
 
 function readResponseToBuffer(req: Request<{file: string, hash: string}>, expectSha256: string, length: number)
-  : Promise<{hash: string, content: Buffer}> {
-  let countBytes = 0;
+  : Promise<RecievedData> {
+  // let countBytes = 0;
 
   let hash: Hash;
   let hashDone: Promise<string>;
 
+  const buf = Buffer.alloc(length);
+  let bufOffset = 0;
+
   req.on('data', (data: Buffer) => {
-    countBytes += data.byteLength;
-    log.info(`Recieving, ${countBytes} bytes`);
+    bufOffset += data.copy(buf, bufOffset, 0);
+    log.debug(`Recieving, ${bufOffset} bytes`);
     if (hash == null) {
       hash = crypto.createHash('sha256');
       hashDone = new Promise(resolve => {
@@ -268,40 +284,51 @@ function readResponseToBuffer(req: Request<{file: string, hash: string}>, expect
     // }
     // fwriter.write(data);
   });
-  req.on('end', async () => {
-    log.info(`Total recieved ${countBytes} bytes`);
-    let sha: string | undefined;
-    if (hash) {
-      hash.end();
-      sha = await hashDone;
-    }
-    if (sha !== expectSha256) {
-      const err = new Error('sha256 not match');
-      (err as any).sha256 = sha;
-      // TODO:
-      // res.send(`[WARN] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}\n` +
-      //   `Recieved file is corrupted with hash ${sha},\nwhile expecting file hash is ${newChecksumItem.sha256}`);
+  return new Promise((resolve, rej) => {
+    req.on('end', async () => {
+      log.info(`Total recieved ${bufOffset} bytes`);
+      if (bufOffset > length) {
+        return rej(new Error(`Recieved data length ${bufOffset} is greater than expecred content length ${length}`));
+      }
+      let sha: string | undefined;
+      if (hash) {
+        hash.end();
+        sha = await hashDone;
+      }
+
+      if (sha !== expectSha256) {
+        const err = new Error('sha256 not match');
+        (err as any).sha256 = sha;
+        // TODO:
+        // res.send(`[WARN] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}\n` +
+        //   `Recieved file is corrupted with hash ${sha},\nwhile expecting file hash is ${newChecksumItem.sha256}`);
+        // fwriter!.end(onZipFileWritten);
+        // fwriter = undefined;
+        return rej(err);
+      }
+      resolve({
+        hash: sha,
+        content: buf.slice(0, bufOffset),
+        length: bufOffset
+      });
+
       // fwriter!.end(onZipFileWritten);
       // fwriter = undefined;
-      throw err;
-    }
+      // res.send(`[ACCEPT] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}`);
 
-    // fwriter!.end(onZipFileWritten);
-    // fwriter = undefined;
-    // res.send(`[ACCEPT] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}`);
-
-    // filesHash.set(newChecksumItem.file, newChecksumItem);
-    // writeChecksumFile(filesHash);
-    // if (isPm2) {
-    //   const msg: Pm2Packet = {
-    //     type : 'process:msg',
-    //     data: {
-    //       'cd-server:checksum updating': newChecksumItem,
-    //       pid: process.pid
-    //     }
-    //   };
-    //   process.send!(msg);
-    // }
+      // filesHash.set(newChecksumItem.file, newChecksumItem);
+      // writeChecksumFile(filesHash);
+      // if (isPm2) {
+      //   const msg: Pm2Packet = {
+      //     type : 'process:msg',
+      //     data: {
+      //       'cd-server:checksum updating': newChecksumItem,
+      //       pid: process.pid
+      //     }
+      //   };
+      //   process.send!(msg);
+      // }
+    });
   });
 }
 

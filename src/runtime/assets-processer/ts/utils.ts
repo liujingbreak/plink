@@ -8,6 +8,12 @@ const hpmLog = getLogger(api.packageName + '.commandProxy');
 
 const logTime = getLogger(api.packageName + '.timestamp');
 
+/**
+ * Middleware for printing each response process duration time to log
+ * @param req 
+ * @param res 
+ * @param next 
+ */
 export function createResponseTimestamp(req: Request, res: Response, next: NextFunction) {
   const date = new Date();
   const startTime = date.getTime();
@@ -41,7 +47,11 @@ export function createResponseTimestamp(req: Request, res: Response, next: NextF
   next();
 }
 
-
+/**
+ * Create and use an HTTP request proxy for specific request path
+ * @param proxyPath 
+ * @param targetUrl 
+ */
 export function commandProxy(proxyPath: string, targetUrl: string) {
   proxyPath = _.trimEnd(proxyPath, '/');
   targetUrl = _.trimEnd(targetUrl, '/');
