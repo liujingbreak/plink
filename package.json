@@ -62,7 +62,6 @@
     "js-yaml": "^3.10.0",
     "json-lint": "^0.1.0",
     "lodash": "^4.17.4",
-    "log4js": "^6.1.2",
     "lru-cache": "^5.1.1",
     "@types/lru-cache": "^5.1.0",
     "merge2": "1.2.1",
@@ -92,5 +91,8 @@
     "@types/react": "^16.9.19",
     "@types/react-dom": "^16.9.5",
     "open": "^7.0.2"
+  },
+  "peerDependencies": {
+    "log4js": "^6.1.2"
   }
 }
