@@ -2,7 +2,7 @@
 
 import commander, {Command} from 'commander';
 import pk from '../package.json';
-// import Path from 'path';
+import Path from 'path';
 import api from '__api';
 const cfg = require('dr-comp-package/wfh/lib/config.js') as typeof api.config;
 const logConfig = require('dr-comp-package/wfh/lib/logConfig.js');
@@ -25,11 +25,12 @@ program.option('-c, --config <config-file>',
 program.option('--prop <property-path=value as JSON | literal>',
   '<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n',
   (curr, prev) => prev.concat(curr), [] as string[]);
-program.option('--secret', 'secret code for deploy to "prod" environment');
+program.option('--secret <credential code>', 'credential code for deploy to "prod" environment');
 
 // ----------- deploy ----------
 const deployCmd = program.command('deploy <app> <ts-scripts#function-or-shell>')
 .option('--static', 'as an static resource build', true)
+// .option('--secret <secret>', 'credential word')
 .action(async (app: string, scriptsFile: string) => {
   const opt = deployCmd.opts();
   await cfg.init({
@@ -39,7 +40,7 @@ const deployCmd = program.command('deploy <app> <ts-scripts#function-or-shell>')
   logConfig(cfg());
   prepareLazyNodeInjector({});
 
-  await (require('./cli-deploy').default as typeof _cliDeploy)(opt.static, opt.env, app, scriptsFile);
+  await (require('./cli-deploy').default as typeof _cliDeploy)(opt.static, opt.env, app, scriptsFile, program.opts().secret);
 });
 createEnvOption(deployCmd);
 deployCmd.usage(deployCmd.usage() + '');
@@ -59,9 +60,8 @@ const githashCmd = createEnvOption(program.command('githash'), false)
 });
 
 // ------ send --------
-const sendCmd = createEnvOption(program.command('send <app-name> <zip-file> [secret]'))
-.requiredOption('--env <local | dev | test | stage | prod>', 'Deploy target, e.g. one of  "local", "dev", "test", "stage", "prod"')
-.action(async (appName, zip, secret) => {
+const sendCmd = createEnvOption(program.command('send <app-name> <zip-file>'))
+.action(async (appName, zip) => {
   await cfg.init({
     c: (program.opts().config as string[]).length === 0 ? undefined : program.opts().config,
     prop: (program.opts().prop as string[])
@@ -69,25 +69,26 @@ const sendCmd = createEnvOption(program.command('send <app-name> <zip-file> [sec
   logConfig(cfg());
   prepareLazyNodeInjector({});
 
-  (require('./_send-patch') as typeof sp).send(sendCmd.opts().env, appName, zip, program.opts().secret);
+  await (require('./_send-patch') as typeof sp).send(sendCmd.opts().env, appName, zip, program.opts().secret);
 });
 sendCmd.usage(sendCmd.usage() + '\nSend static resource to remote server');
 
 // ------ mockzip --------
 const mockzipCmd = program.command('mockzip');
-mockzipCmd.option('-d', 'create a mock zip file in specific directory');
+mockzipCmd.option('-d,--dir <dir>', 'create a mock zip file in specific directory');
 mockzipCmd.action(async () => {
   await cfg.init({
     c: (program.opts().config as string[]).length === 0 ? undefined : program.opts().config,
     prop: (program.opts().prop as string[])
   });
   logConfig(cfg());
+
   const Artifacts: typeof _Artifacts = require('./artifacts');
 
   const fileContent = '' + new Date().toUTCString();
 
-  const file = mockzipCmd.opts().d ? mockzipCmd.opts().d : cfg.resolve('destDir', 'prebuild-mock.zip');
-  fs.mkdirpSync(cfg.resolve('destDir'));
+  const file = mockzipCmd.opts().dir ? Path.resolve(mockzipCmd.opts().dir, 'prebuild-mock.zip') : cfg.resolve('destDir', 'prebuild-mock.zip');
+  fs.mkdirpSync(Path.dirname(file));
 
   await Artifacts.writeMockZip(file, fileContent);
   const log = log4js.getLogger('prebuild');

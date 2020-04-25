@@ -8,7 +8,7 @@ import * as _ma from './merge-artifacts';
 
 const log = log4js.getLogger(api.packageName + '.cli-deploy');
 
-export default async function(isStatic: boolean, env: string, app: string, scriptsFile: string) {
+export default async function(isStatic: boolean, env: string, app: string, scriptsFile: string, secret?: string) {
 
   log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile}`);
   await (require('./merge-artifacts') as typeof _ma).prepare();
@@ -27,5 +27,5 @@ export default async function(isStatic: boolean, env: string, app: string, scrip
     console.log(`executing file: ${file}, function name: ${func}`);
     await Promise.resolve(require(file)[func](env, app, isStatic));
   }
-  await prebuildPost(env, app, isStatic);
+  await prebuildPost(env, app, isStatic, secret);
 }
