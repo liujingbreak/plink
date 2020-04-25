@@ -18,7 +18,7 @@ export async function main(env: string, appName: string, buildStaticOnly = false
 
   const rootDir = Path.resolve();
 
-  let releaseBranch = setting.prebuildReleaseBranch;
+  const releaseBranch: string = setting.prebuildReleaseBranch;
 
   mergeBack();
 
@@ -69,6 +69,8 @@ export async function main(env: string, appName: string, buildStaticOnly = false
 }
 
 async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: string, appName: string) {
+  const releaseRemote = api.config.get(api.packageName).prebuildGitRemote;
+
   await spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir }).promise;
   removeDevDeps();
   changeGitIgnore();
@@ -80,14 +82,15 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
     }
   }
   await spawn('git', 'commit', '-m', `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
-  await spawn('git', 'push', '-f', 'origin', releaseBranch, { cwd: rootDir }).promise;
+  await spawn('git', 'push', '-f', releaseRemote, releaseBranch, { cwd: rootDir }).promise;
 }
 
 async function addTag(rootDir: string) {
+  const releaseRemote = api.config.get(api.packageName).prebuildGitRemote;
   const current = moment();
   const tagName = `release/${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
   await spawn('git', 'tag', '-a', tagName, '-m', `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`, { cwd: rootDir }).promise;
-  await spawn('git', 'push', 'origin', tagName, { cwd: rootDir }).promise;
+  await spawn('git', 'push', releaseRemote, tagName, { cwd: rootDir }).promise;
 }
 
 function removeDevDeps() {

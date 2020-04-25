@@ -81,12 +81,12 @@ export async function checkZipFile(zipFileOrDir: string, installDir: string, app
       excludePat = new RegExp(excludePat);
     }
 
-    glob(zipFileOrDir + '/**/*', {nodir: true}, (err, matches) => {
+    glob(zipFileOrDir.replace(/[\\/]/, '/') + '/**/*', {nodir: true}, (err, matches) => {
       for (let item of matches) {
-        item = item.replace(/[/\\]/, '/');
+        // item = item.replace(/[/\\]/, '/');
         if (excludePat == null || !(excludePat as RegExp).test(item)) {
           log.info(`- zip content: ${item}`);
-          zipFile.addFile(item, Path.posix.relative(zipFileOrDir, item));
+          zipFile.addFile(item, Path.relative(zipFileOrDir, item).replace(/[\\/]/, '/'));
         }
       }
       zipFile.end({forceZip64Format: false});

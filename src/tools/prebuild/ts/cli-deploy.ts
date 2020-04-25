@@ -14,7 +14,7 @@ export default async function(isStatic: boolean, env: string, app: string, scrip
   await (require('./merge-artifacts') as typeof _ma).prepare();
 
   if (scriptsFile.endsWith('.sh')) {
-    await spawn(scriptsFile, env, app, isStatic ? 'true' : 'false').promise;
+    await spawn('bash', scriptsFile, env, app, isStatic ? 'true' : 'false').promise;
   } else if (scriptsFile.indexOf('#') < 0) {
     // tslint:disable-next-line: no-console
     console.log(chalk.redBright(`Wrong format of ${scriptsFile}, in which no "#" is found`));

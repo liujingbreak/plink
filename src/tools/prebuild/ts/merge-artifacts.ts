@@ -14,10 +14,11 @@ const envs = ['local', 'dev', 'test', 'stage', 'prod'];
 export async function prepare() {
   const setting = api.config.get(api.packageName);
   let releaseBranch = setting.prebuildReleaseBranch;
+  const releaseRemote = setting.prebuildGitRemote;
 
-  await checkRemote();
+  // await checkRemote();
 
-  await spawn('git', 'fetch', 'origin', {cwd: rootDir}).promise;
+  await spawn('git', 'fetch', releaseRemote, {cwd: rootDir}).promise;
 
   const currBranch = await getCurrBranchName();
 
@@ -32,7 +33,7 @@ export async function prepare() {
   } catch (e) {}
   await cleanupRepo();
 
-  await spawn('git', 'checkout', '-b', releaseBranch, 'origin/' + releaseBranch, {cwd: rootDir}).promise;
+  await spawn('git', 'checkout', '-b', releaseBranch, releaseRemote + '/' + releaseBranch, {cwd: rootDir}).promise;
   if (fs.existsSync(tempDir)) {
     fs.removeSync(tempDir);
   }
@@ -96,26 +97,27 @@ export function mergeBack() {
   }
 }
 
-export async function checkRemote() {
-  const remoteList = await spawn('git', 'remote', '-v', {cwd: rootDir, silent: true}).promise;
-  const lines = remoteList.split('\n');
-  const remoteMap = new Map<string, string>();
-  for (const line of lines) {
-    if (line.trim().length === 0) {
-      continue;
-    }
-    const cols = line.split(/\s+/);
-    remoteMap.set(cols[0], cols[1]);
-  }
-  // tslint:disable-next-line: no-console
-  console.log('Your git remotes are: ', Array.from(remoteMap.keys()).map(key => `${key}: ${remoteMap.get(key)}`));
-  const officeGitUrl = '.bkjk-inc.com/';
-  if (!remoteMap.has('origin') || remoteMap.get('origin')!.indexOf(officeGitUrl) < 0) {
-    // tslint:disable-next-line: no-console
-    console.log('Your git remote must have a "origin" pointing to ', officeGitUrl);
-    throw new Error('Your git remote must has a "origin" pointing to ' + officeGitUrl);
-  }
-}
+// export async function checkRemote() {
+//   const releaseRemote = api.config.get(api.packageName).prebuildGitRemote;
+//   const remoteList = await spawn('git', 'remote', '-v', {cwd: rootDir, silent: true}).promise;
+//   const lines = remoteList.split('\n');
+//   const remoteMap = new Map<string, string>();
+//   for (const line of lines) {
+//     if (line.trim().length === 0) {
+//       continue;
+//     }
+//     const cols = line.split(/\s+/);
+//     remoteMap.set(cols[0], cols[1]);
+//   }
+//   // tslint:disable-next-line: no-console
+//   console.log('Your git remotes are: ', Array.from(remoteMap.keys()).map(key => `${key}: ${remoteMap.get(key)}`));
+//   const officeGitUrl = '.bkjk-inc.com/';
+//   if (!remoteMap.has(releaseRemote) || remoteMap.get(releaseRemote)!.indexOf(officeGitUrl) < 0) {
+//     // tslint:disable-next-line: no-console
+//     console.log(`Your git remote must have a "${releaseRemote}" pointing to `, officeGitUrl);
+//     throw new Error(`Your git remote must have a "${releaseRemote}" pointing to ` + officeGitUrl);
+//   }
+// }
 
 export async function getCurrBranchName() {
   const res = await spawn('git', 'status', {cwd: rootDir, silent: true}).promise;
