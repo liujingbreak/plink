@@ -28,10 +28,10 @@ program.option('--prop <property-path=value as JSON | literal>',
 program.option('--secret <credential code>', 'credential code for deploy to "prod" environment');
 
 // ----------- deploy ----------
-const deployCmd = program.command('deploy <app> <ts-scripts#function-or-shell>')
+const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
 .option('--static', 'as an static resource build', true)
 // .option('--secret <secret>', 'credential word')
-.action(async (app: string, scriptsFile: string) => {
+.action(async (app: string, scriptsFile?: string) => {
   const opt = deployCmd.opts();
   await cfg.init({
     c: (program.opts().config as string[]).length === 0 ? undefined : program.opts().config,
@@ -40,7 +40,7 @@ const deployCmd = program.command('deploy <app> <ts-scripts#function-or-shell>')
   logConfig(cfg());
   prepareLazyNodeInjector({});
 
-  await (require('./cli-deploy').default as typeof _cliDeploy)(opt.static, opt.env, app, scriptsFile, program.opts().secret);
+  await (require('./cli-deploy').default as typeof _cliDeploy)(opt.static, opt.env, app, program.opts().secret, scriptsFile);
 });
 createEnvOption(deployCmd);
 deployCmd.usage(deployCmd.usage() + '');
