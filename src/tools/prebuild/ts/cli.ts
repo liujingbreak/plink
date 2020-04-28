@@ -29,7 +29,7 @@ program.option('--secret <credential code>', 'credential code for deploy to "pro
 
 // ----------- deploy ----------
 const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
-.option('--static', 'as an static resource build', true)
+.option('--static', 'as an static resource build', false)
 // .option('--secret <secret>', 'credential word')
 .action(async (app: string, scriptsFile?: string) => {
   const opt = deployCmd.opts();
