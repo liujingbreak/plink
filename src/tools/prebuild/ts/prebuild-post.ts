@@ -30,7 +30,7 @@ export async function main(env: string, appName: string, buildStaticOnly = false
     if (!fs.existsSync(installDir)) {
       fs.mkdirpSync(installDir);
     }
-    zipFile = await checkZipFile(zipSrc, installDir, appName, /^stats[^]*\.json$/);
+    zipFile = await checkZipFile(zipSrc, installDir, appName, /[\\/]stats[^]*\.json$/);
   }
 
   if (appName === 'node-server' || buildStaticOnly !== true) {
@@ -62,7 +62,7 @@ export async function main(env: string, appName: string, buildStaticOnly = false
 
   await pushReleaseBranch(releaseBranch, rootDir, env, appName);
 
-  if (!buildStaticOnly) {
+  if (appName === 'node-server' || buildStaticOnly !== true) {
     await addTag(rootDir);
   }
   await spawn('git', 'checkout', currBranch, { cwd: rootDir }).promise;
