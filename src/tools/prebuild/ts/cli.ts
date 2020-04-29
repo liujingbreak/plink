@@ -40,7 +40,7 @@ const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
   logConfig(cfg());
   prepareLazyNodeInjector({});
 
-  await (require('./cli-deploy').default as typeof _cliDeploy)(opt.static, opt.env, app, program.opts().secret, scriptsFile);
+  await (require('./cli-deploy').default as typeof _cliDeploy)(opt.static, opt.env, app, program.opts().secret || null, scriptsFile);
 });
 createEnvOption(deployCmd);
 deployCmd.usage(deployCmd.usage() + '');

@@ -8,7 +8,7 @@ import * as _ma from './merge-artifacts';
 
 const log = log4js.getLogger(api.packageName + '.cli-deploy');
 
-export default async function(isStatic: boolean, env: string, app: string, secret?: string, scriptsFile?: string) {
+export default async function(isStatic: boolean, env: string, app: string, secret: string | undefined | null, scriptsFile?: string) {
 
   log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile}`);
   await (require('./merge-artifacts') as typeof _ma).prepare();
@@ -18,16 +18,16 @@ export default async function(isStatic: boolean, env: string, app: string, secre
       await spawn('bash', scriptsFile, env, app, isStatic ? 'true' : 'false').promise;
     } else if (scriptsFile.indexOf('#') < 0) {
       // tslint:disable-next-line: no-console
-      console.log(chalk.redBright(`Wrong format of ${scriptsFile}, in which no "#" is found`));
+      log.error(chalk.redBright(`Wrong format of ${scriptsFile}, in which no "#" is found`));
       return;
     } else {
       const scriptAndFunc = scriptsFile.split('#');
       const file = scriptAndFunc[0];
       const func = scriptAndFunc[1];
       // tslint:disable-next-line: no-console
-      console.log(`executing file: ${file}, function name: ${func}`);
+      log.info(`executing file: ${file}, function name: ${func}`);
       await Promise.resolve(require(file)[func](env, app, isStatic));
     }
   }
-  await prebuildPost(env, app, isStatic, secret);
+  await prebuildPost(env, app, isStatic, secret ? secret : undefined);
 }
