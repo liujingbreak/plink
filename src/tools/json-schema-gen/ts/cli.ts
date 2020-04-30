@@ -2,7 +2,7 @@
 import {Command} from 'commander';
 import pk from '../package.json';
 import Path from 'path';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import {getTsDirsOfPackage} from 'dr-comp-package/wfh/dist/utils';
 import log4js from 'log4js';
 import api from '__api';
@@ -72,6 +72,7 @@ program.action(async (program: Command) => {
               output[syb] = generator.getSchemaForSymbol(syb);
             }
             const outFile = Path.resolve(packagePath, dirs.isomDir, 'json-schema.json');
+            fs.mkdirpSync(Path.resolve(packagePath, dirs.isomDir));
             fs.writeFile(
               outFile,
               JSON.stringify(output, null, '  '),
