@@ -15,6 +15,7 @@ import * as _prebuildPost from './prebuild-post';
 // import {spawn} from 'dr-comp-package/wfh/dist/process-utils';
 import _cliDeploy from './cli-deploy';
 import log4js from 'log4js';
+import _genKeypair from './cli-keypair';
 
 const program = new Command().name('prebuild');
 
@@ -43,7 +44,6 @@ const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
   await (require('./cli-deploy').default as typeof _cliDeploy)(opt.static, opt.env, app, program.opts().secret || null, scriptsFile);
 });
 createEnvOption(deployCmd);
-deployCmd.usage(deployCmd.usage() + '');
 
 
 // -------- githash ----------
@@ -61,6 +61,7 @@ const githashCmd = createEnvOption(program.command('githash'), false)
 
 // ------ send --------
 const sendCmd = createEnvOption(program.command('send <app-name> <zip-file>'))
+.description('Send static resource to remote server')
 .action(async (appName, zip) => {
   await cfg.init({
     c: (program.opts().config as string[]).length === 0 ? undefined : program.opts().config,
@@ -71,7 +72,7 @@ const sendCmd = createEnvOption(program.command('send <app-name> <zip-file>'))
 
   await (require('./_send-patch') as typeof sp).send(sendCmd.opts().env, appName, zip, program.opts().secret);
 });
-sendCmd.usage(sendCmd.usage() + '\nSend static resource to remote server');
+
 
 // ------ mockzip --------
 const mockzipCmd = program.command('mockzip');
@@ -95,6 +96,16 @@ mockzipCmd.action(async () => {
   // tslint:disable-next-line: no-console
   log.info('Mock zip:', file);
 });
+
+// ---------- keypair ------------
+const keypairCmd = program.command('keypair [file-name]')
+.description('Generate a new asymmetric key pair')
+.action(async (fileName) => {
+  const genKeypair = require('./cli-keypair').default as typeof _genKeypair;
+  await genKeypair(fileName, keypairCmd.opts());
+});
+
+
 
 program.usage(program.usage() + chalk.blueBright(
   '\nPrebuild and deploy static resource to file server and compile node server side TS files'));
