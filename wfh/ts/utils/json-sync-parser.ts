@@ -58,6 +58,8 @@ enum AstType {
 
 export interface Ast {
   type: AstType;
+  start?: number;
+  end?: number;
 }
 
 export interface ObjectAst extends Ast {
@@ -81,7 +83,8 @@ function doObject(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ObjectAst {
     type: AstType.object,
     properties: []
   };
-  lexer.advance();
+  const lp = lexer.advance();
+  ast.start = lp.pos;
   let next = lexer.la();
   while (next != null && next.type !== '}') {
     const propToken = lexer.advance();
@@ -96,7 +99,8 @@ function doObject(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ObjectAst {
       lexer.advance();
     next = lexer.la();
   }
-  lexer.advance(); // }
+  const rp = lexer.advance(); // }
+  ast.end = rp.end;
   return ast;
 }
 

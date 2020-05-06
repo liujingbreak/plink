@@ -4,7 +4,7 @@ export declare class Chunk<V, T> {
     col: number;
     type: T;
     values?: V[];
-    end?: number;
+    end: number;
     isClosed: boolean;
     trackValue: boolean;
     constructor(pos: number, line: number, col: number);

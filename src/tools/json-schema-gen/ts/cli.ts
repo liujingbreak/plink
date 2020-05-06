@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {Command} from 'commander';
+import {program} from 'commander';
 import pk from '../package.json';
 import Path from 'path';
 import * as fs from 'fs-extra';
@@ -16,8 +16,11 @@ const logConfig = require('dr-comp-package/wfh/lib/logConfig.js');
 
 const log = log4js.getLogger(pk.name);
 
-const program = new Command('json-schema [...packages]');
-program.version(pk.version);
+program.version(pk.version).name('json-schema-gen')
+  .description('Scan packages and generate json schema.\n' +
+  'You package.json file must contains:\n  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}')
+  .arguments('[...packages]')
+  .passCommandToAction(true);
 program.option('-c, --config <config-file>',
   'Read config files, if there are multiple files, the latter one overrides previous one',
   (curr, prev) => prev.concat(curr), [] as string[]);
@@ -25,13 +28,15 @@ program.option('--prop <property-path=value as JSON | literal>',
   '<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n',
   (curr, prev) => prev.concat(curr), [] as string[]);
 
-program.action(async (program: Command) => {
+program.action(async () => {
   const dones: Promise<void>[] = [];
   await cfg.init({
     c: (program.opts().config as string[]).length === 0 ? undefined : program.opts().config,
     prop: (program.opts().prop as string[])
   });
   logConfig(cfg());
+
+  log.info(program.args);
   const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 
   const packages = program.args;

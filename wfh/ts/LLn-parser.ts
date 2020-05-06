@@ -2,7 +2,7 @@ import util from 'util';
 export class Chunk<V, T> {
   type: T;
   values?: V[] = [];
-  end?: number;
+  end: number;
   isClosed = false;
   trackValue = true;
 
@@ -49,6 +49,7 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
       const token: C = chunkConverter ? chunkConverter(lexerLa.currChunk) :
         (isString ? strChunk2Token(lexerLa.currChunk as unknown as Chunk<string, T>) : lexerLa.currChunk as C);
       tokenLa._write([token]);
+      token.close(lexerLa.position);
     },
     end() {
       tokenLa._final();
