@@ -13,7 +13,7 @@ const log = log4js.getLogger(api.packageName + '.send-patch');
 
 let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
 
-export async function main(env: string, appName: string, buildStaticOnly = false, secret?: string) {
+export async function main(env: string, appName: string, buildStaticOnly = false, pushBranch = true, secret?: string) {
   const setting = api.config.get(api.packageName);
 
   const rootDir = Path.resolve();
@@ -60,7 +60,8 @@ export async function main(env: string, appName: string, buildStaticOnly = false
     }
   }
 
-  await pushReleaseBranch(releaseBranch, rootDir, env, appName);
+  if (pushBranch)
+    await pushReleaseBranch(releaseBranch, rootDir, env, appName);
 
   if (appName === 'node-server' || buildStaticOnly !== true) {
     await addTag(rootDir);

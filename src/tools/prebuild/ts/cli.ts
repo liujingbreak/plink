@@ -31,6 +31,7 @@ program.option('--secret <credential code>', 'credential code for deploy to "pro
 // ----------- deploy ----------
 const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
 .option('--static', 'as an static resource build', false)
+.option('--no-push-branch', 'push to release branch', false)
 // .option('--secret <secret>', 'credential word')
 .action(async (app: string, scriptsFile?: string) => {
   const opt = deployCmd.opts();
@@ -41,7 +42,8 @@ const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
   logConfig(cfg());
   prepareLazyNodeInjector({});
 
-  await (require('./cli-deploy').default as typeof _cliDeploy)(opt.static, opt.env, app, program.opts().secret || null, scriptsFile);
+  const cliDeploy = (require('./cli-deploy').default as typeof _cliDeploy);
+  await cliDeploy(opt.static, opt.env, app, deployCmd.opts().pushBranch, program.opts().secret || null, scriptsFile);
 });
 createEnvOption(deployCmd);
 
