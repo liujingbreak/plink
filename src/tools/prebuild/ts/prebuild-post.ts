@@ -30,7 +30,7 @@ export async function main(env: string, appName: string, buildStaticOnly = false
     if (!fs.existsSync(installDir)) {
       fs.mkdirpSync(installDir);
     }
-    zipFile = await checkZipFile(zipSrc, installDir, appName, /[\\/]stats[^]*\.json$/);
+    zipFile = await checkZipFile(zipSrc, installDir, appName, /([\\/]stats[^]*\.json|\.map)$/);
   }
 
   if (appName === 'node-server' || buildStaticOnly !== true) {
