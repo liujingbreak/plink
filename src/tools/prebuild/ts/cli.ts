@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+require('source-map-support/register');
 import commander, {Command} from 'commander';
 import pk from '../package.json';
 import Path from 'path';
@@ -16,6 +16,7 @@ import * as _prebuildPost from './prebuild-post';
 import _cliDeploy from './cli-deploy';
 import log4js from 'log4js';
 import _genKeypair from './cli-keypair';
+import * as tsAstQuery from './ts-ast-query';
 
 const program = new Command().name('prebuild');
 
@@ -107,10 +108,17 @@ const keypairCmd = program.command('keypair [file-name]')
   await genKeypair(fileName, keypairCmd.opts());
 });
 
+const tsAstCmd = program.command('ts-ast <ts-file>')
+.option('--no-type', 'do not print AST type', false)
+.option('-q|--query <selector>', 'query selector', undefined)
+.description('Print Typescript AST structure')
+.action(async filename => {
+  const printFile: (typeof tsAstQuery)['printFile'] = require('./ts-ast-query').printFile;
+  printFile(filename, tsAstCmd.opts().query, tsAstCmd.opts().type as boolean);
+});
 
-
-program.usage(program.usage() + chalk.blueBright(
-  '\nPrebuild and deploy static resource to file server and compile node server side TS files'));
+program.description(chalk.cyanBright(
+  'Prebuild and deploy static resource to file server and compile node server side TS files'));
 program.parseAsync(process.argv);
 
 function createEnvOption(cmd: commander.Command, required = true): ReturnType<commander.Command['requiredOption']> {

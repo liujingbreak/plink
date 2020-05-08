@@ -32,7 +32,7 @@ export function resolveImportBindName(src: ts.SourceFile, modulePath: string, pr
     return undefined;
   let refName: string | null | undefined;
   for (const importDecAst of importDecAsts) {
-    refName = selector.findWith(importDecAst, '.importClause > .namedBindings > .elements', (ast: ts.ImportSpecifier) => {
+    refName = selector.findMapTo(importDecAst, '.importClause > .namedBindings > .elements', (ast: ts.ImportSpecifier) => {
       if (ast.propertyName) {
         if (ast.propertyName.getText() === propertyName)
           return ast.name.getText();
@@ -42,7 +42,7 @@ export function resolveImportBindName(src: ts.SourceFile, modulePath: string, pr
     });
     if (refName)
       break;
-    refName = selector.findWith(importDecAst, '.importClause > .namedBindings:NamespaceImport > .name:Identifier',
+    refName = selector.findMapTo(importDecAst, '.importClause > .namedBindings:NamespaceImport > .name:Identifier',
       (ast: ts.Identifier) => {
         return ast.getText() + '.' + propertyName;
       });

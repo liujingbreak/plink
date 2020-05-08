@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('source-map-support/register');
 import {program} from 'commander';
 import pk from '../package.json';
 import Path from 'path';

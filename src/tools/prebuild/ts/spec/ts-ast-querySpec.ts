@@ -1,7 +1,8 @@
 // tslint:disable:no-console
-import Selector, {Query/*, AstCharacter*/} from '../utils/ts-ast-query';
+import Selector, {Query/*, AstCharacter*/} from '../ts-ast-query';
 import * as fs from 'fs';
 import {resolve} from 'path';
+import * as ts from 'typescript';
 // const log = require('log4js').getLogger('ts-ast-querySpec');
 
 describe('ts-ast-query', () => {
@@ -83,7 +84,7 @@ describe('ts-ast-query', () => {
 
     // console.log(found);
 
-    const bootCall = query.findWith(query.src,
+    const bootCall = query.findMapTo(query.src,
       '^.statements>:CallExpression :PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
       (ast: ts.Identifier, path, parents) => {
         // console.log('------>>>>----------');
@@ -99,40 +100,3 @@ describe('ts-ast-query', () => {
   });
 
 });
-
-import {resolveImportBindName, defaultResolveModule} from '../utils/ts-ast-util';
-import * as ts from 'typescript';
-describe('ts-ast-util', () => {
-  let testContent: string;
-  const testFile = resolve(__dirname, '../../ts/spec/app.module.ts.txt');
-
-  beforeAll(() => {
-    testContent = fs.readFileSync(testFile, 'utf8');
-  });
-
-  it('resolveModule() should work', () => {
-    expect(defaultResolveModule('./abc', __filename).replace(/\\/g, '/')).toBe(__dirname.replace(/\\/g, '/') + '/abc');
-    expect(defaultResolveModule('abc', __filename).replace(/\\/g, '/'))
-      .toBe(resolve('node_modules/abc').replace(/\\/g, '/'));
-  });
-
-  it('resolveImportBindName', () => {
-    const src = ts.createSourceFile(testFile, testContent, ts.ScriptTarget.ESNext,
-      true, ts.ScriptKind.TSX);
-    const res = resolveImportBindName(src, '@angular/core', 'Injectable');
-    expect(res).toBe('Injectable');
-  });
-
-  it('resolveImportBindName for import name space binding', () => {
-    const testSample = 'import * as ng from "@angular/core";\
-			@ng.Component({})\
-			class MyComponent {}\
-		';
-    const src = ts.createSourceFile(testFile, testSample, ts.ScriptTarget.ESNext,
-      true, ts.ScriptKind.TSX);
-    new Selector(src).printAll();
-    const res = resolveImportBindName(src, '@angular/core', 'Component');
-    expect(res).toBe('ng.Component');
-  });
-});
-

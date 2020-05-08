@@ -210,7 +210,7 @@ function createMainFileForHmr(mainFile: string): string {
   let bootCallAst: ts.Node;
   const statement = query.src.statements.find(statement => {
     // tslint:disable-next-line max-line-length
-    const bootCall = query.findWith(statement, ':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
+    const bootCall = query.findMapTo(statement, ':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
       (ast: ts.Identifier, path, parents) => {
         if (ast.text === 'platformBrowserDynamic' &&
         (ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src) === 'bootstrapModule' &&
