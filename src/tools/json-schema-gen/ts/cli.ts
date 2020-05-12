@@ -98,6 +98,9 @@ program.action(async () => {
   await Promise.all(dones);
 });
 
-program.parseAsync(process.argv);
+program.parseAsync(process.argv).catch(e => {
+  console.error(e);
+  process.exit(1);
+});
 
 

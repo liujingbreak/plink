@@ -119,7 +119,11 @@ const tsAstCmd = program.command('ts-ast <ts-file>')
 
 program.description(chalk.cyanBright(
   'Prebuild and deploy static resource to file server and compile node server side TS files'));
-program.parseAsync(process.argv);
+program.parseAsync(process.argv)
+.catch(e => {
+  console.error(e);
+  process.exit(1);
+});
 
 function createEnvOption(cmd: commander.Command, required = true): ReturnType<commander.Command['requiredOption']> {
   const func = required ? cmd.requiredOption : cmd.option;
