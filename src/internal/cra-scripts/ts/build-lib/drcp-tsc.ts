@@ -7,7 +7,10 @@ const drcpConfig = require('dr-comp-package/wfh/lib/config');
   return tsc({
     package: [process.argv[2]],
     ed: true, jsx: true,
-    watch: process.argv.slice(3).indexOf('--watch') >= 0
+    watch: process.argv.slice(3).indexOf('--watch') >= 0,
+    compileOptions: {
+      module: 'esnext'
+    }
   });
 })
 .then(emitted => {

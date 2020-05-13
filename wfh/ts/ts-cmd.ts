@@ -5,6 +5,7 @@ import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import {getTsDirsOfPackage, PackageTsDirs} from './utils';
+import {CompilerOptions} from 'typescript';
 const gulp = require('gulp');
 const through = require('through2');
 const chokidar = require('chokidar');
@@ -26,6 +27,7 @@ interface Args {
   sourceMap?: string;
   jsx?: boolean;
   ed?: boolean;
+  compileOptions?: {[key in keyof CompilerOptions]?: any};
 }
 
 interface ComponentDirInfo {
@@ -59,7 +61,8 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     skipLibCheck: true,
     inlineSourceMap: false,
     sourceMap: true,
-    emitDeclarationOnly: argv.ed
+    emitDeclarationOnly: argv.ed,
+    ...(argv.compileOptions ? argv.compileOptions : {})
     // typeRoots: [
     //   Path.join('node_modules/@types'),
     //   Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')

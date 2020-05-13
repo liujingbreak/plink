@@ -1,3 +1,4 @@
+import { CompilerOptions } from 'typescript';
 interface Args {
     package?: string[];
     project?: string[];
@@ -5,6 +6,9 @@ interface Args {
     sourceMap?: string;
     jsx?: boolean;
     ed?: boolean;
+    compileOptions?: {
+        [key in keyof CompilerOptions]?: any;
+    };
 }
 declare type EmitList = Array<[string, number]>;
 /**
