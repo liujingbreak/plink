@@ -17,6 +17,8 @@ import _cliDeploy from './cli-deploy';
 import log4js from 'log4js';
 import _genKeypair from './cli-keypair';
 import * as tsAstQuery from './ts-ast-query';
+import * as _unzip from './cli-unzip';
+import * as astUtil from './cli-ts-ast-util';
 
 const program = new Command().name('prebuild');
 
@@ -117,6 +119,21 @@ const tsAstCmd = program.command('ts-ast <ts-file>')
   printFile(filename, tsAstCmd.opts().query, tsAstCmd.opts().type as boolean);
 });
 
+program.command('functions <file>')
+.description('List exported functions for *.ts, *.d.ts, *.js file')
+.action(async file => {
+  const {listExportedFunction} = require('./cli-ts-ast-util') as typeof astUtil;
+  listExportedFunction(file);
+});
+
+// -------- listzip --------
+program.command('listzip <file>')
+.description('List zip file content and size')
+.action(async file => {
+  const {listZip}: typeof _unzip = require('./cli-unzip');
+  await listZip(file);
+});
+
 program.description(chalk.cyanBright(
   'Prebuild and deploy static resource to file server and compile node server side TS files'));
 program.parseAsync(process.argv)
@@ -124,6 +141,8 @@ program.parseAsync(process.argv)
   console.error(e);
   process.exit(1);
 });
+
+
 
 function createEnvOption(cmd: commander.Command, required = true): ReturnType<commander.Command['requiredOption']> {
   const func = required ? cmd.requiredOption : cmd.option;

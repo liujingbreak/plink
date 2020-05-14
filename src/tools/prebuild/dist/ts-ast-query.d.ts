@@ -1,6 +1,14 @@
 import ts from 'typescript';
+export declare let astSchemaCache: {
+    [kind: string]: string[];
+};
+export declare function saveAstPropertyCache(file: string): void;
+export declare function setAstPropertyCache(cache: typeof astSchemaCache): void;
 export declare type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => T;
-export declare type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void;
+/**
+ * Return truethy value that iteration stops.
+ */
+export declare type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => true | void;
 export declare function printFile(file: string, query?: string | null, withType?: boolean): void;
 export interface WalkCallback {
     query: string;
@@ -62,10 +70,10 @@ export default class Selector {
        * @param cb return true to skip traversing child node
        * @param level default 0
        */
-    traverse(ast: ts.Node, cb: traverseCbType, propName?: string, parents?: ts.Node[], pathEls?: string[]): void;
+    traverse(ast: ts.Node, cb: traverseCbType, propName?: string, parents?: ts.Node[], pathEls?: string[]): true | void;
     pathForAst(ast: ts.Node, withType?: boolean): string;
     protected propNameForAst(ast: ts.Node): string | null;
-    protected traverseArray(nodes: ts.NodeArray<ts.Node>, cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void, propName?: string, parents?: ts.Node[], pathEls?: string[]): void;
+    protected traverseArray(nodes: ts.NodeArray<ts.Node> | ts.Node[], cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void, propName?: string, parents?: ts.Node[], pathEls?: string[]): true | undefined;
 }
 export interface AstCharacter {
     propertyName?: string;

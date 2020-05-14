@@ -48,7 +48,7 @@ export function addToHandlerTree<H extends (BodyHandler | HeaderHandler)>(
       }
     }).join('\\/') + '$');
     // tslint:disable-next-line:no-console
-    console.log(`path ${path}'s regexp:`, restingRegex);
+    console.log(`[path-matcher] path ${path}'s regexp:`, restingRegex);
   }
 
   const data: StoredHandler<H> = {

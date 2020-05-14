@@ -1,0 +1,24 @@
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DevModeService {
+  clickNum: number = 0;
+
+  trigger() {
+    if (this.clickNum > 10) {
+      this.setDevMode();
+      alert(__api);
+    }
+    this.clickNum += 1;
+  }
+
+  setDevMode() {
+    sessionStorage.setItem('employee-loan-devmode', 'true');
+  }
+
+  isDevMode() {
+    return sessionStorage.getItem('employee-loan-devmode') === 'true';
+  }
+}

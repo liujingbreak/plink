@@ -29,7 +29,9 @@
     "adm-zip": "^0.4.14",
     "@types/adm-zip": "^0.4.33",
     "yazl": "2.5.1",
-    "@types/yazl": "2.4.2"
+    "@types/yazl": "2.4.2",
+    "yauzl": "~2.10.0",
+    "@types/yauzl": "~2.9.1"
   },
   "author": "LJ",
   "license": "MIT"

@@ -85,7 +85,7 @@ describe('ts-ast-query', () => {
     // console.log(found);
 
     const bootCall = query.findMapTo(query.src,
-      '^.statements>:CallExpression :PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
+      '^ .statements>:CallExpression :PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
       (ast: ts.Identifier, path, parents) => {
         // console.log('------>>>>----------');
         // console.log(ast.text, (ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src));

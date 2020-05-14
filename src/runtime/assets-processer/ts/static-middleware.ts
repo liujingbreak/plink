@@ -30,7 +30,7 @@ function createSetHeaderFunc(maxAgeNumMap: {[extname: string]: number}) {
       setCacheControlHeader(res, maxAgeNumMap[ext]);
     else
       res.setHeader('Cache-Control', 'no-cache');
-    // res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', '*');
   };
 }
 

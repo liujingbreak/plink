@@ -1,38 +1,40 @@
 import * as fs from 'fs';
-// import api from '__api';
+// import keysIn from 'lodash/keysIn';
+import isRegExp from 'lodash/isRegExp';
+import uniq from 'lodash/uniq';
 import _ from 'lodash';
-import ts from 'typescript';
-import { SyntaxKind as sk } from 'typescript';
+import ts, { SyntaxKind as sk// , SyntaxList
+ } from 'typescript';
 import chalk from 'chalk';
+
+export let astSchemaCache: {[kind: string]: string[]} = {};
+// let fileCounting = 0;
+// let lastFile: string;
+
+export function saveAstPropertyCache(file: string) {
+  fs.writeFileSync(file, JSON.stringify(astSchemaCache, null, '  '));
+}
+
+export function setAstPropertyCache(cache: typeof astSchemaCache) {
+  astSchemaCache = cache;
+}
 
 export type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => T;
 
-export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void;
+/**
+ * Return truethy value that iteration stops.
+ */
+export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => true | void;
 
 export function printFile(file: string, query?: string | null, withType = true) {
-  if (!file) {
-    // tslint:disable-next-line
-		console.log('Usage:\n' + chalk.greenBright('drcp run ts/utils/ts-ast-query.ts#printFile ng-app-builder --arguments <ts file>'));
-    return;
-  }
-
-  const selector = new Selector(fs.readFileSync(file, 'utf8'), file);
   if (query) {
+    const selector = new Selector(fs.readFileSync(file, 'utf8'), file);
     selector.findMapTo(query, (ast, path, parents) => {
       // tslint:disable-next-line: no-console
       console.log(chalk.cyan(
         withType ? path.join(' > ') : path.map(el => el.slice(0, el.indexOf(':'))).join(' > ')
       ));
-      selector.traverse(ast, (child, path, parents, isLeaf) => {
-        if (!isLeaf)
-          return;
-        // tslint:disable-next-line: no-console
-        console.log(
-          (withType ? path.join(' > ') : path.map(el => el.slice(0, el.indexOf(':'))).join(' > ')) +
-            ' ' + chalk.greenBright(child.getText())
-        );
-      });
-
+      selector.traverse(ast, createPrintNodeCb(withType));
     });
   } else {
     if (withType)
@@ -40,7 +42,28 @@ export function printFile(file: string, query?: string | null, withType = true) 
     else
       new Selector(fs.readFileSync(file, 'utf8'), file).printAllNoType();
   }
+  // console.log(astSchemaCache);
 }
+function createPrintNodeCb(withType: boolean) {
+  const printNode: traverseCbType = (child, path, parents, isLeaf, comment) => {
+    if (comment) {
+      // tslint:disable-next-line: no-console
+      console.log(
+        (withType ? path.join(' > ') : path.map(el => el.slice(0, el.indexOf(':'))).join(' > ')) +
+          ` ${chalk.yellow(comment)}`
+      );
+    }
+    if (!isLeaf)
+      return;
+    // tslint:disable-next-line: no-console
+    console.log(
+      (withType ? path.join(' > ') : path.map(el => el.slice(0, el.indexOf(':'))).join(' > ')) +
+        ` ${chalk.greenBright(child.getText())}`
+    );
+  };
+  return printNode;
+}
+
 
 export interface WalkCallback {
   query: string;
@@ -53,6 +76,13 @@ export default class Selector {
   constructor(src: string, file: string);
   constructor(src: ts.SourceFile);
   constructor(src: ts.SourceFile | string, file?: string) {
+    // if (file) {
+    //   if (file === lastFile) {
+    //     debugger;
+    //   }
+    //   lastFile = file;
+    // }
+    // console.log(`No. ${++fileCounting} ${chalk.red(file || 'unknown')} schema size: ${_.size(astSchemaCache)}`);
     if (typeof src === 'string') {
       this.src = ts.createSourceFile(file || 'unknown', src, ts.ScriptTarget.ESNext,
         true, ts.ScriptKind.TSX);
@@ -208,21 +238,11 @@ export default class Selector {
   }
 
   printAll(ast: ts.Node = this.src) {
-    this.traverse(ast, (node, path, _parents, noChild) => {
-      if (noChild) {
-        // tslint:disable-next-line:no-console
-        console.log(path.join(' > '), chalk.greenBright(node.getText(this.src)));
-      }
-    });
+    this.traverse(ast, createPrintNodeCb(true));
   }
 
   printAllNoType(ast: ts.Node = this.src) {
-    this.traverse(ast, (node, path, _parents, noChild) => {
-      if (noChild) {
-        // tslint:disable-next-line:no-console
-        console.log(path.map(name => name.split(':')[0]).join(' > '), chalk.greenBright(node.getText(this.src)));
-      }
-    });
+    this.traverse(ast, createPrintNodeCb(false));
   }
   /**
 	 * 
@@ -232,7 +252,7 @@ export default class Selector {
 	 */
   traverse(ast: ts.Node,
     cb: traverseCbType,
-    propName = '', parents: ts.Node[] = [], pathEls: string[] = []) {
+    propName = '', parents: ts.Node[] = [], pathEls: string[] = []): true | void {
 
     let needPopPathEl = false;
 
@@ -242,31 +262,69 @@ export default class Selector {
     if (propName)
       pathEl = '.' + propName + pathEl;
     pathEls.push(pathEl);
+
+    const comments = this.src.getFullText().slice(ast.getStart(this.src, true), ast.getStart());
     needPopPathEl = true;
     // }
 
-    const res = cb(ast, pathEls, parents, ast.getChildCount(this.src) <= 0);
+    const res = cb(ast, pathEls, parents, ast.getChildCount(this.src) <= 0, comments);
 
     if (res !== true) {
       parents.push(ast);
       const _value2key = new Map<any, string>();
+
       // tslint:disable-next-line:forin
       // for (const key in ast) {
       const self = this;
-      for (const key of Object.keys(ast)) {
-        if (key === 'parent' || key === 'kind')
-          continue;
-          _value2key.set((ast as any)[key], key);
-      }
-      ts.forEachChild(ast, sub => {
-          self.traverse(sub, cb, _value2key.get(sub), parents, pathEls);
+
+      createValue2KeyMap(ast, _value2key);
+
+      // for (const child of ast.getChildren()) {
+      //   if ((child as SyntaxList)._children) {
+      //     // const subArray = (child as SyntaxList)._children;
+      //     continue;
+      //   } else {
+      //     let propName = _value2key.get(child);
+      //     if (propName == null) {
+      //       createValue2KeyMap(ast, _value2key);
+      //       propName = _value2key.get(child);
+      //     }
+      //     const isStop = self.traverse(child, cb, propName, parents, pathEls);
+      //     if (isStop === true)
+      //       break;
+      //   }
+      // }
+      /**
+       * ts.forEachChild (or `Node.forEachChild()`) just can't list all the children like pure sytax tokens,
+       * so I use Node.getChildrend() to get all child nodes.
+       * 
+       * But ts.forEachChild is the only function which can get embedded array children node in form of NodeArray,
+       * so I still need it here.
+       */
+      ast.forEachChild(child => {
+          let propName = _value2key.get(child);
+          if (propName == null) {
+            createValue2KeyMap(ast, _value2key, true);
+            propName = _value2key.get(child);
+          }
+          const isStop = self.traverse(child, cb, propName, parents, pathEls);
+          return isStop as unknown as true | undefined;
+          // return undefined;
         },
-        subArray => self.traverseArray(subArray, cb, _value2key.get(subArray), parents, pathEls)
+        subArray => {
+          let propName = _value2key.get(subArray);
+          if (propName == null) {
+            createValue2KeyMap(ast, _value2key, true);
+            propName = _value2key.get(subArray);
+          }
+          return self.traverseArray(subArray, cb, propName, parents, pathEls);
+        }
       );
       parents.pop();
     }
     if (needPopPathEl)
       pathEls.pop();
+    return res;
   }
 
   pathForAst(ast: ts.Node, withType = true): string {
@@ -286,7 +344,15 @@ export default class Selector {
     const p = ast.parent;
     if (p == null)
       return null;
-    for (const prop of Object.keys(p)) {
+
+    const cachedProperties = astSchemaCache[p.kind];
+
+    let properties = cachedProperties;
+    if (properties == null) {
+      astSchemaCache[p.kind] = properties = Object.keys(p);
+    }
+
+    for (const prop of properties) {
       const value = (p as any)[prop];
       if (prop === 'parent' || prop === 'kind')
         continue;
@@ -303,15 +369,42 @@ export default class Selector {
     return '';
   }
 
-  protected traverseArray(nodes: ts.NodeArray<ts.Node>,
+  protected traverseArray(nodes: ts.NodeArray<ts.Node> | ts.Node[],
     cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void,
-    propName = '', parents: ts.Node[] = [], pathEls: string[] = []) {
+    propName = '', parents: ts.Node[] = [], pathEls: string[] = []): true | undefined {
 
     let i = 0;
     for (const ast of nodes) {
-      this.traverse(ast, cb, propName + `[${i++}]`, parents, pathEls);
+      const isStop = this.traverse(ast, cb, propName + `[${i++}]`, parents, pathEls);
+      if (isStop)
+        return isStop as unknown as true | undefined;
     }
   }
+}
+
+function createValue2KeyMap(ast: ts.Node, value2KeyMap: Map<any, string>, rebuild = false): string[] {
+  // const props = keysIn(ast)
+  let props: string[];
+  let cached = astSchemaCache[ast.kind];
+
+  if (rebuild || cached == null) {
+      props = Object.keys(ast)
+      .filter(prop => typeof ast[prop] !== 'function' && !['parent', 'kind'].includes(prop));
+      if (cached == null) {
+        astSchemaCache[ast.kind] = props;
+      } else {
+        const schema = cached;
+        schema.push(...props);
+        uniq(schema);
+        props = schema;
+      }
+  } else {
+    props = cached;
+  }
+  for (const key of props!) {
+    value2KeyMap.set((ast as any)[key], key);
+  }
+  return props!;
 }
 
 export interface AstCharacter {
@@ -329,6 +422,7 @@ export class Query {
   private fromRoot = false;
 
   constructor(query: string) {
+    query = query.trim();
     if (query.startsWith('^')) {
       query = query.slice(1);
       this.fromRoot = true;
@@ -383,7 +477,7 @@ export class Query {
   private matchesAst(query: AstQuery, target: AstCharacter): boolean {
     for (const key of Object.keys(query)) {
       const value = (query as any)[key];
-      if (_.isRegExp(value)) {
+      if (isRegExp(value)) {
         if (!(value as RegExp).test((target as any)[key]))
           return false;
       } else if ((target as any)[key] !== value)
