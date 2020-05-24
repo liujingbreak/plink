@@ -16,7 +16,7 @@ import * as _prebuildPost from './prebuild-post';
 import _cliDeploy from './cli-deploy';
 import log4js from 'log4js';
 import _genKeypair from './cli-keypair';
-import * as tsAstQuery from './ts-ast-query';
+// import * as tsAstQuery from './ts-ast-query';
 import * as _unzip from './cli-unzip';
 import * as astUtil from './cli-ts-ast-util';
 
@@ -115,8 +115,9 @@ const tsAstCmd = program.command('ts-ast <ts-file>')
 .option('-q|--query <selector>', 'query selector', undefined)
 .description('Print Typescript AST structure')
 .action(async filename => {
-  const printFile: (typeof tsAstQuery)['printFile'] = require('./ts-ast-query').printFile;
-  printFile(filename, tsAstCmd.opts().query, tsAstCmd.opts().type as boolean);
+  const astQ = await import('./ts-ast-query');
+  // const printFile: (typeof tsAstQuery)['printFile'] = require('./ts-ast-query').printFile;
+  astQ.printFile(filename, tsAstCmd.opts().query, tsAstCmd.opts().type as boolean);
 });
 
 program.command('functions <file>')

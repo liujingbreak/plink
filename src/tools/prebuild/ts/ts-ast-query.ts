@@ -354,7 +354,7 @@ export default class Selector {
 
     for (const prop of properties) {
       const value = (p as any)[prop];
-      if (prop === 'parent' || prop === 'kind')
+      if (['parent', 'kind', '_children', 'pos', 'end'].includes(prop))
         continue;
       if (Array.isArray(value)) {
         const idx = (value as any[]).indexOf(ast);
@@ -389,7 +389,7 @@ function createValue2KeyMap(ast: ts.Node, value2KeyMap: Map<any, string>, rebuil
 
   if (rebuild || cached == null) {
       props = Object.keys(ast)
-      .filter(prop => typeof ast[prop] !== 'function' && !['parent', 'kind'].includes(prop));
+      .filter(prop => typeof ast[prop] !== 'function' && !['parent', 'kind', '_children', 'pos', 'end'].includes(prop));
       if (cached == null) {
         astSchemaCache[ast.kind] = props;
       } else {
