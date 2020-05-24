@@ -1,18 +1,50 @@
 # DR. web component package toolkit
 It is designed to accomplish various web frontend tasks:
 
-- Command line tool for managing packages, symlinks, CI process.
-- Node package management system
-- Yaml File and TS file based configuration management system.
+- #### Command line tool for managing packages, symlinks, CI process.
+  - Node package management system (creating, compiling, bumping, publishing packages)
+  - Monorepo management (A repository that contains multiple Node packages, scripts for deployment, documentation project etc.)
+- #### Yaml File and TS file based configuration management system. (Similar to Lerna and Bazel)
+- #### A Node.js HTTP server runtime 
+  Express.js based.
+- #### Monorepo branch management and deployment tool
+  managing multiple products and versions in single monorepo
 
 
-Main purpose is to facilitate out web teams to:
+### Main purpose is to facilitate our web teams to:
 - Modularize their HTML5 + NodeJS based web and hybrid mobile app products.
 - Unify, share and reuse pluggable components between different products
 - Reuse a lot of predefined HTTP server with a lot of shared fundamental middlewares
 - Work together on a consistent platform
 
 Refer to the offcial doc in Chinese at [http://dr-web-house.github.io](http://dr-web-house.github.io).
+
+### Roadmap
+ - Support GraphQL out of the box.
+ - Support using Fastify as HTTP server engine.
+ - Work with Nest.js services.
+ - Support Angular 9.x (Current version only supports Angular 8.x)
+ - Migrating command line tool functions to Visual Code extension.
+ - Support Knative based and other feasible FAAS solution as a server side function container.
+
+### Designed features
+- A Component package (Node package) can contain both Client side code and server side code, even isomorphic code.
+
+- Be compliant (or work with) to modern web framework's command line tools like `Angulr cli` and `create-react-app`.
+
+- Support developing library package through symlinks, manage **monorepo** style projects (like what Lerna, Bazel and Yarn do).
+  > [monorepos](https://www.atlassian.com/git/tutorials/monorepos)
+  
+- Unlike Lerna, also supports **multirepo**.
+
+- Compiling Typescript file from monorepo source file structure.
+- A share environment configuration system which can be avaible 
+to runtime client side (in browser), compile time server side and Node.js express http server side.
+
+- Component package can take multiple roles:
+   - tooling like Webpack plugin or Angular cli extension
+   - client side business logic, server side logic
+   - isomorphic logic as shared library which can be run in both sides, if it is needed.
 
 ## Packages
 This is a monorepo which contains many tools and packages:
@@ -41,6 +73,8 @@ This is a monorepo which contains many tools and packages:
    | - | - | -
    | e2etestHelper| end-to-end test library, should be replaced with framework specific tool like **Protractor** | Obsolete
    | http-request-proxy | A reverse HTTP proxy middleware with API mock function, should be replaced with **http-proxy-middleware** by Webpack
+   | prebuild | Prebuild scripts for monorepo project deployment, manage Git branches |
+   | json-schema-gen | Generate JSON schema file for `fast-json-stringify` |
 
 - `dr-comp-package/wfh` \
 `drcp` command line tool for build, publish and run application or packages
@@ -85,24 +119,48 @@ Options:
 copyright 2016
 ```
 
-### Designed features
-- A Component package (Node package) can contain both Client side code and server side code, even isomorphic code.
+JSON schema command
 
-- Be compliant (or work with) to modern web framework's command line tools like `Angulr cli` and `create-react-app`.
+```
+Usage: json-schema-gen [options] [...packages]
 
-- Support developing library package through symlinks, manage **monorepo** style projects (like what Lerna, Bazel and Yarn do).
-  > [monorepos](https://www.atlassian.com/git/tutorials/monorepos)
-  
-- Unlike Lerna, also supports **multirepo**.
+Scan packages and generate json schema.
+You package.json file must contains:
+  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}
 
-- Compiling Typescript file from monorepo source file structure.
-- A share environment configuration system which can be avaible 
-to runtime client side (in browser), compile time server side and Node.js express http server side.
+Options:
+  -V, --version                                   output the version number
+  -c, --config <config-file>                      Read config files, if there are multiple files, the latter one overrides previous one (default: [])
+  --prop <property-path=value as JSON | literal>  <property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string
+   e.g.
+   (default: [])
+  -h, --help                                      display help for command
+```  
 
-- Component package can take multiple roles:
-   - tooling like Webpack plugin or Angular cli extension
-   - client side business logic, server side logic
-   - isomorphic logic as shared library which can be run in both sides, if it is needed.
+Prebuild command
+```
+Usage: prebuild [options] [command]
 
-### Roadmap
- - Support GraphQL
+Prebuild and deploy static resource to file server and compile node server side TS files
+
+Options:
+  -V, --version                                          output the version number
+  -c, --config <config-file>                             Read config files, if there are multiple files, the latter one overrides previous one (default: [])
+  --prop <property-path=value as JSON | literal>         <property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string
+   e.g.
+   (default: [])
+  --secret <credential code>                             credential code for deploy to "prod" environment
+  -h, --help                                             display help for command
+
+Commands:
+  deploy [options] <app> [ts-scripts#function-or-shell]
+  githash [options]
+  send [options] <app-name> <zip-file>                   Send static resource to remote server
+  mockzip [options]
+  keypair [file-name]                                    Generate a new asymmetric key pair
+  ts-ast [options] <ts-file>                             Print Typescript AST structure
+  functions <file>                                       List exported functions for *.ts, *.d.ts, *.js file
+  listzip <file>                                         List zip file content and size
+  help [command]                                         display help for command
+```
+
