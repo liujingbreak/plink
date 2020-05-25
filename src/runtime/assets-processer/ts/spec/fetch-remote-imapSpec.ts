@@ -31,7 +31,7 @@ describe('fetch-remote-imap', () => {
 
   it('can recieve mail', async () => {
     await fetchImap.connectImap(async context => {
-      const foundIdx = await context.findMail(context.lastIndex, 'build artifact:bkjk-pre-build(prod-admin-bcl)');
+      const foundIdx = await context.findMail(context.lastIndex, 'build artifact:pre-build(prod-admin-bcl)');
       if (foundIdx == null)
         throw new Error('Can not find the mail');
       log.info('--- find mail index ---', foundIdx);
@@ -45,7 +45,7 @@ describe('fetch-remote-imap', () => {
   xit('can recieve mail only with text body', async () => {
     const appName = 'Hellow world';
     await fetchImap.connectImap(async context => {
-      const foundIdx = await context.findMail(context.lastIndex, `build artifact:bkjk-pre-build(test-${appName})`);
+      const foundIdx = await context.findMail(context.lastIndex, `build artifact:pre-build(test-${appName})`);
       if (foundIdx == null)
         throw new Error(`Can not find mail for "${appName}"`);
       const text = await context.waitForFetchText(foundIdx);

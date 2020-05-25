@@ -3,22 +3,10 @@ import log4js from 'log4js';
 import api from '__api';
 
 const log = log4js.getLogger(api.packageName + '.send-patch');
+const installUrlMap = api.config.get(api.packageName + '.installEndpoint') as {[env: string]: string};
 
 export async function send(env: string, configName: string, zipFile: string, secret?: string) {
-  let url: string;
-  switch (env) {
-    case 'prod':
-      url = 'https://credit-service.bkjk.com/_install';
-      break;
-    case 'local':
-      url = 'http://localhost:14333/_install';
-      break;
-    case 'dev':
-    case 'test':
-    default:
-      url = `https://credit-service.${env}.bkjk.com/_install`;
-      break;
-  }
+  const url = installUrlMap[env];
 
   const sendAppZip: typeof _sendAppZip = require('@dr-core/assets-processer/dist/content-deployer/cd-client').sendAppZip;
 
@@ -37,9 +25,5 @@ export async function send(env: string, configName: string, zipFile: string, sec
     log.error(ex);
     throw ex;
   }
-}
-
-export function test() {
-  log.info('test');
 }
 

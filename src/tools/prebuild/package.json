@@ -11,7 +11,10 @@
     "config": {
       "server": {
         "prebuildGitRemote": "origin",
-        "prebuildReleaseBranch": "release-server"
+        "prebuildReleaseBranch": "release-server",
+        "installEndpoint": {
+          "local": "http://localhost:14333/_install"
+        }
       }
     },
     "config.local": {
