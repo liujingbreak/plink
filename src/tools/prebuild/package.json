@@ -1,6 +1,6 @@
 {
   "name": "@bk/prebuild",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Prebuild for monorepo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
