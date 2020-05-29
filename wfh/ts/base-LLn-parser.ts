@@ -1,3 +1,6 @@
+/**
+ * @Deprecated use LLn-parser instead
+ */
 import sortedIndex from 'lodash/sortedIndex';
 
 export class Token<T> {

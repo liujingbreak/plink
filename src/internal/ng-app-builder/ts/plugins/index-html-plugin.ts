@@ -4,7 +4,7 @@
  */
 import { Compiler } from 'webpack';
 const { RawSource } = require('webpack-sources');
-import {TemplateParser} from '../utils/ng-html-parser';
+import parseHtml from '../utils/ng-html-parser';
 import * as _ from 'lodash';
 import replaceCode, {ReplacementInf} from '../utils/patch-text';
 import htmlLoader = require('../loaders/ng-html-loader');
@@ -71,8 +71,15 @@ export async function transformHtml(this: void,
   // has limitation in parsing `<script>inline code ...</script>`
   html = await htmlLoader.compileHtml(html, new MockLoaderContext());
   let hasBaseHref = false;
-  const asts = new TemplateParser(html).parse();
-  for (const ast of asts) {
+  const parsed = parseHtml(html);
+  for (const comment of parsed.comments) {
+    replacements.push({
+      start: comment.pos,
+      end: comment.end,
+      text: ''
+    });
+  }
+  for (const ast of parsed.tags) {
     const tagName = ast.name.toLowerCase();
     const attrs = ast.attrs;
     if (tagName === 'script' && attrs) {

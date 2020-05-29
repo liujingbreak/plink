@@ -1,4 +1,42 @@
 import util from 'util';
+
+/**
+ * T - Token Types
+ * AST - type of returned AST object
+ */
+export function createStringParser<T, AST>(parserName: string, lexer: Lexer<string, T>,
+  grammar: Grammar<Token<T>, AST>) {
+
+  return function(input: string) {
+    const p = parser(parserName, lexer, grammar);
+    p.write(input);
+    p.end();
+    return p.getResult();
+  };
+}
+
+/**
+ * Help for testing result of lexer function
+ * @param lexer 
+ */
+export function listTokens<T>(debugName: string, input: string, lexer: Lexer<string, T>): Token<T>[] {
+  const lexerLa = new LookAhead<string, T>(debugName, () => {
+    lexerLa._write(input);
+    lexerLa._final();
+  });
+
+  const tokens = [] as Token<T>[];
+  lexer(lexerLa, {
+    emit() {
+      const token = strChunk2Token(lexerLa.currChunk);
+      token.close(lexerLa.position);
+      tokens.push(token);
+    },
+    end() {}
+  });
+
+  return tokens;
+}
 export class Chunk<V, T> {
   type: T;
   values?: V[] = [];
@@ -21,6 +59,11 @@ export class Token<T> extends Chunk<string, T> {
   text: string;
 }
 
+/**
+ *  V is type of each `character`, e.g. string, number
+ *  T is Token Type, e.g. string or a enum
+ *  C could be omit
+ */
 export type Lexer<V,T, C extends Chunk<V, T> = Chunk<V, T>> =
   (la: LookAhead<V,T>, emitter: TokenEmitter<V, T, C>) => void;
 export type Grammar<C, A> = (tokenLa: LookAhead<C>) => A;
@@ -47,7 +90,9 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
       if (isString === undefined && lexerLa.currChunk.values != null)
         isString = typeof lexerLa.currChunk.values[0] === 'string';
       const token: C = chunkConverter ? chunkConverter(lexerLa.currChunk) :
-        (isString ? strChunk2Token(lexerLa.currChunk as unknown as Chunk<string, T>) : lexerLa.currChunk as C);
+        (isString ?
+          strChunk2Token(lexerLa.currChunk as unknown as Chunk<string, T>) as unknown as C :
+          lexerLa.currChunk as C);
       tokenLa._write([token]);
       token.close(lexerLa.position);
     },
@@ -67,7 +112,8 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
   };
 }
 
-export class LookAhead<V, T = any> {
+
+export class LookAhead<V, T = void> {
   static WAIT_ERROR: 'WAIT_ERROR';
   cached: Array<V|null>;
   line = 1;
@@ -237,7 +283,17 @@ export class LookAhead<V, T = any> {
 }
 
 function strChunk2Token<T>(chunk: Chunk<string, T>) {
-  if (chunk.values)
+  if (chunk.values) {
     (chunk as Token<T>).text = chunk.values.join('');
-  return chunk as any;
+    delete chunk.values;
+  }
+  return chunk as Token<T>;
+}
+
+/**
+ * Convenient function for creating a text based parser,
+ * you only need to define Token types, lexer function, grammar function
+ */
+export function createTextParser() {
+
 }

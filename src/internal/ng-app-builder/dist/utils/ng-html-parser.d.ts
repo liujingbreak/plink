@@ -1,7 +1,7 @@
 /**
  * TODO: Support parsing file with <script></script> tag contains special JS character like "<" and ">"
  */
-import { Token, BaseParser, BaseLexer } from 'dr-comp-package/wfh/dist/base-LLn-parser';
+import { Lexer, Token } from 'dr-comp-package/wfh/dist/LLn-parser';
 export declare enum HtmlTokenType {
     '<' = 0,
     '>' = 1,
@@ -16,32 +16,35 @@ export declare enum HtmlTokenType {
     identity = 10,
     stringLiteral = 11,
     any = 12,
-    space = 13
+    space = 13,
+    comment = 14
 }
+export declare const lexer: Lexer<string, HtmlTokenType>;
 export { HtmlTokenType as TokenType };
-export declare class TemplateLexer extends BaseLexer<HtmlTokenType> {
-    [Symbol.iterator](): Iterator<Token<HtmlTokenType>>;
-    openTagStart(): Token<HtmlTokenType>;
-    closeTagStart(): Token<HtmlTokenType>;
-    isIdStart(laIdx?: number): boolean | undefined;
-    isWhitespace(): boolean | "" | null;
-    stringLit(quote: string): Token<HtmlTokenType>;
-    skip(): string | null;
-    isComment(): boolean;
-    comment(): boolean;
-    isSwigComment(): boolean;
-    swigComment(): void;
+export interface ParseHtmlResult {
+    /** Array only contains openning tags */
+    tags: OpenTagAst[];
+    allTags: BaseTagAst[];
+    comments: Token<HtmlTokenType>[];
 }
-export interface TagAst {
+export declare enum TagKind {
+    open = 0,
+    close = 1
+}
+export interface BaseTagAst {
+    kind: TagKind;
     name: string;
+    start: number;
+    end: number;
+}
+export interface OpenTagAst extends BaseTagAst {
     attrs?: {
         [key: string]: {
             isNg: boolean;
             value?: AttributeValueAst;
         };
     };
-    start: number;
-    end: number;
+    selfClosed: boolean;
     [key: string]: any;
 }
 export interface AttributeValueAst {
@@ -49,22 +52,4 @@ export interface AttributeValueAst {
     start: number;
     end: number;
 }
-export declare class TemplateParser extends BaseParser<HtmlTokenType> {
-    lexer: TemplateLexer;
-    text: string;
-    constructor(input: string);
-    getCurrentPosInfo(): string;
-    skip(): void;
-    parse(): TagAst[];
-    tag(): TagAst;
-    attributes(): {
-        [key: string]: {
-            isNg: boolean;
-            value: AttributeValueAst | undefined;
-        };
-    };
-    isNgAttrName(): boolean;
-    ngAttrName(): string;
-    attrName(): string;
-    attrValue(): AttributeValueAst | undefined;
-}
+export default function parseHtml(input: string): ParseHtmlResult;

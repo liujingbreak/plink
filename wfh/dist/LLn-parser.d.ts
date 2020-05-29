@@ -1,3 +1,13 @@
+/**
+ * T - Token Types
+ * AST - type of returned AST object
+ */
+export declare function createStringParser<T, AST>(parserName: string, lexer: Lexer<string, T>, grammar: Grammar<Token<T>, AST>): (input: string) => AST;
+/**
+ * Help for testing result of lexer function
+ * @param lexer
+ */
+export declare function listTokens<T>(debugName: string, input: string, lexer: Lexer<string, T>): Token<T>[];
 export declare class Chunk<V, T> {
     pos: number;
     line: number;
@@ -13,6 +23,11 @@ export declare class Chunk<V, T> {
 export declare class Token<T> extends Chunk<string, T> {
     text: string;
 }
+/**
+ *  V is type of each `character`, e.g. string, number
+ *  T is Token Type, e.g. string or a enum
+ *  C could be omit
+ */
 export declare type Lexer<V, T, C extends Chunk<V, T> = Chunk<V, T>> = (la: LookAhead<V, T>, emitter: TokenEmitter<V, T, C>) => void;
 export declare type Grammar<C, A> = (tokenLa: LookAhead<C>) => A;
 interface TokenEmitter<V, T, C> {
@@ -24,7 +39,7 @@ export declare function parser<V, T, C extends Chunk<V, T>, A>(parserName: strin
     end: LookAhead<V, T>['_final'];
     getResult: () => A;
 };
-export declare class LookAhead<V, T = any> {
+export declare class LookAhead<V, T = void> {
     protected name: string;
     private onDrain?;
     static WAIT_ERROR: 'WAIT_ERROR';
@@ -64,4 +79,9 @@ export declare class LookAhead<V, T = any> {
        */
     private read;
 }
+/**
+ * Convenient function for creating a text based parser,
+ * you only need to define Token types, lexer function, grammar function
+ */
+export declare function createTextParser(): void;
 export {};

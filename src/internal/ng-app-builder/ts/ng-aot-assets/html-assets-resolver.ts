@@ -1,5 +1,5 @@
 
-import {TemplateParser, AttributeValueAst, TagAst} from '../utils/ng-html-parser';
+import parseHtml, {AttributeValueAst, OpenTagAst} from '../utils/ng-html-parser';
 import patchText, {Replacement as Rep} from '../utils/patch-text';
 import api from '__api';
 import Url from 'url';
@@ -16,9 +16,9 @@ const toCheckNames = ['href', 'src', 'ng-src', 'ng-href', 'srcset', 'routerLink'
 
 export function replaceForHtml(content: string, resourcePath: string,
   callback: (text: string) => Observable<string>): Observable<string> {
-  let ast: TagAst[];
+  let ast: OpenTagAst[];
   try {
-    ast = new TemplateParser(content).parse();
+    ast = parseHtml(content).tags;
   } catch (e) {
     log.error(`${resourcePath}: template parsing failed\n${content}`, e);
     throw e;
@@ -54,7 +54,7 @@ class AttrAssetsUrlResolver {
       this.packagename = pk.longName;
   }
   resolve(attrName: string, valueToken: AttributeValueAst,
-    el: TagAst): Observable<Rep> | null {
+    el: OpenTagAst): Observable<Rep> | null {
     if (!valueToken)
       return null;
     if (attrName === 'srcset') {
