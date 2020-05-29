@@ -212,7 +212,6 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       return handler.webpackConfig(webpackConfig);
     return lastResult;
   });
-
   const wfname = api.config.resolve('destDir', 'ng-app-builder.report',
     `webpack-${param.ssr ? 'ssr' : 'browser'}.config.${++context.webpackRunCount}.js`);
   fs.writeFileSync(wfname, printConfig(webpackConfig));

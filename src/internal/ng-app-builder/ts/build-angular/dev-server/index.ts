@@ -1,5 +1,6 @@
 // tslint:disable no-console
 import '../../ng/node-inject';
+import webpack from 'webpack';
 import _ from 'lodash';
 import {executeDevServerBuilder, DevServerBuilderOptions, DevServerBuilderOutput} from '@angular-devkit/build-angular';
 import {
@@ -25,7 +26,7 @@ export default createBuilder<DevServerBuilderOptions, DevServerBuilderOutput>(
         });
         return executeDevServerBuilder(options, context, {
           webpackConfiguration: async (config) => {
-            await drcpBuilderCtx.configWebpack( config, {devMode: true});
+            await drcpBuilderCtx.configWebpack( config as unknown as webpack.Configuration, {devMode: true});
             return config;
           },
           indexHtml: (content) => drcpBuilderCtx.transformIndexHtml(content)

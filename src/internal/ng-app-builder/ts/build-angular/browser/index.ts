@@ -1,4 +1,5 @@
 import '../../ng/node-inject';
+import webpack from 'webpack';
 import {executeBrowserBuilder} from '@angular-devkit/build-angular';
 
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
@@ -26,7 +27,7 @@ export default createBuilder<json.JsonObject & BrowserBuilderSchema>(
         });
         return executeBrowserBuilder(browserOptions, context, {
           webpackConfiguration: async (config) => {
-            await drcpBuilderCtx.configWebpack(config, {devMode: true});
+            await drcpBuilderCtx.configWebpack(config as unknown as webpack.Configuration, {devMode: true});
             return config;
           },
           indexHtml: (content) => drcpBuilderCtx.transformIndexHtml(content)
