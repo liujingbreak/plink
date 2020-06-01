@@ -205,7 +205,9 @@ export default async function changeWebpackConfig(context: BuilderContext, param
 
   if (param.ssr) {
     webpackConfig.devtool = 'source-map';
+    Object.getPrototypeOf(api).ssr = param.ssr;
   }
+  console.info('now api:' + api.ssr);
 
   await api.config.configHandlerMgr().runEach<WepackConfigHandler>((file, lastResult, handler) => {
     if (handler.webpackConfig)
