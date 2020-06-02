@@ -7,6 +7,11 @@ export default class TsDependencyGraph {
      * Angular style lazy route loading grammar
      */
     loadChildren: Set<string>;
+    /** files as which TS compiler considers from node_modules
+     * TS compiler will not compile them if they are not explicitly
+     * involved in tsconfig
+      */
+    externals: Set<string>;
     toWalk: string[];
     private resCache;
     private host;

@@ -55,10 +55,12 @@ export function addSourceFiles(compilerOptions: any, entryFiles: string[], tscon
     else
       console.log(ex.toString());
   });
-  // I must put all walked ts dependencies in Tsconfig json file, since some are package file located in
-  // node_modules, by default Angular or tsc will exclude them
-  return Array.from(g.requestMap.keys())
-    .map(file => Path.relative(projDir, file).replace(/\\/g, '/'));
+  // I must explicitly involve "external" ts dependencies in Tsconfig json file, since some are package file located in
+  // node_modules, by default Angular or tsc will exclude them, in AOT mode we use preserve-symblink option
+  // so that some symlink source file is considered in node_modules.
+  return Array.from(g.loadChildren.keys())
+    .map(file => Path.relative(projDir, file).replace(/\\/g, '/'))
+    .concat(Array.from(g.externals.values()));
 }
 
 

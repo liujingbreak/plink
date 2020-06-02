@@ -1,6 +1,6 @@
 import Query from './utils/ts-ast-query';
 import fs from 'fs';
-import ts from 'typescript';
+import ts, {Extension} from 'typescript';
 import Path from 'path';
 import {EOL as eol} from 'os';
 import { createWriteStream } from 'fs-extra';
@@ -14,6 +14,11 @@ export default class TsDependencyGraph {
    * Angular style lazy route loading grammar 
    */
   loadChildren = new Set<string>();
+  /** files as which TS compiler considers from node_modules
+   * TS compiler will not compile them if they are not explicitly
+   * involved in tsconfig
+    */
+  externals = new Set<string>();
   toWalk: string[] = [];
 
   private resCache: ts.ModuleResolutionCache;
@@ -83,13 +88,15 @@ export default class TsDependencyGraph {
    * @param by 
    * @returns true if it is requested at first time
    */
-  private checkResolved(requestDep: string, by: string): boolean {
+  private checkResolved(requestDep: string, by: string, isExternal: boolean): boolean {
     const byList = this.requestMap.get(requestDep);
     if (byList) {
       byList.push(by);
       return false;
     } else {
       this.requestMap.set(requestDep, [by]);
+      if (isExternal)
+        this.externals.add(requestDep);
       return true;
     }
   }
@@ -99,8 +106,8 @@ export default class TsDependencyGraph {
       const resolved = ts.resolveModuleName(path, file, this.co, this.host, this.resCache).resolvedModule;
       if (resolved) {
         const dep = resolved.resolvedFileName;
-        if (dep.endsWith('.ts') && !dep.endsWith('.d.ts')) {
-          if (this.checkResolved(dep, file)) {
+        if (resolved.extension === Extension.Ts || resolved.extension === Extension.Tsx /*dep.endsWith('.ts') && !dep.endsWith('.d.ts')*/) {
+          if (this.checkResolved(dep, file, !!resolved.isExternalLibraryImport)) {
           // log.debug('dep: ' + Path.relative(rootPath, dep) + ',\n  from ' + Path.relative(rootPath, file));
             this.toWalk.push(dep);
             if (cb) {
