@@ -144,7 +144,6 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       }})()
     );
   }
-  console.info('>>>>>>>>out externals', webpackConfig.target);
   if (webpackConfig.target !== 'node') {
     // Since Angular 8.1.0, there is no indexHtmlPlugin used in Webpack configuration
     // webpackConfig.plugins.push(new IndexHtmlPlugin({
@@ -169,11 +168,10 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       }
     })());
   } else {
-    console.info('>>>>>>>>bundleDependencies', param.browserOptions.bundleDependencies);
+    console.log('>>>>>>>>bundleDependencies', param.browserOptions.bundleDependencies);
     // This is condition of Server side rendering
     // Refer to angular-cli/packages/angular_devkit/build_angular/src/angular-cli-files/models/webpack-configs/server.ts
     if (param.browserOptions.bundleDependencies === 'none') {
-      console.info('>>>>>>>>in externals');
       webpackConfig.externals = [
         /^@angular/,
         (_: any, request: any, callback: (error?: any, result?: any) => void) => {
@@ -209,7 +207,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     webpackConfig.devtool = 'source-map';
     Object.getPrototypeOf(api).ssr = param.ssr;
   }
-  console.info('now api:' + api.ssr);
+  console.log('now api:' + api.ssr);
 
   await api.config.configHandlerMgr().runEach<WepackConfigHandler>((file, lastResult, handler) => {
     if (handler.webpackConfig)
