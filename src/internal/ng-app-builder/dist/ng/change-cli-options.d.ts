@@ -1,6 +1,7 @@
 import { BuilderContext } from '@angular-devkit/architect';
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { Schema as ServerBuilderOptions } from '@angular-devkit/build-angular/src/server/schema';
 import { ConfigHandler, DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
 import { AngularBuilderOptions } from './common';
 export interface AngularConfigHandler extends ConfigHandler {
@@ -16,7 +17,7 @@ export interface AngularConfigHandler extends ConfigHandler {
  * @param config
  * @param browserOptions
  */
-export declare function changeAngularCliOptionsForBuild(config: DrcpConfig, browserOptions: BrowserBuilderSchema, context: BuilderContext): Promise<AngularBuilderOptions>;
+export declare function changeAngularCliOptionsForBuild(config: DrcpConfig, browserOptions: BrowserBuilderSchema | ServerBuilderOptions, context: BuilderContext): Promise<AngularBuilderOptions>;
 /**
  * For dev server (ng serve)
  * @param config

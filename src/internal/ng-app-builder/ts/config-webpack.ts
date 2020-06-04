@@ -144,7 +144,6 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       }})()
     );
   }
-
   if (webpackConfig.target !== 'node') {
     // Since Angular 8.1.0, there is no indexHtmlPlugin used in Webpack configuration
     // webpackConfig.plugins.push(new IndexHtmlPlugin({
@@ -205,6 +204,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
 
   if (param.ssr) {
     webpackConfig.devtool = 'source-map';
+    Object.getPrototypeOf(api).ssr = param.ssr;
   }
 
   await api.config.configHandlerMgr().runEach<WepackConfigHandler>((file, lastResult, handler) => {
@@ -212,7 +212,6 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       return handler.webpackConfig(webpackConfig);
     return lastResult;
   });
-
   const wfname = api.config.resolve('destDir', 'ng-app-builder.report',
     `webpack-${param.ssr ? 'ssr' : 'browser'}.config.${++context.webpackRunCount}.js`);
   fs.writeFileSync(wfname, printConfig(webpackConfig));

@@ -2,6 +2,7 @@
 import { BuilderContext, Target, targetFromTargetString } from '@angular-devkit/architect';
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
+import { Schema as ServerBuilderOptions } from '@angular-devkit/build-angular/src/server/schema';
 import { packageAssetsFolders } from '@dr-core/assets-processer/dist/dev-serve-assets';
 import chalk from 'chalk';
 import { ConfigHandler, DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
@@ -58,7 +59,7 @@ function hackAngularBuilderContext(context: BuilderContext, targetName: string,
  * @param browserOptions 
  */
 export async function changeAngularCliOptionsForBuild(config: DrcpConfig,
-  browserOptions: BrowserBuilderSchema, context: BuilderContext): Promise<AngularBuilderOptions> {
+  browserOptions: BrowserBuilderSchema | ServerBuilderOptions, context: BuilderContext): Promise<AngularBuilderOptions> {
   return processBrowserBuiliderOptions(config, browserOptions, context);
 }
 
@@ -85,7 +86,7 @@ export async function changeAngularCliOptions(config: DrcpConfig,
 
 async function processBrowserBuiliderOptions(
   config: DrcpConfig,
-  rawBrowserOptions: BrowserBuilderSchema,
+  rawBrowserOptions: BrowserBuilderSchema | ServerBuilderOptions,
   context: BuilderContext,
   devServerConfig?: DevServerBuilderOptions, hmr = false) {
 

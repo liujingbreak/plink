@@ -32,7 +32,7 @@
         "description": "Run tslint over a TS project."
       },
       "server": {
-        "implementation": "./src/server",
+        "implementation": "../../dist/build-angular/server",
         "schema": "./src/server/schema.json",
         "description": "Build a server Angular application."
       }
