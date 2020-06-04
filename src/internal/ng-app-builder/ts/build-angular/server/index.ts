@@ -23,7 +23,7 @@ export default createBuilder<json.JsonObject & ServerBuilderOptions, ServerBuild
       });
       return executeServerBuilder(serverOptions, context, {
         webpackConfiguration: async (config) => {
-          await drcpBuilderCtx.configWebpack(config as unknown as webpack.Configuration, { devMode: true });
+          await drcpBuilderCtx.configWebpack(config, { devMode: true });
           return config;
         }
       });
