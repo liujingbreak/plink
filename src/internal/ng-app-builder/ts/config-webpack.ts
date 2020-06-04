@@ -168,7 +168,6 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       }
     })());
   } else {
-    console.log('>>>>>>>>bundleDependencies', param.browserOptions.bundleDependencies);
     // This is condition of Server side rendering
     // Refer to angular-cli/packages/angular_devkit/build_angular/src/angular-cli-files/models/webpack-configs/server.ts
     if (param.browserOptions.bundleDependencies === 'none') {
@@ -207,7 +206,6 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     webpackConfig.devtool = 'source-map';
     Object.getPrototypeOf(api).ssr = param.ssr;
   }
-  console.log('now api:' + api.ssr);
 
   await api.config.configHandlerMgr().runEach<WepackConfigHandler>((file, lastResult, handler) => {
     if (handler.webpackConfig)
