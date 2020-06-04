@@ -27,7 +27,7 @@ export default createBuilder<json.JsonObject & BrowserBuilderSchema>(
         });
         return executeBrowserBuilder(browserOptions, context, {
           webpackConfiguration: async (config) => {
-            await drcpBuilderCtx.configWebpack(config as unknown as webpack.Configuration, {devMode: true});
+            await drcpBuilderCtx.configWebpack(config as webpack.Configuration, {devMode: true});
             return config;
           },
           indexHtml: (content) => drcpBuilderCtx.transformIndexHtml(content)
