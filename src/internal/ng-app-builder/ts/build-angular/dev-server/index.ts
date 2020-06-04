@@ -26,7 +26,7 @@ export default createBuilder<DevServerBuilderOptions, DevServerBuilderOutput>(
         });
         return executeDevServerBuilder(options, context, {
           webpackConfiguration: async (config) => {
-            await drcpBuilderCtx.configWebpack( config as unknown as webpack.Configuration, {devMode: true});
+            await drcpBuilderCtx.configWebpack( config as webpack.Configuration, {devMode: true});
             return config;
           },
           indexHtml: (content) => drcpBuilderCtx.transformIndexHtml(content)
