@@ -80,7 +80,8 @@ export async function start(imap: ImapManager) {
  * It seems ok to quit process without calling this function
  */
 export function stop() {
-  imap && imap.stopWatch();
+  if (imap)
+    imap.stopWatch();
   // stopped = true;
   // if (watcher)
   //   watcher.close();

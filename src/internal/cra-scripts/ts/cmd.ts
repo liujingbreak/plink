@@ -16,7 +16,7 @@ export function genPackage(path: string, dryrun = false) {
   if (ma) {
     path = ma[1];
   }
-  const dir = Path.resolve('projects/cra-lib', path);
+  const dir = Path.resolve(path);
   fs.mkdirpSync(dir);
 
   copyTempl(dir, Path.basename(path), dryrun);

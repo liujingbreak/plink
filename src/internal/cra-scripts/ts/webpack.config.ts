@@ -19,20 +19,20 @@ const findPackageByFile = createLazyPackageFileFinder();
 
 export = function(webpackEnv: string) {
 
-  drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check:\n  ${Path.resolve('/logs')}\n  ${__filename}`);
+  drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check:\n  ${Path.resolve('/logs')}`);
 
   const cmdOption = getCmdOptions();
   // console.log('webpackEnv=', webpackEnv);
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
   if (cmdOption.argv.get('dev') || cmdOption.argv.get('watch')) {
     webpackEnv = 'development';
-    console.log('Development mode is on:', webpackEnv);
+    console.log('[cra-scripts] Development mode is on:', webpackEnv);
   } else {
     process.env.GENERATE_SOURCEMAP = 'false';
   }
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   const config: Configuration = origWebpackConfig(webpackEnv);
-  console.log(__filename, config.output!.publicPath);
+  console.log(`[cra-scripts] output.publicPath: ${config.output!.publicPath}`);
   // Make sure babel compiles source folder out side of current src directory
   findAndChangeRule(config.module!.rules);
   insertLessLoaderRule(config.module!.rules);
@@ -41,7 +41,7 @@ export = function(webpackEnv: string) {
   if (cmdOption.buildType === 'app') {
     // TODO: do not hard code
     config.resolve!.alias!['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
-    console.log(packageJson.name + '/' + packageJson.dr['cra-start-entry']);
+    console.log(`[cra-scripts] alias:dr.cra-start-entry: ${config.resolve!.alias!['alias:dr.cra-start-entry']}`);
   }
 
 
@@ -55,14 +55,15 @@ export = function(webpackEnv: string) {
   }
 
   // Move project node_modules to first position in resolve order
-  if (config.resolve && config.resolve.modules) {
-    const topModuleDir = Path.resolve('node_modules');
-    const pwdIdx = config.resolve.modules.findIndex(m => m === topModuleDir);
-    if (pwdIdx > 0) {
-      config.resolve.modules.splice(pwdIdx, 1);
-    }
-    config.resolve.modules.unshift(topModuleDir);
-  }
+  // TODO: this might be problematic, the one in space top level might not be the right version one
+  // if (config.resolve && config.resolve.modules) {
+  //   const topModuleDir = Path.resolve('node_modules');
+  //   const pwdIdx = config.resolve.modules.findIndex(m => m === topModuleDir);
+  //   if (pwdIdx > 0) {
+  //     config.resolve.modules.splice(pwdIdx, 1);
+  //   }
+  //   config.resolve.modules.unshift(topModuleDir);
+  // }
 
   Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
   Object.assign(config.optimization!.splitChunks, {
@@ -84,7 +85,7 @@ export = function(webpackEnv: string) {
         const stats = compilation.getStats();
         compilation.assets['stats.json'] = new RawSource(JSON.stringify(stats.toJson('verbose')));
         setTimeout(() => {
-          console.log('');
+          console.log('[cra-scripts] stats:');
           console.log(stats.toString('normal'));
           console.log('');
         }, 0);
@@ -116,7 +117,7 @@ export = function(webpackEnv: string) {
 
   fs.mkdirpSync('logs');
   fs.writeFile('logs/webpack.config.debug.js', printConfig(config), (err) => {
-    // just for debug
+    console.error(err);
   });
   return config;
 };
@@ -205,12 +206,11 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
       }
 
       if ((rule as RuleSetRule).include && typeof (rule as RuleSetRule).loader === 'string' &&
-        (rule as RuleSetLoader).loader!.indexOf(Path.sep + 'babel-loader' + Path.sep)) {
+        (rule as RuleSetLoader).loader!.indexOf(Path.sep + 'babel-loader' + Path.sep) >= 0) {
         delete (rule as RuleSetRule).include;
         const origTest = (rule as RuleSetRule).test;
         (rule as RuleSetRule).test = (file) => {
           const pk = findPackageByFile(file);
-
           const yes = ((pk && pk.dr) || file.startsWith(craPaths.appSrc)) &&
             (origTest instanceof RegExp) ? origTest.test(file) :
               (origTest instanceof Function ? origTest(file) : origTest === file);

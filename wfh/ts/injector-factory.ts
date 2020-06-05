@@ -5,8 +5,8 @@ import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/fact
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as Path from 'path';
-
-const log = require('log4js').getLogger('lib.injectorFactory');
+import log4js from 'log4js';
+const log = log4js.getLogger('wfh.injectorFactory');
 
 const packageNamePathMap: {[name: string]: string} = {};
 

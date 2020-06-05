@@ -8,7 +8,7 @@ const chalk = require('chalk');
 const semver = require('semver');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
 const packageUtils = require('../lib/packageMgr/packageUtils');
-const getPackageJsonGuarder = require('../lib/gulp/packageJsonGuarder');
+import {getInstance as getPackageJsonGuarder} from './package-json-guarder';
 import * as recipeManager from './recipe-manager';
 
 export function listCompDependency(pkJsonFiles: string[], write: boolean, isDrcpSymlink: boolean) {
@@ -103,17 +103,23 @@ class InstallManager {
     const self = this;
     const rootPath = config().rootPath;
     const packageJsonGuarder = getPackageJsonGuarder(rootPath);
-    var mainPkjson, mainDeps: {[name: string]: string};
+    let mainPkjson: {dependencies: any, devDependencies: any};
+    let mainDeps: {[name: string]: string};
+    let mainDevDeps: {[name: string]: string};
 
     if (!packageJsonGuarder.isPackageJsonDirty) {
       const mainPkFile = Path.resolve(rootPath, 'package.json');
       log.info('Checking', mainPkFile);
       mainPkjson = JSON.parse(fs.readFileSync(mainPkFile, 'utf8'));
       mainDeps = mainPkjson.dependencies;
+      mainDevDeps = mainPkjson.devDependencies;
       if (mainDeps == null)
         mainDeps = mainPkjson.dependencies = {};
-      if (process.env.NODE_ENV === 'development')
-        _.assign(mainDeps, mainPkjson.devDependencies);
+      if (mainDevDeps == null)
+        mainDevDeps = mainPkjson.devDependencies = {};
+
+      // if (process.env.NODE_ENV !== 'production')
+      //   _.assign(mainDeps, mainPkjson.devDependencies);
       _.each(packageJsonGuarder.getChanges().dependencies, (ver, name) => {
         // If there is a same dependency in original package.json, we use the version of that one, cuz' that might be manually set
         if (!_.has(mainDeps, name))
@@ -121,7 +127,8 @@ class InstallManager {
       });
     } else {
       mainPkjson = packageJsonGuarder.getChanges();
-      mainDeps = mainPkjson.dependencies;
+      mainDeps = mainPkjson.dependencies || {};
+      mainDevDeps = mainPkjson.devDependencies || {};
     }
 
     const depNames = Object.keys(this.srcDeps);
@@ -165,12 +172,15 @@ class InstallManager {
     if (write) {
       // _.assign(mainPkjson.dependencies, newDepJson);
       const deleted: string[] = [];
-      _.each(mainDeps, (_ver, name) => {
-        if (_.get(this.componentMap, [name, 'toInstall']) as any === false) {
-          delete mainDeps[name];
-          deleted.push(name);
+
+      for (const depList of [mainDeps, mainDevDeps]) {
+        for (const name of Object.keys(depList)) {
+          if (_.get(this.componentMap, [name, 'toInstall']) as any === false) {
+            delete mainDeps[name];
+            deleted.push(name);
+          }
         }
-      });
+      }
       log.info(chalk.blue('source linked dependency: ' + deleted.join(', ')));
       recipeManager.eachRecipeSrc((srcDir: string, recipeDir: string, recipeName: string) => {
         if (recipeName && _.has(mainDeps, recipeName)) {

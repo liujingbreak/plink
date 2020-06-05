@@ -5,7 +5,7 @@ var NodeApi = require('../../dist/package-mgr/node-package-api');
 var Promise = require('bluebird');
 var util = require('util');
 var helper = require('./packageRunnerHelper');
-var priorityHelper = require('./packagePriorityHelper');
+var priorityHelper = require('../../dist/package-priority-helper');
 const {ServerRunner} = require('../../dist/package-runner');
 
 var packageCache = {};

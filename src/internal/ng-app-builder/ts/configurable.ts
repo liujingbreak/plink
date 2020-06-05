@@ -1,8 +1,7 @@
-/**
-```
-
-```
- */
+import { ConfigHandler } from 'dr-comp-package/wfh/dist/config-handler';
+import * as webpack from 'webpack';
+import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
+import {AngularBuilderOptions} from './ng/common';
 export interface DrcpSetting {
   /**
    * Other than main.ts and polyfill.ts, you need to specify those lazy route module which are
@@ -27,4 +26,22 @@ export interface DrcpSetting {
 	 * 'node_modules/mermaid'
 	 */
   // buildOptimizerExclude: string[];
+}
+
+
+export interface AngularConfigHandler extends ConfigHandler {
+  /**
+	 * You may override angular.json in this function
+	 * @param options Angular angular.json properties under path <project>.architect.<command>.options
+	 * @param builderConfig Angular angular.json properties under path <project>
+	 */
+  angularJson(options: AngularBuilderOptions,
+    builderConfig?: DevServerBuilderOptions)
+  : Promise<void> | void;
+}
+
+export interface WepackConfigHandler {
+  /** @returns webpack configuration or Promise */
+  webpackConfig(originalConfig: webpack.Configuration):
+    Promise<webpack.Configuration> | webpack.Configuration | void;
 }

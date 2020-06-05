@@ -156,9 +156,9 @@ export function initWebInjector(packages: PackageBrowserInstance[], apiPrototype
   .substitute(/^([^{]*)\{locale\}(.*)$/,
     (_filePath: string, match: RegExpExecArray) => match[1] + apiPrototype.getBuildLocale() + match[2]);
 
-  const done = webInjector.readInjectFile('module-resolve.browser');
+  // const done = webInjector.readInjectFile('module-resolve.browser');
   apiPrototype.browserInjector = webInjector;
-  return done;
+  // return done;
 }
 
 export function prepareLazyNodeInjector(argv: {[key: string]: any}) {

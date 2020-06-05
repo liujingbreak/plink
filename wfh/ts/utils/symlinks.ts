@@ -32,6 +32,8 @@ export default async function scanNodeModules(deleteOption: 'all' | 'invalid' = 
 
 export function linkDrcp() {
   const sourceDir = Path.resolve(__dirname, '../../..');
+  if (!fs.existsSync('node_modules'))
+    fs.mkdirSync('node_modules');
   fs.symlinkSync(Path.relative(Path.resolve('node_modules'), sourceDir),
     Path.resolve('node_modules', 'dr-comp-package'), isWin32 ? 'junction' : 'dir');
   // tslint:disable-next-line: no-console
@@ -39,8 +41,9 @@ export function linkDrcp() {
 }
 
 async function checkDir(dir: string, deleteAll = false) {
-  if ((await lstatAsync(dir)).isSymbolicLink() && (deleteAll ||
-    !fs.existsSync(Path.resolve(Path.dirname(dir), fs.readlinkSync(dir))))) {
+  if ((await lstatAsync(dir)).isSymbolicLink() &&
+    (deleteAll ||  !fs.existsSync(Path.resolve(Path.dirname(dir), fs.readlinkSync(dir))))
+    ) {
     // tslint:disable-next-line: no-console
     console.log(`[symlink check] Remove ${deleteAll ? '' : 'invalid'} symlink ${Path.relative('.', dir)}`);
     await unlinkAsync(dir);

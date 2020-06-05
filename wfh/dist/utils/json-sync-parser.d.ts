@@ -10,8 +10,8 @@ declare enum AstType {
 }
 export interface Ast {
     type: AstType;
-    start?: number;
-    end?: number;
+    start: number;
+    end: number;
 }
 export interface ObjectAst extends Ast {
     properties: {

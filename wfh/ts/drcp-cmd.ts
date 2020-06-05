@@ -174,6 +174,9 @@ export function parseNpmPackOutput(output: string) {
 function deleteOldTar(deleteFilePrefix: string[], keepfiles: string[]) {
   const tarSet = new Set(keepfiles);
   const deleteDone: Promise<any>[] = [];
+  if (!fs.existsSync('tarballs'))
+    fs.mkdirpSync('tarballs');
+  // TODO: wait for timeout
   for (const file of fs.readdirSync('tarballs')) {
     if (!tarSet.has(file) && deleteFilePrefix.some(prefix => file.startsWith(prefix))) {
       deleteDone.push(fs.remove(Path.resolve('tarballs', file)));

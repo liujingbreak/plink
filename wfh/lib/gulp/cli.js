@@ -81,8 +81,8 @@ function init(_argv, noPuppy) {
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates/config.local-template.yaml'), Path.join(rootPath, 'dist', 'config.local.yaml'));
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates/log4js.js'), rootPath + '/log4js.js');
 	maybeCopyTemplate(Path.resolve(__dirname, 'templates/app-template.js'), rootPath + '/app.js');
-	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.server.tmpl.js '), rootPath + '/module-resolve.server.js');
-	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.browser.tmpl.js'), rootPath + '/module-resolve.browser.js');
+	maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.server.tmpl.ts '), rootPath + '/module-resolve.server.ts');
+	// maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.browser.tmpl.ts'), rootPath + '/module-resolve.browser.ts');
 	cleanInvalidSymlinks()
 	.then(() => {
 		// var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
@@ -142,6 +142,7 @@ class WorkspaceInstaller {
 			});
 			argv['package-cache'] = false;
 			createProjectSymlink();
+			require('../../dist/editor-helper').writeTsconfig4Editor();
 			return yield require('../packageMgr/packageRunner').runBuilder(argv, 'init', true);
 		})();
 	}
@@ -154,7 +155,7 @@ function _initDependency(isDrcpSymlink) {
 	const projectDirs = getProjectDirs();
 	projectDirs.forEach(prjdir => {
 		_writeGitHook(prjdir);
-		maybeCopyTemplate(Path.resolve(__dirname, '../../.eslintrc.json'), prjdir + '/.eslintrc.json');
+		// maybeCopyTemplate(Path.resolve(__dirname, '../../.eslintrc.json'), prjdir + '/.eslintrc.json');
 		maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
 	});
 

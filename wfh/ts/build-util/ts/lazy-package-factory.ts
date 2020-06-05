@@ -20,9 +20,11 @@ export default class LazyPackageFactory {
         break; // Has reached root
       if (fs.existsSync(Path.join(dir, 'package.json'))) {
         const pkjson = require(Path.join(dir, 'package.json'));
-        const pk = createPackage(dir, pkjson);
-        this.packagePathMap.putData(dir, pk);
-        return pk;
+        if (_.has(pkjson, 'dr')) {
+          const pk = createPackage(dir, pkjson);
+          this.packagePathMap.putData(dir, pk);
+          return pk;
+        }
       }
       currPath = dir;
     }

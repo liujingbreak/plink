@@ -1,6 +1,6 @@
 {
   "name": "font-clip",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/font-clip.js",
   "types": "dist/font-clip.d.ts",
   "description": "Web font file clip tool",

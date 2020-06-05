@@ -5,7 +5,7 @@ import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/sr
 import { Schema as ServerBuilderOptions } from '@angular-devkit/build-angular/src/server/schema';
 import { packageAssetsFolders } from '@dr-core/assets-processer/dist/dev-serve-assets';
 import chalk from 'chalk';
-import { ConfigHandler, DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
+import { DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
 import { getLanIPv4 } from 'dr-comp-package/wfh/dist/utils/network-util';
 // import { getTsDirsOfPackage } from 'dr-comp-package/wfh/dist/utils';
 import * as fs from 'fs';
@@ -22,6 +22,7 @@ import { DrcpBuilderOptions } from '../../dist/server';
 import {Data} from './change-tsconfig-worker';
 import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
 import {createTsConfig as _createTsConfig} from './change-tsconfig';
+import {AngularConfigHandler} from '../configurable';
 
 const {cyan, green, red} = chalk;
 const currPackageName = require('../../package.json').name;
@@ -29,16 +30,6 @@ const log = require('log4js').getLogger('@dr-core/ng-app-builder.change-cli-opti
 
 type ExtractPromise<P> = P extends Promise<infer T> ? T : unknown;
 
-export interface AngularConfigHandler extends ConfigHandler {
-  /**
-	 * You may override angular.json in this function
-	 * @param options Angular angular.json properties under path <project>.architect.<command>.options
-	 * @param builderConfig Angular angular.json properties under path <project>
-	 */
-  angularJson(options: AngularBuilderOptions,
-    builderConfig?: DevServerBuilderOptions)
-  : Promise<void> | void;
-}
 
 function hackAngularBuilderContext(context: BuilderContext, targetName: string,
   replacedOpts: any) {

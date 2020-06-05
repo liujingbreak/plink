@@ -18,6 +18,7 @@ declare class Guarder {
     };
     changes: PackageJson | null;
     installChecksum: number | null;
+    /** DRCP init is in-progress, local package.json is replaced by dr.package.json */
     isPackageJsonDirty: boolean;
     isDrcpSymlink: boolean;
     isNodeModulesChanged: boolean | null;

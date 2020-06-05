@@ -20,6 +20,7 @@ class Guarder {
   static instances: {[k: string]: Guarder} = {};
   changes: PackageJson | null = null;
   installChecksum: number | null = null;
+  /** DRCP init is in-progress, local package.json is replaced by dr.package.json */
   isPackageJsonDirty = false;
   isDrcpSymlink: boolean;
   isNodeModulesChanged: boolean | null = null;
@@ -79,11 +80,9 @@ class Guarder {
     if (this.isDrcpSymlink) {
       if (pk.dependencies) {
         delete pk.dependencies['dr-comp-package'];
-        delete pk.dependencies['@dr/internal-recipe'];
       }
       if (pk.devDependencies) {
         delete pk.devDependencies['dr-comp-package'];
-        delete pk.devDependencies['@dr/internal-recipe'];
       }
     }
     // clean duplicates in devDependencies

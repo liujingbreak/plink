@@ -2,16 +2,8 @@ import { BuilderContext } from '@angular-devkit/architect';
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { Schema as ServerBuilderOptions } from '@angular-devkit/build-angular/src/server/schema';
-import { ConfigHandler, DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
+import { DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
 import { AngularBuilderOptions } from './common';
-export interface AngularConfigHandler extends ConfigHandler {
-    /**
-       * You may override angular.json in this function
-       * @param options Angular angular.json properties under path <project>.architect.<command>.options
-       * @param builderConfig Angular angular.json properties under path <project>
-       */
-    angularJson(options: AngularBuilderOptions, builderConfig?: DevServerBuilderOptions): Promise<void> | void;
-}
 /**
  * For build (ng build)
  * @param config

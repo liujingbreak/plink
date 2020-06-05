@@ -18,7 +18,7 @@ import log4js from 'log4js';
 import _genKeypair from './cli-keypair';
 // import * as tsAstQuery from './ts-ast-query';
 import * as _unzip from './cli-unzip';
-import * as astUtil from './cli-ts-ast-util';
+// import * as astUtil from './cli-ts-ast-util';
 
 const program = new Command().name('prebuild');
 
@@ -123,8 +123,7 @@ const tsAstCmd = program.command('ts-ast <ts-file>')
 program.command('functions <file>')
 .description('List exported functions for *.ts, *.d.ts, *.js file')
 .action(async file => {
-  const {listExportedFunction} = require('./cli-ts-ast-util') as typeof astUtil;
-  listExportedFunction(file);
+  (await import('./cli-ts-ast-util')).listExportedFunction(file);
 });
 
 // -------- listzip --------

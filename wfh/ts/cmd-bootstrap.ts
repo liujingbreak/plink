@@ -24,34 +24,26 @@ process.on('message', function(msg) {
   }
 });
 
-checkNode().then((nodeIsOk) => {
+(async function run() {
+  await checkNode();
   const startTime = new Date().getTime();
   const cwd = process.cwd();
   const packageJsonGuarder = getGuarder(cwd);
   // process.env.SASS_BINARY_SITE = 'https://npm.taobao.org/mirrors/node-sass';
 
-  var isSymbolicLink = false;
-  var cmdPromise;
   if (fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink()) {
-    isSymbolicLink = true;
-    checkSymlinks();
-    cmdPromise = ensurePackageJsonFile(isSymbolicLink)
+    await checkSymlinks();
+    await ensurePackageJsonFile(true);
+    require('../lib/gulp/cli').writeProjectListFile([Path.resolve(__dirname, '..', '..')]);
     // .then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
-    .then(() => '')
-    .then( infoText => {
-      require('../lib/gulp/cli').writeProjectListFile([Path.resolve(__dirname, '..', '..')]);
-      return infoText;
-    })
-    .then(infoText => processCmd(infoText));
+
+    require('../lib/gulp/cli').writeProjectListFile([Path.resolve(__dirname, '..', '..')]);
+    processCmd();
   } else {
-    cmdPromise = ensurePackageJsonFile(false).then(() => '')
+    await ensurePackageJsonFile(false);
       // .then(latestRecipe => versionChecker.checkVersions(isSymbolicLink))
-    .then(infoText => processCmd(infoText));
+    processCmd();
   }
-  cmdPromise.catch(e => {
-    console.error(e);
-    process.exit(1);
-  });
 
   /**
    * @param {*} isDrcpDevMode denote true to copy dr-comp-package dependency list to workspace package.json file
@@ -74,7 +66,7 @@ checkNode().then((nodeIsOk) => {
         Path.resolve(__dirname, '../../bin/package.json.template'), 'utf8'));
       workspaceJson.author = os.userInfo().username;
       workspaceJson.name = Path.basename(cwd);
-      workspaceJson.description = '@dr web component platform workspace';
+      workspaceJson.description = '@dr monorepo workspace';
       backupJson = JSON.stringify(workspaceJson, null, '  ');
     } else {
       workspaceJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -102,22 +94,29 @@ checkNode().then((nodeIsOk) => {
 
   function needInstallWfh(workspaceJson: any) {
     const newWorkspaceJson = Object.assign({}, workspaceJson);
-    const currDeps = packageJsonGuarder.getChanges().dependencies;
-    newWorkspaceJson.dependencies = Object.assign({}, drcpPkJson.dependencies, currDeps);
+    const drPackageJson = packageJsonGuarder.getChanges();
+    newWorkspaceJson.dependencies = {
+      ...drcpPkJson.dependencies,
+      ...drPackageJson.dependencies
+    };
+    newWorkspaceJson.devDependencies = {
+      ...drcpPkJson.devDependencies,
+      ...drPackageJson.devDependencies,
+      ...drcpPkJson.peerDependencies
+    };
 
     const newAdds = packageJsonGuarder.markChanges(newWorkspaceJson);
     for (const entry of newAdds) {
-      console.log(` ${entry[1] != null ? '+' : '-'} ${entry[0]} ${entry[1] || ''}`);
+      console.log(`[cmd-bootstrap] ${entry[1] != null ? '+' : '-'} ${entry[0]} ${entry[1] || ''}`);
     }
     return newAdds.length > 0 || packageJsonGuarder.isModulesChanged();
   }
 
-  function processCmd(versionText: any) {
-    console.log(versionText);
+  function processCmd() {
     require('source-map-support/register');
     return require('../lib/cmd-args').drcpCommand(startTime);
   }
-})
-.catch(err => {
+})().catch(err => {
   console.log(err);
+  process.exit(1);
 });

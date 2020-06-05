@@ -58,8 +58,8 @@ enum AstType {
 
 export interface Ast {
   type: AstType;
-  start?: number;
-  end?: number;
+  start: number;
+  end: number;
 }
 
 export interface ObjectAst extends Ast {
@@ -79,7 +79,7 @@ const grammar: Grammar<Token, ObjectAst> = function(tokenLa) {
 };
 
 function doObject(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ObjectAst {
-  const ast: ObjectAst = {
+  const ast: Partial<ObjectAst> = {
     type: AstType.object,
     properties: []
   };
@@ -93,7 +93,7 @@ function doObject(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ObjectAst {
       throw new Error(`Expect ':' but recieve '${colon.text}' at ${colon.line}:${colon.col}`);
     }
 
-    ast.properties.push({name: propToken, value: doValue(lexer)});
+    ast.properties!.push({name: propToken, value: doValue(lexer)});
     next = lexer.la();
     if (next && next.type === ',')
       lexer.advance();
@@ -101,32 +101,34 @@ function doObject(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ObjectAst {
   }
   const rp = lexer.advance(); // }
   ast.end = rp.end;
-  return ast;
+  return ast as ObjectAst;
 }
 
 function doArray(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ArrayAst {
-  const ast: ArrayAst = {
+  const ast: Partial<ArrayAst> = {
     type: AstType.array,
     items: []
   };
-  lexer.advance();
+  const lp = lexer.advance();
+  ast.start = lp.pos;
   let next = lexer.la();
   while (next != null && next.type !== ']') {
 
     if (next.type !== ',') {
-      ast.items.push(doValue(lexer));
+      ast.items!.push(doValue(lexer));
     } else {
       lexer.advance();
     }
     next = lexer.la();
   }
-  if (next && next.type === ']')
-    lexer.advance(); // ]
-  else if (next == null)
+  if (next && next.type === ']') {
+    ast.end = lexer.advance().end; // ]
+
+  } else if (next == null)
     throw new Error('Unexpect EOF after ' + lexer.lastConsumed!.text);
   else
     throw new Error(`Unexpect ${next.text} at ${next.line}:${next.col}`);
-  return ast;
+  return ast as ArrayAst;
 }
 
 function doValue(lexer: Parameters<Grammar<Token, ObjectAst>>[0]) {

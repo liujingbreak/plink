@@ -1,5 +1,6 @@
-module.exports = function(injector) {
-	/**
+import {DrPackageInjector} from 'dr-comp-package/wfh/dist/injector-factory';
+export default function(injector: DrPackageInjector) {
+  /*
 	 *  IoC configuration here.
 	 *  You can inject(aka replacement) required value from specific component package to some value
 	 *  you want by:
@@ -18,4 +19,4 @@ module.exports = function(injector) {
 	 *  injector.fromDir(['src', 'node_modules'])
 	 *      .substitute('depenency-package', 'another-package');
 	 */
-};
+}
