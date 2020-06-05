@@ -1,5 +1,4 @@
 import '../../ng/node-inject';
-import webpack from 'webpack';
 import {executeBrowserBuilder} from '@angular-devkit/build-angular';
 
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
