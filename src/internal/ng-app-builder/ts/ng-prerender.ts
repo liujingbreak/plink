@@ -79,7 +79,6 @@ async function renderRoutes(index: string, mainFile: string, ROUTES: string[]): 
 
     const routeHtmlMap: {[route: string]: string} = {};
     for (let route of ROUTES) {
-      route = encodeURI(decodeURI(_.trimEnd(route, '/')));
       // const fullPath = join(outputFolder, route);
 
       // // Make sure the directory structure is there
@@ -89,7 +88,7 @@ async function renderRoutes(index: string, mainFile: string, ROUTES: string[]): 
       // Writes rendered HTML to index.html, replacing the file if it already exists.
       const html = await renderModuleFactory(AppServerModuleNgFactory, {
         document: index,
-        url: route,
+        url: encodeURI(decodeURI(_.trimEnd(route, '/'))),
         extraProviders: [
           provideModuleMap(LAZY_MODULE_MAP)
       ]});
