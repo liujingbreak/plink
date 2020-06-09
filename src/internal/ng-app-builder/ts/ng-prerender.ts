@@ -20,6 +20,9 @@ enableProdMode();
 
 function setupGlobals(indexHtml: string, url?: string) {
   const window: any = domino.createWindow(indexHtml, url);
+  if ((global as any).window) {
+    Object.assign(window, (global as any).window);
+  }
   (global as any).window = window;
   (global as any).document = window.document;
 }
@@ -67,9 +70,11 @@ async function writeRoutes(staticDir: string, htmlFile: string, mainFile: string
   return routeMapFile;
 }
 
-async function renderRoutes(index: string, mainFile: string, ROUTES: string[]): Promise<{[route: string]: string}> {
+async function renderRoutes(index: string, mainFile: string, ROUTES: string[], useDominoMockWindow = true)
+: Promise<{[route: string]: string}> {
     // const index = readFileSync(htmlFile, 'utf8');
-    setupGlobals(index);
+    if (useDominoMockWindow)
+      setupGlobals(index);
     // if (_outputFolder == null)
     //   _outputFolder = join(dirname(htmlFile), '_prerender');
     // const outputFolder = _outputFolder;
@@ -124,9 +129,9 @@ export async function writeRoutesWithLocalServer(staticDir: string, htmlFile: st
 }
 
 export async function renderRouteWithLocalServer(html: string, mainFile: string,
-  route: string): Promise<string> {
+  route: string, useDominoMockWindow?: boolean): Promise<string> {
 
   let mapFile: {[route: string]: string};
-  mapFile = await renderRoutes(html, mainFile, [route]);
+  mapFile = await renderRoutes(html, mainFile, [route], useDominoMockWindow);
   return mapFile[route];
 }
