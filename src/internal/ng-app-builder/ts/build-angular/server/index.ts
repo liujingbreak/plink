@@ -1,5 +1,4 @@
 import '../../ng/node-inject';
-import webpack from 'webpack';
 import { executeServerBuilder } from '@angular-devkit/build-angular';
 import { ServerBuilderOutput } from '@angular-devkit/build-angular/src/server';
 

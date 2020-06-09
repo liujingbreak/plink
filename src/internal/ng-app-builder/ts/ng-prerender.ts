@@ -31,7 +31,7 @@ function setupGlobals(indexHtml: string, url?: string) {
  * @param mainFile dist/server/main.js file path which can be require.resolve, should be corresponding to angular.json
  * @param ROUTES 
  */
-export function writeRoutes(staticDir: string, htmlFile: string, mainFile: string, ROUTES: string[],
+async function writeRoutes(staticDir: string, htmlFile: string, mainFile: string, ROUTES: string[],
   _outputFolder?: string): Promise<string> {
   const index = readFileSync(htmlFile, 'utf8');
   setupGlobals(index);
@@ -40,44 +40,61 @@ export function writeRoutes(staticDir: string, htmlFile: string, mainFile: strin
   const outputFolder = _outputFolder;
   // * NOTE :: leave this as require() since this file is built Dynamically from webpack
   log.info('main file:', mainFile);
-  const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(mainFile);
+
+  const htmlMap = await renderRoutes(index, mainFile, ROUTES);
   // Load the index.html file containing referances to your application bundle.
 
-  let previousRender = Promise.resolve();
   const routerFileMap: {[route: string]: string} = {};
   // Iterate each route path
-  ROUTES.forEach(route => {
-    route = encodeURI(decodeURI(_.trimEnd(route, '/')));
+  for (const [route, html] of Object.entries(htmlMap)) {
     const fullPath = join(outputFolder, route);
 
     // Make sure the directory structure is there
     if (!existsSync(fullPath)) {
       ensureDirSync(fullPath);
     }
-    // Writes rendered HTML to index.html, replacing the file if it already exists.
-    previousRender = previousRender.then(_ => {
-      return renderModuleFactory(AppServerModuleNgFactory, {
+    const wf = join(fullPath, 'index.html');
+    writeFileSync(wf, html);
+    log.info('Render %s page at ', route, wf);
+    let indexFile = relative(staticDir, wf);
+    if (sep === '\\')
+      indexFile = indexFile.replace(/\\/g, '/');
+    routerFileMap[route] = indexFile;
+  }
+  const routeMapFile = join(outputFolder, ROUTE_MAP_FILE);
+  writeFileSync(routeMapFile, JSON.stringify(routerFileMap, null, '  '), 'utf-8');
+  log.info('write ', routeMapFile);
+  return routeMapFile;
+}
+
+async function renderRoutes(index: string, mainFile: string, ROUTES: string[]): Promise<{[route: string]: string}> {
+    // const index = readFileSync(htmlFile, 'utf8');
+    setupGlobals(index);
+    // if (_outputFolder == null)
+    //   _outputFolder = join(dirname(htmlFile), '_prerender');
+    // const outputFolder = _outputFolder;
+    // * NOTE :: leave this as require() since this file is built Dynamically from webpack
+    log.info('main file:', mainFile);
+    const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(mainFile);
+
+    const routeHtmlMap: {[route: string]: string} = {};
+    for (let route of ROUTES) {
+      // const fullPath = join(outputFolder, route);
+
+      // // Make sure the directory structure is there
+      // if (!existsSync(fullPath)) {
+      //   ensureDirSync(fullPath);
+      // }
+      // Writes rendered HTML to index.html, replacing the file if it already exists.
+      const html = await renderModuleFactory(AppServerModuleNgFactory, {
         document: index,
-        url: route,
+        url: encodeURI(decodeURI(_.trimEnd(route, '/'))),
         extraProviders: [
           provideModuleMap(LAZY_MODULE_MAP)
       ]});
-    }).then(html => {
-      const wf = join(fullPath, 'index.html');
-      writeFileSync(wf, html);
-      log.info('Render %s page at ', route, wf);
-      let indexFile = relative(staticDir, wf);
-      if (sep === '\\')
-        indexFile = indexFile.replace(/\\/g, '/');
-      routerFileMap[route] = indexFile;
-    });
-  });
-  return previousRender.then(() => {
-    const routeMapFile = join(outputFolder, ROUTE_MAP_FILE);
-    writeFileSync(routeMapFile, JSON.stringify(routerFileMap, null, '  '), 'utf-8');
-    log.info('write ', routeMapFile);
-    return routeMapFile;
-  });
+      routeHtmlMap[route] = html;
+    }
+    return routeHtmlMap;
 }
 
 /**
@@ -104,4 +121,12 @@ export async function writeRoutesWithLocalServer(staticDir: string, htmlFile: st
     });
   }
   return mapFile;
+}
+
+export async function renderRouteWithLocalServer(html: string, mainFile: string,
+  route: string): Promise<string> {
+
+  let mapFile: {[route: string]: string};
+  mapFile = await renderRoutes(html, mainFile, [route]);
+  return mapFile[route];
 }

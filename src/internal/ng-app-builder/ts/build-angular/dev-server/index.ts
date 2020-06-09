@@ -1,6 +1,5 @@
 // tslint:disable no-console
 import '../../ng/node-inject';
-import webpack from 'webpack';
 import _ from 'lodash';
 import {executeDevServerBuilder, DevServerBuilderOptions, DevServerBuilderOutput} from '@angular-devkit/build-angular';
 import {
