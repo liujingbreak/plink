@@ -9,7 +9,7 @@ import {AngularBuilderOptions} from './common';
 import { DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
 const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 
-export default async function(config: DrcpConfig, browserOptions: AngularBuilderOptions, ssr = false): Promise<ReturnType<typeof walkPackages>> {
+export default async function walkPackagesAndSetupInjector(config: DrcpConfig, browserOptions: AngularBuilderOptions, ssr = false): Promise<ReturnType<typeof walkPackages>> {
   const packageInfo = walkPackages(config, packageUtils);
   await injectorSetup(packageInfo, browserOptions.drcpArgs, browserOptions.deployUrl, browserOptions.baseHref, ssr);
   return packageInfo;

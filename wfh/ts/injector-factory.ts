@@ -85,7 +85,7 @@ export class DrPackageInjector extends RJ {
           exported = exported.default;
         exported(this);
       } else {
-        log.info(file1 + ' doesn\'t exist');
+        log.info(file1 + ' doesn\'t exist, skip it.');
       }
     });
 

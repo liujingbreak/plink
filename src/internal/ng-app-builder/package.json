@@ -8,8 +8,6 @@
   "schematics": "./ts/ng/schematics/collection.json",
   "dr": {
     "category": ["tool", "internal", "nodejs"],
-    "chunk": "common-app",
-    "entryPage": "index.html",
     "angularCompiler": true,
     "type": ["builder", "server"],
     "builderPriority": 9999,
