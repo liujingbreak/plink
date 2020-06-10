@@ -12,10 +12,8 @@ import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import {Worker} from 'worker_threads';
-import ts, { sys } from 'typescript';
+import { sys } from 'typescript';
 import Url from 'url';
-import replaceCode from '../utils/patch-text';
-import TsAstSelector from '../utils/ts-ast-query';
 import { AngularBuilderOptions } from './common';
 import injectorSetup from './injector-setup';
 import { DrcpBuilderOptions } from '../../dist/server';
@@ -23,6 +21,7 @@ import {Data} from './change-tsconfig-worker';
 import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
 import {createTsConfig as _createTsConfig} from './change-tsconfig';
 import {AngularConfigHandler} from '../configurable';
+import {createMainFileForHmr} from './for-hmr';
 
 const {cyan, green, red} = chalk;
 const currPackageName = require('../../package.json').name;
@@ -185,58 +184,6 @@ async function processBrowserBuiliderOptions(
   fs.writeFile(config.resolve('destDir', 'ng-app-builder.report', 'angular-cli-options.json'),
   JSON.stringify(browserOptions, undefined, '  '), () => {});
   return browserOptions;
-}
-
-function createMainFileForHmr(mainFile: string): string {
-  const dir = Path.dirname(mainFile);
-  const writeTo = Path.resolve(dir, 'main-hmr.ts');
-  if (fs.existsSync(writeTo)) {
-    return writeTo;
-  }
-  const main = fs.readFileSync(mainFile, 'utf8');
-  let mainHmr = '// tslint:disable\n' +
-  `import hmrBootstrap from '@dr-core/ng-app-builder/src/hmr';\n${main}`;
-  const query = new TsAstSelector(mainHmr, 'main-hmr.ts');
-  // query.printAll();
-
-  let bootCallAst: ts.Node;
-  const statement = query.src.statements.find(statement => {
-    // tslint:disable-next-line max-line-length
-    const bootCall = query.findMapTo(statement, ':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
-      (ast: ts.Identifier, path, parents) => {
-        if (ast.text === 'platformBrowserDynamic' &&
-        (ast.parent.parent as ts.PropertyAccessExpression).name.getText(query.src) === 'bootstrapModule' &&
-        ast.parent.parent.parent.kind === ts.SyntaxKind.CallExpression) {
-          return ast.parent.parent.parent;
-        }
-      });
-    if (bootCall) {
-      bootCallAst = bootCall;
-      return true;
-    }
-    return false;
-  });
-
-  if (statement == null)
-    throw new Error(`${mainFile},` +
-    `can not find statement like: platformBrowserDynamic().bootstrapModule(AppModule)\n${mainHmr}`);
-
-  mainHmr = replaceCode(mainHmr, [{
-    start: statement.getStart(query.src, true),
-    end: statement.getEnd(),
-    text: ''}]);
-  mainHmr += `const bootstrap = () => ${bootCallAst!.getText()};\n`;
-  mainHmr += `if (module[ 'hot' ]) {
-	    hmrBootstrap(module, bootstrap);
-	  } else {
-	    console.error('HMR is not enabled for webpack-dev-server!');
-	    console.log('Are you using the --hmr flag for ng serve?');
-	  }\n`.replace(/^\t/gm, '');
-
-  fs.writeFileSync(writeTo, mainHmr);
-  log.info('Write ' + writeTo);
-  log.info(mainHmr);
-  return writeTo;
 }
 
 // Hack ts.sys, so far it is used to read tsconfig.json

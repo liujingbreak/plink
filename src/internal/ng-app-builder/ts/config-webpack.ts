@@ -177,11 +177,14 @@ export default async function changeWebpackConfig(context: BuilderContext, param
         }
         try {
           // Attempt to resolve the module via Node
-          const e = require.resolve(request);
-          const comp = api.findPackageByFile(e);
+          const resolvedRequest = require.resolve(request);
+          const comp = api.findPackageByFile(resolvedRequest);
           if (comp == null || comp.dr == null ) {
             // It's a node_module
             callback(null, request);
+          } else if (comp != null && comp.longName === api.packageName &&
+            resolvedRequest.indexOf(Path.sep + 'prerender.di') >= 0) {
+              callback(null, request);
           } else {
             // It's a system thing (.ie util, fs...)
             callback();

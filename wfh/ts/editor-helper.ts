@@ -54,7 +54,7 @@ export function writeTsconfig4Editor() {
     // pathMapping['*'] = ['node_modules/*', 'node_modules/@types/*'];
 
     tsjson.compilerOptions = {
-      rootDir: './',
+      rootDir: '../',
       baseUrl: root,
       // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
       paths: pathMapping,

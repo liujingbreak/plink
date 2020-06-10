@@ -64,6 +64,7 @@ function findDrcpWorkdir() {
     parent = Path.dirname(dir);
     if (parent === dir || parent == null)
       throw new Error('Can not find DRCP workspace');
+    dir = parent;
   }
 }
 

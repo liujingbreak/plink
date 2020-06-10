@@ -205,20 +205,30 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
         };
       }
 
-      if ((rule as RuleSetRule).include && typeof (rule as RuleSetRule).loader === 'string' &&
+      const _rule = rule as RuleSetRule;
+
+      if (_rule.include && typeof _rule.loader === 'string' &&
         (rule as RuleSetLoader).loader!.indexOf(Path.sep + 'babel-loader' + Path.sep) >= 0) {
-        delete (rule as RuleSetRule).include;
-        const origTest = (rule as RuleSetRule).test;
-        (rule as RuleSetRule).test = (file) => {
-          const pk = findPackageByFile(file);
-          const yes = ((pk && pk.dr) || file.startsWith(craPaths.appSrc)) &&
-            (origTest instanceof RegExp) ? origTest.test(file) :
-              (origTest instanceof Function ? origTest(file) : origTest === file);
-          // console.log(`[webpack.config] babel-loader: ${file}`, yes);
-          return yes;
-        };
+        delete _rule.include;
+        _rule.test = createRuleTestFunc4Src(_rule.test, craPaths.appSrc);
+      }
+      if (_rule.test && _rule.test.toString() === '/\.(js|mjs|jsx|ts|tsx)$/' &&
+        _rule.include) {
+          delete _rule.include;
+          _rule.test = createRuleTestFunc4Src(_rule.test, craPaths.appSrc);
       }
     }
   }
   return;
+}
+
+function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc: string) {
+  return function testOurSourceFile(file: string)  {
+    const pk = findPackageByFile(file);
+    const yes = ((pk && pk.dr) || file.startsWith(appSrc)) &&
+      (origTest instanceof RegExp) ? origTest.test(file) :
+        (origTest instanceof Function ? origTest(file) : origTest === file);
+    // console.log(`[webpack.config] babel-loader: ${file}`, yes);
+    return yes;
+  };
 }

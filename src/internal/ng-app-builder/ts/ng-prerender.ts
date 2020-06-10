@@ -70,34 +70,30 @@ async function writeRoutes(staticDir: string, htmlFile: string, mainFile: string
   return routeMapFile;
 }
 
-async function renderRoutes(index: string, mainFile: string, ROUTES: string[], useDominoMockWindow = true)
+async function renderRoutes(index: string, mainFile: string, ROUTES: string[], prerenderParams: any = null, useDominoMockWindow = true)
 : Promise<{[route: string]: string}> {
     // const index = readFileSync(htmlFile, 'utf8');
     if (useDominoMockWindow)
       setupGlobals(index);
-    // if (_outputFolder == null)
-    //   _outputFolder = join(dirname(htmlFile), '_prerender');
-    // const outputFolder = _outputFolder;
     // * NOTE :: leave this as require() since this file is built Dynamically from webpack
     log.info('main file:', mainFile);
     const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(mainFile);
 
     const routeHtmlMap: {[route: string]: string} = {};
     for (let route of ROUTES) {
-      // const fullPath = join(outputFolder, route);
-
-      // // Make sure the directory structure is there
-      // if (!existsSync(fullPath)) {
-      //   ensureDirSync(fullPath);
-      // }
+      // console.log(provideModuleMap(LAZY_MODULE_MAP));
       // Writes rendered HTML to index.html, replacing the file if it already exists.
       const html = await renderModuleFactory(AppServerModuleNgFactory, {
         document: index,
         url: encodeURI(decodeURI(_.trimEnd(route, '/'))),
         extraProviders: [
+          {
+            provide: 'PRERENDER_PARAM',
+            useValue: prerenderParams
+          },
           provideModuleMap(LAZY_MODULE_MAP)
       ]});
-      routeHtmlMap[route] = html;
+      routeHtmlMap[route] = removeServerSideStyleAttribute(html);
     }
     return routeHtmlMap;
 }
@@ -117,7 +113,7 @@ export async function writeRoutesWithLocalServer(staticDir: string, htmlFile: st
   try {
     mapFile = await writeRoutes(staticDir, htmlFile, mainFile, ROUTES, outputFolder);
   } catch (err) {
-    console.log(err);
+    log.error(err);
     throw err;
   } finally {
     await shutdown();
@@ -129,9 +125,20 @@ export async function writeRoutesWithLocalServer(staticDir: string, htmlFile: st
 }
 
 export async function renderRouteWithLocalServer(html: string, mainFile: string,
-  route: string, useDominoMockWindow?: boolean): Promise<string> {
+  route: string, prerenderParam: any, useDominoMockWindow?: boolean): Promise<string> {
 
   let mapFile: {[route: string]: string};
-  mapFile = await renderRoutes(html, mainFile, [route], useDominoMockWindow);
+  mapFile = await renderRoutes(html, mainFile, [route], prerenderParam, useDominoMockWindow);
   return mapFile[route];
+}
+
+/**
+ * Work around issue: https://github.com/angular/preboot/issues/75#issuecomment-421266570
+ * Angular client application will remove all style elements which are rendered from server side,
+ * when it finishes initialization but before those lazy route components finishing rendering,
+ * this causes flicker problem for rendering a prerendered page. 
+ * Check this out (https://github.com/angular/angular/blob/7b70760c8d4f69c498dc4a028beb6dda53acbcbe/packages/platform-browser/src/browser/server-transition.ts#L27)
+ */
+function removeServerSideStyleAttribute(html: string) {
+  return html.replace(/<style\s+(ng-transition="[^"]*?")/g, '<style ssr');
 }

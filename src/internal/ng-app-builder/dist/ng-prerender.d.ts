@@ -8,4 +8,4 @@ import 'reflect-metadata';
  * @param ROUTES
  */
 export declare function writeRoutesWithLocalServer(staticDir: string, htmlFile: string, mainFile: string, ROUTES: string[], outputFolder?: string): Promise<string>;
-export declare function renderRouteWithLocalServer(html: string, mainFile: string, route: string, useDominoMockWindow?: boolean): Promise<string>;
+export declare function renderRouteWithLocalServer(html: string, mainFile: string, route: string, prerenderParam: any, useDominoMockWindow?: boolean): Promise<string>;

@@ -4,6 +4,7 @@
  * Because we have not set node path yet.
  */
 require('dr-comp-package/bin/nodePath').setContextPath(process.cwd());
+require('source-map-support/register');
 import {drawPuppy, saveCmdArgToEnv} from './utils';
 import _paths from './cra-scripts-paths';
 import {getCmdOptions} from './utils';
@@ -11,26 +12,22 @@ import Path from 'path';
 import fs from 'fs-extra';
 import {hackWebpack4Compiler} from './hack-webpack-api';
 
-drawPuppy('Loading my poo...');
-require('source-map-support/register');
+
 
 import Module from 'module';
 import {sep, resolve, dirname} from 'path';
 
+drawPuppy('Loading my poo...');
+saveCmdArgToEnv();
 poo();
 
-saveCmdArgToEnv();
-
 function poo() {
-
   const getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
-
   const reactScriptsPath = `${sep}node_modules${sep}react-scripts${sep}`;
   const reactDevUtilsPath = `${sep}node_modules${sep}react-dev-utils${sep}`;
   const buildScriptsPath = Path.join('node_modules', 'react-scripts', 'scripts', 'build.js');
 
   const superReq = Module.prototype.require;
-
   // TODO: Should use require-injector new version
   Module.prototype.require = function(this: Module, target) {
     if (this.filename.indexOf(reactScriptsPath) >= 0) {
