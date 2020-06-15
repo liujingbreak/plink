@@ -39,17 +39,22 @@ export async function prepare() {
   }
   fs.mkdirpSync(tempDir);
   for (const env of envs) {
-    const dir = resolve(rootDir, 'install-' + env);
-    if (fs.existsSync(dir)) {
-      const newName = resolve(tempDir, 'install-' + env);
-      log.info(`move ${dir} to ${newName}`);
-      fs.renameSync(dir, newName);
-    }
+    mvDir('install-' + env);
+    mvDir('server-content-' + env);
 
     const checksumFile = resolve(rootDir, `checksum.${env}.json`);
     if (fs.existsSync(checksumFile)) {
       const newName = resolve(tempDir, basename(checksumFile));
       fs.renameSync(checksumFile, newName);
+    }
+  }
+
+  function mvDir(targetDirName: string) {
+    const dir = resolve(rootDir, targetDirName);
+    if (fs.existsSync(dir)) {
+      const newName = resolve(tempDir, targetDirName);
+      log.info(`move ${dir} to ${newName}`);
+      fs.renameSync(dir, newName);
     }
   }
   await spawn('git', 'checkout', currBranch, {cwd: rootDir}).promise;
@@ -69,10 +74,15 @@ async function cleanupRepo() {
 export function mergeBack() {
   log.info('merge artifacts');
   for (const env of envs) {
-    const dir = resolve(tempDir, 'install-' + env);
+    mergeDir('install-' + env);
+    mergeDir('server-content-' + env);
+  }
+
+  function mergeDir(targetDirName: string) {
+    const dir = resolve(tempDir, targetDirName);
     if (fs.existsSync(dir)) {
       const tempFiles = fs.readdirSync(dir);
-      const installDir = resolve(rootDir, 'install-' + env);
+      const installDir = resolve(rootDir, targetDirName);
       fs.mkdirpSync(installDir);
       for (const file of tempFiles) {
         if (fs.existsSync(resolve(installDir, file))) {
