@@ -69,6 +69,7 @@ export async function checkZipFile(zipFileOrDir: string, installDir: string, app
   }
   if (fs.statSync(zipFileOrDir).isDirectory()) {
     const destZip = resolve(installDir, `${appName}.zip`);
+    fs.mkdirpSync(Path.dirname(destZip));
     log.info(`${zipFileOrDir} is a directory, zipping into ${destZip}`);
 
     const zipFile = new ZipFile();

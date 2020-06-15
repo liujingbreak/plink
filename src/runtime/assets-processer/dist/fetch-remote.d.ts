@@ -11,4 +11,4 @@ export declare function getPm2Info(): {
     isMainProcess: boolean;
 };
 export declare function retry<T>(times: number, func: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T>;
-export declare function forkExtractExstingZip(zipDir?: string, doNotDelete?: boolean): Promise<string>;
+export declare function forkExtractExstingZip(zipDir?: string, outputDir?: string, doNotDelete?: boolean): Promise<string>;

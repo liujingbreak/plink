@@ -31,6 +31,12 @@ export async function main(env: string, appName: string, buildStaticOnly = false
       fs.mkdirpSync(installDir);
     }
     zipFile = await checkZipFile(zipSrc, installDir, appName, /([\\/]stats[^]*\.json|\.map)$/);
+
+    const generatedServerFileDir = Path.resolve('dist/server');
+    if (fs.existsSync(Path.resolve(generatedServerFileDir, appName))) {
+      const serverZip = await checkZipFile(generatedServerFileDir, Path.resolve('server-content-' + env), appName);
+      log.info(`Pack ${generatedServerFileDir} to ${serverZip}`);
+    }
   }
 
   if (appName === 'node-server' || buildStaticOnly !== true) {

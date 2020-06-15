@@ -50,10 +50,20 @@ export async function start(imap: ImapManager) {
 
   const installDir = Path.resolve('install-' + setting.fetchMailServer.env);
   if (fs.existsSync(installDir)) {
-    fs.mkdirpSync(Path.resolve('dist/static'));
+    fs.mkdirpSync(api.config.resolve('staticDir'));
     const fileNames = fs.readdirSync(installDir).filter(name => Path.extname(name) === '.zip');
     if (fileNames.length > 0) {
-      await retry(2, () => forkExtractExstingZip(installDir, true));
+      await retry(2, () => forkExtractExstingZip(installDir, api.config.resolve('staticDir'), true));
+    }
+  }
+
+  const serverContentDir = Path.resolve('server-content-' + setting.fetchMailServer.env);
+  if (fs.existsSync(serverContentDir)) {
+    const zipDir = Path.resolve('dist/server');
+    fs.mkdirpSync(zipDir);
+    const fileNames = fs.readdirSync(serverContentDir).filter(name => Path.extname(name) === '.zip');
+    if (fileNames.length > 0) {
+      await retry(2, () => forkExtractExstingZip(serverContentDir, zipDir, true));
     }
   }
 
@@ -256,11 +266,11 @@ export async function retry<T>(times: number, func: (...args: any[]) => Promise<
 //     resource, toFileName, setting.fetchRetry + ''
 //   ]);
 // }
-export function forkExtractExstingZip(zipDir?: string, doNotDelete = false) {
+export function forkExtractExstingZip(zipDir?: string, outputDir = 'dist/static', doNotDelete = false) {
   const api: typeof __api = require('__api');
   return forkProcess('extract', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
     zipDir ? zipDir : zipDownloadDir,
-    api.config.resolve('staticDir'),
+    outputDir,
     doNotDelete ? 'keep' : 'delete'
   ]);
 }
