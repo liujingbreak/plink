@@ -1,0 +1,141 @@
+{
+  "extends": "../../../main/wfh/tsconfig-base.json",
+  "include": [
+    "."
+  ],
+  "compilerOptions": {
+    "rootDir": ".",
+    "skipLibCheck": false,
+    "jsx": "preserve",
+    "noImplicitAny": true,
+    "target": "es2015",
+    "module": "commonjs",
+    "paths": {
+      "@dr-core/ng-app-builder": [
+        "../../internal/ng-app-builder"
+      ],
+      "@dr-core/ng-app-builder/*": [
+        "../../internal/ng-app-builder/*"
+      ],
+      "font-clip": [
+        "../../legacy/font-clip"
+      ],
+      "font-clip/*": [
+        "../../legacy/font-clip/*"
+      ],
+      "@dr/translate-generator": [
+        "../../legacy/translate-generator"
+      ],
+      "@dr/translate-generator/*": [
+        "../../legacy/translate-generator/*"
+      ],
+      "@dr-core/webpack2-builder": [
+        "../../legacy/webpack2-builder"
+      ],
+      "@dr-core/webpack2-builder/*": [
+        "../../legacy/webpack2-builder/*"
+      ],
+      "@bk/cra-scripts": [
+        "../../react/cra-scripts"
+      ],
+      "@bk/cra-scripts/*": [
+        "../../react/cra-scripts/*"
+      ],
+      "@bk/react-redux-base": [
+        "../../react/react-redux-base"
+      ],
+      "@bk/react-redux-base/*": [
+        "../../react/react-redux-base/*"
+      ],
+      "@dr-core/assets-processer": [
+        "../../runtime/assets-processer"
+      ],
+      "@dr-core/assets-processer/*": [
+        "../../runtime/assets-processer/*"
+      ],
+      "@dr-core/express-app": [
+        "../../runtime/express-app"
+      ],
+      "@dr-core/express-app/*": [
+        "../../runtime/express-app/*"
+      ],
+      "@dr/http-server": [
+        "../../runtime/http-server"
+      ],
+      "@dr/http-server/*": [
+        "../../runtime/http-server/*"
+      ],
+      "@dr/e2etest-helper": [
+        "../e2etestHelper"
+      ],
+      "@dr/e2etest-helper/*": [
+        "../e2etestHelper/*"
+      ],
+      "@dr/http-request-proxy": [
+        "../http-request-proxy"
+      ],
+      "@dr/http-request-proxy/*": [
+        "../http-request-proxy/*"
+      ],
+      "@bk/prebuild": [
+        "../prebuild"
+      ],
+      "@bk/prebuild/*": [
+        "../prebuild/*"
+      ],
+      "@dr/tool-misc": [
+        "../tool-misc"
+      ],
+      "@dr/tool-misc/*": [
+        "../tool-misc/*"
+      ],
+      "@dr/vendor-binary": [
+        "../vendor-binary"
+      ],
+      "@dr/vendor-binary/*": [
+        "../vendor-binary/*"
+      ],
+      "@types/drcp-types": [
+        "../../../main/drcp-types"
+      ],
+      "@types/drcp-types/*": [
+        "../../../main/drcp-types/*"
+      ],
+      "dr-comp-package-cli": [
+        "../../../main/install-cli"
+      ],
+      "dr-comp-package-cli/*": [
+        "../../../main/install-cli/*"
+      ],
+      "@dr/jira-helper": [
+        "../../../../pmo-helper/packages/jira-helper"
+      ],
+      "@dr/jira-helper/*": [
+        "../../../../pmo-helper/packages/jira-helper/*"
+      ],
+      "@dr/pmo-schedular": [
+        "../../../../pmo-helper/packages/pmo-scheduler"
+      ],
+      "@dr/pmo-schedular/*": [
+        "../../../../pmo-helper/packages/pmo-scheduler/*"
+      ],
+      "dr-comp-package": [
+        "../../../main"
+      ],
+      "dr-comp-package/*": [
+        "../../../main/*"
+      ],
+      "*": [
+        "../../../../workspace/node_modules/@types/*",
+        "../../../../workspace/node_modules/*",
+        "../../../main/node_modules/@types/*",
+        "../../../main/node_modules/*"
+      ]
+    },
+    "baseUrl": ".",
+    "typeRoots": [
+      "../../../../workspace/node_modules/@types",
+      "../../../main/node_modules/@types"
+    ]
+  }
+}

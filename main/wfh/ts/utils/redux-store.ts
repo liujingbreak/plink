@@ -1,4 +1,5 @@
 /// <reference lib="es2017" />
+/// <reference path="./hmr-module.d.ts" />
 // tslint:disable: max-line-length
 /**
  * A combo set for using Redux-toolkit along with redux-observable
@@ -6,14 +7,13 @@
 import {
   CaseReducer, combineReducers, configureStore,
   ConfigureStoreOptions, createSlice as reduxCreateSlice, CreateSliceOptions,
-  Draft, EnhancedStore, PayloadAction,
-  PayloadActionCreator, ReducersMapObject,
+  Draft, EnhancedStore, PayloadAction, ReducersMapObject,
   Slice, SliceCaseReducers, Reducer,
   ValidateSliceCaseReducers
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
-import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
-import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, ReplaySubject, Subject, merge } from 'rxjs';
+import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, ignoreElements } from 'rxjs/operators';
 
 // export type CallBackActionReducer<SS> = CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 
@@ -25,12 +25,16 @@ export interface ExtraSliceReducers<SS> {
 export type ReducerWithDefaultActions<SS,
   ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
 
-export function ofPayloadAction<
-P, T extends string = string,
-A extends ReturnType<PayloadActionCreator<P, T>> = ReturnType<PayloadActionCreator<P, T>>>(
-  ...actionCreators: PayloadActionCreator<P, T>[]) {
-  return ofType<A>(...actionCreators.map(c => c.type));
+type SimpleActionCreator<P> = ((payload?: P) => PayloadAction<P>) & {type: string};
+export function ofPayloadAction<P>(...actionCreators: SimpleActionCreator<P>[]):
+  (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P>> {
+  return ofType(...actionCreators.map(c => c.type));
 }
+
+// export function ofPayloadAction(...actionCreators: any[]):
+//   (source: Observable<any>) => Observable<PayloadAction<string>> {
+//   return ofType<any>(...actionCreators.map(c => c.type));
+// }
 
 // type StateFromReducer<T> = T extends Reducer<CombinedState<infer S>> ? S : unknown;
 
@@ -51,12 +55,12 @@ export class StateFactory {
   store$ = new BehaviorSubject<EnhancedStore<any, PayloadAction<any>> | undefined>(undefined);
   log$: Observable<any[]>;
   rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
-
+  private epicSeq = 0;
   // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
 
   private debugLog = new ReplaySubject<any[]>(15);
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
-  private epic$: BehaviorSubject<Epic>;
+  private epicWithUnsub$: BehaviorSubject<[Epic, Subject<string>]>;
 
   private defaultSliceReducers: Partial<ExtraSliceReducers<any>>;
   /**
@@ -67,7 +71,7 @@ export class StateFactory {
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<any>(preloadedState);
-    this.epic$ = new BehaviorSubject(this.createRootEpic());
+    this.epicWithUnsub$ = new BehaviorSubject(this.createRootEpic());
     this.log$ = this.debugLog.asObservable();
     this.reducerMap = {};
 
@@ -90,6 +94,8 @@ export class StateFactory {
   }
 
   configureStore() {
+    if (this.store$.getValue())
+      return;
     const rootReducer = this.createRootReducer();
     const epicMiddleware = createEpicMiddleware<PayloadAction<any>>();
 
@@ -104,16 +110,23 @@ export class StateFactory {
     store.subscribe(() => {
       const state = store.getState();
       this.realtimeState$.next(state);
-      this.debugLog.next(['state', state]);
     });
 
+    this.realtimeState$.pipe(
+      distinctUntilChanged(),
+      // tap(() => console.log('state changed')),
+      tap(state => this.debugLog.next(['state', state]))
+    ).subscribe();
+
     epicMiddleware.run((action$, state$, dependencies) => {
-      return this.epic$.pipe(
-        mergeMap(epic => ((epic as Epic)(action$, state$, dependencies) as ReturnType<Epic>).pipe(
-          takeUntil(action$.pipe(
-            ofType('EPIC_END')
-          ))
-        ))
+      return this.epicWithUnsub$.pipe(
+        mergeMap(([epic, unsub]) => (epic(action$, state$, dependencies) as ReturnType<Epic>)
+          .pipe(
+            takeUntil(unsub.pipe(tap((epicId) => {
+              this.debugLog.next(['[redux-toolkit-obs]', `unsubscribe from ${epicId}`]);
+            })))
+          )
+        )
       );
     });
     return this;
@@ -135,7 +148,7 @@ export class StateFactory {
 
     if (reducers._init == null) {
       reducers._init = (draft, action) => {
-        this.debugLog.next(['slice', `"${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`]);
+        this.debugLog.next(['[redux-toolkit-obs]', `slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`]);
       };
     }
 
@@ -150,9 +163,26 @@ export class StateFactory {
     return slice;
   }
 
-  addEpic<Payload, Output extends PayloadAction<Payload> = PayloadAction<Payload>>(
-    epic: Epic<PayloadAction<Payload>, Output>) {
-    this.epic$.next(epic);
+  removeSlice(slice: {name: string}) {
+    delete this.reducerMap[slice.name];
+    if (this.getRootStore()) {
+      this.debugLog.next(['[redux-toolkit-obs]', 'remove slice '+ slice.name]);
+      const newRootReducer = this.createRootReducer();
+      this.getRootStore()!.replaceReducer(newRootReducer);
+    }
+  }
+
+  /**
+   * @returns a function to unsubscribe from this epic
+   * @param epic 
+   */
+  addEpic(
+    epic: Epic) {
+    const epicId = 'Epic-' + ++this.epicSeq;
+    const unsubscribeEpic = new Subject<string>();
+    this.epicWithUnsub$.next([epic, unsubscribeEpic]);
+    this.debugLog.next(['[redux-toolkit-obs]', epicId + ' is added']);
+    return () => unsubscribeEpic.next(epicId);
   }
 
   sliceState<SS, CaseReducers extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(
@@ -193,19 +223,18 @@ export class StateFactory {
   }
 
   private addSliceMaybeReplaceReducer<State,
-    CaseReducers extends SliceCaseReducers<State>,
     Name extends string = string>(
-    slice: Slice<State, CaseReducers, Name>
+    slice: Slice<State, SliceCaseReducers<State> & ExtraSliceReducers<State>, Name>
     ) {
 
     this.reducerMap[slice.name] = slice.reducer;
     if (this.getRootStore()) {
-      this.dispatch((slice.actions._init as any)({isLazy: true}));
+      this.dispatch(slice.actions._init({isLazy: true}));
       // store has been configured, in this case we do replaceReducer()
       const newRootReducer = this.createRootReducer();
       this.getRootStore()!.replaceReducer(newRootReducer);
     } else {
-      this.dispatch((slice.actions._init as any)({isLazy: false}));
+      this.dispatch(slice.actions._init({isLazy: false}));
     }
     // return slices.map(slice => typedBindActionCreaters(slice.actions, store.dispatch));
     return slice;
@@ -227,34 +256,28 @@ export class StateFactory {
     return this.store$.getValue();
   }
 
-  private createRootEpic() {
-    const logEpic: Epic<PayloadAction<any>> = (action$, _state$) => {
-      action$.pipe(
-        tap(action => {
-          this.debugLog.next(['action', action.type]);
-        })
-      ).subscribe();
-      return this.actionsToDispatch;
-      // return merge(
-      //   this.actionsToDispatch,
-      //   of<PayloadAction>({type: 'main/start', payload: undefined})
-      // );
+  private createRootEpic(): [Epic, Subject<string>] {
+    const unsubscribeEpic = new Subject<string>();
+    const logEpic: Epic<PayloadAction<any>> = (action$, state$) => {
+      return merge(
+        // state$.pipe(
+        //   tap(state => this.debugLog.next(['state', state])),
+        //   ignoreElements()
+        // ),
+        action$.pipe(
+          tap(action => {
+            this.debugLog.next(['action', action.type]);
+          }),
+          ignoreElements()
+        ),
+        this.actionsToDispatch
+      );
     };
 
-    return logEpic;
+    return [logEpic, unsubscribeEpic];
   }
 }
 
-// if (process.env.NODE_ENV !== 'production' && module.hot) {
-//   module.hot.accept('./rootReducer', () => {
-//     const newRootReducer = require('./rootReducer').default as typeof rootReducer;
-//     store.replaceReducer(newRootReducer);
-//   });
-
-//   module.hot.accept('./rootEpic', () => {
-//     const nextRootEpic = require('./rootEpic').default as typeof rootEpic;
-//     // First kill any running epics
-//     store.dispatch({ type: 'EPIC_END' });
-//     epic$.next(nextRootEpic);
-//   });
-// }
+if (module.hot) {
+  module.hot.decline();
+}

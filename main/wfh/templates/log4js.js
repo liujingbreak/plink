@@ -57,6 +57,14 @@ module.exports = config;
 
 module.exports.setup = function(options) {
 	var {logger} = options;
+	if (options.rootPath) {
+		
+		for (const appender of Object.values(config.appenders)) {
+			if (appender.filename) {
+				appender.filename = options.rootPath + '/' + appender.filename;
+			}
+		}
+	}
 	if (logger == null || pm2InstanceId !== '0')
 		return config;
 	if (logger.noFileLimit) {
@@ -70,6 +78,7 @@ module.exports.setup = function(options) {
 		}
 		console.log('[log4js.js] only file out');
 	}
+
 	if (logger.slackChannelId) {
 		var slackInstalled = true;
 		try {

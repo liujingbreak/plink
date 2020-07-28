@@ -1,4 +1,2 @@
 #!/usr/bin/env node
-const {linkDrcp} = require('../wfh/dist/utils/symlinks');
-
-linkDrcp();
+require('../wfh/dist/cmd/link-drcp').default();

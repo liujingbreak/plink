@@ -7,6 +7,7 @@ import chalk from 'chalk';
 import Path from 'path';
 import * as _ from 'lodash';
 import NodePackage from '../packageNodeInstance';
+import {printWorkspaces} from './cli-init';
 
 interface ComponentListItem {
   pk: NodePackage;
@@ -31,4 +32,6 @@ export default async function list(opt: GlobalOptions) {
 
   list = await pkRunner.listBuilderComponents();
   list.forEach(row => console.log(' ' + row.desc + '   ' + chalk.blue(Path.relative(config().rootPath, row.pk.path))));
+
+  printWorkspaces();
 }

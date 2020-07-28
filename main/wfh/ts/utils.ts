@@ -1,9 +1,8 @@
 import { BaseLexer, Token } from './base-LLn-parser';
 import trim from 'lodash/trim';
 import get from 'lodash/get';
-import * as fs from 'fs';
-import * as Path from 'path';
 import _ from 'lodash';
+import {rootDir, isDrcpSymlink} from './node-path';
 
 export enum WordTokenType {
   eol = 0,
@@ -128,20 +127,5 @@ export function getTsDirsOfPackage(json: any): PackageTsDirs {
   };
 }
 
-function findRootDir() {
-  let dir = process.cwd();
-  while (!fs.existsSync(Path.resolve(dir, 'dist/dr-state.json'))) {
-    const parentDir = Path.dirname(dir);
-    if (parentDir === dir) {
-      dir = process.cwd();
-      break;
-    }
-    dir = parentDir;
-  }
-  return dir;
-}
-
-export const getRootDir = _.memoize(findRootDir);
-
-export const isDrcpSymlink = fs.lstatSync(Path.resolve(getRootDir(), 'node_modules/dr-comp-package')).isSymbolicLink();
-
+export const getRootDir = () => rootDir;
+export {isDrcpSymlink};

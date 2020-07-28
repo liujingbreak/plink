@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { PackageInfo, packageInstance as PackageBrowserInstance } from './build-util/ts';
 import NodePackage from './packageNodeInstance';
-import Events = require('events');
+import Events from 'events';
 export interface ServerRunnerEvent {
     file: string;
     functionName: string;
@@ -15,9 +15,9 @@ export declare class ServerRunner {
  * Lazily init injector for packages and run specific package only,
  * no fully scanning or ordering on all packages
  */
-export declare function runSinglePackage(argv: {
+export declare function runSinglePackage({ target, args }: {
     target: string;
-    _: string[];
+    args: string[];
 }): Promise<void>;
 export declare function runPackages(argv: {
     target: string;

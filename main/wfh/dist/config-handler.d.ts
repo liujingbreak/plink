@@ -10,7 +10,6 @@ export interface BaseDrcpSetting {
     staticDir: string;
     recipeFolder?: string;
     rootPath: string;
-    log4jsReloadSeconds: number;
     logStat: boolean;
 }
 export interface DrcpSettings extends BaseDrcpSetting {
@@ -70,3 +69,20 @@ export declare class ConfigHandlerMgr {
     runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): Promise<any>;
     runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): any;
 }
+/**
+ * Set "baseUrl", "paths" property based on Root path and process.cwd()
+ * @param cwd project directory where tsconfig file is (virtual)
+ * @param pathsDirs all available `node_modules` for looking for modules
+ * @param assigneeOptions
+ */
+export declare function setTsCompilerOpt(cwd: string, assigneeOptions: {
+    [key: string]: any;
+}, opts?: {
+    setTypeRoots: boolean;
+}): {
+    [key: string]: any;
+    baseUrl: string;
+    paths: {
+        [key: string]: string[];
+    };
+};

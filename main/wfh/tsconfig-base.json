@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"baseUrl": "./",
+		"baseUrl": ".",
 		"outDir": "dist",
 		"declaration": true,
 		"module":"commonjs",
@@ -19,7 +19,8 @@
 		"downlevelIteration": false,
 		"strictNullChecks": true,
 		"resolveJsonModule": true,
-		"typeRoots": ["../node_modules/@types"],
+		"diagnostics": false,
+		"newLine": "lf",
 		"lib": ["es2016",
 			"es2015",
 			"dom"

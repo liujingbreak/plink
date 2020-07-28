@@ -1,4 +1,4 @@
-import {DrcpApi} from 'dr-comp-package/types/drcp-types/drcp-api';
+import {DrcpApi} from '__api';
 export interface _DrcpNgApi extends DrcpApi {
 	deployUrl: string;
 	ssr: boolean;

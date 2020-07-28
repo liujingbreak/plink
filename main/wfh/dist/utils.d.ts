@@ -1,5 +1,5 @@
 import { BaseLexer, Token } from './base-LLn-parser';
-import _ from 'lodash';
+import { isDrcpSymlink } from './node-path';
 export declare enum WordTokenType {
     eol = 0,
     word = 1,
@@ -18,7 +18,5 @@ export interface PackageTsDirs {
     isomDir: string;
 }
 export declare function getTsDirsOfPackage(json: any): PackageTsDirs;
-declare function findRootDir(): string;
-export declare const getRootDir: typeof findRootDir & _.MemoizedFunction;
-export declare const isDrcpSymlink: boolean;
-export {};
+export declare const getRootDir: () => string;
+export { isDrcpSymlink };

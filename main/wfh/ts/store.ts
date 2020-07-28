@@ -3,10 +3,11 @@ import fs from 'fs';
 import {tap} from 'rxjs/operators';
 import {StateFactory} from './utils/redux-store';
 import log4js from 'log4js';
+import {getRootDir} from './utils';
 // import './package-mgr'; 
 // ensure slice and epic being initialized before create store, in which case not more lazy load
 
-const stateFile = Path.resolve('dist/dr-state.json');
+const stateFile = Path.resolve(getRootDir(), 'dist/dr-state.json');
 
 /**
  * Since Redux-toolkit does not read initial state with any lazy slice that has not defined in root reducer,

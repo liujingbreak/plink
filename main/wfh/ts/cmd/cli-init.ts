@@ -32,7 +32,7 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
   printWorkspaces();
 }
 
-function printWorkspaces() {
+export function printWorkspaces() {
   console.log('\n' + chalk.greenBright('Workspace directories and linked dependencies:'));
   for (const [dir, ws] of Object.entries(getState().workspaces)) {
     const reldir = Path.relative(process.cwd(), dir);

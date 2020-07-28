@@ -8,6 +8,8 @@ node_modules
 .vscode
 *.log
 /tsconfig.json
+/main/drcp-types/tsconfig.json
+/main/tsconfig.json
 *.bak
 /tslint.json
 /dr.backup.package.json
@@ -15,3 +17,10 @@ node_modules
 **/*.d.ts.map
 .prettierignore
 prettier.config.js
+
+src/tools/json-schema-gen/tsconfig.json
+main/tsconfig.json
+
+
+main/drcp-types/tsconfig.json
+

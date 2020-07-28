@@ -9,14 +9,14 @@ import _NodeApi from './package-mgr/node-package-api';
 // import Package from './packageNodeInstance';
 import { orderPackages, PackageInstance } from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
-import Events = require('events');
 import Path from 'path';
+import Events from 'events';
 import {createLazyPackageFileFinder} from './package-utils';
-
+import log4js from 'log4js';
 import config from './config';
 const packageUtils = require('../lib/packageMgr/packageUtils');
 
-const log = require('log4js').getLogger('package-runner');
+const log = log4js.getLogger('package-runner');
 
 export interface ServerRunnerEvent {
   file: string;
@@ -50,10 +50,22 @@ const apiCache: {[name: string]: any} = {};
  * Lazily init injector for packages and run specific package only,
  * no fully scanning or ordering on all packages
  */
-export async function runSinglePackage(argv: {target: string, _: string[]}) {
-  prepareLazyNodeInjector(argv);
+export async function runSinglePackage({target, args}: {target: string, args: string[]}) {
+  const passinArgv = {};
+  for (let i = 0, l = args.length; i < l; i++) {
+    const key = args[i];
+    if (key.startsWith('-')) {
+      if (i === args.length - 1 || args[i + 1].startsWith('-')) {
+        passinArgv[_.trimStart(key, '-')] = true;
+      } else {
+        passinArgv[key] = args[i + 1];
+        i++;
+      }
+    }
+  }
+  prepareLazyNodeInjector(passinArgv);
+  const [file, func] = target.split('#');
 
-  const [file, func] = argv.target.split('#');
   const guessingFile: string[] = [
     file,
     Path.resolve(file),
@@ -77,7 +89,7 @@ export async function runSinglePackage(argv: {target: string, _: string[]}) {
     `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
     return;
   }
-  await Promise.resolve(_exports[func].apply(global, argv._.slice(1) || []));
+  await Promise.resolve(_exports[func].apply(global, args.slice(1) || []));
 }
 
 export function runPackages(argv: {target: string, package: string[], [key: string]: any}) {
@@ -85,6 +97,7 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
   const includeNameSet = new Set<string>();
   argv.package.forEach(name => includeNameSet.add(name));
   const [fileToRun, funcToRun] = (argv.target as string).split('#');
+  // nodeInjector.fromRoot().alias('log4js', Path.resolve(config().rootPath, 'node_modules/log4js'));
   const [packages, proto] = initInjectorForNodePackages(argv, walkPackages(config, packageUtils));
   const components = packages.filter(pk => {
     // setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
@@ -178,6 +191,7 @@ export function prepareLazyNodeInjector(argv: {[key: string]: any}) {
     return getApiForPackage(packageInstance, NodeApi);
   };
   nodeInjector.fromRoot()
+  // .alias('log4js', Path.resolve(config().rootPath, 'node_modules/log4js'))
   .value('__injector', nodeInjector)
   .factory('__api', (sourceFilePath: string) => {
     const packageInstance = proto.findPackageByFile(sourceFilePath);
@@ -195,7 +209,6 @@ function setupNodeInjectorFor(pkInstance: PackageBrowserInstance, NodeApi: typeo
   nodeInjector.fromDir(pkInstance.packagePath)
   .value('__injector', nodeInjector)
   .factory('__api', apiFactory);
-  // nodeInjector.default = nodeInjector; // For ES6 import syntax
 }
 
 function getApiForPackage(pkInstance: any, NodeApi: typeof _NodeApi) {

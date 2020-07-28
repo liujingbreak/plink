@@ -92,14 +92,11 @@ export async function drcpCommand(startTime: number) {
   const runCmd = program.command('run <target> [arguments...]')
   .description('Run specific module\'s exported function\n')
   .action(async (target: string, args: string[]) => {
-
     const config = await (await import('../config')).default;
     await config.init(runCmd.opts() as tp.GlobalOptions);
     const logConfig = await (await import('../log-config')).default;
     logConfig(config());
-    (await import('../package-runner')).runSinglePackage({target, _: args});
-    // console.log(target, args);
-
+    (await import('../package-runner')).runSinglePackage({target, args});
   });
   withGlobalOptions(runCmd);
   runCmd.usage(runCmd.usage() + '\n' + chalk.green('drcp run <target> [arguments...]\n') +
@@ -151,6 +148,7 @@ export async function drcpCommand(startTime: number) {
   hlDesc('drcp tsc [package...] -w\n') + ' Watch components change and compile when new typescript file is changed or created\n\n');
 
   try {
+
     await program.parseAsync(process.argv);
   } catch (e) {
 

@@ -49,30 +49,37 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   var compGlobs: string[] = [];
   // var compStream = [];
   const compDirInfo: Map<string, ComponentDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
-  const baseTsconfig = argv.jsx ? require('../tsconfig-tsx.json') : require('../tsconfig.json');
+  const baseTsconfig = argv.jsx ? require('../tsconfig-tsx.json') : require('../tsconfig-base.json');
   let promCompile = Promise.resolve( [] as EmitList);
 
   let paths: any;
-  const baseUrl = Path.relative(process.cwd(), config().rootPath).replace(/\\/g, '/');
-  let typeRoots: string[] | undefined;
+
+  let baseUrl = Path.relative(process.cwd(), config().rootPath).replace(/\\/g, '/');
+  if (baseUrl.length === 0)
+    baseUrl = '.';
+  else if (!baseUrl.startsWith('.'))
+    baseUrl = './' + baseUrl;
+
+  let relativeCwd = Path.relative(config().rootPath, process.cwd()).replace(/\\/g, '/');
+  if (relativeCwd.length > 0 )
+    relativeCwd = relativeCwd + '/';
+
+  // let typeRoots: string[] | undefined;
 
   if (baseUrl !== process.cwd()) {
-    let relativeNm = Path.relative(baseUrl, process.cwd()).replace(/\\/g, '/');
-    if (relativeNm.length > 0 )
-      relativeNm = relativeNm + '/';
-    // compilerOptions.typeRoots.push(Path.resolve(config().rootPath, 'node_modules'));
     paths = {
       '*': [
-        relativeNm + 'node_modules/*',
-        relativeNm + 'node_modules/@types/*',
-        'node_modules/*',
-        'node_modules/@types/*'
+        relativeCwd + 'node_modules/@types/*',
+        'node_modules/@types/*',
+        relativeCwd + 'node_modules/*',
+        'node_modules/*'
       ]
     };
-    typeRoots = [
-      Path.resolve('node_modules/@types'),
-      Path.resolve(config().rootPath, 'node_modules/@types')
-    ];
+    // typeRoots = [
+    //   './node_modules/@types',
+    //   baseUrl + '/node_modules/@types'
+    // ];
+    // typeRoots = ['/Users/liujing/bk/mytool/node_modules/@types'];
   } else {
     paths = {
       '*': [
@@ -82,10 +89,9 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     };
   }
 
-  console.log(paths, typeRoots);
-
-  const tsProject = ts.createProject(Object.assign({}, baseTsconfig.compilerOptions, {
-    typescript: require('typescript'),
+  const compilerOptions = {
+    ...baseTsconfig.compilerOptions,
+    // typescript: require('typescript'),
     // Compiler options
     importHelpers: true,
     outDir: '',
@@ -96,13 +102,12 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     sourceMap: true,
     emitDeclarationOnly: argv.ed,
     // preserveSymlinks: true,
-    paths,
-    typeRoots
-    // typeRoots: [
-    //   Path.join('node_modules/@types'),
-    //   Path.join(Path.dirname(require.resolve('dr-comp-package/package.json')), '/wfh/types')
-    // ]
-  }));
+    paths
+  };
+  // console.log(compilerOptions);
+
+  const tsProject = ts.createProject({...compilerOptions, typescript: require('typescript')});
+  // debugger;
   if (argv.package && argv.package.length > 0)
     packageUtils.findAllPackages(argv.package, onComponent, 'src');
   else if (argv.project && argv.project.length > 0) {

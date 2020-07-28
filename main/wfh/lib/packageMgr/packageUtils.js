@@ -288,11 +288,13 @@ function _findPackageByType(types, callback, resolver, recipeType, projectDir) {
 
 	if (recipeType === 'src') {
 		recipeMgr.eachRecipeSrc(projectDir, onEachSrcRecipe);
-	} else if (recipeType === 'installed') {
-		recipeMgr.eachInstalledRecipe((dir, isInstalled, fileName) => {
-			return findEntryFiles(Path.resolve(dir, fileName), true);
-		});
-	} else {
+	} 
+	// else if (recipeType === 'installed') {
+	// 	recipeMgr.eachInstalledRecipe((dir, isInstalled, fileName) => {
+	// 		return findEntryFiles(Path.resolve(dir, fileName), true);
+	// 	});
+	// } 
+	else {
 		recipeMgr.eachRecipe((recipeDir, isInstalled, fileName) => {
 			findEntryFiles(Path.resolve(recipeDir, fileName), isInstalled);
 		});

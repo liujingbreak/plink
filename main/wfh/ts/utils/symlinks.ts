@@ -64,22 +64,22 @@ export function linkDrcp() {
     console.log(Path.resolve('node_modules', 'dr-comp-package') + ' is created');
   }
 
-  // 2. create symlink <parent directory of "main">/node_modules --> node_modules
-  const topModuleDir = Path.resolve(sourceDir, '../node_modules');
-  if (fs.existsSync(topModuleDir)) {
-    if (fs.realpathSync(topModuleDir) !== Path.resolve('node_modules')) {
-      fs.unlinkSync(topModuleDir);
-      fs.symlinkSync(Path.relative(Path.dirname(topModuleDir), Path.resolve('node_modules')),
-      topModuleDir, isWin32 ? 'junction' : 'dir');
-      // tslint:disable-next-line: no-console
-      console.log(topModuleDir + ' is created');
-    }
-  } else {
-    fs.symlinkSync(Path.relative(Path.dirname(topModuleDir), Path.resolve('node_modules')),
-      topModuleDir, isWin32 ? 'junction' : 'dir');
-    // tslint:disable-next-line: no-console
-    console.log(topModuleDir + ' is created');
-  }
+  // // 2. create symlink <parent directory of "main">/node_modules --> node_modules
+  // const topModuleDir = Path.resolve(sourceDir, '../node_modules');
+  // if (fs.existsSync(topModuleDir)) {
+  //   if (fs.realpathSync(topModuleDir) !== Path.resolve('node_modules')) {
+  //     fs.unlinkSync(topModuleDir);
+  //     fs.symlinkSync(Path.relative(Path.dirname(topModuleDir), Path.resolve('node_modules')),
+  //     topModuleDir, isWin32 ? 'junction' : 'dir');
+  //     // tslint:disable-next-line: no-console
+  //     console.log(topModuleDir + ' is created');
+  //   }
+  // } else {
+  //   fs.symlinkSync(Path.relative(Path.dirname(topModuleDir), Path.resolve('node_modules')),
+  //     topModuleDir, isWin32 ? 'junction' : 'dir');
+  //   // tslint:disable-next-line: no-console
+  //   console.log(topModuleDir + ' is created');
+  // }
 }
 
 export async function symlinkAsync(linkTarget: string, link: string) {

@@ -1,11 +1,12 @@
 /* tslint:disable no-console */
 import * as Path from 'path';
 import chalk from 'chalk';
+import _ from 'lodash';
 const {parse} = require('comment-json');
 const {cyan, green} = chalk;
 import {register as registerTsNode} from 'ts-node';
 import {GlobalOptions as CliOptions} from './cmd/types';
-// import * as pkmgr from './package-mgr';
+
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 
@@ -20,7 +21,7 @@ export interface BaseDrcpSetting {
   staticDir: string;
   recipeFolder?: string;
   rootPath: string;
-  log4jsReloadSeconds: number;
+  // log4jsReloadSeconds: number;
   logStat: boolean;
 }
 export interface DrcpSettings extends BaseDrcpSetting {
@@ -70,43 +71,19 @@ export class ConfigHandlerMgr {
     if (!ConfigHandlerMgr._tsNodeRegistered) {
       ConfigHandlerMgr._tsNodeRegistered = true;
 
-      const internalTscfgFile = Path.resolve(__dirname, '../tsconfig.json');
+      const internalTscfgFile = Path.resolve(__dirname, '../tsconfig-base.json');
       const {compilerOptions} = parse(
         fs.readFileSync(internalTscfgFile, 'utf8')
       );
 
-      compilerOptions.baseUrl = rootPath;
+      setTsCompilerOpt(process.cwd(), compilerOptions);
+
       compilerOptions.module = 'commonjs';
-      compilerOptions.isolatedModules = true;
       compilerOptions.noUnusedLocals = false;
       compilerOptions.diagnostics = true;
       delete compilerOptions.rootDir;
-      compilerOptions.typeRoots = [
-        Path.resolve('node_modules/@types')
-        // './node_modules/@dr-types'
-      ];
+      delete compilerOptions.typeRoots;
 
-      let relativeNm = Path.relative(process.cwd(), rootPath).replace(/\\/g, '/');
-      if (relativeNm.length > 0 )
-        relativeNm = relativeNm + '/';
-      if (rootPath !== process.cwd()) {
-        compilerOptions.typeRoots.push(Path.resolve(rootPath, 'node_modules'));
-        compilerOptions.paths = {
-          '*': [
-            'node_modules/*',
-            relativeNm + 'node_modules/*'
-          ]
-        };
-      } else {
-        compilerOptions.paths = {
-          '*': [relativeNm + 'node_modules/*']
-        };
-      }
-      // for (const pks of Object.values(getPackageState().srcPackages || [])) {
-
-      // }
-      // const co = jsonToCompilerOptions(compilerOptions);
-      // registerExtension('.ts', co);
       // console.log(compilerOptions);
       registerTsNode({
         typeCheck: true,
@@ -115,16 +92,15 @@ export class ConfigHandlerMgr {
          * Important!! prevent ts-node looking for tsconfig.json from current working directory
          */
         skipProject: true
-        // ,transformers: {
-        //   after: [
-        //     context => (src) => {
-        //       console.log(compilerOptions);
-        //       console.log('ts-node compiles:', src.fileName);
-        //       console.log(src.text);
-        //       return src;
-        //     }
-        //   ]
-        // }
+        ,transformers: {
+          after: [
+            context => (src) => {
+              console.log('ts-node compiles:', src.fileName);
+              // console.log(src.text);
+              return src;
+            }
+          ]
+        }
       });
       files.forEach(file => {
         const exp = require(Path.resolve(file));
@@ -166,4 +142,40 @@ export class ConfigHandlerMgr {
     }
     return lastRes;
   }
+}
+
+/**
+ * Set "baseUrl", "paths" property based on Root path and process.cwd()
+ * @param cwd project directory where tsconfig file is (virtual)
+ * @param pathsDirs all available `node_modules` for looking for modules
+ * @param assigneeOptions 
+ */
+export function setTsCompilerOpt(cwd: string, assigneeOptions: {[key: string]: any},
+  opts: {setTypeRoots: boolean} = {setTypeRoots: false}) {
+  // pathsDirs = _.uniq(pathsDirs);
+  const pathsDirs = process.env.NODE_PATH ? process.env.NODE_PATH.split(Path.delimiter) : [];
+
+  assigneeOptions.baseUrl = '.';
+  if (assigneeOptions.paths == null)
+    assigneeOptions.paths = {};
+  assigneeOptions.paths['*'] = [];
+  for (const dir of pathsDirs) {
+    const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');
+    // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
+    assigneeOptions.paths['*'].push(relativeDir + '/@types/*');
+    assigneeOptions.paths['*'].push(relativeDir + '/*');
+  }
+
+  if (opts.setTypeRoots) {
+    assigneeOptions.typeRoots = pathsDirs.map(dir => {
+      const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');
+      return relativeDir + '/@types';
+    });
+  }
+
+  return assigneeOptions as {
+    baseUrl: string;
+    paths: {[key: string]: string[]};
+    [key: string]: any;
+  };
 }

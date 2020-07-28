@@ -9,7 +9,7 @@ import findPackageJson from './package-mgr/find-package';
 import * as rwPackageJson from './rwPackageJson';
 import {actions as cleanActions} from './cmd/cli-clean';
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
-const File = require('vinyl');
+// const File = require('vinyl');
 const through = require('through2');
 const merge = require('merge2');
 import config from './config';
@@ -18,11 +18,11 @@ import config from './config';
 // import {getInstance} from './package-json-guarder';
 // const packageJsonGuarder = getInstance(config().rootPath);
 
-let linkListFile: string;
+// let linkListFile: string;
 
-config.done.then(() => {
-  linkListFile = config.resolve('destDir', 'link-list.json');
-});
+// config.done.then(() => {
+//   linkListFile = config.resolve('destDir', 'link-list.json');
+// });
 
 let projectList: string[] = [];
 export function setProjectList(list: string[]) {
@@ -32,7 +32,7 @@ export function setProjectList(list: string[]) {
 // let cleanActions: ActionsType;
 // cleanActionsProm.then(actions => cleanActions = actions);
 
-export type EachRecipeSrcCallback = (srcDir: string, recipeDir: string, recipeName: string) => void;
+export type EachRecipeSrcCallback = (srcDir: string, recipeDir: string | null, recipeName: string | null, projectDir: string) => void;
 /**
  * Iterate src folder for component items
  * @param {string | string[]} projectDir optional, if not present or null, includes all project src folders
@@ -41,7 +41,7 @@ export type EachRecipeSrcCallback = (srcDir: string, recipeDir: string, recipeNa
 export function eachRecipeSrc(callback: EachRecipeSrcCallback): void;
 export function eachRecipeSrc(projectDir: string, callback: EachRecipeSrcCallback): void;
 export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
-  callback?: (srcDir: string, recipeDir: string | null, recipeName: string | null) => void): void {
+  callback?: EachRecipeSrcCallback): void {
   if (arguments.length === 1) {
     callback = arguments[0];
     forProject(projectList);
@@ -55,21 +55,21 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
 
   function forProject(prjDirs: string[] | string) {
     ([] as string[]).concat(prjDirs).forEach(prjDir => {
-      _.each(recipe2srcDirMapForPrj(prjDir), onEachSrcRecipePair);
+      _.each(recipe2srcDirMapForPrj(prjDir), (srcDir, recipe) => onEachSrcRecipePair(prjDir, srcDir, recipe));
       const e2eDir = Path.join(prjDir, 'e2etest');
       if (fs.existsSync(e2eDir))
-        callback!(e2eDir, null, null);
+        callback!(e2eDir, null, null, prjDir);
     });
   }
 
-  function onEachSrcRecipePair(srcDir: string, recipeDir: string) {
+  function onEachSrcRecipePair(prjDir: string, srcDir: string, recipeDir: string) {
     let recipeName: string | null = null;
     try {
       recipeName = require(Path.resolve(recipeDir, 'package.json')).name;
     } catch (e) {
       log.debug(`Can't read ${Path.resolve(recipeDir, 'package.json')}`);
     }
-    callback!(srcDir, recipeDir, recipeName);
+    callback!(srcDir, recipeDir, recipeName, prjDir);
   }
 }
 
@@ -180,18 +180,17 @@ export function eachRecipe(callback: EachRecipeCallback) {
 //   callback(config().rootPath, true, Path.relative(config().rootPath, packageJsonGuarder.getJsonFile()));
 // }
 
-export function link(onPkJsonFile: (filePath: string, recipeDir: string) => void) {
+export function link(onPkJsonFile: (filePath: string, recipeDir: string, proj: string) => void) {
   const streams: any[] = [];
-  let linkFiles = fs.existsSync(linkListFile) ? JSON.parse(fs.readFileSync(linkListFile, 'utf8')) : [];
-  eachRecipeSrc(function(src, recipeDir) {
+  eachRecipeSrc(function(src, recipeDir, recipeName, proj) {
     // tslint:disable-next-line:no-console
     log.debug('[recipeManager]link recipe', recipeDir);
-    streams.push(linkToRecipeFile(src, recipeDir, onPkJsonFile));
+    streams.push(linkToRecipeFile(src, recipeDir!, (file, recipeDir) => onPkJsonFile(file, recipeDir, proj)));
   });
   return merge(streams)
   .pipe(through.obj(function(file: any, enc: string, next: () => void) {
     if (_.isArray(file)) {
-      linkFiles.push(...file);
+      // linkFiles.push(...file);
       cleanActions.addWorkspaceFile(file);
     } else {
       log.debug('out: ' + file.path);
@@ -199,14 +198,6 @@ export function link(onPkJsonFile: (filePath: string, recipeDir: string) => void
     }
     next();
   }, function flush(next: () => void) {
-    linkFiles = _.uniq(linkFiles);
-    const linkFileTrack = new File({
-      base: Path.resolve(config().rootPath),
-      path: Path.relative(config().rootPath, linkListFile),
-      contents: new Buffer(JSON.stringify(linkFiles, null, ' '))
-    });
-    this.push(linkFileTrack);
-    log.debug('out: ' + linkFileTrack.path);
     next();
   }))
   .pipe(gulp.dest(config().rootPath))
@@ -218,11 +209,14 @@ export function link(onPkJsonFile: (filePath: string, recipeDir: string) => void
 /**
  * @return array of linked package's package.json file path
  */
-export function linkComponentsAsync() {
-  const pkJsonFiles: string[] = [];
+export function linkComponentsAsync(cb: (prj: string, pkgJsonFile: string) => void) {
+  // const pkJsonFiles: string[] = [];
   return new Promise<string[]>((resolve, reject) => {
-    link(file => pkJsonFiles.push(file))
-    .on('end', () => resolve(pkJsonFiles))
+    link((file, recipeDir, proj) => {
+      // pkJsonFiles.push(file);
+      cb(proj, file);
+    })
+    .on('end', () => resolve())
     .on('error', reject)
     .resume();
   });
@@ -250,7 +244,8 @@ export async function clean() {
   // });
 }
 
-function linkToRecipeFile(srcDir: string, recipeDir: string, onPkJsonFile: (filePath: string, recipeDir: string) => void) {
+function linkToRecipeFile(srcDir: string, recipeDir: string,
+  onPkJsonFile: (filePath: string, recipeDir: string) => void) {
   return gulp.src('.')
     .pipe(findPackageJson(srcDir, true))
     .pipe(through.obj(function(file: any, enc: string, next: (...arg: any[]) => void) {

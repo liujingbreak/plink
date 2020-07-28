@@ -9,6 +9,7 @@
   },
   "dr": {},
   "scripts": {
+    "tsc": "tsc",
     "build": "cd wfh && tsc",
     "watch": "cd wfh && tsc -w",
     "build:share": "cd wfh && tsc -p tsconfig-share.json"
@@ -30,7 +31,6 @@
     "ts-node": "~8.3.0",
     "@types/js-yaml": "3.10.1",
     "@types/lodash": "^4.14.92",
-    "@types/node": "^12.12.26",
     "jasmine": "~3.5.0",
     "@types/jasmine": "~3.3.2",
     "source-map-support": "~0.5.16",
@@ -80,7 +80,6 @@
     "vinyl-source-stream": "^1.1.0",
     "yamlify": "^0.2.0",
     "yamljs": "^0.3.0",
-    "tslib": "^1.9.3",
     "open": "^7.0.2",
     "comment-json": "^3.0.2",
     "commander": "~5.1.0",
@@ -88,6 +87,8 @@
     "redux-observable": "1.2.0"
   },
   "peerDependencies": {
-    "log4js": "^6.1.2"
+    "log4js": "^6.1.2",
+    "tslib": "^1.9.3",
+    "@types/node": "^12.12.26"
   }
 }
