@@ -24,7 +24,7 @@ program.version(pk.version).name('json-schema-gen')
   .passCommandToAction(true);
 program.option('-c, --config <config-file>',
   'Read config files, if there are multiple files, the latter one overrides previous one',
-  (curr, prev) => prev.concat(curr), [] as string[]);
+  (curr, prev) => prev.concat(curr.split(',')), [] as string[]);
 program.option('--prop <property-path=value as JSON | literal>',
   '<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n',
   (curr, prev) => prev.concat(curr), [] as string[]);

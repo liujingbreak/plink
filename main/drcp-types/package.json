@@ -1,0 +1,8 @@
+{
+  "name": "@types/drcp-types",
+  "version": "1.0.0",
+  "main": "",
+  "types": "index.d.ts",
+  "dr": {},
+  "license": "MIT"
+}
