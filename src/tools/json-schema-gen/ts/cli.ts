@@ -32,7 +32,7 @@ program.option('--prop <property-path=value as JSON | literal>',
 program.action(async () => {
   const dones: Promise<void>[] = [];
   await cfg.init({
-    c: (program.opts().config as string[]).length === 0 ? undefined : program.opts().config,
+    config: (program.opts().config as string[]).length === 0 ? undefined : program.opts().config,
     prop: (program.opts().prop as string[])
   });
   logConfig(cfg());

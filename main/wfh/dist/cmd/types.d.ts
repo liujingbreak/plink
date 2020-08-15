@@ -1,7 +1,7 @@
 export interface GlobalOptions {
     config: string[];
     prop: string[];
-    logStat: boolean;
+    logStat?: boolean;
 }
 export interface InitCmdOptions extends GlobalOptions {
     force: boolean;

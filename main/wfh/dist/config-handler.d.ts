@@ -70,9 +70,9 @@ export declare class ConfigHandlerMgr {
     runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): any;
 }
 /**
- * Set "baseUrl", "paths" property based on Root path and process.cwd()
+ * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
+ * and process.env.NODE_PATHS
  * @param cwd project directory where tsconfig file is (virtual)
- * @param pathsDirs all available `node_modules` for looking for modules
  * @param assigneeOptions
  */
 export declare function setTsCompilerOpt(cwd: string, assigneeOptions: {

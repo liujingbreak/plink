@@ -37,7 +37,6 @@ export declare class InstallManager {
     }, workspaceName: string);
     scanFor(pkJsons: PackageJsonInterf[]): void;
     scanSrcDeps(jsonFiles: string[]): void;
-    scanInstalledPeerDeps(): void;
     hoistDeps(): {
         [dep: string]: string;
     };

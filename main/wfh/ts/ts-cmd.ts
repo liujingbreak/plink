@@ -7,6 +7,7 @@ import * as Path from 'path';
 import {getTsDirsOfPackage, PackageTsDirs} from './utils';
 import {CompilerOptions} from 'typescript';
 import config from './config';
+import {setTsCompilerOpt} from './config-handler';
 const gulp = require('gulp');
 const through = require('through2');
 const chokidar = require('chokidar');
@@ -52,42 +53,37 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   const baseTsconfig = argv.jsx ? require('../tsconfig-tsx.json') : require('../tsconfig-base.json');
   let promCompile = Promise.resolve( [] as EmitList);
 
-  let paths: any;
+  // let paths: any;
 
-  let baseUrl = Path.relative(process.cwd(), config().rootPath).replace(/\\/g, '/');
-  if (baseUrl.length === 0)
-    baseUrl = '.';
-  else if (!baseUrl.startsWith('.'))
-    baseUrl = './' + baseUrl;
+  // let baseUrl = Path.relative(process.cwd(), config().rootPath).replace(/\\/g, '/');
+  // if (baseUrl.length === 0)
+  //   baseUrl = '.';
+  // else if (!baseUrl.startsWith('.'))
+  //   baseUrl = './' + baseUrl;
 
-  let relativeCwd = Path.relative(config().rootPath, process.cwd()).replace(/\\/g, '/');
-  if (relativeCwd.length > 0 )
-    relativeCwd = relativeCwd + '/';
+  // let relativeCwd = Path.relative(config().rootPath, process.cwd()).replace(/\\/g, '/');
+  // if (relativeCwd.length > 0 )
+  //   relativeCwd = relativeCwd + '/';
 
-  // let typeRoots: string[] | undefined;
+  // // let typeRoots: string[] | undefined;
 
-  if (baseUrl !== process.cwd()) {
-    paths = {
-      '*': [
-        relativeCwd + 'node_modules/@types/*',
-        'node_modules/@types/*',
-        relativeCwd + 'node_modules/*',
-        'node_modules/*'
-      ]
-    };
-    // typeRoots = [
-    //   './node_modules/@types',
-    //   baseUrl + '/node_modules/@types'
-    // ];
-    // typeRoots = ['/Users/liujing/bk/mytool/node_modules/@types'];
-  } else {
-    paths = {
-      '*': [
-        'node_modules/*',
-        'node_modules/@types/*'
-      ]
-    };
-  }
+  // if (baseUrl !== process.cwd()) {
+  //   paths = {
+  //     '*': [
+  //       relativeCwd + 'node_modules/@types/*',
+  //       'node_modules/@types/*',
+  //       relativeCwd + 'node_modules/*',
+  //       'node_modules/*'
+  //     ]
+  //   };
+  // } else {
+  //   paths = {
+  //     '*': [
+  //       'node_modules/*',
+  //       'node_modules/@types/*'
+  //     ]
+  //   };
+  // }
 
   const compilerOptions = {
     ...baseTsconfig.compilerOptions,
@@ -95,15 +91,14 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     // Compiler options
     importHelpers: true,
     outDir: '',
-    baseUrl,
-    rootDir: baseUrl,
+    rootDir: config().rootPath,
     skipLibCheck: true,
     inlineSourceMap: false,
     sourceMap: true,
-    emitDeclarationOnly: argv.ed,
+    emitDeclarationOnly: argv.ed
     // preserveSymlinks: true,
-    paths
   };
+  setTsCompilerOpt(process.cwd(), compilerOptions);
   // console.log(compilerOptions);
 
   const tsProject = ts.createProject({...compilerOptions, typescript: require('typescript')});

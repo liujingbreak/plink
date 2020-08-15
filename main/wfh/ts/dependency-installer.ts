@@ -8,7 +8,7 @@ const chalk = require('chalk');
 const semver = require('semver');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
 // const packageUtils = require('../lib/packageMgr/packageUtils');
-import * as packageUtils from './package-utils';
+// import * as packageUtils from './package-utils';
 import {getInstance as getPackageJsonGuarder} from './package-json-guarder';
 import * as recipeManager from './recipe-manager';
 
@@ -31,7 +31,7 @@ export function listCompDependency(
     installer.scanSrcDeps(pkJsonFiles as string[]);
   else
     installer.scanFor(pkJsonFiles as PackageJsonInterf[]);
-  installer.scanInstalledPeerDeps();
+  // installer.scanInstalledPeerDeps();
   return installer.hoistDeps();
 }
 
@@ -95,26 +95,26 @@ export class InstallManager {
     return this.scanFor(jsonFiles.map(packageJson => JSON.parse(fs.readFileSync(packageJson, 'utf8'))));
   }
 
-  scanInstalledPeerDeps() {
-    // TODO: Here I want to determine expected component version to install with, but so far the version number of each component that I get is currently installed
-    // one which might be incorrect or outdated, in case like developer did not run "yarn install" before "drcp init".
-    // One problem is: 
-    // Without running "yarn install" to download "recipe" package, I can't know exact up to date version number of those components
-    // which belong to a certain "recipe" pacakge.
-    // So firstly, always "yarn install" before "drcp init"
+  // scanInstalledPeerDeps() {
+  //   // TODO: Here I want to determine expected component version to install with, but so far the version number of each component that I get is currently installed
+  //   // one which might be incorrect or outdated, in case like developer did not run "yarn install" before "drcp init".
+  //   // One problem is: 
+  //   // Without running "yarn install" to download "recipe" package, I can't know exact up to date version number of those components
+  //   // which belong to a certain "recipe" pacakge.
+  //   // So firstly, always "yarn install" before "drcp init"
 
-    // Another problem is:
-    // These old component versions are tracked in dist/dr.package.json waiting for being compared with newly changed version list.
-    // But ...
-    packageUtils.findAllPackages((name, entryPath: string, parsedName, json, packagePath) => {
-      if (_.has(this.componentMap, name))
-        return; // Skip it, since most likely there is a duplicate "installed" dependency in package.json against an symbolic linked component
-      this.componentMap[name] = {ver: json.version, toInstall: true};
-      _.each(json.peerDependencies, (version, name) => {
-        this._trackDependency(this.srcDeps, name, version, json.name);
-      });
-    }, 'installed');
-  }
+  //   // Another problem is:
+  //   // These old component versions are tracked in dist/dr.package.json waiting for being compared with newly changed version list.
+  //   // But ...
+  //   packageUtils.findAllPackages((name, entryPath: string, parsedName, json, packagePath) => {
+  //     if (_.has(this.componentMap, name))
+  //       return; // Skip it, since most likely there is a duplicate "installed" dependency in package.json against an symbolic linked component
+  //     this.componentMap[name] = {ver: json.version, toInstall: true};
+  //     _.each(json.peerDependencies, (version, name) => {
+  //       this._trackDependency(this.srcDeps, name, version, json.name);
+  //     });
+  //   }, 'installed');
+  // }
 
   hoistDeps() {
     const hoistDeps: {[dep: string]: string} = {};
