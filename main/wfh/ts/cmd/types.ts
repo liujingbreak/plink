@@ -16,3 +16,8 @@ export interface LintOptions extends GlobalOptions {
   pj?: string[];
   fix: boolean;
 }
+
+export interface BumpOptions extends GlobalOptions {
+  project: string[];
+  increVersion: 'major' | 'minor' | 'patch' | 'prerelease';
+}

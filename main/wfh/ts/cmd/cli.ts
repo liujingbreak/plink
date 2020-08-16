@@ -126,6 +126,9 @@ export async function drcpCommand(startTime: number) {
     // console.log(opt);
     const config = await (await import('../config')).default;
     await config.init(runCmd.opts() as tp.GlobalOptions);
+    const logConfig = await (await import('../log-config')).default;
+    logConfig(config());
+
     const tsCmd = await import('../ts-cmd');
     await tsCmd.tsc({
       package: packages,
@@ -147,6 +150,23 @@ export async function drcpCommand(startTime: number) {
   hlDesc('drcp tsc --pj <project directory,...>\n') + ' Compile components belong to specific projects\n' +
   hlDesc('drcp tsc [package...] -w\n') + ' Watch components change and compile when new typescript file is changed or created\n\n');
 
+  /**
+   * Bump command
+   */
+  const bumpCmd = program.command('bump [dir...]')
+    .description('bump version number of all package.json from specific directories')
+    .option<string[]>('--pj, --project <project-dir,...>', 'only bump component packages from specific project directory',
+      (value, prev) => {
+        prev.push(...value.split(',')); return prev;
+      }, [])
+    .option('-i, --incre-version <major | minor | patch | prerelease>',
+      'version increment, valid values are: major, minor, patch, prerelease', 'patch')
+    .action((dirs: string[]) => {
+      console.log(dirs, bumpCmd.opts());
+    });
+  withGlobalOptions(bumpCmd);
+  bumpCmd.usage(bumpCmd.usage() + '\n' + hl('drcp bump <dir-1> <dir-2> ...') + ' to recursively bump package.json from multiple directories\n' +
+    hl('drcp bump <dir> -i minor') + ' to bump minor version number, default is patch number');
   try {
 
     await program.parseAsync(process.argv);

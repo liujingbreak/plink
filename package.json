@@ -1,6 +1,6 @@
 {
-  "name": "dr-comp-packge-workspace",
-  "description": "This is a workspace, not for publishing",
+  "name": "dr-comp-packge-mono",
+  "description": "This is a monorepo package, not for publishing",
   "version": "1.0.0",
   "packages": ["src", "main"],
   "scripts": {
