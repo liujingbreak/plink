@@ -19,8 +19,7 @@ import { eachRecipeSrc, setProjectList as setProjectForRecipe } from '../recipe-
 import { stateFactory } from '../store';
 import { getRootDir, isDrcpSymlink } from '../utils';
 import { ofPayloadAction } from '../utils/redux-store';
-import cleanInvalidSymlinks, { isWin32, scanNodeModulesForSymlinks,
-  symlinkAsync, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
+import cleanInvalidSymlinks, { isWin32, scanNodeModulesForSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
 import * as cmdOpt from '../cmd/types';
 import { actions as _cleanActions } from '../cmd/cli-clean';
 import {promisify} from 'util';
@@ -425,25 +424,16 @@ async function installWorkspace(ws: WorkspaceState) {
   if (!fs.existsSync(target)) {
     fs.mkdirpSync(target);
   }
-  // 1. create symlink `node_modules` under every linked component package's realPath
-  const links = await Promise.all([...ws.linkedDependencies, ...ws.linkedDevDependencies]
-    .map(async ([dep]) => {
-      const dir = getState().srcPackages![dep].realPath;
-      const link = Path.resolve(dir, 'node_modules');
-      await symlinkAsync(target, link);
-      return link;
-      // return link;
-    }));
 
-  if (links.length > 0) {
-    // 2. Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
+  if (ws.linkedDependencies.length + ws.linkedDevDependencies.length > 0) {
+    // Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
     // backup them for late recovery
     await scanNodeModulesForSymlinks(ws.dir, link => {
       const linkContent = fs.readlinkSync(link);
       symlinksInModuleDir.push({content: linkContent, link});
       return unlinkAsync(link);
     });
-    _cleanActions.addWorkspaceFile(links);
+    // _cleanActions.addWorkspaceFile(links);
 
     // 3. Run `npm install`
     const installJsonFile = Path.resolve(ws.dir, 'package.json');
@@ -453,6 +443,7 @@ async function installWorkspace(ws: WorkspaceState) {
     fs.writeFile(installJsonFile, ws.installJsonStr, 'utf8');
     try {
       await exe('npm', 'install', {cwd: ws.dir}).promise;
+      await exe('npm', 'dedupe', {cwd: ws.dir}).promise;
     } catch (e) {
       // tslint:disable-next-line: no-console
       console.log(e, e.stack);
