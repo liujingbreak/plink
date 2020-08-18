@@ -153,16 +153,16 @@ export async function drcpCommand(startTime: number) {
   /**
    * Bump command
    */
-  const bumpCmd = program.command('bump [dir...]')
-    .description('bump version number of all package.json from specific directories')
+  const bumpCmd = program.command('bump [package...]')
+    .description('bump version number of all package.json from specific directories, same as "npm version" does')
     .option<string[]>('--pj, --project <project-dir,...>', 'only bump component packages from specific project directory',
       (value, prev) => {
         prev.push(...value.split(',')); return prev;
       }, [])
-    .option('-i, --incre-version <major | minor | patch | prerelease>',
+    .option('-i, --incre-version <major | minor | patch | premajor | preminor | prepatch | prerelease>',
       'version increment, valid values are: major, minor, patch, prerelease', 'patch')
-    .action((dirs: string[]) => {
-      console.log(dirs, bumpCmd.opts());
+    .action(async (packages: string[]) => {
+      (await import('./cli-bump')).default({...bumpCmd.opts() as tp.BumpOptions, packages});
     });
   withGlobalOptions(bumpCmd);
   bumpCmd.usage(bumpCmd.usage() + '\n' + hl('drcp bump <dir-1> <dir-2> ...') + ' to recursively bump package.json from multiple directories\n' +

@@ -1,4 +1,4 @@
 import { BumpOptions } from './types';
 export default function (options: BumpOptions & {
-    dirs: string[];
+    packages: string[];
 }): Promise<void>;

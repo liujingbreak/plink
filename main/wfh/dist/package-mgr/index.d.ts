@@ -1332,4 +1332,5 @@ export declare function getStore(): import("rxjs").Observable<PackagesState>;
 export declare function listPackages(): string;
 export declare function getProjectList(): string[];
 export declare function listPackagesByProjects(): string;
+export declare function pathToProjKey(path: string): string;
 export {};

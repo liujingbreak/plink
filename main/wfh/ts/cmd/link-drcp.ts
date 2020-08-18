@@ -31,12 +31,12 @@ export default function() {
   }
 
   fs.writeFileSync('tsconfig-drcp.json', JSON.stringify(tsconfigDrcp, null, '  '));
-
+  fs.writeFileSync('tsc-drcp.sh',
+    './node_modules/dr-comp-package/node_modules/.bin/tsc -p tsconfig-drcp.json $*');
   if (isWin32) {
-    // tslint:disable-next-line: max-line-length
-    fs.writeFileSync('tsc-drcp.bat', '.\\node_modules\\dr-comp-package\\node_modules\\.bin\\tsc -p tsconfig-drcp.json %*');
+    fs.writeFileSync('tsc-drcp.bat',
+      '.\\node_modules\\dr-comp-package\\node_modules\\.bin\\tsc -p tsconfig-drcp.json %*');
   } else {
-    fs.writeFileSync('tsc-drcp.sh', './node_modules/dr-comp-package/node_modules/.bin/tsc -p tsconfig-drcp.json $*');
     fs.chmodSync('tsc-drcp.sh', 0o777);
   }
 }

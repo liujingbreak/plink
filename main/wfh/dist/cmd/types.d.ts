@@ -14,5 +14,5 @@ export interface LintOptions extends GlobalOptions {
 }
 export interface BumpOptions extends GlobalOptions {
     project: string[];
-    increVersion: 'major' | 'minor' | 'patch' | 'prerelease';
+    increVersion: string;
 }

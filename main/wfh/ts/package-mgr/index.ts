@@ -86,18 +86,19 @@ export const slice = stateFactory.newSlice({
     initWorkspace(d, action: PayloadAction<{dir: string, opt: cmdOpt.InitCmdOptions}>) {
     },
     _syncPackagesState(d, {payload}: PayloadAction<PackageInfo[]>) {
+      d.srcPackages = {};
       for (const pkInfo of payload) {
         d.srcPackages[pkInfo.name] = pkInfo;
       }
     },
     _updatePackageState(d, {payload}: PayloadAction<any[]>) {
       for (const json of payload) {
-        d.srcPackages![json.name].json = json;
+        d.srcPackages[json.name].json = json;
       }
     },
     addProject(d, action: PayloadAction<string[]>) {
       for (const rawDir of action.payload) {
-        const dir = pathOfRootPath(rawDir);
+        const dir = pathToProjKey(rawDir);
         if (!_.has(d.project2Packages, dir)) {
           d.project2Packages[dir] = [];
         }
@@ -105,7 +106,7 @@ export const slice = stateFactory.newSlice({
     },
     deleteProject(d, action: PayloadAction<string[]>) {
       for (const rawDir of action.payload) {
-        const dir = pathOfRootPath(rawDir);
+        const dir = pathToProjKey(rawDir);
         delete d.project2Packages[dir];
       }
     },
@@ -332,6 +333,10 @@ stateFactory.addEpic((action$, state$) => {
         )));
       }),
       ignoreElements()
+    ),
+    action$.pipe(ofPayloadAction(slice.actions.addProject, slice.actions.deleteProject),
+      concatMap(() => from(_scanPackageAndLink())),
+      ignoreElements()
     )
   );
 });
@@ -404,7 +409,19 @@ async function initRootDirectory() {
     fs.mkdirpSync(Path.join(rootPath, 'logs'));
 
   logConfig(config());
-  await _initDependency();
+
+  const projectDirs = await getStore().pipe(
+    pluck('project2Packages'), distinctUntilChanged(),
+    map(project2Packages => Object.keys(project2Packages).map(dir => Path.resolve(dir))),
+    take(1)
+  ).toPromise();
+
+  projectDirs.forEach(prjdir => {
+    _writeGitHook(prjdir);
+    maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
+  });
+
+  await _scanPackageAndLink();
 
   await (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
     writeFile(Path.resolve(rootPath, 'dist', file),
@@ -460,20 +477,8 @@ async function installWorkspace(ws: WorkspaceState) {
   }
 }
 
-async function _initDependency() {
+async function _scanPackageAndLink() {
   const rm = (await import('../recipe-manager'));
-
-  // const listCompDependency = await (await import('../dependency-installer')).listCompDependency;
-  const projectDirs = await getStore().pipe(
-    pluck('project2Packages'), distinctUntilChanged(),
-    map(project2Packages => Object.keys(project2Packages).map(dir => Path.resolve(dir))),
-    take(1)
-  ).toPromise();
-
-  projectDirs.forEach(prjdir => {
-    _writeGitHook(prjdir);
-    maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
-  });
 
   const projPkgMap: {[proj: string]: PackageInfo[]} = {};
   await rm.linkComponentsAsync((proj, pkgJsonFile) => {
@@ -542,6 +547,10 @@ function maybeCopyTemplate(from: string, to: string) {
 function pathOfRootPath(path: string) {
   const relPath = Path.relative(getRootDir(), path);
   return relPath.startsWith('..') ? Path.resolve(path) : relPath;
+}
+
+export function pathToProjKey(path: string) {
+  return pathOfRootPath(path);
 }
 
 function _writeGitHook(project: string) {

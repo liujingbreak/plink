@@ -23,6 +23,7 @@ export interface BaseDrcpSetting {
   rootPath: string;
   // log4jsReloadSeconds: number;
   logStat: boolean;
+  packageScopes: string[];
 }
 export interface DrcpSettings extends BaseDrcpSetting {
   [prop: string]: any;

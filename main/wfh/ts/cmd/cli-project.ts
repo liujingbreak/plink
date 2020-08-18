@@ -1,8 +1,8 @@
 // import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';
-import { distinctUntilChanged, map, skip, take } from 'rxjs/operators';
-import { actionDispatcher as pkgActions, getStore, PackagesState } from '../package-mgr';
+import { distinctUntilChanged, map, skip, take, pluck } from 'rxjs/operators';
+import { actionDispatcher as pkgActions, getStore } from '../package-mgr';
 import { boxString, getRootDir } from '../utils';
 // import { writeFile } from './utils';
 import config from '../config';
@@ -15,13 +15,15 @@ const rootPath = getRootDir();
 export default async function(action?: 'add' | 'remove', dirs?: string[]) {
   await config.init({config: [], prop: [], logStat: false});
   getStore().pipe(
-    map(s => s.project2Packages), distinctUntilChanged(),
+    pluck('project2Packages'), distinctUntilChanged(),
+    map(project2Packages => Object.keys(project2Packages)),
+    distinctUntilChanged((keys1, keys2) => keys1.join() === keys2.join()),
     skip(1),
-    map(project2Packages => {
-      // tslint:disable-next-line: no-console
-      console.log(boxString('Project list is updated, you need to run\n\tdrcp init\n' +
-      ' to install new dependencies from the new project.', 60));
-      printProjects(project2Packages);
+    map(projects => {
+      // // tslint:disable-next-line: no-console
+      // console.log(boxString('Project list is updated, you need to run\n\tdrcp init\n' +
+      // ' to install new dependencies from the new project.', 60));
+      printProjects(projects);
     })
   ).subscribe();
   switch (action) {
@@ -57,14 +59,14 @@ function listProject(projects?: string[]) {
   getStore().pipe(
     map(s => s.project2Packages), distinctUntilChanged(),
     map(projects2pks => {
-      printProjects(projects2pks);
+      printProjects(Object.keys(projects2pks));
     }),
     take(1)
   ).subscribe();
 }
 
-function printProjects(projects2pks: PackagesState['project2Packages']) {
-  const projects = Object.keys(projects2pks);
+function printProjects(projects: string[]) {
+  // const projects = Object.keys(projects2pks);
   if (projects.length === 0) {
     // tslint:disable-next-line: no-console
     console.log(boxString('No project'));
@@ -84,37 +86,5 @@ function printProjects(projects2pks: PackagesState['project2Packages']) {
 
 function addProject(dirs: string[]) {
   pkgActions.addProject(dirs);
-  // const changed = writeProjectListFile(dirs);
-
-  // if (changed) {
-  //   // tslint:disable-next-line: no-console
-  //   console.log(boxString('Project list is updated, you need to run\n\tdrcp init\n' +
-  //     ' or other offline init command to install new dependencies from the new project.', 60));
-  // } else {
-  //   // tslint:disable-next-line: no-console
-  //   console.log(boxString('No new project is added.', 60));
-  // }
 }
-
-// function writeProjectListFile(dirs: string[]) {
-//   let changed = false;
-//   const projectListFile = Path.join(rootPath, 'dr.project.list.json');
-//   let prj: string[];
-//   if (fs.existsSync(projectListFile)) {
-//     fs.copySync(Path.join(rootPath, 'dr.project.list.json'), Path.join(rootPath, 'dr.project.list.json.bak'));
-//     prj = JSON.parse(fs.readFileSync(projectListFile, 'utf8'));
-//     const toAdd = _.differenceBy(dirs, prj, dir => fs.realpathSync(dir).replace(/[/\\]$/, ''));
-//     if (toAdd.length > 0) {
-//       prj.push(...toAdd);
-//       writeFile(projectListFile, JSON.stringify(_.uniqBy(prj, p => fs.realpathSync(p)), null, '  '));
-//       changed = true;
-//     }
-//   } else {
-//     prj = [...dirs];
-//     writeFile(projectListFile, JSON.stringify(_.uniqBy(prj, p => fs.realpathSync(p)), null, '  '));
-//     changed = true;
-//   }
-//   delete require.cache[require.resolve(projectListFile)];
-//   return changed;
-// }
 

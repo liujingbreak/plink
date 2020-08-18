@@ -84,9 +84,7 @@
     "comment-json": "^3.0.2",
     "commander": "~5.1.0",
     "@reduxjs/toolkit": "1.4.0",
-    "redux-observable": "1.2.0"
-  },
-  "peerDependencies": {
+    "redux-observable": "1.2.0",
     "log4js": "^6.1.2",
     "tslib": "^1.9.3",
     "@types/node": "^12.12.26"
