@@ -392,7 +392,22 @@ async function updateLinkedPackageState() {
       return readFileAsync(Path.resolve(pkInfo.realPath, 'package.json'), 'utf8');
     })
   );
+
+  warnUselessSymlink();
   actionDispatcher._updatePackageState(jsonStrs.map(str => JSON.parse(str)));
+}
+
+function warnUselessSymlink() {
+  const srcPackages = getState().srcPackages;
+  const nodeModule = Path.resolve(getRootDir(), 'node_modules');
+  const drcpName = getState().linkedDrcp ? getState().linkedDrcp!.name : null;
+  return scanNodeModulesForSymlinks(getRootDir(), async link => {
+    const pkgName = Path.relative(nodeModule, link).replace(/\\/g, '/');
+    if ( drcpName !== pkgName && srcPackages[pkgName] == null) {
+      // tslint:disable-next-line: no-console
+      console.log(chalk.yellow(`Extraneous symlink: ${link}`));
+    }
+  });
 }
 
 async function initRootDirectory() {
@@ -422,6 +437,7 @@ async function initRootDirectory() {
   });
 
   await _scanPackageAndLink();
+  warnUselessSymlink();
 
   await (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
     writeFile(Path.resolve(rootPath, 'dist', file),
