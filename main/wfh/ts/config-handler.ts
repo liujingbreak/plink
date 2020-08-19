@@ -152,9 +152,13 @@ export class ConfigHandlerMgr {
  * @param assigneeOptions 
  */
 export function setTsCompilerOpt(cwd: string, assigneeOptions: {[key: string]: any},
-  opts: {setTypeRoots: boolean} = {setTypeRoots: false}) {
+  opts: {setTypeRoots: boolean; extraNodePath?: string[]} = {setTypeRoots: false}) {
   // pathsDirs = _.uniq(pathsDirs);
-  const pathsDirs = process.env.NODE_PATH ? process.env.NODE_PATH.split(Path.delimiter) : [];
+  let pathsDirs = process.env.NODE_PATH ? process.env.NODE_PATH.split(Path.delimiter) : [];
+  if (opts.extraNodePath) {
+    pathsDirs.unshift(...opts.extraNodePath);
+    pathsDirs = _.uniq(pathsDirs);
+  }
 
   assigneeOptions.baseUrl = '.';
   if (assigneeOptions.paths == null)

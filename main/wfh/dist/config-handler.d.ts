@@ -80,6 +80,7 @@ export declare function setTsCompilerOpt(cwd: string, assigneeOptions: {
     [key: string]: any;
 }, opts?: {
     setTypeRoots: boolean;
+    extraNodePath?: string[];
 }): {
     [key: string]: any;
     baseUrl: string;

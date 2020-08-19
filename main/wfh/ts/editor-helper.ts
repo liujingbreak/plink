@@ -28,6 +28,7 @@ export function writeTsconfig4project(projectDirs: string[], onGitIgnoreFileUpda
     });
     createTsConfig(
       {name: '', realPath: proj},
+      null,
       drcpDir,
       include
     );
@@ -58,7 +59,7 @@ export async function writeTsconfigForEachPackage(workspaceDir: string, pks: Pac
 
   const igConfigFiles = pks.map(pk => {
     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
-    return createTsConfig(pk, drcpDir);
+    return createTsConfig(pk, workspaceDir, drcpDir);
   });
 
   appendGitIgnoreFiles(igConfigFiles, onGitIgnoreFileUpdate);
@@ -109,7 +110,7 @@ function findGitIngoreFile(startDir: string): string | null {
   }
 }
 
-function createTsConfig(pkg: {name: string, realPath: string}, drcpDir: string, include = ['.']) {
+function createTsConfig(pkg: {name: string, realPath: string}, workspace: string | null, drcpDir: string, include = ['.']) {
   const tsjson: any = {
     extends: null,
     include
@@ -147,7 +148,12 @@ function createTsConfig(pkg: {name: string, realPath: string}, drcpDir: string, 
     module: 'commonjs',
     paths: pathMapping
   };
-  setTsCompilerOpt(proj, tsjson.compilerOptions, {setTypeRoots: true});
+  setTsCompilerOpt(proj, tsjson.compilerOptions, {
+    setTypeRoots: true,
+    // If user execute 'init <workspace>' in root directory, env.NODE_PATH does not contain workspace 
+    // directory, in this case we need explicityly add node path 
+    extraNodePath: workspace ? [Path.resolve(workspace, 'node_modules')] : undefined
+  });
 
   const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
   writeTsConfigFile(tsconfigFile, tsjson);
