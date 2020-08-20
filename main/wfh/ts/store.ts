@@ -1,9 +1,11 @@
 import Path from 'path';
 import fs from 'fs';
 import {tap} from 'rxjs/operators';
-import {StateFactory} from './utils/redux-store';
+import {StateFactory, ofPayloadAction} from '../../redux-toolkit-abservable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
 import {getRootDir} from './utils';
+
+export {ofPayloadAction};
 // import './package-mgr'; 
 // ensure slice and epic being initialized before create store, in which case not more lazy load
 

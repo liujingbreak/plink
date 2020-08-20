@@ -680,7 +680,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         file: string;
         content: string;
     }>): void;
-} & import("../utils/redux-store").ExtraSliceReducers<PackagesState>, "packages">;
+} & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     initRootDir(d: {
         srcPackages: {
@@ -1326,7 +1326,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         file: string;
         content: string;
     }>): void;
-} & import("../utils/redux-store").ExtraSliceReducers<PackagesState>>;
+} & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare function getState(): PackagesState;
 export declare function getStore(): import("rxjs").Observable<PackagesState>;
 export declare function listPackages(): string;

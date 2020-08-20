@@ -16,27 +16,29 @@ export default function() {
   else if (!drcpHome.startsWith('.'))
     drcpHome = './' + drcpHome;
 
-  const tsconfigDrcp = {
-    extends: `${drcpHome}/wfh/tsconfig-base.json`,
-    compilerOptions: {
-      baseUrl: '.',
-      paths: {
-      },
-      typeRoots: [`${drcpHome}/node_modules/@types`]
+  if (peerDeps.length > 0) {
+    const tsconfigDrcp = {
+      extends: `${drcpHome}/wfh/tsconfig-base.json`,
+      compilerOptions: {
+        baseUrl: '.',
+        paths: {
+        },
+        typeRoots: [`${drcpHome}/node_modules/@types`]
+      }
+    };
+    for (const dep of peerDeps) {
+      tsconfigDrcp.compilerOptions.paths[dep] = ['node_modules/' + dep];
+      tsconfigDrcp.compilerOptions.paths[dep + '/*'] = ['node_modules/' + dep + '/*'];
     }
-  };
-  for (const dep of peerDeps) {
-    tsconfigDrcp.compilerOptions.paths[dep] = ['node_modules/' + dep];
-    tsconfigDrcp.compilerOptions.paths[dep + '/*'] = ['node_modules/' + dep + '/*'];
-  }
 
-  fs.writeFileSync('tsconfig-drcp.json', JSON.stringify(tsconfigDrcp, null, '  '));
-  fs.writeFileSync('tsc-drcp.sh',
-    './node_modules/dr-comp-package/node_modules/.bin/tsc -p tsconfig-drcp.json $*');
-  if (isWin32) {
-    fs.writeFileSync('tsc-drcp.bat',
-      '.\\node_modules\\dr-comp-package\\node_modules\\.bin\\tsc -p tsconfig-drcp.json %*');
-  } else {
-    fs.chmodSync('tsc-drcp.sh', 0o777);
+    fs.writeFileSync('tsconfig-drcp.json', JSON.stringify(tsconfigDrcp, null, '  '));
+    fs.writeFileSync('tsc-drcp.sh',
+      './node_modules/dr-comp-package/node_modules/.bin/tsc -p tsconfig-drcp.json $*');
+    if (isWin32) {
+      fs.writeFileSync('tsc-drcp.bat',
+        '.\\node_modules\\dr-comp-package\\node_modules\\.bin\\tsc -p tsconfig-drcp.json %*');
+    } else {
+      fs.chmodSync('tsc-drcp.sh', 0o777);
+    }
   }
 }

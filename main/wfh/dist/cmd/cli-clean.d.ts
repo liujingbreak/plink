@@ -40,7 +40,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<CleanState, {
         };
         type: string;
     }): void;
-} & import("../utils/redux-store").ExtraSliceReducers<CleanState>, "clean">;
+} & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<CleanState>, "clean">;
 export declare function getState(): CleanState;
 export declare function getStore(): import("rxjs").Observable<CleanState>;
 export declare const actions: import("@reduxjs/toolkit").CaseReducerActions<{
@@ -70,5 +70,5 @@ export declare const actions: import("@reduxjs/toolkit").CaseReducerActions<{
         };
         type: string;
     }): void;
-} & import("../utils/redux-store").ExtraSliceReducers<CleanState>>;
+} & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<CleanState>>;
 export declare type ActionsType = typeof actions extends Promise<infer T> ? T : unknown;

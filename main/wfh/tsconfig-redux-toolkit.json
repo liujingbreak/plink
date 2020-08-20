@@ -1,0 +1,12 @@
+{
+	"extends": "./tsconfig-base.json",
+	"compilerOptions": {
+    "rootDir": "../redux-toolkit-abservable",
+		"target": "es5",
+		"outDir": "../redux-toolkit-abservable/dist"
+	},
+  "files": [
+    "../redux-toolkit-abservable/redux-toolkit-observable.ts"
+  ],
+  "include": []
+}

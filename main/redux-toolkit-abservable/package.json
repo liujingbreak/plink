@@ -1,0 +1,21 @@
+{
+  "name": "redux-toolkit-abservable",
+  "version": "1.0.0",
+  "description": "A convenient Redux-toolkit + Redux-observable encapsulation",
+  "main": "dist/redux-toolkit-observable.js",
+  "types": "dist/redux-toolkit-observable.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "peerDependencies": {
+    "@reduxjs/toolkit": "^1.4.0",
+    "redux-observable": "^1.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liujingbreak/dr-comp-package.git"
+  },
+  "keywords": ["redux", "redux-toolkit", "redux-observable"],
+  "author": "Liu Jing",
+  "license": "ISC"
+}

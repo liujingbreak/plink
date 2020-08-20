@@ -59,12 +59,12 @@ class FolderScanner {
             // tslint:disable-next-line: no-console
             console.log('[find-package] found a symlink node_modules:', testDir);
           }
-          break;
+          continue;
         }
         const dir = Path.join(parentDir, name);
         this.checkFolder(dir);
       } catch (er) {
-        gutil.log(er);
+        console.error('[find-package]', er);
       }
     }
   }
