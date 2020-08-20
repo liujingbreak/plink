@@ -53,38 +53,6 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   const baseTsconfig = argv.jsx ? require('../tsconfig-tsx.json') : require('../tsconfig-base.json');
   let promCompile = Promise.resolve( [] as EmitList);
 
-  // let paths: any;
-
-  // let baseUrl = Path.relative(process.cwd(), config().rootPath).replace(/\\/g, '/');
-  // if (baseUrl.length === 0)
-  //   baseUrl = '.';
-  // else if (!baseUrl.startsWith('.'))
-  //   baseUrl = './' + baseUrl;
-
-  // let relativeCwd = Path.relative(config().rootPath, process.cwd()).replace(/\\/g, '/');
-  // if (relativeCwd.length > 0 )
-  //   relativeCwd = relativeCwd + '/';
-
-  // // let typeRoots: string[] | undefined;
-
-  // if (baseUrl !== process.cwd()) {
-  //   paths = {
-  //     '*': [
-  //       relativeCwd + 'node_modules/@types/*',
-  //       'node_modules/@types/*',
-  //       relativeCwd + 'node_modules/*',
-  //       'node_modules/*'
-  //     ]
-  //   };
-  // } else {
-  //   paths = {
-  //     '*': [
-  //       'node_modules/*',
-  //       'node_modules/@types/*'
-  //     ]
-  //   };
-  // }
-
   const compilerOptions = {
     ...baseTsconfig.compilerOptions,
     // typescript: require('typescript'),

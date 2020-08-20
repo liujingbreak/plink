@@ -9,7 +9,8 @@ const drcpConfig = require('dr-comp-package/wfh/lib/config');
     ed: true, jsx: true,
     watch: process.argv.slice(3).indexOf('--watch') >= 0,
     compileOptions: {
-      module: 'esnext'
+      module: 'esnext',
+      isolatedModules: true
     }
   });
 })
