@@ -60,7 +60,7 @@ function lint(packages: string[], projects: LintOptions['pj'], fix: LintOptions[
 function _tsLintPackageAsync(fullName: string, json: any, packagePath: string, fix: boolean) {
   let dir;
   // packagePath = fs.realpathSync(packagePath);
-  log.info('TSlint Scan', Path.relative(config().rootPath, packagePath));
+  log.info('TSlint Scan', packagePath);
   if (fullName === 'dr-comp-package')
     packagePath = packagePath + '/wfh';
   for (let pDir = packagePath; dir !== pDir; pDir = Path.dirname(dir)) {
