@@ -9,11 +9,11 @@ import {
   ConfigureStoreOptions, createSlice as reduxCreateSlice, CreateSliceOptions,
   Draft, EnhancedStore, PayloadAction, ReducersMapObject,
   Slice, SliceCaseReducers, Reducer,
-  ValidateSliceCaseReducers
+  ValidateSliceCaseReducers, Middleware
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject, merge } from 'rxjs';
-import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, ignoreElements } from 'rxjs/operators';
+import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap } from 'rxjs/operators';
 
 // export type CallBackActionReducer<SS> = CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 
@@ -45,6 +45,16 @@ CaseReducers extends SliceCaseReducers<any> = SliceCaseReducers<any>, Name exten
   epics: Epic<PayloadAction<Payload>, Output, State>[];
 }
 
+export interface ErrorState {
+  actionError?: Error;
+}
+
+const defaultSliceReducers: Partial<ExtraSliceReducers<any>> = {
+  _change: (state, action) => {
+    action.payload(state);
+  }
+};
+
 export class StateFactory {
   /**
    * Why I don't use Epic's state$ parameter:
@@ -62,12 +72,15 @@ export class StateFactory {
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
   private epicWithUnsub$: BehaviorSubject<[Epic, Subject<string>]>;
 
-  private defaultSliceReducers: Partial<ExtraSliceReducers<any>>;
   /**
    * Unlike store.dispatch(action),
    * If you call next() on this subject, it can save action dispatch an action even before store is configured
    */
   private actionsToDispatch = new ReplaySubject<PayloadAction<any>>(10);
+
+  private reportActionError: (err: Error) => void;
+
+  private errorSlice: Slice<ErrorState>;
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<any>(preloadedState);
@@ -80,29 +93,33 @@ export class StateFactory {
       take(1)
     ).toPromise();
 
-    this.newSlice({
-      initialState: {},
-      name: 'debug',
-      reducers: {}
+    const errorSlice = this.newSlice({
+      initialState: {} as ErrorState,
+      name: 'error',
+      reducers: {
+        reportActionError(s, {payload}: PayloadAction<Error>) {
+          s.actionError = payload;
+        }
+      }
     });
 
-    this.defaultSliceReducers = {
-      _change: (state, action) => {
-        action.payload(state);
-      }
-    };
+    this.errorSlice = errorSlice;
+
+    this.reportActionError = this.bindActionCreators(errorSlice).reportActionError;
+
   }
 
-  configureStore() {
+  configureStore(middlewares?: Middleware[]) {
     if (this.store$.getValue())
       return;
     const rootReducer = this.createRootReducer();
     const epicMiddleware = createEpicMiddleware<PayloadAction<any>>();
 
-    const store = configureStore<any, PayloadAction<any>>({
+    const middleware = middlewares ? [epicMiddleware, this.errorHandleMiddleware, ...middlewares] : [epicMiddleware, this.errorHandleMiddleware];
+    const store = configureStore<any, PayloadAction<any>, Middleware<any>[]>({
       reducer: rootReducer,
       // preloadedState: this.preloadedState,
-      middleware: [epicMiddleware]
+      middleware
     });
 
     this.store$.next(store);
@@ -144,7 +161,7 @@ export class StateFactory {
     const reducers = _opt.reducers as ReducerWithDefaultActions<SS, _CaseReducer>;
 
     if (reducers._change == null)
-      Object.assign(_opt.reducers, this.defaultSliceReducers);
+      Object.assign(_opt.reducers, defaultSliceReducers);
 
     if (reducers._init == null) {
       reducers._init = (draft, action) => {
@@ -199,6 +216,14 @@ export class StateFactory {
     );
   }
 
+  getErrorState() {
+    return this.sliceState(this.errorSlice);
+  }
+
+  getErrorStore() {
+    return this.sliceStore(this.errorSlice);
+  }
+
   dispatch<T>(action: PayloadAction<T>) {
     this.actionsToDispatch.next(action);
   }
@@ -220,6 +245,24 @@ export class StateFactory {
       actionMap[name] = doAction;
     }
     return actionMap as Slice['actions'];
+  }
+
+  private errorHandleMiddleware: Middleware = (api) => {
+    return (next) => {
+      return (action: PayloadAction) => {
+        try {
+          this.debugLog.next(['action', action.type]);
+
+          const ret = next(action);
+          return ret;
+        } catch (err) {
+          console.error('[redux-toolkit-observable] failed action', action);
+          console.error('[redux-toolkit-observable] action dispatch error', err);
+          this.reportActionError(err);
+          throw err;
+        }
+      };
+    };
   }
 
   private addSliceMaybeReplaceReducer<State,
@@ -264,12 +307,12 @@ export class StateFactory {
         //   tap(state => this.debugLog.next(['state', state])),
         //   ignoreElements()
         // ),
-        action$.pipe(
-          tap(action => {
-            this.debugLog.next(['action', action.type]);
-          }),
-          ignoreElements()
-        ),
+        // action$.pipe(
+        //   tap(action => {
+        //     this.debugLog.next(['action', action.type]);
+        //   }),
+        //   ignoreElements()
+        // ),
         this.actionsToDispatch
       );
     };

@@ -149,8 +149,19 @@ What's different from using redux-toolkit and redux-abservable directly, what's 
     In case you are tired of writing to many reducers on slice which contains very small change logic, `_change` is a shared reducer action for you to call inside epic or component, so that you can directly write reducer logic as an action payload within epic definition.
 
     > But this shared action might be against best practice of redux, since shared action has no meaningful name to be tracked & logged. Just save us from defining to many small reducers/actions on redux slice.
+- Global Error state\
+  With a Redux middleware to handle dispatch action error (any error thrown from reducer), automatically update error state.
 
+  ```ts
+  export declare class StateFactory {
+    getErrorState(): ErrorState;
+    getErrorStore(): Observable<ErrorState>;
+    ...
+  }
+  ```
 
-- `bindActionCreators()` Unlink Redux's `bindActionCreators`, our store can be lazily created, dispatch is not available at beginning.
+- `bindActionCreators()`\
+  our store can be lazily configured, dispatch is not available at beginning, thats why we need a customized `bindActionCreators()`
+
 
 ### The most frequently used RxJS operators

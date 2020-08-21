@@ -58,7 +58,7 @@ export async function drcpCommand(startTime: number) {
    */
   const lintCmd = program.command('lint [package...]')
   .description('source code style check')
-  .option('--pj [project1,project2...]', 'lint only TS code from specific project', arrayOptionFn)
+  .option('--pj <project1,project2...>', 'lint only TS code from specific project', arrayOptionFn, [])
   .option('--fix', 'Run eslint/tslint fix, this could cause your source code being changed unexpectedly', false)
   .action(async packages => {
     await (await import('./cli-lint')).default(packages, lintCmd.opts() as any);

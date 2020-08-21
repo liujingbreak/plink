@@ -7,8 +7,8 @@ import log4js from 'log4js';
 import {LintOptions} from './types';
 import gulp from 'gulp';
 import _ from 'lodash';
-import * as packageUtils from '../package-utils';
-import '../package-mgr';
+import {getState, getPackagesOfProjects} from '../package-mgr';
+import {completePackageName} from './utils';
 
 const tslint = require('gulp-tslint');
 const log = log4js.getLogger('wfh.lint');
@@ -21,45 +21,32 @@ export default async function(packages: string[], opts: LintOptions) {
 
 
 function lint(packages: string[], projects: LintOptions['pj'], fix: LintOptions['fix']) {
-  // var eslint = require('gulp-eslint');
-  // let program = tslint.Linter.createPrograme('');
   var prom = Promise.resolve();
   const errors: any[] = [];
-  // const getPackDirs = require('../../dist/utils').getTsDirsOfPackage;
-  if (packages && packages.length > 0) {
-    packageUtils.lookForPackages(packages, (fullName, entryPath, parsedName, json, packagePath) => {
-      if (json.dr && json.dr.noLint === true) {
-        log.info('skip ' + fullName);
-        return;
+  if (packages.length > 0) {
+
+    for (const name of completePackageName(getState(), packages)) {
+      if (name == null) {
+        log.warn('Can not find package for name: ' + name);
+        continue;
       }
-      packagePath = fs.realpathSync(packagePath);
+      const pkg = getState().srcPackages[name];
       prom = prom.catch(err => errors.push(err))
-      // .then(() => {
-      // 	log.info('Checking ', packagePath);
-      // 	return _lintPackageAsync(eslint, fullName, json, packagePath, getPackDirs(json), argv.fix);
-      // })
-      // .catch(err => errors.push(err))
       .then(() => {
-        return _tsLintPackageAsync(fullName, json, packagePath, fix);
+        return _tsLintPackageAsync(pkg.name, pkg.json, pkg.realPath, fix);
       });
-    });
-  } else {
-    packageUtils.findAllPackages((fullName, entryPath, parsedName, json, packagePath) => {
-      if (json.dr && json.dr.noLint === true) {
-        log.info('skip ' + fullName);
-        return;
-      }
-      packagePath = fs.realpathSync(packagePath);
+    }
+  } else if (packages.length === 0 && (projects == null || projects.length === 0)) {
+    for (const pkg of Object.values(getState().srcPackages)) {
       prom = prom.catch(err => errors.push(err))
-      // .then(() => {
-      // 	log.info('Checking ', packagePath);
-      // 	return _lintPackageAsync(eslint, fullName, json, packagePath, getPackDirs(json), argv.fix);
-      // })
-      // .catch(err => errors.push(err))
-      .then(() => {
-        return _tsLintPackageAsync(fullName, json, packagePath, fix);
-      });
-    }, 'src', projects);
+      .then(() => _tsLintPackageAsync(pkg.name, pkg.json, pkg.realPath, fix));
+    }
+  } else if (projects && projects.length > 0) {
+    const pkgs = getPackagesOfProjects(projects);
+    for (const pkg of pkgs) {
+      prom = prom.catch(err => errors.push(err))
+      .then(() => _tsLintPackageAsync(pkg.name, pkg.json, pkg.realPath, fix));
+    }
   }
   return prom.catch(err => errors.push(err))
   .then(() => {
@@ -73,7 +60,7 @@ function lint(packages: string[], projects: LintOptions['pj'], fix: LintOptions[
 function _tsLintPackageAsync(fullName: string, json: any, packagePath: string, fix: boolean) {
   let dir;
   // packagePath = fs.realpathSync(packagePath);
-  log.debug('TSlint Scan', packagePath);
+  log.info('TSlint Scan', Path.relative(config().rootPath, packagePath));
   if (fullName === 'dr-comp-package')
     packagePath = packagePath + '/wfh';
   for (let pDir = packagePath; dir !== pDir; pDir = Path.dirname(dir)) {

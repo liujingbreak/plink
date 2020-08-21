@@ -9,7 +9,7 @@ export interface InitCmdOptions extends GlobalOptions {
     yarn: boolean;
 }
 export interface LintOptions extends GlobalOptions {
-    pj?: string[];
+    pj: string[];
     fix: boolean;
 }
 export interface BumpOptions extends GlobalOptions {

@@ -3,7 +3,7 @@
 /**
  * A combo set for using Redux-toolkit along with redux-observable
  */
-import { CaseReducer, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers } from '@reduxjs/toolkit';
+import { CaseReducer, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers, Middleware } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { BehaviorSubject, Observable } from 'rxjs';
 export interface ExtraSliceReducers<SS> {
@@ -22,6 +22,9 @@ export interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output ex
     slices: Slice<State, CaseReducers, Name>[];
     epics: Epic<PayloadAction<Payload>, Output, State>[];
 }
+export interface ErrorState {
+    actionError?: Error;
+}
 export declare class StateFactory {
     private preloadedState;
     /**
@@ -35,21 +38,22 @@ export declare class StateFactory {
     store$: BehaviorSubject<EnhancedStore<any, {
         payload: any;
         type: string;
-    }, readonly import("redux").Middleware<{}, any, import("redux").Dispatch<import("redux").AnyAction>>[]> | undefined>;
+    }, readonly Middleware<{}, any, import("redux").Dispatch<import("redux").AnyAction>>[]> | undefined>;
     log$: Observable<any[]>;
     rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
     private epicSeq;
     private debugLog;
     private reducerMap;
     private epicWithUnsub$;
-    private defaultSliceReducers;
     /**
      * Unlike store.dispatch(action),
      * If you call next() on this subject, it can save action dispatch an action even before store is configured
      */
     private actionsToDispatch;
+    private reportActionError;
+    private errorSlice;
     constructor(preloadedState: ConfigureStoreOptions['preloadedState']);
-    configureStore(): this | undefined;
+    configureStore(middlewares?: Middleware[]): this | undefined;
     /**
      * Create our special slice with a default reducer action:
      * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
@@ -66,6 +70,8 @@ export declare class StateFactory {
     addEpic(epic: Epic): () => void;
     sliceState<SS, CaseReducers extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(slice: Slice<SS, CaseReducers, Name>): SS;
     sliceStore<SS>(slice: Slice<SS>): Observable<SS>;
+    getErrorState(): ErrorState;
+    getErrorStore(): Observable<ErrorState>;
     dispatch<T>(action: PayloadAction<T>): void;
     /**
      * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
@@ -74,6 +80,7 @@ export declare class StateFactory {
     bindActionCreators<A, Slice extends {
         actions: A;
     }>(slice: Slice): Slice["actions"];
+    private errorHandleMiddleware;
     private addSliceMaybeReplaceReducer;
     private createRootReducer;
     private getRootStore;

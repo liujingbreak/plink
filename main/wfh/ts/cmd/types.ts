@@ -13,7 +13,7 @@ export interface InitCmdOptions extends GlobalOptions {
 }
 
 export interface LintOptions extends GlobalOptions {
-  pj?: string[];
+  pj: string[];
   fix: boolean;
 }
 

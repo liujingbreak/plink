@@ -10,9 +10,9 @@
   "dr": {},
   "scripts": {
     "tsc": "tsc",
-    "build": "cd wfh && tsc",
-    "watch": "cd wfh && tsc -w",
-    "build:share": "cd wfh && tsc -p tsconfig-share.json"
+    "build": "tsc -p wfh/tsconfig-base.json",
+    "watch": "tsc -p wfh/tsconfig-base.json -w",
+    "build:share": "tsc -p tsconfig-share.json"
   },
   "repository": {
     "type": "git",

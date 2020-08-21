@@ -5,7 +5,7 @@ import _ from 'lodash';
 import Path from 'path';
 import { from, merge, of} from 'rxjs';
 import { distinctUntilChanged, filter, map, switchMap, mergeMap,
-  pluck, take, concatMap, skip, ignoreElements, scan } from 'rxjs/operators';
+  pluck, take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
 import { writeFile } from '../cmd/utils';
 import config from '../config';
 import { listCompDependency, PackageJsonInterf } from '../dependency-installer';
@@ -90,9 +90,16 @@ export const slice = stateFactory.newSlice({
         d.srcPackages[pkInfo.name] = pkInfo;
       }
     },
-    _updatePackageState(d, {payload}: PayloadAction<any[]>) {
-      for (const json of payload) {
-        d.srcPackages[json.name].json = json;
+    _updatePackageState(d, {payload: jsons}: PayloadAction<any[]>) {
+      for (const json of jsons) {
+        const pkg = d.srcPackages[json.name];
+        if (pkg == null) {
+          console.error(
+            `[package-mgr.index] package name "${json.name}" in package.json is changed since last time,\n` +
+            'please do "init" again on workspace root directory');
+          continue;
+        }
+        pkg.json = json;
       }
     },
     addProject(d, action: PayloadAction<string[]>) {
@@ -337,6 +344,11 @@ stateFactory.addEpic((action$, state$) => {
       concatMap(() => from(_scanPackageAndLink())),
       ignoreElements()
     )
+  ).pipe(
+    catchError(err => {
+      console.error('[package-mgr.index]', err);
+      return of();
+    })
   );
 });
 
@@ -346,6 +358,19 @@ export function getState() {
 
 export function getStore() {
   return stateFactory.sliceStore(slice);
+}
+
+export function pathToProjKey(path: string) {
+  const relPath = Path.relative(getRootDir(), path);
+  return relPath.startsWith('..') ? Path.resolve(path) : relPath;
+}
+
+export function getPackagesOfProjects(projects: string[]) {
+  return projects.reduce((pkgs, prj) => {
+    const pkgNames = getState().project2Packages[pathToProjKey(prj)];
+    pkgNames.forEach(pkgName => pkgs.push(getState().srcPackages[pkgName]));
+    return pkgs;
+  }, [] as PackageInfo[]);
 }
 // import PackageNodeInstance from '../packageNodeInstance';
 
@@ -524,21 +549,6 @@ function createPackageInfo(pkJsonFile: string): PackageInfo {
   return pkInfo;
 }
 
-// async function scanDirForNodeModules(packageDirs: string[], workspaceDir: string) {
-//   // const workspaceNm = Path.resolve(workspaceDir, 'node_modules');
-//   const nmDirs = await Promise.all(packageDirs.map(async dir => {
-//     const nm = Path.resolve(dir, 'node_modules');
-//     try {
-//       // await symlinkAsync(workspaceNm, nm);
-//     } catch (err) {
-//       console.error(chalk.red('[scanDirForNodeModules]'), err);
-//     }
-//     return nm;
-//   }));
-//   return nmDirs;
-//   // console.log(nmDirs.join('\n'));
-// }
-
 function cp(from: string, to: string) {
   if (_.startsWith(from, '-')) {
     from = arguments[1];
@@ -557,15 +567,6 @@ function cp(from: string, to: string) {
 function maybeCopyTemplate(from: string, to: string) {
   if (!fs.existsSync(Path.resolve(getRootDir(), to)))
     cp(Path.resolve(__dirname, from), to);
-}
-
-function pathOfRootPath(path: string) {
-  const relPath = Path.relative(getRootDir(), path);
-  return relPath.startsWith('..') ? Path.resolve(path) : relPath;
-}
-
-export function pathToProjKey(path: string) {
-  return pathOfRootPath(path);
 }
 
 function _writeGitHook(project: string) {
