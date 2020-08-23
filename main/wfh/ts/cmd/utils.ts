@@ -14,11 +14,11 @@ export function completePackageName(state: PackagesState, guessingName: string[]
   const config: typeof _config = require('../config');
 
   const prefixes = ['', ...config().packageScopes.map(scope => `@${scope}/`)];
-  const available = state.srcPackages;
+  const available = state.srcPackages; // TODO: missing installed packages
   return guessingName.map(gn => {
     for (const prefix of prefixes) {
       const name = prefix + gn;
-      if (available[name]) {
+      if (available.get(name)) {
         return name;
       }
     }

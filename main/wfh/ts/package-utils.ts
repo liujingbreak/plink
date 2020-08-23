@@ -2,6 +2,7 @@ import LRU from 'lru-cache';
 import PackageBrowserInstance from './build-util/ts/package-instance';
 import LazyPackageFactory from './build-util/ts/lazy-package-factory';
 import * as recipeMgr from './recipe-manager';
+import {PackageInfo, createPackageInfo} from './package-mgr';
 import * as Path from 'path';
 import _ from 'lodash';
 import log4js from 'log4js';
@@ -61,7 +62,7 @@ class EntryFileFinder {
   }
 
   findByRecipeJson(recipePkjsonFile: string, isInstalled: boolean,
-    eachCallback: (name: string, entryPath: string, parsedName: unknown, json: any, packagePath: string) => void) {
+    eachCallback: (packageInfo: PackageInfo) => void) {
     const resolveFn = this.resolveFn;
     const self = this;
     const pj = JSON.parse(fs.readFileSync(recipePkjsonFile, 'utf-8'));

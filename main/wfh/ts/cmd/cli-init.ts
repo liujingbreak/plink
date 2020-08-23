@@ -18,7 +18,7 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
     map(srcPackages => {
       console.log(
         ' *** Linked packages ***\n\n' +
-        Object.values(srcPackages!).map(pk => `${chalk.cyan(pk.name)}@${chalk.green(pk.json.version)}  (${pk.realPath})` ).join('\n')
+        Array.from(srcPackages.values()).map(pk => `${chalk.cyan(pk.name)}@${chalk.green(pk.json.version)}  (${pk.realPath})` ).join('\n')
       );
     })
   ).toPromise();

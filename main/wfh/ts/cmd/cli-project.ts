@@ -59,7 +59,7 @@ function listProject(projects?: string[]) {
   getStore().pipe(
     map(s => s.project2Packages), distinctUntilChanged(),
     map(projects2pks => {
-      printProjects(Object.keys(projects2pks));
+      printProjects(Array.from(projects2pks.keys()));
     }),
     take(1)
   ).subscribe();

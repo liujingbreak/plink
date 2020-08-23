@@ -4,6 +4,7 @@ import {tap} from 'rxjs/operators';
 import {StateFactory, ofPayloadAction} from '../../redux-toolkit-abservable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
 import {getRootDir} from './utils';
+import serialize from 'serialize-javascript';
 
 export {ofPayloadAction};
 // import './package-mgr'; 
@@ -44,7 +45,8 @@ export async function startLogging() {
 export async function saveState() {
   const store = await stateFactory.rootStoreReady;
   const mergedState = Object.assign(lastSavedState, store.getState());
-  const jsonStr = JSON.stringify(mergedState, null, '  ');
+  // const jsonStr = JSON.stringify(mergedState, null, '  ');
+  const jsonStr = serialize(mergedState, {ignoreFunction: true});
   fs.writeFile(stateFile, jsonStr,
     () => {
       // tslint:disable-next-line: no-console

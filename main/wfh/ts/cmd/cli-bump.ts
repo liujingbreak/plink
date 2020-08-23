@@ -18,7 +18,9 @@ export default async function(options: BumpOptions & {packages: string[]}) {
   } else if (options.project.length > 0) {
     const pkgNames = options.project.map(proj => pathToProjKey(proj)).reduce(
       (pkgs, proj) => {
-        pkgs.push(...getState().project2Packages[proj]);
+        const pkgsOfProj = getState().project2Packages.get(proj);
+        if (pkgsOfProj)
+          pkgs.push(...pkgsOfProj);
         return pkgs;
       },
       [] as string[]);
@@ -36,7 +38,7 @@ async function bumpPackages(pkgNames: string[], increVersion: string) {
     return rs;
   }).map((pkgName) => {
     log.info(`bump ${pkgName} version`);
-    const pkDir = getState().srcPackages[pkgName!].realPath;
+    const pkDir = getState().srcPackages.get(pkgName!)!.realPath;
     return exe('npm', 'version', increVersion, {cwd: pkDir}).promise;
   }));
 }

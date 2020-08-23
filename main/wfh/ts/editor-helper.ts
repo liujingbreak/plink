@@ -124,7 +124,7 @@ function createTsConfig(pkg: {name: string, realPath: string}, workspace: string
   tsjson.extends = tsjson.extends.replace(/\\/g, '/');
 
   const pathMapping: {[key: string]: string[]} = {};
-  for (const [name, {realPath}] of Object.entries(getState()!.srcPackages || {})) {
+  for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
     if (pkg.name === name)
       continue;
     const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
