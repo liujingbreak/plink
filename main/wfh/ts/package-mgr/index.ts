@@ -365,6 +365,10 @@ export function pathToProjKey(path: string) {
   return relPath.startsWith('..') ? Path.resolve(path) : relPath;
 }
 
+export function pathToWorkspace(path: string) {
+  return Path.relative(getRootDir(), path);
+}
+
 export function getPackagesOfProjects(projects: string[]) {
   return projects.reduce((pkgs, prj) => {
     const pkgNames = getState().project2Packages[pathToProjKey(prj)];

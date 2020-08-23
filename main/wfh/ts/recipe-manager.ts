@@ -13,6 +13,7 @@ const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
 const through = require('through2');
 const merge = require('merge2');
 import config from './config';
+import {pathToWorkspace, getState} from './package-mgr';
 
 
 // import {getInstance} from './package-json-guarder';
@@ -55,21 +56,19 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
 
   function forProject(prjDirs: string[] | string) {
     ([] as string[]).concat(prjDirs).forEach(prjDir => {
-      _.each(recipe2srcDirMapForPrj(prjDir), (srcDir, recipe) => onEachSrcRecipePair(prjDir, srcDir, recipe));
+      _.each(recipe2srcDirMapForPrj(prjDir), (srcDir, recipeDir) => {
+        let recipeName: string | null = null;
+        try {
+          recipeName = require(Path.resolve(recipeDir, 'package.json')).name;
+        } catch (e) {
+          log.debug(`Can't read ${Path.resolve(recipeDir, 'package.json')}`);
+        }
+        callback!(srcDir, recipeDir, recipeName, prjDir);
+      });
       const e2eDir = Path.join(prjDir, 'e2etest');
       if (fs.existsSync(e2eDir))
         callback!(e2eDir, null, null, prjDir);
     });
-  }
-
-  function onEachSrcRecipePair(prjDir: string, srcDir: string, recipeDir: string) {
-    let recipeName: string | null = null;
-    try {
-      recipeName = require(Path.resolve(recipeDir, 'package.json')).name;
-    } catch (e) {
-      log.debug(`Can't read ${Path.resolve(recipeDir, 'package.json')}`);
-    }
-    callback!(srcDir, recipeDir, recipeName, prjDir);
   }
 }
 
@@ -136,7 +135,7 @@ function eachDownloadedRecipe(callback: EachRecipeCallback, excludeRecipeSet?: S
   }
   if (config().installedRecipes) {
     const regexList = (config().installedRecipes as string[]).map(s => new RegExp(s));
-    const pkjson = require(Path.resolve(config().rootPath, 'package.json'));
+    const pkjson = require(Path.resolve('package.json')); // <workspace>/package.json
     const deps = Object.assign({}, pkjson.dependencies || {}, pkjson.devDependencies || {});
     if (!deps)
       return;
@@ -146,7 +145,7 @@ function eachDownloadedRecipe(callback: EachRecipeCallback, excludeRecipeSet?: S
         log.debug('looking for installed recipe: %s', depName);
         let p;
         try {
-          p = Path.resolve(config().nodePath, depName);
+          p = Path.resolve('node_modules', depName); // <workspace>/node_modules/<depName>
           callback(p, true, 'package.json');
         } catch (e) {
           log.info(`${depName} seems to be not installed`);
@@ -167,18 +166,21 @@ export function eachRecipe(callback: EachRecipeCallback) {
     if (recipeDir)
       callback(recipeDir, false, 'package.json');
   });
-  eachDownloadedRecipe(callback);
-  // eachInstalledRecipe(callback);
+  eachInstalledRecipe(callback);
 }
 
 /**
  * eachInstalledRecipe
  * @param callback function(recipeDir, isFromInstallation, jsonFileName = 'package.json'): void
 */
-// export function eachInstalledRecipe(callback: EachRecipeCallback) {
-//   eachDownloadedRecipe(callback);
-//   callback(config().rootPath, true, Path.relative(config().rootPath, packageJsonGuarder.getJsonFile()));
-// }
+export function eachInstalledRecipe(callback: EachRecipeCallback) {
+  eachDownloadedRecipe(callback);
+  const dir = pathToWorkspace(process.cwd());
+  if (getState().workspaces[dir] == null) {
+    throw new Error(`Current directory ${process.cwd()} is not a workspace directory.`);
+  }
+  callback(process.cwd(), true, 'package.json');
+}
 
 export function link(onPkJsonFile: (filePath: string, recipeDir: string, proj: string) => void) {
   const streams: any[] = [];

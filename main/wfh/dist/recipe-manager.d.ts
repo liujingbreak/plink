@@ -17,6 +17,7 @@ export declare function eachRecipe(callback: EachRecipeCallback): void;
  * eachInstalledRecipe
  * @param callback function(recipeDir, isFromInstallation, jsonFileName = 'package.json'): void
 */
+export declare function eachInstalledRecipe(callback: EachRecipeCallback): void;
 export declare function link(onPkJsonFile: (filePath: string, recipeDir: string, proj: string) => void): any;
 /**
  * @return array of linked package's package.json file path

@@ -1330,6 +1330,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
 export declare function getState(): PackagesState;
 export declare function getStore(): import("rxjs").Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;
+export declare function pathToWorkspace(path: string): string;
 export declare function getPackagesOfProjects(projects: string[]): PackageInfo[];
 export declare function listPackages(): string;
 export declare function getProjectList(): string[];

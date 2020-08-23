@@ -12,6 +12,7 @@ export interface BaseDrcpSetting {
     rootPath: string;
     logStat: boolean;
     packageScopes: string[];
+    installedRecipes: string[];
 }
 export interface DrcpSettings extends BaseDrcpSetting {
     [prop: string]: any;

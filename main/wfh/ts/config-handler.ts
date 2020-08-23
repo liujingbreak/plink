@@ -24,6 +24,7 @@ export interface BaseDrcpSetting {
   // log4jsReloadSeconds: number;
   logStat: boolean;
   packageScopes: string[];
+  installedRecipes: string[];
 }
 export interface DrcpSettings extends BaseDrcpSetting {
   [prop: string]: any;
