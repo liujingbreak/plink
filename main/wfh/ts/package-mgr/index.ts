@@ -15,7 +15,8 @@ import { findAllPackages } from '../package-utils';
 import { spawn } from '../process-utils';
 // import { createProjectSymlink } from '../project-dir';
 import { exe } from '../process-utils';
-import { eachRecipeSrc, setProjectList as setProjectForRecipe } from '../recipe-manager';
+import { eachRecipeSrc, setProjectList as setProjectForRecipe,
+  setWorkspaceDirs as setWorkspaceForRecipe } from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
 import { getRootDir, isDrcpSymlink } from '../utils';
 import cleanInvalidSymlinks, { isWin32, scanNodeModulesForSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
@@ -33,12 +34,13 @@ export interface PackageInfo {
   json: any;
   path: string;
   realPath: string;
+  isInstalled: boolean;
 }
 
 export interface PackagesState {
   srcPackages: Map<string, PackageInfo>;
-  // _srcPackagesChecksum: number;
-  workspaces: {[dir: string]: WorkspaceState};
+  /** Key is relative path to root workspace */
+  workspaces: Map<string, WorkspaceState>;
   project2Packages: Map<string, string[]>;
   linkedDrcp: PackageInfo | null;
   gitIgnores: {[file: string]: string};
@@ -49,7 +51,7 @@ const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 
 const state: PackagesState = {
-  workspaces: {},
+  workspaces: new Map(),
   project2Packages: new Map(),
   srcPackages: new Map(),
   errors: [],
@@ -191,7 +193,7 @@ export const slice = stateFactory.newSlice({
         // hoistedDeps,
         // hoistedDevDeps
       };
-      state.workspaces[dir] = wp;
+      state.workspaces.set(workspaceKey(dir), wp);
       // console.log('-----------------', dir);
     },
     _installWorkspace(state, {payload: {dir}}: PayloadAction<{dir: string}>) {
@@ -238,11 +240,11 @@ stateFactory.addEpic((action$, state$) => {
           return merge(hoistOnPackageChanges, of(slice.actions.initRootDir()));
         } else {
           logConfig(config());
-          if (opt.force) {
+          const wsKey = workspaceKey(dir);
+          if (opt.force && getState().workspaces.has(wsKey)) {
             actionDispatcher._change(d => {
-              // console.log('********* clean up')
-              // d.workspaces[dir] = {};
-              d.workspaces[dir].installJsonStr = ''; // clean so that it will be changed after _hoistWorkspaceDeps
+              // clean to trigger install action
+              d.workspaces.get(wsKey)!.installJsonStr = '';
             });
           }
           updateLinkedPackageState();
@@ -263,7 +265,10 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
       concatMap(({payload}) => {
         const srcPackages = getState().srcPackages;
-        const ws = getState().workspaces[payload.dir];
+        const wsKey = workspaceKey(payload.dir);
+        const ws = getState().workspaces.get(wsKey);
+        if (ws == null)
+          return of();
         const pks: PackageInfo[] = [
           ...ws.linkedDependencies.map(([name, ver]) => srcPackages.get(name)),
           ...ws.linkedDevDependencies.map(([name, ver]) => srcPackages.get(name))
@@ -271,7 +276,7 @@ stateFactory.addEpic((action$, state$) => {
 
         if (getState().linkedDrcp) {
           const drcp = getState().linkedDrcp!.name;
-          const spaceJson = getState().workspaces[payload.dir].originInstallJson;
+          const spaceJson = getState().workspaces.get(wsKey)!.originInstallJson;
           if (spaceJson.dependencies && spaceJson.dependencies[drcp] ||
             spaceJson.devDependencies && spaceJson.devDependencies[drcp]) {
             pks.push(getState().linkedDrcp!);
@@ -285,7 +290,11 @@ stateFactory.addEpic((action$, state$) => {
     // Handle newly added workspace
     getStore().pipe(
       map(s => s.workspaces), distinctUntilChanged(),
-      map(ws => Object.keys(ws)),
+      map(ws => {
+        const keys = Array.from(ws.keys());
+        setWorkspaceForRecipe(keys.map(key => Path.resolve(getRootDir(), key)));
+        return keys;
+      }),
       scan<string[]>((prev, curr) => {
         if (prev.length < curr.length) {
           const newAdded = _.difference(curr, prev);
@@ -294,6 +303,7 @@ stateFactory.addEpic((action$, state$) => {
           for (const dir of newAdded) {
             actionDispatcher._installWorkspace({dir});
           }
+          writeConfigFiles();
         }
         return curr;
       }),
@@ -301,21 +311,21 @@ stateFactory.addEpic((action$, state$) => {
     ),
     action$.pipe(ofPayloadAction(slice.actions._installWorkspace),
       mergeMap(action => getStore().pipe(
-        map(s => s.workspaces[action.payload.dir]), distinctUntilChanged(),
+        map(s => s.workspaces.get(workspaceKey(action.payload.dir))), distinctUntilChanged(),
         filter(ws => ws != null)
       )),
-      concatMap(ws => from(installWorkspace(ws))),
+      concatMap(ws => from(installWorkspace(ws!))),
       ignoreElements()
     ),
-    ...Object.keys(getState().workspaces).map(dir => {
+    ...Array.from(getState().workspaces.keys()).map(key => {
       return getStore().pipe(
-        map(s => s.workspaces[dir].installJsonStr),
+        map(s => s.workspaces.get(key)!.installJsonStr),
         distinctUntilChanged(),
         filter(installJsonStr =>installJsonStr.length > 0),
         skip(1), take(1),
         map(() => {
           // console.log('+++++++++++ emit action', dir);
-          return actionDispatcher._installWorkspace({dir});
+          return actionDispatcher._installWorkspace({dir: Path.resolve(getRootDir(), key)});
         }),
         ignoreElements()
       );
@@ -364,6 +374,13 @@ export function getStore() {
 export function pathToProjKey(path: string) {
   const relPath = Path.relative(getRootDir(), path);
   return relPath.startsWith('..') ? Path.resolve(path) : relPath;
+}
+
+export function workspaceKey(path: string) {
+  let rel = Path.relative(getRootDir(), path);
+  if (Path.sep === '\\')
+    rel = rel.replace(/\\/g, '/');
+  return rel;
 }
 
 export function pathToWorkspace(path: string) {
@@ -473,13 +490,17 @@ async function initRootDirectory() {
   await _scanPackageAndLink();
   warnUselessSymlink();
 
-  await (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
-    writeFile(Path.resolve(rootPath, 'dist', file),
-      '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
-  });
+  await writeConfigFiles();
 
   // createProjectSymlink();
   writeTsconfig4project(getProjectList(), (file, content) => actionDispatcher._updateGitIgnores({file, content}));
+}
+
+async function writeConfigFiles() {
+  return (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
+    writeFile(Path.resolve(getRootDir(), 'dist', file),
+      '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
+  });
 }
 
 async function installWorkspace(ws: WorkspaceState) {
@@ -545,7 +566,7 @@ async function _scanPackageAndLink() {
   actionDispatcher._syncPackagesState(pkgList);
 }
 
-export function createPackageInfo(pkJsonFile: string): PackageInfo {
+export function createPackageInfo(pkJsonFile: string, isInstalled = false): PackageInfo {
   const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
   const m = moduleNameReg.exec(json.name);
   const pkInfo: PackageInfo = {
@@ -554,7 +575,8 @@ export function createPackageInfo(pkJsonFile: string): PackageInfo {
     scope: m![1],
     path: Path.dirname(pkJsonFile),
     json,
-    realPath: fs.realpathSync(Path.dirname(pkJsonFile))
+    realPath: fs.realpathSync(Path.dirname(pkJsonFile)),
+    isInstalled
   };
   return pkInfo;
 }

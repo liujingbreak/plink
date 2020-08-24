@@ -1,5 +1,7 @@
 // tslint:disable:max-line-length
-
+/**
+ * To avoid circle referecing, This file should not depends on package-mgr/index !!!
+ */
 import * as _ from 'lodash';
 import * as Path from 'path';
 import gulp from 'gulp';
@@ -13,21 +15,17 @@ const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
 const through = require('through2');
 const merge = require('merge2');
 import config from './config';
-import {pathToWorkspace, getState} from './package-mgr';
-
-
-// import {getInstance} from './package-json-guarder';
-// const packageJsonGuarder = getInstance(config().rootPath);
-
-// let linkListFile: string;
-
-// config.done.then(() => {
-//   linkListFile = config.resolve('destDir', 'link-list.json');
-// });
+// import {getRootDir} from './utils';
 
 let projectList: string[] = [];
+let workspaceDirs: string[] = [];
+
 export function setProjectList(list: string[]) {
   projectList = list;
+}
+
+export function setWorkspaceDirs(list: string[]) {
+  workspaceDirs = list;
 }
 
 // let cleanActions: ActionsType;
@@ -175,11 +173,9 @@ export function eachRecipe(callback: EachRecipeCallback) {
 */
 export function eachInstalledRecipe(callback: EachRecipeCallback) {
   eachDownloadedRecipe(callback);
-  const dir = pathToWorkspace(process.cwd());
-  if (getState().workspaces[dir] == null) {
-    throw new Error(`Current directory ${process.cwd()} is not a workspace directory.`);
-  }
-  callback(process.cwd(), true, 'package.json');
+  // const rootDir = getRootDir();
+  for (const dir of workspaceDirs)
+    callback(dir, true, 'package.json');
 }
 
 export function link(onPkJsonFile: (filePath: string, recipeDir: string, proj: string) => void) {

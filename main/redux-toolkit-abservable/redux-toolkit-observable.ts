@@ -256,7 +256,9 @@ export class StateFactory {
           const ret = next(action);
           return ret;
         } catch (err) {
+          // tslint:disable-next-line no-console
           console.error('[redux-toolkit-observable] failed action', action);
+          // tslint:disable-next-line no-console
           console.error('[redux-toolkit-observable] action dispatch error', err);
           this.reportActionError(err);
           throw err;

@@ -30,7 +30,7 @@ export default async function(options: BumpOptions & {packages: string[]}) {
 }
 
 async function bumpPackages(pkgNames: string[], increVersion: string) {
-  await Promise.all(completePackageName(getState(), pkgNames).filter(pkgName => {
+  await Promise.all(Array.from(completePackageName(getState(), pkgNames)).filter(pkgName => {
     const rs = pkgName != null;
     if (!rs) {
       log.error(`Can not find package for name like: ${pkgName}`);

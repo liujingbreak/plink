@@ -7,8 +7,7 @@ import config from './config';
 const chalk = require('chalk');
 const semver = require('semver');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
-// const packageUtils = require('../lib/packageMgr/packageUtils');
-// import * as packageUtils from './package-utils';
+
 import {getInstance as getPackageJsonGuarder} from './package-json-guarder';
 import * as recipeManager from './recipe-manager';
 

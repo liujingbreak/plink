@@ -1,7 +1,10 @@
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import Path from 'path';
-import {PackagesState} from '../package-mgr';
+import {createPackageInfo} from '../package-mgr';
+import type {PackagesState, PackageInfo} from '../package-mgr';
+import * as _ from 'lodash';
+
 import _config from '../config';
 
 export function writeFile(file: string, content: string) {
@@ -10,18 +13,55 @@ export function writeFile(file: string, content: string) {
   console.log('%s is written', chalk.cyan(Path.relative(process.cwd(), file)));
 }
 
-export function completePackageName(state: PackagesState, guessingName: string[]): (string|null)[] {
+export function* completePackageName(state: PackagesState, guessingNames: string[]) {
+  for (const pkg of findPackagesByNames(state, guessingNames)) {
+    if (pkg) {
+      yield pkg.name;
+    } else {
+      yield null;
+    }
+  }
+}
+
+export function* findPackagesByNames(state: PackagesState, guessingNames: string[]):
+  Generator<PackageInfo | null> {
   const config: typeof _config = require('../config');
 
   const prefixes = ['', ...config().packageScopes.map(scope => `@${scope}/`)];
-  const available = state.srcPackages; // TODO: missing installed packages
-  return guessingName.map(gn => {
+  const available = state.srcPackages;
+  for (const gn of guessingNames) {
+    let found = false;
     for (const prefix of prefixes) {
       const name = prefix + gn;
-      if (available.get(name)) {
-        return name;
+      const pkg = available.get(name);
+      if (pkg) {
+        yield pkg;
+        found = true;
+        break;
+      } else {
+        const pkjsonFile = findPackageJsonPath(gn);
+        if (pkjsonFile) {
+          yield createPackageInfo(pkjsonFile, true);
+          found = true;
+          break;
+        }
       }
     }
+
+    if (!found) {
+      yield null;
+    }
+  }
+}
+
+export const findPackageJsonPath = _.memoize(_findPackageJsonPath);
+
+function _findPackageJsonPath(moduleName: string) {
+  let resolvedPath;
+  try {
+    resolvedPath = require.resolve(moduleName + '/package.json');
+    return resolvedPath;
+  } catch (er) {
     return null;
-  });
+  }
 }

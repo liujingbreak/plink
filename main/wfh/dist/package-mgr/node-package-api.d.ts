@@ -9,7 +9,6 @@ declare class NodeApi implements assetsUrl.PackageApi {
     packageShortName: string;
     contextPath: string;
     buildUtils: any;
-    packageUtils: any;
     compileNodePath: any[];
     eventBus: EventEmitter;
     config: import("..").DrcpConfig;
@@ -44,7 +43,10 @@ declare class NodeApi implements assetsUrl.PackageApi {
        */
     joinContextPath(path: string): string;
     _contextPath(packageName?: string): any;
-    parsePackageName(packageName: string): any;
+    parsePackageName(packageName: string): {
+        name: string;
+        scope: string;
+    };
     isDefaultLocale(): boolean;
     getBuildLocale(): any;
 }

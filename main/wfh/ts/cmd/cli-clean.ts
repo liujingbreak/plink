@@ -21,13 +21,13 @@ export default async function clean(onlySymlink = false) {
  * Files needs to be clean
  */
 export interface CleanState {
-  workspace: {[path: string]: boolean};
-  projectSource: {[project: string]: {[path: string]: boolean}};
+  workspace: Set<string>;
+  projectSource: Map<string, Set<string>>;
 }
 
 const initialState: CleanState = {
-  workspace: {},
-  projectSource: {}
+  workspace: new Set(),
+  projectSource: new Map()
 };
 
 export const slice = stateFactory.newSlice({
@@ -39,13 +39,13 @@ export const slice = stateFactory.newSlice({
         state.workspace[file] = true;
     },
     addSourceFile(state, {payload: {project, files}}: PayloadAction<{project: string, files: string[]}>) {
-      const nativeState = stateFactory.sliceState(slice)!;
-      if (!_.has(nativeState.projectSource, project)) {
-        state.projectSource[project] = {};
+      const nativeState = getState();
+      if (!nativeState.projectSource.has(project)) {
+        state.projectSource.set(project, new Set());
       }
       for (const file of files) {
-        if (!_.has(nativeState.projectSource[project], file))
-          state.projectSource[project][file] = true;
+        if (!nativeState.projectSource.get(project)!.has(file))
+          state.projectSource.get(project)!.add(file);
       }
     }
   }

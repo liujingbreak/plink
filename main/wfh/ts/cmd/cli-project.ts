@@ -16,7 +16,7 @@ export default async function(action?: 'add' | 'remove', dirs?: string[]) {
   await config.init({config: [], prop: [], logStat: false});
   getStore().pipe(
     pluck('project2Packages'), distinctUntilChanged(),
-    map(project2Packages => Object.keys(project2Packages)),
+    map(project2Packages => Array.from(project2Packages.keys())),
     distinctUntilChanged((keys1, keys2) => keys1.join() === keys2.join()),
     skip(1),
     map(projects => {

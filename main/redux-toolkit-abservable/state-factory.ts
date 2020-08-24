@@ -4,6 +4,10 @@ import {tap} from 'rxjs/operators';
 import {environment as env} from '@bk/env/environment';
 import {Injector} from '@angular/core';
 import get from 'lodash/get';
+import {enableES5, enableMapSet} from 'immer';
+
+enableES5();
+enableMapSet();
 
 export const stateFactory = module.hot && module.hot.data && module.hot.data.stateFactory ? module.hot.data.stateFactory as StateFactory:
   new StateFactory({});

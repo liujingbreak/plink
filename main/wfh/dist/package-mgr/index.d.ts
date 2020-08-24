@@ -8,17 +8,13 @@ export interface PackageInfo {
     json: any;
     path: string;
     realPath: string;
+    isInstalled: boolean;
 }
 export interface PackagesState {
-    srcPackages: {
-        [name: string]: PackageInfo;
-    };
-    workspaces: {
-        [dir: string]: WorkspaceState;
-    };
-    project2Packages: {
-        [prj: string]: string[];
-    };
+    srcPackages: Map<string, PackageInfo>;
+    /** Key is relative path to root workspace */
+    workspaces: Map<string, WorkspaceState>;
+    project2Packages: Map<string, string[]>;
     linkedDrcp: PackageInfo | null;
     gitIgnores: {
         [file: string]: string;
@@ -37,54 +33,49 @@ interface WorkspaceState {
 }
 export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     initRootDir(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -92,6 +83,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -101,54 +93,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         hoistedDir: string;
     } | undefined | null>): void;
     initWorkspace(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -156,6 +143,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -166,54 +154,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         opt: cmdOpt.InitCmdOptions;
     }>): void;
     _syncPackagesState(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -221,6 +204,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -228,54 +212,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         errors: string[];
     }, { payload }: PayloadAction<PackageInfo[]>): void;
     _updatePackageState(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -283,6 +262,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -290,54 +270,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         errors: string[];
     }, { payload: jsons }: PayloadAction<any[]>): void;
     addProject(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -345,6 +320,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -352,54 +328,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         errors: string[];
     }, action: PayloadAction<string[]>): void;
     deleteProject(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -407,6 +378,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -414,54 +386,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         errors: string[];
     }, action: PayloadAction<string[]>): void;
     _hoistWorkspaceDeps(state: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -469,6 +436,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -481,54 +449,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         type: string;
     }): void;
     _installWorkspace(state: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -536,6 +499,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -548,54 +512,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         type: string;
     }): void;
     _associatePackageToPrj(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -603,6 +562,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -616,54 +576,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         type: string;
     }): void;
     _updateGitIgnores(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -671,6 +626,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -683,54 +639,49 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
 } & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     initRootDir(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -738,6 +689,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -747,54 +699,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         hoistedDir: string;
     } | undefined | null>): void;
     initWorkspace(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -802,6 +749,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -812,54 +760,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         opt: cmdOpt.InitCmdOptions;
     }>): void;
     _syncPackagesState(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -867,6 +810,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -874,54 +818,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         errors: string[];
     }, { payload }: PayloadAction<PackageInfo[]>): void;
     _updatePackageState(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -929,6 +868,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -936,54 +876,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         errors: string[];
     }, { payload: jsons }: PayloadAction<any[]>): void;
     addProject(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -991,6 +926,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -998,54 +934,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         errors: string[];
     }, action: PayloadAction<string[]>): void;
     deleteProject(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -1053,6 +984,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -1060,54 +992,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         errors: string[];
     }, action: PayloadAction<string[]>): void;
     _hoistWorkspaceDeps(state: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -1115,6 +1042,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -1127,54 +1055,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         type: string;
     }): void;
     _installWorkspace(state: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -1182,6 +1105,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -1194,54 +1118,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         type: string;
     }): void;
     _associatePackageToPrj(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -1249,6 +1168,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -1262,54 +1182,49 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         type: string;
     }): void;
     _updateGitIgnores(d: {
-        srcPackages: {
-            [x: string]: {
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            dir: string;
+            originInstallJson: {
+                version: string;
                 name: string;
-                scope: string;
-                shortName: string;
-                json: any;
-                path: string;
-                realPath: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        workspaces: {
-            [x: string]: {
-                dir: string;
-                originInstallJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                originInstallJsonStr: string;
-                installJson: {
-                    version: string;
-                    name: string;
-                    devDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    peerDependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                    dependencies?: {
-                        [x: string]: string;
-                    } | undefined;
-                };
-                installJsonStr: string;
-                linkedDependencies: [string, string][];
-                linkedDevDependencies: [string, string][];
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
             };
-        };
-        project2Packages: {
-            [x: string]: string[];
-        };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+        }>;
+        project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
             scope: string;
@@ -1317,6 +1232,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             json: any;
             path: string;
             realPath: string;
+            isInstalled: boolean;
         } | null;
         gitIgnores: {
             [x: string]: string;
@@ -1330,9 +1246,11 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
 export declare function getState(): PackagesState;
 export declare function getStore(): import("rxjs").Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;
+export declare function workspaceKey(path: string): string;
 export declare function pathToWorkspace(path: string): string;
 export declare function getPackagesOfProjects(projects: string[]): PackageInfo[];
 export declare function listPackages(): string;
 export declare function getProjectList(): string[];
 export declare function listPackagesByProjects(): string;
+export declare function createPackageInfo(pkJsonFile: string, isInstalled?: boolean): PackageInfo;
 export {};

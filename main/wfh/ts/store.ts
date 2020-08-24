@@ -5,8 +5,12 @@ import {StateFactory, ofPayloadAction} from '../../redux-toolkit-abservable/dist
 import log4js from 'log4js';
 import {getRootDir} from './utils';
 import serialize from 'serialize-javascript';
+import {enableMapSet} from 'immer';
 
 export {ofPayloadAction};
+
+enableMapSet();
+
 // import './package-mgr'; 
 // ensure slice and epic being initialized before create store, in which case not more lazy load
 
@@ -20,7 +24,8 @@ const stateFile = Path.resolve(getRootDir(), 'dist/dr-state.json');
  * 
  * I have to export saved state, so that eacy lazy slice can initialize its own slice state by themself
  */
-export const lastSavedState = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8') || '{}') : {};
+// tslint:disable-next-line: no-eval
+export const lastSavedState = fs.existsSync(stateFile) ? eval('(' + fs.readFileSync(stateFile, 'utf8') + ')') : {};
 
 export const stateFactory = new StateFactory(lastSavedState);
 
@@ -46,7 +51,7 @@ export async function saveState() {
   const store = await stateFactory.rootStoreReady;
   const mergedState = Object.assign(lastSavedState, store.getState());
   // const jsonStr = JSON.stringify(mergedState, null, '  ');
-  const jsonStr = serialize(mergedState, {ignoreFunction: true});
+  const jsonStr = serialize(mergedState, {space: '  '});
   fs.writeFile(stateFile, jsonStr,
     () => {
       // tslint:disable-next-line: no-console

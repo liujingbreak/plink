@@ -1,4 +1,5 @@
 export declare function setProjectList(list: string[]): void;
+export declare function setWorkspaceDirs(list: string[]): void;
 export declare type EachRecipeSrcCallback = (srcDir: string, recipeDir: string | null, recipeName: string | null, projectDir: string) => void;
 /**
  * Iterate src folder for component items

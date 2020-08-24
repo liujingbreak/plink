@@ -2,7 +2,6 @@
 import EventEmitter from 'events';
 
 import config from '../config';
-const packageUitls = require('../../lib/packageMgr/packageUtils');
 
 import npmimportCssLoader from 'require-injector/dist/css-loader';
 import Inject from 'require-injector';
@@ -11,6 +10,18 @@ import {PackageInfo, packageInstance as PackageInstance} from '../build-util/ts'
 // import PackageInstance from '../packageNodeInstance';
 import _ from 'lodash';
 
+
+const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
+
+function parseName(longName: string) {
+  const ret = {name: longName, scope: ''};
+  const match = moduleNameReg.exec(longName);
+  if (match) {
+    ret.scope = match[1];
+    ret.name = match[2];
+  }
+  return ret;
+}
 // module.exports = NodeApi;
 // module.exports.default = NodeApi; // To be available for ES6/TS import syntax 
 
@@ -20,7 +31,7 @@ class NodeApi implements assetsUrl.PackageApi {
   packageShortName: string;
   contextPath: string;
   buildUtils = require('../../lib/gulp/buildUtils');
-  packageUtils = packageUitls;
+  // packageUtils = packageUitls;
   compileNodePath = [config().nodePath];
   eventBus: EventEmitter;
   config = config;
@@ -33,7 +44,7 @@ class NodeApi implements assetsUrl.PackageApi {
   getNodeApiForPackage: (pkInstance: any, NodeApi: any) => any;
 
   constructor(public packageName: string, public packageInstance: PackageInstance) {
-    this.packageShortName = packageUitls.parseName(packageName).name;
+    this.packageShortName = parseName(packageName).name;
     this.contextPath = this._contextPath();
   }
 
@@ -112,7 +123,7 @@ class NodeApi implements assetsUrl.PackageApi {
   }
 
   parsePackageName(packageName: string) {
-    return this.packageUtils.parseName(packageName);
+    return parseName(packageName);
   }
 
   isDefaultLocale() {

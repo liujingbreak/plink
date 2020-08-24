@@ -14,7 +14,7 @@ import Events from 'events';
 import {createLazyPackageFileFinder} from './package-utils';
 import log4js from 'log4js';
 import config from './config';
-const packageUtils = require('../lib/packageMgr/packageUtils');
+import * as packageUtils from './package-utils';
 
 const log = log4js.getLogger('package-runner');
 

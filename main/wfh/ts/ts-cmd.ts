@@ -1,6 +1,6 @@
 const ts = require('gulp-typescript');
-const packageUtils = require('../lib/packageMgr/packageUtils');
 const chalk = require('chalk');
+import * as packageUtils from './package-utils';
 import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import * as Path from 'path';
@@ -78,7 +78,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   } else
     packageUtils.findAllPackages(onComponent, 'src');
 
-  function onComponent(name: string, entryPath: string, parsedName: string, json: any, packagePath: string) {
+  function onComponent(name: string, entryPath: string, _parsedName: any, json: any, packagePath: string) {
     const dirs = getTsDirsOfPackage(json);
     const srcDirs = [dirs.srcDir, dirs.isomDir].filter(srcDir => {
       try {

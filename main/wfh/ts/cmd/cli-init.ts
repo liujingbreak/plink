@@ -2,7 +2,7 @@
 import chalk from 'chalk';
 import { distinctUntilChanged, map, take, takeLast } from 'rxjs/operators';
 import config from '../config';
-import Path from 'path';
+
 // import logConfig from '../log-config';
 import { actionDispatcher as actions, getStore, getState } from '../package-mgr';
 import * as options from './types';
@@ -34,8 +34,7 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
 
 export function printWorkspaces() {
   console.log('\n' + chalk.greenBright('Workspace directories and linked dependencies:'));
-  for (const [dir, ws] of Object.entries(getState().workspaces)) {
-    const reldir = Path.relative(process.cwd(), dir);
+  for (const [reldir, ws] of getState().workspaces.entries()) {
     console.log(reldir ? reldir + '/' : '(root directory)');
     console.log('  |- dependencies');
     if (ws.linkedDependencies.length === 0)

@@ -11,7 +11,7 @@ import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
 import config from './config';
 require('../lib/logConfig')(config());
 
-const packageUtils = require('../lib/packageMgr/packageUtils');
+import * as packageUtils from './package-utils';
 // const recipeManager = require('../lib/gulp/recipeManager');
 const log = require('log4js').getLogger('drcp-cmd');
 // const namePat = /name:\s+([^ \n\r]+)/mi;
@@ -54,7 +54,7 @@ export async function packProject(argv: any) {
   const packActions = [] as Array<ReturnType<typeof npmPack>>;
   const {add} = queue(3);
   // tslint:disable-next-line: max-line-length
-  packageUtils.findAllPackages((name: string, entryPath: string, parsedName: string, json: any, packagePath: string) => {
+  packageUtils.findAllPackages((name: string, entryPath: string, parsedName: any, json: any, packagePath: string) => {
     packActions.push(add(() => npmPack(packagePath)));
   }, 'src', argv.projectDir);
 
