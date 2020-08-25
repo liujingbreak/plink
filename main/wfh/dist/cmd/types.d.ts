@@ -16,3 +16,6 @@ export interface BumpOptions extends GlobalOptions {
     project: string[];
     increVersion: string;
 }
+export interface PackOptions extends GlobalOptions {
+    project: string[];
+}

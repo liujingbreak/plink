@@ -1,4 +1,4 @@
-var packageUtils = require('./packageUtils');
+const packageUtils = require('../../dist/package-utils');
 var config = require('../config');
 var Package = require('./packageNodeInstance');
 var NodeApi = require('../../dist/package-mgr/node-package-api');
@@ -215,7 +215,7 @@ function mapPackagesByType(types, onEachPackage) {
 		packagesMap[type] = [];
 	});
 
-	packageUtils.findNodePackageByType('*', (name, entryPath, parsedName, pkJson, packagePath, isInstalled) => {
+	packageUtils.findAllPackages('*', (name, entryPath, parsedName, pkJson, packagePath, isInstalled) => {
 		var realPackagePath = fs.realpathSync(packagePath);
 		var pkInstance = new Package({
 			moduleName: name,

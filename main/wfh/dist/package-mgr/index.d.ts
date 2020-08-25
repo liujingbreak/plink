@@ -1248,7 +1248,7 @@ export declare function getStore(): import("rxjs").Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;
 export declare function workspaceKey(path: string): string;
 export declare function pathToWorkspace(path: string): string;
-export declare function getPackagesOfProjects(projects: string[]): PackageInfo[];
+export declare function getPackagesOfProjects(projects: string[]): Generator<PackageInfo, void, unknown>;
 export declare function listPackages(): string;
 export declare function getProjectList(): string[];
 export declare function listPackagesByProjects(): string;

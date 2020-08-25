@@ -8,7 +8,7 @@ import {} from '../ts-cmd';
 const pk = require('../../../package');
 // const WIDTH = 130;
 
-process.title = 'OneProject SDK- command line';
+process.title = 'Plink- command line';
 
 const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
   if (prev)
@@ -167,14 +167,30 @@ export async function drcpCommand(startTime: number) {
   withGlobalOptions(bumpCmd);
   bumpCmd.usage(bumpCmd.usage() + '\n' + hl('drcp bump <dir-1> <dir-2> ...') + ' to recursively bump package.json from multiple directories\n' +
     hl('drcp bump <dir> -i minor') + ' to bump minor version number, default is patch number');
-  try {
 
+  /**
+   * Pack command
+   */
+  const packCmd = program.command('pack [packageDir...]')
+    .description('npm pack every pakage into tarball files')
+    .option<string[]>('--pj, --project <project-dir,...>',
+    'project directories to be looked up for all components which need to be packed to tarball files',
+      (value, prev) => {
+        prev.push(...value.split(',')); return prev;
+      }, [])
+    .action(async (packageDirs: string[]) => {
+      (await import('../drcp-cmd')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
+    });
+  withGlobalOptions(packCmd);
+
+  try {
     await program.parseAsync(process.argv);
   } catch (e) {
-
     console.error(chalk.redBright(e), e.stack);
     process.exit(1);
   }
+
+
 }
 let saved = false;
 process.on('beforeExit', async (code) => {

@@ -387,17 +387,17 @@ export function pathToWorkspace(path: string) {
   return Path.relative(getRootDir(), path);
 }
 
-export function getPackagesOfProjects(projects: string[]) {
-  return projects.reduce((pkgs, prj) => {
+export function* getPackagesOfProjects(projects: string[]) {
+  for (const prj of projects) {
     const pkgNames = getState().project2Packages.get(pathToProjKey(prj));
-    if (pkgNames)
-      pkgNames.forEach(pkgName => {
+    if (pkgNames) {
+      for (const pkgName of pkgNames) {
         const pk = getState().srcPackages.get(pkgName);
         if (pk)
-          pkgs.push(pk);
-      });
-    return pkgs;
-  }, [] as PackageInfo[]);
+          yield pk;
+      }
+    }
+  }
 }
 // import PackageNodeInstance from '../packageNodeInstance';
 

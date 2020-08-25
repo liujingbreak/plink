@@ -5,7 +5,7 @@
   "main": "wfh/lib/main.js",
   "bin": {
     "drcp": "bin/drcp.js",
-    "opj": "bin/drcp.js"
+    "plink": "bin/drcp.js"
   },
   "dr": {},
   "scripts": {

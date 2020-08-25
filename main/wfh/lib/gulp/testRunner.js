@@ -1,3 +1,6 @@
+/**
+ * @Deprecated
+ */
 var Path = require('path');
 var Jasmine = require('jasmine');
 var fs = require('fs');
@@ -109,7 +112,7 @@ function runE2eTest(argv) {
 			return runJasmine(defaultConfig(), [].concat(argv.f), argv.spec);
 		}
 		var jasmineSetting = defaultConfig();
-		packageUtils.findNodePackageByType('e2etest', (name, entryPath, parsedName, json, packagePath) => {
+		packageUtils.findAllPackages('e2etest', (name, entryPath, parsedName, json, packagePath) => {
 			jasmineSetting.spec_files.push(packagePath + '/spec/**/*[sS]pec.js');
 			jasmineSetting.helpers.push(packagePath + '/spec/helpers/**/*.js');
 		});

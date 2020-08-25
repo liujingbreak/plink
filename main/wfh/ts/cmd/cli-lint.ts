@@ -42,8 +42,7 @@ function lint(packages: string[], projects: LintOptions['pj'], fix: LintOptions[
       .then(() => _tsLintPackageAsync(pkg.name, pkg.json, pkg.realPath, fix));
     }
   } else if (projects && projects.length > 0) {
-    const pkgs = getPackagesOfProjects(projects);
-    for (const pkg of pkgs) {
+    for (const pkg of getPackagesOfProjects(projects)) {
       prom = prom.catch(err => errors.push(err))
       .then(() => _tsLintPackageAsync(pkg.name, pkg.json, pkg.realPath, fix));
     }

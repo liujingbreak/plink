@@ -1,81 +1,61 @@
 
-import {queueUp, queue} from './utils/promise-queque';
+import {queueUp} from './utils/promise-queque';
 import * as _ from 'lodash';
 import * as fs from 'fs-extra';
 import * as Path from 'path';
 import {promisifyExe} from './process-utils';
-import {boxString} from './utils';
-import * as recipeManager from './recipe-manager';
+// import {boxString} from './utils';
+// import * as recipeManager from './recipe-manager';
 import jsonParser, {ObjectAst, Token} from './utils/json-sync-parser';
 import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
 import config from './config';
-require('../lib/logConfig')(config());
+import {PackOptions} from './cmd/types';
+import logConfig from './log-config';
+import {getPackagesOfProjects, getState} from './package-mgr';
 
-import * as packageUtils from './package-utils';
+// import * as packageUtils from './package-utils';
 // const recipeManager = require('../lib/gulp/recipeManager');
 const log = require('log4js').getLogger('drcp-cmd');
 // const namePat = /name:\s+([^ \n\r]+)/mi;
 // const fileNamePat = /filename:\s+([^ \n\r]+)/mi;
 
-export async function pack(argv: any) {
-  if (argv.pj)
-    return packProject(argv);
+export async function pack(opts: PackOptions & {packageDirs: string[]}) {
+  await config.init(opts);
+  logConfig(config());
 
-  const package2tarball: {[name: string]: string} = {};
-  if (argv.packages) {
-    const pgPaths: string[] = argv.packages;
+  fs.mkdirpSync('tarballs');
+
+  if (opts.project && opts.project.length > 0)
+    return packProject(opts.project);
+
+  await packPackages(opts.packageDirs);
+}
+
+async function packPackages(packageDirs: string[]) {
+  const package2tarball = new Map<string, string>();
+  if (packageDirs && packageDirs.length > 0) {
+    const pgPaths: string[] = packageDirs;
 
     const done = queueUp(3, pgPaths.map(packageDir => () => npmPack(packageDir)));
     let tarInfos = await done;
 
     tarInfos = tarInfos.filter(item => item != null);
     tarInfos.forEach(item => {
-      package2tarball[item!.name] = './tarballs/' + item!.filename;
+      package2tarball.set(item!.name, './tarballs/' + item!.filename);
     });
+    log.info(Array.from(package2tarball.entries()));
     await deleteOldTar(tarInfos.map(item => item!.name.replace('@', '').replace(/[/\\]/g, '-')),
       tarInfos.map(item => item!.filename));
     changePackageJson(package2tarball);
   }
 }
 
-export async function packProject(argv: any) {
-  fs.mkdirpSync('tarballs');
-  // var count = 0;
-  const recipe2packages: {[recipe: string]: {[name: string]: string}} = {};
-  const package2tarball: {[name: string]: string} = {};
-
-  recipeManager.eachRecipeSrc(argv.pj, function(src: string, recipeDir: string) {
-    if (!recipeDir)
-      return;
-    const data = JSON.parse(fs.readFileSync(Path.join(recipeDir, 'package.json'), 'utf8'));
-    recipe2packages[data.name + '@' + data.version] = data.dependencies;
-  });
-
-  const packActions = [] as Array<ReturnType<typeof npmPack>>;
-  const {add} = queue(3);
-  // tslint:disable-next-line: max-line-length
-  packageUtils.findAllPackages((name: string, entryPath: string, parsedName: any, json: any, packagePath: string) => {
-    packActions.push(add(() => npmPack(packagePath)));
-  }, 'src', argv.projectDir);
-
-
-  let tarInfos = await Promise.all(packActions);
-  tarInfos = tarInfos.filter(item => item != null);
-  tarInfos.forEach(item => {
-    package2tarball[item!.name] = './tarballs/' + item!.filename;
-  });
-
-  _.each(recipe2packages, (packages, recipe) => {
-    _.each(packages, (ver, name) => {
-      packages[name] = package2tarball[name];
-    });
-    // tslint:disable-next-line:no-console
-    console.log(boxString('recipe:' + recipe + ', you need to copy following dependencies to your package.json\n'));
-    // tslint:disable-next-line:no-console
-    console.log(JSON.stringify(packages, null, '  '));
-  });
-  // tslint:disable-next-line:no-console
-  console.log(boxString(`Tarball files have been written to ${Path.resolve('tarballs')}`));
+export async function packProject(projectDirs: string[]) {
+  const dirs = [] as string[];
+  for (const pkg of getPackagesOfProjects(projectDirs)) {
+    dirs.push(pkg.realPath);
+  }
+  await packPackages(dirs);
 }
 
 async function npmPack(packagePath: string):
@@ -98,39 +78,42 @@ async function npmPack(packagePath: string):
   }
 }
 
-function changePackageJson(package2tarball: {[name: string]: string}) {
-  if (!fs.existsSync('package.json')) {
-    // tslint:disable-next-line:no-console
-    console.log('Could not find package.json.');
-    return;
-  }
-  const pkj = fs.readFileSync('package.json', 'utf8');
-  const ast = jsonParser(pkj);
-  const depsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'dependencies');
-  const devDepsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'devDependencies');
-  const replacements: ReplacementInf[] = [];
-  if (depsAst) {
-    changeDependencies(depsAst.value as ObjectAst);
-  }
-  if (devDepsAst) {
-    changeDependencies(devDepsAst.value as ObjectAst);
-  }
+function changePackageJson(package2tarball: Map<string, string>) {
 
-  if (replacements.length > 0)
-    fs.writeFileSync('package.json', replaceCode(fs.readFileSync('package.json', 'utf8'), replacements));
+  for (const workspace of getState().workspaces.keys()) {
+    log.warn('workspace', workspace);
+    const jsonFile = Path.resolve(config().rootPath, workspace, 'package.json');
+    const pkj = fs.readFileSync(jsonFile, 'utf8');
+    const ast = jsonParser(pkj);
+    const depsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'dependencies');
+    const devDepsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'devDependencies');
+    const replacements: ReplacementInf[] = [];
+    if (depsAst) {
+      changeDependencies(depsAst.value as ObjectAst);
+    }
+    if (devDepsAst) {
+      changeDependencies(devDepsAst.value as ObjectAst);
+    }
 
-  function changeDependencies(deps: ObjectAst) {
+    if (replacements.length > 0) {
+      // tslint:disable-next-line: no-console
+      console.log(replaceCode(pkj, replacements));
+      const replaced = replaceCode(pkj, replacements);
+      fs.writeFileSync(jsonFile, replaced);
+    }
 
-    const foundDeps = deps.properties.filter(({name}) => _.has(package2tarball, JSON.parse(name.text)));
-    for (const foundDep of foundDeps) {
-      const verToken = foundDep.value as Token;
-      const newVersion = package2tarball[JSON.parse(foundDep.name.text)];
-      log.info(`Update package.json: ${verToken.text} => ${newVersion}`);
-      replacements.push({
-        start: verToken.pos,
-        end: verToken.end!,
-        text: JSON.stringify(newVersion)
-      });
+    function changeDependencies(deps: ObjectAst) {
+      const foundDeps = deps.properties.filter(({name}) => package2tarball.has(JSON.parse(name.text)));
+      for (const foundDep of foundDeps) {
+        const verToken = foundDep.value as Token;
+        const newVersion = package2tarball.get(JSON.parse(foundDep.name.text));
+        log.info(`Update ${jsonFile}: ${verToken.text} => ${newVersion}`);
+        replacements.push({
+          start: verToken.pos,
+          end: verToken.end!,
+          text: JSON.stringify(newVersion)
+        });
+      }
     }
   }
 }

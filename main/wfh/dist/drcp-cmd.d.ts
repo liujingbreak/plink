@@ -1,5 +1,8 @@
-export declare function pack(argv: any): Promise<void>;
-export declare function packProject(argv: any): Promise<void>;
+import { PackOptions } from './cmd/types';
+export declare function pack(opts: PackOptions & {
+    packageDirs: string[];
+}): Promise<void>;
+export declare function packProject(projectDirs: string[]): Promise<void>;
 /**
  *
  * @param output
