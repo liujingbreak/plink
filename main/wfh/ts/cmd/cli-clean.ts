@@ -63,6 +63,5 @@ export function getStore() {
   return stateFactory.sliceStore(slice);
 }
 export const actions = stateFactory.bindActionCreators(slice);
-export type ActionsType = typeof actions extends Promise<infer T> ? T : unknown;
 
 

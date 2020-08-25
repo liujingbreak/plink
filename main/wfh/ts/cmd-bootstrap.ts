@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* tslint:disable:no-console */
-require('source-map-support/register');import checkNode from './utils/node-version-check';
+require('source-map-support/register');
+import checkNode from './utils/node-version-check';
 import setupNodePath from './node-path';
 
 process.on('SIGINT', function() {

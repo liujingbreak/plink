@@ -8,8 +8,6 @@ import {} from '../ts-cmd';
 const pk = require('../../../package');
 // const WIDTH = 130;
 
-process.title = 'Plink- command line';
-
 const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
   if (prev)
     prev.push(curr);
@@ -17,12 +15,10 @@ const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
 };
 
 export async function drcpCommand(startTime: number) {
+  process.title = 'Plink - command line';
   stateFactory.configureStore();
 
-  // const cli = require('../../lib/gulp/cli');
-  // cli.setStartTime(startTime);
-
-  const program = new Command().name('drcp')
+  const program = new Command().name('plink')
   .action(args => {
     program.outputHelp();
     // tslint:disable-next-line: no-console
@@ -99,8 +95,8 @@ export async function drcpCommand(startTime: number) {
     (await import('../package-runner')).runSinglePackage({target, args});
   });
   withGlobalOptions(runCmd);
-  runCmd.usage(runCmd.usage() + '\n' + chalk.green('drcp run <target> [arguments...]\n') +
-  `e.g.\n  ${chalk.green('drcp run forbar-package/dist/file#function argument1 argument2...')}\n` +
+  runCmd.usage(runCmd.usage() + '\n' + chalk.green('plink run <target> [arguments...]\n') +
+  `e.g.\n  ${chalk.green('plink run forbar-package/dist/file#function argument1 argument2...')}\n` +
   'execute exported function of TS/JS file from specific package or path\n\n' +
   '<target> - JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n' +
   'e.g. \n' +
@@ -145,10 +141,10 @@ export async function drcpCommand(startTime: number) {
   '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @dr packages.\n' +
   'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs in ' +
   'both Node.js and Browser) in directory `isom`.\n' +
-  hlDesc('drcp tsc <package..>\n') + ' Only compile specific components by providing package name or short name\n' +
-  hlDesc('drcp tsc\n') + ' Compile all components belong to associated projects, not including installed components\n' +
-  hlDesc('drcp tsc --pj <project directory,...>\n') + ' Compile components belong to specific projects\n' +
-  hlDesc('drcp tsc [package...] -w\n') + ' Watch components change and compile when new typescript file is changed or created\n\n');
+  hlDesc('plink tsc <package..>\n') + ' Only compile specific components by providing package name or short name\n' +
+  hlDesc('plink tsc\n') + ' Compile all components belong to associated projects, not including installed components\n' +
+  hlDesc('plink tsc --pj <project directory,...>\n') + ' Compile components belong to specific projects\n' +
+  hlDesc('plink tsc [package...] -w\n') + ' Watch components change and compile when new typescript file is changed or created\n\n');
 
   /**
    * Bump command
@@ -165,8 +161,8 @@ export async function drcpCommand(startTime: number) {
       (await import('./cli-bump')).default({...bumpCmd.opts() as tp.BumpOptions, packages});
     });
   withGlobalOptions(bumpCmd);
-  bumpCmd.usage(bumpCmd.usage() + '\n' + hl('drcp bump <dir-1> <dir-2> ...') + ' to recursively bump package.json from multiple directories\n' +
-    hl('drcp bump <dir> -i minor') + ' to bump minor version number, default is patch number');
+  bumpCmd.usage(bumpCmd.usage() + '\n' + hl('plink bump <dir-1> <dir-2> ...') + ' to recursively bump package.json from multiple directories\n' +
+    hl('plink bump <dir> -i minor') + ' to bump minor version number, default is patch number');
 
   /**
    * Pack command
@@ -224,4 +220,26 @@ export function withGlobalOptions(program: commander.Command): commander.Command
   .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 
   return program;
+}
+
+export async function nodeServerCmd() {
+  process.title = 'Plink - server';
+  stateFactory.configureStore();
+
+  const program = new Command()
+  .action(args => {
+    // program.outputHelp();
+    // tslint:disable-next-line: no-console
+    console.log('\nPlink version:', pk.version);
+
+  });
+
+  program.version(pk.version, '-v, --vers', 'output the current version');
+  withGlobalOptions(program);
+  try {
+    await program.parseAsync(process.argv);
+  } catch (e) {
+    console.error(chalk.redBright(e), e.stack);
+    process.exit(1);
+  }
 }

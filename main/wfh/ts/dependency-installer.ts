@@ -117,6 +117,7 @@ export class InstallManager {
 
   hoistDeps() {
     const hoistDeps: {[dep: string]: string} = {};
+
     const depNames = Object.keys(this.srcDeps);
     if (depNames.length === 0)
       return {};
@@ -146,6 +147,7 @@ export class InstallManager {
     }
     printOut += _.pad(` total ${chalk.green(countDep)} `, 60, '-');
     log.info(printOut);
+
     return hoistDeps;
   }
 

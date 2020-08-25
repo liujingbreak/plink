@@ -1,11 +1,11 @@
 {
   "name": "dr-comp-package-cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "dr-comp-package command line interface",
   "main": "bin/cli.js",
   "bin": {
     "drcp": "bin/drcp.js",
-    "opj": "bin/drcp.js"
+    "plink": "bin/drcp.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -1,4 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit';
+import type { Observable } from 'rxjs';
 import { PackageJsonInterf } from '../dependency-installer';
 import * as cmdOpt from '../cmd/types';
 export interface PackageInfo {
@@ -1244,7 +1245,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     }>): void;
 } & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare function getState(): PackagesState;
-export declare function getStore(): import("rxjs").Observable<PackagesState>;
+export declare function getStore(): Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;
 export declare function workspaceKey(path: string): string;
 export declare function pathToWorkspace(path: string): string;

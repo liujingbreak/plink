@@ -188,7 +188,6 @@ export function link(onPkJsonFile: (filePath: string, recipeDir: string, proj: s
   return merge(streams)
   .pipe(through.obj(function(file: any, enc: string, next: () => void) {
     if (_.isArray(file)) {
-      // linkFiles.push(...file);
       cleanActions.addWorkspaceFile(file);
     } else {
       log.debug('out: ' + file.path);

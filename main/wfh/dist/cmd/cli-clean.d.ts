@@ -41,4 +41,3 @@ export declare const actions: import("@reduxjs/toolkit").CaseReducerActions<{
         type: string;
     }): void;
 } & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<CleanState>>;
-export declare type ActionsType = typeof actions extends Promise<infer T> ? T : unknown;

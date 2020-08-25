@@ -20,3 +20,12 @@ prettier.config.js
 src/tools/json-schema-gen/tsconfig.json
 main/tsconfig.json
 main/drcp-types/tsconfig.json
+
+src/tools/prebuild/tsconfig.json
+src/runtime/assets-processer/tsconfig.json
+src/runtime/express-app/tsconfig.json
+src/internal/ng-app-builder/tsconfig.json
+src/tools/http-request-proxy/tsconfig.json
+src/runtime/http-server/tsconfig.json
+src/react/cra-scripts/tsconfig.json
+src/legacy/webpack2-builder/tsconfig.json

@@ -4,8 +4,9 @@ import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';
 import { from, merge, of} from 'rxjs';
+import type {Observable} from 'rxjs';
 import { distinctUntilChanged, filter, map, switchMap, mergeMap,
-  pluck, take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
+  take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
 import { writeFile } from '../cmd/utils';
 import config from '../config';
 import { listCompDependency, PackageJsonInterf } from '../dependency-installer';
@@ -163,7 +164,6 @@ export const slice = stateFactory.newSlice({
       }
 
       // pkjsonList.push(updatingJson);
-
       const hoistedDeps = listCompDependency(
         linkedDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
         dir, updatingDeps
@@ -173,6 +173,18 @@ export const slice = stateFactory.newSlice({
         linkedDevDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
         dir, updatingDevDeps
       );
+
+      // In case some packages have peer dependencies of other packages
+      // remove them from dependencies
+      for (const key of Object.keys(hoistedDeps)) {
+        if (state.srcPackages.has(key))
+          delete hoistedDeps[key];
+      }
+
+      for (const key of Object.keys(hoistedDevDeps)) {
+        if (state.srcPackages.has(key))
+          delete hoistedDevDeps[key];
+      }
 
       const installJson: PackageJsonInterf = {
         ...pkjson,
@@ -199,7 +211,7 @@ export const slice = stateFactory.newSlice({
     _installWorkspace(state, {payload: {dir}}: PayloadAction<{dir: string}>) {
     },
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: PackageInfo[]}>) {
-      d.project2Packages.set(prj, pkgs.map(pkgs => pkgs.name));
+      d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
     },
     _updateGitIgnores(d, {payload}: PayloadAction<{file: string, content: string}>) {
       d.gitIgnores[payload.file] = payload.content;
@@ -367,7 +379,7 @@ export function getState() {
   return stateFactory.sliceState(slice);
 }
 
-export function getStore() {
+export function getStore(): Observable<PackagesState> {
   return stateFactory.sliceStore(slice);
 }
 
@@ -476,11 +488,7 @@ async function initRootDirectory() {
 
   logConfig(config());
 
-  const projectDirs = await getStore().pipe(
-    pluck('project2Packages'), distinctUntilChanged(),
-    map(project2Packages => Object.keys(project2Packages).map(dir => Path.resolve(dir))),
-    take(1)
-  ).toPromise();
+  const projectDirs = getProjectList();
 
   projectDirs.forEach(prjdir => {
     _writeGitHook(prjdir);
@@ -527,7 +535,6 @@ async function installWorkspace(ws: WorkspaceState) {
     const installJsonFile = Path.resolve(ws.dir, 'package.json');
     // tslint:disable-next-line: no-console
     console.log('[init] write', installJsonFile);
-
     fs.writeFile(installJsonFile, ws.installJsonStr, 'utf8');
     try {
       await exe('npm', 'install', {cwd: ws.dir}).promise;
@@ -551,15 +558,18 @@ async function installWorkspace(ws: WorkspaceState) {
 async function _scanPackageAndLink() {
   const rm = (await import('../recipe-manager'));
 
-  const projPkgMap: {[proj: string]: PackageInfo[]} = {};
+  const projPkgMap: Map<string, PackageInfo[]> = new Map();
+
   await rm.linkComponentsAsync((proj, pkgJsonFile) => {
-    if (projPkgMap[proj] == null)
-      projPkgMap[proj] = [];
+    if (!projPkgMap.has(proj))
+      projPkgMap.set(proj, []);
+    // console.log('_scanPackageAndLink', proj, pkgJsonFile);
     const info = createPackageInfo(pkgJsonFile);
-    projPkgMap[proj].push(info);
+    projPkgMap.get(proj)!.push(info);
   });
+  // console.log(Array.from(projPkgMap.values()));
   const pkgList: PackageInfo[] = [];
-  for (const [prj, pkgs] of Object.entries(projPkgMap)) {
+  for (const [prj, pkgs] of projPkgMap.entries()) {
     actionDispatcher._associatePackageToPrj({prj, pkgs});
     pkgList.push(...pkgs);
   }
