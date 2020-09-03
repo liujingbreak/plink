@@ -144,27 +144,25 @@ function browserLegoConfig() {
   ], prop => browserPropSet[prop] = 1);
   _.each(api.config().browserSideConfigProp, prop => browserPropSet[prop] = true);
   _.forOwn(browserPropSet, (nothing, propPath) => _.set(legoConfig, propPath, _.get(api.config(), propPath)));
-  var compressedInfo = compressOutputPathMap(legoConfig.outputPathMap);
-  legoConfig.outputPathMap = compressedInfo.diffMap;
-  legoConfig._outputAsNames = compressedInfo.sames;
-  // legoConfig.buildLocale = api.getBuildLocale();
-  // log.debug('DefinePlugin LEGO_CONFIG: ', legoConfig);
+  // var compressedInfo = compressOutputPathMap(legoConfig.outputPathMap);
+  // legoConfig.outputPathMap = compressedInfo.diffMap;
+  // legoConfig._outputAsNames = compressedInfo.sames;
   return legoConfig;
 }
 
-function compressOutputPathMap(pathMap: any) {
-  var newMap: any = {};
-  var sameAsNames: string[] = [];
-  _.each(pathMap, (value, key) => {
-    var parsed = api.packageUtils.parseName(key);
-    if (parsed.name !== value) {
-      newMap[key] = value;
-    } else {
-      sameAsNames.push(key);
-    }
-  });
-  return {
-    sames: sameAsNames,
-    diffMap: newMap
-  };
-}
+// function compressOutputPathMap(pathMap: any) {
+//   var newMap: any = {};
+//   var sameAsNames: string[] = [];
+//   _.each(pathMap, (value, key) => {
+//     var parsed = api.packageUtils.parseName(key);
+//     if (parsed.name !== value) {
+//       newMap[key] = value;
+//     } else {
+//       sameAsNames.push(key);
+//     }
+//   });
+//   return {
+//     sames: sameAsNames,
+//     diffMap: newMap
+//   };
+// }

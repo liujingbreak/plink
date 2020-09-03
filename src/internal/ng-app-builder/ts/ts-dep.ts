@@ -78,6 +78,18 @@ export default class TsDependencyGraph {
       }
     }
 
+    reportOut.write('----- loadChildren -----' + eol);
+    for (const lc of this.loadChildren.values()) {
+      reportOut.write('  ' + lc);
+      reportOut.write(eol);
+    }
+    reportOut.write('----- ExternalLibraryImport -----' + eol);
+    for (const lc of this.externals.values()) {
+      reportOut.write('  ' + lc);
+      reportOut.write(eol);
+    }
+
+
     return new Promise(resolve => reportOut.end(resolve));
 
   }

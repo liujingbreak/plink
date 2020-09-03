@@ -1,15 +1,14 @@
 import LRU from 'lru-cache';
 import PackageBrowserInstance from './build-util/ts/package-instance';
 import LazyPackageFactory from './build-util/ts/lazy-package-factory';
-import * as recipeMgr from './recipe-manager';
-import {PackageInfo, createPackageInfo, getState} from './package-mgr';
-import * as Path from 'path';
+import {getState, pathToProjKey, pathToWorkspace} from './package-mgr';
+// import * as Path from 'path';
 import _ from 'lodash';
-import log4js from 'log4js';
-import * as fs from 'fs';
-import {findPackageJsonPath, findPackagesByNames} from './cmd/utils';
+// import log4js from 'log4js';
+// import * as fs from 'fs';
+import {lookupPackageJson, findPackagesByNames} from './cmd/utils';
 
-const log = log4js.getLogger('wfh.package-utils');
+// const log = log4js.getLogger('wfh.package-utils');
 
 const lazyPackageFactory = new LazyPackageFactory();
 
@@ -28,17 +27,17 @@ export function createLazyPackageFileFinder() {
 
 export type FindPackageCb = (fullName: string,
   /** @Deprecated empty string */
-  entryPath: string,
+  packagePath: string,
   parsedName: {name: string, scope: string},
   json: any,
-  packagePath: string,
+  realPackagePath: string,
   isInstalled: boolean) => void;
 
-export function lookForPackages(packageList: string[], cb: FindPackageCb): void {
-  for (const pkg of findPackagesByNames(getState(), packageList)) {
+export function lookForPackages(packageList: string[] | string, cb: FindPackageCb): void {
+  for (const pkg of findPackagesByNames(getState(), Array.isArray(packageList) ? packageList : [packageList])) {
     if (pkg == null)
       continue;
-    cb(pkg.name, '', {name: pkg.shortName, scope: pkg.scope}, pkg.json, pkg.realPath, pkg.isInstalled);
+    cb(pkg.name, pkg.path, {name: pkg.shortName, scope: pkg.scope}, pkg.json, pkg.realPath, pkg.isInstalled);
   }
 }
 
@@ -67,101 +66,46 @@ export function findAllPackages(packageList: string[] | string | FindPackageCb,
     callback = packageList;
   }
 
-  return _findPackageByType('*', callback as FindPackageCb, recipeType as 'src' | 'installed',
+  return findPackageByType('*', callback as FindPackageCb, recipeType as 'src' | 'installed',
     projectDir as string | undefined);
 }
 
-export {eachRecipe} from './recipe-manager';
+// export {eachRecipe} from './recipe-manager';
 
+export {lookupPackageJson as findPackageJsonPath};
 
+export function findPackageByType(_types: PackageType | PackageType[],
+  callback: FindPackageCb, recipeType?: 'src' | 'installed', projectDir?: string) {
 
-class EntryFileFinder {
-  private packageRecipeMap = new Map<string, string>();
+  const wsKey = pathToWorkspace(process.cwd());
 
-  findByRecipeJson(recipePkjsonFile: string, isInstalled: boolean,
-    eachCallback: (packageInfo: PackageInfo) => void) {
-    const pj = JSON.parse(fs.readFileSync(recipePkjsonFile, 'utf-8'));
-    if (!pj.dependencies) {
-      return;
-    }
-
-    _.forOwn(Object.assign({}, pj.dependencies, pj.devDependencies), (version, name) => {
-      if (isInstalled) {
-        if (this.packageRecipeMap.has(name)) {
-          log.warn('Duplicate component dependency "%s" found in "%s" and "%s"',
-            name, this.packageRecipeMap.get(name), recipePkjsonFile);
-          return;
-        }
-        this.packageRecipeMap.set(name, recipePkjsonFile);
-      }
-      const srcPkg = getState().srcPackages.get(name);
-      if (srcPkg) {
-        return eachCallback(srcPkg);
-      }
-
-      const pkJsonFile = findPackageJsonPath(name);
-      if (pkJsonFile == null) {
-        log.warn('Package %s does not exist', name);
-        return;
-      }
-      const pkg = createPackageInfo(pkJsonFile);
-
-      eachCallback(pkg);
-    });
-  }
-}
-
-function _findPackageByType(_types: PackageType | PackageType[],
-  callback: FindPackageCb, recipeType: 'src' | 'installed', projectDir?: string) {
-
-  const entryFileFindler = new EntryFileFinder();
-  const types = ([] as PackageType[]).concat(_types);
-
-  const srcCompSet = new Map<string, [boolean, string]>();
-  // tslint:disable-next-line: max-line-length
-  // To avoid return duplicate components, some times duplicate component in associated projects, installed recipe or peer
-  // dependency (recipe)
-
-  if (recipeType === 'src') {
+  if (recipeType !== 'installed') {
     if (projectDir) {
-      recipeMgr.eachRecipeSrc(projectDir, (src, recipeDir) => {
-        if (recipeDir)
-          findEntryFiles(Path.resolve(recipeDir, 'package.json'), false);
-      });
+      const projKey = pathToProjKey(projectDir);
+      const pkgNames = getState().project2Packages.get(projKey);
+      if (pkgNames == null)
+        return;
+      for (const pkgName of pkgNames) {
+        const pkg = getState().srcPackages.get(pkgName);
+        if (pkg) {
+          callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, false);
+        }
+      }
     } else {
-      recipeMgr.eachRecipeSrc((src, recipeDir) => {
-        if (recipeDir)
-          findEntryFiles(Path.resolve(recipeDir, 'package.json'), false);
-      });
+      for (const pkg of getState().srcPackages.values()) {
+        callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, false);
+      }
     }
-  } else if (recipeType === 'installed') {
-    recipeMgr.eachInstalledRecipe((dir, isInstalled, fileName) => {
-      return findEntryFiles(Path.resolve(dir, fileName), true);
-    });
-  } else {
-    recipeMgr.eachRecipe((recipeDir, isInstalled, fileName) => {
-      findEntryFiles(Path.resolve(recipeDir, fileName), isInstalled);
-    });
+  }
+  if (recipeType !== 'src') {
+    const workspace = getState().workspaces.get(wsKey);
+    if (workspace) {
+      if (workspace.installedComponents) {
+        for (const pkg of workspace.installedComponents.values()) {
+          callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, true);
+        }
+      }
+    }
   }
 
-  function findEntryFiles(recipe: string, isInstalled: boolean) {
-    entryFileFindler.findByRecipeJson(recipe, isInstalled, pkg => {
-      if (!_.has(pkg.json, 'dr'))
-        return;
-      const name = pkg.name;
-      var packageType = _.get(pkg.json, 'dr.type');
-      packageType = packageType ? [].concat(packageType) : [];
-      const existing = srcCompSet.get(pkg.name);
-      if (existing && existing[0] === isInstalled && existing[1] !== recipe) {
-        console.error('Duplicate package %s found in recipe "%s" and "%s"', name, recipe, srcCompSet.get(name));
-      }
-      if (existing)
-        return;
-      srcCompSet.set(name, [isInstalled, recipe]);
-      if (_.includes(types, '*') || _.intersection(types, packageType).length > 0) {
-        // _checkDuplicate(packageSet, name, parsedName, pkJson, packagePath);
-        callback(name, '', {name: pkg.shortName, scope: pkg.scope}, pkg.json, pkg.realPath, isInstalled);
-      }
-    });
-  }
 }

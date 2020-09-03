@@ -1,0 +1,14 @@
+{
+  "extends": "./wfh/tsconfig-base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "skipLibCheck": false,
+    "jsx": "preserve",
+    "target": "es2015",
+    "module": "commonjs",
+    "rootDir": "."
+  },
+  "include": [
+    "."
+  ]
+}

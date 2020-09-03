@@ -159,7 +159,7 @@ async function processBrowserBuiliderOptions(
 
   browserOptions.commonChunk = false;
 
-  const packagesInfo = await injectorSetup(config, browserOptions);
+  const packagesInfo = await injectorSetup(browserOptions);
   await hackTsConfig(browserOptions, config, packagesInfo);
 
 

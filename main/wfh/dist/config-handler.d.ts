@@ -13,6 +13,7 @@ export interface BaseDrcpSetting {
     logStat: boolean;
     packageScopes: string[];
     installedRecipes: string[];
+    wfhSrcPath: string;
 }
 export interface DrcpSettings extends BaseDrcpSetting {
     [prop: string]: any;
@@ -61,7 +62,7 @@ export declare class ConfigHandlerMgr {
         file: string;
         handler: ConfigHandler;
     }>;
-    constructor(files: string[], rootPath: string);
+    constructor(files: string[]);
     /**
        *
        * @param func parameters: (filePath, last returned result, handler function),
@@ -71,18 +72,21 @@ export declare class ConfigHandlerMgr {
     runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): Promise<any>;
     runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): any;
 }
+export interface CompilerOptionSetOpt {
+    enableTypeRoots: boolean;
+    /** Default false, Do not include linked package symlinks directory in path*/
+    noSymlinks?: boolean;
+    extraNodePath?: string[];
+}
 /**
  * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
  * and process.env.NODE_PATHS
  * @param cwd project directory where tsconfig file is (virtual)
  * @param assigneeOptions
  */
-export declare function setTsCompilerOpt(cwd: string, assigneeOptions: {
+export declare function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: {
     [key: string]: any;
-}, opts?: {
-    setTypeRoots: boolean;
-    extraNodePath?: string[];
-}): {
+}, opts?: CompilerOptionSetOpt): {
     [key: string]: any;
     baseUrl: string;
     paths: {

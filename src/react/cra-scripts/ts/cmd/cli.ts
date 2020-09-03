@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-require('source-map-support/register');
-import {Command} from 'commander';
+import 'dr-comp-package/register';
+import commander, {Command} from 'commander';
 import pk from '../../package.json';
 import chalk from 'chalk';
 // import {spawn} from 'dr-comp-package/wfh/dist/process-utils';
 // import fs from 'fs-extra';
 // import Path from 'path';
 
-export const program = new Command().name('crae');
+export const program: commander.Command = new Command().name('crae');
 
 program.version(pk.version);
 program.description(chalk.cyanBright(

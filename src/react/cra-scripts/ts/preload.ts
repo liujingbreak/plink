@@ -3,8 +3,7 @@
  * Do not actually import entity other than "type" from here
  * Because we have not set node path yet.
  */
-require('dr-comp-package/bin/nodePath').setContextPath(process.cwd());
-require('source-map-support/register');
+// import 'dr-comp-package/register';
 import {drawPuppy, saveCmdArgToEnv} from './utils';
 import _paths from './cra-scripts-paths';
 import {getCmdOptions} from './utils';

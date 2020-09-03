@@ -46,7 +46,7 @@ function copyTempl(to: string, pkName: string, dryrun: boolean) {
         continue;
       }
       if (!dryrun)
-        fs.copyFile(Path.resolve(templDir, sub), newFile);
+        fs.copyFile(Path.resolve(templDir, sub), newFile, () => {});
       console.log(`[cra-scripts cmd] ${chalk.green(Path.relative(Path.resolve(), newFile))} is created`);
     } else {
       console.log('[cra-scripts cmd] target file already exists:', Path.relative(Path.resolve(), newFile));

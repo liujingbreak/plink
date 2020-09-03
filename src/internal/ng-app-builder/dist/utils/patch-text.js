@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 var patch_text_1 = require("dr-comp-package/wfh/dist/utils/patch-text");
-exports.default = patch_text_1.default;
+Object.defineProperty(exports, "default", { enumerable: true, get: function () { return patch_text_1.default; } });
 tslib_1.__exportStar(require("dr-comp-package/wfh/dist/utils/patch-text"), exports);
 
-//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5vZGVfbW9kdWxlcy9AZHItY29yZS9uZy1hcHAtYnVpbGRlci90cy91dGlscy9wYXRjaC10ZXh0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7OztBQUFBLHdFQUFrRTtBQUExRCwrQkFBQSxPQUFPLENBQUE7QUFDZixvRkFBMEQiLCJmaWxlIjoibm9kZV9tb2R1bGVzL0Bkci1jb3JlL25nLWFwcC1idWlsZGVyL2Rpc3QvdXRpbHMvcGF0Y2gtdGV4dC5qcyIsInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCB7ZGVmYXVsdH0gZnJvbSAnZHItY29tcC1wYWNrYWdlL3dmaC9kaXN0L3V0aWxzL3BhdGNoLXRleHQnO1xuZXhwb3J0ICogZnJvbSAnZHItY29tcC1wYWNrYWdlL3dmaC9kaXN0L3V0aWxzL3BhdGNoLXRleHQnO1xuIl19
+//# sourceMappingURL=patch-text.js.map

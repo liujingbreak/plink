@@ -1,5 +1,11 @@
-declare let rootDir: string;
-export declare function findRootDir(): string;
-export { rootDir };
-export declare const isDrcpSymlink: boolean;
-export default function (): void;
+/**
+ * Get environment variables predefined by
+```
+const {isDrcpSymlink, symlinkDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+```
+ */
+export interface PlinkEnv {
+    isDrcpSymlink: boolean;
+    rootDir: string;
+    symlinkDir: string;
+}

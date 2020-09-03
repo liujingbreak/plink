@@ -1,10 +1,16 @@
 import * as Path from 'path';
 import * as fs from 'fs';
 
-let rootDir: string;
-findRootDir();
+if (process.env.__plink == null) {
+  require('source-map-support/register');
+  const rootDir = findRootDir();
+  const symlinkDir = Path.resolve(rootDir, 'node_modules');
+  const isDrcpSymlink = fs.lstatSync(Path.resolve(rootDir, 'node_modules/dr-comp-package')).isSymbolicLink();
+  process.env.__plink = JSON.stringify({isDrcpSymlink, rootDir, symlinkDir} as PlinkEnv);
+  setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
+}
 
-export function findRootDir() {
+function findRootDir() {
   let dir = process.cwd();
   while (!fs.existsSync(Path.resolve(dir, 'dist/dr-state.json'))) {
     const parentDir = Path.dirname(dir);
@@ -14,26 +20,52 @@ export function findRootDir() {
     }
     dir = parentDir;
   }
-  rootDir = dir;
   return dir;
 }
 
-export {rootDir};
-
-export const isDrcpSymlink = fs.lstatSync(Path.resolve(rootDir!, 'node_modules/dr-comp-package')).isSymbolicLink();
-
-
-export default function() {
-  const nodePaths = [Path.resolve(rootDir, 'node_modules')];
+/**
+ * if cwd is not root directory, then append NODE_PATH with <cwd>/node_modules:<rootDir>/symlinks,
+ * otherwise append NODE_PATH with <rootDir>/node_modules
+ * @param rootDir 
+ * @param isDrcpSymlink 
+ */
+function setupNodePath(rootDir: string, symlinkDir: string, isDrcpSymlink: boolean) {
+  let nodePaths: Set<string>;
+  // const symlinkDir = Path.resolve(rootDir, 'dist', 'symlinks');
   if (rootDir !== process.cwd()) {
-    nodePaths.unshift(Path.resolve(process.cwd(), 'node_modules'));
+    nodePaths = new Set([
+      Path.resolve(process.cwd(), 'node_modules'),
+      symlinkDir,
+      Path.resolve(rootDir, 'node_modules')
+    ]);
+  } else {
+    nodePaths = new Set([
+      symlinkDir,
+      Path.resolve(rootDir, 'node_modules')
+    ]);
   }
+
   if (isDrcpSymlink)
-    nodePaths.push(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/dr-comp-package')) + Path.sep + 'node_modules');
+    nodePaths.add(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/dr-comp-package')) + Path.sep + 'node_modules');
   if (process.env.NODE_PATH) {
-    nodePaths.push(...process.env.NODE_PATH.split(Path.delimiter));
+    for (const path of process.env.NODE_PATH.split(Path.delimiter)) {
+      nodePaths.add(path);
+    }
   }
-  process.env.NODE_PATH = nodePaths.join(Path.delimiter);
+  process.env.NODE_PATH = Array.from(nodePaths.values()).join(Path.delimiter);
+  // tslint:disable-next-line: no-console
+  console.log('[node-path] NODE_PATH', process.env.NODE_PATH);
   require('module').Module._initPaths();
-  // console.log(process.env.NODE_PATH)
+}
+
+/**
+ * Get environment variables predefined by
+```
+const {isDrcpSymlink, symlinkDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+```
+ */
+export interface PlinkEnv {
+  isDrcpSymlink: boolean;
+  rootDir: string;
+  symlinkDir: string;
 }

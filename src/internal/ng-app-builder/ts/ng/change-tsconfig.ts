@@ -9,7 +9,8 @@ import { DrcpSetting as NgAppBuilderSetting } from '../configurable';
 import { findAppModuleFileFromMain } from '../utils/parse-app-module';
 import { addSourceFiles } from './add-tsconfig-file';
 import { AngularBuilderOptions } from './common';
-
+import {setTsCompilerOptForNodePath} from 'dr-comp-package/wfh/dist/config-handler';
+import {getState} from 'dr-comp-package/wfh/dist/package-mgr';
 // const currPackageName = require('../../package.json').name;
 
 export type ParialBrowserOptions = Pick<AngularBuilderOptions, 'preserveSymlinks' | 'main' | 'fileReplacements'>;
@@ -39,7 +40,7 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
   browserOptions: ParialBrowserOptions,
   config: NgAppBuilderSetting, reportDir: string): string {
 
-  const root = process.cwd();
+  const cwd = process.cwd();
   const result = ts.parseConfigFileTextToJson(file, fs.readFileSync(file, 'utf8'));
   if (result.error) {
     // log.error(result.error);
@@ -49,29 +50,30 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
   const preserveSymlinks = browserOptions.preserveSymlinks;
   const pathMapping: {[key: string]: string[]} | undefined = preserveSymlinks ? undefined : {};
 
-  type PackageInstances = typeof pkInfo.allModules;
-  let ngPackages: PackageInstances = pkInfo.allModules;
+  // type PackageInstances = typeof pkInfo.allModules;
+
+  // let ngPackages: PackageInstances = pkInfo.allModules;
 
   const appModuleFile = findAppModuleFileFromMain(Path.resolve(browserOptions.main));
   const appPackageJson = lookupEntryPackage(appModuleFile);
   if (appPackageJson == null)
     throw new Error('Error, can not find package.json of ' + appModuleFile);
 
-  ngPackages.forEach(pk => {
-
-    if (!preserveSymlinks) {
-      const realDir = Path.relative(root, pk.realPackagePath).replace(/\\/g, '/');
-      pathMapping![pk.longName] = [realDir];
-      pathMapping![pk.longName + '/*'] = [realDir + '/*'];
-    }
-  });
-
-  // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
   if (!preserveSymlinks) {
-    const drcpDir = Path.relative(root, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
+    for (const pk of getState().srcPackages.values()) {
+      const realDir = Path.relative(cwd, pk.realPath).replace(/\\/g, '/');
+      pathMapping![pk.name] = [realDir];
+      pathMapping![pk.name + '/*'] = [realDir + '/*'];
+    }
+  }
+
+  // // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
+  if (!preserveSymlinks) {
+    const drcpDir = Path.relative(cwd, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
     pathMapping!['dr-comp-package'] = [drcpDir];
     pathMapping!['dr-comp-package/*'] = [drcpDir + '/*'];
   }
+
 
   var tsjson: {compilerOptions: any, [key: string]: any, files?: string[], include: string[]} = {
     // extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
@@ -84,7 +86,7 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
     exclude: [], // tsExclude,
     compilerOptions: {
       ...appTsconfig.compilerOptions,
-      baseUrl: root,
+      baseUrl: cwd,
       // typeRoots: [
       //   Path.resolve(root, 'node_modules/@types'),
       //   Path.resolve(root, 'node_modules/@dr-types'),
@@ -101,6 +103,10 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
       ...oldJson.angularCompilerOptions
     }
   };
+  setTsCompilerOptForNodePath(cwd, tsjson.compilerOptions, {enableTypeRoots: false});
+  tsjson.compilerOptions.baseUrl = cwd;
+  // Object.assign(tsjson.compilerOptions.paths, appTsconfig.compilerOptions.paths, pathMapping);
+
   if (oldJson.extends) {
     tsjson.extends = oldJson.extends;
   }
@@ -121,6 +127,10 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
 
   if (!tsjson.files)
     tsjson.files = [];
+  // We should not use "include" due to we have multiple projects in same source directory, it
+  // will cause problem if unused file is included in TS compilation, not only about cpu/memory cost,
+  // but also having problem like same component might be declared in multiple modules which is
+  // consider as error in Angular compiler. 
   tsjson.files.push(...(sourceFiles(tsjson.compilerOptions, tsjson.files, file,
     browserOptions.fileReplacements, reportDir)));
 

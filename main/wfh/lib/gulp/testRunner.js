@@ -5,11 +5,10 @@ var Path = require('path');
 var Jasmine = require('jasmine');
 var fs = require('fs');
 //var _ = require('lodash');
-var packageUtils = require('../packageMgr/packageUtils');
+var packageUtils = require('../../dist/package-utils');
 var log = require('log4js').getLogger('test.' + Path.basename(__filename, '.js'));
 var chalk = require('chalk');
 var config = require('../config');
-// var Package = require('../packageMgr/packageNodeInstance');
 var NodeApi = require('../../dist/package-mgr/node-package-api');
 var {nodeInjector} = require('../../dist/injector-factory');
 const LazyPackageFactory = require('../../dist/build-util/ts/lazy-package-factory').default;
@@ -101,7 +100,7 @@ function runUnitTest(argv) {
 }
 
 function runE2eTest(argv) {
-	var injector = require('../injectorFactory').nodeInjector;
+	var injector = require('../../dist/injector-factory').nodeInjector;
 	var factoryMap = injector.fromDir(Path.resolve(config().rootPath, 'e2etest'));
 	factoryMap.value('__injector', injector);
 	factoryMap.value('__config', config);

@@ -3,7 +3,7 @@ import fs from 'fs';
 import {tap} from 'rxjs/operators';
 import {StateFactory, ofPayloadAction} from '../../redux-toolkit-abservable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
-import {getRootDir} from './utils';
+import {getRootDir} from './utils/misc';
 import serialize from 'serialize-javascript';
 import {enableMapSet} from 'immer';
 
@@ -14,7 +14,7 @@ enableMapSet();
 // import './package-mgr'; 
 // ensure slice and epic being initialized before create store, in which case not more lazy load
 
-const stateFile = Path.resolve(getRootDir(), 'dist/dr-state.json');
+const stateFile = Path.resolve(getRootDir(), 'dist/plink-state.json');
 
 /**
  * Since Redux-toolkit does not read initial state with any lazy slice that has not defined in root reducer,

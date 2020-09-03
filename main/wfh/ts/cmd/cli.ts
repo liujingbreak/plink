@@ -1,9 +1,8 @@
 // tslint:disable: max-line-length
-import commander, {Command} from 'commander';
+import commander from 'commander';
 import chalk from 'chalk';
-import {stateFactory} from '../store';
+import type * as store from '../store';
 import * as tp from './types';
-import {} from '../ts-cmd';
 
 const pk = require('../../../package');
 // const WIDTH = 130;
@@ -16,9 +15,19 @@ const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
 
 export async function drcpCommand(startTime: number) {
   process.title = 'Plink - command line';
+  const {stateFactory}: typeof store = require('../store');
   stateFactory.configureStore();
+  let saved = false;
+  process.on('beforeExit', async (code) => {
+    if (saved)
+      return;
+    saved = true;
+    // tslint:disable-next-line: no-console
+    console.log(chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
+    (await import('../store')).saveState();
+  });
 
-  const program = new Command().name('plink')
+  const program = new commander.Command().name('plink')
   .action(args => {
     program.outputHelp();
     // tslint:disable-next-line: no-console
@@ -27,6 +36,17 @@ export async function drcpCommand(startTime: number) {
 
   program.version(pk.version, '-v, --vers', 'output the current version');
 
+  subDrcpCommand(program);
+
+  try {
+    await program.parseAsync(process.argv);
+  } catch (e) {
+    console.error(chalk.redBright(e), e.stack);
+    process.exit(1);
+  }
+}
+
+function subDrcpCommand(program: commander.Command) {
   /**
    * command init
    */
@@ -124,7 +144,6 @@ export async function drcpCommand(startTime: number) {
     await config.init(runCmd.opts() as tp.GlobalOptions);
     const logConfig = await (await import('../log-config')).default;
     logConfig(config());
-
     const tsCmd = await import('../ts-cmd');
     await tsCmd.tsc({
       package: packages,
@@ -178,25 +197,7 @@ export async function drcpCommand(startTime: number) {
       (await import('../drcp-cmd')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
     });
   withGlobalOptions(packCmd);
-
-  try {
-    await program.parseAsync(process.argv);
-  } catch (e) {
-    console.error(chalk.redBright(e), e.stack);
-    process.exit(1);
-  }
-
-
 }
-let saved = false;
-process.on('beforeExit', async (code) => {
-  if (saved)
-    return;
-  saved = true;
-  // tslint:disable-next-line: no-console
-  console.log(chalk.green('Done.'));
-  (await import('../store')).saveState();
-});
 
 function hl(text: string) {
   return chalk.green(text);
@@ -222,24 +223,3 @@ export function withGlobalOptions(program: commander.Command): commander.Command
   return program;
 }
 
-export async function nodeServerCmd() {
-  process.title = 'Plink - server';
-  stateFactory.configureStore();
-
-  const program = new Command()
-  .action(args => {
-    // program.outputHelp();
-    // tslint:disable-next-line: no-console
-    console.log('\nPlink version:', pk.version);
-
-  });
-
-  program.version(pk.version, '-v, --vers', 'output the current version');
-  withGlobalOptions(program);
-  try {
-    await program.parseAsync(process.argv);
-  } catch (e) {
-    console.error(chalk.redBright(e), e.stack);
-    process.exit(1);
-  }
-}

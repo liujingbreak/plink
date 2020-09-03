@@ -9,7 +9,7 @@ recipes
 wfh/doc
 wfh/spec
 wfh/bin
-/wfh/ts
+/wfh/ts/**/*.ts
 /tsconfig.json
 .git/
 **/node_modules

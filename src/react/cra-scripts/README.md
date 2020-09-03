@@ -1,15 +1,15 @@
 ## Create a new React + Redux project
 copy .npmrc to home directory
-```bash
-create-react-app <dir> --template cra-template-typescript --use-npm
-```
-add dependencies to package.json file
-```bash
-"dependencies": {
-  ...
-  "log4js": ""
-}
-```
+
+`create-react-app <dir> --template cra-template-typescript --use-npm`
+
+~~add dependencies to package.json file~~
+~~```bash~~
+~~"dependencies": {~~
+~~  ...~~
+~~  "log4js": ""~~
+~~}~~
+~~```~~
 
 
 ### Build and watch

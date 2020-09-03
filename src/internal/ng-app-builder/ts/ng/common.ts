@@ -4,13 +4,16 @@ import { Schema as NormalizedBrowserBuilderSchema } from '@angular-devkit/build-
 import { Schema as NormalizedServerBuilderServerSchema } from '@angular-devkit/build-angular/src/server/schema';
 import {json} from '@angular-devkit/core';
 import __changeWebpackConfig, {transformIndexHtml as _transformIndexHtml} from '../config-webpack';
-import api from '__api';
+// import type api from '__api';
 import fs from 'fs-extra';
 import nodeCheck from 'dr-comp-package/wfh/dist/utils/node-version-check';
+import config from 'dr-comp-package/wfh/dist/config';
+import type {DrcpConfig} from 'dr-comp-package/wfh/dist';
+import {initConfigAsync} from 'dr-comp-package/wfh/dist/utils/bootstrap-server';
 
-export type DrcpConfig = typeof api.config;
+// export type DrcpConfig = typeof api.config;
 
-export async function initCli(options: DrcpBuilderOptions) {
+export async function initCli(options: DrcpBuilderOptions): Promise<DrcpConfig> {
   await nodeCheck();
   const drcpConfigFiles = options.drcpConfig ? (options.drcpConfig as string).split(/\s*[,;:]\s*/) : [];
   const config = await initDrcp(options.drcpArgs, drcpConfigFiles);
@@ -18,13 +21,11 @@ export async function initCli(options: DrcpBuilderOptions) {
   return config;
 }
 async function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): Promise<DrcpConfig> {
-  var config = require('dr-comp-package/wfh/lib/config');
-
   if (drcpArgs.c == null)
     drcpArgs.c = [];
   drcpArgs.c.push(...drcpConfigFiles);
-  await config.init(drcpArgs);
-  require('dr-comp-package/wfh/lib/logConfig')(config());
+
+  await initConfigAsync({config: drcpArgs.c, prop: drcpArgs.p || drcpArgs.prop || []});
   return config;
 }
 

@@ -1,12 +1,16 @@
 import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
 import {findPackage} from './build-target-helper';
+// import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
 import childProc from 'child_process';
 // import fs from 'fs-extra';
 import Path from 'path';
-import {findDrcpProjectDir} from './utils';
+// import {findDrcpProjectDir} from './utils';
 import { getCmdOptions } from '../dist/utils';
 // import {HotModuleReplacementPlugin} from 'webpack';
 // const EsmWebpackPlugin = require("@purtuga/esm-webpack-plugin");
+
+// const {isDrcpSymlink, symlinkDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
 export default function change(buildPackage: string, config: Configuration) {
@@ -107,14 +111,14 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
 }
 
 function forkTsc(targetPackage: string) {
-  const drcpHome = findDrcpProjectDir();
+  // const drcpHome = findDrcpProjectDir();
 
-  const execArgv = Array.from(process.execArgv);
-  let execArgvRmPos = execArgv.indexOf('-r');
-  execArgvRmPos = (execArgvRmPos >= 0) ? execArgvRmPos : execArgv.indexOf('--require');
-  if (execArgvRmPos >= 0 && execArgv[execArgvRmPos + 1] === require('../package.json').name) {
-    execArgv.splice(execArgvRmPos, 2);
-  }
+  // const execArgv = Array.from(process.execArgv);
+  // let execArgvRmPos = execArgv.indexOf('-r');
+  // execArgvRmPos = (execArgvRmPos >= 0) ? execArgvRmPos : execArgv.indexOf('--require');
+  // if (execArgvRmPos >= 0 && execArgv[execArgvRmPos + 1] === require('../package.json').name) {
+  //   execArgv.splice(execArgvRmPos, 2);
+  // }
   // console.log('[webpack-lib] ' + Path.resolve(__dirname, 'build-lib', 'drcp-tsc.js'), drcpHome);
 
   const forkArgs = [targetPackage];
@@ -123,8 +127,8 @@ function forkTsc(targetPackage: string) {
 
   const cp = childProc.fork(Path.resolve(__dirname, 'build-lib', 'drcp-tsc.js'),
     forkArgs, {
-      cwd: drcpHome,
-      execArgv,
+      cwd: process.cwd(),
+      execArgv: ['-r', 'dr-comp-package/register'],
       stdio: 'inherit'
     });
   // cp.unref();

@@ -2,7 +2,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-require('source-map-support/register');
 const commander_1 = require("commander");
 const package_json_1 = tslib_1.__importDefault(require("../package.json"));
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -12,27 +11,21 @@ const log4js_1 = tslib_1.__importDefault(require("log4js"));
 const TJS = tslib_1.__importStar(require("typescript-json-schema"));
 const ts_ast_query_1 = tslib_1.__importDefault(require("@dr-core/ng-app-builder/dist/utils/ts-ast-query"));
 const glob_1 = tslib_1.__importDefault(require("glob"));
-const baseTsconfig = require('dr-comp-package/wfh/tsconfig.json');
-const cfg = require('dr-comp-package/wfh/lib/config.js');
-const logConfig = require('dr-comp-package/wfh/lib/logConfig.js');
+const bootstrap_server_1 = require("dr-comp-package/wfh/dist/utils/bootstrap-server");
+const baseTsconfig = require('dr-comp-package/wfh/tsconfig-base.json');
 const log = log4js_1.default.getLogger(package_json_1.default.name);
 commander_1.program.version(package_json_1.default.version).name('json-schema-gen')
     .description('Scan packages and generate json schema.\n' +
     'You package.json file must contains:\n  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}')
     .arguments('[...packages]')
     .passCommandToAction(true);
-commander_1.program.option('-c, --config <config-file>', 'Read config files, if there are multiple files, the latter one overrides previous one', (curr, prev) => prev.concat(curr.split(',')), []);
-commander_1.program.option('--prop <property-path=value as JSON | literal>', '<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n', (curr, prev) => prev.concat(curr), []);
-commander_1.program.action(() => tslib_1.__awaiter(void 0, void 0, void 0, function* () {
+bootstrap_server_1.withGlobalOptions(commander_1.program);
+commander_1.program.action((packages) => tslib_1.__awaiter(void 0, void 0, void 0, function* () {
     const dones = [];
-    yield cfg.init({
-        config: commander_1.program.opts().config.length === 0 ? undefined : commander_1.program.opts().config,
-        prop: commander_1.program.opts().prop
-    });
-    logConfig(cfg());
+    yield bootstrap_server_1.initConfigAsync(commander_1.program.opts());
     log.info(commander_1.program.args);
     const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
-    const packages = commander_1.program.args;
+    // const packages = program.args;
     if (packages && packages.length > 0)
         packageUtils.findAllPackages(packages, onComponent, 'src');
     // else if (argv.project && argv.project.length > 0) {

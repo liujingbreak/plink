@@ -1,6 +1,6 @@
 var fs = require('fs');
 var log = require('log4js').getLogger('gulp.packageLintableSrc');
-var packageUtil = require('../packageMgr/packageUtils');
+var packageUtil = require('../../dist/package-utils');
 module.exports = packageLintableSrc;
 
 function packageLintableSrc(packageList, project) {

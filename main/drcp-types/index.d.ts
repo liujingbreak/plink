@@ -1,9 +1,10 @@
 declare module '__api' {
-  // import ExpressAppApi from '@dr-core/express-app/dist/api-types';
+  import ExpressAppApi from '@dr-core/express-app/dist/api-types';
   import {DrcpApi} from 'dr-comp-package/wfh/globals';
+  import {_DrcpNgApi} from '@dr-core/ng-app-builder/globals';
   // export * from '@dr-core/ng-app-builder/globals';
   // export {ServerRunnerEvent} from 'dr-comp-package/wfh/dist/package-runner';
-	var api: DrcpApi;
+	const api: DrcpApi & ExpressAppApi & _DrcpNgApi;
 	export {DrcpApi};
   export default api;
 }

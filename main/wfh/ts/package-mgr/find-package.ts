@@ -1,10 +1,6 @@
-const gutil = require('gulp-util');
-const PluginError = gutil.PluginError;
-const through = require('through2');
-const File = require('vinyl');
 import * as fs from 'fs';
 import * as Path from 'path';
-import {promisify} from 'util';
+import {Subscriber, Observable, merge} from 'rxjs';
 
 /**
  * Recursively lookup `fromDir` folder for private module's package.json file
@@ -13,43 +9,31 @@ export default function findPackageJson(_fromDirs: string[] | string, startFromS
   let fromDirs: string[];
   if (!Array.isArray(_fromDirs))
     fromDirs = [_fromDirs];
-  return through.obj(
-    function(whatever: any, encoding: string, callback: () => void) {callback();},
-    function flush(callback: (err?: Error) => void) {
-      const me = this;
-      const proms = fromDirs.map(d => new FolderScanner(d, me).run(startFromSubDir));
-
-      Promise.all(proms)
-      .then(function() {
-        callback();
-      })
-      .catch(function(err) {
-        gutil.log(err);
-        me.emit('error', new PluginError('findPackageJson', err.stack, {showStack: true}));
-      });
-    });
+  else
+    fromDirs = _fromDirs;
+  return merge(...fromDirs.map(d => new FolderScanner(d).getPackageJsonFiles(startFromSubDir)));
 }
 
 class FolderScanner {
   fromDir: string;
-  private proms: Promise<any>[] = [];
-  private through: { push(file: any): void };
+  private out: Subscriber<string>;
 
-  constructor(fromDir: string, through: {push(file: any): void}) {
+  constructor(fromDir: string) {
     this.fromDir = Path.resolve(fromDir);
-    this.through = through;
   }
 
-  run(startFromSubDir: boolean) {
-    this.proms = [];
-    if (startFromSubDir)
-      this.checkSubFolders(this.fromDir);
-    else
-      this.checkFolder(this.fromDir);
-    return Promise.all(this.proms);
+  getPackageJsonFiles(startFromSubDir: boolean): Observable<string> {
+    return new Observable<string>(sub => {
+      this.out = sub;
+      if (startFromSubDir)
+        this.checkSubFolders(this.fromDir);
+      else
+        this.checkFolder(this.fromDir);
+      sub.complete();
+    });
   }
 
-  checkSubFolders(parentDir: string) {
+  private checkSubFolders(parentDir: string) {
     const folders = fs.readdirSync(parentDir);
     for (const name of folders) {
       try {
@@ -69,15 +53,12 @@ class FolderScanner {
     }
   }
 
-  checkFolder(dir: string) {
+  private checkFolder(dir: string) {
     const self = this;
     if (fs.statSync(dir).isDirectory()) {
       const pkJsonPath = Path.join(dir, 'package.json');
       if (fs.existsSync(pkJsonPath)) {
-        self.proms.push(createFile(pkJsonPath, self.fromDir)
-          .then(function(file) {
-            return self.through.push(file);
-          }));
+        this.out.next(pkJsonPath);
       } else {
         self.checkSubFolders(dir);
       }
@@ -85,14 +66,3 @@ class FolderScanner {
   }
 }
 
-const fsStateAsync = promisify(fs.stat);
-
-function createFile(path: string, base: string) {
-  return fsStateAsync(path).then(function(stat) {
-    return new File({
-      base,
-      path,
-      stat
-    });
-  });
-}

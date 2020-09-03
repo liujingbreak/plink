@@ -6,7 +6,8 @@ const {parse} = require('comment-json');
 const {cyan, green} = chalk;
 import {register as registerTsNode} from 'ts-node';
 import {GlobalOptions as CliOptions} from './cmd/types';
-
+import type {PlinkEnv} from './node-path';
+import {getRootDir} from './utils/misc';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 
@@ -25,6 +26,7 @@ export interface BaseDrcpSetting {
   logStat: boolean;
   packageScopes: string[];
   installedRecipes: string[];
+  wfhSrcPath: string;
 }
 export interface DrcpSettings extends BaseDrcpSetting {
   [prop: string]: any;
@@ -78,7 +80,7 @@ export class ConfigHandlerMgr {
         fs.readFileSync(internalTscfgFile, 'utf8')
       );
 
-      setTsCompilerOpt(process.cwd(), compilerOptions);
+      setTsCompilerOptForNodePath(process.cwd(), compilerOptions);
 
       compilerOptions.module = 'commonjs';
       compilerOptions.noUnusedLocals = false;
@@ -113,8 +115,8 @@ export class ConfigHandlerMgr {
   }
   protected configHandlers: Array<{file: string, handler: ConfigHandler}>;
 
-  constructor(files: string[], rootPath: string) {
-    this.configHandlers = ConfigHandlerMgr.initConfigHandlers(files, rootPath);
+  constructor(files: string[]) {
+    this.configHandlers = ConfigHandlerMgr.initConfigHandlers(files, getRootDir());
   }
 
   /**
@@ -146,25 +148,42 @@ export class ConfigHandlerMgr {
   }
 }
 
+export interface CompilerOptionSetOpt {
+  enableTypeRoots: boolean;
+  /** Default false, Do not include linked package symlinks directory in path*/
+  noSymlinks?: boolean;
+  extraNodePath?: string[];
+}
 /**
  * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
  * and process.env.NODE_PATHS
  * @param cwd project directory where tsconfig file is (virtual)
  * @param assigneeOptions 
  */
-export function setTsCompilerOpt(cwd: string, assigneeOptions: {[key: string]: any},
-  opts: {setTypeRoots: boolean; extraNodePath?: string[]} = {setTypeRoots: false}) {
-  // pathsDirs = _.uniq(pathsDirs);
+export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: {[key: string]: any},
+  opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
+
+
+
   let pathsDirs = process.env.NODE_PATH ? process.env.NODE_PATH.split(Path.delimiter) : [];
-  if (opts.extraNodePath) {
+  if (opts.extraNodePath && opts.extraNodePath.length > 0) {
     pathsDirs.unshift(...opts.extraNodePath);
     pathsDirs = _.uniq(pathsDirs);
   }
 
+  if (opts.noSymlinks) {
+    const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+    const idx = pathsDirs.indexOf(symlinkDir);
+    if (idx >= 0) {
+      pathsDirs.splice(idx, 1);
+    }
+  }
+
   assigneeOptions.baseUrl = '.';
   if (assigneeOptions.paths == null)
-    assigneeOptions.paths = {};
-  assigneeOptions.paths['*'] = [];
+    assigneeOptions.paths = {'*': []};
+  else
+    assigneeOptions.paths['*'] = [];
   for (const dir of pathsDirs) {
     const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');
     // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
@@ -172,7 +191,7 @@ export function setTsCompilerOpt(cwd: string, assigneeOptions: {[key: string]: a
     assigneeOptions.paths['*'].push(relativeDir + '/*');
   }
 
-  if (opts.setTypeRoots) {
+  if (opts.enableTypeRoots) {
     assigneeOptions.typeRoots = pathsDirs.map(dir => {
       const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');
       return relativeDir + '/@types';

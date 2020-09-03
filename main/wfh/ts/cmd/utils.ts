@@ -39,7 +39,7 @@ export function* findPackagesByNames(state: PackagesState, guessingNames: string
         found = true;
         break;
       } else {
-        const pkjsonFile = findPackageJsonPath(gn);
+        const pkjsonFile = lookupPackageJson(gn);
         if (pkjsonFile) {
           yield createPackageInfo(pkjsonFile, true);
           found = true;
@@ -54,14 +54,29 @@ export function* findPackagesByNames(state: PackagesState, guessingNames: string
   }
 }
 
-export const findPackageJsonPath = _.memoize(_findPackageJsonPath);
+// export const findPackageJsonPath = _.memoize(_findPackageJsonPath);
 
-function _findPackageJsonPath(moduleName: string) {
-  let resolvedPath;
-  try {
-    resolvedPath = require.resolve(moduleName + '/package.json');
-    return resolvedPath;
-  } catch (er) {
-    return null;
+// function _findPackageJsonPath(moduleName: string) {
+//   let resolvedPath;
+//   try {
+//     resolvedPath = require.resolve(moduleName + '/package.json');
+//     return resolvedPath;
+//   } catch (er) {
+//     return null;
+//   }
+// }
+
+const nodePaths: string[] = process.env.NODE_PATH ? process.env.NODE_PATH!.split(Path.delimiter) : [];
+/**
+ * Look up package.json file in environment variable NODE_PATH 
+ * @param moduleName 
+ */
+export function lookupPackageJson(moduleName: string) {
+  for (const p of nodePaths) {
+    const test = Path.resolve(p, moduleName, 'package.json');
+    if (fs.existsSync(test)) {
+      return test;
+    }
   }
+  return null;
 }

@@ -1,19 +1,16 @@
 #!/usr/bin/env node
-require('source-map-support/register');
 import {program} from 'commander';
 import pk from '../package.json';
 import Path from 'path';
 import * as fs from 'fs-extra';
 import {getTsDirsOfPackage} from 'dr-comp-package/wfh/dist/utils';
 import log4js from 'log4js';
-import api from '__api';
 import * as TJS from 'typescript-json-schema';
 import Selector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
 import glob from 'glob';
-const baseTsconfig = require('dr-comp-package/wfh/tsconfig.json');
+import {withGlobalOptions, initConfigAsync, GlobalOptions} from 'dr-comp-package/wfh/dist/utils/bootstrap-server';
+const baseTsconfig = require('dr-comp-package/wfh/tsconfig-base.json');
 
-const cfg = require('dr-comp-package/wfh/lib/config.js') as typeof api.config;
-const logConfig = require('dr-comp-package/wfh/lib/logConfig.js');
 
 const log = log4js.getLogger(pk.name);
 
@@ -22,25 +19,17 @@ program.version(pk.version).name('json-schema-gen')
   'You package.json file must contains:\n  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}')
   .arguments('[...packages]')
   .passCommandToAction(true);
-program.option('-c, --config <config-file>',
-  'Read config files, if there are multiple files, the latter one overrides previous one',
-  (curr, prev) => prev.concat(curr.split(',')), [] as string[]);
-program.option('--prop <property-path=value as JSON | literal>',
-  '<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n',
-  (curr, prev) => prev.concat(curr), [] as string[]);
+withGlobalOptions(program);
 
-program.action(async () => {
+program.action(async (packages: string[]) => {
   const dones: Promise<void>[] = [];
-  await cfg.init({
-    config: (program.opts().config as string[]).length === 0 ? undefined : program.opts().config,
-    prop: (program.opts().prop as string[])
-  });
-  logConfig(cfg());
+
+  await initConfigAsync(program.opts() as GlobalOptions);
 
   log.info(program.args);
   const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
 
-  const packages = program.args;
+  // const packages = program.args;
   if (packages && packages.length > 0)
     packageUtils.findAllPackages(packages, onComponent, 'src');
   // else if (argv.project && argv.project.length > 0) {

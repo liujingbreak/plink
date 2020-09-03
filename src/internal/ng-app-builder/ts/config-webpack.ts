@@ -80,7 +80,13 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       new ChunkInfoPlugin()
     );
   }
-
+  const resolveModules = ['node_modules', ...process.env.NODE_PATH!.split(Path.delimiter)];
+  if (webpackConfig.resolve == null)
+    webpackConfig.resolve= {modules: resolveModules};
+  else if (webpackConfig.resolve.modules == null)
+    webpackConfig.resolve.modules = resolveModules;
+  else
+    webpackConfig.resolve.modules.unshift(...resolveModules);
   // webpackConfig.module.noParse = (file: string) => noParse.some(name => file.replace(/\\/g, '/').includes(name));
 
   // Change AngularCompilerPlugin's option
@@ -116,6 +122,8 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       });
     }
   }());
+
+  // webpackConfig.resolve.symlinks = false;
 
   if (param.browserOptions.statsJson) {
     log.warn('You have enbabled "statsJson: true" in Angular.json or Command line, it will generate a big file in output directory\n' +
@@ -230,7 +238,9 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
   if (webpackConfig.resolveLoader.modules == null) {
     webpackConfig.resolveLoader.modules = [];
   }
-  webpackConfig.resolveLoader.modules.unshift(Path.join(__dirname, 'loaders'));
+  webpackConfig.resolveLoader.modules.unshift(
+    ...process.env.NODE_PATH!.split(Path.delimiter),
+    Path.join(__dirname, 'loaders'));
   if (!webpackConfig.module) {
     webpackConfig.module = {rules: []};
   }

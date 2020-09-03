@@ -1,4 +1,4 @@
-import {WordLexer, boxString} from '../ts/utils';
+import {WordLexer, boxString} from '../ts/utils/misc';
 
 describe('utils', () => {
 	it('WordLexer should work', () => {

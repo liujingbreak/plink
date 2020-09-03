@@ -1,5 +1,6 @@
-import { BaseLexer, Token } from './base-LLn-parser';
-import { isDrcpSymlink } from './node-path';
+import { BaseLexer, Token } from '../base-LLn-parser';
+declare const isDrcpSymlink: boolean;
+export { isDrcpSymlink };
 export declare enum WordTokenType {
     eol = 0,
     word = 1,
@@ -19,4 +20,4 @@ export interface PackageTsDirs {
 }
 export declare function getTsDirsOfPackage(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;
-export { isDrcpSymlink };
+export declare function closestCommonParentDir(paths: Iterable<string>): string;

@@ -40,6 +40,7 @@ function runServer(argv) {
 	};
 	return Promise.coroutine(function*() {
 		packagesTypeMap = yield requireServerPackages();
+		debugger;
 		deactivateOrder = [];
 		yield activateCoreComponents();
 		yield activateNormalComponents();
@@ -48,7 +49,7 @@ function runServer(argv) {
 		newRunner.deactivatePackages = deactivateOrder;
 		yield new Promise(resolve => setTimeout(resolve, 500));
 		return () => {
-			newRunner.shutdownServer();
+			return newRunner.shutdownServer();
 		};
 	})();
 }

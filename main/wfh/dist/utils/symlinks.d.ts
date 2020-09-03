@@ -11,7 +11,7 @@ export declare const lstatAsync: typeof fs.lstat.__promisify__;
 export declare const _symlinkAsync: typeof fs.symlink.__promisify__;
 export declare const unlinkAsync: typeof fs.unlink.__promisify__;
 export default function scanNodeModules(deleteOption?: 'all' | 'invalid'): Promise<void>;
-export declare function scanNodeModulesForSymlinks(workspaceDir: string, onFound: (link: string) => Promise<any>): Promise<void>;
+export declare function listModuleSymlinks(parentDir: string, onFound: (link: string) => Promise<any>): Promise<void>;
 /**
  * 1. create symlink node_modules/dr-comp-package --> directory "main"
  * 2. create symlink <parent directory of "main">/node_modules --> node_modules

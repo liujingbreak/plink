@@ -4,6 +4,7 @@ import {parse} from 'url';
 import _ from 'lodash';
 import Path from 'path';
 import fs from 'fs';
+import {findAllPackages} from 'dr-comp-package/wfh/dist/package-utils';
 // import {createStaticRoute} from './static-middleware';
 // import express from 'express';
 
@@ -13,7 +14,7 @@ const api = __api as ExpressAppApi & typeof __api;
 
 export function packageAssetsFolders(deployUrl: string, onEach: (dir: string, outputDir: string) => void) {
   const rootPath = _.trimEnd(parse(deployUrl).pathname || '', '/');
-  api.packageUtils.findAllPackages(
+  findAllPackages(
     (name: string, entryPath: string, parsedName: {name: string}, json: any, packagePath: string) => {
 
     if (json.dr && json.dr['cra-lib-entry']) {

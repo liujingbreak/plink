@@ -49,6 +49,7 @@ export default class ApiAotCompiler {
 
   parse(transpileExp: (source: string) => string): string {
     const pk = api.findPackageByFile(this.file);
+    // console.log('parse', this.file, pk == null ? '' : 'yes');
     if (pk == null)
       return this.src;
     if (!tsHandlers)

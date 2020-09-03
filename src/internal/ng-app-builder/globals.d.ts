@@ -1,5 +1,6 @@
 import {DrcpApi} from '__api';
-export interface _DrcpNgApi extends DrcpApi {
+
+export interface _DrcpNgApi {
 	deployUrl: string;
 	ssr: boolean;
 	/**
@@ -28,7 +29,7 @@ export interface _DrcpNgApi extends DrcpApi {
 	 * ```
 	 * @return the configured Angular router path for specific (current) feature package
 	 */
-	ngRouterPath(this: DrcpApi, packageNameOrSubPath: string, subPath?: string): string;
+	ngRouterPath(this: DrcpApi & _DrcpNgApi, packageNameOrSubPath: string, subPath?: string): string;
 	/**
 	 * Run Node.js like "require" keyword only during prerender/server side rendering(compilation),
 	 * @param path 
@@ -42,3 +43,7 @@ export interface _DrcpNgApi extends DrcpApi {
 	browserApiConfig(): any;
 }
 
+declare global {
+	var __api: DrcpApi & _DrcpNgApi; // & ExpressAppApi;
+}
+// declare var __api: DrcpApi & _DrcpNgApi;

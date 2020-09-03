@@ -17,21 +17,20 @@ export const unlinkAsync = util.promisify(fs.unlink);
 
 export default async function scanNodeModules(deleteOption: 'all' | 'invalid' = 'invalid') {
   const deleteAll = deleteOption === 'all';
-  await scanNodeModulesForSymlinks(process.cwd(), link => validateLink(link, deleteAll));
+  await listModuleSymlinks(Path.join(process.cwd(), 'node_modules'), link => validateLink(link, deleteAll));
 }
 
-export async function scanNodeModulesForSymlinks(
-  workspaceDir: string,
+export async function listModuleSymlinks(
+  parentDir: string,
   onFound: (link: string) => Promise<any>) {
-  const level1Dirs = await readdirAsync(Path.resolve(workspaceDir, 'node_modules'));
-
+  const level1Dirs = await readdirAsync(parentDir);
   await Promise.all(level1Dirs.map(async dir => {
     if (dir.startsWith('@')) {
       // it is a scope package
-      const subdirs = await readdirAsync(Path.resolve(workspaceDir, 'node_modules', dir));
-      await Promise.all(subdirs.map(file => onEachFile(Path.resolve(workspaceDir, 'node_modules', dir, file))));
+      const subdirs = await readdirAsync(Path.resolve(parentDir, dir));
+      await Promise.all(subdirs.map(file => onEachFile(Path.resolve(parentDir, dir, file))));
     } else {
-      await onEachFile(Path.resolve(workspaceDir, 'node_modules', dir));
+      await onEachFile(Path.resolve(parentDir, dir));
     }
   }));
 

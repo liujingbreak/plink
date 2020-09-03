@@ -48,23 +48,13 @@ function createPackage(packagePath: string, pkJson: any) {
   const name: string = pkJson.name;
   const instance = new PackageBrowserInstance({
     isVendor: false,
-    bundle: null,
     longName: pkJson.name,
     shortName: parseName(pkJson.name).name,
     packagePath,
     realPackagePath: fs.realpathSync(packagePath)
   });
-  let entryViews: string[] | undefined, entryPages: string[] | undefined;
-  let isEntryServerTemplate = true;
   let noParseFiles: string[] | undefined;
   if (pkJson.dr) {
-    if (pkJson.dr.entryPage) {
-      isEntryServerTemplate = false;
-      entryPages = [].concat(pkJson.dr.entryPage);
-    } else if (pkJson.dr.entryView) {
-      isEntryServerTemplate = true;
-      entryViews = [].concat(pkJson.dr.entryView);
-    }
     if (pkJson.dr.noParse) {
       noParseFiles = [].concat(pkJson.dr.noParse).map(trimNoParseSetting);
     }
@@ -75,18 +65,12 @@ function createPackage(packagePath: string, pkJson: any) {
   // const mainFile: string = pkJson.browser || pkJson.main;
   instance.init({
     // file: mainFile ? Path.resolve(instance.realPackagePath, mainFile) : undefined, // package.json "browser"
-    main: pkJson.main, // package.json "main"
     // style: pkJson.style ? resolveStyle(name, nodePaths) : null,
     parsedName: parseName(name),
-    entryPages,
-    entryViews,
     browserifyNoParse: noParseFiles,
-    isEntryServerTemplate,
     translatable: !_.has(pkJson, 'dr.translatable') || _.get(pkJson, 'dr.translatable'),
     dr: pkJson.dr,
     json: pkJson,
-    compiler: _.get(pkJson, 'dr.compiler'),
-    browser: pkJson.browser,
     i18n: pkJson.dr && pkJson.dr.i18n ? pkJson.dr.i18n : null,
     appType: _.get(pkJson, 'dr.appType')
   });

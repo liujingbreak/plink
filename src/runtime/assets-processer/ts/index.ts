@@ -16,11 +16,11 @@ import {WithMailServerConfig} from './fetch-types';
 import serveIndex from 'serve-index';
 import chalk from 'chalk';
 import {commandProxy} from './utils';
+import * as packageUtils from 'dr-comp-package/wfh/dist/package-utils';
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 
 const buildUtils = api.buildUtils;
 
-const packageUtils = api.packageUtils;
 const config = api.config;
 
 export function compile() {
@@ -155,8 +155,7 @@ function _findFaviconInConfig(property: string) {
 
 function copyAssets() {
   var streams: any[] = [];
-  packageUtils.findBrowserPackageByType(['*'],
-  function(name: string, _entryPath: string, parsedName: {name: string}, json: any, packagePath: string) {
+  packageUtils.findAllPackages((name: string, _entryPath: string, parsedName: {name: string}, json: any, packagePath: string) => {
     var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
     var assetsDir = Path.join(packagePath, assetsFolder);
     if (fs.existsSync(assetsDir)) {

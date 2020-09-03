@@ -3,7 +3,7 @@ import _ from 'lodash';
 import Path from 'path';
 import { distinctUntilChanged, map, skip, take, pluck } from 'rxjs/operators';
 import { actionDispatcher as pkgActions, getStore } from '../package-mgr';
-import { boxString, getRootDir } from '../utils';
+import { boxString, getRootDir } from '../utils/misc';
 // import { writeFile } from './utils';
 import config from '../config';
 const rootPath = getRootDir();

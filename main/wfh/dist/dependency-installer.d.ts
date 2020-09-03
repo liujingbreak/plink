@@ -14,7 +14,10 @@ export interface PackageJsonInterf {
 export declare function listCompDependency(pkJsonFiles: string[] | PackageJsonInterf[], workspace: string, workspaceDeps: {
     [name: string]: string;
 }): {
-    [dep: string]: string;
+    hoisted: {
+        [dep: string]: string;
+    };
+    msg: () => string;
 };
 interface DepInfo {
     ver: string;
@@ -23,15 +26,8 @@ interface DepInfo {
     by: string;
 }
 export declare class InstallManager {
-    srcDeps: {
-        [pName: string]: DepInfo[];
-    };
-    componentMap: {
-        [pName: string]: {
-            ver: string;
-            toInstall: boolean;
-        };
-    };
+    verbosMessage: string;
+    private srcDeps;
     constructor(workspaceDeps: {
         [name: string]: string;
     }, workspaceName: string);
@@ -40,13 +36,7 @@ export declare class InstallManager {
     hoistDeps(): {
         [dep: string]: string;
     };
-    /**
-       * @return true if there are newly found dependencies added to package.json
-       */
-    printComponentDep(write: boolean): boolean | undefined;
-    protected _trackDependency(trackTo: {
-        [pName: string]: DepInfo[];
-    }, name: string, version: string, byWhom: string): void;
+    protected _trackDependency(name: string, version: string, byWhom: string): void;
     protected _containsDiffVersion(sortedVersions: DepInfo[]): boolean;
     /**
        * Sort by descending

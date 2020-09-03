@@ -17,7 +17,7 @@ var File = require('vinyl');
 var buildUtils = require('./buildUtils');
 require('../logConfig')(config());
 var log = require('log4js').getLogger('wfh.cliAdvanced');
-var packageUtils = require('../packageMgr/packageUtils');
+var packageUtils = require('../../dist/package-utils');
 var {listCompDependency} = require('../../dist/dependency-installer');
 
 exports.listCompDependency = listCompDependency;

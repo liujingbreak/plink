@@ -5,29 +5,24 @@ import _ from 'lodash';
 import Path from 'path';
 import { from, merge, of} from 'rxjs';
 import type {Observable} from 'rxjs';
+import {tap} from 'rxjs/operators';
 import { distinctUntilChanged, filter, map, switchMap, mergeMap,
   take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
 import { writeFile } from '../cmd/utils';
 import config from '../config';
-import { listCompDependency, PackageJsonInterf } from '../dependency-installer';
+import { listCompDependency, PackageJsonInterf } from '../dependency-hoister';
 import { writeTsconfig4project, writeTsconfigForEachPackage } from '../editor-helper';
 import logConfig from '../log-config';
 import { findAllPackages } from '../package-utils';
 import { spawn } from '../process-utils';
-// import { createProjectSymlink } from '../project-dir';
 import { exe } from '../process-utils';
-import { eachRecipeSrc, setProjectList as setProjectForRecipe,
-  setWorkspaceDirs as setWorkspaceForRecipe } from '../recipe-manager';
+import { setProjectList} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
-import { getRootDir, isDrcpSymlink } from '../utils';
-import cleanInvalidSymlinks, { isWin32, scanNodeModulesForSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
-import * as cmdOpt from '../cmd/types';
+import { getRootDir, isDrcpSymlink } from '../utils/misc';
+import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
 import { actions as _cleanActions } from '../cmd/cli-clean';
-import {promisify} from 'util';
+import type {PlinkEnv} from '../node-path';
 
-const {green: col1, cyan} = require('chalk');
-
-// const isDrcpSymlink = fs.lstatSync(Path.resolve('node_modules/dr-comp-package')).isSymbolicLink();
 export interface PackageInfo {
   name: string;
   scope: string;
@@ -48,6 +43,8 @@ export interface PackagesState {
   errors: string[];
 }
 
+const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+
 const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 
@@ -58,11 +55,13 @@ const state: PackagesState = {
   errors: [],
   gitIgnores: {},
   linkedDrcp: isDrcpSymlink ?
-    createPackageInfo(Path.resolve(getRootDir(), 'node_modules/dr-comp-package/package.json')) : null
+    createPackageInfo(Path.resolve(
+      getRootDir(), 'node_modules/dr-comp-package/package.json'), false, getRootDir())
+    : null
 };
 
 interface WorkspaceState {
-  dir: string;
+  id: string;
   originInstallJson: PackageJsonInterf;
   originInstallJsonStr: string;
   installJson: PackageJsonInterf;
@@ -71,6 +70,8 @@ interface WorkspaceState {
   linkedDependencies: [string, string][];
   // /** names of those symlink packages */
   linkedDevDependencies: [string, string][];
+  /** installed DR component packages [name, version]*/
+  installedComponents?: Map<string, PackageInfo>;
   // /** other 3rd party dependencies in tuple of name and version pair */
   // dependencies: [string, string][];
   // devDependencies: [string, string][];
@@ -83,9 +84,13 @@ export const slice = stateFactory.newSlice({
   name: NS,
   initialState: state,
   reducers: {
+    /** Do this action after any linked package is removed or added  */
     initRootDir(d, action: PayloadAction<{hoistedDir: string} | undefined | null>) {
     },
-    initWorkspace(d, action: PayloadAction<{dir: string, opt: cmdOpt.InitCmdOptions}>) {
+
+    /** Check and install dependency, if there is linked package used in more than one workspace, 
+     * to switch between different workspace */
+    initWorkspace(d, action: PayloadAction<{dir: string, isForce: boolean, logHasConfiged: boolean}>) {
     },
     _syncPackagesState(d, {payload}: PayloadAction<PackageInfo[]>) {
       d.srcPackages = new Map();
@@ -93,18 +98,18 @@ export const slice = stateFactory.newSlice({
         d.srcPackages.set(pkInfo.name, pkInfo);
       }
     },
-    _updatePackageState(d, {payload: jsons}: PayloadAction<any[]>) {
-      for (const json of jsons) {
-        const pkg = d.srcPackages.get(json.name);
-        if (pkg == null) {
-          console.error(
-            `[package-mgr.index] package name "${json.name}" in package.json is changed since last time,\n` +
-            'please do "init" again on workspace root directory');
-          continue;
-        }
-        pkg.json = json;
-      }
-    },
+    // _updatePackageState(d, {payload: jsons}: PayloadAction<any[]>) {
+    //   for (const json of jsons) {
+    //     const pkg = d.srcPackages.get(json.name);
+    //     if (pkg == null) {
+    //       console.error(
+    //         `[package-mgr.index] package name "${json.name}" in package.json is changed since last time,\n` +
+    //         'please do "init" again on workspace root directory');
+    //       continue;
+    //     }
+    //     pkg.json = json;
+    //   }
+    // },
     addProject(d, action: PayloadAction<string[]>) {
       for (const rawDir of action.payload) {
         const dir = pathToProjKey(rawDir);
@@ -123,10 +128,8 @@ export const slice = stateFactory.newSlice({
       if (state.srcPackages == null) {
         throw new Error('"srcPackages" is null, need to run `init` command first');
       }
-      dir = Path.resolve(dir);
 
       const pkjsonStr = fs.readFileSync(Path.resolve(dir, 'package.json'), 'utf8');
-
       const pkjson: PackageJsonInterf = JSON.parse(pkjsonStr);
       // for (const deps of [pkjson.dependencies, pkjson.devDependencies] as {[name: string]: string}[] ) {
       //   Object.entries(deps);
@@ -164,48 +167,63 @@ export const slice = stateFactory.newSlice({
       }
 
       // pkjsonList.push(updatingJson);
-      const hoistedDeps = listCompDependency(
+      const {hoisted: hoistedDeps, msg} = listCompDependency(
         linkedDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
         dir, updatingDeps
       );
 
-      const hoistedDevDeps = listCompDependency(
+      const {hoisted: hoistedDevDeps, msg: msgDev} = listCompDependency(
         linkedDevDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
         dir, updatingDevDeps
       );
-
+      // tslint:disable-next-line: no-console
+      if (msg()) console.log(`Workspace "${dir}" dependencies:\n`, msg());
+      // tslint:disable-next-line: no-console
+      if (msgDev()) console.log(`Workspace "${dir}" devDependencies:\n`, msgDev());
       // In case some packages have peer dependencies of other packages
       // remove them from dependencies
-      for (const key of Object.keys(hoistedDeps)) {
+      for (const key of hoistedDeps.keys()) {
         if (state.srcPackages.has(key))
-          delete hoistedDeps[key];
+          hoistedDeps.delete(key);
       }
 
-      for (const key of Object.keys(hoistedDevDeps)) {
+      for (const key of hoistedDevDeps.keys()) {
         if (state.srcPackages.has(key))
-          delete hoistedDevDeps[key];
+          hoistedDevDeps.delete(key);
       }
 
       const installJson: PackageJsonInterf = {
         ...pkjson,
-        dependencies: {...hoistedDeps},
-        devDependencies: {...hoistedDevDeps}
+        dependencies: Array.from(hoistedDeps.entries()).reduce((dic, [name, info]) => {
+          dic[name] = info.by[0].ver;
+          return dic;
+        }, {} as {[key: string]: string}),
+        devDependencies: Array.from(hoistedDevDeps.entries()).reduce((dic, [name, info]) => {
+          dic[name] = info.by[0].ver;
+          return dic;
+        }, {} as {[key: string]: string})
       };
 
+      // console.log(installJson)
+
+      const wsKey = workspaceKey(dir);
+      // const installedComp = listInstalledComp4Workspace(state.workspaces, state.srcPackages, wsKey);
+
       const wp: WorkspaceState = {
-        dir,
+        id: wsKey,
         originInstallJson: pkjson,
         originInstallJsonStr: pkjsonStr,
         installJson,
         installJsonStr: JSON.stringify(installJson, null, '  '),
         linkedDependencies,
         linkedDevDependencies
+        // installedComponents: new Map(installedComp.map(pkg => [pkg.name, pkg]))
         // dependencies,
         // devDependencies,
         // hoistedDeps,
         // hoistedDevDeps
       };
-      state.workspaces.set(workspaceKey(dir), wp);
+      state.workspaces.set(wsKey, wp);
       // console.log('-----------------', dir);
     },
     _installWorkspace(state, {payload: {dir}}: PayloadAction<{dir: string}>) {
@@ -221,9 +239,7 @@ export const slice = stateFactory.newSlice({
 
 export const actionDispatcher = stateFactory.bindActionCreators(slice);
 
-// export type ActionsType = typeof actions extends Promise<infer T> ? T : unknown;
-
-const readFileAsync = promisify<string, string, string>(fs.readFile);
+// const readFileAsync = promisify<string, string, string>(fs.readFile);
 /**
  * Carefully access any property on config, since config setting probably hasn't been set yet at this momment
  */
@@ -232,14 +248,14 @@ stateFactory.addEpic((action$, state$) => {
     getStore().pipe(map(s => s.project2Packages),
       distinctUntilChanged(),
       map(pks => {
-        setProjectForRecipe(getProjectList());
+        setProjectList(getProjectList());
       }),
       ignoreElements()
     ),
 
     //  initWorkspace
     action$.pipe(ofPayloadAction(slice.actions.initWorkspace),
-      switchMap(({payload: {dir, opt}}) => {
+      switchMap(({payload: {dir, isForce, logHasConfiged}}) => {
         dir = Path.resolve(dir);
 
         const hoistOnPackageChanges = getStore().pipe(
@@ -251,16 +267,19 @@ stateFactory.addEpic((action$, state$) => {
         if (getState().srcPackages.size === 0) {
           return merge(hoistOnPackageChanges, of(slice.actions.initRootDir()));
         } else {
-          logConfig(config());
+          if (!logHasConfiged) {
+            logConfig(config());
+          }
           const wsKey = workspaceKey(dir);
-          if (opt.force && getState().workspaces.has(wsKey)) {
+          if (isForce && getState().workspaces.has(wsKey)) {
             actionDispatcher._change(d => {
               // clean to trigger install action
               d.workspaces.get(wsKey)!.installJsonStr = '';
             });
           }
-          updateLinkedPackageState();
-          return hoistOnPackageChanges;
+          // updateLinkedPackageState();
+          actionDispatcher._hoistWorkspaceDeps({dir});
+          return of();
         }
       }),
       ignoreElements()
@@ -269,7 +288,19 @@ stateFactory.addEpic((action$, state$) => {
     // initRootDir
     action$.pipe(ofPayloadAction(slice.actions.initRootDir),
       switchMap(() => {
-        return from(initRootDirectory());
+        const goInitWorkspace$ = action$.pipe(
+          ofPayloadAction(slice.actions._syncPackagesState),
+          take(1),
+          map(() => {
+            if (getState().workspaces.size > 0) {
+              for (const key of getState().workspaces.keys()) {
+                const path = Path.resolve(getRootDir(), key);
+                actionDispatcher.initWorkspace({dir: path, isForce: false, logHasConfiged: true});
+              }
+            }
+          })
+        );
+        return merge(goInitWorkspace$, from(initRootDirectory()));
       }),
       ignoreElements()
     ),
@@ -285,15 +316,14 @@ stateFactory.addEpic((action$, state$) => {
           ...ws.linkedDependencies.map(([name, ver]) => srcPackages.get(name)),
           ...ws.linkedDevDependencies.map(([name, ver]) => srcPackages.get(name))
         ].filter(pk => pk != null) as PackageInfo[];
-
-        if (getState().linkedDrcp) {
-          const drcp = getState().linkedDrcp!.name;
-          const spaceJson = getState().workspaces.get(wsKey)!.originInstallJson;
-          if (spaceJson.dependencies && spaceJson.dependencies[drcp] ||
-            spaceJson.devDependencies && spaceJson.devDependencies[drcp]) {
-            pks.push(getState().linkedDrcp!);
-          }
-        }
+        // if (getState().linkedDrcp) {
+        //   const drcp = getState().linkedDrcp!.name;
+        //   const spaceJson = getState().workspaces.get(wsKey)!.originInstallJson;
+        //   if (spaceJson.dependencies && spaceJson.dependencies[drcp] ||
+        //     spaceJson.devDependencies && spaceJson.devDependencies[drcp]) {
+        //     pks.push(getState().linkedDrcp!);
+        //   }
+        // }
         return from(writeTsconfigForEachPackage(payload.dir, pks,
           (file, content) => actionDispatcher._updateGitIgnores({file, content})));
       }),
@@ -304,7 +334,7 @@ stateFactory.addEpic((action$, state$) => {
       map(s => s.workspaces), distinctUntilChanged(),
       map(ws => {
         const keys = Array.from(ws.keys());
-        setWorkspaceForRecipe(keys.map(key => Path.resolve(getRootDir(), key)));
+        // setWorkspaceForRecipe(keys.map(key => Path.resolve(getRootDir(), key)));
         return keys;
       }),
       scan<string[]>((prev, curr) => {
@@ -322,11 +352,27 @@ stateFactory.addEpic((action$, state$) => {
       ignoreElements()
     ),
     action$.pipe(ofPayloadAction(slice.actions._installWorkspace),
-      mergeMap(action => getStore().pipe(
-        map(s => s.workspaces.get(workspaceKey(action.payload.dir))), distinctUntilChanged(),
-        filter(ws => ws != null)
-      )),
-      concatMap(ws => from(installWorkspace(ws!))),
+      mergeMap(action => {
+        const wsKey = workspaceKey(action.payload.dir);
+        return getStore().pipe(
+          map(s => s.workspaces.get(wsKey)),
+          distinctUntilChanged(),
+          filter(ws => ws != null),
+          take(1),
+          concatMap(ws => from(installWorkspace(ws!))),
+          map(() => {
+            const pkgEntry =
+              listInstalledComp4Workspace(getState(), workspaceKey(action.payload.dir));
+
+            const installed = new Map((function*(): Generator<[string, PackageInfo]> {
+              for (const pk of pkgEntry) {
+                yield [pk.name, pk];
+              }
+            })());
+            actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
+          })
+        );
+      }),
       ignoreElements()
     ),
     ...Array.from(getState().workspaces.keys()).map(key => {
@@ -336,7 +382,6 @@ stateFactory.addEpic((action$, state$) => {
         filter(installJsonStr =>installJsonStr.length > 0),
         skip(1), take(1),
         map(() => {
-          // console.log('+++++++++++ emit action', dir);
           return actionDispatcher._installWorkspace({dir: Path.resolve(getRootDir(), key)});
         }),
         ignoreElements()
@@ -411,7 +456,6 @@ export function* getPackagesOfProjects(projects: string[]) {
     }
   }
 }
-// import PackageNodeInstance from '../packageNodeInstance';
 
 export function listPackages(): string {
   let out = '';
@@ -429,49 +473,67 @@ export function getProjectList() {
 }
 
 export function listPackagesByProjects() {
+  const cwd = process.cwd();
+  const linkedPkgs = getState().srcPackages;
   let out = '';
-  for (const prj of getProjectList()) {
-    out += col1(`Project: ${prj}`) + '\n';
-    eachRecipeSrc(prj, (srcDir, recipeDir) => {
-      const relDir = Path.relative(prj, srcDir) || '/';
-      out += `  ${col1('|-')} ${cyan(relDir)}\n`;
-      const deps: string[] = recipeDir ?
-        Object.keys(require(Path.resolve(recipeDir, 'package.json')).dependencies) : [];
-      deps.forEach(name => out += `  ${col1('|')}  ${ col1('|-')} ${name}\n`);
-    });
+  for (const [prj, pkgNames] of getState().project2Packages.entries()) {
+    out += `Project ${prj || '.'}\n`;
+    const pkgs = pkgNames.map(name => linkedPkgs.get(name)!);
+    const maxWidth = pkgs.reduce((maxWidth, pk) => {
+      const width = pk.name.length + pk.json.version.length + 1;
+      return width > maxWidth ? width : maxWidth;
+    }, 0);
+    for (const pk of pkgs) {
+      const width = pk.name.length + pk.json.version.length + 1;
+      out += `  |- ${chalk.cyan(pk.name)}@${chalk.green(pk.json.version)}${' '.repeat(maxWidth - width)}` +
+      ` ${Path.relative(cwd, pk.realPath)}\n`;
+    }
     out += '\n';
   }
-  // out += '\nInstalled:\n';
-  // eachInstalledRecipe((recipeDir) => {
-  //   out += `${recipeDir}\n`;
-  // });
   return out;
 }
 
-async function updateLinkedPackageState() {
-  const jsonStrs = await Promise.all(
-    Array.from(getState().srcPackages.entries())
-    .map(([name, pkInfo]) => {
-      return readFileAsync(Path.resolve(pkInfo.realPath, 'package.json'), 'utf8');
-    })
-  );
+// async function updateLinkedPackageState() {
+//   const jsonStrs = await Promise.all(
+//     Array.from(getState().srcPackages.entries())
+//     .map(([name, pkInfo]) => {
+//       return readFileAsync(Path.resolve(pkInfo.realPath, 'package.json'), 'utf8');
+//     })
+//   );
 
-  warnUselessSymlink();
-  actionDispatcher._updatePackageState(jsonStrs.map(str => JSON.parse(str)));
-}
+//   warnUselessSymlink();
+//   actionDispatcher._updatePackageState(jsonStrs.map(str => JSON.parse(str)));
+// }
 
 function warnUselessSymlink() {
+  const checkDir = Path.resolve(getRootDir(), 'dist', 'symlinks');
   const srcPackages = getState().srcPackages;
-  const nodeModule = Path.resolve(getRootDir(), 'node_modules');
   const drcpName = getState().linkedDrcp ? getState().linkedDrcp!.name : null;
-  return scanNodeModulesForSymlinks(getRootDir(), async link => {
-    const pkgName = Path.relative(nodeModule, link).replace(/\\/g, '/');
-    if ( drcpName !== pkgName && srcPackages.get(pkgName) == null) {
+  const done1 = listModuleSymlinks(checkDir, async link => {
+    const pkgName = Path.relative(checkDir, link).replace(/\\/g, '/');
+    if ( drcpName !== pkgName && !srcPackages.has(pkgName)) {
       // tslint:disable-next-line: no-console
       console.log(chalk.yellow(`Extraneous symlink: ${link}`));
     }
   });
+
+  const pwd = process.cwd();
+  const forbidDir = Path.join(getRootDir(), 'node_modules');
+  if (symlinkDir !== forbidDir) {
+    const removed: Promise<any>[] = [];
+    const done2 = listModuleSymlinks(forbidDir, async link => {
+      const pkgName = Path.relative(forbidDir, link).replace(/\\/g, '/');
+      if (srcPackages.has(pkgName)) {
+        removed.push(unlinkAsync(link));
+        // tslint:disable-next-line: no-console
+        console.log(`Redundant symlink "${Path.relative(pwd, link)}" removed.`);
+      }
+    });
+    return Promise.all([done1, done2, ...removed]);
+  }
+  return done1;
 }
+
 
 async function initRootDirectory() {
   const rootPath = getRootDir();
@@ -485,6 +547,8 @@ async function initRootDirectory() {
   await cleanInvalidSymlinks();
   if (!fs.existsSync(Path.join(rootPath, 'logs')))
     fs.mkdirpSync(Path.join(rootPath, 'logs'));
+
+  fs.mkdirpSync(symlinkDir);
 
   logConfig(config());
 
@@ -500,7 +564,6 @@ async function initRootDirectory() {
 
   await writeConfigFiles();
 
-  // createProjectSymlink();
   writeTsconfig4project(getProjectList(), (file, content) => actionDispatcher._updateGitIgnores({file, content}));
 }
 
@@ -512,11 +575,12 @@ async function writeConfigFiles() {
 }
 
 async function installWorkspace(ws: WorkspaceState) {
+  const dir = Path.resolve(getRootDir(), ws.id);
   // tslint:disable-next-line: no-console
-  console.log('Install dependencies in ' + ws.dir);
+  console.log('Install dependencies in ' + dir);
   const symlinksInModuleDir = [] as {content: string, link: string}[];
 
-  const target = Path.resolve(ws.dir, 'node_modules');
+  const target = Path.resolve(dir, 'node_modules');
   if (!fs.existsSync(target)) {
     fs.mkdirpSync(target);
   }
@@ -524,7 +588,7 @@ async function installWorkspace(ws: WorkspaceState) {
   if (ws.linkedDependencies.length + ws.linkedDevDependencies.length > 0) {
     // Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
     // backup them for late recovery
-    await scanNodeModulesForSymlinks(ws.dir, link => {
+    await listModuleSymlinks(target, link => {
       const linkContent = fs.readlinkSync(link);
       symlinksInModuleDir.push({content: linkContent, link});
       return unlinkAsync(link);
@@ -532,13 +596,15 @@ async function installWorkspace(ws: WorkspaceState) {
     // _cleanActions.addWorkspaceFile(links);
 
     // 3. Run `npm install`
-    const installJsonFile = Path.resolve(ws.dir, 'package.json');
+    const installJsonFile = Path.resolve(dir, 'package.json');
     // tslint:disable-next-line: no-console
     console.log('[init] write', installJsonFile);
-    fs.writeFile(installJsonFile, ws.installJsonStr, 'utf8');
+    fs.writeFileSync(installJsonFile, ws.installJsonStr, 'utf8');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
     try {
-      await exe('npm', 'install', {cwd: ws.dir}).promise;
-      await exe('npm', 'dedupe', {cwd: ws.dir}).promise;
+      await exe('npm', 'install', {cwd: dir}).promise;
+      await exe('npm', 'dedupe', {cwd: dir}).promise;
     } catch (e) {
       // tslint:disable-next-line: no-console
       console.log(e, e.stack);
@@ -559,31 +625,75 @@ async function _scanPackageAndLink() {
   const rm = (await import('../recipe-manager'));
 
   const projPkgMap: Map<string, PackageInfo[]> = new Map();
-
-  await rm.linkComponentsAsync((proj, pkgJsonFile) => {
-    if (!projPkgMap.has(proj))
-      projPkgMap.set(proj, []);
-    // console.log('_scanPackageAndLink', proj, pkgJsonFile);
-    const info = createPackageInfo(pkgJsonFile);
-    projPkgMap.get(proj)!.push(info);
-  });
-  // console.log(Array.from(projPkgMap.values()));
   const pkgList: PackageInfo[] = [];
+  // const symlinksDir = Path.resolve(getRootDir(), 'node_modules');
+  await rm.linkComponentsAsync(symlinkDir).pipe(
+    tap(({proj, jsonFile, json}) => {
+      if (!projPkgMap.has(proj))
+        projPkgMap.set(proj, []);
+      const info = createPackageInfoWithJson(jsonFile, json, false, symlinkDir);
+      pkgList.push(info);
+      projPkgMap.get(proj)!.push(info);
+    })
+  ).toPromise();
+
   for (const [prj, pkgs] of projPkgMap.entries()) {
     actionDispatcher._associatePackageToPrj({prj, pkgs});
-    pkgList.push(...pkgs);
   }
   actionDispatcher._syncPackagesState(pkgList);
 }
 
-export function createPackageInfo(pkJsonFile: string, isInstalled = false): PackageInfo {
+/**
+ * 
+ * @param pkJsonFile package.json file path
+ * @param isInstalled 
+ * @param symLink symlink path of package
+ * @param realPath real path of package
+ */
+export function createPackageInfo(pkJsonFile: string, isInstalled = false,
+  symLinkParentDir?: string): PackageInfo {
   const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
+  return createPackageInfoWithJson(pkJsonFile, json, isInstalled, symLinkParentDir);
+}
+/**
+ * List those installed packages which are referenced by workspace package.json file,
+ * those packages must have "dr" property in package.json 
+ * @param workspaceKey 
+ */
+function* listInstalledComp4Workspace(state: PackagesState, workspaceKey: string) {
+  const originInstallJson = state.workspaces.get(workspaceKey)!.originInstallJson;
+  const depJson = process.env.NODE_ENV === 'production' ? [originInstallJson.dependencies] :
+    [originInstallJson.dependencies, originInstallJson.devDependencies];
+  for (const deps of depJson) {
+    if (deps == null)
+      continue;
+    for (const dep of Object.keys(deps)) {
+      if (!state.srcPackages.has(dep) && dep !== 'dr-comp-package') {
+        const pk = createPackageInfo(
+          Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true);
+        if (pk.json.dr) {
+          yield pk;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * 
+ * @param pkJsonFile package.json file path
+ * @param isInstalled 
+ * @param symLink symlink path of package
+ * @param realPath real path of package
+ */
+function createPackageInfoWithJson(pkJsonFile: string, json: any, isInstalled = false,
+  symLinkParentDir?: string): PackageInfo {
   const m = moduleNameReg.exec(json.name);
   const pkInfo: PackageInfo = {
     shortName: m![2],
     name: json.name,
     scope: m![1],
-    path: Path.dirname(pkJsonFile),
+    path: symLinkParentDir ? Path.resolve(symLinkParentDir, json.name) : Path.dirname(pkJsonFile),
     json,
     realPath: fs.realpathSync(Path.dirname(pkJsonFile)),
     isInstalled

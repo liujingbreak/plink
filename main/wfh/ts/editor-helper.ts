@@ -1,11 +1,12 @@
 // tslint:disable: max-line-length
 import Path from 'path';
-import * as _fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import * as _recp from './recipe-manager';
 import {getState, PackageInfo} from './package-mgr';
 import {EOL} from 'os';
-import {setTsCompilerOpt} from './config-handler';
+import {setTsCompilerOptForNodePath} from './config-handler';
 import log4js from 'log4js';
+import {closestCommonParentDir} from './utils/misc';
 // import {map, distinctUntilChanged} from 'rxjs/operators';
 import _ from 'lodash';
 const log = log4js.getLogger('editor-helper');
@@ -35,7 +36,7 @@ export function writeTsconfig4project(projectDirs: string[], onGitIgnoreFileUpda
 
     const gitIgnoreFile = findGitIngoreFile(proj);
     if (gitIgnoreFile) {
-      _fs.readFile(gitIgnoreFile, 'utf8', (err, data) => {
+      fs.readFile(gitIgnoreFile, 'utf8', (err, data) => {
         if (err) {
           log.error(err);
           return;
@@ -100,7 +101,7 @@ function findGitIngoreFile(startDir: string): string | null {
   let dir = startDir;
   while (true) {
     const test = Path.resolve(startDir, '.gitignore');
-    if (_fs.existsSync(test)) {
+    if (fs.existsSync(test)) {
       return test;
     }
     const parent = Path.dirname(dir);
@@ -124,6 +125,15 @@ function createTsConfig(pkg: {name: string, realPath: string}, workspace: string
   tsjson.extends = tsjson.extends.replace(/\\/g, '/');
 
   const pathMapping: {[key: string]: string[]} = {};
+
+  const extraNodePath: string[] = [Path.resolve(pkg.realPath, 'node_modules')];
+
+  if (workspace) {
+    extraNodePath.push(Path.resolve(workspace, 'node_modules'));
+  }
+
+  const commonDir = closestCommonParentDir(Array.from(getState().srcPackages.values()).map(el => el.realPath));
+
   for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
     if (pkg.name === name)
       continue;
@@ -139,22 +149,20 @@ function createTsConfig(pkg: {name: string, realPath: string}, workspace: string
   }
 
   tsjson.compilerOptions = {
-    rootDir: '.',
+    rootDir: Path.relative(proj, commonDir).replace(/\\/g, '/'),
       // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
     skipLibCheck: false,
     jsx: 'preserve',
-    noImplicitAny: true,
     target: 'es2015',
     module: 'commonjs',
     paths: pathMapping
   };
-  setTsCompilerOpt(proj, tsjson.compilerOptions, {
-    setTypeRoots: true,
+  setTsCompilerOptForNodePath(proj, tsjson.compilerOptions, {
+    enableTypeRoots: true,
     // If user execute 'init <workspace>' in root directory, env.NODE_PATH does not contain workspace 
     // directory, in this case we need explicityly add node path 
-    extraNodePath: workspace ? [Path.resolve(workspace, 'node_modules')] : undefined
+    extraNodePath
   });
-
   const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
   writeTsConfigFile(tsconfigFile, tsjson);
   return tsconfigFile;
@@ -172,20 +180,20 @@ function overrideTsConfig(src: any, target: any) {
 }
 
 function writeTsConfigFile(tsconfigFile: string, tsconfigOverrideSrc: any) {
-  if (_fs.existsSync(tsconfigFile)) {
-    const existing = _fs.readFileSync(tsconfigFile, 'utf8');
+  if (fs.existsSync(tsconfigFile)) {
+    const existing = fs.readFileSync(tsconfigFile, 'utf8');
     const existingJson = parse(existing);
     overrideTsConfig(tsconfigOverrideSrc, existingJson);
     const newJsonStr = JSON.stringify(existingJson, null, '  ');
     if (newJsonStr !== existing) {
       log.info('Write ' + tsconfigFile);
-      _fs.writeFileSync(tsconfigFile, JSON.stringify(existingJson, null, '  '));
+      fs.writeFileSync(tsconfigFile, JSON.stringify(existingJson, null, '  '));
     } else {
-      log.info(`${tsconfigFile} is not changed.`);
+      log.debug(`${tsconfigFile} is not changed.`);
     }
   } else {
     log.info('Create ' + tsconfigFile);
-    _fs.writeFileSync(tsconfigFile, JSON.stringify(tsconfigOverrideSrc, null, '  '));
+    fs.writeFileSync(tsconfigFile, JSON.stringify(tsconfigOverrideSrc, null, '  '));
   }
 }
 

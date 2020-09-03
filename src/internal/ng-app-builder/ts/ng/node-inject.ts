@@ -1,1 +1,1 @@
-import 'source-map-support/register';
+import 'dr-comp-package/wfh/dist/node-path';

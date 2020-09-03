@@ -2,30 +2,31 @@
 import * as _ from 'lodash';
 
 export default class PackageBrowserInstance {
-  bundle: string;
+  // bundle: string;
   longName: string;
   shortName: string;
-  file?: string;
+  /** @deprecated */
+  // file?: string;
   parsedName: {scope?: string, name: string};
   scopeName?: string;
-  entryPages?: string[];
+  // entryPages?: string[];
   i18n: string;
   packagePath: string;
   realPackagePath: string;
-  main: string;
-  style?: string | null;
-  entryViews?: string[];
+  // main: string;
+  // style?: string | null;
+  // entryViews?: string[];
   browserifyNoParse?: any[];
-  isEntryServerTemplate: boolean;
+  // isEntryServerTemplate: boolean;
   translatable: string;
   dr: any;
   json: any;
-  browser: string;
+  // browser: string;
   isVendor: boolean;
   appType: string;
-  compiler?: any;
+  // compiler?: any;
 
-  constructor(attrs: any) {
+  constructor(attrs: {[key in keyof PackageBrowserInstance]?: PackageBrowserInstance[key]}) {
     if (!(this instanceof PackageBrowserInstance)) {
       return new PackageBrowserInstance(attrs);
     }

@@ -19,7 +19,7 @@ import { AngularBuilderOptions } from './common';
   // });
 
 export function addSourceFiles(compilerOptions: any, entryFiles: string[], tsconfigFile: string,
-  fileReplacements: AngularBuilderOptions['fileReplacements'], reportDir: string) {
+  fileReplacements: AngularBuilderOptions['fileReplacements'], reportDir: string): string[] {
   const projDir = Path.dirname(tsconfigFile);
   const g = new Graph(jsonToCompilerOptions(compilerOptions), fileReplacements,
     file => {
@@ -59,8 +59,8 @@ export function addSourceFiles(compilerOptions: any, entryFiles: string[], tscon
   // node_modules, by default Angular or tsc will exclude them, in AOT mode we use preserve-symblink option
   // so that some symlink source file is considered in node_modules.
   return Array.from(g.loadChildren.keys())
-    .map(file => Path.relative(projDir, file).replace(/\\/g, '/'))
-    .concat(Array.from(g.externals.values()));
+    // .map(file => Path.relative(projDir, file).replace(/\\/g, '/'))
+    .concat(Array.from(g.externals.values()).filter(external => !g.loadChildren.has(external)));
 }
 
 

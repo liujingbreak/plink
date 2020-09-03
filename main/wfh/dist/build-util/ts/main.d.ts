@@ -4,31 +4,10 @@ export interface BundleInfo {
     moduleMap: {
         [name: string]: PackageBrowserInstance;
     };
-    shortNameMap: {
-        [name: string]: PackageBrowserInstance;
-    };
-    bundleMap: {
-        [name: string]: PackageBrowserInstance[];
-    };
-    bundleUrlMap: {
-        [name: string]: string[] | {
-            css?: string[];
-            js?: string[];
-        };
-    };
-    urlPackageSet: {
-        [name: string]: number;
-    } | null;
 }
 export interface PackageInfo extends BundleInfo {
     allModules: PackageBrowserInstance[];
     dirTree: DirTree<PackageBrowserInstance>;
-    noBundlePackageMap: {
-        [name: string]: PackageBrowserInstance;
-    };
-    entryPageMap: {
-        [page: string]: PackageBrowserInstance;
-    };
 }
 export { PackageBrowserInstance };
 /**
@@ -39,6 +18,6 @@ export { PackageBrowserInstance };
  * @param {*} ignoreCache
  * @return {PackageInfo}
  */
-export declare function walkPackages(config: any, packageUtils: any): PackageInfo;
-export declare function listBundleInfo(_config: any, _packageUtils: any): PackageInfo;
-export declare function saveCache(packageInfo: PackageInfo, config: any): void;
+export declare function walkPackages(): PackageInfo;
+export declare function listBundleInfo(): PackageInfo;
+export declare function saveCache(packageInfo: PackageInfo): void;

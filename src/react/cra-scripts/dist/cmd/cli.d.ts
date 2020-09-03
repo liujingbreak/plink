@@ -1,2 +1,4 @@
 #!/usr/bin/env node
-export declare const program: import("commander").Command;
+import 'dr-comp-package/register';
+import commander from 'commander';
+export declare const program: commander.Command;

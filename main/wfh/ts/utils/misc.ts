@@ -1,8 +1,14 @@
-import { BaseLexer, Token } from './base-LLn-parser';
+import { BaseLexer, Token } from '../base-LLn-parser';
 import trim from 'lodash/trim';
 import get from 'lodash/get';
 import _ from 'lodash';
-import {rootDir, isDrcpSymlink} from './node-path';
+import * as Path from 'path';
+// import * as fs from 'fs';
+import type {PlinkEnv} from '../node-path';
+
+const {isDrcpSymlink, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+
+export {isDrcpSymlink};
 
 export enum WordTokenType {
   eol = 0,
@@ -128,4 +134,23 @@ export function getTsDirsOfPackage(json: any): PackageTsDirs {
 }
 
 export const getRootDir = () => rootDir;
-export {isDrcpSymlink};
+
+export function closestCommonParentDir(paths: Iterable<string>) {
+  let commonDir: string[] | undefined;
+
+  for (const realPath of paths) {
+    if (commonDir == null) {
+      commonDir = realPath.split(Path.sep);
+      continue;
+    }
+    const dir = realPath.split(Path.sep);
+    // Find the closest common parent directory, use it as rootDir
+    for (let i = 0, l = commonDir.length; i < l; i++) {
+      if (i >= dir.length || commonDir[i] !== dir[i]) {
+        commonDir = commonDir.slice(0, i);
+        break;
+      }
+    }
+  }
+  return commonDir ? commonDir.join(Path.sep) : process.cwd();
+}

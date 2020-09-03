@@ -14,7 +14,6 @@ import Events from 'events';
 import {createLazyPackageFileFinder} from './package-utils';
 import log4js from 'log4js';
 import config from './config';
-import * as packageUtils from './package-utils';
 
 const log = log4js.getLogger('package-runner');
 
@@ -98,7 +97,7 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
   argv.package.forEach(name => includeNameSet.add(name));
   const [fileToRun, funcToRun] = (argv.target as string).split('#');
   // nodeInjector.fromRoot().alias('log4js', Path.resolve(config().rootPath, 'node_modules/log4js'));
-  const [packages, proto] = initInjectorForNodePackages(argv, walkPackages(config, packageUtils));
+  const [packages, proto] = initInjectorForNodePackages(argv, walkPackages());
   const components = packages.filter(pk => {
     // setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
     if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
@@ -182,7 +181,7 @@ export function prepareLazyNodeInjector(argv: {[key: string]: any}) {
   Object.defineProperty(proto, 'packageInfo', {
     get() {
       if (packageInfo == null)
-        packageInfo = walkPackages(config, packageUtils);
+        packageInfo = walkPackages();
       return packageInfo;
     }
   });

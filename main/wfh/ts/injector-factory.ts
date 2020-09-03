@@ -6,7 +6,7 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as Path from 'path';
 import log4js from 'log4js';
-import config from './config';
+import {getRootDir} from './utils/misc';
 const log = log4js.getLogger('wfh.injectorFactory');
 
 const packageNamePathMap: {[name: string]: string} = {};
@@ -21,7 +21,7 @@ const emptyFactoryMap = {
 export class DrPackageInjector extends RJ {
   constructor(resolve: InjectorOption['resolve'], protected noNode = false) {
     super({
-      basedir: config().rootPath,
+      basedir: getRootDir(),
       resolve,
       // debug: config.devMode,
       noNode
@@ -70,12 +70,12 @@ export class DrPackageInjector extends RJ {
     return super.fromDir(dirs);
   }
 
-  readInjectFile(fileNameWithoutExt: string) {
+  readInjectFile(fileNameWithoutExt?: string) {
 
     if (!fileNameWithoutExt)
       fileNameWithoutExt = 'module-resolve.server';
     _.uniq([
-      Path.resolve('./', fileNameWithoutExt),
+      Path.resolve(getRootDir(), fileNameWithoutExt),
       Path.resolve(process.cwd(), fileNameWithoutExt)
     ]).forEach(file => {
       const file1 = fs.existsSync(file + '.ts') ? file + '.ts' : file + '.js';
@@ -95,6 +95,11 @@ export class DrPackageInjector extends RJ {
 }
 
 export let nodeInjector = new DrPackageInjector(require.resolve, false);
+/**
+ * Avoid package load different log4js than Plink's
+ */
+nodeInjector.fromDir(getRootDir()).alias('log4js', 'dr-comp-package/wfh/dist/logger');
+
 export let webInjector = new DrPackageInjector(undefined, true);
 
 

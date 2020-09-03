@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import {ConfigHandlerMgr, DrcpSettings, DrcpConfig, ConfigHandler} from './config-handler';
 import {GlobalOptions as CliOptions} from './cmd/types';
 import {getLanIPv4} from './utils/network-util';
-import {getRootDir} from './utils';
+import {getRootDir} from './utils/misc';
 // import {getStore as getPckStore} from './package-mgr';
 // import {map, distinctUntilChanged} from 'rxjs/operators';
 
@@ -118,16 +118,13 @@ async function load(fileList?: string[], cliOption?: CliOptions): Promise<DrcpSe
     setting = setting || {};
     // setting.projectList = [];
     // some extra config properties
-    _.assign(setting, {
-      /** @name rootPath
-			* @memberof setting
-			*/
+    const initSetting: Partial<DrcpSettings> = {
       rootPath,
-      nodePath: Path.join(rootPath, 'node_modules'),
       wfhSrcPath: wfhSrcPath(),
-      _package2Chunk: {}
-    });
-
+      devMode: cliOption == null || !cliOption.production
+    };
+    _.assign(setting, initSetting);
+    // console.log(setting);
     // Merge from <root>/config.yaml
     var configFileList = [
       Path.resolve(__dirname, '..', 'config.yaml')
@@ -139,7 +136,7 @@ async function load(fileList?: string[], cliOption?: CliOptions): Promise<DrcpSe
     configFileList.push(...localConfigPath);
 
     configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(setting, localConfigPath));
-    handlers = new ConfigHandlerMgr(configFileList.filter(name => /\.[tj]s$/.test(name)), rootPath);
+    handlers = new ConfigHandlerMgr(configFileList.filter(name => /\.[tj]s$/.test(name)));
 
     await handlers.runEach<ConfigHandler>((_file, obj, handler) => {
       if (handler.onConfig)
@@ -157,7 +154,7 @@ async function load(fileList?: string[], cliOption?: CliOptions): Promise<DrcpSe
     //   });
     // }
     setting.port = normalizePort(setting.port);
-
+    // console.log(setting);
     if (!setting.devMode)
       process.env.NODE_ENV = 'production';
     setting.publicPath = _.trimEnd(setting.staticAssetsURL || '', '/') + '/'; // always ends with /
@@ -248,7 +245,8 @@ config.wfhSrcPath = wfhSrcPath;
 function wfhSrcPath() {
   var wfhPath = Path.dirname(require.resolve('dr-comp-package/package.json'));
   // log.debug('wfhPath: %s', wfhPath);
-  return (Path.basename(Path.dirname(wfhPath)) !== 'node_modules') ? wfhPath : false;
+  // return (Path.basename(Path.dirname(wfhPath)) !== 'node_modules') ? wfhPath : false;
+  return wfhPath;
 }
 
 function validateConfig() {

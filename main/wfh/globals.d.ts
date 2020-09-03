@@ -10,6 +10,8 @@ export interface DrcpApi {
 	packageShortName: string;
 	packageInstance: NodePackage & PackageBrowserInstance;
 	entryPage: string;
+	/** @Deprecated */
+	packageUtils: never;
 	/** 
 	 * Node route path for current package, used in browser side.
 	 * The path is exactly where `api.router()` hosts.
@@ -18,7 +20,6 @@ export interface DrcpApi {
 	 */
 	contextPath: string;
 	buildUtils: any;
-	packageUtils: any;
 	compileNodePath: any[];
 	eventBus: EventEmitter;
 	packageInfo: PackageInfo;
@@ -52,8 +53,3 @@ export interface DrcpApi {
 	[key: string]: any;
 }
 
-
-// import ExpressAppApi from '@dr-core/express-app/dist/api-types';
-declare global {
-	export var __api: DrcpApi; // & ExpressAppApi;
-}

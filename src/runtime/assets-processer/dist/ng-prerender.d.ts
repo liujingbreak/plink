@@ -1,4 +1,3 @@
-/// <reference types="qs" />
 import { Request, Response, NextFunction } from 'express';
 export declare const ROUTE_MAP_FILE = "prerender-routes.json";
 export declare class PrerenderForExpress {
@@ -13,7 +12,7 @@ export declare class PrerenderForExpress {
        * @param routeMapFiles array of dist/static/<app>/_prerender/prerender-routes.json
        */
     constructor(...routeMapFiles: string[]);
-    asMiddleware(): (req: Request<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs>, res: Response<any>, next: NextFunction) => void;
+    asMiddleware(): (req: Request, res: Response, next: NextFunction) => void;
     protected queryPrerenderPages(routeMapFiles: string[]): Promise<{
         [route: string]: string;
     }>;

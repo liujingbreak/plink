@@ -1,4 +1,5 @@
 import { Observable, BehaviorSubject } from 'rxjs';
+import { Checksum } from './fetch-types';
 import { ImapTokenType } from './mail/imap-msg-parser';
 import { LookAhead, Token } from 'dr-comp-package/wfh/dist/async-LLn-parser';
 export declare function sendMail(subject: string, text: string, file?: string): Promise<void>;
@@ -33,12 +34,7 @@ export declare function connectImap(callback: (context: ImapCommandContext) => P
 export declare class ImapManager {
     env: string;
     zipDownloadDir?: string | undefined;
-    checksumState: BehaviorSubject<{
-        sha256: string;
-        file: string;
-        created: string;
-        createdTime: number;
-    }[] | null>;
+    checksumState: BehaviorSubject<Checksum | null>;
     fileWritingState: ImapCommandContext['fileWritingState'];
     watching: boolean;
     private toFetchAppsState;

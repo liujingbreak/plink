@@ -15,7 +15,6 @@ try {
 		}
 		dir = parent;
 	}
-	console.log('[drcp] Run command from ', dir);
 	require(Path.resolve(dir, 'node_modules/dr-comp-package/wfh/dist/cmd-bootstrap'));
 } catch (e) {
 	console.log(e);
