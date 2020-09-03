@@ -12,8 +12,8 @@
     "tsc": "tsc",
     "build": "tsc -p wfh/tsconfig-base.json",
     "watch": "tsc -p wfh/tsconfig-base.json -w",
-    "build:all": "tsc -p tsconfig-share.json && tsc -p tsconfig-redux-toolkit.json && tsc -p wfh/tsconfig-base.json",
-    "build:share": "tsc -p tsconfig-share.json"
+    "build:all": "tsc -p wfh/tsconfig-share.json && tsc -p wfh/tsconfig-redux-toolkit.json && tsc -p wfh/tsconfig-base.json",
+    "build:share": "tsc -p wfh/tsconfig-share.json"
   },
   "repository": {
     "type": "git",

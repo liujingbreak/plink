@@ -43,6 +43,13 @@ export async function startLogging() {
         // console.log(...params.slice(1));
       else
         (defaultLog.debug as any)(...params);
+
+      // if (params[0] === 'state') {
+      //   console.log('[redux:state]', ...params.slice(1));
+      // } else if (params[0] === 'action')
+      //   console.log('[redux:action]', ...params.slice(1));
+      // else
+      //   console.log(...params);
     })
   ).subscribe();
 }

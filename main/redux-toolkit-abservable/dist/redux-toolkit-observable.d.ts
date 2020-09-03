@@ -53,7 +53,7 @@ export declare class StateFactory {
     private reportActionError;
     private errorSlice;
     constructor(preloadedState: ConfigureStoreOptions['preloadedState']);
-    configureStore(middlewares?: Middleware[]): this | undefined;
+    configureStore(middlewares?: Middleware[]): this;
     /**
      * Create our special slice with a default reducer action:
      * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`

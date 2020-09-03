@@ -33,6 +33,7 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
     })
   ).toPromise();
 
+  console.log('[cli-init] action starts');
   if (workspace) {
     actions.initWorkspace({dir: workspace, isForce: opt.force, logHasConfiged: false});
   } else {

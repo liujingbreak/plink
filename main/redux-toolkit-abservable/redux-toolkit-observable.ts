@@ -76,7 +76,7 @@ export class StateFactory {
    * Unlike store.dispatch(action),
    * If you call next() on this subject, it can save action dispatch an action even before store is configured
    */
-  private actionsToDispatch = new ReplaySubject<PayloadAction<any>>(10);
+  private actionsToDispatch = new ReplaySubject<PayloadAction<any>>(20);
 
   private reportActionError: (err: Error) => void;
 
@@ -111,7 +111,7 @@ export class StateFactory {
 
   configureStore(middlewares?: Middleware[]) {
     if (this.store$.getValue())
-      return;
+      return this;
     const rootReducer = this.createRootReducer();
     const epicMiddleware = createEpicMiddleware<PayloadAction<any>>();
 
@@ -160,12 +160,16 @@ export class StateFactory {
     const _opt = opt as CreateSliceOptions<SS, _CaseReducer & ExtraSliceReducers<SS>, Name>;
     const reducers = _opt.reducers as ReducerWithDefaultActions<SS, _CaseReducer>;
 
+    (_opt.initialState as any).__inited = false;
+
     if (reducers._change == null)
       Object.assign(_opt.reducers, defaultSliceReducers);
 
     if (reducers._init == null) {
       reducers._init = (draft, action) => {
-        this.debugLog.next(['[redux-toolkit-obs]', `slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`]);
+        (draft as any).__inited = true;
+        console.log(`slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`);
+        // this.debugLog.next(['[redux-toolkit-obs]', `slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`]);
       };
     }
 
@@ -271,14 +275,16 @@ export class StateFactory {
     Name extends string = string>(
     slice: Slice<State, SliceCaseReducers<State> & ExtraSliceReducers<State>, Name>
     ) {
-
     this.reducerMap[slice.name] = slice.reducer;
     if (this.getRootStore()) {
-      this.dispatch(slice.actions._init({isLazy: true}));
+      setTimeout(() =>
+        this.dispatch(slice.actions._init({isLazy: true})), 0);
+      // this.getRootStore()!.dispatch(slice.actions._init({isLazy: true}));
       // store has been configured, in this case we do replaceReducer()
       const newRootReducer = this.createRootReducer();
       this.getRootStore()!.replaceReducer(newRootReducer);
     } else {
+      // console.log(`${slice.name} is added`);
       this.dispatch(slice.actions._init({isLazy: false}));
     }
     // return slices.map(slice => typedBindActionCreaters(slice.actions, store.dispatch));

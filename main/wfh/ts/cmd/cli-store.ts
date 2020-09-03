@@ -5,13 +5,16 @@ import {map, distinctUntilChanged, catchError, ignoreElements, mergeMap, debounc
   skip, filter} from 'rxjs/operators';
 import {of, merge} from 'rxjs';
 import * as pkgMgr from '../package-mgr';
+const drcpPkJson = require('../../../package.json');
 
 export interface CliState {
   extensions: {pkgFilePath: string; funcName?: string}[];
+  version: string;
 }
 
 const initialState: CliState = {
-  extensions: []
+  extensions: [],
+  version: ''
 };
 
 export const cliSlice = stateFactory.newSlice({
@@ -21,16 +24,25 @@ export const cliSlice = stateFactory.newSlice({
     updateExtensions(draft, {payload}: PayloadAction<boolean>) {
       // modify state draft
       // draft.foo = payload;
+    },
+    plinkUpgraded(d, {payload: newVersion}: PayloadAction<string>) {
+      d.version = newVersion;
     }
   }
 });
 
-export const exampleActionDispatcher = stateFactory.bindActionCreators(cliSlice);
+export const cliActionDispatcher = stateFactory.bindActionCreators(cliSlice);
 
-const releaseEpic = stateFactory.addEpic((action$) => {
-  // const gService = getModuleInjector().get(GlobalStateStore);
-
+stateFactory.addEpic((action$) => {
   return merge(
+    getStore().pipe(map(s => s.version), distinctUntilChanged(),
+      map(version => {
+        if (version !== drcpPkJson.version) {
+          console.log('++++++++++++', version, drcpPkJson.version);
+          cliActionDispatcher.plinkUpgraded(drcpPkJson.version);
+        }
+      })
+    ),
     pkgMgr.getStore().pipe(
       map(s => s.srcPackages),
       distinctUntilChanged(),
@@ -66,7 +78,6 @@ const releaseEpic = stateFactory.addEpic((action$) => {
     catchError(ex => {
       // tslint:disable-next-line: no-console
       console.error(ex);
-      // gService.toastAction('网络错误\n' + ex.message);
       return of<PayloadAction>();
     }),
     ignoreElements()
@@ -81,13 +92,6 @@ export function getStore() {
   return stateFactory.sliceStore(cliSlice);
 }
 
-if (module.hot) {
-  module.hot.dispose(data => {
-    stateFactory.removeSlice(cliSlice);
-    releaseEpic();
-  });
-}
-
 function scanPackageJson(pkgs: Iterable<pkgMgr.PackageInfo>) {
-  console.log('scanPackageJson');
+  console.log('>>>>>>>>>>>>>>>>> scanPackageJson');
 }
