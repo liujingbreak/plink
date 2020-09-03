@@ -23,5 +23,5 @@ src/runtime/express-app/tsconfig.json
 src/internal/ng-app-builder/tsconfig.json
 src/tools/http-request-proxy/tsconfig.json
 src/runtime/http-server/tsconfig.json
-src/react/cra-scripts/tsconfig.json
 src/legacy/webpack2-builder/tsconfig.json
+src/internal/cra-scripts/tsconfig.json
