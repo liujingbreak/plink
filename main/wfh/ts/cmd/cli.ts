@@ -3,7 +3,7 @@ import commander from 'commander';
 import chalk from 'chalk';
 import type * as store from '../store';
 import * as tp from './types';
-
+import './cli-store';
 const pk = require('../../../package');
 // const WIDTH = 130;
 

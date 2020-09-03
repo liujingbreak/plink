@@ -19,7 +19,6 @@ export interface PackagesState {
     gitIgnores: {
         [file: string]: string;
     };
-    errors: string[];
 }
 interface WorkspaceState {
     id: string;
@@ -100,7 +99,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, action: PayloadAction<{
         hoistedDir: string;
     } | undefined | null>): void;
@@ -171,7 +169,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
@@ -242,7 +239,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, { payload }: PayloadAction<PackageInfo[]>): void;
     addProject(d: {
         srcPackages: Map<string, {
@@ -309,7 +305,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, action: PayloadAction<string[]>): void;
     deleteProject(d: {
         srcPackages: Map<string, {
@@ -376,7 +371,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, action: PayloadAction<string[]>): void;
     _hoistWorkspaceDeps(state: {
         srcPackages: Map<string, {
@@ -443,7 +437,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -515,10 +508,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
-    }, { payload: { dir } }: {
+    }, { payload: { workspaceKey } }: {
         payload: {
-            dir: string;
+            workspaceKey: string;
         };
         type: string;
     }): void;
@@ -587,7 +579,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
@@ -660,7 +651,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, { payload }: PayloadAction<{
         file: string;
         content: string;
@@ -733,7 +723,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, action: PayloadAction<{
         hoistedDir: string;
     } | undefined | null>): void;
@@ -804,7 +793,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
@@ -875,7 +863,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, { payload }: PayloadAction<PackageInfo[]>): void;
     addProject(d: {
         srcPackages: Map<string, {
@@ -942,7 +929,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, action: PayloadAction<string[]>): void;
     deleteProject(d: {
         srcPackages: Map<string, {
@@ -1009,7 +995,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, action: PayloadAction<string[]>): void;
     _hoistWorkspaceDeps(state: {
         srcPackages: Map<string, {
@@ -1076,7 +1061,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -1148,10 +1132,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
-    }, { payload: { dir } }: {
+    }, { payload: { workspaceKey } }: {
         payload: {
-            dir: string;
+            workspaceKey: string;
         };
         type: string;
     }): void;
@@ -1220,7 +1203,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
@@ -1293,7 +1275,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         gitIgnores: {
             [x: string]: string;
         };
-        errors: string[];
     }, { payload }: PayloadAction<{
         file: string;
         content: string;

@@ -40,7 +40,6 @@ export interface PackagesState {
   project2Packages: Map<string, string[]>;
   linkedDrcp: PackageInfo | null;
   gitIgnores: {[file: string]: string};
-  errors: string[];
 }
 
 const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -52,7 +51,6 @@ const state: PackagesState = {
   workspaces: new Map(),
   project2Packages: new Map(),
   srcPackages: new Map(),
-  errors: [],
   gitIgnores: {},
   linkedDrcp: isDrcpSymlink ?
     createPackageInfo(Path.resolve(
@@ -226,7 +224,7 @@ export const slice = stateFactory.newSlice({
       state.workspaces.set(wsKey, wp);
       // console.log('-----------------', dir);
     },
-    _installWorkspace(state, {payload: {dir}}: PayloadAction<{dir: string}>) {
+    _installWorkspace(state, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
     },
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: PackageInfo[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
@@ -334,7 +332,6 @@ stateFactory.addEpic((action$, state$) => {
       map(s => s.workspaces), distinctUntilChanged(),
       map(ws => {
         const keys = Array.from(ws.keys());
-        // setWorkspaceForRecipe(keys.map(key => Path.resolve(getRootDir(), key)));
         return keys;
       }),
       scan<string[]>((prev, curr) => {
@@ -342,8 +339,8 @@ stateFactory.addEpic((action$, state$) => {
           const newAdded = _.difference(curr, prev);
           // tslint:disable-next-line: no-console
           console.log('New workspace: ', newAdded);
-          for (const dir of newAdded) {
-            actionDispatcher._installWorkspace({dir});
+          for (const ws of newAdded) {
+            actionDispatcher._installWorkspace({workspaceKey: ws});
           }
           writeConfigFiles();
         }
@@ -351,9 +348,21 @@ stateFactory.addEpic((action$, state$) => {
       }),
       ignoreElements()
     ),
+    ...Array.from(getState().workspaces.keys()).map(key => {
+      return getStore().pipe(
+        map(s => s.workspaces.get(key)!.installJsonStr),
+        distinctUntilChanged(),
+        filter(installJsonStr =>installJsonStr.length > 0),
+        skip(1), take(1),
+        map(() => {
+          return actionDispatcher._installWorkspace({workspaceKey: key});
+        }),
+        ignoreElements()
+      );
+    }),
     action$.pipe(ofPayloadAction(slice.actions._installWorkspace),
       mergeMap(action => {
-        const wsKey = workspaceKey(action.payload.dir);
+        const wsKey = action.payload.workspaceKey;
         return getStore().pipe(
           map(s => s.workspaces.get(wsKey)),
           distinctUntilChanged(),
@@ -362,7 +371,7 @@ stateFactory.addEpic((action$, state$) => {
           concatMap(ws => from(installWorkspace(ws!))),
           map(() => {
             const pkgEntry =
-              listInstalledComp4Workspace(getState(), workspaceKey(action.payload.dir));
+              listInstalledComp4Workspace(getState(), wsKey);
 
             const installed = new Map((function*(): Generator<[string, PackageInfo]> {
               for (const pk of pkgEntry) {
@@ -375,18 +384,6 @@ stateFactory.addEpic((action$, state$) => {
       }),
       ignoreElements()
     ),
-    ...Array.from(getState().workspaces.keys()).map(key => {
-      return getStore().pipe(
-        map(s => s.workspaces.get(key)!.installJsonStr),
-        distinctUntilChanged(),
-        filter(installJsonStr =>installJsonStr.length > 0),
-        skip(1), take(1),
-        map(() => {
-          return actionDispatcher._installWorkspace({dir: Path.resolve(getRootDir(), key)});
-        }),
-        ignoreElements()
-      );
-    }),
     getStore().pipe(
       map(s => s.gitIgnores),
       distinctUntilChanged(),

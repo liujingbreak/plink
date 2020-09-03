@@ -95,10 +95,13 @@ export class DrPackageInjector extends RJ {
 }
 
 export let nodeInjector = new DrPackageInjector(require.resolve, false);
+// console.log('~~~~~~~~~~~~~~~~~~~~~~~')
 /**
  * Avoid package load different log4js than Plink's
  */
-nodeInjector.fromDir(getRootDir()).alias('log4js', 'dr-comp-package/wfh/dist/logger');
+nodeInjector.fromRoot().factory('log4js', file => {
+  return log4js;
+}); // .alias('log4js', 'dr-comp-package/wfh/dist/logger');
 
 export let webInjector = new DrPackageInjector(undefined, true);
 
