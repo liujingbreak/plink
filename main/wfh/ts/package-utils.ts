@@ -1,7 +1,7 @@
 import LRU from 'lru-cache';
 import PackageBrowserInstance from './build-util/ts/package-instance';
 import LazyPackageFactory from './build-util/ts/lazy-package-factory';
-import {getState, pathToProjKey, pathToWorkspace} from './package-mgr';
+import {getState, pathToProjKey, pathToWorkspace, PackageInfo} from './package-mgr';
 // import * as Path from 'path';
 import _ from 'lodash';
 // import log4js from 'log4js';
@@ -77,7 +77,15 @@ export {lookupPackageJson as findPackageJsonPath};
 export function findPackageByType(_types: PackageType | PackageType[],
   callback: FindPackageCb, recipeType?: 'src' | 'installed', projectDir?: string) {
 
-  const wsKey = pathToWorkspace(process.cwd());
+  for (const pkg of allPackages(_types, recipeType, projectDir)) {
+    callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, pkg.isInstalled);
+  }
+}
+
+export function* allPackages(_types: PackageType | PackageType[],
+  recipeType?: 'src' | 'installed', projectDir?: string): Generator<PackageInfo> {
+
+  // const wsKey = pathToWorkspace(process.cwd());
 
   if (recipeType !== 'installed') {
     if (projectDir) {
@@ -88,24 +96,44 @@ export function findPackageByType(_types: PackageType | PackageType[],
       for (const pkgName of pkgNames) {
         const pkg = getState().srcPackages.get(pkgName);
         if (pkg) {
-          callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, false);
+          yield pkg;
         }
       }
     } else {
       for (const pkg of getState().srcPackages.values()) {
-        callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, false);
+        yield pkg;
       }
     }
   }
   if (recipeType !== 'src') {
-    const workspace = getState().workspaces.get(wsKey);
-    if (workspace) {
-      if (workspace.installedComponents) {
-        for (const pkg of workspace.installedComponents.values()) {
-          callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, true);
+    for (const ws of getState().workspaces.values()) {
+      const installed = ws.installedComponents;
+      if (installed) {
+        for (const comp of installed.values()) {
+          yield comp;
         }
       }
     }
   }
+}
 
+export function* packages4CurrentWorkspace() {
+  const wsKey = pathToWorkspace(process.cwd());
+  const ws = getState().workspaces.get(wsKey);
+  if (!ws)
+    return;
+
+  const linked = getState().srcPackages;
+  const installed = ws.installedComponents;
+  for (const [pkName] of ws.linkedDependencies) {
+    const pk = linked.get(pkName);
+    if (pk == null)
+      throw new Error(`Missing package ${pkName} in current workspace`);
+    yield pk;
+  }
+  if (installed) {
+    for (const comp of installed.values()) {
+      yield comp;
+    }
+  }
 }

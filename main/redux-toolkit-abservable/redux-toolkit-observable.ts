@@ -12,7 +12,7 @@ import {
   ValidateSliceCaseReducers, Middleware
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
-import { BehaviorSubject, Observable, ReplaySubject, Subject, merge } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap } from 'rxjs/operators';
 
 // export type CallBackActionReducer<SS> = CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
@@ -70,7 +70,7 @@ export class StateFactory {
 
   private debugLog = new ReplaySubject<any[]>(15);
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
-  private epicWithUnsub$: BehaviorSubject<[Epic, Subject<string>]>;
+  private epicWithUnsub$: Subject<[Epic, Subject<string>]>;
 
   /**
    * Unlike store.dispatch(action),
@@ -84,7 +84,7 @@ export class StateFactory {
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<any>(preloadedState);
-    this.epicWithUnsub$ = new BehaviorSubject(this.createRootEpic());
+    this.epicWithUnsub$ = new ReplaySubject(2);
     this.log$ = this.debugLog.asObservable();
     this.reducerMap = {};
 
@@ -146,6 +146,14 @@ export class StateFactory {
         )
       );
     });
+    this.addEpic((action$) => {
+      return this.actionsToDispatch;
+    });
+
+    // this.actionsToDispatch.pipe(
+    //   tap(action => store.dispatch(action))
+    // ).subscribe();
+
     return this;
   }
 
@@ -160,16 +168,12 @@ export class StateFactory {
     const _opt = opt as CreateSliceOptions<SS, _CaseReducer & ExtraSliceReducers<SS>, Name>;
     const reducers = _opt.reducers as ReducerWithDefaultActions<SS, _CaseReducer>;
 
-    (_opt.initialState as any).__inited = false;
-
     if (reducers._change == null)
       Object.assign(_opt.reducers, defaultSliceReducers);
 
     if (reducers._init == null) {
       reducers._init = (draft, action) => {
-        (draft as any).__inited = true;
-        console.log(`slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`);
-        // this.debugLog.next(['[redux-toolkit-obs]', `slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`]);
+        this.debugLog.next(['[redux-toolkit-obs]', `slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`]);
       };
     }
 
@@ -229,6 +233,7 @@ export class StateFactory {
   }
 
   dispatch<T>(action: PayloadAction<T>) {
+    // console.log('dispatch', action.type);
     this.actionsToDispatch.next(action);
   }
 
@@ -277,29 +282,16 @@ export class StateFactory {
     ) {
     this.reducerMap[slice.name] = slice.reducer;
     if (this.getRootStore()) {
-      setTimeout(() =>
-        this.dispatch(slice.actions._init({isLazy: true})), 0);
-      // this.getRootStore()!.dispatch(slice.actions._init({isLazy: true}));
-      // store has been configured, in this case we do replaceReducer()
       const newRootReducer = this.createRootReducer();
       this.getRootStore()!.replaceReducer(newRootReducer);
+      this.dispatch(slice.actions._init({isLazy: true}));
     } else {
-      // console.log(`${slice.name} is added`);
       this.dispatch(slice.actions._init({isLazy: false}));
     }
-    // return slices.map(slice => typedBindActionCreaters(slice.actions, store.dispatch));
     return slice;
   }
 
   private createRootReducer(): Reducer {
-    // createReducer({}, builder => {
-    //   builder.addCase(this.globalChangeActionCreator,(draft, action) => {
-    //     action.payload(draft);
-    //   })
-    //   .addDefaultCase((draft, action) => {
-    //     return combineReducers(this.reducerMap)(draft, action);
-    //   });
-    // });
     return combineReducers(this.reducerMap);
   }
 
@@ -307,26 +299,6 @@ export class StateFactory {
     return this.store$.getValue();
   }
 
-  private createRootEpic(): [Epic, Subject<string>] {
-    const unsubscribeEpic = new Subject<string>();
-    const logEpic: Epic<PayloadAction<any>> = (action$, state$) => {
-      return merge(
-        // state$.pipe(
-        //   tap(state => this.debugLog.next(['state', state])),
-        //   ignoreElements()
-        // ),
-        // action$.pipe(
-        //   tap(action => {
-        //     this.debugLog.next(['action', action.type]);
-        //   }),
-        //   ignoreElements()
-        // ),
-        this.actionsToDispatch
-      );
-    };
-
-    return [logEpic, unsubscribeEpic];
-  }
 }
 
 if (module.hot) {

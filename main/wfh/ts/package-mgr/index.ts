@@ -503,7 +503,7 @@ export function listPackagesByProjects() {
 // }
 
 function warnUselessSymlink() {
-  const checkDir = Path.resolve(getRootDir(), 'dist', 'symlinks');
+  const checkDir = Path.resolve(getRootDir(), 'node_modules');
   const srcPackages = getState().srcPackages;
   const drcpName = getState().linkedDrcp ? getState().linkedDrcp!.name : null;
   const done1 = listModuleSymlinks(checkDir, async link => {
@@ -514,20 +514,20 @@ function warnUselessSymlink() {
     }
   });
 
-  const pwd = process.cwd();
-  const forbidDir = Path.join(getRootDir(), 'node_modules');
-  if (symlinkDir !== forbidDir) {
-    const removed: Promise<any>[] = [];
-    const done2 = listModuleSymlinks(forbidDir, async link => {
-      const pkgName = Path.relative(forbidDir, link).replace(/\\/g, '/');
-      if (srcPackages.has(pkgName)) {
-        removed.push(unlinkAsync(link));
-        // tslint:disable-next-line: no-console
-        console.log(`Redundant symlink "${Path.relative(pwd, link)}" removed.`);
-      }
-    });
-    return Promise.all([done1, done2, ...removed]);
-  }
+  // const pwd = process.cwd();
+  // const forbidDir = Path.join(getRootDir(), 'node_modules');
+  // if (symlinkDir !== forbidDir) {
+  //   const removed: Promise<any>[] = [];
+  //   const done2 = listModuleSymlinks(forbidDir, async link => {
+  //     const pkgName = Path.relative(forbidDir, link).replace(/\\/g, '/');
+  //     if (srcPackages.has(pkgName)) {
+  //       removed.push(unlinkAsync(link));
+  //       // tslint:disable-next-line: no-console
+  //       console.log(`Redundant symlink "${Path.relative(pwd, link)}" removed.`);
+  //     }
+  //   });
+  //   return Promise.all([done1, done2, ...removed]);
+  // }
   return done1;
 }
 

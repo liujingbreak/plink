@@ -16,9 +16,9 @@ const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
 export async function drcpCommand(startTime: number) {
   process.title = 'Plink - command line';
   const {stateFactory}: typeof store = require('../store');
-  // await import('./cli-store');
+  await import('./cli-store');
   stateFactory.configureStore();
-  console.log('stateFactory configured')
+  console.log('stateFactory configured');
   // await import('./cli-store');
   let saved = false;
   process.on('beforeExit', async (code) => {

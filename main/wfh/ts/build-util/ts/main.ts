@@ -63,11 +63,14 @@ function _walkPackages(): PackageInfo {
     dirTree: null as unknown as DirTree<PackageBrowserInstance>
   };
 
-  packageUtils.findAllPackages((
-    name: string, path: string, parsedName: {scope: string, name: string}, pkJson: any, realPath: string) => {
-    // console.log(path, realPath)
-    addPackageToInfo(info, name, parsedName, pkJson, path, realPath);
-  });
+  // packageUtils.findAllPackages((
+  //   name: string, path: string, parsedName: {scope: string, name: string}, pkJson: any, realPath: string) => {
+  //   // console.log(path, realPath)
+  //   addPackageToInfo(info, name, parsedName, pkJson, path, realPath);
+  // });
+  for (const pk of packageUtils.packages4CurrentWorkspace()) {
+    addPackageToInfo(info, pk.name, {name: pk.shortName, scope: pk.scope}, pk.json, pk.path, pk.realPath);
+  }
   const drcpPkg = createPackageInfo(packageUtils.findPackageJsonPath('dr-comp-package')!);
   addPackageToInfo(info, 'dr-comp-package',
     {scope: drcpPkg.scope, name: drcpPkg.shortName},

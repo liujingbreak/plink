@@ -84,6 +84,5 @@ export declare class StateFactory {
     private addSliceMaybeReplaceReducer;
     private createRootReducer;
     private getRootStore;
-    private createRootEpic;
 }
 export {};

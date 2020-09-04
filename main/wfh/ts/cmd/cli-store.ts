@@ -8,12 +8,18 @@ import * as pkgMgr from '../package-mgr';
 const drcpPkJson = require('../../../package.json');
 
 export interface CliState {
-  extensions: {pkgFilePath: string; funcName?: string}[];
+  extensions: Map<string, CliExtension>;
   version: string;
 }
 
+interface CliExtension {
+  pkName: string;
+  pkgFilePath: string;
+  funcName?: string;
+}
+
 const initialState: CliState = {
-  extensions: [],
+  extensions: new Map(),
   version: ''
 };
 
@@ -21,9 +27,8 @@ export const cliSlice = stateFactory.newSlice({
   name: 'cli',
   initialState,
   reducers: {
-    updateExtensions(draft, {payload}: PayloadAction<boolean>) {
-      // modify state draft
-      // draft.foo = payload;
+    updateExtensions(draft, {payload}: PayloadAction<CliExtension[]>) {
+      draft.extensions = new Map(payload.map(ex => [ex.pkName, ex]));
     },
     plinkUpgraded(d, {payload: newVersion}: PayloadAction<string>) {
       d.version = newVersion;
@@ -37,8 +42,8 @@ stateFactory.addEpic((action$) => {
   return merge(
     getStore().pipe(map(s => s.version), distinctUntilChanged(),
       map(version => {
+        // console.log('quick!!!!!!!!!!', getState());
         if (version !== drcpPkJson.version) {
-          console.log('++++++++++++', version, drcpPkJson.version);
           cliActionDispatcher.plinkUpgraded(drcpPkJson.version);
         }
       })
@@ -62,6 +67,11 @@ stateFactory.addEpic((action$) => {
           scanPackageJson(installed!.values());
         })
       ))
+    ),
+    action$.pipe(ofPayloadAction(cliSlice.actions.plinkUpgraded),
+      map(() => {
+        scanPackageJson(allPackages());
+      })
     ),
     ...Array.from(pkgMgr.getState().workspaces.keys()).map(key => {
       return pkgMgr.getStore().pipe(
@@ -92,6 +102,35 @@ export function getStore() {
   return stateFactory.sliceStore(cliSlice);
 }
 
-function scanPackageJson(pkgs: Iterable<pkgMgr.PackageInfo>) {
-  console.log('>>>>>>>>>>>>>>>>> scanPackageJson');
+/** Including installed package from all workspaces, unlike package-utils which only include installed
+ * packages from current working directory as workspace
+ */
+function* allPackages() {
+  for (const pk of pkgMgr.getState().srcPackages.values()) {
+    yield pk;
+  }
+  for (const ws of pkgMgr.getState().workspaces.values()) {
+    const installed = ws.installedComponents;
+    if (installed) {
+      for (const comp of installed.values()) {
+        yield comp;
+      }
+    }
+  }
 }
+
+function scanPackageJson(pkgs: Iterable<pkgMgr.PackageInfo>) {
+  const extensions: CliExtension[] = [];
+  for (const pk of pkgs) {
+    const dr = pk.json.dr;
+    if (dr && dr.cli) {
+      const parts = (dr.cli as string).split('#');
+      extensions.push({pkName: pk.name, pkgFilePath: parts[0], funcName: parts[1]});
+    }
+  }
+  cliActionDispatcher.updateExtensions(extensions);
+}
+
+export function availabeCliExtension() {
+}
+
