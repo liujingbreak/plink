@@ -7,6 +7,7 @@ var LRU = require('lru-cache');
 var _ = require('lodash');
 var log = require('log4js').getLogger('wfh.packageMgr.packageRunnerHelper');
 var {webInjector, nodeInjector} = require('../../dist/injector-factory');
+const {mapPackagesByType} = require('../../dist/package-runner');
 var Promise = require('bluebird');
 var http = require('http');
 var fs = require('fs');
@@ -168,8 +169,8 @@ function initWebInjector(packageInfo, apiPrototype) {
  */
 function traversePackages(needInject) {
 	var packagesTypeMap = mapPackagesByType(['builder', 'server'], needInject ?
-		(pkInstance, name, entryPath, parsedName, pkJson, realPackagePath, packagePath) => {
-			setupNodeInjectorFor(pkInstance, name, packagePath, realPackagePath);
+		(pkInstance) => {
+			setupNodeInjectorFor(pkInstance);
 		} : null);
 	let done;
 	if (needInject)
@@ -179,13 +180,13 @@ function traversePackages(needInject) {
 	return done.then(() => packagesTypeMap);
 }
 
-function setupNodeInjectorFor(pkInstance, name, packagePath, realPackagePath) {
-	log.debug('setupNodeInjectorFor %s resolved to: %s', name, packagePath, realPackagePath);
+function setupNodeInjectorFor(pkInstance) {
+	log.debug('setupNodeInjectorFor %s resolved to: %s', pkInstance.name, pkInstance.path, pkInstance.realPath);
 	let api = getApiForPackage(pkInstance);
-	nodeInjector.fromComponent(name, realPackagePath)
+	nodeInjector.fromComponent(pkInstance.name, pkInstance.realPath)
 	.value('__injector', nodeInjector)
 	.value('__api', api);
-	nodeInjector.fromComponent(name, packagePath)
+	nodeInjector.fromComponent(pkInstance.name, pkInstance.path)
 	.value('__injector', nodeInjector)
 	.value('__api', api);
 	nodeInjector.default = nodeInjector; // For ES6 import syntax
@@ -203,38 +204,4 @@ function getApiForPackage(pkInstance) {
 	api.default = api; // For ES6 import syntax
 	return api;
 }
-/**
- * mapPackagesByType
- * @param {string[]} types of "dr.type" e.g. ['server', 'builder']
- * @param {function(name, entryPath, parsedName, pkJson, packagePath)} onEachPackage
- * @return a hash object, key is {string} type, value is packageInstance[]
- */
-function mapPackagesByType(types, onEachPackage) {
-	var packagesMap = {};
-	_.each(types, type => {
-		packagesMap[type] = [];
-	});
 
-	packageUtils.findAllPackages((name, entryPath, parsedName, pkJson, packagePath, isInstalled) => {
-		var realPackagePath = fs.realpathSync(packagePath);
-		var pkInstance = new Package({
-			moduleName: name,
-			shortName: parsedName.name,
-			name,
-			longName: name,
-			scope: parsedName.scope,
-			path: packagePath,
-			json: pkJson
-		});
-		var drTypes = [].concat(_.get(pkJson, 'dr.type'));
-		for (const type of types) {
-			if (!_.includes(drTypes, type))
-				continue;
-			packagesMap[type].push(pkInstance);
-		}
-		if (onEachPackage) {
-			onEachPackage(pkInstance, name, entryPath, parsedName, pkJson, realPackagePath, packagePath);
-		}
-	});
-	return packagesMap;
-}

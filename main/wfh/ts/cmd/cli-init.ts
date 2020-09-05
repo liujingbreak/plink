@@ -5,6 +5,7 @@ import config from '../config';
 import Path from 'path';
 import { actionDispatcher as actions, getStore, getState } from '../package-mgr';
 import * as options from './types';
+import {packages4Workspace} from '../package-utils';
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
   await config.init(opt);
 
@@ -33,7 +34,6 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
     })
   ).toPromise();
 
-  console.log('[cli-init] action starts');
   if (workspace) {
     actions.initWorkspace({dir: workspace, isForce: opt.force, logHasConfiged: false});
   } else {
@@ -43,21 +43,24 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
 
 export function printWorkspaces() {
   console.log('\n' + chalk.greenBright('Workspace directories and linked dependencies:'));
-  for (const [reldir, ws] of getState().workspaces.entries()) {
+  for (const reldir of getState().workspaces.keys()) {
     console.log(reldir ? reldir + '/' : '(root directory)');
     console.log('  |- dependencies');
-    if (ws.linkedDependencies.length === 0)
-      console.log('  |    (Empty)');
-    for (const [dep, ver] of ws.linkedDependencies) {
-      console.log(`  |  |- ${dep} ${ver}`);
+    for (const {name: dep, json: {version: ver}, isInstalled} of packages4Workspace(reldir)) {
+      console.log(`  |  |- ${dep}  v${ver}  (${isInstalled ? '' : 'linked'})`);
     }
-    console.log('  |');
-    console.log('  |- devDependencies');
-    if (ws.linkedDevDependencies.length === 0)
-      console.log('       (Empty)');
-    for (const [dep, ver] of ws.linkedDevDependencies) {
-      console.log(`     |- ${dep} ${ver}`);
-    }
+    // if (ws.linkedDependencies.length === 0)
+    //   console.log('  |    (Empty)');
+    // for (const [dep, ver] of ws.linkedDependencies) {
+    //   console.log(`  |  |- ${dep} ${ver}`);
+    // }
+    // console.log('  |');
+    // console.log('  |- devDependencies');
+    // if (ws.linkedDevDependencies.length === 0)
+    //   console.log('       (Empty)');
+    // for (const [dep, ver] of ws.linkedDevDependencies) {
+    //   console.log(`     |- ${dep} ${ver}`);
+    // }
     console.log('');
   }
 }

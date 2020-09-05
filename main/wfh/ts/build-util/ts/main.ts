@@ -68,7 +68,7 @@ function _walkPackages(): PackageInfo {
   //   // console.log(path, realPath)
   //   addPackageToInfo(info, name, parsedName, pkJson, path, realPath);
   // });
-  for (const pk of packageUtils.packages4CurrentWorkspace()) {
+  for (const pk of packageUtils.packages4Workspace()) {
     addPackageToInfo(info, pk.name, {name: pk.shortName, scope: pk.scope}, pk.json, pk.path, pk.realPath);
   }
   const drcpPkg = createPackageInfo(packageUtils.findPackageJsonPath('dr-comp-package')!);

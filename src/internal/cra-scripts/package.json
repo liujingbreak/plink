@@ -9,8 +9,7 @@
   "dr": {},
   "dependencies": {
     "@types/react-dev-utils": "^9.0.4",
-    "less-loader": "~5.0.0",
-    "commander": "~5.1.0"
+    "less-loader": "~5.0.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

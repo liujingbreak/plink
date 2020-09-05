@@ -15,8 +15,6 @@ const program = new commander.Command()
   // tslint:disable-next-line: no-console
   console.log('\nPlink version:', pk.version);
 
-
-
   const serverStarted = new Promise<() => Promise<void>>(async resolve => {
     await initConfigAsync(program.opts() as GlobalOptions, () => {
       return serverStarted.then(shutdown => shutdown());

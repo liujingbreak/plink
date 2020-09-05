@@ -14,5 +14,9 @@ export declare function findAllPackages(callback: FindPackageCb, recipeType?: 's
 export declare function findAllPackages(packageList: string[] | string, callback: FindPackageCb, recipeType?: 'src' | 'installed', projectDir?: string | string[]): void;
 export { lookupPackageJson as findPackageJsonPath };
 export declare function findPackageByType(_types: PackageType | PackageType[], callback: FindPackageCb, recipeType?: 'src' | 'installed', projectDir?: string): void;
-export declare function allPackages(_types: PackageType | PackageType[], recipeType?: 'src' | 'installed', projectDir?: string): Generator<PackageInfo>;
-export declare function packages4CurrentWorkspace(): Generator<PackageInfo, void, unknown>;
+/** Including installed package from all workspaces, unlike packages4CurrentWorkspace() which only include
+ * linked and installed
+ * packages that are depended in current workspace package.json file
+ */
+export declare function allPackages(_types?: PackageType | PackageType[], recipeType?: 'src' | 'installed', projectDir?: string): Generator<PackageInfo>;
+export declare function packages4Workspace(workspaceDir?: string): Generator<PackageInfo, void, unknown>;

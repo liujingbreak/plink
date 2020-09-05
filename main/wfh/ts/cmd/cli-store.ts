@@ -5,6 +5,7 @@ import {map, distinctUntilChanged, catchError, ignoreElements, mergeMap, debounc
   skip, filter} from 'rxjs/operators';
 import {of, merge} from 'rxjs';
 import * as pkgMgr from '../package-mgr';
+import {allPackages} from '../package-utils';
 const drcpPkJson = require('../../../package.json');
 
 export interface CliState {
@@ -100,23 +101,6 @@ export function getState() {
 
 export function getStore() {
   return stateFactory.sliceStore(cliSlice);
-}
-
-/** Including installed package from all workspaces, unlike package-utils which only include installed
- * packages from current working directory as workspace
- */
-function* allPackages() {
-  for (const pk of pkgMgr.getState().srcPackages.values()) {
-    yield pk;
-  }
-  for (const ws of pkgMgr.getState().workspaces.values()) {
-    const installed = ws.installedComponents;
-    if (installed) {
-      for (const comp of installed.values()) {
-        yield comp;
-      }
-    }
-  }
 }
 
 function scanPackageJson(pkgs: Iterable<pkgMgr.PackageInfo>) {

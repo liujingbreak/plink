@@ -11,7 +11,7 @@ import { orderPackages, PackageInstance } from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
 import Path from 'path';
 import Events from 'events';
-import {createLazyPackageFileFinder} from './package-utils';
+import {createLazyPackageFileFinder, packages4Workspace} from './package-utils';
 import log4js from 'log4js';
 import config from './config';
 
@@ -92,11 +92,9 @@ export async function runSinglePackage({target, args}: {target: string, args: st
 }
 
 export function runPackages(argv: {target: string, package: string[], [key: string]: any}) {
-  // const NodeApi = require('../lib/nodeApi');
   const includeNameSet = new Set<string>();
   argv.package.forEach(name => includeNameSet.add(name));
   const [fileToRun, funcToRun] = (argv.target as string).split('#');
-  // nodeInjector.fromRoot().alias('log4js', Path.resolve(config().rootPath, 'node_modules/log4js'));
   const [packages, proto] = initInjectorForNodePackages(argv, walkPackages());
   const components = packages.filter(pk => {
     // setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
@@ -198,6 +196,37 @@ export function prepareLazyNodeInjector(argv: {[key: string]: any}) {
   });
 }
 
+export function mapPackagesByType(types: string[], onEachPackage: (nodePackage: NodePackage) => void) {
+  const packagesMap: {[type: string]: NodePackage[]} = {};
+  types.forEach(type => {
+    packagesMap[type] = [];
+  });
+
+  for (const pkg of packages4Workspace()) {
+    const name = pkg.name;
+    const pkInstance = new NodePackage({
+      moduleName: name,
+      shortName: pkg.shortName,
+      name,
+      longName: name,
+      scope: pkg.scope,
+      path: pkg.path,
+      json: pkg.json,
+      realPath: pkg.realPath
+    });
+    const drTypes = ([] as string[]).concat(_.get(pkg, 'json.dr.type'));
+    for (const type of types) {
+      if (!_.includes(drTypes, type))
+        continue;
+      packagesMap[type].push(pkInstance);
+    }
+    if (onEachPackage) {
+      onEachPackage(pkInstance);
+    }
+  }
+  return packagesMap;
+}
+
 function setupNodeInjectorFor(pkInstance: PackageBrowserInstance, NodeApi: typeof _NodeApi ) {
   function apiFactory() {
     return getApiForPackage(pkInstance, NodeApi);
@@ -223,4 +252,53 @@ function getApiForPackage(pkInstance: any, NodeApi: typeof _NodeApi) {
   return api;
 }
 
+// export async function runServer() {
+//   let packagesTypeMap;
+//   // NodeApi.prototype.argv = argv;
+//   // NodeApi.prototype.runBuilder = function(buildArgv, skipNames) {
+//   //   _.assign(buildArgv, argv);
+//   //   if (!Array.isArray(skipNames))
+//   //     skipNames = [skipNames];
+//   //   // var builders = _.filter(packagesTypeMap.builder, packageIns => !_.includes(excludeNames, packageIns.longName) );
+
+//   //   return helper.runBuilderComponents(packagesTypeMap.builder, buildArgv, skipNames);
+//   // };
+
+//   packagesTypeMap = await requireServerPackages();
+//   // deactivateOrder = [];
+//   await activateCoreComponents();
+//   await activateNormalComponents();
+//   const newRunner = new ServerRunner();
+//   deactivateOrder.reverse();
+//   newRunner.deactivatePackages = deactivateOrder;
+//   await new Promise(resolve => setTimeout(resolve, 500));
+//   return () => {
+//     return newRunner.shutdownServer();
+//   };
+// }
+
+// function requireServerPackages(dontLoad) {
+// 	return helper.traversePackages(!dontLoad)
+// 	.then(packagesTypeMap => {
+// 		// var proto = NodeApi.prototype;
+// 		// proto.argv = argv;
+
+// 		// create API instance and inject factories
+
+// 		_.each(packagesTypeMap.server, (p, idx) => {
+// 			if (!checkPackageName(p.scope, p.shortName, false)) {
+// 				return;
+// 			}
+// 			if (_.includes([].concat(_.get(p, 'json.dr.type')), 'core')) {
+// 				corePackages[p.shortName] = p;
+// 			} else {
+// 				packageCache[p.shortName] = p;
+// 			}
+// 			// if (!dontLoad)
+// 			// 	p.exports = require(p.moduleName);
+// 		});
+// 		eventBus.emit('loadEnd', packageCache);
+// 		return packagesTypeMap;
+// 	});
+// }
 

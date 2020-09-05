@@ -82,7 +82,11 @@ export function findPackageByType(_types: PackageType | PackageType[],
   }
 }
 
-export function* allPackages(_types: PackageType | PackageType[],
+/** Including installed package from all workspaces, unlike packages4CurrentWorkspace() which only include
+ * linked and installed
+ * packages that are depended in current workspace package.json file
+ */
+export function* allPackages(_types?: PackageType | PackageType[],
   recipeType?: 'src' | 'installed', projectDir?: string): Generator<PackageInfo> {
 
   // const wsKey = pathToWorkspace(process.cwd());
@@ -117,8 +121,8 @@ export function* allPackages(_types: PackageType | PackageType[],
   }
 }
 
-export function* packages4CurrentWorkspace() {
-  const wsKey = pathToWorkspace(process.cwd());
+export function* packages4Workspace(workspaceDir?: string) {
+  const wsKey = pathToWorkspace(workspaceDir || process.cwd());
   const ws = getState().workspaces.get(wsKey);
   if (!ws)
     return;
@@ -126,6 +130,12 @@ export function* packages4CurrentWorkspace() {
   const linked = getState().srcPackages;
   const installed = ws.installedComponents;
   for (const [pkName] of ws.linkedDependencies) {
+    const pk = linked.get(pkName);
+    if (pk == null)
+      throw new Error(`Missing package ${pkName} in current workspace`);
+    yield pk;
+  }
+  for (const [pkName] of ws.linkedDevDependencies) {
     const pk = linked.get(pkName);
     if (pk == null)
       throw new Error(`Missing package ${pkName} in current workspace`);

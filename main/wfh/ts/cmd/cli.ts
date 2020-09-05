@@ -18,7 +18,6 @@ export async function drcpCommand(startTime: number) {
   const {stateFactory}: typeof store = require('../store');
   await import('./cli-store');
   stateFactory.configureStore();
-  console.log('stateFactory configured');
   // await import('./cli-store');
   let saved = false;
   process.on('beforeExit', async (code) => {

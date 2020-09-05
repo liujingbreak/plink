@@ -33,3 +33,6 @@ export declare function initWebInjector(packages: PackageBrowserInstance[], apiP
 export declare function prepareLazyNodeInjector(argv: {
     [key: string]: any;
 }): void;
+export declare function mapPackagesByType(types: string[], onEachPackage: (nodePackage: NodePackage) => void): {
+    [type: string]: NodePackage[];
+};
