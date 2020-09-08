@@ -51,6 +51,8 @@ const apiCache: {[name: string]: any} = {};
  */
 export async function runSinglePackage({target, args}: {target: string, args: string[]}) {
   const passinArgv = {};
+  // console.log(args);
+  // throw new Error('stop');
   for (let i = 0, l = args.length; i < l; i++) {
     const key = args[i];
     if (key.startsWith('-')) {
@@ -88,7 +90,7 @@ export async function runSinglePackage({target, args}: {target: string, args: st
     `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
     return;
   }
-  await Promise.resolve(_exports[func].apply(global, args.slice(1) || []));
+  await Promise.resolve(_exports[func].apply(global, args || []));
 }
 
 export function runPackages(argv: {target: string, package: string[], [key: string]: any}) {

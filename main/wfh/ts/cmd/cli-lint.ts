@@ -30,7 +30,7 @@ function lint(packages: string[], projects: LintOptions['pj'], fix: LintOptions[
         log.warn('Can not find package for name: ' + name);
         continue;
       }
-      const pkg = getState().srcPackages[name];
+      const pkg = getState().srcPackages.get(name)!;
       prom = prom.catch(err => errors.push(err))
       .then(() => {
         return _tsLintPackageAsync(pkg.name, pkg.json, pkg.realPath, fix);
