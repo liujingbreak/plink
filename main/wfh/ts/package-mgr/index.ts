@@ -6,7 +6,7 @@ import Path from 'path';
 import { from, merge, of} from 'rxjs';
 import type {Observable} from 'rxjs';
 import {tap} from 'rxjs/operators';
-import { distinctUntilChanged, filter, map, switchMap, mergeMap,
+import { distinctUntilChanged, filter, map, switchMap,
   take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
 import { writeFile } from '../cmd/utils';
 import config from '../config';
@@ -361,7 +361,7 @@ stateFactory.addEpic((action$, state$) => {
       );
     }),
     action$.pipe(ofPayloadAction(slice.actions._installWorkspace),
-      mergeMap(action => {
+      concatMap(action => {
         const wsKey = action.payload.workspaceKey;
         return getStore().pipe(
           map(s => s.workspaces.get(wsKey)),

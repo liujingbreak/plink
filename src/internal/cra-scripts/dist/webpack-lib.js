@@ -1,18 +1,19 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 const build_target_helper_1 = require("./build-target-helper");
 // import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
-const child_process_1 = tslib_1.__importDefault(require("child_process"));
+const child_process_1 = __importDefault(require("child_process"));
 // import fs from 'fs-extra';
-const path_1 = tslib_1.__importDefault(require("path"));
+const path_1 = __importDefault(require("path"));
 // import {findDrcpProjectDir} from './utils';
 const utils_1 = require("../dist/utils");
 // import {HotModuleReplacementPlugin} from 'webpack';
 // const EsmWebpackPlugin = require("@purtuga/esm-webpack-plugin");
-// const {isDrcpSymlink, symlinkDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 const MiniCssExtractPlugin = require(path_1.default.resolve('node_modules/mini-css-extract-plugin'));
-function change(buildPackage, config) {
+function change(buildPackage, config, nodePath) {
     const { dir: pkDir, packageJson: pkJson } = build_target_helper_1.findPackage(buildPackage);
     config.entry = path_1.default.resolve(pkDir, 'public_api.ts');
     config.output.path = path_1.default.resolve(pkDir, 'build'); // Have to override it cuz' react-scripts assign `undefined` in non-production env
@@ -59,7 +60,7 @@ function change(buildPackage, config) {
     // new EsmWebpackPlugin(),
     new (class {
         apply(compiler) {
-            forkTsc(pkJson.name);
+            forkTsc(pkJson.name, nodePath);
             compiler.hooks.done.tap('cra-scripts', stats => {
                 // tslint:disable-next-line: no-console
                 console.log('external request:\n  ', Array.from(reqSet.values()).join(', '));
@@ -92,7 +93,7 @@ function findAndChangeRule(rules) {
     }
     return;
 }
-function forkTsc(targetPackage) {
+function forkTsc(targetPackage, nodePath) {
     // const drcpHome = findDrcpProjectDir();
     // const execArgv = Array.from(process.execArgv);
     // let execArgvRmPos = execArgv.indexOf('-r');
@@ -105,8 +106,12 @@ function forkTsc(targetPackage) {
     if (utils_1.getCmdOptions().watch)
         forkArgs.push('--watch');
     const cp = child_process_1.default.fork(path_1.default.resolve(__dirname, 'build-lib', 'drcp-tsc.js'), forkArgs, {
+        env: {
+            NODE_OPTIONS: '-r dr-comp-package/register',
+            NODE_PATH: nodePath.join(path_1.default.delimiter)
+        },
         cwd: process.cwd(),
-        execArgv: ['-r', 'dr-comp-package/register'],
+        execArgv: [],
         stdio: 'inherit'
     });
     // cp.unref();

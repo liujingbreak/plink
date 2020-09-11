@@ -66,7 +66,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     ...baseTsconfig.config.compilerOptions,
     // typescript: require('typescript'),
     // Compiler options
-    importHelpers: true,
+    importHelpers: false,
     outDir: '',
     // rootDir: config().rootPath,
     skipLibCheck: true,

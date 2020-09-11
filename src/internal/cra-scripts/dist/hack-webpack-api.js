@@ -1,10 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hackWebpack4Compiler = void 0;
-const tslib_1 = require("tslib");
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const chalk_1 = __importDefault(require("chalk"));
 const utils_1 = require("./utils");
-const path_1 = tslib_1.__importDefault(require("path"));
+const path_1 = __importDefault(require("path"));
 function hackWebpack4Compiler() {
     const webpack = require(path_1.default.resolve('node_modules/webpack'));
     if (utils_1.getCmdOptions().buildType !== 'lib' || !utils_1.getCmdOptions().watch) {

@@ -10,6 +10,7 @@ import change4lib from './webpack-lib';
 import {findPackage} from './build-target-helper';
 import {ConfigHandlerMgr} from 'dr-comp-package/wfh/dist/config-handler';
 import {ConfigureHandler} from './types';
+import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
 // import chalk from 'chalk';
 const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 
@@ -64,6 +65,10 @@ export = function(webpackEnv: string) {
   //   }
   //   config.resolve.modules.unshift(topModuleDir);
   // }
+  const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
+
+  const resolveModules = ['node_modules', ...nodePath];
+  config.resolve!.modules = resolveModules;
 
   Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
   Object.assign(config.optimization!.splitChunks, {
@@ -105,7 +110,7 @@ export = function(webpackEnv: string) {
   }
 
   if (cmdOption.buildType === 'lib')
-    change4lib(cmdOption.buildTarget, config);
+    change4lib(cmdOption.buildTarget, config, nodePath);
 
   const configFileInPackage = Path.resolve(dir, _.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
   if (fs.existsSync(configFileInPackage)) {

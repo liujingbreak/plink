@@ -1,18 +1,19 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 // tslint:disable: no-console
 /**
  * Do not actually import entity other than "type" from here
  * Because we have not set node path yet.
  */
-// import 'dr-comp-package/register';
 const utils_1 = require("./utils");
 const utils_2 = require("./utils");
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
 const hack_webpack_api_1 = require("./hack-webpack-api");
-const module_1 = tslib_1.__importDefault(require("module"));
+const module_1 = __importDefault(require("module"));
 const path_2 = require("path");
 utils_1.drawPuppy('Loading my poo...');
 utils_1.saveCmdArgToEnv();

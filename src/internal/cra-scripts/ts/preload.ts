@@ -3,7 +3,6 @@
  * Do not actually import entity other than "type" from here
  * Because we have not set node path yet.
  */
-// import 'dr-comp-package/register';
 import {drawPuppy, saveCmdArgToEnv} from './utils';
 import _paths from './cra-scripts-paths';
 import {getCmdOptions} from './utils';
@@ -28,7 +27,7 @@ function poo() {
 
   const superReq = Module.prototype.require;
   // TODO: Should use require-injector new version
-  Module.prototype.require = function(this: Module, target) {
+  Module.prototype.require = function(this: Module, target: string) {
     if (this.filename.indexOf(reactScriptsPath) >= 0) {
       if (this.filename.endsWith(buildScriptsPath)) {
         if (target === 'fs-extra' && getCmdOptions().buildType === 'lib') {
@@ -69,7 +68,7 @@ function poo() {
       }
     }
     return superReq.call(this, target);
-  };
+  } as any;
 }
 
 

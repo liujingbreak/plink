@@ -9,11 +9,10 @@ import { getCmdOptions } from '../dist/utils';
 // import {HotModuleReplacementPlugin} from 'webpack';
 // const EsmWebpackPlugin = require("@purtuga/esm-webpack-plugin");
 
-// const {isDrcpSymlink, symlinkDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
-export default function change(buildPackage: string, config: Configuration) {
+export default function change(buildPackage: string, config: Configuration, nodePath: string[]) {
   const {dir: pkDir, packageJson: pkJson} = findPackage(buildPackage);
 
   config.entry = Path.resolve(pkDir, 'public_api.ts');
@@ -73,7 +72,7 @@ export default function change(buildPackage: string, config: Configuration) {
     // new EsmWebpackPlugin(),
     new (class {
       apply(compiler: Compiler) {
-        forkTsc(pkJson.name);
+        forkTsc(pkJson.name, nodePath);
         compiler.hooks.done.tap('cra-scripts', stats => {
           // tslint:disable-next-line: no-console
           console.log('external request:\n  ', Array.from(reqSet.values()).join(', '));
@@ -110,7 +109,7 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
   return;
 }
 
-function forkTsc(targetPackage: string) {
+function forkTsc(targetPackage: string, nodePath: string[]) {
   // const drcpHome = findDrcpProjectDir();
 
   // const execArgv = Array.from(process.execArgv);
@@ -127,8 +126,12 @@ function forkTsc(targetPackage: string) {
 
   const cp = childProc.fork(Path.resolve(__dirname, 'build-lib', 'drcp-tsc.js'),
     forkArgs, {
+      env: {
+        NODE_OPTIONS: '-r dr-comp-package/register',
+        NODE_PATH: nodePath.join(Path.delimiter)
+      },
       cwd: process.cwd(),
-      execArgv: ['-r', 'dr-comp-package/register'],
+      execArgv: [], // Not working, don't know why
       stdio: 'inherit'
     });
   // cp.unref();

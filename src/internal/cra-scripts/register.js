@@ -1,2 +1,2 @@
-require('dr-comp-package/register');
+// require('dr-comp-package/register');
 require('./dist/preload');

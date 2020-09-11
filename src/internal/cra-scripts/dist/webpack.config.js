@@ -1,13 +1,15 @@
 "use strict";
-const tslib_1 = require("tslib");
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 // tslint:disable:no-console
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const lodash_1 = __importDefault(require("lodash"));
+const path_1 = __importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
 const webpack_sources_1 = require("webpack-sources");
 const utils_1 = require("./utils");
 const package_utils_1 = require("dr-comp-package/wfh/dist/package-utils");
-const webpack_lib_1 = tslib_1.__importDefault(require("./webpack-lib"));
+const webpack_lib_1 = __importDefault(require("./webpack-lib"));
 const build_target_helper_1 = require("./build-target-helper");
 const config_handler_1 = require("dr-comp-package/wfh/dist/config-handler");
 // import chalk from 'chalk';
@@ -159,6 +161,9 @@ module.exports = function (webpackEnv) {
     //   }
     //   config.resolve.modules.unshift(topModuleDir);
     // }
+    const { nodePath } = JSON.parse(process.env.__plink);
+    const resolveModules = ['node_modules', ...nodePath];
+    config.resolve.modules = resolveModules;
     Object.assign(config.resolve.alias, require('rxjs/_esm2015/path-mapping')());
     Object.assign(config.optimization.splitChunks, {
         chunks: 'all',
@@ -195,7 +200,7 @@ module.exports = function (webpackEnv) {
         ssrConfig(config);
     }
     if (cmdOption.buildType === 'lib')
-        webpack_lib_1.default(cmdOption.buildTarget, config);
+        webpack_lib_1.default(cmdOption.buildTarget, config, nodePath);
     const configFileInPackage = path_1.default.resolve(dir, lodash_1.default.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
     if (fs_extra_1.default.existsSync(configFileInPackage)) {
         const cfgMgr = new config_handler_1.ConfigHandlerMgr([configFileInPackage]);

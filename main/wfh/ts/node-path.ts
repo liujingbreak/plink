@@ -6,8 +6,8 @@ if (process.env.__plink == null) {
   const rootDir = findRootDir();
   const symlinkDir = Path.resolve(rootDir, 'node_modules');
   const isDrcpSymlink = fs.lstatSync(Path.resolve(rootDir, 'node_modules/dr-comp-package')).isSymbolicLink();
-  process.env.__plink = JSON.stringify({isDrcpSymlink, rootDir, symlinkDir} as PlinkEnv);
-  setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
+  const nodePath = setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
+  process.env.__plink = JSON.stringify({isDrcpSymlink, rootDir, symlinkDir, nodePath} as PlinkEnv);
 }
 
 function findRootDir() {
@@ -52,20 +52,23 @@ function setupNodePath(rootDir: string, symlinkDir: string, isDrcpSymlink: boole
       nodePaths.add(path);
     }
   }
-  process.env.NODE_PATH = Array.from(nodePaths.values()).join(Path.delimiter);
+  const pathArray = Array.from(nodePaths.values());
+  process.env.NODE_PATH = pathArray.join(Path.delimiter);
   // tslint:disable-next-line: no-console
   console.log('[node-path] NODE_PATH', process.env.NODE_PATH);
   require('module').Module._initPaths();
+  return pathArray;
 }
 
 /**
  * Get environment variables predefined by
 ```
-const {isDrcpSymlink, symlinkDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {isDrcpSymlink, symlinkDir, rootDir, nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
 ```
  */
 export interface PlinkEnv {
   isDrcpSymlink: boolean;
   rootDir: string;
   symlinkDir: string;
+  nodePath: string[];
 }
