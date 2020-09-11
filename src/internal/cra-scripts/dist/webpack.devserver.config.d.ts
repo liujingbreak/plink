@@ -1,3 +1,2 @@
-/// <reference types="webpack-dev-server" />
-declare const _default;
+declare const _default: (proxy: string, allowedHost: string) => any;
 export = _default;

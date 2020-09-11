@@ -1,4 +1,6 @@
-
+import commander from 'commander';
+export type CliExtension = (program: commander.Command,
+  withGlobalCliOptions: (subCommand: commander.Command) => void) => void;
 
 export interface GlobalOptions {
   config: string[];

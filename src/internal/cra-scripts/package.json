@@ -6,7 +6,9 @@
   "bin": {
     "cra-enhance": "dist/cmd/cli.js"
   },
-  "dr": {},
+  "dr": {
+    "cli": "dist/cmd/cli.js#default"
+  },
   "dependencies": {
     "@types/react-dev-utils": "^9.0.4",
     "less-loader": "~5.0.0"

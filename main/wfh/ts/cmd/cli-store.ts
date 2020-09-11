@@ -9,6 +9,7 @@ import {allPackages} from '../package-utils';
 const drcpPkJson = require('../../../package.json');
 
 export interface CliState {
+  /** key is package name */
   extensions: Map<string, CliExtension>;
   version: string;
 }

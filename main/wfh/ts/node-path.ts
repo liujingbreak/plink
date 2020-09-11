@@ -12,7 +12,7 @@ if (process.env.__plink == null) {
 
 function findRootDir() {
   let dir = process.cwd();
-  while (!fs.existsSync(Path.resolve(dir, 'dist/dr-state.json'))) {
+  while (!fs.existsSync(Path.resolve(dir, 'dist/plink-state.json'))) {
     const parentDir = Path.dirname(dir);
     if (parentDir === dir) {
       dir = process.cwd();

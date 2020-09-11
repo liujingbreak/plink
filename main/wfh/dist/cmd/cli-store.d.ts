@@ -1,5 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 export interface CliState {
+    /** key is package name */
     extensions: Map<string, CliExtension>;
     version: string;
 }

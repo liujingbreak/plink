@@ -3,7 +3,10 @@ import commander from 'commander';
 import chalk from 'chalk';
 import type * as store from '../store';
 import * as tp from './types';
-
+import type * as cliStore from './cli-store';
+import type * as pkgMgr from '../package-mgr';
+import * as _ from 'lodash';
+// import Path from 'path';
 const pk = require('../../../package');
 // const WIDTH = 130;
 
@@ -29,16 +32,23 @@ export async function drcpCommand(startTime: number) {
     (await import('../store')).saveState();
   });
 
+  let cliExtensions: string[];
   const program = new commander.Command().name('plink')
   .action(args => {
     program.outputHelp();
     // tslint:disable-next-line: no-console
     console.log('\nversion:', pk.version);
+    if (cliExtensions.length > 0) {
+      // tslint:disable-next-line: no-console
+      console.log(`Found ${cliExtensions.length} command line extension` +
+      `${cliExtensions.length > 1 ? 's' : ''}: ${cliExtensions.join(', ')}`);
+    }
   });
 
   program.version(pk.version, '-v, --vers', 'output the current version');
-
   subDrcpCommand(program);
+  if (process.env.PLINK_SAFE !== 'true')
+    cliExtensions = loadExtensionCommand(program);
 
   try {
     await program.parseAsync(process.argv);
@@ -199,6 +209,38 @@ function subDrcpCommand(program: commander.Command) {
       (await import('../drcp-cmd')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
     });
   withGlobalOptions(packCmd);
+}
+
+function loadExtensionCommand(program: commander.Command): string[] {
+  const {getState} = require('./cli-store') as typeof cliStore;
+  const {getState: getPkgState, pathToWorkspace} = require('../package-mgr') as typeof pkgMgr;
+  const ws = getPkgState().workspaces.get(pathToWorkspace(process.cwd()));
+  if (ws == null)
+    return [];
+
+  const availables: string[] = [];
+  for (const extension of getState().extensions.values()) {
+    if (!_.has(ws.originInstallJson.dependencies, extension.pkName) && !_.has(ws.originInstallJson.devDependencies, extension.pkName))
+      continue;
+
+    availables.push(extension.pkName);
+    let filePath: string | null = null;
+    try {
+      filePath = require.resolve(extension.pkName + '/' + extension.pkgFilePath);
+    } catch (e) {}
+
+    if (filePath != null) {
+      try {
+        const subCmdFactory: tp.CliExtension = extension.funcName ? require(filePath)[extension.funcName] :
+          require(filePath);
+        subCmdFactory(program, withGlobalOptions);
+      } catch (e) {
+        // tslint:disable-next-line: no-console
+        console.error('Failed to load command line extension in package ' + extension.pkName, e);
+      }
+    }
+  }
+  return availables;
 }
 
 function hl(text: string) {
