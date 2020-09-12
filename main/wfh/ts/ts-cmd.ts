@@ -77,9 +77,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   };
   setTsCompilerOptForNodePath(process.cwd(), compilerOptions, {enableTypeRoots: true});
 
-  // console.log(compilerOptions);
-  // console.log(compilerOptions);
-  // debugger;
+  let countPkg = 0;
   if (argv.package && argv.package.length > 0)
     packageUtils.findAllPackages(argv.package, onComponent, 'src');
   else if (argv.project && argv.project.length > 0) {
@@ -87,6 +85,9 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   } else
     packageUtils.findAllPackages(onComponent, 'src');
 
+  if (countPkg === 0) {
+    throw new Error('No available srouce package found in current workspace');
+  }
   const commonRootDir = closestCommonParentDir(Array.from(compDirInfo.values()).map(el => el.dir));
   const packageDirTree = new DirTree<ComponentDirInfo>();
   for (const info of compDirInfo.values()) {
@@ -98,6 +99,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   // console.log('rootDir:', commonRootDir);
 
   function onComponent(name: string, packagePath: string, _parsedName: any, json: any, realPath: string) {
+    countPkg++;
     // const packagePath = resolve(root, 'node_modules', name);
     const dirs = getTsDirsOfPackage(json);
     const srcDirs = [dirs.srcDir, dirs.isomDir].filter(srcDir => {

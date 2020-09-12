@@ -1,22 +1,33 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = void 0;
-const tslib_1 = require("tslib");
 // tslint:disable: no-console
 const process_utils_1 = require("dr-comp-package/wfh/dist/process-utils");
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
-const moment_1 = tslib_1.__importDefault(require("moment"));
+const path_1 = __importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const moment_1 = __importDefault(require("moment"));
 const merge_artifacts_1 = require("./merge-artifacts");
 const remote_deploy_1 = require("@dr-core/assets-processer/dist/remote-deploy");
 const _send_patch_1 = require("./_send-patch");
 const artifacts_1 = require("@bk/prebuild/dist/artifacts");
-const __api_1 = tslib_1.__importDefault(require("__api"));
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const __api_1 = __importDefault(require("__api"));
+const log4js_1 = __importDefault(require("log4js"));
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.send-patch');
 let pkJson = require(path_1.default.resolve('package.json'));
 function main(env, appName, buildStaticOnly = false, pushBranch = true, secret) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const setting = __api_1.default.config.get(__api_1.default.packageName);
         const rootDir = path_1.default.resolve();
         const releaseBranch = setting.prebuildReleaseBranch;
@@ -70,7 +81,7 @@ function main(env, appName, buildStaticOnly = false, pushBranch = true, secret) 
 }
 exports.main = main;
 function pushReleaseBranch(releaseBranch, rootDir, env, appName) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const releaseRemote = __api_1.default.config.get(__api_1.default.packageName).prebuildGitRemote;
         yield process_utils_1.spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir }).promise;
         removeDevDeps();
@@ -87,7 +98,7 @@ function pushReleaseBranch(releaseBranch, rootDir, env, appName) {
     });
 }
 function addTag(rootDir) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const releaseRemote = __api_1.default.config.get(__api_1.default.packageName).prebuildGitRemote;
         const current = moment_1.default();
         const tagName = `release/${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;

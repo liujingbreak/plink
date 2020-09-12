@@ -1,20 +1,50 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changeAngularCliOptions = exports.changeAngularCliOptionsForBuild = void 0;
-const tslib_1 = require("tslib");
 /* tslint:disable no-console */
 const architect_1 = require("@angular-devkit/architect");
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const chalk_1 = __importDefault(require("chalk"));
 const network_util_1 = require("dr-comp-package/wfh/dist/utils/network-util");
 // import { getTsDirsOfPackage } from 'dr-comp-package/wfh/dist/utils';
-const fs = tslib_1.__importStar(require("fs"));
-const _ = tslib_1.__importStar(require("lodash"));
-const Path = tslib_1.__importStar(require("path"));
+const fs = __importStar(require("fs"));
+const _ = __importStar(require("lodash"));
+const Path = __importStar(require("path"));
 const worker_threads_1 = require("worker_threads");
 const typescript_1 = require("typescript");
-const url_1 = tslib_1.__importDefault(require("url"));
-const injector_setup_1 = tslib_1.__importDefault(require("./injector-setup"));
-const mem_stats_1 = tslib_1.__importDefault(require("dr-comp-package/wfh/dist/utils/mem-stats"));
+const url_1 = __importDefault(require("url"));
+const injector_setup_1 = __importDefault(require("./injector-setup"));
+const mem_stats_1 = __importDefault(require("dr-comp-package/wfh/dist/utils/mem-stats"));
 const for_hmr_1 = require("./for-hmr");
 const { cyan, green, red } = chalk_1.default;
 const currPackageName = require('../../package.json').name;
@@ -22,7 +52,7 @@ const log = require('log4js').getLogger('@dr-core/ng-app-builder.change-cli-opti
 function hackAngularBuilderContext(context, targetName, replacedOpts) {
     const getTargetOptions = context.getTargetOptions;
     context.getTargetOptions = function (target) {
-        return tslib_1.__awaiter(this, arguments, void 0, function* () {
+        return __awaiter(this, arguments, void 0, function* () {
             if (target.target === targetName) {
                 // log.info('Angular cli build options', replacedOpts);
                 return replacedOpts;
@@ -38,7 +68,7 @@ function hackAngularBuilderContext(context, targetName, replacedOpts) {
  * @param browserOptions
  */
 function changeAngularCliOptionsForBuild(config, browserOptions, context) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         return processBrowserBuiliderOptions(config, browserOptions, context);
     });
 }
@@ -50,7 +80,7 @@ exports.changeAngularCliOptionsForBuild = changeAngularCliOptionsForBuild;
  * @param builderConfig
  */
 function changeAngularCliOptions(config, context, builderConfig) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const browserTarget = architect_1.targetFromTargetString(builderConfig.browserTarget);
         const rawBrowserOptions = yield context.getTargetOptions(browserTarget);
         if (!rawBrowserOptions.deployUrl)
@@ -62,7 +92,7 @@ function changeAngularCliOptions(config, context, builderConfig) {
 }
 exports.changeAngularCliOptions = changeAngularCliOptions;
 function processBrowserBuiliderOptions(config, rawBrowserOptions, context, devServerConfig, hmr = false) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         context.reportStatus('Change builder options');
         const browserOptions = rawBrowserOptions;
         for (const prop of ['deployUrl', 'outputPath', 'styles']) {
@@ -158,7 +188,7 @@ function processBrowserBuiliderOptions(config, rawBrowserOptions, context, devSe
 }
 // Hack ts.sys, so far it is used to read tsconfig.json
 function hackTsConfig(browserOptions, config, packagesInfo) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const oldReadFile = typescript_1.sys.readFile;
         const tsConfigFile = Path.resolve(browserOptions.tsConfig);
         const useThread = config.get(currPackageName + '.useThread', true);

@@ -1,15 +1,26 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 // tslint:disable:no-console
 /**
  * @deprecated
  */
-const adm_zip_1 = tslib_1.__importDefault(require("adm-zip"));
-const os_1 = tslib_1.__importDefault(require("os"));
-const util_1 = tslib_1.__importDefault(require("util"));
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const adm_zip_1 = __importDefault(require("adm-zip"));
+const os_1 = __importDefault(require("os"));
+const util_1 = __importDefault(require("util"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const pify = require('pify');
 process.on('uncaughtException', (err) => {
     // tslint:disable-next-line
@@ -31,12 +42,12 @@ const zipExtractDir = argv[3];
 const deleteOption = argv[4];
 const readFileAsync = pify(fs_1.default.readFile);
 function start() {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const fileNames = fs_1.default.readdirSync(zipDir);
         const proms = fileNames.filter(name => path_1.default.extname(name).toLowerCase() === '.zip')
             .map(name => {
             const file = path_1.default.resolve(zipDir, name);
-            return () => tslib_1.__awaiter(this, void 0, void 0, function* () {
+            return () => __awaiter(this, void 0, void 0, function* () {
                 console.log(`[pid:${process.pid}] start extracting ${file}`);
                 process.send && process.send({ log: `[pid:${process.pid}] start extracting ${file}` });
                 yield tryExtract(file);
@@ -65,7 +76,7 @@ function start() {
     });
 }
 function tryExtract(file) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const data = yield readFileAsync(file);
         yield new Promise((resolve, reject) => {
             const zip = new adm_zip_1.default(data);

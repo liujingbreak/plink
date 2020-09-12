@@ -1,18 +1,20 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addSourceFiles = void 0;
-const tslib_1 = require("tslib");
 // tslint:disable: no-console
 /**
  * This file will run in worker thread
  */
 const worker_threads_1 = require("worker_threads");
-const ts_dep_1 = tslib_1.__importDefault(require("../ts-dep"));
+const ts_dep_1 = __importDefault(require("../ts-dep"));
 const ts_compiler_1 = require("dr-comp-package/wfh/dist/ts-compiler");
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const __api_1 = __importDefault(require("__api"));
 const typescript_1 = require("typescript");
-const path_1 = tslib_1.__importDefault(require("path"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const path_1 = __importDefault(require("path"));
+const chalk_1 = __importDefault(require("chalk"));
 // import * as util from 'util';
 // const log = require('log4js').getLogger('add-tsconfig-file');
 // initCli(browserOptions)

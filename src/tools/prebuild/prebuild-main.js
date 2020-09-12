@@ -1,2 +1,2 @@
-require(require('path').resolve('node_modules/dr-comp-package/wfh/dist/node-path'));
+require('dr-comp-package/register');
 require('./dist/cli');

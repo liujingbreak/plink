@@ -1,12 +1,14 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.packageAssetsFolders = void 0;
-const tslib_1 = require("tslib");
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const __api_1 = __importDefault(require("__api"));
 const url_1 = require("url");
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs_1 = tslib_1.__importDefault(require("fs"));
+const lodash_1 = __importDefault(require("lodash"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const package_utils_1 = require("dr-comp-package/wfh/dist/package-utils");
 // import {createStaticRoute} from './static-middleware';
 // import express from 'express';

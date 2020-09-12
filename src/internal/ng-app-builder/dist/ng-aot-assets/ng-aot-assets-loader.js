@@ -1,13 +1,34 @@
 "use strict";
-const tslib_1 = require("tslib");
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 // import {RawSourceMap} from 'source-map';
-const __api_1 = tslib_1.__importDefault(require("__api"));
-const patch_text_1 = tslib_1.__importDefault(require("../utils/patch-text"));
+const __api_1 = __importDefault(require("__api"));
+const patch_text_1 = __importDefault(require("../utils/patch-text"));
 const index_1 = require("./index");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const vm = require("vm");
-const _ = tslib_1.__importStar(require("lodash"));
+const _ = __importStar(require("lodash"));
 // const log = require('log4js').getLogger('ng-app-builder.ng-aot-assets');
 const pattern = new RegExp(`\\[drcp_${index_1.randomNumStr};([^\\]]*)\\]`, 'g');
 const loader = function (source, sourceMap) {

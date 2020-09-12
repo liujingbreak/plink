@@ -1,10 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = exports.RCF822TokenType = void 0;
-const tslib_1 = require("tslib");
 const LLn_parser_1 = require("dr-comp-package/wfh/dist/LLn-parser");
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
 const log = require('log4js').getLogger('@dr-core/assets-processer.rfc822-sync-parser');
 var RCF822TokenType;
 (function (RCF822TokenType) {

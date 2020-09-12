@@ -11,4 +11,3 @@ export { ofPayloadAction };
 export declare const lastSavedState: any;
 export declare const stateFactory: StateFactory;
 export declare function startLogging(): Promise<void>;
-export declare function saveState(): Promise<void>;

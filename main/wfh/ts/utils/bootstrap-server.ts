@@ -42,14 +42,14 @@ export async function initConfigAsync(options: GlobalOptions, onShutdownSignal?:
 
   const {stateFactory}: typeof store = require('../store');
   stateFactory.configureStore();
-  let saved = false;
-  process.on('beforeExit', async (code) => {
-    if (saved)
-      return;
-    saved = true;
-    log4js.shutdown();
-    (await import('../store')).saveState();
-  });
+  // let saved = false;
+  // process.on('beforeExit', async (code) => {
+  //   if (saved)
+  //     return;
+  //   saved = true;
+  //   log4js.shutdown();
+  //   (await import('../store')).saveState();
+  // });
 
   await config.init(options);
   logConfig(config());

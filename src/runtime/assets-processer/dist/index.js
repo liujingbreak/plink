@@ -1,25 +1,46 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = exports.deactivate = exports.compile = void 0;
-const tslib_1 = require("tslib");
 const gulp = require('gulp');
-const through2_1 = tslib_1.__importDefault(require("through2"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const through2_1 = __importDefault(require("through2"));
+const path_1 = __importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const lodash_1 = __importDefault(require("lodash"));
+const __api_1 = __importDefault(require("__api"));
 const es = require('event-stream');
 const log = require('log4js').getLogger(__api_1.default.packageName);
-const fetchRemote = tslib_1.__importStar(require("./fetch-remote"));
+const fetchRemote = __importStar(require("./fetch-remote"));
 const serverFavicon = require('serve-favicon');
 const static_middleware_1 = require("./static-middleware");
 const index_html_route_1 = require("./index-html-route");
 const cd_server_1 = require("./content-deployer/cd-server");
 const fetch_remote_imap_1 = require("./fetch-remote-imap");
-const serve_index_1 = tslib_1.__importDefault(require("serve-index"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const serve_index_1 = __importDefault(require("serve-index"));
+const chalk_1 = __importDefault(require("chalk"));
 const utils_1 = require("./utils");
-const packageUtils = tslib_1.__importStar(require("dr-comp-package/wfh/dist/package-utils"));
+const packageUtils = __importStar(require("dr-comp-package/wfh/dist/package-utils"));
 // const setupDevAssets = require('./dist/dev-serve-assets').default;
 const buildUtils = __api_1.default.buildUtils;
 const config = __api_1.default.config;

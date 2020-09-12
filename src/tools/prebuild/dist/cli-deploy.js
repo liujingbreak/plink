@@ -1,14 +1,25 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const __api_1 = tslib_1.__importDefault(require("__api"));
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const __api_1 = __importDefault(require("__api"));
+const log4js_1 = __importDefault(require("log4js"));
 const process_utils_1 = require("dr-comp-package/wfh/dist/process-utils");
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const chalk_1 = __importDefault(require("chalk"));
 const prebuild_post_1 = require("./prebuild-post");
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.cli-deploy');
 function default_1(isStatic, env, app, pushBranch = true, secret, scriptsFile) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile}`);
         if (pushBranch) {
             yield require('./merge-artifacts').prepare();

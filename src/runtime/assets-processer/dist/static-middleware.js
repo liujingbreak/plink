@@ -1,11 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createZipRoute = exports.createStaticRoute = void 0;
-const tslib_1 = require("tslib");
-const serve_static_zip_1 = tslib_1.__importDefault(require("serve-static-zip"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const express_1 = tslib_1.__importDefault(require("express"));
+const serve_static_zip_1 = __importDefault(require("serve-static-zip"));
+const path_1 = __importDefault(require("path"));
+const lodash_1 = __importDefault(require("lodash"));
+const express_1 = __importDefault(require("express"));
 const ms = require('ms');
 function createStaticRoute(staticDir, maxAgeMap = {}) {
     let maxAgeNumMap = parseMaxAgeMap(maxAgeMap);

@@ -5,6 +5,7 @@ import fs from 'fs';
 import Path from 'path';
 import _ from 'lodash';
 import {gt} from 'semver';
+import commander from 'Commander';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -97,14 +98,37 @@ function cliArgvMap(): Map<string, string|boolean> {
 }
 
 export function saveCmdArgToEnv() {
-  const argv = process.argv.slice(2);
+  process.title = 'Plink';
+  const pk = require('../package.json');
+  const program = new commander.Command('react-scripts')
+  .action(() => {
+    program.outputHelp();
+    process.exit(0);
+  });
+  program.version(pk.version, '-v, --vers', 'output the current version');
+
+  program.command('lib <package-name>')
+  .description('Compile library')
+  .action(pkgName => {
+    process.env.REACT_APP_cra_build_type = 'lib';
+    process.env.REACT_APP_cra_build_target = pkgName;
+  });
+
+  program.command('app <package-name>')
+  .description('Compile appliaction')
+  .action(pkgName => {
+    process.env.REACT_APP_cra_build_target = pkgName;
+  });
+
+  program.parse(process.argv);
+  // const argv = process.argv.slice(2);
   // console.log(`saveCmdArgToEnv() ${process.argv}`);
-  if (argv.length > 0) {
-    process.env.REACT_APP_cra_build_type = argv[0];
-  }
-  if (argv.length > 1) {
-    process.env.REACT_APP_cra_build_target = argv[1];
-  }
+  // if (argv.length > 0) {
+  //   process.env.REACT_APP_cra_build_type = argv[0];
+  // }
+  // if (argv.length > 1) {
+  //   process.env.REACT_APP_cra_build_target = argv[1];
+  // }
 }
 
 export function findDrcpProjectDir() {

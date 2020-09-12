@@ -61,13 +61,12 @@ export function findAllPackages(packageList: string[] | string | FindPackageCb,
     return;
   } else if (_.isFunction(packageList)) {
     // arguments.length <= 2
-    projectDir = recipeType as string | undefined;
+    projectDir = recipeType;
     recipeType = callback as 'src' | 'installed';
     callback = packageList;
   }
-
   return findPackageByType('*', callback as FindPackageCb, recipeType as 'src' | 'installed',
-    projectDir as string | undefined);
+    projectDir);
 }
 
 // export {eachRecipe} from './recipe-manager';
@@ -75,9 +74,10 @@ export function findAllPackages(packageList: string[] | string | FindPackageCb,
 export {lookupPackageJson as findPackageJsonPath};
 
 export function findPackageByType(_types: PackageType | PackageType[],
-  callback: FindPackageCb, recipeType?: 'src' | 'installed', projectDir?: string) {
+  callback: FindPackageCb, recipeType?: 'src' | 'installed', projectDir?: string[] | string) {
 
-  for (const pkg of allPackages(_types, recipeType, projectDir)) {
+  const arr = Array.isArray(projectDir) ? projectDir : projectDir == null ? projectDir : [projectDir];
+  for (const pkg of allPackages(_types, recipeType, arr)) {
     callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, pkg.isInstalled);
   }
 }
@@ -87,20 +87,22 @@ export function findPackageByType(_types: PackageType | PackageType[],
  * packages that are depended in current workspace package.json file
  */
 export function* allPackages(_types?: PackageType | PackageType[],
-  recipeType?: 'src' | 'installed', projectDir?: string): Generator<PackageInfo> {
+  recipeType?: 'src' | 'installed', projectDirs?: string[]): Generator<PackageInfo> {
 
   // const wsKey = pathToWorkspace(process.cwd());
 
   if (recipeType !== 'installed') {
-    if (projectDir) {
-      const projKey = pathToProjKey(projectDir);
-      const pkgNames = getState().project2Packages.get(projKey);
-      if (pkgNames == null)
-        return;
-      for (const pkgName of pkgNames) {
-        const pkg = getState().srcPackages.get(pkgName);
-        if (pkg) {
-          yield pkg;
+    if (projectDirs) {
+      for (const projectDir of projectDirs) {
+        const projKey = pathToProjKey(projectDir);
+        const pkgNames = getState().project2Packages.get(projKey);
+        if (pkgNames == null)
+          return;
+        for (const pkgName of pkgNames) {
+          const pkg = getState().srcPackages.get(pkgName);
+          if (pkg) {
+            yield pkg;
+          }
         }
       }
     } else {

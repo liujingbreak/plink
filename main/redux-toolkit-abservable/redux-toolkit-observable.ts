@@ -65,18 +65,19 @@ export class StateFactory {
   store$ = new BehaviorSubject<EnhancedStore<any, PayloadAction<any>> | undefined>(undefined);
   log$: Observable<any[]>;
   rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
-  private epicSeq = 0;
-  // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
-
-  private debugLog = new ReplaySubject<any[]>(15);
-  private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
-  private epicWithUnsub$: Subject<[Epic, Subject<string>]>;
-
   /**
    * Unlike store.dispatch(action),
    * If you call next() on this subject, it can save action dispatch an action even before store is configured
    */
-  private actionsToDispatch = new ReplaySubject<PayloadAction<any>>(20);
+  actionsToDispatch = new ReplaySubject<PayloadAction<any>>(20);
+
+  private epicSeq = 0;
+  // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
+  private debugLog = new ReplaySubject<any[]>(15);
+  private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
+  private epicWithUnsub$: Subject<[Epic, Subject<string>]>;
+
+
 
   private reportActionError: (err: Error) => void;
 

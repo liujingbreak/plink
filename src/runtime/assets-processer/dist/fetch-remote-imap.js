@@ -1,15 +1,26 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.testMail = exports.ImapManager = exports.connectImap = exports.retrySendMail = exports.sendMail = void 0;
-const tslib_1 = require("tslib");
 const nodemailer_1 = require("nodemailer");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const tls_1 = require("tls");
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
 const imap_msg_parser_1 = require("./mail/imap-msg-parser");
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const __api_1 = __importDefault(require("__api"));
 const rfc822_sync_parser_1 = require("./mail/rfc822-sync-parser");
 // import {Socket} from 'net';
 const log = require('log4js').getLogger(__api_1.default.packageName + '.fetch-remote-imap');
@@ -17,7 +28,7 @@ const setting = __api_1.default.config.get(__api_1.default.packageName);
 const env = setting.fetchMailServer ? setting.fetchMailServer.env : 'local';
 const currChecksumFile = path_1.default.resolve('checksum.' + (setting.fetchMailServer ? env : 'local') + '.json');
 function sendMail(subject, text, file) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         log.info('login');
         if (!setting.fetchMailServer) {
             log.warn('fetchMailServer is not configured! Skip sendMail');
@@ -53,7 +64,7 @@ function sendMail(subject, text, file) {
 }
 exports.sendMail = sendMail;
 function retrySendMail(subject, text, file) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         let error;
         for (let i = 0; i < 3; i++) {
             try {
@@ -81,7 +92,7 @@ exports.retrySendMail = retrySendMail;
  * https://tools.ietf.org/html/rfc2971
  */
 function connectImap(callback) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         let logEnabled = true;
         let cmdIdx = 1;
         const fileWritingState = new rxjs_1.BehaviorSubject(new Set());
@@ -141,7 +152,7 @@ function connectImap(callback) {
             yield waitForReply();
             yield waitForReply('ID ("name" "com.tencent.foxmail" "version" "7.2.9.79")');
             yield waitForReply(`LOGIN ${EMAIL} ${SECRET}`);
-            yield waitForReply('SELECT INBOX', (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+            yield waitForReply('SELECT INBOX', (la) => __awaiter(this, void 0, void 0, function* () {
                 const exitsTk = yield la.la(3);
                 if (exitsTk && exitsTk.text.toUpperCase() === 'EXISTS') {
                     context.lastIndex = parseInt((yield la.la(2)).text, 10);
@@ -164,9 +175,9 @@ function connectImap(callback) {
         serverResHandler.input(null);
         socket.end();
         function waitForFetchText(index) {
-            return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            return __awaiter(this, void 0, void 0, function* () {
                 let body1;
-                yield waitForReply(`FETCH ${index} BODY[1]`, (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                yield waitForReply(`FETCH ${index} BODY[1]`, (la) => __awaiter(this, void 0, void 0, function* () {
                     while ((yield la.la()) != null) {
                         const token = yield la.advance();
                         if (token.text === 'BODY' && (yield la.la()).text === '[1]') {
@@ -185,7 +196,7 @@ function connectImap(callback) {
             if (command)
                 tag = 'a' + (cmdIdx++);
             let result = null;
-            const prom = imap_msg_parser_1.parseLinesOfTokens(serverResHandler.output, (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+            const prom = imap_msg_parser_1.parseLinesOfTokens(serverResHandler.output, (la) => __awaiter(this, void 0, void 0, function* () {
                 const resTag = yield la.la();
                 if (!tag && resTag.text === '*' || resTag.text === tag) {
                     yield la.advance();
@@ -212,10 +223,10 @@ function connectImap(callback) {
             return prom.then(() => result);
         }
         function waitForFetch(mailIdx = '*', headerOnly = true, overrideFileName) {
-            return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            return __awaiter(this, void 0, void 0, function* () {
                 const originLogEnabled = logEnabled;
                 logEnabled = headerOnly;
-                const result = yield waitForReply(`FETCH ${mailIdx} RFC822${headerOnly ? '.HEADER' : ''}`, (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                const result = yield waitForReply(`FETCH ${mailIdx} RFC822${headerOnly ? '.HEADER' : ''}`, (la) => __awaiter(this, void 0, void 0, function* () {
                     let msg;
                     while ((yield la.la()) != null) {
                         const tk = yield la.advance();
@@ -247,7 +258,7 @@ function connectImap(callback) {
             });
         }
         function findMail(fromIndx, subject) {
-            return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            return __awaiter(this, void 0, void 0, function* () {
                 log.info('findMail', fromIndx, subject);
                 while (fromIndx > 0) {
                     const res = yield waitForFetch(fromIndx);
@@ -275,7 +286,7 @@ class ImapManager {
             this.zipDownloadDir = path_1.default.resolve(path_1.default.dirname(currChecksumFile), 'deploy-static-' + env);
     }
     fetchChecksum() {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
             //   let cs: Checksum | undefined;
             //   await connectImap(async ctx => {
             //     cs = await this._fetchChecksum(ctx);
@@ -286,7 +297,7 @@ class ImapManager {
         });
     }
     fetchUpdateCheckSum(appName) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
             //   let cs = await this.fetchChecksum();
             //   log.info('fetched checksum:', cs);
             //   if (cs!.versions![appName] == null) {
@@ -309,7 +320,7 @@ class ImapManager {
      * @param excludeApp exclude app
      */
     fetchOtherZips(excludeApp) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
             //   let appNames = Object.keys(this.checksumState.getValue()!.versions!)
             //   .filter(app => app !== excludeApp);
             //   let fileWrittenProm: Promise<boolean> | undefined;
@@ -335,8 +346,8 @@ class ImapManager {
         });
     }
     appendMail(subject, content) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            yield connectImap((ctx) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield connectImap((ctx) => __awaiter(this, void 0, void 0, function* () {
                 yield ctx.appendMail(subject, content);
             }));
         });
@@ -349,8 +360,8 @@ class ImapManager {
     //   }
     // }
     checkMailForUpdate() {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            yield connectImap((ctx) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield connectImap((ctx) => __awaiter(this, void 0, void 0, function* () {
                 this.ctx = ctx;
                 this.fileWritingState = ctx.fileWritingState;
                 const cs = yield this._fetchChecksum(ctx);
@@ -379,7 +390,7 @@ class ImapManager {
         this.watching = false;
     }
     fetchAttachment(app) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
             // const idx = await this.ctx.findMail(this.ctx.lastIndex, `bkjk-pre-build(${this.env}-${app})`);
             // if (idx == null)
             //   throw new Error('Cant find mail: ' + `bkjk-pre-build(${this.env}-${app})`);
@@ -387,7 +398,7 @@ class ImapManager {
         });
     }
     _fetchChecksum(ctx) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
             const idx = yield ctx.findMail(ctx.lastIndex, `bkjk-pre-build(${this.env}-`);
             log.info('_fetchChecksum, index:', idx);
             if (idx == null) {
@@ -403,13 +414,13 @@ class ImapManager {
 }
 exports.ImapManager = ImapManager;
 function testMail(imap, user, loginSecret) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         log.debug = log.info;
         if (imap)
             __api_1.default.config.set([__api_1.default.packageName, 'fetchMailServer'], {
                 imap, user, loginSecret
             });
-        yield connectImap((ctx) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        yield connectImap((ctx) => __awaiter(this, void 0, void 0, function* () {
             yield ctx.waitForReply('SEARCH HEAD Subject "build artifact: bkjk-pre-build"');
         }));
     });

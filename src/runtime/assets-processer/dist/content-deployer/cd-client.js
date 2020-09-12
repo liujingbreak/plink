@@ -1,20 +1,31 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.toLines = exports.sendAppZip = void 0;
-const tslib_1 = require("tslib");
 const rxjs_1 = require("rxjs");
-const http_1 = tslib_1.__importDefault(require("http"));
-const https_1 = tslib_1.__importDefault(require("https"));
-const url_1 = tslib_1.__importDefault(require("url"));
-const __api_1 = tslib_1.__importDefault(require("__api"));
-const util_1 = tslib_1.__importDefault(require("util"));
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const crypto_1 = tslib_1.__importDefault(require("crypto"));
+const http_1 = __importDefault(require("http"));
+const https_1 = __importDefault(require("https"));
+const url_1 = __importDefault(require("url"));
+const __api_1 = __importDefault(require("__api"));
+const util_1 = __importDefault(require("util"));
+const fs_1 = __importDefault(require("fs"));
+const crypto_1 = __importDefault(require("crypto"));
 // import PromQ from 'promise-queue';
 const log = require('log4js').getLogger(__api_1.default.packageName + '.cd-client');
 const RES_SKIP = 'Skip sending';
 function sendAppZip(opt = {}, file) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const argv = __api_1.default.argv;
         if (!opt.url)
             opt.url = argv.url;
@@ -51,7 +62,7 @@ function sendAppZip(opt = {}, file) {
                 send();
             }
             function send() {
-                return tslib_1.__awaiter(this, void 0, void 0, function* () {
+                return __awaiter(this, void 0, void 0, function* () {
                     sendCount++;
                     try {
                         log.info('#%s sending App: %s', sendCount, opt.file, sha);

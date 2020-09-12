@@ -1,4 +1,4 @@
 export declare function compileToHtml(markdown: string, genHash?: boolean): {
-    content: string;
+    content: any;
     hash: string | undefined;
 };

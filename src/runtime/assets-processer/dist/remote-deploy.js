@@ -1,18 +1,29 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.digestInstallingFiles = exports.fetchAllZips = exports.checkZipFile = exports.main = void 0;
-const tslib_1 = require("tslib");
 // tslint:disable: no-console
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
 const yazl_1 = require("yazl");
-const glob_1 = tslib_1.__importDefault(require("glob"));
+const glob_1 = __importDefault(require("glob"));
 const path_1 = require("path");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const __api_1 = __importDefault(require("__api"));
 const fetch_remote_imap_1 = require("./fetch-remote-imap");
-const path_2 = tslib_1.__importDefault(require("path"));
-const crypto_1 = tslib_1.__importDefault(require("crypto"));
+const path_2 = __importDefault(require("path"));
+const crypto_1 = __importDefault(require("crypto"));
 const log = require('log4js').getLogger(__api_1.default.packageName + '.remote-deploy');
 function main() {
     rxjs_1.defer(() => rxjs_1.from(mailDeployStaticRes())).pipe(operators_1.catchError(err => {
@@ -24,7 +35,7 @@ function main() {
 }
 exports.main = main;
 function mailDeployStaticRes() {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         console.log('Remote deploy (mail)...');
         let { env, src } = __api_1.default.argv;
         let appName;
@@ -57,7 +68,7 @@ function mailDeployStaticRes() {
  * @param appName
  */
 function checkZipFile(zipFileOrDir, installDir, appName, excludePat) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         zipFileOrDir = zipFileOrDir ? path_1.resolve(zipFileOrDir) : path_1.resolve(installDir, `${appName}.zip`);
         if (!fs_extra_1.default.existsSync(zipFileOrDir)) {
             console.error('\n%s not exist, quit!', zipFileOrDir);
@@ -97,7 +108,7 @@ exports.checkZipFile = checkZipFile;
  * drcp run assets-processer/ts/remote-deploy.ts#fetchAllZips --env test -c conf/remote-deploy-test.yaml
  */
 function fetchAllZips() {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const env = __api_1.default.argv.env;
         if (env == null) {
             throw new Error('Missing arguments "--env <environment>"');
@@ -115,7 +126,7 @@ exports.fetchAllZips = fetchAllZips;
  * Call this file to generate checksum files in build process
  */
 function digestInstallingFiles(rootDir) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         if (rootDir == null) {
             rootDir = path_2.default.resolve();
         }

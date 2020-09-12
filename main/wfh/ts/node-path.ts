@@ -8,6 +8,19 @@ if (process.env.__plink == null) {
   const isDrcpSymlink = fs.lstatSync(Path.resolve(rootDir, 'node_modules/dr-comp-package')).isSymbolicLink();
   const nodePath = setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
   process.env.__plink = JSON.stringify({isDrcpSymlink, rootDir, symlinkDir, nodePath} as PlinkEnv);
+
+  const deleteExecArgIdx: number[] = [];
+  for (let i = 0, l = process.execArgv.length; i < l; i++) {
+    if (i < l - 1 && /^(?:\-r|\-\-require)$/.test(process.execArgv[i]) &&
+      /^dr-comp-package\/register$/.test(process.execArgv[i + 1])) {
+      deleteExecArgIdx.push(i);
+    }
+  }
+  deleteExecArgIdx.reduce((offset, deleteIdx) => {
+    process.execArgv.splice(deleteIdx + offset, 2);
+    return offset + 2;
+  }, 0);
+  // console.log('[node-path]', process.execArgv);
 }
 
 function findRootDir() {

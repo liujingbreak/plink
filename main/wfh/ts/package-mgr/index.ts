@@ -582,34 +582,34 @@ async function installWorkspace(ws: WorkspaceState) {
     fs.mkdirpSync(target);
   }
 
-  if (ws.linkedDependencies.length + ws.linkedDevDependencies.length > 0) {
+  // if (ws.linkedDependencies.length + ws.linkedDevDependencies.length > 0) {
     // Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
     // backup them for late recovery
-    await listModuleSymlinks(target, link => {
-      const linkContent = fs.readlinkSync(link);
-      symlinksInModuleDir.push({content: linkContent, link});
-      return unlinkAsync(link);
-    });
-    // _cleanActions.addWorkspaceFile(links);
+  await listModuleSymlinks(target, link => {
+    const linkContent = fs.readlinkSync(link);
+    symlinksInModuleDir.push({content: linkContent, link});
+    return unlinkAsync(link);
+  });
+  // _cleanActions.addWorkspaceFile(links);
 
-    // 3. Run `npm install`
-    const installJsonFile = Path.resolve(dir, 'package.json');
+  // 3. Run `npm install`
+  const installJsonFile = Path.resolve(dir, 'package.json');
+  // tslint:disable-next-line: no-console
+  console.log('[init] write', installJsonFile);
+  fs.writeFileSync(installJsonFile, ws.installJsonStr, 'utf8');
+  await new Promise(resolve => setTimeout(resolve, 5000));
+
+  try {
+    await exe('npm', 'install', {cwd: dir}).promise;
+    await exe('npm', 'dedupe', {cwd: dir}).promise;
+  } catch (e) {
     // tslint:disable-next-line: no-console
-    console.log('[init] write', installJsonFile);
-    fs.writeFileSync(installJsonFile, ws.installJsonStr, 'utf8');
-    await new Promise(resolve => setTimeout(resolve, 5000));
-
-    try {
-      await exe('npm', 'install', {cwd: dir}).promise;
-      await exe('npm', 'dedupe', {cwd: dir}).promise;
-    } catch (e) {
-      // tslint:disable-next-line: no-console
-      console.log(e, e.stack);
-    }
-    // 4. Recover package.json and symlinks deleted in Step.1.
-    fs.writeFile(installJsonFile, ws.originInstallJsonStr, 'utf8');
-    await recoverSymlinks();
+    console.log(e, e.stack);
   }
+  // 4. Recover package.json and symlinks deleted in Step.1.
+  fs.writeFile(installJsonFile, ws.originInstallJsonStr, 'utf8');
+  await recoverSymlinks();
+  // }
 
   function recoverSymlinks() {
     return Promise.all(symlinksInModuleDir.map(({content, link}) => {
@@ -666,10 +666,13 @@ function* listInstalledComp4Workspace(state: PackagesState, workspaceKey: string
       continue;
     for (const dep of Object.keys(deps)) {
       if (!state.srcPackages.has(dep) && dep !== 'dr-comp-package') {
-        const pk = createPackageInfo(
-          Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true);
-        if (pk.json.dr) {
-          yield pk;
+        const pkjsonFile = Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json');
+        if (fs.existsSync(pkjsonFile)) {
+          const pk = createPackageInfo(
+            Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true);
+          if (pk.json.dr) {
+            yield pk;
+          }
         }
       }
     }

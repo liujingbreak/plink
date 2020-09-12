@@ -1,7 +1,15 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectImap = exports.parseLinesOfTokens = exports.createServerDataHandler = exports.ImapTokenType = void 0;
-const tslib_1 = require("tslib");
 const async_LLn_parser_1 = require("dr-comp-package/wfh/dist/async-LLn-parser");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
@@ -24,7 +32,7 @@ const R_BRACE = '}'.charCodeAt(0);
 const CR = '\r'.charCodeAt(0);
 const LF = '\n'.charCodeAt(0);
 const parseLex = function (reply, sub) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         // const origWrite = reply._writeAndResolve;
         // reply._writeAndResolve = function(bytes) {
         //   fs.writeFileSync('imap-msg-parser.parseLex.log.txt', Buffer.from(Array.from(bytes)).toString('utf8'), {flag: 'a'});
@@ -103,7 +111,7 @@ const parseLex = function (reply, sub) {
     });
 };
 function parseAtom(la) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         la.startToken(ImapTokenType.atom);
         yield la.advance();
         let nextByte = yield la.la();
@@ -115,7 +123,7 @@ function parseAtom(la) {
     });
 }
 function parseLiteralString(reply) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const chunk = reply.startToken(ImapTokenType.stringLit, false);
         yield reply.advance();
         let numStr = String.fromCharCode(yield reply.advance());
@@ -152,7 +160,7 @@ function parseLiteralString(reply) {
     });
 }
 function parseLine(la) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         let buf;
         let word = yield la.la();
         while (true) {
@@ -172,7 +180,7 @@ function parseLine(la) {
     });
 }
 function parseLines(lineSubject, la) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         let line;
         do {
             line = yield parseLine(la);
@@ -186,7 +194,7 @@ function parseLines(lineSubject, la) {
 }
 function createServerDataHandler() {
     const input = new rxjs_1.Subject();
-    const parseServerReply = (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+    const parseServerReply = (la) => __awaiter(this, void 0, void 0, function* () {
         const lineSubject = new rxjs_1.Subject();
         parseLines(lineSubject, la);
         return lineSubject;
@@ -224,7 +232,7 @@ function parseLinesOfTokens(lines, parseLine) {
 }
 exports.parseLinesOfTokens = parseLinesOfTokens;
 function connectImap(address) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const handler = createServerDataHandler();
         let socket;
         try {

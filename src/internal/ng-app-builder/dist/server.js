@@ -1,16 +1,49 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = exports.init = exports.tsHandler = void 0;
-const tslib_1 = require("tslib");
 /* tslint:disable max-line-length */
-const _fs = tslib_1.__importStar(require("fs-extra"));
-const _ = tslib_1.__importStar(require("lodash"));
-const log4js = tslib_1.__importStar(require("log4js"));
-const Path = tslib_1.__importStar(require("path"));
-const __api_1 = tslib_1.__importDefault(require("__api"));
-tslib_1.__exportStar(require("./configurable"), exports);
+const _fs = __importStar(require("fs-extra"));
+const _ = __importStar(require("lodash"));
+const log4js = __importStar(require("log4js"));
+const Path = __importStar(require("path"));
+const __api_1 = __importDefault(require("__api"));
+__exportStar(require("./configurable"), exports);
 // export * from './ng-prerender';
-tslib_1.__exportStar(require("./ng/common"), exports);
+__exportStar(require("./ng/common"), exports);
 const semver = require('semver');
 const { red, yellow } = require('chalk');
 const log = log4js.getLogger(__api_1.default.packageName);
@@ -19,7 +52,7 @@ function resolveImports(src) {
     return [];
 }
 function init() {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         if (!checkAngularVersion())
             throw new Error('Angular version check Error');
         checkAngularCliDepVersion();

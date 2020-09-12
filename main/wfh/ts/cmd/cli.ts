@@ -21,19 +21,19 @@ export async function drcpCommand(startTime: number) {
   const {stateFactory}: typeof store = require('../store');
   await import('./cli-store');
   stateFactory.configureStore();
-  // await import('./cli-store');
-  let saved = false;
-  process.on('beforeExit', async (code) => {
-    if (saved)
-      return;
-    saved = true;
-    // tslint:disable-next-line: no-console
-    console.log(chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
-    (await import('../store')).saveState();
-  });
+
+  // let saved = false;
+  // process.on('beforeExit', async (code) => {
+  //   if (saved)
+  //     return;
+  //   saved = true;
+  //   // tslint:disable-next-line: no-console
+  //   console.log(chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
+  //   (await import('../store')).saveState();
+  // });
 
   let cliExtensions: string[];
-  const program = new commander.Command().name('plink')
+  const program = new commander.Command('plink')
   .action(args => {
     program.outputHelp();
     // tslint:disable-next-line: no-console
@@ -181,7 +181,7 @@ function subDrcpCommand(program: commander.Command) {
    * Bump command
    */
   const bumpCmd = program.command('bump [package...]')
-    .description('bump version number of all package.json from specific directories, same as "npm version" does')
+    .description('bump package.json version number for specific package, same as "npm version" does')
     .option<string[]>('--pj, --project <project-dir,...>', 'only bump component packages from specific project directory',
       (value, prev) => {
         prev.push(...value.split(',')); return prev;
@@ -192,8 +192,8 @@ function subDrcpCommand(program: commander.Command) {
       (await import('./cli-bump')).default({...bumpCmd.opts() as tp.BumpOptions, packages});
     });
   withGlobalOptions(bumpCmd);
-  bumpCmd.usage(bumpCmd.usage() + '\n' + hl('plink bump <dir-1> <dir-2> ...') + ' to recursively bump package.json from multiple directories\n' +
-    hl('plink bump <dir> -i minor') + ' to bump minor version number, default is patch number');
+  // bumpCmd.usage(bumpCmd.usage() + '\n' + hl('plink bump <package> ...') + ' to recursively bump package.json from multiple directories\n' +
+  //   hl('plink bump <dir> -i minor') + ' to bump minor version number, default is patch number');
 
   /**
    * Pack command

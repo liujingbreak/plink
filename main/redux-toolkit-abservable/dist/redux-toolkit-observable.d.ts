@@ -5,7 +5,7 @@
  */
 import { CaseReducer, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers, Middleware } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
 export interface ExtraSliceReducers<SS> {
     _init: CaseReducer<SS, PayloadAction<{
         isLazy: boolean;
@@ -41,15 +41,18 @@ export declare class StateFactory {
     }, readonly Middleware<{}, any, import("redux").Dispatch<import("redux").AnyAction>>[]> | undefined>;
     log$: Observable<any[]>;
     rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
-    private epicSeq;
-    private debugLog;
-    private reducerMap;
-    private epicWithUnsub$;
     /**
      * Unlike store.dispatch(action),
      * If you call next() on this subject, it can save action dispatch an action even before store is configured
      */
-    private actionsToDispatch;
+    actionsToDispatch: ReplaySubject<{
+        payload: any;
+        type: string;
+    }>;
+    private epicSeq;
+    private debugLog;
+    private reducerMap;
+    private epicWithUnsub$;
     private reportActionError;
     private errorSlice;
     constructor(preloadedState: ConfigureStoreOptions['preloadedState']);

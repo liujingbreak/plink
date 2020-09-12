@@ -4,7 +4,7 @@ import './node-path';
 import checkNode from './utils/node-version-check';
 const startTime = new Date().getTime();
 process.on('SIGINT', function() {
-  console.log('Recieve SIGINT, bye.');
+  console.log('Recieve SIGINT, bye...');
   process.exit(0);
 });
 process.on('message', function(msg) {

@@ -1,6 +1,6 @@
 {
   "name": "@dr-core/assets-processer",
-  "version": "1.1.46",
+  "version": "1.1.47",
   "description": "Copy assets to destDir folder only when devMode is false",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,11 @@
     ],
     "builderPriority": 8000,
     "serverPriority": 1000,
-    "category": ["internal", "nodejs", "tool"],
+    "category": [
+      "internal",
+      "nodejs",
+      "tool"
+    ],
     "config": {
       "server": {
         "fetchUrl": null,
@@ -53,8 +57,7 @@
         "fetchRetry": 0,
         "fetchLogErrPerTimes": 1,
         "fetchIntervalSec": 60,
-        "cacheControlMaxAge": {
-        },
+        "cacheControlMaxAge": {},
         "fetchMailServer": null,
         "indexHtmlProxy": {
           "target": "http://localhost:4200"

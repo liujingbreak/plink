@@ -1,14 +1,25 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.forkExtractExstingZip = exports.retry = exports.getPm2Info = exports.stop = exports.start = exports.zipDownloadDir = void 0;
-const tslib_1 = require("tslib");
-const os_1 = tslib_1.__importDefault(require("os"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
-const cluster_1 = tslib_1.__importDefault(require("cluster"));
+const os_1 = __importDefault(require("os"));
+const path_1 = __importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const cluster_1 = __importDefault(require("cluster"));
 const operators_1 = require("rxjs/operators");
 const child_process_1 = require("child_process");
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const __api_1 = __importDefault(require("__api"));
 const log = require('log4js').getLogger('@dr-core/assets-processer.fetch-remote');
 const { /*pm2InstanceId, isPm2,*/ isMainProcess } = getPm2Info();
 // let currVersion: number = Number.NEGATIVE_INFINITY;
@@ -23,7 +34,7 @@ exports.zipDownloadDir = path_1.default.resolve(path_1.default.dirname(currCheck
 // let watcher: any;
 let imap;
 function start(imap) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         // tslint:disable-next-line
         log.info(`[memory status] total ${Math.floor(os_1.default.totalmem() / 1048576)}Mb, free ${Math.floor(os_1.default.freemem() / 1048576)}Mb\n` +
             `[num of CPU] ${os_1.default.cpus().length}`);
@@ -106,7 +117,7 @@ exports.getPm2Info = getPm2Info;
 //   }
 // }
 function checkAndDownload(checksumObj, imap) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         // let toUpdateApps: string[] = [];
         // if (checksumObj.versions) {
         //   let currVersions = currentChecksum.versions;
@@ -221,7 +232,7 @@ function checkAndDownload(checksumObj, imap) {
 //   });
 // }
 function retry(times, func, ...args) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         for (let cnt = 0;;) {
             try {
                 return yield func(...args);
@@ -254,7 +265,7 @@ function forkExtractExstingZip(zipDir, outputDir = 'dist/static', doNotDelete = 
 }
 exports.forkExtractExstingZip = forkExtractExstingZip;
 function forkProcess(name, filePath, args, onProcess) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         return new Promise((resolve, reject) => {
             let extractingDone = false;
             const child = child_process_1.fork(filePath, args, {

@@ -1,6 +1,5 @@
-import express = require('express');
 declare const _default: {
     activate(): void;
-    app: express.Express;
+    app: any;
 };
 export = _default;

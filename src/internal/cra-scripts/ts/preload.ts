@@ -15,6 +15,19 @@ import {hackWebpack4Compiler} from './hack-webpack-api';
 import Module from 'module';
 import {sep, resolve, dirname} from 'path';
 
+// Avoid child process require us!
+const deleteExecArgIdx: number[] = [];
+for (let i = 0, l = process.execArgv.length; i < l; i++) {
+  if (i < l - 1 && /^(?:\-r|\-\-require)$/.test(process.execArgv[i]) &&
+  /^@bk\/cra\-scripts($|\/)/.test(process.execArgv[i + 1])) {
+    deleteExecArgIdx.push(i);
+  }
+}
+deleteExecArgIdx.reduce((offset, deleteIdx) => {
+  process.execArgv.splice(deleteIdx + offset, 2);
+  return offset + 2;
+}, 0);
+
 drawPuppy('Loading my poo...');
 saveCmdArgToEnv();
 poo();

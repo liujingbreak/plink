@@ -1,10 +1,21 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 // tslint:disable:no-console
 // import {ZipResourceMiddleware} from 'serve-static-zip';
-const request_1 = tslib_1.__importDefault(require("request"));
-const fs_1 = tslib_1.__importDefault(require("fs"));
+const request_1 = __importDefault(require("request"));
+const fs_1 = __importDefault(require("fs"));
 // import Path from 'path';
 const argv = process.argv;
 const fetchUrl = argv[2];
@@ -21,14 +32,14 @@ process.on('unhandledRejection', (err) => {
     process.send && process.send({ error: err });
 });
 function downloadZip(fetchUrl) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         // tslint:disable-next-line
         // log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
         const resource = fetchUrl + '?' + Math.random();
         // const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);
         // log.info('fetch', resource);
         process.send && process.send({ log: `[pid:${process.pid}] fetch ` + resource });
-        yield retry(() => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        yield retry(() => __awaiter(this, void 0, void 0, function* () {
             yield new Promise((resolve, rej) => {
                 const writeStream = fs_1.default.createWriteStream(fileName);
                 writeStream.on('finish', () => {
@@ -56,7 +67,7 @@ function downloadZip(fetchUrl) {
     });
 }
 function retry(func, ...args) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         for (let cnt = 0;;) {
             try {
                 return yield func(...args);

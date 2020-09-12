@@ -81,7 +81,7 @@
     "yamljs": "^0.3.0",
     "open": "^7.0.2",
     "comment-json": "^3.0.2",
-    "commander": "~5.1.0",
+    "commander": "~6.1.0",
     "serialize-javascript": "^4.0.0",
     "@types/serialize-javascript": "^4.0.0",
     "@reduxjs/toolkit": "1.4.0",

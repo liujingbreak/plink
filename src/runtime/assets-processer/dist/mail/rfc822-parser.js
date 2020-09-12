@@ -1,12 +1,23 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = exports.RCF822TokenType = void 0;
-const tslib_1 = require("tslib");
 const async_LLn_parser_1 = require("dr-comp-package/wfh/dist/async-LLn-parser");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
 const log = require('log4js').getLogger('@dr-core/assets-processer.rfc822-parser');
 var RCF822TokenType;
 (function (RCF822TokenType) {
@@ -35,7 +46,7 @@ class RfcParserContext {
     constructor(origBuffer) {
         this.origBuffer = origBuffer;
         this.multipartStarted = false;
-        this.parseLexer = (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        this.parseLexer = (la) => __awaiter(this, void 0, void 0, function* () {
             let chrCode = yield la.la();
             while (chrCode != null) {
                 const chr = String.fromCharCode(chrCode);
@@ -90,7 +101,7 @@ class RfcParserContext {
                 chrCode = yield la.la();
             }
         });
-        this.parseGrammar = (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        this.parseGrammar = (la) => __awaiter(this, void 0, void 0, function* () {
             let result = {
                 headers: yield this.parseHeaders(la),
                 parts: []
@@ -144,7 +155,7 @@ class RfcParserContext {
         this.boundary = chrs;
     }
     parseHeaders(la) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
             const headers = [];
             let nextTk = yield la.la();
             while (nextTk != null) {
@@ -208,7 +219,7 @@ class RfcParserContext {
      * @param la
      */
     parsePartBodyToken(la) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
             const tk = la.startToken(RCF822TokenType.PART_BODY);
             tk.trackValue = false;
             const origBufferOffset = la.position;
@@ -230,7 +241,7 @@ class RfcParserContext {
     }
 }
 function quoteStr(la) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         la.startToken(RCF822TokenType.quoteStr);
         const openChar = yield la.advance();
         while (true) {
@@ -253,7 +264,7 @@ function quoteStr(la) {
     });
 }
 function skipWhiteSpace(la) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         do {
             const code = yield la.la();
             if (code == null)
@@ -268,7 +279,7 @@ function skipWhiteSpace(la) {
     });
 }
 function consumeAtom(la) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         la.startToken(RCF822TokenType.ATOM);
         yield la.advance();
         let code = yield la.la();

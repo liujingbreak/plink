@@ -1,9 +1,11 @@
 "use strict";
-const tslib_1 = require("tslib");
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const __api_1 = tslib_1.__importDefault(require("__api"));
-const patch_text_1 = tslib_1.__importDefault(require("../utils/patch-text"));
+const __api_1 = __importDefault(require("__api"));
+const patch_text_1 = __importDefault(require("../utils/patch-text"));
 const simple_scss_parser_1 = require("../utils/simple-scss-parser");
 // import * as Path from 'path';
 // import * as _ from 'lodash';

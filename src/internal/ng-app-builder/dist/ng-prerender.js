@@ -1,7 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.renderRouteWithLocalServer = exports.writeRoutesWithLocalServer = void 0;
-const tslib_1 = require("tslib");
 // tslint:disable:no-console
 // Load zone.js for the server.
 require("zone.js/dist/zone-node");
@@ -9,9 +39,9 @@ require("reflect-metadata");
 const fs_extra_1 = require("fs-extra");
 const path_1 = require("path");
 const core_1 = require("@angular/core");
-const _ = tslib_1.__importStar(require("lodash"));
+const _ = __importStar(require("lodash"));
 const log = require('log4js').getLogger('ng-prerender');
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const __api_1 = __importDefault(require("__api"));
 const module_map_ngfactory_loader_1 = require("@nguniversal/module-map-ngfactory-loader");
 const platform_server_1 = require("@angular/platform-server");
 const ng_prerender_1 = require("@dr-core/assets-processer/dist/ng-prerender");
@@ -33,7 +63,7 @@ function setupGlobals(indexHtml, url) {
  * @param ROUTES
  */
 function writeRoutes(staticDir, htmlFile, mainFile, ROUTES, _outputFolder) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const index = fs_extra_1.readFileSync(htmlFile, 'utf8');
         setupGlobals(index);
         if (_outputFolder == null)
@@ -66,7 +96,7 @@ function writeRoutes(staticDir, htmlFile, mainFile, ROUTES, _outputFolder) {
     });
 }
 function renderRoutes(index, mainFile, ROUTES, prerenderParams = null, useDominoMockWindow = true) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         // const index = readFileSync(htmlFile, 'utf8');
         if (useDominoMockWindow)
             setupGlobals(index);
@@ -101,7 +131,7 @@ function renderRoutes(index, mainFile, ROUTES, prerenderParams = null, useDomino
  * @param ROUTES
  */
 function writeRoutesWithLocalServer(staticDir, htmlFile, mainFile, ROUTES, outputFolder) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
         const shutdown = yield pkMgr.runServer(__api_1.default.argv);
         let mapFile;
@@ -123,7 +153,7 @@ function writeRoutesWithLocalServer(staticDir, htmlFile, mainFile, ROUTES, outpu
 }
 exports.writeRoutesWithLocalServer = writeRoutesWithLocalServer;
 function renderRouteWithLocalServer(html, mainFile, route, prerenderParam, useDominoMockWindow) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         let mapFile;
         mapFile = yield renderRoutes(html, mainFile, [route], prerenderParam, useDominoMockWindow);
         return mapFile[route];

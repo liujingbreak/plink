@@ -1,13 +1,15 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports._createMainHmrFile = exports.createMainFileForHmr = void 0;
-const tslib_1 = require("tslib");
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const patch_text_1 = tslib_1.__importDefault(require("dr-comp-package/wfh/dist/utils/patch-text"));
-const ts_ast_query_1 = tslib_1.__importDefault(require("../utils/ts-ast-query"));
-const typescript_1 = tslib_1.__importDefault(require("typescript"));
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const patch_text_1 = __importDefault(require("dr-comp-package/wfh/dist/utils/patch-text"));
+const ts_ast_query_1 = __importDefault(require("../utils/ts-ast-query"));
+const typescript_1 = __importDefault(require("typescript"));
+const log4js_1 = __importDefault(require("log4js"));
 const log = log4js_1.default.getLogger('@dr-core/ng-app-builder.for-hmr');
 function createMainFileForHmr(mainFile) {
     const dir = path_1.default.dirname(mainFile);

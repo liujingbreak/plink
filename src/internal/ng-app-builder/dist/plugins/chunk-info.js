@@ -1,6 +1,36 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 /* tslint:disable no-console max-line-length */
 const log = require('log4js').getLogger('ChunkInfoPlugin');
 const logFd = log;
@@ -9,9 +39,9 @@ const chalk = require('chalk');
 const showDependency = false;
 const showFileDep = false;
 const { cyan, green } = require('chalk');
-const _ = tslib_1.__importStar(require("lodash"));
-const Path = tslib_1.__importStar(require("path"));
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const _ = __importStar(require("lodash"));
+const Path = __importStar(require("path"));
+const __api_1 = __importDefault(require("__api"));
 class ChunkInfoPlugin {
     constructor() {
         this.done = false;
@@ -28,7 +58,7 @@ class ChunkInfoPlugin {
         });
     }
     printChunkGroups(compilation) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, void 0, void 0, function* () {
             for (const cg of compilation.chunkGroups) {
                 // log.info('Named chunk groups: ' + compilation.namedChunkGroups.keys().join(', '));
                 // log.info('entrypoints: ' + compilation.entrypoints.keys().join(', '));

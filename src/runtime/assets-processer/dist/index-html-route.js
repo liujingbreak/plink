@@ -1,11 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fallbackIndexHtml = exports.proxyToDevServer = void 0;
-const tslib_1 = require("tslib");
-const http_proxy_middleware_1 = tslib_1.__importDefault(require("http-proxy-middleware"));
-const __api_1 = tslib_1.__importDefault(require("__api"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const url_1 = tslib_1.__importDefault(require("url"));
+const http_proxy_middleware_1 = __importDefault(require("http-proxy-middleware"));
+const __api_1 = __importDefault(require("__api"));
+const lodash_1 = __importDefault(require("lodash"));
+const url_1 = __importDefault(require("url"));
 const log = require('log4js').getLogger(__api_1.default.packageName);
 function proxyToDevServer() {
     const config = __api_1.default.config.get(__api_1.default.packageName).indexHtmlProxy;

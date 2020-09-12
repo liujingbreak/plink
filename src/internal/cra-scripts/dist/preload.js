@@ -15,6 +15,18 @@ const fs_extra_1 = __importDefault(require("fs-extra"));
 const hack_webpack_api_1 = require("./hack-webpack-api");
 const module_1 = __importDefault(require("module"));
 const path_2 = require("path");
+// Avoid child process require us!
+const deleteExecArgIdx = [];
+for (let i = 0, l = process.execArgv.length; i < l; i++) {
+    if (i < l - 1 && /^(?:\-r|\-\-require)$/.test(process.execArgv[i]) &&
+        /^@bk\/cra\-scripts($|\/)/.test(process.execArgv[i + 1])) {
+        deleteExecArgIdx.push(i);
+    }
+}
+deleteExecArgIdx.reduce((offset, deleteIdx) => {
+    process.execArgv.splice(deleteIdx + offset, 2);
+    return offset + 2;
+}, 0);
 utils_1.drawPuppy('Loading my poo...');
 utils_1.saveCmdArgToEnv();
 poo();

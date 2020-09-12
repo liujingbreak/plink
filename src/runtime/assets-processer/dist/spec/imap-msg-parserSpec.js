@@ -1,12 +1,23 @@
 "use strict";
 // tslint:disable:no-console
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 const imap_msg_parser_1 = require("../mail/imap-msg-parser");
 const rfc822_parser_1 = require("../mail/rfc822-parser");
 const rfc822_sync_parser_1 = require("../mail/rfc822-sync-parser");
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 xdescribe('imap-msg-parser', () => {
     xit('createServerDataHandler() should parse string literal', (done) => {
         const handler = imap_msg_parser_1.createServerDataHandler();
@@ -15,14 +26,14 @@ xdescribe('imap-msg-parser', () => {
         handler.input(buf);
         handler.input(null);
     });
-    it('parseLinesOfTokens() should work', () => tslib_1.__awaiter(void 0, void 0, void 0, function* () {
+    it('parseLinesOfTokens() should work', () => __awaiter(void 0, void 0, void 0, function* () {
         const handler = imap_msg_parser_1.createServerDataHandler();
         const done = new Promise((resolve, rej) => {
             handler.output.subscribe(tks => { }, (err) => rej(err), () => resolve());
         });
         function parse() {
-            return tslib_1.__awaiter(this, void 0, void 0, function* () {
-                yield imap_msg_parser_1.parseLinesOfTokens(handler.output, (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+            return __awaiter(this, void 0, void 0, function* () {
+                yield imap_msg_parser_1.parseLinesOfTokens(handler.output, (la) => __awaiter(this, void 0, void 0, function* () {
                     console.log('p1 parses line');
                     while ((yield la.la()) != null) {
                         const tk = yield la.advance();
@@ -36,7 +47,7 @@ xdescribe('imap-msg-parser', () => {
                     handler.input(Buffer.from('* OK 789\r\n* FETCH2 {10}1234567890\r\n', 'utf8'));
                     handler.input(null);
                 }, 0);
-                yield imap_msg_parser_1.parseLinesOfTokens(handler.output, (la) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                yield imap_msg_parser_1.parseLinesOfTokens(handler.output, (la) => __awaiter(this, void 0, void 0, function* () {
                     console.log('p2 parses line');
                     while ((yield la.la()) != null) {
                         const tk = yield la.advance();
@@ -54,7 +65,7 @@ xdescribe('imap-msg-parser', () => {
     }));
 });
 describe('rfc822-parser', () => {
-    xit('parse()', () => tslib_1.__awaiter(void 0, void 0, void 0, function* () {
+    xit('parse()', () => __awaiter(void 0, void 0, void 0, function* () {
         const buf = fs_1.default.readFileSync(path_1.default.resolve(__dirname, '../../ts/spec/rfc822-msg.txt'));
         console.time('async');
         const result = yield rfc822_parser_1.parse(buf);

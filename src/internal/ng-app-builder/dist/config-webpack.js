@@ -1,27 +1,57 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.transformIndexHtml = void 0;
-const tslib_1 = require("tslib");
 /* tslint:disable no-console max-line-length max-classes-per-file */
 const webpack_1 = require("@ngtools/webpack");
 // import ts from 'typescript';
-const fs = tslib_1.__importStar(require("fs"));
-const _ = tslib_1.__importStar(require("lodash"));
-const Path = tslib_1.__importStar(require("path"));
+const fs = __importStar(require("fs"));
+const _ = __importStar(require("lodash"));
+const Path = __importStar(require("path"));
 const util_1 = require("util");
-const __api_1 = tslib_1.__importDefault(require("__api"));
-const ng_ts_replace_1 = tslib_1.__importDefault(require("./ng-ts-replace"));
-const chunk_info_1 = tslib_1.__importDefault(require("./plugins/chunk-info"));
-const gzip_size_1 = tslib_1.__importDefault(require("./plugins/gzip-size"));
+const __api_1 = __importDefault(require("__api"));
+const ng_ts_replace_1 = __importDefault(require("./ng-ts-replace"));
+const chunk_info_1 = __importDefault(require("./plugins/chunk-info"));
+const gzip_size_1 = __importDefault(require("./plugins/gzip-size"));
 const index_html_plugin_1 = require("./plugins/index-html-plugin");
-const read_hook_vfshost_1 = tslib_1.__importDefault(require("./utils/read-hook-vfshost"));
+const read_hook_vfshost_1 = __importDefault(require("./utils/read-hook-vfshost"));
 const smUrl = require('source-map-url');
 const log = require('log4js').getLogger('config-webpack');
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const mem_stats_1 = tslib_1.__importDefault(require("dr-comp-package/wfh/dist/utils/mem-stats"));
+const chalk_1 = __importDefault(require("chalk"));
+const mem_stats_1 = __importDefault(require("dr-comp-package/wfh/dist/utils/mem-stats"));
 // import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
 function changeWebpackConfig(context, param, webpackConfig, drcpConfigSetting) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         // const api: typeof __api = require('__api'); // force to defer loading api until DRCP config is ready
         console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
         // if (webpackConfig.resolve && webpackConfig.resolve.mainFields) {
@@ -105,10 +135,10 @@ function changeWebpackConfig(context, param, webpackConfig, drcpConfigSetting) {
                 // below hack code.
                 ngCompilerPlugin._transformers.splice(0);
                 ngCompilerPlugin._makeTransformers();
-                compiler.hooks.watchRun.tapPromise('ts-read-hook', () => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                compiler.hooks.watchRun.tapPromise('ts-read-hook', () => __awaiter(this, void 0, void 0, function* () {
                     hooker.clear();
                 }));
-                compiler.hooks.done.tapPromise('ts-read-hook', () => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                compiler.hooks.done.tapPromise('ts-read-hook', () => __awaiter(this, void 0, void 0, function* () {
                     hooker.logFileCount();
                     mem_stats_1.default();
                 }));
@@ -144,7 +174,7 @@ function changeWebpackConfig(context, param, webpackConfig, drcpConfigSetting) {
             //   }));
             webpackConfig.plugins.push(new (class DrcpBuilderAssetsPlugin {
                 apply(compiler) {
-                    compiler.hooks.emit.tapPromise('drcp-builder-assets', (compilation) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                    compiler.hooks.emit.tapPromise('drcp-builder-assets', (compilation) => __awaiter(this, void 0, void 0, function* () {
                         const assets = compilation.assets;
                         for (const assetsPath of Object.keys(assets)) {
                             // log.warn('is ', assetsPath);
@@ -437,7 +467,7 @@ function printConfigValue(value, level) {
     return out;
 }
 function transformIndexHtml(context, content) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         try {
             return index_html_plugin_1.transformHtml(content, context.ngBuildOption.browserOptions, srcUrl => {
                 const match = /([^/.]+)(?:\.[^/.]+)+$/.exec(srcUrl);
