@@ -32,24 +32,20 @@ export async function initConfigAsync(options: GlobalOptions, onShutdownSignal?:
     }
   });
 
-  function onShut() {
-    if (onShutdownSignal)
-      Promise.resolve(onShutdownSignal)
-      .then(() => process.exit(0));
-    else
+  async function onShut() {
+    if (onShutdownSignal) {
+      await Promise.resolve(onShutdownSignal);
+      await saveState();
       process.exit(0);
+    } else {
+      await saveState();
+      process.exit(0);
+    }
   }
 
-  const {stateFactory}: typeof store = require('../store');
+  const {stateFactory, saveState}: typeof store = require('../store');
   stateFactory.configureStore();
-  // let saved = false;
-  // process.on('beforeExit', async (code) => {
-  //   if (saved)
-  //     return;
-  //   saved = true;
-  //   log4js.shutdown();
-  //   (await import('../store')).saveState();
-  // });
+
 
   await config.init(options);
   logConfig(config());

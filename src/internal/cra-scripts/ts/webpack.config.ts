@@ -25,7 +25,7 @@ export = function(webpackEnv: string) {
   const cmdOption = getCmdOptions();
   // console.log('webpackEnv=', webpackEnv);
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
-  if (cmdOption.argv.get('dev') || cmdOption.argv.get('watch')) {
+  if (cmdOption.devMode || cmdOption.watch) {
     webpackEnv = 'development';
     console.log('[cra-scripts] Development mode is on:', webpackEnv);
   } else {

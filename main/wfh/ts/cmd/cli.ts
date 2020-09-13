@@ -22,15 +22,6 @@ export async function drcpCommand(startTime: number) {
   await import('./cli-store');
   stateFactory.configureStore();
 
-  // let saved = false;
-  // process.on('beforeExit', async (code) => {
-  //   if (saved)
-  //     return;
-  //   saved = true;
-  //   // tslint:disable-next-line: no-console
-  //   console.log(chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
-  //   (await import('../store')).saveState();
-  // });
 
   let cliExtensions: string[];
   const program = new commander.Command('plink')
@@ -206,7 +197,7 @@ function subDrcpCommand(program: commander.Command) {
         prev.push(...value.split(',')); return prev;
       }, [])
     .action(async (packageDirs: string[]) => {
-      (await import('../drcp-cmd')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
+      (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
     });
   withGlobalOptions(packCmd);
 }
@@ -261,8 +252,8 @@ export function withGlobalOptions(program: commander.Command): commander.Command
     '--prop port=8080 --prop devMode=false --prop @dr/foobar.api=http://localhost:8080\n' +
     '--prop arraylike.prop[0]=foobar\n' +
     '--prop ["@dr/foo.bar","prop",0]=true',
-    arrayOptionFn, [] as string[])
-  .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
+    arrayOptionFn, [] as string[]);
+  // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 
   return program;
 }

@@ -1,8 +1,7 @@
-import { PackOptions } from './cmd/types';
+import { PackOptions } from './types';
 export declare function pack(opts: PackOptions & {
     packageDirs: string[];
 }): Promise<void>;
-export declare function packProject(projectDirs: string[]): Promise<void>;
 /**
  *
  * @param output

@@ -1,4 +1,4 @@
-import {parseNpmPackOutput} from '../drcp-cmd';
+import {parseNpmPackOutput} from '../cmd/cli-pack';
 
 describe('drcp-cmd', () => {
   it('parseNpmPackOutput', () => {

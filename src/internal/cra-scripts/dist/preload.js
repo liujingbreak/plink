@@ -83,6 +83,6 @@ function clearConsole() {
     // origClearConsole();
     utils_1.drawPuppy('pooed on create-react-app');
 }
-require(path_1.default.resolve('node_modules/react-scripts/bin/react-scripts.js'));
+// require(Path.resolve('node_modules/react-scripts/bin/react-scripts.js'));
 
 //# sourceMappingURL=preload.js.map

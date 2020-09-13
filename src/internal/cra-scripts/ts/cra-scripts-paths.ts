@@ -29,7 +29,7 @@ export interface CraScriptsPaths {
 const {rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export default function paths() {
-  const cmdPublicUrl = getCmdOptions().argv.get('publicUrl') || getCmdOptions().argv.get('public-url');
+  const cmdPublicUrl = getCmdOptions().publicUrl;
   if (cmdPublicUrl) {
     process.env.PUBLIC_URL = cmdPublicUrl + '';
   }

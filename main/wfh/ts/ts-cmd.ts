@@ -156,7 +156,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     watcher.on('change', (path: string) => onChangeFile(path, 'changed'));
     watcher.on('unlink', (path: string) => onChangeFile(path, 'removed'));
   } else {
-    return compile(compGlobs, tsProject, argv.sourceMap === 'inline', argv.ed);
+    promCompile = compile(compGlobs, tsProject, argv.sourceMap === 'inline', argv.ed);
   }
 
   function onChangeFile(path: string, reason: string) {
@@ -272,5 +272,10 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     });
   }
 
-  return promCompile;
+  return promCompile.then((list) => {
+    if (process.send) {
+      process.send('plink-tsc compiled');
+    }
+    return list;
+  });
 }

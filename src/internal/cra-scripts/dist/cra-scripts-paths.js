@@ -9,7 +9,7 @@ const path_1 = __importDefault(require("path"));
 const lodash_1 = __importDefault(require("lodash"));
 const { rootDir } = JSON.parse(process.env.__plink);
 function paths() {
-    const cmdPublicUrl = utils_1.getCmdOptions().argv.get('publicUrl') || utils_1.getCmdOptions().argv.get('public-url');
+    const cmdPublicUrl = utils_1.getCmdOptions().publicUrl;
     if (cmdPublicUrl) {
         process.env.PUBLIC_URL = cmdPublicUrl + '';
     }

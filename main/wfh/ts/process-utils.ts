@@ -29,7 +29,7 @@ export function promisifySpawn(command: string, ...args: Array<string|Option>):
 }
 
 export function spawn(command: string, ...args: Array<string|Option>): Result {
-  let opts: any = args[args.length - 1];
+  let opts: Option = args[args.length - 1] as Option;
   if (typeof opts === 'string') {
     opts = {};
   } else {
@@ -43,6 +43,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
   if (!(opts && opts.silent)) {
     opts.stdio = 'inherit';
   }
+
   let res: ChildProcess;
   const promise = checkTimeout(new Promise<string>((resolve, reject) => {
     res = sysSpawn(command, args as string[], opts);
@@ -58,6 +59,8 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
       res.stderr!.on('data', (chunk) => {
         output += chunk;
       });
+      res.stdout!.resume();
+      res.stderr!.resume();
     }
     res.on('error', (err) => {
       reject(err);

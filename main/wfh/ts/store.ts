@@ -1,6 +1,6 @@
 import Path from 'path';
 import fs from 'fs';
-import {tap} from 'rxjs/operators';
+import {tap, filter} from 'rxjs/operators';
 import {StateFactory, ofPayloadAction} from '../../redux-toolkit-abservable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
 import {getRootDir} from './utils/misc';
@@ -30,7 +30,10 @@ export const lastSavedState = fs.existsSync(stateFile) ? eval('(' + fs.readFileS
 
 export const stateFactory = new StateFactory(lastSavedState);
 
-stateFactory.actionsToDispatch.pipe(tap(() => actionCount++)).subscribe();
+stateFactory.actionsToDispatch.pipe(
+  filter(action => !action.type.endsWith('/_init')),
+  tap(() => actionCount++)
+).subscribe();
 
 
 export async function startLogging() {
@@ -58,7 +61,27 @@ export async function startLogging() {
   ).subscribe();
 }
 
-async function saveState() {
+let saved = false;
+/**
+ * a listener registered on the 'beforeExit' event can make asynchronous calls, 
+ * and thereby cause the Node.js process to continue.
+ * The 'beforeExit' event is not emitted for conditions causing explicit termination,
+ * such as calling process.exit() or uncaught exceptions.
+ */
+process.on('beforeExit', async (code) => {
+  if (saved)
+    return;
+  saveState();
+  // // tslint:disable-next-line: no-console
+  // console.log(chalk.green(`Done in ${new Date().getTime() - process.uptime()} s`));
+});
+
+/**
+ * Call this function before you explicitly run process.exit(0) to quit, because "beforeExit"
+ * won't be triggered prior to process.exit(0)
+ */
+export async function saveState() {
+  saved = true;
   if (actionCount === 0) {
     // tslint:disable-next-line: no-console
     console.log('[package-mgr] state is not changed');
@@ -74,19 +97,3 @@ async function saveState() {
       console.log(`[package-mgr] state file ${Path.relative(process.cwd(), stateFile)} saved (${actionCount})`);
     });
 }
-
-let saved = false;
-/**
- * a listener registered on the 'beforeExit' event can make asynchronous calls, 
- * and thereby cause the Node.js process to continue.
- * The 'beforeExit' event is not emitted for conditions causing explicit termination,
- * such as calling process.exit() or uncaught exceptions.
- */
-process.on('beforeExit', async (code) => {
-  if (saved)
-    return;
-  saved = true;
-  saveState();
-  // // tslint:disable-next-line: no-console
-  // console.log(chalk.green(`Done in ${new Date().getTime() - process.uptime()} s`));
-});

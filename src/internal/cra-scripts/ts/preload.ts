@@ -91,4 +91,4 @@ function clearConsole() {
   drawPuppy('pooed on create-react-app');
 }
 
-require(Path.resolve('node_modules/react-scripts/bin/react-scripts.js'));
+// require(Path.resolve('node_modules/react-scripts/bin/react-scripts.js'));

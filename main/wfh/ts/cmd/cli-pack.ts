@@ -1,17 +1,17 @@
 
-import {queueUp} from './utils/promise-queque';
+import {queueUp} from '../utils/promise-queque';
 import * as _ from 'lodash';
 import * as fs from 'fs-extra';
 import * as Path from 'path';
-import {promisifyExe} from './process-utils';
+import {promisifyExe} from '../process-utils';
 // import {boxString} from './utils';
 // import * as recipeManager from './recipe-manager';
-import jsonParser, {ObjectAst, Token} from './utils/json-sync-parser';
+import jsonParser, {ObjectAst, Token} from '../utils/json-sync-parser';
 import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
-import config from './config';
-import {PackOptions} from './cmd/types';
-import logConfig from './log-config';
-import {getPackagesOfProjects, getState} from './package-mgr';
+import config from '../config';
+import {PackOptions} from './types';
+import logConfig from '../log-config';
+import {getPackagesOfProjects, getState} from '../package-mgr';
 
 // import * as packageUtils from './package-utils';
 // const recipeManager = require('../lib/gulp/recipeManager');
@@ -50,7 +50,7 @@ async function packPackages(packageDirs: string[]) {
   }
 }
 
-export async function packProject(projectDirs: string[]) {
+async function packProject(projectDirs: string[]) {
   const dirs = [] as string[];
   for (const pkg of getPackagesOfProjects(projectDirs)) {
     dirs.push(pkg.realPath);

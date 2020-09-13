@@ -9,9 +9,10 @@ const child_process_1 = __importDefault(require("child_process"));
 // import fs from 'fs-extra';
 const path_1 = __importDefault(require("path"));
 // import {findDrcpProjectDir} from './utils';
-const utils_1 = require("../dist/utils");
-// import {HotModuleReplacementPlugin} from 'webpack';
-// const EsmWebpackPlugin = require("@purtuga/esm-webpack-plugin");
+const utils_1 = require("./utils");
+// import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
+// const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const plinkDir = path_1.default.dirname(require.resolve('dr-comp-package/package.json'));
 const MiniCssExtractPlugin = require(path_1.default.resolve('node_modules/mini-css-extract-plugin'));
 function change(buildPackage, config, nodePath) {
     const { dir: pkDir, packageJson: pkJson } = build_target_helper_1.findPackage(buildPackage);
@@ -59,8 +60,11 @@ function change(buildPackage, config, nodePath) {
     config.plugins.push(
     // new EsmWebpackPlugin(),
     new (class {
+        constructor() {
+            this.forkDone = Promise.resolve();
+        }
         apply(compiler) {
-            forkTsc(pkJson.name, nodePath);
+            this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
             compiler.hooks.done.tap('cra-scripts', stats => {
                 // tslint:disable-next-line: no-console
                 console.log('external request:\n  ', Array.from(reqSet.values()).join(', '));
@@ -94,28 +98,33 @@ function findAndChangeRule(rules) {
     return;
 }
 function forkTsc(targetPackage, nodePath) {
-    // const drcpHome = findDrcpProjectDir();
-    // const execArgv = Array.from(process.execArgv);
-    // let execArgvRmPos = execArgv.indexOf('-r');
-    // execArgvRmPos = (execArgvRmPos >= 0) ? execArgvRmPos : execArgv.indexOf('--require');
-    // if (execArgvRmPos >= 0 && execArgv[execArgvRmPos + 1] === require('../package.json').name) {
-    //   execArgv.splice(execArgvRmPos, 2);
-    // }
-    // console.log('[webpack-lib] ' + Path.resolve(__dirname, 'build-lib', 'drcp-tsc.js'), drcpHome);
-    const forkArgs = [targetPackage];
+    const forkArgs = ['tsc', '--ed', '--jsx', targetPackage];
     if (utils_1.getCmdOptions().watch)
-        forkArgs.push('--watch');
-    const cp = child_process_1.default.fork(path_1.default.resolve(__dirname, 'build-lib', 'drcp-tsc.js'), forkArgs, {
+        forkArgs.push('-w');
+    // console.log('webpack-lib: ', Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs);
+    const cp = child_process_1.default.fork(path_1.default.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs, {
         env: {
             NODE_OPTIONS: '-r dr-comp-package/register',
             NODE_PATH: nodePath.join(path_1.default.delimiter)
         },
-        cwd: process.cwd(),
-        execArgv: [],
-        stdio: 'inherit'
+        cwd: process.cwd()
+        // execArgv: [], // Not working, don't know why
+        // stdio: [0, 1, 2, 'ipc']
     });
     // cp.unref();
     return new Promise((resolve, rej) => {
+        cp.on('message', msg => {
+            if (msg === 'plink-tsc compiled')
+                cp.kill('SIGINT');
+        });
+        if (cp.stdout) {
+            cp.stdout.setEncoding('utf8');
+            // tslint:disable-next-line: no-console
+            cp.stdout.on('data', (data) => console.log(data));
+            cp.stdout.resume();
+        }
+        if (cp.stderr)
+            cp.stderr.resume();
         cp.on('exit', (code, signal) => {
             if (code !== 0) {
                 rej(new Error(`Failed to generate tsd files, due to process exit with code: ${code} ${signal}`));
@@ -128,6 +137,7 @@ function forkTsc(targetPackage, nodePath) {
         });
         cp.on('error', err => {
             console.error(err);
+            resolve();
         });
     });
 }
