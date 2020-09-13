@@ -77,8 +77,6 @@ export class StateFactory {
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
   private epicWithUnsub$: Subject<[Epic, Subject<string>]>;
 
-
-
   private reportActionError: (err: Error) => void;
 
   private errorSlice: Slice<ErrorState>;
@@ -140,11 +138,19 @@ export class StateFactory {
       return this.epicWithUnsub$.pipe(
         mergeMap(([epic, unsub]) => (epic(action$, state$, dependencies) as ReturnType<Epic>)
           .pipe(
-            takeUntil(unsub.pipe(tap((epicId) => {
-              this.debugLog.next(['[redux-toolkit-obs]', `unsubscribe from ${epicId}`]);
-            })))
+            takeUntil(unsub.pipe(
+              take(1),
+              tap(epicId => {
+                this.debugLog.next(['[redux-toolkit-obs]', `unsubscribe from ${epicId}`]);
+              }))
+            )
           )
-        )
+        ),
+        // tslint:disable-next-line: no-console
+        takeUntil(action$.pipe(
+          ofType('STOP_EPIC'),
+          tap(() => this.debugLog.next(['[redux-toolkit-obs]', 'Stop all epics']))
+        ))
       );
     });
     this.addEpic((action$) => {
@@ -208,7 +214,10 @@ export class StateFactory {
     const unsubscribeEpic = new Subject<string>();
     this.epicWithUnsub$.next([epic, unsubscribeEpic]);
     this.debugLog.next(['[redux-toolkit-obs]', epicId + ' is added']);
-    return () => unsubscribeEpic.next(epicId);
+    return () => {
+      unsubscribeEpic.next(epicId);
+      unsubscribeEpic.complete();
+    };
   }
 
   sliceState<SS, CaseReducers extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(
@@ -255,6 +264,16 @@ export class StateFactory {
       actionMap[name] = doAction;
     }
     return actionMap as Slice['actions'];
+  }
+
+  stopAllEpics() {
+    this.store$.pipe(
+      tap(store => {
+        if (store)
+          store.dispatch({payload: null, type: 'STOP_EPIC'});
+      }),
+      take(1)
+    ).subscribe();
   }
 
   private errorHandleMiddleware: Middleware = (api) => {

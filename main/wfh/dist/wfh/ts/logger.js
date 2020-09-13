@@ -1,0 +1,4 @@
+"use strict";
+const log4js = require("log4js");
+module.exports = log4js;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibG9nZ2VyLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vdHMvbG9nZ2VyLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7QUFBQSxpQ0FBa0M7QUFDbEMsaUJBQVUsTUFBTSxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IGxvZzRqcyA9IHJlcXVpcmUoJ2xvZzRqcycpO1xuZXhwb3J0ID0gIGxvZzRqcztcbiJdfQ==

@@ -273,7 +273,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   }
 
   return promCompile.then((list) => {
-    if (process.send) {
+    if (argv.watch !== true && process.send) {
       process.send('plink-tsc compiled');
     }
     return list;

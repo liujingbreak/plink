@@ -156,6 +156,8 @@ function subDrcpCommand(program: commander.Command) {
       jsx: opt.jsx,
       ed: opt.emitDeclarationOnly
     });
+    const {stateFactory}: typeof store = require('../store');
+    stateFactory.stopAllEpics();
   });
   withGlobalOptions(tscCmd);
   tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side typescript files.\n\n' +

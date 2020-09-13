@@ -49,7 +49,7 @@ export async function startLogging() {
         (logAction.info as any)(...params.slice(1));
         // console.log(...params.slice(1));
       else
-        (defaultLog.debug as any)(...params);
+        (defaultLog.info as any)(...params);
 
       // if (params[0] === 'state') {
       //   console.log('[redux:state]', ...params.slice(1));

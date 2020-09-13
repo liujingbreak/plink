@@ -83,6 +83,7 @@ export declare class StateFactory {
     bindActionCreators<A, Slice extends {
         actions: A;
     }>(slice: Slice): Slice["actions"];
+    stopAllEpics(): void;
     private errorHandleMiddleware;
     private addSliceMaybeReplaceReducer;
     private createRootReducer;
