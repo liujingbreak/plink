@@ -116,7 +116,7 @@ function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType:
   process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
 
   stateFactory.configureStore();
-  const setting = config.initSync(cmd.opts() as GlobalOptions)
+  const setting = config.initSync(cmd.opts() as GlobalOptions);
   logConfig(setting);
   return cmdOptions;
 }

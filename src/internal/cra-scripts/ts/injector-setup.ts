@@ -31,5 +31,5 @@ export function injectorSetup(packageInfo: ReturnType<typeof walkPackages>, ssr 
         return require(Path.join(this.__dirname, requirePath));
     }
   });
-  return apiProto
+  return apiProto;
 }
