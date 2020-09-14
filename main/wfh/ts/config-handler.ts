@@ -51,7 +51,9 @@ export interface DrcpConfig {
   (): DrcpSettings;
   load(): Promise<DrcpSettings>;
   reload(): Promise<DrcpSettings>;
+  loadSync(): DrcpSettings;
   init(argv: CliOptions): Promise<DrcpSettings>;
+  initSync(argv: CliOptions): DrcpSettings;
   wfhSrcPath(): string | false;
   setDefault(propPath: string, value: any): DrcpSettings;
 }

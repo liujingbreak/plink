@@ -1,5 +1,5 @@
 import RJ, {InjectorOption} from 'require-injector';
-import {doInjectorConfig} from './require-injectors';
+import {doInjectorConfigSync} from './require-injectors';
 import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
 // import {ResolveOption} from 'require-injector/dist/node-inject';
 import * as _ from 'lodash';
@@ -90,8 +90,10 @@ export class DrPackageInjector extends RJ {
       }
     });
 
-    return doInjectorConfig(this, !this.noNode);
+    return doInjectorConfigSync(this, !this.noNode);
   }
+
+
 }
 
 export let nodeInjector = new DrPackageInjector(require.resolve, false);

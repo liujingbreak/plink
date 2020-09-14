@@ -8,7 +8,7 @@ export declare class DrPackageInjector extends RJ {
     fromAllComponents(): FactoryMapInterf;
     fromAllPackages(): FactoryMapInterf;
     notFromPackages(...excludePackages: string[]): FactoryMapInterf;
-    readInjectFile(fileNameWithoutExt?: string): Promise<void>;
+    readInjectFile(fileNameWithoutExt?: string): void;
 }
 export declare let nodeInjector: DrPackageInjector;
 export declare let webInjector: DrPackageInjector;

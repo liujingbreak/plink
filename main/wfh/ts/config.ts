@@ -60,6 +60,14 @@ config.init = async (_argv: CliOptions) => {
   return res;
 };
 
+config.initSync = (_argv: CliOptions) => {
+  argv = _argv;
+  localConfigPath = argv.config.length > 0 ? argv.config : [Path.join(rootPath, 'dist', 'config.local.yaml')];
+  const res = loadSync();
+  return res;
+};
+
+
 config.reload = function reload() {
   setting = {} as DrcpSettings;
   return load();
@@ -108,71 +116,86 @@ config.configHandlerMgr = () => handlers;
  * - _package2Chunk a hash object whose key is `package name`, value is `chunk name`
  */
 async function load(fileList?: string[], cliOption?: CliOptions): Promise<DrcpSettings> {
+  let cliOpt = cliOption == null ? argv! : cliOption;
+  const configFileList = prepareConfigFiles(fileList, cliOption);
+
+  handlers = new ConfigHandlerMgr(configFileList.filter(name => /\.[tj]s$/.test(name)));
+
+  await handlers.runEach<ConfigHandler>((_file, obj, handler) => {
+    if (handler.onConfig)
+      return handler.onConfig(obj || setting, cliOpt);
+  });
+  if (setting.recipeFolder) {
+    setting.recipeFolderPath = Path.resolve(rootPath, setting.recipeFolder);
+  }
+  return postProcessConfig(cliOpt);
+}
+
+function loadSync(fileList?: string[], cliOption?: CliOptions): DrcpSettings {
+  let cliOpt = cliOption == null ? argv! : cliOption;
+  const configFileList = prepareConfigFiles(fileList, cliOption);
+
+  handlers = new ConfigHandlerMgr(configFileList.filter(name => /\.[tj]s$/.test(name)));
+
+  handlers.runEachSync<ConfigHandler>((_file, obj, handler) => {
+    if (handler.onConfig)
+      return handler.onConfig(obj || setting, cliOpt);
+  });
+  if (setting.recipeFolder) {
+    setting.recipeFolderPath = Path.resolve(rootPath, setting.recipeFolder);
+  }
+  return postProcessConfig(cliOpt);
+}
+
+function prepareConfigFiles(fileList?: string[], cliOption?: CliOptions) {
   if (fileList)
     localConfigPath = fileList;
 
-  let cliOpt = cliOption == null ? argv! : cliOption;
+  // log.debug('root Path: ' + rootPath);
+  setting = setting || {};
+  // setting.projectList = [];
+  // some extra config properties
+  const initSetting: Partial<DrcpSettings> = {
+    rootPath,
+    wfhSrcPath: wfhSrcPath(),
+    devMode: cliOption == null || !cliOption.production
+  };
+  _.assign(setting, initSetting);
+  // console.log(setting);
+  // Merge from <root>/config.yaml
+  var configFileList = [
+    Path.resolve(__dirname, '..', 'config.yaml')
+  ];
+  var rootConfig = Path.resolve(rootPath, 'dist', 'config.yaml');
+  if (fs.existsSync(rootConfig))
+    configFileList.push(rootConfig);
 
-  try {
-    // log.debug('root Path: ' + rootPath);
-    setting = setting || {};
-    // setting.projectList = [];
-    // some extra config properties
-    const initSetting: Partial<DrcpSettings> = {
-      rootPath,
-      wfhSrcPath: wfhSrcPath(),
-      devMode: cliOption == null || !cliOption.production
-    };
-    _.assign(setting, initSetting);
-    // console.log(setting);
-    // Merge from <root>/config.yaml
-    var configFileList = [
-      Path.resolve(__dirname, '..', 'config.yaml')
-    ];
-    var rootConfig = Path.resolve(rootPath, 'dist', 'config.yaml');
-    if (fs.existsSync(rootConfig))
-      configFileList.push(rootConfig);
+  configFileList.push(...localConfigPath);
 
-    configFileList.push(...localConfigPath);
+  configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(setting, localConfigPath));
 
-    configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(setting, localConfigPath));
-    handlers = new ConfigHandlerMgr(configFileList.filter(name => /\.[tj]s$/.test(name)));
+  return configFileList;
+}
 
-    await handlers.runEach<ConfigHandler>((_file, obj, handler) => {
-      if (handler.onConfig)
-        return handler.onConfig(obj || setting, cliOpt);
-    });
-    if (setting.recipeFolder) {
-      setting.recipeFolderPath = Path.resolve(rootPath, setting.recipeFolder);
-    }
-    validateConfig();
+function postProcessConfig(cliOpt: CliOptions) {
+  validateConfig();
 
-    // var defaultEntrySet = setting.defaultEntrySet = {};
-    // if (setting.defaultEntryPackages) {
-    //   [].concat(setting.defaultEntryPackages).forEach(function(entryFile) {
-    //     defaultEntrySet[entryFile] = true;
-    //   });
-    // }
-    setting.port = normalizePort(setting.port);
-    // console.log(setting);
-    if (!setting.devMode)
-      process.env.NODE_ENV = 'production';
-    setting.publicPath = _.trimEnd(setting.staticAssetsURL || '', '/') + '/'; // always ends with /
-    setting.localIP = getLanIPv4();
-    // setting.hostnamePath = publicPath.getHostnamePath(setting);
-    mergeFromCliArgs(setting, cliOpt);
-    if (setting.devMode) {
-      // tslint:disable-next-line: no-console
-      console.log(cyan('[config]') + ' Development mode');
-    } else {
-      // tslint:disable-next-line: no-console
-      console.log(cyan('[config]') + ' Production mode');
-    }
-    return setting;
-  } catch (err) {
-    console.error(__filename + ' failed to read config files', err.stack);
-    throw err;
+  setting.port = normalizePort(setting.port);
+  // console.log(setting);
+  if (!setting.devMode)
+    process.env.NODE_ENV = 'production';
+  setting.publicPath = _.trimEnd(setting.staticAssetsURL || '', '/') + '/'; // always ends with /
+  setting.localIP = getLanIPv4();
+  // setting.hostnamePath = publicPath.getHostnamePath(setting);
+  mergeFromCliArgs(setting, cliOpt);
+  if (setting.devMode) {
+    // tslint:disable-next-line: no-console
+    console.log(cyan('[config]') + ' Development mode');
+  } else {
+    // tslint:disable-next-line: no-console
+    console.log(cyan('[config]') + ' Production mode');
   }
+  return setting;
 }
 
 function mergeFromYamlJsonFile(setting: DrcpSettings, localConfigPath: string) {

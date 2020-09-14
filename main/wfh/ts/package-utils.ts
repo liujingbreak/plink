@@ -12,6 +12,9 @@ import {lookupPackageJson, findPackagesByNames} from './cmd/utils';
 
 const lazyPackageFactory = new LazyPackageFactory();
 
+/**
+ * @deprecated
+ */
 export function createLazyPackageFileFinder() {
   const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
   return function(file: string): PackageBrowserInstance | undefined {

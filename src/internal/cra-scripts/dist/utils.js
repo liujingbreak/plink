@@ -99,6 +99,7 @@ function getCmdOptions() {
 }
 exports.getCmdOptions = getCmdOptions;
 function saveCmdArgToEnv() {
+    // console.log('[saveCmdArgToEnv]', process.argv);
     process.title = 'Plink';
     const pk = require('../package.json');
     const program = new Commander_1.default.Command('cra-scripts')
@@ -135,7 +136,8 @@ function saveCmdOptionsToEnv(pkgName, cmd, buildType) {
     console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
     process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
     dist_1.stateFactory.configureStore();
-    config_1.default.init(cmd.opts()).then((setting) => log_config_1.default(setting));
+    const setting = config_1.default.initSync(cmd.opts());
+    log_config_1.default(setting);
     return cmdOptions;
 }
 function withClicOpt(cmd) {

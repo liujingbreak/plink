@@ -8,6 +8,7 @@ export interface InjectorConfigHandler {
     setupWebInjector?(factory: DrPackageInjector): void;
 }
 export declare function doInjectorConfig(factory: DrPackageInjector, isNode?: boolean): Promise<void>;
+export declare function doInjectorConfigSync(factory: DrPackageInjector, isNode?: boolean): void;
 declare type ValueFactory = (sourceFilePath: string, regexpExecRes?: RegExpExecArray) => any;
 export interface ReplaceTypeValue {
     replacement: string;

@@ -26,6 +26,16 @@ export function doInjectorConfig(factory: DrPackageInjector, isNode = false): Pr
   });
 }
 
+export function doInjectorConfigSync(factory: DrPackageInjector, isNode = false) {
+  const config: typeof _config = require('./config');
+  config.configHandlerMgr().runEachSync<InjectorConfigHandler>((file: string, lastResult: any, handler) => {
+    if (isNode && handler.setupNodeInjector)
+      handler.setupNodeInjector(factory);
+    else if (!isNode && handler.setupWebInjector)
+      handler.setupWebInjector(factory);
+  });
+}
+
 
 type ValueFactory = (sourceFilePath: string, regexpExecRes?: RegExpExecArray) => any;
 

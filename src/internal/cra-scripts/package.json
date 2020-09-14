@@ -2,10 +2,7 @@
   "name": "@bk/cra-scripts",
   "version": "1.0.14",
   "description": "Something like create-react-rewired",
-  "main": "register.js",
-  "bin": {
-    "cra-enhance": "dist/cmd/cli.js"
-  },
+  "main": "dist/preload.js",
   "dr": {
     "cli": "dist/cmd/cli.js#default"
   },

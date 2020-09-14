@@ -8,13 +8,15 @@ const path_1 = __importDefault(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const webpack_sources_1 = require("webpack-sources");
 const utils_1 = require("./utils");
-const package_utils_1 = require("dr-comp-package/wfh/dist/package-utils");
+// import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
 const webpack_lib_1 = __importDefault(require("./webpack-lib"));
 const build_target_helper_1 = require("./build-target-helper");
 const config_handler_1 = require("dr-comp-package/wfh/dist/config-handler");
+const injector_setup_1 = __importDefault(require("./injector-setup"));
 // import chalk from 'chalk';
 // const ProgressPlugin = require('webpack/lib/ProgressPlugin');
-const findPackageByFile = package_utils_1.createLazyPackageFileFinder();
+// const findPackageByFile = createLazyPackageFileFinder();
+let api;
 function insertLessLoaderRule(origRules) {
     const rulesAndParents = origRules.map((rule, idx, set) => [rule, idx, set]);
     // tslint:disable-next-line: prefer-for-of
@@ -80,7 +82,7 @@ function findAndChangeRule(rules) {
                     loader: rule,
                     options: {
                         outputPath(url, resourcePath, context) {
-                            const pk = findPackageByFile(resourcePath);
+                            const pk = api.findPackageByFile(resourcePath);
                             return `${(pk ? pk.shortName : 'external')}/${url}`;
                         }
                     }
@@ -90,7 +92,7 @@ function findAndChangeRule(rules) {
                 (rule.loader.indexOf('file-loader') >= 0 ||
                     rule.loader.indexOf('url-loader') >= 0)) {
                 set[i].options.outputPath = (url, resourcePath, context) => {
-                    const pk = findPackageByFile(resourcePath);
+                    const pk = api.findPackageByFile(resourcePath);
                     return `${(pk ? pk.shortName : 'external')}/${url}`;
                 };
             }
@@ -111,7 +113,7 @@ function findAndChangeRule(rules) {
 }
 function createRuleTestFunc4Src(origTest, appSrc) {
     return function testOurSourceFile(file) {
-        const pk = findPackageByFile(file);
+        const pk = api.findPackageByFile(file);
         const yes = ((pk && pk.dr) || file.startsWith(appSrc)) &&
             (origTest instanceof RegExp) ? origTest.test(file) :
             (origTest instanceof Function ? origTest(file) : origTest === file);
@@ -121,6 +123,7 @@ function createRuleTestFunc4Src(origTest, appSrc) {
 }
 module.exports = function (webpackEnv) {
     utils_1.drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check:\n  ${path_1.default.resolve('/logs')}`);
+    api = injector_setup_1.default(false);
     const cmdOption = utils_1.getCmdOptions();
     // console.log('webpackEnv=', webpackEnv);
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
@@ -193,12 +196,18 @@ module.exports = function (webpackEnv) {
     })());
     // config.plugins!.push(new ProgressPlugin({ profile: true }));
     config.stats = 'normal'; // Not working
-    const ssrConfig = global.__SSR;
-    if (ssrConfig) {
-        ssrConfig(config);
-    }
+    // const ssrConfig = (global as any).__SSR;
+    // if (ssrConfig) {
+    //   ssrConfig(config);
+    // }
     if (cmdOption.buildType === 'lib')
         webpack_lib_1.default(cmdOption.buildTarget, config, nodePath);
+    const craPaths = require('react-scripts/config/paths');
+    config.module.rules.push({
+        test: createRuleTestFunc4Src(/\.tsx?$/, craPaths.appSrc),
+        loader: require.resolve('require-injector/webpack-loader'),
+        options: { injector: api.browserInjector }
+    });
     const configFileInPackage = path_1.default.resolve(dir, lodash_1.default.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
     if (fs_extra_1.default.existsSync(configFileInPackage)) {
         const cfgMgr = new config_handler_1.ConfigHandlerMgr([configFileInPackage]);

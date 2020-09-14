@@ -1,7 +1,6 @@
-/// <reference types="node" />
 import { PackageInfo, packageInstance as PackageBrowserInstance } from './build-util/ts';
+import _NodeApi from './package-mgr/node-package-api';
 import NodePackage from './packageNodeInstance';
-import Events from 'events';
 export interface ServerRunnerEvent {
     file: string;
     functionName: string;
@@ -26,10 +25,8 @@ export declare function runPackages(argv: {
 }): Promise<void>;
 export declare function initInjectorForNodePackages(argv: {
     [key: string]: any;
-}, packageInfo: PackageInfo): [PackageBrowserInstance[], {
-    eventBus: Events;
-}];
-export declare function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any): Promise<void>;
+}, packageInfo: PackageInfo): [PackageBrowserInstance[], _NodeApi];
+export declare function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any): void;
 export declare function prepareLazyNodeInjector(argv: {
     [key: string]: any;
 }): void;

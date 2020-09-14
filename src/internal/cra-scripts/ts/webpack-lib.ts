@@ -44,7 +44,7 @@ export default function change(buildPackage: string, config: Configuration, node
     return [MiniCssExtractPlugin,
       ForkTsCheckerWebpackPlugin,
       InlineChunkHtmlPlugin,
-      HotModuleReplacementPlugin,
+      HotModuleReplacementPlugin
       // HtmlWebpackPlugin,
       // InterpolateHtmlPlugin
     ].every(cls => !(plugin instanceof cls));

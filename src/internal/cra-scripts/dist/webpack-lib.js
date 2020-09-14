@@ -40,7 +40,9 @@ function change(buildPackage, config, nodePath) {
         return [MiniCssExtractPlugin,
             ForkTsCheckerWebpackPlugin,
             InlineChunkHtmlPlugin,
-            HotModuleReplacementPlugin,
+            HotModuleReplacementPlugin
+            // HtmlWebpackPlugin,
+            // InterpolateHtmlPlugin
         ].every(cls => !(plugin instanceof cls));
     });
     findAndChangeRule(config.module.rules);

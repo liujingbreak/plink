@@ -126,7 +126,7 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
 }
 
 export function initInjectorForNodePackages(argv: {[key: string]: any}, packageInfo: PackageInfo):
-  [PackageBrowserInstance[], {eventBus: Events}] {
+  [PackageBrowserInstance[], _NodeApi] {
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
   proto.argv = argv;
@@ -167,9 +167,8 @@ export function initWebInjector(packages: PackageBrowserInstance[], apiPrototype
   .substitute(/^([^{]*)\{locale\}(.*)$/,
     (_filePath: string, match: RegExpExecArray) => match[1] + apiPrototype.getBuildLocale() + match[2]);
 
-  const done = webInjector.readInjectFile('module-resolve.browser');
+  webInjector.readInjectFile('module-resolve.browser');
   apiPrototype.browserInjector = webInjector;
-  return done;
 }
 
 export function prepareLazyNodeInjector(argv: {[key: string]: any}) {

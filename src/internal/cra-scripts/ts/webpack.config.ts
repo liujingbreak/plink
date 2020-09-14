@@ -5,22 +5,23 @@ import fs from 'fs-extra';
 import {Configuration, RuleSetRule, Compiler, RuleSetUseItem, RuleSetLoader} from 'webpack';
 import { RawSource } from 'webpack-sources';
 import {drawPuppy, printConfig, getCmdOptions} from './utils';
-import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
+// import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 import {findPackage} from './build-target-helper';
 import {ConfigHandlerMgr} from 'dr-comp-package/wfh/dist/config-handler';
-import {ConfigureHandler} from './types';
+import {ReactScriptsHandler} from './types';
 import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
+import walkPackagesAndSetupInjector from './injector-setup';
 // import chalk from 'chalk';
 // const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 
 
-const findPackageByFile = createLazyPackageFileFinder();
-
+// const findPackageByFile = createLazyPackageFileFinder();
+let api: ReturnType<typeof walkPackagesAndSetupInjector>;
 
 export = function(webpackEnv: string) {
-
   drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check:\n  ${Path.resolve('/logs')}`);
+  api = walkPackagesAndSetupInjector(false);
 
   const cmdOption = getCmdOptions();
   // console.log('webpackEnv=', webpackEnv);
@@ -47,7 +48,7 @@ export = function(webpackEnv: string) {
     throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
   }
   const {dir, packageJson} = foundPkg;
-  
+
   if (cmdOption.buildType === 'app') {
     // TODO: do not hard code
     config.resolve!.alias!['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
@@ -103,18 +104,24 @@ export = function(webpackEnv: string) {
 
   config.stats = 'normal'; // Not working
 
-  const ssrConfig = (global as any).__SSR;
-  if (ssrConfig) {
-    ssrConfig(config);
-  }
+  // const ssrConfig = (global as any).__SSR;
+  // if (ssrConfig) {
+  //   ssrConfig(config);
+  // }
 
   if (cmdOption.buildType === 'lib')
     change4lib(cmdOption.buildTarget, config, nodePath);
 
+  const craPaths = require('react-scripts/config/paths');
+  config.module!.rules.push({
+    test: createRuleTestFunc4Src(/\.tsx?$/, craPaths.appSrc),
+    loader: require.resolve('require-injector/webpack-loader'),
+    options: {injector: api.browserInjector}
+  });
   const configFileInPackage = Path.resolve(dir, _.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
   if (fs.existsSync(configFileInPackage)) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
-    cfgMgr.runEachSync<ConfigureHandler>((cfgFile, result, handler) => {
+    cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
       handler.webpack(config, webpackEnv, cmdOption);
     });
   }
@@ -194,7 +201,7 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
           loader: rule,
           options: {
             outputPath(url: string, resourcePath: string, context: string) {
-              const pk = findPackageByFile(resourcePath);
+              const pk = api.findPackageByFile(resourcePath);
               return `${(pk ? pk.shortName : 'external')}/${url}`;
             }
           }
@@ -204,7 +211,7 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
         ((rule as RuleSetRule | RuleSetLoader).loader as string).indexOf('url-loader') >= 0
         )) {
         ((set[i] as RuleSetRule | RuleSetLoader).options as any)!.outputPath = (url: string, resourcePath: string, context: string) => {
-          const pk = findPackageByFile(resourcePath);
+          const pk = api.findPackageByFile(resourcePath);
           return `${(pk ? pk.shortName : 'external')}/${url}`;
         };
       }
@@ -228,7 +235,7 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
 
 function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc: string) {
   return function testOurSourceFile(file: string)  {
-    const pk = findPackageByFile(file);
+    const pk = api.findPackageByFile(file);
     const yes = ((pk && pk.dr) || file.startsWith(appSrc)) &&
       (origTest instanceof RegExp) ? origTest.test(file) :
         (origTest instanceof Function ? origTest(file) : origTest === file);
