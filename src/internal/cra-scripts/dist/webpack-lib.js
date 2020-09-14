@@ -15,7 +15,11 @@ const utils_1 = require("./utils");
 const plinkDir = path_1.default.dirname(require.resolve('dr-comp-package/package.json'));
 const MiniCssExtractPlugin = require(path_1.default.resolve('node_modules/mini-css-extract-plugin'));
 function change(buildPackage, config, nodePath) {
-    const { dir: pkDir, packageJson: pkJson } = build_target_helper_1.findPackage(buildPackage);
+    const foundPkg = build_target_helper_1.findPackage(buildPackage);
+    if (foundPkg == null) {
+        throw new Error(`Can not find package for name like ${buildPackage}`);
+    }
+    const { dir: pkDir, packageJson: pkJson } = foundPkg;
     config.entry = path_1.default.resolve(pkDir, 'public_api.ts');
     config.output.path = path_1.default.resolve(pkDir, 'build'); // Have to override it cuz' react-scripts assign `undefined` in non-production env
     config.output.filename = 'lib-bundle.js';
@@ -28,17 +32,16 @@ function change(buildPackage, config, nodePath) {
     }
     // ---- Plugins filter ----
     const InlineChunkHtmlPlugin = require(path_1.default.resolve('node_modules/react-dev-utils/InlineChunkHtmlPlugin'));
-    const InterpolateHtmlPlugin = require(path_1.default.resolve('node_modules/react-dev-utils/InterpolateHtmlPlugin'));
+    // const InterpolateHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InterpolateHtmlPlugin'));
     const ForkTsCheckerWebpackPlugin = require(path_1.default.resolve('node_modules/react-dev-utils/ForkTsCheckerWebpackPlugin'));
-    const HtmlWebpackPlugin = require(path_1.default.resolve('node_modules/html-webpack-plugin'));
+    // const HtmlWebpackPlugin = require(Path.resolve('node_modules/html-webpack-plugin'));
     const { HotModuleReplacementPlugin } = require(path_1.default.resolve('node_modules/webpack'));
     config.plugins = config.plugins.filter(plugin => {
         return [MiniCssExtractPlugin,
             ForkTsCheckerWebpackPlugin,
             InlineChunkHtmlPlugin,
             HotModuleReplacementPlugin,
-            HtmlWebpackPlugin,
-            InterpolateHtmlPlugin].every(cls => !(plugin instanceof cls));
+        ].every(cls => !(plugin instanceof cls));
     });
     findAndChangeRule(config.module.rules);
     const reqSet = new Set();
@@ -130,8 +133,6 @@ function forkTsc(targetPackage, nodePath) {
                 rej(new Error(`Failed to generate tsd files, due to process exit with code: ${code} ${signal}`));
             }
             else {
-                // tslint:disable-next-line: no-console
-                console.log('[webpack-lib] tsc done');
                 resolve();
             }
         });

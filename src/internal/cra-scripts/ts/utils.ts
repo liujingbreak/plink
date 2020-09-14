@@ -5,6 +5,9 @@ import Path from 'path';
 import _ from 'lodash';
 import {gt} from 'semver';
 import commander from 'Commander';
+import {stateFactory, withGlobalOptions, GlobalOptions} from 'dr-comp-package/wfh/dist';
+import config from 'dr-comp-package/wfh/dist/config';
+import logConfig from 'dr-comp-package/wfh/dist/log-config';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -81,45 +84,46 @@ export function saveCmdArgToEnv() {
   program.version(pk.version, '-v, --vers', 'output the current version');
   program.usage('react-scripts -r dr-comp-package/register -r @bk/cra-scripts build ' + program.usage());
 
-  let cmdOptions: CommandOption;
-
   const libCmd = program.command('lib <package-name>')
   .description('Compile library')
   .action(pkgName => {
-    // console.log(libCmd.opts());
-    cmdOptions = {
-      buildType: 'lib',
-      buildTarget: pkgName,
-      watch: libCmd.opts().watch,
-      devMode: libCmd.opts().dev,
-      publicUrl: libCmd.opts().publicUrl
-    };
-    process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
+    saveCmdOptionsToEnv(pkgName, libCmd, 'lib');
   });
   withClicOpt(libCmd);
 
   const appCmd = program.command('app <package-name>')
   .description('Compile appliaction')
   .action(pkgName => {
-    cmdOptions = {
-      buildType: 'app',
-      buildTarget: pkgName,
-      watch: appCmd.opts().watch,
-      devMode: appCmd.opts().dev,
-      publicUrl: appCmd.opts().publicUrl
-    };
-    process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
+    saveCmdOptionsToEnv(pkgName, appCmd, 'app');
   });
   withClicOpt(appCmd);
 
   program.parse(process.argv);
+}
 
+function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType: 'app' | 'lib'): CommandOption {
+  const cmdOptions: CommandOption = {
+    buildType,
+    buildTarget: pkgName,
+    watch: cmd.opts().watch,
+    devMode: cmd.opts().dev,
+    publicUrl: cmd.opts().publicUrl
+  };
+  process.env.PUBLIC_URL = cmd.opts().publicUrl;
+  console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL)
+  process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
+
+  stateFactory.configureStore();
+  config.init(cmd.opts() as GlobalOptions).then((setting) => logConfig(setting))
+  
+  return cmdOptions;
 }
 
 function withClicOpt(cmd: commander.Command) {
   cmd.option('-w, --watch', 'Watch file changes and compile', false)
   .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
   .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', '/');
+  withGlobalOptions(cmd);
 }
 
 

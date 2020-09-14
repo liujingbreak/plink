@@ -28,6 +28,9 @@ const util_1 = __importStar(require("util"));
 const path_1 = __importDefault(require("path"));
 const semver_1 = require("semver");
 const Commander_1 = __importDefault(require("Commander"));
+const dist_1 = require("dr-comp-package/wfh/dist");
+const config_1 = __importDefault(require("dr-comp-package/wfh/dist/config"));
+const log_config_1 = __importDefault(require("dr-comp-package/wfh/dist/log-config"));
 function drawPuppy(slogon, message) {
     if (!slogon) {
         slogon = 'Congrads! Time to publish your shit!';
@@ -105,41 +108,41 @@ function saveCmdArgToEnv() {
     });
     program.version(pk.version, '-v, --vers', 'output the current version');
     program.usage('react-scripts -r dr-comp-package/register -r @bk/cra-scripts build ' + program.usage());
-    let cmdOptions;
     const libCmd = program.command('lib <package-name>')
         .description('Compile library')
         .action(pkgName => {
-        // console.log(libCmd.opts());
-        cmdOptions = {
-            buildType: 'lib',
-            buildTarget: pkgName,
-            watch: libCmd.opts().watch,
-            devMode: libCmd.opts().dev,
-            publicUrl: libCmd.opts().publicUrl
-        };
-        process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
+        saveCmdOptionsToEnv(pkgName, libCmd, 'lib');
     });
     withClicOpt(libCmd);
     const appCmd = program.command('app <package-name>')
         .description('Compile appliaction')
         .action(pkgName => {
-        cmdOptions = {
-            buildType: 'app',
-            buildTarget: pkgName,
-            watch: appCmd.opts().watch,
-            devMode: appCmd.opts().dev,
-            publicUrl: appCmd.opts().publicUrl
-        };
-        process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
+        saveCmdOptionsToEnv(pkgName, appCmd, 'app');
     });
     withClicOpt(appCmd);
     program.parse(process.argv);
 }
 exports.saveCmdArgToEnv = saveCmdArgToEnv;
+function saveCmdOptionsToEnv(pkgName, cmd, buildType) {
+    const cmdOptions = {
+        buildType,
+        buildTarget: pkgName,
+        watch: cmd.opts().watch,
+        devMode: cmd.opts().dev,
+        publicUrl: cmd.opts().publicUrl
+    };
+    process.env.PUBLIC_URL = cmd.opts().publicUrl;
+    console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
+    process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
+    dist_1.stateFactory.configureStore();
+    config_1.default.init(cmd.opts()).then((setting) => log_config_1.default(setting));
+    return cmdOptions;
+}
 function withClicOpt(cmd) {
     cmd.option('-w, --watch', 'Watch file changes and compile', false)
         .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
         .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', '/');
+    dist_1.withGlobalOptions(cmd);
 }
 function craVersionCheck() {
     const craPackage = require(path_1.default.resolve('node_modules/react-scripts/package.json'));

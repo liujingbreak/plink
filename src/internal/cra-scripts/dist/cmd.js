@@ -24,7 +24,7 @@ function genPackage(path, dryrun = false) {
     const dir = path_1.default.resolve(path);
     fs_extra_1.default.mkdirpSync(dir);
     copyTempl(dir, path_1.default.basename(path), dryrun);
-    console.log(`[cra-scripts cmd] ${chalk_1.default.redBright('You need to run')} \`drcp init\``);
+    console.log(`[cra-scripts cmd] ${chalk_1.default.redBright('You need to run')} \`plink init\``);
 }
 exports.genPackage = genPackage;
 function copyTempl(to, pkName, dryrun) {

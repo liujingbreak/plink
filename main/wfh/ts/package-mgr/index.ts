@@ -582,9 +582,8 @@ async function installWorkspace(ws: WorkspaceState) {
     fs.mkdirpSync(target);
   }
 
-  // if (ws.linkedDependencies.length + ws.linkedDevDependencies.length > 0) {
-    // Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
-    // backup them for late recovery
+  // 1. Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
+  // backup them for late recovery
   await listModuleSymlinks(target, link => {
     const linkContent = fs.readlinkSync(link);
     symlinksInModuleDir.push({content: linkContent, link});
@@ -592,7 +591,7 @@ async function installWorkspace(ws: WorkspaceState) {
   });
   // _cleanActions.addWorkspaceFile(links);
 
-  // 3. Run `npm install`
+  // 2. Run `npm install`
   const installJsonFile = Path.resolve(dir, 'package.json');
   // tslint:disable-next-line: no-console
   console.log('[init] write', installJsonFile);
@@ -606,7 +605,7 @@ async function installWorkspace(ws: WorkspaceState) {
     // tslint:disable-next-line: no-console
     console.log(e, e.stack);
   }
-  // 4. Recover package.json and symlinks deleted in Step.1.
+  // 3. Recover package.json and symlinks deleted in Step.1.
   fs.writeFile(installJsonFile, ws.originInstallJsonStr, 'utf8');
   await recoverSymlinks();
   // }

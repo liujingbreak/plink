@@ -16,7 +16,11 @@ function paths() {
     const paths = require(path_1.default.resolve('node_modules/react-scripts/config/paths'));
     const changedPaths = paths;
     const cmdOption = utils_1.getCmdOptions();
-    const { dir, packageJson } = build_target_helper_1.findPackage(cmdOption.buildTarget);
+    const foundPkg = build_target_helper_1.findPackage(cmdOption.buildTarget);
+    if (foundPkg == null) {
+        throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
+    }
+    const { dir, packageJson } = foundPkg;
     // console.log('[debug] ', cmdOption);
     if (cmdOption.buildType === 'lib') {
         changedPaths.appBuild = path_1.default.resolve(dir, 'build');

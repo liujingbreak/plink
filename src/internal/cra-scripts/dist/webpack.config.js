@@ -13,7 +13,7 @@ const webpack_lib_1 = __importDefault(require("./webpack-lib"));
 const build_target_helper_1 = require("./build-target-helper");
 const config_handler_1 = require("dr-comp-package/wfh/dist/config-handler");
 // import chalk from 'chalk';
-const ProgressPlugin = require('webpack/lib/ProgressPlugin');
+// const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 const findPackageByFile = package_utils_1.createLazyPackageFileFinder();
 function insertLessLoaderRule(origRules) {
     const rulesAndParents = origRules.map((rule, idx, set) => [rule, idx, set]);
@@ -133,11 +133,19 @@ module.exports = function (webpackEnv) {
     }
     const origWebpackConfig = require('react-scripts/config/webpack.config');
     const config = origWebpackConfig(webpackEnv);
+    // fs.mkdirpSync('logs');
+    // fs.writeFile('logs/webpack.config.origin.debug.js', printConfig(config), (err) => {
+    //   console.error(err);
+    // });
     console.log(`[cra-scripts] output.publicPath: ${config.output.publicPath}`);
     // Make sure babel compiles source folder out side of current src directory
     findAndChangeRule(config.module.rules);
     insertLessLoaderRule(config.module.rules);
-    const { dir, packageJson } = build_target_helper_1.findPackage(cmdOption.buildTarget);
+    const foundPkg = build_target_helper_1.findPackage(cmdOption.buildTarget);
+    if (foundPkg == null) {
+        throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
+    }
+    const { dir, packageJson } = foundPkg;
     if (cmdOption.buildType === 'app') {
         // TODO: do not hard code
         config.resolve.alias['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
@@ -151,16 +159,6 @@ module.exports = function (webpackEnv) {
             config.resolve.plugins.splice(srcScopePluginIdx, 1);
         }
     }
-    // Move project node_modules to first position in resolve order
-    // TODO: this might be problematic, the one in space top level might not be the right version one
-    // if (config.resolve && config.resolve.modules) {
-    //   const topModuleDir = Path.resolve('node_modules');
-    //   const pwdIdx = config.resolve.modules.findIndex(m => m === topModuleDir);
-    //   if (pwdIdx > 0) {
-    //     config.resolve.modules.splice(pwdIdx, 1);
-    //   }
-    //   config.resolve.modules.unshift(topModuleDir);
-    // }
     const { nodePath } = JSON.parse(process.env.__plink);
     const resolveModules = ['node_modules', ...nodePath];
     config.resolve.modules = resolveModules;
@@ -193,7 +191,7 @@ module.exports = function (webpackEnv) {
             });
         }
     })());
-    config.plugins.push(new ProgressPlugin({ profile: true }));
+    // config.plugins!.push(new ProgressPlugin({ profile: true }));
     config.stats = 'normal'; // Not working
     const ssrConfig = global.__SSR;
     if (ssrConfig) {

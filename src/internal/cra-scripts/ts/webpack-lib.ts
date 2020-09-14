@@ -13,7 +13,11 @@ const plinkDir = Path.dirname(require.resolve('dr-comp-package/package.json'));
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
 export default function change(buildPackage: string, config: Configuration, nodePath: string[]) {
-  const {dir: pkDir, packageJson: pkJson} = findPackage(buildPackage);
+  const foundPkg = findPackage(buildPackage);
+  if (foundPkg == null) {
+    throw new Error(`Can not find package for name like ${buildPackage}`);
+  }
+  const {dir: pkDir, packageJson: pkJson} = foundPkg;
 
   config.entry = Path.resolve(pkDir, 'public_api.ts');
 
@@ -30,9 +34,9 @@ export default function change(buildPackage: string, config: Configuration, node
   // ---- Plugins filter ----
 
   const InlineChunkHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InlineChunkHtmlPlugin'));
-  const InterpolateHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InterpolateHtmlPlugin'));
+  // const InterpolateHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InterpolateHtmlPlugin'));
   const ForkTsCheckerWebpackPlugin = require(Path.resolve('node_modules/react-dev-utils/ForkTsCheckerWebpackPlugin'));
-  const HtmlWebpackPlugin = require(Path.resolve('node_modules/html-webpack-plugin'));
+  // const HtmlWebpackPlugin = require(Path.resolve('node_modules/html-webpack-plugin'));
   const {HotModuleReplacementPlugin} = require(Path.resolve('node_modules/webpack'));
 
   config.plugins = config.plugins!.filter(plugin => {
@@ -41,8 +45,9 @@ export default function change(buildPackage: string, config: Configuration, node
       ForkTsCheckerWebpackPlugin,
       InlineChunkHtmlPlugin,
       HotModuleReplacementPlugin,
-      HtmlWebpackPlugin,
-      InterpolateHtmlPlugin].every(cls => !(plugin instanceof cls));
+      // HtmlWebpackPlugin,
+      // InterpolateHtmlPlugin
+    ].every(cls => !(plugin instanceof cls));
   });
 
   findAndChangeRule(config.module!.rules);
@@ -146,8 +151,6 @@ function forkTsc(targetPackage: string, nodePath: string[]) {
       if (code !== 0) {
         rej(new Error(`Failed to generate tsd files, due to process exit with code: ${code} ${signal}`));
       } else {
-        // tslint:disable-next-line: no-console
-        console.log('[webpack-lib] tsc done');
         resolve();
       }
     });

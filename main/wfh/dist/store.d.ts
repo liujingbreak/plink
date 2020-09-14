@@ -1,4 +1,4 @@
-import { StateFactory, ofPayloadAction } from '../../redux-toolkit-abservable/dist/redux-toolkit-observable';
+import { StateFactory, ofPayloadAction } from '../../redux-toolkit-observable/dist/redux-toolkit-observable';
 export { ofPayloadAction };
 /**
  * Since Redux-toolkit does not read initial state with any lazy slice that has not defined in root reducer,

@@ -1,7 +1,7 @@
 import Path from 'path';
 import fs from 'fs';
 import {tap, filter} from 'rxjs/operators';
-import {StateFactory, ofPayloadAction} from '../../redux-toolkit-abservable/dist/redux-toolkit-observable';
+import {StateFactory, ofPayloadAction} from '../../redux-toolkit-observable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
 import {getRootDir} from './utils/misc';
 import serialize from 'serialize-javascript';
@@ -49,7 +49,7 @@ export async function startLogging() {
         (logAction.info as any)(...params.slice(1));
         // console.log(...params.slice(1));
       else
-        (defaultLog.info as any)(...params);
+        (defaultLog.debug as any)(...params);
 
       // if (params[0] === 'state') {
       //   console.log('[redux:state]', ...params.slice(1));

@@ -1,9 +1,10 @@
 {
-  "name": "redux-toolkit-abservable",
+  "name": "redux-toolkit-observable",
   "version": "1.0.0",
   "description": "A convenient Redux-toolkit + Redux-observable encapsulation",
   "main": "dist/redux-toolkit-observable.js",
   "types": "dist/redux-toolkit-observable.d.ts",
+  "dr": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

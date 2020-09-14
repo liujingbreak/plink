@@ -1,5 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import {ofPayloadAction } from '../../../redux-toolkit-abservable';
+import {ofPayloadAction } from '../../../redux-toolkit-observable';
 import {stateFactory} from '../store';
 import {map, distinctUntilChanged, catchError, ignoreElements, mergeMap, debounceTime,
   skip, filter} from 'rxjs/operators';

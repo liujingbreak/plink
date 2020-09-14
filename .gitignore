@@ -25,3 +25,5 @@ src/tools/http-request-proxy/tsconfig.json
 src/runtime/http-server/tsconfig.json
 src/legacy/webpack2-builder/tsconfig.json
 src/internal/cra-scripts/tsconfig.json
+
+main/redux-toolkit-observable/tsconfig.json

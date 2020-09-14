@@ -100,7 +100,7 @@ function _addupCompConfigProp(componentConfigs: {[k: string]: any}, compName: st
 
 function deeplyMergeJson(target: {[key: string]: any}, src: any,
   customizer?: (tValue: any, sValue: any, key: string) => any) {
-  _.each(src, (sValue, key) => {
+  for (const [key, sValue] of Object.entries(src)) {
     const tValue = target[key];
     const c = customizer ? customizer(tValue, sValue, key) : undefined;
     if (c !== undefined)
@@ -111,5 +111,5 @@ function deeplyMergeJson(target: {[key: string]: any}, src: any,
       deeplyMergeJson(tValue, sValue);
     else
       target[key] = sValue;
-  });
+  }
 }

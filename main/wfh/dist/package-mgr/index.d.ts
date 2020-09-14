@@ -655,7 +655,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         file: string;
         content: string;
     }>): void;
-} & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
+} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
     initRootDir(d: {
@@ -1279,7 +1279,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         file: string;
         content: string;
     }>): void;
-} & import("../../../redux-toolkit-abservable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
+} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare function getState(): PackagesState;
 export declare function getStore(): Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;

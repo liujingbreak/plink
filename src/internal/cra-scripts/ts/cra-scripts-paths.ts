@@ -36,7 +36,11 @@ export default function paths() {
   const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
   const changedPaths = paths;
   const cmdOption = getCmdOptions();
-  const {dir, packageJson} = findPackage(cmdOption.buildTarget);
+  const foundPkg = findPackage(cmdOption.buildTarget);
+  if (foundPkg == null) {
+    throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
+  }
+  const {dir, packageJson} = foundPkg;
   // console.log('[debug] ', cmdOption);
   if (cmdOption.buildType === 'lib') {
     changedPaths.appBuild = Path.resolve(dir, 'build');

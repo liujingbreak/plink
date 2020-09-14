@@ -35,7 +35,11 @@ export async function listModuleSymlinks(
   }));
 
   async function onEachFile(file: string) {
-    if (fs.lstatSync(file).isSymbolicLink()) {
+    let isSymlink = false;
+    try {
+      isSymlink = fs.lstatSync(file).isSymbolicLink();
+    } catch (e) {}
+    if (isSymlink) {
       await onFound(file);
     }
   }

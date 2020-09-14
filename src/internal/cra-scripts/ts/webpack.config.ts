@@ -12,7 +12,7 @@ import {ConfigHandlerMgr} from 'dr-comp-package/wfh/dist/config-handler';
 import {ConfigureHandler} from './types';
 import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
 // import chalk from 'chalk';
-const ProgressPlugin = require('webpack/lib/ProgressPlugin');
+// const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 
 
 const findPackageByFile = createLazyPackageFileFinder();
@@ -33,12 +33,21 @@ export = function(webpackEnv: string) {
   }
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   const config: Configuration = origWebpackConfig(webpackEnv);
+  // fs.mkdirpSync('logs');
+  // fs.writeFile('logs/webpack.config.origin.debug.js', printConfig(config), (err) => {
+  //   console.error(err);
+  // });
   console.log(`[cra-scripts] output.publicPath: ${config.output!.publicPath}`);
   // Make sure babel compiles source folder out side of current src directory
   findAndChangeRule(config.module!.rules);
   insertLessLoaderRule(config.module!.rules);
 
-  const {dir, packageJson} = findPackage(cmdOption.buildTarget);
+  const foundPkg = findPackage(cmdOption.buildTarget);
+  if (foundPkg == null) {
+    throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
+  }
+  const {dir, packageJson} = foundPkg;
+  
   if (cmdOption.buildType === 'app') {
     // TODO: do not hard code
     config.resolve!.alias!['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
@@ -55,16 +64,6 @@ export = function(webpackEnv: string) {
     }
   }
 
-  // Move project node_modules to first position in resolve order
-  // TODO: this might be problematic, the one in space top level might not be the right version one
-  // if (config.resolve && config.resolve.modules) {
-  //   const topModuleDir = Path.resolve('node_modules');
-  //   const pwdIdx = config.resolve.modules.findIndex(m => m === topModuleDir);
-  //   if (pwdIdx > 0) {
-  //     config.resolve.modules.splice(pwdIdx, 1);
-  //   }
-  //   config.resolve.modules.unshift(topModuleDir);
-  // }
   const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
   const resolveModules = ['node_modules', ...nodePath];
@@ -100,7 +99,7 @@ export = function(webpackEnv: string) {
     }
   })());
 
-  config.plugins!.push(new ProgressPlugin({ profile: true }));
+  // config.plugins!.push(new ProgressPlugin({ profile: true }));
 
   config.stats = 'normal'; // Not working
 

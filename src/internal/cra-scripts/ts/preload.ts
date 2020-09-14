@@ -9,12 +9,8 @@ import {getCmdOptions} from './utils';
 import Path from 'path';
 import fs from 'fs-extra';
 import {hackWebpack4Compiler} from './hack-webpack-api';
-
-
-
 import Module from 'module';
 import {sep, resolve, dirname} from 'path';
-
 // Avoid child process require us!
 const deleteExecArgIdx: number[] = [];
 for (let i = 0, l = process.execArgv.length; i < l; i++) {
