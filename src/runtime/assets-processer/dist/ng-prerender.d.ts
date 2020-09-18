@@ -1,3 +1,4 @@
+import { Request, Response, NextFunction } from 'express';
 export declare const ROUTE_MAP_FILE = "prerender-routes.json";
 export declare class PrerenderForExpress {
     prerenderPages: {
@@ -11,7 +12,7 @@ export declare class PrerenderForExpress {
        * @param routeMapFiles array of dist/static/<app>/_prerender/prerender-routes.json
        */
     constructor(...routeMapFiles: string[]);
-    asMiddleware(): (req: any, res: any, next: any) => any;
+    asMiddleware(): (req: Request, res: Response, next: NextFunction) => void;
     protected queryPrerenderPages(routeMapFiles: string[]): Promise<{
         [route: string]: string;
     }>;

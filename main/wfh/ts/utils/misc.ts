@@ -4,7 +4,7 @@ import get from 'lodash/get';
 import _ from 'lodash';
 import * as Path from 'path';
 // import * as fs from 'fs';
-import type {PlinkEnv} from '../node-path';
+import {PlinkEnv} from '../node-path';
 
 const {isDrcpSymlink, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 

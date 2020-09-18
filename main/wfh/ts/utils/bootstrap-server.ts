@@ -2,8 +2,8 @@ import '../node-path';
 import log4js from 'log4js';
 import config from '../config';
 import logConfig from '../log-config';
-import type {GlobalOptions} from '../cmd/types';
-import type * as store from '../store';
+import {GlobalOptions} from '../cmd/types';
+import * as store from '../store';
 
 process.on('uncaughtException', function(err) {
   log.error('Uncaught exception', err, err.stack);

@@ -1,5 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import type { Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { PackageJsonInterf } from '../dependency-hoister';
 export interface PackageInfo {
     name: string;

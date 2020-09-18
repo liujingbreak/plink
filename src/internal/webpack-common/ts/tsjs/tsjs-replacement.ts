@@ -1,36 +1,19 @@
+// import * as wp from 'webpack';
+import * as Path from 'path';
+import vm from 'vm';
 import * as ts from 'typescript';
 import {SyntaxKind as sk} from 'typescript';
-import replaceCode, * as textPatcher from './patch-text';
-import {ReplacementInf} from './patch-text';
+import ImportClauseTranspile from './tsjs/default-import-ts-transpiler';
 import api, {DrcpApi} from '__api';
-import vm = require('vm');
-import {dirname, relative, resolve} from 'path';
-import ImportClauseTranspile from './default-import-ts-transpiler';
-
-const chalk = require('chalk');
-const log = require('log4js').getLogger(api.packageName + '.api-aot-compiler');
+import BrowserPackage from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
+import {ReplacementInf} from 'dr-comp-package/wfh/dist/utils/patch-text';
+import * as textPatcher from 'dr-comp-package/wfh/dist/utils/patch-text';
+import log4js from 'log4js';
+const log = log4js.getLogger(api.packageName + '.api-aot-compiler');
+import chalk from 'chalk';
 
 export {ReplacementInf};
 export type TsHandler = (ast: ts.SourceFile) => ReplacementInf[];
-
-function createTsHandlers(): Array<[string, TsHandler]> {
-  const funcs: Array<[string, TsHandler]> = [];
-  for (const pk of api.packageInfo.allModules) {
-    if (pk.dr && pk.dr.ngTsHandler) {
-      const [filePath, exportName] = pk.dr.ngTsHandler.split('#');
-      const path = resolve(pk.realPackagePath, filePath);
-      const func = require(path)[exportName] as TsHandler;
-      funcs.push([
-        path + '#' + exportName,
-        func
-      ]);
-    }
-  }
-  return funcs;
-}
-
-let tsHandlers: Array<[string, TsHandler]>;
-
 export default class ApiAotCompiler {
   ast: ts.SourceFile;
 
@@ -38,8 +21,10 @@ export default class ApiAotCompiler {
 
   importTranspiler: ImportClauseTranspile;
 
-  constructor(protected file: string, protected src: string) {
-    if (api.ssr) {
+  constructor(protected file: string, protected src: string, isServerSide: boolean,
+    private findPackageByFile: (file: string) => BrowserPackage
+    ) {
+    if (isServerSide) {
       this.importTranspiler = new ImportClauseTranspile({
         file: this.file,
         modules: [/^lodash(?:\/|$)/]
@@ -48,16 +33,16 @@ export default class ApiAotCompiler {
   }
 
   parse(transpileExp: (source: string) => string): string {
-    const pk = api.findPackageByFile(this.file);
+    const pk = this.findPackageByFile(this.file);
     // console.log('parse', this.file, pk == null ? '' : 'yes');
     if (pk == null)
       return this.src;
-    if (!tsHandlers)
-      tsHandlers = createTsHandlers();
+    // if (!tsHandlers)
+    //   tsHandlers = createTsHandlers();
 
     this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext,
       true, ts.ScriptKind.TSX);
-    this._callTsHandlers(tsHandlers);
+    // this._callTsHandlers(tsHandlers);
 
     for(const stm of this.ast.statements) {
       this.traverseTsAst(stm);
@@ -68,7 +53,7 @@ export default class ApiAotCompiler {
     // `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
 
     const nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
-    nodeApi.__dirname = dirname(this.file);
+    nodeApi.__dirname = Path.dirname(this.file);
     const context = vm.createContext({__api: nodeApi});
 
     for (const repl of this.replacements) {
@@ -91,7 +76,7 @@ export default class ApiAotCompiler {
         throw ex;
       }
       log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +
-        relative(process.cwd(), this.file));
+        Path.relative(process.cwd(), this.file));
     }
 
     if (this.importTranspiler)
@@ -107,24 +92,12 @@ export default class ApiAotCompiler {
     api.findPackageByFile(file);
   }
 
-  protected _callTsHandlers(tsHandlers: Array<[string, TsHandler]>): void {
-    for (const [name, func] of tsHandlers) {
-      const change = func(this.ast);
-      if (change && change.length > 0) {
-        log.info('%s is changed by %s', chalk.cyan(this.ast.fileName), chalk.blue(name));
-        this.src = replaceCode(this.src, change);
-        this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext,
-          true, ts.ScriptKind.TSX);
-      }
-    }
-  }
-
   protected traverseTsAst(ast: ts.Node, level = 0) {
     if (ast.kind === sk.PropertyAccessExpression || ast.kind === sk.ElementAccessExpression) {
       const node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
       if (node.expression.kind === sk.Identifier && node.expression.getText(this.ast) === '__api') {
         // keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
-        const evaluateNode = this.goUpToParentExpress(node);
+        const evaluateNode = this.goUpToParentExp(node);
         this.replacements.push({start: evaluateNode.getStart(this.ast),
           end: evaluateNode.getEnd(),
           text: evaluateNode.getText(this.ast)});
@@ -142,7 +115,7 @@ export default class ApiAotCompiler {
   /**
 	 * keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
 	 */
-  protected goUpToParentExpress(target: ts.Node): ts.Node {
+  protected goUpToParentExp(target: ts.Node): ts.Node {
     let currNode = target;
     while(true) {
       const kind = currNode.parent.kind;

@@ -5,7 +5,7 @@ import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import {sep, resolve, join, relative} from 'path';
 import ts from 'typescript';
-import type File from 'vinyl';
+import File from 'vinyl';
 import {getTsDirsOfPackage, PackageTsDirs, closestCommonParentDir} from './utils/misc';
 import {CompilerOptions} from 'typescript';
 import config from './config';

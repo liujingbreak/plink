@@ -9,9 +9,11 @@ if (process.env.__plink == null) {
   const nodePath = setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
   process.env.__plink = JSON.stringify({isDrcpSymlink, rootDir, symlinkDir, nodePath} as PlinkEnv);
 
+  // delete register from command line option, to avoid child process get this option, since we have NODE_PATH set
+  // for child process
   const deleteExecArgIdx: number[] = [];
   for (let i = 0, l = process.execArgv.length; i < l; i++) {
-    if (i < l - 1 && /^(?:\-r|\-\-require)$/.test(process.execArgv[i]) &&
+    if (i < l - 1 && /^(?:-r|--require)$/.test(process.execArgv[i]) &&
       /^dr-comp-package\/register$/.test(process.execArgv[i + 1])) {
       deleteExecArgIdx.push(i);
     }
@@ -20,7 +22,10 @@ if (process.env.__plink == null) {
     process.execArgv.splice(deleteIdx + offset, 2);
     return offset + 2;
   }, 0);
-  // console.log('[node-path]', process.execArgv);
+
+  const envOptions = process.env.NODE_OPTIONS ? process.env.NODE_OPTIONS.split(Path.delimiter) : [];
+  process.env.NODE_OPTIONS =
+    envOptions.filter(item => !/(-r|--require)\s+dr-comp-package\/register/.test(item)).join(Path.delimiter);
 }
 
 function findRootDir() {

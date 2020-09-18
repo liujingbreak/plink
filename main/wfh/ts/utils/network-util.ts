@@ -8,8 +8,9 @@ export function getLanIPv4(): string {
       return found.address;
     }
   }
-  for (const key of Object.keys(inters)) {
-    const interf = inters[key];
+  for (const interf of Object.values(inters)) {
+    if (interf == null)
+      continue;
     const found = interf.find(ip => ip.family === 'IPv4' && !ip.internal);
     if (found) {
       return found.address;

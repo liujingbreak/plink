@@ -1,10 +1,10 @@
 // tslint:disable: max-line-length
 import commander from 'commander';
 import chalk from 'chalk';
-import type * as store from '../store';
+import * as store from '../store';
 import * as tp from './types';
-import type * as cliStore from './cli-store';
-import type * as pkgMgr from '../package-mgr';
+import * as cliStore from './cli-store';
+import * as pkgMgr from '../package-mgr';
 import * as _ from 'lodash';
 // import Path from 'path';
 const pk = require('../../../package');
@@ -99,6 +99,7 @@ function subDrcpCommand(program: commander.Command) {
    * command ls
    */
   const listCmd = program.command('ls').alias('list')
+  .option('-j, --json', 'list linked dependencies in form of JSON', false)
   .description('If you want to know how many components will actually run, this command prints out a list and the priorities, including installed components')
   .action(async () => {
     await (await import('./cli-ls')).default(listCmd.opts() as any);

@@ -24,7 +24,7 @@
     },
     "config.local": {
       "server": {
-        "noHealthChe]ck": true
+        "noHealthCheck": true
       }
     }
   },

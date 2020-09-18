@@ -6,10 +6,12 @@
 # destDir contains build results like node server required data, template and timestamp file which
 # helps to speed up build process in local dev environment
 destDir: dist
-dllDestDir: dist/dll
 # staticDir folder ideally should be inside `destDir`, you can change name of it
 # or move its location out of `destDir`, but it can't not be out of process.cwd()
 staticDir: dist/static
+
+# file store for Webpack dll plugin 
+dllDestDir: dist/dll
 
 port: 14333 # read by @dr/http-server
 # ssl:
@@ -19,6 +21,7 @@ port: 14333 # read by @dr/http-server
 #     cert: "ssl/cert.pem"
 
 packageScopes:
+  - wfh
   - bk
   - bk-core
   - dr

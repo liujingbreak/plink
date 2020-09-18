@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import Inject from 'require-injector';
 import * as assetsUrl from '../../dist/assets-url';
 import { PackageInfo, packageInstance as PackageInstance } from '../build-util/ts';

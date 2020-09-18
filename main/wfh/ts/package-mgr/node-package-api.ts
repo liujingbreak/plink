@@ -1,5 +1,5 @@
 // tslint:disable max-line-length
-import EventEmitter from 'events';
+import {EventEmitter} from 'events';
 
 import config from '../config';
 

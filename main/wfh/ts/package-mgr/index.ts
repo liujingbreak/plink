@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';
 import { from, merge, of} from 'rxjs';
-import type {Observable} from 'rxjs';
+import {Observable} from 'rxjs';
 import {tap} from 'rxjs/operators';
 import { distinctUntilChanged, filter, map, switchMap,
   take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
@@ -21,7 +21,7 @@ import { stateFactory, ofPayloadAction } from '../store';
 import { getRootDir, isDrcpSymlink } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
 import { actions as _cleanActions } from '../cmd/cli-clean';
-import type {PlinkEnv} from '../node-path';
+import {PlinkEnv} from '../node-path';
 
 export interface PackageInfo {
   name: string;
@@ -597,7 +597,6 @@ async function installWorkspace(ws: WorkspaceState) {
   console.log('[init] write', installJsonFile);
   fs.writeFileSync(installJsonFile, ws.installJsonStr, 'utf8');
   await new Promise(resolve => setTimeout(resolve, 5000));
-
   try {
     await exe('npm', 'install', {cwd: dir}).promise;
     await exe('npm', 'dedupe', {cwd: dir}).promise;

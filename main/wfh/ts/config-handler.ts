@@ -6,7 +6,7 @@ const {parse} = require('comment-json');
 const {cyan, green} = chalk;
 import {register as registerTsNode} from 'ts-node';
 import {GlobalOptions as CliOptions} from './cmd/types';
-import type {PlinkEnv} from './node-path';
+import {PlinkEnv} from './node-path';
 import {getRootDir} from './utils/misc';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';

@@ -121,7 +121,7 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
     }
   })
   .then(() => {
-    (proto.eventBus as Events).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
+    (proto.eventBus as Events.EventEmitter).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
   });
 }
 

@@ -1,3 +1,4 @@
+// @ts-check
 var _ = require('lodash');
 var log = require('log4js').getLogger('packageRunner');
 var config = require('../config');
@@ -8,9 +9,13 @@ var helper = require('./packageRunnerHelper');
 var priorityHelper = require('../../dist/package-priority-helper');
 const {ServerRunner} = require('../../dist/package-runner');
 
+/** @type { {[name: string]: ReturnType<(typeof helper)['traversePackages']> extends {[name: string]: Array<infer P>} ? P : unknown}} */
 var packageCache = {};
+/** @type {typeof packageCache} */
 var corePackages = {};
+/** @type {import('../../dist/packageNodeInstance').default []} */
 var deactivateOrder;
+
 var eventBus;
 
 eventBus = NodeApi.prototype.eventBus;
@@ -30,17 +35,16 @@ module.exports = {
 function runServer(argv) {
 	var packagesTypeMap;
 	NodeApi.prototype.argv = argv;
-	NodeApi.prototype.runBuilder = function(buildArgv, skipNames) {
-		_.assign(buildArgv, argv);
-		if (!Array.isArray(skipNames))
-			skipNames = [skipNames];
-		// var builders = _.filter(packagesTypeMap.builder, packageIns => !_.includes(excludeNames, packageIns.longName) );
+	// NodeApi.prototype.runBuilder = function(buildArgv, skipNames) {
+	// 	_.assign(buildArgv, argv);
+	// 	if (!Array.isArray(skipNames))
+	// 		skipNames = [skipNames];
+	// 	// var builders = _.filter(packagesTypeMap.builder, packageIns => !_.includes(excludeNames, packageIns.longName) );
 
-		return helper.runBuilderComponents(packagesTypeMap.builder, buildArgv, skipNames);
-	};
+	// 	return helper.runBuilderComponents(packagesTypeMap.builder, buildArgv, skipNames);
+	// };
 	return Promise.coroutine(function*() {
-		packagesTypeMap = yield requireServerPackages();
-		debugger;
+		packagesTypeMap = requireServerPackages();
 		deactivateOrder = [];
 		yield activateCoreComponents();
 		yield activateNormalComponents();
@@ -58,38 +62,35 @@ function runBuilder(argv, funcName, skipOnFail) {
 	if (NodeApi.prototype.argv == null) {
 		NodeApi.prototype.argv = argv;
 	}
-	return helper.traversePackages(true)
-	.then(packagesTypeMap => {
-		return helper.runBuilderComponentsWith(funcName, packagesTypeMap.builder, argv, [], skipOnFail)
-	}).then(buildRes => {
+	const packagesTypeMap = helper.traversePackages(true)
+	return helper.runBuilderComponentsWith(funcName, packagesTypeMap.builder, argv, [], skipOnFail)
+	.then(buildRes => {
 		helper.sendlivereload(buildRes, argv);
 		eventBus.emit('build-done');
 	});
 }
 
 function requireServerPackages(dontLoad) {
-	return helper.traversePackages(!dontLoad)
-	.then(packagesTypeMap => {
-		// var proto = NodeApi.prototype;
-		// proto.argv = argv;
+	const packagesTypeMap = helper.traversePackages(!dontLoad)
+	// var proto = NodeApi.prototype;
+	// proto.argv = argv;
 
-		// create API instance and inject factories
+	// create API instance and inject factories
 
-		_.each(packagesTypeMap.server, (p, idx) => {
-			if (!checkPackageName(p.scope, p.shortName, false)) {
-				return;
-			}
-			if (_.includes([].concat(_.get(p, 'json.dr.type')), 'core')) {
-				corePackages[p.shortName] = p;
-			} else {
-				packageCache[p.shortName] = p;
-			}
-			// if (!dontLoad)
-			// 	p.exports = require(p.moduleName);
-		});
-		eventBus.emit('loadEnd', packageCache);
-		return packagesTypeMap;
+	_.each(packagesTypeMap.server, (p, idx) => {
+		if (!checkPackageName(p.scope, p.shortName, false)) {
+			return;
+		}
+		if (_.includes([].concat(_.get(p, 'json.dr.type')), 'core')) {
+			corePackages[p.shortName] = p;
+		} else {
+			packageCache[p.shortName] = p;
+		}
+		// if (!dontLoad)
+		// 	p.exports = require(p.moduleName);
 	});
+	eventBus.emit('loadEnd', packageCache);
+	return packagesTypeMap;
 }
 
 function activateCoreComponents() {
@@ -116,7 +117,7 @@ function _activePackages(packages, eventName) {
  */
 function listServerComponents() {
 	return Promise.coroutine(function*() {
-		yield requireServerPackages(true);
+		requireServerPackages(true);
 		var idx = 0;
 
 		var coreList = _.values(corePackages);
@@ -135,7 +136,7 @@ function listServerComponents() {
 			list.push({
 				pk,
 				desc: util.format('%d. %s %s[core] priority: %s',
-					idx, pk.longName, gap.join(''), _.get(pk, 'json.dr.serverPriority')),
+					idx, pk.longName, gap.join(''), _.get(pk, 'json.dr.serverPriority', 5000)),
 			});
 		}, 'json.dr.serverPriority');
 		yield priorityHelper.orderPackages(normalList, pk => {
@@ -146,7 +147,7 @@ function listServerComponents() {
 			list.push({
 				pk,
 				desc: util.format('%d. %s %s       priority: %s',
-					idx, pk.longName, gap.join(''), _.get(pk, 'json.dr.serverPriority')),
+					idx, pk.longName, gap.join(''), _.get(pk, 'json.dr.serverPriority', 5000)),
 			});
 		}, 'json.dr.serverPriority');
 		return list;
@@ -156,7 +157,7 @@ function listServerComponents() {
 function listBuilderComponents() {
 	var util = require('util');
 	return Promise.coroutine(function*() {
-		var {builder: packages} = yield helper.traversePackages(false);
+		var {builder: packages} = helper.traversePackages(false);
 		var idx = 0;
 		var maxLenPackage = _.maxBy(packages, pk => pk.longName.length);
 		var maxNameLe = maxLenPackage ? maxLenPackage.longName.length : 0;

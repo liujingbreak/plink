@@ -7,7 +7,7 @@ const priorityStrReg = /(before|after)\s+(\S+)/;
 export type PackageInstance = PackageBrowserInstance | PackageNodeInstance;
 
 // tslint:disable max-line-length
-export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) => Promise<any>, priorityProperty?: string) {
+export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) => Promise<any> | any, priorityProperty?: string) {
   const numberTypePrio: PackageInstance[] = [];
   const beforePackages: {[key: string]: PackageInstance[]} = {};
   const afterPackages: {[key: string]: PackageInstance[]} = {};
@@ -40,14 +40,16 @@ export function orderPackages(packages: PackageInstance[], run: (...arg: any[]) 
         afterPackages[targetPackageName].push(pk);
       }
     } else {
-      _.set(pk, priorityProperty!, 5000);
+      pk.json = JSON.parse(JSON.stringify(pk.json));
+      _.set(pk, priorityProperty! + '', 5000);
       numberTypePrio.push(pk);
     }
   });
-
   numberTypePrio.sort(function(pk1, pk2) {
     return _.get(pk2, priorityProperty!) - _.get(pk1, priorityProperty!);
   });
+
+  // console.log(numberTypePrio.map(p => p.longName + ' ' + _.get(p, priorityProperty!)));
 
   const pkNames = packages.map(p => p.longName);
 

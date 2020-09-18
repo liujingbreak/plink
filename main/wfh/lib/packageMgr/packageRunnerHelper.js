@@ -1,3 +1,4 @@
+// @ts-check
 const packageUtils = require('../../dist/package-utils');
 var config = require('../config');
 var Package = require('../../dist/packageNodeInstance').default;
@@ -21,7 +22,7 @@ exports.traversePackages = traversePackages;
 exports.getApiForPackage = getApiForPackage;
 
 var apiCache = {};
-NodeApi.prototype.apiForPackage = function(name) {
+(/** @type {any} */ (NodeApi.prototype)).apiForPackage = function(name) {
 	return apiCache[name] || getApiForPackage(name);
 };
 var initialized = false;
@@ -36,46 +37,44 @@ function runBuilderComponentsWith(funcName, builderComponents, argv, skips, skip
 	var proto = NodeApi.prototype;
 	proto.argv = argv;
 	var {walkPackages, saveCache} = require('../../dist/build-util/ts');
-	var packageInfo = walkPackages(config, packageUtils);
-	return initWebInjector(packageInfo, proto)
-	.then(() => {
-		proto.packageInfo = packageInfo;
-		var cache = new LRU({max: 20, maxAge: 20000});
-		proto.findPackageByFile = function(file) {
-			var found = cache.get(file);
-			if (!found) {
-				found = packageInfo.dirTree.getAllData(file).pop();
-				if (found)
-					cache.set(file, found);
-			}
-			return found;
-		};
-		proto.getNodeApiForPackage = function(packageInstance) {
-			return getApiForPackage(packageInstance);
-		};
-		return priorityHelper.orderPackages(builderComponents, pkInstance => {
-			if (_.includes(skips, pkInstance.longName)) {
-				log.info('skip builder: %s', pkInstance.longName);
+	var packageInfo = walkPackages();
+	initWebInjector(packageInfo, proto)
+	proto.packageInfo = packageInfo;
+	var cache = new LRU({max: 20, maxAge: 20000});
+	proto.findPackageByFile = function(file) {
+		var found = cache.get(file);
+		if (!found) {
+			found = packageInfo.dirTree.getAllData(file).pop();
+			if (found)
+				cache.set(file, found);
+		}
+		return found;
+	};
+	proto.getNodeApiForPackage = function(packageInstance) {
+		return getApiForPackage(packageInstance);
+	};
+	return priorityHelper.orderPackages(builderComponents, pkInstance => {
+		if (_.includes(skips, pkInstance.longName)) {
+			log.info('skip builder: %s', pkInstance.longName);
+			return;
+		}
+		var res;
+		try {
+			res = runBuilderComponent(pkInstance, funcName);
+		} catch (ex) {
+			if (skipOnFail) {
+				log.warn(`Skip error on ${pkInstance.longName} ${funcName}()`, ex);
 				return;
-			}
-			var res;
-			try {
-				res = runBuilderComponent(pkInstance, funcName);
-			} catch (ex) {
-				if (skipOnFail) {
-					log.warn(`Skip error on ${pkInstance.longName} ${funcName}()`, ex);
-					return;
-				} else
-					throw ex;
-			}
-			if (skipOnFail)
-				return res.catch(err => {
-					log.warn(`Skip error on ${pkInstance.longName} ${funcName}()`, err);
-				});
-			return res;
-		}, 'json.dr.builderPriority');
-	})
-	.then(() => saveCache(packageInfo, config));
+			} else
+				throw ex;
+		}
+		if (skipOnFail)
+			return res.catch(err => {
+				log.warn(`Skip error on ${pkInstance.longName} ${funcName}()`, err);
+			});
+		return res;
+	}, 'json.dr.builderPriority')
+	.then(() => saveCache(packageInfo));
 }
 
 function sendlivereload(buildRes, argv) {
@@ -158,13 +157,12 @@ function initWebInjector(packageInfo, apiPrototype) {
 	.substitute(/^([^{]*)\{locale\}(.*)$/,
 		(filePath, match) => match[1] + apiPrototype.getBuildLocale() + match[2]);
 
-	let done = webInjector.readInjectFile('module-resolve.browser');
+	webInjector.readInjectFile('module-resolve.browser');
 	apiPrototype.browserInjector = webInjector;
-	return done;
 }
 
 /**
- * @param {*} needInject
+ * @param {boolean} needInject
  * @return a hash object, key is {string} type, value is packageInstance[]
  */
 function traversePackages(needInject) {
@@ -174,10 +172,8 @@ function traversePackages(needInject) {
 		} : null);
 	let done;
 	if (needInject)
-		done = nodeInjector.readInjectFile();
-	else
-		done = Promise.resolve();
-	return done.then(() => packagesTypeMap);
+		nodeInjector.readInjectFile();
+	return packagesTypeMap;
 }
 
 function setupNodeInjectorFor(pkInstance) {
@@ -189,7 +185,7 @@ function setupNodeInjectorFor(pkInstance) {
 	nodeInjector.fromComponent(pkInstance.name, pkInstance.path)
 	.value('__injector', nodeInjector)
 	.value('__api', api);
-	nodeInjector.default = nodeInjector; // For ES6 import syntax
+	(/** @type {any} */(nodeInjector)).default = nodeInjector; // For ES6 import syntax
 }
 
 function getApiForPackage(pkInstance) {

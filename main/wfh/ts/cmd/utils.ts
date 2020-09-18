@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import Path from 'path';
 import {createPackageInfo} from '../package-mgr';
-import type {PackagesState, PackageInfo} from '../package-mgr';
+import {PackagesState, PackageInfo} from '../package-mgr';
 import * as _ from 'lodash';
 
 import _config from '../config';
