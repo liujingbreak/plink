@@ -81,7 +81,6 @@ async function npmPack(packagePath: string):
 function changePackageJson(package2tarball: Map<string, string>) {
 
   for (const workspace of getState().workspaces.keys()) {
-    log.warn('workspace', workspace);
     const jsonFile = Path.resolve(config().rootPath, workspace, 'package.json');
     const pkj = fs.readFileSync(jsonFile, 'utf8');
     const ast = jsonParser(pkj);

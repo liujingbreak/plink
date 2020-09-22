@@ -35,10 +35,7 @@ export declare class StateFactory {
     realtimeState$: BehaviorSubject<{
         [key: string]: any;
     }>;
-    store$: BehaviorSubject<EnhancedStore<any, {
-        payload: any;
-        type: string;
-    }, readonly Middleware<{}, any, import("redux").Dispatch<import("redux").AnyAction>>[]> | undefined>;
+    private store$;
     log$: Observable<any[]>;
     rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
     /**
@@ -70,7 +67,7 @@ export declare class StateFactory {
      * @returns a function to unsubscribe from this epic
      * @param epic
      */
-    addEpic(epic: Epic): () => void;
+    addEpic<S = any>(epic: Epic<PayloadAction<any>, any, S>): () => void;
     sliceState<SS, CaseReducers extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(slice: Slice<SS, CaseReducers, Name>): SS;
     sliceStore<SS>(slice: Slice<SS>): Observable<SS>;
     getErrorState(): ErrorState;

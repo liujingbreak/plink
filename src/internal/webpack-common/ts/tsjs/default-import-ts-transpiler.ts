@@ -15,7 +15,7 @@ const log = log4js.getLogger(api.packageName + '.transpiler');
 
 export interface ImportClauseTranspileOptions {
   // defaultImport2require?: boolean;
-  file: string;
+  // file: string;
   modules: Array<RegExp|string>;
 }
 
@@ -47,7 +47,7 @@ export default class ImportClauseTranspile {
         if (this.moduleSet.has(from) || this.moduleRegs.some(reg => reg.test(from))) {
           if (_.get(node, 'importClause.name')) {
             const defaultName = node.importClause!.name!.text;
-            log.info(`Replace: "import ${defaultName} from ${from}" in ` + this.options.file);
+            log.info(`Replace: "import ${defaultName} from ${from}" in ` + ast.fileName);
             replacements.push({
               start: stm.getStart(ast),
               end: stm.getEnd(),

@@ -34,12 +34,14 @@ export interface PackageInfo {
 }
 
 export interface PackagesState {
+  inited: boolean;
   srcPackages: Map<string, PackageInfo>;
   /** Key is relative path to root workspace */
   workspaces: Map<string, WorkspaceState>;
   project2Packages: Map<string, string[]>;
   linkedDrcp: PackageInfo | null;
   gitIgnores: {[file: string]: string};
+  isInChina?: boolean;
 }
 
 const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -48,6 +50,7 @@ const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 
 const state: PackagesState = {
+  inited: false,
   workspaces: new Map(),
   project2Packages: new Map(),
   srcPackages: new Map(),
@@ -70,12 +73,6 @@ interface WorkspaceState {
   linkedDevDependencies: [string, string][];
   /** installed DR component packages [name, version]*/
   installedComponents?: Map<string, PackageInfo>;
-  // /** other 3rd party dependencies in tuple of name and version pair */
-  // dependencies: [string, string][];
-  // devDependencies: [string, string][];
-
-  // hoistedDeps: {[dep: string]: string};
-  // hoistedDevDeps: {[dep: string]: string};
 }
 
 export const slice = stateFactory.newSlice({
@@ -91,6 +88,7 @@ export const slice = stateFactory.newSlice({
     initWorkspace(d, action: PayloadAction<{dir: string, isForce: boolean, logHasConfiged: boolean}>) {
     },
     _syncPackagesState(d, {payload}: PayloadAction<PackageInfo[]>) {
+      d.inited = true;
       d.srcPackages = new Map();
       for (const pkInfo of payload) {
         d.srcPackages.set(pkInfo.name, pkInfo);
@@ -207,6 +205,8 @@ export const slice = stateFactory.newSlice({
       const wsKey = workspaceKey(dir);
       // const installedComp = listInstalledComp4Workspace(state.workspaces, state.srcPackages, wsKey);
 
+      const existing = state.workspaces.get(wsKey);
+
       const wp: WorkspaceState = {
         id: wsKey,
         originInstallJson: pkjson,
@@ -215,13 +215,8 @@ export const slice = stateFactory.newSlice({
         installJsonStr: JSON.stringify(installJson, null, '  '),
         linkedDependencies,
         linkedDevDependencies
-        // installedComponents: new Map(installedComp.map(pkg => [pkg.name, pkg]))
-        // dependencies,
-        // devDependencies,
-        // hoistedDeps,
-        // hoistedDevDeps
       };
-      state.workspaces.set(wsKey, wp);
+      state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
       // console.log('-----------------', dir);
     },
     _installWorkspace(state, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
@@ -231,6 +226,9 @@ export const slice = stateFactory.newSlice({
     },
     _updateGitIgnores(d, {payload}: PayloadAction<{file: string, content: string}>) {
       d.gitIgnores[payload.file] = payload.content;
+    },
+    setInChina(d, {payload}: PayloadAction<boolean>) {
+      d.isInChina = payload;
     }
   }
 });
@@ -262,8 +260,9 @@ stateFactory.addEpic((action$, state$) => {
           map(() => actionDispatcher._hoistWorkspaceDeps({dir}))
         );
 
-        if (getState().srcPackages.size === 0) {
-          return merge(hoistOnPackageChanges, of(slice.actions.initRootDir()));
+        if (!getState().inited) {
+          actionDispatcher.initRootDir();
+          return hoistOnPackageChanges;
         } else {
           if (!logHasConfiged) {
             logConfig(config());
@@ -273,9 +272,10 @@ stateFactory.addEpic((action$, state$) => {
             actionDispatcher._change(d => {
               // clean to trigger install action
               d.workspaces.get(wsKey)!.installJsonStr = '';
+              // tslint:disable-next-line: no-console
+              console.log('force npm install in', wsKey);
             });
           }
-          // updateLinkedPackageState();
           actionDispatcher._hoistWorkspaceDeps({dir});
           return of();
         }
@@ -352,7 +352,8 @@ stateFactory.addEpic((action$, state$) => {
       return getStore().pipe(
         map(s => s.workspaces.get(key)!.installJsonStr),
         distinctUntilChanged(),
-        filter(installJsonStr =>installJsonStr.length > 0),
+        // tap((installJsonStr) => console.log('installJsonStr length',key, installJsonStr.length)),
+        filter(installJsonStr => installJsonStr.length > 0),
         skip(1), take(1),
         map(() => {
           return actionDispatcher._installWorkspace({workspaceKey: key});
@@ -575,6 +576,11 @@ async function installWorkspace(ws: WorkspaceState) {
   const dir = Path.resolve(getRootDir(), ws.id);
   // tslint:disable-next-line: no-console
   console.log('Install dependencies in ' + dir);
+  try {
+    await copyNpmrcToWorkspace(dir);
+  } catch (e) {
+    console.error(e);
+  }
   const symlinksInModuleDir = [] as {content: string, link: string}[];
 
   const target = Path.resolve(dir, 'node_modules');
@@ -613,6 +619,23 @@ async function installWorkspace(ws: WorkspaceState) {
     return Promise.all(symlinksInModuleDir.map(({content, link}) => {
       return _symlinkAsync(content, link, isWin32 ? 'junction' : 'dir');
     }));
+  }
+}
+
+async function copyNpmrcToWorkspace(wsdir: string) {
+  const target = Path.resolve(wsdir, '.npmrc');
+  if (fs.existsSync(target))
+    return;
+  const isChina = await getStore().pipe(
+    map(s => s.isInChina), distinctUntilChanged(),
+      filter(cn => cn != null),
+      take(1)
+    ).toPromise();
+
+  if (isChina) {
+    // tslint:disable-next-line: no-console
+    console.log('create .npmrc to', target);
+    fs.copyFileSync(Path.resolve(__dirname, '../../../.npmrc'), target);
   }
 }
 

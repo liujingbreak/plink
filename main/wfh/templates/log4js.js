@@ -1,6 +1,7 @@
 /* eslint no-console: 0 */
 const cluster = require('cluster');
 const os = require('os');
+const Path = require('path');
 const pm2InstanceId = process.env.NODE_APP_INSTANCE;
 var isPm2 = cluster.isWorker && pm2InstanceId != null;
 const SLACK_API_TOKEN = '<paste your token>';
@@ -46,6 +47,7 @@ var config = {
 		'@bk/credit-appl': {appenders: ['out', 'file'], level: 'info'},
 		'dr-comp-package': {appenders: ['file'], level: 'debug'},
 		'@dr-core/assets-processer': {appenders: ['infoOut', 'file'], level: 'debug'},
+		'dr-comp-package.store.action': {appenders: ['out'], level: 'debug'},
 		'wfh.module-dep-helper': {appenders: ['infoOut', 'file'], level: 'info'},
 		'wfh.ManualChunkPlugin': {appenders: ['infoOut', 'file'], level: 'debug'},
 		'wfh.ManualChunkPlugin-m': {appenders: ['out', 'file'], level: 'error'},
@@ -61,7 +63,7 @@ module.exports.setup = function(options) {
 		
 		for (const appender of Object.values(config.appenders)) {
 			if (appender.filename) {
-				appender.filename = options.rootPath + '/' + appender.filename;
+				appender.filename = Path.resolve(options.rootPath, appender.filename);
 			}
 		}
 	}

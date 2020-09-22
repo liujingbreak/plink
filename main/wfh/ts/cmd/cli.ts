@@ -3,7 +3,7 @@ import commander from 'commander';
 import chalk from 'chalk';
 import * as store from '../store';
 import * as tp from './types';
-import * as cliStore from './cli-store';
+import * as cliStore from './cli-slice';
 import * as pkgMgr from '../package-mgr';
 import * as _ from 'lodash';
 // import Path from 'path';
@@ -19,7 +19,7 @@ const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
 export async function drcpCommand(startTime: number) {
   process.title = 'Plink - command line';
   const {stateFactory}: typeof store = require('../store');
-  await import('./cli-store');
+  await import('./cli-slice');
   stateFactory.configureStore();
 
 

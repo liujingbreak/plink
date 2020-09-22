@@ -90,10 +90,15 @@ function appendGitIgnoreFiles(ignoreTsConfigFiles: string[],
 
   for (const {ignoreFile, ignoreItems} of gitFolderToIngoreFile) {
     const origContent = getState().gitIgnores[ignoreFile];
-    const itemsToAppend = _.difference(ignoreItems,
-      origContent.split(/(?:\n\r?)+/).filter(line => line.trim().length > 0));
+    const origList =  _.uniq(origContent.split(/(?:\n\r?)+/)
+      .map(line => /^\s*(.*?)\s*$/m.exec(line)![1])
+      .filter(line => line.length > 0));
+    const itemsToAppend = _.difference(ignoreItems, origList);
     if (itemsToAppend.length > 0)
-      onGitIgnoreFileUpdate(ignoreFile, origContent + EOL + itemsToAppend.join(EOL));
+      onGitIgnoreFileUpdate(ignoreFile, [
+        ...origList,
+        `-------${new Date().toLocaleDateString()}---------`,
+        ...itemsToAppend].join(EOL));
   }
 }
 

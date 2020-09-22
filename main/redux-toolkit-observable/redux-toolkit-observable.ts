@@ -1,6 +1,7 @@
 /// <reference lib="es2017" />
 /// <reference path="./hmr-module.d.ts" />
 // tslint:disable: max-line-length
+// tslint:disable: member-ordering
 /**
  * A combo set for using Redux-toolkit along with redux-observable
  */
@@ -11,6 +12,7 @@ import {
   Slice, SliceCaseReducers, Reducer,
   ValidateSliceCaseReducers, Middleware
 } from '@reduxjs/toolkit';
+// import {Action} from 'redux';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap } from 'rxjs/operators';
@@ -62,8 +64,9 @@ export class StateFactory {
    * Redux-observable's state$ does not notify state change event when a lazy loaded (replaced) slice initialize state 
    */
   realtimeState$: BehaviorSubject<{[key: string]: any}>;
-  store$ = new BehaviorSubject<EnhancedStore<any, PayloadAction<any>> | undefined>(undefined);
+  private store$ = new BehaviorSubject<EnhancedStore<any, PayloadAction<any>> | undefined>(undefined);
   log$: Observable<any[]>;
+
   rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
   /**
    * Unlike store.dispatch(action),
@@ -208,8 +211,8 @@ export class StateFactory {
    * @returns a function to unsubscribe from this epic
    * @param epic 
    */
-  addEpic(
-    epic: Epic) {
+  addEpic<S = any>(
+    epic: Epic<PayloadAction<any>, any, S>) {
     const epicId = 'Epic-' + ++this.epicSeq;
     const unsubscribeEpic = new Subject<string>();
     this.epicWithUnsub$.next([epic, unsubscribeEpic]);

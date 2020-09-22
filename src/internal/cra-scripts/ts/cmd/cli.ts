@@ -19,7 +19,7 @@ const cli: CliExtension = (program, withGlobalOptions) => {
   .description('Generate a sample package in specific directory')
   .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
   .action(async (dir: string) => {
-    (await import('../cmd')).genPackage(dir, genCmd.opts().dryRun);
+    (await import('./cli-gen')).genPackage(dir, genCmd.opts().dryRun);
     // fs.mkdirpSync(dir);
     // fs.copyFileSync(Path.resolve(__dirname, 'tmpl-.npmrc'), Path.resolve(dir, '.npmrc'));
     // (await import('./cli-init')).default();
@@ -33,12 +33,6 @@ const cli: CliExtension = (program, withGlobalOptions) => {
     // tslint:disable-next-line: no-console
     console.log(buildCmd.opts().dev);
   });
-
-  // program.parseAsync(process.argv)
-  // .catch(e => {
-  //   console.error(e);
-  //   process.exit(1);
-  // });
 };
 
 export {cli as default};

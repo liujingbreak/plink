@@ -1,1 +1,1 @@
-require('dr-comp-package/lib/main');
+require('dr-comp-package/wfh/lib/main');

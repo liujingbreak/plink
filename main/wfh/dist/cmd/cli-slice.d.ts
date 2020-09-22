@@ -6,7 +6,7 @@ export interface CliState {
     osLang?: string;
     osCountry?: string;
 }
-interface CliExtension {
+export interface CliExtension {
     pkName: string;
     pkgFilePath: string;
     funcName?: string;
@@ -78,4 +78,3 @@ export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducer
 export declare function getState(): CliState;
 export declare function getStore(): import("rxjs").Observable<CliState>;
 export declare function availabeCliExtension(): void;
-export {};

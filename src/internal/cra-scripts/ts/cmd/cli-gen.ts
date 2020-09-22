@@ -35,9 +35,9 @@ function copyTempl(to: string, pkName: string, dryrun: boolean) {
       files.push(...fs.readdirSync(file).map(child => Path.join(relative, child)));
       continue;
     }
-    const newFile = Path.resolve(to, sub.slice(0, sub.lastIndexOf('.')).replace(/-([^-/\\]+)$/, '.$1'));
+    const newFile = Path.resolve(to, sub.slice(0, sub.lastIndexOf('.')).replace(/\.([^./\\]+)$/, '.$1'));
     if (!fs.existsSync(newFile)) {
-      if (sub === 'package-json.json') {
+      if (sub === 'package.json.json') {
         const pkJsonStr = fs.readFileSync(Path.resolve(templDir, sub), 'utf8');
         const newFile = Path.resolve(to, 'package.json');
         if (!dryrun)

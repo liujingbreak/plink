@@ -2,65 +2,75 @@
 import * as Path from 'path';
 import vm from 'vm';
 import * as ts from 'typescript';
-import {SyntaxKind as sk} from 'typescript';
-import ImportClauseTranspile from './tsjs/default-import-ts-transpiler';
+import {SyntaxKind as sk, CompilerOptions} from 'typescript';
+import ImportClauseTranspile from './default-import-ts-transpiler';
 import api, {DrcpApi} from '__api';
 import BrowserPackage from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
 import {ReplacementInf} from 'dr-comp-package/wfh/dist/utils/patch-text';
 import * as textPatcher from 'dr-comp-package/wfh/dist/utils/patch-text';
+import { readTsConfig, transpileSingleTs } from 'dr-comp-package/wfh/dist/ts-compiler';
 import log4js from 'log4js';
 const log = log4js.getLogger(api.packageName + '.api-aot-compiler');
 import chalk from 'chalk';
+import {has} from 'lodash';
 
 export {ReplacementInf};
 export type TsHandler = (ast: ts.SourceFile) => ReplacementInf[];
-export default class ApiAotCompiler {
-  ast: ts.SourceFile;
+export default class TsPreCompiler {
+  tsCo: CompilerOptions;
 
-  replacements: ReplacementInf[] = [];
 
   importTranspiler: ImportClauseTranspile;
 
-  constructor(protected file: string, protected src: string, isServerSide: boolean,
-    private findPackageByFile: (file: string) => BrowserPackage
-    ) {
+  constructor(tsConfigFile: string, isServerSide: boolean,
+    private findPackageByFile: (file: string) => BrowserPackage | null | undefined) {
+    this.tsCo = readTsConfig(tsConfigFile);
     if (isServerSide) {
       this.importTranspiler = new ImportClauseTranspile({
-        file: this.file,
         modules: [/^lodash(?:\/|$)/]
       });
     }
   }
 
-  parse(transpileExp: (source: string) => string): string {
-    const pk = this.findPackageByFile(this.file);
+  parse(file: string, source: string, replaceContext?: {[key: string]: any}, compiledSource?: ts.SourceFile,
+    astPositionConvert?: (pos: number) => number): string {
+
+    const pk = this.findPackageByFile(file);
     // console.log('parse', this.file, pk == null ? '' : 'yes');
     if (pk == null)
-      return this.src;
+      return source;
     // if (!tsHandlers)
     //   tsHandlers = createTsHandlers();
 
-    this.ast = ts.createSourceFile(this.file, this.src, ts.ScriptTarget.ESNext,
+    const nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
+    nodeApi.__dirname = Path.dirname(file);
+    if (replaceContext == null) {
+      replaceContext = {__api: nodeApi};
+    } else {
+      replaceContext.__api = nodeApi;
+    }
+
+    const ast = compiledSource || ts.createSourceFile(file, source, ts.ScriptTarget.ESNext,
       true, ts.ScriptKind.TSX);
     // this._callTsHandlers(tsHandlers);
 
-    for(const stm of this.ast.statements) {
-      this.traverseTsAst(stm);
+    const replacements: ReplacementInf[] = [];
+    for(const stm of ast.statements) {
+      this.traverseTsAst(stm, replaceContext, replacements, astPositionConvert);
     }
-    textPatcher._sortAndRemoveOverlap(this.replacements, true, this.src);
+    textPatcher._sortAndRemoveOverlap(replacements, true, source);
     // Remove overlaped replacements to avoid them getting into later `vm.runInNewContext()`,
     // We don't want to single out and evaluate lower level expression like `__api.packageName` from
     // `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
 
-    const nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
-    nodeApi.__dirname = Path.dirname(this.file);
-    const context = vm.createContext({__api: nodeApi});
 
-    for (const repl of this.replacements) {
+    const context = vm.createContext(replaceContext);
+
+    for (const repl of replacements) {
       const origText = repl.text!;
       let res;
       try {
-        res = vm.runInNewContext(transpileExp(origText), context);
+        res = vm.runInNewContext(transpileSingleTs(origText, this.tsCo), context);
         repl.text = JSON.stringify(res);
         // To bypass TS error "Unreachable code detected" if
         // compiler option "allowUnreachableCode: false"
@@ -76,39 +86,46 @@ export default class ApiAotCompiler {
         throw ex;
       }
       log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +
-        Path.relative(process.cwd(), this.file));
+        Path.relative(process.cwd(), file));
     }
 
     if (this.importTranspiler)
-      this.importTranspiler.parse(this.ast, this.replacements);
+      this.importTranspiler.parse(ast, replacements);
 
-    if (this.replacements.length === 0)
-      return this.src;
-    textPatcher._sortAndRemoveOverlap(this.replacements, true, this.src);
-    return textPatcher._replaceSorted(this.src, this.replacements);
+    if (replacements.length === 0)
+      return source;
+    textPatcher._sortAndRemoveOverlap(replacements, true, source);
+    return textPatcher._replaceSorted(source, replacements);
   }
 
-  getApiForFile(file: string) {
-    api.findPackageByFile(file);
-  }
+  // getApiForFile(file: string) {
+  //   api.findPackageByFile(file);
+  // }
 
-  protected traverseTsAst(ast: ts.Node, level = 0) {
+  protected traverseTsAst(ast: ts.Node,
+    replaceContext: {[key: string]: any},
+    replacements: ReplacementInf[],
+    astPositionConvert?: (pos: number) => number,
+    level = 0
+    ) {
     if (ast.kind === sk.PropertyAccessExpression || ast.kind === sk.ElementAccessExpression) {
       const node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
-      if (node.expression.kind === sk.Identifier && node.expression.getText(this.ast) === '__api') {
+      if (node.expression.kind === sk.Identifier && has(replaceContext, node.expression.getText())) {
         // keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
         const evaluateNode = this.goUpToParentExp(node);
-        this.replacements.push({start: evaluateNode.getStart(this.ast),
-          end: evaluateNode.getEnd(),
-          text: evaluateNode.getText(this.ast)});
-        return;
+        let start = evaluateNode.getStart();
+        let end = evaluateNode.getEnd();
+        const len = end - start;
+        if (astPositionConvert) {
+          start = astPositionConvert(start);
+          end = start + len;
+        }
+        replacements.push({start, end, text: evaluateNode.getText()});
+        return replacements;
       }
     }
-    // else if (ast.kind === sk.Identifier && ast.getText() === '__api') {
-    //   this.replacements.push({start: ast.getStart(), end: ast.getEnd(), text: '"__api"'});
-    // }
     ast.forEachChild((sub: ts.Node) => {
-      this.traverseTsAst(sub, level + 1);
+      this.traverseTsAst(sub, replaceContext, replacements, astPositionConvert, level + 1);
     });
   }
 
