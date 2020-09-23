@@ -12,10 +12,10 @@ import config from '../config';
 import {PackOptions} from './types';
 import logConfig from '../log-config';
 import {getPackagesOfProjects, getState} from '../package-mgr';
-
+import log4js from 'log4js';
 // import * as packageUtils from './package-utils';
 // const recipeManager = require('../lib/gulp/recipeManager');
-const log = require('log4js').getLogger('drcp-cmd');
+const log = log4js.getLogger('cli-pack');
 // const namePat = /name:\s+([^ \n\r]+)/mi;
 // const fileNamePat = /filename:\s+([^ \n\r]+)/mi;
 
@@ -40,10 +40,13 @@ async function packPackages(packageDirs: string[]) {
     let tarInfos = await done;
 
     tarInfos = tarInfos.filter(item => item != null);
-    tarInfos.forEach(item => {
-      package2tarball.set(item!.name, './tarballs/' + item!.filename);
-    });
-    log.info(Array.from(package2tarball.entries()));
+    const rootPath = config().rootPath;
+    for (const item of tarInfos) {
+      package2tarball.set(item!.name, Path.resolve(rootPath, 'tarballs', item!.filename));
+    }
+    // log.info(Array.from(package2tarball.entries())
+    //   .map(([pkName, ver]) => `"${pkName}": "${ver}",`)
+    //   .join('\n'));
     await deleteOldTar(tarInfos.map(item => item!.name.replace('@', '').replace(/[/\\]/g, '-')),
       tarInfos.map(item => item!.filename));
     changePackageJson(package2tarball);
@@ -62,7 +65,7 @@ async function npmPack(packagePath: string):
   Promise<{name: string, filename: string} | null> {
   try {
     const output = await promisifyExe('npm', 'pack', Path.resolve(packagePath),
-      {silent: true, cwd: Path.resolve('tarballs')});
+      {silent: true, cwd: Path.resolve(config().rootPath, 'tarballs')});
     const resultInfo = parseNpmPackOutput(output);
 
     const packageName = resultInfo.get('name')!;
@@ -81,7 +84,8 @@ async function npmPack(packagePath: string):
 function changePackageJson(package2tarball: Map<string, string>) {
 
   for (const workspace of getState().workspaces.keys()) {
-    const jsonFile = Path.resolve(config().rootPath, workspace, 'package.json');
+    const wsDir = Path.resolve(config().rootPath, workspace);
+    const jsonFile = Path.resolve(wsDir, 'package.json');
     const pkj = fs.readFileSync(jsonFile, 'utf8');
     const ast = jsonParser(pkj);
     const depsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'dependencies');
@@ -95,9 +99,9 @@ function changePackageJson(package2tarball: Map<string, string>) {
     }
 
     if (replacements.length > 0) {
-      // tslint:disable-next-line: no-console
-      console.log(replaceCode(pkj, replacements));
       const replaced = replaceCode(pkj, replacements);
+      // tslint:disable-next-line: no-console
+      log.info('Updated package.json\n', replaced);
       fs.writeFileSync(jsonFile, replaced);
     }
 
@@ -105,7 +109,11 @@ function changePackageJson(package2tarball: Map<string, string>) {
       const foundDeps = deps.properties.filter(({name}) => package2tarball.has(JSON.parse(name.text)));
       for (const foundDep of foundDeps) {
         const verToken = foundDep.value as Token;
-        const newVersion = package2tarball.get(JSON.parse(foundDep.name.text));
+        const tarFile = package2tarball.get(JSON.parse(foundDep.name.text));
+        let newVersion = Path.relative(wsDir, tarFile!).replace(/\\/g, '/');
+        if (!newVersion.startsWith('.')) {
+          newVersion = './' + newVersion;
+        }
         log.info(`Update ${jsonFile}: ${verToken.text} => ${newVersion}`);
         replacements.push({
           start: verToken.pos,
@@ -156,8 +164,8 @@ export function parseNpmPackOutput(output: string) {
 function deleteOldTar(deleteFilePrefix: string[], keepfiles: string[]) {
   const tarSet = new Set(keepfiles);
   const deleteDone: Promise<any>[] = [];
-  if (!fs.existsSync('tarballs'))
-    fs.mkdirpSync('tarballs');
+  if (!fs.existsSync(config.resolve('rootPath', 'tarballs')))
+    fs.mkdirpSync(config.resolve('rootPath', 'tarballs'));
   // TODO: wait for timeout
   for (const file of fs.readdirSync('tarballs')) {
     if (!tarSet.has(file) && deleteFilePrefix.some(prefix => file.startsWith(prefix))) {

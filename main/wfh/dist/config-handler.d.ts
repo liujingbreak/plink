@@ -32,7 +32,7 @@ export interface DrcpConfig {
      * @param  {string} property name or property path, like "name", "name.childProp[1]"
      * @return {string}     absolute path
      */
-    resolve(dir: 'destDir' | 'staticDir' | 'serverDir', ...path: string[]): string;
+    resolve(dir: 'rootPath' | 'destDir' | 'staticDir' | 'serverDir', ...path: string[]): string;
     resolve(...path: string[]): string;
     (): DrcpSettings;
     load(): Promise<DrcpSettings>;

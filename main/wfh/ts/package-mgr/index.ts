@@ -253,7 +253,7 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions.initWorkspace),
       switchMap(({payload: {dir, isForce, logHasConfiged}}) => {
         dir = Path.resolve(dir);
-
+        maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), Path.resolve(dir, 'app.js'));
         const hoistOnPackageChanges = getStore().pipe(
           distinctUntilChanged((s1, s2) => s1.srcPackages === s2.srcPackages),
           skip(1), take(1),
@@ -538,7 +538,6 @@ async function initRootDirectory() {
   fs.mkdirpSync(Path.join(rootPath, 'dist'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(rootPath, 'dist', 'config.local.yaml'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/log4js.js'), rootPath + '/log4js.js');
-  maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), rootPath + '/app.js');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates', 'module-resolve.server.tmpl.ts'), rootPath + '/module-resolve.server.ts');
     // tslint:disable-next-line: max-line-length
     // maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.browser.tmpl.ts'), rootPath + '/module-resolve.browser.ts');
@@ -737,6 +736,11 @@ function cp(from: string, to: string) {
   console.log('copy to %s', chalk.cyan(to));
 }
 
+/**
+ * 
+ * @param from absolute path
+ * @param {string} to relative to rootPath 
+ */
 function maybeCopyTemplate(from: string, to: string) {
   if (!fs.existsSync(Path.resolve(getRootDir(), to)))
     cp(Path.resolve(__dirname, from), to);
