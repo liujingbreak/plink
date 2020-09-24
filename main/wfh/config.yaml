@@ -52,7 +52,7 @@ staticAssetsURL: "" # Same as 'output.publicPath' in Webpack configuration
 serverURL: ""
 
 packageContextPathMapping:
-    # Package short name - route path map, used by Express server @dr/express-app.
+    # Package short name - route path map, used by Express server @wfh/express-app.
     # By default, each package's node server `api.router()`` is mapped to a route
     # context path "/<package short name>"
     # e.g.

@@ -1,4 +1,21 @@
-# DR. web component package toolkit
+# Package and project Link toolkit
+
+### Why I need to make this tool
+Web (Node.js) frameworks or libraries like Angular, React, Vue, NestJS, they all come up with command line tools which help developer to initialize web projects, most of them are like scaffolding tool.
+
+If you are working for multiple projects for enterprise, you might need to do something more:
+ - Share reusable component, features, functions between different projects.
+ - Share the whole scaffold, file structure, webpack configurations between different projects.
+ - Upgrade scaffold, dependencies, components for multiple project.
+ - Make cross framework libraries, web components, node packages.
+ - Or adopt monorepo structure for any purpose above.
+
+It is not easy to make things both local easily testable and being shared cross projects.
+
+...
+
+TBD.
+
 It is designed to accomplish various web frontend tasks:
 
 - #### Command line tool for managing packages, symlinks, CI process.

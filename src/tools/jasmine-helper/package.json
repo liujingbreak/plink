@@ -1,0 +1,17 @@
+{
+  "name": "@wfh/jasmine-helper",
+  "version": "1.0.0",
+  "description": "Jasmine command line helper",
+  "main": "dist/jasmine-cli.js",
+  "types": "dist/jasmine-cli.d.ts",
+  "bin": {
+    "prebuild": "prebuild-main.js"
+  },
+  "dr": {
+    "cli": "dist/jasmine-cli.js#default"
+  },
+  "dependencies": {
+  },
+  "author": "LJ",
+  "license": "MIT"
+}

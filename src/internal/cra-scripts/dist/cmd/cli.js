@@ -44,7 +44,7 @@ const cli = (program, withGlobalOptions) => {
         .description('Generate a sample package in specific directory')
         .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
         .action((dir) => __awaiter(void 0, void 0, void 0, function* () {
-        (yield Promise.resolve().then(() => __importStar(require('../cmd')))).genPackage(dir, genCmd.opts().dryRun);
+        (yield Promise.resolve().then(() => __importStar(require('./cli-gen')))).genPackage(dir, genCmd.opts().dryRun);
         // fs.mkdirpSync(dir);
         // fs.copyFileSync(Path.resolve(__dirname, 'tmpl-.npmrc'), Path.resolve(dir, '.npmrc'));
         // (await import('./cli-init')).default();
@@ -57,11 +57,6 @@ const cli = (program, withGlobalOptions) => {
         // tslint:disable-next-line: no-console
         console.log(buildCmd.opts().dev);
     }));
-    // program.parseAsync(process.argv)
-    // .catch(e => {
-    //   console.error(e);
-    //   process.exit(1);
-    // });
 };
 exports.default = cli;
 

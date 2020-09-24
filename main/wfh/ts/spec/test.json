@@ -57,7 +57,7 @@
     "@bk/nested-list": "./tarballs/bk-nested-list-0.2.5.tgz",
     "@bk/qr-code": "./tarballs/bk-qr-code-0.1.6.tgz",
     "@dr-core/assets-processer": "./tarballs/dr-core-assets-processer-1.1.24.tgz",
-    "@dr-core/express-app": "./tarballs/dr-core-express-app-1.1.1.tgz",
+    "@wfh/express-app": "./tarballs/wfh-express-app-1.1.1.tgz",
     "@dr/http-request-proxy": "./tarballs/dr-http-request-proxy-5.1.3.tgz",
     "@dr/http-server": "./tarballs/dr-http-server-1.1.0.tgz",
     "@growth/pm2": "./tarballs/pm2-2.10.6-debug.1.tgz",

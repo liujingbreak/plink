@@ -25,7 +25,6 @@ src/tools/http-request-proxy/tsconfig.json
 src/runtime/http-server/tsconfig.json
 src/legacy/webpack2-builder/tsconfig.json
 src/internal/cra-scripts/tsconfig.json
-
 main/redux-toolkit-observable/tsconfig.json
 src/internal/webpack-common/tsconfig.json
 src/legacy/font-clip/tsconfig.json
@@ -34,7 +33,5 @@ src/react/react-redux-base/tsconfig.json
 src/tools/e2etestHelper/tsconfig.json
 src/tools/tool-misc/tsconfig.json
 src/tools/vendor-binary/tsconfig.json
-src/internal/webpack-common/tsconfig.json
-src/legacy/translate-generator/tsconfig.json
-src/react/react-redux-base/tsconfig.json
-src/tools/tool-misc/tsconfig.json
+-------9/25/2020---------
+main/install-cli/tsconfig.json

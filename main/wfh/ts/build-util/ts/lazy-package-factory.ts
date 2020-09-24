@@ -1,35 +1,33 @@
-import * as Path from 'path';
+// import * as Path from 'path';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import {DirTree} from 'require-injector/dist/dir-tree';
 import PackageBrowserInstance from './package-instance';
+import {PackageInfo} from '../../package-mgr';
 
 /**
  * @deprecated
  */
 export default class LazyPackageFactory {
-  packagePathMap = new DirTree<PackageBrowserInstance>();
+  packagePathMap: DirTree<PackageBrowserInstance>;
+
+  constructor(private packagesIterable: Iterable<PackageInfo>) {
+  }
 
   getPackageByPath(file: string): PackageBrowserInstance | null {
-    let currPath = file;
+    if (this.packagePathMap == null) {
+      this.packagePathMap = new DirTree<PackageBrowserInstance>();
+      for (const info of this.packagesIterable) {
+        const pk = createPackage(info.path, info.json);
+        this.packagePathMap.putData(info.path, pk);
+        if (info.realPath !== info.path)
+          this.packagePathMap.putData(info.realPath, pk);
+      }
+    }
     let found: PackageBrowserInstance[];
     found = this.packagePathMap.getAllData(file);
     if (found.length > 0)
       return found[found.length - 1];
-    while (true) {
-      const dir = Path.dirname(currPath);
-      if (dir === currPath)
-        break; // Has reached root
-      if (fs.existsSync(Path.join(dir, 'package.json'))) {
-        const pkjson = require(Path.join(dir, 'package.json'));
-        if (_.has(pkjson, 'dr')) {
-          const pk = createPackage(dir, pkjson);
-          this.packagePathMap.putData(dir, pk);
-          return pk;
-        }
-      }
-      currPath = dir;
-    }
     return null;
   }
 }

@@ -9,6 +9,7 @@
   "dependencies": {
     "@types/react-dev-utils": "^9.0.4",
     "less-loader": "~5.0.0",
+    "less": "^2.3.1",
     "commander": "~6.1.0"
   },
   "scripts": {

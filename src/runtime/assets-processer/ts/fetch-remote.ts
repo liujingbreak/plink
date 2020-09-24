@@ -267,8 +267,7 @@ export async function retry<T>(times: number, func: (...args: any[]) => Promise<
 //   ]);
 // }
 export function forkExtractExstingZip(zipDir?: string, outputDir = 'dist/static', doNotDelete = false) {
-  const api: typeof __api = require('__api');
-  return forkProcess('extract', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
+  return forkProcess('extract', Path.resolve(__dirname, 'extract-zip-process.js'), [
     zipDir ? zipDir : zipDownloadDir,
     outputDir,
     doNotDelete ? 'keep' : 'delete'
@@ -285,7 +284,7 @@ async function forkProcess(name: string, filePath: string, args: string[], onPro
     if (onProcess) {
       onProcess(child);
     }
-    child.on('message', msg => {
+    child.on('message', (msg: any) => {
       if (msg.log) {
         log.info('[child process] %s - %s', name, msg.log);
         return;

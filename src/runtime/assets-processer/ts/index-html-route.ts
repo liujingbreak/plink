@@ -3,18 +3,21 @@ import {NextFunction, Request} from 'express';
 import api from '__api';
 import _ from 'lodash';
 import Url from 'url';
-const log = require('log4js').getLogger(api.packageName);
+import log4js from 'log4js';
+const log = log4js.getLogger(api.packageName);
 
 interface ReqWithNextCb extends Request {
   __goNext: NextFunction;
 }
 export function proxyToDevServer() {
+  const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
   const config: proxy.Config | undefined = api.config.get(api.packageName).indexHtmlProxy;
   if (config == null)
     return;
   config.changeOrigin = true;
   config.ws = true;
-
+  config.logProvider = () => hpmLog;
+  config.logLevel = 'info';
   config.onError = (err, req, res) => {
     if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
       log.warn('Can not connect to %s%s, farward to local static resource', config.target, req.url);

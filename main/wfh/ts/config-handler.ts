@@ -180,7 +180,7 @@ export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: {[key:
       pathsDirs.splice(idx, 1);
     }
   }
-
+  // console.log('+++++++++', pathsDirs, opts.extraNodePath);
   assigneeOptions.baseUrl = '.';
   if (assigneeOptions.paths == null)
     assigneeOptions.paths = {'*': []};

@@ -10,13 +10,11 @@ import {lookupPackageJson, findPackagesByNames} from './cmd/utils';
 
 // const log = log4js.getLogger('wfh.package-utils');
 
-const lazyPackageFactory = new LazyPackageFactory();
+const lazyPackageFactory = new LazyPackageFactory(allPackages());
 
-/**
- * @deprecated
- */
 export function createLazyPackageFileFinder() {
   const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
+
   return function(file: string): PackageBrowserInstance | undefined {
     let found = cache.get(file);
     if (!found) {

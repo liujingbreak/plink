@@ -38,16 +38,9 @@ const config_1 = __importDefault(require("dr-comp-package/wfh/dist/config"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const log4js_1 = __importDefault(require("log4js"));
 const bootstrap_server_1 = require("dr-comp-package/wfh/dist/utils/bootstrap-server");
+const package_runner_1 = require("dr-comp-package/wfh/dist/package-runner");
 // import * as astUtil from './cli-ts-ast-util';
 const cliExt = (program, withGlobalOptions) => {
-    // program.version(pk.version);
-    // program.option('-c, --config <config-file>',
-    //   'Read config files, if there are multiple files, the latter one overrides previous one',
-    //   (curr, prev) => prev.concat(curr), [] as string[]);
-    // program.option('--prop <property-path=value as JSON | literal>',
-    //   '<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n',
-    //   (curr, prev) => prev.concat(curr), [] as string[]);
-    // program.option('--secret <credential code>', 'credential code for deploy to "prod" environment');
     // ----------- deploy ----------
     const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
         .option('--static', 'as an static resource build', false)
@@ -130,13 +123,16 @@ const cliExt = (program, withGlobalOptions) => {
         const { listZip } = require('./cli-unzip');
         yield listZip(file);
     }));
-    // program.description(chalk.cyanBright(
-    //   'Prebuild and deploy static resource to file server and compile node server side TS files'));
-    // program.parseAsync(process.argv)
-    // .catch(e => {
-    //   console.error(e);
-    //   process.exit(1);
-    // });
+    const unzipCmd = program.command('unzip <zipFileDirectory>')
+        .description('Extract all zip files from specific directory')
+        .requiredOption('-d,--dest <dir>', 'destination directory')
+        .action((zipFileDirectory) => __awaiter(void 0, void 0, void 0, function* () {
+        yield bootstrap_server_1.initConfigAsync(unzipCmd.opts());
+        package_runner_1.prepareLazyNodeInjector({});
+        const { forkExtractExstingZip } = yield Promise.resolve().then(() => __importStar(require('@dr-core/assets-processer/dist/fetch-remote')));
+        yield forkExtractExstingZip(zipFileDirectory, path_1.default.resolve(unzipCmd.opts().dest), true);
+    }));
+    withGlobalOptions(unzipCmd);
 };
 exports.default = cliExt;
 function createEnvOption(cmd, required = true) {

@@ -19,6 +19,18 @@ process.on('unhandledRejection', err => {
 const log = log4js.getLogger('bootstrap');
 
 export async function initConfigAsync(options: GlobalOptions, onShutdownSignal?: () => void | Promise<any>) {
+  initProcess(onShutdownSignal);
+  await config.init(options);
+  logConfig(config());
+}
+
+export function initConfig(options: GlobalOptions, onShutdownSignal?: () => void | Promise<any>) {
+  initProcess(onShutdownSignal);
+  config.initSync(options);
+  logConfig(config());
+}
+
+function initProcess(onShutdownSignal?: () => void | Promise<any>) {
   process.on('SIGINT', function() {
     // tslint:disable-next-line: no-console
     console.log('Recieve SIGINT, bye.');
@@ -32,6 +44,10 @@ export async function initConfigAsync(options: GlobalOptions, onShutdownSignal?:
     }
   });
 
+  const {saveState, stateFactory}: typeof store = require('../store');
+
+  stateFactory.configureStore();
+
   async function onShut() {
     if (onShutdownSignal) {
       await Promise.resolve(onShutdownSignal);
@@ -42,13 +58,7 @@ export async function initConfigAsync(options: GlobalOptions, onShutdownSignal?:
       process.exit(0);
     }
   }
-
-  const {stateFactory, saveState}: typeof store = require('../store');
-  stateFactory.configureStore();
-
-
-  await config.init(options);
-  logConfig(config());
 }
+
 export {withGlobalOptions} from '../cmd/cli';
 export {GlobalOptions};

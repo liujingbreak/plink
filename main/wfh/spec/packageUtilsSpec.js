@@ -49,10 +49,10 @@ describe('packageUtils', function() {
 			var callback = jasmine.createSpy('found');
 			packageUtils.findNodePackageByType('server', callback);
 			var allServerPackages = [
-				'@dr-core/express-app',
+				'@wfh/express-app',
 				'@dr/doc-home',
 				'@dr/example-entry',
-				'@dr/http-server',
+				'@wfh/http-server',
 				//'@dr-core/browserify-builder-api',
 				'@dr-core/assets-processer',
 				'@dr/example-node',

@@ -2,7 +2,6 @@ import {Application, Request} from 'express';
 import os from 'os';
 import {Checksum, WithMailServerConfig} from '../fetch-types';
 import * as util from 'util';
-import _pm2 from '@growth/pm2';
 import {getPm2Info, zipDownloadDir, forkExtractExstingZip, retry} from '../fetch-remote';
 import Path from 'path';
 import {ImapManager} from '../fetch-remote-imap';
@@ -207,7 +206,7 @@ export async function activate(app: Application, imap: ImapManager) {
   }
 
   async function initPm2() {
-    const pm2: typeof _pm2 = require('@growth/pm2');
+    const pm2 = require('@growth/pm2');
     const pm2connect = util.promisify(pm2.connect.bind(pm2));
     const pm2launchBus = util.promisify<Pm2Bus>(pm2.launchBus.bind(pm2));
 

@@ -27,12 +27,7 @@ export function writeTsconfig4project(projectDirs: string[], onGitIgnoreFileUpda
       include.push(includeDir + '**/*.ts');
       include.push(includeDir + '**/*.tsx');
     });
-    createTsConfig(
-      {name: '', realPath: proj},
-      null,
-      drcpDir,
-      include
-    );
+    createTsConfig('', proj, null, drcpDir, include );
 
     const gitIgnoreFile = findGitIngoreFile(proj);
     if (gitIgnoreFile) {
@@ -60,7 +55,7 @@ export async function writeTsconfigForEachPackage(workspaceDir: string, pks: Pac
 
   const igConfigFiles = pks.map(pk => {
     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
-    return createTsConfig(pk, workspaceDir, drcpDir);
+    return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir);
   });
 
   appendGitIgnoreFiles(igConfigFiles, onGitIgnoreFileUpdate);
@@ -116,13 +111,13 @@ function findGitIngoreFile(startDir: string): string | null {
   }
 }
 
-function createTsConfig(pkg: {name: string, realPath: string}, workspace: string | null, drcpDir: string, include = ['.']) {
+function createTsConfig(pkgName: string, pkgRealPath: string, workspace: string | null, drcpDir: string, include = ['.']) {
   const tsjson: any = {
     extends: null,
     include
   };
   // tsjson.include = [];
-  const proj = pkg.realPath;
+  const proj = pkgRealPath;
   tsjson.extends = Path.relative(proj, Path.resolve(drcpDir, 'wfh/tsconfig-base.json'));
   if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
     tsjson.extends = './' + tsjson.extends;
@@ -131,7 +126,7 @@ function createTsConfig(pkg: {name: string, realPath: string}, workspace: string
 
   const pathMapping: {[key: string]: string[]} = {};
 
-  const extraNodePath: string[] = [Path.resolve(pkg.realPath, 'node_modules')];
+  const extraNodePath: string[] = [Path.resolve(pkgRealPath, 'node_modules')];
 
   if (workspace) {
     extraNodePath.push(Path.resolve(workspace, 'node_modules'));
@@ -140,14 +135,14 @@ function createTsConfig(pkg: {name: string, realPath: string}, workspace: string
   const commonDir = closestCommonParentDir(Array.from(getState().srcPackages.values()).map(el => el.realPath));
 
   for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
-    if (pkg.name === name)
+    if (pkgName === name)
       continue;
     const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
     pathMapping[name] = [realDir];
     pathMapping[name + '/*'] = [realDir + '/*'];
   }
 
-  if (pkg.name !== 'dr-comp-package') {
+  if (pkgName !== 'dr-comp-package') {
     drcpDir = Path.relative(proj, drcpDir).replace(/\\/g, '/');
     pathMapping['dr-comp-package'] = [drcpDir];
     pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];

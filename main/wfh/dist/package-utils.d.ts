@@ -1,9 +1,6 @@
 import PackageBrowserInstance from './build-util/ts/package-instance';
 import { PackageInfo } from './package-mgr';
 import { lookupPackageJson } from './cmd/utils';
-/**
- * @deprecated
- */
 export declare function createLazyPackageFileFinder(): (file: string) => PackageBrowserInstance | undefined;
 export declare type FindPackageCb = (fullName: string, 
 /** @Deprecated empty string */

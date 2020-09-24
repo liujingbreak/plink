@@ -47,7 +47,7 @@ export function printWorkspaces() {
     console.log(reldir ? reldir + '/' : '(root directory)');
     console.log('  |- dependencies');
     for (const {name: dep, json: {version: ver}, isInstalled} of packages4Workspace(reldir)) {
-      console.log(`  |  |- ${dep}  v${ver}  (${isInstalled ? '' : 'linked'})`);
+      console.log(`  |  |- ${dep}  v${ver}  ${isInstalled ? '' : '(linked)'}`);
     }
     // if (ws.linkedDependencies.length === 0)
     //   console.log('  |    (Empty)');

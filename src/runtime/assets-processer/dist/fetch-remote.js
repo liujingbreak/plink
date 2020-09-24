@@ -256,8 +256,7 @@ exports.retry = retry;
 //   ]);
 // }
 function forkExtractExstingZip(zipDir, outputDir = 'dist/static', doNotDelete = false) {
-    const api = require('__api');
-    return forkProcess('extract', 'node_modules/' + api.packageName + '/dist/extract-zip-process.js', [
+    return forkProcess('extract', path_1.default.resolve(__dirname, 'extract-zip-process.js'), [
         zipDir ? zipDir : exports.zipDownloadDir,
         outputDir,
         doNotDelete ? 'keep' : 'delete'
@@ -274,7 +273,7 @@ function forkProcess(name, filePath, args, onProcess) {
             if (onProcess) {
                 onProcess(child);
             }
-            child.on('message', msg => {
+            child.on('message', (msg) => {
                 if (msg.log) {
                     log.info('[child process] %s - %s', name, msg.log);
                     return;

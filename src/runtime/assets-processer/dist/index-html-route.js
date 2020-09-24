@@ -8,13 +8,17 @@ const http_proxy_middleware_1 = __importDefault(require("http-proxy-middleware")
 const __api_1 = __importDefault(require("__api"));
 const lodash_1 = __importDefault(require("lodash"));
 const url_1 = __importDefault(require("url"));
-const log = require('log4js').getLogger(__api_1.default.packageName);
+const log4js_1 = __importDefault(require("log4js"));
+const log = log4js_1.default.getLogger(__api_1.default.packageName);
 function proxyToDevServer() {
+    const hpmLog = log4js_1.default.getLogger('assets-process.index-html-route.proxy');
     const config = __api_1.default.config.get(__api_1.default.packageName).indexHtmlProxy;
     if (config == null)
         return;
     config.changeOrigin = true;
     config.ws = true;
+    config.logProvider = () => hpmLog;
+    config.logLevel = 'info';
     config.onError = (err, req, res) => {
         if (err.code === 'ECONNREFUSED') {
             log.warn('Can not connect to %s%s, farward to local static resource', config.target, req.url);

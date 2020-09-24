@@ -12,20 +12,13 @@ import log4js from 'log4js';
 import _genKeypair from './cli-keypair';
 import {initConfigAsync} from 'dr-comp-package/wfh/dist/utils/bootstrap-server';
 import {CliExtension, GlobalOptions} from 'dr-comp-package/wfh/dist';
+import {prepareLazyNodeInjector} from 'dr-comp-package/wfh/dist/package-runner';
 
 // import * as tsAstQuery from './ts-ast-query';
 import * as _unzip from './cli-unzip';
 // import * as astUtil from './cli-ts-ast-util';
 
 const cliExt: CliExtension = (program, withGlobalOptions) => {
-  // program.version(pk.version);
-  // program.option('-c, --config <config-file>',
-  //   'Read config files, if there are multiple files, the latter one overrides previous one',
-  //   (curr, prev) => prev.concat(curr), [] as string[]);
-  // program.option('--prop <property-path=value as JSON | literal>',
-  //   '<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n',
-  //   (curr, prev) => prev.concat(curr), [] as string[]);
-  // program.option('--secret <credential code>', 'credential code for deploy to "prod" environment');
 
   // ----------- deploy ----------
   const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
@@ -122,13 +115,16 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     await listZip(file);
   });
 
-  // program.description(chalk.cyanBright(
-  //   'Prebuild and deploy static resource to file server and compile node server side TS files'));
-  // program.parseAsync(process.argv)
-  // .catch(e => {
-  //   console.error(e);
-  //   process.exit(1);
-  // });
+  const unzipCmd = program.command('unzip <zipFileDirectory>')
+  .description('Extract all zip files from specific directory')
+  .requiredOption('-d,--dest <dir>', 'destination directory')
+  .action(async (zipFileDirectory: string) => {
+    await initConfigAsync(unzipCmd.opts() as GlobalOptions);
+    prepareLazyNodeInjector({});
+    const {forkExtractExstingZip} = await import('@dr-core/assets-processer/dist/fetch-remote');
+    await forkExtractExstingZip(zipFileDirectory, Path.resolve(unzipCmd.opts().dest), true);
+  });
+  withGlobalOptions(unzipCmd);
 };
 
 export {cliExt as default};
