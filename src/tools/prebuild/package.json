@@ -4,9 +4,6 @@
   "description": "Prebuild for monorepo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "prebuild": "prebuild-main.js"
-  },
   "dr": {
     "cli": "dist/cli.js#default",
     "config": {

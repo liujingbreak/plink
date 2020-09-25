@@ -6,6 +6,7 @@ import Path from 'path';
 import { actionDispatcher as actions, getStore, getState } from '../package-mgr';
 import * as options from './types';
 import {packages4Workspace} from '../package-utils';
+
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
   await config.init(opt);
 
@@ -35,7 +36,7 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
   ).toPromise();
 
   if (workspace) {
-    actions.initWorkspace({dir: workspace, isForce: opt.force, logHasConfiged: false});
+    actions.updateWorkspace({dir: workspace, isForce: opt.force});
   } else {
     actions.initRootDir(null);
   }

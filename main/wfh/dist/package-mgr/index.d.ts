@@ -15,6 +15,8 @@ export interface PackagesState {
     srcPackages: Map<string, PackageInfo>;
     /** Key is relative path to root workspace */
     workspaces: Map<string, WorkspaceState>;
+    /** key of current "workspaces" */
+    currWorkspace?: string | null;
     project2Packages: Map<string, string[]>;
     linkedDrcp: PackageInfo | null;
     gitIgnores: {
@@ -89,6 +91,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -108,7 +111,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     } | undefined | null>): void;
     /** Check and install dependency, if there is linked package used in more than one workspace,
      * to switch between different workspace */
-    initWorkspace(d: {
+    updateWorkspace(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -161,6 +164,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -178,9 +182,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
-        logHasConfiged: boolean;
     }>): void;
-    _syncPackagesState(d: {
+    _syncLinkedPackages(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -233,6 +236,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -301,6 +305,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -369,6 +374,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -437,6 +443,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -510,6 +517,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -583,6 +591,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -657,6 +666,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -728,6 +738,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -743,6 +754,75 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         isInChina?: boolean | undefined;
     }, { payload }: PayloadAction<boolean>): void;
+    setCurrentWorkspace(d: {
+        inited: boolean;
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            id: string;
+            originInstallJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
+            };
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
+            };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+            installedComponents?: Map<string, {
+                name: string;
+                scope: string;
+                shortName: string;
+                json: any;
+                path: string;
+                realPath: string;
+                isInstalled: boolean;
+            }> | undefined;
+        }>;
+        currWorkspace?: string | null | undefined;
+        project2Packages: Map<string, string[]>;
+        linkedDrcp: {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        } | null;
+        gitIgnores: {
+            [x: string]: string;
+        };
+        isInChina?: boolean | undefined;
+    }, { payload: dir }: PayloadAction<string | null>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
@@ -799,6 +879,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -818,7 +899,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     } | undefined | null>): void;
     /** Check and install dependency, if there is linked package used in more than one workspace,
      * to switch between different workspace */
-    initWorkspace(d: {
+    updateWorkspace(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -871,6 +952,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -888,9 +970,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
-        logHasConfiged: boolean;
     }>): void;
-    _syncPackagesState(d: {
+    _syncLinkedPackages(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -943,6 +1024,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -1011,6 +1093,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -1079,6 +1162,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -1147,6 +1231,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -1220,6 +1305,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -1293,6 +1379,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -1367,6 +1454,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -1438,6 +1526,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 isInstalled: boolean;
             }> | undefined;
         }>;
+        currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
         linkedDrcp: {
             name: string;
@@ -1453,6 +1542,75 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         isInChina?: boolean | undefined;
     }, { payload }: PayloadAction<boolean>): void;
+    setCurrentWorkspace(d: {
+        inited: boolean;
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            id: string;
+            originInstallJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
+            };
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
+            };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+            installedComponents?: Map<string, {
+                name: string;
+                scope: string;
+                shortName: string;
+                json: any;
+                path: string;
+                realPath: string;
+                isInstalled: boolean;
+            }> | undefined;
+        }>;
+        currWorkspace?: string | null | undefined;
+        project2Packages: Map<string, string[]>;
+        linkedDrcp: {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        } | null;
+        gitIgnores: {
+            [x: string]: string;
+        };
+        isInChina?: boolean | undefined;
+    }, { payload: dir }: PayloadAction<string | null>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare function getState(): PackagesState;
 export declare function getStore(): Observable<PackagesState>;

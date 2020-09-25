@@ -28,12 +28,7 @@ export default async function list(opt: GlobalOptions & {json: boolean}) {
 
   console.log('\n' + chalk.green(_.pad('[ SERVER COMPONENTS ]', 50, '=')) + '\n');
 
-  let list: ComponentListItem[] = await pkRunner.listServerComponents();
-  list.forEach(row => console.log(' ' + row.desc + '   ' + chalk.blue(Path.relative(config().rootPath, row.pk.path))));
-  console.log('');
-  console.log('\n' + chalk.green(_.pad('[ BUILDER COMPONENTS ]', 50, '=')) + '\n');
-
-  list = await pkRunner.listBuilderComponents();
+  const list: ComponentListItem[] = await pkRunner.listServerComponents();
   list.forEach(row => console.log(' ' + row.desc + '   ' + chalk.blue(Path.relative(config().rootPath, row.pk.path))));
 
   printWorkspaces();

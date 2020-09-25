@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';
-import { from, merge, of} from 'rxjs';
+import { from, merge, of, defer} from 'rxjs';
 import {Observable} from 'rxjs';
 import {tap} from 'rxjs/operators';
 import { distinctUntilChanged, filter, map, switchMap,
@@ -38,6 +38,8 @@ export interface PackagesState {
   srcPackages: Map<string, PackageInfo>;
   /** Key is relative path to root workspace */
   workspaces: Map<string, WorkspaceState>;
+  /** key of current "workspaces" */
+  currWorkspace?: string | null;
   project2Packages: Map<string, string[]>;
   linkedDrcp: PackageInfo | null;
   gitIgnores: {[file: string]: string};
@@ -85,9 +87,9 @@ export const slice = stateFactory.newSlice({
 
     /** Check and install dependency, if there is linked package used in more than one workspace, 
      * to switch between different workspace */
-    initWorkspace(d, action: PayloadAction<{dir: string, isForce: boolean, logHasConfiged: boolean}>) {
+    updateWorkspace(d, action: PayloadAction<{dir: string, isForce: boolean}>) {
     },
-    _syncPackagesState(d, {payload}: PayloadAction<PackageInfo[]>) {
+    _syncLinkedPackages(d, {payload}: PayloadAction<PackageInfo[]>) {
       d.inited = true;
       d.srcPackages = new Map();
       for (const pkInfo of payload) {
@@ -229,6 +231,12 @@ export const slice = stateFactory.newSlice({
     },
     setInChina(d, {payload}: PayloadAction<boolean>) {
       d.isInChina = payload;
+    },
+    setCurrentWorkspace(d, {payload: dir}: PayloadAction<string | null>) {
+      if (dir != null)
+        d.currWorkspace = workspaceKey(dir);
+      else
+        d.currWorkspace = null;
     }
   }
 });
@@ -249,26 +257,29 @@ stateFactory.addEpic((action$, state$) => {
       ignoreElements()
     ),
 
-    //  initWorkspace
-    action$.pipe(ofPayloadAction(slice.actions.initWorkspace),
-      switchMap(({payload: {dir, isForce, logHasConfiged}}) => {
+    //  updateWorkspace
+    action$.pipe(ofPayloadAction(slice.actions.updateWorkspace),
+      switchMap(({payload: {dir, isForce}}) => {
         dir = Path.resolve(dir);
+        actionDispatcher.setCurrentWorkspace(dir);
         maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), Path.resolve(dir, 'app.js'));
-        const hoistOnPackageChanges = getStore().pipe(
-          distinctUntilChanged((s1, s2) => s1.srcPackages === s2.srcPackages),
-          skip(1), take(1),
-          map(() => actionDispatcher._hoistWorkspaceDeps({dir}))
-        );
-
-        if (!getState().inited) {
-          actionDispatcher.initRootDir();
-          return hoistOnPackageChanges;
+        checkAllWorkspaces();
+        if (!isForce) {
+          // call initRootDirectory(),
+          // only call _hoistWorkspaceDeps when "srcPackages" state is changed by action `_syncLinkedPackages`
+          return merge(
+            defer(() => of(initRootDirectory())),
+            // wait for _syncLinkedPackages finish
+            getStore().pipe(
+              distinctUntilChanged((s1, s2) => s1.srcPackages === s2.srcPackages),
+              skip(1), take(1),
+              map(() => actionDispatcher._hoistWorkspaceDeps({dir}))
+            )
+          );
         } else {
-          if (!logHasConfiged) {
-            logConfig(config());
-          }
+          // Chaning installJsonStr to force action _installWorkspace being dispatched later
           const wsKey = workspaceKey(dir);
-          if (isForce && getState().workspaces.has(wsKey)) {
+          if (getState().workspaces.has(wsKey)) {
             actionDispatcher._change(d => {
               // clean to trigger install action
               d.workspaces.get(wsKey)!.installJsonStr = '';
@@ -276,8 +287,16 @@ stateFactory.addEpic((action$, state$) => {
               console.log('force npm install in', wsKey);
             });
           }
-          actionDispatcher._hoistWorkspaceDeps({dir});
-          return of();
+          // call initRootDirectory() and wait for it finished by observe action '_syncLinkedPackages',
+          // then call _hoistWorkspaceDeps
+          return merge(
+            defer(() => of(initRootDirectory())),
+            action$.pipe(
+              ofPayloadAction(slice.actions._syncLinkedPackages),
+              take(1),
+              map(() => actionDispatcher._hoistWorkspaceDeps({dir}))
+            )
+          );
         }
       }),
       ignoreElements()
@@ -285,20 +304,21 @@ stateFactory.addEpic((action$, state$) => {
 
     // initRootDir
     action$.pipe(ofPayloadAction(slice.actions.initRootDir),
-      switchMap(() => {
-        const goInitWorkspace$ = action$.pipe(
-          ofPayloadAction(slice.actions._syncPackagesState),
-          take(1),
-          map(() => {
-            if (getState().workspaces.size > 0) {
-              for (const key of getState().workspaces.keys()) {
-                const path = Path.resolve(getRootDir(), key);
-                actionDispatcher.initWorkspace({dir: path, isForce: false, logHasConfiged: true});
-              }
+      map(() => {
+        checkAllWorkspaces();
+        if (getState().workspaces.has(workspaceKey(process.cwd()))) {
+          actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: false});
+        } else {
+          const curr = getState().currWorkspace;
+          if (curr != null) {
+            if (getState().workspaces.has(curr)) {
+              const path = Path.resolve(getRootDir(), curr);
+              actionDispatcher.updateWorkspace({dir: path, isForce: false});
+            } else {
+              actionDispatcher.setCurrentWorkspace(null);
             }
-          })
-        );
-        return merge(goInitWorkspace$, from(initRootDirectory()));
+          }
+        }
       }),
       ignoreElements()
     ),
@@ -491,6 +511,20 @@ export function listPackagesByProjects() {
   return out;
 }
 
+/**
+ * Delete workspace state if its directory does not exist
+ */
+function checkAllWorkspaces() {
+  for (const key of getState().workspaces.keys()) {
+    const dir = Path.resolve(getRootDir(), key);
+    if (!fs.existsSync(dir)) {
+      // tslint:disable-next-line: no-console
+      console.log(`Workspace ${key} does not exist anymore.`);
+      actionDispatcher._change(d => d.workspaces.delete(key));
+    }
+  }
+}
+
 // async function updateLinkedPackageState() {
 //   const jsonStrs = await Promise.all(
 //     Array.from(getState().srcPackages.entries())
@@ -657,7 +691,7 @@ async function _scanPackageAndLink() {
   for (const [prj, pkgs] of projPkgMap.entries()) {
     actionDispatcher._associatePackageToPrj({prj, pkgs});
   }
-  actionDispatcher._syncPackagesState(pkgList);
+  actionDispatcher._syncLinkedPackages(pkgList);
 }
 
 /**
