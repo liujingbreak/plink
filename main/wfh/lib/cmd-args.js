@@ -155,7 +155,7 @@ function drcpCommand(startTime) {
 			})
 			.usage('Run gulp-typescript to compile Node.js side typescript files.\n\n' +
 				'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
-				'  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @dr packages.\n' +
+				'  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
 				'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs not only in ' +
 				'Node.js but also in Browser) in directory `isom`.\n' +
 				// 'you can add properties like "dr.ts.src" and "dr.ts.dest" to component package.json file which changes source and destination directry.\n\n' +
@@ -388,7 +388,7 @@ function nodeAppCommand(callback) {
 		require('./config').init(argv)
 		.then(() => {
 			if (argv.ng && argv.package.length > 0) {
-				argv.package.push('@dr-core/ng-app-builder');
+				argv.package.push('@wfh-core/ng-app-builder');
 			}
 			if (argv.package && argv.package.length > 0 || (argv.x && argv.x.length > 0)) {
 				argv.p = argv.package;
@@ -429,10 +429,10 @@ function globalOptions(argv, overrides) {
 		},
 		prop: {
 			describe: '<property-path>=<value as JSON | literal> ...' + hlDesc('directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n') +
-				'--prop port=8080 devMode=false @dr/foobar.api=http://localhost:8080\n' +
-				'--prop port=8080 devMode=false @dr/foobar.api=http://localhost:8080\n' +
+				'--prop port=8080 devMode=false @wfh/foobar.api=http://localhost:8080\n' +
+				'--prop port=8080 devMode=false @wfh/foobar.api=http://localhost:8080\n' +
 				'--prop arraylike.prop[0]=foobar\n' +
-				'--prop ["@dr/foo.bar","prop",0]=true',
+				'--prop ["@wfh/foo.bar","prop",0]=true',
 			type: 'array'
 		},
 		// offline: {

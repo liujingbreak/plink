@@ -83,7 +83,7 @@ export function saveCmdArgToEnv() {
     process.exit(0);
   });
   program.version(pk.version, '-v, --vers', 'output the current version');
-  program.usage('react-scripts -r dr-comp-package/register -r @bk/cra-scripts build ' + program.usage());
+  program.usage('react-scripts -r dr-comp-package/register -r @wfh/cra-scripts build ' + program.usage());
 
   const libCmd = program.command('lib <package-name>')
   .description('Compile library')

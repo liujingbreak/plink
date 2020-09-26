@@ -76,7 +76,7 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
 
 
   var tsjson: {compilerOptions: any, [key: string]: any, files?: string[], include: string[]} = {
-    // extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
+    // extends: require.resolve('@wfh/webpack2-builder/configs/tsconfig.json'),
     include: config
       .tsconfigInclude
       .map(preserveSymlinks ? p => p : globRealPath)

@@ -55,7 +55,7 @@ class PrerenderForExpress {
         // }
         this.queryPrerenderPages(routeMapFiles)
             .then(pages => this.prerenderPages = pages);
-        __api_1.default.eventBus.on('@dr-core/assets-processer.downloaded', () => __awaiter(this, void 0, void 0, function* () {
+        __api_1.default.eventBus.on('@wfh/assets-processer.downloaded', () => __awaiter(this, void 0, void 0, function* () {
             log.info('assets downloaded, update prerendered pages');
             const pages = yield this.queryPrerenderPages(routeMapFiles);
             this.prerenderPages = pages;

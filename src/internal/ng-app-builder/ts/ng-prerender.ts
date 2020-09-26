@@ -12,7 +12,7 @@ const log = require('log4js').getLogger('ng-prerender');
 import api from '__api';
 import { provideModuleMap } from '@nguniversal/module-map-ngfactory-loader';
 import { renderModuleFactory } from '@angular/platform-server';
-import {ROUTE_MAP_FILE} from '@dr-core/assets-processer/dist/ng-prerender';
+import {ROUTE_MAP_FILE} from '@wfh/assets-processer/dist/ng-prerender';
 
 const domino = require('domino');
 

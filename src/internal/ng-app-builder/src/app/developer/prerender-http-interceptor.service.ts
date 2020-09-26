@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import {HttpEvent, HttpInterceptor, HttpHandler, HttpRequest, HTTP_INTERCEPTORS} from '@angular/common/http';
 import {Observable} from 'rxjs';
-import {isPlatformServer} from '@dr-core/ng-app-builder/src/app-utils';
+import {isPlatformServer} from '@wfh/ng-app-builder/src/app-utils';
 import { parse as parseUrl } from 'url';
 
 @Injectable({

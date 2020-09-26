@@ -5,7 +5,7 @@ import TsAstSelector from '../utils/ts-ast-query';
 import ts from 'typescript';
 import log4js from 'log4js';
 
-const log = log4js.getLogger('@dr-core/ng-app-builder.for-hmr');
+const log = log4js.getLogger('@wfh/ng-app-builder.for-hmr');
 
 export function createMainFileForHmr(mainFile: string): string {
   const dir = Path.dirname(mainFile);
@@ -27,7 +27,7 @@ export function createMainFileForHmr(mainFile: string): string {
  */
 export function _createMainHmrFile(mainTs: string, mainFile: string): string {
   let mainHmr = '// tslint:disable\n' +
-  `import hmrBootstrap from '@dr-core/ng-app-builder/src/hmr';\n${mainTs}`;
+  `import hmrBootstrap from '@wfh/ng-app-builder/src/hmr';\n${mainTs}`;
   const query = new TsAstSelector(mainHmr, 'main-hmr.ts');
   // query.printAll();
 

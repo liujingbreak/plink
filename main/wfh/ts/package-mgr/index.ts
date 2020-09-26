@@ -370,6 +370,7 @@ stateFactory.addEpic((action$, state$) => {
     ),
     ...Array.from(getState().workspaces.keys()).map(key => {
       return getStore().pipe(
+        filter(s => s.workspaces.has(key)),
         map(s => s.workspaces.get(key)!.installJsonStr),
         distinctUntilChanged(),
         // tap((installJsonStr) => console.log('installJsonStr length',key, installJsonStr.length)),
@@ -452,14 +453,10 @@ export function pathToProjKey(path: string) {
 }
 
 export function workspaceKey(path: string) {
-  let rel = Path.relative(getRootDir(), path);
+  let rel = Path.relative(getRootDir(), Path.resolve(path));
   if (Path.sep === '\\')
     rel = rel.replace(/\\/g, '/');
   return rel;
-}
-
-export function pathToWorkspace(path: string) {
-  return Path.relative(getRootDir(), path);
 }
 
 export function* getPackagesOfProjects(projects: string[]) {

@@ -1,7 +1,7 @@
 import LRU from 'lru-cache';
 import PackageBrowserInstance from './build-util/ts/package-instance';
 import LazyPackageFactory from './build-util/ts/lazy-package-factory';
-import {getState, pathToProjKey, pathToWorkspace, PackageInfo} from './package-mgr';
+import {getState, pathToProjKey, workspaceKey, PackageInfo} from './package-mgr';
 // import * as Path from 'path';
 import _ from 'lodash';
 // import log4js from 'log4js';
@@ -125,7 +125,7 @@ export function* allPackages(_types?: PackageType | PackageType[],
 }
 
 export function* packages4Workspace(workspaceDir?: string) {
-  const wsKey = pathToWorkspace(workspaceDir || process.cwd());
+  const wsKey = workspaceKey(workspaceDir || process.cwd());
   const ws = getState().workspaces.get(wsKey);
   if (!ws)
     return;

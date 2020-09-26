@@ -18,7 +18,7 @@ const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const path_1 = __importDefault(require("path"));
-const log = require('log4js').getLogger('@dr-core/assets-processer.rfc822-parser');
+const log = require('log4js').getLogger('@wfh/assets-processer.rfc822-parser');
 var RCF822TokenType;
 (function (RCF822TokenType) {
     RCF822TokenType[RCF822TokenType["CRLF"] = 0] = "CRLF";

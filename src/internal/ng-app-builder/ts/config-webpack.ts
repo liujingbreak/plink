@@ -21,7 +21,7 @@ import {Application} from 'express';
 import chalk from 'chalk';
 import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
 import {WepackConfigHandler} from './configurable';
-// import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
+// import setupAssets from '@wfh/assets-processer/dist/dev-serve-assets';
 
 
 export default async function changeWebpackConfig(context: BuilderContext, param: AngularCliParam, webpackConfig: webpack.Configuration,
@@ -255,7 +255,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
       loader: 'url-loader',
       options: {
         limit: 10000, // <10k ,use base64 format
-        fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
+        fallback: '@wfh/webpack2-builder/dist/loaders/dr-file-loader'
       }
     }]
   };
@@ -287,7 +287,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
       Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
       Object.assign(rule, {
         test: /\.(eot|svg|cur|webp|otf|ttf|woff|woff2|ani)$/,
-        use: [{loader: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'}]
+        use: [{loader: '@wfh/webpack2-builder/dist/loaders/dr-file-loader'}]
       });
 
     } else if (rule.loader === 'url-loader') {
@@ -310,7 +310,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
           sourceMap: needSourceMap
         }
       });
-      // rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
+      // rule.use.push({loader: '@wfh/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
     } else if (test instanceof RegExp && test.toString() === '/\\.less$/' && rule.use) {
       for (const useItem of rule.use as webpack.RuleSetLoader[]) {
         if (useItem.loader === 'less-loader' && _.has(useItem, 'options.paths')) {
@@ -318,7 +318,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
           break;
         }
       }
-      // rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
+      // rule.use.push({loader: '@wfh/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
     }
   });
 
@@ -335,7 +335,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
         return true;
       return !!api.findPackageByFile(file);
     },
-    use: [{loader: '@dr-core/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader'}]
+    use: [{loader: '@wfh/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader'}]
   });
 
   rules.unshift({
@@ -345,7 +345,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
       use: [
         {loader: 'html-loader', options: {attrs: 'img:src'}},
         {loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader')}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
-        {loader: '@dr-core/webpack2-builder/lib/jade-to-html-loader'}
+        {loader: '@wfh/webpack2-builder/lib/jade-to-html-loader'}
       ]
     },
     {
@@ -353,7 +353,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
       use: [
         {loader: 'html-loader', options: {attrs: 'img:src'}},
         {loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader')}, // Replace keyward assets:// in *[src|href|srcset|ng-src]
-        {loader: '@dr-core/webpack2-builder/lib/markdown-loader'}
+        {loader: '@wfh/webpack2-builder/lib/markdown-loader'}
       ]
     },
     {

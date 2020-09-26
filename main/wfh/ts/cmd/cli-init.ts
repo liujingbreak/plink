@@ -6,6 +6,7 @@ import Path from 'path';
 import { actionDispatcher as actions, getStore, getState } from '../package-mgr';
 import * as options from './types';
 import {packages4Workspace} from '../package-utils';
+import {getRootDir} from '../utils/misc';
 
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
   await config.init(opt);
@@ -47,7 +48,7 @@ export function printWorkspaces() {
   for (const reldir of getState().workspaces.keys()) {
     console.log(reldir ? reldir + '/' : '(root directory)');
     console.log('  |- dependencies');
-    for (const {name: dep, json: {version: ver}, isInstalled} of packages4Workspace(reldir)) {
+    for (const {name: dep, json: {version: ver}, isInstalled} of packages4Workspace(Path.resolve(getRootDir(), reldir))) {
       console.log(`  |  |- ${dep}  v${ver}  ${isInstalled ? '' : '(linked)'}`);
     }
     // if (ws.linkedDependencies.length === 0)

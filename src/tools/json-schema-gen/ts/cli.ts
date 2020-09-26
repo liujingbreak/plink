@@ -6,7 +6,7 @@ import * as fs from 'fs-extra';
 import {getTsDirsOfPackage} from 'dr-comp-package/wfh/dist/utils';
 import log4js from 'log4js';
 import * as TJS from 'typescript-json-schema';
-import Selector from '@dr-core/ng-app-builder/dist/utils/ts-ast-query';
+import Selector from '@wfh/ng-app-builder/dist/utils/ts-ast-query';
 import glob from 'glob';
 import {withGlobalOptions, initConfigAsync, GlobalOptions} from 'dr-comp-package/wfh/dist/utils/bootstrap-server';
 const baseTsconfig = require('dr-comp-package/wfh/tsconfig-base.json');

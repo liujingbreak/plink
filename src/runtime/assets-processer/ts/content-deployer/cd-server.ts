@@ -10,7 +10,7 @@ import _ from 'lodash';
 import memstat from 'dr-comp-package/wfh/dist/utils/mem-stats';
 import crypto, {Hash} from 'crypto';
 import api from '__api';
-import {stringifyListAllVersions} from '@bk/prebuild/dist/artifacts';
+import {stringifyListAllVersions} from '@wfh/prebuild/dist/artifacts';
 
 const log = require('log4js').getLogger(api.packageName + '.cd-server');
 

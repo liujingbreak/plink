@@ -3,7 +3,7 @@ import { BuilderContext, Target, targetFromTargetString } from '@angular-devkit/
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { Schema as ServerBuilderOptions } from '@angular-devkit/build-angular/src/server/schema';
-import { packageAssetsFolders } from '@dr-core/assets-processer/dist/dev-serve-assets';
+import { packageAssetsFolders } from '@wfh/assets-processer/dist/dev-serve-assets';
 import chalk from 'chalk';
 import { DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
 import { getLanIPv4 } from 'dr-comp-package/wfh/dist/utils/network-util';
@@ -25,7 +25,7 @@ import {createMainFileForHmr} from './for-hmr';
 
 const {cyan, green, red} = chalk;
 const currPackageName = require('../../package.json').name;
-const log = require('log4js').getLogger('@dr-core/ng-app-builder.change-cli-options');
+const log = require('log4js').getLogger('@wfh/ng-app-builder.change-cli-options');
 
 type ExtractPromise<P> = P extends Promise<infer T> ? T : unknown;
 
@@ -166,7 +166,7 @@ async function processBrowserBuiliderOptions(
   context.reportStatus('setting up assets options');
   // Because dev-serve-assets depends on DRCP api, I have to lazy load it.
   const forEachAssetsDir: typeof packageAssetsFolders =
-  require('@dr-core/assets-processer/dist/dev-serve-assets').packageAssetsFolders;
+  require('@wfh/assets-processer/dist/dev-serve-assets').packageAssetsFolders;
   forEachAssetsDir('/', (inputDir, outputDir) => {
     if (!browserOptions.assets) {
       browserOptions.assets = [];
@@ -252,7 +252,7 @@ function createTsConfigInWorker(tsconfigFile: string,
   const reportDir = config.resolve('destDir', 'ng-app-builder.report');
 
   memstats();
-  const workerLog = require('log4js').getLogger('@dr-core/ng-app-builder.worker');
+  const workerLog = require('log4js').getLogger('@wfh/ng-app-builder.worker');
 
   return new Promise<string>((resolve, rej) => {
 

@@ -1,4 +1,4 @@
-import {ConfigureHandler} from '@bk/cra-scripts/dist/types';
+import {ConfigureHandler} from '@wfh/cra-scripts/dist/types';
 import {Configuration} from 'webpack';
 
 const handler: ConfigureHandler = {

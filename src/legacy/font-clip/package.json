@@ -1,5 +1,5 @@
 {
-  "name": "font-clip",
+  "name": "@wfh/font-clip",
   "version": "1.0.1",
   "main": "dist/font-clip.js",
   "types": "dist/font-clip.d.ts",

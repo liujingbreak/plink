@@ -18,7 +18,7 @@ const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName + '.ng-ts-replace');
 
-const apiTmplTs = _.template('import __DrApi from \'@dr-core/ng-app-builder/src/app/api\';\
+const apiTmplTs = _.template('import __DrApi from \'@wfh/ng-app-builder/src/app/api\';\
 var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packageName%>\');\
 __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');

@@ -6,7 +6,7 @@ import {observeOn, map, share} from 'rxjs/operators';
 import _ from 'lodash';
 import fs from 'fs-extra';
 import Path from 'path';
-const log = require('log4js').getLogger('@dr-core/assets-processer.rfc822-parser');
+const log = require('log4js').getLogger('@wfh/assets-processer.rfc822-parser');
 
 export enum RCF822TokenType {
   CRLF,

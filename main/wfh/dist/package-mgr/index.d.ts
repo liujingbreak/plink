@@ -1616,7 +1616,6 @@ export declare function getState(): PackagesState;
 export declare function getStore(): Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;
 export declare function workspaceKey(path: string): string;
-export declare function pathToWorkspace(path: string): string;
 export declare function getPackagesOfProjects(projects: string[]): Generator<PackageInfo, void, unknown>;
 export declare function listPackages(): string;
 export declare function getProjectList(): string[];

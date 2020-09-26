@@ -1,7 +1,7 @@
 import express, {Application} from 'express';
 import ExpressAppApi from './api-types';
 import api from '__api';
-import {DrcpApi} from '@dr-core/ng-app-builder/globals';
+import {DrcpApi} from '@wfh/ng-app-builder/globals';
 import _ from 'lodash';
 import Path from 'path';
 export {ExpressAppApi};

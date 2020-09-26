@@ -18,7 +18,7 @@ function init(yargs) {
 	.command('bump', '[--project|pj <project-dir>] [-d <package-dir>] [-v major|minor|patch] [--all] bump version number of all package.json or [-d] only specific package, useful to call this before publishing packages, default is increasing patch number by 1')
 	.command('test', '[-p <package-short-name>] [-f <spec-file-path>] run Jasmine for specific or all packages')
 	.command('e2e', '[-d <test-suit-dir] [-f <spec-file-path>] [--server <start-js-file>] [--dir <working directory>] [--browser <chrome|firefox|ie|opera|edge|safari>]run Jasmine for end-to-end tests')
-	.describe('browserify', 'Run @dr/browserify-builder together with Webpack components')
+	.describe('browserify', 'Run @wfh/browserify-builder together with Webpack components')
 	.describe('no-package-cache', 'If you run `gulp compile` with `-p <package>`, to speed up compilation, it will not read newly changed package.json file but get information from cached data, this option prevents this behaviour')
 
 	.describe('c', '<config.xxx.yaml> the config file, default is "config.local.yaml"')

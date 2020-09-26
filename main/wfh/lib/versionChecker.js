@@ -21,8 +21,8 @@ function checkVersions(isSymbolicLink) {
 
 	return Promise.all([buildUtils.getNpmVersion(),
 		getLatestDrcpVer(),
-		getLatestRecipeVer('@dr/runtime-recipe'),
-		getLatestRecipeVer('@dr/internal-recipe')
+		getLatestRecipeVer('@wfh/runtime-recipe'),
+		getLatestRecipeVer('@wfh/internal-recipe')
 	])
 	.then(outputs => {
 		var sline = _.repeat('-', 60);
@@ -39,22 +39,22 @@ function checkVersions(isSymbolicLink) {
 			(isSymbolicLink ? green(' (symlink)') : '') +
 			(isDrcpOutdated ? yellow(` (latest: ${latestDrcp})`) : ` (published: ${latestDrcp}) `);
 
-		let runtimeVer = getRecipeVersion('@dr/runtime-recipe');
+		let runtimeVer = getRecipeVersion('@wfh/runtime-recipe');
 		if (runtimeVer) {
-			infoText += '\n' + _.padStart('@dr/runtime-recipe version: ', PAD_SPACE) + green(runtimeVer) +
+			infoText += '\n' + _.padStart('@wfh/runtime-recipe version: ', PAD_SPACE) + green(runtimeVer) +
 				((runtimeVer && outputs[2] && semver.lt(runtimeVer, outputs[2])) ? yellow(`(latest: ${outputs[2]})`) : '');
 		} else if (!isSymbolicLink) {
-			infoText += '\n' + red('Missing @dr/runtime-recipe, Need to install it.');
+			infoText += '\n' + red('Missing @wfh/runtime-recipe, Need to install it.');
 		}
-		let recipeVer = getRecipeVersion('@dr/internal-recipe');
+		let recipeVer = getRecipeVersion('@wfh/internal-recipe');
 		if (recipeVer) {
-			infoText += '\n' + _.padStart('@dr/internal-recipe version: ', PAD_SPACE) + green(recipeVer) +
+			infoText += '\n' + _.padStart('@wfh/internal-recipe version: ', PAD_SPACE) + green(recipeVer) +
 				((recipeVer && outputs[3] && semver.lt(recipeVer, outputs[3])) ? yellow(`(latest: ${outputs[3]})`) : '');
 		}
 
 		infoText += '\n' + sline;
 		if (latestDrcp)
-			cacheVersionInfo(latestDrcp, {'@dr/runtime-recipe': outputs[2], '@dr/internal-recipe': outputs[3]});
+			cacheVersionInfo(latestDrcp, {'@wfh/runtime-recipe': outputs[2], '@wfh/internal-recipe': outputs[3]});
 		return infoText;
 	});
 }

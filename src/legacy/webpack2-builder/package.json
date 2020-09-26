@@ -1,5 +1,5 @@
 {
-  "name": "@dr-core/webpack2-builder",
+  "name": "@wfh/webpack2-builder",
   "version": "1.1.8",
   "description": "Browser side stuff builder module based on Webpack2",
   "main": "main.js",

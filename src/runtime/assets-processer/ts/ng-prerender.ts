@@ -28,7 +28,7 @@ export class PrerenderForExpress {
     this.queryPrerenderPages(routeMapFiles)
     .then(pages => this.prerenderPages = pages);
 
-    api.eventBus.on('@dr-core/assets-processer.downloaded', async () => {
+    api.eventBus.on('@wfh/assets-processer.downloaded', async () => {
       log.info('assets downloaded, update prerendered pages');
       const pages = await this.queryPrerenderPages(routeMapFiles);
       this.prerenderPages = pages;

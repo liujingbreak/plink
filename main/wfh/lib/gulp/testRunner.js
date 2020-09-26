@@ -105,7 +105,7 @@ function runE2eTest(argv) {
 	factoryMap.value('__injector', injector);
 	factoryMap.value('__config', config);
 
-	var helper = require('@dr/e2etest-helper');
+	var helper = require('@wfh/e2etest-helper');
 	return helper.run(require('../config'), argv.browser, argv.server, argv.dir, () => {
 		if (argv.f) {
 			return runJasmine(defaultConfig(), [].concat(argv.f), argv.spec);

@@ -129,7 +129,7 @@ const cliExt = (program, withGlobalOptions) => {
         .action((zipFileDirectory) => __awaiter(void 0, void 0, void 0, function* () {
         yield bootstrap_server_1.initConfigAsync(unzipCmd.opts());
         package_runner_1.prepareLazyNodeInjector({});
-        const { forkExtractExstingZip } = yield Promise.resolve().then(() => __importStar(require('@dr-core/assets-processer/dist/fetch-remote')));
+        const { forkExtractExstingZip } = yield Promise.resolve().then(() => __importStar(require('@wfh/assets-processer/dist/fetch-remote')));
         yield forkExtractExstingZip(zipFileDirectory, path_1.default.resolve(unzipCmd.opts().dest), true);
     }));
     withGlobalOptions(unzipCmd);

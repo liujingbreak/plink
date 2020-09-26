@@ -2,7 +2,7 @@
 import { Lexer, Grammar, parser, Chunk } from 'dr-comp-package/wfh/dist/LLn-parser';
 import fs from 'fs-extra';
 import Path from 'path';
-const log = require('log4js').getLogger('@dr-core/assets-processer.rfc822-sync-parser');
+const log = require('log4js').getLogger('@wfh/assets-processer.rfc822-sync-parser');
 
 export enum RCF822TokenType {
   CRLF,

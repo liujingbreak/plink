@@ -1,5 +1,5 @@
 {
-  "name": "@bk/json-schema-gen",
+  "name": "@wfh/json-schema-gen",
   "version": "1.0.14",
   "description": "Generate json-schemas from your Typescript source inside each package",
   "main": "dist/index.js",

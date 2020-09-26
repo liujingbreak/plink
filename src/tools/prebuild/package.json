@@ -1,5 +1,5 @@
 {
-  "name": "@bk/prebuild",
+  "name": "@wfh/prebuild",
   "version": "1.0.24",
   "description": "Prebuild for monorepo",
   "main": "dist/index.js",

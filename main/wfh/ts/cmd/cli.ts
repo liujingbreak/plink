@@ -163,7 +163,7 @@ function subDrcpCommand(program: commander.Command) {
   withGlobalOptions(tscCmd);
   tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side typescript files.\n\n' +
   'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
-  '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @dr packages.\n' +
+  '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
   'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs in ' +
   'both Node.js and Browser) in directory `isom`.\n' +
   hlDesc('plink tsc <package..>\n') + ' Only compile specific components by providing package name or short name\n' +
@@ -207,8 +207,8 @@ function subDrcpCommand(program: commander.Command) {
 
 function loadExtensionCommand(program: commander.Command): string[] {
   const {getState} = require('./cli-store') as typeof cliStore;
-  const {getState: getPkgState, pathToWorkspace} = require('../package-mgr') as typeof pkgMgr;
-  const ws = getPkgState().workspaces.get(pathToWorkspace(process.cwd()));
+  const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
+  const ws = getPkgState().workspaces.get(workspaceKey(process.cwd()));
   if (ws == null)
     return [];
 
@@ -251,10 +251,10 @@ export function withGlobalOptions(program: commander.Command): commander.Command
     (value, prev) => { prev.push(...value.split(',')); return prev;}, [] as string[])
   .option('--prop <property-path=value as JSON | literal>',
     hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n') +
-    '--prop port=8080 --prop devMode=false --prop @dr/foobar.api=http://localhost:8080\n' +
-    '--prop port=8080 --prop devMode=false --prop @dr/foobar.api=http://localhost:8080\n' +
+    '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
+    '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
     '--prop arraylike.prop[0]=foobar\n' +
-    '--prop ["@dr/foo.bar","prop",0]=true',
+    '--prop ["@wfh/foo.bar","prop",0]=true',
     arrayOptionFn, [] as string[]);
   // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 

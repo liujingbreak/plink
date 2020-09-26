@@ -1,2 +1,2 @@
-export * from '@bk/prebuild/dist/ts-ast-query';
-export {default} from '@bk/prebuild/dist/ts-ast-query';
+export * from '@wfh/prebuild/dist/ts-ast-query';
+export {default} from '@wfh/prebuild/dist/ts-ast-query';

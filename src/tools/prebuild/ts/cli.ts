@@ -121,7 +121,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .action(async (zipFileDirectory: string) => {
     await initConfigAsync(unzipCmd.opts() as GlobalOptions);
     prepareLazyNodeInjector({});
-    const {forkExtractExstingZip} = await import('@dr-core/assets-processer/dist/fetch-remote');
+    const {forkExtractExstingZip} = await import('@wfh/assets-processer/dist/fetch-remote');
     await forkExtractExstingZip(zipFileDirectory, Path.resolve(unzipCmd.opts().dest), true);
   });
   withGlobalOptions(unzipCmd);

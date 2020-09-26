@@ -1,5 +1,5 @@
 {
-  "name": "@dr/http-request-proxy",
+  "name": "@wfh/http-request-proxy",
   "version": "5.1.5",
   "description": "Http proxy server by LJ",
   "main": "dist/server.js",

@@ -11,7 +11,7 @@ import {fork, ChildProcess} from 'child_process';
 import {Checksum, WithMailServerConfig as Setting} from './fetch-types';
 import {ImapManager} from './fetch-remote-imap';
 import api from '__api';
-const log = require('log4js').getLogger('@dr-core/assets-processer.fetch-remote');
+const log = require('log4js').getLogger('@wfh/assets-processer.fetch-remote');
 
 const {/*pm2InstanceId, isPm2,*/ isMainProcess} = getPm2Info();
 

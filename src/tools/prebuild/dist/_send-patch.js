@@ -20,7 +20,7 @@ const installUrlMap = __api_1.default.config.get(__api_1.default.packageName + '
 function send(env, configName, zipFile, secret) {
     return __awaiter(this, void 0, void 0, function* () {
         const url = installUrlMap[env];
-        const sendAppZip = require('@dr-core/assets-processer/dist/content-deployer/cd-client').sendAppZip;
+        const sendAppZip = require('@wfh/assets-processer/dist/content-deployer/cd-client').sendAppZip;
         // tslint:disable-next-line:no-console
         log.info('Pushing App "%s" to remote %s', configName, url);
         try {
