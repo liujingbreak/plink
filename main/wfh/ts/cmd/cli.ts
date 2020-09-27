@@ -195,7 +195,7 @@ function subDrcpCommand(program: commander.Command) {
   const packCmd = program.command('pack [packageDir...]')
     .description('npm pack every pakage into tarball files')
     .option<string[]>('--pj, --project <project-dir,...>',
-    'project directories to be looked up for all components which need to be packed to tarball files',
+    'project directories to be looked up for all packages which need to be packed to tarball files',
       (value, prev) => {
         prev.push(...value.split(',')); return prev;
       }, [])
@@ -203,6 +203,22 @@ function subDrcpCommand(program: commander.Command) {
       (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
     });
   withGlobalOptions(packCmd);
+
+  /**
+   * Pack command
+   */
+  const publishCmd = program.command('publish [packageDir...]')
+    .description('run npm publish')
+    .option<string[]>('--pj, --project <project-dir,...>',
+    'project directories to be looked up for all packages which need to be packed to tarball files',
+      (value, prev) => {
+        prev.push(...value.split(',')); return prev;
+      }, [])
+    .option('--public', 'same as "npm publish" command option "--access public"', false)
+    .action(async (packageDirs: string[]) => {
+      (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packageDirs});
+    });
+  withGlobalOptions(publishCmd);
 }
 
 function loadExtensionCommand(program: commander.Command): string[] {

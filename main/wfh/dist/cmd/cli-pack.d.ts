@@ -1,7 +1,6 @@
-import { PackOptions } from './types';
-export declare function pack(opts: PackOptions & {
-    packageDirs: string[];
-}): Promise<void>;
+import { PackOptions, PublishOptions } from './types';
+export declare function pack(opts: PackOptions): Promise<void>;
+export declare function publish(opts: PublishOptions): Promise<void>;
 /**
  *
  * @param output

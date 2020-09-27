@@ -9,7 +9,7 @@ import {promisifyExe} from '../process-utils';
 import jsonParser, {ObjectAst, Token} from '../utils/json-sync-parser';
 import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
 import config from '../config';
-import {PackOptions} from './types';
+import {PackOptions, PublishOptions} from './types';
 import logConfig from '../log-config';
 import {getPackagesOfProjects, getState} from '../package-mgr';
 import log4js from 'log4js';
@@ -19,7 +19,7 @@ const log = log4js.getLogger('cli-pack');
 // const namePat = /name:\s+([^ \n\r]+)/mi;
 // const fileNamePat = /filename:\s+([^ \n\r]+)/mi;
 
-export async function pack(opts: PackOptions & {packageDirs: string[]}) {
+export async function pack(opts: PackOptions) {
   await config.init(opts);
   logConfig(config());
 
@@ -29,6 +29,18 @@ export async function pack(opts: PackOptions & {packageDirs: string[]}) {
     return packProject(opts.project);
 
   await packPackages(opts.packageDirs);
+}
+
+export async function publish(opts: PublishOptions) {
+  await config.init(opts);
+  logConfig(config());
+
+  fs.mkdirpSync('tarballs');
+
+  if (opts.project && opts.project.length > 0)
+    return publishProject(opts.project, opts.public ? ['--access', 'public'] : []);
+
+  await publishPackages(opts.packageDirs, opts.public ? ['--access', 'public'] : []);
 }
 
 async function packPackages(packageDirs: string[]) {
@@ -59,6 +71,31 @@ async function packProject(projectDirs: string[]) {
     dirs.push(pkg.realPath);
   }
   await packPackages(dirs);
+}
+
+async function publishPackages(packageDirs: string[], npmCliOpts: string[]) {
+  if (packageDirs && packageDirs.length > 0) {
+    const pgPaths: string[] = packageDirs;
+
+    await queueUp(3, pgPaths.map(packageDir => async () => {
+      try {
+        log.info(`publishing ${packageDir}`);
+        const params = ['publish', ...npmCliOpts, {silent: true, cwd: packageDir}];
+        const output = await promisifyExe('npm', ...params);
+        log.info(output);
+      } catch (e) {
+        log.error(e);
+      }
+    }));
+  }
+}
+
+async function publishProject(projectDirs: string[], npmCliOpts: string[]) {
+  const dirs = [] as string[];
+  for (const pkg of getPackagesOfProjects(projectDirs)) {
+    dirs.push(pkg.realPath);
+  }
+  await publishPackages(dirs, npmCliOpts);
 }
 
 async function npmPack(packagePath: string):

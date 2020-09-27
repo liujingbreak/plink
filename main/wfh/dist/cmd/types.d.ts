@@ -20,4 +20,10 @@ export interface BumpOptions extends GlobalOptions {
 }
 export interface PackOptions extends GlobalOptions {
     project: string[];
+    packageDirs: string[];
+}
+export interface PublishOptions extends GlobalOptions {
+    project: string[];
+    packageDirs: string[];
+    public: boolean;
 }
