@@ -570,8 +570,8 @@ async function initRootDirectory() {
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(rootPath, 'dist', 'config.local.yaml'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/log4js.js'), rootPath + '/log4js.js');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates', 'module-resolve.server.tmpl.ts'), rootPath + '/module-resolve.server.ts');
-    // tslint:disable-next-line: max-line-length
-    // maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.browser.tmpl.ts'), rootPath + '/module-resolve.browser.ts');
+  maybeCopyTemplate(Path.resolve(__dirname, '../../templates',
+      'gitignore.txt'), getRootDir() + '/.gitignore');
   await cleanInvalidSymlinks();
   if (!fs.existsSync(Path.join(rootPath, 'logs')))
     fs.mkdirpSync(Path.join(rootPath, 'logs'));

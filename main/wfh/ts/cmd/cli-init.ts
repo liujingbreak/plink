@@ -7,6 +7,7 @@ import { actionDispatcher as actions, getStore, getState } from '../package-mgr'
 import * as options from './types';
 import {packages4Workspace} from '../package-utils';
 import {getRootDir} from '../utils/misc';
+import {listProject} from './cli-project';
 
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
   await config.init(opt);
@@ -40,6 +41,7 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
     actions.updateWorkspace({dir: workspace, isForce: opt.force});
   } else {
     actions.initRootDir(null);
+    listProject();
   }
 }
 

@@ -1,18 +1,21 @@
-# Package and project Link toolkit
+# Package and project link toolkit
 
-### Why I need to make this tool
+If heard about **Lerna** and **Yarn**'s workspace concept, yes this tool is a little bit in the same category.
+
+
+### Purpose
 Web (Node.js) frameworks or libraries like Angular, React, Vue, NestJS, they all come up with command line tools which help developer to initialize web projects, most of them are like scaffolding tool.
 
-If you are working for multiple projects for enterprise, you might need to do something more:
+'Quick and easy' is how they please developers. but 'Quick and easy' shouldn't mean that a resulting application will suffer from a maintainability, extendibility issue. Especially for enterprise.
+
+A naive scaffolding tool based application is kinda single project application with very limited way to share reusable module, architecture and configuration. Hard to having long term maintainance and hard to benefit future projects,
+
+### Features
+ - Support monorepo project structure.
  - Share reusable component, features, functions between different projects.
- - Share the whole scaffold, file structure, webpack configurations between different projects.
- - Upgrade scaffold, dependencies, components for multiple project.
- - Make cross framework libraries, web components, node packages.
- - Or adopt monorepo structure for any purpose above.
-
-It is not easy to make things both local easily testable and being shared cross projects.
-
-...
+ - Share file structure, configurations between different projects.
+ - Easy to upgrade.
+ - Opinionated cross framework solutions, web components, libraries, tools.
 
 TBD.
 

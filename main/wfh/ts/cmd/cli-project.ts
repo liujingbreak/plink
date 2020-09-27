@@ -56,7 +56,7 @@ function removeProject(dirs: string[]) {
   // }
 }
 
-function listProject(projects?: string[]) {
+export function listProject(projects?: string[]) {
   getStore().pipe(
     map(s => s.project2Packages), distinctUntilChanged(),
     map(projects2pks => {
