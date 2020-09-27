@@ -6,12 +6,12 @@ import Path from 'path';
 import { from, merge, of, defer} from 'rxjs';
 import {Observable} from 'rxjs';
 import {tap} from 'rxjs/operators';
-import { distinctUntilChanged, filter, map, switchMap,
+import { distinctUntilChanged, filter, map, switchMap, debounceTime,
   take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
 import { writeFile } from '../cmd/utils';
 import config from '../config';
 import { listCompDependency, PackageJsonInterf } from '../dependency-hoister';
-import { writeTsconfig4project, writeTsconfigForEachPackage } from '../editor-helper';
+import { updateTsconfigFileForEditor } from '../editor-helper';
 import logConfig from '../log-config';
 import { findAllPackages } from '../package-utils';
 import { spawn } from '../process-utils';
@@ -44,6 +44,8 @@ export interface PackagesState {
   linkedDrcp: PackageInfo | null;
   gitIgnores: {[file: string]: string};
   isInChina?: boolean;
+  /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
+  workspaceUpdateChecksum: number;
 }
 
 const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -60,7 +62,8 @@ const state: PackagesState = {
   linkedDrcp: isDrcpSymlink ?
     createPackageInfo(Path.resolve(
       getRootDir(), 'node_modules/dr-comp-package/package.json'), false, getRootDir())
-    : null
+    : null,
+  workspaceUpdateChecksum: 0
 };
 
 interface WorkspaceState {
@@ -229,6 +232,7 @@ export const slice = stateFactory.newSlice({
     _updateGitIgnores(d, {payload}: PayloadAction<{file: string, content: string}>) {
       d.gitIgnores[payload.file] = payload.content;
     },
+    _updateTsConfigForEditor(d, {payload: workspaceKey}: PayloadAction<string>) {},
     setInChina(d, {payload}: PayloadAction<boolean>) {
       d.isInChina = payload;
     },
@@ -237,6 +241,9 @@ export const slice = stateFactory.newSlice({
         d.currWorkspace = workspaceKey(dir);
       else
         d.currWorkspace = null;
+    },
+    workspaceStateUpdated(d, {payload}: PayloadAction<void>) {
+      d.workspaceUpdateChecksum += 1;
     }
   }
 });
@@ -248,6 +255,7 @@ export const actionDispatcher = stateFactory.bindActionCreators(slice);
  * Carefully access any property on config, since config setting probably hasn't been set yet at this momment
  */
 stateFactory.addEpic((action$, state$) => {
+  const pkgTsconfigForEditorRequestMap = new Set<string>();
   return merge(
     getStore().pipe(map(s => s.project2Packages),
       distinctUntilChanged(),
@@ -324,32 +332,16 @@ stateFactory.addEpic((action$, state$) => {
     ),
 
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
-      concatMap(({payload}) => {
-        const srcPackages = getState().srcPackages;
+      map(({payload}) => {
         const wsKey = workspaceKey(payload.dir);
-        const ws = getState().workspaces.get(wsKey);
-        if (ws == null)
-          return of();
-        const pks: PackageInfo[] = [
-          ...ws.linkedDependencies.map(([name, ver]) => srcPackages.get(name)),
-          ...ws.linkedDevDependencies.map(([name, ver]) => srcPackages.get(name))
-        ].filter(pk => pk != null) as PackageInfo[];
-        // if (getState().linkedDrcp) {
-        //   const drcp = getState().linkedDrcp!.name;
-        //   const spaceJson = getState().workspaces.get(wsKey)!.originInstallJson;
-        //   if (spaceJson.dependencies && spaceJson.dependencies[drcp] ||
-        //     spaceJson.devDependencies && spaceJson.devDependencies[drcp]) {
-        //     pks.push(getState().linkedDrcp!);
-        //   }
-        // }
-        return from(writeTsconfigForEachPackage(payload.dir, pks,
-          (file, content) => actionDispatcher._updateGitIgnores({file, content})));
+        actionDispatcher._updateTsConfigForEditor(wsKey);
+        setImmediate(() => actionDispatcher.workspaceStateUpdated());
       }),
       ignoreElements()
     ),
     // Handle newly added workspace
-    getStore().pipe(
-      map(s => s.workspaces), distinctUntilChanged(),
+    getStore().pipe(map(s => s.workspaces),
+      distinctUntilChanged(),
       map(ws => {
         const keys = Array.from(ws.keys());
         return keys;
@@ -392,8 +384,7 @@ stateFactory.addEpic((action$, state$) => {
           take(1),
           concatMap(ws => from(installWorkspace(ws!))),
           map(() => {
-            const pkgEntry =
-              listInstalledComp4Workspace(getState(), wsKey);
+            const pkgEntry = listInstalledComp4Workspace(getState(), wsKey);
 
             const installed = new Map((function*(): Generator<[string, PackageInfo]> {
               for (const pk of pkgEntry) {
@@ -401,13 +392,23 @@ stateFactory.addEpic((action$, state$) => {
               }
             })());
             actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
+            actionDispatcher._updateTsConfigForEditor(wsKey);
           })
         );
       }),
       ignoreElements()
     ),
-    getStore().pipe(
-      map(s => s.gitIgnores),
+    action$.pipe(ofPayloadAction(slice.actions._updateTsConfigForEditor),
+      map(action => pkgTsconfigForEditorRequestMap.add(action.payload)),
+      debounceTime(800),
+      map(() => {
+        for (const wsKey of pkgTsconfigForEditorRequestMap.values()) {
+          updateTsconfigFileForEditor(wsKey);
+        }
+        pkgTsconfigForEditorRequestMap.clear();
+      })
+    ),
+    getStore().pipe(map(s => s.gitIgnores),
       distinctUntilChanged(),
       map(gitIgnores => Object.keys(gitIgnores).join(',')),
       distinctUntilChanged(),
@@ -432,6 +433,7 @@ stateFactory.addEpic((action$, state$) => {
       ignoreElements()
     )
   ).pipe(
+    ignoreElements(),
     catchError(err => {
       console.error('[package-mgr.index]', err);
       return of();
@@ -563,7 +565,6 @@ function warnUselessSymlink() {
   return done1;
 }
 
-
 async function initRootDirectory() {
   const rootPath = getRootDir();
   fs.mkdirpSync(Path.join(rootPath, 'dist'));
@@ -591,8 +592,6 @@ async function initRootDirectory() {
   warnUselessSymlink();
 
   await writeConfigFiles();
-
-  writeTsconfig4project(getProjectList(), (file, content) => actionDispatcher._updateGitIgnores({file, content}));
 }
 
 async function writeConfigFiles() {

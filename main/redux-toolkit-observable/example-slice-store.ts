@@ -18,7 +18,7 @@ const initialState: ExampleState = {
 };
 
 export const exampleSlice = stateFactory.newSlice({
-  name: 'leadList',
+  name: 'example',
   initialState,
   reducers: {
     exampleAction(draft, {payload}: PayloadAction<boolean>) {

@@ -222,7 +222,7 @@ function subDrcpCommand(program: commander.Command) {
 }
 
 function loadExtensionCommand(program: commander.Command): string[] {
-  const {getState} = require('./cli-store') as typeof cliStore;
+  const {getState} = require('./cli-slice') as typeof cliStore;
   const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
   const ws = getPkgState().workspaces.get(workspaceKey(process.cwd()));
   if (ws == null)

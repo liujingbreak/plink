@@ -22,44 +22,40 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = exports.deactivate = exports.compile = void 0;
-const gulp = require('gulp');
-const through2_1 = __importDefault(require("through2"));
-const path_1 = __importDefault(require("path"));
+exports.activate = exports.deactivate = void 0;
+const chalk_1 = __importDefault(require("chalk"));
+const packageUtils = __importStar(require("dr-comp-package/wfh/dist/package-utils"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const lodash_1 = __importDefault(require("lodash"));
-const __api_1 = __importDefault(require("__api"));
-const es = require('event-stream');
-const log = require('log4js').getLogger(__api_1.default.packageName);
-const fetchRemote = __importStar(require("./fetch-remote"));
-const serverFavicon = require('serve-favicon');
-const static_middleware_1 = require("./static-middleware");
-const index_html_route_1 = require("./index-html-route");
-const cd_server_1 = require("./content-deployer/cd-server");
-const fetch_remote_imap_1 = require("./fetch-remote-imap");
+const path_1 = __importDefault(require("path"));
 const serve_index_1 = __importDefault(require("serve-index"));
-const chalk_1 = __importDefault(require("chalk"));
+const __api_1 = __importDefault(require("__api"));
+const cd_server_1 = require("./content-deployer/cd-server");
+const fetchRemote = __importStar(require("./fetch-remote"));
+const fetch_remote_imap_1 = require("./fetch-remote-imap");
+const index_html_route_1 = require("./index-html-route");
+const static_middleware_1 = require("./static-middleware");
 const utils_1 = require("./utils");
-const packageUtils = __importStar(require("dr-comp-package/wfh/dist/package-utils"));
-// const setupDevAssets = require('./dist/dev-serve-assets').default;
-const buildUtils = __api_1.default.buildUtils;
+const log = require('log4js').getLogger(__api_1.default.packageName);
+const serverFavicon = require('serve-favicon');
+// const buildUtils = api.buildUtils;
 const config = __api_1.default.config;
-function compile() {
-    const argv = __api_1.default.argv;
-    if (config().devMode && !argv.copyAssets) {
-        log.info('DevMode enabled, skip copying assets to static folder');
-        return;
-    }
-    if (!__api_1.default.isDefaultLocale() && !argv.copyAssets) {
-        log.info('Build for "%s" which is not default locale, skip copying assets to static folder', __api_1.default.getBuildLocale());
-        return;
-    }
-    copyRootPackageFavicon();
-    // const {zipStatic} = require('./dist/zip');
-    return copyAssets();
-    // .then(zipStatic);
-}
-exports.compile = compile;
+// export function compile() {
+//   const argv = api.argv;
+//   if (config().devMode && !argv.copyAssets) {
+//     log.info('DevMode enabled, skip copying assets to static folder');
+//     return;
+//   }
+//   if (!api.isDefaultLocale() && !argv.copyAssets) {
+//     log.info('Build for "%s" which is not default locale, skip copying assets to static folder',
+//       api.getBuildLocale());
+//     return;
+//   }
+//   copyRootPackageFavicon();
+//   // const {zipStatic} = require('./dist/zip');
+//   return copyAssets();
+//   // .then(zipStatic);
+// }
 function deactivate() {
     fetchRemote.stop();
 }
@@ -125,14 +121,14 @@ function activate() {
     // setupDevAssets(api.config().staticAssetsURL, api.use.bind(api));
 }
 exports.activate = activate;
-function copyRootPackageFavicon() {
-    var favicon = findFavicon();
-    if (!favicon)
-        return;
-    log.info('Copy favicon.ico from ' + favicon);
-    fs_extra_1.default.mkdirpSync(config.resolve('staticDir'));
-    fs_extra_1.default.copySync(path_1.default.resolve(favicon), path_1.default.resolve(config().rootPath, config.resolve('staticDir')));
-}
+// function copyRootPackageFavicon() {
+//   var favicon = findFavicon();
+//   if (!favicon)
+//     return;
+//   log.info('Copy favicon.ico from ' + favicon);
+//   fs.mkdirpSync(config.resolve('staticDir'));
+//   fs.copySync(Path.resolve(favicon), Path.resolve(config().rootPath, config.resolve('staticDir')));
+// }
 function findFavicon() {
     return _findFaviconInConfig('packageContextPathMapping') || _findFaviconInConfig('outputPathMap');
 }
@@ -159,42 +155,42 @@ function _findFaviconInConfig(property) {
     });
     return faviconFile;
 }
-function copyAssets() {
-    var streams = [];
-    packageUtils.findAllPackages((name, _entryPath, parsedName, json, packagePath) => {
-        var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
-        var assetsDir = path_1.default.join(packagePath, assetsFolder);
-        if (fs_extra_1.default.existsSync(assetsDir)) {
-            var assetsDirMap = __api_1.default.config.get('outputPathMap.' + name);
-            if (assetsDirMap != null)
-                assetsDirMap = lodash_1.default.trim(assetsDirMap, '/');
-            var src = [path_1.default.join(packagePath, assetsFolder, '**', '*')];
-            var stream = gulp.src(src, { base: path_1.default.join(packagePath, assetsFolder) })
-                .pipe(through2_1.default.obj(function (file, enc, next) {
-                var pathInPk = path_1.default.relative(assetsDir, file.path);
-                file.path = path_1.default.join(assetsDir, assetsDirMap != null ? assetsDirMap : parsedName.name, pathInPk);
-                log.debug(file.path);
-                next(null, file);
-            }));
-            streams.push(stream);
-        }
-    });
-    if (streams.length === 0) {
-        return null;
-    }
-    // var contextPath = _.get(api, 'ngEntryComponent.shortName', '');
-    var outputDir = __api_1.default.webpackConfig.output.path;
-    log.info('Output assets to ', outputDir);
-    return new Promise((resolve, reject) => {
-        es.merge(streams)
-            .pipe(gulp.dest(outputDir))
-            .on('end', function () {
-            log.debug('flush');
-            buildUtils.writeTimestamp('assets');
-            resolve();
-        })
-            .on('error', reject);
-    });
-}
+// function copyAssets() {
+//   var streams: any[] = [];
+//   packageUtils.findAllPackages((name: string, _entryPath: string, parsedName: {name: string}, json: any, packagePath: string) => {
+//     var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
+//     var assetsDir = Path.join(packagePath, assetsFolder);
+//     if (fs.existsSync(assetsDir)) {
+//       var assetsDirMap = api.config.get('outputPathMap.' + name);
+//       if (assetsDirMap != null)
+//         assetsDirMap = _.trim(assetsDirMap, '/');
+//       var src = [Path.join(packagePath, assetsFolder, '**', '*')];
+//       var stream = gulp.src(src, {base: Path.join(packagePath, assetsFolder)})
+//       .pipe(through.obj(function(file, enc, next) {
+//         var pathInPk = Path.relative(assetsDir, file.path);
+//         file.path = Path.join(assetsDir, assetsDirMap != null ? assetsDirMap : parsedName.name, pathInPk);
+//         log.debug(file.path);
+//         next(null, file);
+//       }));
+//       streams.push(stream);
+//     }
+//   });
+//   if (streams.length === 0) {
+//     return null;
+//   }
+//   // var contextPath = _.get(api, 'ngEntryComponent.shortName', '');
+//   var outputDir = api.webpackConfig.output.path;
+//   log.info('Output assets to ', outputDir);
+//   return new Promise((resolve, reject) => {
+//     es.merge(streams)
+//     .pipe(gulp.dest(outputDir))
+//     .on('end', function() {
+//       log.debug('flush');
+//       buildUtils.writeTimestamp('assets');
+//       resolve();
+//     })
+//     .on('error', reject);
+//   });
+// }
 
 //# sourceMappingURL=index.js.map

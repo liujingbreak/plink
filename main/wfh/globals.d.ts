@@ -50,6 +50,5 @@ export interface DrcpApi {
 	serverUrl(this: DrcpApi, packageNameOrPath: string, path?: string): string;
 	getProjectDirs(): string[];
 	addBrowserSideConfig(name: string, value: any): void;
-	[key: string]: any;
 }
 

@@ -9,8 +9,9 @@ import File from 'vinyl';
 import {getTsDirsOfPackage, PackageTsDirs, closestCommonParentDir} from './utils/misc';
 import {CompilerOptions} from 'typescript';
 import config from './config';
-import {setTsCompilerOptForNodePath} from './config-handler';
+import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions} from './config-handler';
 import {DirTree} from 'require-injector/dist/dir-tree';
+import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
 const gulp = require('gulp');
 const through = require('through2');
@@ -62,7 +63,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   }
   let promCompile = Promise.resolve( [] as EmitList);
 
-  const compilerOptions = {
+  const compilerOptions: RequiredCompilerOptions = {
     ...baseTsconfig.config.compilerOptions,
     // typescript: require('typescript'),
     // Compiler options
@@ -75,7 +76,8 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     emitDeclarationOnly: argv.ed
     // preserveSymlinks: true
   };
-  setTsCompilerOptForNodePath(process.cwd(), compilerOptions, {enableTypeRoots: true});
+
+  setupCompilerOptionsWithPackages(compilerOptions);
 
   let countPkg = 0;
   if (argv.package && argv.package.length > 0)
@@ -278,4 +280,15 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     }
     return list;
   });
+}
+
+function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions) {
+  let wsKey: string | null | undefined = workspaceKey(process.cwd());
+  if (!getState().workspaces.has(wsKey))
+    wsKey = getState().currWorkspace;
+  if (wsKey == null) {
+    throw new Error('Current directory is not a work space');
+  }
+  const typeRoots = Array.from(packageUtils.typeRootsFromPackages(wsKey));
+  setTsCompilerOptForNodePath(process.cwd(), compilerOptions, {enableTypeRoots: true, extraTypeRoot: typeRoots});
 }

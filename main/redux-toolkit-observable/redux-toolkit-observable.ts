@@ -283,7 +283,7 @@ export class StateFactory {
     return (next) => {
       return (action: PayloadAction) => {
         try {
-          this.debugLog.next(['action', action.type]);
+          this.debugLog.next(['action', action != null ? action.type : action]);
 
           const ret = next(action);
           return ret;

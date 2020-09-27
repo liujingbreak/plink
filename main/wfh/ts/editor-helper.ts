@@ -2,17 +2,43 @@
 import Path from 'path';
 import * as fs from 'fs-extra';
 import * as _recp from './recipe-manager';
-import {getState, PackageInfo} from './package-mgr';
+import {getRootDir} from './utils/misc';
+import {getState, PackageInfo, getProjectList, actionDispatcher} from './package-mgr';
 import {EOL} from 'os';
 import {setTsCompilerOptForNodePath} from './config-handler';
 import log4js from 'log4js';
 import {closestCommonParentDir} from './utils/misc';
 // import {map, distinctUntilChanged} from 'rxjs/operators';
+// import {Observable} from 'rxjs';
+// import {ofPayloadAction} from './store';
+// import {PayloadAction} from '@reduxjs/toolkit';
+import {typeRootsFromPackages} from './package-utils';
 import _ from 'lodash';
 const log = log4js.getLogger('editor-helper');
 const {parse} = require('comment-json');
 
-export function writeTsconfig4project(projectDirs: string[], onGitIgnoreFileUpdate: (file: string, content: string) => void) {
+
+
+export function updateTsconfigFileForEditor(wsKey: string) {
+  const srcPackages = getState().srcPackages;
+            // const wsKey = workspaceKey(payload.dir);
+  const ws = getState().workspaces.get(wsKey);
+  if (ws == null)
+    return;
+  const pks: PackageInfo[] = [
+    ...ws.linkedDependencies.map(([name, ver]) => srcPackages.get(name)),
+    ...ws.linkedDevDependencies.map(([name, ver]) => srcPackages.get(name))
+  ].filter(pk => pk != null) as PackageInfo[];
+
+  const typeRoots = Array.from(typeRootsFromPackages(wsKey));
+  // console.log(typeRoots);
+
+  writeTsconfig4project(getProjectList(), typeRoots, (file, content) => actionDispatcher._updateGitIgnores({file, content}));
+  return writeTsconfigForEachPackage(Path.resolve(getRootDir(), wsKey), pks, typeRoots,
+    (file, content) => actionDispatcher._updateGitIgnores({file, content}));
+}
+
+function writeTsconfig4project(projectDirs: string[], typeRoots: string[], onGitIgnoreFileUpdate: (file: string, content: string) => void) {
   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
     Path.dirname(require.resolve('dr-comp-package/package.json'));
 
@@ -42,7 +68,7 @@ export function writeTsconfig4project(projectDirs: string[], onGitIgnoreFileUpda
   }
 }
 
-export async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInfo[],
+async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInfo[], typeRoots: string[],
   onGitIgnoreFileUpdate: (file: string, content: string) => void) {
   // const commonPaths = [
   //   '',
@@ -55,7 +81,7 @@ export async function writeTsconfigForEachPackage(workspaceDir: string, pks: Pac
 
   const igConfigFiles = pks.map(pk => {
     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
-    return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir);
+    return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir, typeRoots);
   });
 
   appendGitIgnoreFiles(igConfigFiles, onGitIgnoreFileUpdate);
@@ -63,7 +89,7 @@ export async function writeTsconfigForEachPackage(workspaceDir: string, pks: Pac
 
 
 function appendGitIgnoreFiles(ignoreTsConfigFiles: string[],
-  onGitIgnoreFileUpdate: Parameters<typeof writeTsconfigForEachPackage>[2]) {
+  onGitIgnoreFileUpdate: Parameters<typeof writeTsconfigForEachPackage>[3]) {
   const gitFolderToIngoreFile: {dir: string; ignoreFile: string, ignoreItems: string[]} [] =
     Object.entries(getState().gitIgnores).map(([file, content]) => {
       return {
@@ -111,7 +137,8 @@ function findGitIngoreFile(startDir: string): string | null {
   }
 }
 
-function createTsConfig(pkgName: string, pkgRealPath: string, workspace: string | null, drcpDir: string, include = ['.']) {
+function createTsConfig(pkgName: string, pkgRealPath: string, workspace: string | null, drcpDir: string,
+  typeRoots: string[], include = ['.']) {
   const tsjson: any = {
     extends: null,
     include
@@ -161,7 +188,8 @@ function createTsConfig(pkgName: string, pkgRealPath: string, workspace: string 
     enableTypeRoots: true,
     // If user execute 'init <workspace>' in root directory, env.NODE_PATH does not contain workspace 
     // directory, in this case we need explicityly add node path 
-    extraNodePath
+    extraNodePath,
+    extraTypeRoot: typeRoots
   });
   const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
   writeTsConfigFile(tsconfigFile, tsjson);

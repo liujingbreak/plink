@@ -77,6 +77,15 @@ export interface CompilerOptionSetOpt {
     /** Default false, Do not include linked package symlinks directory in path*/
     noSymlinks?: boolean;
     extraNodePath?: string[];
+    extraTypeRoot?: string[];
+}
+export interface CompilerOptions {
+    baseUrl: string;
+    typeRoots: string[];
+    paths: {
+        [path: string]: string[];
+    };
+    [key: string]: any;
 }
 /**
  * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
@@ -84,12 +93,4 @@ export interface CompilerOptionSetOpt {
  * @param cwd project directory where tsconfig file is (virtual)
  * @param assigneeOptions
  */
-export declare function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: {
-    [key: string]: any;
-}, opts?: CompilerOptionSetOpt): {
-    [key: string]: any;
-    baseUrl: string;
-    paths: {
-        [key: string]: string[];
-    };
-};
+export declare function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: CompilerOptions, opts?: CompilerOptionSetOpt): CompilerOptions;

@@ -155,6 +155,14 @@ export interface CompilerOptionSetOpt {
   /** Default false, Do not include linked package symlinks directory in path*/
   noSymlinks?: boolean;
   extraNodePath?: string[];
+  extraTypeRoot?: string[];
+}
+
+export interface CompilerOptions {
+  baseUrl: string;
+  typeRoots: string[];
+  paths: {[path: string]: string[]};
+  [key: string]: any;
 }
 /**
  * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
@@ -162,7 +170,7 @@ export interface CompilerOptionSetOpt {
  * @param cwd project directory where tsconfig file is (virtual)
  * @param assigneeOptions 
  */
-export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: {[key: string]: any},
+export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: CompilerOptions,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
 
@@ -193,16 +201,21 @@ export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: {[key:
     assigneeOptions.paths['*'].push(relativeDir + '/*');
   }
 
-  if (opts.enableTypeRoots) {
-    assigneeOptions.typeRoots = pathsDirs.map(dir => {
+  assigneeOptions.typeRoots = [
+    Path.relative(cwd, Path.resolve(__dirname, '..', 'types')).replace(/\\/g, '/')
+  ];
+  if (opts.enableTypeRoots ) {
+    assigneeOptions.typeRoots.push(...pathsDirs.map(dir => {
       const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');
       return relativeDir + '/@types';
-    });
+    }));
   }
 
-  return assigneeOptions as {
-    baseUrl: string;
-    paths: {[key: string]: string[]};
-    [key: string]: any;
-  };
+  if (opts.extraTypeRoot) {
+    assigneeOptions.typeRoots.push(...opts.extraTypeRoot.map(
+      dir => Path.relative(cwd, dir).replace(/\\/g, '/')));
+  }
+
+  return assigneeOptions;
 }
+

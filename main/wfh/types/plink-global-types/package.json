@@ -1,0 +1,9 @@
+{
+  "name": "@wfh/plink-global-types",
+  "version": "1.0.0",
+  "main": "",
+  "description": "Work with Plink, Typescript definition files",
+  "types": "index.d.ts",
+  "dr": {},
+  "license": "MIT"
+}

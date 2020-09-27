@@ -1,23 +1,22 @@
 // tslint:disable: no-console max-line-length
 import chalk from 'chalk';
-import { distinctUntilChanged, map, take, takeLast } from 'rxjs/operators';
-import config from '../config';
 import Path from 'path';
-import { actionDispatcher as actions, getStore, getState } from '../package-mgr';
+import { distinctUntilChanged, map, take, skip } from 'rxjs/operators';
+import config from '../config';
+import { actionDispatcher as actions, getState, getStore } from '../package-mgr';
+import { packages4Workspace } from '../package-utils';
+import { getRootDir } from '../utils/misc';
+import { listProject } from './cli-project';
 import * as options from './types';
-import {packages4Workspace} from '../package-utils';
-import {getRootDir} from '../utils/misc';
-import {listProject} from './cli-project';
 
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
   await config.init(opt);
 
   const cwd = process.cwd();
   getStore().pipe(
+    distinctUntilChanged((s1, s2) => s1.workspaceUpdateChecksum === s2.workspaceUpdateChecksum),
+    skip(1), take(1),
     map(s => s.srcPackages),
-    distinctUntilChanged(),
-    take(2),
-    takeLast(1),
     map(srcPackages => {
       const paks = Array.from(srcPackages.values());
       const maxWidth = paks.reduce((maxWidth, pk) => {
@@ -41,8 +40,9 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
     actions.updateWorkspace({dir: workspace, isForce: opt.force});
   } else {
     actions.initRootDir(null);
-    listProject();
+    setImmediate(() => listProject());
   }
+  // setImmediate(() => printWorkspaces());
 }
 
 export function printWorkspaces() {
@@ -53,18 +53,6 @@ export function printWorkspaces() {
     for (const {name: dep, json: {version: ver}, isInstalled} of packages4Workspace(Path.resolve(getRootDir(), reldir))) {
       console.log(`  |  |- ${dep}  v${ver}  ${isInstalled ? '' : '(linked)'}`);
     }
-    // if (ws.linkedDependencies.length === 0)
-    //   console.log('  |    (Empty)');
-    // for (const [dep, ver] of ws.linkedDependencies) {
-    //   console.log(`  |  |- ${dep} ${ver}`);
-    // }
-    // console.log('  |');
-    // console.log('  |- devDependencies');
-    // if (ws.linkedDevDependencies.length === 0)
-    //   console.log('       (Empty)');
-    // for (const [dep, ver] of ws.linkedDevDependencies) {
-    //   console.log(`     |- ${dep} ${ver}`);
-    // }
     console.log('');
   }
 }

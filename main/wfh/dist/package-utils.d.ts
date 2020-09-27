@@ -19,4 +19,9 @@ export declare function findPackageByType(_types: PackageType | PackageType[], c
  * packages that are depended in current workspace package.json file
  */
 export declare function allPackages(_types?: PackageType | PackageType[], recipeType?: 'src' | 'installed', projectDirs?: string[]): Generator<PackageInfo>;
+export declare function packages4WorkspaceKey(wsKey: string): Generator<PackageInfo, void, unknown>;
 export declare function packages4Workspace(workspaceDir?: string): Generator<PackageInfo, void, unknown>;
+/**
+ * Default type roots defined in packages, including linked and installed packages
+ */
+export declare function typeRootsFromPackages(wskey: string): Generator<string, void, unknown>;

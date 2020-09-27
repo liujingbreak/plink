@@ -2,13 +2,13 @@ import LRU from 'lru-cache';
 import PackageBrowserInstance from './build-util/ts/package-instance';
 import LazyPackageFactory from './build-util/ts/lazy-package-factory';
 import {getState, pathToProjKey, workspaceKey, PackageInfo} from './package-mgr';
-// import * as Path from 'path';
+import * as Path from 'path';
 import _ from 'lodash';
-// import log4js from 'log4js';
-// import * as fs from 'fs';
+import log4js from 'log4js';
+import * as fs from 'fs';
 import {lookupPackageJson, findPackagesByNames} from './cmd/utils';
 
-// const log = log4js.getLogger('wfh.package-utils');
+const log = log4js.getLogger('wfh.package-utils');
 
 const lazyPackageFactory = new LazyPackageFactory(allPackages());
 
@@ -124,8 +124,7 @@ export function* allPackages(_types?: PackageType | PackageType[],
   }
 }
 
-export function* packages4Workspace(workspaceDir?: string) {
-  const wsKey = workspaceKey(workspaceDir || process.cwd());
+export function* packages4WorkspaceKey(wsKey: string) {
   const ws = getState().workspaces.get(wsKey);
   if (!ws)
     return;
@@ -135,18 +134,41 @@ export function* packages4Workspace(workspaceDir?: string) {
   for (const [pkName] of ws.linkedDependencies) {
     const pk = linked.get(pkName);
     if (pk == null)
-      throw new Error(`Missing package ${pkName} in current workspace`);
-    yield pk;
+      log.warn(`Missing package ${pkName} in workspace ${wsKey}`);
+    else
+      yield pk;
   }
   for (const [pkName] of ws.linkedDevDependencies) {
     const pk = linked.get(pkName);
     if (pk == null)
-      throw new Error(`Missing package ${pkName} in current workspace`);
-    yield pk;
+      log.warn(`Missing package ${pkName} in workspace ${wsKey}`);
+    else
+      yield pk;
   }
   if (installed) {
     for (const comp of installed.values()) {
       yield comp;
+    }
+  }
+}
+
+export function packages4Workspace(workspaceDir?: string) {
+  const wsKey = workspaceKey(workspaceDir || process.cwd());
+  return packages4WorkspaceKey(wsKey);
+}
+
+/**
+ * Default type roots defined in packages, including linked and installed packages
+ */
+export function *typeRootsFromPackages(wskey: string) {
+  for (const pkg of packages4WorkspaceKey(wskey)) {
+    const typeDir = Path.resolve(pkg.realPath, 'types');
+    try {
+      if (fs.statSync(typeDir).isDirectory()) {
+        yield typeDir;
+      }
+    } catch (e) {
+      continue;
     }
   }
 }
