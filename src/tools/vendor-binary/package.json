@@ -1,7 +1,7 @@
 {
   "name": "@wfh/vendor-binary",
   "version": "1.1.0",
-  "description": "3rd-party binary files for offline convenience ",
+  "description": "Work with Plink, 3rd-party binary files for offline convenience ",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

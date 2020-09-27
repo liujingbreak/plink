@@ -1,2 +1,2 @@
-HTTP server
+HTTP server for Plink
 =========

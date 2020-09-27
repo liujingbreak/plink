@@ -33,7 +33,7 @@ src/react/react-redux-base/tsconfig.json
 src/tools/e2etestHelper/tsconfig.json
 src/tools/tool-misc/tsconfig.json
 src/tools/vendor-binary/tsconfig.json
--------9/25/2020---------
+# -------9/25/2020---------
 main/install-cli/tsconfig.json
--------2020-9-26---------
+# -------2020-9-26---------
 src/tools/jasmine-helper/tsconfig.json

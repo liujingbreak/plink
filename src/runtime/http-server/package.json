@@ -1,6 +1,6 @@
 {
   "name": "@wfh/http-server",
-  "description": "http and https server used by dr-comp-package",
+  "description": "http and https server used by Plink",
   "version": "1.1.1",
   "main": "dist/server.js",
   "dr": {

@@ -92,7 +92,7 @@ function appendGitIgnoreFiles(ignoreTsConfigFiles: string[],
     if (itemsToAppend.length > 0)
       onGitIgnoreFileUpdate(ignoreFile, [
         ...origList,
-        `-------${new Date().toLocaleDateString()}---------`,
+        `# -------${new Date().toLocaleDateString()}---------`,
         ...itemsToAppend].join(EOL));
   }
 }
