@@ -16,4 +16,4 @@ export declare function changeAngularCliOptionsForBuild(config: DrcpConfig, brow
  * @param context
  * @param builderConfig
  */
-export declare function changeAngularCliOptions(config: DrcpConfig, context: BuilderContext, builderConfig: DevServerBuilderOptions): Promise<any>;
+export declare function changeAngularCliOptions(config: DrcpConfig, context: BuilderContext, builderConfig: DevServerBuilderOptions): Promise<AngularBuilderOptions>;

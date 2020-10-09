@@ -12,7 +12,7 @@ import {closestCommonParentDir} from './utils/misc';
 // import {Observable} from 'rxjs';
 // import {ofPayloadAction} from './store';
 // import {PayloadAction} from '@reduxjs/toolkit';
-import {typeRootsFromPackages} from './package-utils';
+// import {typeRootsFromPackages} from './package-utils';
 import _ from 'lodash';
 const log = log4js.getLogger('editor-helper');
 const {parse} = require('comment-json');
@@ -30,11 +30,13 @@ export function updateTsconfigFileForEditor(wsKey: string) {
     ...ws.linkedDevDependencies.map(([name, ver]) => srcPackages.get(name))
   ].filter(pk => pk != null) as PackageInfo[];
 
-  const typeRoots = Array.from(typeRootsFromPackages(wsKey));
+  // const typeRoots = Array.from(typeRootsFromPackages(wsKey));
   // console.log(typeRoots);
 
-  writeTsconfig4project(getProjectList(), typeRoots, (file, content) => updateGitIgnores({file, content}));
-  return writeTsconfigForEachPackage(Path.resolve(getRootDir(), wsKey), pks, typeRoots,
+  const wsDir = Path.resolve(getRootDir(), wsKey);
+  const wsTypesDir = [Path.resolve(wsDir, 'types')];
+  writeTsconfig4project(getProjectList(), wsTypesDir, (file, content) => updateGitIgnores({file, content}));
+  return writeTsconfigForEachPackage(wsDir, pks, wsTypesDir,
     (file, content) => updateGitIgnores({file, content}));
 }
 

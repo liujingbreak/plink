@@ -1,5 +1,5 @@
-import {DrcpApi} from '__api';
-declare module '__api' {
+import {DrcpApi} from '@wfh/plink/wfh/globals';
+declare module '@wfh/plink/wfh/globals' {
   interface DrcpApi {
 		deployUrl: string;
 		ssr: boolean;
@@ -9,14 +9,13 @@ declare module '__api' {
 		 * it will be evaluated to current source code's file location (like Node.js __dirname)
 		 */
 		__dirname: string;
-		/**
+		/**f
 		 * @memberOf __api
 		 * Given application is deployed on 'http://foobar.com/base-href/' as "deployUrl" in angular.json,
 		 * the value is `base-href`
 		 */
 		ngBaseRouterPath: string;
-		/**@function ngRouterPath
-		 * @memberOf __api
+		/**
 		 * e.g.
 		 * Given application is deployed on 'http://foobar.com/base-href/' as "deployUrl" in angular.json.
 		 * Current feature package is `@bk/feature-a`, its `ngRouterPath` is by default 'feature-a',
@@ -29,7 +28,7 @@ declare module '__api' {
 		 * ```
 		 * @return the configured Angular router path for specific (current) feature package
 		 */
-		ngRouterPath(this: DrcpApi & _DrcpNgApi, packageNameOrSubPath: string, subPath?: string): string;
+		ngRouterPath(packageNameOrSubPath: string, subPath?: string): string;
 		/**
 		 * Run Node.js like "require" keyword only during prerender/server side rendering(compilation),
 		 * @param path 
@@ -47,4 +46,3 @@ declare module '__api' {
 declare global {
 	var __api: DrcpApi; // & ExpressAppApi;
 }
-// declare var __api: DrcpApi & _DrcpNgApi;

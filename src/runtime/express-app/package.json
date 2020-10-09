@@ -32,7 +32,8 @@
     "type": [
       "core",
       "server"
-    ]
+    ],
+    "mergeTds": "types/__api"
   },
   "author": "LJ"
 }

@@ -13,7 +13,7 @@ import config from '../config';
 import { listCompDependency, PackageJsonInterf } from '../dependency-hoister';
 import { updateTsconfigFileForEditor } from '../editor-helper';
 import logConfig from '../log-config';
-import { findAllPackages } from '../package-utils';
+import { findAllPackages, packages4WorkspaceKey } from '../package-utils';
 import { spawn } from '../process-utils';
 import { exe } from '../process-utils';
 import { setProjectList} from '../recipe-manager';
@@ -420,6 +420,7 @@ stateFactory.addEpic((action$, state$) => {
       map(() => {
         for (const wsKey of pkgTsconfigForEditorRequestMap.values()) {
           updateTsconfigFileForEditor(wsKey);
+          collectDtsFiles(wsKey);
         }
         pkgTsconfigForEditorRequestMap.clear();
         writeConfigFiles();
@@ -533,6 +534,49 @@ export function isCwdWorkspace() {
   if (ws == null)
     return false;
   return true;
+}
+
+/**
+ * Create sub directory "types" under current workspace
+ * @param wsKey 
+ */
+function collectDtsFiles(wsKey: string) {
+  const wsTypesDir = Path.resolve(getRootDir(), wsKey, 'types');
+  fs.mkdirpSync(wsTypesDir);
+  const mergeTds: Map<string, string> = new Map();
+  for (const pkg of packages4WorkspaceKey(wsKey)) {
+    if (pkg.json.dr.mergeTds) {
+      const file = pkg.json.dr.mergeTds;
+      if (typeof file === 'string') {
+        mergeTds.set(pkg.shortName + '-' + Path.basename(file), Path.resolve(pkg.realPath, file));
+      } else if (Array.isArray(file)) {
+        for (const f of file as string[])
+          mergeTds.set(pkg.shortName + '-' + Path.basename(f), Path.resolve(pkg.realPath,f));
+      }
+    }
+  }
+  // console.log(mergeTds);
+  for (const chrFileName of fs.readdirSync(wsTypesDir)) {
+    if (mergeTds.has(chrFileName)) {
+      mergeTds.delete(chrFileName);
+    } else {
+      const useless = Path.resolve(wsTypesDir, chrFileName);
+      fs.unlink(useless);
+      // tslint:disable-next-line: no-console
+      console.log('Delete', useless);
+    }
+  }
+  // console.log(mergeTds);
+  for (const dts of mergeTds.keys()) {
+    const target = mergeTds.get(dts)!;
+    const absDts = Path.resolve(wsTypesDir, dts);
+    // tslint:disable-next-line: no-console
+    console.log(`Create symlink ${absDts} --> ${target}`);
+    _symlinkAsync(
+      Path.relative(wsTypesDir, target),
+      absDts, isWin32 ? 'junction' : 'dir'
+    );
+  }
 }
 
 /**

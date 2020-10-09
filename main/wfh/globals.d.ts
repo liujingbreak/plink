@@ -1,7 +1,7 @@
 import NodePackage from './dist/packageNodeInstance';
-import PackageBrowserInstance from './dist/build-util/ts/package-instance';
+import PackageBrowserInstance from './dist/package-mgr/package-instance';
 import { EventEmitter } from 'events';
-import {PackageInfo} from './dist/build-util/ts';
+import {PackageInfo} from './dist/package-mgr/package-info-gathering';
 import {DrcpConfig} from './dist/config-handler';
 import {InjectorFactory} from './dist/require-injectors';
 

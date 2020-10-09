@@ -292,6 +292,9 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
   if (wsKey == null) {
     throw new Error('Current directory is not a work space');
   }
-  const typeRoots = Array.from(packageUtils.typeRootsFromPackages(wsKey));
-  setTsCompilerOptForNodePath(process.cwd(), compilerOptions, {enableTypeRoots: true, extraTypeRoot: typeRoots});
+  // const typeRoots = Array.from(packageUtils.typeRootsFromPackages(wsKey));
+  setTsCompilerOptForNodePath(process.cwd(), compilerOptions, {
+    enableTypeRoots: true,
+    extraTypeRoot: [resolve(root, wsKey, 'types')]
+  });
 }

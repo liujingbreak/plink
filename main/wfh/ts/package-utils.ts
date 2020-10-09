@@ -2,10 +2,10 @@ import LRU from 'lru-cache';
 import PackageBrowserInstance from './package-mgr/package-instance';
 import LazyPackageFactory from './package-mgr/lazy-package-factory';
 import {getState, pathToProjKey, workspaceKey, PackageInfo} from './package-mgr';
-import * as Path from 'path';
+// import * as Path from 'path';
 import _ from 'lodash';
 import log4js from 'log4js';
-import * as fs from 'fs';
+// import * as fs from 'fs';
 import {lookupPackageJson, findPackagesByNames} from './cmd/utils';
 
 const log = log4js.getLogger('wfh.package-utils');
@@ -160,15 +160,15 @@ export function packages4Workspace(workspaceDir?: string, includeInstalled = tru
 /**
  * Default type roots defined in packages, including linked and installed packages
  */
-export function *typeRootsFromPackages(wskey: string) {
-  for (const pkg of packages4WorkspaceKey(wskey)) {
-    const typeDir = Path.resolve(pkg.realPath, 'types');
-    try {
-      if (fs.statSync(typeDir).isDirectory()) {
-        yield typeDir;
-      }
-    } catch (e) {
-      continue;
-    }
-  }
-}
+// export function *typeRootsFromPackages(wskey: string) {
+//   for (const pkg of packages4WorkspaceKey(wskey)) {
+//     const typeDir = Path.resolve(pkg.realPath, 'types');
+//     try {
+//       if (fs.statSync(typeDir).isDirectory()) {
+//         yield typeDir;
+//       }
+//     } catch (e) {
+//       continue;
+//     }
+//   }
+// }

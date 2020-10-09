@@ -24,4 +24,3 @@ export declare function packages4Workspace(workspaceDir?: string, includeInstall
 /**
  * Default type roots defined in packages, including linked and installed packages
  */
-export declare function typeRootsFromPackages(wskey: string): Generator<string, void, unknown>;
