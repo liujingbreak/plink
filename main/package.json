@@ -57,7 +57,7 @@
     "lodash": "^4.17.4",
     "lru-cache": "^5.1.1",
     "@types/lru-cache": "^5.1.0",
-    "merge2": "1.2.1",
+    "merge2": "^1.4.1",
     "os-locale": "^5.0.0",
     "require-injector": "5.2.0-alpha.2",
     "rxjs": "~6.4.0",

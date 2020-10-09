@@ -45,8 +45,9 @@ export const cliSlice = stateFactory.newSlice({
       d.osLang = lang;
       d.osCountry = country;
     },
-    updateLoadedCmd(d, {payload}: PayloadAction<{cmd: string, file: string}>) {
-      d.loadedExtensionCmds.set(payload.cmd, payload.file);
+    updateLoadedCmd(d, {payload}: PayloadAction<{cmd: string, file: string}[]>) {
+      for (const row of payload)
+        d.loadedExtensionCmds.set(row.cmd, row.file);
     }
   }
 });

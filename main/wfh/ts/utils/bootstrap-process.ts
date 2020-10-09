@@ -45,8 +45,8 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
   });
 
   const {saveState, stateFactory}: typeof store = require('../store');
-
-  process.nextTick(() => stateFactory.configureStore());
+  stateFactory.configureStore();
+  // process.nextTick(() => stateFactory.configureStore());
 
   async function onShut() {
     if (onShutdownSignal) {

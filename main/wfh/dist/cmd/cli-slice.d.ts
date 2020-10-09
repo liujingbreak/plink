@@ -60,7 +60,7 @@ export declare const cliSlice: import("@reduxjs/toolkit").Slice<CliState, {
     }, { payload }: PayloadAction<{
         cmd: string;
         file: string;
-    }>): void;
+    }[]>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>, "cli">;
 export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     updateExtensions(draft: {
@@ -109,7 +109,7 @@ export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducer
     }, { payload }: PayloadAction<{
         cmd: string;
         file: string;
-    }>): void;
+    }[]>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>>;
 export declare function getState(): CliState;
 export declare function getStore(): import("rxjs").Observable<CliState>;

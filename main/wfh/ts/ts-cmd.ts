@@ -1,3 +1,4 @@
+// tslint:disable: max-line-length
 const gulpTs = require('gulp-typescript');
 import chalk from 'chalk';
 import * as packageUtils from './package-utils';
@@ -64,23 +65,6 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   }
   let promCompile = Promise.resolve( [] as EmitList);
 
-  const compilerOptions: RequiredCompilerOptions = {
-    ...baseTsconfig.config.compilerOptions,
-    // typescript: require('typescript'),
-    // Compiler options
-    importHelpers: false,
-    outDir: '',
-    // rootDir: config().rootPath,
-    skipLibCheck: true,
-    inlineSourceMap: argv.sourceMap === 'inline',
-    sourceMap: true,
-    inlineSource: argv.sourceMap === 'inline',
-    emitDeclarationOnly: argv.ed
-    // preserveSymlinks: true
-  };
-
-  setupCompilerOptionsWithPackages(compilerOptions);
-
   let countPkg = 0;
   if (argv.package && argv.package.length > 0)
     packageUtils.findAllPackages(argv.package, onComponent, 'src');
@@ -95,14 +79,35 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   if (countPkg === 0) {
     throw new Error('No available srouce package found in current workspace');
   }
+
   const commonRootDir = closestCommonParentDir(Array.from(compDirInfo.values()).map(el => el.dir));
+  const destDir = commonRootDir.replace(/\\/g, '/');
+  const compilerOptions: RequiredCompilerOptions = {
+    ...baseTsconfig.config.compilerOptions,
+    // typescript: require('typescript'),
+    // Compiler options
+    importHelpers: false,
+    /**
+     * for gulp-sourcemaps usage:
+     *  If you set the outDir option to the same value as the directory in gulp.dest, you should set the sourceRoot to ./.
+     */
+    outDir: destDir,
+    rootDir: destDir,
+    skipLibCheck: true,
+    inlineSourceMap: argv.sourceMap === 'inline',
+    sourceMap: true,
+    inlineSources: argv.sourceMap === 'inline',
+    emitDeclarationOnly: argv.ed
+    // preserveSymlinks: true
+  };
+  setupCompilerOptionsWithPackages(compilerOptions);
+
   const packageDirTree = new DirTree<ComponentDirInfo>();
   for (const info of compDirInfo.values()) {
     const treePath = relative(commonRootDir, info.dir);
     packageDirTree.putData(treePath, info);
   }
   // console.log(packageDirTree.traverse());
-  compilerOptions.rootDir = commonRootDir.replace(/\\/g, '/');
   log.info('typescript compilerOptions:', compilerOptions);
 
   function onComponent(name: string, packagePath: string, _parsedName: any, json: any, realPath: string) {
@@ -183,29 +188,6 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
       log.info(`Compiled ${isError ? 'with errors ' : ''}in ` + min);
     }
 
-    const cwd = process.cwd();
-    function changePath() {
-      return through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
-        const treePath = relative(cwd, file.path);
-        const {tsDirs, dir} = packageDirTree.getAllData(treePath).pop()!;
-        const absFile = resolve(commonRootDir, treePath);
-        const pathWithinPkg = relative(dir, absFile);
-        // console.log(dir, tsDirs);  
-        for (const prefix of [tsDirs.srcDir, tsDirs.isomDir]) {
-          if (prefix === '.' || prefix.length === 0) {
-            file.path = join(dir, tsDirs.destDir, pathWithinPkg);
-            break;
-          } else if (pathWithinPkg.startsWith(prefix + sep)) {
-            file.path = join(dir, tsDirs.destDir, pathWithinPkg.slice(prefix.length + 1));
-            break;
-          }
-        }
-        file.base = commonRootDir;
-        // console.log(file.base, file.relative);
-        next(null, file);
-      });
-    }
-
     return new Promise<EmitList>((resolve, reject) => {
       const compileErrors: string[] = [];
       const tsResult = gulp.src(compGlobs)
@@ -226,7 +208,8 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
       if (!emitTdsOnly) {
         streams.push(tsResult.js
           .pipe(changePath())
-          .pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.'))
+          // .pipe(sourcemaps.write('.', {includeContent: false, sourceRoot: './'}))
+          .pipe(sourcemaps.write())
           // .pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
           //   if (file.extname === '.map') {
           //     const sm = JSON.parse(file.contents.toString());
@@ -258,7 +241,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
         next(null, file);
       }))
       .pipe(gulp.dest(commonRootDir));
-      all.resume();
+
       all.on('end', () => {
         if (compileErrors.length > 0) {
           /* tslint:disable no-console */
@@ -269,6 +252,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
         resolve(emittedList);
       });
       all.on('error', reject);
+      all.resume();
     })
     .then(emittedList => {
       printDuration(false);
@@ -277,6 +261,30 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     .catch(err => {
       printDuration(true);
       return Promise.reject(err);
+    });
+  }
+
+  // const cwd = process.cwd();
+  function changePath() {
+    return through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
+      const treePath = relative(commonRootDir, file.path);
+      const {tsDirs, dir} = packageDirTree.getAllData(treePath).pop()!;
+      const absFile = resolve(commonRootDir, treePath);
+      const pathWithinPkg = relative(dir, absFile);
+      // console.log(dir, tsDirs);  
+      for (const prefix of [tsDirs.srcDir, tsDirs.isomDir]) {
+        if (prefix === '.' || prefix.length === 0) {
+          file.path = join(dir, tsDirs.destDir, pathWithinPkg);
+          break;
+        } else if (pathWithinPkg.startsWith(prefix + sep)) {
+          file.path = join(dir, tsDirs.destDir, pathWithinPkg.slice(prefix.length + 1));
+          break;
+        }
+      }
+      // console.log(file.path);
+      file.base = commonRootDir;
+      // console.log(file.base, file.relative);
+      next(null, file);
     });
   }
 

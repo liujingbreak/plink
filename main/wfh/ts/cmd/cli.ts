@@ -236,9 +236,12 @@ function loadExtensionCommand(program: commander.Command): string[] {
 
   let filePath: string | null = null;
 
+  const cmdInfoPacks = new Array<Parameters<typeof cliStore.cliActionDispatcher.updateLoadedCmd>[0] extends (infer I)[] ? I : unknown>(1);
+
   program.command = function(this: typeof program, nameAndArgs: string, ...restArgs: any[]) {
     const cmdName = /^\S+/.exec(nameAndArgs)![0];
-    cliStore.cliActionDispatcher.updateLoadedCmd({cmd: cmdName, file: filePath!});
+    cmdInfoPacks[0] = {cmd: cmdName, file: filePath!};
+    cliStore.cliActionDispatcher.updateLoadedCmd(cmdInfoPacks);
     // tslint:disable-next-line: no-console
     // console.log(`Loading command "${cmdName}" from extension ${filePath}`);
     return origPgmCommand.call(this, nameAndArgs, ...restArgs);
