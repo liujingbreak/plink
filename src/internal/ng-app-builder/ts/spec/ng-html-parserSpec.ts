@@ -1,6 +1,6 @@
 /* tslint:disable no-console */
 import parse, {HtmlTokenType, lexer, TagKind, OpenTagAst} from '../utils/ng-html-parser';
-import {listTokens} from 'dr-comp-package/wfh/dist/LLn-parser';
+import {listTokens} from '@wfh/plink/wfh/dist/LLn-parser';
 import chalk from 'chalk';
 
 import * as fs from 'fs';

@@ -1,7 +1,7 @@
-import EventEmitter from 'events';
+import {EventEmitter} from 'events';
 
 interface PackageMgr {
-	runServer(argv: any[]): Promise<() => void>;
+	runServer: (argv: any) => Promise<() => Promise<void>>;
 	eventBus: EventEmitter;
 }
 

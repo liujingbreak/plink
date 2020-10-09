@@ -6,10 +6,10 @@ import {json} from '@angular-devkit/core';
 import __changeWebpackConfig, {transformIndexHtml as _transformIndexHtml} from '../config-webpack';
 // import type api from '__api';
 import fs from 'fs-extra';
-import nodeCheck from 'dr-comp-package/wfh/dist/utils/node-version-check';
-import config from 'dr-comp-package/wfh/dist/config';
-import type {DrcpConfig} from 'dr-comp-package/wfh/dist';
-import {initConfigAsync} from 'dr-comp-package/wfh/dist/utils/bootstrap-server';
+import nodeCheck from '@wfh/plink/wfh/dist/utils/node-version-check';
+import config from '@wfh/plink/wfh/dist/config';
+import type {DrcpConfig} from '@wfh/plink/wfh/dist';
+import {initConfigAsync} from '@wfh/plink/wfh/dist';
 
 // export type DrcpConfig = typeof api.config;
 

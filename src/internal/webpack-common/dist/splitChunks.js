@@ -36,7 +36,9 @@ function setupSplitChunks(config, vendorModuleTest) {
         const cp = base.splitChunks.cacheGroups;
         cp.lazyVendor.test = cp.vendor.test = vendorModuleTest;
     }
-    Object.assign(config, base);
+    if (config.optimization == null)
+        config.optimization = {};
+    Object.assign(config.optimization, base);
 }
 exports.default = setupSplitChunks;
 function getAngularVendorChunkTestFn(config) {

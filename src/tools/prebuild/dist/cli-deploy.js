@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const __api_1 = __importDefault(require("__api"));
 const log4js_1 = __importDefault(require("log4js"));
-const process_utils_1 = require("dr-comp-package/wfh/dist/process-utils");
+const process_utils_1 = require("@wfh/plink/wfh/dist/process-utils");
 const chalk_1 = __importDefault(require("chalk"));
 const prebuild_post_1 = require("./prebuild-post");
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.cli-deploy');

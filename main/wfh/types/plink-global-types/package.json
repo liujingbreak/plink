@@ -1,6 +1,6 @@
 {
   "name": "@wfh/plink-global-types",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "",
   "description": "Work with Plink, Typescript definition files",
   "types": "index.d.ts",

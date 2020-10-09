@@ -1,6 +1,6 @@
 // tslint:disable no-console
 import {ScssLexer, ScssParser, TokenType} from '../utils/simple-scss-parser';
-import {TokenFilter} from 'dr-comp-package/wfh/dist/base-LLn-parser';
+import {TokenFilter} from '@wfh/plink/wfh/dist/base-LLn-parser';
 import * as fs from 'fs';
 import * as Path from 'path';
 

@@ -1,5 +1,5 @@
 var has = Object.prototype.hasOwnProperty;
-import * as assetsUrl from 'dr-comp-package/wfh/share/assets-url';
+import * as assetsUrl from '@wfh/plink/wfh/share/assets-url';
 import {createNgRouterPath} from '../../isom/api-share';
 
 import * as lodash from 'lodash';

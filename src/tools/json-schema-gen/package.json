@@ -1,13 +1,11 @@
 {
   "name": "@wfh/json-schema-gen",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "Generate json-schemas from your Typescript source inside each package",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "json-schema-gen": "dist/main.js"
-  },
   "dr": {
+    "cli": "dist/cli.js#default"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

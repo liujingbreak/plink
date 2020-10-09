@@ -1,4 +1,4 @@
-import { PackageInfo } from 'dr-comp-package/wfh/dist/build-util/ts';
+import { PackageInfo } from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
 import { DrcpSetting as NgAppBuilderSetting } from '../configurable';
 import { AngularBuilderOptions } from './common';
 export declare type ParialBrowserOptions = Pick<AngularBuilderOptions, 'preserveSymlinks' | 'main' | 'fileReplacements'>;

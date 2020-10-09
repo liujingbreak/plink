@@ -4,6 +4,7 @@ import Path from 'path';
 import {createPackageInfo} from '../package-mgr';
 import {PackagesState, PackageInfo} from '../package-mgr';
 import * as _ from 'lodash';
+// import {createSelector} from '@reduxjs/toolkit';
 
 import _config from '../config';
 
@@ -23,6 +24,7 @@ export function* completePackageName(state: PackagesState, guessingNames: string
   }
 }
 
+/** Use package-utils.ts#lookForPackages() */
 export function* findPackagesByNames(state: PackagesState, guessingNames: string[]):
   Generator<PackageInfo | null> {
   const config: typeof _config = require('../config');
@@ -53,18 +55,6 @@ export function* findPackagesByNames(state: PackagesState, guessingNames: string
     }
   }
 }
-
-// export const findPackageJsonPath = _.memoize(_findPackageJsonPath);
-
-// function _findPackageJsonPath(moduleName: string) {
-//   let resolvedPath;
-//   try {
-//     resolvedPath = require.resolve(moduleName + '/package.json');
-//     return resolvedPath;
-//   } catch (er) {
-//     return null;
-//   }
-// }
 
 const nodePaths: string[] = process.env.NODE_PATH ? process.env.NODE_PATH!.split(Path.delimiter) : [];
 /**

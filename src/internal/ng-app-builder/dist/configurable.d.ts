@@ -1,5 +1,5 @@
 /// <reference types="webpack-dev-server" />
-import { ConfigHandler } from 'dr-comp-package/wfh/dist/config-handler';
+import { ConfigHandler } from '@wfh/plink/wfh/dist/config-handler';
 import * as webpack from 'webpack';
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { AngularBuilderOptions } from './ng/common';

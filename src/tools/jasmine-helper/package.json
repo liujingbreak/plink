@@ -1,6 +1,6 @@
 {
   "name": "@wfh/jasmine-helper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Work with Plink, Jasmine command line helper",
   "main": "dist/jasmine-cli.js",
   "types": "dist/jasmine-cli.d.ts",

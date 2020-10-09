@@ -11,17 +11,17 @@ const url_1 = __importDefault(require("url"));
 const log4js_1 = __importDefault(require("log4js"));
 const log = log4js_1.default.getLogger(__api_1.default.packageName);
 function proxyToDevServer() {
-    const hpmLog = log4js_1.default.getLogger('assets-process.index-html-route.proxy');
+    // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
     const config = __api_1.default.config.get(__api_1.default.packageName).indexHtmlProxy;
     if (config == null)
         return;
     config.changeOrigin = true;
     config.ws = true;
-    config.logProvider = () => hpmLog;
+    // config.logProvider = () => hpmLog;
     config.logLevel = 'info';
     config.onError = (err, req, res) => {
         if (err.code === 'ECONNREFUSED') {
-            log.warn('Can not connect to %s%s, farward to local static resource', config.target, req.url);
+            log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
             if (req.__goNext)
                 return req.__goNext();
             return;

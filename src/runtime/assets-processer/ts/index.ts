@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import * as packageUtils from 'dr-comp-package/wfh/dist/package-utils';
+import * as packageUtils from '@wfh/plink/wfh/dist/package-utils';
 import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';

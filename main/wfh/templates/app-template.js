@@ -1,1 +1,1 @@
-require('dr-comp-package/wfh/lib/main');
+require('@wfh/plink/wfh/lib/main');

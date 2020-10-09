@@ -85,7 +85,7 @@ function init(_argv, noPuppy) {
 	// maybeCopyTemplate(Path.resolve(__dirname, 'templates', 'module-resolve.browser.tmpl.ts'), rootPath + '/module-resolve.browser.ts');
 	cleanInvalidSymlinks()
 	.then(() => {
-		// var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
+		// var drcpFolder = Path.resolve('node_modules', '@wfh/plink');
 		// if (fs.lstatSync(drcpFolder).isSymbolicLink())
 		// 	removeProject(_argv, [fs.realpathSync(drcpFolder)]);
 
@@ -116,7 +116,7 @@ class WorkspaceInstaller {
 		const {createProjectSymlink} = require('../../dist/project-dir');
 		var helper = require('./cliAdvanced');
 		if (this.isDrcpSymlink == null)
-			this.isDrcpSymlink = fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink();
+			this.isDrcpSymlink = fs.lstatSync(Path.resolve('node_modules', '@wfh/plink')).isSymbolicLink();
 
 		// logs
 		if (!fs.existsSync(Path.join(rootPath, 'logs')))
@@ -162,8 +162,8 @@ function _initDependency(isDrcpSymlink) {
 	return Promise.coroutine(function*() {
 		var pkJsonFiles = yield rm.linkComponentsAsync();
 		if (isDrcpSymlink) {
-			console.log('node_modules/dr-comp-package is symbolic link, add its dependencies to %s', chalk.cyan(Path.resolve('package.json')));
-			const drcpPk = Path.resolve('node_modules', 'dr-comp-package', 'package.json');
+			console.log('node_modules/@wfh/plink is symbolic link, add its dependencies to %s', chalk.cyan(Path.resolve('package.json')));
+			const drcpPk = Path.resolve('node_modules', '@wfh/plink', 'package.json');
 			pkJsonFiles.push(isDrcpSymlink ? fs.realpathSync(drcpPk) : drcpPk);
 		}
 		pkJsonFiles.push(...projectDirs.filter(dir => dir !== rootPath)
@@ -187,7 +187,7 @@ function _writeGitHook(project) {
 			`cd "${rootPath}"\n` +
 			// 'drcp init\n' +
 			// 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
-			`node node_modules/dr-comp-package/bin/drcp.js lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
+			`node node_modules/@wfh/plink/bin/drcp.js lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
 		if (fs.existsSync(gitPath + '/pre-commit'))
 			fs.unlink(gitPath + '/pre-commit');
 		fs.writeFileSync(gitPath + '/pre-push', hookStr);
@@ -311,9 +311,9 @@ function getProjectDirs(_rootPath) {
 
 function install(isDrcpSymlink) {
 	if (isDrcpSymlink === undefined)
-		isDrcpSymlink = fs.lstatSync(Path.resolve('node_modules', 'dr-comp-package')).isSymbolicLink();
+		isDrcpSymlink = fs.lstatSync(Path.resolve('node_modules', '@wfh/plink')).isSymbolicLink();
 
-	var drcpLocation = Path.resolve('node_modules', 'dr-comp-package');
+	var drcpLocation = Path.resolve('node_modules', '@wfh/plink');
 	var realDrcpPath;
 	if (isDrcpSymlink)
 		realDrcpPath = fs.realpathSync(drcpLocation);
@@ -322,7 +322,7 @@ function install(isDrcpSymlink) {
 		.then(res => {
 			if (isDrcpSymlink && !fs.existsSync(drcpLocation)) {
 				fs.symlinkSync(Path.relative('node_modules', realDrcpPath), drcpLocation, isWin32 ? 'junction' : 'dir');
-				console.log('Write symlink dr-comp-package');
+				console.log('Write symlink @wfh/plink');
 			}
 			return res;
 		});
@@ -330,7 +330,7 @@ function install(isDrcpSymlink) {
 
 function clean(_argv) {
 	argv = _argv;
-	var drcpFolder = Path.resolve('node_modules', 'dr-comp-package');
+	var drcpFolder = Path.resolve('node_modules', '@wfh/plink');
 
 	if (argv.symlink === 'symlink') {
 		return require('./cliAdvanced').clean(true);

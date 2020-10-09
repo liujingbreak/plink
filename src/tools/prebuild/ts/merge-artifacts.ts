@@ -1,5 +1,5 @@
 // tslint:disable: curly
-import {spawn} from 'dr-comp-package/wfh/dist/process-utils';
+import {spawn} from '@wfh/plink/wfh/dist/process-utils';
 import {resolve, basename} from 'path';
 import fs from 'fs-extra';
 import api from '__api';

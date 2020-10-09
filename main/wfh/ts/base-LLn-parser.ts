@@ -1,5 +1,5 @@
 /**
- * @Deprecated use LLn-parser instead
+ * @deprecated use LLn-parser instead
  */
 import sortedIndex from 'lodash/sortedIndex';
 

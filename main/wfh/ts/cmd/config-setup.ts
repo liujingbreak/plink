@@ -10,17 +10,23 @@ const log = log4js.getLogger('wfh.cliAdvanced');
 
 
 export function addupConfigs(onEachYaml: (file: string, configContent: string) => void) {
-  const componentConfigs = {outputPathMap: {}, vendorBundleMap: {}, browserSideConfigProp: []};
+  const componentConfigs: {
+    outputPathMap: {[k: string]: string};
+    vendorBundleMap: {[k: string]: string[]};
+    browserSideConfigProp: string[]
+  } = {outputPathMap: {}, vendorBundleMap: {}, browserSideConfigProp: []};
   const vendorBundleMap = componentConfigs.vendorBundleMap;
   const browserSideConfigProp = componentConfigs.browserSideConfigProp;
   // var entryPageMapping = componentConfigs.entryPageMapping;
   const componentConfigs4Env = {}; // key is env:string, value is componentConfigs
   const trackOutputPath = {}; // For checking conflict
-  packageUtils.findAllPackages(
-  (name: string, entryPath: string, parsedName: {name: string, scope: string}, json: any, packagePath: string) => {
-    const dr = json.dr;
+  for (const pkg of packageUtils.allPackages()) {
+    const {name, json, shortName} = pkg;
+  // packageUtils.findAllPackages(
+  // (name: string, entryPath: string, parsedName: {name: string, scope: string}, json: any, packagePath: string) => {
+    const dr = pkg.json.dr;
     if (!dr)
-      return;
+      continue;
 
     // component customized configuration properties
     _addupCompConfigProp(componentConfigs, name, browserSideConfigProp, dr.config);
@@ -39,12 +45,12 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
     if (outputPath == null)
       outputPath = dr.ngRouterPath;
     if (outputPath == null)
-      outputPath = _.get(json, 'dr.output.path', parsedName.name);
+      outputPath = _.get(json, 'dr.output.path', shortName);
 
     if (_.has(trackOutputPath, outputPath) && trackOutputPath[outputPath] !== name) {
       log.warn(chalk.yellow('[Warning] Conflict package level outputPath setting (aka "ngRouterPath" in package.json) "%s" for both %s and %s, resolve conflict by adding a config file,'), outputPath, trackOutputPath[outputPath], name);
-      log.warn(chalk.yellow('%s\'s "outputPath" will be changed to %s'), name, parsedName.name);
-      outputPath = parsedName.name;
+      log.warn(chalk.yellow('%s\'s "outputPath" will be changed to %s'), name, shortName);
+      outputPath = shortName;
     }
     trackOutputPath[outputPath] = name;
     componentConfigs.outputPathMap[name] = outputPath;
@@ -52,7 +58,7 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
     var chunk = _.has(json, 'dr.chunk') ? dr.chunk : dr.bundle;
     if (!chunk) {
       if ((dr.entryPage || dr.entryView))
-        chunk = parsedName.name; // Entry package should have a default chunk name as its package short name
+        chunk = shortName; // Entry package should have a default chunk name as its package short name
     }
     if (chunk) {
       if (_.has(vendorBundleMap, chunk))
@@ -60,7 +66,7 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
       else
         vendorBundleMap[chunk] = [name];
     }
-  });
+  }
 
   const superConfig = require('../../config.yaml');
   deeplyMergeJson(superConfig, componentConfigs);
@@ -88,8 +94,13 @@ function _addupCompConfigProp(componentConfigs: {[k: string]: any}, compName: st
   if (!configJson)
     return;
   // component customized configuration properties
-  const componentConfig = _.assign({}, configJson.public);
-  deeplyMergeJson(componentConfig, configJson.server);
+
+  // JSON.parse(JSON.stringify()) is to clone original object which is
+  // stored in a redux store as immutable state (by immerJS),
+  // I tried lodash clone, but it still keeps "read only" protection on object,
+  // so I have to use JSON.parse(JSON.stringify()) instead
+  const componentConfig = JSON.parse(JSON.stringify(configJson.public || {}));
+  deeplyMergeJson(componentConfig, JSON.parse(JSON.stringify(configJson.server)));
 
   if (_.size(componentConfig) > 0 )
     componentConfigs[compName] = componentConfig;
@@ -107,9 +118,10 @@ function deeplyMergeJson(target: {[key: string]: any}, src: any,
       target[key] = c;
     else if (Array.isArray(tValue) && Array.isArray(sValue))
       target[key] = _.union(tValue, sValue);
-    else if (_.isObject(tValue) && _.isObject(sValue))
+    else if (_.isObject(tValue) && _.isObject(sValue)) {
       deeplyMergeJson(tValue, sValue);
-    else
+    } else {
       target[key] = sValue;
+    }
   }
 }

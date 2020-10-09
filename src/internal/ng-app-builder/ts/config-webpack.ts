@@ -19,7 +19,7 @@ const smUrl = require('source-map-url');
 const log = require('log4js').getLogger('config-webpack');
 import {Application} from 'express';
 import chalk from 'chalk';
-import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
+import memstats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {WepackConfigHandler} from './configurable';
 // import setupAssets from '@wfh/assets-processer/dist/dev-serve-assets';
 

@@ -11,7 +11,7 @@ import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
 import config from '../config';
 import {PackOptions, PublishOptions} from './types';
 import logConfig from '../log-config';
-import {getPackagesOfProjects, getState} from '../package-mgr';
+import {getPackagesOfProjects, getState, workspaceKey} from '../package-mgr';
 import log4js from 'log4js';
 // import * as packageUtils from './package-utils';
 // const recipeManager = require('../lib/gulp/recipeManager');
@@ -25,10 +25,15 @@ export async function pack(opts: PackOptions) {
 
   fs.mkdirpSync('tarballs');
 
-  if (opts.project && opts.project.length > 0)
+  if (opts.workspace && opts.workspace.length > 0) {
+    await Promise.all(opts.workspace.map(ws => packPackagesOfWorkspace(ws)));
+  } else if (opts.project && opts.project.length > 0) {
     return packProject(opts.project);
-
-  await packPackages(opts.packageDirs);
+  } if (opts.packageDirs && opts.packageDirs.length > 0) {
+    await packPackages(opts.packageDirs);
+  } else {
+    await packPackagesOfWorkspace(process.cwd());
+  }
 }
 
 export async function publish(opts: PublishOptions) {
@@ -41,6 +46,20 @@ export async function publish(opts: PublishOptions) {
     return publishProject(opts.project, opts.public ? ['--access', 'public'] : []);
 
   await publishPackages(opts.packageDirs, opts.public ? ['--access', 'public'] : []);
+}
+
+async function packPackagesOfWorkspace(workspaceDir: string) {
+  const wsKey = workspaceKey(workspaceDir);
+  const linkedPackages = getState().srcPackages;
+  const ws = getState().workspaces.get(wsKey);
+  if (ws) {
+    const dirs = ws.linkedDependencies.map(entry => linkedPackages.get(entry[0]))
+      .filter(pkg => pkg != null)
+      .map(pkg => pkg!.realPath);
+    await packPackages(dirs);
+  } else {
+    log.error(`Workspace ${workspaceDir} is not a workspace directory`);
+  }
 }
 
 async function packPackages(packageDirs: string[]) {

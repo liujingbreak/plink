@@ -3,8 +3,8 @@ import {createTsConfig, ParialBrowserOptions} from './change-tsconfig';
 import {initCli, DrcpBuilderOptions} from './common';
 import {injectorSetup} from './injector-setup';
 import { DrcpSetting } from '../configurable';
-import {PackageInfo} from 'dr-comp-package/wfh/dist/build-util/ts/main';
-import memstats from 'dr-comp-package/wfh/dist/utils/mem-stats';
+import {PackageInfo} from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
+import memstats from '@wfh/plink/wfh/dist/utils/mem-stats';
 
 export interface Data {
   tsconfigFile: string;

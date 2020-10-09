@@ -25,7 +25,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaultResolveModule = exports.resolveImportBindName = void 0;
 const ts_ast_query_1 = __importDefault(require("./ts-ast-query"));
 const Path = __importStar(require("path"));
-// import {readTsConfig} from 'dr-comp-package/wfh/dist/ts-compiler';
+// import {readTsConfig} from '@wfh/plink/wfh/dist/ts-compiler';
 function resolveImportBindName(src, modulePath, propertyName, resolveFn) {
     let resolvedModulePath;
     const selector = new ts_ast_query_1.default(src);

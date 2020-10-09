@@ -23,15 +23,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTsConfig = void 0;
-// import { DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
+// import { DrcpConfig } from '@wfh/plink/wfh/dist/config-handler';
 const fs = __importStar(require("fs"));
 const _ = __importStar(require("lodash"));
 const path_1 = __importDefault(require("path"));
 const typescript_1 = __importDefault(require("typescript"));
 const tsconfig_app_json_1 = __importDefault(require("../../misc/tsconfig.app.json"));
 const parse_app_module_1 = require("../utils/parse-app-module");
-const config_handler_1 = require("dr-comp-package/wfh/dist/config-handler");
-const package_mgr_1 = require("dr-comp-package/wfh/dist/package-mgr");
+const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
+const package_mgr_1 = require("@wfh/plink/wfh/dist/package-mgr");
 function createTsConfig(file, browserOptions, config, packageInfo, reportDir) {
     // const reportFile = config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json');
     return overrideTsConfig(file, packageInfo, browserOptions, config, reportDir);
@@ -71,12 +71,12 @@ function overrideTsConfig(file, pkInfo, browserOptions, config, reportDir) {
     }
     // // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
     if (!preserveSymlinks) {
-        const drcpDir = path_1.default.relative(cwd, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
-        pathMapping['dr-comp-package'] = [drcpDir];
-        pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
+        const drcpDir = path_1.default.relative(cwd, fs.realpathSync('node_modules/@wfh/plink')).replace(/\\/g, '/');
+        pathMapping['@wfh/plink'] = [drcpDir];
+        pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
     }
     var tsjson = {
-        // extends: require.resolve('@dr-core/webpack2-builder/configs/tsconfig.json'),
+        // extends: require.resolve('@wfh/webpack2-builder/configs/tsconfig.json'),
         include: config
             .tsconfigInclude
             .map(preserveSymlinks ? p => p : globRealPath)
@@ -87,7 +87,7 @@ function overrideTsConfig(file, pkInfo, browserOptions, config, reportDir) {
             //   Path.resolve(root, 'node_modules/@types'),
             //   Path.resolve(root, 'node_modules/@dr-types'),
             //   // Below is NodeJS only, which will break Angular Ivy engine
-            //   Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
+            //   Path.resolve(root, 'node_modules/@wfh/plink/wfh/types')
             // ],
             // module: 'esnext',
             preserveSymlinks }), oldJson.compilerOptions), { paths: Object.assign(Object.assign({}, tsconfig_app_json_1.default.compilerOptions.paths), pathMapping) }),

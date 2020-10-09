@@ -24,7 +24,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable no-console */
 const ng_html_parser_1 = __importStar(require("../utils/ng-html-parser"));
-const LLn_parser_1 = require("dr-comp-package/wfh/dist/LLn-parser");
+const LLn_parser_1 = require("@wfh/plink/wfh/dist/LLn-parser");
 const chalk_1 = __importDefault(require("chalk"));
 const fs = __importStar(require("fs"));
 const _ = __importStar(require("lodash"));

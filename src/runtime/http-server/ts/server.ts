@@ -5,7 +5,7 @@ import * as Path from 'path';
 // var Promise = require('bluebird');
 import * as log4js from 'log4js';
 import api from '__api';
-import {getLanIPv4} from 'dr-comp-package/wfh/dist/utils/network-util';
+import {getLanIPv4} from '@wfh/plink/wfh/dist/utils/network-util';
 
 var config: any;
 const log = log4js.getLogger(api.packageName);

@@ -21,12 +21,13 @@ function paths() {
         throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
     }
     const { dir, packageJson } = foundPkg;
-    // console.log('[debug] ', cmdOption);
+    // console.log('[debug] ', foundPkg);
     if (cmdOption.buildType === 'lib') {
         changedPaths.appBuild = path_1.default.resolve(dir, 'build');
-        changedPaths.appIndexJs = path_1.default.resolve(dir, lodash_1.default.get(packageJson, 'dr.cra-build-entry', 'public_api.ts'));
+        changedPaths.appIndexJs = path_1.default.resolve(dir, lodash_1.default.get(packageJson, 'dr.cra-lib-entry', 'public_api.ts'));
     }
     else if (cmdOption.buildType === 'app') {
+        changedPaths.appIndexJs = path_1.default.resolve(dir, lodash_1.default.get(packageJson, 'dr.cra-app-entry', 'public_api.ts'));
         changedPaths.appBuild = path_1.default.resolve(rootDir, 'dist/static');
     }
     // tslint:disable-next-line: no-console

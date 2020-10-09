@@ -2,8 +2,8 @@
 /**
  * TODO: Support parsing file with <script></script> tag contains special JS character like "<" and ">"
  */
-// import {Token, BaseParser, BaseLexer} from 'dr-comp-package/wfh/dist/base-LLn-parser';
-import {Lexer, Grammar, LookAhead, Token, createStringParser} from 'dr-comp-package/wfh/dist/LLn-parser';
+// import {Token, BaseParser, BaseLexer} from '@wfh/plink/wfh/dist/base-LLn-parser';
+import {Lexer, Grammar, LookAhead, Token, createStringParser} from '@wfh/plink/wfh/dist/LLn-parser';
 
 export enum HtmlTokenType {
   // comments,

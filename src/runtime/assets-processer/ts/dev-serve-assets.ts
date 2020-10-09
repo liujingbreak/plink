@@ -1,16 +1,15 @@
-import __api from '__api';
-import {ExpressAppApi} from '@wfh/express-app';
+import api from '__api';
 import {parse} from 'url';
 import _ from 'lodash';
 import Path from 'path';
 import fs from 'fs';
-import {findAllPackages} from 'dr-comp-package/wfh/dist/package-utils';
+import {findAllPackages} from '@wfh/plink/wfh/dist/package-utils';
 // import {createStaticRoute} from './static-middleware';
 // import express from 'express';
 
-const log = require('log4js').getLogger(__api.packageName + '.dev-serve-assets');
+const log = require('log4js').getLogger(api.packageName + '.dev-serve-assets');
 
-const api = __api as ExpressAppApi & typeof __api;
+// const api = __api as ExpressAppApi & typeof __api;
 
 export function packageAssetsFolders(deployUrl: string, onEach: (dir: string, outputDir: string) => void) {
   const rootPath = _.trimEnd(parse(deployUrl).pathname || '', '/');

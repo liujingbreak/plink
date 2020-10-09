@@ -4,15 +4,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const build_target_helper_1 = require("./build-target-helper");
-// import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
+// import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 const child_process_1 = __importDefault(require("child_process"));
 // import fs from 'fs-extra';
 const path_1 = __importDefault(require("path"));
 // import {findDrcpProjectDir} from './utils';
 const utils_1 = require("./utils");
-// import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
+// import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 // const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-const plinkDir = path_1.default.dirname(require.resolve('dr-comp-package/package.json'));
+const plinkDir = path_1.default.dirname(require.resolve('@wfh/plink/package.json'));
 const MiniCssExtractPlugin = require(path_1.default.resolve('node_modules/mini-css-extract-plugin'));
 function change(buildPackage, config, nodePath) {
     const foundPkg = build_target_helper_1.findPackage(buildPackage);
@@ -109,7 +109,7 @@ function forkTsc(targetPackage, nodePath) {
     // console.log('webpack-lib: ', Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs);
     const cp = child_process_1.default.fork(path_1.default.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs, {
         env: {
-            NODE_OPTIONS: '-r dr-comp-package/register',
+            NODE_OPTIONS: '-r @wfh/plink/register',
             NODE_PATH: nodePath.join(path_1.default.delimiter)
         },
         cwd: process.cwd()

@@ -4,9 +4,9 @@ import * as _ from 'lodash';
 const log = require('log4js').getLogger('buildUtil.' + Path.basename(__filename, '.js'));
 import {DirTree} from 'require-injector/dist/dir-tree';
 import PackageBrowserInstance from './package-instance';
-import * as packageUtils from '../../package-utils';
-import config from '../../config';
-import {createPackageInfo} from '../../package-mgr';
+import * as packageUtils from '../package-utils';
+import config from '../config';
+import {createPackageInfo} from './index';
 
 export interface BundleInfo {
   moduleMap: {[name: string]: PackageBrowserInstance};
@@ -71,10 +71,10 @@ function _walkPackages(): PackageInfo {
   for (const pk of packageUtils.packages4Workspace()) {
     addPackageToInfo(info, pk.name, {name: pk.shortName, scope: pk.scope}, pk.json, pk.path, pk.realPath);
   }
-  const drcpPkg = createPackageInfo(packageUtils.findPackageJsonPath('dr-comp-package')!);
-  addPackageToInfo(info, 'dr-comp-package',
+  const drcpPkg = createPackageInfo(packageUtils.findPackageJsonPath('@wfh/plink')!);
+  addPackageToInfo(info, '@wfh/plink',
     {scope: drcpPkg.scope, name: drcpPkg.shortName},
-    require('dr-comp-package/package.json'), drcpPkg.path, drcpPkg.realPath);
+    require('@wfh/plink/package.json'), drcpPkg.path, drcpPkg.realPath);
 
   info.allModules = _.values(info.moduleMap);
 

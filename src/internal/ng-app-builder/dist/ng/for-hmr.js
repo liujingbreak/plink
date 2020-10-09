@@ -6,11 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports._createMainHmrFile = exports.createMainFileForHmr = void 0;
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
-const patch_text_1 = __importDefault(require("dr-comp-package/wfh/dist/utils/patch-text"));
+const patch_text_1 = __importDefault(require("@wfh/plink/wfh/dist/utils/patch-text"));
 const ts_ast_query_1 = __importDefault(require("../utils/ts-ast-query"));
 const typescript_1 = __importDefault(require("typescript"));
 const log4js_1 = __importDefault(require("log4js"));
-const log = log4js_1.default.getLogger('@dr-core/ng-app-builder.for-hmr');
+const log = log4js_1.default.getLogger('@wfh/ng-app-builder.for-hmr');
 function createMainFileForHmr(mainFile) {
     const dir = path_1.default.dirname(mainFile);
     const writeTo = path_1.default.resolve(dir, 'main-hmr.ts');
@@ -31,7 +31,7 @@ exports.createMainFileForHmr = createMainFileForHmr;
  */
 function _createMainHmrFile(mainTs, mainFile) {
     let mainHmr = '// tslint:disable\n' +
-        `import hmrBootstrap from '@dr-core/ng-app-builder/src/hmr';\n${mainTs}`;
+        `import hmrBootstrap from '@wfh/ng-app-builder/src/hmr';\n${mainTs}`;
     const query = new ts_ast_query_1.default(mainHmr, 'main-hmr.ts');
     // query.printAll();
     // let bootCallAst: ts.Node;

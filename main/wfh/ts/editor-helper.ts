@@ -3,7 +3,7 @@ import Path from 'path';
 import * as fs from 'fs-extra';
 import * as _recp from './recipe-manager';
 import {getRootDir} from './utils/misc';
-import {getState, PackageInfo, getProjectList, actionDispatcher} from './package-mgr';
+import {getState, PackageInfo, getProjectList, updateGitIgnores} from './package-mgr';
 import {EOL} from 'os';
 import {setTsCompilerOptForNodePath} from './config-handler';
 import log4js from 'log4js';
@@ -33,14 +33,14 @@ export function updateTsconfigFileForEditor(wsKey: string) {
   const typeRoots = Array.from(typeRootsFromPackages(wsKey));
   // console.log(typeRoots);
 
-  writeTsconfig4project(getProjectList(), typeRoots, (file, content) => actionDispatcher._updateGitIgnores({file, content}));
+  writeTsconfig4project(getProjectList(), typeRoots, (file, content) => updateGitIgnores({file, content}));
   return writeTsconfigForEachPackage(Path.resolve(getRootDir(), wsKey), pks, typeRoots,
-    (file, content) => actionDispatcher._updateGitIgnores({file, content}));
+    (file, content) => updateGitIgnores({file, content}));
 }
 
 function writeTsconfig4project(projectDirs: string[], typeRoots: string[], onGitIgnoreFileUpdate: (file: string, content: string) => void) {
   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
-    Path.dirname(require.resolve('dr-comp-package/package.json'));
+    Path.dirname(require.resolve('@wfh/plink/package.json'));
 
   const recipeManager: typeof _recp = require('./recipe-manager');
 
@@ -77,7 +77,7 @@ async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInf
   // ];
 
   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
-    Path.dirname(require.resolve('dr-comp-package/package.json'));
+    Path.dirname(require.resolve('@wfh/plink/package.json'));
 
   const igConfigFiles = pks.map(pk => {
     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
@@ -169,10 +169,10 @@ function createTsConfig(pkgName: string, pkgRealPath: string, workspace: string 
     pathMapping[name + '/*'] = [realDir + '/*'];
   }
 
-  if (pkgName !== 'dr-comp-package') {
+  if (pkgName !== '@wfh/plink') {
     drcpDir = Path.relative(proj, drcpDir).replace(/\\/g, '/');
-    pathMapping['dr-comp-package'] = [drcpDir];
-    pathMapping['dr-comp-package/*'] = [drcpDir + '/*'];
+    pathMapping['@wfh/plink'] = [drcpDir];
+    pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
   }
 
   tsjson.compilerOptions = {

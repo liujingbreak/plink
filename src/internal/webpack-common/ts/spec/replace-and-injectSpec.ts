@@ -5,7 +5,7 @@ import Path from 'path';
 describe('replace-and-inject', () => {
   it('replace', () => {
     const rj = new RJ({noNode: true});
-    const tsconfig = Path.resolve(require.resolve('dr-comp-package/package.json'), '../wfh/tsconfig-base.json');
+    const tsconfig = Path.resolve(require.resolve('@wfh/plink/package.json'), '../wfh/tsconfig-base.json');
     // tslint:disable-next-line
     console.log('tsconfig file', tsconfig);
     rj.fromDir(__dirname).alias('lodash', 'NOTHING_BUT_LONG');

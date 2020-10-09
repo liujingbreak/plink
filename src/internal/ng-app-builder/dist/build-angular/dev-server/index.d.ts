@@ -1,4 +1,3 @@
 import '../../ng/node-inject';
-import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
-declare const _default;
+declare const _default: any;
 export default _default;

@@ -56,7 +56,7 @@ function runUnitTest(argv) {
 	}
 	var jasmineSetting = defaultConfig();
 	var wfhPath = config().wfhSrcPath;
-	var i = argv.package.indexOf('dr-comp-package');
+	var i = argv.package.indexOf('@wfh/plink');
 	if (i >= 0) {
 		argv.package.splice(i, 1);
 		jasmineSetting.spec_files.push(wfhPath + '/spec/**/*[sS]pec.[jt]s',

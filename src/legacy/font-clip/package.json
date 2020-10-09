@@ -1,13 +1,13 @@
 {
   "name": "@wfh/font-clip",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/font-clip.js",
   "types": "dist/font-clip.d.ts",
   "description": "Web font file clip tool",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "homepage": "https://gitee.com/liujingbreak/dr-comp-package/tree/master/src/internal/font-clip",
+  "homepage": "https://gitee.com/liujingbreak/@wfh/plink/tree/master/src/internal/font-clip",
   "dr": {},
   "sideEffects": false,
   "dependencies": {

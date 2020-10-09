@@ -23,7 +23,7 @@ export function removeProjectSymlink(isDrcpDevMode: boolean) {
   }
   if (isDrcpDevMode) {
     // Since drcp itself is symlink, in case there is no dr.project.list.json, we still need to make sure...
-    const moduleDir = Path.join(Path.dirname(fs.realpathSync(require.resolve('dr-comp-package/package.json'))),
+    const moduleDir = Path.join(Path.dirname(fs.realpathSync(require.resolve('@wfh/plink/package.json'))),
       'node_modules');
     try {
       const stats = fs.lstatSync(moduleDir);

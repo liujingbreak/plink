@@ -107,7 +107,7 @@ async function renderRoutes(index: string, mainFile: string, ROUTES: string[], p
  */
 export async function writeRoutesWithLocalServer(staticDir: string, htmlFile: string, mainFile: string,
   ROUTES: string[], outputFolder?: string) {
-  const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
+  const pkMgr = require('@wfh/plink/wfh/lib/packageMgr');
   const shutdown: () => void = await pkMgr.runServer(api.argv);
   let mapFile: string;
   try {

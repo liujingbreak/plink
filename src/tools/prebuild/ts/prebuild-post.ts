@@ -1,5 +1,5 @@
 // tslint:disable: no-console
-import { spawn } from 'dr-comp-package/wfh/dist/process-utils';
+import { spawn } from '@wfh/plink/wfh/dist/process-utils';
 import Path from 'path';
 import fs from 'fs-extra';
 import moment from 'moment';

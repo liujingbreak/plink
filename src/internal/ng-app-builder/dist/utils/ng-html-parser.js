@@ -5,8 +5,8 @@ exports.TagKind = exports.TokenType = exports.lexer = exports.HtmlTokenType = vo
 /**
  * TODO: Support parsing file with <script></script> tag contains special JS character like "<" and ">"
  */
-// import {Token, BaseParser, BaseLexer} from 'dr-comp-package/wfh/dist/base-LLn-parser';
-const LLn_parser_1 = require("dr-comp-package/wfh/dist/LLn-parser");
+// import {Token, BaseParser, BaseLexer} from '@wfh/plink/wfh/dist/base-LLn-parser';
+const LLn_parser_1 = require("@wfh/plink/wfh/dist/LLn-parser");
 var HtmlTokenType;
 (function (HtmlTokenType) {
     // comments,

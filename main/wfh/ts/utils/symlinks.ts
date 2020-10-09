@@ -46,25 +46,27 @@ export async function listModuleSymlinks(
 }
 
 /**
- * 1. create symlink node_modules/dr-comp-package --> directory "main"
+ * 1. create symlink node_modules/@wfh/plink --> directory "main"
  * 2. create symlink <parent directory of "main">/node_modules --> node_modules
  */
 export function linkDrcp() {
   const sourceDir = Path.resolve(__dirname, '../../..'); // directory "main"
 
-  // 1. create symlink node_modules/dr-comp-package --> directory "main"
-  const target = getRealPath('node_modules/dr-comp-package');
+  // 1. create symlink node_modules/@wfh/plink --> directory "main"
+  const target = getRealPath('node_modules/@wfh/plink');
   if (target !== sourceDir) {
     if (!fs.existsSync('node_modules'))
       fs.mkdirSync('node_modules');
+    if (!fs.existsSync('node_modules/@wfh'))
+      fs.mkdirSync('node_modules/@wfh');
 
     if (target != null) {
-      fs.unlinkSync(Path.resolve('node_modules/dr-comp-package'));
+      fs.unlinkSync(Path.resolve('node_modules/@wfh/plink'));
     }
-    fs.symlinkSync(Path.relative(Path.resolve('node_modules'), sourceDir),
-      Path.resolve('node_modules', 'dr-comp-package'), isWin32 ? 'junction' : 'dir');
+    fs.symlinkSync(Path.relative(Path.resolve('node_modules', '@wfh'), sourceDir),
+      Path.resolve('node_modules', '@wfh', 'plink'), isWin32 ? 'junction' : 'dir');
     // tslint:disable-next-line: no-console
-    console.log(Path.resolve('node_modules', 'dr-comp-package') + ' is created');
+    console.log(Path.resolve('node_modules', '@wfh/plink') + ' is created');
   }
 
   // // 2. create symlink <parent directory of "main">/node_modules --> node_modules

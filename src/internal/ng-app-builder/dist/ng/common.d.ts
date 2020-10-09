@@ -2,7 +2,7 @@ import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { Schema as NormalizedServerBuilderServerSchema } from '@angular-devkit/build-angular/src/server/schema';
 import { json } from '@angular-devkit/core';
-import type { DrcpConfig } from 'dr-comp-package/wfh/dist';
+import type { DrcpConfig } from '@wfh/plink/wfh/dist';
 export declare function initCli(options: DrcpBuilderOptions): Promise<DrcpConfig>;
 export declare type buildWebpackConfigFunc = (browserOptions: AngularBuilderOptions) => any;
 export interface AngularCliParam {

@@ -1,6 +1,6 @@
 {
   "name": "@wfh/redux-toolkit-observable",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A convenient Redux-toolkit + Redux-observable encapsulation",
   "main": "dist/redux-toolkit-observable.js",
   "types": "dist/redux-toolkit-observable.d.ts",
@@ -16,7 +16,11 @@
     "type": "git",
     "url": "git+https://github.com/liujingbreak/dr-comp-package.git"
   },
-  "keywords": ["redux", "redux-toolkit", "redux-observable"],
+  "keywords": [
+    "redux",
+    "redux-toolkit",
+    "redux-observable"
+  ],
   "author": "Liu Jing",
   "license": "ISC"
 }

@@ -71,7 +71,6 @@ export class ConfigHandlerMgr {
   private static _tsNodeRegistered = false;
 
   private static initConfigHandlers(files: string[], rootPath: string): Array<{file: string, handler: ConfigHandler}> {
-    // const {getState: getPackageState} = require('./package-mgr') as typeof pkmgr;
     const exporteds: Array<{file: string, handler: ConfigHandler}> = [];
 
     if (!ConfigHandlerMgr._tsNodeRegistered) {
@@ -88,7 +87,6 @@ export class ConfigHandlerMgr {
       compilerOptions.noUnusedLocals = false;
       compilerOptions.diagnostics = true;
       delete compilerOptions.rootDir;
-      delete compilerOptions.typeRoots;
 
       // console.log(compilerOptions);
       registerTsNode({
@@ -108,11 +106,11 @@ export class ConfigHandlerMgr {
           ]
         }
       });
-      files.forEach(file => {
-        const exp = require(Path.resolve(file));
-        exporteds.push({file, handler: exp.default ? exp.default : exp});
-      });
     }
+    files.forEach(file => {
+      const exp = require(Path.resolve(file));
+      exporteds.push({file, handler: exp.default ? exp.default : exp});
+    });
     return exporteds;
   }
   protected configHandlers: Array<{file: string, handler: ConfigHandler}>;

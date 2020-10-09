@@ -1,6 +1,6 @@
 
 import { ParseGrammar, ParseLex, Token,
-  mapChunks, mapChunksObs, LookAheadObservable } from 'dr-comp-package/wfh/dist/async-LLn-parser';
+  mapChunks, mapChunksObs, LookAheadObservable } from '@wfh/plink/wfh/dist/async-LLn-parser';
 import {queueScheduler, from, of} from 'rxjs';
 import {observeOn, map, share} from 'rxjs/operators';
 import _ from 'lodash';

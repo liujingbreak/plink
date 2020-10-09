@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 // tslint:disable:no-console
 const ts_dep_1 = __importDefault(require("../ts-dep"));
-const ts_compiler_1 = require("dr-comp-package/wfh/dist/ts-compiler");
+const ts_compiler_1 = require("@wfh/plink/wfh/dist/ts-compiler");
 const path_1 = __importDefault(require("path"));
 describe('ts-dep', () => {
     xit('When preserveSymlinks = false, walkForDependencies() should can list dependencies', () => {

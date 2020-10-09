@@ -6,7 +6,8 @@ import config from '../config';
 import npmimportCssLoader from 'require-injector/dist/css-loader';
 import Inject from 'require-injector';
 import * as assetsUrl from '../../dist/assets-url';
-import {PackageInfo, packageInstance as PackageInstance} from '../build-util/ts';
+import {PackageInfo} from './package-info-gathering';
+import PackageInstance from './package-instance';
 // import PackageInstance from '../packageNodeInstance';
 import _ from 'lodash';
 

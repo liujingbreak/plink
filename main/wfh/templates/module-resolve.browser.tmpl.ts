@@ -1,4 +1,4 @@
-import {DrPackageInjector} from 'dr-comp-package/wfh/dist/injector-factory';
+import {DrPackageInjector} from '@wfh/plink/wfh/dist/injector-factory';
 export default function(injector: DrPackageInjector) {
   /**
 	 *  IoC configuration here.

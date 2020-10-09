@@ -4,13 +4,13 @@ import vm from 'vm';
 import * as ts from 'typescript';
 import {SyntaxKind as sk, CompilerOptions} from 'typescript';
 import ImportClauseTranspile from './default-import-ts-transpiler';
-import api, {DrcpApi} from '__api';
-import BrowserPackage from 'dr-comp-package/wfh/dist/build-util/ts/package-instance';
-import {ReplacementInf} from 'dr-comp-package/wfh/dist/utils/patch-text';
-import * as textPatcher from 'dr-comp-package/wfh/dist/utils/patch-text';
-import { readTsConfig, transpileSingleTs } from 'dr-comp-package/wfh/dist/ts-compiler';
+import api from '__api';
+import BrowserPackage from '@wfh/plink/wfh/dist/package-mgr/package-instance';
+import {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
+import * as textPatcher from '@wfh/plink/wfh/dist/utils/patch-text';
+import { readTsConfig, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';
 import log4js from 'log4js';
-const log = log4js.getLogger(api.packageName + '.api-aot-compiler');
+const log = log4js.getLogger(api.packageName + '.tsjs-replacement');
 import chalk from 'chalk';
 import {has} from 'lodash';
 
@@ -32,23 +32,12 @@ export default class TsPreCompiler {
     }
   }
 
-  parse(file: string, source: string, replaceContext?: {[key: string]: any}, compiledSource?: ts.SourceFile,
+  parse(file: string, source: string, replaceContext: {[key: string]: any}, compiledSource?: ts.SourceFile,
     astPositionConvert?: (pos: number) => number): string {
-
     const pk = this.findPackageByFile(file);
-    // console.log('parse', this.file, pk == null ? '' : 'yes');
+
     if (pk == null)
       return source;
-    // if (!tsHandlers)
-    //   tsHandlers = createTsHandlers();
-
-    const nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
-    nodeApi.__dirname = Path.dirname(file);
-    if (replaceContext == null) {
-      replaceContext = {__api: nodeApi};
-    } else {
-      replaceContext.__api = nodeApi;
-    }
 
     const ast = compiledSource || ts.createSourceFile(file, source, ts.ScriptTarget.ESNext,
       true, ts.ScriptKind.TSX);

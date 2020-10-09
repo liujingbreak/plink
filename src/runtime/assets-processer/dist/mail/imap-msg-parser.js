@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectImap = exports.parseLinesOfTokens = exports.createServerDataHandler = exports.ImapTokenType = void 0;
-const async_LLn_parser_1 = require("dr-comp-package/wfh/dist/async-LLn-parser");
+const async_LLn_parser_1 = require("@wfh/plink/wfh/dist/async-LLn-parser");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const tls_1 = require("tls");

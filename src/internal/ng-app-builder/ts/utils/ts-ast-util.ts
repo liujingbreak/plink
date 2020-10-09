@@ -1,7 +1,7 @@
 import * as ts from 'typescript';
 import Selector from './ts-ast-query';
 import * as Path from 'path';
-// import {readTsConfig} from 'dr-comp-package/wfh/dist/ts-compiler';
+// import {readTsConfig} from '@wfh/plink/wfh/dist/ts-compiler';
 
 export function resolveImportBindName(src: ts.SourceFile, modulePath: string, propertyName: string,
   resolveFn?: (targetPath: string, currFile: string) => string): string | undefined | null {

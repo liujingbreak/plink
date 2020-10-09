@@ -3,7 +3,7 @@ import PackageBrowserInstance from './dist/build-util/ts/package-instance';
 import { EventEmitter } from 'events';
 import {PackageInfo} from './dist/build-util/ts';
 import {DrcpConfig} from './dist/config-handler';
-import {RequireInjector} from './dist/require-injectors';
+import {InjectorFactory} from './dist/require-injectors';
 
 export interface DrcpApi {
 	packageName: string;
@@ -25,7 +25,8 @@ export interface DrcpApi {
 	packageInfo: PackageInfo;
 	config: DrcpConfig;
 	argv: any;
-	browserInjector: RequireInjector;
+	/** Availabe only if package-runner#initWebInjector() is executed */
+	browserInjector: InjectorFactory;
 	findPackageByFile(path: string): PackageBrowserInstance | undefined;
 	getNodeApiForPackage<T extends DrcpApi>(pk: {longName: string}): T;
 	extend(target: any): void;

@@ -30,7 +30,7 @@ const Path = __importStar(require("path"));
 // var Promise = require('bluebird');
 const log4js = __importStar(require("log4js"));
 const __api_1 = __importDefault(require("__api"));
-const network_util_1 = require("dr-comp-package/wfh/dist/utils/network-util");
+const network_util_1 = require("@wfh/plink/wfh/dist/utils/network-util");
 var config;
 const log = log4js.getLogger(__api_1.default.packageName);
 var server;

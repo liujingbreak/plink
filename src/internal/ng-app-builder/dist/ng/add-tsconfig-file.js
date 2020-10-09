@@ -10,7 +10,7 @@ exports.addSourceFiles = void 0;
  */
 const worker_threads_1 = require("worker_threads");
 const ts_dep_1 = __importDefault(require("../ts-dep"));
-const ts_compiler_1 = require("dr-comp-package/wfh/dist/ts-compiler");
+const ts_compiler_1 = require("@wfh/plink/wfh/dist/ts-compiler");
 const __api_1 = __importDefault(require("__api"));
 const typescript_1 = require("typescript");
 const path_1 = __importDefault(require("path"));

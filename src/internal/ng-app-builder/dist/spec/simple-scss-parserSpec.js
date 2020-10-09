@@ -21,7 +21,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 // tslint:disable no-console
 const simple_scss_parser_1 = require("../utils/simple-scss-parser");
-const base_LLn_parser_1 = require("dr-comp-package/wfh/dist/base-LLn-parser");
+const base_LLn_parser_1 = require("@wfh/plink/wfh/dist/base-LLn-parser");
 const fs = __importStar(require("fs"));
 const Path = __importStar(require("path"));
 describe('simple-scss-parser', () => {

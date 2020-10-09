@@ -1,4 +1,5 @@
-import { PackageInfo, packageInstance as PackageBrowserInstance } from './build-util/ts';
+import PackageBrowserInstance from './package-mgr/package-instance';
+import { PackageInfo } from './package-mgr/package-info-gathering';
 import _NodeApi from './package-mgr/node-package-api';
 import NodePackage from './packageNodeInstance';
 export interface ServerRunnerEvent {
@@ -17,7 +18,7 @@ export declare class ServerRunner {
 export declare function runSinglePackage({ target, args }: {
     target: string;
     args: string[];
-}): Promise<void>;
+}): Promise<undefined>;
 export declare function runPackages(argv: {
     target: string;
     package: string[];
@@ -27,7 +28,11 @@ export declare function initInjectorForNodePackages(argv: {
     [key: string]: any;
 }, packageInfo: PackageInfo): [PackageBrowserInstance[], _NodeApi];
 export declare function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any): void;
-export declare function prepareLazyNodeInjector(argv: {
+/**
+ * Support `import api from '__api';`
+ * @param argv
+ */
+export declare function prepareLazyNodeInjector(argv?: {
     [key: string]: any;
 }): void;
 export declare function mapPackagesByType(types: string[], onEachPackage: (nodePackage: NodePackage) => void): {

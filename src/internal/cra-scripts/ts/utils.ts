@@ -5,9 +5,9 @@ import Path from 'path';
 import _ from 'lodash';
 import {gt} from 'semver';
 import commander from 'Commander';
-import {stateFactory, withGlobalOptions, GlobalOptions} from 'dr-comp-package/wfh/dist';
-import config from 'dr-comp-package/wfh/dist/config';
-import logConfig from 'dr-comp-package/wfh/dist/log-config';
+import {stateFactory, GlobalOptions} from '@wfh/plink/wfh/dist';
+import config from '@wfh/plink/wfh/dist/config';
+import logConfig from '@wfh/plink/wfh/dist/log-config';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -73,37 +73,36 @@ export function getCmdOptions(): CommandOption {
 }
 
 
-export function saveCmdArgToEnv() {
-  // console.log('[saveCmdArgToEnv]', process.argv);
-  process.title = 'Plink';
-  const pk = require('../package.json');
-  const program = new commander.Command('cra-scripts')
-  .action(() => {
-    program.outputHelp();
-    process.exit(0);
-  });
-  program.version(pk.version, '-v, --vers', 'output the current version');
-  program.usage('react-scripts -r dr-comp-package/register -r @wfh/cra-scripts build ' + program.usage());
+// export function saveCmdArgToEnv() {
+//   // console.log('[saveCmdArgToEnv]', process.argv);
+//   process.title = 'Plink';
+//   const pk = require('../package.json');
+//   const program = new commander.Command('cra-scripts')
+//   .action(() => {
+//     program.outputHelp();
+//     process.exit(0);
+//   });
+//   program.version(pk.version, '-v, --vers', 'output the current version');
+//   program.usage('react-scripts -r @wfh/plink/register -r @wfh/cra-scripts build ' + program.usage());
 
-  const libCmd = program.command('lib <package-name>')
-  .description('Compile library')
-  .action(pkgName => {
-    saveCmdOptionsToEnv(pkgName, libCmd, 'lib');
-  });
-  withClicOpt(libCmd);
+//   const libCmd = program.command('lib <package-name>')
+//   .description('Compile library')
+//   .action(pkgName => {
+//     saveCmdOptionsToEnv(pkgName, libCmd, 'lib');
+//   });
+//   withClicOpt(libCmd);
 
-  const appCmd = program.command('app <package-name>')
-  .description('Compile appliaction')
-  .action(pkgName => {
-    saveCmdOptionsToEnv(pkgName, appCmd, 'app');
-  });
-  withClicOpt(appCmd);
+//   const appCmd = program.command('app <package-name>')
+//   .description('Compile appliaction')
+//   .action(pkgName => {
+//     saveCmdOptionsToEnv(pkgName, appCmd, 'app');
+//   });
+//   withClicOpt(appCmd);
 
-  program.parse(process.argv);
+//   program.parse(process.argv);
+// }
 
-}
-
-function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType: 'app' | 'lib'): CommandOption {
+export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType: 'app' | 'lib'): CommandOption {
   const cmdOptions: CommandOption = {
     buildType,
     buildTarget: pkgName,
@@ -121,12 +120,12 @@ function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType:
   return cmdOptions;
 }
 
-function withClicOpt(cmd: commander.Command) {
-  cmd.option('-w, --watch', 'Watch file changes and compile', false)
-  .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
-  .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', '/');
-  withGlobalOptions(cmd);
-}
+// function withClicOpt(cmd: commander.Command) {
+//   cmd.option('-w, --watch', 'Watch file changes and compile', false)
+//   .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
+//   .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', '/');
+//   withGlobalOptions(cmd);
+// }
 
 
 export function craVersionCheck() {

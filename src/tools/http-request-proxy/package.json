@@ -1,6 +1,6 @@
 {
   "name": "@wfh/http-request-proxy",
-  "version": "5.1.5",
+  "version": "5.1.6",
   "description": "Work with Plink, isomophic http proxy server work with Angular HTTP client",
   "main": "dist/server.js",
   "types": "dist/server.d.ts",

@@ -25,8 +25,12 @@ let actionCount = 0;
  * 
  * I have to export saved state, so that eacy lazy slice can initialize its own slice state by themself
  */
+const savedStore = fs.existsSync(stateFile) ? fs.readFileSync(stateFile, 'utf8') : null;
+if (savedStore && savedStore.length === 0) {
+  throw new Error('Emptry store file ' + stateFile + ', delete it and initial new workspaces');
+}
 // tslint:disable-next-line: no-eval
-export const lastSavedState = fs.existsSync(stateFile) ? eval('(' + fs.readFileSync(stateFile, 'utf8') + ')') : {};
+export const lastSavedState = savedStore ? eval('(' + savedStore + ')') : {};
 
 export const stateFactory = new StateFactory(lastSavedState);
 
@@ -37,9 +41,9 @@ stateFactory.actionsToDispatch.pipe(
 
 
 export async function startLogging() {
-  const defaultLog = log4js.getLogger('dr-comp-package.store');
-  const logState = log4js.getLogger('dr-comp-package.store.state');
-  const logAction = log4js.getLogger('dr-comp-package.store.action');
+  const defaultLog = log4js.getLogger('@wfh/plink.store');
+  const logState = log4js.getLogger('@wfh/plink.store.state');
+  const logAction = log4js.getLogger('@wfh/plink.store.action');
 
   stateFactory.log$.pipe(
     tap(params => {

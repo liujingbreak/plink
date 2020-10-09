@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 import commander from 'commander';
 import Path from 'path';
-import cfg from 'dr-comp-package/wfh/dist/config';
+import cfg from '@wfh/plink/wfh/dist/config';
 import * as _Artifacts from './artifacts';
 import * as sp from './_send-patch';
 import fs from 'fs-extra';
 import * as _prebuildPost from './prebuild-post';
-// import {spawn} from 'dr-comp-package/wfh/dist/process-utils';
+// import {spawn} from '@wfh/plink/wfh/dist/process-utils';
 import _cliDeploy from './cli-deploy';
 import log4js from 'log4js';
 import _genKeypair from './cli-keypair';
-import {initConfigAsync} from 'dr-comp-package/wfh/dist/utils/bootstrap-server';
-import {CliExtension, GlobalOptions} from 'dr-comp-package/wfh/dist';
-import {prepareLazyNodeInjector} from 'dr-comp-package/wfh/dist/package-runner';
+import {CliExtension, GlobalOptions, initConfigAsync} from '@wfh/plink/wfh/dist';
+import {prepareLazyNodeInjector} from '@wfh/plink/wfh/dist/package-runner';
 
 // import * as tsAstQuery from './ts-ast-query';
 import * as _unzip from './cli-unzip';
@@ -29,7 +28,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .action(async (app: string, scriptsFile?: string) => {
     const opt = deployCmd.opts();
     await initConfigAsync(deployCmd.opts() as GlobalOptions);
-    (await import('dr-comp-package/wfh/dist/package-runner')).prepareLazyNodeInjector({});
+    (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
 
     const cliDeploy = (require('./cli-deploy').default as typeof _cliDeploy);
     await cliDeploy(opt.static, opt.env, app, deployCmd.opts().pushBranch, deployCmd.opts().secret || null, scriptsFile);
@@ -57,7 +56,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .option('--secret <credential code>', 'credential code for deploy to "prod" environment')
   .action(async (appName, zip) => {
     await initConfigAsync(sendCmd.opts() as GlobalOptions);
-    (await import('dr-comp-package/wfh/dist/package-runner')).prepareLazyNodeInjector({});
+    (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
 
     await (require('./_send-patch') as typeof sp).send(sendCmd.opts().env, appName, zip, sendCmd.opts().secret);
   });

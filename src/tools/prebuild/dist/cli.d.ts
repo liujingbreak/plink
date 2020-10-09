@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-import { CliExtension } from 'dr-comp-package/wfh/dist';
+import { CliExtension } from '@wfh/plink/wfh/dist';
 declare const cliExt: CliExtension;
 export { cliExt as default };

@@ -71,7 +71,7 @@ function drcpCommand(startTime) {
 			return cli.listProject(argv);
 		}
 	})
-	// .command(['install', 'i'], 'Execute "yarn install", if you are using "node_moduels/dr-comp-package" as a symlink, Yarn (>1.0.0) deletes any symlinks' +
+	// .command(['install', 'i'], 'Execute "yarn install", if you are using "node_moduels/@wfh/plink" as a symlink, Yarn (>1.0.0) deletes any symlinks' +
 	// 	' during "yarn install", this command will recreate symlink right after "yarn install", convenient for DRCP tool developer', {
 	// 	builder: {},
 	// 	handler: argv => cli.install(argv)

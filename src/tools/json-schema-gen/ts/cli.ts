@@ -1,95 +1,85 @@
 #!/usr/bin/env node
-import {program} from 'commander';
+// import {program} from 'commander';
 import pk from '../package.json';
 import Path from 'path';
 import * as fs from 'fs-extra';
-import {getTsDirsOfPackage} from 'dr-comp-package/wfh/dist/utils';
+import {getTsDirsOfPackage} from '@wfh/plink/wfh/dist/utils/misc';
 import log4js from 'log4js';
 import * as TJS from 'typescript-json-schema';
-import Selector from '@wfh/ng-app-builder/dist/utils/ts-ast-query';
+import Selector from '@wfh/prebuild/dist/ts-ast-query';
 import glob from 'glob';
-import {withGlobalOptions, initConfigAsync, GlobalOptions} from 'dr-comp-package/wfh/dist/utils/bootstrap-server';
-const baseTsconfig = require('dr-comp-package/wfh/tsconfig-base.json');
+import {CliExtension, GlobalOptions, initConfigAsync} from '@wfh/plink/wfh/dist';
+import pkgUtils from '@wfh/plink/wfh/dist/package-utils';
 
+const baseTsconfig = require('@wfh/plink/wfh/tsconfig-base.json');
 
 const log = log4js.getLogger(pk.name);
 
-program.version(pk.version).name('json-schema-gen')
-  .description('Scan packages and generate json schema.\n' +
+const cliExt: CliExtension = (program, withGlobalOptions) => {
+  const cmd = program.command('json-schema-gen [package...]')
+  .description('Scan packages and generate json schema. ' +
   'You package.json file must contains:\n  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}')
-  .arguments('[...packages]')
-  .passCommandToAction(true);
-withGlobalOptions(program);
+  .option('-f, --file <spec>', 'run single file')
+  .action(async (packages: string[]) => {
+    await initConfigAsync(cmd.opts() as GlobalOptions);
+    const dones: Promise<void>[] = [];
 
-program.action(async (packages: string[]) => {
-  const dones: Promise<void>[] = [];
+    const packageUtils = require('@wfh/plink/wfh/dist/package-utils') as typeof pkgUtils;
 
-  await initConfigAsync(program.opts() as GlobalOptions);
+    const onComponent: pkgUtils.FindPackageCb = (name, entryPath, parsedName, json, packagePath) => {
+      dones.push(new Promise((resolve, reject) => {
+        const dirs = getTsDirsOfPackage(json);
 
-  log.info(program.args);
-  const packageUtils = require('dr-comp-package/wfh/lib/packageMgr/packageUtils');
+        if (json.dr && json.dr.jsonSchema) {
+          const schemaSrcDir =json.dr.jsonSchema as string;
+          log.info(`package ${name} has JSON schema: ${schemaSrcDir}`);
+          // packagePath = fs.realpathSync(packagePath);
 
-  // const packages = program.args;
-  if (packages && packages.length > 0)
-    packageUtils.findAllPackages(packages, onComponent, 'src');
-  // else if (argv.project && argv.project.length > 0) {
-  //   packageUtils.findAllPackages(onComponent, 'src', argv.project);
-  // }
-  else
-    packageUtils.findAllPackages(onComponent, 'src');
+          glob(schemaSrcDir, {cwd: packagePath}, (err, matches) => {
+            log.info('Found schema source', matches);
 
-  function onComponent(name: string, entryPath: string, parsedName: string, json: any, packagePath: string) {
-    dones.push(new Promise((resolve, reject) => {
-      const dirs = getTsDirsOfPackage(json);
+            const compilerOptions: TJS.CompilerOptions = {...baseTsconfig.compilerOptions, rootDir: packagePath};
 
-      if (json.dr && json.dr.jsonSchema) {
-        const schemaSrcDir =json.dr.jsonSchema as string;
-        log.info(`package ${name} has JSON schema: ${schemaSrcDir}`);
-        // packagePath = fs.realpathSync(packagePath);
-
-        glob(schemaSrcDir, {cwd: packagePath}, (err, matches) => {
-          log.info('Found schema source', matches);
-
-          const compilerOptions: TJS.CompilerOptions = {...baseTsconfig.compilerOptions, rootDir: packagePath};
-
-          const tjsPgm = TJS.getProgramFromFiles(matches.map(path => Path.resolve(packagePath, path)), compilerOptions, packagePath);
-          const generator = TJS.buildGenerator(tjsPgm, {});
-          const symbols: string[] = [];
-          for (const filename of matches) {
-            const tsFile = Path.resolve(packagePath, filename);
-            const astQuery = new Selector(fs.readFileSync(tsFile, 'utf8'), tsFile);
-            symbols.push(...astQuery.findAll(':SourceFile>.statements:InterfaceDeclaration>.name:Identifier').map(ast => ast.getText()));
-          }
-          if (generator) {
-            const output: any = {};
-            for (const syb of symbols) {
-              log.info('Schema for ', syb);
-              output[syb] = generator.getSchemaForSymbol(syb);
+            const tjsPgm = TJS.getProgramFromFiles(matches.map(path => Path.resolve(packagePath, path)), compilerOptions, packagePath);
+            const generator = TJS.buildGenerator(tjsPgm, {});
+            const symbols: string[] = [];
+            for (const filename of matches) {
+              const tsFile = Path.resolve(packagePath, filename);
+              const astQuery = new Selector(fs.readFileSync(tsFile, 'utf8'), tsFile);
+              symbols.push(...astQuery.findAll(':SourceFile>.statements:InterfaceDeclaration>.name:Identifier').map(ast => ast.getText()));
             }
-            const outFile = Path.resolve(packagePath, dirs.isomDir, 'json-schema.json');
-            fs.mkdirpSync(Path.resolve(packagePath, dirs.isomDir));
-            fs.writeFile(
-              outFile,
-              JSON.stringify(output, null, '  '),
-              (err) => {
-                if (err)
-                  return reject(err);
-                log.info(' written to ' + outFile);
-                resolve();
+            if (generator) {
+              const output: any = {};
+              for (const syb of symbols) {
+                log.info('Schema for ', syb);
+                output[syb] = generator.getSchemaForSymbol(syb);
               }
-            );
-          }
-        });
+              const outFile = Path.resolve(packagePath, dirs.isomDir, 'json-schema.json');
+              fs.mkdirpSync(Path.resolve(packagePath, dirs.isomDir));
+              fs.writeFile(
+                outFile,
+                JSON.stringify(output, null, '  '),
+                (err) => {
+                  if (err)
+                    return reject(err);
+                  log.info(' written to ' + outFile);
+                  resolve();
+                }
+              );
+            }
+          });
 
-      }
-    }));
-  }
-  await Promise.all(dones);
-});
+        }
+      }));
+    };
+    if (packages && packages.length > 0) {
+      packageUtils.lookForPackages(packages, onComponent);
+      packageUtils.findAllPackages(packages, onComponent, 'src');
+    } else
+      packageUtils.findAllPackages(onComponent, 'src');
+    await Promise.all(dones);
+  });
+  withGlobalOptions(cmd);
+};
 
-program.parseAsync(process.argv).catch(e => {
-  console.error(e);
-  process.exit(1);
-});
-
-
+export default cliExt;

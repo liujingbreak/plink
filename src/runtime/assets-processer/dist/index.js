@@ -24,7 +24,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = exports.deactivate = void 0;
 const chalk_1 = __importDefault(require("chalk"));
-const packageUtils = __importStar(require("dr-comp-package/wfh/dist/package-utils"));
+const packageUtils = __importStar(require("@wfh/plink/wfh/dist/package-utils"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const lodash_1 = __importDefault(require("lodash"));
 const path_1 = __importDefault(require("path"));

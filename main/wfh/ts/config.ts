@@ -266,7 +266,7 @@ function mergeFromCliArgs(setting: DrcpSettings, cliOpt: CliOptions) {
 config.wfhSrcPath = wfhSrcPath;
 
 function wfhSrcPath() {
-  var wfhPath = Path.dirname(require.resolve('dr-comp-package/package.json'));
+  var wfhPath = Path.dirname(require.resolve('@wfh/plink/package.json'));
   // log.debug('wfhPath: %s', wfhPath);
   // return (Path.basename(Path.dirname(wfhPath)) !== 'node_modules') ? wfhPath : false;
   return wfhPath;

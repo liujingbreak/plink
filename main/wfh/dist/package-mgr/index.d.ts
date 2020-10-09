@@ -110,8 +110,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
     }, action: PayloadAction<{
-        hoistedDir: string;
-    } | undefined | null>): void;
+        isForce: boolean;
+    }>): void;
     /** Check and install dependency, if there is linked package used in more than one workspace,
      * to switch between different workspace */
     updateWorkspace(d: {
@@ -623,7 +623,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
-    _updateGitIgnores(d: {
+    updateGitIgnores(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -696,7 +696,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         file: string;
         content: string;
     }>): void;
-    _updateTsConfigForEditor(d: {
+    _relatedPackageUpdated(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -1049,8 +1049,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
     }, action: PayloadAction<{
-        hoistedDir: string;
-    } | undefined | null>): void;
+        isForce: boolean;
+    }>): void;
     /** Check and install dependency, if there is linked package used in more than one workspace,
      * to switch between different workspace */
     updateWorkspace(d: {
@@ -1562,7 +1562,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
-    _updateGitIgnores(d: {
+    updateGitIgnores(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -1635,7 +1635,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         file: string;
         content: string;
     }>): void;
-    _updateTsConfigForEditor(d: {
+    _relatedPackageUpdated(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -1916,6 +1916,10 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         workspaceUpdateChecksum: number;
     }, { payload }: PayloadAction<void>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
+export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
+    file: string;
+    content: string;
+}, string>;
 export declare function getState(): PackagesState;
 export declare function getStore(): Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;
@@ -1924,6 +1928,7 @@ export declare function getPackagesOfProjects(projects: string[]): Generator<Pac
 export declare function listPackages(): string;
 export declare function getProjectList(): string[];
 export declare function listPackagesByProjects(): string;
+export declare function isCwdWorkspace(): boolean;
 /**
  *
  * @param pkJsonFile package.json file path

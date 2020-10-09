@@ -1,7 +1,8 @@
 /* tslint:disable max-line-length */
 import * as _ from 'lodash';
 import LRU from 'lru-cache';
-import { PackageInfo, packageInstance as PackageBrowserInstance, walkPackages } from './build-util/ts';
+import PackageBrowserInstance from './package-mgr/package-instance';
+import {PackageInfo, walkPackages} from './package-mgr/package-info-gathering';
 // const NodeApi = require('../lib/nodeApi');
 // const {nodeInjector} = require('../lib/injectorFactory');
 import { nodeInjector, webInjector } from './injector-factory';
@@ -14,6 +15,7 @@ import Events from 'events';
 import {createLazyPackageFileFinder, packages4Workspace} from './package-utils';
 import log4js from 'log4js';
 import config from './config';
+import {isCwdWorkspace} from './package-mgr';
 
 const log = log4js.getLogger('package-runner');
 
@@ -50,6 +52,9 @@ const apiCache: {[name: string]: any} = {};
  * no fully scanning or ordering on all packages
  */
 export async function runSinglePackage({target, args}: {target: string, args: string[]}) {
+  if (!isCwdWorkspace()) {
+    return Promise.reject(new Error('Current directory is not a workspace directory'));
+  }
   const passinArgv = {};
   // console.log(args);
   // throw new Error('stop');
@@ -171,7 +176,11 @@ export function initWebInjector(packages: PackageBrowserInstance[], apiPrototype
   apiPrototype.browserInjector = webInjector;
 }
 
-export function prepareLazyNodeInjector(argv: {[key: string]: any}) {
+/**
+ * Support `import api from '__api';`
+ * @param argv 
+ */
+export function prepareLazyNodeInjector(argv?: {[key: string]: any}) {
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
   proto.argv = argv;

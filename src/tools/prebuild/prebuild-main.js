@@ -1,2 +1,2 @@
-require('dr-comp-package/register');
+require('@wfh/plink/register');
 require('./dist/cli');

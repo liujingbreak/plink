@@ -1,6 +1,6 @@
 "use strict";
-// import parseJson, {Ast} from 'dr-comp-package/wfh/dist/utils/json-sync-parser';
-// import replaceCode, {ReplacementInf} from 'dr-comp-package/wfh/dist/utils/patch-text';
+// import parseJson, {Ast} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
+// import replaceCode, {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
 // import Path from 'path';
 // import fs from 'fs';
 Object.defineProperty(exports, "__esModule", { value: true });

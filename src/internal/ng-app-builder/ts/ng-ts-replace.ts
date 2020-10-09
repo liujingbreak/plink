@@ -1,5 +1,5 @@
 /* tslint:disable max-line-length */
-import { readTsConfig, transpileSingleTs } from 'dr-comp-package/wfh/dist/ts-compiler';
+import { readTsConfig, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as log4js from 'log4js';

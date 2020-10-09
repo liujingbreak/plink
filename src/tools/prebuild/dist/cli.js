@@ -34,11 +34,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = void 0;
 const path_1 = __importDefault(require("path"));
-const config_1 = __importDefault(require("dr-comp-package/wfh/dist/config"));
+const config_1 = __importDefault(require("@wfh/plink/wfh/dist/config"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const log4js_1 = __importDefault(require("log4js"));
-const bootstrap_server_1 = require("dr-comp-package/wfh/dist/utils/bootstrap-server");
-const package_runner_1 = require("dr-comp-package/wfh/dist/package-runner");
+const dist_1 = require("@wfh/plink/wfh/dist");
+const package_runner_1 = require("@wfh/plink/wfh/dist/package-runner");
 // import * as astUtil from './cli-ts-ast-util';
 const cliExt = (program, withGlobalOptions) => {
     // ----------- deploy ----------
@@ -49,8 +49,8 @@ const cliExt = (program, withGlobalOptions) => {
         .option('--secret <credential code>', 'credential code for deploy to "prod" environment')
         .action((app, scriptsFile) => __awaiter(void 0, void 0, void 0, function* () {
         const opt = deployCmd.opts();
-        yield bootstrap_server_1.initConfigAsync(deployCmd.opts());
-        (yield Promise.resolve().then(() => __importStar(require('dr-comp-package/wfh/dist/package-runner')))).prepareLazyNodeInjector({});
+        yield dist_1.initConfigAsync(deployCmd.opts());
+        (yield Promise.resolve().then(() => __importStar(require('@wfh/plink/wfh/dist/package-runner')))).prepareLazyNodeInjector({});
         const cliDeploy = require('./cli-deploy').default;
         yield cliDeploy(opt.static, opt.env, app, deployCmd.opts().pushBranch, deployCmd.opts().secret || null, scriptsFile);
     }));
@@ -75,8 +75,8 @@ const cliExt = (program, withGlobalOptions) => {
         .description('Send static resource to remote server')
         .option('--secret <credential code>', 'credential code for deploy to "prod" environment')
         .action((appName, zip) => __awaiter(void 0, void 0, void 0, function* () {
-        yield bootstrap_server_1.initConfigAsync(sendCmd.opts());
-        (yield Promise.resolve().then(() => __importStar(require('dr-comp-package/wfh/dist/package-runner')))).prepareLazyNodeInjector({});
+        yield dist_1.initConfigAsync(sendCmd.opts());
+        (yield Promise.resolve().then(() => __importStar(require('@wfh/plink/wfh/dist/package-runner')))).prepareLazyNodeInjector({});
         yield require('./_send-patch').send(sendCmd.opts().env, appName, zip, sendCmd.opts().secret);
     }));
     withGlobalOptions(sendCmd);
@@ -84,7 +84,7 @@ const cliExt = (program, withGlobalOptions) => {
     const mockzipCmd = program.command('mockzip');
     mockzipCmd.option('-d,--dir <dir>', 'create a mock zip file in specific directory');
     mockzipCmd.action(() => __awaiter(void 0, void 0, void 0, function* () {
-        yield bootstrap_server_1.initConfigAsync(mockzipCmd.opts());
+        yield dist_1.initConfigAsync(mockzipCmd.opts());
         const Artifacts = require('./artifacts');
         const fileContent = '' + new Date().toUTCString();
         const file = mockzipCmd.opts().dir ? path_1.default.resolve(mockzipCmd.opts().dir, 'prebuild-mock.zip') : config_1.default.resolve('destDir', 'prebuild-mock.zip');
@@ -127,7 +127,7 @@ const cliExt = (program, withGlobalOptions) => {
         .description('Extract all zip files from specific directory')
         .requiredOption('-d,--dest <dir>', 'destination directory')
         .action((zipFileDirectory) => __awaiter(void 0, void 0, void 0, function* () {
-        yield bootstrap_server_1.initConfigAsync(unzipCmd.opts());
+        yield dist_1.initConfigAsync(unzipCmd.opts());
         package_runner_1.prepareLazyNodeInjector({});
         const { forkExtractExstingZip } = yield Promise.resolve().then(() => __importStar(require('@wfh/assets-processer/dist/fetch-remote')));
         yield forkExtractExstingZip(zipFileDirectory, path_1.default.resolve(unzipCmd.opts().dest), true);

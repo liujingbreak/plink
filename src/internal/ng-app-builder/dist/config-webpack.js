@@ -48,8 +48,8 @@ const read_hook_vfshost_1 = __importDefault(require("./utils/read-hook-vfshost")
 const smUrl = require('source-map-url');
 const log = require('log4js').getLogger('config-webpack');
 const chalk_1 = __importDefault(require("chalk"));
-const mem_stats_1 = __importDefault(require("dr-comp-package/wfh/dist/utils/mem-stats"));
-// import setupAssets from '@dr-core/assets-processer/dist/dev-serve-assets';
+const mem_stats_1 = __importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
+// import setupAssets from '@wfh/assets-processer/dist/dev-serve-assets';
 function changeWebpackConfig(context, param, webpackConfig, drcpConfigSetting) {
     return __awaiter(this, void 0, void 0, function* () {
         // const api: typeof __api = require('__api'); // force to defer loading api until DRCP config is ready
@@ -269,7 +269,7 @@ function changeLoaders(param, webpackConfig) {
                 loader: 'url-loader',
                 options: {
                     limit: 10000,
-                    fallback: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader'
+                    fallback: '@wfh/webpack2-builder/dist/loaders/dr-file-loader'
                 }
             }]
     };
@@ -301,7 +301,7 @@ function changeLoaders(param, webpackConfig) {
             Object.keys(rule).forEach((key) => delete rule[key]);
             Object.assign(rule, {
                 test: /\.(eot|svg|cur|webp|otf|ttf|woff|woff2|ani)$/,
-                use: [{ loader: '@dr-core/webpack2-builder/dist/loaders/dr-file-loader' }]
+                use: [{ loader: '@wfh/webpack2-builder/dist/loaders/dr-file-loader' }]
             });
         }
         else if (rule.loader === 'url-loader') {
@@ -325,7 +325,7 @@ function changeLoaders(param, webpackConfig) {
                     sourceMap: needSourceMap
                 }
             });
-            // rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
+            // rule.use.push({loader: '@wfh/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
         }
         else if (test instanceof RegExp && test.toString() === '/\\.less$/' && rule.use) {
             for (const useItem of rule.use) {
@@ -334,7 +334,7 @@ function changeLoaders(param, webpackConfig) {
                     break;
                 }
             }
-            // rule.use.push({loader: '@dr-core/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
+            // rule.use.push({loader: '@wfh/webpack2-builder/lib/debug-loader', options: {id: 'less loaders'}});
         }
     });
     if (!hasUrlLoader) {
@@ -350,7 +350,7 @@ function changeLoaders(param, webpackConfig) {
                 return true;
             return !!__api_1.default.findPackageByFile(file);
         },
-        use: [{ loader: '@dr-core/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader' }]
+        use: [{ loader: '@wfh/ng-app-builder/dist/ng-aot-assets/ng-aot-assets-loader' }]
     });
     rules.unshift({
         oneOf: [
@@ -359,7 +359,7 @@ function changeLoaders(param, webpackConfig) {
                 use: [
                     { loader: 'html-loader', options: { attrs: 'img:src' } },
                     { loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader') },
-                    { loader: '@dr-core/webpack2-builder/lib/jade-to-html-loader' }
+                    { loader: '@wfh/webpack2-builder/lib/jade-to-html-loader' }
                 ]
             },
             {
@@ -367,7 +367,7 @@ function changeLoaders(param, webpackConfig) {
                 use: [
                     { loader: 'html-loader', options: { attrs: 'img:src' } },
                     { loader: Path.resolve(__dirname, 'loaders', 'ng-html-loader') },
-                    { loader: '@dr-core/webpack2-builder/lib/markdown-loader' }
+                    { loader: '@wfh/webpack2-builder/lib/markdown-loader' }
                 ]
             },
             {

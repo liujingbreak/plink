@@ -1,10 +1,9 @@
 {
   "name": "@wfh/plink-cli",
-  "version": "0.4.0",
+  "version": "1.0.1",
   "description": "plink command line interface",
   "main": "bin/cli.js",
   "bin": {
-    "drcp": "bin/drcp.js",
     "plink": "bin/drcp.js"
   },
   "scripts": {

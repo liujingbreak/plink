@@ -11,7 +11,7 @@ import Path from 'path';
 import {Checksum, WithMailServerConfig} from './fetch-types';
 import {createServerDataHandler, parseLinesOfTokens, ImapTokenType, StringLit} from './mail/imap-msg-parser';
 import api from '__api';
-import { LookAhead, Token } from 'dr-comp-package/wfh/dist/async-LLn-parser';
+import { LookAhead, Token } from '@wfh/plink/wfh/dist/async-LLn-parser';
 import {parse as parseRfc822, RCF822ParseResult} from './mail/rfc822-sync-parser';
 
 // import {Socket} from 'net';

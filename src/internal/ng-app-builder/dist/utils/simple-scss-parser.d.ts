@@ -1,4 +1,4 @@
-import { Token, BaseParser, BaseLexer } from 'dr-comp-package/wfh/dist/base-LLn-parser';
+import { Token, BaseParser, BaseLexer } from '@wfh/plink/wfh/dist/base-LLn-parser';
 export declare enum TokenType {
     skip = 0,
     id = 1,

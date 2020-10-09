@@ -35,7 +35,7 @@ function checkVersions(isSymbolicLink) {
 
 		infoText += '\n' + _.padStart('Node.js version: ', PAD_SPACE) + green(process.version);
 		infoText += '\n' + _.padStart('NPM version: ', PAD_SPACE) + green(outputs[0]);
-		infoText += '\n' + _.padStart('dr-comp-package version: ', PAD_SPACE) + green(drcpVer) +
+		infoText += '\n' + _.padStart('@wfh/plink version: ', PAD_SPACE) + green(drcpVer) +
 			(isSymbolicLink ? green(' (symlink)') : '') +
 			(isDrcpOutdated ? yellow(` (latest: ${latestDrcp})`) : ` (published: ${latestDrcp}) `);
 
@@ -103,7 +103,7 @@ function getLatestRecipeVer(recipeName) {
 function getLatestDrcpVer() {
 	if (cachedVersionsInfo)
 		return Promise.resolve(cachedVersionsInfo.drcpVersion);
-	return processUtils.promisifyExe('npm', 'info', 'dr-comp-package', {cwd: process.cwd(), silent: true, timeout: 8000})
+	return processUtils.promisifyExe('npm', 'info', '@wfh/plink', {cwd: process.cwd(), silent: true, timeout: 8000})
 		.then(output => {
 			output = output.replace(/(\[[0-9]+m|\u{001b})/ug, '');
 			var m = npmViewReg.exec(output);
@@ -113,7 +113,7 @@ function getLatestDrcpVer() {
 			return (m && m[1]) ? m[1] : null;
 		})
 		.catch(e => {
-			console.error('[WARN] Command "' + ['npm', 'info', 'dr-comp-package'].join(' ') + '" timeout');
+			console.error('[WARN] Command "' + ['npm', 'info', '@wfh/plink'].join(' ') + '" timeout');
 			return null;
 		});
 }

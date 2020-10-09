@@ -7,7 +7,7 @@ import Path from 'path';
 import {ImapManager} from '../fetch-remote-imap';
 import fs from 'fs-extra';
 import _ from 'lodash';
-import memstat from 'dr-comp-package/wfh/dist/utils/mem-stats';
+import memstat from '@wfh/plink/wfh/dist/utils/mem-stats';
 import crypto, {Hash} from 'crypto';
 import api from '__api';
 import {stringifyListAllVersions} from '@wfh/prebuild/dist/artifacts';

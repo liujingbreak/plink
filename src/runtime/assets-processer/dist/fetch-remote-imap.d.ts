@@ -1,7 +1,7 @@
 import { Observable, BehaviorSubject } from 'rxjs';
 import { Checksum } from './fetch-types';
 import { ImapTokenType } from './mail/imap-msg-parser';
-import { LookAhead, Token } from 'dr-comp-package/wfh/dist/async-LLn-parser';
+import { LookAhead, Token } from '@wfh/plink/wfh/dist/async-LLn-parser';
 export declare function sendMail(subject: string, text: string, file?: string): Promise<void>;
 export declare function retrySendMail(subject: string, text: string, file?: string): Promise<void>;
 export interface ImapFetchData {

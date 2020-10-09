@@ -11,7 +11,6 @@ import * as options from './types';
 
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
   await config.init(opt);
-
   const cwd = process.cwd();
   getStore().pipe(
     distinctUntilChanged((s1, s2) => s1.workspaceUpdateChecksum === s2.workspaceUpdateChecksum),
@@ -39,7 +38,7 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
   if (workspace) {
     actions.updateWorkspace({dir: workspace, isForce: opt.force});
   } else {
-    actions.initRootDir(null);
+    actions.initRootDir({isForce: opt.force});
     setImmediate(() => listProject());
   }
   // setImmediate(() => printWorkspaces());

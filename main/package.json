@@ -1,5 +1,5 @@
 {
-  "name": "dr-comp-package",
+  "name": "@wfh/plink",
   "version": "0.9.0-5",
   "description": "Plink - A monorepo management tool to link packages and projects",
   "main": "wfh/lib/main.js",
@@ -62,7 +62,8 @@
     "require-injector": "5.2.0-alpha.2",
     "rxjs": "~6.4.0",
     "resolve": "^1.15.00",
-    "semver": "^5.4.1",
+    "semver": "^7.3.2",
+    "@types/semver": "^7.3.4",
     "shelljs": "^0.7.8",
     "shelljs-nodecli": "^0.1.1",
     "through2": "^2.0.3",

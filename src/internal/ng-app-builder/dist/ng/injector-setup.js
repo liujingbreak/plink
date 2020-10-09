@@ -18,11 +18,11 @@ const path_1 = __importDefault(require("path"));
 // import api from '__api';
 const lodash_1 = __importDefault(require("lodash"));
 const api_share_1 = require("../../isom/api-share");
-const main_1 = require("dr-comp-package/wfh/dist/build-util/ts/main");
-const package_runner_1 = require("dr-comp-package/wfh/dist/package-runner");
+const package_info_gathering_1 = require("@wfh/plink/wfh/dist/package-mgr/package-info-gathering");
+const package_runner_1 = require("@wfh/plink/wfh/dist/package-runner");
 function walkPackagesAndSetupInjector(browserOptions, ssr = false) {
     return __awaiter(this, void 0, void 0, function* () {
-        const packageInfo = main_1.walkPackages();
+        const packageInfo = package_info_gathering_1.walkPackages();
         yield injectorSetup(packageInfo, browserOptions.drcpArgs, browserOptions.deployUrl, browserOptions.baseHref, ssr);
         return packageInfo;
     });

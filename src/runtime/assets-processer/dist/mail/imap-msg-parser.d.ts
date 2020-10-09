@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { Token, LookAhead } from 'dr-comp-package/wfh/dist/async-LLn-parser';
+import { Token, LookAhead } from '@wfh/plink/wfh/dist/async-LLn-parser';
 import { Observable } from 'rxjs';
 export declare enum ImapTokenType {
     number = 1,

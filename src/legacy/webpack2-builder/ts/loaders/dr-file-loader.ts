@@ -37,7 +37,7 @@ function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: Ra
     this.rootContext ||
     ((this as any).options && (this as any).options.context);
 
-  var url = loaderUtils.interpolateName(this, options.name, {
+  var url = loaderUtils.interpolateName(this, typeof options.name === 'string' ? options.name : '[contenthash].[ext]', {
     context,
     content,
     regExp: options.regExp
@@ -46,9 +46,9 @@ function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: Ra
   let outputPath = url;
   if (options.outputPath) {
     if (typeof options.outputPath === 'function') {
-      outputPath = options.outputPath(url);
+      outputPath = (options.outputPath as any)(url);
     } else {
-      outputPath = path.posix.join(options.outputPath, url);
+      outputPath = path.posix.join(options.outputPath as string, url);
     }
   }
   const drcpOutputDir = drPackageOutputPath(this);
@@ -59,8 +59,8 @@ function loader(this: wl.LoaderContext, content: string | Buffer, sourceMap?: Ra
 
   if (options.publicPath) {
     if (typeof options.publicPath === 'function') {
-      publicPath = options.publicPath(url);
-    } else if (options.publicPath.endsWith('/')) {
+      publicPath = (options.publicPath as any)(url);
+    } else if (typeof options.publicPath === 'string' && options.publicPath.endsWith('/')) {
       publicPath = options.publicPath + url;
     } else {
       publicPath = `${options.publicPath}/${url}`;

@@ -10,17 +10,17 @@ interface ReqWithNextCb extends Request {
   __goNext: NextFunction;
 }
 export function proxyToDevServer() {
-  const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
+  // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
   const config: proxy.Config | undefined = api.config.get(api.packageName).indexHtmlProxy;
   if (config == null)
     return;
   config.changeOrigin = true;
   config.ws = true;
-  config.logProvider = () => hpmLog;
+  // config.logProvider = () => hpmLog;
   config.logLevel = 'info';
   config.onError = (err, req, res) => {
     if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
-      log.warn('Can not connect to %s%s, farward to local static resource', config.target, req.url);
+      log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
       if ((req as any).__goNext)
         return (req as ReqWithNextCb).__goNext();
       return;

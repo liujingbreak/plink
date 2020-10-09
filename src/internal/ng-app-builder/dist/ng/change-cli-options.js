@@ -35,8 +35,8 @@ exports.changeAngularCliOptions = exports.changeAngularCliOptionsForBuild = void
 /* tslint:disable no-console */
 const architect_1 = require("@angular-devkit/architect");
 const chalk_1 = __importDefault(require("chalk"));
-const network_util_1 = require("dr-comp-package/wfh/dist/utils/network-util");
-// import { getTsDirsOfPackage } from 'dr-comp-package/wfh/dist/utils';
+const network_util_1 = require("@wfh/plink/wfh/dist/utils/network-util");
+// import { getTsDirsOfPackage } from '@wfh/plink/wfh/dist/utils';
 const fs = __importStar(require("fs"));
 const _ = __importStar(require("lodash"));
 const Path = __importStar(require("path"));
@@ -44,11 +44,11 @@ const worker_threads_1 = require("worker_threads");
 const typescript_1 = require("typescript");
 const url_1 = __importDefault(require("url"));
 const injector_setup_1 = __importDefault(require("./injector-setup"));
-const mem_stats_1 = __importDefault(require("dr-comp-package/wfh/dist/utils/mem-stats"));
+const mem_stats_1 = __importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
 const for_hmr_1 = require("./for-hmr");
 const { cyan, green, red } = chalk_1.default;
 const currPackageName = require('../../package.json').name;
-const log = require('log4js').getLogger('@dr-core/ng-app-builder.change-cli-options');
+const log = require('log4js').getLogger('@wfh/ng-app-builder.change-cli-options');
 function hackAngularBuilderContext(context, targetName, replacedOpts) {
     const getTargetOptions = context.getTargetOptions;
     context.getTargetOptions = function (target) {
@@ -167,7 +167,7 @@ function processBrowserBuiliderOptions(config, rawBrowserOptions, context, devSe
         yield hackTsConfig(browserOptions, config, packagesInfo);
         context.reportStatus('setting up assets options');
         // Because dev-serve-assets depends on DRCP api, I have to lazy load it.
-        const forEachAssetsDir = require('@dr-core/assets-processer/dist/dev-serve-assets').packageAssetsFolders;
+        const forEachAssetsDir = require('@wfh/assets-processer/dist/dev-serve-assets').packageAssetsFolders;
         forEachAssetsDir('/', (inputDir, outputDir) => {
             if (!browserOptions.assets) {
                 browserOptions.assets = [];
@@ -240,7 +240,7 @@ function createTsConfigSync(tsconfigFile, browserOptions, config, packageInfo) {
 function createTsConfigInWorker(tsconfigFile, browserOptions, config, packageInfo) {
     const reportDir = config.resolve('destDir', 'ng-app-builder.report');
     mem_stats_1.default();
-    const workerLog = require('log4js').getLogger('@dr-core/ng-app-builder.worker');
+    const workerLog = require('log4js').getLogger('@wfh/ng-app-builder.worker');
     return new Promise((resolve, rej) => {
         const workerData = {
             tsconfigFile,

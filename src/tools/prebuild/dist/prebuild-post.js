@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = void 0;
 // tslint:disable: no-console
-const process_utils_1 = require("dr-comp-package/wfh/dist/process-utils");
+const process_utils_1 = require("@wfh/plink/wfh/dist/process-utils");
 const path_1 = __importDefault(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const moment_1 = __importDefault(require("moment"));

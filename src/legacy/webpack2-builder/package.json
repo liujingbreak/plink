@@ -1,6 +1,6 @@
 {
   "name": "@wfh/webpack2-builder",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Deprecated ! Browser side stuff builder module based on Webpack2",
   "main": "main.js",
   "browser": "browser/api.js",
@@ -13,12 +13,18 @@
     "gzip-size": "^4.1.0",
     "markdown-it": "6.0.0",
     "highlight.js": "~9.12.0",
-    "pify": "^3.0.0"
+    "pify": "^3.0.0",
+    "loader-utils": "^2.0.0",
+    "@types/loader-utils": "^2.0.1"
   },
   "author": "LJ",
   "license": "MIT",
   "dr": {
-    "category": ["tool", "internal", "nodejs"],
+    "category": [
+      "tool",
+      "internal",
+      "nodejs"
+    ],
     "chunk": "common-app",
     "cssScope": false,
     "serverPriority": 4000,

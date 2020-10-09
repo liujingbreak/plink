@@ -1,9 +1,9 @@
 import {FactoryMapInterf} from 'require-injector/dist/factory-map';
-import {RequireInjector} from 'require-injector/dist/replace-require';
+// import {RequireInjector} from 'require-injector/dist/replace-require';
 import {DrPackageInjector} from './injector-factory';
 import _config from './config';
 export {DrPackageInjector as InjectorFactory};
-export {FactoryMapInterf, RequireInjector};
+export {FactoryMapInterf};
 
 // export interface InjectorFactory extends RequireInjector {
 // 	addPackage(name: string, dir: string): void;

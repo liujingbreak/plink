@@ -1,6 +1,6 @@
 import Path from 'path';
 import fs from 'fs';
-import replaceCode from 'dr-comp-package/wfh/dist/utils/patch-text';
+import replaceCode from '@wfh/plink/wfh/dist/utils/patch-text';
 import TsAstSelector from '../utils/ts-ast-query';
 import ts from 'typescript';
 import log4js from 'log4js';

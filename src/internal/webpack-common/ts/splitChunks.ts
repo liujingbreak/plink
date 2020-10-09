@@ -39,7 +39,9 @@ export default function setupSplitChunks(config: wp.Configuration,
     const cp = (base.splitChunks as wp.Options.SplitChunksOptions).cacheGroups as {[key: string]: wp.Options.CacheGroupsOptions};
     cp.lazyVendor.test = cp.vendor.test = vendorModuleTest;
   }
-  Object.assign(config, base);
+  if (config.optimization == null)
+    config.optimization = {};
+  Object.assign(config.optimization, base);
 }
 
 export function getAngularVendorChunkTestFn(config: wp.Configuration): ModuleTestFn {

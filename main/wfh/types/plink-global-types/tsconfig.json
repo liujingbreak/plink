@@ -8,8 +8,8 @@
     "module": "commonjs",
     "rootDir": ".",
     "paths": {
-      "dr-comp-package": ["../../../"],
-      "dr-comp-package/*": ["../../../*"]
+      "@wfh/plink": ["../../../"],
+      "@wfh/plink/*": ["../../../*"]
     }
   },
   "include": [

@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const worker_threads_1 = require("worker_threads");
 const common_1 = require("./common");
 const injector_setup_1 = require("./injector-setup");
-const mem_stats_1 = __importDefault(require("dr-comp-package/wfh/dist/utils/mem-stats"));
+const mem_stats_1 = __importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
 const { tsconfigFile, reportDir, config, ngOptions, packageInfo, deployUrl, baseHref, drcpBuilderOptions } = worker_threads_1.workerData;
 // tslint:disable: no-console
 // console.log(workerData);

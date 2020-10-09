@@ -3,7 +3,7 @@
  * Do not actually import entity other than "type" from here
  * Because we have not set node path yet.
  */
-import {drawPuppy, saveCmdArgToEnv} from './utils';
+import {drawPuppy} from './utils';
 import _paths from './cra-scripts-paths';
 import {getCmdOptions} from './utils';
 import Path from 'path';
@@ -15,7 +15,7 @@ import {sep, resolve, dirname} from 'path';
 const deleteExecArgIdx: number[] = [];
 for (let i = 0, l = process.execArgv.length; i < l; i++) {
   if (i < l - 1 && /^(?:\-r|\-\-require)$/.test(process.execArgv[i]) &&
-  /^@bk\/cra\-scripts($|\/)/.test(process.execArgv[i + 1])) {
+  /^@wfh\/cra\-scripts($|\/)/.test(process.execArgv[i + 1])) {
     deleteExecArgIdx.push(i);
   }
 }
@@ -24,11 +24,11 @@ deleteExecArgIdx.reduce((offset, deleteIdx) => {
   return offset + 2;
 }, 0);
 
-drawPuppy('Loading my poo...');
-saveCmdArgToEnv();
-poo();
+// drawPuppy('Loading my poo...');
+// saveCmdArgToEnv();
+// poo();
 
-function poo() {
+export function poo() {
   const getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
   const reactScriptsPath = `${sep}node_modules${sep}react-scripts${sep}`;
   const reactDevUtilsPath = `${sep}node_modules${sep}react-dev-utils${sep}`;

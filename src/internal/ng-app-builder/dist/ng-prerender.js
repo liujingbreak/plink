@@ -44,7 +44,7 @@ const log = require('log4js').getLogger('ng-prerender');
 const __api_1 = __importDefault(require("__api"));
 const module_map_ngfactory_loader_1 = require("@nguniversal/module-map-ngfactory-loader");
 const platform_server_1 = require("@angular/platform-server");
-const ng_prerender_1 = require("@dr-core/assets-processer/dist/ng-prerender");
+const ng_prerender_1 = require("@wfh/assets-processer/dist/ng-prerender");
 const domino = require('domino');
 core_1.enableProdMode();
 function setupGlobals(indexHtml, url) {
@@ -132,7 +132,7 @@ function renderRoutes(index, mainFile, ROUTES, prerenderParams = null, useDomino
  */
 function writeRoutesWithLocalServer(staticDir, htmlFile, mainFile, ROUTES, outputFolder) {
     return __awaiter(this, void 0, void 0, function* () {
-        const pkMgr = require('dr-comp-package/wfh/lib/packageMgr');
+        const pkMgr = require('@wfh/plink/wfh/lib/packageMgr');
         const shutdown = yield pkMgr.runServer(__api_1.default.argv);
         let mapFile;
         try {

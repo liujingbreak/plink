@@ -34,7 +34,7 @@ To be supported by `ng <command>` command:
 
 ## How to use as Angular command line builder
 ### 1. Make your application project as a DRCP workspace
-- Add **dr-comp-package** to project dependency list in file package.json
+- Add **@wfh/plink** to project dependency list in file package.json
 - Run `drcp init` to install dependencies, this will call `npm install` internally.
 - Modify **angular.json** file, change application project part:
     ```json
@@ -230,7 +230,7 @@ A sample configuration TS file.
 `ng serve/build --drcp-config <conf-1.ts>,<conf-2.ts>...` 引入这个文件
 ```
 import {AngularConfigHandler, AngularBuilderOptions, WepackConfigHandler, DrcpSetting as AppBuilderSetting} from '@dr-core/ng-app-builder';
-import {ConfigHandler, InjectorConfigHandler, InjectorFactory} from 'dr-comp-package/wfh/dist';
+import {ConfigHandler, InjectorConfigHandler, InjectorFactory} from '@wfh/plink/wfh/dist';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 // import {Options as webpackOpt} from 'webpack';

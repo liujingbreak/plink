@@ -60,7 +60,7 @@ function _tsLintPackageAsync(fullName: string, json: any, packagePath: string, f
   let dir;
   // packagePath = fs.realpathSync(packagePath);
   log.info('TSlint Scan', packagePath);
-  if (fullName === 'dr-comp-package')
+  if (fullName === '@wfh/plink')
     packagePath = packagePath + '/wfh';
   for (let pDir = packagePath; dir !== pDir; pDir = Path.dirname(dir)) {
     dir = pDir;

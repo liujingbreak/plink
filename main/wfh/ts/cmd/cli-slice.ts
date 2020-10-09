@@ -4,7 +4,7 @@ import {stateFactory} from '../store';
 // import {cliActionDispatcher, getStore, cliSlice, CliExtension} from './cli-slice';
 import {map, distinctUntilChanged, catchError, ignoreElements, mergeMap, debounceTime,
   skip, filter} from 'rxjs/operators';
-import {of, merge} from 'rxjs';
+import {of, merge, from} from 'rxjs';
 import {ofPayloadAction } from '../../../redux-toolkit-observable';
 import {allPackages} from '../package-utils';
 
@@ -15,6 +15,8 @@ export interface CliState {
   version: string;
   osLang?: string;
   osCountry?: string;
+  /** key: command name, value: file path */
+  loadedExtensionCmds: Map<string, string>;
 }
 
 export interface CliExtension {
@@ -25,7 +27,8 @@ export interface CliExtension {
 
 const initialState: CliState = {
   extensions: new Map(),
-  version: ''
+  version: '',
+  loadedExtensionCmds: new Map()
 };
 
 export const cliSlice = stateFactory.newSlice({
@@ -38,10 +41,12 @@ export const cliSlice = stateFactory.newSlice({
     plinkUpgraded(d, {payload: newVersion}: PayloadAction<string>) {
       d.version = newVersion;
     },
-    updateLocale(d, {payload: raw}: PayloadAction<string>) {
-      const arr = raw.split(/[_-]/);
-      d.osLang = arr[0];
-      d.osCountry = arr[1];
+    updateLocale(d, {payload: [lang, country]}: PayloadAction<[string, string]>) {
+      d.osLang = lang;
+      d.osCountry = country;
+    },
+    updateLoadedCmd(d, {payload}: PayloadAction<{cmd: string, file: string}>) {
+      d.loadedExtensionCmds.set(payload.cmd, payload.file);
     }
   }
 });
@@ -63,10 +68,6 @@ const drcpPkJson = require('../../../package.json');
 
 
 stateFactory.addEpic((action$, state$) => {
-  getLocale().then(locale => {
-    cliActionDispatcher.updateLocale(locale);
-    pkgMgr.actionDispatcher.setInChina(locale.split(/[-_]/)[1].toUpperCase() === 'CN');
-  });
 
   return merge(
     getStore().pipe(map(s => s.version), distinctUntilChanged(),
@@ -112,7 +113,16 @@ stateFactory.addEpic((action$, state$) => {
           scanPackageJson(installed!.values());
         })
       );
-    })
+    }),
+    from(getLocale()).pipe(
+      map(locale => {
+        const [lang, country] = locale.split(/[_-]/);
+        if (getState().osLang !== lang || getState().osCountry !== country) {
+          cliActionDispatcher.updateLocale([lang, country]);
+          pkgMgr.actionDispatcher.setInChina(country.toUpperCase() === 'CN');
+        }
+      })
+    )
   ).pipe(
     catchError(ex => {
       // tslint:disable-next-line: no-console

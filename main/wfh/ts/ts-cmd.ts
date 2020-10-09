@@ -84,8 +84,11 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     packageUtils.findAllPackages(argv.package, onComponent, 'src');
   else if (argv.project && argv.project.length > 0) {
     packageUtils.findAllPackages(onComponent, 'src', argv.project);
-  } else
-    packageUtils.findAllPackages(onComponent, 'src');
+  } else {
+    for (const pkg of packageUtils.packages4Workspace(process.cwd(), false)) {
+      onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath);
+    }
+  }
 
   if (countPkg === 0) {
     throw new Error('No available srouce package found in current workspace');
@@ -98,7 +101,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   }
   // console.log(packageDirTree.traverse());
   compilerOptions.rootDir = commonRootDir.replace(/\\/g, '/');
-  // console.log('rootDir:', commonRootDir);
+  log.info('typescript compilerOptions:', compilerOptions);
 
   function onComponent(name: string, packagePath: string, _parsedName: any, json: any, realPath: string) {
     countPkg++;

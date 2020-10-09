@@ -1,7 +1,7 @@
 /**
  * TODO: Support parsing file with <script></script> tag contains special JS character like "<" and ">"
  */
-import { Lexer, Token } from 'dr-comp-package/wfh/dist/LLn-parser';
+import { Lexer, Token } from '@wfh/plink/wfh/dist/LLn-parser';
 export declare enum HtmlTokenType {
     '<' = 0,
     '>' = 1,

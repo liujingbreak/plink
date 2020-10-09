@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = exports.RCF822TokenType = void 0;
-const async_LLn_parser_1 = require("dr-comp-package/wfh/dist/async-LLn-parser");
+const async_LLn_parser_1 = require("@wfh/plink/wfh/dist/async-LLn-parser");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const fs_extra_1 = __importDefault(require("fs-extra"));

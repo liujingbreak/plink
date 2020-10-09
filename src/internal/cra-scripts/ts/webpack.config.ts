@@ -5,42 +5,80 @@ import fs from 'fs-extra';
 import {Configuration, RuleSetRule, Compiler, RuleSetUseItem, RuleSetLoader} from 'webpack';
 import { RawSource } from 'webpack-sources';
 import {drawPuppy, printConfig, getCmdOptions} from './utils';
-// import {createLazyPackageFileFinder} from 'dr-comp-package/wfh/dist/package-utils';
+// import {createLazyPackageFileFinder} from '@wfh/plink/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 import {findPackage} from './build-target-helper';
-import {ConfigHandlerMgr} from 'dr-comp-package/wfh/dist/config-handler';
+import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
 import {ReactScriptsHandler} from './types';
-import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
-import walkPackagesAndSetupInjector from './injector-setup';
+import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
+import {Options as TsLoaderOpts} from '@wfh/webpack-common/dist/ts-loader';
+import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';
+// import walkPackagesAndSetupInjector from './injector-setup';
+import log4js from 'log4js';
+import api from '__api';
+
+const log = log4js.getLogger('cra-scripts');
 // import chalk from 'chalk';
 // const ProgressPlugin = require('webpack/lib/ProgressPlugin');
 
 
 // const findPackageByFile = createLazyPackageFileFinder();
-let api: ReturnType<typeof walkPackagesAndSetupInjector>;
+// let api: ReturnType<typeof walkPackagesAndSetupInjector>;
 
-export = function(webpackEnv: string) {
-  drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check:\n  ${Path.resolve('/logs')}`);
-  api = walkPackagesAndSetupInjector(false);
+export = function(webpackEnv: 'production' | 'development') {
+  drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${Path.resolve('/logs')}`);
+  // api = walkPackagesAndSetupInjector(false);
 
   const cmdOption = getCmdOptions();
-  // console.log('webpackEnv=', webpackEnv);
+  log.info('webpackEnv=', webpackEnv);
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
   if (cmdOption.devMode || cmdOption.watch) {
     webpackEnv = 'development';
-    console.log('[cra-scripts] Development mode is on:', webpackEnv);
+    log.info('[cra-scripts] Development mode is on:', webpackEnv);
   } else {
     process.env.GENERATE_SOURCEMAP = 'false';
   }
   const origWebpackConfig = require('react-scripts/config/webpack.config');
+
+  process.env.INLINE_RUNTIME_CHUNK = 'true';
+
   const config: Configuration = origWebpackConfig(webpackEnv);
-  // fs.mkdirpSync('logs');
-  // fs.writeFile('logs/webpack.config.origin.debug.js', printConfig(config), (err) => {
-  //   console.error(err);
-  // });
-  console.log(`[cra-scripts] output.publicPath: ${config.output!.publicPath}`);
+  if (webpackEnv === 'production') {
+    // Try to workaround create-react-app issue: default InlineChunkPlugin 's test property does not match 
+    // runtime chunk file name
+    config.output!.filename = 'static/js/[name]-[contenthash:8].js';
+    config.output!.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
+  }
+
+  fs.mkdirpSync('logs');
+  fs.writeFile('logs/webpack.config.cra.js', printConfig(config), (err) => {
+    console.error(err);
+  });
+
+  log.info(`[cra-scripts] output.publicPath: ${config.output!.publicPath}`);
   // Make sure babel compiles source folder out side of current src directory
   findAndChangeRule(config.module!.rules);
+
+  const myTsLoaderOpts: TsLoaderOpts = {
+    tsConfigFile: Path.resolve('tsconfig.json'),
+    injector: api.browserInjector,
+    compileExpContex: file => {
+      const pkg = api.findPackageByFile(file);
+      if (pkg) {
+        return {__api: api.getNodeApiForPackage(pkg)};
+      } else {
+        return {};
+      }
+    }
+  };
+  config.module!.rules.push({
+    test: createRuleTestFunc4Src(/\.[jt]sx?$/),
+    enforce: 'pre',
+    use: {
+      options: myTsLoaderOpts,
+      loader: require.resolve('@wfh/webpack-common/dist/ts-loader')
+    }
+  });
   insertLessLoaderRule(config.module!.rules);
 
   const foundPkg = findPackage(cmdOption.buildTarget);
@@ -52,7 +90,9 @@ export = function(webpackEnv: string) {
   if (cmdOption.buildType === 'app') {
     // TODO: do not hard code
     config.resolve!.alias!['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
-    console.log(`[cra-scripts] alias:dr.cra-start-entry: ${config.resolve!.alias!['alias:dr.cra-start-entry']}`);
+    log.info(`[cra-scripts] alias:dr.cra-start-entry: ${config.resolve!.alias!['alias:dr.cra-start-entry']}`);
+    config.output!.path = api.config.resolve('staticDir');
+    // config.devtool = 'source-map';
   }
 
 
@@ -71,28 +111,15 @@ export = function(webpackEnv: string) {
   config.resolve!.modules = resolveModules;
 
   Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
-  Object.assign(config.optimization!.splitChunks, {
-    chunks: 'all',
-    // name: false, default is false for production
-    cacheGroups: {
-      lazyVendor: {
-        name: 'lazy-vendor',
-        chunks: 'async',
-        enforce: true,
-        test: /[\\/]node_modules[\\/]/, // TODO: exclude Dr package source file
-        priority: 1
-      }
-    }
-  });
   config.plugins!.push(new (class {
     apply(compiler: Compiler) {
       compiler.hooks.emit.tap('drcp-cli-stats', compilation => {
         const stats = compilation.getStats();
         compilation.assets['stats.json'] = new RawSource(JSON.stringify(stats.toJson('verbose')));
         setTimeout(() => {
-          console.log('[cra-scripts] stats:');
-          console.log(stats.toString('normal'));
-          console.log('');
+          log.info('[cra-scripts] stats:');
+          log.info(stats.toString('normal'));
+          log.info('');
         }, 0);
         // const data = JSON.stringify(compilation.getStats().toJson('normal'));
         // compilation.assets['stats.json'] = new RawSource(data);
@@ -104,31 +131,35 @@ export = function(webpackEnv: string) {
 
   config.stats = 'normal'; // Not working
 
-  // const ssrConfig = (global as any).__SSR;
-  // if (ssrConfig) {
-  //   ssrConfig(config);
-  // }
-
-  if (cmdOption.buildType === 'lib')
+  if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
+  } else {
+    setupSplitChunks(config, (mod) => {
+      const file = mod.nameForCondition ? mod.nameForCondition() : null;
+      if (file == null)
+        return true;
+      const pkg = api.findPackageByFile(file);
+      return pkg == null;
+    });
+  }
 
-  const craPaths = require('react-scripts/config/paths');
-  config.module!.rules.push({
-    test: createRuleTestFunc4Src(/\.tsx?$/, craPaths.appSrc),
-    loader: require.resolve('require-injector/webpack-loader'),
-    options: {injector: api.browserInjector}
+  api.config.configHandlerMgr().runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+    log.info('Execute command line Webpack configuration overrides', cfgFile);
+    handler.webpack(config, webpackEnv, cmdOption);
   });
   const configFileInPackage = Path.resolve(dir, _.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
+
   if (fs.existsSync(configFileInPackage)) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
     cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+      log.info('Execute Webpack configuration overrides from ', cfgFile);
       handler.webpack(config, webpackEnv, cmdOption);
     });
   }
 
-  fs.mkdirpSync('logs');
-  fs.writeFile('logs/webpack.config.debug.js', printConfig(config), (err) => {
-    console.error(err);
+  fs.writeFile('logs/webpack.config.plink.js', printConfig(config), (err) => {
+    if (err)
+      console.error(err);
   });
   return config;
 };
@@ -145,7 +176,7 @@ function insertLessLoaderRule(origRules: RuleSetRule[]): void {
       if (rule.test.toString() === '/\\.(scss|sass)$/') {
         const use = rule.use as RuleSetLoader[];
         const postCss = use.find(item => item.loader && item.loader.indexOf('postcss-loader') >= 0);
-        // console.log(chalk.redBright('' + i));
+        // log.info(chalk.redBright('' + i));
         parentRules.splice(idx, 0,
           createLessLoaderRule(postCss!));
         break;
@@ -189,6 +220,7 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
     } else if (Array.isArray(rule.loader)) {
         checkSet(rule.loader);
     } else if (rule.oneOf) {
+      insertRawLoader(rule.oneOf);
       return findAndChangeRule(rule.oneOf);
     }
   }
@@ -233,13 +265,23 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
   return;
 }
 
-function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc: string) {
+function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) {
   return function testOurSourceFile(file: string)  {
     const pk = api.findPackageByFile(file);
-    const yes = ((pk && pk.dr) || file.startsWith(appSrc)) &&
+    const yes = ((pk && pk.dr) || (appSrc && file.startsWith(appSrc))) &&
       (origTest instanceof RegExp) ? origTest.test(file) :
         (origTest instanceof Function ? origTest(file) : origTest === file);
-    // console.log(`[webpack.config] babel-loader: ${file}`, yes);
+    // log.info(`[webpack.config] babel-loader: ${file}`, yes);
     return yes;
   };
+}
+
+function insertRawLoader(rules: RuleSetRule[]) {
+  const htmlLoaderRule = {
+    test: /\.html$/,
+    use: [
+      {loader: 'raw-loader'}
+    ]
+  };
+  rules.push(htmlLoaderRule);
 }

@@ -1,10 +1,8 @@
 import express, {Application} from 'express';
-import ExpressAppApi from './api-types';
-import api from '__api';
-import {DrcpApi} from '@wfh/ng-app-builder/globals';
+import api, {DrcpApi} from '__api';
 import _ from 'lodash';
 import Path from 'path';
-export {ExpressAppApi};
+
 var log = require('log4js').getLogger(api.packageName + '.setApi');
 var swig = require('swig-templates');
 
@@ -38,8 +36,8 @@ export function applyPackageDefinedAppSetting(app: Application) {
   });
 }
 
-export function setupApi(api: ExpressAppApi & DrcpApi, app: Application) {
-  var apiPrototype: ExpressAppApi = Object.getPrototypeOf(api);
+export function setupApi(api: DrcpApi, app: Application) {
+  var apiPrototype: DrcpApi = Object.getPrototypeOf(api);
   apiPrototype.express = express;
   apiPrototype.expressApp = app;
   apiPrototype.swig = swig;
@@ -75,14 +73,14 @@ export function setupApi(api: ExpressAppApi & DrcpApi, app: Application) {
       // log.debug(self.packageName + ': app.use context path = ' + contextPath);
       app.use(contextPath, router);
       app.use(contextPath, function(req, res, next) {
-        delete res.render;
+        delete (res as any).render;
         log.debug('Out package', calleePackageName, self.packageName, 'cleanup customized res.render');
         next();
       });
       // If an error encountered in previous middlewares, we still need to cleanup render method
       app.use(contextPath, function(err, req, res, next) {
         log.warn('cleanup render() when encountering error in ', contextPath);
-        delete res.render;
+        delete (res as any).render;
         next(err);
       } as express.ErrorRequestHandler);
     }

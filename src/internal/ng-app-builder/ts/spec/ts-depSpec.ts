@@ -1,6 +1,6 @@
 // tslint:disable:no-console
 import Graph from '../ts-dep';
-import {readTsConfig} from 'dr-comp-package/wfh/dist/ts-compiler';
+import {readTsConfig} from '@wfh/plink/wfh/dist/ts-compiler';
 import Path from 'path';
 
 describe('ts-dep', () => {

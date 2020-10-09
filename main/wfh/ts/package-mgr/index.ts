@@ -61,7 +61,7 @@ const state: PackagesState = {
   gitIgnores: {},
   linkedDrcp: isDrcpSymlink ?
     createPackageInfo(Path.resolve(
-      getRootDir(), 'node_modules/dr-comp-package/package.json'), false, getRootDir())
+      getRootDir(), 'node_modules/@wfh/plink/package.json'), false, getRootDir())
     : null,
   workspaceUpdateChecksum: 0
 };
@@ -85,7 +85,7 @@ export const slice = stateFactory.newSlice({
   initialState: state,
   reducers: {
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d, action: PayloadAction<{hoistedDir: string} | undefined | null>) {
+    initRootDir(d, action: PayloadAction<{isForce: boolean}>) {
     },
 
     /** Check and install dependency, if there is linked package used in more than one workspace, 
@@ -162,9 +162,9 @@ export const slice = stateFactory.newSlice({
 
       if (isDrcpSymlink) {
         // tslint:disable-next-line: no-console
-        console.log('[_hoistWorkspaceDeps] dr-comp-package is symlink');
-        delete updatingDeps['dr-comp-package'];
-        delete updatingDevDeps['dr-comp-package'];
+        console.log('[_hoistWorkspaceDeps] @wfh/plink is symlink');
+        delete updatingDeps['@wfh/plink'];
+        delete updatingDevDeps['@wfh/plink'];
       }
 
       // pkjsonList.push(updatingJson);
@@ -229,10 +229,10 @@ export const slice = stateFactory.newSlice({
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: PackageInfo[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
     },
-    _updateGitIgnores(d, {payload}: PayloadAction<{file: string, content: string}>) {
+    updateGitIgnores(d, {payload}: PayloadAction<{file: string, content: string}>) {
       d.gitIgnores[payload.file] = payload.content;
     },
-    _updateTsConfigForEditor(d, {payload: workspaceKey}: PayloadAction<string>) {},
+    _relatedPackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {},
     setInChina(d, {payload}: PayloadAction<boolean>) {
       d.isInChina = payload;
     },
@@ -249,8 +249,8 @@ export const slice = stateFactory.newSlice({
 });
 
 export const actionDispatcher = stateFactory.bindActionCreators(slice);
+export const {updateGitIgnores} = actionDispatcher;
 
-// const readFileAsync = promisify<string, string, string>(fs.readFile);
 /**
  * Carefully access any property on config, since config setting probably hasn't been set yet at this momment
  */
@@ -290,7 +290,10 @@ stateFactory.addEpic((action$, state$) => {
           if (getState().workspaces.has(wsKey)) {
             actionDispatcher._change(d => {
               // clean to trigger install action
-              d.workspaces.get(wsKey)!.installJsonStr = '';
+              const ws = d.workspaces.get(wsKey)!;
+              ws.installJsonStr = '';
+              ws.installJson.dependencies = {};
+              ws.installJson.devDependencies = {};
               // tslint:disable-next-line: no-console
               console.log('force npm install in', wsKey);
             });
@@ -312,16 +315,16 @@ stateFactory.addEpic((action$, state$) => {
 
     // initRootDir
     action$.pipe(ofPayloadAction(slice.actions.initRootDir),
-      map(() => {
+      map(({payload}) => {
         checkAllWorkspaces();
         if (getState().workspaces.has(workspaceKey(process.cwd()))) {
-          actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: false});
+          actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: payload.isForce});
         } else {
           const curr = getState().currWorkspace;
           if (curr != null) {
             if (getState().workspaces.has(curr)) {
               const path = Path.resolve(getRootDir(), curr);
-              actionDispatcher.updateWorkspace({dir: path, isForce: false});
+              actionDispatcher.updateWorkspace({dir: path, isForce: payload.isForce});
             } else {
               actionDispatcher.setCurrentWorkspace(null);
             }
@@ -334,7 +337,7 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
       map(({payload}) => {
         const wsKey = workspaceKey(payload.dir);
-        actionDispatcher._updateTsConfigForEditor(wsKey);
+        actionDispatcher._relatedPackageUpdated(wsKey);
         setImmediate(() => actionDispatcher.workspaceStateUpdated());
       }),
       ignoreElements()
@@ -354,7 +357,6 @@ stateFactory.addEpic((action$, state$) => {
           for (const ws of newAdded) {
             actionDispatcher._installWorkspace({workspaceKey: ws});
           }
-          writeConfigFiles();
         }
         return curr;
       }),
@@ -363,13 +365,27 @@ stateFactory.addEpic((action$, state$) => {
     ...Array.from(getState().workspaces.keys()).map(key => {
       return getStore().pipe(
         filter(s => s.workspaces.has(key)),
-        map(s => s.workspaces.get(key)!.installJsonStr),
-        distinctUntilChanged(),
+        map(s => s.workspaces.get(key)!),
+        distinctUntilChanged((s1, s2) => s1.installJson === s2.installJson),
         // tap((installJsonStr) => console.log('installJsonStr length',key, installJsonStr.length)),
-        filter(installJsonStr => installJsonStr.length > 0),
-        skip(1), take(1),
-        map(() => {
-          return actionDispatcher._installWorkspace({workspaceKey: key});
+        // filter(s => s.installJsonStr.length > 0),
+        // skip(1), take(1),
+        scan<WorkspaceState>((old, newWs) => {
+          // tslint:disable: max-line-length
+          const oldDeps = Object.entries(old.installJson.dependencies || [])
+            .concat(Object.entries(old.installJson.devDependencies || []))
+            .map(entry => entry.join(': '));
+          const newDeps = Object.entries(newWs.installJson.dependencies || [])
+            .concat(Object.entries(newWs.installJson.devDependencies || []))
+            .map(entry => entry.join(': '));
+
+          const changed = _.difference(newDeps, oldDeps);
+          if (changed.length > 0) {
+            // tslint:disable-next-line: no-console
+            console.log(`Workspace ${key}, new dependency will be installed:\n${changed.join('\n')}`);
+            actionDispatcher._installWorkspace({workspaceKey: key});
+          }
+          return newWs;
         }),
         ignoreElements()
       );
@@ -392,13 +408,13 @@ stateFactory.addEpic((action$, state$) => {
               }
             })());
             actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
-            actionDispatcher._updateTsConfigForEditor(wsKey);
+            actionDispatcher._relatedPackageUpdated(wsKey);
           })
         );
       }),
       ignoreElements()
     ),
-    action$.pipe(ofPayloadAction(slice.actions._updateTsConfigForEditor),
+    action$.pipe(ofPayloadAction(slice.actions._relatedPackageUpdated),
       map(action => pkgTsconfigForEditorRequestMap.add(action.payload)),
       debounceTime(800),
       map(() => {
@@ -406,6 +422,7 @@ stateFactory.addEpic((action$, state$) => {
           updateTsconfigFileForEditor(wsKey);
         }
         pkgTsconfigForEditorRequestMap.clear();
+        writeConfigFiles();
       })
     ),
     getStore().pipe(map(s => s.gitIgnores),
@@ -510,6 +527,14 @@ export function listPackagesByProjects() {
   return out;
 }
 
+export function isCwdWorkspace() {
+  const wsKey = workspaceKey(process.cwd());
+  const ws = getState().workspaces.get(wsKey);
+  if (ws == null)
+    return false;
+  return true;
+}
+
 /**
  * Delete workspace state if its directory does not exist
  */
@@ -532,11 +557,12 @@ function checkAllWorkspaces() {
 //     })
 //   );
 
-//   warnUselessSymlink();
+//   deleteUselessSymlink();
 //   actionDispatcher._updatePackageState(jsonStrs.map(str => JSON.parse(str)));
 // }
 
-function warnUselessSymlink() {
+async function deleteUselessSymlink() {
+  const dones: Promise<void>[] = [];
   const checkDir = Path.resolve(getRootDir(), 'node_modules');
   const srcPackages = getState().srcPackages;
   const drcpName = getState().linkedDrcp ? getState().linkedDrcp!.name : null;
@@ -544,10 +570,15 @@ function warnUselessSymlink() {
     const pkgName = Path.relative(checkDir, link).replace(/\\/g, '/');
     if ( drcpName !== pkgName && !srcPackages.has(pkgName)) {
       // tslint:disable-next-line: no-console
-      console.log(chalk.yellow(`Extraneous symlink: ${link}`));
+      console.log(chalk.yellow(`Delete extraneous symlink: ${link}`));
+      const done = new Promise<void>((res, rej) => {
+        fs.unlink(link, (err) => { if (err) return rej(err); else res();});
+      });
+      dones.push(done);
     }
   });
-
+  await done1;
+  await Promise.all(dones);
   // const pwd = process.cwd();
   // const forbidDir = Path.join(getRootDir(), 'node_modules');
   // if (symlinkDir !== forbidDir) {
@@ -562,7 +593,6 @@ function warnUselessSymlink() {
   //   });
   //   return Promise.all([done1, done2, ...removed]);
   // }
-  return done1;
 }
 
 async function initRootDirectory() {
@@ -589,13 +619,15 @@ async function initRootDirectory() {
   });
 
   await _scanPackageAndLink();
-  warnUselessSymlink();
+  await deleteUselessSymlink();
 
-  await writeConfigFiles();
+  // await writeConfigFiles();
 }
 
 async function writeConfigFiles() {
   return (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
+    // tslint:disable-next-line: no-console
+    console.log('write config file:', file);
     writeFile(Path.resolve(getRootDir(), 'dist', file),
       '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
   });
@@ -715,7 +747,7 @@ function* listInstalledComp4Workspace(state: PackagesState, workspaceKey: string
     if (deps == null)
       continue;
     for (const dep of Object.keys(deps)) {
-      if (!state.srcPackages.has(dep) && dep !== 'dr-comp-package') {
+      if (!state.srcPackages.has(dep) && dep !== '@wfh/plink') {
         const pkjsonFile = Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json');
         if (fs.existsSync(pkjsonFile)) {
           const pk = createPackageInfo(
@@ -784,7 +816,7 @@ function _writeGitHook(project: string) {
       `cd "${getRootDir()}"\n` +
       // 'drcp init\n' +
       // 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
-      `node node_modules/dr-comp-package/bin/drcp.js lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
+      `node node_modules/@wfh/plink/bin/drcp.js lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
     if (fs.existsSync(gitPath + '/pre-commit'))
       fs.unlink(gitPath + '/pre-commit');
     fs.writeFileSync(gitPath + '/pre-push', hookStr);

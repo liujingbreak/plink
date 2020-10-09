@@ -1,14 +1,14 @@
 import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
 import {findPackage} from './build-target-helper';
-// import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
+// import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 import childProc from 'child_process';
 // import fs from 'fs-extra';
 import Path from 'path';
 // import {findDrcpProjectDir} from './utils';
 import { getCmdOptions } from './utils';
-// import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
+// import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 // const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-const plinkDir = Path.dirname(require.resolve('dr-comp-package/package.json'));
+const plinkDir = Path.dirname(require.resolve('@wfh/plink/package.json'));
 
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
@@ -126,7 +126,7 @@ function forkTsc(targetPackage: string, nodePath: string[]) {
   const cp = childProc.fork(Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs,
     {
       env: {
-        NODE_OPTIONS: '-r dr-comp-package/register',
+        NODE_OPTIONS: '-r @wfh/plink/register',
         NODE_PATH: nodePath.join(Path.delimiter)
       },
       cwd: process.cwd()

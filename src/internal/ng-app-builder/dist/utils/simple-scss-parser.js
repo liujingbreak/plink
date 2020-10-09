@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ScssParser = exports.ScssLexer = exports.TokenType = void 0;
 // tslint:disable no-console
-const base_LLn_parser_1 = require("dr-comp-package/wfh/dist/base-LLn-parser");
+const base_LLn_parser_1 = require("@wfh/plink/wfh/dist/base-LLn-parser");
 var TokenType;
 (function (TokenType) {
     TokenType[TokenType["skip"] = 0] = "skip";

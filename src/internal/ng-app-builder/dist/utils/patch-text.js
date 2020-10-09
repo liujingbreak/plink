@@ -10,8 +10,8 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var patch_text_1 = require("dr-comp-package/wfh/dist/utils/patch-text");
+var patch_text_1 = require("@wfh/plink/wfh/dist/utils/patch-text");
 Object.defineProperty(exports, "default", { enumerable: true, get: function () { return patch_text_1.default; } });
-__exportStar(require("dr-comp-package/wfh/dist/utils/patch-text"), exports);
+__exportStar(require("@wfh/plink/wfh/dist/utils/patch-text"), exports);
 
 //# sourceMappingURL=patch-text.js.map

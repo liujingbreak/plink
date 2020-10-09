@@ -24,7 +24,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.string2buffer = void 0;
 /* tslint:disable max-line-length */
-const ts_compiler_1 = require("dr-comp-package/wfh/dist/ts-compiler");
+const ts_compiler_1 = require("@wfh/plink/wfh/dist/ts-compiler");
 const fs = __importStar(require("fs"));
 const _ = __importStar(require("lodash"));
 const log4js = __importStar(require("log4js"));
@@ -38,7 +38,7 @@ const upgrade_viewchild_ng8_1 = require("./utils/upgrade-viewchild-ng8");
 const lru_cache_1 = __importDefault(require("lru-cache"));
 const chalk = require('chalk');
 const log = log4js.getLogger(__api_1.default.packageName + '.ng-ts-replace');
-const apiTmplTs = _.template('import __DrApi from \'@dr-core/ng-app-builder/src/app/api\';\
+const apiTmplTs = _.template('import __DrApi from \'@wfh/ng-app-builder/src/app/api\';\
 var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packageName%>\');\
 __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');

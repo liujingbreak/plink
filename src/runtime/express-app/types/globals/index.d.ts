@@ -21,5 +21,6 @@ declare module '__api' {
     cors(): any;
 
     param(name: string, ...rest: any[]): any;
+    _router: express.Router;
   }
 }

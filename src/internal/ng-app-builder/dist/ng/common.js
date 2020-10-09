@@ -15,9 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.newContext = exports.initCli = void 0;
 // import type api from '__api';
 const fs_extra_1 = __importDefault(require("fs-extra"));
-const node_version_check_1 = __importDefault(require("dr-comp-package/wfh/dist/utils/node-version-check"));
-const config_1 = __importDefault(require("dr-comp-package/wfh/dist/config"));
-const bootstrap_server_1 = require("dr-comp-package/wfh/dist/utils/bootstrap-server");
+const node_version_check_1 = __importDefault(require("@wfh/plink/wfh/dist/utils/node-version-check"));
+const config_1 = __importDefault(require("@wfh/plink/wfh/dist/config"));
+const dist_1 = require("@wfh/plink/wfh/dist");
 // export type DrcpConfig = typeof api.config;
 function initCli(options) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -34,7 +34,7 @@ function initDrcp(drcpArgs, drcpConfigFiles) {
         if (drcpArgs.c == null)
             drcpArgs.c = [];
         drcpArgs.c.push(...drcpConfigFiles);
-        yield bootstrap_server_1.initConfigAsync({ config: drcpArgs.c, prop: drcpArgs.p || drcpArgs.prop || [] });
+        yield dist_1.initConfigAsync({ config: drcpArgs.c, prop: drcpArgs.p || drcpArgs.prop || [] });
         return config_1.default;
     });
 }

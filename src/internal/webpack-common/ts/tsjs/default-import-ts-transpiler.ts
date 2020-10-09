@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import {SyntaxKind as sk} from 'typescript';
-import {ReplacementInf} from 'dr-comp-package/wfh/dist/utils/patch-text';
+import {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
 /**
  * Angular builder has a problem in compile server sider rendering appliaction
  * it uses Webpack to pack TS files, but it does not respect tsconfig.json compiler option:

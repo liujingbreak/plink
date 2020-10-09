@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = exports.RCF822TokenType = void 0;
-const LLn_parser_1 = require("dr-comp-package/wfh/dist/LLn-parser");
+const LLn_parser_1 = require("@wfh/plink/wfh/dist/LLn-parser");
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const path_1 = __importDefault(require("path"));
 const log = require('log4js').getLogger('@wfh/assets-processer.rfc822-sync-parser');

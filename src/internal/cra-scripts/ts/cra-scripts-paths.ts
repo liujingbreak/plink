@@ -2,7 +2,7 @@ import {getCmdOptions} from './utils';
 import {findPackage} from './build-target-helper';
 import Path from 'path';
 import _ from 'lodash';
-import type {PlinkEnv} from 'dr-comp-package/wfh/dist/node-path';
+import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 
 export interface CraScriptsPaths {
   dotenv: string;
@@ -41,11 +41,12 @@ export default function paths() {
     throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
   }
   const {dir, packageJson} = foundPkg;
-  // console.log('[debug] ', cmdOption);
+  // console.log('[debug] ', foundPkg);
   if (cmdOption.buildType === 'lib') {
     changedPaths.appBuild = Path.resolve(dir, 'build');
-    changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-build-entry', 'public_api.ts'));
+    changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-lib-entry', 'public_api.ts'));
   } else if (cmdOption.buildType === 'app') {
+    changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-app-entry', 'public_api.ts'));
     changedPaths.appBuild = Path.resolve(rootDir, 'dist/static');
   }
   // tslint:disable-next-line: no-console

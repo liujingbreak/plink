@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as _ from 'lodash';
 import {DirTree} from 'require-injector/dist/dir-tree';
 import PackageBrowserInstance from './package-instance';
-import {PackageInfo} from '../../package-mgr';
+import {PackageInfo} from '.';
 
 /**
  * @deprecated

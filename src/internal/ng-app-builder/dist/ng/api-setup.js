@@ -6,7 +6,7 @@ const path_1 = tslib_1.__importDefault(require("path"));
 // import api from '__api';
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const api_share_1 = require("../api-share");
-const package_runner_1 = require("dr-comp-package/wfh/dist/package-runner");
+const package_runner_1 = require("@wfh/plink/wfh/dist/package-runner");
 function default_1(browserOptions, ssr = false) {
     const [, apiProto] = package_runner_1.initApiForAllPackages(browserOptions.drcpArgs);
     const deployUrl = browserOptions.deployUrl || '';

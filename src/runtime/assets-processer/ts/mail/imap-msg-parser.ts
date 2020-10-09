@@ -1,4 +1,4 @@
-import { ParseGrammar, ParseLex, Token, LookAhead, mapChunks, mapChunksObs } from 'dr-comp-package/wfh/dist/async-LLn-parser';
+import { ParseGrammar, ParseLex, Token, LookAhead, mapChunks, mapChunksObs } from '@wfh/plink/wfh/dist/async-LLn-parser';
 import { Subject, Observable, queueScheduler, from } from 'rxjs';
 import {observeOn, map, takeWhile, concatMap, takeLast, share} from 'rxjs/operators';
 import { connect as tslConnect, ConnectionOptions, TLSSocket } from 'tls';

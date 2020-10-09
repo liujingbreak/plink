@@ -1,1 +1,1 @@
-import 'dr-comp-package/wfh/dist/node-path';
+import '@wfh/plink/wfh/dist/node-path';

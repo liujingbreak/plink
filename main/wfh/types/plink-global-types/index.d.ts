@@ -1,6 +1,6 @@
 declare module '__api' {
   // import ExpressAppApi from '@wfh/express-app/dist/api-types';
-  import {DrcpApi} from 'dr-comp-package/wfh/globals';
+  import {DrcpApi} from '@wfh/plink/wfh/globals';
   // import {_DrcpNgApi} from '@wfh/ng-app-builder/globals';
   
 	const api: DrcpApi; // & ExpressAppApi & _DrcpNgApi;

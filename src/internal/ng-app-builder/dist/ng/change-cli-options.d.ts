@@ -2,7 +2,7 @@ import { BuilderContext } from '@angular-devkit/architect';
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { Schema as ServerBuilderOptions } from '@angular-devkit/build-angular/src/server/schema';
-import { DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
+import { DrcpConfig } from '@wfh/plink/wfh/dist/config-handler';
 import { AngularBuilderOptions } from './common';
 /**
  * For build (ng build)
@@ -16,4 +16,4 @@ export declare function changeAngularCliOptionsForBuild(config: DrcpConfig, brow
  * @param context
  * @param builderConfig
  */
-export declare function changeAngularCliOptions(config: DrcpConfig, context: BuilderContext, builderConfig: DevServerBuilderOptions): Promise<AngularBuilderOptions>;
+export declare function changeAngularCliOptions(config: DrcpConfig, context: BuilderContext, builderConfig: DevServerBuilderOptions): Promise<any>;

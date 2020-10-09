@@ -49,7 +49,7 @@ function loader(content, sourceMap) {
     const context = options.context ||
         this.rootContext ||
         (this.options && this.options.context);
-    var url = loaderUtils.interpolateName(this, options.name, {
+    var url = loaderUtils.interpolateName(this, typeof options.name === 'string' ? options.name : '[contenthash].[ext]', {
         context,
         content,
         regExp: options.regExp
@@ -71,7 +71,7 @@ function loader(content, sourceMap) {
         if (typeof options.publicPath === 'function') {
             publicPath = options.publicPath(url);
         }
-        else if (options.publicPath.endsWith('/')) {
+        else if (typeof options.publicPath === 'string' && options.publicPath.endsWith('/')) {
             publicPath = options.publicPath + url;
         }
         else {

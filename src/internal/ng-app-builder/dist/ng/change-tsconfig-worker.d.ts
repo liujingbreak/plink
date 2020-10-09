@@ -1,7 +1,7 @@
 import { ParialBrowserOptions } from './change-tsconfig';
 import { DrcpBuilderOptions } from './common';
 import { DrcpSetting } from '../configurable';
-import { PackageInfo } from 'dr-comp-package/wfh/dist/build-util/ts/main';
+import { PackageInfo } from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
 export interface Data {
     tsconfigFile: string;
     reportDir: string;

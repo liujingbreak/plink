@@ -1,5 +1,5 @@
-import { PackageInfo } from 'dr-comp-package/wfh/dist/build-util/ts';
-// import { DrcpConfig } from 'dr-comp-package/wfh/dist/config-handler';
+import { PackageInfo } from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
+// import { DrcpConfig } from '@wfh/plink/wfh/dist/config-handler';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import Path from 'path';
@@ -9,8 +9,8 @@ import { DrcpSetting as NgAppBuilderSetting } from '../configurable';
 import { findAppModuleFileFromMain } from '../utils/parse-app-module';
 import { addSourceFiles } from './add-tsconfig-file';
 import { AngularBuilderOptions } from './common';
-import {setTsCompilerOptForNodePath} from 'dr-comp-package/wfh/dist/config-handler';
-import {getState} from 'dr-comp-package/wfh/dist/package-mgr';
+import {setTsCompilerOptForNodePath} from '@wfh/plink/wfh/dist/config-handler';
+import {getState} from '@wfh/plink/wfh/dist/package-mgr';
 // const currPackageName = require('../../package.json').name;
 
 export type ParialBrowserOptions = Pick<AngularBuilderOptions, 'preserveSymlinks' | 'main' | 'fileReplacements'>;
@@ -69,9 +69,9 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
 
   // // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
   if (!preserveSymlinks) {
-    const drcpDir = Path.relative(cwd, fs.realpathSync('node_modules/dr-comp-package')).replace(/\\/g, '/');
-    pathMapping!['dr-comp-package'] = [drcpDir];
-    pathMapping!['dr-comp-package/*'] = [drcpDir + '/*'];
+    const drcpDir = Path.relative(cwd, fs.realpathSync('node_modules/@wfh/plink')).replace(/\\/g, '/');
+    pathMapping!['@wfh/plink'] = [drcpDir];
+    pathMapping!['@wfh/plink/*'] = [drcpDir + '/*'];
   }
 
 
@@ -91,7 +91,7 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
       //   Path.resolve(root, 'node_modules/@types'),
       //   Path.resolve(root, 'node_modules/@dr-types'),
       //   // Below is NodeJS only, which will break Angular Ivy engine
-      //   Path.resolve(root, 'node_modules/dr-comp-package/wfh/types')
+      //   Path.resolve(root, 'node_modules/@wfh/plink/wfh/types')
       // ],
       // module: 'esnext',
       preserveSymlinks,

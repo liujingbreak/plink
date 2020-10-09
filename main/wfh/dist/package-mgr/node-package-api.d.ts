@@ -2,7 +2,8 @@
 import { EventEmitter } from 'events';
 import Inject from 'require-injector';
 import * as assetsUrl from '../../dist/assets-url';
-import { PackageInfo, packageInstance as PackageInstance } from '../build-util/ts';
+import { PackageInfo } from './package-info-gathering';
+import PackageInstance from './package-instance';
 declare class NodeApi implements assetsUrl.PackageApi {
     packageName: string;
     packageInstance: PackageInstance;

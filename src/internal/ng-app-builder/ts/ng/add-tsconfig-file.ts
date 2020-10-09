@@ -4,7 +4,7 @@
  */
 import {parentPort} from 'worker_threads';
 import Graph from '../ts-dep';
-import {jsonToCompilerOptions} from 'dr-comp-package/wfh/dist/ts-compiler';
+import {jsonToCompilerOptions} from '@wfh/plink/wfh/dist/ts-compiler';
 import api from '__api';
 import { sys } from 'typescript';
 import Path from 'path';

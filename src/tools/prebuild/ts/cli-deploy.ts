@@ -1,7 +1,7 @@
 
 import api from '__api';
 import log4js from 'log4js';
-import {spawn} from 'dr-comp-package/wfh/dist/process-utils';
+import {spawn} from '@wfh/plink/wfh/dist/process-utils';
 import chalk from 'chalk';
 import {main as prebuildPost} from './prebuild-post';
 import * as _ma from './merge-artifacts';

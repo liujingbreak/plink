@@ -1,16 +1,16 @@
 "use strict";
-// import {initConfigAsync} from 'dr-comp-package/wfh/dist/utils/bootstrap-server';
+// import {initConfigAsync} from '@wfh/plink/wfh/dist/utils/bootstrap-process';
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// import {tsc as _tsc} from 'dr-comp-package/wfh/dist/ts-cmd';
+// import {tsc as _tsc} from '@wfh/plink/wfh/dist/ts-cmd';
 // (async () => {
 //   await initConfigAsync({
 //     config: [],
 //     prop: []
 //   });
-//   const {tsc} = await import('dr-comp-package/wfh/dist/ts-cmd');
+//   const {tsc} = await import('@wfh/plink/wfh/dist/ts-cmd');
 //   const emitted = await tsc({
 //     package: [process.argv[2]],
 //     ed: true, jsx: true,
@@ -31,13 +31,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // });
 const path_1 = __importDefault(require("path"));
 const child_process_1 = __importDefault(require("child_process"));
-const plinkDir = path_1.default.dirname(require.resolve('dr-comp-package/package.json'));
+const plinkDir = path_1.default.dirname(require.resolve('@wfh/plink/package.json'));
 const cp = child_process_1.default.spawn('node', [path_1.default.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js')], 
 // const cp = childProc.fork(Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), [], 
 {
     detached: true,
     // env: {
-    // NODE_OPTIONS: '-r dr-comp-package/register'
+    // NODE_OPTIONS: '-r @wfh/plink/register'
     // NODE_PATH: nodePath.join(Path.delimiter)
     // },
     cwd: process.cwd()

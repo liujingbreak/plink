@@ -5,7 +5,7 @@ if (process.env.__plink == null) {
   require('source-map-support/register');
   const rootDir = findRootDir();
   const symlinkDir = Path.resolve(rootDir, 'node_modules');
-  const isDrcpSymlink = fs.lstatSync(Path.resolve(rootDir, 'node_modules/dr-comp-package')).isSymbolicLink();
+  const isDrcpSymlink = fs.lstatSync(Path.resolve(rootDir, 'node_modules/@wfh/plink')).isSymbolicLink();
   const nodePath = setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
   process.env.__plink = JSON.stringify({isDrcpSymlink, rootDir, symlinkDir, nodePath} as PlinkEnv);
 
@@ -14,7 +14,7 @@ if (process.env.__plink == null) {
   const deleteExecArgIdx: number[] = [];
   for (let i = 0, l = process.execArgv.length; i < l; i++) {
     if (i < l - 1 && /^(?:-r|--require)$/.test(process.execArgv[i]) &&
-      /^dr-comp-package\/register$/.test(process.execArgv[i + 1])) {
+      /^@wfh\/plink\/register$/.test(process.execArgv[i + 1])) {
       deleteExecArgIdx.push(i);
     }
   }
@@ -25,7 +25,7 @@ if (process.env.__plink == null) {
 
   const envOptions = process.env.NODE_OPTIONS ? process.env.NODE_OPTIONS.split(Path.delimiter) : [];
   process.env.NODE_OPTIONS =
-    envOptions.filter(item => !/(-r|--require)\s+dr-comp-package\/register/.test(item)).join(Path.delimiter);
+    envOptions.filter(item => !/(-r|--require)\s+@wfh\/plink\/register/.test(item)).join(Path.delimiter);
 }
 
 function findRootDir() {
@@ -64,7 +64,7 @@ function setupNodePath(rootDir: string, symlinkDir: string, isDrcpSymlink: boole
   }
 
   if (isDrcpSymlink)
-    nodePaths.add(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/dr-comp-package')) + Path.sep + 'node_modules');
+    nodePaths.add(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/@wfh/plink')) + Path.sep + 'node_modules');
   if (process.env.NODE_PATH) {
     for (const path of process.env.NODE_PATH.split(Path.delimiter)) {
       nodePaths.add(path);

@@ -6,16 +6,16 @@ const fs = require('fs');
 // nodePath();
 try {
 	let dir = process.cwd();
-	while (!fs.existsSync(Path.resolve(dir, 'node_modules/dr-comp-package/package.json'))) {
+	while (!fs.existsSync(Path.resolve(dir, 'node_modules/@wfh/plink/package.json'))) {
 		const parent = Path.dirname(dir);
 		if (parent === dir) {
-			console.error('Can not find dr-comp-package');
+			console.error('Can not find @wfh/plink');
 			process.exit(1);
 			break;
 		}
 		dir = parent;
 	}
-	require(Path.resolve(dir, 'node_modules/dr-comp-package/wfh/dist/cmd-bootstrap'));
+	require(Path.resolve(dir, 'node_modules/@wfh/plink/wfh/dist/cmd-bootstrap'));
 } catch (e) {
 	console.log(e);
 }

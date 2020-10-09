@@ -1,8 +1,8 @@
 import _ from 'lodash';
 // import fs from 'fs-extra';
 // import Path from 'path';
-import {getState} from 'dr-comp-package/wfh/dist/package-mgr';
-import {findPackagesByNames} from 'dr-comp-package/wfh/dist/cmd/utils';
+import {getState} from '@wfh/plink/wfh/dist/package-mgr';
+import {findPackagesByNames} from '@wfh/plink/wfh/dist/cmd/utils';
 
 function _findPackage(shortName: string): {name: string; packageJson: any, dir: string} | null {
   const pkg = Array.from(findPackagesByNames(getState(), [shortName]))[0];

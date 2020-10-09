@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import PackageNodeInstance from './packageNodeInstance';
-import PackageBrowserInstance from './build-util/ts/package-instance';
+import PackageBrowserInstance from './package-mgr/package-instance';
 const log = require('log4js').getLogger('packagePriorityHelper');
 
 const priorityStrReg = /(before|after)\s+(\S+)/;

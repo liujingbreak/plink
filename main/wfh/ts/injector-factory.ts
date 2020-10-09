@@ -103,7 +103,7 @@ export let nodeInjector = new DrPackageInjector(require.resolve, false);
  */
 nodeInjector.fromRoot().factory('log4js', file => {
   return log4js;
-}); // .alias('log4js', 'dr-comp-package/wfh/dist/logger');
+}); // .alias('log4js', '@wfh/plink/wfh/dist/logger');
 
 export let webInjector = new DrPackageInjector(undefined, true);
 

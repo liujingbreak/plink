@@ -1,11 +1,11 @@
 {
   "name": "@wfh/webpack-common",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Common Webpack configuration parts for create-react-app and Angular cli",
   "main": "dist/index.js",
-  "dr": {
-  },
+  "dr": {},
   "dependencies": {
+    "@types/webpack-dev-server": "^3.11.0"
   },
   "author": "LJ",
   "license": "MIT"

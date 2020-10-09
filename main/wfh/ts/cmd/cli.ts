@@ -1,7 +1,7 @@
 // tslint:disable: max-line-length
 import commander from 'commander';
 import chalk from 'chalk';
-import * as store from '../store';
+// import * as store from '../store';
 import * as tp from './types';
 import * as cliStore from './cli-slice';
 import * as pkgMgr from '../package-mgr';
@@ -18,18 +18,18 @@ const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
 
 export async function drcpCommand(startTime: number) {
   process.title = 'Plink - command line';
-  const {stateFactory}: typeof store = require('../store');
+  // const {stateFactory}: typeof store = require('../store');
   await import('./cli-slice');
-  stateFactory.configureStore();
+  // stateFactory.configureStore();
 
 
-  let cliExtensions: string[];
+  let cliExtensions: string[] | undefined;
   const program = new commander.Command('plink')
   .action(args => {
     program.outputHelp();
     // tslint:disable-next-line: no-console
     console.log('\nversion:', pk.version);
-    if (cliExtensions.length > 0) {
+    if (cliExtensions && cliExtensions.length > 0) {
       // tslint:disable-next-line: no-console
       console.log(`Found ${cliExtensions.length} command line extension` +
       `${cliExtensions.length > 1 ? 's' : ''}: ${cliExtensions.join(', ')}`);
@@ -38,11 +38,15 @@ export async function drcpCommand(startTime: number) {
 
   program.version(pk.version, '-v, --vers', 'output the current version');
   subDrcpCommand(program);
-  if (process.env.PLINK_SAFE !== 'true')
+  if (process.env.PLINK_SAFE !== 'true') {
     cliExtensions = loadExtensionCommand(program);
+  } else {
+    // tslint:disable-next-line: no-console
+    console.log('Value of environment varaible "PLINK_SAFE" is true, skip loading extension');
+  }
 
   try {
-    await program.parseAsync(process.argv);
+    await program.parseAsync(process.argv, {from: 'node'});
   } catch (e) {
     console.error(chalk.redBright(e), e.stack);
     process.exit(1);
@@ -53,9 +57,9 @@ function subDrcpCommand(program: commander.Command) {
   /**
    * command init
    */
-  const initCmd = program.command('init [workspace]')
+  const initCmd = program.command('init [workspace-directory]')
   .description('Initialize workspace directory, generate basic configuration files for project and component packages')
-  .option('-f | --force', 'Force run "npm install" in specific workspace directory', false)
+  .option('-f, --force', 'Force run "npm install" in specific workspace directory', false)
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
   .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false)
   .action(async (workspace: string) => {
@@ -100,7 +104,7 @@ function subDrcpCommand(program: commander.Command) {
    */
   const listCmd = program.command('ls').alias('list')
   .option('-j, --json', 'list linked dependencies in form of JSON', false)
-  .description('If you want to know how many components will actually run, this command prints out a list and the priorities, including installed components')
+  .description('If you want to know how many packages will actually run, this command prints out a list and the priorities, including installed packages')
   .action(async () => {
     await (await import('./cli-ls')).default(listCmd.opts() as any);
   });
@@ -116,7 +120,7 @@ function subDrcpCommand(program: commander.Command) {
     await config.init(runCmd.opts() as tp.GlobalOptions);
     const logConfig = await (await import('../log-config')).default;
     logConfig(config());
-    (await import('../package-runner')).runSinglePackage({target, args});
+    await (await import('../package-runner')).runSinglePackage({target, args});
   });
   withGlobalOptions(runCmd);
   runCmd.usage(runCmd.usage() + '\n' + chalk.green('plink run <target> [arguments...]\n') +
@@ -138,12 +142,14 @@ function subDrcpCommand(program: commander.Command) {
   .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
     prev.push(...v.split(',')); return prev;
   }, [] as string[])
+  // .option('--ws,--workspace <workspace-dir>', 'only include those linked packages which are dependency of specific workspaces',
+  //   arrayOptionFn, [])
   .option('--jsx', 'includes TSX file', false)
   .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
   .option('--source-map', 'Source map style: "inline" or "file"', 'inline')
   .action(async (packages: string[]) => {
     const opt = tscCmd.opts();
-    // console.log(opt);
+
     const config = await (await import('../config')).default;
     await config.init(runCmd.opts() as tp.GlobalOptions);
     const logConfig = await (await import('../log-config')).default;
@@ -157,19 +163,16 @@ function subDrcpCommand(program: commander.Command) {
       jsx: opt.jsx,
       ed: opt.emitDeclarationOnly
     });
-    const {stateFactory}: typeof store = require('../store');
-    stateFactory.stopAllEpics();
   });
   withGlobalOptions(tscCmd);
-  tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side typescript files.\n\n' +
+  tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side Typescript files.\n\n' +
   'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
   '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
   'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs in ' +
   'both Node.js and Browser) in directory `isom`.\n' +
-  hlDesc('plink tsc <package..>\n') + ' Only compile specific components by providing package name or short name\n' +
-  hlDesc('plink tsc\n') + ' Compile all components belong to associated projects, not including installed components\n' +
-  hlDesc('plink tsc --pj <project directory,...>\n') + ' Compile components belong to specific projects\n' +
-  hlDesc('plink tsc [package...] -w\n') + ' Watch components change and compile when new typescript file is changed or created\n\n');
+  hlDesc('plink tsc\n') + 'Compile linked packages that are dependencies of current workspace (you shall run this command only in a workspace directory)\n' +
+  hlDesc('plink tsc <package..>\n') + ' Only compile specific packages by providing package name or short name\n' +
+  hlDesc('plink tsc [package...] -w\n') + ' Watch packages change and compile when new typescript file is changed or created\n\n');
 
   /**
    * Bump command
@@ -194,15 +197,16 @@ function subDrcpCommand(program: commander.Command) {
    */
   const packCmd = program.command('pack [packageDir...]')
     .description('npm pack every pakage into tarball files')
-    .option<string[]>('--pj, --project <project-dir,...>',
-    'project directories to be looked up for all packages which need to be packed to tarball files',
-      (value, prev) => {
-        prev.push(...value.split(',')); return prev;
-      }, [])
+    .option('-w,--workspace <workspace-dir>', 'only include those linked packages which are dependency of specific workspaces',
+      arrayOptionFn, [])
+    .option('--pj, --project <project-dir>',
+      'project directories to be looked up for all packages which need to be packed to tarball files',
+      arrayOptionFn, [])
     .action(async (packageDirs: string[]) => {
-      (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
+      await (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
     });
   withGlobalOptions(packCmd);
+  packCmd.usage(packCmd.usage() + '\nBy default, run "npm pack" for each linked package which are dependencies of current workspace');
 
   /**
    * Pack command
@@ -216,7 +220,7 @@ function subDrcpCommand(program: commander.Command) {
       }, [])
     .option('--public', 'same as "npm publish" command option "--access public"', false)
     .action(async (packageDirs: string[]) => {
-      (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packageDirs});
+      await (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packageDirs});
     });
   withGlobalOptions(publishCmd);
 }
@@ -228,13 +232,25 @@ function loadExtensionCommand(program: commander.Command): string[] {
   if (ws == null)
     return [];
 
+  const origPgmCommand = program.command;
+
+  let filePath: string | null = null;
+
+  program.command = function(this: typeof program, nameAndArgs: string, ...restArgs: any[]) {
+    const cmdName = /^\S+/.exec(nameAndArgs)![0];
+    cliStore.cliActionDispatcher.updateLoadedCmd({cmd: cmdName, file: filePath!});
+    // tslint:disable-next-line: no-console
+    // console.log(`Loading command "${cmdName}" from extension ${filePath}`);
+    return origPgmCommand.call(this, nameAndArgs, ...restArgs);
+  } as any;
+
   const availables: string[] = [];
   for (const extension of getState().extensions.values()) {
     if (!_.has(ws.originInstallJson.dependencies, extension.pkName) && !_.has(ws.originInstallJson.devDependencies, extension.pkName))
       continue;
 
     availables.push(extension.pkName);
-    let filePath: string | null = null;
+
     try {
       filePath = require.resolve(extension.pkName + '/' + extension.pkgFilePath);
     } catch (e) {}

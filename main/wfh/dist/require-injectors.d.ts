@@ -1,8 +1,7 @@
 import { FactoryMapInterf } from 'require-injector/dist/factory-map';
-import { RequireInjector } from 'require-injector/dist/replace-require';
 import { DrPackageInjector } from './injector-factory';
 export { DrPackageInjector as InjectorFactory };
-export { FactoryMapInterf, RequireInjector };
+export { FactoryMapInterf };
 export interface InjectorConfigHandler {
     setupNodeInjector?(factory: DrPackageInjector): void;
     setupWebInjector?(factory: DrPackageInjector): void;

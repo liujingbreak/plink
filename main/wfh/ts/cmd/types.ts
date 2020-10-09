@@ -28,6 +28,7 @@ export interface BumpOptions extends GlobalOptions {
 export interface PackOptions extends GlobalOptions {
   project: string[];
   packageDirs: string[];
+  workspace: string[];
 }
 
 export interface PublishOptions extends GlobalOptions {

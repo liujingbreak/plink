@@ -28,7 +28,7 @@ class Guarder {
   protected lastInstalled: string[];
 
   constructor(public rootPath: string) {
-    this.isDrcpSymlink = fs.lstatSync(Path.resolve(rootPath, 'node_modules', 'dr-comp-package')).isSymbolicLink();
+    this.isDrcpSymlink = fs.lstatSync(Path.resolve(rootPath, 'node_modules', '@wfh/plink')).isSymbolicLink();
   }
 
   /**
@@ -79,10 +79,10 @@ class Guarder {
     const changeList: Array<[string, string]> = [];
     if (this.isDrcpSymlink) {
       if (pk.dependencies) {
-        delete pk.dependencies['dr-comp-package'];
+        delete pk.dependencies['@wfh/plink'];
       }
       if (pk.devDependencies) {
-        delete pk.devDependencies['dr-comp-package'];
+        delete pk.devDependencies['@wfh/plink'];
       }
     }
     // clean duplicates in devDependencies
@@ -166,7 +166,7 @@ class Guarder {
     fs.writeFileSync(Path.resolve(this.rootPath, 'package.json'),
       JSON.stringify(this.getChanges(), null, '  '));
     this.isPackageJsonDirty = true;
-    const drcpLocation = Path.resolve('node_modules', 'dr-comp-package');
+    const drcpLocation = Path.resolve('node_modules', '@wfh/plink');
     const realDrcpPath = fs.realpathSync(drcpLocation);
     // var yarnArgv = ['install', '--non-interactive', '--check-files'];
     const npmArgv = ['install'];
@@ -175,9 +175,9 @@ class Guarder {
       fs.unlinkSync(drcpLocation);
     }
     function recreateSymlink() {
-      if (!fs.existsSync(Path.resolve('node_modules', 'dr-comp-package'))) {
+      if (!fs.existsSync(Path.resolve('node_modules', '@wfh/plink'))) {
         fs.symlinkSync(Path.relative('node_modules', realDrcpPath), drcpLocation, isWin32 ? 'junction' : 'dir');
-        console.log(logName + 'Write symlink dr-comp-package');
+        console.log(logName + 'Write symlink @wfh/plink');
       }
       if (!doNotMarkInstallNum)
         self.markInstallNum();

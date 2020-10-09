@@ -17,7 +17,7 @@ module.exports = function(content, map) {
 	});
 };
 
-var BANNER = '/* Powered by dr-comp-package */';
+var BANNER = '/* Powered by @wfh/plink */';
 
 module.exports.banner = BANNER;
 

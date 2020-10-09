@@ -9,7 +9,7 @@ export default function replace(file: string, source: string, injector: RJ, tsCo
   compileExpContex: {[varName: string]: any}) {
   let {replaced, ast, patches} = injector.injectToFileWithPatchInfo(file, source);
   if (tsPreCompiler == null) {
-    tsPreCompiler = new TsPreCompiler(tsConfigFile, api.ssr, file => api.findPackageByFile(file));
+    tsPreCompiler = new TsPreCompiler(tsConfigFile, (api as any).ssr, file => api.findPackageByFile(file));
   }
 
   let offset = 0;

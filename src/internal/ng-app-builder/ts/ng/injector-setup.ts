@@ -3,8 +3,8 @@ import Path from 'path';
 // import api from '__api';
 import _ from 'lodash';
 import {createNgRouterPath} from '../../isom/api-share';
-import {walkPackages } from 'dr-comp-package/wfh/dist/build-util/ts/main';
-import {initInjectorForNodePackages, initWebInjector} from 'dr-comp-package/wfh/dist/package-runner';
+import {walkPackages } from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
+import {initInjectorForNodePackages, initWebInjector} from '@wfh/plink/wfh/dist/package-runner';
 import {AngularBuilderOptions} from './common';
 
 export default async function walkPackagesAndSetupInjector(browserOptions: AngularBuilderOptions, ssr = false): Promise<ReturnType<typeof walkPackages>> {

@@ -1,11 +1,8 @@
 import commander from 'commander';
-// import * as tp from './cmd/types';
-import {initConfigAsync, withGlobalOptions, GlobalOptions} from './utils/bootstrap-server';
-const pk = require('../../package');
+import {withGlobalOptions, GlobalOptions, initConfigAsync, initProcess} from './index';
+import * as pkgMgr from '../lib/packageMgr/index';
 
-interface PackageMgr {
-  runServer: (argv: any) => Promise<() => Promise<void>>;
-}
+const pk = require('../../package');
 
 process.title = 'Plink - server';
 
@@ -16,11 +13,12 @@ const program = new commander.Command()
   console.log('\nPlink version:', pk.version);
 
   const serverStarted = new Promise<() => Promise<void>>(async resolve => {
-    await initConfigAsync(program.opts() as GlobalOptions, () => {
+    initProcess(() => {
       return serverStarted.then(shutdown => shutdown());
     });
+    await initConfigAsync(program.opts() as GlobalOptions);
 
-    const {runServer} = require('../lib/packageMgr') as PackageMgr;
+    const {runServer} = require('../lib/packageMgr/index') as typeof pkgMgr;
     const shutdown = await runServer(program.opts());
     resolve(shutdown);
   });
