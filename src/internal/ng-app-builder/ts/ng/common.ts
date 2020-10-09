@@ -9,7 +9,7 @@ import fs from 'fs-extra';
 import nodeCheck from '@wfh/plink/wfh/dist/utils/node-version-check';
 import config from '@wfh/plink/wfh/dist/config';
 import type {DrcpConfig} from '@wfh/plink/wfh/dist';
-import {initConfigAsync} from '@wfh/plink/wfh/dist';
+import {initProcess, initConfigAsync} from '@wfh/plink/wfh/dist';
 
 // export type DrcpConfig = typeof api.config;
 
@@ -24,8 +24,11 @@ async function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): Promise<DrcpC
   if (drcpArgs.c == null)
     drcpArgs.c = [];
   drcpArgs.c.push(...drcpConfigFiles);
-
+  // console.log('~~~~~~~~~~~~~~~~~~~~~');
+  initProcess();
+  await import ('@wfh/plink/wfh/dist/package-mgr/index');
   await initConfigAsync({config: drcpArgs.c, prop: drcpArgs.p || drcpArgs.prop || []});
+
   return config;
 }
 

@@ -14,4 +14,4 @@ __exportStar(require("@wfh/prebuild/dist/ts-ast-query"), exports);
 var ts_ast_query_1 = require("@wfh/prebuild/dist/ts-ast-query");
 Object.defineProperty(exports, "default", { enumerable: true, get: function () { return ts_ast_query_1.default; } });
 
-//# sourceMappingURL=ts-ast-query.js.map
+//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL2xpdWppbmcvYmsvZHItY29tcC1wYWNrYWdlL3NyYy9pbnRlcm5hbC9uZy1hcHAtYnVpbGRlci90cy91dGlscy90cy1hc3QtcXVlcnkudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7O0FBQUEsa0VBQWdEO0FBQ2hELGdFQUF3RDtBQUFoRCx1R0FBQSxPQUFPLE9BQUEiLCJmaWxlIjoiZGlzdC91dGlscy90cy1hc3QtcXVlcnkuanMiLCJzb3VyY2VzQ29udGVudCI6W251bGxdfQ==

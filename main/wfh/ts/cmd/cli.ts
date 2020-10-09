@@ -146,7 +146,7 @@ function subDrcpCommand(program: commander.Command) {
   //   arrayOptionFn, [])
   .option('--jsx', 'includes TSX file', false)
   .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
-  .option('--source-map', 'Source map style: "inline" or "file"', 'inline')
+  .option('--source-map <inline|file>', 'Source map style: "inline" or "file"', 'inline')
   .action(async (packages: string[]) => {
     const opt = tscCmd.opts();
 

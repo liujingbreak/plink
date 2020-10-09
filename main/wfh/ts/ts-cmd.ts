@@ -13,6 +13,7 @@ import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions}
 import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
+// import Path from 'path';
 const gulp = require('gulp');
 const through = require('through2');
 const chokidar = require('chokidar');
@@ -71,8 +72,9 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     outDir: '',
     // rootDir: config().rootPath,
     skipLibCheck: true,
-    inlineSourceMap: false,
+    inlineSourceMap: argv.sourceMap === 'inline',
     sourceMap: true,
+    inlineSource: argv.sourceMap === 'inline',
     emitDeclarationOnly: argv.ed
     // preserveSymlinks: true
   };
@@ -220,27 +222,28 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
       // LJ: Let's try to use --sourceMap with --inlineSource, so that I don't need to change file path in source map
       // which is outputed
 
-      // .pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
-      //   if (file.extname === '.map') {
-      //     const sm = JSON.parse(file.contents.toString());
-      //     let sFileDir;
-      //     sm.sources =
-      //       sm.sources.map( (spath: string) => {
-      //         const realFile = fs.realpathSync(spath);
-      //         sFileDir = Path.dirname(realFile);
-      //         return relative(file.base, realFile).replace(/\\/g, '/');
-      //       });
-      //     if (sFileDir)
-      //       sm.sourceRoot = relative(sFileDir, file.base).replace(/\\/g, '/');
-      //     file.contents = Buffer.from(JSON.stringify(sm), 'utf8');
-      //   }
-      //   next(null, file);
-      // }));
       const streams: any[] = [];
       if (!emitTdsOnly) {
         streams.push(tsResult.js
           .pipe(changePath())
-          .pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.')));
+          .pipe(inlineSourceMap ? sourcemaps.write() : sourcemaps.write('.'))
+          // .pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
+          //   if (file.extname === '.map') {
+          //     const sm = JSON.parse(file.contents.toString());
+          //     let sFileDir;
+          //     sm.sources =
+          //       sm.sources.map( (spath: string) => {
+          //         const realFile = fs.realpathSync(spath);
+          //         sFileDir = Path.dirname(realFile);
+          //         return relative(file.base, realFile).replace(/\\/g, '/');
+          //       });
+          //     if (sFileDir)
+          //       sm.sourceRoot = relative(sFileDir, file.base).replace(/\\/g, '/');
+          //     file.contents = Buffer.from(JSON.stringify(sm), 'utf8');
+          //   }
+          //   next(null, file);
+          // }))
+        );
       }
       streams.push(tsResult.dts.pipe(changePath()));
 
