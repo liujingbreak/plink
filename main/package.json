@@ -59,7 +59,7 @@
     "@types/lru-cache": "^5.1.0",
     "merge2": "^1.4.1",
     "os-locale": "^5.0.0",
-    "require-injector": "5.2.0-alpha.2",
+    "require-injector": "5.2.0-alpha.3",
     "rxjs": "~6.4.0",
     "resolve": "^1.15.00",
     "semver": "^7.3.2",

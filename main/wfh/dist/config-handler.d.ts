@@ -73,6 +73,8 @@ export declare class ConfigHandlerMgr {
     runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any): any;
 }
 export interface CompilerOptionSetOpt {
+    /** Will add typeRoots property for specific workspace */
+    workspaceDir?: string;
     enableTypeRoots: boolean;
     /** Default false, Do not include linked package symlinks directory in path*/
     noSymlinks?: boolean;

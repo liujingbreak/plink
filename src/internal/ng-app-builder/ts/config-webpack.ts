@@ -28,7 +28,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
   drcpConfigSetting: {devMode: boolean}) {
   // const api: typeof __api = require('__api'); // force to defer loading api until DRCP config is ready
   console.log('>>>>>>>>>>>>>>>>> changeWebpackConfig >>>>>>>>>>>>>>>>>>>>>>');
-
+  // webpackConfig.stats = 'verbose';
   // if (webpackConfig.resolve && webpackConfig.resolve.mainFields) {
   //   webpackConfig.resolve.mainFields = ['browser', 'main', 'module'];
   // }
@@ -80,7 +80,8 @@ export default async function changeWebpackConfig(context: BuilderContext, param
       new ChunkInfoPlugin()
     );
   }
-  const resolveModules = ['node_modules', ...process.env.NODE_PATH!.split(Path.delimiter)];
+
+  const resolveModules = process.env.NODE_PATH!.split(Path.delimiter);
   if (webpackConfig.resolve == null)
     webpackConfig.resolve= {modules: resolveModules};
   else if (webpackConfig.resolve.modules == null)

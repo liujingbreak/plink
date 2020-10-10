@@ -149,6 +149,8 @@ export class ConfigHandlerMgr {
 }
 
 export interface CompilerOptionSetOpt {
+  /** Will add typeRoots property for specific workspace */
+  workspaceDir?: string;
   enableTypeRoots: boolean;
   /** Default false, Do not include linked package symlinks directory in path*/
   noSymlinks?: boolean;
@@ -171,13 +173,14 @@ export interface CompilerOptions {
 export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: CompilerOptions,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
-
-
   let pathsDirs = process.env.NODE_PATH ? process.env.NODE_PATH.split(Path.delimiter) : [];
+  // if (opts.workspaceDir != null) {
+  //   pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
+  // }
   if (opts.extraNodePath && opts.extraNodePath.length > 0) {
     pathsDirs.unshift(...opts.extraNodePath);
-    pathsDirs = _.uniq(pathsDirs);
   }
+  pathsDirs = _.uniq(pathsDirs);
 
   if (opts.noSymlinks) {
     const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -192,6 +195,8 @@ export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: Compil
     assigneeOptions.paths = {'*': []};
   else
     assigneeOptions.paths['*'] = [];
+
+  // console.log('pathsDirs', pathsDirs);
   for (const dir of pathsDirs) {
     const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');
     // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
@@ -202,6 +207,9 @@ export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: Compil
   assigneeOptions.typeRoots = [
     Path.relative(cwd, Path.resolve(__dirname, '..', 'types')).replace(/\\/g, '/')
   ];
+  if (opts.workspaceDir != null) {
+    assigneeOptions.typeRoots.push(Path.resolve(opts.workspaceDir, 'types').replace(/\\/g, '/'));
+  }
   if (opts.enableTypeRoots ) {
     assigneeOptions.typeRoots.push(...pathsDirs.map(dir => {
       const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');

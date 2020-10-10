@@ -65,15 +65,14 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
       pathMapping![pk.name] = [realDir];
       pathMapping![pk.name + '/*'] = [realDir + '/*'];
     }
+    const plink = getState().linkedDrcp;
+    if (plink) {
+      pathMapping![plink.name] = [plink.realPath];
+      pathMapping![plink.name + '/*'] = [plink.realPath + '/*'];
+    }
   }
 
-  // // Important! to make Angular & Typescript resolve correct real path of symlink lazy route module
-  if (!preserveSymlinks) {
-    const drcpDir = Path.relative(cwd, fs.realpathSync('node_modules/@wfh/plink')).replace(/\\/g, '/');
-    pathMapping!['@wfh/plink'] = [drcpDir];
-    pathMapping!['@wfh/plink/*'] = [drcpDir + '/*'];
-  }
-
+  const tsConfigFileDir = Path.dirname(file);
 
   var tsjson: {compilerOptions: any, [key: string]: any, files?: string[], include: string[]} = {
     // extends: require.resolve('@wfh/webpack2-builder/configs/tsconfig.json'),
@@ -81,7 +80,9 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
       .tsconfigInclude
       .map(preserveSymlinks ? p => p : globRealPath)
       .map(
-        pattern => Path.relative(Path.dirname(file), pattern).replace(/\\/g, '/')
+        pattern => Path.relative(tsConfigFileDir, pattern).replace(/\\/g, '/')
+      ).concat(
+        Path.resolve(__dirname, '..', '..').replace(/\\/g, '/') + '/src/**/*.ts'
       ),
     exclude: [], // tsExclude,
     compilerOptions: {
@@ -103,7 +104,8 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
       ...oldJson.angularCompilerOptions
     }
   };
-  setTsCompilerOptForNodePath(cwd, tsjson.compilerOptions, {enableTypeRoots: false});
+
+  setTsCompilerOptForNodePath(cwd, tsjson.compilerOptions, {enableTypeRoots: false, workspaceDir: process.cwd()});
   tsjson.compilerOptions.baseUrl = cwd;
   // Object.assign(tsjson.compilerOptions.paths, appTsconfig.compilerOptions.paths, pathMapping);
 

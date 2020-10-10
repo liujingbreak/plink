@@ -12,11 +12,11 @@ import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import {Worker} from 'worker_threads';
-import { sys } from 'typescript';
+import ts from 'typescript';
 import Url from 'url';
 import { AngularBuilderOptions } from './common';
 import injectorSetup from './injector-setup';
-import { DrcpBuilderOptions } from '../../dist/server';
+import { DrcpBuilderOptions } from '../server';
 import {Data} from './change-tsconfig-worker';
 import memstats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {createTsConfig as _createTsConfig} from './change-tsconfig';
@@ -190,6 +190,8 @@ async function processBrowserBuiliderOptions(
 async function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig,
   packagesInfo: ExtractPromise<ReturnType<typeof injectorSetup>>) {
 
+  // We want to hack the typescript used in current workspace, not the one from Plink's dependency
+  const sys = require(Path.resolve('node_modules/typescript')).sys as typeof ts.sys;
   const oldReadFile = sys.readFile;
   const tsConfigFile = Path.resolve(browserOptions.tsConfig);
 
@@ -210,9 +212,9 @@ async function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpC
       path = path.replace(/\//g, Path.sep);
     }
     try {
-      if (path === tsConfigFile)
+      if (path === tsConfigFile) {
         return newTsConfig;
-      else
+      } else
         return res;
     } catch (err) {
       console.error(red('change-cli-options - ') + `Read ${path}`, err);

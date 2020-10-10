@@ -99,6 +99,10 @@ export default class TSReadHooker {
         const hasImportApi = tsSelector.findAll(':ImportDeclaration>.moduleSpecifier:StringLiteral').some(ast => {
           return (ast as ts.StringLiteral).text === '__api';
         });
+        // if (file.endsWith('project-modules.ts')) {
+        //   const ij = api.browserInjector;
+        //   console.log(ij.dirTree.traverse());
+        // }
         let changed = api.browserInjector.injectToFile(file, content);
 
         if (ng8Compliant)

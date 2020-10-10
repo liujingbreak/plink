@@ -1,6 +1,7 @@
 // tslint:disable: max-line-length
 const gulpTs = require('gulp-typescript');
 import chalk from 'chalk';
+/// <reference path="types.d.ts" />
 import * as packageUtils from './package-utils';
 import * as fs from 'fs-extra';
 import * as _ from 'lodash';
@@ -14,13 +15,14 @@ import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions}
 import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
+import * as sourcemaps from 'gulp-sourcemaps';
+
 // import Path from 'path';
 const gulp = require('gulp');
 const through = require('through2');
 const chokidar = require('chokidar');
 const merge = require('merge2');
-const sourcemaps = require('gulp-sourcemaps');
-const SEP = sep;
+// const sourcemaps = require('gulp-sourcemaps');
 
 const log = log4js.getLogger('wfh.typescript');
 // exports.init = init;
@@ -179,7 +181,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   }
 
   function compile(compGlobs: string[], tsProject: any, inlineSourceMap: boolean, emitTdsOnly = false) {
-    const gulpBase = root + SEP;
+    // const gulpBase = root + SEP;
     const startTime = new Date().getTime();
 
     function printDuration(isError: boolean) {
@@ -191,11 +193,16 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     return new Promise<EmitList>((resolve, reject) => {
       const compileErrors: string[] = [];
       const tsResult = gulp.src(compGlobs)
+      // .pipe(through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
+      //   file.base = commonRootDir;
+      //   next(null, file);
+      // }))
+      .pipe(changePath())
       .pipe(sourcemaps.init())
-      .pipe(through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
-        file.base = gulpBase;
-        next(null, file);
-      }))
+      // .pipe(sourcemaps.mapSources((srcPath, file) => {
+      //   console.log(srcPath);
+      //   return basename(srcPath);
+      // }))
       .pipe(tsProject())
       .on('error', (err: Error) => {
         compileErrors.push(err.message);
@@ -207,9 +214,9 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
       const streams: any[] = [];
       if (!emitTdsOnly) {
         streams.push(tsResult.js
-          .pipe(changePath())
+          // .pipe(changePath())
           // .pipe(sourcemaps.write('.', {includeContent: false, sourceRoot: './'}))
-          .pipe(sourcemaps.write())
+          .pipe(sourcemaps.write('.', {includeContent: true}))
           // .pipe(through.obj(function(file: any, en: string, next: (...arg: any[]) => void) {
           //   if (file.extname === '.map') {
           //     const sm = JSON.parse(file.contents.toString());
@@ -228,7 +235,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
           // }))
         );
       }
-      streams.push(tsResult.dts.pipe(changePath()));
+      streams.push(tsResult.dts);
 
       const emittedList = [] as EmitList;
       const all = merge(streams)
@@ -268,6 +275,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
   function changePath() {
     return through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
       const treePath = relative(commonRootDir, file.path);
+      file._originPath = file.path;
       const {tsDirs, dir} = packageDirTree.getAllData(treePath).pop()!;
       const absFile = resolve(commonRootDir, treePath);
       const pathWithinPkg = relative(dir, absFile);
@@ -306,6 +314,6 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
   // const typeRoots = Array.from(packageUtils.typeRootsFromPackages(wsKey));
   setTsCompilerOptForNodePath(process.cwd(), compilerOptions, {
     enableTypeRoots: true,
-    extraTypeRoot: [resolve(root, wsKey, 'types')]
+    workspaceDir: resolve(root, wsKey)
   });
 }
