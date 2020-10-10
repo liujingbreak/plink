@@ -87,15 +87,23 @@ export function linkDrcp() {
   // }
 }
 
+/**
+ * Do check existing symlink, recreate a new one if existing one is invalid symlink
+ * @param linkTarget 
+ * @param link 
+ */
 export async function symlinkAsync(linkTarget: string, link: string) {
   try {
-    if (fs.lstatSync(link).isSymbolicLink() && Path.resolve(Path.dirname(link), fs.readlinkSync(link)) === linkTarget)
+    if (fs.lstatSync(link).isSymbolicLink() && Path.resolve(Path.dirname(link), fs.readlinkSync(link)) === linkTarget) {
+      // console.log('exits', link);
       return;
-    fs.unlinkSync(link);
-    // tslint:disable-next-line: no-console
+    }
+     // tslint:disable-next-line: no-console
     console.log(`remove ${link}`);
+    fs.unlinkSync(link);
   } catch (ex) {
     // link does not exist
+    // console.log(ex);
   }
   // tslint:disable-next-line: no-console
   console.log(`create symlink ${link} --> ${linkTarget}`);

@@ -24,7 +24,7 @@ export declare class ProxyInstanceForBrowser {
     constructor(name: string, options?: {
         [k: string]: any;
     });
-    readonly isRemoveCookieDomain: boolean;
+    get isRemoveCookieDomain(): boolean;
     addOptions(opt: {
         [k: string]: any;
     }): ProxyInstanceForBrowser;

@@ -1,14 +1,16 @@
 import LRU from 'lru-cache';
 import PackageBrowserInstance from './package-mgr/package-instance';
 import LazyPackageFactory from './package-mgr/lazy-package-factory';
-import {getState, pathToProjKey, workspaceKey, PackageInfo} from './package-mgr';
+import {getState} from './package-mgr';
 // import * as Path from 'path';
 import _ from 'lodash';
-import log4js from 'log4js';
+// import log4js from 'log4js';
 // import * as fs from 'fs';
 import {lookupPackageJson, findPackagesByNames} from './cmd/utils';
+import {PackageType, allPackages, packages4WorkspaceKey, packages4Workspace} from './package-mgr/package-list-helper';
+export {PackageType, allPackages, packages4WorkspaceKey, packages4Workspace};
 
-const log = log4js.getLogger('wfh.package-utils');
+// const log = log4js.getLogger('wfh.package-utils');
 
 const lazyPackageFactory = new LazyPackageFactory(allPackages());
 
@@ -42,7 +44,7 @@ export function lookForPackages(packageList: string[] | string, cb: FindPackageC
   }
 }
 
-export type PackageType = '*' | 'build' | 'core';
+// export type PackageType = '*' | 'build' | 'core';
 
 export function findAllPackages(callback: FindPackageCb,
   recipeType?: 'src' | 'installed',
@@ -83,92 +85,3 @@ export function findPackageByType(_types: PackageType | PackageType[],
   }
 }
 
-/** Including installed package from all workspaces, unlike packages4CurrentWorkspace() which only include
- * linked and installed
- * packages that are depended in current workspace package.json file
- */
-export function* allPackages(_types?: PackageType | PackageType[],
-  recipeType?: 'src' | 'installed', projectDirs?: string[]): Generator<PackageInfo> {
-
-  // const wsKey = pathToWorkspace(process.cwd());
-
-  if (recipeType !== 'installed') {
-    if (projectDirs) {
-      for (const projectDir of projectDirs) {
-        const projKey = pathToProjKey(projectDir);
-        const pkgNames = getState().project2Packages.get(projKey);
-        if (pkgNames == null)
-          return;
-        for (const pkgName of pkgNames) {
-          const pkg = getState().srcPackages.get(pkgName);
-          if (pkg) {
-            yield pkg;
-          }
-        }
-      }
-    } else {
-      for (const pkg of getState().srcPackages.values()) {
-        yield pkg;
-      }
-    }
-  }
-  if (recipeType !== 'src') {
-    for (const ws of getState().workspaces.values()) {
-      const installed = ws.installedComponents;
-      if (installed) {
-        for (const comp of installed.values()) {
-          yield comp;
-        }
-      }
-    }
-  }
-}
-
-export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true) {
-  const ws = getState().workspaces.get(wsKey);
-  if (!ws)
-    return;
-
-  const linked = getState().srcPackages;
-  const installed = ws.installedComponents;
-  for (const [pkName] of ws.linkedDependencies) {
-    const pk = linked.get(pkName);
-    if (pk == null)
-      log.warn(`Missing package ${pkName} in workspace ${wsKey}`);
-    else
-      yield pk;
-  }
-  for (const [pkName] of ws.linkedDevDependencies) {
-    const pk = linked.get(pkName);
-    if (pk == null)
-      log.warn(`Missing package ${pkName} in workspace ${wsKey}`);
-    else
-      yield pk;
-  }
-  if (includeInstalled && installed) {
-    for (const comp of installed.values()) {
-      yield comp;
-    }
-  }
-}
-
-export function packages4Workspace(workspaceDir?: string, includeInstalled = true) {
-  const wsKey = workspaceKey(workspaceDir || process.cwd());
-  return packages4WorkspaceKey(wsKey, includeInstalled);
-}
-
-/**
- * Default type roots defined in packages, including linked and installed packages
- */
-// export function *typeRootsFromPackages(wskey: string) {
-//   for (const pkg of packages4WorkspaceKey(wskey)) {
-//     const typeDir = Path.resolve(pkg.realPath, 'types');
-//     try {
-//       if (fs.statSync(typeDir).isDirectory()) {
-//         yield typeDir;
-//       }
-//     } catch (e) {
-//       continue;
-//     }
-//   }
-// }

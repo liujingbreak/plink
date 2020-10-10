@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import * as tp from './types';
 import * as cliStore from './cli-slice';
 import * as pkgMgr from '../package-mgr';
+import {packages4Workspace} from '../package-mgr/package-list-helper';
 import * as _ from 'lodash';
 // import Path from 'path';
 const pk = require('../../../package');
@@ -226,7 +227,7 @@ function subDrcpCommand(program: commander.Command) {
 }
 
 function loadExtensionCommand(program: commander.Command): string[] {
-  const {getState} = require('./cli-slice') as typeof cliStore;
+  // const {getState} = require('./cli-slice') as typeof cliStore;
   const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
   const ws = getPkgState().workspaces.get(workspaceKey(process.cwd()));
   if (ws == null)
@@ -248,24 +249,28 @@ function loadExtensionCommand(program: commander.Command): string[] {
   } as any;
 
   const availables: string[] = [];
-  for (const extension of getState().extensions.values()) {
-    if (!_.has(ws.originInstallJson.dependencies, extension.pkName) && !_.has(ws.originInstallJson.devDependencies, extension.pkName))
+  for (const pk of packages4Workspace()) {
+    const dr = pk.json.dr;
+    if (dr == null || dr.cli == null)
       continue;
+    const [pkgFilePath, funcName] = (dr.cli as string).split('#');
+    // if (!_.has(ws.originInstallJson.dependencies, extension.pkName) && !_.has(ws.originInstallJson.devDependencies, extension.pkName))
+    //   continue;
 
-    availables.push(extension.pkName);
+    availables.push(pk.name);
 
     try {
-      filePath = require.resolve(extension.pkName + '/' + extension.pkgFilePath);
+      filePath = require.resolve(pk.name + '/' + pkgFilePath);
     } catch (e) {}
 
     if (filePath != null) {
       try {
-        const subCmdFactory: tp.CliExtension = extension.funcName ? require(filePath)[extension.funcName] :
+        const subCmdFactory: tp.CliExtension = funcName ? require(filePath)[funcName] :
           require(filePath);
         subCmdFactory(program, withGlobalOptions);
       } catch (e) {
         // tslint:disable-next-line: no-console
-        console.error('Failed to load command line extension in package ' + extension.pkName, e);
+        console.error('Failed to load command line extension in package ' + pk.name, e);
       }
     }
   }

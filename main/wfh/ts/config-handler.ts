@@ -208,7 +208,8 @@ export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: Compil
     Path.relative(cwd, Path.resolve(__dirname, '..', 'types')).replace(/\\/g, '/')
   ];
   if (opts.workspaceDir != null) {
-    assigneeOptions.typeRoots.push(Path.resolve(opts.workspaceDir, 'types').replace(/\\/g, '/'));
+    assigneeOptions.typeRoots.push(
+      Path.relative(cwd, Path.resolve(opts.workspaceDir, 'types')).replace(/\\/g, '/'));
   }
   if (opts.enableTypeRoots ) {
     assigneeOptions.typeRoots.push(...pathsDirs.map(dir => {

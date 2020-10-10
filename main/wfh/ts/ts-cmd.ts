@@ -193,16 +193,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
     return new Promise<EmitList>((resolve, reject) => {
       const compileErrors: string[] = [];
       const tsResult = gulp.src(compGlobs)
-      // .pipe(through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
-      //   file.base = commonRootDir;
-      //   next(null, file);
-      // }))
-      .pipe(changePath())
       .pipe(sourcemaps.init())
-      // .pipe(sourcemaps.mapSources((srcPath, file) => {
-      //   console.log(srcPath);
-      //   return basename(srcPath);
-      // }))
       .pipe(tsProject())
       .on('error', (err: Error) => {
         compileErrors.push(err.message);
@@ -214,6 +205,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
       const streams: any[] = [];
       if (!emitTdsOnly) {
         streams.push(tsResult.js
+          .pipe(changePath())
           // .pipe(changePath())
           // .pipe(sourcemaps.write('.', {includeContent: false, sourceRoot: './'}))
           .pipe(sourcemaps.write('.', {includeContent: true}))
@@ -235,7 +227,7 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
           // }))
         );
       }
-      streams.push(tsResult.dts);
+      streams.push(tsResult.dts.pipe(changePath()));
 
       const emittedList = [] as EmitList;
       const all = merge(streams)
@@ -279,19 +271,22 @@ export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
       const {tsDirs, dir} = packageDirTree.getAllData(treePath).pop()!;
       const absFile = resolve(commonRootDir, treePath);
       const pathWithinPkg = relative(dir, absFile);
-      // console.log(dir, tsDirs);  
-      for (const prefix of [tsDirs.srcDir, tsDirs.isomDir]) {
-        if (prefix === '.' || prefix.length === 0) {
-          file.path = join(dir, tsDirs.destDir, pathWithinPkg);
-          break;
-        } else if (pathWithinPkg.startsWith(prefix + sep)) {
-          file.path = join(dir, tsDirs.destDir, pathWithinPkg.slice(prefix.length + 1));
-          break;
-        }
+      // console.log(dir, tsDirs);
+      const prefix = tsDirs.srcDir;
+      // for (const prefix of [tsDirs.srcDir, tsDirs.isomDir]) {
+      if (prefix === '.' || prefix.length === 0) {
+        file.path = join(dir, tsDirs.destDir, pathWithinPkg);
+        // break;
+      } else if (pathWithinPkg.startsWith(prefix + sep)) {
+        file.path = join(dir, tsDirs.destDir, pathWithinPkg.slice(prefix.length + 1));
+        // break;
       }
-      // console.log(file.path);
+      // }
+      // console.log('pathWithinPkg', pathWithinPkg);
+      // console.log('file.path', file.path);
       file.base = commonRootDir;
-      // console.log(file.base, file.relative);
+      // console.log('file.base', file.base);
+      // console.log('file.relative', file.relative);
       next(null, file);
     });
   }

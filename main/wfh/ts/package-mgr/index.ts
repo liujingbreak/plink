@@ -13,13 +13,13 @@ import config from '../config';
 import { listCompDependency, PackageJsonInterf } from '../dependency-hoister';
 import { updateTsconfigFileForEditor } from '../editor-helper';
 import logConfig from '../log-config';
-import { findAllPackages, packages4WorkspaceKey } from '../package-utils';
+import { allPackages, packages4WorkspaceKey } from './package-list-helper';
 import { spawn } from '../process-utils';
 import { exe } from '../process-utils';
 import { setProjectList} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
 import { getRootDir, isDrcpSymlink } from '../utils/misc';
-import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
+import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync, symlinkAsync } from '../utils/symlinks';
 import { actions as _cleanActions } from '../cmd/cli-clean';
 import {PlinkEnv} from '../node-path';
 
@@ -417,11 +417,14 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions._relatedPackageUpdated),
       map(action => pkgTsconfigForEditorRequestMap.add(action.payload)),
       debounceTime(800),
-      map(() => {
-        for (const wsKey of pkgTsconfigForEditorRequestMap.values()) {
+      concatMap(() => {
+        const dones = Array.from(pkgTsconfigForEditorRequestMap.values()).map(wsKey => {
           updateTsconfigFileForEditor(wsKey);
-          collectDtsFiles(wsKey);
-        }
+          return collectDtsFiles(wsKey);
+        });
+        return from(Promise.all(dones));
+      }),
+      map(() => {
         pkgTsconfigForEditorRequestMap.clear();
         writeConfigFiles();
       })
@@ -453,7 +456,7 @@ stateFactory.addEpic((action$, state$) => {
   ).pipe(
     ignoreElements(),
     catchError(err => {
-      console.error('[package-mgr.index]', err);
+      console.error('[package-mgr.index]', err.stack ? err.stack : err);
       return of();
     })
   );
@@ -492,13 +495,16 @@ export function* getPackagesOfProjects(projects: string[]) {
   }
 }
 
+/**
+ * List linked packages
+ */
 export function listPackages(): string {
   let out = '';
   let i = 0;
-  findAllPackages((name: string) => {
+  for (const {name} of allPackages('*', 'src')) {
     out += `${i++}. ${name}`;
     out += '\n';
-  }, 'src');
+  }
 
   return out;
 }
@@ -557,26 +563,25 @@ function collectDtsFiles(wsKey: string) {
   }
   // console.log(mergeTds);
   for (const chrFileName of fs.readdirSync(wsTypesDir)) {
-    if (mergeTds.has(chrFileName)) {
-      mergeTds.delete(chrFileName);
-    } else {
+    if (!mergeTds.has(chrFileName)) {
+    //   mergeTds.delete(chrFileName);
+    // } else {
       const useless = Path.resolve(wsTypesDir, chrFileName);
       fs.unlink(useless);
       // tslint:disable-next-line: no-console
       console.log('Delete', useless);
     }
   }
-  // console.log(mergeTds);
+  const done: Promise<any>[] = new Array(mergeTds.size);
+  let i = 0;
   for (const dts of mergeTds.keys()) {
     const target = mergeTds.get(dts)!;
     const absDts = Path.resolve(wsTypesDir, dts);
     // tslint:disable-next-line: no-console
-    console.log(`Create symlink ${absDts} --> ${target}`);
-    _symlinkAsync(
-      Path.relative(wsTypesDir, target),
-      absDts, isWin32 ? 'junction' : 'dir'
-    );
+    // console.log(`Create symlink ${absDts} --> ${target}`);
+    done[i++] = symlinkAsync(target, absDts);
   }
+  return Promise.all(done);
 }
 
 /**

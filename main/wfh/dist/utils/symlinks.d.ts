@@ -17,6 +17,11 @@ export declare function listModuleSymlinks(parentDir: string, onFound: (link: st
  * 2. create symlink <parent directory of "main">/node_modules --> node_modules
  */
 export declare function linkDrcp(): void;
+/**
+ * Do check existing symlink, recreate a new one if existing one is invalid symlink
+ * @param linkTarget
+ * @param link
+ */
 export declare function symlinkAsync(linkTarget: string, link: string): Promise<void>;
 export declare function validateLink(link: string, deleteAll?: boolean): Promise<boolean>;
 /**
