@@ -29,10 +29,9 @@ export interface CraScriptsPaths {
 const {rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export default function paths() {
-  const cmdPublicUrl = getCmdOptions().publicUrl;
-  if (cmdPublicUrl) {
-    process.env.PUBLIC_URL = cmdPublicUrl + '';
-  }
+  // if (cmdPublicUrl) {
+  //   process.env.PUBLIC_URL = cmdPublicUrl + '';
+  // }
   const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
   const changedPaths = paths;
   const cmdOption = getCmdOptions();

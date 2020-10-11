@@ -1,14 +1,11 @@
 import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
 import {findPackage} from './build-target-helper';
-// import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
-import childProc from 'child_process';
-// import fs from 'fs-extra';
+// import childProc from 'child_process';
 import Path from 'path';
-// import {findDrcpProjectDir} from './utils';
 import { getCmdOptions } from './utils';
-// import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
-// const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-const plinkDir = Path.dirname(require.resolve('@wfh/plink/package.json'));
+import {TscCmdParam} from '@wfh/plink/wfh/dist/ts-cmd';
+// import {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
+// const plinkDir = Path.dirname(require.resolve('@wfh/plink/package.json'));
 
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
@@ -116,48 +113,67 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
   return;
 }
 
-function forkTsc(targetPackage: string, nodePath: string[]) {
+async function forkTsc(targetPackage: string, nodePath: string[]) {
+  const {Worker} = await import('worker_threads');
 
-  const forkArgs = ['tsc', '--ed', '--jsx', targetPackage];
-  if (getCmdOptions().watch)
-    forkArgs.push('-w');
+  // const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
-  // console.log('webpack-lib: ', Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs);
-  const cp = childProc.fork(Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs,
-    {
-      env: {
-        NODE_OPTIONS: '-r @wfh/plink/register',
-        NODE_PATH: nodePath.join(Path.delimiter)
-      },
-      cwd: process.cwd()
-      // execArgv: [], // Not working, don't know why
-      // stdio: [0, 1, 2, 'ipc']
-    });
-  // cp.unref();
-  return new Promise<void>((resolve, rej) => {
-    cp.on('message', msg => {
-      if (msg === 'plink-tsc compiled')
-        cp.kill('SIGINT');
-    });
-    if (cp.stdout) {
-      cp.stdout.setEncoding('utf8');
-      // tslint:disable-next-line: no-console
-      cp.stdout.on('data', (data: string) => console.log(data));
-      cp.stdout.resume();
-    }
-    if (cp.stderr)
-      cp.stderr.resume();
-    cp.on('exit', (code, signal) => {
+  const workerData: TscCmdParam = {package: [targetPackage], ed: true, jsx: true, watch: getCmdOptions().watch};
+
+  const worker = new Worker(require.resolve('./tsd-generate-thread'), {
+    workerData, env: {NODE_PATH: nodePath.join(Path.delimiter)}
+  });
+  await new Promise((resolve, rej) => {
+    worker.on('exit', code => {
       if (code !== 0) {
-        rej(new Error(`Failed to generate tsd files, due to process exit with code: ${code} ${signal}`));
+        rej(new Error(`Worker stopped with exit code ${code}`));
       } else {
         resolve();
       }
     });
-    cp.on('error', err => {
-      console.error(err);
-      resolve();
-    });
-
+    worker.on('message', rej);
+    worker.on('error', rej);
   });
+
+  // const forkArgs = ['tsc', '--ed', '--jsx', targetPackage];
+  // if (getCmdOptions().watch)
+  //   forkArgs.push('-w');
+
+  // // console.log('webpack-lib: ', Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs);
+  // const cp = childProc.fork(Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs,
+  //   {
+  //     // env: {
+  //     //   NODE_OPTIONS: '-r @wfh/plink/register',
+  //     //   NODE_PATH: nodePath.join(Path.delimiter)
+  //     // },
+  //     cwd: process.cwd()
+  //     // execArgv: [], // Not working, don't know why
+  //     // stdio: [0, 1, 2, 'ipc']
+  //   });
+  // // cp.unref();
+  // return new Promise<void>((resolve, rej) => {
+  //   cp.on('message', msg => {
+  //     if (msg === 'plink-tsc compiled')
+  //       cp.kill('SIGINT');
+  //   });
+  //   if (cp.stdout) {
+  //     cp.stdout.setEncoding('utf8');
+  //     // tslint:disable-next-line: no-console
+  //     cp.stdout.on('data', (data: string) => console.log(data));
+  //     cp.stdout.resume();
+  //   }
+  //   if (cp.stderr)
+  //     cp.stderr.resume();
+  //   cp.on('exit', (code, signal) => {
+  //     if (code != null && code !== 0) {
+  //       rej(new Error(`Failed to generate tsd files, due to process exit with code: ${code} ${signal}`));
+  //     } else {
+  //       resolve();
+  //     }
+  //   });
+  //   cp.on('error', err => {
+  //     console.error(err);
+  //     resolve();
+  //   });
+  // });
 }

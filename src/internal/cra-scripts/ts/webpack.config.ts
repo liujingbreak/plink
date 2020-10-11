@@ -18,16 +18,10 @@ import log4js from 'log4js';
 import api from '__api';
 
 const log = log4js.getLogger('cra-scripts');
-// import chalk from 'chalk';
-// const ProgressPlugin = require('webpack/lib/ProgressPlugin');
-
-
-// const findPackageByFile = createLazyPackageFileFinder();
-// let api: ReturnType<typeof walkPackagesAndSetupInjector>;
 
 export = function(webpackEnv: 'production' | 'development') {
-  drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${Path.resolve('/logs')}`);
-  // api = walkPackagesAndSetupInjector(false);
+  drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${api.config.resolve('destDir', 'cra-scripts.report')}`);
+  console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
 
   const cmdOption = getCmdOptions();
   log.info('webpackEnv=', webpackEnv);
@@ -50,8 +44,9 @@ export = function(webpackEnv: 'production' | 'development') {
     config.output!.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
   }
 
-  fs.mkdirpSync('logs');
-  fs.writeFile('logs/webpack.config.cra.js', printConfig(config), (err) => {
+  const reportDir = api.config.resolve('destDir', 'cra-scripts.report');
+  fs.mkdirpSync(reportDir);
+  fs.writeFile(Path.resolve(reportDir, 'webpack.config.cra.js'), printConfig(config), (err) => {
     console.error(err);
   });
 

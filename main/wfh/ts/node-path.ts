@@ -1,7 +1,10 @@
 import * as Path from 'path';
 import * as fs from 'fs';
 
-if (process.env.__plink == null) {
+let envSetDone = false;
+
+if (!envSetDone) {
+  envSetDone = true;
   require('source-map-support/register');
   const rootDir = findRootDir();
   const symlinkDir = Path.resolve(rootDir, 'node_modules');

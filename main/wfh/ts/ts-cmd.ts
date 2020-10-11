@@ -29,7 +29,7 @@ const log = log4js.getLogger('wfh.typescript');
 const root = config().rootPath;
 // const nodeModules = join(root, 'node_modules');
 
-interface Args {
+export interface TscCmdParam {
   package?: string[];
   project?: string[];
   watch?: boolean;
@@ -53,7 +53,7 @@ type EmitList = Array<[string, number]>;
  * @param {function} onCompiled () => void
  * @return void
  */
-export function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void) {
+export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void) {
   // const possibleSrcDirs = ['isom', 'ts'];
   var compGlobs: string[] = [];
   // var compStream = [];

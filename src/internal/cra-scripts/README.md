@@ -3,21 +3,52 @@ copy .npmrc to home directory
 
 `create-react-app <dir> --template cra-template-typescript --use-npm`
 
-~~add dependencies to package.json file~~
-~~```bash~~
-~~"dependencies": {~~
-~~  ...~~
-~~  "log4js": ""~~
-~~}~~
-~~```~~
-
-
 ### Build and watch
 ```bash
-npm run build -- lib bigc-home --watch
+cd cra-studio
+plink init
+# To see command line help
+# plink cra-build -h
+
+plink build app <package name>
 ```
 
+checkout helper 
+```bash
+plink cra-build -h
 
+Usage: plink cra-build [options] <app|lib> <package-name>
+
+Compile react application or library, <package-name> is the target package name
+
+Options:
+  -w, --watch                                     Watch file changes and compile (default: false)
+  --dev                                           set NODE_ENV to "development", enable react-scripts in dev mode (default: false)
+  --purl, --publicUrl <string>                    set environment variable PUBLIC_URL for react-scripts (default: "/")
+  -c, --config <config-file>                      Read config files, if there are multiple files, the latter one overrides previous one (default: [])
+  --prop <property-path=value as JSON | literal>  <property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like
+                                                  string
+                                                   e.g.
+                                                  --prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080
+                                                  --prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080
+                                                  --prop arraylike.prop[0]=foobar
+                                                  --prop ["@wfh/foo.bar","prop",0]=true (default: [])
+  -h, --help                                      display help for command
+```
+
+### Customize Webpack configuration
+Create a TS file in your package directory
+
+```ts
+import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
+
+const configHandler:ReactScriptsHandler = {
+  webpack(cfg, env, cmdOpt) {
+  }
+};
+export default configHandler;
+
+```
 
 
 # Developing React library package
@@ -47,7 +78,7 @@ npm i
 ```
 Run command
 ```bash
-drcp run cra-scripts/dist/cmd.js#genPackage bigc-portal-home
+plink cra-gen bigc-portal-home
 # or 
 # drcp run node_modules/@bk/cra-scripts/dist/cmd.js#genPackage portal-home
 ```

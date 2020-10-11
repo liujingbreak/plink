@@ -34,7 +34,6 @@
 		"quotemark": [true, "single", "avoid-template"],
 		// "no-undef": 2,
 		"align": false,
-		"no-unused-variable": false,
 		"no-var-keyword": false,
 		//"strict": 0,
 		"no-extra-semi": true,

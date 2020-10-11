@@ -1,8 +1,7 @@
-import {ConfigureHandler} from '@wfh/cra-scripts/dist/types';
-import {Configuration} from 'webpack';
+import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
 
-const handler: ConfigureHandler = {
-  webpack(cfg: Configuration, env: string, cmdOpt: Parameters<ConfigureHandler['webpack']>[2]) {
+const handler: ReactScriptsHandler = {
+  webpack(cfg, env, cmdOpt) {
     // Change webpack configure here
   }
 };

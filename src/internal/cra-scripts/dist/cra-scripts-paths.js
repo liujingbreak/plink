@@ -9,10 +9,9 @@ const path_1 = __importDefault(require("path"));
 const lodash_1 = __importDefault(require("lodash"));
 const { rootDir } = JSON.parse(process.env.__plink);
 function paths() {
-    const cmdPublicUrl = utils_1.getCmdOptions().publicUrl;
-    if (cmdPublicUrl) {
-        process.env.PUBLIC_URL = cmdPublicUrl + '';
-    }
+    // if (cmdPublicUrl) {
+    //   process.env.PUBLIC_URL = cmdPublicUrl + '';
+    // }
     const paths = require(path_1.default.resolve('node_modules/react-scripts/config/paths'));
     const changedPaths = paths;
     const cmdOption = utils_1.getCmdOptions();

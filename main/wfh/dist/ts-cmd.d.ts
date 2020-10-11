@@ -1,5 +1,5 @@
 import { CompilerOptions } from 'typescript';
-interface Args {
+export interface TscCmdParam {
     package?: string[];
     project?: string[];
     watch?: boolean;
@@ -18,5 +18,5 @@ declare type EmitList = Array<[string, number]>;
  * @param {function} onCompiled () => void
  * @return void
  */
-export declare function tsc(argv: Args, onCompiled?: (emitted: EmitList) => void): Promise<EmitList>;
+export declare function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void): Promise<EmitList>;
 export {};

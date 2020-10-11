@@ -110,8 +110,9 @@ export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, bui
     devMode: cmd.opts().dev,
     publicUrl: cmd.opts().publicUrl
   };
-  process.env.PUBLIC_URL = cmd.opts().publicUrl;
-  console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
+  if (cmd.opts().publicUrl) {
+    process.env.PUBLIC_URL = cmd.opts().publicUrl;
+  }
   process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
 
   stateFactory.configureStore();

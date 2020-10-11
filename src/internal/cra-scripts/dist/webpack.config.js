@@ -132,8 +132,8 @@ function insertRawLoader(rules) {
     rules.push(htmlLoaderRule);
 }
 module.exports = function (webpackEnv) {
-    utils_1.drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${path_1.default.resolve('/logs')}`);
-    // api = walkPackagesAndSetupInjector(false);
+    utils_1.drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${__api_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
+    console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
     const cmdOption = utils_1.getCmdOptions();
     log.info('webpackEnv=', webpackEnv);
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
@@ -153,8 +153,9 @@ module.exports = function (webpackEnv) {
         config.output.filename = 'static/js/[name]-[contenthash:8].js';
         config.output.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
     }
-    fs_extra_1.default.mkdirpSync('logs');
-    fs_extra_1.default.writeFile('logs/webpack.config.cra.js', utils_1.printConfig(config), (err) => {
+    const reportDir = __api_1.default.config.resolve('destDir', 'cra-scripts.report');
+    fs_extra_1.default.mkdirpSync(reportDir);
+    fs_extra_1.default.writeFile(path_1.default.resolve(reportDir, 'webpack.config.cra.js'), utils_1.printConfig(config), (err) => {
         console.error(err);
     });
     log.info(`[cra-scripts] output.publicPath: ${config.output.publicPath}`);

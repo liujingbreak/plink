@@ -130,8 +130,9 @@ function saveCmdOptionsToEnv(pkgName, cmd, buildType) {
         devMode: cmd.opts().dev,
         publicUrl: cmd.opts().publicUrl
     };
-    process.env.PUBLIC_URL = cmd.opts().publicUrl;
-    console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
+    if (cmd.opts().publicUrl) {
+        process.env.PUBLIC_URL = cmd.opts().publicUrl;
+    }
     process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
     dist_1.stateFactory.configureStore();
     const setting = config_1.default.initSync(cmd.opts());

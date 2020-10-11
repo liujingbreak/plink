@@ -237,12 +237,17 @@ function loadExtensionCommand(program: commander.Command): string[] {
 
   let filePath: string | null = null;
 
-  const cmdInfoPacks = new Array<Parameters<typeof cliStore.cliActionDispatcher.updateLoadedCmd>[0] extends (infer I)[] ? I : unknown>(1);
+  // const cmdInfoPacks = new Array<Parameters<typeof cliStore.cliActionDispatcher.updateLoadedCmd>[0] extends (infer I)[] ? I : unknown>(1);
+  const loadedCmdMap = new Map<string, string>();
 
   program.command = function(this: typeof program, nameAndArgs: string, ...restArgs: any[]) {
     const cmdName = /^\S+/.exec(nameAndArgs)![0];
-    cmdInfoPacks[0] = {cmd: cmdName, file: filePath!};
-    cliStore.cliActionDispatcher.updateLoadedCmd(cmdInfoPacks);
+    if (loadedCmdMap.has(cmdName)) {
+      throw new Error(`Conflict command name ${cmdName} from extensions "${filePath}" and "${loadedCmdMap.get(cmdName)}"`);
+    }
+    loadedCmdMap.set(cmdName, filePath!);
+    // cmdInfoPacks[0] = {cmd: cmdName, file: filePath!};
+    // cliStore.cliActionDispatcher.updateLoadedCmd(cmdInfoPacks);
     // tslint:disable-next-line: no-console
     // console.log(`Loading command "${cmdName}" from extension ${filePath}`);
     return origPgmCommand.call(this, nameAndArgs, ...restArgs);

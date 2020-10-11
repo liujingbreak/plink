@@ -13,7 +13,7 @@ export interface CliState {
   osLang?: string;
   osCountry?: string;
   /** key: command name, value: file path */
-  loadedExtensionCmds: Map<string, string>;
+  // loadedExtensionCmds: Map<string, string>;
 }
 
 export interface CliExtension {
@@ -24,8 +24,8 @@ export interface CliExtension {
 
 const initialState: CliState = {
   extensions: new Map(),
-  version: '',
-  loadedExtensionCmds: new Map()
+  version: ''
+  // loadedExtensionCmds: new Map()
 };
 
 export const cliSlice = stateFactory.newSlice({
@@ -41,11 +41,11 @@ export const cliSlice = stateFactory.newSlice({
     updateLocale(d, {payload: [lang, country]}: PayloadAction<[string, string]>) {
       d.osLang = lang;
       d.osCountry = country;
-    },
-    updateLoadedCmd(d, {payload}: PayloadAction<{cmd: string, file: string}[]>) {
-      for (const row of payload)
-        d.loadedExtensionCmds.set(row.cmd, row.file);
     }
+    // updateLoadedCmd(d, {payload}: PayloadAction<{cmd: string, file: string}[]>) {
+    //   for (const row of payload)
+    //     d.loadedExtensionCmds.set(row.cmd, row.file);
+    // }
   }
 });
 
