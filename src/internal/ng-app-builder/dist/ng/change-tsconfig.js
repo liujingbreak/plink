@@ -93,7 +93,7 @@ function overrideTsConfig(file, pkInfo, browserOptions, config, reportDir) {
             preserveSymlinks }), oldJson.compilerOptions), { paths: Object.assign(Object.assign({}, tsconfig_app_json_1.default.compilerOptions.paths), pathMapping) }),
         angularCompilerOptions: Object.assign({}, oldJson.angularCompilerOptions)
     };
-    config_handler_1.setTsCompilerOptForNodePath(cwd, tsjson.compilerOptions, { enableTypeRoots: false, workspaceDir: process.cwd() });
+    config_handler_1.setTsCompilerOptForNodePath(cwd, tsjson.compilerOptions, { enableTypeRoots: true, workspaceDir: process.cwd() });
     tsjson.compilerOptions.baseUrl = cwd;
     // Object.assign(tsjson.compilerOptions.paths, appTsconfig.compilerOptions.paths, pathMapping);
     if (oldJson.extends) {
