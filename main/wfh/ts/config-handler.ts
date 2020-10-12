@@ -173,13 +173,21 @@ export interface CompilerOptions {
 export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: CompilerOptions,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
-  let pathsDirs = process.env.NODE_PATH ? process.env.NODE_PATH.split(Path.delimiter) : [];
-  // if (opts.workspaceDir != null) {
-  //   pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
-  // }
-  if (opts.extraNodePath && opts.extraNodePath.length > 0) {
-    pathsDirs.unshift(...opts.extraNodePath);
+  let pathsDirs: string[] = [];
+  // workspace node_modules should be the first
+  if (opts.workspaceDir != null) {
+    pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
   }
+  if (opts.extraNodePath && opts.extraNodePath.length > 0) {
+    pathsDirs.push(...opts.extraNodePath);
+  }
+  if (process.env.NODE_PATH) {
+    pathsDirs.push(...process.env.NODE_PATH.split(Path.delimiter));
+  }
+
+  // console.log('temp..............', pathsDirs);
+  // console.log('extraNodePath', opts.extraNodePath);
+
   pathsDirs = _.uniq(pathsDirs);
 
   if (opts.noSymlinks) {

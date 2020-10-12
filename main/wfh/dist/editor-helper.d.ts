@@ -1,1 +1,1 @@
-export declare function updateTsconfigFileForEditor(wsKey: string): Promise<void> | undefined;
+export declare function updateTsconfigFileForEditor(wsKey: string): void;

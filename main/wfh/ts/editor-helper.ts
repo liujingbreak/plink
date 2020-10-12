@@ -1,46 +1,47 @@
 // tslint:disable: max-line-length
-import Path from 'path';
 import * as fs from 'fs-extra';
-import * as _recp from './recipe-manager';
-import {getRootDir} from './utils/misc';
-import {getState, PackageInfo, getProjectList, updateGitIgnores} from './package-mgr';
-import {EOL} from 'os';
-import {setTsCompilerOptForNodePath} from './config-handler';
-import log4js from 'log4js';
-import {closestCommonParentDir} from './utils/misc';
 // import {map, distinctUntilChanged} from 'rxjs/operators';
 // import {Observable} from 'rxjs';
 // import {ofPayloadAction} from './store';
 // import {PayloadAction} from '@reduxjs/toolkit';
 // import {typeRootsFromPackages} from './package-utils';
 import _ from 'lodash';
+import log4js from 'log4js';
+import { EOL } from 'os';
+import Path from 'path';
+import { setTsCompilerOptForNodePath } from './config-handler';
+import { getProjectList, getState, updateGitIgnores } from './package-mgr';
+import * as _recp from './recipe-manager';
+import { closestCommonParentDir, getRootDir } from './utils/misc';
 const log = log4js.getLogger('editor-helper');
 const {parse} = require('comment-json');
 
-
+interface GitIgnoreInfo {
+  dir: string;
+  ignoreFile: string;
+  ignoreItems: string[];
+}
 
 export function updateTsconfigFileForEditor(wsKey: string) {
-  const srcPackages = getState().srcPackages;
+  // const srcPackages = getState().srcPackages;
             // const wsKey = workspaceKey(payload.dir);
   const ws = getState().workspaces.get(wsKey);
   if (ws == null)
     return;
-  const pks: PackageInfo[] = [
-    ...ws.linkedDependencies.map(([name, ver]) => srcPackages.get(name)),
-    ...ws.linkedDevDependencies.map(([name, ver]) => srcPackages.get(name))
-  ].filter(pk => pk != null) as PackageInfo[];
+  // const pks: PackageInfo[] = [
+  //   ...ws.linkedDependencies.map(([name, ver]) => srcPackages.get(name)),
+  //   ...ws.linkedDevDependencies.map(([name, ver]) => srcPackages.get(name))
+  // ].filter(pk => pk != null) as PackageInfo[];
 
-  // const typeRoots = Array.from(typeRootsFromPackages(wsKey));
-  // console.log(typeRoots);
 
-  const wsDir = Path.resolve(getRootDir(), wsKey);
-  // const wsTypesDir = [Path.resolve(wsDir, 'types')];
-  writeTsconfig4project(getProjectList(), (file, content) => updateGitIgnores({file, content}));
-  return writeTsconfigForEachPackage(wsDir, pks,
+  // const wsDir = Path.resolve(getRootDir(), wsKey);
+  writeTsconfig4project(getProjectList(), Path.resolve(getRootDir(), wsKey),
     (file, content) => updateGitIgnores({file, content}));
+  // return writeTsconfigForEachPackage(wsDir, pks,
+  //   (file, content) => updateGitIgnores({file, content}));
 }
 
-function writeTsconfig4project(projectDirs: string[], onGitIgnoreFileUpdate: (file: string, content: string) => void) {
+function writeTsconfig4project(projectDirs: string[], workspaceDir: string | null, onGitIgnoreFileUpdate: (file: string, content: string) => void) {
   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
     Path.dirname(require.resolve('@wfh/plink/package.json'));
 
@@ -55,54 +56,50 @@ function writeTsconfig4project(projectDirs: string[], onGitIgnoreFileUpdate: (fi
       include.push(includeDir + '**/*.ts');
       include.push(includeDir + '**/*.tsx');
     });
-    createTsConfig('', proj, null, drcpDir, include );
+    const tsconfigFile = createTsConfig('', proj, workspaceDir, drcpDir, include );
+    appendGitignore([tsconfigFile], onGitIgnoreFileUpdate);
 
-    const gitIgnoreFile = findGitIngoreFile(proj);
-    if (gitIgnoreFile) {
-      fs.readFile(gitIgnoreFile, 'utf8', (err, data) => {
-        if (err) {
-          log.error(err);
-          return;
-        }
-        onGitIgnoreFileUpdate(gitIgnoreFile, data);
-      });
-    }
+    // const gitIgnoreFile = findGitIngoreFile(proj);
+    // if (gitIgnoreFile) {
+    //   fs.readFile(gitIgnoreFile, 'utf8', (err, data) => {
+    //     if (err) {
+    //       log.error(err);
+    //       return;
+    //     }
+    //     onGitIgnoreFileUpdate(gitIgnoreFile, data);
+    //   });
+    // }
   }
 }
 
-async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInfo[],
+// async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInfo[],
+//   onGitIgnoreFileUpdate: (file: string, content: string) => void) {
+
+//   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
+//     Path.dirname(require.resolve('@wfh/plink/package.json'));
+
+//   const igConfigFiles = pks.map(pk => {
+//     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
+//     return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir);
+//   });
+
+//   appendGitignore(igConfigFiles, onGitIgnoreFileUpdate);
+// }
+
+
+function appendGitignore(ignoreTsConfigFiles: string[],
   onGitIgnoreFileUpdate: (file: string, content: string) => void) {
-  // const commonPaths = [
-  //   '',
-  //   Path.resolve(workspaceDir, 'node_modules'),
-  //   Path.resolve(getRootDir(), 'node_modules')
-  // ];
-
-  const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
-    Path.dirname(require.resolve('@wfh/plink/package.json'));
-
-  const igConfigFiles = pks.map(pk => {
-    // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
-    return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir);
-  });
-
-  appendGitIgnoreFiles(igConfigFiles, onGitIgnoreFileUpdate);
-}
-
-
-function appendGitIgnoreFiles(ignoreTsConfigFiles: string[],
-  onGitIgnoreFileUpdate: (file: string, content: string) => void) {
-  const gitFolderToIngoreFile: {dir: string; ignoreFile: string, ignoreItems: string[]} [] =
+  const gitFolderToIngoreFiles: GitIgnoreInfo[] =
     Object.entries(getState().gitIgnores).map(([file, content]) => {
       return {
         dir: Path.dirname(file) + Path.sep,
         ignoreFile: file,
         ignoreItems: []
-      };
+      } as GitIgnoreInfo;
     });
 
   for (const tsconfigFile of ignoreTsConfigFiles) {
-    gitFolderToIngoreFile.some(({dir, ignoreFile, ignoreItems}) => {
+    gitFolderToIngoreFiles.some(({dir, ignoreFile, ignoreItems}) => {
       if (tsconfigFile.startsWith(dir)) {
         ignoreItems.push(Path.relative(dir, tsconfigFile).replace(/\\/g, '/'));
         return true;
@@ -111,7 +108,7 @@ function appendGitIgnoreFiles(ignoreTsConfigFiles: string[],
     });
   }
 
-  for (const {ignoreFile, ignoreItems} of gitFolderToIngoreFile) {
+  for (const {ignoreFile, ignoreItems} of gitFolderToIngoreFiles) {
     const origContent = getState().gitIgnores[ignoreFile];
     const origList =  _.uniq(origContent.split(/(?:\n\r?)+/)
       .map(line => /^\s*(.*?)\s*$/m.exec(line)![1])
@@ -125,20 +122,29 @@ function appendGitIgnoreFiles(ignoreTsConfigFiles: string[],
   }
 }
 
-function findGitIngoreFile(startDir: string): string | null {
-  let dir = startDir;
-  while (true) {
-    const test = Path.resolve(startDir, '.gitignore');
-    if (fs.existsSync(test)) {
-      return test;
-    }
-    const parent = Path.dirname(dir);
-    if (parent === dir)
-      return null;
-    dir = parent;
-  }
-}
+// function findGitIngoreFile(startDir: string): string | null {
+//   let dir = startDir;
+//   while (true) {
+//     const test = Path.resolve(startDir, '.gitignore');
+//     if (fs.existsSync(test)) {
+//       return test;
+//     }
+//     const parent = Path.dirname(dir);
+//     if (parent === dir)
+//       return null;
+//     dir = parent;
+//   }
+// }
 
+/**
+ * 
+ * @param pkgName 
+ * @param dir 
+ * @param workspace 
+ * @param drcpDir 
+ * @param include 
+ * @return tsconfig file path
+ */
 function createTsConfig(pkgName: string, dir: string, workspace: string | null, drcpDir: string,
   include = ['.']) {
   const tsjson: any = {

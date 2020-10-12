@@ -37,3 +37,5 @@ src/tools/vendor-binary/tsconfig.json
 main/install-cli/tsconfig.json
 # -------2020-9-26---------
 src/tools/jasmine-helper/tsconfig.json
+# -------2020-10-12---------
+tsconfig.json
