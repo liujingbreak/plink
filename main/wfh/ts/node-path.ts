@@ -66,8 +66,13 @@ function setupNodePath(rootDir: string, symlinkDir: string, isDrcpSymlink: boole
     ]);
   }
 
-  if (isDrcpSymlink)
-    nodePaths.add(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/@wfh/plink')) + Path.sep + 'node_modules');
+  // if (isDrcpSymlink)
+  /**
+   * Somehow when I install @wfh/plink in an new directory, npm does not dedupe dependencies from 
+   * @wfh/plink/node_modules directory up to current node_modules directory, results in MODULE_NOT_FOUND
+   * from @wfh/plink/redux-toolkit-abservable for rxjs
+   */
+  nodePaths.add(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/@wfh/plink')) + Path.sep + 'node_modules');
   if (process.env.NODE_PATH) {
     for (const path of process.env.NODE_PATH.split(Path.delimiter)) {
       nodePaths.add(path);

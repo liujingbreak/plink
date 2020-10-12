@@ -3,7 +3,6 @@ import commander from 'commander';
 import chalk from 'chalk';
 // import * as store from '../store';
 import * as tp from './types';
-import * as cliStore from './cli-slice';
 import * as pkgMgr from '../package-mgr';
 import {packages4Workspace} from '../package-mgr/package-list-helper';
 import * as _ from 'lodash';
