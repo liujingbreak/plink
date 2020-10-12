@@ -248,7 +248,7 @@ module.exports = function (webpackEnv) {
             handler.webpack(config, webpackEnv, cmdOption);
         });
     }
-    fs_extra_1.default.writeFile('logs/webpack.config.plink.js', utils_1.printConfig(config), (err) => {
+    fs_extra_1.default.writeFile(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), utils_1.printConfig(config), (err) => {
         if (err)
             console.error(err);
     });

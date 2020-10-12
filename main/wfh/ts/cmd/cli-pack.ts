@@ -12,7 +12,9 @@ import config from '../config';
 import {PackOptions, PublishOptions} from './types';
 import logConfig from '../log-config';
 import {getPackagesOfProjects, getState, workspaceKey} from '../package-mgr';
+import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import log4js from 'log4js';
+import {findPackagesByNames} from './utils';
 // import * as packageUtils from './package-utils';
 // const recipeManager = require('../lib/gulp/recipeManager');
 const log = log4js.getLogger('cli-pack');
@@ -26,13 +28,18 @@ export async function pack(opts: PackOptions) {
   fs.mkdirpSync('tarballs');
 
   if (opts.workspace && opts.workspace.length > 0) {
-    await Promise.all(opts.workspace.map(ws => packPackagesOfWorkspace(ws)));
+    await Promise.all(opts.workspace.map(ws => packPackages(Array.from(linkedPackagesOfWorkspace(ws)))));
   } else if (opts.project && opts.project.length > 0) {
     return packProject(opts.project);
-  } if (opts.packageDirs && opts.packageDirs.length > 0) {
-    await packPackages(opts.packageDirs);
+  } else if (opts.dir && opts.dir.length > 0) {
+    await packPackages(opts.dir);
+  } else if (opts.packages && opts.packages.length > 0) {
+    const dirs = Array.from(findPackagesByNames(getState(), opts.packages))
+    .filter(pkg => pkg)
+    .map(pkg => pkg!.realPath);
+    await packPackages(dirs);
   } else {
-    await packPackagesOfWorkspace(process.cwd());
+    await packPackages(Array.from(linkedPackagesOfWorkspace(process.cwd())));
   }
 }
 
@@ -44,21 +51,27 @@ export async function publish(opts: PublishOptions) {
 
   if (opts.project && opts.project.length > 0)
     return publishProject(opts.project, opts.public ? ['--access', 'public'] : []);
-
-  await publishPackages(opts.packageDirs, opts.public ? ['--access', 'public'] : []);
+  else if (opts.dir && opts.dir.length > 0) {
+    await publishPackages(opts.dir, opts.public ? ['--access', 'public'] : []);
+  } else if (opts.packages && opts.packages.length > 0) {
+    const dirs = Array.from(findPackagesByNames(getState(), opts.packages))
+    .filter(pkg => pkg)
+    .map(pkg => pkg!.realPath);
+    await publishPackages(dirs, opts.public ? ['--access', 'public'] : []);
+  } else {
+    await publishPackages(Array.from(linkedPackagesOfWorkspace(process.cwd())),
+      opts.public ? ['--access', 'public'] : []);
+  }
 }
 
-async function packPackagesOfWorkspace(workspaceDir: string) {
+function *linkedPackagesOfWorkspace(workspaceDir: string) {
   const wsKey = workspaceKey(workspaceDir);
-  const linkedPackages = getState().srcPackages;
-  const ws = getState().workspaces.get(wsKey);
-  if (ws) {
-    const dirs = ws.linkedDependencies.map(entry => linkedPackages.get(entry[0]))
-      .filter(pkg => pkg != null)
-      .map(pkg => pkg!.realPath);
-    await packPackages(dirs);
-  } else {
+  if (!getState().workspaces.has(wsKey)) {
     log.error(`Workspace ${workspaceDir} is not a workspace directory`);
+    return;
+  }
+  for (const pkg of packages4WorkspaceKey(wsKey)) {
+    yield pkg.realPath;
   }
 }
 

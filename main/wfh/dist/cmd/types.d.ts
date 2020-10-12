@@ -19,12 +19,11 @@ export interface BumpOptions extends GlobalOptions {
     increVersion: string;
 }
 export interface PackOptions extends GlobalOptions {
+    dir: string[];
     project: string[];
-    packageDirs: string[];
+    packages: string[];
     workspace: string[];
 }
-export interface PublishOptions extends GlobalOptions {
-    project: string[];
-    packageDirs: string[];
+export interface PublishOptions extends PackOptions {
     public: boolean;
 }

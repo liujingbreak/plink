@@ -195,15 +195,16 @@ function subDrcpCommand(program: commander.Command) {
   /**
    * Pack command
    */
-  const packCmd = program.command('pack [packageDir...]')
+  const packCmd = program.command('pack [package...]')
     .description('npm pack every pakage into tarball files')
-    .option('-w,--workspace <workspace-dir>', 'only include those linked packages which are dependency of specific workspaces',
+    .option('--dir <package directory>', 'pack packages by specifying directories', arrayOptionFn, [])
+    .option('-w,--workspace <workspace-dir>', 'pack packages which are linked as dependency of specific workspaces',
       arrayOptionFn, [])
     .option('--pj, --project <project-dir>',
       'project directories to be looked up for all packages which need to be packed to tarball files',
       arrayOptionFn, [])
-    .action(async (packageDirs: string[]) => {
-      await (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packageDirs});
+    .action(async (packages: string[]) => {
+      await (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packages});
     });
   withGlobalOptions(packCmd);
   packCmd.usage(packCmd.usage() + '\nBy default, run "npm pack" for each linked package which are dependencies of current workspace');
@@ -211,16 +212,19 @@ function subDrcpCommand(program: commander.Command) {
   /**
    * Pack command
    */
-  const publishCmd = program.command('publish [packageDir...]')
+  const publishCmd = program.command('publish [package...]')
     .description('run npm publish')
+    .option('--dir <package directory>', 'publish packages by specifying directories', arrayOptionFn, [])
     .option<string[]>('--pj, --project <project-dir,...>',
     'project directories to be looked up for all packages which need to be packed to tarball files',
       (value, prev) => {
         prev.push(...value.split(',')); return prev;
       }, [])
+    .option('-w,--workspace <workspace-dir>', 'publish packages which are linked as dependency of specific workspaces',
+      arrayOptionFn, [])
     .option('--public', 'same as "npm publish" command option "--access public"', false)
-    .action(async (packageDirs: string[]) => {
-      await (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packageDirs});
+    .action(async (packages: string[]) => {
+      await (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packages});
     });
   withGlobalOptions(publishCmd);
 }

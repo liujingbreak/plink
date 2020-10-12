@@ -152,7 +152,7 @@ export = function(webpackEnv: 'production' | 'development') {
     });
   }
 
-  fs.writeFile('logs/webpack.config.plink.js', printConfig(config), (err) => {
+  fs.writeFile(Path.resolve(reportDir, 'webpack.config.plink.js'), printConfig(config), (err) => {
     if (err)
       console.error(err);
   });

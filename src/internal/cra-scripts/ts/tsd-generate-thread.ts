@@ -8,4 +8,4 @@ import {initConfig, initProcess} from '@wfh/plink/wfh/dist/utils/bootstrap-proce
   await initConfig({config: [], prop: []});
   const {tsc} = require('@wfh/plink/wfh/dist/ts-cmd') as typeof _tscmd;
   await tsc(workerData as _tscmd.TscCmdParam);
-})().catch(err => parentPort!.postMessage(err))
+})().catch(err => parentPort!.postMessage(err));
