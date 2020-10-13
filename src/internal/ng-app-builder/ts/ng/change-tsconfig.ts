@@ -105,8 +105,7 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
     }
   };
 
-  setTsCompilerOptForNodePath(cwd, tsjson.compilerOptions, {enableTypeRoots: true, workspaceDir: process.cwd()});
-  tsjson.compilerOptions.baseUrl = cwd;
+  setTsCompilerOptForNodePath(tsConfigFileDir, process.cwd(), tsjson.compilerOptions, {enableTypeRoots: true, workspaceDir: process.cwd()});
   // Object.assign(tsjson.compilerOptions.paths, appTsconfig.compilerOptions.paths, pathMapping);
 
   if (oldJson.extends) {

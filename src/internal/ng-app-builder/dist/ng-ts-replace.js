@@ -44,12 +44,12 @@ __api.default = __api;');
 // const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
 Object.getPrototypeOf(__api_1.default).browserApiConfig = browserLegoConfig;
 class TSReadHooker {
-    constructor(ngParam) {
+    constructor(tsconfigFile, preserveSymlinks = false) {
         this.templateFileCount = 0;
         this.tsFileCount = 0;
         this.realFileCache = new lru_cache_1.default({ max: 100, maxAge: 20000 });
         this.tsCache = new lru_cache_1.default({ max: 100, maxAge: 20000 });
-        this.hookFunc = this.createTsReadHook(ngParam);
+        this.hookFunc = this.createTsReadHook(tsconfigFile, preserveSymlinks);
     }
     clear() {
         this.tsCache = new lru_cache_1.default({ max: 100, maxAge: 20000 });
@@ -73,12 +73,11 @@ class TSReadHooker {
         else
             return file;
     }
-    createTsReadHook(ngParam) {
+    createTsReadHook(tsconfigFile, preserveSymlinks = false) {
         // let drcpIncludeBuf: ArrayBuffer;
-        const tsconfigFile = ngParam.browserOptions.tsConfig;
-        // const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || api.argv.hmr;
-        const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
-            false;
+        // const tsconfigFile = ngParam.browserOptions.tsConfig;
+        // const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
+        //   false;
         const tsCompilerOptions = ts_compiler_1.readTsConfig(tsconfigFile);
         const ng8Compliant = __api_1.default.config.get(__api_1.default.packageName + '.ng8Compliant', true);
         return (file, buf) => {

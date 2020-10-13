@@ -48,6 +48,7 @@ const for_hmr_1 = require("./for-hmr");
 const { cyan, green, red } = chalk_1.default;
 const currPackageName = require('../../package.json').name;
 const log = require('log4js').getLogger('@wfh/ng-app-builder.change-cli-options');
+// type ExtractPromise<P> = P extends Promise<infer T> ? T : unknown;
 function hackAngularBuilderContext(context, targetName, replacedOpts) {
     const getTargetOptions = context.getTargetOptions;
     context.getTargetOptions = function (target) {
@@ -85,6 +86,7 @@ function changeAngularCliOptions(config, context, builderConfig) {
         if (!rawBrowserOptions.deployUrl)
             rawBrowserOptions.deployUrl = '/';
         const browserOptions = yield processBrowserBuiliderOptions(config, rawBrowserOptions, context, builderConfig, true);
+        process.env.NODE_OPTIONS = '-r ' + Path.resolve(Path.dirname(__dirname), 'fork-tscheck/fork-tscheck-register');
         hackAngularBuilderContext(context, 'build', browserOptions);
         return browserOptions;
     });
@@ -162,7 +164,7 @@ function processBrowserBuiliderOptions(config, rawBrowserOptions, context, devSe
             browserOptions.drcpArgs = {};
         }
         browserOptions.commonChunk = false;
-        const packagesInfo = yield injector_setup_1.default(browserOptions);
+        const packagesInfo = injector_setup_1.default(browserOptions);
         yield hackTsConfig(browserOptions, config, packagesInfo);
         context.reportStatus('setting up assets options');
         // Because dev-serve-assets depends on DRCP api, I have to lazy load it.

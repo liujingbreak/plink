@@ -22,7 +22,7 @@ import { getRootDir, isDrcpSymlink } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync, symlinkAsync } from '../utils/symlinks';
 import { actions as _cleanActions } from '../cmd/cli-clean';
 import {PlinkEnv} from '../node-path';
-
+import { EOL } from 'os';
 export interface PackageInfo {
   name: string;
   scope: string;
@@ -42,7 +42,7 @@ export interface PackagesState {
   currWorkspace?: string | null;
   project2Packages: Map<string, string[]>;
   linkedDrcp: PackageInfo | null;
-  gitIgnores: {[file: string]: string};
+  gitIgnores: {[file: string]: string[]};
   isInChina?: boolean;
   /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
   workspaceUpdateChecksum: number;
@@ -229,8 +229,8 @@ export const slice = stateFactory.newSlice({
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: PackageInfo[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
     },
-    updateGitIgnores(d, {payload}: PayloadAction<{file: string, content: string}>) {
-      d.gitIgnores[payload.file] = payload.content;
+    updateGitIgnores(d, {payload}: PayloadAction<{file: string, lines: string[]}>) {
+      d.gitIgnores[payload.file] = payload.lines.map(line => line.startsWith('/') ? line : '/' + line);
     },
     _relatedPackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {},
     setInChina(d, {payload}: PayloadAction<boolean>) {
@@ -261,7 +261,14 @@ stateFactory.addEpic((action$, state$) => {
       distinctUntilChanged(),
       map(pks => {
         setProjectList(getProjectList());
+        return pks;
       }),
+      // distinctUntilChanged<PackagesState['project2Packages']>((map1, map2) => {
+      //   return isEqualMapSet(map1, map2);
+      // }),
+      // map(pmap => {
+      //   console.log('project changed', Array.from(pmap.keys()));
+      // }),
       ignoreElements()
     ),
 
@@ -433,16 +440,26 @@ stateFactory.addEpic((action$, state$) => {
       distinctUntilChanged(),
       map(gitIgnores => Object.keys(gitIgnores).join(',')),
       distinctUntilChanged(),
+      debounceTime(500),
       switchMap(() => {
-        // console.log('$$$$$$$$$', files);
         return merge(...Object.keys(getState().gitIgnores).map(file => getStore().pipe(
           map(s => s.gitIgnores[file]),
           distinctUntilChanged(),
           skip(1),
-          map(content => {
-            fs.writeFile(file, content, () => {
-              // tslint:disable-next-line: no-console
-              console.log('modify', file);
+          map(lines => {
+            fs.readFile(file, 'utf8', (err, data) => {
+              if (err) {
+                console.error('Failed to read gitignore file', file);
+                throw err;
+              }
+              const existingLines = data.split(/\n\r?/).map(line => line.trim());
+              const newLines = _.difference(lines, existingLines);
+              if (newLines.length === 0)
+                return;
+              fs.writeFile(file, data + EOL + newLines.join(EOL), () => {
+                // tslint:disable-next-line: no-console
+                console.log('modify', file);
+              });
             });
           })
         )));

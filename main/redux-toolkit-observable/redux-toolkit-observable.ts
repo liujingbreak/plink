@@ -173,7 +173,8 @@ export class StateFactory {
    * - initialState is loaded from StateFactory's partial preloadedState
    */
   newSlice<SS, _CaseReducer extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(
-    opt: CreateSliceOptions<SS, _CaseReducer, Name>) {
+    opt: CreateSliceOptions<SS, _CaseReducer, Name>):
+    Slice<SS, _CaseReducer & ExtraSliceReducers<SS>, Name> {
 
     const _opt = opt as CreateSliceOptions<SS, _CaseReducer & ExtraSliceReducers<SS>, Name>;
     const reducers = _opt.reducers as ReducerWithDefaultActions<SS, _CaseReducer>;
@@ -323,6 +324,7 @@ export class StateFactory {
   }
 
 }
+
 
 if (module.hot) {
   module.hot.decline();

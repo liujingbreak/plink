@@ -1,4 +1,3 @@
-import { AngularCliParam } from './ng/common';
 import { HookReadFunc } from './utils/read-hook-vfshost';
 export default class TSReadHooker {
     hookFunc: HookReadFunc;
@@ -6,7 +5,7 @@ export default class TSReadHooker {
     tsFileCount: number;
     private realFileCache;
     private tsCache;
-    constructor(ngParam: AngularCliParam);
+    constructor(tsconfigFile: string, preserveSymlinks?: boolean);
     clear(): void;
     logFileCount(): void;
     private realFile;

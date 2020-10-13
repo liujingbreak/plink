@@ -106,7 +106,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
   // });
   (webpackConfig.plugins as any[]).unshift(new class {
     apply(compiler: Compiler) {
-      const hooker = new TSReadHooker(param);
+      const hooker = new TSReadHooker(param.browserOptions.tsConfig, param.browserOptions.preserveSymlinks);
       ngCompilerPlugin.options.host = new ReadHookHost((compiler as any).inputFileSystem, hooker.hookFunc);
       // Due to https://github.com/angular/angular-cli/pull/12969
       ngCompilerPlugin.options.directTemplateLoading = false;

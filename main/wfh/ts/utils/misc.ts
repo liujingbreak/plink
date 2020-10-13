@@ -154,3 +154,21 @@ export function closestCommonParentDir(paths: Iterable<string>) {
   }
   return commonDir ? commonDir.join(Path.sep) : process.cwd();
 }
+
+// interface MapOrSet extends Iterable<any> {
+//   size: number;
+//   has(el: any): boolean;
+// }
+export function isEqualMapSet<T>(set1: Set<T> | Map<T, any>, set2: Set<T> | Map<T, any>) {
+  if (set1.size !== set2.size)
+    return false;
+  for (const el of set1 instanceof Map ? set1.keys() : set1) {
+    if (!set2.has(el))
+      return false;
+  }
+  for (const el of set2 instanceof Map ? set2.keys() : set2) {
+    if (!set1.has(el))
+      return false;
+  }
+  return true;
+}

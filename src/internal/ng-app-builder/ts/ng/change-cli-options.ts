@@ -27,7 +27,7 @@ const {cyan, green, red} = chalk;
 const currPackageName = require('../../package.json').name;
 const log = require('log4js').getLogger('@wfh/ng-app-builder.change-cli-options');
 
-type ExtractPromise<P> = P extends Promise<infer T> ? T : unknown;
+// type ExtractPromise<P> = P extends Promise<infer T> ? T : unknown;
 
 
 function hackAngularBuilderContext(context: BuilderContext, targetName: string,
@@ -68,8 +68,8 @@ export async function changeAngularCliOptions(config: DrcpConfig,
   if (!rawBrowserOptions.deployUrl)
     rawBrowserOptions.deployUrl = '/';
 
-  const browserOptions = await processBrowserBuiliderOptions(
-    config, rawBrowserOptions, context, builderConfig, true);
+  const browserOptions = await processBrowserBuiliderOptions(config, rawBrowserOptions, context, builderConfig, true);
+  process.env.NODE_OPTIONS = '-r ' + Path.resolve(Path.dirname(__dirname), 'fork-tscheck/fork-tscheck-register');
   hackAngularBuilderContext(context, 'build', browserOptions);
   return browserOptions;
 }
@@ -159,7 +159,7 @@ async function processBrowserBuiliderOptions(
 
   browserOptions.commonChunk = false;
 
-  const packagesInfo = await injectorSetup(browserOptions);
+  const packagesInfo = injectorSetup(browserOptions);
   await hackTsConfig(browserOptions, config, packagesInfo);
 
 
@@ -188,7 +188,7 @@ async function processBrowserBuiliderOptions(
 
 // Hack ts.sys, so far it is used to read tsconfig.json
 async function hackTsConfig(browserOptions: AngularBuilderOptions, config: DrcpConfig,
-  packagesInfo: ExtractPromise<ReturnType<typeof injectorSetup>>) {
+  packagesInfo: ReturnType<typeof injectorSetup>) {
 
   // We want to hack the typescript used in current workspace, not the one from Plink's dependency
   const sys = require(Path.resolve('node_modules/typescript')).sys as typeof ts.sys;
@@ -239,7 +239,7 @@ function lookupEntryPackage(lookupDir: string): any {
 function createTsConfigSync(tsconfigFile: string,
   browserOptions: AngularBuilderOptions,
   config: DrcpConfig,
-  packageInfo: ExtractPromise<ReturnType<typeof injectorSetup>>) {
+  packageInfo: ReturnType<typeof injectorSetup>) {
   const {createTsConfig} = require('./change-tsconfig') as {createTsConfig: typeof _createTsConfig};
   memstats();
   return createTsConfig(tsconfigFile, browserOptions, config.get(currPackageName),
@@ -249,7 +249,7 @@ function createTsConfigSync(tsconfigFile: string,
 function createTsConfigInWorker(tsconfigFile: string,
   browserOptions: AngularBuilderOptions,
   config: DrcpConfig,
-  packageInfo: ExtractPromise<ReturnType<typeof injectorSetup>>) {
+  packageInfo: ReturnType<typeof injectorSetup>) {
 
   const reportDir = config.resolve('destDir', 'ng-app-builder.report');
 

@@ -307,7 +307,7 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
     throw new Error('Current directory is not a work space');
   }
   // const typeRoots = Array.from(packageUtils.typeRootsFromPackages(wsKey));
-  setTsCompilerOptForNodePath(process.cwd(), compilerOptions, {
+  setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions, {
     enableTypeRoots: true,
     workspaceDir: resolve(root, wsKey)
   });

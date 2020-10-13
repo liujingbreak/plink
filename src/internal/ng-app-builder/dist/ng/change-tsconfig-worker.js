@@ -13,8 +13,7 @@ const { tsconfigFile, reportDir, config, ngOptions, packageInfo, deployUrl, base
 mem_stats_1.default();
 common_1.initCli(drcpBuilderOptions)
     .then((drcpConfig) => {
-    return injector_setup_1.injectorSetup(packageInfo, drcpBuilderOptions.drcpArgs, deployUrl, baseHref);
-}).then(() => {
+    injector_setup_1.injectorSetup(packageInfo, drcpBuilderOptions.drcpArgs, deployUrl, baseHref);
     const create = require('./change-tsconfig').createTsConfig;
     const content = create(tsconfigFile, ngOptions, config, packageInfo, reportDir);
     worker_threads_1.parentPort.postMessage({ log: mem_stats_1.default() });

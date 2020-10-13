@@ -128,7 +128,7 @@ function changeWebpackConfig(context, param, webpackConfig, drcpConfigSetting) {
         // });
         webpackConfig.plugins.unshift(new class {
             apply(compiler) {
-                const hooker = new ng_ts_replace_1.default(param);
+                const hooker = new ng_ts_replace_1.default(param.browserOptions.tsConfig, param.browserOptions.preserveSymlinks);
                 ngCompilerPlugin.options.host = new read_hook_vfshost_1.default(compiler.inputFileSystem, hooker.hookFunc);
                 // Due to https://github.com/angular/angular-cli/pull/12969
                 ngCompilerPlugin.options.directTemplateLoading = false;

@@ -56,7 +56,10 @@ function initDrcp(drcpArgs, drcpConfigFiles) {
         // console.log('~~~~~~~~~~~~~~~~~~~~~');
         dist_1.initProcess();
         yield Promise.resolve().then(() => __importStar(require('@wfh/plink/wfh/dist/package-mgr/index')));
-        yield dist_1.initConfigAsync({ config: drcpArgs.c, prop: drcpArgs.p || drcpArgs.prop || [] });
+        const cmdOptions = { config: drcpArgs.c, prop: drcpArgs.p || drcpArgs.prop || [] };
+        yield dist_1.initConfigAsync(cmdOptions);
+        // for forked tscheck process of @ngtool/webpack
+        process.env._ngcli_plink_arg = JSON.stringify(cmdOptions);
         return config_1.default;
     });
 }

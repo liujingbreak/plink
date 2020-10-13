@@ -27,8 +27,10 @@ async function initDrcp(drcpArgs: any, drcpConfigFiles: string[]): Promise<DrcpC
   // console.log('~~~~~~~~~~~~~~~~~~~~~');
   initProcess();
   await import ('@wfh/plink/wfh/dist/package-mgr/index');
-  await initConfigAsync({config: drcpArgs.c, prop: drcpArgs.p || drcpArgs.prop || []});
-
+  const cmdOptions = {config: drcpArgs.c, prop: drcpArgs.p || drcpArgs.prop || []};
+  await initConfigAsync(cmdOptions);
+  // for forked tscheck process of @ngtool/webpack
+  process.env._ngcli_plink_arg = JSON.stringify(cmdOptions);
   return config;
 }
 

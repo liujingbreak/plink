@@ -7,7 +7,6 @@ import * as fs from 'fs-extra';
 // import {typeRootsFromPackages} from './package-utils';
 import _ from 'lodash';
 import log4js from 'log4js';
-import { EOL } from 'os';
 import Path from 'path';
 import { setTsCompilerOptForNodePath } from './config-handler';
 import { getProjectList, getState, updateGitIgnores } from './package-mgr';
@@ -15,12 +14,6 @@ import * as _recp from './recipe-manager';
 import { closestCommonParentDir, getRootDir } from './utils/misc';
 const log = log4js.getLogger('editor-helper');
 const {parse} = require('comment-json');
-
-interface GitIgnoreInfo {
-  dir: string;
-  ignoreFile: string;
-  ignoreItems: string[];
-}
 
 export function updateTsconfigFileForEditor(wsKey: string) {
   // const srcPackages = getState().srcPackages;
@@ -35,13 +28,12 @@ export function updateTsconfigFileForEditor(wsKey: string) {
 
 
   // const wsDir = Path.resolve(getRootDir(), wsKey);
-  writeTsconfig4project(getProjectList(), Path.resolve(getRootDir(), wsKey),
-    (file, content) => updateGitIgnores({file, content}));
+  writeTsconfig4project(getProjectList(), Path.resolve(getRootDir(), wsKey));
   // return writeTsconfigForEachPackage(wsDir, pks,
   //   (file, content) => updateGitIgnores({file, content}));
 }
 
-function writeTsconfig4project(projectDirs: string[], workspaceDir: string | null, onGitIgnoreFileUpdate: (file: string, content: string) => void) {
+function writeTsconfig4project(projectDirs: string[], workspaceDir: string | null) {
   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
     Path.dirname(require.resolve('@wfh/plink/package.json'));
 
@@ -57,8 +49,8 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string | nul
       include.push(includeDir + '**/*.tsx');
     });
     const tsconfigFile = createTsConfig('', proj, workspaceDir, drcpDir, include );
-    appendGitignore([tsconfigFile], onGitIgnoreFileUpdate);
-
+    updateGitIgnores({file: Path.resolve(proj, '.gitignore'),
+      lines: [Path.relative(Path.resolve(proj), tsconfigFile).replace(/\\/g, '/')]});
     // const gitIgnoreFile = findGitIngoreFile(proj);
     // if (gitIgnoreFile) {
     //   fs.readFile(gitIgnoreFile, 'utf8', (err, data) => {
@@ -71,70 +63,6 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string | nul
     // }
   }
 }
-
-// async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInfo[],
-//   onGitIgnoreFileUpdate: (file: string, content: string) => void) {
-
-//   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
-//     Path.dirname(require.resolve('@wfh/plink/package.json'));
-
-//   const igConfigFiles = pks.map(pk => {
-//     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
-//     return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir);
-//   });
-
-//   appendGitignore(igConfigFiles, onGitIgnoreFileUpdate);
-// }
-
-
-function appendGitignore(ignoreTsConfigFiles: string[],
-  onGitIgnoreFileUpdate: (file: string, content: string) => void) {
-  const gitFolderToIngoreFiles: GitIgnoreInfo[] =
-    Object.entries(getState().gitIgnores).map(([file, content]) => {
-      return {
-        dir: Path.dirname(file) + Path.sep,
-        ignoreFile: file,
-        ignoreItems: []
-      } as GitIgnoreInfo;
-    });
-
-  for (const tsconfigFile of ignoreTsConfigFiles) {
-    gitFolderToIngoreFiles.some(({dir, ignoreFile, ignoreItems}) => {
-      if (tsconfigFile.startsWith(dir)) {
-        ignoreItems.push(Path.relative(dir, tsconfigFile).replace(/\\/g, '/'));
-        return true;
-      }
-      return false;
-    });
-  }
-
-  for (const {ignoreFile, ignoreItems} of gitFolderToIngoreFiles) {
-    const origContent = getState().gitIgnores[ignoreFile];
-    const origList =  _.uniq(origContent.split(/(?:\n\r?)+/)
-      .map(line => /^\s*(.*?)\s*$/m.exec(line)![1])
-      .filter(line => line.length > 0));
-    const itemsToAppend = _.difference(ignoreItems, origList);
-    if (itemsToAppend.length > 0)
-      onGitIgnoreFileUpdate(ignoreFile, [
-        ...origList,
-        `# -------${new Date().toLocaleDateString()}---------`,
-        ...itemsToAppend].join(EOL));
-  }
-}
-
-// function findGitIngoreFile(startDir: string): string | null {
-//   let dir = startDir;
-//   while (true) {
-//     const test = Path.resolve(startDir, '.gitignore');
-//     if (fs.existsSync(test)) {
-//       return test;
-//     }
-//     const parent = Path.dirname(dir);
-//     if (parent === dir)
-//       return null;
-//     dir = parent;
-//   }
-// }
 
 /**
  * 
@@ -186,7 +114,7 @@ function createTsConfig(pkgName: string, dir: string, workspace: string | null, 
     module: 'commonjs',
     paths: pathMapping
   };
-  setTsCompilerOptForNodePath(proj, tsjson.compilerOptions, {
+  setTsCompilerOptForNodePath(proj, proj, tsjson.compilerOptions, {
     enableTypeRoots: true,
     workspaceDir: workspace != null ? workspace : undefined,
     // If user execute 'init <workspace>' in root directory, env.NODE_PATH does not contain workspace 
@@ -227,3 +155,30 @@ function writeTsConfigFile(tsconfigFile: string, tsconfigOverrideSrc: any) {
   }
 }
 
+// async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInfo[],
+//   onGitIgnoreFileUpdate: (file: string, content: string) => void) {
+
+//   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
+//     Path.dirname(require.resolve('@wfh/plink/package.json'));
+
+//   const igConfigFiles = pks.map(pk => {
+//     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
+//     return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir);
+//   });
+
+//   appendGitignore(igConfigFiles, onGitIgnoreFileUpdate);
+// }
+
+// function findGitIngoreFile(startDir: string): string | null {
+//   let dir = startDir;
+//   while (true) {
+//     const test = Path.resolve(startDir, '.gitignore');
+//     if (fs.existsSync(test)) {
+//       return test;
+//     }
+//     const parent = Path.dirname(dir);
+//     if (parent === dir)
+//       return null;
+//     dir = parent;
+//   }
+// }

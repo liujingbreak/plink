@@ -36,7 +36,7 @@ export default class BrowserApi {
   // patchToApi = assetsUrl.patchToApi;
   entryPageUrl = assetsUrl.entryPageUrl;
   assetsUrl = assetsUrl.assetsUrl;
-  ngBaseRouterPath = __api.ngBaseRouterPath;
+  ngBaseRouterPath: string = __api.ngBaseRouterPath;
   ngRouterPath = createNgRouterPath(''); // TODO
   // publicUrl = assetsUrl.publicUrl;
   // serverUrl = assetsUrl.serverUrl;

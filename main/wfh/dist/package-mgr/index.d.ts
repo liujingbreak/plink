@@ -20,7 +20,7 @@ export interface PackagesState {
     project2Packages: Map<string, string[]>;
     linkedDrcp: PackageInfo | null;
     gitIgnores: {
-        [file: string]: string;
+        [file: string]: string[];
     };
     isInChina?: boolean;
     /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
@@ -105,7 +105,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -179,7 +179,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -252,7 +252,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -322,7 +322,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -392,7 +392,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -462,7 +462,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -537,7 +537,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -612,7 +612,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -688,13 +688,13 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
     }, { payload }: PayloadAction<{
         file: string;
-        content: string;
+        lines: string[];
     }>): void;
     _relatedPackageUpdated(d: {
         inited: boolean;
@@ -761,7 +761,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -831,7 +831,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -901,7 +901,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -971,7 +971,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1044,7 +1044,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1118,7 +1118,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1191,7 +1191,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1261,7 +1261,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1331,7 +1331,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1401,7 +1401,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1476,7 +1476,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1551,7 +1551,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1627,13 +1627,13 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
     }, { payload }: PayloadAction<{
         file: string;
-        content: string;
+        lines: string[];
     }>): void;
     _relatedPackageUpdated(d: {
         inited: boolean;
@@ -1700,7 +1700,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1770,7 +1770,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1840,7 +1840,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1910,7 +1910,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             isInstalled: boolean;
         } | null;
         gitIgnores: {
-            [x: string]: string;
+            [x: string]: string[];
         };
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
@@ -1918,7 +1918,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
     file: string;
-    content: string;
+    lines: string[];
 }, string>;
 export declare function getState(): PackagesState;
 export declare function getStore(): Observable<PackagesState>;

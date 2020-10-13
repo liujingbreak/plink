@@ -21,3 +21,4 @@ export interface PackageTsDirs {
 export declare function getTsDirsOfPackage(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;
 export declare function closestCommonParentDir(paths: Iterable<string>): string;
+export declare function isEqualMapSet<T>(set1: Set<T> | Map<T, any>, set2: Set<T> | Map<T, any>): boolean;

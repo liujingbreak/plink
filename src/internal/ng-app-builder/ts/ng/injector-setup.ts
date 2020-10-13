@@ -7,18 +7,19 @@ import {walkPackages } from '@wfh/plink/wfh/dist/package-mgr/package-info-gather
 import {initInjectorForNodePackages, initWebInjector} from '@wfh/plink/wfh/dist/package-runner';
 import {AngularBuilderOptions} from './common';
 
-export default async function walkPackagesAndSetupInjector(browserOptions: AngularBuilderOptions, ssr = false): Promise<ReturnType<typeof walkPackages>> {
+export default function walkPackagesAndSetupInjector(browserOptions: AngularBuilderOptions, ssr = false):
+  ReturnType<typeof walkPackages> {
   const packageInfo = walkPackages();
-  await injectorSetup(packageInfo, browserOptions.drcpArgs, browserOptions.deployUrl, browserOptions.baseHref, ssr);
+  injectorSetup(packageInfo, browserOptions.drcpArgs, browserOptions.deployUrl, browserOptions.baseHref, ssr);
   return packageInfo;
 }
 
-export async function injectorSetup(packageInfo: ReturnType<typeof walkPackages>,
+export function injectorSetup(packageInfo: ReturnType<typeof walkPackages>,
   drcpArgs: AngularBuilderOptions['drcpArgs'],
   deployUrl: AngularBuilderOptions['deployUrl'],
   baseHref: AngularBuilderOptions['baseHref'], ssr = false) {
   const [pks, apiProto] = initInjectorForNodePackages(drcpArgs, packageInfo);
-  await initWebInjector(pks, apiProto);
+  initWebInjector(pks, apiProto);
 
   const publicUrlObj = parse(deployUrl || '');
   const baseHrefPath = baseHref ? parse(baseHref).pathname : undefined;

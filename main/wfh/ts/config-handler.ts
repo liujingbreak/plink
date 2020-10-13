@@ -81,7 +81,7 @@ export class ConfigHandlerMgr {
         fs.readFileSync(internalTscfgFile, 'utf8')
       );
 
-      setTsCompilerOptForNodePath(process.cwd(), compilerOptions);
+      setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions);
 
       compilerOptions.module = 'commonjs';
       compilerOptions.noUnusedLocals = false;
@@ -167,10 +167,11 @@ export interface CompilerOptions {
 /**
  * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
  * and process.env.NODE_PATHS
- * @param cwd project directory where tsconfig file is (virtual)
+ * @param cwd project directory where tsconfig file is (virtual), "typeRoots" is relative to this parameter
+ * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions 
  */
-export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: CompilerOptions,
+export function setTsCompilerOptForNodePath(cwd: string, baseUrl = './', assigneeOptions: CompilerOptions,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
   let pathsDirs: string[] = [];
@@ -197,8 +198,15 @@ export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: Compil
       pathsDirs.splice(idx, 1);
     }
   }
+
+  if (Path.isAbsolute(baseUrl)) {
+    let relBaseUrl = Path.relative(cwd, baseUrl);
+    if (!relBaseUrl.startsWith('.'))
+      relBaseUrl = './' + relBaseUrl;
+    baseUrl = relBaseUrl;
+  }
   // console.log('+++++++++', pathsDirs, opts.extraNodePath);
-  assigneeOptions.baseUrl = '.';
+  assigneeOptions.baseUrl = baseUrl;
   if (assigneeOptions.paths == null)
     assigneeOptions.paths = {'*': []};
   else
@@ -206,7 +214,7 @@ export function setTsCompilerOptForNodePath(cwd: string, assigneeOptions: Compil
 
   // console.log('pathsDirs', pathsDirs);
   for (const dir of pathsDirs) {
-    const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');
+    const relativeDir = Path.relative(Path.resolve(cwd, baseUrl), dir).replace(/\\/g, '/');
     // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
     assigneeOptions.paths['*'].push(relativeDir + '/@types/*');
     assigneeOptions.paths['*'].push(relativeDir + '/*');

@@ -8,7 +8,6 @@ import {map} from 'rxjs/operators';
 import * as ts from 'typescript';
 import api, {DrcpApi} from '__api';
 import { replaceHtml } from './ng-aot-assets';
-import { AngularCliParam } from './ng/common';
 import { HookReadFunc } from './utils/read-hook-vfshost';
 import Selector from './utils/ts-ast-query';
 import ApiAotCompiler from './utils/ts-before-aot';
@@ -33,8 +32,8 @@ export default class TSReadHooker {
   private tsCache = new LRU<string, ArrayBuffer>({max: 100, maxAge: 20000});
 
 
-  constructor(ngParam: AngularCliParam) {
-    this.hookFunc = this.createTsReadHook(ngParam);
+  constructor(tsconfigFile: string, preserveSymlinks = false) {
+    this.hookFunc = this.createTsReadHook(tsconfigFile, preserveSymlinks);
   }
 
   clear() {
@@ -61,13 +60,12 @@ export default class TSReadHooker {
       return file;
   }
 
-  private createTsReadHook(ngParam: AngularCliParam): HookReadFunc {
+  private createTsReadHook(tsconfigFile: string, preserveSymlinks = false): HookReadFunc {
     // let drcpIncludeBuf: ArrayBuffer;
-    const tsconfigFile = ngParam.browserOptions.tsConfig;
+    // const tsconfigFile = ngParam.browserOptions.tsConfig;
 
-    // const hmrEnabled = _.get(ngParam, 'builderConfig.options.hmr') || api.argv.hmr;
-    const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
-      false;
+    // const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
+    //   false;
     const tsCompilerOptions = readTsConfig(tsconfigFile);
     const ng8Compliant = api.config.get(api.packageName + '.ng8Compliant', true);
 
