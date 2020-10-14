@@ -112,6 +112,7 @@ function createTsConfig(pkgName: string, dir: string, workspace: string | null, 
     jsx: 'preserve',
     target: 'es2015',
     module: 'commonjs',
+    declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
     paths: pathMapping
   };
   setTsCompilerOptForNodePath(proj, proj, tsjson.compilerOptions, {

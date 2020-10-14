@@ -17,6 +17,8 @@ import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap } from 'rxjs/operators';
 
+export {PayloadAction,
+  CreateSliceOptions, SliceCaseReducers, Slice};
 // export type CallBackActionReducer<SS> = CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 
 export interface ExtraSliceReducers<SS> {
