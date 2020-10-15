@@ -47,6 +47,7 @@ const index_html_plugin_1 = require("./plugins/index-html-plugin");
 const read_hook_vfshost_1 = __importDefault(require("./utils/read-hook-vfshost"));
 const smUrl = require('source-map-url');
 const log = require('log4js').getLogger('config-webpack');
+const devServer_1 = __importDefault(require("@wfh/webpack-common/dist/devServer"));
 const chalk_1 = __importDefault(require("chalk"));
 const mem_stats_1 = __importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
 // import setupAssets from '@wfh/assets-processer/dist/dev-serve-assets';
@@ -62,43 +63,7 @@ function changeWebpackConfig(context, param, webpackConfig, drcpConfigSetting) {
             webpackConfig.plugins = [];
         }
         if (webpackConfig.devServer) {
-            const devServer = webpackConfig.devServer;
-            const origin = webpackConfig.devServer.before;
-            devServer.before = function before(app) {
-                // To elimiate HMR web socket issue:
-                //   Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
-                // at ServerResponse.setHeader (_http_outgoing.js:470:11)
-                // at Array.write (/Users/liujing/bk/credit-appl/node_modules/finalhandler/index.js:285:9)
-                // at listener (/Users/liujing/bk/credit-appl/node_modules/on-finished/index.js:169:15)
-                // at onFinish (/Users/liujing/bk/credit-appl/node_modules/on-finished/index.js:100:5)
-                // at callback (/Users/liujing/bk/credit-appl/node_modules/ee-first/index.js:55:10)
-                app.use((req, res, next) => {
-                    const old = res.setHeader;
-                    // const oldEnd = res.end;
-                    res.setHeader = function () {
-                        try {
-                            old.apply(res, arguments);
-                        }
-                        catch (e) {
-                            if (e.code === 'ERR_HTTP_HEADERS_SENT') {
-                                log.warn('Cannot set headers after they are sent to the client');
-                            }
-                            else {
-                                throw e;
-                            }
-                        }
-                    };
-                    next();
-                });
-                if (origin)
-                    origin.apply(this, arguments);
-            };
-            devServer.compress = true;
-            if (devServer.headers == null)
-                devServer.headers = {};
-            // CORS enablement
-            devServer.headers['Access-Control-Allow-Origin'] = '*';
-            devServer.headers['Access-Control-Allow-Headers'] = '*';
+            devServer_1.default(webpackConfig);
         }
         if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
             param.browserOptions.drcpArgs.report || (param.browserOptions.drcpArgs.openReport)) {

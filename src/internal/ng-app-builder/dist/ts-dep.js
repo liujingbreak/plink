@@ -32,8 +32,9 @@ const cwd = process.cwd();
 // import api from '__api';
 // const log = require('log4js').getLogger(api.packageName + '.ts-deps');
 class TsDependencyGraph {
-    constructor(co, fileReplacements = [], readFile) {
+    constructor(co, fileReplacements = [], packageFileResolver, readFile) {
         this.co = co;
+        this.packageFileResolver = packageFileResolver;
         this.readFile = readFile;
         this.requestMap = new Map(); // key is file that requested, value is who requests
         /**
@@ -119,6 +120,7 @@ class TsDependencyGraph {
     _walk() {
         const resolve = (path, file, cb) => {
             const resolved = typescript_1.default.resolveModuleName(path, file, this.co, this.host, this.resCache).resolvedModule;
+            // console.log('     resolve', path, resolved ? resolved.resolvedFileName : resolved);
             if (resolved) {
                 const dep = resolved.resolvedFileName;
                 if (resolved.extension === typescript_1.Extension.Ts || resolved.extension === typescript_1.Extension.Tsx /*dep.endsWith('.ts') && !dep.endsWith('.d.ts')*/) {
@@ -132,14 +134,25 @@ class TsDependencyGraph {
                 }
             }
             else {
+                if (this.packageFileResolver && !path.startsWith('.')) {
+                    const dep = this.packageFileResolver(path);
+                    if (dep && this.checkResolved(dep, file, true)) {
+                        this.toWalk.push(dep);
+                        if (cb) {
+                            cb(dep);
+                        }
+                    }
+                }
                 // this.unresolved.push({module: path, srcFile: file});
                 // TODO: log unresolved
+                // console.log(`NOT resolved ${path} in ${file}`);
             }
         };
         while (this.toWalk.length > 0) {
             const file = this.toWalk.shift();
             const replaced = this.replacements.get(file);
             const q = new ts_ast_query_1.default(this.readFile(replaced || file), file);
+            // console.log('###### walk', file);
             const self = this;
             q.walkAst(q.src, [
                 {

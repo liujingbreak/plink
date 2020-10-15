@@ -1,6 +1,7 @@
 import * as wp from 'webpack';
 import {Application} from 'express';
 import log4js from 'log4js';
+// import {getLanIPv4} from '@wfh/plink/wfh/dist/utils/network-util';
 const log = log4js.getLogger('config-webpack');
 
 /**
@@ -14,6 +15,8 @@ export default function(webpackConfig: wp.Configuration) {
   }
   const devServer = webpackConfig.devServer;
   const origin = webpackConfig.devServer.before;
+  devServer.host = '0.0.0.0';
+
   devServer.before = function before(app: Application) {
     // To elimiate HMR web socket issue:
     //   Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client

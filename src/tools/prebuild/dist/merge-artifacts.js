@@ -15,11 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCurrBranchName = exports.mergeBack = exports.prepare = void 0;
 // tslint:disable: curly
 const process_utils_1 = require("@wfh/plink/wfh/dist/process-utils");
+const dist_1 = require("@wfh/plink/wfh/dist");
 const path_1 = require("path");
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const __api_1 = __importDefault(require("__api"));
 const log = require('log4js').getLogger('merge-artifacts');
-const rootDir = path_1.resolve();
+const rootDir = dist_1.getRootDir();
 const tempDir = path_1.resolve(rootDir, 'dist/merge-temp');
 const envs = ['local', 'dev', 'test', 'stage', 'prod'];
 function prepare() {

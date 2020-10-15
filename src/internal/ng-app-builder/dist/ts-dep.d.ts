@@ -1,6 +1,7 @@
 import ts from 'typescript';
 export default class TsDependencyGraph {
     private co;
+    private packageFileResolver?;
     private readFile?;
     requestMap: Map<string, string[]>;
     /**
@@ -21,7 +22,7 @@ export default class TsDependencyGraph {
         src?: string;
         with?: string;
         replaceWidth?: string;
-    }[], readFile?: ((file: string) => string) | undefined);
+    }[], packageFileResolver?: ((path: string) => string | undefined) | undefined, readFile?: ((file: string) => string) | undefined);
     /**
      * @param file must be absolute path
      */

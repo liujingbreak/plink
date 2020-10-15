@@ -109,6 +109,8 @@ class TSReadHooker {
                 //   console.log(ij.dirTree.traverse());
                 // }
                 let changed = __api_1.default.browserInjector.injectToFile(file, content);
+                // if (file.indexOf('app.module.ts') >= 0)
+                //   log.warn(`${process.pid}, file: ${file},\n` + changed);
                 if (ng8Compliant)
                     changed = upgrade_viewchild_ng8_1.transform(changed, file);
                 changed = new ts_before_aot_1.default(file, changed).parse(source => ts_compiler_1.transpileSingleTs(source, tsCompilerOptions));

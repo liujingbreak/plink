@@ -17,7 +17,7 @@ import { transformHtml } from './plugins/index-html-plugin';
 import ReadHookHost from './utils/read-hook-vfshost';
 const smUrl = require('source-map-url');
 const log = require('log4js').getLogger('config-webpack');
-import {Application} from 'express';
+import configDevServer from '@wfh/webpack-common/dist/devServer';
 import chalk from 'chalk';
 import memstats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {WepackConfigHandler} from './configurable';
@@ -36,42 +36,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     webpackConfig.plugins = [];
   }
   if (webpackConfig.devServer) {
-    const devServer = webpackConfig.devServer;
-    const origin = webpackConfig.devServer.before;
-    devServer.before = function before(app: Application) {
-      // To elimiate HMR web socket issue:
-      //   Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
-      // at ServerResponse.setHeader (_http_outgoing.js:470:11)
-      // at Array.write (/Users/liujing/bk/credit-appl/node_modules/finalhandler/index.js:285:9)
-      // at listener (/Users/liujing/bk/credit-appl/node_modules/on-finished/index.js:169:15)
-      // at onFinish (/Users/liujing/bk/credit-appl/node_modules/on-finished/index.js:100:5)
-      // at callback (/Users/liujing/bk/credit-appl/node_modules/ee-first/index.js:55:10)
-
-      app.use((req, res, next) => {
-        const old = res.setHeader;
-        // const oldEnd = res.end;
-        res.setHeader = function() {
-          try {
-            old.apply(res, arguments);
-          } catch (e) {
-            if (e.code === 'ERR_HTTP_HEADERS_SENT') {
-              log.warn('Cannot set headers after they are sent to the client');
-            } else {
-              throw e;
-            }
-          }
-        };
-        next();
-      });
-      if (origin)
-        origin.apply(this, arguments);
-    };
-    devServer.compress = true;
-    if (devServer.headers == null)
-      devServer.headers = {};
-    // CORS enablement
-    devServer.headers['Access-Control-Allow-Origin'] = '*';
-    devServer.headers['Access-Control-Allow-Headers'] = '*';
+    configDevServer(webpackConfig);
   }
 
   if (_.get(param, 'builderConfig.options.drcpArgs.report') ||

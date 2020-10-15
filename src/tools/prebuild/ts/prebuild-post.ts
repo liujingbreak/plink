@@ -16,7 +16,7 @@ let pkJson: {name: string; version: string; devDependencies: any} = require(Path
 export async function main(env: string, appName: string, buildStaticOnly = false, pushBranch = true, secret?: string) {
   const setting = api.config.get(api.packageName);
 
-  const rootDir = Path.resolve();
+  const rootDir = api.config().rootPath;
 
   const releaseBranch: string = setting.prebuildReleaseBranch;
 
@@ -26,15 +26,15 @@ export async function main(env: string, appName: string, buildStaticOnly = false
   let zipFile: string | undefined;
 
   if (appName !== 'node-server') {
-    const installDir = Path.resolve('install-' + env);
+    const installDir = Path.resolve(rootDir, 'install-' + env);
     if (!fs.existsSync(installDir)) {
       fs.mkdirpSync(installDir);
     }
     zipFile = await checkZipFile(zipSrc, installDir, appName, /([\\/]stats[^]*\.json|\.map)$/);
 
-    const generatedServerFileDir = Path.resolve('dist/server');
+    const generatedServerFileDir = Path.resolve(rootDir, 'dist/server');
     if (fs.existsSync(Path.resolve(generatedServerFileDir, appName))) {
-      const serverZip = await checkZipFile(generatedServerFileDir, Path.resolve('server-content-' + env), appName);
+      const serverZip = await checkZipFile(generatedServerFileDir, Path.resolve(rootDir, 'server-content-' + env), appName);
       log.info(`Pack ${generatedServerFileDir} to ${serverZip}`);
     }
   }
@@ -82,7 +82,8 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
   removeDevDeps();
   changeGitIgnore();
   await spawn('git', 'add', '.', { cwd: rootDir }).promise;
-  const hookFiles = [Path.resolve('.git/hooks/pre-push'), Path.resolve('.git/hooks/pre-commit')];
+  const hookFiles = [Path.resolve(rootDir, '.git/hooks/pre-push'),
+    Path.resolve(rootDir, '.git/hooks/pre-commit')];
   for (const gitHooks of hookFiles) {
     if (fs.existsSync(gitHooks)) {
       fs.removeSync(gitHooks);

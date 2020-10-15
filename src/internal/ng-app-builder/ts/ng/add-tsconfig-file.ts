@@ -10,6 +10,7 @@ import { sys } from 'typescript';
 import Path from 'path';
 import chalk from 'chalk';
 import { AngularBuilderOptions } from './common';
+import * as pkgMgr from '@wfh/plink/wfh/dist/package-mgr';
 // import * as util from 'util';
 // const log = require('log4js').getLogger('add-tsconfig-file');
 
@@ -20,16 +21,38 @@ import { AngularBuilderOptions } from './common';
 
 export function addSourceFiles(compilerOptions: any, entryFiles: string[], tsconfigFile: string,
   fileReplacements: AngularBuilderOptions['fileReplacements'], reportDir: string): string[] {
+
+  // console.log('addSourceFiles: compilerOptions', compilerOptions);
   const projDir = Path.dirname(tsconfigFile);
+
+  const {getState, workspaceKey} = require('@wfh/plink/wfh/dist/package-mgr') as typeof pkgMgr;
+
+  // const cwd = process.cwd();
+  const installedPkgs = getState().workspaces.get(workspaceKey(process.cwd()))!.installedComponents!;
+
+  // compilerOptions = addAdditionalPathsForTsResolve(projDir, compilerOptions);
+  console.log(compilerOptions);
   const g = new Graph(jsonToCompilerOptions(compilerOptions), fileReplacements,
+    path => {
+      const els = path.split('/');
+      const hasScopename = els[0].startsWith('@');
+      const pkName = hasScopename ? els[0] + '/' + els[1] : els[0];
+      const pk = installedPkgs.get(pkName);
+      if (pk != null) {
+        return [pk.realPath.replace(/\\/g, '/'), ...(hasScopename ? els.slice(2) : els.slice(1))].join('/') + '.ts';
+      }
+    },
     file => {
       const content = sys.readFile(file, 'utf8');
-      return api.browserInjector.injectToFile(file, content || '');
+      const changed = api.browserInjector.injectToFile(file, content || '');
+      return changed;
     });
 
   let msg = 'TS entris:\n' + entryFiles.map(file => '  ' + chalk.cyan(file)).join('\n');
   if (parentPort)
     parentPort.postMessage({log: msg});
+  else
+    console.log(msg);
 
   for (const entryFile of entryFiles) {
     g.walkForDependencies(Path.resolve(projDir, entryFile));
@@ -64,6 +87,26 @@ export function addSourceFiles(compilerOptions: any, entryFiles: string[], tscon
 }
 
 
+// function addAdditionalPathsForTsResolve(tsconfigDir: string, compilerOptions: {paths: {[key: string]: string[]}}) {
+//   const {getState, workspaceKey} = require('@wfh/plink/wfh/dist/package-mgr') as typeof pkgMgr;
+
+//   const cwd = process.cwd();
+//   const installedPkgs = getState().workspaces.get(workspaceKey(process.cwd()))!.installedComponents!;
+//   const pathMap: {[key: string]: string[]} = {};
+
+//   for (const pk of installedPkgs.values()) {
+//     pathMap[pk.name] = [Path.relative(cwd, pk.realPath).replace(/\\/g, '/')];
+//     pathMap[pk.name + '/*'] = [Path.relative(cwd, pk.realPath).replace(/\\/g, '/') + '/*'];
+//   }
+
+//   return {
+//     ...compilerOptions,
+//     paths: {
+//       ...compilerOptions.paths,
+//       ...pathMap
+//     }
+//   };
+// }
 
 
 

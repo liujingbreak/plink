@@ -27,7 +27,9 @@ export default class TsDependencyGraph {
 
   constructor(private co: ts.CompilerOptions,
     fileReplacements: {replace?: string, src?: string,  with?: string, replaceWidth?: string}[] = [],
-    private readFile?: (file: string) => string) {
+    private packageFileResolver?: (path: string) => string | undefined,
+    private readFile?: (file: string) => string
+  ) {
 
     fileReplacements.forEach(pair => {
       this.replacements.set(
@@ -116,6 +118,7 @@ export default class TsDependencyGraph {
   private _walk() {
     const resolve = (path: string, file: string, cb?: (resolvedFile: string) => void) => {
       const resolved = ts.resolveModuleName(path, file, this.co, this.host, this.resCache).resolvedModule;
+      // console.log('     resolve', path, resolved ? resolved.resolvedFileName : resolved);
       if (resolved) {
         const dep = resolved.resolvedFileName;
         if (resolved.extension === Extension.Ts || resolved.extension === Extension.Tsx /*dep.endsWith('.ts') && !dep.endsWith('.d.ts')*/) {
@@ -128,8 +131,18 @@ export default class TsDependencyGraph {
           }
         }
       } else {
+        if (this.packageFileResolver && !path.startsWith('.')) {
+          const dep = this.packageFileResolver(path);
+          if (dep && this.checkResolved(dep, file, true)) {
+            this.toWalk.push(dep);
+            if (cb) {
+              cb(dep);
+            }
+          }
+        }
         // this.unresolved.push({module: path, srcFile: file});
         // TODO: log unresolved
+        // console.log(`NOT resolved ${path} in ${file}`);
       }
     };
 
@@ -138,7 +151,7 @@ export default class TsDependencyGraph {
 
       const replaced = this.replacements.get(file);
       const q = new Query(this.readFile!(replaced || file), file);
-
+      // console.log('###### walk', file);
       const self = this;
 
       q.walkAst(q.src, [

@@ -24,6 +24,7 @@ const __api_1 = __importDefault(require("__api"));
 const fetch_remote_imap_1 = require("./fetch-remote-imap");
 const path_2 = __importDefault(require("path"));
 const crypto_1 = __importDefault(require("crypto"));
+const dist_1 = require("@wfh/plink/wfh/dist");
 const log = require('log4js').getLogger(__api_1.default.packageName + '.remote-deploy');
 function main() {
     rxjs_1.defer(() => rxjs_1.from(mailDeployStaticRes())).pipe(operators_1.catchError(err => {
@@ -48,7 +49,7 @@ function mailDeployStaticRes() {
             process.exit(1);
             return;
         }
-        const installDir = path_1.resolve('install-' + env);
+        const installDir = path_1.resolve(dist_1.getRootDir(), 'install-' + env);
         if (!fs_extra_1.default.existsSync(installDir))
             fs_extra_1.default.mkdirpSync(installDir);
         const imap = new fetch_remote_imap_1.ImapManager(env, installDir);
@@ -113,7 +114,7 @@ function fetchAllZips() {
         if (env == null) {
             throw new Error('Missing arguments "--env <environment>"');
         }
-        const installDir = path_1.resolve('install-' + env);
+        const installDir = path_1.resolve(dist_1.getRootDir(), 'install-' + env);
         if (!fs_extra_1.default.existsSync(installDir))
             fs_extra_1.default.mkdirpSync(installDir);
         const imap = new fetch_remote_imap_1.ImapManager(env, installDir);
@@ -128,7 +129,7 @@ exports.fetchAllZips = fetchAllZips;
 function digestInstallingFiles(rootDir) {
     return __awaiter(this, void 0, void 0, function* () {
         if (rootDir == null) {
-            rootDir = path_2.default.resolve();
+            rootDir = dist_1.getRootDir();
         }
         const list = fs_extra_1.default.readdirSync(rootDir);
         for (const name of list) {

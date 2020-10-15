@@ -266,10 +266,10 @@ export async function retry<T>(times: number, func: (...args: any[]) => Promise<
 //     resource, toFileName, setting.fetchRetry + ''
 //   ]);
 // }
-export function forkExtractExstingZip(zipDir?: string, outputDir = 'dist/static', doNotDelete = false) {
+export function forkExtractExstingZip(zipDir?: string, outputDir?: string, doNotDelete = false) {
   return forkProcess('extract', Path.resolve(__dirname, 'extract-zip-process.js'), [
     zipDir ? zipDir : zipDownloadDir,
-    outputDir,
+    outputDir != null ? outputDir : api.config.resolve('staticDir'),
     doNotDelete ? 'keep' : 'delete'
   ]);
 }

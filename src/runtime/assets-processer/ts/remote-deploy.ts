@@ -11,6 +11,8 @@ import { ImapManager } from './fetch-remote-imap';
 import {Checksum} from './fetch-types';
 import Path from 'path';
 import crypto from 'crypto';
+import {getRootDir} from '@wfh/plink/wfh/dist';
+
 const log = require('log4js').getLogger(api.packageName + '.remote-deploy');
 
 export function main() {
@@ -39,7 +41,7 @@ async function mailDeployStaticRes() {
     process.exit(1);
     return;
   }
-  const installDir = resolve('install-' + env);
+  const installDir = resolve(getRootDir(), 'install-' + env);
 
   if (!fs.existsSync(installDir))
     fs.mkdirpSync(installDir);
@@ -109,7 +111,7 @@ export async function fetchAllZips() {
   if (env == null) {
     throw new Error('Missing arguments "--env <environment>"');
   }
-  const installDir = resolve('install-' + env);
+  const installDir = resolve(getRootDir(), 'install-' + env);
 
   if (!fs.existsSync(installDir))
     fs.mkdirpSync(installDir);
@@ -124,7 +126,7 @@ type ChecksumItem = Checksum extends Array<infer I> ? I : unknown;
  */
 export async function digestInstallingFiles(rootDir?: string) {
   if (rootDir == null) {
-    rootDir = Path.resolve();
+    rootDir = getRootDir();
   }
   const list = fs.readdirSync(rootDir);
   for (const name of list) {

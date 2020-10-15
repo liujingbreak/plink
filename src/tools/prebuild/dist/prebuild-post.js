@@ -29,20 +29,20 @@ let pkJson = require(path_1.default.resolve('package.json'));
 function main(env, appName, buildStaticOnly = false, pushBranch = true, secret) {
     return __awaiter(this, void 0, void 0, function* () {
         const setting = __api_1.default.config.get(__api_1.default.packageName);
-        const rootDir = path_1.default.resolve();
+        const rootDir = __api_1.default.config().rootPath;
         const releaseBranch = setting.prebuildReleaseBranch;
         merge_artifacts_1.mergeBack();
         const zipSrc = __api_1.default.config.resolve('staticDir');
         let zipFile;
         if (appName !== 'node-server') {
-            const installDir = path_1.default.resolve('install-' + env);
+            const installDir = path_1.default.resolve(rootDir, 'install-' + env);
             if (!fs_extra_1.default.existsSync(installDir)) {
                 fs_extra_1.default.mkdirpSync(installDir);
             }
             zipFile = yield remote_deploy_1.checkZipFile(zipSrc, installDir, appName, /([\\/]stats[^]*\.json|\.map)$/);
-            const generatedServerFileDir = path_1.default.resolve('dist/server');
+            const generatedServerFileDir = path_1.default.resolve(rootDir, 'dist/server');
             if (fs_extra_1.default.existsSync(path_1.default.resolve(generatedServerFileDir, appName))) {
-                const serverZip = yield remote_deploy_1.checkZipFile(generatedServerFileDir, path_1.default.resolve('server-content-' + env), appName);
+                const serverZip = yield remote_deploy_1.checkZipFile(generatedServerFileDir, path_1.default.resolve(rootDir, 'server-content-' + env), appName);
                 log.info(`Pack ${generatedServerFileDir} to ${serverZip}`);
             }
         }
@@ -87,7 +87,8 @@ function pushReleaseBranch(releaseBranch, rootDir, env, appName) {
         removeDevDeps();
         changeGitIgnore();
         yield process_utils_1.spawn('git', 'add', '.', { cwd: rootDir }).promise;
-        const hookFiles = [path_1.default.resolve('.git/hooks/pre-push'), path_1.default.resolve('.git/hooks/pre-commit')];
+        const hookFiles = [path_1.default.resolve(rootDir, '.git/hooks/pre-push'),
+            path_1.default.resolve(rootDir, '.git/hooks/pre-commit')];
         for (const gitHooks of hookFiles) {
             if (fs_extra_1.default.existsSync(gitHooks)) {
                 fs_extra_1.default.removeSync(gitHooks);

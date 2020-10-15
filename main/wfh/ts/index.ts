@@ -6,3 +6,4 @@ export {findPackagesByNames, lookupPackageJson} from './cmd/utils';
 export * from './store';
 export * from './utils/bootstrap-process';
 export {prepareLazyNodeInjector} from './package-runner';
+export {getRootDir} from './utils/misc';

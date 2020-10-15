@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const log4js_1 = __importDefault(require("log4js"));
+// import {getLanIPv4} from '@wfh/plink/wfh/dist/utils/network-util';
 const log = log4js_1.default.getLogger('config-webpack');
 /**
  * Avoid process exit when encountering Error like ERR_HTTP_HEADERS_SENT
@@ -16,6 +17,7 @@ function default_1(webpackConfig) {
     }
     const devServer = webpackConfig.devServer;
     const origin = webpackConfig.devServer.before;
+    devServer.host = '0.0.0.0';
     devServer.before = function before(app) {
         // To elimiate HMR web socket issue:
         //   Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client

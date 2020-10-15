@@ -89,6 +89,7 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
     // typescript: require('typescript'),
     // Compiler options
     importHelpers: false,
+    declaration: true,
     /**
      * for gulp-sourcemaps usage:
      *  If you set the outDir option to the same value as the directory in gulp.dest, you should set the sourceRoot to ./.

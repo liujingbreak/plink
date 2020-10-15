@@ -1,12 +1,13 @@
 // tslint:disable: curly
 import {spawn} from '@wfh/plink/wfh/dist/process-utils';
+import {getRootDir} from '@wfh/plink/wfh/dist';
 import {resolve, basename} from 'path';
 import fs from 'fs-extra';
 import api from '__api';
 
 const log = require('log4js').getLogger('merge-artifacts');
 
-const rootDir = resolve();
+const rootDir = getRootDir();
 const tempDir = resolve(rootDir, 'dist/merge-temp');
 
 const envs = ['local', 'dev', 'test', 'stage', 'prod'];

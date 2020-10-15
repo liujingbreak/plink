@@ -22,14 +22,31 @@ const chalk_1 = __importDefault(require("chalk"));
 //   return injectorSetup(pkInfo, drcpConfig, browserOptions);
 // });
 function addSourceFiles(compilerOptions, entryFiles, tsconfigFile, fileReplacements, reportDir) {
+    // console.log('addSourceFiles: compilerOptions', compilerOptions);
     const projDir = path_1.default.dirname(tsconfigFile);
-    const g = new ts_dep_1.default(ts_compiler_1.jsonToCompilerOptions(compilerOptions), fileReplacements, file => {
+    const { getState, workspaceKey } = require('@wfh/plink/wfh/dist/package-mgr');
+    // const cwd = process.cwd();
+    const installedPkgs = getState().workspaces.get(workspaceKey(process.cwd())).installedComponents;
+    // compilerOptions = addAdditionalPathsForTsResolve(projDir, compilerOptions);
+    console.log(compilerOptions);
+    const g = new ts_dep_1.default(ts_compiler_1.jsonToCompilerOptions(compilerOptions), fileReplacements, path => {
+        const els = path.split('/');
+        const hasScopename = els[0].startsWith('@');
+        const pkName = hasScopename ? els[0] + '/' + els[1] : els[0];
+        const pk = installedPkgs.get(pkName);
+        if (pk != null) {
+            return [pk.realPath.replace(/\\/g, '/'), ...(hasScopename ? els.slice(2) : els.slice(1))].join('/') + '.ts';
+        }
+    }, file => {
         const content = typescript_1.sys.readFile(file, 'utf8');
-        return __api_1.default.browserInjector.injectToFile(file, content || '');
+        const changed = __api_1.default.browserInjector.injectToFile(file, content || '');
+        return changed;
     });
     let msg = 'TS entris:\n' + entryFiles.map(file => '  ' + chalk_1.default.cyan(file)).join('\n');
     if (worker_threads_1.parentPort)
         worker_threads_1.parentPort.postMessage({ log: msg });
+    else
+        console.log(msg);
     for (const entryFile of entryFiles) {
         g.walkForDependencies(path_1.default.resolve(projDir, entryFile));
     }
@@ -60,5 +77,22 @@ function addSourceFiles(compilerOptions, entryFiles, tsconfigFile, fileReplaceme
         .concat(Array.from(g.externals.values()).filter(external => !g.loadChildren.has(external)));
 }
 exports.addSourceFiles = addSourceFiles;
+// function addAdditionalPathsForTsResolve(tsconfigDir: string, compilerOptions: {paths: {[key: string]: string[]}}) {
+//   const {getState, workspaceKey} = require('@wfh/plink/wfh/dist/package-mgr') as typeof pkgMgr;
+//   const cwd = process.cwd();
+//   const installedPkgs = getState().workspaces.get(workspaceKey(process.cwd()))!.installedComponents!;
+//   const pathMap: {[key: string]: string[]} = {};
+//   for (const pk of installedPkgs.values()) {
+//     pathMap[pk.name] = [Path.relative(cwd, pk.realPath).replace(/\\/g, '/')];
+//     pathMap[pk.name + '/*'] = [Path.relative(cwd, pk.realPath).replace(/\\/g, '/') + '/*'];
+//   }
+//   return {
+//     ...compilerOptions,
+//     paths: {
+//       ...compilerOptions.paths,
+//       ...pathMap
+//     }
+//   };
+// }
 
 //# sourceMappingURL=add-tsconfig-file.js.map

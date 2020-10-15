@@ -255,10 +255,10 @@ exports.retry = retry;
 //     resource, toFileName, setting.fetchRetry + ''
 //   ]);
 // }
-function forkExtractExstingZip(zipDir, outputDir = 'dist/static', doNotDelete = false) {
+function forkExtractExstingZip(zipDir, outputDir, doNotDelete = false) {
     return forkProcess('extract', path_1.default.resolve(__dirname, 'extract-zip-process.js'), [
         zipDir ? zipDir : exports.zipDownloadDir,
-        outputDir,
+        outputDir != null ? outputDir : __api_1.default.config.resolve('staticDir'),
         doNotDelete ? 'keep' : 'delete'
     ]);
 }

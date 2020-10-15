@@ -3,7 +3,7 @@
 		"jsx": "preserve",
 		"baseUrl": "./",
 		"outDir": "dist",
-		"declaration": true,
+		"declaration": false,
 		"module":"ES2015",
 		"target":"es2015",
 		"noImplicitAny": true,
