@@ -88,6 +88,10 @@ function changeAngularCliOptions(config, context, builderConfig) {
         const browserOptions = yield processBrowserBuiliderOptions(config, rawBrowserOptions, context, builderConfig, true);
         process.env.NODE_OPTIONS = '-r ' + Path.resolve(Path.dirname(__dirname), 'fork-tscheck/fork-tscheck-register');
         hackAngularBuilderContext(context, 'build', browserOptions);
+        process.env._ngcli_plink_cfg = JSON.stringify({
+            deployUrl: browserOptions.deployUrl,
+            baseHref: browserOptions.baseHref
+        });
         return browserOptions;
     });
 }
