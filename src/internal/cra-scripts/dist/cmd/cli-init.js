@@ -29,13 +29,13 @@ function initTsconfig() {
         let pMap = new Map(ast.properties.map(el => [/^"(.*)"$/.exec(el.name.text)[1], el]));
         const replacements = [];
         const baseTsConfig = path_1.default.relative(process.cwd(), require.resolve('@wfh/plink/wfh/tsconfig-base.json')).replace(/\\/g, '/');
-        if (pMap.has('extends') && pMap.get('extends').value.text.slice(1, -1) !== baseTsConfig) {
+        if (!pMap.has('extends')) {
+            replacements.push({ start: 1, end: 1, replacement: `\n  "extends": "${baseTsConfig}",` });
+        }
+        else if (pMap.get('extends').value.text.slice(1, -1) !== baseTsConfig) {
             log.info('Update ' + path_1.default.resolve('tsconfig.json'));
             const extendValueToken = pMap.get('extends').value;
             replacements.push({ start: extendValueToken.pos + 1, end: extendValueToken.end - 1, replacement: baseTsConfig });
-        }
-        else {
-            replacements.push({ start: 1, end: 1, replacement: `\n  "extends": "${baseTsConfig}",` });
         }
         // log.warn(Array.from(pMap.keys()));
         const coAst = pMap.get('compilerOptions').value;

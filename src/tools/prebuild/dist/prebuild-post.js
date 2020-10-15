@@ -116,10 +116,11 @@ function removeDevDeps() {
     fs_extra_1.default.writeFileSync('package.json', newJson);
 }
 function changeGitIgnore() {
-    let gitignore = fs_extra_1.default.readFileSync('.gitignore', 'utf8');
+    const gitignoreFile = __api_1.default.config.resolve('rootPath', '.gitignore');
+    let gitignore = fs_extra_1.default.readFileSync(gitignoreFile, 'utf8');
     gitignore = gitignore.replace(/^\/install\-(?:test|stage|dev|prod)$/gm, '');
     gitignore = gitignore.replace(/^\/checksum\.(?:test|stage|dev|prod)\.json$/gm, '');
-    fs_extra_1.default.writeFileSync('.gitignore', gitignore);
+    fs_extra_1.default.writeFileSync(gitignoreFile, gitignore);
 }
 
 //# sourceMappingURL=prebuild-post.js.map

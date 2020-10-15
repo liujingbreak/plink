@@ -111,8 +111,9 @@ function removeDevDeps() {
 }
 
 function changeGitIgnore() {
-  let gitignore = fs.readFileSync('.gitignore', 'utf8');
+  const gitignoreFile = api.config.resolve('rootPath', '.gitignore');
+  let gitignore = fs.readFileSync(gitignoreFile, 'utf8');
   gitignore = gitignore.replace(/^\/install\-(?:test|stage|dev|prod)$/gm, '');
   gitignore = gitignore.replace(/^\/checksum\.(?:test|stage|dev|prod)\.json$/gm, '');
-  fs.writeFileSync('.gitignore', gitignore);
+  fs.writeFileSync(gitignoreFile, gitignore);
 }
