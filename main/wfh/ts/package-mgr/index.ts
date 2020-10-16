@@ -20,7 +20,7 @@ import { setProjectList} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
 import { getRootDir, isDrcpSymlink } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync, symlinkAsync } from '../utils/symlinks';
-import { actions as _cleanActions } from '../cmd/cli-clean';
+// import { actions as _cleanActions } from '../cmd/cli-clean';
 import {PlinkEnv} from '../node-path';
 import { EOL } from 'os';
 export interface PackageInfo {
@@ -208,7 +208,7 @@ export const slice = stateFactory.newSlice({
       // console.log(installJson)
 
       const wsKey = workspaceKey(dir);
-      // const installedComp = listInstalledComp4Workspace(state.workspaces, state.srcPackages, wsKey);
+      // const installedComp = doListInstalledComp4Workspace(state.workspaces, state.srcPackages, wsKey);
 
       const existing = state.workspaces.get(wsKey);
 
@@ -407,7 +407,7 @@ stateFactory.addEpic((action$, state$) => {
           take(1),
           concatMap(ws => from(installWorkspace(ws!))),
           map(() => {
-            const pkgEntry = listInstalledComp4Workspace(getState(), wsKey);
+            const pkgEntry = doListInstalledComp4Workspace(getState(), wsKey);
 
             const installed = new Map((function*(): Generator<[string, PackageInfo]> {
               for (const pk of pkgEntry) {
@@ -805,11 +805,11 @@ export function createPackageInfo(pkJsonFile: string, isInstalled = false,
  * those packages must have "dr" property in package.json 
  * @param workspaceKey 
  */
-function* listInstalledComp4Workspace(state: PackagesState, workspaceKey: string) {
+function* doListInstalledComp4Workspace(state: PackagesState, workspaceKey: string) {
   const originInstallJson = state.workspaces.get(workspaceKey)!.originInstallJson;
-  const depJson = process.env.NODE_ENV === 'production' ? [originInstallJson.dependencies] :
-    [originInstallJson.dependencies, originInstallJson.devDependencies];
-  for (const deps of depJson) {
+  // const depJson = process.env.NODE_ENV === 'production' ? [originInstallJson.dependencies] :
+  //   [originInstallJson.dependencies, originInstallJson.devDependencies];
+  for (const deps of [originInstallJson.dependencies, originInstallJson.devDependencies]) {
     if (deps == null)
       continue;
     for (const dep of Object.keys(deps)) {
@@ -882,7 +882,7 @@ function _writeGitHook(project: string) {
       `cd "${getRootDir()}"\n` +
       // 'drcp init\n' +
       // 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
-      `node node_modules/@wfh/plink/bin/drcp.js lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
+      `plink lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
     if (fs.existsSync(gitPath + '/pre-commit'))
       fs.unlink(gitPath + '/pre-commit');
     fs.writeFileSync(gitPath + '/pre-push', hookStr);

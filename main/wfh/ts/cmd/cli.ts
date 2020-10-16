@@ -94,9 +94,11 @@ function subDrcpCommand(program: commander.Command) {
   /**
    * command clean
    */
-  program.command('clean [symlink]').description('Clean whole "dist" directory or only symbolic links from node_modules')
-  .action(async (symlink: 'symlink' | undefined) => {
-    (await import('./cli-clean')).default(symlink === 'symlink');
+  program.command('clean-symlinks')
+  .description('Clean symlinks from node_modules, always do this before run "npm install" in root directory')
+  // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
+  .action(async () => {
+    (await import('./cli-clean')).deleteSymlinks();
   });
 
   /**
