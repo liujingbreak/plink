@@ -21,7 +21,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     await initConfigAsync(cmd.opts() as GlobalOptions);
     // TODO
   });
-}
+};
 
 export default cliExt;
 ```
