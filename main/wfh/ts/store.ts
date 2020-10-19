@@ -1,5 +1,6 @@
 import Path from 'path';
 import fs from 'fs';
+import fse from 'fs-extra';
 import {tap, filter} from 'rxjs/operators';
 import {StateFactory, ofPayloadAction} from '../../redux-toolkit-observable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
@@ -95,8 +96,14 @@ export async function saveState() {
   const mergedState = Object.assign(lastSavedState, store.getState());
   // const jsonStr = JSON.stringify(mergedState, null, '  ');
   const jsonStr = serialize(mergedState, {space: '  '});
+  fse.mkdirpSync(Path.dirname(stateFile));
   fs.writeFile(stateFile, jsonStr,
-    () => {
+    (err) => {
+      if (err) {
+        // tslint:disable-next-line: no-console
+        console.log(`Failed to write state file ${Path.relative(process.cwd(), stateFile)}`, err);
+        return;
+      }
       // tslint:disable-next-line: no-console
       console.log(`[package-mgr] state file ${Path.relative(process.cwd(), stateFile)} saved (${actionCount})`);
     });
