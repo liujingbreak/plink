@@ -116,7 +116,14 @@ function overrideTsConfig(file, pkInfo, browserOptions, config, reportDir) {
     // will cause problem if unused file is included in TS compilation, not only about cpu/memory cost,
     // but also having problem like same component might be declared in multiple modules which is
     // consider as error in Angular compiler. 
-    tsjson.files.push(...(sourceFiles(tsjson.compilerOptions, tsjson.files, file, browserOptions.fileReplacements, reportDir)));
+    tsjson.files.push(...(sourceFiles(tsjson.compilerOptions, tsjson.files, file, browserOptions.fileReplacements, reportDir).map(p => {
+        if (path_1.default.isAbsolute(p)) {
+            return path_1.default.relative(tsConfigFileDir, p).replace(/\\/g, '/');
+        }
+        else {
+            return p;
+        }
+    })));
     return JSON.stringify(tsjson, null, '  ');
 }
 function globRealPath(glob) {

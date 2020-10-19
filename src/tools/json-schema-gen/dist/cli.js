@@ -51,6 +51,7 @@ const cliExt = (program, withGlobalOptions) => {
         .option('-f, --file <spec>', 'run single file')
         .action((packages) => __awaiter(void 0, void 0, void 0, function* () {
         yield dist_1.initConfigAsync(cmd.opts());
+        dist_1.initProcess();
         const dones = [];
         const packageUtils = require('@wfh/plink/wfh/dist/package-utils');
         const onComponent = (name, entryPath, parsedName, json, packagePath) => {

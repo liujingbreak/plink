@@ -133,7 +133,13 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
   // but also having problem like same component might be declared in multiple modules which is
   // consider as error in Angular compiler. 
   tsjson.files.push(...(sourceFiles(tsjson.compilerOptions, tsjson.files, file,
-    browserOptions.fileReplacements, reportDir)));
+    browserOptions.fileReplacements, reportDir).map(p => {
+      if (Path.isAbsolute(p)) {
+        return Path.relative(tsConfigFileDir, p).replace(/\\/g, '/');
+      } else {
+        return p;
+      }
+    })));
 
   return JSON.stringify(tsjson, null, '  ');
 }

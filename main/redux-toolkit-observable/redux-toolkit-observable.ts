@@ -88,7 +88,7 @@ export class StateFactory {
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<any>(preloadedState);
-    this.epicWithUnsub$ = new ReplaySubject(2);
+    this.epicWithUnsub$ = new ReplaySubject();
     this.log$ = this.debugLog.asObservable();
     this.reducerMap = {};
 

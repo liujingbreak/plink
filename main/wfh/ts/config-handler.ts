@@ -206,7 +206,7 @@ export function setTsCompilerOptForNodePath(cwd: string, baseUrl = './', assigne
     baseUrl = relBaseUrl;
   }
   // console.log('+++++++++', pathsDirs, opts.extraNodePath);
-  assigneeOptions.baseUrl = baseUrl;
+  assigneeOptions.baseUrl = baseUrl.replace(/\\/g, '/');
   if (assigneeOptions.paths == null)
     assigneeOptions.paths = {'*': []};
   else

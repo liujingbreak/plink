@@ -8,7 +8,7 @@ import log4js from 'log4js';
 import * as TJS from 'typescript-json-schema';
 import Selector from '@wfh/prebuild/dist/ts-ast-query';
 import glob from 'glob';
-import {CliExtension, GlobalOptions, initConfigAsync} from '@wfh/plink/wfh/dist';
+import {CliExtension, GlobalOptions, initConfigAsync, initProcess} from '@wfh/plink/wfh/dist';
 import pkgUtils from '@wfh/plink/wfh/dist/package-utils';
 
 const baseTsconfig = require('@wfh/plink/wfh/tsconfig-base.json');
@@ -22,6 +22,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .option('-f, --file <spec>', 'run single file')
   .action(async (packages: string[]) => {
     await initConfigAsync(cmd.opts() as GlobalOptions);
+    initProcess();
     const dones: Promise<void>[] = [];
 
     const packageUtils = require('@wfh/plink/wfh/dist/package-utils') as typeof pkgUtils;
