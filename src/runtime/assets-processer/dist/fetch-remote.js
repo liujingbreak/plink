@@ -29,7 +29,7 @@ const env = setting.fetchMailServer ? setting.fetchMailServer.env : 'local';
 // let timer: NodeJS.Timer;
 // let stopped = false;
 // let errCount = 0;
-const currChecksumFile = path_1.default.resolve(`checksum.${env}.json`);
+const currChecksumFile = __api_1.default.config.resolve('rootPath', `checksum.${env}.json`);
 exports.zipDownloadDir = path_1.default.resolve(path_1.default.dirname(currChecksumFile), 'deploy-static-' + env);
 // let watcher: any;
 let imap;
@@ -50,7 +50,7 @@ function start(imap) {
         }
         if (!fs_extra_1.default.existsSync(exports.zipDownloadDir))
             fs_extra_1.default.mkdirpSync(exports.zipDownloadDir);
-        const installDir = path_1.default.resolve('install-' + setting.fetchMailServer.env);
+        const installDir = __api_1.default.config.resolve('rootPath', 'install-' + setting.fetchMailServer.env);
         if (fs_extra_1.default.existsSync(installDir)) {
             fs_extra_1.default.mkdirpSync(__api_1.default.config.resolve('staticDir'));
             const fileNames = fs_extra_1.default.readdirSync(installDir).filter(name => path_1.default.extname(name) === '.zip');
@@ -58,7 +58,7 @@ function start(imap) {
                 yield retry(2, () => forkExtractExstingZip(installDir, __api_1.default.config.resolve('staticDir'), true));
             }
         }
-        const serverContentDir = path_1.default.resolve('server-content-' + setting.fetchMailServer.env);
+        const serverContentDir = __api_1.default.config.resolve('rootPath', 'server-content-' + setting.fetchMailServer.env);
         if (fs_extra_1.default.existsSync(serverContentDir)) {
             const zipDir = path_1.default.resolve('dist/server');
             fs_extra_1.default.mkdirpSync(zipDir);
@@ -267,8 +267,13 @@ function forkProcess(name, filePath, args, onProcess) {
     return __awaiter(this, void 0, void 0, function* () {
         return new Promise((resolve, reject) => {
             let extractingDone = false;
+            const env = Object.assign({}, process.env);
+            if (env.NODE_OPTIONS && env.NODE_OPTIONS.indexOf('--inspect') >= 0) {
+                delete env.NODE_OPTIONS;
+            }
             const child = child_process_1.fork(filePath, args, {
-                silent: true
+                silent: true,
+                env
             });
             if (onProcess) {
                 onProcess(child);

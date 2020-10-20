@@ -23,7 +23,7 @@ const env = setting.fetchMailServer ? setting.fetchMailServer.env : 'local';
 // let timer: NodeJS.Timer;
 // let stopped = false;
 // let errCount = 0;
-const currChecksumFile = Path.resolve(`checksum.${env}.json`);
+const currChecksumFile = api.config.resolve('rootPath', `checksum.${env}.json`);
 
 export const zipDownloadDir = Path.resolve(Path.dirname(currChecksumFile), 'deploy-static-' + env);
 // let watcher: any;
@@ -48,7 +48,7 @@ export async function start(imap: ImapManager) {
   if (!fs.existsSync(zipDownloadDir))
     fs.mkdirpSync(zipDownloadDir);
 
-  const installDir = Path.resolve('install-' + setting.fetchMailServer.env);
+  const installDir = api.config.resolve('rootPath', 'install-' + setting.fetchMailServer.env);
   if (fs.existsSync(installDir)) {
     fs.mkdirpSync(api.config.resolve('staticDir'));
     const fileNames = fs.readdirSync(installDir).filter(name => Path.extname(name) === '.zip');
@@ -57,7 +57,7 @@ export async function start(imap: ImapManager) {
     }
   }
 
-  const serverContentDir = Path.resolve('server-content-' + setting.fetchMailServer.env);
+  const serverContentDir = api.config.resolve('rootPath', 'server-content-' + setting.fetchMailServer.env);
   if (fs.existsSync(serverContentDir)) {
     const zipDir = Path.resolve('dist/server');
     fs.mkdirpSync(zipDir);
@@ -277,9 +277,14 @@ export function forkExtractExstingZip(zipDir?: string, outputDir?: string, doNot
 async function forkProcess(name: string, filePath: string, args: string[], onProcess?: (child: ChildProcess) => void) {
   return new Promise<string>((resolve, reject) => {
     let extractingDone = false;
+    const env = Object.assign({}, process.env);
+    if (env.NODE_OPTIONS && env.NODE_OPTIONS.indexOf('--inspect') >= 0) {
+      delete env.NODE_OPTIONS;
+    }
     const child = fork(filePath,
       args, {
-      silent: true
+      silent: true,
+      env
     });
     if (onProcess) {
       onProcess(child);
