@@ -39,10 +39,11 @@ const _ = __importStar(require("lodash"));
 // import boxen, {BorderStyle} from 'boxen';
 const yazl_1 = require("yazl");
 const moment_1 = __importDefault(require("moment"));
+const dist_1 = require("@wfh/plink/wfh/dist");
 function listVersions(env) {
     return __awaiter(this, void 0, void 0, function* () {
         const done = [];
-        const dir = Path.resolve(`install-${env}`);
+        const dir = Path.resolve(dist_1.getRootDir(), `install-${env}`);
         const versions = new Map();
         for (const zipName of fs.readdirSync(dir)) {
             if (zipName.endsWith('.zip')) {
@@ -64,9 +65,9 @@ exports.listVersions = listVersions;
 function listAllVersions() {
     return __awaiter(this, void 0, void 0, function* () {
         const map = new Map();
-        const done = fs.readdirSync(Path.resolve())
+        const done = fs.readdirSync(dist_1.getRootDir())
             .filter(dir => {
-            return dir.startsWith('install-') && fs.statSync(Path.resolve(dir)).isDirectory();
+            return dir.startsWith('install-') && fs.statSync(Path.resolve(dist_1.getRootDir(), dir)).isDirectory();
         })
             .reduce((promises, dir) => {
             const env = /^install-([^]*)$/.exec(dir)[1];

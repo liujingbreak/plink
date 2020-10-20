@@ -5,12 +5,13 @@ import * as _ from 'lodash';
 // import boxen, {BorderStyle} from 'boxen';
 import {ZipFile} from 'yazl';
 import moment from 'moment';
+import {getRootDir} from '@wfh/plink/wfh/dist';
 
 type UnpackPromise<P> = P extends Promise<infer T> ? T : unknown;
 
 export async function listVersions(env: string) {
   const done: Promise<void>[] = [];
-  const dir = Path.resolve(`install-${env}`);
+  const dir = Path.resolve(getRootDir(), `install-${env}`);
   const versions = new Map<string, string>();
 
   for (const zipName of fs.readdirSync(dir)) {
@@ -32,9 +33,9 @@ export async function listVersions(env: string) {
 
 export async function listAllVersions() {
   const map = new Map<string, UnpackPromise<ReturnType<typeof listVersions>>>();
-  const done = fs.readdirSync(Path.resolve())
+  const done = fs.readdirSync(getRootDir())
   .filter(dir => {
-    return dir.startsWith('install-') && fs.statSync(Path.resolve(dir)).isDirectory();
+    return dir.startsWith('install-') && fs.statSync(Path.resolve(getRootDir(), dir)).isDirectory();
   })
   .reduce((promises, dir) => {
     const env = /^install-([^]*)$/.exec(dir)![1];
