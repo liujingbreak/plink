@@ -1,6 +1,6 @@
 {
   "name": "@wfh/cra-scripts",
-  "version": "1.0.18",
+  "version": "1.0.20",
   "description": "Something like create-react-rewired",
   "main": "dist/preload.js",
   "dr": {
@@ -8,11 +8,12 @@
   },
   "dependencies": {
     "@types/react-dev-utils": "^9.0.4",
-    "less-loader": "~5.0.0",
+    "less-loader": "~7.0.2",
     "raw-loader": "~4.0.1",
-    "less": "^2.3.1",
+    "less": "^3.12.2",
     "commander": "~6.1.0",
-    "react-app-polyfill": "~1.0.6"
+    "react-app-polyfill": "~1.0.6",
+    "chalk": "^4.1.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

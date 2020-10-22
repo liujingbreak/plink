@@ -47,7 +47,12 @@ const cli = (program, withGlobalOptions) => {
         (yield Promise.resolve().then(() => __importStar(require('./cli-gen')))).genPackage(dir, genCmd.opts().dryRun);
     }));
     const buildCmd = program.command('cra-build <app|lib> <package-name>')
-        .description('Compile react application or library, <package-name> is the target package name')
+        .description('Compile react application or library, <package-name> is the target package name,\n' +
+        'argument "app" for building an compelete application like create-react-app,\n' +
+        'argument "lib" for building a library')
+        .option('-i, --include <module-path-regex>', '(multiple value), when argument is "lib", we will set external property of Webpack configuration for all request not begin with "." (except "@babel/runtimer"), ' +
+        'meaning all external modules will not be included in the output bundle file, you need to explicitly provide a list in' +
+        ' Regular expression (e.g. -i "^someLib/?" -i "^someLib2/?" -i ...) to make them be included in bundle file', arrayOptionFn, [])
         .action((type, pkgName) => __awaiter(void 0, void 0, void 0, function* () {
         yield initEverything(buildCmd, type, pkgName);
         require('react-scripts/scripts/build');
@@ -75,6 +80,11 @@ function withClicOpt(cmd) {
     cmd.option('-w, --watch', 'Watch file changes and compile', false)
         .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
         .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', undefined);
+}
+function arrayOptionFn(curr, prev) {
+    if (prev)
+        prev.push(curr);
+    return prev;
 }
 function initEverything(buildCmd, type, pkgName) {
     return __awaiter(this, void 0, void 0, function* () {

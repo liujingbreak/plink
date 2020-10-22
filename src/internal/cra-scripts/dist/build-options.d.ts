@@ -8,4 +8,5 @@ export interface CommandOption {
     watch: boolean;
     devMode: boolean;
     publicUrl?: string;
+    includes?: string[];
 }

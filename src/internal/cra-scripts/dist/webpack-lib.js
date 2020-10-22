@@ -35,6 +35,9 @@ const build_target_helper_1 = require("./build-target-helper");
 // import childProc from 'child_process';
 const path_1 = __importDefault(require("path"));
 const utils_1 = require("./utils");
+const log4js_1 = __importDefault(require("log4js"));
+const chalk_1 = __importDefault(require("chalk"));
+const log = log4js_1.default.getLogger('@wfh/cra-scripts.webpack-lib');
 // import {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 // const plinkDir = Path.dirname(require.resolve('@wfh/plink/package.json'));
 const MiniCssExtractPlugin = require(path_1.default.resolve('node_modules/mini-css-extract-plugin'));
@@ -71,16 +74,25 @@ function change(buildPackage, config, nodePath) {
     });
     findAndChangeRule(config.module.rules);
     const reqSet = new Set();
+    const includeModuleRe = (utils_1.getCmdOptions().includes || [])
+        .map(mod => new RegExp(mod));
     if (config.externals == null)
         config.externals = [];
     config.externals
         .push((context, request, callback) => {
+        if (includeModuleRe.some(rg => rg.test(request))) {
+            return callback();
+        }
+        // if (request.indexOf('js-sdk-ocr') >= 0 || request.indexOf('@bk/js-sdk-store') >= 0 ||
+        //   request.indexOf('@bk/react-component') >= 0) {
+        //   return callback();
+        // }
         // TODO: Should be configurable
         if ((!request.startsWith('.') && request !== config.entry &&
             !/[?!]/.test(request)) && (!/[\\/]@babel[\\/]runtime[\\/]/.test(request))
             ||
                 request.indexOf('/bklib.min') >= 0) {
-            // console.log('external request:', request, `(${context})`);
+            // log.info('external request:', request, `(${context})`);
             reqSet.add(request);
             return callback(null, 'commonjs ' + request);
         }
@@ -95,8 +107,7 @@ function change(buildPackage, config, nodePath) {
         apply(compiler) {
             this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
             compiler.hooks.done.tap('cra-scripts', stats => {
-                // tslint:disable-next-line: no-console
-                console.log('external request:\n  ', Array.from(reqSet.values()).join(', '));
+                log.warn(chalk_1.default.red('external request:\n  ' + Array.from(reqSet.values()).join(', ')));
             });
         }
     })());

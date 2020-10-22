@@ -9,5 +9,6 @@ export interface CommandOption {
   watch: boolean;
   devMode: boolean;
   publicUrl?: string;
+  includes?: string[];
   // argv: Map<string, string|boolean>;
 }

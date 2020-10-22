@@ -108,7 +108,8 @@ export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, bui
     buildTarget: pkgName,
     watch: cmd.opts().watch,
     devMode: cmd.opts().dev,
-    publicUrl: cmd.opts().publicUrl
+    publicUrl: cmd.opts().publicUrl,
+    includes: cmd.opts().include
   };
   if (cmd.opts().publicUrl) {
     process.env.PUBLIC_URL = cmd.opts().publicUrl;

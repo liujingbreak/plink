@@ -4,6 +4,10 @@ import {findPackage} from './build-target-helper';
 import Path from 'path';
 import { getCmdOptions } from './utils';
 import {TscCmdParam} from '@wfh/plink/wfh/dist/ts-cmd';
+import log4js from 'log4js';
+import chalk from 'chalk';
+import _ from 'lodash';
+const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 // import {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 // const plinkDir = Path.dirname(require.resolve('@wfh/plink/package.json'));
 
@@ -49,20 +53,28 @@ export default function change(buildPackage: string, config: Configuration, node
 
   findAndChangeRule(config.module!.rules);
 
-
   const reqSet = new Set<string>();
+  const includeModuleRe = (getCmdOptions().includes || [])
+    .map(mod => new RegExp(mod));
 
   if (config.externals == null)
     config.externals = [];
   (config.externals as Extract<Configuration['externals'], Array<any>>)
   .push(
     (context: any, request: any, callback: (error?: any, result?: any) => void ) => {
+      if (includeModuleRe.some(rg => rg.test(request))) {
+        return callback();
+      }
+      // if (request.indexOf('js-sdk-ocr') >= 0 || request.indexOf('@bk/js-sdk-store') >= 0 ||
+      //   request.indexOf('@bk/react-component') >= 0) {
+      //   return callback();
+      // }
       // TODO: Should be configurable
       if ((!request.startsWith('.') && request !== config.entry &&
         !/[?!]/.test(request)) && (!/[\\/]@babel[\\/]runtime[\\/]/.test(request))
          ||
         request.indexOf('/bklib.min') >= 0) {
-        // console.log('external request:', request, `(${context})`);
+        // log.info('external request:', request, `(${context})`);
         reqSet.add(request);
         return callback(null, 'commonjs ' + request);
       }
@@ -78,8 +90,7 @@ export default function change(buildPackage: string, config: Configuration, node
       apply(compiler: Compiler) {
         this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
         compiler.hooks.done.tap('cra-scripts', stats => {
-          // tslint:disable-next-line: no-console
-          console.log('external request:\n  ', Array.from(reqSet.values()).join(', '));
+          log.warn(chalk.red('external request:\n  ' + Array.from(reqSet.values()).join(', ')));
         });
       }
     })()
