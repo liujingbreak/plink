@@ -171,7 +171,7 @@ export interface CompilerOptions {
  * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions 
  */
-export function setTsCompilerOptForNodePath(cwd: string, baseUrl = './', assigneeOptions: CompilerOptions,
+export function setTsCompilerOptForNodePath(cwd: string, baseUrl = './', assigneeOptions: Partial<CompilerOptions>,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
   let pathsDirs: string[] = [];

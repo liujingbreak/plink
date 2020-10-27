@@ -96,4 +96,4 @@ export interface CompilerOptions {
  * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions
  */
-export declare function setTsCompilerOptForNodePath(cwd: string, baseUrl: string | undefined, assigneeOptions: CompilerOptions, opts?: CompilerOptionSetOpt): CompilerOptions;
+export declare function setTsCompilerOptForNodePath(cwd: string, baseUrl: string | undefined, assigneeOptions: Partial<CompilerOptions>, opts?: CompilerOptionSetOpt): Partial<CompilerOptions>;

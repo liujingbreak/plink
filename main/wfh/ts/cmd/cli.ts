@@ -4,6 +4,7 @@ import chalk from 'chalk';
 // import * as store from '../store';
 import * as tp from './types';
 import * as pkgMgr from '../package-mgr';
+import '../tsc-packages-slice';
 import {packages4Workspace} from '../package-mgr/package-list-helper';
 import * as _ from 'lodash';
 // import Path from 'path';
@@ -156,15 +157,23 @@ function subDrcpCommand(program: commander.Command) {
     await config.init(runCmd.opts() as tp.GlobalOptions);
     const logConfig = await (await import('../log-config')).default;
     logConfig(config());
-    const tsCmd = await import('../ts-cmd');
-    await tsCmd.tsc({
+    const tsc = await import('../tsc-packages');
+    await tsc.generateTsconfigFiles(packages, {
       package: packages,
       project: opt.project,
       watch: opt.watch,
       sourceMap: opt.sourceMap,
       jsx: opt.jsx,
       ed: opt.emitDeclarationOnly
-    });
+    }).toPromise();
+    // await tsCmd.tsc({
+    //   package: packages,
+    //   project: opt.project,
+    //   watch: opt.watch,
+    //   sourceMap: opt.sourceMap,
+    //   jsx: opt.jsx,
+    //   ed: opt.emitDeclarationOnly
+    // });
   });
   withGlobalOptions(tscCmd);
   tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side Typescript files.\n\n' +

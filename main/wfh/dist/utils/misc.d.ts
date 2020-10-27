@@ -14,9 +14,13 @@ export declare class WordLexer extends BaseLexer<WordTokenType> {
 }
 export declare function boxString(text: string, lineWidth?: number, whitespaceWrap?: boolean): string;
 export interface PackageTsDirs {
+    /** Entry TS file list  */
+    tsEntry?: string[] | null;
+    /** Entry TS isomphic file list */
+    isomEntry?: string[] | null;
     srcDir: string;
     destDir: string;
-    isomDir: string;
+    isomDir?: string;
 }
 export declare function getTsDirsOfPackage(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;

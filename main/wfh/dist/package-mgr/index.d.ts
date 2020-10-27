@@ -257,6 +257,76 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
     }, { payload }: PayloadAction<PackageInfo[]>): void;
+    onLinkedPackageAdded(d: {
+        inited: boolean;
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            id: string;
+            originInstallJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
+            };
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
+            };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+            installedComponents?: Map<string, {
+                name: string;
+                scope: string;
+                shortName: string;
+                json: any;
+                path: string;
+                realPath: string;
+                isInstalled: boolean;
+            }> | undefined;
+        }>;
+        currWorkspace?: string | null | undefined;
+        project2Packages: Map<string, string[]>;
+        linkedDrcp: {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        } | null;
+        gitIgnores: {
+            [x: string]: string[];
+        };
+        isInChina?: boolean | undefined;
+        workspaceUpdateChecksum: number;
+    }, action: PayloadAction<string[]>): void;
     addProject(d: {
         inited: boolean;
         srcPackages: Map<string, {
@@ -1196,6 +1266,76 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
     }, { payload }: PayloadAction<PackageInfo[]>): void;
+    onLinkedPackageAdded(d: {
+        inited: boolean;
+        srcPackages: Map<string, {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        }>;
+        workspaces: Map<string, {
+            id: string;
+            originInstallJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
+            };
+            originInstallJsonStr: string;
+            installJson: {
+                version: string;
+                name: string;
+                devDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                peerDependencies?: {
+                    [x: string]: string;
+                } | undefined;
+                dependencies?: {
+                    [x: string]: string;
+                } | undefined;
+            };
+            installJsonStr: string;
+            linkedDependencies: [string, string][];
+            linkedDevDependencies: [string, string][];
+            installedComponents?: Map<string, {
+                name: string;
+                scope: string;
+                shortName: string;
+                json: any;
+                path: string;
+                realPath: string;
+                isInstalled: boolean;
+            }> | undefined;
+        }>;
+        currWorkspace?: string | null | undefined;
+        project2Packages: Map<string, string[]>;
+        linkedDrcp: {
+            name: string;
+            scope: string;
+            shortName: string;
+            json: any;
+            path: string;
+            realPath: string;
+            isInstalled: boolean;
+        } | null;
+        gitIgnores: {
+            [x: string]: string[];
+        };
+        isInChina?: boolean | undefined;
+        workspaceUpdateChecksum: number;
+    }, action: PayloadAction<string[]>): void;
     addProject(d: {
         inited: boolean;
         srcPackages: Map<string, {
@@ -1919,7 +2059,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
     file: string;
     lines: string[];
-}, string>;
+}, string>, onLinkedPackageAdded: import("@reduxjs/toolkit").ActionCreatorWithPayload<string[], string>;
 export declare function getState(): PackagesState;
 export declare function getStore(): Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;

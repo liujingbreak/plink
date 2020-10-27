@@ -115,20 +115,32 @@ export function boxString(text: string, lineWidth = 60, whitespaceWrap = true): 
 }
 
 export interface PackageTsDirs {
+  /** Entry TS file list  */
+  tsEntry?: string[] | null;
+  /** Entry TS isomphic file list */
+  isomEntry?: string[] | null;
   srcDir: string;
   destDir: string;
-  isomDir: string;
+  isomDir?: string;
 }
 
 export function getTsDirsOfPackage(json: any): PackageTsDirs {
+  const tsEntry: string[] | string | null = get(json, 'dr.tsEntry', null);
+  const isomEntry: string[] | string | null = get(json, 'dr.isomEntry', null);
   let srcDir = get(json, 'dr.ts.src', 'ts');
-  let destDir = get(json, 'dr.ts.dest', 'dist');
   let isomDir = get(json, 'dr.ts.isom', 'isom');
+  if (tsEntry == null) {
+    srcDir = trim(trim(srcDir, '/'), '\\');
+  }
+  if (isomEntry == null) {
+    isomDir = trim(trim(isomDir, '/'), '\\');
+  }
+  let destDir = get(json, 'dr.ts.dest', 'dist');
 
   destDir = trim(trim(destDir, '\\'), '/');
-  srcDir = trim(trim(srcDir, '/'), '\\');
-  isomDir = trim(trim(isomDir, '/'), '\\');
   return {
+    tsEntry: typeof tsEntry === 'string' ? [tsEntry] : tsEntry,
+    isomEntry: typeof isomEntry === 'string' ? [isomEntry] : isomEntry,
     srcDir, destDir, isomDir
   };
 }

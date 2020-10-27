@@ -22,6 +22,7 @@ import { getRootDir, isDrcpSymlink } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync, symlinkAsync } from '../utils/symlinks';
 // import { actions as _cleanActions } from '../cmd/cli-clean';
 import {PlinkEnv} from '../node-path';
+
 import { EOL } from 'os';
 export interface PackageInfo {
   name: string;
@@ -99,18 +100,19 @@ export const slice = stateFactory.newSlice({
         d.srcPackages.set(pkInfo.name, pkInfo);
       }
     },
+    onLinkedPackageAdded(d, action: PayloadAction<string[]>) {},
     // _updatePackageState(d, {payload: jsons}: PayloadAction<any[]>) {
-    //   for (const json of jsons) {
-    //     const pkg = d.srcPackages.get(json.name);
-    //     if (pkg == null) {
-    //       console.error(
-    //         `[package-mgr.index] package name "${json.name}" in package.json is changed since last time,\n` +
-    //         'please do "init" again on workspace root directory');
-    //       continue;
-    //     }
-    //     pkg.json = json;
-    //   }
-    // },
+      //   for (const json of jsons) {
+      //     const pkg = d.srcPackages.get(json.name);
+      //     if (pkg == null) {
+      //       console.error(
+      //         `[package-mgr.index] package name "${json.name}" in package.json is changed since last time,\n` +
+      //         'please do "init" again on workspace root directory');
+      //       continue;
+      //     }
+      //     pkg.json = json;
+      //   }
+      // },
     addProject(d, action: PayloadAction<string[]>) {
       for (const rawDir of action.payload) {
         const dir = pathToProjKey(rawDir);
@@ -249,13 +251,15 @@ export const slice = stateFactory.newSlice({
 });
 
 export const actionDispatcher = stateFactory.bindActionCreators(slice);
-export const {updateGitIgnores} = actionDispatcher;
+export const {updateGitIgnores, onLinkedPackageAdded} = actionDispatcher;
 
 /**
  * Carefully access any property on config, since config setting probably hasn't been set yet at this momment
  */
 stateFactory.addEpic((action$, state$) => {
   const pkgTsconfigForEditorRequestMap = new Set<string>();
+  const packageAddedList = new Array<string>();
+
   return merge(
     getStore().pipe(map(s => s.project2Packages),
       distinctUntilChanged(),
@@ -263,13 +267,22 @@ stateFactory.addEpic((action$, state$) => {
         setProjectList(getProjectList());
         return pks;
       }),
-      // distinctUntilChanged<PackagesState['project2Packages']>((map1, map2) => {
-      //   return isEqualMapSet(map1, map2);
-      // }),
-      // map(pmap => {
-      //   console.log('project changed', Array.from(pmap.keys()));
-      // }),
       ignoreElements()
+    ),
+
+    getStore().pipe(map(s => s.srcPackages),
+      distinctUntilChanged(),
+      scan((prevMap, currMap) => {
+        packageAddedList.splice(0);
+        for (const nm of currMap.keys()) {
+          if (!prevMap.has(nm)) {
+            packageAddedList.push(nm);
+          }
+        }
+        if (packageAddedList.length > 0)
+          onLinkedPackageAdded(packageAddedList);
+        return currMap;
+      })
     ),
 
     //  updateWorkspace

@@ -10,8 +10,8 @@
   "dr": {},
   "scripts": {
     "tsc": "tsc",
-    "build": "tsc -p wfh/tsconfig.json",
-    "watch": "tsc  -p wfh/tsconfig.json -w",
+    "build": "tsc -b wfh/tsconfig.json",
+    "watch": "tsc  -b wfh/tsconfig.json -w",
     "build:all": "tsc -p wfh/tsconfig-share.json && tsc -p wfh/tsconfig-redux-toolkit.json && tsc -p wfh/tsconfig.json",
     "build:share": "tsc -p wfh/tsconfig-share.json"
   },

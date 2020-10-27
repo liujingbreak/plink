@@ -113,30 +113,6 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
   // console.log(packageDirTree.traverse());
   log.info('typescript compilerOptions:', compilerOptions);
 
-  function onComponent(name: string, packagePath: string, _parsedName: any, json: any, realPath: string) {
-    countPkg++;
-    // const packagePath = resolve(root, 'node_modules', name);
-    const dirs = getTsDirsOfPackage(json);
-    const srcDirs = [dirs.srcDir, dirs.isomDir].filter(srcDir => {
-      try {
-        return fs.statSync(join(realPath, srcDir)).isDirectory();
-      } catch (e) {
-        return false;
-      }
-    });
-    compDirInfo.set(name, {
-      tsDirs: dirs,
-      dir: realPath
-    });
-    srcDirs.forEach(srcDir => {
-      const relPath = resolve(realPath, srcDir).replace(/\\/g, '/');
-      compGlobs.push(relPath + '/**/*.ts');
-      if (argv.jsx) {
-        compGlobs.push(relPath + '/**/*.tsx');
-      }
-    });
-  }
-
   const tsProject = gulpTs.createProject({...compilerOptions, typescript: require('typescript')});
 
   const delayCompile = _.debounce(() => {
@@ -159,7 +135,7 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
 
     for (const info of compDirInfo.values()) {
       [info.tsDirs.srcDir, info.tsDirs.isomDir].forEach(srcDir => {
-        const relPath = join(info.dir, srcDir).replace(/\\/g, '/');
+        const relPath = join(info.dir, srcDir!).replace(/\\/g, '/');
         watchDirs.push(relPath + '/**/*.ts');
         if (argv.jsx) {
           watchDirs.push(relPath + '/**/*.tsx');
@@ -172,6 +148,32 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
     watcher.on('unlink', (path: string) => onChangeFile(path, 'removed'));
   } else {
     promCompile = compile(compGlobs, tsProject, argv.sourceMap === 'inline', argv.ed);
+  }
+
+  function onComponent(name: string, packagePath: string, _parsedName: any, json: any, realPath: string) {
+    countPkg++;
+    // const packagePath = resolve(root, 'node_modules', name);
+    const dirs = getTsDirsOfPackage(json);
+    const srcDirs = [dirs.srcDir, dirs.isomDir].filter(srcDir => {
+      if (srcDir == null)
+        return false;
+      try {
+        return fs.statSync(join(realPath, srcDir)).isDirectory();
+      } catch (e) {
+        return false;
+      }
+    });
+    compDirInfo.set(name, {
+      tsDirs: dirs,
+      dir: realPath
+    });
+    srcDirs.forEach(srcDir => {
+      const relPath = resolve(realPath, srcDir!).replace(/\\/g, '/');
+      compGlobs.push(relPath + '/**/*.ts');
+      if (argv.jsx) {
+        compGlobs.push(relPath + '/**/*.tsx');
+      }
+    });
   }
 
   function onChangeFile(path: string, reason: string) {
