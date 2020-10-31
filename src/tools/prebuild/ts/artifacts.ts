@@ -4,7 +4,7 @@ import * as Path from 'path';
 import * as _ from 'lodash';
 // import boxen, {BorderStyle} from 'boxen';
 import {ZipFile} from 'yazl';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import {getRootDir} from '@wfh/plink/wfh/dist';
 
 type UnpackPromise<P> = P extends Promise<infer T> ? T : unknown;
@@ -79,8 +79,8 @@ export function writeMockZip(writeTo: string, content: string) {
     .on('close', resolve);
   });
 
-  const current = moment();
-  const fileName = `fake-${current.format('YYMMDD')}-${current.format('HHmmss')}.txt`;
+  const today = dayjs();
+  const fileName = `fake-${today.format('YYMMDD')}-${today.format('HHmmss')}.txt`;
 
   zipFile.addBuffer(Buffer.from(content), fileName);
   zipFile.end({forceZip64Format: false});

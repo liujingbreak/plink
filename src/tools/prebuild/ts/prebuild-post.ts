@@ -2,7 +2,7 @@
 import { spawn } from '@wfh/plink/wfh/dist/process-utils';
 import Path from 'path';
 import fs from 'fs-extra';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { mergeBack, getCurrBranchName } from './merge-artifacts';
 import { digestInstallingFiles, checkZipFile } from '@wfh/assets-processer/dist/remote-deploy';
 import { send } from './_send-patch';
@@ -95,7 +95,7 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
 
 async function addTag(rootDir: string) {
   const releaseRemote = api.config.get(api.packageName).prebuildGitRemote;
-  const current = moment();
+  const current = dayjs();
   const tagName = `release/${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
   await spawn('git', 'tag', '-a', tagName, '-m', `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`, { cwd: rootDir }).promise;
   await spawn('git', 'push', releaseRemote, tagName, { cwd: rootDir }).promise;

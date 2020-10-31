@@ -157,23 +157,23 @@ function subDrcpCommand(program: commander.Command) {
     await config.init(runCmd.opts() as tp.GlobalOptions);
     const logConfig = await (await import('../log-config')).default;
     logConfig(config());
-    const tsc = await import('../tsc-packages');
-    await tsc.generateTsconfigFiles(packages, {
-      package: packages,
-      project: opt.project,
-      watch: opt.watch,
-      sourceMap: opt.sourceMap,
-      jsx: opt.jsx,
-      ed: opt.emitDeclarationOnly
-    }).toPromise();
-    // await tsCmd.tsc({
+    const tsc = await import('../ts-cmd');
+    // await tsc.tsc({
     //   package: packages,
     //   project: opt.project,
     //   watch: opt.watch,
     //   sourceMap: opt.sourceMap,
     //   jsx: opt.jsx,
     //   ed: opt.emitDeclarationOnly
-    // });
+    // }).toPromise();
+    await tsc.tsc({
+      package: packages,
+      project: opt.project,
+      watch: opt.watch,
+      sourceMap: opt.sourceMap,
+      jsx: opt.jsx,
+      ed: opt.emitDeclarationOnly
+    });
   });
   withGlobalOptions(tscCmd);
   tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side Typescript files.\n\n' +
@@ -289,7 +289,7 @@ function loadExtensionCommand(program: commander.Command): string[] {
         subCmdFactory(program, withGlobalOptions);
       } catch (e) {
         // tslint:disable-next-line: no-console
-        console.error('Failed to load command line extension in package ' + pk.name, e);
+        console.error(`Failed to load command line extension in package ${pk.name}: "${e.message}"`);
       }
     }
   }

@@ -17,7 +17,7 @@ exports.main = void 0;
 const process_utils_1 = require("@wfh/plink/wfh/dist/process-utils");
 const path_1 = __importDefault(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
-const moment_1 = __importDefault(require("moment"));
+const dayjs_1 = __importDefault(require("dayjs"));
 const merge_artifacts_1 = require("./merge-artifacts");
 const remote_deploy_1 = require("@wfh/assets-processer/dist/remote-deploy");
 const _send_patch_1 = require("./_send-patch");
@@ -101,7 +101,7 @@ function pushReleaseBranch(releaseBranch, rootDir, env, appName) {
 function addTag(rootDir) {
     return __awaiter(this, void 0, void 0, function* () {
         const releaseRemote = __api_1.default.config.get(__api_1.default.packageName).prebuildGitRemote;
-        const current = moment_1.default();
+        const current = dayjs_1.default();
         const tagName = `release/${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
         yield process_utils_1.spawn('git', 'tag', '-a', tagName, '-m', `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`, { cwd: rootDir }).promise;
         yield process_utils_1.spawn('git', 'push', releaseRemote, tagName, { cwd: rootDir }).promise;

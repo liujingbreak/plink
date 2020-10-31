@@ -38,7 +38,7 @@ const Path = __importStar(require("path"));
 const _ = __importStar(require("lodash"));
 // import boxen, {BorderStyle} from 'boxen';
 const yazl_1 = require("yazl");
-const moment_1 = __importDefault(require("moment"));
+const dayjs_1 = __importDefault(require("dayjs"));
 const dist_1 = require("@wfh/plink/wfh/dist");
 function listVersions(env) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -113,8 +113,8 @@ function writeMockZip(writeTo, content) {
         zipFile.outputStream.pipe(fs.createWriteStream(writeTo))
             .on('close', resolve);
     });
-    const current = moment_1.default();
-    const fileName = `fake-${current.format('YYMMDD')}-${current.format('HHmmss')}.txt`;
+    const today = dayjs_1.default();
+    const fileName = `fake-${today.format('YYMMDD')}-${today.format('HHmmss')}.txt`;
     zipFile.addBuffer(Buffer.from(content), fileName);
     zipFile.end({ forceZip64Format: false });
     return prom;

@@ -6,13 +6,16 @@ import fse from 'fs-extra';
 import _ from 'lodash';
 import log4js from 'log4js';
 import Path from 'path';
-import { merge, Observable } from 'rxjs';
+import { merge, Observable, EMPTY } from 'rxjs';
+import {reduce, concatMap, filter} from 'rxjs/operators';
 import { CompilerOptions } from 'typescript';
-import config from './config';
-import { setTsCompilerOptForNodePath } from './config-handler';
-import { getState, PackageInfo, workspaceKey } from './package-mgr';
+import config from '../config';
+import { setTsCompilerOptForNodePath } from '../config-handler';
+import { getState, PackageInfo, workspaceKey } from '../package-mgr';
 import { getState as getTscState } from './tsc-packages-slice';
-import {findPackagesByNames} from './cmd/utils';
+import {findPackagesByNames} from '../cmd/utils';
+import {allPackages} from '../package-mgr/package-list-helper';
+import {fork} from 'child_process';
 const log = log4js.getLogger('wfh.tsc-packages');
 
 export interface Tsconfig {
@@ -49,9 +52,40 @@ export type PackageJsonTscProperty = PackageJsonTscPropertyItem | PackageJsonTsc
 
 export function tsc(opts: TscCmdParam) {
   if (opts.package) {
-    // TODO
-    findPackagesByNames(getState(), opts.package);
+    const pkgs = findPackagesByNames(getState(), opts.package);
+    const tsconfigFile$ = generateTsconfigFiles(
+      Array.from(pkgs).filter(pkg => pkg != null)
+      .map(pkg => pkg!.name), opts);
+    return tsconfigFile$.pipe(
+      reduce<string>((all, tsconfigFile) => {
+        all.push(tsconfigFile);
+        return all;
+      }, []),
+      filter(files => files.length > 0),
+      concatMap(files => {
+        const env = process.env;
+        delete env.NODE_OPTIONS;
+
+        const arg = ['-b', ...files, '-v'];
+        if (opts.watch)
+          arg.push('-w');
+
+        log.info('tsc ' + arg.join(' '));
+        const cp = fork(require.resolve('typescript/lib/tsc.js'), arg, {env});
+        return new Observable(sub => {
+          cp.on('exit', (code, signal) => {
+            log.info(code + ' ' + signal);
+            sub.next();
+            sub.complete();
+          });
+          cp.on('error', err => sub.error(err));
+        });
+      })
+    );
+  } else if (opts.project) {
+    allPackages('*', 'src', opts.project);
   }
+  return EMPTY;
 }
 
 export function generateTsconfigFiles(pkgs: Iterable<string>, opts: TscCmdParam) {
@@ -73,8 +107,8 @@ export function generateTsconfigFiles(pkgs: Iterable<string>, opts: TscCmdParam)
   // const files = fs.readdirSync(tsConfigsDir);
   // console.log(files);
 
-  const baseConfigFile = Path.resolve(__dirname, 'tsconfig-base.json');
-  const baseTsxConfigFile = Path.resolve(__dirname, 'tsconfig-tsx.json');
+  const baseConfigFile = Path.resolve(__dirname, '..', '..', 'tsconfig-base.json');
+  const baseTsxConfigFile = Path.resolve(__dirname, '..', '..', 'tsconfig-tsx.json');
 
   const done = Array.from(walked.values())
   .map(pkg => {
@@ -117,8 +151,10 @@ export function generateTsconfigFiles(pkgs: Iterable<string>, opts: TscCmdParam)
         skipLibCheck: true,
         sourceMap: true,
         inlineSources: true,
+        inlineSourceMap: false,
         emitDeclarationOnly: opts.ed
-      }
+      },
+      exclude: []
     };
 
     if (entries && entries.length > 0) {

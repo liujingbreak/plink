@@ -1,12 +1,12 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { stateFactory } from './store';
+import { stateFactory } from '../store';
 import fs from 'fs';
 import Path from 'path';
 import {map, mergeMap, distinctUntilChanged, catchError, ignoreElements, debounceTime, reduce,
   skip
 } from 'rxjs/operators';
 import {of, from, merge, ReplaySubject, Observable} from 'rxjs';
-import {getStore as getPkgStore, PackageInfo} from './package-mgr';
+import {getStore as getPkgStore, PackageInfo} from '../package-mgr';
 
 export interface PackageJsonTscPropertyItem {
   rootDir: string;
@@ -94,7 +94,7 @@ function normalizePackageJsonTscProperty$(pkg: PackageInfo) {
     rawConfigs = rawConfigs2;
     fs.exists(Path.resolve(pkg.realPath, 'isom'), exists => {
       if (exists) {
-        const temp: PackageJsonTscPropertyItem = {rootDir: 'isom', outDir: 'dist'};
+        const temp: PackageJsonTscPropertyItem = {rootDir: 'isom', outDir: 'isom'};
         rawConfigs2.next(temp);
       }
       const temp: PackageJsonTscPropertyItem = {
