@@ -47,7 +47,7 @@ var config = {
 		'@bk/credit-appl': {appenders: ['out', 'file'], level: 'info'},
 		'@wfh/plink': {appenders: ['file'], level: 'debug'},
 		'@dr-core/assets-processer': {appenders: ['infoOut', 'file'], level: 'debug'},
-		'@wfh/plink.store.action': {appenders: ['out'], level: 'debug'},
+		'@wfh/plink.store.action': {appenders: ['out'], level: 'warn'},
 		'wfh.module-dep-helper': {appenders: ['infoOut', 'file'], level: 'info'},
 		'wfh.ManualChunkPlugin': {appenders: ['infoOut', 'file'], level: 'debug'},
 		'wfh.ManualChunkPlugin-m': {appenders: ['out', 'file'], level: 'error'},

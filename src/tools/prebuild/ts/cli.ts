@@ -25,13 +25,15 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .option('--no-push-branch', 'push to release branch', false)
   // .option('--secret <secret>', 'credential word')
   .option('--secret <credential code>', 'credential code for deploy to "prod" environment')
+  .option('--cc <commit comment>', 'The commit comment of the deployment commit')
   .action(async (app: string, scriptsFile?: string) => {
     const opt = deployCmd.opts();
     await initConfigAsync(deployCmd.opts() as GlobalOptions);
     (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
 
     const cliDeploy = (require('./cli-deploy').default as typeof _cliDeploy);
-    await cliDeploy(opt.static, opt.env, app, deployCmd.opts().pushBranch, deployCmd.opts().secret || null, scriptsFile);
+    await cliDeploy(opt.static, opt.env, app, deployCmd.opts().pushBranch, deployCmd.opts().secret || null, scriptsFile,
+      deployCmd.opts().cc);
   });
   createEnvOption(deployCmd);
   withGlobalOptions(deployCmd);

@@ -7,6 +7,7 @@ import log4js from 'log4js';
 import {getRootDir} from './utils/misc';
 import serialize from 'serialize-javascript';
 import {enableMapSet} from 'immer';
+import {isMainThread} from 'worker_threads';
 // import chalk from 'chalk';
 
 export {ofPayloadAction};
@@ -92,9 +93,19 @@ export async function saveState() {
     console.log('[package-mgr] state is not changed');
     return;
   }
+  if (!isMainThread) {
+    // tslint:disable-next-line: no-console
+    console.log('[package-mgr] not in main thread, skip saving state');
+    return;
+  }
+  if (process.send) {
+    // tslint:disable-next-line: no-console
+    console.log('[package-mgr] in a forked process, skip saving state');
+    return;
+  }
   const store = await stateFactory.rootStoreReady;
   const mergedState = Object.assign(lastSavedState, store.getState());
-  // const jsonStr = JSON.stringify(mergedState, null, '  ');
+
   const jsonStr = serialize(mergedState, {space: '  '});
   fse.mkdirpSync(Path.dirname(stateFile));
   fs.writeFile(stateFile, jsonStr,

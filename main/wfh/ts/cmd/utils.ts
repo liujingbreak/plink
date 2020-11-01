@@ -4,7 +4,6 @@ import Path from 'path';
 import {createPackageInfo} from '../package-mgr';
 import {PackagesState, PackageInfo} from '../package-mgr';
 import * as _ from 'lodash';
-// import {createSelector} from '@reduxjs/toolkit';
 
 import _config from '../config';
 

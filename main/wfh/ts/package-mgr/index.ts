@@ -399,12 +399,24 @@ stateFactory.addEpic((action$, state$) => {
             .concat(Object.entries(newWs.installJson.devDependencies || []))
             .map(entry => entry.join(': '));
 
-          const changed = _.difference(newDeps, oldDeps);
-          if (changed.length > 0) {
-            // tslint:disable-next-line: no-console
-            console.log(`Workspace ${key}, new dependency will be installed:\n${changed.join('\n')}`);
+          // const changed = _.difference(newDeps, oldDeps);
+          if (newDeps.length !== oldDeps.length) {
             actionDispatcher._installWorkspace({workspaceKey: key});
+            return newWs;
           }
+          newDeps.sort();
+          oldDeps.sort();
+          for (let i = 0, l = newDeps.length; i < l; i++) {
+            if (newDeps[i] !== oldDeps[i]) {
+              actionDispatcher._installWorkspace({workspaceKey: key});
+              break;
+            }
+          }
+          // if (changed.length > 0) {
+          //   // tslint:disable-next-line: no-console
+          //   console.log(`Workspace ${key}, new dependency will be installed:\n${changed.join('\n')}`);
+          //   actionDispatcher._installWorkspace({workspaceKey: key});
+          // }
           return newWs;
         }),
         ignoreElements()

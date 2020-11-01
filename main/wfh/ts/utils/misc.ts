@@ -5,6 +5,7 @@ import _ from 'lodash';
 import * as Path from 'path';
 // import * as fs from 'fs';
 import {PlinkEnv} from '../node-path';
+import * as cfonts from 'cfonts';
 
 const {isDrcpSymlink, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
@@ -77,7 +78,7 @@ export class WordLexer extends BaseLexer<WordTokenType> {
   }
 }
 
-export function boxString(text: string, lineWidth = 60, whitespaceWrap = true): string {
+export function boxString(text: string, lineWidth = 70, whitespaceWrap = true): string {
   const lexer = new WordLexer(text);
 
   lineWidth = lineWidth - 4;
@@ -114,34 +115,26 @@ export function boxString(text: string, lineWidth = 60, whitespaceWrap = true): 
   return updated.replace(/^(?=.)/mg, '  ');
 }
 
+export function sexyFont(text: string, color = '#99a329', font: cfonts.FontOption['font'] = 'block') {
+  return cfonts.render(text, {font, colors: [color]});
+}
+
 export interface PackageTsDirs {
-  /** Entry TS file list  */
-  tsEntry?: string[] | null;
-  /** Entry TS isomphic file list */
-  isomEntry?: string[] | null;
   srcDir: string;
   destDir: string;
   isomDir?: string;
+  globs?: string[];
 }
 
-export function getTsDirsOfPackage(json: any): PackageTsDirs {
-  const tsEntry: string[] | string | null = get(json, 'dr.tsEntry', null);
-  const isomEntry: string[] | string | null = get(json, 'dr.isomEntry', null);
-  let srcDir = get(json, 'dr.ts.src', 'ts');
-  let isomDir = get(json, 'dr.ts.isom', 'isom');
-  if (tsEntry == null) {
-    srcDir = trim(trim(srcDir, '/'), '\\');
-  }
-  if (isomEntry == null) {
-    isomDir = trim(trim(isomDir, '/'), '\\');
-  }
+export function getTscConfigOfPkg(json: any): PackageTsDirs {
+  const globs: string[] | undefined = get(json, 'dr.ts.globs');
+  const srcDir = get(json, 'dr.ts.src', 'ts');
+  const isomDir = get(json, 'dr.ts.isom', 'isom');
   let destDir = get(json, 'dr.ts.dest', 'dist');
 
   destDir = trim(trim(destDir, '\\'), '/');
   return {
-    tsEntry: typeof tsEntry === 'string' ? [tsEntry] : tsEntry,
-    isomEntry: typeof isomEntry === 'string' ? [isomEntry] : isomEntry,
-    srcDir, destDir, isomDir
+    srcDir, destDir, isomDir, globs
   };
 }
 

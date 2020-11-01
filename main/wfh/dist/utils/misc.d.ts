@@ -1,4 +1,5 @@
 import { BaseLexer, Token } from '../base-LLn-parser';
+import * as cfonts from 'cfonts';
 declare const isDrcpSymlink: boolean;
 export { isDrcpSymlink };
 export declare enum WordTokenType {
@@ -13,16 +14,19 @@ export declare class WordLexer extends BaseLexer<WordTokenType> {
     consumeNumbers(): void;
 }
 export declare function boxString(text: string, lineWidth?: number, whitespaceWrap?: boolean): string;
+export declare function sexyFont(text: string, color?: string, font?: cfonts.FontOption['font']): {
+    string: string;
+    array: string[];
+    lines: number;
+    options: cfonts.FontOption;
+};
 export interface PackageTsDirs {
-    /** Entry TS file list  */
-    tsEntry?: string[] | null;
-    /** Entry TS isomphic file list */
-    isomEntry?: string[] | null;
     srcDir: string;
     destDir: string;
     isomDir?: string;
+    globs?: string[];
 }
-export declare function getTsDirsOfPackage(json: any): PackageTsDirs;
+export declare function getTscConfigOfPkg(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;
 export declare function closestCommonParentDir(paths: Iterable<string>): string;
 export declare function isEqualMapSet<T>(set1: Set<T> | Map<T, any>, set2: Set<T> | Map<T, any>): boolean;

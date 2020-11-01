@@ -1,12 +1,18 @@
+/// <reference path="./cfont.d.ts" />
 // tslint:disable: max-line-length
 import commander from 'commander';
 import chalk from 'chalk';
 // import * as store from '../store';
 import * as tp from './types';
 import * as pkgMgr from '../package-mgr';
-import '../tsc-packages-slice';
+// import '../tsc-packages-slice';
 import {packages4Workspace} from '../package-mgr/package-list-helper';
 import * as _ from 'lodash';
+import { isDrcpSymlink, sexyFont, getRootDir, boxString } from '../utils/misc';
+import _scanNodeModules from '../utils/symlinks';
+import fs from 'fs';
+import Path from 'path';
+import semver from 'semver';
 // import Path from 'path';
 const pk = require('../../../package');
 // const WIDTH = 130;
@@ -27,9 +33,12 @@ export async function drcpCommand(startTime: number) {
   let cliExtensions: string[] | undefined;
   const program = new commander.Command('plink')
   .action(args => {
-    program.outputHelp();
     // tslint:disable-next-line: no-console
-    console.log('\nversion:', pk.version);
+    console.log(sexyFont('PLink').string);
+    // tslint:disable-next-line: no-console
+    console.log(program.helpInformation());
+    // tslint:disable-next-line: no-console
+    console.log(`\nversion: ${pk.version} ${isDrcpSymlink ? chalk.yellow('(symlinked)') : ''} `);
     if (cliExtensions && cliExtensions.length > 0) {
       // tslint:disable-next-line: no-console
       console.log(`Found ${cliExtensions.length} command line extension` +
@@ -64,6 +73,8 @@ function subDrcpCommand(program: commander.Command) {
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
   .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false)
   .action(async (workspace: string) => {
+    // tslint:disable-next-line: no-console
+    console.log(sexyFont('PLink').string);
     await (await import('./cli-init')).default(initCmd.opts() as any, workspace);
   });
   withGlobalOptions(initCmd);
@@ -74,6 +85,8 @@ function subDrcpCommand(program: commander.Command) {
   program.command('project [add|remove] [project-dir...]')
   .description('Associate, disassociate or list associated project folders')
   .action(async (action: 'add'|'remove'|undefined, projectDir: string[]) => {
+    // tslint:disable-next-line: no-console
+    console.log(sexyFont('PLink').string);
     (await import('./cli-project')).default(action, projectDir);
   });
 
@@ -99,7 +112,8 @@ function subDrcpCommand(program: commander.Command) {
   .description('Clean symlinks from node_modules, always do this before run "npm install" in root directory')
   // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
   .action(async () => {
-    (await import('./cli-clean')).deleteSymlinks();
+    const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
+    await scanNodeModules('all');
   });
 
   /**
@@ -318,5 +332,33 @@ export function withGlobalOptions(program: commander.Command): commander.Command
   // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 
   return program;
+}
+
+let versionChecked = false;
+process.on('beforeExit', () => {
+  if (versionChecked)
+    return;
+  versionChecked = true;
+  checkPlinkVersion();
+});
+
+function checkPlinkVersion() {
+  const pkjson = Path.resolve(getRootDir(), 'package.json');
+  if (fs.existsSync(pkjson)) {
+    const json = JSON.parse(fs.readFileSync(pkjson, 'utf8'));
+    let depVer: string = json.dependencies && json.dependencies['@wfh/plink'] ||
+      json.devDependencies && json.devDependencies['@wfh/plink'];
+    if (depVer.endsWith('.tgz')) {
+      const matched = /-(\d+\.\d+\.[^.]+)\.tgz$/.exec(depVer);
+      if (matched == null)
+        return;
+      depVer = matched[1];
+    }
+    if (depVer && !semver.satisfies(pk.version, depVer)) {
+      // tslint:disable-next-line: no-console
+      console.log(boxString(`Please run commands to re-install local Plink v${pk.version}, required is v${depVer}:\n\n` +
+        '  plink clean-symlinks\n  npm i\n  npm dedupe'));
+    }
+  }
 }
 

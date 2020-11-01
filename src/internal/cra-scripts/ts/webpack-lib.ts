@@ -6,6 +6,7 @@ import { getCmdOptions } from './utils';
 import {TscCmdParam} from '@wfh/plink/wfh/dist/ts-cmd';
 import log4js from 'log4js';
 import chalk from 'chalk';
+import {Worker} from 'worker_threads';
 import _ from 'lodash';
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 // import {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
@@ -125,7 +126,6 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
 }
 
 async function forkTsc(targetPackage: string, nodePath: string[]) {
-  const {Worker} = await import('worker_threads');
 
   // const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
@@ -133,7 +133,7 @@ async function forkTsc(targetPackage: string, nodePath: string[]) {
 
   const worker = new Worker(require.resolve('./tsd-generate-thread'), {
     workerData, env: {NODE_PATH: nodePath.join(Path.delimiter)}
-  });
+  } as any);
   await new Promise((resolve, rej) => {
     worker.on('exit', code => {
       if (code !== 0) {

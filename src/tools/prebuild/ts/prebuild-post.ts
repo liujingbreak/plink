@@ -9,12 +9,14 @@ import { send } from './_send-patch';
 import {stringifyListAllVersions} from './artifacts';
 import api from '__api';
 import log4js from 'log4js';
+import {Configuration} from './types';
 const log = log4js.getLogger(api.packageName + '.send-patch');
 
 let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
 
-export async function main(env: string, appName: string, buildStaticOnly = false, pushBranch = true, secret?: string) {
-  const setting = api.config.get(api.packageName);
+export async function main(env: string, appName: string, buildStaticOnly = false, pushBranch = true, secret?: string,
+  commitComment?: string) {
+  const setting: Configuration = api.config.get(api.packageName);
 
   const rootDir = api.config().rootPath;
 
@@ -67,15 +69,15 @@ export async function main(env: string, appName: string, buildStaticOnly = false
   }
 
   if (pushBranch)
-    await pushReleaseBranch(releaseBranch, rootDir, env, appName);
+    await pushReleaseBranch(releaseBranch, rootDir, env, appName, commitComment);
 
   if (appName === 'node-server' || buildStaticOnly !== true) {
-    await addTag(rootDir);
+    await addTag(rootDir, commitComment);
   }
   await spawn('git', 'checkout', currBranch, { cwd: rootDir }).promise;
 }
 
-async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: string, appName: string) {
+async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: string, appName: string, commitComment?: string) {
   const releaseRemote = api.config.get(api.packageName).prebuildGitRemote;
 
   await spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir }).promise;
@@ -93,12 +95,18 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
   await spawn('git', 'push', '-f', releaseRemote, releaseBranch, { cwd: rootDir }).promise;
 }
 
-async function addTag(rootDir: string) {
-  const releaseRemote = api.config.get(api.packageName).prebuildGitRemote;
+async function addTag(rootDir: string, commitComment?: string) {
+  const setting: Configuration = api.config.get(api.packageName);
+  const releaseRemote = setting.prebuildGitRemote;
   const current = dayjs();
   const tagName = `release/${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
-  await spawn('git', 'tag', '-a', tagName, '-m', `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`, { cwd: rootDir }).promise;
+  await spawn('git', 'tag', '-a', tagName, '-m', commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`,
+    { cwd: rootDir }).promise;
   await spawn('git', 'push', releaseRemote, tagName, { cwd: rootDir }).promise;
+
+  if (setting.tagPushRemote && setting.tagPushRemote !== setting.prebuildGitRemote) {
+    await spawn('git', 'push', setting.tagPushRemote, tagName, { cwd: rootDir }).promise;
+  }
 }
 
 function removeDevDeps() {

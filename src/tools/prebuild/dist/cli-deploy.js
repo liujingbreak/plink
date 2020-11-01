@@ -18,7 +18,7 @@ const process_utils_1 = require("@wfh/plink/wfh/dist/process-utils");
 const chalk_1 = __importDefault(require("chalk"));
 const prebuild_post_1 = require("./prebuild-post");
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.cli-deploy');
-function default_1(isStatic, env, app, pushBranch = true, secret, scriptsFile) {
+function default_1(isStatic, env, app, pushBranch = true, secret, scriptsFile, commitComment) {
     return __awaiter(this, void 0, void 0, function* () {
         log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile}`);
         if (pushBranch) {
@@ -42,7 +42,7 @@ function default_1(isStatic, env, app, pushBranch = true, secret, scriptsFile) {
                 yield Promise.resolve(require(file)[func](env, app, isStatic));
             }
         }
-        yield prebuild_post_1.main(env, app, isStatic, pushBranch, secret ? secret : undefined);
+        yield prebuild_post_1.main(env, app, isStatic, pushBranch, secret ? secret : undefined, commitComment);
     });
 }
 exports.default = default_1;

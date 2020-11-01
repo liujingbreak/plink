@@ -26,7 +26,7 @@ const __api_1 = __importDefault(require("__api"));
 const log4js_1 = __importDefault(require("log4js"));
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.send-patch');
 let pkJson = require(path_1.default.resolve('package.json'));
-function main(env, appName, buildStaticOnly = false, pushBranch = true, secret) {
+function main(env, appName, buildStaticOnly = false, pushBranch = true, secret, commitComment) {
     return __awaiter(this, void 0, void 0, function* () {
         const setting = __api_1.default.config.get(__api_1.default.packageName);
         const rootDir = __api_1.default.config().rootPath;
@@ -72,15 +72,15 @@ function main(env, appName, buildStaticOnly = false, pushBranch = true, secret) 
             }
         }
         if (pushBranch)
-            yield pushReleaseBranch(releaseBranch, rootDir, env, appName);
+            yield pushReleaseBranch(releaseBranch, rootDir, env, appName, commitComment);
         if (appName === 'node-server' || buildStaticOnly !== true) {
-            yield addTag(rootDir);
+            yield addTag(rootDir, commitComment);
         }
         yield process_utils_1.spawn('git', 'checkout', currBranch, { cwd: rootDir }).promise;
     });
 }
 exports.main = main;
-function pushReleaseBranch(releaseBranch, rootDir, env, appName) {
+function pushReleaseBranch(releaseBranch, rootDir, env, appName, commitComment) {
     return __awaiter(this, void 0, void 0, function* () {
         const releaseRemote = __api_1.default.config.get(__api_1.default.packageName).prebuildGitRemote;
         yield process_utils_1.spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir }).promise;
@@ -98,13 +98,17 @@ function pushReleaseBranch(releaseBranch, rootDir, env, appName) {
         yield process_utils_1.spawn('git', 'push', '-f', releaseRemote, releaseBranch, { cwd: rootDir }).promise;
     });
 }
-function addTag(rootDir) {
+function addTag(rootDir, commitComment) {
     return __awaiter(this, void 0, void 0, function* () {
-        const releaseRemote = __api_1.default.config.get(__api_1.default.packageName).prebuildGitRemote;
+        const setting = __api_1.default.config.get(__api_1.default.packageName);
+        const releaseRemote = setting.prebuildGitRemote;
         const current = dayjs_1.default();
         const tagName = `release/${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
-        yield process_utils_1.spawn('git', 'tag', '-a', tagName, '-m', `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`, { cwd: rootDir }).promise;
+        yield process_utils_1.spawn('git', 'tag', '-a', tagName, '-m', commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`, { cwd: rootDir }).promise;
         yield process_utils_1.spawn('git', 'push', releaseRemote, tagName, { cwd: rootDir }).promise;
+        if (setting.tagPushRemote && setting.tagPushRemote !== setting.prebuildGitRemote) {
+            yield process_utils_1.spawn('git', 'push', setting.tagPushRemote, tagName, { cwd: rootDir }).promise;
+        }
     });
 }
 function removeDevDeps() {
