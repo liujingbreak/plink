@@ -31,7 +31,7 @@
   },
   "peerDependencies": {
     "@nguniversal/module-map-ngfactory-loader": "^8.2.6",
-    "@angular/platform-server": "~8.2.11",
+    "@angular/platform-server": "~8.2.14",
     "@types/karma": "^3.0.3",
     "@angularclass/hmr": "^2.1.3"
   },
