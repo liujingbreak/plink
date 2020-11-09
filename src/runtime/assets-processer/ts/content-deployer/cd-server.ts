@@ -110,7 +110,6 @@ export async function activate(app: Application, imap: ImapManager) {
   });
 
   router.put<{file: string, hash: string}>('/_install/:file/:hash', async (req, res, next) => {
-
     if (requireToken && req.query.whisper !== generateToken()) {
       res.header('Connection', 'close');
       res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
@@ -206,7 +205,7 @@ export async function activate(app: Application, imap: ImapManager) {
   }
 
   async function initPm2() {
-    const pm2 = require('@growth/pm2');
+    const pm2 = require('pm2');
     const pm2connect = util.promisify(pm2.connect.bind(pm2));
     const pm2launchBus = util.promisify<Pm2Bus>(pm2.launchBus.bind(pm2));
 

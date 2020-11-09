@@ -1,4 +1,4 @@
-import pm2 from '@growth/pm2';
+import pm2 from 'pm2';
 import * as _ from 'lodash';
 import {promisify as pify} from 'util';
 

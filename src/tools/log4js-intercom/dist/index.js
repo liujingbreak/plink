@@ -32,7 +32,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.start = void 0;
-const pm2_1 = __importDefault(require("@growth/pm2"));
+const pm2_1 = __importDefault(require("pm2"));
 const _ = __importStar(require("lodash"));
 const util_1 = require("util");
 const connect = util_1.promisify(pm2_1.default.connect.bind(pm2_1.default));

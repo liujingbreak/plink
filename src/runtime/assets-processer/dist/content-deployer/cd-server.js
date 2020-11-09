@@ -198,7 +198,7 @@ function activate(app, imap) {
         }
         function initPm2() {
             return __awaiter(this, void 0, void 0, function* () {
-                const pm2 = require('@growth/pm2');
+                const pm2 = require('pm2');
                 const pm2connect = util.promisify(pm2.connect.bind(pm2));
                 const pm2launchBus = util.promisify(pm2.launchBus.bind(pm2));
                 yield pm2connect();
