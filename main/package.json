@@ -1,6 +1,6 @@
 {
   "name": "@wfh/plink",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Plink - A monorepo management tool to link packages and projects",
   "main": "wfh/lib/main.js",
   "bin": {

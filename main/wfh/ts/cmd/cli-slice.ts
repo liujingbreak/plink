@@ -117,7 +117,7 @@ stateFactory.addEpic((action$, state$) => {
         const [lang, country] = locale.split(/[_-]/);
         if (getState().osLang !== lang || getState().osCountry !== country) {
           cliActionDispatcher.updateLocale([lang, country]);
-          pkgMgr.actionDispatcher.setInChina(country.toUpperCase() === 'CN');
+          pkgMgr.actionDispatcher.setInChina(country ? country.toUpperCase() === 'CN' : false);
         }
       })
     )

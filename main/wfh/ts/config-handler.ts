@@ -86,12 +86,14 @@ export class ConfigHandlerMgr {
       compilerOptions.module = 'commonjs';
       compilerOptions.noUnusedLocals = false;
       compilerOptions.diagnostics = true;
+      compilerOptions.declaration = false;
       delete compilerOptions.rootDir;
 
       // console.log(compilerOptions);
       registerTsNode({
         typeCheck: true,
         compilerOptions,
+        compiler: require.resolve('typescript'),
         /**
          * Important!! prevent ts-node looking for tsconfig.json from current working directory
          */
