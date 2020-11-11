@@ -59,6 +59,17 @@ const defaultSliceReducers: Partial<ExtraSliceReducers<any>> = {
   }
 };
 
+export type InferSliceType<MyCreateSliceOptionsType> =
+  Slice<any,
+  (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<any>) &
+    ExtraSliceReducers<any>,
+  string>;
+
+export type InferActionsType<MyCreateSliceOptionsType> =
+  Slice<any,
+  (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<any>) &
+    ExtraSliceReducers<any>,
+  string>['actions'];
 export class StateFactory {
   /**
    * Why I don't use Epic's state$ parameter:
@@ -257,7 +268,7 @@ export class StateFactory {
    * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
    * Parameter is a Slice instead of action map
    */
-  bindActionCreators<A, Slice extends {actions: A}>(slice: Slice) {
+  bindActionCreators<A, Slice extends {actions: A}>(slice: Slice): Slice['actions'] {
 
     const actionMap = {} as typeof slice.actions;
     for (const [sliceName, actionCreator] of Object.entries(slice.actions)) {

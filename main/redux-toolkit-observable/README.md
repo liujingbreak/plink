@@ -11,6 +11,7 @@
       - [2. About Normalized state and state structure](#2-about-normalized-state-and-state-structure)
     - [Why we wrapper redux-toolkit + redux-observable](#why-we-wrapper-redux-toolkit--redux-observable)
     - [The most frequently used RxJS operators](#the-most-frequently-used-rxjs-operators)
+    - [Typescript compile with compiler option "declaration: true" issue](#typescript-compile-with-compiler-option-declaration-true-issue)
 
 参考文档
 
@@ -165,3 +166,13 @@ What's different from using redux-toolkit and redux-abservable directly, what's 
 
 
 ### The most frequently used RxJS operators
+
+### Typescript compile with compiler option "declaration: true" issue
+
+> "This is likely not portable, a type annotation is necessary" 
+  https://github.com/microsoft/TypeScript/issues/30858
+
+  To workaround this issue, check:
+  `example-slice-store-declaration.ts`
+ 
+

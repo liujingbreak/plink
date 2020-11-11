@@ -1,7 +1,14 @@
-import { PayloadAction } from '@reduxjs/toolkit';
-import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from '@wfh/module-shared/redux-toolkit-abservable/state-factory';
+// import { PayloadAction, CreateSliceOptions, SliceCaseReducers, Slice } from '@reduxjs/toolkit';
+import {PayloadAction, InferActionsType} from './redux-toolkit-observable';
+import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from './state-factory';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
-import {of, from, merge} from 'rxjs';
+import {of, from, merge, Observable} from 'rxjs';
+
+/** We have to explicityly export Observable, for exporting getStore() function, otherwise Typescript will report 
+ * "This is likely not portable, a type annotation is necessary" 
+ * https://github.com/microsoft/TypeScript/issues/30858
+ */
+export {Observable};
 
 export interface ExampleState {
   foo: boolean;
@@ -17,18 +24,20 @@ const initialState: ExampleState = {
   }
 };
 
-export const exampleSlice = stateFactory.newSlice({
+const sliceOpt = {
   name: 'example',
   initialState,
   reducers: {
-    exampleAction(draft, {payload}: PayloadAction<boolean>) {
+    exampleAction(draft: ExampleState, {payload}: PayloadAction<boolean>) {
       // modify state draft
       draft.foo = payload;
     }
   }
-});
+};
 
-export const actionDispatcher = stateFactory.bindActionCreators(exampleSlice);
+const exampleSlice = stateFactory.newSlice(sliceOpt);
+
+export const actionDispatcher: InferActionsType<typeof sliceOpt> = stateFactory.bindActionCreators(exampleSlice);
 
 const releaseEpic = stateFactory.addEpic((action$) => {
   // const gService = getModuleInjector().get(GlobalStateStore);
