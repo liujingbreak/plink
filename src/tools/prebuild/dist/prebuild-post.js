@@ -84,7 +84,7 @@ function pushReleaseBranch(releaseBranch, rootDir, env, appName, commitComment) 
     return __awaiter(this, void 0, void 0, function* () {
         const releaseRemote = __api_1.default.config.get(__api_1.default.packageName).prebuildGitRemote;
         yield process_utils_1.spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir }).promise;
-        removeDevDeps();
+        // removeDevDeps();
         changeGitIgnore();
         yield process_utils_1.spawn('git', 'add', '.', { cwd: rootDir }).promise;
         const hookFiles = [path_1.default.resolve(rootDir, '.git/hooks/pre-push'),
@@ -111,14 +111,14 @@ function addTag(rootDir, commitComment) {
         }
     });
 }
-function removeDevDeps() {
-    const json = Object.assign({}, pkJson);
-    delete json.devDependencies;
-    const newJson = JSON.stringify(json, null, '\t');
-    // tslint:disable-next-line:no-console
-    log.info('change package.json to:\n', newJson);
-    fs_extra_1.default.writeFileSync('package.json', newJson);
-}
+// function removeDevDeps() {
+//   const json = Object.assign({}, pkJson);
+//   delete json.devDependencies;
+//   const newJson = JSON.stringify(json, null, '\t');
+//   // tslint:disable-next-line:no-console
+//   log.info('change package.json to:\n', newJson);
+//   fs.writeFileSync('package.json', newJson);
+// }
 function changeGitIgnore() {
     const gitignoreFile = __api_1.default.config.resolve('rootPath', '.gitignore');
     let gitignore = fs_extra_1.default.readFileSync(gitignoreFile, 'utf8');

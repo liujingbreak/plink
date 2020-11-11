@@ -81,7 +81,7 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
   const releaseRemote = api.config.get(api.packageName).prebuildGitRemote;
 
   await spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir }).promise;
-  removeDevDeps();
+  // removeDevDeps();
   changeGitIgnore();
   await spawn('git', 'add', '.', { cwd: rootDir }).promise;
   const hookFiles = [Path.resolve(rootDir, '.git/hooks/pre-push'),
@@ -109,14 +109,14 @@ async function addTag(rootDir: string, commitComment?: string) {
   }
 }
 
-function removeDevDeps() {
-  const json = Object.assign({}, pkJson);
-  delete json.devDependencies;
-  const newJson = JSON.stringify(json, null, '\t');
-  // tslint:disable-next-line:no-console
-  log.info('change package.json to:\n', newJson);
-  fs.writeFileSync('package.json', newJson);
-}
+// function removeDevDeps() {
+//   const json = Object.assign({}, pkJson);
+//   delete json.devDependencies;
+//   const newJson = JSON.stringify(json, null, '\t');
+//   // tslint:disable-next-line:no-console
+//   log.info('change package.json to:\n', newJson);
+//   fs.writeFileSync('package.json', newJson);
+// }
 
 function changeGitIgnore() {
   const gitignoreFile = api.config.resolve('rootPath', '.gitignore');
