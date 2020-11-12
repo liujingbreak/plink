@@ -86,13 +86,13 @@ export const slice = stateFactory.newSlice({
   initialState: state,
   reducers: {
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d, action: PayloadAction<{isForce: boolean}>) {
-    },
+    initRootDir(d, action: PayloadAction<{isForce: boolean}>) {},
 
     /** Check and install dependency, if there is linked package used in more than one workspace, 
      * to switch between different workspace */
     updateWorkspace(d, action: PayloadAction<{dir: string, isForce: boolean}>) {
     },
+    updateDir() {},
     _syncLinkedPackages(d, {payload}: PayloadAction<PackageInfo[]>) {
       d.inited = true;
       d.srcPackages = new Map();
@@ -362,6 +362,16 @@ stateFactory.addEpic((action$, state$) => {
       }),
       ignoreElements()
     ),
+
+    action$.pipe(ofPayloadAction(slice.actions.updateDir),
+      concatMap(() => defer(() => from(
+        _scanPackageAndLink().then(() => {
+          for (const key of getState().workspaces.keys()) {
+            updateInstalledPackageForWorkspace(key);
+          }
+        })
+      )))
+    ),
     // Handle newly added workspace
     getStore().pipe(map(s => s.workspaces),
       distinctUntilChanged(),
@@ -432,15 +442,7 @@ stateFactory.addEpic((action$, state$) => {
           take(1),
           concatMap(ws => from(installWorkspace(ws!))),
           map(() => {
-            const pkgEntry = doListInstalledComp4Workspace(getState(), wsKey);
-
-            const installed = new Map((function*(): Generator<[string, PackageInfo]> {
-              for (const pk of pkgEntry) {
-                yield [pk.name, pk];
-              }
-            })());
-            actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
-            actionDispatcher._relatedPackageUpdated(wsKey);
+            updateInstalledPackageForWorkspace(wsKey);
           })
         );
       }),
@@ -582,6 +584,18 @@ export function isCwdWorkspace() {
   if (ws == null)
     return false;
   return true;
+}
+
+function updateInstalledPackageForWorkspace(wsKey: string) {
+  const pkgEntry = doListInstalledComp4Workspace(getState(), wsKey);
+
+  const installed = new Map((function*(): Generator<[string, PackageInfo]> {
+    for (const pk of pkgEntry) {
+      yield [pk.name, pk];
+    }
+  })());
+  actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
+  actionDispatcher._relatedPackageUpdated(wsKey);
 }
 
 /**

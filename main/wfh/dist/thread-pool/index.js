@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Pool = void 0;
+function newThreadPool(maxParalle, idleTimeMs) {
+}
+exports.default = newThreadPool;
+class Pool {
+    constructor(maxParalle, idleTimeMs) {
+    }
+}
+exports.Pool = Pool;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi90cy90aHJlYWQtcG9vbC9pbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7QUFHQSxTQUF3QixhQUFhLENBQUMsVUFBa0IsRUFBRSxVQUFrQjtBQUU1RSxDQUFDO0FBRkQsZ0NBRUM7QUFFRCxNQUFhLElBQUk7SUFDZixZQUFZLFVBQWtCLEVBQUUsVUFBa0I7SUFFbEQsQ0FBQztDQUNGO0FBSkQsb0JBSUMiLCJzb3VyY2VzQ29udGVudCI6WyIvLyBpbXBvcnQge1dvcmtlcn0gZnJvbSAnd29ya2VyX3RocmVhZHMnO1xuaW1wb3J0IHt9IGZyb20gJy4uL3V0aWxzL3Byb21pc2UtcXVlcXVlJztcblxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gbmV3VGhyZWFkUG9vbChtYXhQYXJhbGxlOiBudW1iZXIsIGlkbGVUaW1lTXM6IG51bWJlcikge1xuXG59XG5cbmV4cG9ydCBjbGFzcyBQb29sIHtcbiAgY29uc3RydWN0b3IobWF4UGFyYWxsZTogbnVtYmVyLCBpZGxlVGltZU1zOiBudW1iZXIpIHtcblxuICB9XG59XG4iXX0=

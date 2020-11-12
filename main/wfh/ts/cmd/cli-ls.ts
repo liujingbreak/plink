@@ -34,6 +34,12 @@ export default async function list(opt: GlobalOptions & {json: boolean}) {
   printWorkspaces();
 }
 
+export async function checkDir(opt: GlobalOptions) {
+  await config.init(opt);
+  logConfig(config());
+  pkMgr.actionDispatcher.updateDir();
+}
+
 function jsonOfLinkedPackageForProjects() {
   const all: {[prj: string]: {[key: string]: string}} = {};
   const linkedPkgs = pkMgr.getState().srcPackages;

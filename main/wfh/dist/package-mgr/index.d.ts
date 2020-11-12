@@ -187,6 +187,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         dir: string;
         isForce: boolean;
     }>): void;
+    updateDir(): void;
     _syncLinkedPackages(d: {
         inited: boolean;
         srcPackages: Map<string, {
@@ -1196,6 +1197,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         dir: string;
         isForce: boolean;
     }>): void;
+    updateDir(): void;
     _syncLinkedPackages(d: {
         inited: boolean;
         srcPackages: Map<string, {
