@@ -109,7 +109,14 @@ export async function activate(app: Application, imap: ImapManager) {
     res.send(await stringifyListAllVersions());
   });
 
+  router.put<{file: string, hash: string}>('/_install_force/:file/:hash', async (req, res, next) => {
+    (req as any)._installForce = true;
+    next();
+  });
+
   router.put<{file: string, hash: string}>('/_install/:file/:hash', async (req, res, next) => {
+    const isForce = (req as any)._installForce === true;
+
     if (requireToken && req.query.whisper !== generateToken()) {
       res.header('Connection', 'close');
       res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
@@ -133,7 +140,7 @@ export async function activate(app: Application, imap: ImapManager) {
     if (isPm2 && !isMainProcess) {
       await new Promise(resolve => setTimeout(resolve, 800));
     }
-    if (existing && existing.sha256 === req.params.hash) {
+    if (!isForce && existing && existing.sha256 === req.params.hash) {
       // I want to cancel recieving request body asap
       // https://stackoverflow.com/questions/18367824/how-to-cancel-http-upload-from-data-events
       res.header('Connection', 'close');
