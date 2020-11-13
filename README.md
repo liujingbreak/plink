@@ -1,5 +1,15 @@
 # Package and project link toolkit
 
+```
+ ██████╗  ██╗      ██╗ ███╗   ██╗ ██╗  ██╗ 
+ ██╔══██╗ ██║      ██║ ████╗  ██║ ██║ ██╔╝ 
+ ██████╔╝ ██║      ██║ ██╔██╗ ██║ █████╔╝  
+ ██╔═══╝  ██║      ██║ ██║╚██╗██║ ██╔═██╗  
+ ██║      ███████╗ ██║ ██║ ╚████║ ██║  ██╗ 
+ ╚═╝      ╚══════╝ ╚═╝ ╚═╝  ╚═══╝ ╚═╝  ╚═╝ 
+```
+> New version of readme and other documentation are still in-progress.
+
 If heard about **Lerna** and **Yarn**'s workspace concept, yes this tool is a little bit in the same category.
 
 
