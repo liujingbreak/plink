@@ -103,11 +103,12 @@ function addTag(rootDir, commitComment) {
         const setting = __api_1.default.config.get(__api_1.default.packageName);
         const releaseRemote = setting.prebuildGitRemote;
         const current = dayjs_1.default();
-        const tagName = `release/${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
-        yield process_utils_1.spawn('git', 'tag', '-a', tagName, '-m', commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`, { cwd: rootDir }).promise;
-        yield process_utils_1.spawn('git', 'push', releaseRemote, tagName, { cwd: rootDir }).promise;
+        const tagName = `${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
+        yield process_utils_1.spawn('git', 'tag', '-a', 'v' + tagName, '-m', commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`, { cwd: rootDir }).promise;
+        yield process_utils_1.spawn('git', 'push', releaseRemote, 'v' + tagName, { cwd: rootDir }).promise;
         if (setting.tagPushRemote && setting.tagPushRemote !== setting.prebuildGitRemote) {
-            yield process_utils_1.spawn('git', 'push', setting.tagPushRemote, tagName, { cwd: rootDir }).promise;
+            yield process_utils_1.spawn('git', 'push', setting.tagPushRemote, 'HEAD:release/' + tagName, { cwd: rootDir }).promise;
+            yield process_utils_1.spawn('git', 'push', setting.tagPushRemote, 'v' + tagName, { cwd: rootDir }).promise;
         }
     });
 }

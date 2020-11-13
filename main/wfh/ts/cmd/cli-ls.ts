@@ -8,6 +8,7 @@ import Path from 'path';
 import * as _ from 'lodash';
 import NodePackage from '../packageNodeInstance';
 import {printWorkspaces} from './cli-init';
+import {take, map, distinctUntilChanged, skip} from 'rxjs/operators';
 
 interface ComponentListItem {
   pk: NodePackage;
@@ -37,6 +38,14 @@ export default async function list(opt: GlobalOptions & {json: boolean}) {
 export async function checkDir(opt: GlobalOptions) {
   await config.init(opt);
   logConfig(config());
+  pkMgr.getStore().pipe(
+    map(s => s.packagesUpdateChecksum), distinctUntilChanged(),
+    skip(1), take(1),
+    map((curr) => {
+      console.log('Directory state is updated.');
+      return curr;
+    })
+  ).subscribe();
   pkMgr.actionDispatcher.updateDir();
 }
 

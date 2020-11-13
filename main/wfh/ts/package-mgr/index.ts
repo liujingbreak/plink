@@ -47,6 +47,7 @@ export interface PackagesState {
   isInChina?: boolean;
   /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
   workspaceUpdateChecksum: number;
+  packagesUpdateChecksum: number;
 }
 
 const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -64,7 +65,8 @@ const state: PackagesState = {
     createPackageInfo(Path.resolve(
       getRootDir(), 'node_modules/@wfh/plink/package.json'), false, getRootDir())
     : null,
-  workspaceUpdateChecksum: 0
+  workspaceUpdateChecksum: 0,
+  packagesUpdateChecksum: 0
 };
 
 interface WorkspaceState {
@@ -226,7 +228,7 @@ export const slice = stateFactory.newSlice({
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
       // console.log('-----------------', dir);
     },
-    _installWorkspace(state, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
+    _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
     },
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: PackageInfo[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
@@ -235,6 +237,9 @@ export const slice = stateFactory.newSlice({
       d.gitIgnores[payload.file] = payload.lines.map(line => line.startsWith('/') ? line : '/' + line);
     },
     _relatedPackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {},
+    packagesUpdated(d) {
+      d.packagesUpdateChecksum++;
+    },
     setInChina(d, {payload}: PayloadAction<boolean>) {
       d.isInChina = payload;
     },
@@ -458,9 +463,10 @@ stateFactory.addEpic((action$, state$) => {
         });
         return from(Promise.all(dones));
       }),
-      map(() => {
+      map(async () => {
         pkgTsconfigForEditorRequestMap.clear();
-        writeConfigFiles();
+        await writeConfigFiles();
+        actionDispatcher.packagesUpdated();
       })
     ),
     getStore().pipe(map(s => s.gitIgnores),

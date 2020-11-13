@@ -93,7 +93,7 @@ async function packPackages(packageDirs: string[]) {
     //   .join('\n'));
     await deleteOldTar(tarInfos.map(item => item!.name.replace('@', '').replace(/[/\\]/g, '-')),
       tarInfos.map(item => item!.filename));
-    changePackageJson(package2tarball);
+    await changePackageJson(package2tarball);
   }
 }
 
@@ -150,8 +150,11 @@ async function npmPack(packagePath: string):
   }
 }
 
+/**
+ * @param package2tarball 
+ */
 function changePackageJson(package2tarball: Map<string, string>) {
-
+  const deleteOldDone: Promise<void>[] = [];
   for (const workspace of getState().workspaces.keys()) {
     const wsDir = Path.resolve(config().rootPath, workspace);
     const jsonFile = Path.resolve(wsDir, 'package.json');
@@ -161,10 +164,10 @@ function changePackageJson(package2tarball: Map<string, string>) {
     const devDepsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'devDependencies');
     const replacements: ReplacementInf[] = [];
     if (depsAst) {
-      changeDependencies(depsAst.value as ObjectAst);
+      changeDependencies(depsAst.value as ObjectAst, wsDir, jsonFile, replacements);
     }
     if (devDepsAst) {
-      changeDependencies(devDepsAst.value as ObjectAst);
+      changeDependencies(devDepsAst.value as ObjectAst, wsDir, jsonFile, replacements);
     }
 
     if (replacements.length > 0) {
@@ -173,25 +176,32 @@ function changePackageJson(package2tarball: Map<string, string>) {
       log.info('Updated package.json\n', replaced);
       fs.writeFileSync(jsonFile, replaced);
     }
-
-    function changeDependencies(deps: ObjectAst) {
-      const foundDeps = deps.properties.filter(({name}) => package2tarball.has(JSON.parse(name.text)));
-      for (const foundDep of foundDeps) {
-        const verToken = foundDep.value as Token;
-        const tarFile = package2tarball.get(JSON.parse(foundDep.name.text));
-        let newVersion = Path.relative(wsDir, tarFile!).replace(/\\/g, '/');
-        if (!newVersion.startsWith('.')) {
-          newVersion = './' + newVersion;
-        }
-        log.info(`Update ${jsonFile}: ${verToken.text} => ${newVersion}`);
-        replacements.push({
-          start: verToken.pos,
-          end: verToken.end!,
-          text: JSON.stringify(newVersion)
-        });
+  }
+  function changeDependencies(deps: ObjectAst, wsDir: string, jsonFile: string, replacements: ReplacementInf[]) {
+    const foundDeps = deps.properties.filter(({name}) => package2tarball.has(JSON.parse(name.text)));
+    for (const foundDep of foundDeps) {
+      const verToken = foundDep.value as Token;
+      const tarFile = package2tarball.get(JSON.parse(foundDep.name.text));
+      let newVersion = Path.relative(wsDir, tarFile!).replace(/\\/g, '/');
+      if (!newVersion.startsWith('.')) {
+        newVersion = './' + newVersion;
+      }
+      log.info(`Update ${jsonFile}: ${verToken.text} => ${newVersion}`);
+      replacements.push({
+        start: verToken.pos,
+        end: verToken.end!,
+        text: JSON.stringify(newVersion)
+      });
+      let oldFile = verToken.text;
+      const match = /^"?(?:file:\/\/|\.\/)([^]*)"?$/.exec(oldFile);
+      if (match && match[1]) {
+        oldFile = Path.resolve(wsDir, match[1]);
+        const done = fs.remove(oldFile);
+        deleteOldDone.push(done);
       }
     }
   }
+  return Promise.all(deleteOldDone);
 }
 
 function handleExption(packagePath: string, e: Error) {

@@ -80,7 +80,7 @@ function subDrcpCommand(program: commander.Command) {
   withGlobalOptions(initCmd);
 
   const updateDirCmd = program.command('update-dir')
-  .description('Run this command to sync internal state, after moved whole workspace directory.\n' +
+  .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
   'Because we store absolute path info of each package in internal state, these information becomes invalid once you rename or moved directory')
   .action(async (workspace: string) => {
     await (await import('./cli-ls')).checkDir(updateDirCmd.opts() as any);

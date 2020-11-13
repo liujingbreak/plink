@@ -99,13 +99,14 @@ async function addTag(rootDir: string, commitComment?: string) {
   const setting: Configuration = api.config.get(api.packageName);
   const releaseRemote = setting.prebuildGitRemote;
   const current = dayjs();
-  const tagName = `release/${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
-  await spawn('git', 'tag', '-a', tagName, '-m', commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`,
+  const tagName = `${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
+  await spawn('git', 'tag', '-a', 'v' + tagName, '-m', commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`,
     { cwd: rootDir }).promise;
-  await spawn('git', 'push', releaseRemote, tagName, { cwd: rootDir }).promise;
+  await spawn('git', 'push', releaseRemote, 'v' + tagName, { cwd: rootDir }).promise;
 
   if (setting.tagPushRemote && setting.tagPushRemote !== setting.prebuildGitRemote) {
-    await spawn('git', 'push', setting.tagPushRemote, tagName, { cwd: rootDir }).promise;
+    await spawn('git', 'push', setting.tagPushRemote, 'HEAD:release/' + tagName, { cwd: rootDir }).promise;
+    await spawn('git', 'push', setting.tagPushRemote, 'v' + tagName, { cwd: rootDir }).promise;
   }
 }
 
