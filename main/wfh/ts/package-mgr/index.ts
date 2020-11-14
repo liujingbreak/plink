@@ -10,7 +10,7 @@ import { distinctUntilChanged, filter, map, switchMap, debounceTime,
   take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
 import { writeFile } from '../cmd/utils';
 import config from '../config';
-import { listCompDependency, PackageJsonInterf } from '../dependency-hoister';
+import { listCompDependency, PackageJsonInterf, DependentInfo } from '../dependency-hoister';
 import { updateTsconfigFileForEditor } from '../editor-helper';
 import logConfig from '../log-config';
 import { allPackages, packages4WorkspaceKey } from './package-list-helper';
@@ -48,6 +48,9 @@ export interface PackagesState {
   /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
   workspaceUpdateChecksum: number;
   packagesUpdateChecksum: number;
+  _computed: {
+    workspaceKeys: string[];
+  };
 }
 
 const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -66,10 +69,13 @@ const state: PackagesState = {
       getRootDir(), 'node_modules/@wfh/plink/package.json'), false, getRootDir())
     : null,
   workspaceUpdateChecksum: 0,
-  packagesUpdateChecksum: 0
+  packagesUpdateChecksum: 0,
+  _computed: {
+    workspaceKeys: []
+  }
 };
 
-interface WorkspaceState {
+export interface WorkspaceState {
   id: string;
   originInstallJson: PackageJsonInterf;
   originInstallJsonStr: string;
@@ -81,6 +87,12 @@ interface WorkspaceState {
   linkedDevDependencies: [string, string][];
   /** installed DR component packages [name, version]*/
   installedComponents?: Map<string, PackageInfo>;
+
+  hoistInfo: Map<string, DependentInfo>;
+  hoistPeerDepInfo: Map<string, DependentInfo>;
+
+  hoistDevInfo: Map<string, DependentInfo>;
+  hoistDevPeerDepInfo: Map<string, DependentInfo>;
 }
 
 export const slice = stateFactory.newSlice({
@@ -171,31 +183,16 @@ export const slice = stateFactory.newSlice({
         delete updatingDevDeps['@wfh/plink'];
       }
 
-      // pkjsonList.push(updatingJson);
-      const {hoisted: hoistedDeps, msg} = listCompDependency(
+      const wsKey = workspaceKey(dir);
+      const {hoisted: hoistedDeps, hoistedPeers: hoistPeerDepInfo} = listCompDependency(
         linkedDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
-        dir, updatingDeps
+        wsKey, updatingDeps, state.srcPackages
       );
 
-      const {hoisted: hoistedDevDeps, msg: msgDev} = listCompDependency(
+      const {hoisted: hoistedDevDeps, hoistedPeers: devHoistPeerDepInfo} = listCompDependency(
         linkedDevDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
-        dir, updatingDevDeps
+        wsKey, updatingDevDeps, state.srcPackages
       );
-      // tslint:disable-next-line: no-console
-      if (msg()) console.log(`Workspace "${dir}" dependencies:\n`, msg());
-      // tslint:disable-next-line: no-console
-      if (msgDev()) console.log(`Workspace "${dir}" devDependencies:\n`, msgDev());
-      // In case some packages have peer dependencies of other packages
-      // remove them from dependencies
-      for (const key of hoistedDeps.keys()) {
-        if (state.srcPackages.has(key))
-          hoistedDeps.delete(key);
-      }
-
-      for (const key of hoistedDevDeps.keys()) {
-        if (state.srcPackages.has(key))
-          hoistedDevDeps.delete(key);
-      }
 
       const installJson: PackageJsonInterf = {
         ...pkjson,
@@ -210,8 +207,6 @@ export const slice = stateFactory.newSlice({
       };
 
       // console.log(installJson)
-
-      const wsKey = workspaceKey(dir);
       // const installedComp = doListInstalledComp4Workspace(state.workspaces, state.srcPackages, wsKey);
 
       const existing = state.workspaces.get(wsKey);
@@ -223,12 +218,17 @@ export const slice = stateFactory.newSlice({
         installJson,
         installJsonStr: JSON.stringify(installJson, null, '  '),
         linkedDependencies,
-        linkedDevDependencies
+        linkedDevDependencies,
+        hoistInfo: hoistedDeps,
+        hoistPeerDepInfo,
+        hoistDevInfo: hoistedDevDeps,
+        hoistDevPeerDepInfo: devHoistPeerDepInfo
       };
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
       // console.log('-----------------', dir);
     },
     _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
+      d._computed.workspaceKeys.push(workspaceKey);
     },
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: PackageInfo[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
@@ -402,9 +402,6 @@ stateFactory.addEpic((action$, state$) => {
         filter(s => s.workspaces.has(key)),
         map(s => s.workspaces.get(key)!),
         distinctUntilChanged((s1, s2) => s1.installJson === s2.installJson),
-        // tap((installJsonStr) => console.log('installJsonStr length',key, installJsonStr.length)),
-        // filter(s => s.installJsonStr.length > 0),
-        // skip(1), take(1),
         scan<WorkspaceState>((old, newWs) => {
           // tslint:disable: max-line-length
           const oldDeps = Object.entries(old.installJson.dependencies || [])
@@ -427,11 +424,6 @@ stateFactory.addEpic((action$, state$) => {
               break;
             }
           }
-          // if (changed.length > 0) {
-          //   // tslint:disable-next-line: no-console
-          //   console.log(`Workspace ${key}, new dependency will be installed:\n${changed.join('\n')}`);
-          //   actionDispatcher._installWorkspace({workspaceKey: key});
-          // }
           return newWs;
         }),
         ignoreElements()

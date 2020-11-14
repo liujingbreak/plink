@@ -13,17 +13,11 @@ export interface PackageJsonInterf {
 }
 export declare function listCompDependency(pkJsonFiles: string[] | PackageJsonInterf[], workspace: string, workspaceDeps: {
     [name: string]: string;
-}): {
+}, excludeDep: Map<string, any> | Set<string>): {
     hoisted: Map<string, DependentInfo>;
-    msg: () => string;
+    hoistedPeers: Map<string, DependentInfo>;
 };
-interface DepInfo {
-    ver: string;
-    verNum?: string;
-    pre: string;
-    by: string;
-}
-interface DependentInfo {
+export interface DependentInfo {
     /** All dependents on same version */
     sameVer: boolean;
     by: Array<{
@@ -34,21 +28,17 @@ interface DependentInfo {
     }>;
 }
 export declare class InstallManager {
+    private excludeDeps;
     verbosMessage: string;
     /** key is dependency module name */
     private srcDeps;
+    private peerDeps;
     constructor(workspaceDeps: {
         [name: string]: string;
-    }, workspaceName: string);
+    }, workspaceName: string, excludeDeps: Map<string, any> | Set<string>);
     scanFor(pkJsons: PackageJsonInterf[]): void;
     scanSrcDeps(jsonFiles: string[]): void;
-    hoistDeps(): Map<string, DependentInfo>;
-    protected _trackDependency(name: string, version: string, byWhom: string): void;
-    protected _containsDiffVersion(sortedVersions: DepInfo[]): boolean;
-    /**
-       * Sort by descending
-       * @param verInfoList {ver: string, by: string, name: string}
-       */
-    protected sortByVersion(verInfoList: DepInfo[], name: string): DepInfo[];
+    hoistDeps(): Map<string, DependentInfo>[];
+    protected _trackSrcDependency(name: string, version: string, byWhom: string): void;
+    protected _trackPeerDependency(name: string, version: string, byWhom: string): void;
 }
-export {};

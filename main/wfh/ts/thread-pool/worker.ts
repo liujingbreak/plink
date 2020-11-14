@@ -17,5 +17,5 @@ async function executeOnEvent(data: Task<any>) {
     return;
   }
   await Promise.resolve(require(data.file)[data.exportFn](...(data.args || [])));
-  parentPort!.postMessage('compelete');
+  parentPort!.postMessage('done');
 }

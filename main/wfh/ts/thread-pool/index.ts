@@ -1,5 +1,5 @@
 // import {Worker} from 'worker_threads';
-import {} from '../utils/promise-queque';
+import {} from './promise-queque';
 
 export default function newThreadPool(maxParalle: number, idleTimeMs: number) {
 

@@ -1,6 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { Observable } from 'rxjs';
-import { PackageJsonInterf } from '../dependency-hoister';
+import { PackageJsonInterf, DependentInfo } from '../dependency-hoister';
 export interface PackageInfo {
     name: string;
     scope: string;
@@ -26,8 +26,11 @@ export interface PackagesState {
     /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
     workspaceUpdateChecksum: number;
     packagesUpdateChecksum: number;
+    _computed: {
+        workspaceKeys: string[];
+    };
 }
-interface WorkspaceState {
+export interface WorkspaceState {
     id: string;
     originInstallJson: PackageJsonInterf;
     originInstallJsonStr: string;
@@ -38,6 +41,10 @@ interface WorkspaceState {
     linkedDevDependencies: [string, string][];
     /** installed DR component packages [name, version]*/
     installedComponents?: Map<string, PackageInfo>;
+    hoistInfo: Map<string, DependentInfo>;
+    hoistPeerDepInfo: Map<string, DependentInfo>;
+    hoistDevInfo: Map<string, DependentInfo>;
+    hoistDevPeerDepInfo: Map<string, DependentInfo>;
 }
 export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     /** Do this action after any linked package is removed or added  */
@@ -93,6 +100,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -111,6 +146,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<{
         isForce: boolean;
     }>): void;
@@ -168,6 +206,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -186,6 +252,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
@@ -243,6 +312,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -261,6 +358,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload }: PayloadAction<PackageInfo[]>): void;
     onLinkedPackageAdded(d: {
         inited: boolean;
@@ -314,6 +414,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -332,6 +460,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<string[]>): void;
     addProject(d: {
         inited: boolean;
@@ -385,6 +516,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -403,6 +562,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<string[]>): void;
     deleteProject(d: {
         inited: boolean;
@@ -456,6 +618,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -474,6 +664,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<string[]>): void;
     _hoistWorkspaceDeps(state: {
         inited: boolean;
@@ -527,6 +720,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -545,6 +766,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -603,6 +827,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -621,6 +873,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: { workspaceKey } }: {
         payload: {
             workspaceKey: string;
@@ -679,6 +934,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -697,6 +980,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
@@ -756,6 +1042,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -774,6 +1088,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload }: PayloadAction<{
         file: string;
         lines: string[];
@@ -830,6 +1147,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -848,6 +1193,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: workspaceKey }: PayloadAction<string>): void;
     packagesUpdated(d: {
         inited: boolean;
@@ -901,6 +1249,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -919,6 +1295,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }): void;
     setInChina(d: {
         inited: boolean;
@@ -972,6 +1351,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -990,6 +1397,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload }: PayloadAction<boolean>): void;
     setCurrentWorkspace(d: {
         inited: boolean;
@@ -1043,6 +1453,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1061,6 +1499,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: dir }: PayloadAction<string | null>): void;
     workspaceStateUpdated(d: {
         inited: boolean;
@@ -1114,6 +1555,34 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1132,6 +1601,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload }: PayloadAction<void>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
@@ -1188,6 +1660,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1206,6 +1706,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<{
         isForce: boolean;
     }>): void;
@@ -1263,6 +1766,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1281,6 +1812,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
@@ -1338,6 +1872,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1356,6 +1918,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload }: PayloadAction<PackageInfo[]>): void;
     onLinkedPackageAdded(d: {
         inited: boolean;
@@ -1409,6 +1974,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1427,6 +2020,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<string[]>): void;
     addProject(d: {
         inited: boolean;
@@ -1480,6 +2076,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1498,6 +2122,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<string[]>): void;
     deleteProject(d: {
         inited: boolean;
@@ -1551,6 +2178,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1569,6 +2224,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, action: PayloadAction<string[]>): void;
     _hoistWorkspaceDeps(state: {
         inited: boolean;
@@ -1622,6 +2280,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1640,6 +2326,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -1698,6 +2387,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1716,6 +2433,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: { workspaceKey } }: {
         payload: {
             workspaceKey: string;
@@ -1774,6 +2494,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1792,6 +2540,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
@@ -1851,6 +2602,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1869,6 +2648,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload }: PayloadAction<{
         file: string;
         lines: string[];
@@ -1925,6 +2707,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -1943,6 +2753,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: workspaceKey }: PayloadAction<string>): void;
     packagesUpdated(d: {
         inited: boolean;
@@ -1996,6 +2809,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -2014,6 +2855,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }): void;
     setInChina(d: {
         inited: boolean;
@@ -2067,6 +2911,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -2085,6 +2957,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload }: PayloadAction<boolean>): void;
     setCurrentWorkspace(d: {
         inited: boolean;
@@ -2138,6 +3013,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -2156,6 +3059,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload: dir }: PayloadAction<string | null>): void;
     workspaceStateUpdated(d: {
         inited: boolean;
@@ -2209,6 +3115,34 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
                 realPath: string;
                 isInstalled: boolean;
             }> | undefined;
+            hoistInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
+            hoistDevPeerDepInfo: Map<string, {
+                sameVer: boolean;
+                by: {
+                    ver: string;
+                    name: string;
+                }[];
+            }>;
         }>;
         currWorkspace?: string | null | undefined;
         project2Packages: Map<string, string[]>;
@@ -2227,6 +3161,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        _computed: {
+            workspaceKeys: string[];
+        };
     }, { payload }: PayloadAction<void>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
@@ -2253,4 +3190,3 @@ export declare function isCwdWorkspace(): boolean;
  * @param realPath real path of package
  */
 export declare function createPackageInfo(pkJsonFile: string, isInstalled?: boolean, symLinkParentDir?: string): PackageInfo;
-export {};
