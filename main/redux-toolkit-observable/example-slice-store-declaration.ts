@@ -1,4 +1,3 @@
-// import { PayloadAction, CreateSliceOptions, SliceCaseReducers, Slice } from '@reduxjs/toolkit';
 import {PayloadAction, InferActionsType} from './redux-toolkit-observable';
 import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from './state-factory';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';

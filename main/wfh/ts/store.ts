@@ -51,10 +51,10 @@ export async function startLogging() {
     tap(params => {
       if (params[0] === 'state')
         (logState.debug as any)(...params.slice(1));
-      else if (params[0] === 'action')
+      else if (params[0] === 'action') {
         (logAction.info as any)(...params.slice(1));
         // console.log(...params.slice(1));
-      else
+      } else
         (defaultLog.debug as any)(...params);
 
       // if (params[0] === 'state') {

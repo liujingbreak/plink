@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';
-import { from, merge, of, defer} from 'rxjs';
+import { from, merge, of, defer, throwError} from 'rxjs';
 import {Observable} from 'rxjs';
 import {tap} from 'rxjs/operators';
 import { distinctUntilChanged, filter, map, switchMap, debounceTime,
@@ -48,9 +48,9 @@ export interface PackagesState {
   /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
   workspaceUpdateChecksum: number;
   packagesUpdateChecksum: number;
-  _computed: {
-    workspaceKeys: string[];
-  };
+  // _computed: {
+  //   workspaceKeys: string[];
+  // };
 }
 
 const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -69,10 +69,10 @@ const state: PackagesState = {
       getRootDir(), 'node_modules/@wfh/plink/package.json'), false, getRootDir())
     : null,
   workspaceUpdateChecksum: 0,
-  packagesUpdateChecksum: 0,
-  _computed: {
-    workspaceKeys: []
-  }
+  packagesUpdateChecksum: 0
+  // _computed: {
+  //   workspaceKeys: []
+  // }
 };
 
 export interface WorkspaceState {
@@ -225,10 +225,9 @@ export const slice = stateFactory.newSlice({
         hoistDevPeerDepInfo: devHoistPeerDepInfo
       };
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
-      // console.log('-----------------', dir);
     },
     _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
-      d._computed.workspaceKeys.push(workspaceKey);
+      // d._computed.workspaceKeys.push(workspaceKey);
     },
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: PackageInfo[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
@@ -404,14 +403,17 @@ stateFactory.addEpic((action$, state$) => {
         distinctUntilChanged((s1, s2) => s1.installJson === s2.installJson),
         scan<WorkspaceState>((old, newWs) => {
           // tslint:disable: max-line-length
-          const oldDeps = Object.entries(old.installJson.dependencies || [])
-            .concat(Object.entries(old.installJson.devDependencies || []))
-            .map(entry => entry.join(': '));
           const newDeps = Object.entries(newWs.installJson.dependencies || [])
             .concat(Object.entries(newWs.installJson.devDependencies || []))
             .map(entry => entry.join(': '));
+          if (newDeps.length === 0) {
+            // forcing install workspace, therefore dependencies is cleared at this moment
+            return newWs;
+          }
+          const oldDeps = Object.entries(old.installJson.dependencies || [])
+            .concat(Object.entries(old.installJson.devDependencies || []))
+            .map(entry => entry.join(': '));
 
-          // const changed = _.difference(newDeps, oldDeps);
           if (newDeps.length !== oldDeps.length) {
             actionDispatcher._installWorkspace({workspaceKey: key});
             return newWs;
@@ -499,7 +501,7 @@ stateFactory.addEpic((action$, state$) => {
     ignoreElements(),
     catchError(err => {
       console.error('[package-mgr.index]', err.stack ? err.stack : err);
-      return of();
+      return throwError(err);
     })
   );
 });
@@ -773,6 +775,7 @@ async function installWorkspace(ws: WorkspaceState) {
   } catch (e) {
     // tslint:disable-next-line: no-console
     console.log(e, e.stack);
+    throw e;
   }
   // 3. Recover package.json and symlinks deleted in Step.1.
   fs.writeFile(installJsonFile, ws.originInstallJsonStr, 'utf8');

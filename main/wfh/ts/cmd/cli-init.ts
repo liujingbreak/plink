@@ -38,10 +38,10 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
   ).subscribe();
 
   // print newly added workspace hoisted dependency information
-  getStore().pipe(map(s => s._computed.workspaceKeys),
+  getStore().pipe(map(s => s.workspaces),
     distinctUntilChanged(),
     scan((prev, curr) => {
-      const newlyAdded = _.difference(curr, prev);
+      const newlyAdded = _.difference(Array.from(curr.keys()), Array.from(prev.keys()));
       for (const key of newlyAdded) {
         printWorkspaceHoistedDeps(getState().workspaces.get(key)!);
       }
@@ -50,11 +50,14 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
   ).subscribe();
 
   // print existing workspace CHANGED hoisted dependency information
-  merge(...Array.from(getState()._computed.workspaceKeys).map(wsKey => getStore().pipe(
-    map(s => s.workspaces.get(wsKey)!),
-    distinctUntilChanged((s1, s2) => s1.hoistInfo === s2.hoistInfo && s1.hoistPeerDepInfo === s2.hoistPeerDepInfo),
+  merge(...Array.from(getState().workspaces.keys()).map(wsKey => getStore().pipe(
+    map(s => s.workspaces),
+    distinctUntilChanged(),
+    map(s => s.get(wsKey)),
+    distinctUntilChanged((s1, s2) => s1!.hoistInfo === s2!.hoistInfo && s1!.hoistPeerDepInfo === s2!.hoistPeerDepInfo),
     scan((wsOld, wsNew) => {
-      printWorkspaceHoistedDeps(wsNew);
+      // console.log('*****************', wsKey);
+      printWorkspaceHoistedDeps(wsNew!);
       return wsNew;
     })
   ))).subscribe();
@@ -83,28 +86,35 @@ export function printWorkspaces() {
 function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
   console.log(chalk.bold(`\n[ Hoisted production dependency and corresponding dependents (${workspace.id}) ]`));
   for (const [dep, dependents] of workspace.hoistInfo!.entries()) {
-    console.log('  ' + chalk.cyan(dep));
-    console.log('    ' + dependents.by.map(item => `${dependents.sameVer ? item.ver : chalk.bgRed(item.ver)}: ${chalk.grey(item.name)}`).join(', '));
+    printHoistDepInfo(dep, dependents);
   }
   if (workspace.hoistDevInfo.size > 0) {
     console.log(chalk.bold(`\n[ Hoisted dev dependency and corresponding dependents (${workspace.id}) ]`));
     for (const [dep, dependents] of workspace.hoistDevInfo!.entries()) {
-      console.log('  ' + chalk.cyan(dep));
-      console.log('    ' + dependents.by.map(item => `${dependents.sameVer ? item.ver : chalk.bgRed(item.ver)}: ${chalk.grey(item.name)}`).join(', '));
+      printHoistDepInfo(dep, dependents);
     }
   }
   if (workspace.hoistPeerDepInfo.size > 0) {
-    console.log(chalk.yellowBright('\n[Missing production Peer Dependencies]'));
+    console.log(chalk.yellowBright(`\n[ Missing Peer Dependencies for production (${workspace.id}) ]`));
     for (const [dep, dependents] of workspace.hoistPeerDepInfo!.entries()) {
-      console.log('  ' + chalk.cyanBright(dep));
-      console.log('    ' + dependents.by.map(item => `${item.ver}: ${chalk.grey(item.name)}`).join(', '));
+      printHoistPeerDepInfo(dep, dependents);
     }
   }
   if (workspace.hoistDevPeerDepInfo.size > 0) {
-    console.log(chalk.yellowBright('\n[Missing dev Peer Dependencies]'));
+    console.log(chalk.yellowBright(`\n[ Missing Peer Dependencies for dev (${workspace.id})]`));
     for (const [dep, dependents] of workspace.hoistDevPeerDepInfo!.entries()) {
-      console.log('  ' + chalk.cyanBright(dep));
-      console.log('    ' + dependents.by.map(item => `${item.ver}: ${chalk.grey(item.name)}`).join(', '));
+      printHoistPeerDepInfo(dep, dependents);
     }
   }
+}
+
+function printHoistDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown) {
+  console.log(`  ${ dep} <= ` +
+    dependents.by.map(item => `${dependents.sameVer ? chalk.cyan(item.ver) : chalk.bgRed(item.ver)}: ${chalk.grey(item.name)}`).join(', ')
+    + '');
+}
+function printHoistPeerDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown) {
+  console.log(`  ${ chalk.yellow(dep) } ${chalk.grey('<=')} ` +
+    dependents.by.map(item => `${dependents.sameVer ? chalk.cyan(item.ver) : chalk.bgRed(item.ver)}: ${chalk.grey(item.name)}`).join(', ')
+    + '');
 }
