@@ -26,6 +26,8 @@ export interface PackagesState {
     /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
     workspaceUpdateChecksum: number;
     packagesUpdateChecksum: number;
+    /** workspace key */
+    lastCreatedWorkspace?: string;
 }
 export interface WorkspaceState {
     id: string;
@@ -143,6 +145,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<{
         isForce: boolean;
     }>): void;
@@ -246,6 +249,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
@@ -349,6 +353,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload }: PayloadAction<PackageInfo[]>): void;
     onLinkedPackageAdded(d: {
         inited: boolean;
@@ -448,6 +453,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<string[]>): void;
     addProject(d: {
         inited: boolean;
@@ -547,6 +553,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<string[]>): void;
     deleteProject(d: {
         inited: boolean;
@@ -646,6 +653,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<string[]>): void;
     _hoistWorkspaceDeps(state: {
         inited: boolean;
@@ -745,6 +753,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -849,6 +858,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: { workspaceKey } }: {
         payload: {
             workspaceKey: string;
@@ -953,6 +963,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
@@ -1058,6 +1069,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload }: PayloadAction<{
         file: string;
         lines: string[];
@@ -1160,6 +1172,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: workspaceKey }: PayloadAction<string>): void;
     packagesUpdated(d: {
         inited: boolean;
@@ -1259,6 +1272,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }): void;
     setInChina(d: {
         inited: boolean;
@@ -1358,6 +1372,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload }: PayloadAction<boolean>): void;
     setCurrentWorkspace(d: {
         inited: boolean;
@@ -1457,6 +1472,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: dir }: PayloadAction<string | null>): void;
     workspaceStateUpdated(d: {
         inited: boolean;
@@ -1556,6 +1572,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload }: PayloadAction<void>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
@@ -1658,6 +1675,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<{
         isForce: boolean;
     }>): void;
@@ -1761,6 +1779,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
@@ -1864,6 +1883,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload }: PayloadAction<PackageInfo[]>): void;
     onLinkedPackageAdded(d: {
         inited: boolean;
@@ -1963,6 +1983,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<string[]>): void;
     addProject(d: {
         inited: boolean;
@@ -2062,6 +2083,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<string[]>): void;
     deleteProject(d: {
         inited: boolean;
@@ -2161,6 +2183,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<string[]>): void;
     _hoistWorkspaceDeps(state: {
         inited: boolean;
@@ -2260,6 +2283,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -2364,6 +2388,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: { workspaceKey } }: {
         payload: {
             workspaceKey: string;
@@ -2468,6 +2493,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
@@ -2573,6 +2599,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload }: PayloadAction<{
         file: string;
         lines: string[];
@@ -2675,6 +2702,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: workspaceKey }: PayloadAction<string>): void;
     packagesUpdated(d: {
         inited: boolean;
@@ -2774,6 +2802,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }): void;
     setInChina(d: {
         inited: boolean;
@@ -2873,6 +2902,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload }: PayloadAction<boolean>): void;
     setCurrentWorkspace(d: {
         inited: boolean;
@@ -2972,6 +3002,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload: dir }: PayloadAction<string | null>): void;
     workspaceStateUpdated(d: {
         inited: boolean;
@@ -3071,6 +3102,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isInChina?: boolean | undefined;
         workspaceUpdateChecksum: number;
         packagesUpdateChecksum: number;
+        lastCreatedWorkspace?: string | undefined;
     }, { payload }: PayloadAction<void>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{

@@ -4,6 +4,7 @@ import log4js from 'log4js';
 import {spawn} from '@wfh/plink/wfh/dist/process-utils';
 import chalk from 'chalk';
 import {main as prebuildPost} from './prebuild-post';
+import Path from 'path';
 import * as _ma from './merge-artifacts';
 
 const log = log4js.getLogger(api.packageName + '.cli-deploy');
@@ -29,7 +30,7 @@ export default async function(isStatic: boolean, env: string, app: string, pushB
       const func = scriptAndFunc[1];
       // tslint:disable-next-line: no-console
       log.info(`executing file: ${file}, function name: ${func}`);
-      await Promise.resolve(require(file)[func](env, app, isStatic));
+      await Promise.resolve(require(Path.resolve(file))[func](env, app, isStatic));
     }
   }
   await prebuildPost(env, app, isStatic, pushBranch, secret ? secret : undefined, commitComment);

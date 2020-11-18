@@ -17,6 +17,7 @@ const log4js_1 = __importDefault(require("log4js"));
 const process_utils_1 = require("@wfh/plink/wfh/dist/process-utils");
 const chalk_1 = __importDefault(require("chalk"));
 const prebuild_post_1 = require("./prebuild-post");
+const path_1 = __importDefault(require("path"));
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.cli-deploy');
 function default_1(isStatic, env, app, pushBranch = true, secret, scriptsFile, commitComment) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -39,7 +40,7 @@ function default_1(isStatic, env, app, pushBranch = true, secret, scriptsFile, c
                 const func = scriptAndFunc[1];
                 // tslint:disable-next-line: no-console
                 log.info(`executing file: ${file}, function name: ${func}`);
-                yield Promise.resolve(require(file)[func](env, app, isStatic));
+                yield Promise.resolve(require(path_1.default.resolve(file))[func](env, app, isStatic));
             }
         }
         yield prebuild_post_1.main(env, app, isStatic, pushBranch, secret ? secret : undefined, commitComment);

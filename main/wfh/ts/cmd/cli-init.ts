@@ -10,6 +10,7 @@ import { getRootDir } from '../utils/misc';
 import { listProject } from './cli-project';
 import _ from 'lodash';
 import * as options from './types';
+import Table from 'cli-table3';
 
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
   await config.init(opt);
@@ -37,13 +38,14 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
     })
   ).subscribe();
 
+  const existingWsKeys = getState().workspaces;
+
   // print newly added workspace hoisted dependency information
-  getStore().pipe(map(s => s.workspaces),
+  getStore().pipe(map(s => s.lastCreatedWorkspace),
     distinctUntilChanged(),
     scan((prev, curr) => {
-      const newlyAdded = _.difference(Array.from(curr.keys()), Array.from(prev.keys()));
-      for (const key of newlyAdded) {
-        printWorkspaceHoistedDeps(getState().workspaces.get(key)!);
+      if (curr && !existingWsKeys.has(curr)) {
+        printWorkspaceHoistedDeps(getState().workspaces.get(curr)!);
       }
       return curr;
     })
@@ -72,49 +74,81 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
 }
 
 export function printWorkspaces() {
-  console.log('\n' + chalk.bold('\n[ Workspace directories and linked dependencies ]'));
+  console.log('\n' + chalk.bold('\nWorkspace directories and linked dependencies'));
+  const table = createTable();
+  table.push(['Workspace', 'Dependency package', 'Version', ''].map(item => chalk.bold(item)));
+  table.push(['---', '---', '---', '---']);
   for (const reldir of getState().workspaces.keys()) {
-    console.log(reldir ? `  ${reldir}/` : '  (root directory)');
-    console.log('    |- dependencies');
+    // console.log(reldir ? `  ${reldir}/` : '  (root directory)');
+    // console.log('    |- dependencies');
+    const lines: string[][] = [];
     for (const {name: dep, json: {version: ver}, isInstalled} of packages4Workspace(Path.resolve(getRootDir(), reldir))) {
-      console.log(`    |  |- ${dep}  v${ver}  ${isInstalled ? '' : chalk.gray('(linked)')}`);
+      // console.log(`    |  |- ${dep}  v${ver}  ${isInstalled ? '' : chalk.gray('(linked)')}`);
+      lines.push(['', dep, ver, isInstalled ? '' : chalk.gray('linked')]);
     }
-    console.log('');
+    // table.push([reldir ? `  ${reldir}/` : '  (root directory)', ...lines.shift()!]);
+    lines[0][0] = chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)');
+    lines.forEach(line => table.push(line));
+    table.push(['', '', '', '']);
+    // console.log('');
   }
+  console.log(table.toString());
 }
 
 function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
-  console.log(chalk.bold(`\n[ Hoisted production dependency and corresponding dependents (${workspace.id}) ]`));
+  console.log(chalk.bold(`\nHoisted production dependency and corresponding dependents (${workspace.id})`));
+  const table = createTable();
+  table.push(['Dependency', 'Dependent'].map(item => chalk.bold(item)),
+    ['---', '---']);
   for (const [dep, dependents] of workspace.hoistInfo!.entries()) {
-    printHoistDepInfo(dep, dependents);
+    table.push(renderHoistDepInfo(dep, dependents));
   }
+  console.log(table.toString());
   if (workspace.hoistDevInfo.size > 0) {
-    console.log(chalk.bold(`\n[ Hoisted dev dependency and corresponding dependents (${workspace.id}) ]`));
+    const table = createTable();
+    table.push(['Dependency', 'Dependent'].map(item => chalk.bold(item)),
+    ['---', '---']);
+    console.log(chalk.bold(`\nHoisted dev dependency and corresponding dependents (${workspace.id})`));
     for (const [dep, dependents] of workspace.hoistDevInfo!.entries()) {
-      printHoistDepInfo(dep, dependents);
+      table.push(renderHoistDepInfo(dep, dependents));
     }
+    console.log(table.toString());
   }
   if (workspace.hoistPeerDepInfo.size > 0) {
-    console.log(chalk.yellowBright(`\n[ Missing Peer Dependencies for production (${workspace.id}) ]`));
+    console.log(chalk.yellowBright(`\nMissing Peer Dependencies for production (${workspace.id})`));
+    const table = createTable();
+    table.push(['Dependency', 'Dependent'].map(item => chalk.bold(item)),
+    ['---', '---']);
     for (const [dep, dependents] of workspace.hoistPeerDepInfo!.entries()) {
-      printHoistPeerDepInfo(dep, dependents);
+      table.push(renderHoistPeerDepInfo(dep, dependents));
     }
+    console.log(table.toString());
   }
   if (workspace.hoistDevPeerDepInfo.size > 0) {
-    console.log(chalk.yellowBright(`\n[ Missing Peer Dependencies for dev (${workspace.id})]`));
+    console.log(chalk.yellowBright(`\nMissing Peer Dependencies for dev (${workspace.id})`));
+    const table = createTable();
+    table.push(['Dependency', 'Dependent'].map(item => chalk.bold(item)),
+    ['---', '---']);
     for (const [dep, dependents] of workspace.hoistDevPeerDepInfo!.entries()) {
-      printHoistPeerDepInfo(dep, dependents);
+      table.push(renderHoistPeerDepInfo(dep, dependents));
     }
+    console.log(table.toString());
   }
 }
 
-function printHoistDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown) {
-  console.log(`  ${ dep} <= ` +
-    dependents.by.map(item => `${dependents.sameVer ? chalk.cyan(item.ver) : chalk.bgRed(item.ver)}: ${chalk.grey(item.name)}`).join(', ')
-    + '');
+function createTable() {
+  const table = new Table({
+    chars: {mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': ''},
+    style: {head: []},
+    colAligns: ['right', 'left']
+  });
+  return table;
 }
-function printHoistPeerDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown) {
-  console.log(`  ${ chalk.yellow(dep) } ${chalk.grey('<=')} ` +
-    dependents.by.map(item => `${dependents.sameVer ? chalk.cyan(item.ver) : chalk.bgRed(item.ver)}: ${chalk.grey(item.name)}`).join(', ')
-    + '');
+
+function renderHoistDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown): string[] {
+  return [dep, dependents.by.map(item => `${dependents.sameVer ? chalk.cyan(item.ver) : chalk.bgRed(item.ver)}: ${chalk.grey(item.name)}`).join('\n')];
+}
+function renderHoistPeerDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown) {
+  return [chalk.yellow(dep),
+    dependents.by.map(item => `${dependents.sameVer ? chalk.cyan(item.ver) : chalk.bgRed(item.ver)}: ${chalk.grey(item.name)}`).join('\n')];
 }

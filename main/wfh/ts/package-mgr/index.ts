@@ -48,9 +48,8 @@ export interface PackagesState {
   /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
   workspaceUpdateChecksum: number;
   packagesUpdateChecksum: number;
-  // _computed: {
-  //   workspaceKeys: string[];
-  // };
+  /** workspace key */
+  lastCreatedWorkspace?: string;
 }
 
 const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -224,6 +223,7 @@ export const slice = stateFactory.newSlice({
         hoistDevInfo: hoistedDevDeps,
         hoistDevPeerDepInfo: devHoistPeerDepInfo
       };
+      state.lastCreatedWorkspace = wsKey;
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
     },
     _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
