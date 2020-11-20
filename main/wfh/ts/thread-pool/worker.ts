@@ -1,10 +1,23 @@
-import {isMainThread, parentPort, workerData} from 'worker_threads';
+import {isMainThread, parentPort, workerData, WorkerOptions} from 'worker_threads';
 
-export interface Task<T> {
-  exit: boolean;
+export interface Task {
   file: string;
+  /**
+   * A function which can return Promise or non-Promise value
+   */
   exportFn: string;
   args?: any[];
+  /** Worker message transferList, see
+   * https://nodejs.org/docs/latest-v12.x/api/worker_threads.html#worker_threads_port_postmessage_value_transferlist
+   * may be a list of ArrayBuffer, MessagePort and FileHandle objects. After transferring, 
+   * they will not be usable on the sending side of the channel anymore (even if they are not contained in value).
+   * Unlike with child processes, transferring handles such as network sockets is currently not supported.
+   * If value contains SharedArrayBuffer instances, those will be accessible from either thread. 
+   * They cannot be listed in transferList.
+   * value may still contain ArrayBuffer instances that are not in transferList;
+   * in that case, the underlying memory is copied rather than moved.
+   */
+  transferList?: WorkerOptions['transferList'];
 }
 
 export interface Command {
@@ -20,7 +33,7 @@ if (!isMainThread) {
 }
 
 async function executeOnEvent(data: Task<any> | Command) {
-  if (data.exit) {
+  if ((data as Command).exit) {
     process.exit(0);
     return;
   }
