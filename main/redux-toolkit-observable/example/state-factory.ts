@@ -1,10 +1,11 @@
 // tslint:disable:no-console
-import {StateFactory, ofPayloadAction} from './redux-toolkit-observable';
-import {tap} from 'rxjs/operators';
+import {StateFactory, ofPayloadAction} from '@wfh/redux-toolkit-observable/redux-toolkit-observable';
+import {tap, map, distinctUntilChanged, filter} from 'rxjs/operators';
 import {environment as env} from '@bk/env/environment';
 import {Injector} from '@angular/core';
 import get from 'lodash/get';
 import {enableES5, enableMapSet} from 'immer';
+import {SnowplowService} from '@bk/module-snowplow/snowplow.service';
 
 enableES5();
 enableMapSet();
@@ -28,10 +29,20 @@ if (env.devFriendly) {
   ).subscribe();
 }
 
+const errorSub = stateFactory.getErrorStore().pipe(
+  map(s => s.actionError), distinctUntilChanged(), filter<Error>(ae => ae != null),
+  tap(actionError => {
+    const ij = getModuleInjector();
+    if (ij == null)
+      return;
+    const snowplow = ij.get(SnowplowService);
+    snowplow.trackError(actionError);
+  })
+).subscribe();
+
 export {ofPayloadAction};
 
 export function setModuleInject(_injector: Injector) {
-  console.log('setModuleInject()');
   injector = _injector;
 }
 
@@ -43,6 +54,7 @@ if (module.hot) {
   module.hot.dispose(data => {
     data.stateFactory = stateFactory;
     data.injector = injector;
+    errorSub.unsubscribe();
     sub.unsubscribe();
   });
 }

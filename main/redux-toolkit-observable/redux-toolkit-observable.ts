@@ -14,8 +14,8 @@ import {
 } from '@reduxjs/toolkit';
 // import {Action} from 'redux';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
-import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
-import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, ReplaySubject, Subject, EMPTY } from 'rxjs';
+import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError } from 'rxjs/operators';
 
 export {PayloadAction,
   CreateSliceOptions, SliceCaseReducers, Slice};
@@ -59,17 +59,16 @@ const defaultSliceReducers: Partial<ExtraSliceReducers<any>> = {
   }
 };
 
+type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends CreateSliceOptions<infer S, any, string> ? S : unknown;
+
 export type InferSliceType<MyCreateSliceOptionsType> =
-  Slice<any,
-  (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<any>) &
-    ExtraSliceReducers<any>,
+  Slice<InferStateType<MyCreateSliceOptionsType>,
+  (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) &
+    ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>,
   string>;
 
 export type InferActionsType<MyCreateSliceOptionsType> =
-  Slice<any,
-  (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<any>) &
-    ExtraSliceReducers<any>,
-  string>['actions'];
+InferSliceType<MyCreateSliceOptionsType>['actions'];
 export class StateFactory {
   /**
    * Why I don't use Epic's state$ parameter:
@@ -95,7 +94,7 @@ export class StateFactory {
 
   private reportActionError: (err: Error) => void;
 
-  private errorSlice: Slice<ErrorState>;
+  private errorSlice: InferSliceType<typeof errorSliceOpt>;
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<any>(preloadedState);
@@ -108,15 +107,7 @@ export class StateFactory {
       take(1)
     ).toPromise();
 
-    const errorSlice = this.newSlice({
-      initialState: {} as ErrorState,
-      name: 'error',
-      reducers: {
-        reportActionError(s, {payload}: PayloadAction<Error>) {
-          s.actionError = payload;
-        }
-      }
-    });
+    const errorSlice = this.newSlice(errorSliceOpt);
 
     this.errorSlice = errorSlice;
 
@@ -159,7 +150,12 @@ export class StateFactory {
               tap(epicId => {
                 this.debugLog.next(['[redux-toolkit-obs]', `unsubscribe from ${epicId}`]);
               }))
-            )
+            ),
+            catchError(err => {
+              this.reportActionError(err);
+              console.error(err);
+              return EMPTY;
+            })
           )
         ),
         // tslint:disable-next-line: no-console
@@ -335,8 +331,17 @@ export class StateFactory {
   private getRootStore() {
     return this.store$.getValue();
   }
-
 }
+
+const errorSliceOpt = {
+  initialState: {} as ErrorState,
+  name: 'error',
+  reducers: {
+    reportActionError(s: ErrorState, {payload}: PayloadAction<Error>) {
+      s.actionError = payload;
+    }
+  }
+};
 
 
 if (module.hot) {

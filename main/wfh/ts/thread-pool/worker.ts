@@ -1,4 +1,4 @@
-import {isMainThread, parentPort} from 'worker_threads';
+import {isMainThread, parentPort, workerData} from 'worker_threads';
 
 export interface Task<T> {
   exit: boolean;
@@ -7,15 +7,35 @@ export interface Task<T> {
   args?: any[];
 }
 
+export interface Command {
+  exit: boolean;
+}
+
+if (workerData) {
+  executeOnEvent(workerData);
+}
+
 if (!isMainThread) {
   parentPort!.on('message', executeOnEvent);
 }
 
-async function executeOnEvent(data: Task<any>) {
+async function executeOnEvent(data: Task<any> | Command) {
   if (data.exit) {
     process.exit(0);
     return;
   }
-  await Promise.resolve(require(data.file)[data.exportFn](...(data.args || [])));
-  parentPort!.postMessage('done');
+  try {
+    const result = await Promise.resolve(require((data as Task<any>).file)[(data as Task<any>).exportFn](
+      ...((data as Task<any>).args || []))
+    );
+    parentPort!.postMessage({
+      type: 'wait',
+      data: result
+    });
+  } catch (ex) {
+    parentPort!.postMessage({
+      type: 'error',
+      data: ex
+    });
+  }
 }
