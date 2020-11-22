@@ -1,1 +1,1 @@
-export declare function send(env: string, configName: string, zipFile: string, secret?: string): Promise<void>;
+export declare function send(env: string, appName: string, zipFile: string, numOfConc?: number, numOfNode?: number, force?: boolean, secret?: string): Promise<void>;

@@ -14,7 +14,7 @@ const log = log4js.getLogger(api.packageName + '.send-patch');
 
 let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
 
-export async function main(env: string, appName: string, buildStaticOnly = false, pushBranch = true, secret?: string,
+export async function main(env: string, appName: string, buildStaticOnly = false, pushBranch = true, isForce = false, secret?: string,
   commitComment?: string) {
   const setting: Configuration = api.config.get(api.packageName);
 
@@ -22,7 +22,8 @@ export async function main(env: string, appName: string, buildStaticOnly = false
 
   const releaseBranch: string = setting.prebuildReleaseBranch;
 
-  mergeBack();
+  if (pushBranch)
+    mergeBack();
 
   const zipSrc = api.config.resolve('staticDir');
   let zipFile: string | undefined;
@@ -59,7 +60,7 @@ export async function main(env: string, appName: string, buildStaticOnly = false
   if (buildStaticOnly && zipFile) {
     // Dynamically push to Node server
     try {
-      await send(env, appName, zipFile, secret);
+      await send(env, appName, zipFile, undefined, undefined, isForce, secret);
     } catch (ex) {
       try {
         await spawn('git', 'checkout', currBranch, { cwd: rootDir, silent: true }).promise;

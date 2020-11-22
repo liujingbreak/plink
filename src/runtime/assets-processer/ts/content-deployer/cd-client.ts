@@ -13,7 +13,8 @@ const log = require('log4js').getLogger(api.packageName + '.cd-client');
 const RES_SKIP = 'Skip sending';
 export interface Options {
   url: string;
-  file: string;
+  /** Name of the file to be created or replaced in remote server*/
+  remoteFile: string;
   numOfNode: number;
   numOfConc: number; // number of concurrent request
   secret?: string;
@@ -74,7 +75,7 @@ export async function sendAppZip(opt: Options = {} as Options, file?: string) {
     async function send() {
       sendCount++;
       try {
-        log.info('#%s sending App: %s', sendCount, opt.file, sha);
+        log.info('#%s sending App: %s', sendCount, sha);
         const reply = await sendRequest(opt, sha, bufferToSend);
         const match = /^\[ACCEPT\] \s*(\S+)\s+pid:/.exec(reply);
         if (match && match[1])
@@ -102,7 +103,7 @@ enum SendState {
 }
 function sendRequest(opt: Options, sha: string, buffer?: Buffer): Promise<string> {
   const urlObj = Url.parse(opt.url, true);
-  let url = opt.url + `/${encodeURIComponent(opt.file)}/${encodeURIComponent(sha)}`;
+  let url = opt.url + `/${encodeURIComponent(opt.remoteFile)}/${encodeURIComponent(sha)}`;
 
   if (opt.secret) {
     url += '?whisper=' + encodeURIComponent(opt.secret);

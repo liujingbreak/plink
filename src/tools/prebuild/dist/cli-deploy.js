@@ -19,7 +19,7 @@ const chalk_1 = __importDefault(require("chalk"));
 const prebuild_post_1 = require("./prebuild-post");
 const path_1 = __importDefault(require("path"));
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.cli-deploy');
-function default_1(isStatic, env, app, pushBranch = true, secret, scriptsFile, commitComment) {
+function default_1(isStatic, env, app, pushBranch = true, isForce, secret, scriptsFile, commitComment) {
     return __awaiter(this, void 0, void 0, function* () {
         log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile}`);
         if (pushBranch) {
@@ -43,7 +43,7 @@ function default_1(isStatic, env, app, pushBranch = true, secret, scriptsFile, c
                 yield Promise.resolve(require(path_1.default.resolve(file))[func](env, app, isStatic));
             }
         }
-        yield prebuild_post_1.main(env, app, isStatic, pushBranch, secret ? secret : undefined, commitComment);
+        yield prebuild_post_1.main(env, app, isStatic, pushBranch, isForce, secret ? secret : undefined, commitComment);
     });
 }
 exports.default = default_1;

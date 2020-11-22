@@ -44,16 +44,17 @@ const cliExt = (program, withGlobalOptions) => {
     // ----------- deploy ----------
     const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
         .option('--static', 'as an static resource build', false)
-        .option('--no-push-branch', 'push to release branch', false)
+        .option('--no-push-branch', 'Do not push to release branch', false)
         // .option('--secret <secret>', 'credential word')
         .option('--secret <credential code>', 'credential code for deploy to "prod" environment')
         .option('--cc <commit comment>', 'The commit comment of the deployment commit')
+        .option('--force', 'Force overwriting remote zip assets without SHA1 checksum comparison, by default remote server will reject file of existing same SHA1', false)
         .action((app, scriptsFile) => __awaiter(void 0, void 0, void 0, function* () {
         const opt = deployCmd.opts();
         yield dist_1.initConfigAsync(deployCmd.opts());
         (yield Promise.resolve().then(() => __importStar(require('@wfh/plink/wfh/dist/package-runner')))).prepareLazyNodeInjector({});
         const cliDeploy = require('./cli-deploy').default;
-        yield cliDeploy(opt.static, opt.env, app, deployCmd.opts().pushBranch, deployCmd.opts().secret || null, scriptsFile, deployCmd.opts().cc);
+        yield cliDeploy(opt.static, opt.env, app, deployCmd.opts().pushBranch, deployCmd.opts().force, deployCmd.opts().secret || null, scriptsFile, deployCmd.opts().cc);
     }));
     createEnvOption(deployCmd);
     withGlobalOptions(deployCmd);
@@ -72,13 +73,16 @@ const cliExt = (program, withGlobalOptions) => {
     }));
     withGlobalOptions(githashCmd);
     // ------ send --------
-    const sendCmd = createEnvOption(program.command('send <app-name> <zip-file>'))
+    const sendCmd = createEnvOption(program.command('send <app-name> <zip-file or directory>'))
         .description('Send static resource to remote server')
+        .option('--con <number of concurrent request>', 'Send file with concurrent process for multiple remote server nodes', '1')
+        .option('--nodes <number of remote nodes>', 'Number of remote server nodes', '1')
         .option('--secret <credential code>', 'credential code for deploy to "prod" environment')
+        .option('--force', 'Force overwriting remote zip assets without SHA1 checksum comparison, by default remote server will reject file of existing same SHA1', false)
         .action((appName, zip) => __awaiter(void 0, void 0, void 0, function* () {
         yield dist_1.initConfigAsync(sendCmd.opts());
         (yield Promise.resolve().then(() => __importStar(require('@wfh/plink/wfh/dist/package-runner')))).prepareLazyNodeInjector({});
-        yield require('./_send-patch').send(sendCmd.opts().env, appName, zip, sendCmd.opts().secret);
+        yield require('./_send-patch').send(sendCmd.opts().env, appName, zip, parseInt(sendCmd.opts().con, 10), parseInt(sendCmd.opts().nodes, 10), sendCmd.opts().force, sendCmd.opts().secret);
     }));
     withGlobalOptions(sendCmd);
     // ------ mockzip --------

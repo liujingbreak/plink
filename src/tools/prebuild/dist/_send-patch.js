@@ -13,22 +13,35 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.send = void 0;
+const remote_deploy_1 = require("@wfh/assets-processer/dist/remote-deploy");
 const log4js_1 = __importDefault(require("log4js"));
 const __api_1 = __importDefault(require("__api"));
+const url_1 = __importDefault(require("url"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.send-patch');
 const installUrlMap = __api_1.default.config.get(__api_1.default.packageName + '.installEndpoint');
-function send(env, configName, zipFile, secret) {
+function send(env, appName, zipFile, numOfConc, numOfNode, force = false, secret) {
     return __awaiter(this, void 0, void 0, function* () {
-        const url = installUrlMap[env];
+        let url = installUrlMap[env];
+        const rootDir = __api_1.default.config().rootPath;
+        url = force ? url_1.default.resolve(url, '/_install_force') : url_1.default.resolve(url, '/_install');
+        if (fs_extra_1.default.statSync(zipFile).isDirectory()) {
+            const installDir = path_1.default.resolve(rootDir, 'install-' + env);
+            if (!fs_extra_1.default.existsSync(installDir)) {
+                fs_extra_1.default.mkdirpSync(installDir);
+            }
+            zipFile = yield remote_deploy_1.checkZipFile(zipFile, installDir, appName, /([\\/]stats[^]*\.json|\.map)$/);
+        }
         const sendAppZip = require('@wfh/assets-processer/dist/content-deployer/cd-client').sendAppZip;
         // tslint:disable-next-line:no-console
-        log.info('Pushing App "%s" to remote %s', configName, url);
+        log.info('Pushing App "%s" to remote %s', appName, url);
         try {
             yield sendAppZip({
-                file: `install-${env}/${configName}.zip`,
+                remoteFile: `install-${env}/${appName}.zip`,
                 url,
-                numOfConc: env === 'prod' ? 2 : 1,
-                numOfNode: env === 'prod' ? 2 : 1,
+                numOfConc: numOfConc != null ? numOfConc : env === 'prod' ? 2 : 1,
+                numOfNode: numOfNode != null ? numOfNode : env === 'prod' ? 2 : 1,
                 secret
             }, zipFile);
         }

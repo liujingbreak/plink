@@ -26,12 +26,13 @@ const __api_1 = __importDefault(require("__api"));
 const log4js_1 = __importDefault(require("log4js"));
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.send-patch');
 let pkJson = require(path_1.default.resolve('package.json'));
-function main(env, appName, buildStaticOnly = false, pushBranch = true, secret, commitComment) {
+function main(env, appName, buildStaticOnly = false, pushBranch = true, isForce = false, secret, commitComment) {
     return __awaiter(this, void 0, void 0, function* () {
         const setting = __api_1.default.config.get(__api_1.default.packageName);
         const rootDir = __api_1.default.config().rootPath;
         const releaseBranch = setting.prebuildReleaseBranch;
-        merge_artifacts_1.mergeBack();
+        if (pushBranch)
+            merge_artifacts_1.mergeBack();
         const zipSrc = __api_1.default.config.resolve('staticDir');
         let zipFile;
         if (appName !== 'node-server') {
@@ -61,7 +62,7 @@ function main(env, appName, buildStaticOnly = false, pushBranch = true, secret, 
         if (buildStaticOnly && zipFile) {
             // Dynamically push to Node server
             try {
-                yield _send_patch_1.send(env, appName, zipFile, secret);
+                yield _send_patch_1.send(env, appName, zipFile, undefined, undefined, isForce, secret);
             }
             catch (ex) {
                 try {

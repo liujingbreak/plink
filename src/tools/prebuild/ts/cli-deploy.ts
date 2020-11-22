@@ -10,6 +10,7 @@ import * as _ma from './merge-artifacts';
 const log = log4js.getLogger(api.packageName + '.cli-deploy');
 
 export default async function(isStatic: boolean, env: string, app: string, pushBranch = true,
+  isForce: boolean,
   secret: string | undefined | null, scriptsFile?: string, commitComment?: string) {
 
   log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile}`);
@@ -33,5 +34,5 @@ export default async function(isStatic: boolean, env: string, app: string, pushB
       await Promise.resolve(require(Path.resolve(file))[func](env, app, isStatic));
     }
   }
-  await prebuildPost(env, app, isStatic, pushBranch, secret ? secret : undefined, commitComment);
+  await prebuildPost(env, app, isStatic, pushBranch, isForce, secret ? secret : undefined, commitComment);
 }

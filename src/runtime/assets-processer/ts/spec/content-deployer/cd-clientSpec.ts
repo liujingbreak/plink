@@ -25,7 +25,7 @@ describe('cd-client', () => {
 
     await sendAppZip({
       url: 'http://localhost:14333/_install',
-      file: 'install-local/testapp',
+      remoteFile: 'install-local/testapp',
       numOfConc: 2,
       numOfNode: 1
     }, '/Users/liujing/bk/webui-static.zip');

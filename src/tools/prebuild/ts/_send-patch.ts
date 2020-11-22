@@ -1,23 +1,39 @@
 import { sendAppZip as _sendAppZip } from '@wfh/assets-processer/dist/content-deployer/cd-client';
+import { checkZipFile } from '@wfh/assets-processer/dist/remote-deploy';
 import log4js from 'log4js';
 import api from '__api';
+import Url from 'url';
+import fs from 'fs-extra';
+import Path from 'path';
+
 
 const log = log4js.getLogger(api.packageName + '.send-patch');
 const installUrlMap = api.config.get(api.packageName + '.installEndpoint') as {[env: string]: string};
 
-export async function send(env: string, configName: string, zipFile: string, secret?: string) {
-  const url = installUrlMap[env];
+export async function send(env: string, appName: string, zipFile: string,
+  numOfConc?: number, numOfNode?: number, force = false, secret?: string) {
+  let url = installUrlMap[env];
+  const rootDir = api.config().rootPath;
+  url = force ? Url.resolve(url, '/_install_force') : Url.resolve(url, '/_install');
+
+  if (fs.statSync(zipFile).isDirectory()) {
+    const installDir = Path.resolve(rootDir, 'install-' + env);
+    if (!fs.existsSync(installDir)) {
+      fs.mkdirpSync(installDir);
+    }
+    zipFile = await checkZipFile(zipFile, installDir, appName, /([\\/]stats[^]*\.json|\.map)$/);
+  }
 
   const sendAppZip: typeof _sendAppZip = require('@wfh/assets-processer/dist/content-deployer/cd-client').sendAppZip;
 
   // tslint:disable-next-line:no-console
-  log.info('Pushing App "%s" to remote %s', configName, url);
+  log.info('Pushing App "%s" to remote %s', appName, url);
   try {
     await sendAppZip({
-      file: `install-${env}/${configName}.zip`,
+      remoteFile: `install-${env}/${appName}.zip`,
       url,
-      numOfConc: env === 'prod' ? 2 : 1,
-      numOfNode: env === 'prod' ? 2 : 1,
+      numOfConc: numOfConc != null ? numOfConc : env === 'prod' ? 2 : 1,
+      numOfNode: numOfNode != null ? numOfNode : env === 'prod' ? 2 : 1,
       secret
     }, zipFile);
   } catch (ex) {

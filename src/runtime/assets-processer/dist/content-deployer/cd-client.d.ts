@@ -3,7 +3,8 @@ import { Observable } from 'rxjs';
 import { Checksum } from '../fetch-types';
 export interface Options {
     url: string;
-    file: string;
+    /** Name of the file to be created or replaced in remote server*/
+    remoteFile: string;
     numOfNode: number;
     numOfConc: number;
     secret?: string;

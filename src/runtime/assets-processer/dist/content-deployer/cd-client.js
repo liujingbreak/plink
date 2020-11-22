@@ -65,7 +65,7 @@ function sendAppZip(opt = {}, file) {
                 return __awaiter(this, void 0, void 0, function* () {
                     sendCount++;
                     try {
-                        log.info('#%s sending App: %s', sendCount, opt.file, sha);
+                        log.info('#%s sending App: %s', sendCount, sha);
                         const reply = yield sendRequest(opt, sha, bufferToSend);
                         const match = /^\[ACCEPT\] \s*(\S+)\s+pid:/.exec(reply);
                         if (match && match[1])
@@ -101,7 +101,7 @@ var SendState;
 })(SendState || (SendState = {}));
 function sendRequest(opt, sha, buffer) {
     const urlObj = url_1.default.parse(opt.url, true);
-    let url = opt.url + `/${encodeURIComponent(opt.file)}/${encodeURIComponent(sha)}`;
+    let url = opt.url + `/${encodeURIComponent(opt.remoteFile)}/${encodeURIComponent(sha)}`;
     if (opt.secret) {
         url += '?whisper=' + encodeURIComponent(opt.secret);
     }

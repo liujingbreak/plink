@@ -1,0 +1,25 @@
+{
+  "name": "@wfh/thread-promise-pool",
+  "version": "1.0.0",
+  "description": "2 Node.js utilities: a thread worker pool and a promise queue",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liujingbreak/plink.git"
+  },
+  "keywords": [
+    "Thread",
+    "worker",
+    "pool",
+    "promise"
+  ],
+  "author": "Liu Jing",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/liujingbreak/plink/issues"
+  },
+  "homepage": "https://github.com/liujingbreak/plink#readme"
+}
