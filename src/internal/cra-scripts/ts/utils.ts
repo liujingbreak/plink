@@ -64,55 +64,29 @@ function printConfigValue(value: any, level: number): string {
   return out;
 }
 
+
+// TODO: move to a Redux store
 export function getCmdOptions(): CommandOption {
   const cmdOption: CommandOption = JSON.parse(process.env.REACT_APP_cra_build!);
   if (cmdOption.devMode || cmdOption.watch) {
-    process.env.NODE_ENV = 'development';
+    (process.env as any).NODE_ENV = 'development';
   }
   return cmdOption;
 }
 
-
-// export function saveCmdArgToEnv() {
-//   // console.log('[saveCmdArgToEnv]', process.argv);
-//   process.title = 'Plink';
-//   const pk = require('../package.json');
-//   const program = new commander.Command('cra-scripts')
-//   .action(() => {
-//     program.outputHelp();
-//     process.exit(0);
-//   });
-//   program.version(pk.version, '-v, --vers', 'output the current version');
-//   program.usage('react-scripts -r @wfh/plink/register -r @wfh/cra-scripts build ' + program.usage());
-
-//   const libCmd = program.command('lib <package-name>')
-//   .description('Compile library')
-//   .action(pkgName => {
-//     saveCmdOptionsToEnv(pkgName, libCmd, 'lib');
-//   });
-//   withClicOpt(libCmd);
-
-//   const appCmd = program.command('app <package-name>')
-//   .description('Compile appliaction')
-//   .action(pkgName => {
-//     saveCmdOptionsToEnv(pkgName, appCmd, 'app');
-//   });
-//   withClicOpt(appCmd);
-
-//   program.parse(process.argv);
-// }
-
 export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType: 'app' | 'lib'): CommandOption {
+  const opts = cmd.opts();
   const cmdOptions: CommandOption = {
     buildType,
     buildTarget: pkgName,
-    watch: cmd.opts().watch,
-    devMode: cmd.opts().dev,
-    publicUrl: cmd.opts().publicUrl,
-    includes: cmd.opts().include
+    watch: opts.watch,
+    devMode: opts.dev,
+    publicUrl: opts.publicUrl,
+    includes: opts.include,
+    webpackEnv: opts.dev ? 'development' : 'production'
   };
   if (cmd.opts().publicUrl) {
-    process.env.PUBLIC_URL = cmd.opts().publicUrl;
+    (process.env as any).PUBLIC_URL = cmd.opts().publicUrl;
   }
   process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
 

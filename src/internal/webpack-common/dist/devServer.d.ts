@@ -5,4 +5,6 @@ import * as wp from 'webpack';
  * Allow CORS
  * @param webpackConfig
  */
-export default function (webpackConfig: wp.Configuration): void;
+export default function (webpackConfig: {
+    devServer: wp.Configuration['devServer'];
+}): void;

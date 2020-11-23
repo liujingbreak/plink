@@ -14,7 +14,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -47,6 +47,7 @@ class TsPreCompiler {
     }
     parse(file, source, replaceContext, compiledSource, astPositionConvert) {
         const pk = this.findPackageByFile(file);
+        log.warn(file);
         if (pk == null)
             return source;
         const ast = compiledSource || ts.createSourceFile(file, source, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
@@ -94,21 +95,27 @@ class TsPreCompiler {
     //   api.findPackageByFile(file);
     // }
     traverseTsAst(ast, replaceContext, replacements, astPositionConvert, level = 0) {
-        if (ast.kind === typescript_1.SyntaxKind.PropertyAccessExpression || ast.kind === typescript_1.SyntaxKind.ElementAccessExpression) {
-            const node = ast;
-            if (node.expression.kind === typescript_1.SyntaxKind.Identifier && lodash_1.has(replaceContext, node.expression.getText())) {
-                // keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
-                const evaluateNode = this.goUpToParentExp(node);
-                let start = evaluateNode.getStart();
-                let end = evaluateNode.getEnd();
-                const len = end - start;
-                if (astPositionConvert) {
-                    start = astPositionConvert(start);
-                    end = start + len;
+        try {
+            if (ast.kind === typescript_1.SyntaxKind.PropertyAccessExpression || ast.kind === typescript_1.SyntaxKind.ElementAccessExpression) {
+                const node = ast;
+                if (node.expression.kind === typescript_1.SyntaxKind.Identifier && lodash_1.has(replaceContext, node.expression.getText())) {
+                    // keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
+                    const evaluateNode = this.goUpToParentExp(node);
+                    let start = evaluateNode.getStart();
+                    let end = evaluateNode.getEnd();
+                    const len = end - start;
+                    if (astPositionConvert) {
+                        start = astPositionConvert(start);
+                        end = start + len;
+                    }
+                    replacements.push({ start, end, text: evaluateNode.getText() });
+                    return replacements;
                 }
-                replacements.push({ start, end, text: evaluateNode.getText() });
-                return replacements;
             }
+        }
+        catch (e) {
+            log.error('traverseTsAst failure', e);
+            throw e;
         }
         ast.forEachChild((sub) => {
             this.traverseTsAst(sub, replaceContext, replacements, astPositionConvert, level + 1);

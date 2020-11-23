@@ -59,7 +59,7 @@ export async function start(imap: ImapManager) {
 
   const serverContentDir = api.config.resolve('rootPath', 'server-content-' + setting.fetchMailServer.env);
   if (fs.existsSync(serverContentDir)) {
-    const zipDir = Path.resolve('dist/server');
+    const zipDir = api.config.resolve('destDir', 'server');
     fs.mkdirpSync(zipDir);
     const fileNames = fs.readdirSync(serverContentDir).filter(name => Path.extname(name) === '.zip');
     if (fileNames.length > 0) {

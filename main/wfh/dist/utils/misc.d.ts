@@ -1,5 +1,6 @@
 import { BaseLexer, Token } from '../base-LLn-parser';
 import * as cfonts from 'cfonts';
+import Table from 'cli-table3';
 declare const isDrcpSymlink: boolean;
 export { isDrcpSymlink };
 export declare enum WordTokenType {
@@ -20,6 +21,10 @@ export declare function sexyFont(text: string, color?: string, font?: cfonts.Fon
     lines: number;
     options: cfonts.FontOption;
 };
+export declare type CliTableOption = {
+    horizontalLines?: boolean;
+} & NonNullable<ConstructorParameters<Table>[0]>;
+export declare function createCliTable(opt?: CliTableOption): Table.Table;
 export interface PackageTsDirs {
     srcDir: string;
     destDir: string;

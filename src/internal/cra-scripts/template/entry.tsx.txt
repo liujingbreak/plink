@@ -1,0 +1,4 @@
+import {renderDom} from './$__ MyComponentPath __$';
+const container = document.getElementById('root')!;
+
+renderDom(container);

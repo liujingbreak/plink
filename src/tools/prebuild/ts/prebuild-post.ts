@@ -92,7 +92,7 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
       fs.removeSync(gitHooks);
     }
   }
-  await spawn('git', 'commit', '-m', `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
+  await spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
   await spawn('git', 'push', '-f', releaseRemote, releaseBranch, { cwd: rootDir }).promise;
 }
 
@@ -112,7 +112,7 @@ async function addTag(rootDir: string, commitComment?: string) {
 }
 
 // function removeDevDeps() {
-//   const json = Object.assign({}, pkJson);
+//   const json = Obbject.assign({}, pkJson);
 //   delete json.devDependencies;
 //   const newJson = JSON.stringify(json, null, '\t');
 //   // tslint:disable-next-line:no-console

@@ -1,0 +1,58 @@
+{
+  "name": "react-space",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.11.6",
+    "@testing-library/react": "^11.2.2",
+    "@testing-library/user-event": "^12.2.2",
+    "@types/jest": "^26.0.15",
+    "@types/node": "^12.19.6",
+    "@types/react": "^16.14.2",
+    "@types/react-dom": "^16.9.10",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
+    "react-scripts": "4.0.1",
+    "typescript": "^4.1.2",
+    "web-vitals": "^0.2.4",
+    "@wfh/doc-entry": "1.0.0",
+    "sass": "^1.29.0"
+  },
+  "devDependencies": {
+    "@wfh/cra-scripts": "1.0.21",
+    "@wfh/webpack-common": "1.0.2",
+    "@wfh/redux-toolkit-observable": "1.0.5",
+    "axios-observable": "^1.1.3"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "sme": "sme"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      "ie >= 9",
+      "ff >= 30",
+      "chrome >= 34",
+      "safari >= 7",
+      "ios >= 7",
+      "android >= 4.0"
+    ],
+    "development": [
+      "ie >= 9",
+      "ff >= 30",
+      "chrome >= 34",
+      "safari >= 7",
+      "ios >= 7",
+      "android >= 4.0"
+    ]
+  }
+}

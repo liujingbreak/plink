@@ -9,7 +9,7 @@ const log = log4js.getLogger('config-webpack');
  * Allow CORS
  * @param webpackConfig 
  */
-export default function(webpackConfig: wp.Configuration) {
+export default function(webpackConfig: {devServer: wp.Configuration['devServer']}) {
   if (!webpackConfig.devServer) {
     return;
   }

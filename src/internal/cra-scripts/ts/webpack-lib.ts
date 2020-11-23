@@ -134,7 +134,7 @@ async function forkTsc(targetPackage: string, nodePath: string[]) {
   const worker = new Worker(require.resolve('./tsd-generate-thread'), {
     workerData, env: {NODE_PATH: nodePath.join(Path.delimiter)}
   } as any);
-  await new Promise((resolve, rej) => {
+  await new Promise<void>((resolve, rej) => {
     worker.on('exit', code => {
       if (code !== 0) {
         rej(new Error(`Worker stopped with exit code ${code}`));

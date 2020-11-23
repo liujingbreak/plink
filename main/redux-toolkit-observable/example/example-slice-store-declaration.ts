@@ -27,9 +27,9 @@ const sliceOpt = {
   name: 'example',
   initialState,
   reducers: {
-    exampleAction(draft: ExampleState, {payload}: PayloadAction<boolean>) {
+    exampleAction(s: ExampleState, {payload}: PayloadAction<boolean>) {
       // modify state draft
-      draft.foo = payload;
+      s.foo = payload;
     }
   }
 };
@@ -51,8 +51,8 @@ const releaseEpic = stateFactory.addEpic((action$) => {
       map(s => s.foo),
       distinctUntilChanged(),
       map(changedFoo => {
-        actionDispatcher._change(draft => {
-          draft._computed.bar = 'changed ' + changedFoo;
+        actionDispatcher._change(s => {
+          s._computed.bar = 'changed ' + changedFoo;
         });
       })
     )

@@ -17,6 +17,7 @@ const splitChunks_1 = __importDefault(require("@wfh/webpack-common/dist/splitChu
 const log4js_1 = __importDefault(require("log4js"));
 const __api_1 = __importDefault(require("__api"));
 const log = log4js_1.default.getLogger('cra-scripts');
+const { nodePath } = JSON.parse(process.env.__plink);
 function insertLessLoaderRule(origRules) {
     const rulesAndParents = origRules.map((rule, idx, set) => [rule, idx, set]);
     // tslint:disable-next-line: prefer-for-of
@@ -131,19 +132,42 @@ function insertRawLoader(rules) {
     };
     rules.push(htmlLoaderRule);
 }
+/** To support Material-component-web */
+function replaceSassLoader(rules) {
+    for (const rule of rules) {
+        if (rule.oneOf) {
+            for (const subRule of rule.oneOf) {
+                if (Array.isArray(subRule.use)) {
+                    for (const loaderObj of subRule.use) {
+                        if (loaderObj.loader && /sass-loader/.test(loaderObj.loader)) {
+                            loaderObj.options = {
+                                implementation: require('sass'),
+                                webpackImporter: false,
+                                sourceMap: true,
+                                sassOptions: {
+                                    includePaths: ['node_modules', ...nodePath]
+                                }
+                            };
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+}
 module.exports = function (webpackEnv) {
     utils_1.drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${__api_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
     console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
     const cmdOption = utils_1.getCmdOptions();
-    log.info('webpackEnv=', webpackEnv);
+    log.info('webpackEnv =', webpackEnv);
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
-    if (cmdOption.devMode || cmdOption.watch) {
-        webpackEnv = 'development';
-        log.info('[cra-scripts] Development mode is on:', webpackEnv);
-    }
-    else {
-        process.env.GENERATE_SOURCEMAP = 'false';
-    }
+    // if (cmdOption.devMode || cmdOption.watch) {
+    //   webpackEnv = 'development';
+    //   log.info('[cra-scripts] Development mode is on:', webpackEnv);
+    // } else {
+    //   process.env.GENERATE_SOURCEMAP = 'false';
+    // }
     const origWebpackConfig = require('react-scripts/config/webpack.config');
     process.env.INLINE_RUNTIME_CHUNK = 'true';
     const config = origWebpackConfig(webpackEnv);
@@ -156,11 +180,13 @@ module.exports = function (webpackEnv) {
     const reportDir = __api_1.default.config.resolve('destDir', 'cra-scripts.report');
     fs_extra_1.default.mkdirpSync(reportDir);
     fs_extra_1.default.writeFile(path_1.default.resolve(reportDir, 'webpack.config.cra.js'), utils_1.printConfig(config), (err) => {
-        console.error(err);
+        if (err)
+            log.error('Failed to write ' + path_1.default.resolve(reportDir, 'webpack.config.cra.js'), err);
     });
     log.info(`[cra-scripts] output.publicPath: ${config.output.publicPath}`);
     // Make sure babel compiles source folder out side of current src directory
     findAndChangeRule(config.module.rules);
+    replaceSassLoader(config.module.rules);
     const myTsLoaderOpts = {
         tsConfigFile: path_1.default.resolve('tsconfig.json'),
         injector: __api_1.default.browserInjector,
@@ -190,8 +216,8 @@ module.exports = function (webpackEnv) {
     const { dir, packageJson } = foundPkg;
     if (cmdOption.buildType === 'app') {
         // TODO: do not hard code
-        config.resolve.alias['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
-        log.info(`[cra-scripts] alias:dr.cra-start-entry: ${config.resolve.alias['alias:dr.cra-start-entry']}`);
+        // config.resolve!.alias!['alias:dr.cra-app-entry'] = packageJson.name + '/' + packageJson.dr['cra-app-entry'];
+        // log.info(`[cra-scripts] alias:dr.cra-app-entry: ${config.resolve!.alias!['alias:dr.cra-app-entry']}`);
         config.output.path = __api_1.default.config.resolve('staticDir');
         // config.devtool = 'source-map';
     }
@@ -203,7 +229,6 @@ module.exports = function (webpackEnv) {
             config.resolve.plugins.splice(srcScopePluginIdx, 1);
         }
     }
-    const { nodePath } = JSON.parse(process.env.__plink);
     const resolveModules = ['node_modules', ...nodePath];
     config.resolve.modules = resolveModules;
     Object.assign(config.resolve.alias, require('rxjs/_esm2015/path-mapping')());

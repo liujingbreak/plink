@@ -1,5 +1,5 @@
 {
-  "name": "<%= name %>",
+  "name": "@wfh/$__ packageName __$",
   "version": "1.0.0",
   "description": "",
   "main": "build/lib-bundle.js",
@@ -10,7 +10,7 @@
       "dest": "build"
     },
     "cra-lib-entry": "public_api.ts",
-    "cra-start-entry": "start.tsx",
+    "cra-app-entry": "entry.tsx",
     "config-overrides-path": "config-overrides.ts"
   },
   "sideEffects": false,

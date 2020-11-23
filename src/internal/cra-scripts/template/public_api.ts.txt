@@ -1,1 +1,1 @@
-export * from './my-component/MyComponent';
+export * from './$__ MyComponentPath __$';

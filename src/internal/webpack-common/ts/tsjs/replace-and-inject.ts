@@ -1,12 +1,15 @@
 import TsPreCompiler from './tsjs-replacement';
 import api from '__api';
 import RJ from 'require-injector';
+import ts from 'typescript';
 import {sortedIndexBy} from 'lodash';
 
 let tsPreCompiler: TsPreCompiler;
 
 export default function replace(file: string, source: string, injector: RJ, tsConfigFile: string,
   compileExpContex: {[varName: string]: any}) {
+
+  injector.changeTsCompiler(ts);
   let {replaced, ast, patches} = injector.injectToFileWithPatchInfo(file, source);
   if (tsPreCompiler == null) {
     tsPreCompiler = new TsPreCompiler(tsConfigFile, (api as any).ssr, file => api.findPackageByFile(file));

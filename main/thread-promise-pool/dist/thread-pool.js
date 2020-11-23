@@ -65,6 +65,7 @@ class Pool {
         /** Last in first run, always run the latest created worker, give chance for old ones to be removed after timeout */
         this.idleWorkers = [];
         this.idleTimers = new WeakMap();
+        this.tasks = [];
     }
     submit(task) {
         return __awaiter(this, void 0, void 0, function* () {

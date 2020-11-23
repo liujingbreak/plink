@@ -15,7 +15,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -33,15 +33,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = void 0;
+// import replacePatches, { ReplacementInf } from '@wfh/plink/wfh/dist/utils/patch-text';
+const path_1 = __importDefault(require("path"));
 const utils_1 = require("../utils");
 const dist_1 = require("@wfh/plink/wfh/dist");
+const child_process_1 = require("child_process");
 const initInjectors_1 = __importDefault(require("@wfh/webpack-common/dist/initInjectors"));
 const log4js_1 = __importDefault(require("log4js"));
 const cli_init_1 = require("./cli-init");
 // import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
+const log = log4js_1.default.getLogger('cra');
 const cli = (program, withGlobalOptions) => {
-    const genCmd = program.command('cra-gen <dir>')
-        .description('Generate a sample package in specific directory')
+    const genCmd = program.command('cra-gen <path>')
+        .description('Generate a sample package')
         .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
         .action((dir) => __awaiter(void 0, void 0, void 0, function* () {
         (yield Promise.resolve().then(() => __importStar(require('./cli-gen')))).genPackage(dir, genCmd.opts().dryRun);
@@ -53,8 +57,13 @@ const cli = (program, withGlobalOptions) => {
         .option('-i, --include <module-path-regex>', '(multiple value), when argument is "lib", we will set external property of Webpack configuration for all request not begin with "." (except "@babel/runtimer"), ' +
         'meaning all external modules will not be included in the output bundle file, you need to explicitly provide a list in' +
         ' Regular expression (e.g. -i "^someLib/?" -i "^someLib2/?" -i ...) to make them be included in bundle file', arrayOptionFn, [])
+        .option('--source-map', 'set environment variable GENERATE_SOURCEMAP to "true" (see https://create-react-app.dev/docs/advanced-configuration', false)
         .action((type, pkgName) => __awaiter(void 0, void 0, void 0, function* () {
         yield initEverything(buildCmd, type, pkgName);
+        if (buildCmd.opts().sourceMap) {
+            log.info('source map is enabled');
+            process.env.GENERATE_SOURCEMAP = 'true';
+        }
         require('react-scripts/scripts/build');
     }));
     withClicOpt(buildCmd);
@@ -74,10 +83,22 @@ const cli = (program, withGlobalOptions) => {
         yield cli_init_1.initTsconfig();
     }));
     withGlobalOptions(initCmd);
+    const smeCmd = program.command('cra-sme [app-base-path]')
+        .description('Run source-map-explorer')
+        .action((appPath) => __awaiter(void 0, void 0, void 0, function* () {
+        const plinkCfg = yield dist_1.initConfigAsync(initCmd.opts());
+        const smePkgDir = path_1.default.dirname(require.resolve('source-map-explorer/package.json'));
+        const smeBin = require(path_1.default.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'];
+        child_process_1.fork(path_1.default.resolve(smePkgDir, smeBin), [
+            '--gzip', '--no-root',
+            plinkCfg.resolve('staticDir', appPath ? appPath : '', 'static/js/*.js')
+        ], { stdio: 'inherit' });
+    }));
+    withGlobalOptions(smeCmd);
 };
 exports.default = cli;
 function withClicOpt(cmd) {
-    cmd.option('-w, --watch', 'Watch file changes and compile', false)
+    cmd.option('-w, --watch', 'When build a library, watch file changes and compile', false)
         .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
         .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', undefined);
 }
@@ -94,7 +115,6 @@ function initEverything(buildCmd, type, pkgName) {
         utils_1.saveCmdOptionsToEnv(pkgName, buildCmd, type);
         yield initInjectors_1.default(process.env.PUBLIC_URL || '/');
         if (!['app', 'lib'].includes(type)) {
-            const log = log4js_1.default.getLogger('cra');
             log.error(`type argument must be one of "${['app', 'lib']}"`);
             return;
         }

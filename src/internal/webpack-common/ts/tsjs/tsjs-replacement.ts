@@ -35,7 +35,7 @@ export default class TsPreCompiler {
   parse(file: string, source: string, replaceContext: {[key: string]: any}, compiledSource?: ts.SourceFile,
     astPositionConvert?: (pos: number) => number): string {
     const pk = this.findPackageByFile(file);
-
+    log.warn(file);
     if (pk == null)
       return source;
 
@@ -97,21 +97,26 @@ export default class TsPreCompiler {
     astPositionConvert?: (pos: number) => number,
     level = 0
     ) {
-    if (ast.kind === sk.PropertyAccessExpression || ast.kind === sk.ElementAccessExpression) {
-      const node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
-      if (node.expression.kind === sk.Identifier && has(replaceContext, node.expression.getText())) {
-        // keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
-        const evaluateNode = this.goUpToParentExp(node);
-        let start = evaluateNode.getStart();
-        let end = evaluateNode.getEnd();
-        const len = end - start;
-        if (astPositionConvert) {
-          start = astPositionConvert(start);
-          end = start + len;
+    try {
+      if (ast.kind === sk.PropertyAccessExpression || ast.kind === sk.ElementAccessExpression) {
+        const node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
+        if (node.expression.kind === sk.Identifier && has(replaceContext, node.expression.getText())) {
+          // keep looking up for parents until it is not CallExpression, ElementAccessExpression or PropertyAccessExpression
+          const evaluateNode = this.goUpToParentExp(node);
+          let start = evaluateNode.getStart();
+          let end = evaluateNode.getEnd();
+          const len = end - start;
+          if (astPositionConvert) {
+            start = astPositionConvert(start);
+            end = start + len;
+          }
+          replacements.push({start, end, text: evaluateNode.getText()});
+          return replacements;
         }
-        replacements.push({start, end, text: evaluateNode.getText()});
-        return replacements;
       }
+    } catch (e) {
+      log.error('traverseTsAst failure', e);
+      throw e;
     }
     ast.forEachChild((sub: ts.Node) => {
       this.traverseTsAst(sub, replaceContext, replacements, astPositionConvert, level + 1);

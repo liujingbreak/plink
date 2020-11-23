@@ -1,3 +1,2 @@
 .gitignore
-/tslint.json
-/tsconfig.json
+/ts

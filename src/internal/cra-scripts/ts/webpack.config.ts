@@ -18,20 +18,21 @@ import log4js from 'log4js';
 import api from '__api';
 
 const log = log4js.getLogger('cra-scripts');
+const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export = function(webpackEnv: 'production' | 'development') {
   drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${api.config.resolve('destDir', 'cra-scripts.report')}`);
   console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
 
   const cmdOption = getCmdOptions();
-  log.info('webpackEnv=', webpackEnv);
+  log.info('webpackEnv =', webpackEnv);
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
-  if (cmdOption.devMode || cmdOption.watch) {
-    webpackEnv = 'development';
-    log.info('[cra-scripts] Development mode is on:', webpackEnv);
-  } else {
-    process.env.GENERATE_SOURCEMAP = 'false';
-  }
+  // if (cmdOption.devMode || cmdOption.watch) {
+  //   webpackEnv = 'development';
+  //   log.info('[cra-scripts] Development mode is on:', webpackEnv);
+  // } else {
+  //   process.env.GENERATE_SOURCEMAP = 'false';
+  // }
   const origWebpackConfig = require('react-scripts/config/webpack.config');
 
   process.env.INLINE_RUNTIME_CHUNK = 'true';
@@ -47,12 +48,14 @@ export = function(webpackEnv: 'production' | 'development') {
   const reportDir = api.config.resolve('destDir', 'cra-scripts.report');
   fs.mkdirpSync(reportDir);
   fs.writeFile(Path.resolve(reportDir, 'webpack.config.cra.js'), printConfig(config), (err) => {
-    console.error(err);
+    if (err)
+      log.error('Failed to write ' + Path.resolve(reportDir, 'webpack.config.cra.js'), err);
   });
 
   log.info(`[cra-scripts] output.publicPath: ${config.output!.publicPath}`);
   // Make sure babel compiles source folder out side of current src directory
   findAndChangeRule(config.module!.rules);
+  replaceSassLoader(config.module!.rules);
 
   const myTsLoaderOpts: TsLoaderOpts = {
     tsConfigFile: Path.resolve('tsconfig.json'),
@@ -84,8 +87,8 @@ export = function(webpackEnv: 'production' | 'development') {
 
   if (cmdOption.buildType === 'app') {
     // TODO: do not hard code
-    config.resolve!.alias!['alias:dr.cra-start-entry'] = packageJson.name + '/' + packageJson.dr['cra-start-entry'];
-    log.info(`[cra-scripts] alias:dr.cra-start-entry: ${config.resolve!.alias!['alias:dr.cra-start-entry']}`);
+    // config.resolve!.alias!['alias:dr.cra-app-entry'] = packageJson.name + '/' + packageJson.dr['cra-app-entry'];
+    // log.info(`[cra-scripts] alias:dr.cra-app-entry: ${config.resolve!.alias!['alias:dr.cra-app-entry']}`);
     config.output!.path = api.config.resolve('staticDir');
     // config.devtool = 'source-map';
   }
@@ -99,8 +102,6 @@ export = function(webpackEnv: 'production' | 'development') {
       config.resolve.plugins.splice(srcScopePluginIdx, 1);
     }
   }
-
-  const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
   const resolveModules = ['node_modules', ...nodePath];
   config.resolve!.modules = resolveModules;
@@ -279,4 +280,29 @@ function insertRawLoader(rules: RuleSetRule[]) {
     ]
   };
   rules.push(htmlLoaderRule);
+}
+
+/** To support Material-component-web */
+function replaceSassLoader(rules: RuleSetRule[]) {
+  for (const rule of rules) {
+    if (rule.oneOf) {
+      for (const subRule of rule.oneOf) {
+        if (Array.isArray(subRule.use)) {
+          for (const loaderObj of subRule.use) {
+            if ((loaderObj as RuleSetLoader).loader && /sass-loader/.test((loaderObj as RuleSetLoader).loader!)) {
+              (loaderObj as RuleSetLoader).options = {
+                implementation: require('sass'),
+                webpackImporter: false,
+                sourceMap: true,
+                sassOptions: {
+                  includePaths: ['node_modules', ...nodePath]
+                }
+              };
+            }
+          }
+        }
+      }
+      break;
+    }
+  }
 }

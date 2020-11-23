@@ -95,7 +95,7 @@ function pushReleaseBranch(releaseBranch, rootDir, env, appName, commitComment) 
                 fs_extra_1.default.removeSync(gitHooks);
             }
         }
-        yield process_utils_1.spawn('git', 'commit', '-m', `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
+        yield process_utils_1.spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
         yield process_utils_1.spawn('git', 'push', '-f', releaseRemote, releaseBranch, { cwd: rootDir }).promise;
     });
 }
@@ -114,7 +114,7 @@ function addTag(rootDir, commitComment) {
     });
 }
 // function removeDevDeps() {
-//   const json = Object.assign({}, pkJson);
+//   const json = Obbject.assign({}, pkJson);
 //   delete json.devDependencies;
 //   const newJson = JSON.stringify(json, null, '\t');
 //   // tslint:disable-next-line:no-console

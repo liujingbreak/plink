@@ -356,6 +356,10 @@ function checkPlinkVersion() {
     const json = JSON.parse(fs.readFileSync(pkjson, 'utf8'));
     let depVer: string = json.dependencies && json.dependencies['@wfh/plink'] ||
       json.devDependencies && json.devDependencies['@wfh/plink'];
+    if (depVer == null) {
+      console.log(boxString('Don\'t forget to add @wfh/plink in package.json as dependencies'));
+      return;
+    }
     if (depVer.endsWith('.tgz')) {
       const matched = /-(\d+\.\d+\.[^.]+)\.tgz$/.exec(depVer);
       if (matched == null)

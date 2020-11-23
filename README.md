@@ -11,186 +11,146 @@
 > New version of readme and other documentation are still in-progress.
 
 If heard about **Lerna** and **Yarn**'s workspace concept, yes this tool is a little bit in the same category.
+> [Yarn's workspaces feature](https://yarnpkg.com/features/workspaces)
 
+(This document is still at work-in-progress)
 
-### Purpose
-Web (Node.js) frameworks or libraries like Angular, React, Vue, NestJS, they all come up with command line tools which help developer to initialize web projects, most of them are like scaffolding tool.
+- [Package and project link toolkit](#package-and-project-link-toolkit)
+  - [Purpose](#purpose)
+  - [A command line tool](#a-command-line-tool)
+    - [Plink monorepo style](#plink-monorepo-style)
+    - [Directory structure may look like:](#directory-structure-may-look-like)
+      - [Dependency installation space](#dependency-installation-space)
+      - [Project and Packages directory](#project-and-packages-directory)
+    - [How it works](#how-it-works)
+  - [Features](#features)
+  - [Unlike Yarn workspaces](#unlike-yarn-workspaces)
+  - [Plink toolkit packages](#plink-toolkit-packages)
+## Purpose
+Web (or Node.js) frameworks or libraries like Angular, React, Vue, NestJS, they all come up with command line tools which help developer to initialize web projects, most of them are like scaffolding tool.
 
 'Quick and easy' is how they please developers. but 'Quick and easy' shouldn't mean that a resulting application will suffer from a maintainability, extendibility issue. Especially for enterprise.
 
-A naive scaffolding tool based application is kinda single project application with very limited way to share reusable module, architecture and configuration. Hard to having long term maintainance and hard to benefit future projects,
+A naive scaffolding tool based application is kinda single project application with very limited way to share reusable module, architecture and configuration. Hard to having long term maintainance and hard to benefit future projects.
 
-### Features
+## A command line tool
+ > to manipulate monorepo style projects
+### Plink monorepo style
+- You may have multiple web (Node.js) projects, some are based on Node.js Express.js framework, some are based on React and Redux, and some are based on Angular.
+
+- You may have a single source code directory contains reusable (partially) modules, some Redux code could be shared in React projects and Angular project, some Node.js code may be reused on all web projects as backend server or build process enhancement.
+
+- Source code is organized in form of Node packages, so that they can be shared cross repositaries. Projects in the same repo can directly reference relative source code. Other project can install them as node package to their build and deploy environment.
+
+### Directory structure may look like:
+```
+Plink style monorepo
+/- < Repository root directory >
+  |- react-space (created with create-react-app)
+  |     |- package.json
+  |     |- node_modules/
+  |
+  |- angular-space/ (created with @angular/cli )
+  |     |- package.json
+  |     |- node_modules/
+  |
+  |- node-space/
+  |     |- package.json
+  |     |- node_modules/
+  |
+  |- package.json
+  |- node_modules/
+  |     |- @wfh/plink
+  |     |- ... (symlinks to package directories)
+  |     
+  +- packages/
+        |- redux-slice-A/
+        |     |- src/
+        |     |- package.json
+        |
+        |- redux-slice-B/
+        |     |- src/
+        |     |- package.json
+        |
+        |- ng-components/
+        |     |- src/
+        |     |- package.json
+        |
+        |- react-widgets/
+        |     |- src/
+        |     |- package.json
+        |
+        |- server-feature-A
+        |     |- src/
+        |     |- package.json
+        |
+        |- server-feature-B
+        |     |- src/
+        |     |- package.json
+        |
+        |- app-entry-1
+        |     |- src/
+        |     |- package.json
+        |
+        |- app-entry-2
+        |     |- src/
+        |     |- package.json
+        |
+        |- commons/
+             |- animation/
+             |    |- package.json
+             |- isomophic-utils/
+             |    |- package.json
+             |- other-nested-package...
+                  |- package.json
+
+```
+#### Dependency installation space
+`react-space`, `angular-space`, `node-space` are quite like Yarn's workspace tree concept. Basically, these are the places where we install dependency, build client side application and run web server or tools.
+
+#### Project and Packages directory
+`packages/` are where Plink scans for source code packages, we organize raw source code in form of packages, reference each other like a regular package module:
+```js
+import something from '@foobar/redux-slice-A';
+```
+
+**Project** is a repository which contains `packages/` like directory.
+
+### How it works
+> Relationship, symlinks, NODE_PATH, Webpack module.resolve...
+(WIP)
+
+## Features
  - Support monorepo project structure.
+ - Hoist and merge dependencies of nested packages.
+ - Work with tools like `create-react-app` and `@angular/cli`
  - Share reusable component, features, functions between different projects.
  - Share file structure, configurations between different projects.
  - Easy to upgrade.
  - Opinionated cross framework solutions, web components, libraries, tools.
 
-TBD.
+## Unlike Yarn workspaces
+(WIP)
 
-It is designed to accomplish various web frontend tasks:
-
-- #### Command line tool for managing packages, symlinks, CI process.
-  - Node package management system (creating, compiling, bumping, publishing packages)
-  - Monorepo management (A repository that contains multiple Node packages, scripts for deployment, documentation project etc.)
-- #### Yaml File and TS file based configuration management system. (Similar to Lerna and Bazel)
-- #### A Node.js HTTP server runtime 
-  Express.js based.
-- #### Monorepo branch management and deployment tool
-  managing multiple products and versions in single monorepo
-
-
-### Main purpose is to facilitate our web teams to:
-- Modularize their HTML5 + NodeJS based web and hybrid mobile app products.
-- Unify, share and reuse pluggable components between different products
-- Reuse a lot of predefined HTTP server with a lot of shared fundamental middlewares
-- Work together on a consistent platform
-
-Refer to the offcial doc in Chinese at [http://dr-web-house.github.io](http://dr-web-house.github.io).
-
-### Roadmap
- - Support GraphQL out of the box.
- - Support using Fastify as HTTP server engine.
- - Work with Nest.js services.
- - Support Angular 9.x (Current version only supports Angular 8.x)
- - Migrating command line tool functions to Visual Code extension.
- - Support Knative based and other feasible FAAS solution as a server side function container.
-
-### Designed features
-- A Component package (Node package) can contain both Client side code and server side code, even isomorphic code.
-
-- Be compliant (or work with) to modern web framework's command line tools like `Angulr cli` and `create-react-app`.
-
-- Support developing library package through symlinks, manage **monorepo** style projects (like what Lerna, Bazel and Yarn do).
-  > [monorepos](https://www.atlassian.com/git/tutorials/monorepos)
-  
-- Unlike Lerna, also supports **multirepo**.
-
-- Compiling Typescript file from monorepo source file structure.
-- A share environment configuration system which can be avaible 
-to runtime client side (in browser), compile time server side and Node.js express http server side.
-
-- Component package can take multiple roles:
-   - tooling like Webpack plugin or Angular cli extension
-   - client side business logic, server side logic
-   - isomorphic logic as shared library which can be run in both sides, if it is needed.
-
-## Packages
-This is a monorepo which contains many tools and packages:
-
-1. Internal packages under `src/internal`, which are installed or linked as `devDependencies` for business projects.
-   
-   | package | desc | state
-   | - | - | -
-   | ng-app-builder | Command line tool extension for Angular cli and Create-react-app
-   | webpack2-builder | Webpack configuration extension in loaders and plugins for legacy React and AngularJS projects
-   | templateBuilder | Webpack loaders for swig template | Obsolete
-   | templateBuilder | Webpack loaders for swig template | Obsolete
-   | translate-generator | i18n text tool including command line tool and Webpack loader |
-
-2. Runtime packages under `src/runtime`, which are installed or linked as `dependencies` for business project.
-   
-   | package | desc | state
-   | - | - | -
-   | assets-processer | Serve static resource in production or develop environment while CDN is not avaible for some products, also support updating online static resource on-the-fly. Details like setting CORS and proper content cache header in response. 
-   | express-app | Basic and common express.js middlewares used among all projects.
-   | http-server | HTTP and HTTPS server
-
-3. Tools `src/tools`
-   
-   | package | desc | state
-   | - | - | -
-   | e2etestHelper| end-to-end test library, should be replaced with framework specific tool like **Protractor** | Obsolete
-   | http-request-proxy | A reverse HTTP proxy middleware with API mock function, should be replaced with **http-proxy-middleware** by Webpack
-   | prebuild | Prebuild scripts for monorepo project deployment, manage Git branches |
-   | json-schema-gen | Generate JSON schema file for `fast-json-stringify` |
-
-- `dr-comp-package/wfh` \
-`drcp` command line tool for build, publish and run application or packages
-
-```
-  Command format: drcp <command> <options>                                         
-drcp -h                                                           to see brief help information.
-drcp help <command>                                               to see help for each command.
-drcp <command> -h                                                 to see help for each command.
-drcp <command> -c <config-name1> <config-name2> ...               to apply proper config yaml files to the processing command.
-
-Commands:
-  drcp init                                  Initialize workspace, generate basic configuration files for project and component
-                                             packages
-  drcp project [add|remove] [project-dir..]  Associate, disassociate or list associated project folders
-  drcp clean [symlink]                       Clean "destDir" and symbolic links from node_modules
-  drcp ls                                    If you want to know how many components will actually run, this command prints out a
-                                             list and the priorities, including installed components               [aliases: list]
-  drcp run <target> [package..]              Run specific exported function of specific packages one by one, in random order
-  drcp tsc [package..]                       run typescript compiler
-  drcp eol <dir..>                           Convert CRLF to LF from files (before "publish" to NPM registry server).
-  drcp lint [package..]                      source code style check
-  drcp publish [project-dir..]               npm publish every pakages in source code folder including all mapped recipes
-  drcp unpublish [project-dir..]             npm unpublish every pakages in source code folder including all mapped recipes
-  drcp pack [project-dir..]                  npm pack every pakage into tarball files
-  drcp bump [dir..]                          bump version number of all package.json from specific directories
-  drcp test [package..]                      run Jasmine for specific or all packages
-  drcp completion                            Adds autocomplete functionality to commands and subcommands             [aliases: ac]
-
-Options:
-  --version   Show version number                                                                                        [boolean]
-  -c          <config-name..> Read config files, if there are multiple files, the latter one overrides previous one        [array]
-  --prop      <property-path>=<value as JSON | literal> ...directly set configuration properties, property name is lodash.set()
-              path-like string
-              e.g.
-              --prop port=8080 devMode=false @dr/foobar.api=http://localhost:8080
-              --prop port=8080 devMode=false @dr/foobar.api=http://localhost:8080
-              --prop arraylike.prop[0]=foobar
-              --prop ["@dr/foo.bar","prop",0]=true                                                                         [array]
-  --help, -h  Show help                                                                                                  [boolean]
-
-copyright 2016
-```
-
-JSON schema command
-
-```
-Usage: json-schema-gen [options] [...packages]
-
-Scan packages and generate json schema.
-You package.json file must contains:
-  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}
-
-Options:
-  -V, --version                                   output the version number
-  -c, --config <config-file>                      Read config files, if there are multiple files, the latter one overrides previous one (default: [])
-  --prop <property-path=value as JSON | literal>  <property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string
-   e.g.
-   (default: [])
-  -h, --help                                      display help for command
-```  
-
-Prebuild command
-```
-Usage: prebuild [options] [command]
-
-Prebuild and deploy static resource to file server and compile node server side TS files
-
-Options:
-  -V, --version                                          output the version number
-  -c, --config <config-file>                             Read config files, if there are multiple files, the latter one overrides previous one (default: [])
-  --prop <property-path=value as JSON | literal>         <property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string
-   e.g.
-   (default: [])
-  --secret <credential code>                             credential code for deploy to "prod" environment
-  -h, --help                                             display help for command
-
-Commands:
-  deploy [options] <app> [ts-scripts#function-or-shell]
-  githash [options]
-  send [options] <app-name> <zip-file>                   Send static resource to remote server
-  mockzip [options]
-  keypair [file-name]                                    Generate a new asymmetric key pair
-  ts-ast [options] <ts-file>                             Print Typescript AST structure
-  functions <file>                                       List exported functions for *.ts, *.d.ts, *.js file
-  listzip <file>                                         List zip file content and size
-  help [command]                                         display help for command
-```
-
+## Plink toolkit packages
+(WIP)
+- @wfh/plink
+- @wfh/cra-scripts
+- @wfh/ng-app-builder
+- @wfh/webpack-common
+- @wfh/translate-generator
+- @wfh/webpack2-builder
+- @wfh/assets-processer
+- @wfh/express-app
+- @wfh/http-server
+- @wfh/http-request-proxy
+- @wfh/jasmine-helper
+- @wfh/json-schema-gen
+- @wfh/log4js-pm2intercom
+- @wfh/prebuild
+- @wfh/tool-misc
+- @wfh/vendor-binary
+- @wfh/plink-cli
+- @wfh/redux-toolkit-observable
+- @wfh/thread-promise-pool
+- @wfh/plink-global-types

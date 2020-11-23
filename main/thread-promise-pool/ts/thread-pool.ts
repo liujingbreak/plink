@@ -57,7 +57,7 @@ export class Pool {
 
   private idleTimers = new WeakMap<Worker, ReturnType<typeof setTimeout>>();
 
-  private tasks: PromisedTask<any>[];
+  private tasks: PromisedTask<any>[] = [];
 
   /**
    * @param maxParalle max number of paralle workers

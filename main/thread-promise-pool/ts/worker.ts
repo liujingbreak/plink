@@ -43,8 +43,8 @@ async function executeOnEvent(data: Task | Command) {
   }
   try {
     const result = await Promise.resolve(require((data as Task).file)[(data as Task).exportFn](
-      ...((data as Task).args || []))
-    );
+      ...((data as Task).args || [])
+      ));
     if ((result as TaskResult).transferList) {
       const transferList = (result as TaskResult).transferList;
       delete result.transferList;

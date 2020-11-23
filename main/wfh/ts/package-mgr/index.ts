@@ -761,7 +761,6 @@ async function installWorkspace(ws: WorkspaceState) {
     symlinksInModuleDir.push({content: linkContent, link});
     return unlinkAsync(link);
   });
-  // _cleanActions.addWorkspaceFile(links);
 
   // 2. Run `npm install`
   const installJsonFile = Path.resolve(dir, 'package.json');
@@ -776,11 +775,11 @@ async function installWorkspace(ws: WorkspaceState) {
     // tslint:disable-next-line: no-console
     console.log(e, e.stack);
     throw e;
+  } finally {
+    // 3. Recover package.json and symlinks deleted in Step.1.
+    fs.writeFile(installJsonFile, ws.originInstallJsonStr, 'utf8');
+    await recoverSymlinks();
   }
-  // 3. Recover package.json and symlinks deleted in Step.1.
-  fs.writeFile(installJsonFile, ws.originInstallJsonStr, 'utf8');
-  await recoverSymlinks();
-  // }
 
   function recoverSymlinks() {
     return Promise.all(symlinksInModuleDir.map(({content, link}) => {

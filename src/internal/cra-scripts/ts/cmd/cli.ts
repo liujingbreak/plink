@@ -2,20 +2,22 @@
 // import fs from 'fs';
 import {CliExtension, GlobalOptions} from '@wfh/plink/wfh/dist/cmd/types';
 // import replacePatches, { ReplacementInf } from '@wfh/plink/wfh/dist/utils/patch-text';
-// import Path from 'path';
+import Path from 'path';
 import commander from 'Commander';
 import {saveCmdOptionsToEnv} from '../utils';
 import {initConfigAsync, initProcess} from '@wfh/plink/wfh/dist';
+import {fork} from 'child_process';
 import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
 import log4js from 'log4js';
 import {initTsconfig} from './cli-init';
-// import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 
+// import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
+const log = log4js.getLogger('cra');
 
 const cli: CliExtension = (program, withGlobalOptions) => {
 
-  const genCmd = program.command('cra-gen <dir>')
-  .description('Generate a sample package in specific directory')
+  const genCmd = program.command('cra-gen <path>')
+  .description('Generate a sample package')
   .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
   .action(async (dir: string) => {
     (await import('./cli-gen')).genPackage(dir, genCmd.opts().dryRun);
@@ -29,8 +31,13 @@ const cli: CliExtension = (program, withGlobalOptions) => {
   '(multiple value), when argument is "lib", we will set external property of Webpack configuration for all request not begin with "." (except "@babel/runtimer"), ' +
   'meaning all external modules will not be included in the output bundle file, you need to explicitly provide a list in' +
   ' Regular expression (e.g. -i "^someLib/?" -i "^someLib2/?" -i ...) to make them be included in bundle file', arrayOptionFn, [])
+  .option('--source-map', 'set environment variable GENERATE_SOURCEMAP to "true" (see https://create-react-app.dev/docs/advanced-configuration', false)
   .action(async (type, pkgName) => {
     await initEverything(buildCmd, type, pkgName);
+    if (buildCmd.opts().sourceMap) {
+      log.info('source map is enabled');
+      process.env.GENERATE_SOURCEMAP = 'true';
+    }
     require('react-scripts/scripts/build');
   });
   withClicOpt(buildCmd);
@@ -52,10 +59,23 @@ const cli: CliExtension = (program, withGlobalOptions) => {
     await initTsconfig();
   });
   withGlobalOptions(initCmd);
+
+  const smeCmd = program.command('cra-sme [app-base-path]')
+  .description('Run source-map-explorer')
+  .action(async (appPath: string) => {
+    const plinkCfg = await initConfigAsync(initCmd.opts() as GlobalOptions);
+    const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
+    const smeBin: string = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'];
+    fork(Path.resolve(smePkgDir, smeBin), [
+      '--gzip', '--no-root',
+      plinkCfg.resolve('staticDir', appPath ? appPath : '', 'static/js/*.js')
+    ], {stdio: 'inherit'});
+  });
+  withGlobalOptions(smeCmd);
 };
 
 function withClicOpt(cmd: commander.Command) {
-  cmd.option('-w, --watch', 'Watch file changes and compile', false)
+  cmd.option('-w, --watch', 'When build a library, watch file changes and compile', false)
   .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
   .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', undefined);
 }
@@ -73,7 +93,7 @@ async function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', 
   saveCmdOptionsToEnv(pkgName, buildCmd, type);
   await walkPackagesAndSetupInjector(process.env.PUBLIC_URL || '/');
   if (!['app', 'lib'].includes(type)) {
-    const log = log4js.getLogger('cra');
+
     log.error(`type argument must be one of "${['app', 'lib']}"`);
     return;
   }

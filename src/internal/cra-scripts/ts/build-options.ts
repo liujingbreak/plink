@@ -10,5 +10,6 @@ export interface CommandOption {
   devMode: boolean;
   publicUrl?: string;
   includes?: string[];
+  webpackEnv: 'development' | 'production';
   // argv: Map<string, string|boolean>;
 }

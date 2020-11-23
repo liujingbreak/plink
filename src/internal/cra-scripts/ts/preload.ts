@@ -34,6 +34,10 @@ export function poo() {
   const reactDevUtilsPath = `${sep}node_modules${sep}react-dev-utils${sep}`;
   const buildScriptsPath = Path.join('node_modules', 'react-scripts', 'scripts', 'build.js');
 
+  // Disable @pmmmwh/react-refresh-webpack-plugin, since it excludes our node_modules
+  // from HMR
+  process.env.FAST_REFRESH = 'false';
+
   const superReq = Module.prototype.require;
   // TODO: Should use require-injector new version
   Module.prototype.require = function(this: Module, target: string) {

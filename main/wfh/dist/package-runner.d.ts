@@ -26,7 +26,10 @@ export declare function runPackages(argv: {
 }): Promise<void>;
 export declare function initInjectorForNodePackages(argv: {
     [key: string]: any;
-}, packageInfo: PackageInfo): [PackageBrowserInstance[], _NodeApi];
+}, packageInfo: PackageInfo): [
+    PackageBrowserInstance[],
+    _NodeApi
+];
 export declare function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any): void;
 /**
  * Support `import api from '__api';`

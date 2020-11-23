@@ -6,6 +6,7 @@ import * as Path from 'path';
 // import * as fs from 'fs';
 import {PlinkEnv} from '../node-path';
 import * as cfonts from 'cfonts';
+import Table from 'cli-table3';
 
 const {isDrcpSymlink, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
@@ -79,44 +80,71 @@ export class WordLexer extends BaseLexer<WordTokenType> {
 }
 
 export function boxString(text: string, lineWidth = 70, whitespaceWrap = true): string {
-  const lexer = new WordLexer(text);
+  const tb = createCliTable({
+    colWidths: [lineWidth],
+    wordWrap: whitespaceWrap
+  });
+  tb.push([text]);
+  return tb.toString();
+  // const lexer = new WordLexer(text);
 
-  lineWidth = lineWidth - 4;
-  let updated = `+${'-'.repeat(lineWidth + 2)}+\n`;
-  let column = 0;
-  for (const word of lexer) {
-    if (word.type === WordTokenType.word || word.type === WordTokenType.eos || word.type === WordTokenType.other ||
-      word.type === WordTokenType.tab) {
-      if (column === 0) {
-        updated += '| ';
-      }
-      if (column + word.text.length > lineWidth) {
-        updated += ' '.repeat(lineWidth - column);
-        updated += ' |\n| ';
-        // pad
-        column = 0;
-      }
-      updated += word.type === WordTokenType.tab ? '  ' : word.text;
-      column += word.type === WordTokenType.tab ? 2 : word.text.length;
-    } else if (word.type === WordTokenType.eol) {
-      if (column === 0) {
-        updated += '| ';
-      }
-      updated += ' '.repeat(lineWidth - column);
-      updated += ' |\n';
-      column = 0;
-    }
-  }
-  if (column !== 0) {
-    updated += ' '.repeat(lineWidth - column);
-    updated += ' |\n';
-  }
-  updated += `+${'-'.repeat(lineWidth + 2)}+`;
-  return updated.replace(/^(?=.)/mg, '  ');
+  // lineWidth = lineWidth - 4;
+  // let updated = `+${'-'.repeat(lineWidth + 2)}+\n`;
+  // let column = 0;
+  // for (const word of lexer) {
+  //   if (word.type === WordTokenType.word || word.type === WordTokenType.eos || word.type === WordTokenType.other ||
+  //     word.type === WordTokenType.tab) {
+  //     if (column === 0) {
+  //       updated += '| ';
+  //     }
+  //     if (column + word.text.length > lineWidth) {
+  //       updated += ' '.repeat(lineWidth - column);
+  //       updated += ' |\n| ';
+  //       // pad
+  //       column = 0;
+  //     }
+  //     updated += word.type === WordTokenType.tab ? '  ' : word.text;
+  //     column += word.type === WordTokenType.tab ? 2 : word.text.length;
+  //   } else if (word.type === WordTokenType.eol) {
+  //     if (column === 0) {
+  //       updated += '| ';
+  //     }
+  //     updated += ' '.repeat(lineWidth - column);
+  //     updated += ' |\n';
+  //     column = 0;
+  //   }
+  // }
+  // if (column !== 0) {
+  //   updated += ' '.repeat(lineWidth - column);
+  //   updated += ' |\n';
+  // }
+  // updated += `+${'-'.repeat(lineWidth + 2)}+`;
+  // return updated.replace(/^(?=.)/mg, '  ');
 }
 
 export function sexyFont(text: string, color = '#99a329', font: cfonts.FontOption['font'] = 'block') {
   return cfonts.render(text, {font, colors: [color]});
+}
+
+export type CliTableOption =  {
+  horizontalLines?: boolean;
+} & NonNullable<ConstructorParameters<Table>[0]>;
+
+export function createCliTable(opt?: CliTableOption) {
+  const tableOpt: CliTableOption = {
+    style: {head: []},
+    wordWrap: true,
+    ...opt
+  };
+  delete tableOpt.horizontalLines;
+
+  if (opt && opt.horizontalLines === false) {
+    tableOpt.chars = {mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': ''};
+  }
+  if (opt && opt.horizontalLines) {
+    tableOpt.colAligns = opt.colAligns;
+  }
+  return new Table(tableOpt);
 }
 
 export interface PackageTsDirs {

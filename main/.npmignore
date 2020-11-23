@@ -2,3 +2,6 @@
 *.bak
 package-lock.json
 /drcp-types
+/ts
+/redux-toolkit-observable/*.ts
+/thread-promise-pool/ts

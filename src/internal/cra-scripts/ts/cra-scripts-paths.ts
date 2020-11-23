@@ -45,7 +45,7 @@ export default function paths() {
     changedPaths.appBuild = Path.resolve(dir, 'build');
     changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-lib-entry', 'public_api.ts'));
   } else if (cmdOption.buildType === 'app') {
-    changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-app-entry', 'public_api.ts'));
+    changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-app-entry', 'start.tsx'));
     changedPaths.appBuild = Path.resolve(rootDir, 'dist/static');
   }
   // tslint:disable-next-line: no-console

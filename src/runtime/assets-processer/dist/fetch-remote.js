@@ -60,7 +60,7 @@ function start(imap) {
         }
         const serverContentDir = __api_1.default.config.resolve('rootPath', 'server-content-' + setting.fetchMailServer.env);
         if (fs_extra_1.default.existsSync(serverContentDir)) {
-            const zipDir = path_1.default.resolve('dist/server');
+            const zipDir = __api_1.default.config.resolve('destDir', 'server');
             fs_extra_1.default.mkdirpSync(zipDir);
             const fileNames = fs_extra_1.default.readdirSync(serverContentDir).filter(name => path_1.default.extname(name) === '.zip');
             if (fileNames.length > 0) {

@@ -1,0 +1,33 @@
+@use "@material/ripple";
+// @import "@material/ripple/styles";
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.red {
+  background: #ee6464;
+  text-align: center;
+}
+.assets {
+  background-image: url(./demo-assets.jpg);
+  background-size: cover;
+  background-position: center;
+  height: 40vh;
+}
+.matRipple {
+  @include ripple.surface;
+  @include ripple.radius-bounded;
+  @include ripple.states;
+}
+

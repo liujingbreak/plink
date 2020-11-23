@@ -119,7 +119,7 @@ export class LookAhead<T, TT = any> {
   column = 1;
   protected currPos = 0;
   private cacheStartPos = 0; // Currently is always same as currPos
-  private readResolve: (value: T | null) => void | undefined;
+  private readResolve: ((value: T | null) => void) | undefined;
   private waitForPos: number | undefined;
   private currChunk: Chunk<T, TT>;
 

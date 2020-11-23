@@ -5,9 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tsjs_replacement_1 = __importDefault(require("./tsjs-replacement"));
 const __api_1 = __importDefault(require("__api"));
+const typescript_1 = __importDefault(require("typescript"));
 const lodash_1 = require("lodash");
 let tsPreCompiler;
 function replace(file, source, injector, tsConfigFile, compileExpContex) {
+    injector.changeTsCompiler(typescript_1.default);
     let { replaced, ast, patches } = injector.injectToFileWithPatchInfo(file, source);
     if (tsPreCompiler == null) {
         tsPreCompiler = new tsjs_replacement_1.default(tsConfigFile, __api_1.default.ssr, file => __api_1.default.findPackageByFile(file));

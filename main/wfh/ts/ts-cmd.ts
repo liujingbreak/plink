@@ -231,7 +231,7 @@ async function compile(compGlobs: string[], tsProject: any, commonRootDir: strin
           compileErrors.forEach(msg => log.error(msg));
           return reject(new Error('Failed to compile Typescript files'));
         }
-        resolve();
+        resolve(emittedList);
       });
       all.on('error', reject);
       all.resume();

@@ -1,15 +1,52 @@
-## Create a new React + Redux project
-copy .npmrc to home directory
+# Create a new React + Redux project with Plink
 
-`create-react-app <dir> --template cra-template-typescript --use-npm`
+- [Create a new React + Redux project with Plink](#create-a-new-react--redux-project-with-plink)
+    - [Prerequisition](#prerequisition)
+  - [Create a React working space](#create-a-react-working-space)
+    - [Build and watch](#build-and-watch)
+    - [Customize Webpack configuration](#customize-webpack-configuration)
+  - [Prepare environment](#prepare-environment)
+  - [Creating a package skelaton](#creating-a-package-skelaton)
+    - [Demo 开发](#demo-开发)
+    - [build 输出 library](#build-输出-library)
+    - [配置第三方依赖](#配置第三方依赖)
+  - [在Angular App中使用组件](#在angular-app中使用组件)
+    - [开发模式](#开发模式)
+  - [开发 Trouble shooting](#开发-trouble-shooting)
+  - [Examples: Subscribe Angular data state in React component](#examples-subscribe-angular-data-state-in-react-component)
+      - [Render function `renderDom(dom, injector)` get `Injector` and render React Component `HomePage`.](#render-function-renderdomdom-injector-get-injector-and-render-react-component-homepage)
+### Prerequisition
+Knownledge of
+create-react-app, Redux toolkit, Redux-observable.
+
+## Create a React working space
+1. copy .npmrc to root directory of repository, if you have an NPM registry preference to customize.
+
+2. Suppose you are about to create a space directory named "react-space"
+```bash
+create-react-app react-space --template cra-template-typescript --use-npm`
+```
+
+3. Modify `react-space/package.json` file.
+   
+Add dependencies, packages with `@wfh` are required by Plink, others should be your source code package and 3rd party libraries,
+```json
+"devDependencies": {
+  "@wfh/cra-scripts": "1.0.21",
+  "@wfh/webpack-common": "1.0.2",
+  "@wfh/redux-toolkit-observable": "1.0.5",
+  "axios-observable": "^1.1.3",
+  "@foobar/your-feature-package": "1.0.0"
+}
+```
 
 ### Build and watch
 ```bash
-cd cra-studio
-plink init
+plink init reac-space
+cd react-space
+
 # To see command line help
 # plink cra-build -h
-
 plink build app <package name>
 ```
 
@@ -49,23 +86,9 @@ const configHandler:ReactScriptsHandler = {
 export default configHandler;
 
 ```
-
-
-# Developing React library package
-- [Developing React library package](#developing-react-library-package)
-  - [Prepare environment](#prepare-environment)
-  - [Creating a package skelaton](#creating-a-package-skelaton)
-    - [Demo 开发](#demo-开发)
-    - [build 输出 library](#build-输出-library)
-    - [配置第三方依赖](#配置第三方依赖)
-  - [在Angular App中使用组件](#在angular-app中使用组件)
-    - [开发模式](#开发模式)
-  - [开发 Trouble shooting](#开发-trouble-shooting)
-  - [Examples: Subscribe Angular data state in React component](#examples-subscribe-angular-data-state-in-react-component)
-      - [Render function `renderDom(dom, injector)` get `Injector` and render React Component `HomePage`.](#render-function-renderdomdom-injector-get-injector-and-render-react-component-homepage)
 ## Prepare environment
 
-- Remember to run `drcp run` or `npm run drcp -- init` to instal some of the updated dependencies when everytime source code is updated by pulling new updates from remote Git server.
+- Remember to run `plink run` or `npm run plink -- init` to instal some of the updated dependencies when everytime source code is updated by pulling new updates from remote Git server.
 
 - Node v12.x
 
@@ -73,50 +96,49 @@ export default configHandler;
 Install dependencies which you only need to do it once for the first time
 
 ```
-cd <cra-project-dir>
-npm i
+cd <react-space-dir>
 ```
 Run command
 ```bash
-plink cra-gen bigc-portal-home
+plink cra-gen ../packages/foobar-app
 # or 
-# drcp run node_modules/@bk/cra-scripts/dist/cmd.js#genPackage portal-home
+# plink run node_modules/@bk/cra-scripts/dist/cmd.js#genPackage portal-home
 ```
 命令输出
 ```
-[cra-scripts cmd] projects/cra-lib/bigc-portal-home/.npmignore is created
-[cra-scripts cmd] projects/cra-lib/bigc-portal-home/config-overrides.ts is created
-[cra-scripts cmd] projects/cra-lib/bigc-portal-home/package.json is created
-[cra-scripts cmd] projects/cra-lib/bigc-portal-home/public_api.ts is created
-[cra-scripts cmd] projects/cra-lib/bigc-portal-home/start.tsx is created
-[cra-scripts cmd] projects/cra-lib/bigc-portal-home/my-component/MyComponent.module.scss is created
-[cra-scripts cmd] projects/cra-lib/bigc-portal-home/my-component/MyComponent.tsx is created
-[cra-scripts cmd] projects/cra-lib/bigc-portal-home/my-component/demo.assets.jpg is created
-[cra-scripts cmd] You need to run `drcp init`
+[cra-scripts cmd] projects/cra-lib/foobar-app/.npmignore is created
+[cra-scripts cmd] projects/cra-lib/foobar-app/config-overrides.ts is created
+[cra-scripts cmd] projects/cra-lib/foobar-app/package.json is created
+[cra-scripts cmd] projects/cra-lib/foobar-app/public_api.ts is created
+[cra-scripts cmd] projects/cra-lib/foobar-app/start.tsx is created
+[cra-scripts cmd] projects/cra-lib/foobar-app/my-component/MyComponent.module.scss is created
+[cra-scripts cmd] projects/cra-lib/foobar-app/my-component/MyComponent.tsx is created
+[cra-scripts cmd] projects/cra-lib/foobar-app/my-component/demo.assets.jpg is created
+[cra-scripts cmd] You need to run `plink init`
 ```
-`@bk/bigc-portal-home` 是新创建的组件包名。
+`@bk/foobar-app` 是新创建的组件包名。
 
-再次运行 `drcp init`,\
-可以查看项目中所有的包 `drcp ls`
+再次运行 `plink init`,\
+可以查看项目中所有的包 `plink ls`
 
 
 ### Demo 开发
 ```
 cd cra-studio
-npm run start -- app bigc-portal-home
+npm run start -- app foobar-app
 ```
 
 ### build 输出 library
 ```
 cd cra-studio
-npm run start -- lib bigc-portal-home [--dev]
+npm run start -- lib foobar-app [--dev]
 ```
 `--dev` 临时输出开发版的Library
 
 ### 配置第三方依赖
-修改 `projects/cra-lib/bigc-portal-home/package.json` **dependencies**
+修改 `projects/cra-lib/foobar-app/package.json` **dependencies**
 
-然后 运行 `drcp init` 安装依赖
+然后 运行 `plink init` 安装依赖
 
 ## 在Angular App中使用组件
 ### 开发模式
@@ -144,9 +166,9 @@ Could not resolve package.json from path like:
 ```
 原因一般是目标库的node 包在`node_modules`下软连接失效了， 所以node无法resolve 这个包名。
 
-- 重试`drcp init` 创建软连接
-- 如果drcp init后也不行(但是`drcp init`没有报错)
-- 尝试 `drcp project add .`, 再次`drcp init`，然后可以快速的看一眼`drcp ls`的结果有没有列出那个目标库的node包
+- 重试`plink init` 创建软连接
+- 如果plink init后也不行(但是`plink init`没有报错)
+- 尝试 `plink project add .`, 再次`plink init`，然后可以快速的看一眼`plink ls`的结果有没有列出那个目标库的node包
 
 
 
