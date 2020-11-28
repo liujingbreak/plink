@@ -126,9 +126,9 @@ export function sexyFont(text: string, color = '#99a329', font: cfonts.FontOptio
   return cfonts.render(text, {font, colors: [color]});
 }
 
-export type CliTableOption =  {
+export interface CliTableOption extends NonNullable<ConstructorParameters<Table>[0]> {
   horizontalLines?: boolean;
-} & NonNullable<ConstructorParameters<Table>[0]>;
+}
 
 export function createCliTable(opt?: CliTableOption) {
   const tableOpt: CliTableOption = {
@@ -139,7 +139,7 @@ export function createCliTable(opt?: CliTableOption) {
   delete tableOpt.horizontalLines;
 
   if (opt && opt.horizontalLines === false) {
-    tableOpt.chars = {mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': ''};
+    tableOpt.chars = {mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '', 'top-mid': ''};
   }
   if (opt && opt.horizontalLines) {
     tableOpt.colAligns = opt.colAligns;

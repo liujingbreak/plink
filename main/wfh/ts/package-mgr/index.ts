@@ -557,27 +557,6 @@ export function getProjectList() {
   return Array.from(getState().project2Packages.keys()).map(pj => Path.resolve(getRootDir(), pj));
 }
 
-export function listPackagesByProjects() {
-  const cwd = process.cwd();
-  const linkedPkgs = getState().srcPackages;
-  let out = '';
-  for (const [prj, pkgNames] of getState().project2Packages.entries()) {
-    out += `Project ${prj || '.'}\n`;
-    const pkgs = pkgNames.map(name => linkedPkgs.get(name)!);
-    const maxWidth = pkgs.reduce((maxWidth, pk) => {
-      const width = pk.name.length + pk.json.version.length + 1;
-      return width > maxWidth ? width : maxWidth;
-    }, 0);
-    for (const pk of pkgs) {
-      const width = pk.name.length + pk.json.version.length + 1;
-      out += `  |- ${chalk.cyan(pk.name)}@${chalk.green(pk.json.version)}${' '.repeat(maxWidth - width)}` +
-      ` ${Path.relative(cwd, pk.realPath)}\n`;
-    }
-    out += '\n';
-  }
-  return out;
-}
-
 export function isCwdWorkspace() {
   const wsKey = workspaceKey(process.cwd());
   const ws = getState().workspaces.get(wsKey);

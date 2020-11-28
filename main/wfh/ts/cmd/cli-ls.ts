@@ -9,6 +9,7 @@ import * as _ from 'lodash';
 import NodePackage from '../packageNodeInstance';
 import {printWorkspaces} from './cli-init';
 import {take, map, distinctUntilChanged, skip} from 'rxjs/operators';
+import {createCliTable} from '../utils/misc';
 
 interface ComponentListItem {
   pk: NodePackage;
@@ -17,21 +18,21 @@ interface ComponentListItem {
 export default async function list(opt: GlobalOptions & {json: boolean}) {
   await config.init(opt);
   logConfig(config());
-  const pmgr: typeof pkMgr = require('../package-mgr');
+  // const pmgr: typeof pkMgr = require('../package-mgr');
 
   const pkRunner = require('../../lib/packageMgr/packageRunner');
 
-  console.log('==============[ LINKED PACKAGES IN PROJECT ]==============\n');
   if (opt.json)
     console.log(JSON.stringify(jsonOfLinkedPackageForProjects(), null, '  '));
   else
-    console.log(pmgr.listPackagesByProjects());
+    console.log(listPackagesByProjects());
 
-  console.log('\n' + chalk.green(_.pad('[ SERVER COMPONENTS ]', 50, '=')) + '\n');
+  const table = createCliTable({horizontalLines: false});
+  table.push([{colSpan: 2, hAlign: 'center', content: 'SERVER COMPONENTS\n'}]);
 
   const list: ComponentListItem[] = await pkRunner.listServerComponents();
-  list.forEach(row => console.log(' ' + row.desc + '   ' + chalk.blue(Path.relative(config().rootPath, row.pk.path))));
-
+  list.forEach(row => table.push([row.desc, chalk.blue(Path.relative(config().rootPath, row.pk.path))]));
+  console.log(table.toString());
   printWorkspaces();
 }
 
@@ -47,6 +48,31 @@ export async function checkDir(opt: GlobalOptions) {
     })
   ).subscribe();
   pkMgr.actionDispatcher.updateDir();
+}
+
+function listPackagesByProjects() {
+  const cwd = process.cwd();
+  const pmgr: typeof pkMgr = require('../package-mgr');
+  const linkedPkgs = pmgr.getState().srcPackages;
+
+  const table = createCliTable({horizontalLines: false, colAligns: ['right', 'left', 'left']});
+  table.push([{colSpan: 3, content: chalk.bold('LINKED PACKAGES IN PROJECT\n'), hAlign: 'center'}]);
+  for (const [prj, pkgNames] of pmgr.getState().project2Packages.entries()) {
+    table.push([{
+      colSpan: 3, hAlign: 'left',
+      content: chalk.bold('Project: ') + (prj ? chalk.cyan(prj) : chalk.cyan('(root directory)'))}
+    ],
+      ['Package name', 'version', 'Path'],
+      ['------------', '-------', '----']);
+    const pkgs = pkgNames.map(name => linkedPkgs.get(name)!);
+    for (const pk of pkgs) {
+      table.push([
+        chalk.cyan(pk.name),
+        chalk.green(pk.json.version),
+        Path.relative(cwd, pk.realPath)]);
+    }
+  }
+  return table.toString();
 }
 
 function jsonOfLinkedPackageForProjects() {

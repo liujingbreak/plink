@@ -21,9 +21,9 @@ export declare function sexyFont(text: string, color?: string, font?: cfonts.Fon
     lines: number;
     options: cfonts.FontOption;
 };
-export declare type CliTableOption = {
+export interface CliTableOption extends NonNullable<ConstructorParameters<Table>[0]> {
     horizontalLines?: boolean;
-} & NonNullable<ConstructorParameters<Table>[0]>;
+}
 export declare function createCliTable(opt?: CliTableOption): Table.Table;
 export interface PackageTsDirs {
     srcDir: string;

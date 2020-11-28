@@ -10,7 +10,7 @@ import { getRootDir } from '../utils/misc';
 import { listProject } from './cli-project';
 import _ from 'lodash';
 import * as options from './types';
-import Table from 'cli-table3';
+import {createCliTable} from '../utils/misc';
 
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
   await config.init(opt);
@@ -21,19 +21,18 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
     map(s => s.srcPackages),
     map(srcPackages => {
       const paks = Array.from(srcPackages.values());
-      const maxWidth = paks.reduce((maxWidth, pk) => {
-        const width = pk.name.length + pk.json.version.length + 1;
-        return width > maxWidth ? width : maxWidth;
-      }, 0);
 
-      console.log(
-        `\n${chalk.bold('\n[ Linked packages ]')}\n` +
-        paks.map(pk => {
-          const width = pk.name.length + pk.json.version.length + 1;
-          return `  ${chalk.cyan(pk.name)}@${chalk.green(pk.json.version)}${' '.repeat(maxWidth - width)}` +
-            ` ${chalk.gray(Path.relative(cwd, pk.realPath))}`;
-        }).join('\n')
-      );
+      const table = createCliTable({
+        horizontalLines: false,
+        colAligns: ['right', 'left']
+      });
+      table.push([{colSpan: 3, content: 'Linked packages', hAlign: 'center'}]);
+      table.push(['Package name', 'Version', 'Path'],
+                 ['------------', '-------', '----']);
+      for (const pk of paks) {
+        table.push([chalk.cyan(pk.name), chalk.green(pk.json.version), chalk.gray(Path.relative(cwd, pk.realPath))]);
+      }
+      console.log(table.toString());
       printWorkspaces();
     })
   ).subscribe();
@@ -74,23 +73,20 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
 }
 
 export function printWorkspaces() {
-  console.log('\n' + chalk.bold('\nWorktree Space directories and linked dependencies'));
-  const table = createTable();
-  table.push(['Worktree Space', 'Dependency package', 'Version', ''].map(item => chalk.bold(item)));
-  table.push(['---', '---', '---', '---']);
+  const table = createCliTable({
+    horizontalLines: false,
+    colAligns: ['right', 'right']
+  });
+  table.push([{colSpan: 4, content: chalk.bold('Worktree Space directories and linked dependencies\n'), hAlign: 'center'}],
+    ['Worktree Space', 'Dependency package', 'Version', 'state'].map(item => chalk.bold(item)),
+    ['--------------', '------------------', '-------', '-----']);
+
   for (const reldir of getState().workspaces.keys()) {
-    // console.log(reldir ? `  ${reldir}/` : '  (root directory)');
-    // console.log('    |- dependencies');
-    // const lines: string[][] = [];
+    let i = 0;
     for (const {name: dep, json: {version: ver}, isInstalled} of packages4Workspace(Path.resolve(getRootDir(), reldir))) {
-      // console.log(`    |  |- ${dep}  v${ver}  ${isInstalled ? '' : chalk.gray('(linked)')}`);
-      table.push([chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)'), dep, ver, isInstalled ? '' : chalk.gray('linked')]);
+      table.push([i === 0 ? chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)') : '', dep, ver, isInstalled ? '' : chalk.gray('linked')]);
+      i++;
     }
-    // table.push([reldir ? `  ${reldir}/` : '  (root directory)', ...lines.shift()!]);
-    // lines[0][0] = chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)');
-    // lines.forEach(line => table.push(line));
-    table.push(['', '', '', '']);
-    // console.log('');
   }
   console.log(table.toString());
 }
@@ -137,9 +133,9 @@ function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
 }
 
 function createTable() {
-  const table = new Table({
-    chars: {mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': ''},
-    style: {head: []},
+  const table = createCliTable({
+    horizontalLines: false,
+    // style: {head: []},
     colAligns: ['right', 'left']
   });
   return table;

@@ -3119,7 +3119,6 @@ export declare function getPackagesOfProjects(projects: string[]): Generator<Pac
  */
 export declare function listPackages(): string;
 export declare function getProjectList(): string[];
-export declare function listPackagesByProjects(): string;
 export declare function isCwdWorkspace(): boolean;
 /**
  *
