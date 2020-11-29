@@ -4,7 +4,6 @@ import classNames from 'classnames/bind';
 import {MDCRipple} from '@material/ripple/index';
 import '@material/ripple/styles.scss';
 import styles from './Main.module.scss';
-import './hellow.scss';
 
 
 const cx = classNames.bind(styles);
@@ -19,9 +18,6 @@ const MainComp: React.FC<{}> = function(prop) {
   return <>
     <div className={bannerImgCls} ref={onDivReady}></div>
     <div className={styles.red}>You component goes here!</div>
-    <div className={styles.tstBtn}>
-      <div>TEST Ripple</div>
-    </div>
     </>;
 };
 

@@ -1,5 +1,5 @@
 import './index.css';
-import {renderDom} from './my-component/MyComponent';
+import {renderDom} from './main/MainComponent';
 // import reportWebVitals from './reportWebVitals';
 const container = document.getElementById('root')!;
 

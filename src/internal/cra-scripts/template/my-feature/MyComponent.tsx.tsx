@@ -4,10 +4,10 @@ import ReactDOM from 'react-dom';
 import styles from './$__MyComponent__$.module.scss';
 
 const $__MyComponent__$: React.FC<{}> = function(prop) {
-  return <React.Fragment>
+  return <>
     <div className={styles.assets}></div>
     <div className={styles.red}>You component goes here</div>
-    </React.Fragment>;
+    </>;
 };
 
 export default $__MyComponent__$;

@@ -54,6 +54,7 @@ const cli = (program, withGlobalOptions) => {
         .description('Compile react application or library, <package-name> is the target package name,\n' +
         'argument "app" for building an compelete application like create-react-app,\n' +
         'argument "lib" for building a library')
+        .option('-w, --watch', 'When build a library, watch file changes and compile', false)
         .option('-i, --include <module-path-regex>', '(multiple value), when argument is "lib", we will set external property of Webpack configuration for all request not begin with "." (except "@babel/runtimer"), ' +
         'meaning all external modules will not be included in the output bundle file, you need to explicitly provide a list in' +
         ' Regular expression (e.g. -i "^someLib/?" -i "^someLib2/?" -i ...) to make them be included in bundle file', arrayOptionFn, [])
@@ -68,10 +69,10 @@ const cli = (program, withGlobalOptions) => {
     }));
     withClicOpt(buildCmd);
     withGlobalOptions(buildCmd);
-    const StartCmd = program.command('cra-start <app|lib> <package-name>')
+    const StartCmd = program.command('cra-start <package-name>')
         .description('Run CRA start script for react application or library, <package-name> is the target package name')
-        .action((type, pkgName) => __awaiter(void 0, void 0, void 0, function* () {
-        yield initEverything(StartCmd, type, pkgName);
+        .action((pkgName) => __awaiter(void 0, void 0, void 0, function* () {
+        yield initEverything(StartCmd, 'app', pkgName);
         require('react-scripts/scripts/start');
     }));
     withClicOpt(StartCmd);
@@ -98,7 +99,7 @@ const cli = (program, withGlobalOptions) => {
 };
 exports.default = cli;
 function withClicOpt(cmd) {
-    cmd.option('-w, --watch', 'When build a library, watch file changes and compile', false)
+    cmd
         .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
         .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', undefined);
 }
