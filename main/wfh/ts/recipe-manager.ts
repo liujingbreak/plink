@@ -178,7 +178,7 @@ export function linkComponentsAsync(symlinksDir: string) {
   const obs: Observable<{proj: string, jsonFile: string, json: any}>[] = [];
   eachRecipeSrc((src, proj) => {
     obs.push(
-      findPackageJson(src, true).pipe(
+      findPackageJson(src, false).pipe(
         rwPackageJson.symbolicLinkPackages(symlinksDir),
         map(([jsonFile, json]) => {
           return {proj, jsonFile, json};

@@ -55,6 +55,7 @@ const cli = (program, withGlobalOptions) => {
         'argument "app" for building an compelete application like create-react-app,\n' +
         'argument "lib" for building a library')
         .option('-w, --watch', 'When build a library, watch file changes and compile', false)
+        .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
         .option('-i, --include <module-path-regex>', '(multiple value), when argument is "lib", we will set external property of Webpack configuration for all request not begin with "." (except "@babel/runtimer"), ' +
         'meaning all external modules will not be included in the output bundle file, you need to explicitly provide a list in' +
         ' Regular expression (e.g. -i "^someLib/?" -i "^someLib2/?" -i ...) to make them be included in bundle file', arrayOptionFn, [])
@@ -84,7 +85,7 @@ const cli = (program, withGlobalOptions) => {
         yield cli_init_1.initTsconfig();
     }));
     withGlobalOptions(initCmd);
-    const smeCmd = program.command('cra-sme [app-base-path]')
+    const smeCmd = program.command('cra-analyze [app-base-path]')
         .description('Run source-map-explorer')
         .action((appPath) => __awaiter(void 0, void 0, void 0, function* () {
         const plinkCfg = yield dist_1.initConfigAsync(initCmd.opts());
@@ -100,7 +101,7 @@ const cli = (program, withGlobalOptions) => {
 exports.default = cli;
 function withClicOpt(cmd) {
     cmd
-        .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
+        // .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
         .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', undefined);
 }
 function arrayOptionFn(curr, prev) {

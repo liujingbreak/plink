@@ -17,7 +17,7 @@ const splitChunks_1 = __importDefault(require("@wfh/webpack-common/dist/splitChu
 const log4js_1 = __importDefault(require("log4js"));
 const __api_1 = __importDefault(require("__api"));
 const log = log4js_1.default.getLogger('cra-scripts');
-const { nodePath } = JSON.parse(process.env.__plink);
+const { nodePath, rootDir } = JSON.parse(process.env.__plink);
 function insertLessLoaderRule(origRules) {
     const rulesAndParents = origRules.map((rule, idx, set) => [rule, idx, set]);
     // tslint:disable-next-line: prefer-for-of
@@ -176,6 +176,12 @@ module.exports = function (webpackEnv) {
         // runtime chunk file name
         config.output.filename = 'static/js/[name]-[contenthash:8].js';
         config.output.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
+        config.output.devtoolModuleFilenameTemplate =
+            info => path_1.default.relative(rootDir, info.absoluteResourcePath).replace(/\\/g, '/');
+    }
+    else {
+        config.output.filename = 'static/js/[name].js';
+        config.output.chunkFilename = 'static/js/[name].chunk.js';
     }
     const reportDir = __api_1.default.config.resolve('destDir', 'cra-scripts.report');
     fs_extra_1.default.mkdirpSync(reportDir);
@@ -262,15 +268,19 @@ module.exports = function (webpackEnv) {
         });
     }
     __api_1.default.config.configHandlerMgr().runEachSync((cfgFile, result, handler) => {
-        log.info('Execute command line Webpack configuration overrides', cfgFile);
-        handler.webpack(config, webpackEnv, cmdOption);
+        if (handler.webpack != null) {
+            log.info('Execute command line Webpack configuration overrides', cfgFile);
+            handler.webpack(config, webpackEnv, cmdOption);
+        }
     });
     const configFileInPackage = path_1.default.resolve(dir, lodash_1.default.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
     if (fs_extra_1.default.existsSync(configFileInPackage)) {
         const cfgMgr = new config_handler_1.ConfigHandlerMgr([configFileInPackage]);
         cfgMgr.runEachSync((cfgFile, result, handler) => {
-            log.info('Execute Webpack configuration overrides from ', cfgFile);
-            handler.webpack(config, webpackEnv, cmdOption);
+            if (handler.webpack != null) {
+                log.info('Execute Webpack configuration overrides from ', cfgFile);
+                handler.webpack(config, webpackEnv, cmdOption);
+            }
         });
     }
     fs_extra_1.default.writeFile(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), utils_1.printConfig(config), (err) => {

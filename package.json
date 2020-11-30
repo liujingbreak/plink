@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "packages": [
     "src",
-    "main",
+    "main/redux-toolkit-observable",
+    "main/thread-promise-pool",
     "doc-app"
   ],
   "scripts": {

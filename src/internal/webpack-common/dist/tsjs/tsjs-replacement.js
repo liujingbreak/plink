@@ -47,7 +47,6 @@ class TsPreCompiler {
     }
     parse(file, source, replaceContext, compiledSource, astPositionConvert) {
         const pk = this.findPackageByFile(file);
-        log.warn(file);
         if (pk == null)
             return source;
         const ast = compiledSource || ts.createSourceFile(file, source, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);

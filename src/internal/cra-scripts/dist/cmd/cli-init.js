@@ -19,11 +19,15 @@ const json_sync_parser_1 = __importDefault(require("@wfh/plink/wfh/dist/utils/js
 const patch_text_1 = __importDefault(require("@wfh/plink/wfh/dist/utils/patch-text"));
 const fs_1 = __importDefault(require("fs"));
 const log4js_1 = __importDefault(require("log4js"));
+// import {pathToProjKey} from '@wfh/plink/wfh/dist/package-mgr';
 const log = log4js_1.default.getLogger('cra');
+// const DEFAULT_DEPS = ['react-app-polyfill', '@wfh/cra-scripts', '@wfh/webpack-common', '@wfh/redux-toolkit-observable',
+//   'axios-observable'];
 function initTsconfig() {
     return __awaiter(this, void 0, void 0, function* () {
         // const {default: parse} = await import('@wfh/plink/wfh/dist/utils/json-sync-parser');
         overrideTsConfig();
+        // defaultDependencyTips();
     });
 }
 exports.initTsconfig = initTsconfig;
@@ -73,19 +77,25 @@ function overrideTsConfig() {
         log.info('tsconfig.json is updated.');
     }
 }
+// function defaultDependencyTips() {
+//   const pkJson = fs.readFileSync('package.json', 'utf8');
+//   const wkPkJson = JSON.parse(pkJson);
+//   const deps = new Set<string>(Object.keys(wkPkJson.dependencies));
+//   if (wkPkJson.devDependencies) {
+//     Object.keys(wkPkJson.devDependencies).forEach(dep => deps.add(dep));
+//   }
+//   const ast = parse(pkJson);
+//   if (wkPkJson.devDependencies == null) {
+//     replacements.push()
+//   }
+//   const replacements: ReplacementInf[] = [];
+//   for (const required of DEFAULT_DEPS) {
+//     if (!deps.has(required)) {
+//       replacements.push({});
+//     }
+//   }
+// }
 function initRedux() {
-    // const pkjsonStr = fs.readFileSync(Path.resolve('package.json'), 'utf8');
-    // const pkjson = JSON.parse(pkjsonStr);
-    // const replText = [] as ReplacementInf[];
-    // const ast = parseJson(pkjsonStr);
-    // // console.log(JSON.stringify(ast, null, '  '));
-    // if (pkjson.dependencies['@reduxjs/toolkit'] == null && pkjson.devDependencies['@reduxjs/toolkit'] == null) {
-    //   const devDepAst = ast.properties.find(prop => prop.name.text === 'devDependencies');
-    //   if (!devDepAst) {
-    //   }
-    //   const insertPoint = devDepAst.start + 1;
-    //   replText.push({start: insertPoint, end: insertPoint, text: '\n    "@reduxjs/toolkit": "",'});
-    // }
 }
 exports.default = initRedux;
 

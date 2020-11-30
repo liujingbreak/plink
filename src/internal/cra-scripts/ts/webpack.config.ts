@@ -18,7 +18,7 @@ import log4js from 'log4js';
 import api from '__api';
 
 const log = log4js.getLogger('cra-scripts');
-const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export = function(webpackEnv: 'production' | 'development') {
   drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${api.config.resolve('destDir', 'cra-scripts.report')}`);
@@ -43,6 +43,11 @@ export = function(webpackEnv: 'production' | 'development') {
     // runtime chunk file name
     config.output!.filename = 'static/js/[name]-[contenthash:8].js';
     config.output!.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
+    config.output!.devtoolModuleFilenameTemplate =
+      info => Path.relative(rootDir, info.absoluteResourcePath).replace(/\\/g, '/');
+  } else {
+    config.output!.filename = 'static/js/[name].js';
+    config.output!.chunkFilename = 'static/js/[name].chunk.js';
   }
 
   const reportDir = api.config.resolve('destDir', 'cra-scripts.report');
@@ -140,16 +145,20 @@ export = function(webpackEnv: 'production' | 'development') {
   }
 
   api.config.configHandlerMgr().runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
-    log.info('Execute command line Webpack configuration overrides', cfgFile);
-    handler.webpack(config, webpackEnv, cmdOption);
+    if (handler.webpack != null) {
+      log.info('Execute command line Webpack configuration overrides', cfgFile);
+      handler.webpack(config, webpackEnv, cmdOption);
+    }
   });
   const configFileInPackage = Path.resolve(dir, _.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
 
   if (fs.existsSync(configFileInPackage)) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
     cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
-      log.info('Execute Webpack configuration overrides from ', cfgFile);
-      handler.webpack(config, webpackEnv, cmdOption);
+      if (handler.webpack != null) {
+        log.info('Execute Webpack configuration overrides from ', cfgFile);
+        handler.webpack(config, webpackEnv, cmdOption);
+      }
     });
   }
 

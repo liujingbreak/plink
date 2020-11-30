@@ -24,7 +24,7 @@ create-react-app, Redux toolkit, Redux-observable.
 
 2. Suppose you are about to create a space directory named "react-space"
 ```bash
-create-react-app react-space --template cra-template-typescript --use-npm`
+create-react-app react-space --template cra-template-typescript --use-npm
 ```
 
 3. Modify `react-space/package.json` file.
@@ -35,6 +35,7 @@ Add dependencies, packages with `@wfh` are required by Plink, others should be y
   "@wfh/cra-scripts": "1.0.21",
   "@wfh/webpack-common": "1.0.2",
   "@wfh/redux-toolkit-observable": "1.0.5",
+  "react-app-polyfill": "^2.0.0",
   "axios-observable": "^1.1.3",
   "@foobar/your-feature-package": "1.0.0"
 }

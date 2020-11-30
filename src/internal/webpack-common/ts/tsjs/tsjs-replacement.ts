@@ -35,7 +35,6 @@ export default class TsPreCompiler {
   parse(file: string, source: string, replaceContext: {[key: string]: any}, compiledSource?: ts.SourceFile,
     astPositionConvert?: (pos: number) => number): string {
     const pk = this.findPackageByFile(file);
-    log.warn(file);
     if (pk == null)
       return source;
 

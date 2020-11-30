@@ -12,6 +12,7 @@ const patterns = {
 	clusterFileDate: '%d (PID:%z)[%p] %c - %m'
 };
 
+let fileName = 'credit-nodejs-server.log';
 if (isPm2) {
 	// log4js requires special treatment for cluster or PM2 environment
 	console.log(`(PID:${process.pid})[log4js.js] process is worker? ${cluster.isWorker}, is master? ${cluster.isMaster}`);
@@ -21,6 +22,8 @@ if (isPm2) {
 		// Refer to https://github.com/liujingbreak/log4js-pm2-intercom
 		process.send({topic: 'log4js:master'});
 	}
+} else if (process.send) { // this is a forked process, should use a different file name
+	fileName = `credit-nodejs-server(${process.pid}).log`;
 }
 
 var config = {
@@ -34,7 +37,7 @@ var config = {
 		errorOut: {type: 'logLevelFilter', appender: 'out', level: 'error'},
 		file: {
 			type: 'file',
-			filename: 'logs/credit-nodejs-server.log',
+			filename: Path.resolve(__dirname, 'logs', fileName),
 			keepFileExt: true,
 			layout: {type: 'pattern', pattern: cluster.isWorker ? patterns.clusterFileDate : patterns.fileDate},
 			maxLogSize: 500 * 1024,
