@@ -17,4 +17,8 @@ npm notice total files:   47
 npm notice
 
  */
-export declare function parseNpmPackOutput(output: string): Map<string, string>;
+declare function parseNpmPackOutput(output: string): Map<string, string>;
+export declare const testable: {
+    parseNpmPackOutput: typeof parseNpmPackOutput;
+};
+export {};

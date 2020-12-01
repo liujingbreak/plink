@@ -1,6 +1,6 @@
 {
   "name": "@wfh/cra-scripts",
-  "version": "1.0.22",
+  "version": "1.0.24",
   "description": "Something like create-react-rewired",
   "main": "dist/preload.js",
   "dr": {

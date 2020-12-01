@@ -1,8 +1,18 @@
-import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
+import {ReactScriptsHandler, CraScriptsPaths} from '@wfh/cra-scripts/dist/types';
+// import plinkConfig from '@wfh/plink/wfh/dist/config';
 
 const handler: ReactScriptsHandler = {
+  changeCraPaths(craPaths: CraScriptsPaths) {
+    // change CRA paths:
+
+    // output directory will be dist/static/main
+    craPaths.appBuild = craPaths.appBuild + '/main';
+    // webpack output.publicPath will be /main/, same as set environment variable PUBLIC_URL
+    craPaths.publicUrlOrPath = '/main/';
+  },
+
   webpack(cfg, env, cmdOpt) {
-    // Change webpack configure here
+    // change Webpack configure "cfg"
   }
 };
 

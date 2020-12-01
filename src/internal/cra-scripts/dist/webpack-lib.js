@@ -87,8 +87,8 @@ function change(buildPackage, config, nodePath) {
             this.forkDone = Promise.resolve();
         }
         apply(compiler) {
-            this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
             compiler.hooks.done.tap('cra-scripts', stats => {
+                this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
                 log.warn(chalk_1.default.red('external request:\n  ' + Array.from(reqSet.values()).join(', ')));
             });
         }

@@ -5,8 +5,8 @@ import {merge} from 'rxjs';
 import { distinctUntilChanged, map, take, skip, scan } from 'rxjs/operators';
 import config from '../config';
 import { actionDispatcher as actions, getState, getStore, WorkspaceState} from '../package-mgr';
-import { packages4Workspace } from '../package-utils';
-import { getRootDir } from '../utils/misc';
+import { packages4WorkspaceKey } from '../package-utils';
+// import { getRootDir } from '../utils/misc';
 import { listProject } from './cli-project';
 import _ from 'lodash';
 import * as options from './types';
@@ -77,18 +77,49 @@ export function printWorkspaces() {
     horizontalLines: false,
     colAligns: ['right', 'right']
   });
+  const sep = ['--------------', '------------------', '------------', '----------', '-----'];
   table.push([{colSpan: 4, content: chalk.bold('Worktree Space directories and linked dependencies\n'), hAlign: 'center'}],
-    ['Worktree Space', 'Dependency package', 'Version', 'state'].map(item => chalk.bold(item)),
-    ['--------------', '------------------', '-------', '-----']);
+    ['Worktree Space', 'Dependency package', 'Expect version', 'Actual version', 'state'].map(item => chalk.bold(item)),
+    sep);
 
+  let wsIdx = 0;
   for (const reldir of getState().workspaces.keys()) {
+    if (wsIdx > 0) {
+      table.push(sep);
+    }
+
     let i = 0;
-    for (const {name: dep, json: {version: ver}, isInstalled} of packages4Workspace(Path.resolve(getRootDir(), reldir))) {
-      table.push([i === 0 ? chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)') : '', dep, ver, isInstalled ? '' : chalk.gray('linked')]);
+    const pkJson = getState().workspaces.get(reldir)!.originInstallJson;
+    // console.log(pkJson);
+
+    for (const {name: dep, json: {version: ver}, isInstalled} of packages4WorkspaceKey(reldir)) {
+      table.push([i === 0 ? chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)') : '',
+        dep, convertVersion(pkJson, dep), ver, isInstalled ? '' : chalk.gray('linked')]);
       i++;
     }
+    wsIdx++;
   }
   console.log(table.toString());
+}
+
+function convertVersion(pkgJson: {
+  dependencies?: {[k: string]: string},
+  devDependencies?: {[k: string]: string}
+}, depName: string) {
+  let ver = pkgJson.dependencies ? pkgJson.dependencies[depName] : null;
+  if (ver == null && pkgJson.devDependencies) {
+    ver = pkgJson.devDependencies[depName];
+  }
+  if (ver == null) {
+    return '';
+  }
+  if (ver.startsWith('.') || ver.startsWith('file:')) {
+    const m = /\-(\d+(?:\.\d+){1,2}(?:\-[^\-])?)\.tgz$/.exec(ver);
+    if (m) {
+      return m[1];
+    }
+  }
+  return ver;
 }
 
 function printWorkspaceHoistedDeps(workspace: WorkspaceState) {

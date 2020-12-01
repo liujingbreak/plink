@@ -20,10 +20,10 @@ const url_1 = __importDefault(require("url"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const path_1 = __importDefault(require("path"));
 const log = log4js_1.default.getLogger(__api_1.default.packageName + '.send-patch');
-const installUrlMap = __api_1.default.config.get(__api_1.default.packageName + '.installEndpoint');
+const installUrlMap = __api_1.default.config.get(__api_1.default.packageName);
 function send(env, appName, zipFile, numOfConc, numOfNode, force = false, secret) {
     return __awaiter(this, void 0, void 0, function* () {
-        let url = installUrlMap[env];
+        let url = installUrlMap.byEnv[env].installEndpoint;
         const rootDir = __api_1.default.config().rootPath;
         url = force ? url_1.default.resolve(url, '/_install_force') : url_1.default.resolve(url, '/_install');
         if (fs_extra_1.default.statSync(zipFile).isDirectory()) {
@@ -40,7 +40,7 @@ function send(env, appName, zipFile, numOfConc, numOfNode, force = false, secret
             yield sendAppZip({
                 remoteFile: `install-${env}/${appName}.zip`,
                 url,
-                numOfConc: numOfConc != null ? numOfConc : env === 'prod' ? 2 : 1,
+                numOfConc: numOfConc != null ? numOfConc : env === 'prod' ? 4 : 2,
                 numOfNode: numOfNode != null ? numOfNode : env === 'prod' ? 2 : 1,
                 secret
             }, zipFile);

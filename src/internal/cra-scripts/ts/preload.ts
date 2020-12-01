@@ -29,7 +29,8 @@ deleteExecArgIdx.reduce((offset, deleteIdx) => {
 // poo();
 
 export function poo() {
-  const getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
+  let getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
+
   const reactScriptsPath = `${sep}node_modules${sep}react-scripts${sep}`;
   const reactDevUtilsPath = `${sep}node_modules${sep}react-dev-utils${sep}`;
   const buildScriptsPath = Path.join('node_modules', 'react-scripts', 'scripts', 'build.js');

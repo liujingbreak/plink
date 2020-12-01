@@ -84,6 +84,7 @@ export interface WorkspaceState {
   linkedDependencies: [string, string][];
   // /** names of those symlink packages */
   linkedDevDependencies: [string, string][];
+
   /** installed DR component packages [name, version]*/
   installedComponents?: Map<string, PackageInfo>;
 
@@ -752,11 +753,13 @@ async function installWorkspace(ws: WorkspaceState) {
     await exe('npm', 'dedupe', {cwd: dir}).promise;
   } catch (e) {
     // tslint:disable-next-line: no-console
-    console.log(e, e.stack);
+    console.log('Failed to install dependencies', e.stack);
     throw e;
   } finally {
+    // tslint:disable-next-line: no-console
+    console.log('Recover ' + installJsonFile);
     // 3. Recover package.json and symlinks deleted in Step.1.
-    fs.writeFile(installJsonFile, ws.originInstallJsonStr, 'utf8');
+    fs.writeFileSync(installJsonFile, ws.originInstallJsonStr, 'utf8');
     await recoverSymlinks();
   }
 

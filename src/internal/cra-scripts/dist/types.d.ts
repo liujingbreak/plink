@@ -1,6 +1,9 @@
 /// <reference types="webpack-dev-server" />
 import { Configuration } from 'webpack';
 import { CommandOption } from './build-options';
+import { CraScriptsPaths } from './cra-scripts-paths';
+export { CraScriptsPaths };
 export interface ReactScriptsHandler {
-    webpack(cfg: Configuration, env: string, cmdOpt: CommandOption): void;
+    changeCraPaths?(craPaths: CraScriptsPaths): void;
+    webpack?(cfg: Configuration, env: string, cmdOpt: CommandOption): void;
 }

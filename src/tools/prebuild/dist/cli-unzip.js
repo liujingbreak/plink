@@ -26,6 +26,9 @@ function listZip(fileName) {
             });
         });
         const list = [];
+        if (zip == null) {
+            throw new Error(`yauzl can not create zip file ${fileName}`);
+        }
         zip.on('entry', (entry) => {
             list.push(entry.fileName);
             // tslint:disable-next-line: no-console

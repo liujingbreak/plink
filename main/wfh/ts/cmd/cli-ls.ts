@@ -28,7 +28,10 @@ export default async function list(opt: GlobalOptions & {json: boolean}) {
     console.log(listPackagesByProjects());
 
   const table = createCliTable({horizontalLines: false});
-  table.push([{colSpan: 2, hAlign: 'center', content: 'SERVER COMPONENTS\n'}]);
+  table.push(
+    [{colSpan: 2, hAlign: 'center', content: chalk.bold('SERVER COMPONENTS')}],
+    [chalk.bold('Package'), chalk.bold('Directory')],
+    ['------', '-------']);
 
   const list: ComponentListItem[] = await pkRunner.listServerComponents();
   list.forEach(row => table.push([row.desc, chalk.blue(Path.relative(config().rootPath, row.pk.path))]));

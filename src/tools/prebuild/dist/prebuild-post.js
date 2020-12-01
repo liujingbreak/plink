@@ -61,8 +61,13 @@ function main(env, appName, buildStaticOnly = false, pushBranch = true, isForce 
         const currBranch = yield merge_artifacts_1.getCurrBranchName();
         if (buildStaticOnly && zipFile) {
             // Dynamically push to Node server
+            const cfgByEnv = setting.byEnv[env];
+            if (cfgByEnv == null) {
+                throw new Error(`Missing configuration property '@wfh/prebuild.byEnv["${env}"]',` +
+                    `add this property with command line argument '-c <file>' or '--prop @wfh/prebuild.byEnv["${env}"]'`);
+            }
             try {
-                yield _send_patch_1.send(env, appName, zipFile, undefined, undefined, isForce, secret);
+                yield _send_patch_1.send(env, appName, zipFile, setting.byEnv[env].sendConcurrency, setting.byEnv[env].sendNodes, isForce, secret);
             }
             catch (ex) {
                 try {
@@ -95,6 +100,7 @@ function pushReleaseBranch(releaseBranch, rootDir, env, appName, commitComment) 
                 fs_extra_1.default.removeSync(gitHooks);
             }
         }
+        log.info('commitComment', commitComment);
         yield process_utils_1.spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
         yield process_utils_1.spawn('git', 'push', '-f', releaseRemote, releaseBranch, { cwd: rootDir }).promise;
     });

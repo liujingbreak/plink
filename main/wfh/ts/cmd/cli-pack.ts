@@ -1,7 +1,8 @@
 
 import {queueUp} from '../utils/promise-queque';
 import * as _ from 'lodash';
-import * as fs from 'fs-extra';
+import * as fs from 'fs';
+import fsext from 'fs-extra';
 import * as Path from 'path';
 import {promisifyExe} from '../process-utils';
 // import {boxString} from './utils';
@@ -15,17 +16,19 @@ import {getPackagesOfProjects, getState, workspaceKey} from '../package-mgr';
 import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import log4js from 'log4js';
 import {findPackagesByNames} from './utils';
-// import * as packageUtils from './package-utils';
-// const recipeManager = require('../lib/gulp/recipeManager');
-const log = log4js.getLogger('cli-pack');
-// const namePat = /name:\s+([^ \n\r]+)/mi;
-// const fileNamePat = /filename:\s+([^ \n\r]+)/mi;
 
-export async function pack(opts: PackOptions) {
+let tarballDir: string;
+const log = log4js.getLogger('cli-pack');
+
+async function init(opts: PublishOptions | PackOptions) {
   await config.init(opts);
   logConfig(config());
+  tarballDir = Path.resolve(config().rootPath, 'tarballs');
+  fsext.mkdirpSync(tarballDir);
+}
 
-  fs.mkdirpSync('tarballs');
+export async function pack(opts: PackOptions) {
+  await init(opts);
 
   if (opts.workspace && opts.workspace.length > 0) {
     await Promise.all(opts.workspace.map(ws => packPackages(Array.from(linkedPackagesOfWorkspace(ws)))));
@@ -37,6 +40,7 @@ export async function pack(opts: PackOptions) {
     const dirs = Array.from(findPackagesByNames(getState(), opts.packages))
     .filter(pkg => pkg)
     .map(pkg => pkg!.realPath);
+
     await packPackages(dirs);
   } else {
     await packPackages(Array.from(linkedPackagesOfWorkspace(process.cwd())));
@@ -44,10 +48,7 @@ export async function pack(opts: PackOptions) {
 }
 
 export async function publish(opts: PublishOptions) {
-  await config.init(opts);
-  logConfig(config());
-
-  fs.mkdirpSync('tarballs');
+  await init(opts);
 
   if (opts.project && opts.project.length > 0)
     return publishProject(opts.project, opts.public ? ['--access', 'public'] : []);
@@ -80,19 +81,21 @@ async function packPackages(packageDirs: string[]) {
   if (packageDirs && packageDirs.length > 0) {
     const pgPaths: string[] = packageDirs;
 
-    const done = queueUp(3, pgPaths.map(packageDir => () => npmPack(packageDir)));
-    let tarInfos = await done;
+    const done = queueUp(4, pgPaths.map(packageDir => () => npmPack(packageDir)));
+    const tarInfos = (await done).filter(item => typeof item != null) as
+      (typeof done extends Promise<(infer T)[]> ? NonNullable<T> : unknown)[];
 
-    tarInfos = tarInfos.filter(item => item != null);
-    const rootPath = config().rootPath;
     for (const item of tarInfos) {
-      package2tarball.set(item!.name, Path.resolve(rootPath, 'tarballs', item!.filename));
+      package2tarball.set(item.name, Path.resolve(tarballDir, item!.filename));
     }
     // log.info(Array.from(package2tarball.entries())
     //   .map(([pkName, ver]) => `"${pkName}": "${ver}",`)
     //   .join('\n'));
-    await deleteOldTar(tarInfos.map(item => item!.name.replace('@', '').replace(/[/\\]/g, '-')),
-      tarInfos.map(item => item!.filename));
+    await deleteOldTar(tarInfos.map(item => new RegExp('^' +
+      _.escapeRegExp(item.name.replace('@', '').replace(/[/\\]/g, '-'))
+        + '\\-\\d+(?:\\.\\d+){1,2}(?:\\-[^\\-])?\\.tgz$', 'i'
+      )),
+      tarInfos.map(item => item.filename));
     await changePackageJson(package2tarball);
   }
 }
@@ -109,7 +112,7 @@ async function publishPackages(packageDirs: string[], npmCliOpts: string[]) {
   if (packageDirs && packageDirs.length > 0) {
     const pgPaths: string[] = packageDirs;
 
-    await queueUp(3, pgPaths.map(packageDir => async () => {
+    await queueUp(4, pgPaths.map(packageDir => async () => {
       try {
         log.info(`publishing ${packageDir}`);
         const params = ['publish', ...npmCliOpts, {silent: true, cwd: packageDir}];
@@ -134,7 +137,7 @@ async function npmPack(packagePath: string):
   Promise<{name: string, filename: string} | null> {
   try {
     const output = await promisifyExe('npm', 'pack', Path.resolve(packagePath),
-      {silent: true, cwd: Path.resolve(config().rootPath, 'tarballs')});
+      {silent: true, cwd: tarballDir});
     const resultInfo = parseNpmPackOutput(output);
 
     const packageName = resultInfo.get('name')!;
@@ -155,7 +158,7 @@ async function npmPack(packagePath: string):
  */
 function changePackageJson(package2tarball: Map<string, string>) {
   const deleteOldDone: Promise<void>[] = [];
-  for (const workspace of getState().workspaces.keys()) {
+  for (const workspace of [...getState().workspaces.keys(), config().rootPath]) {
     const wsDir = Path.resolve(config().rootPath, workspace);
     const jsonFile = Path.resolve(wsDir, 'package.json');
     const pkj = fs.readFileSync(jsonFile, 'utf8');
@@ -192,13 +195,6 @@ function changePackageJson(package2tarball: Map<string, string>) {
         end: verToken.end!,
         text: JSON.stringify(newVersion)
       });
-      let oldFile = verToken.text;
-      const match = /^"?(?:file:\/\/|\.\/)([^]*)"?$/.exec(oldFile);
-      if (match && match[1]) {
-        oldFile = Path.resolve(wsDir, match[1]);
-        const done = fs.remove(oldFile);
-        deleteOldDone.push(done);
-      }
     }
   }
   return Promise.all(deleteOldDone);
@@ -227,7 +223,7 @@ npm notice total files:   47
 npm notice 
 
  */
-export function parseNpmPackOutput(output: string) {
+function parseNpmPackOutput(output: string) {
   const lines = output.split(/\r?\n/);
   const linesOffset = _.findLastIndex(lines, line => line.indexOf('Tarball Details') >= 0);
   const tarballInfo = new Map<string, string>();
@@ -240,17 +236,21 @@ export function parseNpmPackOutput(output: string) {
   return tarballInfo;
 }
 
-function deleteOldTar(deleteFilePrefix: string[], keepfiles: string[]) {
+export const testable = {parseNpmPackOutput};
+
+function deleteOldTar(deleteFileReg: RegExp[], keepfiles: string[]) {
+  // log.warn(deleteFileReg, keepfiles);
   const tarSet = new Set(keepfiles);
   const deleteDone: Promise<any>[] = [];
-  if (!fs.existsSync(config.resolve('rootPath', 'tarballs')))
-    fs.mkdirpSync(config.resolve('rootPath', 'tarballs'));
+
+  if (!fs.existsSync(tarballDir))
+    fsext.mkdirpSync(tarballDir);
   // TODO: wait for timeout
-  for (const file of fs.readdirSync('tarballs')) {
-    if (!tarSet.has(file) && deleteFilePrefix.some(prefix => file.startsWith(prefix))) {
-      deleteDone.push(fs.remove(Path.resolve('tarballs', file)));
+  for (const file of fs.readdirSync(tarballDir)) {
+    if (!tarSet.has(file) && deleteFileReg.some(reg => reg.test(file))) {
+      log.warn('Remove ' + file);
+      deleteDone.push(fs.promises.unlink(Path.resolve(tarballDir, file)));
     }
   }
   return Promise.all(deleteDone);
-  // log.info('You may delete old version tar file by execute commands:\n' + cmd);
 }

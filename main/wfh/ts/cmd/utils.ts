@@ -34,6 +34,11 @@ export function* findPackagesByNames(state: PackagesState, guessingNames: string
     let found = false;
     for (const prefix of prefixes) {
       const name = prefix + gn;
+      if (name === '@wfh/plink' && state.linkedDrcp) {
+        yield state.linkedDrcp;
+        found = true;
+        break;
+      }
       const pkg = available.get(name);
       if (pkg) {
         yield pkg;

@@ -89,8 +89,8 @@ export default function change(buildPackage: string, config: Configuration, node
       forkDone: Promise<any> = Promise.resolve();
 
       apply(compiler: Compiler) {
-        this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
         compiler.hooks.done.tap('cra-scripts', stats => {
+          this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
           log.warn(chalk.red('external request:\n  ' + Array.from(reqSet.values()).join(', ')));
         });
       }

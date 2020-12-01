@@ -20,8 +20,8 @@ import * as _unzip from './cli-unzip';
 const cliExt: CliExtension = (program, withGlobalOptions) => {
 
   // ----------- deploy ----------
-  const deployCmd = program.command('deploy <app> [ts-scripts#function-or-shell]')
-  .option('--static', 'as an static resource build', false)
+  const deployCmd = program.command('deploy <app-name> [ts-scripts#function-or-shell]')
+  .option('--push,--static', 'push to remote file server after build script execution finished', false)
   .option('--no-push-branch', 'Do not push to release branch', false)
   // .option('--secret <secret>', 'credential word')
   .option('--secret <credential code>', 'credential code for deploy to "prod" environment')
@@ -34,6 +34,8 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
 
     const cliDeploy = (require('./cli-deploy').default as typeof _cliDeploy);
+    const log = log4js.getLogger('prebuild');
+    log.info('commit comment:', deployCmd.opts().cc);
     await cliDeploy(opt.static, opt.env, app, deployCmd.opts().pushBranch, deployCmd.opts().force , deployCmd.opts().secret || null, scriptsFile,
       deployCmd.opts().cc);
   });
@@ -55,7 +57,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   withGlobalOptions(githashCmd);
 
   // ------ send --------
-  const sendCmd = createEnvOption(program.command('send <app-name> <zip-file or directory>'))
+  const sendCmd = createEnvOption(program.command('send <app-name> <zipFileOrDir>'))
   .description('Send static resource to remote server')
   .option('--con <number of concurrent request>', 'Send file with concurrent process for multiple remote server nodes', '1')
   .option('--nodes <number of remote nodes>', 'Number of remote server nodes', '1')
@@ -126,6 +128,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     await listZip(file);
   });
 
+  // -------- unzip --------
   const unzipCmd = program.command('unzip <zipFileDirectory>')
   .description('Extract all zip files from specific directory')
   .requiredOption('-d,--dest <dir>', 'destination directory')

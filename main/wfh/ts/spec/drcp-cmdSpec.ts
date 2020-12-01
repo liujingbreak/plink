@@ -1,8 +1,8 @@
-import {parseNpmPackOutput} from '../cmd/cli-pack';
+import {testable} from '../cmd/cli-pack';
 
 describe('drcp-cmd', () => {
   it('parseNpmPackOutput', () => {
-    const map = parseNpmPackOutput(`
+    const map = testable.parseNpmPackOutput(`
 npm notice === Tarball Details === 
 npm notice name:          require-injector                        
 npm notice version:       5.1.5                                   

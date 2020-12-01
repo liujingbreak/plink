@@ -72,7 +72,7 @@ function subDrcpCommand(program: commander.Command) {
   .option('-f, --force', 'Force run "npm install" in specific workspace directory', false)
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
   .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false)
-  .action(async (workspace: string) => {
+  .action(async (workspace?: string) => {
     // tslint:disable-next-line: no-console
     console.log(sexyFont('PLink').string);
     await (await import('./cli-init')).default(initCmd.opts() as any, workspace);
@@ -357,6 +357,7 @@ function checkPlinkVersion() {
     let depVer: string = json.dependencies && json.dependencies['@wfh/plink'] ||
       json.devDependencies && json.devDependencies['@wfh/plink'];
     if (depVer == null) {
+      // tslint:disable-next-line: no-console
       console.log(boxString('Don\'t forget to add @wfh/plink in package.json as dependencies'));
       return;
     }
@@ -369,7 +370,7 @@ function checkPlinkVersion() {
     if (depVer && !semver.satisfies(pk.version, depVer)) {
       // tslint:disable-next-line: no-console
       console.log(boxString(`Please run commands to re-install local Plink v${pk.version}, required is v${depVer}:\n\n` +
-        '  plink clean-symlinks\n  npm i\n  npm dedupe'));
+        '  plink clean-symlinks\n  npm i\n  npm ddp'));
     }
   }
 }

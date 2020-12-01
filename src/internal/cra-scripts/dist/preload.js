@@ -32,7 +32,7 @@ deleteExecArgIdx.reduce((offset, deleteIdx) => {
 // saveCmdArgToEnv();
 // poo();
 function poo() {
-    const getCraPaths = require('./cra-scripts-paths').default;
+    let getCraPaths = require('./cra-scripts-paths').default;
     const reactScriptsPath = `${path_2.sep}node_modules${path_2.sep}react-scripts${path_2.sep}`;
     const reactDevUtilsPath = `${path_2.sep}node_modules${path_2.sep}react-dev-utils${path_2.sep}`;
     const buildScriptsPath = path_1.default.join('node_modules', 'react-scripts', 'scripts', 'build.js');

@@ -19,4 +19,5 @@ export interface CraScriptsPaths {
     appTypeDeclarations: string;
     ownTypeDeclarations: string;
 }
+export declare let configFileInPackage: string | undefined | null;
 export default function paths(): CraScriptsPaths;

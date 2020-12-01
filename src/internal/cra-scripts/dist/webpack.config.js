@@ -3,62 +3,51 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 // tslint:disable:no-console
-const lodash_1 = __importDefault(require("lodash"));
-const path_1 = __importDefault(require("path"));
+const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
+const splitChunks_1 = __importDefault(require("@wfh/webpack-common/dist/splitChunks"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
-const webpack_sources_1 = require("webpack-sources");
+// import walkPackagesAndSetupInjector from './injector-setup';
+const log4js_1 = __importDefault(require("log4js"));
+const path_1 = __importDefault(require("path"));
+const __api_1 = __importDefault(require("__api"));
 const utils_1 = require("./utils");
 // import {createLazyPackageFileFinder} from '@wfh/plink/wfh/dist/package-utils';
 const webpack_lib_1 = __importDefault(require("./webpack-lib"));
-const build_target_helper_1 = require("./build-target-helper");
-const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
-const splitChunks_1 = __importDefault(require("@wfh/webpack-common/dist/splitChunks"));
-// import walkPackagesAndSetupInjector from './injector-setup';
-const log4js_1 = __importDefault(require("log4js"));
-const __api_1 = __importDefault(require("__api"));
 const log = log4js_1.default.getLogger('cra-scripts');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
 function insertLessLoaderRule(origRules) {
-    const rulesAndParents = origRules.map((rule, idx, set) => [rule, idx, set]);
-    // tslint:disable-next-line: prefer-for-of
-    for (let i = 0; i < rulesAndParents.length; i++) {
-        const rule = rulesAndParents[i][0];
-        const parentRules = rulesAndParents[i][2];
-        const idx = rulesAndParents[i][1];
-        if (rule.test) {
-            if (rule.test.toString() === '/\\.(scss|sass)$/') {
-                const use = rule.use;
-                const postCss = use.find(item => item.loader && item.loader.indexOf('postcss-loader') >= 0);
-                // log.info(chalk.redBright('' + i));
-                parentRules.splice(idx, 0, createLessLoaderRule(postCss));
-                break;
-            }
-        }
-        else if (rule.oneOf) {
-            rule.oneOf.forEach((r, idx, list) => {
-                rulesAndParents.push([r, idx, list]);
-            });
-        }
-    }
-}
-function createLessLoaderRule(postCssLoaderRule) {
-    return {
-        test: /\.less$/,
-        use: [
-            require.resolve('style-loader'),
-            {
-                loader: require.resolve('css-loader'),
-                options: {
-                    importLoaders: 2,
-                    sourceMap: process.env.GENERATE_SOURCEMAP !== 'false'
-                }
-            },
-            postCssLoaderRule,
-            {
-                loader: 'less-loader'
-            }
-        ]
+    var _a, _b, _c;
+    const oneOf = (_a = origRules.find(rule => rule.oneOf)) === null || _a === void 0 ? void 0 : _a.oneOf;
+    // 1. let's take rules for css as a template
+    const cssRuleUse = (_b = oneOf.find(subRule => subRule.test instanceof RegExp &&
+        subRule.test.source === '\\.css$')) === null || _b === void 0 ? void 0 : _b.use;
+    const cssModuleRuleUse = (_c = oneOf.find(subRule => subRule.test instanceof RegExp &&
+        subRule.test.source === '\\.module\\.css$')) === null || _c === void 0 ? void 0 : _c.use;
+    const lessModuleRule = {
+        test: /\.module\.less$/,
+        use: createLessRuleUse(cssModuleRuleUse),
+        sideEffects: true
     };
+    const lessRule = {
+        test: /\.less$/,
+        // exclude: /\.module\.less$/,
+        use: createLessRuleUse(cssRuleUse),
+        sideEffects: true
+    };
+    // Insert at last 2nd position, right before file-loader
+    oneOf.splice(oneOf.length - 2, 0, lessModuleRule, lessRule);
+    function createLessRuleUse(useItems) {
+        return useItems.map(useItem => {
+            if (typeof useItem === 'string' || typeof useItem === 'function') {
+                return useItem;
+            }
+            let newUseItem = Object.assign({}, useItem);
+            if (useItem.loader && /[\\/]css\-loader[\\/]/.test(useItem.loader)) {
+                newUseItem.options = Object.assign(Object.assign({}, (newUseItem.options || {})), { importLoaders: 2 });
+            }
+            return newUseItem;
+        }).concat('less-loader');
+    }
 }
 function findAndChangeRule(rules) {
     const craPaths = require('react-scripts/config/paths');
@@ -134,27 +123,23 @@ function insertRawLoader(rules) {
 }
 /** To support Material-component-web */
 function replaceSassLoader(rules) {
-    for (const rule of rules) {
-        if (rule.oneOf) {
-            for (const subRule of rule.oneOf) {
-                if (Array.isArray(subRule.use)) {
-                    for (const loaderObj of subRule.use) {
-                        if (loaderObj.loader && /sass-loader/.test(loaderObj.loader)) {
-                            loaderObj.options = {
-                                implementation: require('sass'),
-                                webpackImporter: false,
-                                sourceMap: true,
-                                sassOptions: {
-                                    includePaths: ['node_modules', ...nodePath]
-                                }
-                            };
-                        }
-                    }
+    var _a;
+    const oneOf = (_a = rules.find(rule => rule.oneOf)) === null || _a === void 0 ? void 0 : _a.oneOf;
+    oneOf.filter(subRule => Array.isArray(subRule.use))
+        .forEach(subRule => {
+        const useItem = subRule.use
+            .find(useItem => useItem.loader && /sass-loader/.test(useItem.loader));
+        if (useItem != null) {
+            useItem.options = {
+                implementation: require('sass'),
+                webpackImporter: false,
+                sourceMap: true,
+                sassOptions: {
+                    includePaths: ['node_modules', ...nodePath]
                 }
-            }
-            break;
+            };
         }
-    }
+    });
 }
 module.exports = function (webpackEnv) {
     utils_1.drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${__api_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
@@ -170,6 +155,7 @@ module.exports = function (webpackEnv) {
     // }
     const origWebpackConfig = require('react-scripts/config/webpack.config');
     process.env.INLINE_RUNTIME_CHUNK = 'true';
+    const { default: craPaths, configFileInPackage } = require('./cra-scripts-paths');
     const config = origWebpackConfig(webpackEnv);
     if (webpackEnv === 'production') {
         // Try to workaround create-react-app issue: default InlineChunkPlugin 's test property does not match 
@@ -189,7 +175,6 @@ module.exports = function (webpackEnv) {
         if (err)
             log.error('Failed to write ' + path_1.default.resolve(reportDir, 'webpack.config.cra.js'), err);
     });
-    log.info(`[cra-scripts] output.publicPath: ${config.output.publicPath}`);
     // Make sure babel compiles source folder out side of current src directory
     findAndChangeRule(config.module.rules);
     replaceSassLoader(config.module.rules);
@@ -215,16 +200,16 @@ module.exports = function (webpackEnv) {
         }
     });
     insertLessLoaderRule(config.module.rules);
-    const foundPkg = build_target_helper_1.findPackage(cmdOption.buildTarget);
-    if (foundPkg == null) {
-        throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
-    }
-    const { dir, packageJson } = foundPkg;
+    // const foundPkg = findPackage(cmdOption.buildTarget);
+    // if (foundPkg == null) {
+    //   throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
+    // }
+    // const {dir, packageJson} = foundPkg;
     if (cmdOption.buildType === 'app') {
         // TODO: do not hard code
         // config.resolve!.alias!['alias:dr.cra-app-entry'] = packageJson.name + '/' + packageJson.dr['cra-app-entry'];
         // log.info(`[cra-scripts] alias:dr.cra-app-entry: ${config.resolve!.alias!['alias:dr.cra-app-entry']}`);
-        config.output.path = __api_1.default.config.resolve('staticDir');
+        config.output.path = craPaths().appBuild;
         // config.devtool = 'source-map';
     }
     // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
@@ -238,21 +223,19 @@ module.exports = function (webpackEnv) {
     const resolveModules = ['node_modules', ...nodePath];
     config.resolve.modules = resolveModules;
     Object.assign(config.resolve.alias, require('rxjs/_esm2015/path-mapping')());
-    config.plugins.push(new (class {
-        apply(compiler) {
-            compiler.hooks.emit.tap('drcp-cli-stats', compilation => {
-                const stats = compilation.getStats();
-                compilation.assets['stats.json'] = new webpack_sources_1.RawSource(JSON.stringify(stats.toJson('verbose')));
-                setTimeout(() => {
-                    log.info('[cra-scripts] stats:');
-                    log.info(stats.toString('normal'));
-                    log.info('');
-                }, 0);
-                // const data = JSON.stringify(compilation.getStats().toJson('normal'));
-                // compilation.assets['stats.json'] = new RawSource(data);
-            });
-        }
-    })());
+    // config.plugins!.push(new (class {
+    //   apply(compiler: Compiler) {
+    //     compiler.hooks.emit.tap('drcp-cli-stats', compilation => {
+    //       const stats = compilation.getStats();
+    //       compilation.assets['stats.json'] = new RawSource(JSON.stringify(stats.toJson('verbose')));
+    //       setTimeout(() => {
+    //         log.info('[cra-scripts] stats:');
+    //         log.info(stats.toString('normal'));
+    //         log.info('');
+    //       }, 0);
+    //     });
+    //   }
+    // })());
     // config.plugins!.push(new ProgressPlugin({ profile: true }));
     config.stats = 'normal'; // Not working
     if (cmdOption.buildType === 'lib') {
@@ -273,8 +256,7 @@ module.exports = function (webpackEnv) {
             handler.webpack(config, webpackEnv, cmdOption);
         }
     });
-    const configFileInPackage = path_1.default.resolve(dir, lodash_1.default.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
-    if (fs_extra_1.default.existsSync(configFileInPackage)) {
+    if (configFileInPackage) {
         const cfgMgr = new config_handler_1.ConfigHandlerMgr([configFileInPackage]);
         cfgMgr.runEachSync((cfgFile, result, handler) => {
             if (handler.webpack != null) {
@@ -283,10 +265,8 @@ module.exports = function (webpackEnv) {
             }
         });
     }
-    fs_extra_1.default.writeFile(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), utils_1.printConfig(config), (err) => {
-        if (err)
-            console.error(err);
-    });
+    log.info(`[cra-scripts] output.publicPath: ${config.output.publicPath}`);
+    fs_extra_1.default.writeFileSync(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), utils_1.printConfig(config));
     return config;
 };
 
