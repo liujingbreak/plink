@@ -1,5 +1,5 @@
 // tslint:disable: no-console
-import {queueUp, queue} from '../utils/promise-queque';
+import {queueUp, queue} from '../promise-queque';
 
 describe('promise-queue', () => {
   it('parallel queueUp() task should work', async () => {

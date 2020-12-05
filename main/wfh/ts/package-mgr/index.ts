@@ -52,7 +52,7 @@ export interface PackagesState {
   lastCreatedWorkspace?: string;
 }
 
-const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {symlinkDir, distDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
@@ -682,8 +682,8 @@ async function deleteUselessSymlink() {
 
 async function initRootDirectory() {
   const rootPath = getRootDir();
-  fs.mkdirpSync(Path.join(rootPath, 'dist'));
-  maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(rootPath, 'dist', 'config.local.yaml'));
+  fs.mkdirpSync(distDir);
+  maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(distDir, 'config.local.yaml'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/log4js.js'), rootPath + '/log4js.js');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates', 'module-resolve.server.tmpl.ts'), rootPath + '/module-resolve.server.ts');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates',
@@ -713,7 +713,7 @@ async function writeConfigFiles() {
   return (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
     // tslint:disable-next-line: no-console
     console.log('write config file:', file);
-    writeFile(Path.resolve(getRootDir(), 'dist', file),
+    writeFile(Path.join(distDir, file),
       '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
   });
 }

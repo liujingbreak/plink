@@ -1,4 +1,5 @@
 // tslint:disable: prefer-const
+require('yamlify/register');
 import _ from 'lodash';
 import fs from 'fs';
 import Path from 'path';
@@ -6,21 +7,19 @@ import chalk from 'chalk';
 import {ConfigHandlerMgr, DrcpSettings, DrcpConfig, ConfigHandler} from './config-handler';
 import {GlobalOptions as CliOptions} from './cmd/types';
 import {getLanIPv4} from './utils/network-util';
-import {getRootDir} from './utils/misc';
-// import {getStore as getPckStore} from './package-mgr';
-// import {map, distinctUntilChanged} from 'rxjs/operators';
+import {PlinkEnv} from './node-path';
+const yamljs = require('yamljs');
+const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 const {cyan} = chalk;
-const yamljs = require('yamljs');
+
 let argv: CliOptions | undefined;
-// var argv = require('yargs').argv;
-require('yamlify/register');
-// var publicPath = require('./publicPath');
+
 let handlers: ConfigHandlerMgr;
-let rootPath = getRootDir();
+let rootPath = rootDir;
 
 let setting: DrcpSettings;
-// let localDisabled = false;
+
 let localConfigPath: string[];
 
 (Promise as any).defer = defer;
@@ -54,7 +53,7 @@ config.done = new Promise<DrcpSettings>(resolve => {
 
 config.init = async (_argv: CliOptions) => {
   argv = _argv;
-  localConfigPath = argv.config.length > 0 ? argv.config : [Path.join(rootPath, 'dist', 'config.local.yaml')];
+  localConfigPath = argv.config.length > 0 ? argv.config : [Path.join(distDir, 'config.local.yaml')];
   const res = await load();
   initResolve(res);
   return res;
@@ -62,7 +61,7 @@ config.init = async (_argv: CliOptions) => {
 
 config.initSync = (_argv: CliOptions) => {
   argv = _argv;
-  localConfigPath = argv.config.length > 0 ? argv.config : [Path.join(rootPath, 'dist', 'config.local.yaml')];
+  localConfigPath = argv.config.length > 0 ? argv.config : [Path.join(distDir, 'config.local.yaml')];
   const res = loadSync();
   return res;
 };
@@ -125,9 +124,6 @@ async function load(fileList?: string[], cliOption?: CliOptions): Promise<DrcpSe
     if (handler.onConfig)
       return handler.onConfig(obj || setting, cliOpt);
   });
-  if (setting.recipeFolder) {
-    setting.recipeFolderPath = Path.resolve(rootPath, setting.recipeFolder);
-  }
   return postProcessConfig(cliOpt);
 }
 
@@ -141,9 +137,6 @@ function loadSync(fileList?: string[], cliOption?: CliOptions): DrcpSettings {
     if (handler.onConfig)
       return handler.onConfig(obj || setting, cliOpt);
   });
-  if (setting.recipeFolder) {
-    setting.recipeFolderPath = Path.resolve(rootPath, setting.recipeFolder);
-  }
   return postProcessConfig(cliOpt);
 }
 
@@ -153,6 +146,8 @@ function prepareConfigFiles(fileList?: string[], cliOption?: CliOptions) {
 
   // log.debug('root Path: ' + rootPath);
   setting = setting || {};
+  setting.destDir = distDir;
+  setting.staticDir = Path.resolve(distDir, 'static');
   // setting.projectList = [];
   // some extra config properties
   const initSetting: Partial<DrcpSettings> = {
@@ -166,7 +161,7 @@ function prepareConfigFiles(fileList?: string[], cliOption?: CliOptions) {
   var configFileList = [
     Path.resolve(__dirname, '..', 'config.yaml')
   ];
-  var rootConfig = Path.resolve(rootPath, 'dist', 'config.yaml');
+  var rootConfig = Path.join(distDir, 'config.yaml');
   if (fs.existsSync(rootConfig))
     configFileList.push(rootConfig);
 
@@ -181,12 +176,12 @@ function postProcessConfig(cliOpt: CliOptions) {
   validateConfig();
 
   setting.port = normalizePort(setting.port);
-  // console.log(setting);
+
   if (!setting.devMode)
     process.env.NODE_ENV = 'production';
   setting.publicPath = _.trimEnd(setting.staticAssetsURL || '', '/') + '/'; // always ends with /
   setting.localIP = getLanIPv4();
-  // setting.hostnamePath = publicPath.getHostnamePath(setting);
+
   mergeFromCliArgs(setting, cliOpt);
   if (setting.devMode) {
     // tslint:disable-next-line: no-console
@@ -206,7 +201,6 @@ function mergeFromYamlJsonFile(setting: DrcpSettings, localConfigPath: string) {
   }
   // tslint:disable-next-line: no-console
   console.log(cyan('[config]') + ` Read ${localConfigPath}`);
-  // var package2Chunk = setting._package2Chunk;
   var configObj: {[key: string]: any};
 
   const matched = /\.([^.]+)$/.exec(localConfigPath);
@@ -221,21 +215,6 @@ function mergeFromYamlJsonFile(setting: DrcpSettings, localConfigPath: string) {
   }
 
   _.assignWith(setting, configObj, (objValue, srcValue, key, object, source) => {
-    // if (key === 'vendorBundleMap') {
-    //   if (!_.isObject(objValue) || !_.isObject(srcValue))
-    //     return;
-    //   _.each(srcValue, (packageList, chunk) => {
-    //     if (!_.isArray(packageList))
-    //       return;
-    //     for (const p of packageList) {
-    //       package2Chunk[p] = chunk;
-    //     }
-    //   });
-    // } else if (key === 'outputPathMap') {
-    //   if (!objValue)
-    //     objValue = object.outputPathMap = {};
-    //   return _.assign(objValue, srcValue);
-    // } else 
     if (_.isObject(objValue) && !Array.isArray(objValue)) {
       // We only merge 2nd level properties
       return _.assign(objValue, srcValue);

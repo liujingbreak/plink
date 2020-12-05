@@ -3,16 +3,6 @@
 # PLEASE DON'T MODIFY THIS FILE, instead you may create a local file called `config.local.yaml`
 # to overwrites this file.
 
-# destDir contains build results like node server required data, template and timestamp file which
-# helps to speed up build process in local dev environment
-destDir: dist
-# staticDir folder ideally should be inside `destDir`, you can change name of it
-# or move its location out of `destDir`, but it can't not be out of process.cwd()
-staticDir: dist/static
-
-# file store for Webpack dll plugin 
-dllDestDir: dist/dll
-
 port: 14333 # read by @dr/http-server
 # ssl:
 #     enabled: true

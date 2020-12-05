@@ -129,6 +129,18 @@ import something from '@foobar/redux-slice-A';
  - Easy to upgrade.
  - Opinionated cross framework solutions, web components, libraries, tools.
 
+## Environment variables and working directories
+- **dist**
+
+  Plink needs a directory to save cached state file, generated files, report and any other temporary data.
+  Such a directory should not be checked in Git repo, by default this directory is named "dist", and Plink will assign an
+  environment vararible `PLINK_DATA_DIR` with this default directory path `dist`, all pluggable command line extension modules and
+  forked process (or thread worker) can access this variable `process.env.PLINK_DATA_DIR`.
+  #### Change `dist` to other directory
+
+  Simple assign environment variable PLINK_DATA_DIR to any relative path name before start plink command.
+  > PLINK_DATA_DIR must be a relative path, not absolute path.
+
 ## Unlike Yarn workspaces
 (WIP)
 

@@ -7,10 +7,9 @@ var __createBinding = (this && this.__createBinding) || (Object.create ? (functi
     o[k2] = m[k];
 }));
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./thread-pool"), exports);
 __exportStar(require("./promise-queque"), exports);
-
-//# sourceMappingURL=index.js.map
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi90cy9pbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7QUFBQSxnREFBOEI7QUFDOUIsbURBQWlDIiwic291cmNlc0NvbnRlbnQiOlsiZXhwb3J0ICogZnJvbSAnLi90aHJlYWQtcG9vbCc7XG5leHBvcnQgKiBmcm9tICcuL3Byb21pc2UtcXVlcXVlJztcbmV4cG9ydCB7VGFzaywgVGFza1Jlc3VsdH0gZnJvbSAnLi93b3JrZXInO1xuIl19

@@ -6,6 +6,7 @@
 import { CaseReducer, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers, Middleware } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
+export { PayloadAction, CreateSliceOptions, SliceCaseReducers, Slice };
 export interface ExtraSliceReducers<SS> {
     _init: CaseReducer<SS, PayloadAction<{
         isLazy: boolean;
@@ -25,6 +26,9 @@ export interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output ex
 export interface ErrorState {
     actionError?: Error;
 }
+declare type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends CreateSliceOptions<infer S, any, string> ? S : unknown;
+export declare type InferSliceType<MyCreateSliceOptionsType> = Slice<InferStateType<MyCreateSliceOptionsType>, (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) & ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>, string>;
+export declare type InferActionsType<MyCreateSliceOptionsType> = InferSliceType<MyCreateSliceOptionsType>['actions'];
 export declare class StateFactory {
     private preloadedState;
     /**
@@ -79,11 +83,10 @@ export declare class StateFactory {
      */
     bindActionCreators<A, Slice extends {
         actions: A;
-    }>(slice: Slice): Slice["actions"];
+    }>(slice: Slice): Slice['actions'];
     stopAllEpics(): void;
     private errorHandleMiddleware;
     private addSliceMaybeReplaceReducer;
     private createRootReducer;
     private getRootStore;
 }
-export {};

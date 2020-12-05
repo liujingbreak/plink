@@ -8,7 +8,6 @@ import config from '../config';
 const jsYaml = require('js-yaml');
 const log = log4js.getLogger('wfh.cliAdvanced');
 
-
 export function addupConfigs(onEachYaml: (file: string, configContent: string) => void) {
   const componentConfigs: {
     outputPathMap: {[k: string]: string};

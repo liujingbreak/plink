@@ -78,8 +78,8 @@ export function printWorkspaces() {
     colAligns: ['right', 'right']
   });
   const sep = ['--------------', '------------------', '------------', '----------', '-----'];
-  table.push([{colSpan: 4, content: chalk.bold('Worktree Space directories and linked dependencies\n'), hAlign: 'center'}],
-    ['Worktree Space', 'Dependency package', 'Expect version', 'Actual version', 'state'].map(item => chalk.bold(item)),
+  table.push([{colSpan: 5, content: chalk.underline('Worktree Space directories and linked dependencies\n'), hAlign: 'center'}],
+    ['Worktree Space', 'Dependency package', 'Expected version', 'Actual version', 'state'].map(item => chalk.bold(item)),
     sep);
 
   let wsIdx = 0;
@@ -123,7 +123,7 @@ function convertVersion(pkgJson: {
 }
 
 function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
-  console.log(chalk.bold(`\nHoisted production dependency and corresponding dependents (${workspace.id})`));
+  console.log(chalk.underline(`\nHoisted production dependency and corresponding dependents (${workspace.id})`));
   const table = createTable();
   table.push(['Dependency', 'Dependent'].map(item => chalk.bold(item)),
     ['---', '---']);
@@ -135,7 +135,7 @@ function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
     const table = createTable();
     table.push(['Dependency', 'Dependent'].map(item => chalk.bold(item)),
     ['---', '---']);
-    console.log(chalk.bold(`\nHoisted dev dependency and corresponding dependents (${workspace.id})`));
+    console.log(chalk.underline(`\nHoisted dev dependency and corresponding dependents (${workspace.id})`));
     for (const [dep, dependents] of workspace.hoistDevInfo!.entries()) {
       table.push(renderHoistDepInfo(dep, dependents));
     }

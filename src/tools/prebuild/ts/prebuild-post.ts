@@ -14,12 +14,11 @@ const log = log4js.getLogger(api.packageName + '.send-patch');
 
 let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
 
-export async function main(env: string, appName: string, buildStaticOnly = false, pushBranch = true, isForce = false, secret?: string,
-  commitComment?: string) {
+export async function main(env: string, appName: string, buildStaticOnly = false,
+  pushBranch = true, isForce = false, secret?: string, commitComment?: string) {
+
   const setting: Configuration = api.config.get(api.packageName);
-
   const rootDir = api.config().rootPath;
-
   const releaseBranch: string = setting.prebuildReleaseBranch;
 
   if (pushBranch)

@@ -1,6 +1,6 @@
-import {PayloadAction, InferActionsType} from '../redux-toolkit-observable';
-import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from './state-factory';
-import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
+import {PayloadAction, InferActionsType} from '../../../redux-toolkit-observable/dist/redux-toolkit-observable';
+import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from '../store';
+import {/*map, distinctUntilChanged,*/ catchError, ignoreElements, switchMap} from 'rxjs/operators';
 import {of, from, merge, Observable} from 'rxjs';
 
 /** We have to explicityly export Observable, for exporting getStore() function, otherwise Typescript will report 
@@ -9,25 +9,19 @@ import {of, from, merge, Observable} from 'rxjs';
  */
 export {Observable};
 
-export interface ExampleState {
+export interface PakageVersionsState {
   foo: boolean;
-  _computed: {
-    bar: string;
-  };
 }
 
-const initialState: ExampleState = {
-  foo: true,
-  _computed: {
-    bar: ''
-  }
+const initialState: PakageVersionsState = {
+  foo: true
 };
 
 const sliceOpt = {
-  name: 'example',
+  name: 'package-versions',
   initialState,
   reducers: {
-    exampleAction(s: ExampleState, {payload}: PayloadAction<boolean>) {
+    exampleAction(s: PakageVersionsState, {payload}: PayloadAction<boolean>) {
       // modify state draft
       s.foo = payload;
     }
@@ -45,15 +39,6 @@ const releaseEpic = stateFactory.addEpic((action$) => {
     action$.pipe(ofPayloadAction(exampleSlice.actions.exampleAction),
       switchMap(({payload}) => {
         return from(Promise.resolve('mock async HTTP request call'));
-      })
-    ),
-    getStore().pipe(
-      map(s => s.foo),
-      distinctUntilChanged(),
-      map(changedFoo => {
-        actionDispatcher._change(s => {
-          s._computed.bar = 'changed ' + changedFoo;
-        });
       })
     )
   ).pipe(

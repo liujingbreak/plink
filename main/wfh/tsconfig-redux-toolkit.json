@@ -3,7 +3,9 @@
 	"compilerOptions": {
     "rootDir": "../redux-toolkit-observable",
 		"target": "es5",
-		"outDir": "../redux-toolkit-observable/dist"
+    "outDir": "../redux-toolkit-observable/dist",
+    "declaration": true,
+    "composite": true
 	},
   "files": [
     "../redux-toolkit-observable/redux-toolkit-observable.ts"

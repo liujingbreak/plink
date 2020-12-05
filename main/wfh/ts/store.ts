@@ -4,20 +4,17 @@ import fse from 'fs-extra';
 import {tap, filter} from 'rxjs/operators';
 import {StateFactory, ofPayloadAction} from '../../redux-toolkit-observable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
-import {getRootDir} from './utils/misc';
 import serialize from 'serialize-javascript';
 import {enableMapSet} from 'immer';
 import {isMainThread} from 'worker_threads';
+import {PlinkEnv} from './node-path';
 // import chalk from 'chalk';
 
 export {ofPayloadAction};
 
 enableMapSet();
 
-// import './package-mgr'; 
-// ensure slice and epic being initialized before create store, in which case not more lazy load
-
-const stateFile = Path.resolve(getRootDir(), 'dist/plink-state.json');
+const stateFile = Path.resolve((JSON.parse(process.env.__plink!) as PlinkEnv).distDir, 'plink-state.json');
 let actionCount = 0;
 /**
  * Since Redux-toolkit does not read initial state with any lazy slice that has not defined in root reducer,
@@ -107,15 +104,15 @@ export async function saveState() {
   const mergedState = Object.assign(lastSavedState, store.getState());
 
   const jsonStr = serialize(mergedState, {space: '  '});
-  fse.mkdirpSync(Path.dirname(stateFile));
-  fs.writeFile(stateFile, jsonStr,
+  fse.mkdirpSync(Path.dirname(stateFile!));
+  fs.writeFile(stateFile!, jsonStr,
     (err) => {
       if (err) {
         // tslint:disable-next-line: no-console
-        console.log(`Failed to write state file ${Path.relative(process.cwd(), stateFile)}`, err);
+        console.log(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`, err);
         return;
       }
       // tslint:disable-next-line: no-console
-      console.log(`[package-mgr] state file ${Path.relative(process.cwd(), stateFile)} saved (${actionCount})`);
+      console.log(`[package-mgr] state file ${Path.relative(process.cwd(), stateFile!)} saved (${actionCount})`);
     });
 }

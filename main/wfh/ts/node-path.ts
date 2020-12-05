@@ -6,11 +6,23 @@ let envSetDone = false;
 if (!envSetDone) {
   envSetDone = true;
   require('source-map-support/register');
-  const rootDir = findRootDir();
-  const symlinkDir = Path.resolve(rootDir, 'node_modules');
-  const isDrcpSymlink = fs.lstatSync(Path.resolve(rootDir, 'node_modules/@wfh/plink')).isSymbolicLink();
+
+  /** environment varaible __plink is used for share basic Plink information between:
+   * - Node.js "-r" preload module and normal modules, especially setting NODE_PATH in "-r" module
+   * - Main process and forked process or thread worker
+   */
+  const exitingEnvVar = process.env.__plink ? JSON.parse(process.env.__plink) as PlinkEnv : null;
+
+  if (process.env.PLINK_DATA_DIR == null) {
+    process.env.PLINK_DATA_DIR = 'dist';
+  }
+  const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR);
+
+  const symlinkDir = exitingEnvVar ? exitingEnvVar.symlinkDir : Path.resolve(rootDir, 'node_modules');
+  const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(Path.resolve(rootDir, 'node_modules/@wfh/plink')).isSymbolicLink();
   const nodePath = setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
-  process.env.__plink = JSON.stringify({isDrcpSymlink, rootDir, symlinkDir, nodePath} as PlinkEnv);
+  const distDir = Path.resolve(rootDir, process.env.PLINK_DATA_DIR);
+  process.env.__plink = JSON.stringify({distDir, isDrcpSymlink, rootDir, symlinkDir, nodePath} as PlinkEnv);
 
   // delete register from command line option, to avoid child process get this option, since we have NODE_PATH set
   // for child process
@@ -31,9 +43,9 @@ if (!envSetDone) {
     envOptions.filter(item => !/(-r|--require)\s+@wfh\/plink\/register/.test(item)).join(Path.delimiter);
 }
 
-function findRootDir() {
+function findRootDir(distDir: string) {
   let dir = process.cwd();
-  while (!fs.existsSync(Path.resolve(dir, 'dist/plink-state.json'))) {
+  while (!fs.existsSync(Path.resolve(dir, distDir, 'plink-state.json'))) {
     const parentDir = Path.dirname(dir);
     if (parentDir === dir) {
       dir = process.cwd();
@@ -66,7 +78,6 @@ function setupNodePath(rootDir: string, symlinkDir: string, isDrcpSymlink: boole
     ]);
   }
 
-  // if (isDrcpSymlink)
   /**
    * Somehow when I install @wfh/plink in an new directory, npm does not dedupe dependencies from 
    * @wfh/plink/node_modules directory up to current node_modules directory, results in MODULE_NOT_FOUND
@@ -89,10 +100,11 @@ function setupNodePath(rootDir: string, symlinkDir: string, isDrcpSymlink: boole
 /**
  * Get environment variables predefined by
 ```
-const {isDrcpSymlink, symlinkDir, rootDir, nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {isDrcpSymlink, symlinkDir, rootDir, nodePath, distDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 ```
  */
 export interface PlinkEnv {
+  distDir: string;
   isDrcpSymlink: boolean;
   rootDir: string;
   symlinkDir: string;

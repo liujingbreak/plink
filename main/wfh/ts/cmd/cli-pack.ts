@@ -1,5 +1,5 @@
 
-import {queueUp} from '../utils/promise-queque';
+import {queueUp} from '../../../thread-promise-pool/dist/promise-queque';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import fsext from 'fs-extra';
