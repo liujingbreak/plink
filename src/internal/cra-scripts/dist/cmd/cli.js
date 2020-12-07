@@ -41,6 +41,7 @@ const child_process_1 = require("child_process");
 const initInjectors_1 = __importDefault(require("@wfh/webpack-common/dist/initInjectors"));
 const log4js_1 = __importDefault(require("log4js"));
 const cli_init_1 = require("./cli-init");
+const cli_gen_slice_1 = __importDefault(require("./cli-gen-slice"));
 // import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 const log = log4js_1.default.getLogger('cra');
 const cli = (program, withGlobalOptions) => {
@@ -50,6 +51,7 @@ const cli = (program, withGlobalOptions) => {
         .action((dir) => __awaiter(void 0, void 0, void 0, function* () {
         (yield Promise.resolve().then(() => __importStar(require('./cli-gen')))).genPackage(dir, genCmd.opts().dryRun);
     }));
+    cli_gen_slice_1.default(program, withGlobalOptions);
     const buildCmd = program.command('cra-build <app|lib> <package-name>')
         .description('Compile react application or library, <package-name> is the target package name,\n' +
         'argument "app" for building a complete application like create-react-app,\n' +

@@ -10,6 +10,7 @@ import {fork} from 'child_process';
 import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
 import log4js from 'log4js';
 import {initTsconfig} from './cli-init';
+import genSliceCmd from './cli-gen-slice';
 
 // import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 const log = log4js.getLogger('cra');
@@ -22,6 +23,8 @@ const cli: CliExtension = (program, withGlobalOptions) => {
   .action(async (dir: string) => {
     (await import('./cli-gen')).genPackage(dir, genCmd.opts().dryRun);
   });
+
+  genSliceCmd(program, withGlobalOptions);
 
   const buildCmd = program.command('cra-build <app|lib> <package-name>')
   .description('Compile react application or library, <package-name> is the target package name,\n' +

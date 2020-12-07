@@ -6,9 +6,13 @@
     "outDir": "../redux-toolkit-observable/dist",
     "declaration": true,
     "composite": true
-	},
-  "files": [
-    "../redux-toolkit-observable/redux-toolkit-observable.ts"
+  },
+  "include": [
+    "../redux-toolkit-observable/*.ts"
   ],
-  "include": []
+  "exclude": [
+    "../redux-toolkit-observable/dist/**/*.ts",
+    "../redux-toolkit-observable/example/**/*.ts",
+    "../redux-toolkit-observable/template/**/*.ts"
+  ]
 }
