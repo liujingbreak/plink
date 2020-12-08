@@ -148,6 +148,7 @@ function prepareConfigFiles(fileList?: string[], cliOption?: CliOptions) {
   setting = setting || {};
   setting.destDir = distDir;
   setting.staticDir = Path.resolve(distDir, 'static');
+  setting.dllDestDir = Path.resolve(distDir, 'dll');
   // setting.projectList = [];
   // some extra config properties
   const initSetting: Partial<DrcpSettings> = {

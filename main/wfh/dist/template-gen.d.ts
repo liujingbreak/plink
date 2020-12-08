@@ -4,7 +4,7 @@ export interface TemplReplacement {
     textMapping?: {
         [key: string]: string;
     };
-    /** default: /(?:[tj]sx?|s?css|json|yaml|yml|html|svg)$/ */
+    /** Suffix name of target file, default: /(?:[tj]sx?|s?css|json|yaml|yml|html|svg)$/ */
     includeTextType?: RegExp;
 }
 export interface GenerateOption {
