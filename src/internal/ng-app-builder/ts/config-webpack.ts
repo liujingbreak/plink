@@ -36,7 +36,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     webpackConfig.plugins = [];
   }
   if (webpackConfig.devServer) {
-    configDevServer(webpackConfig);
+    configDevServer(webpackConfig as {devServer: NonNullable<webpack.Configuration>['devServer']});
   }
 
   if (_.get(param, 'builderConfig.options.drcpArgs.report') ||

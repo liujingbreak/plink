@@ -20,9 +20,9 @@ if (env.devFriendly) {
   sub = stateFactory.log$.pipe(
     tap(params => {
       if (params[0] === 'state')
-        console.log('[redux:state]', ...params.slice(1));
+        console.log('%c redux:state ', 'font-weight: bold; color: black; background: #44c2fd;', ...params.slice(1));
       else if (params[0] === 'action')
-        console.log('[redux:action]', ...params.slice(1));
+      console.log('%c redux:action ', 'font-weight: bold; color: black; background: #8c61ff;', ...params.slice(1));
       else
         console.log(...params);
     })

@@ -27,7 +27,7 @@ var HtmlTokenType;
     HtmlTokenType[HtmlTokenType["comment"] = 14] = "comment";
 })(HtmlTokenType = exports.HtmlTokenType || (exports.HtmlTokenType = {}));
 exports.TokenType = HtmlTokenType;
-exports.lexer = (la, emitter) => {
+const lexer = (la, emitter) => {
     let isLastCharUnknown = false;
     function emitUnknow() {
         if (isLastCharUnknown) {
@@ -116,6 +116,7 @@ exports.lexer = (la, emitter) => {
         }
     }
 };
+exports.lexer = lexer;
 class LexerMemebers {
     constructor(la, emitter, emitUnknow) {
         this.la = la;
