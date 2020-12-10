@@ -206,6 +206,14 @@ function insertLessLoaderRule(origRules: RuleSetRule[]): void {
   }
 }
 
+const fileLoaderOptions = {
+  // esModule: false,
+  outputPath(url: string, resourcePath: string, context: string) {
+    const pk = api.findPackageByFile(resourcePath);
+    return `${(pk ? pk.shortName : 'external')}/${url}`;
+  }
+};
+
 function findAndChangeRule(rules: RuleSetRule[]): void {
   const craPaths = require('react-scripts/config/paths');
   // TODO: check in case CRA will use Rule.use instead of "loader"
@@ -228,22 +236,19 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
       if (typeof rule === 'string' && (rule.indexOf('file-loader') >= 0 || rule.indexOf('url-loader') >= 0)) {
         set[i] = {
           loader: rule,
-          options: {
-            outputPath(url: string, resourcePath: string, context: string) {
-              const pk = api.findPackageByFile(resourcePath);
-              return `${(pk ? pk.shortName : 'external')}/${url}`;
-            }
-          }
+          options: fileLoaderOptions
         };
       } else if ((typeof (rule as RuleSetRule | RuleSetLoader).loader) === 'string' &&
         (((rule as RuleSetRule | RuleSetLoader).loader as string).indexOf('file-loader') >= 0 ||
         ((rule as RuleSetRule | RuleSetLoader).loader as string).indexOf('url-loader') >= 0
         )) {
-        ((set[i] as RuleSetRule | RuleSetLoader).options as any)!.outputPath = (url: string, resourcePath: string, context: string) => {
-          const pk = api.findPackageByFile(resourcePath);
-          return `${(pk ? pk.shortName : 'external')}/${url}`;
-        };
+          if ((rule as RuleSetRule | RuleSetLoader).options) {
+            Object.assign((rule as RuleSetRule | RuleSetLoader).options, fileLoaderOptions);
+          } else {
+            (rule as RuleSetRule | RuleSetLoader).options = fileLoaderOptions;
+          }
       }
+
 
       const _rule = rule as RuleSetRule;
 

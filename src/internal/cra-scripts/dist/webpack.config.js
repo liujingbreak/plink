@@ -49,6 +49,13 @@ function insertLessLoaderRule(origRules) {
         }).concat('less-loader');
     }
 }
+const fileLoaderOptions = {
+    // esModule: false,
+    outputPath(url, resourcePath, context) {
+        const pk = __api_1.default.findPackageByFile(resourcePath);
+        return `${(pk ? pk.shortName : 'external')}/${url}`;
+    }
+};
 function findAndChangeRule(rules) {
     const craPaths = require('react-scripts/config/paths');
     // TODO: check in case CRA will use Rule.use instead of "loader"
@@ -71,21 +78,18 @@ function findAndChangeRule(rules) {
             if (typeof rule === 'string' && (rule.indexOf('file-loader') >= 0 || rule.indexOf('url-loader') >= 0)) {
                 set[i] = {
                     loader: rule,
-                    options: {
-                        outputPath(url, resourcePath, context) {
-                            const pk = __api_1.default.findPackageByFile(resourcePath);
-                            return `${(pk ? pk.shortName : 'external')}/${url}`;
-                        }
-                    }
+                    options: fileLoaderOptions
                 };
             }
             else if ((typeof rule.loader) === 'string' &&
                 (rule.loader.indexOf('file-loader') >= 0 ||
                     rule.loader.indexOf('url-loader') >= 0)) {
-                set[i].options.outputPath = (url, resourcePath, context) => {
-                    const pk = __api_1.default.findPackageByFile(resourcePath);
-                    return `${(pk ? pk.shortName : 'external')}/${url}`;
-                };
+                if (rule.options) {
+                    Object.assign(rule.options, fileLoaderOptions);
+                }
+                else {
+                    rule.options = fileLoaderOptions;
+                }
             }
             const _rule = rule;
             if (_rule.include && typeof _rule.loader === 'string' &&
