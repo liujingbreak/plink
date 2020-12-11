@@ -38,7 +38,7 @@ const exampleSlice = stateFactory.newSlice(sliceOpt);
 
 export const actionDispatcher: InferActionsType<typeof sliceOpt> = stateFactory.bindActionCreators(exampleSlice);
 
-const releaseEpic = stateFactory.addEpic((action$) => {
+const releaseEpic = stateFactory.addEpic<{example: ExampleState}>((action$, state$) => {
   // const gService = getModuleInjector().get(GlobalStateStore);
 
   return merge(

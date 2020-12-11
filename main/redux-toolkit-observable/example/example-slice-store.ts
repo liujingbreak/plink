@@ -30,7 +30,7 @@ export const exampleSlice = stateFactory.newSlice({
 
 export const actionDispatcher = stateFactory.bindActionCreators(exampleSlice);
 
-const releaseEpic = stateFactory.addEpic((action$) => {
+const releaseEpic = stateFactory.addEpic<{example: ExampleState}>((action$, state$) => {
   // const gService = getModuleInjector().get(GlobalStateStore);
 
   return merge(

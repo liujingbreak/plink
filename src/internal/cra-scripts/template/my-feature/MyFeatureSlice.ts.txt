@@ -40,7 +40,7 @@ const $__SliceName__$Slice = stateFactory.newSlice(sliceOpt);
 
 export const $__sliceName__$Actions: InferActionsType<typeof sliceOpt> = stateFactory.bindActionCreators($__SliceName__$Slice);
 
-const releaseEpic = stateFactory.addEpic((action$) => {
+const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}>((action$, state$) => {
 
   return merge(
     action$.pipe(ofPayloadAction($__SliceName__$Slice.actions.exampleAction),
