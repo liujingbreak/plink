@@ -166,3 +166,14 @@ import something from '@foobar/redux-slice-A';
 - @wfh/redux-toolkit-observable
 - @wfh/thread-promise-pool
 - @wfh/plink-global-types
+
+## Dependency Hoist
+
+The idea is a bit like Java Maven's Dependency Mechanism (Transitive dependencies)
+https://maven.apache.org/guides/introduction/introduction-to-dependency-mechanism.html
+
+Like Maven, we treat dependencies of linked packages as "Transitive dependencies", linked packages do not need to
+install their dependencies in their own `node_modules`, instead we install all dependencies of all related linked
+packages in current space's node_modules directory as being shared.
+
+Unlike Maven, to resolve the conflict of transitive dependency, we only use "the highest version" of conflict dependencies, not the first version. https://dzone.com/articles/solving-dependency-conflicts-in-maven

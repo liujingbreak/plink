@@ -10,7 +10,7 @@ import { distinctUntilChanged, filter, map, switchMap, debounceTime,
   take, concatMap, skip, ignoreElements, scan, catchError } from 'rxjs/operators';
 import { writeFile } from '../cmd/utils';
 import config from '../config';
-import { listCompDependency, PackageJsonInterf, DependentInfo } from '../dependency-hoister';
+import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 import { updateTsconfigFileForEditor } from '../editor-helper';
 import logConfig from '../log-config';
 import { allPackages, packages4WorkspaceKey } from './package-list-helper';

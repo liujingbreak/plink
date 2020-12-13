@@ -1,6 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { Observable } from 'rxjs';
-import { PackageJsonInterf, DependentInfo } from '../dependency-hoister';
+import { PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 export interface PackageInfo {
     name: string;
     scope: string;
@@ -101,6 +101,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -108,6 +109,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -115,6 +117,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -122,6 +125,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -205,6 +209,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -212,6 +217,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -219,6 +225,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -226,6 +233,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -309,6 +317,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -316,6 +325,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -323,6 +333,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -330,6 +341,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -409,6 +421,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -416,6 +429,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -423,6 +437,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -430,6 +445,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -509,6 +525,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -516,6 +533,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -523,6 +541,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -530,6 +549,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -609,6 +629,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -616,6 +637,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -623,6 +645,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -630,6 +653,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -709,6 +733,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -716,6 +741,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -723,6 +749,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -730,6 +757,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -814,6 +842,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -821,6 +850,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -828,6 +858,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -835,6 +866,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -919,6 +951,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -926,6 +959,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -933,6 +967,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -940,6 +975,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1025,6 +1061,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1032,6 +1069,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1039,6 +1077,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1046,6 +1085,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1128,6 +1168,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1135,6 +1176,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1142,6 +1184,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1149,6 +1192,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1228,6 +1272,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1235,6 +1280,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1242,6 +1288,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1249,6 +1296,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1328,6 +1376,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1335,6 +1384,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1342,6 +1392,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1349,6 +1400,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1428,6 +1480,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1435,6 +1488,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1442,6 +1496,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1449,6 +1504,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1528,6 +1584,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1535,6 +1592,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1542,6 +1600,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1549,6 +1608,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1631,6 +1691,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1638,6 +1699,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1645,6 +1707,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1652,6 +1715,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1735,6 +1799,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1742,6 +1807,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1749,6 +1815,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1756,6 +1823,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1839,6 +1907,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1846,6 +1915,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1853,6 +1923,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1860,6 +1931,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1939,6 +2011,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1946,6 +2019,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1953,6 +2027,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1960,6 +2035,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2039,6 +2115,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2046,6 +2123,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2053,6 +2131,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2060,6 +2139,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2139,6 +2219,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2146,6 +2227,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2153,6 +2235,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2160,6 +2243,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2239,6 +2323,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2246,6 +2331,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2253,6 +2339,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2260,6 +2347,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2344,6 +2432,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2351,6 +2440,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2358,6 +2448,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2365,6 +2456,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2449,6 +2541,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2456,6 +2549,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2463,6 +2557,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2470,6 +2565,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2555,6 +2651,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2562,6 +2659,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2569,6 +2667,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2576,6 +2675,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2658,6 +2758,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2665,6 +2766,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2672,6 +2774,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2679,6 +2782,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2758,6 +2862,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2765,6 +2870,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2772,6 +2878,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2779,6 +2886,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2858,6 +2966,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2865,6 +2974,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2872,6 +2982,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2879,6 +2990,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2958,6 +3070,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2965,6 +3078,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2972,6 +3086,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2979,6 +3094,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3058,6 +3174,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }> | undefined;
             hoistInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3065,6 +3182,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3072,6 +3190,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3079,6 +3198,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             }>;
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
+                direct: boolean;
                 by: {
                     ver: string;
                     name: string;

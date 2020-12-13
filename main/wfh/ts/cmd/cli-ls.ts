@@ -7,7 +7,7 @@ import chalk from 'chalk';
 import Path from 'path';
 import * as _ from 'lodash';
 import NodePackage from '../packageNodeInstance';
-import {printWorkspaces} from './cli-init';
+import {printWorkspaces/*, printWorkspaceHoistedDeps*/} from './cli-init';
 import {take, map, distinctUntilChanged, skip} from 'rxjs/operators';
 import {createCliTable} from '../utils/misc';
 

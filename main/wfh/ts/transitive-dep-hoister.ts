@@ -42,8 +42,10 @@ interface DepInfo {
 }
 
 export interface DependentInfo {
-  /** All dependents on same version */
+  /** Is all dependents on same version */
   sameVer: boolean;
+  /** Is a direct dependency of space package.json */
+  direct: boolean;
   by: Array<{
     /** dependency version (not dependent's) */
     ver: string;
@@ -57,20 +59,28 @@ const versionReg = /^(\D*)(\d.*?)(?:\.tgz)?$/;
 export class InstallManager {
   verbosMessage: string;
   /** key is dependency module name */
+  private directDeps: Map<string, DepInfo> = new Map();
   private srcDeps: Map<string, DepInfo[]> = new Map();
   private peerDeps: Map<string, DepInfo[]> = new Map();
 
   constructor(workspaceDeps: {[name: string]: string}, workspaceName: string, private excludeDeps: Map<string, any> | Set<string>) {
     for (const [name, version] of Object.entries(workspaceDeps)) {
-      this._trackSrcDependency(name, version, `(${workspaceName})`);
+      if (this.excludeDeps.has(name))
+        continue;
+      const m = versionReg.exec(version);
+      this.directDeps.set(name, {
+        ver: version === '*' ? '' : version,
+        verNum: m ? m[2] : undefined,
+        pre: m ? m[1] : '',
+        by: `(${workspaceName})`
+      });
     }
   }
 
   scanFor(pkJsons: PackageJsonInterf[]) {
     const self = this;
-    // this.componentMap = {};
+
     for (const json of pkJsons) {
-      // this.componentMap[json.name] = {ver: json.version, toInstall: false};
       const deps = json.dependencies;
       if (deps) {
         for (const name of Object.keys(deps)) {
@@ -88,7 +98,6 @@ export class InstallManager {
         // }
       }
       if (json.peerDependencies) {
-        // TODO: do not track peer dependency to install, but only notify in command line
         for (const name of Object.keys(json.peerDependencies)) {
           const version = json.peerDependencies[name];
           self._trackPeerDependency(name, version, json.name);
@@ -102,8 +111,8 @@ export class InstallManager {
   }
 
   hoistDeps() {
-    const dependentInfo: Map<string, DependentInfo> = collectDependencyInfo(this.srcDeps);
-    const peerDependentInfo = collectDependencyInfo(this.peerDeps);
+    const dependentInfo: Map<string, DependentInfo> = collectDependencyInfo(this.srcDeps, this.directDeps);
+    const peerDependentInfo = collectDependencyInfo(this.peerDeps, this.directDeps);
     // merge peer dependent info list into regular dependent info list
     for (const [dep, info] of dependentInfo.entries()) {
       if (peerDependentInfo.has(dep)) {
@@ -202,14 +211,19 @@ function sortByVersion(verInfoList: DepInfo[], name: string) {
   return verInfoList;
 }
 
-function collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>) {
+function collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, directDeps: Map<string, DepInfo>) {
   const dependentInfos: Map<string, DependentInfo> = new Map();
   for (const [depName, versionList] of trackedRaw.entries()) {
-    const versions = sortByVersion(versionList, depName);
+    const directVer = directDeps.get(depName);
+    let versions = sortByVersion(versionList, depName);
+    if (directVer) {
+      versions.unshift(directVer);
+    }
     const hasDiffVersion = _containsDiffVersion(versionList);
 
     const info: DependentInfo = {
       sameVer: !hasDiffVersion,
+      direct: directDeps.has(depName),
       by: versions.map(item => ({ver: item.ver, name: item.by}))
     };
     dependentInfos.set(depName, info);

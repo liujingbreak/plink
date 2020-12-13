@@ -30,7 +30,7 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
       table.push(['Package name', 'Version', 'Path'],
                  ['------------', '-------', '----']);
       for (const pk of paks) {
-        table.push([chalk.cyan(pk.name), chalk.green(pk.json.version), chalk.gray(Path.relative(cwd, pk.realPath))]);
+        table.push([pk.name, pk.json.version, chalk.gray(Path.relative(cwd, pk.realPath))]);
       }
       console.log(table.toString());
       printWorkspaces();
@@ -93,8 +93,15 @@ export function printWorkspaces() {
     // console.log(pkJson);
 
     for (const {name: dep, json: {version: ver}, isInstalled} of packages4WorkspaceKey(reldir)) {
-      table.push([i === 0 ? chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)') : '',
-        dep, convertVersion(pkJson, dep), ver, isInstalled ? '' : chalk.gray('linked')]);
+      const expectedVer = convertVersion(pkJson, dep);
+      const same = expectedVer === ver;
+      table.push([
+        i === 0 ? chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)') : '',
+        same ? dep : chalk.red(dep),
+        same ? expectedVer : chalk.bgRed(expectedVer),
+        ver,
+        isInstalled ? '' : chalk.gray('linked')
+      ]);
       i++;
     }
     wsIdx++;
@@ -122,8 +129,8 @@ function convertVersion(pkgJson: {
   return ver;
 }
 
-function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
-  console.log(chalk.underline(`\nHoisted production dependency and corresponding dependents (${workspace.id})`));
+export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
+  console.log(chalk.underline(`\nHoisted transitive dependency & dependents (${workspace.id})`));
   const table = createTable();
   table.push(['Dependency', 'Dependent'].map(item => chalk.bold(item)),
     ['---', '---']);
@@ -135,7 +142,7 @@ function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
     const table = createTable();
     table.push(['Dependency', 'Dependent'].map(item => chalk.bold(item)),
     ['---', '---']);
-    console.log(chalk.underline(`\nHoisted dev dependency and corresponding dependents (${workspace.id})`));
+    console.log(chalk.underline(`\nHoisted transitive (dev) dependency & dependents (${workspace.id})`));
     for (const [dep, dependents] of workspace.hoistDevInfo!.entries()) {
       table.push(renderHoistDepInfo(dep, dependents));
     }
@@ -173,9 +180,18 @@ function createTable() {
 }
 
 function renderHoistDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown): string[] {
-  return [dependents.sameVer ? dep : chalk.bgRed(dep), dependents.by.map(item => `${chalk.cyan(item.ver)}: ${chalk.grey(item.name)}`).join('\n')];
+  return [
+    dependents.sameVer ? dep : dependents.direct ? chalk.yellow(dep) : chalk.bgRed(dep),
+    dependents.by.map((item, idx) =>
+      `${dependents.direct && idx === 0 ? chalk.green(item.ver) : idx > 0 ? chalk.gray(item.ver) : chalk.cyan(item.ver)}: ${chalk.grey(item.name)}`
+    ).join('\n')
+  ];
 }
 function renderHoistPeerDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown) {
-  return [dependents.sameVer ? chalk.yellow(dep) : chalk.red(dep),
-    dependents.by.map(item => `${chalk.cyan(item.ver)}: ${chalk.grey(item.name)}`).join('\n')];
+  return [
+    dependents.sameVer ? dep : dependents.direct ? chalk.yellow(dep) : chalk.bgRed(dep),
+    dependents.by.map((item, idx) =>
+      `${dependents.direct && idx === 0 ? chalk.green(item.ver) : idx > 0 ? item.ver : chalk.cyan(item.ver)}: ${chalk.grey(item.name)}`
+    ).join('\n')
+  ];
 }
