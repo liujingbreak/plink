@@ -102,6 +102,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -110,6 +112,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -118,6 +122,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -126,6 +132,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -210,6 +218,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -218,6 +228,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -226,6 +238,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -234,6 +248,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -318,6 +334,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -326,6 +344,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -334,6 +354,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -342,6 +364,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -422,6 +446,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -430,6 +456,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -438,6 +466,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -446,6 +476,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -526,6 +558,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -534,6 +568,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -542,6 +578,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -550,6 +588,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -630,6 +670,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -638,6 +680,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -646,6 +690,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -654,6 +700,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -734,6 +782,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -742,6 +792,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -750,6 +802,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -758,6 +812,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -843,6 +899,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -851,6 +909,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -859,6 +919,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -867,6 +929,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -952,6 +1016,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -960,6 +1026,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -968,6 +1036,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -976,6 +1046,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1062,6 +1134,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1070,6 +1144,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1078,6 +1154,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1086,6 +1164,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1169,6 +1249,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1177,6 +1259,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1185,6 +1269,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1193,6 +1279,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1273,6 +1361,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1281,6 +1371,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1289,6 +1381,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1297,6 +1391,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1377,6 +1473,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1385,6 +1483,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1393,6 +1493,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1401,6 +1503,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1481,6 +1585,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1489,6 +1595,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1497,6 +1605,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1505,6 +1615,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1585,6 +1697,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1593,6 +1707,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1601,6 +1717,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1609,6 +1727,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1692,6 +1812,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1700,6 +1822,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1708,6 +1832,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1716,6 +1842,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1800,6 +1928,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1808,6 +1938,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1816,6 +1948,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1824,6 +1958,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1908,6 +2044,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1916,6 +2054,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1924,6 +2064,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -1932,6 +2074,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2012,6 +2156,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2020,6 +2166,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2028,6 +2176,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2036,6 +2186,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2116,6 +2268,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2124,6 +2278,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2132,6 +2288,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2140,6 +2298,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2220,6 +2380,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2228,6 +2390,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2236,6 +2400,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2244,6 +2410,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2324,6 +2492,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2332,6 +2502,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2340,6 +2512,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2348,6 +2522,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2433,6 +2609,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2441,6 +2619,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2449,6 +2629,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2457,6 +2639,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2542,6 +2726,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2550,6 +2736,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2558,6 +2746,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2566,6 +2756,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2652,6 +2844,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2660,6 +2854,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2668,6 +2864,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2676,6 +2874,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2759,6 +2959,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2767,6 +2969,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2775,6 +2979,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2783,6 +2989,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2863,6 +3071,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2871,6 +3081,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2879,6 +3091,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2887,6 +3101,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2967,6 +3183,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2975,6 +3193,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2983,6 +3203,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -2991,6 +3213,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3071,6 +3295,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3079,6 +3305,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3087,6 +3315,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3095,6 +3325,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3175,6 +3407,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3183,6 +3417,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3191,6 +3427,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;
@@ -3199,6 +3437,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
             hoistDevPeerDepInfo: Map<string, {
                 sameVer: boolean;
                 direct: boolean;
+                missing: boolean;
+                duplicatePeer: boolean;
                 by: {
                     ver: string;
                     name: string;

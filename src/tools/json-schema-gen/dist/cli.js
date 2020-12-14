@@ -15,7 +15,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -39,10 +39,11 @@ const fs = __importStar(require("fs-extra"));
 const misc_1 = require("@wfh/plink/wfh/dist/utils/misc");
 const log4js_1 = __importDefault(require("log4js"));
 const TJS = __importStar(require("typescript-json-schema"));
+const typescript_1 = __importDefault(require("typescript"));
 const ts_ast_query_1 = __importDefault(require("@wfh/prebuild/dist/ts-ast-query"));
 const glob_1 = __importDefault(require("glob"));
 const dist_1 = require("@wfh/plink/wfh/dist");
-const baseTsconfig = require('@wfh/plink/wfh/tsconfig-base.json');
+const baseTsconfigFile = require.resolve('@wfh/plink/wfh/tsconfig-base.json');
 const log = log4js_1.default.getLogger(package_json_1.default.name);
 const cliExt = (program, withGlobalOptions) => {
     const cmd = program.command('json-schema-gen [package...]')
@@ -53,17 +54,20 @@ const cliExt = (program, withGlobalOptions) => {
         yield dist_1.initConfigAsync(cmd.opts());
         dist_1.initProcess();
         const dones = [];
+        const baseTsconfig = typescript_1.default.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8')).config;
         const packageUtils = require('@wfh/plink/wfh/dist/package-utils');
         const onComponent = (name, entryPath, parsedName, json, packagePath) => {
             dones.push(new Promise((resolve, reject) => {
-                const dirs = misc_1.getTsDirsOfPackage(json);
+                const dirs = misc_1.getTscConfigOfPkg(json);
                 if (json.dr && json.dr.jsonSchema) {
                     const schemaSrcDir = json.dr.jsonSchema;
                     log.info(`package ${name} has JSON schema: ${schemaSrcDir}`);
                     // packagePath = fs.realpathSync(packagePath);
                     glob_1.default(schemaSrcDir, { cwd: packagePath }, (err, matches) => {
                         log.info('Found schema source', matches);
-                        const compilerOptions = Object.assign(Object.assign({}, baseTsconfig.compilerOptions), { rootDir: packagePath });
+                        const co = Object.assign(Object.assign({}, baseTsconfig.compilerOptions), { rootDir: packagePath });
+                        dist_1.setTsCompilerOptForNodePath(process.cwd(), packagePath, co);
+                        const compilerOptions = co;
                         const tjsPgm = TJS.getProgramFromFiles(matches.map(path => path_1.default.resolve(packagePath, path)), compilerOptions, packagePath);
                         const generator = TJS.buildGenerator(tjsPgm, {});
                         const symbols = [];
@@ -78,14 +82,17 @@ const cliExt = (program, withGlobalOptions) => {
                                 log.info('Schema for ', syb);
                                 output[syb] = generator.getSchemaForSymbol(syb);
                             }
-                            const outFile = path_1.default.resolve(packagePath, dirs.isomDir, 'json-schema.json');
-                            fs.mkdirpSync(path_1.default.resolve(packagePath, dirs.isomDir));
+                            const outFile = path_1.default.resolve(packagePath, dirs.isomDir || 'isom', 'json-schema.json');
+                            fs.mkdirpSync(path_1.default.resolve(packagePath, dirs.isomDir || 'isom'));
                             fs.writeFile(outFile, JSON.stringify(output, null, '  '), (err) => {
                                 if (err)
                                     return reject(err);
                                 log.info(' written to ' + outFile);
                                 resolve();
                             });
+                        }
+                        else {
+                            throw new Error('Failed to create typescript-json-schema generator');
                         }
                     });
                 }

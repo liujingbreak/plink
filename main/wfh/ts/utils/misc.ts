@@ -132,7 +132,7 @@ export interface CliTableOption extends NonNullable<ConstructorParameters<Table>
 
 export function createCliTable(opt?: CliTableOption) {
   const tableOpt: CliTableOption = {
-    style: {head: []},
+    // style: {head: []},
     wordWrap: true,
     ...opt
   };
@@ -204,4 +204,47 @@ export function isEqualMapSet<T>(set1: Set<T> | Map<T, any>, set2: Set<T> | Map<
       return false;
   }
   return true;
+}
+
+export class SimpleLinkedListNode<T> {
+  constructor(
+    public prev: SimpleLinkedListNode<T> | null,
+    public next: SimpleLinkedListNode<T> | null,
+    public value: T
+  ) {}
+}
+
+export class SimpleLinkedList<T> {
+  first: SimpleLinkedListNode<T> | null;
+  last: SimpleLinkedListNode<T> | null;
+
+  removeNode(node: SimpleLinkedListNode<T>) {
+    if (node.prev)
+      node.prev.next = node.next;
+    if (node.next)
+      node.next.prev = node.prev;
+    if (this.first === node) {
+      this.first = node.next;
+    }
+    if (this.last === node) {
+      this.last = node.prev;
+    }
+  }
+
+  push(value: T): SimpleLinkedListNode<T> {
+    const node = new SimpleLinkedListNode<T>(this.last, null, value);
+    if (this.last)
+      this.last.next = node;
+    this.last = node;
+    if (this.first == null) {
+      this.first = node;
+    }
+    return node;
+  }
+
+  *traverse() {
+    for (let curr = this.first; curr != null; curr = curr.next) {
+      yield curr.value;
+    }
+  }
 }

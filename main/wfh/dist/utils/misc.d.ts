@@ -35,3 +35,16 @@ export declare function getTscConfigOfPkg(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;
 export declare function closestCommonParentDir(paths: Iterable<string>): string;
 export declare function isEqualMapSet<T>(set1: Set<T> | Map<T, any>, set2: Set<T> | Map<T, any>): boolean;
+export declare class SimpleLinkedListNode<T> {
+    prev: SimpleLinkedListNode<T> | null;
+    next: SimpleLinkedListNode<T> | null;
+    value: T;
+    constructor(prev: SimpleLinkedListNode<T> | null, next: SimpleLinkedListNode<T> | null, value: T);
+}
+export declare class SimpleLinkedList<T> {
+    first: SimpleLinkedListNode<T> | null;
+    last: SimpleLinkedListNode<T> | null;
+    removeNode(node: SimpleLinkedListNode<T>): void;
+    push(value: T): SimpleLinkedListNode<T>;
+    traverse(): Generator<T, void, unknown>;
+}

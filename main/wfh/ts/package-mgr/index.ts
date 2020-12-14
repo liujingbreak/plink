@@ -196,11 +196,16 @@ export const slice = stateFactory.newSlice({
 
       const installJson: PackageJsonInterf = {
         ...pkjson,
-        dependencies: Array.from(hoistedDeps.entries()).reduce((dic, [name, info]) => {
+        dependencies: Array.from(hoistedDeps.entries())
+        .concat(Array.from(hoistPeerDepInfo.entries()).filter(item => !item[1].missing))
+        .reduce((dic, [name, info]) => {
           dic[name] = info.by[0].ver;
           return dic;
         }, {} as {[key: string]: string}),
-        devDependencies: Array.from(hoistedDevDeps.entries()).reduce((dic, [name, info]) => {
+
+        devDependencies: Array.from(hoistedDevDeps.entries())
+        .concat(Array.from(devHoistPeerDepInfo.entries()).filter(item => !item[1].missing))
+        .reduce((dic, [name, info]) => {
           dic[name] = info.by[0].ver;
           return dic;
         }, {} as {[key: string]: string})

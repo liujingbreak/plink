@@ -3,7 +3,7 @@ import * as fs from 'fs';
 // import {mkdirpSync} from 'fs-extra';
 import * as _ from 'lodash';
 import * as Path from 'path';
-
+import {SimpleLinkedList, SimpleLinkedListNode} from './utils/misc';
 const semver = require('semver');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
 
@@ -46,6 +46,14 @@ export interface DependentInfo {
   sameVer: boolean;
   /** Is a direct dependency of space package.json */
   direct: boolean;
+  /** In case a transitive peer dependency, it should not
+   * be installed automatically, unless it is also a direct dependency of current space 
+   */
+  missing: boolean;
+  /** Same trasitive dependency in both normal and peer dependencies list
+   * actual version should be the one selected from normal transitive dependency
+   */
+  duplicatePeer: boolean;
   by: Array<{
     /** dependency version (not dependent's) */
     ver: string;
@@ -54,26 +62,30 @@ export interface DependentInfo {
   }>;
 }
 
+
+
 const versionReg = /^(\D*)(\d.*?)(?:\.tgz)?$/;
 
 export class InstallManager {
   verbosMessage: string;
   /** key is dependency module name */
-  private directDeps: Map<string, DepInfo> = new Map();
+  private directDeps: Map<string, SimpleLinkedListNode<[string, DepInfo]>> = new Map();
   private srcDeps: Map<string, DepInfo[]> = new Map();
   private peerDeps: Map<string, DepInfo[]> = new Map();
+  private directDepsList: SimpleLinkedList<[string, DepInfo]> = new SimpleLinkedList<[string, DepInfo]>();
 
   constructor(workspaceDeps: {[name: string]: string}, workspaceName: string, private excludeDeps: Map<string, any> | Set<string>) {
     for (const [name, version] of Object.entries(workspaceDeps)) {
       if (this.excludeDeps.has(name))
         continue;
       const m = versionReg.exec(version);
-      this.directDeps.set(name, {
+      const currNode = this.directDepsList.push([name, {
         ver: version === '*' ? '' : version,
         verNum: m ? m[2] : undefined,
         pre: m ? m[1] : '',
         by: `(${workspaceName})`
-      });
+      }]);
+      this.directDeps.set(name, currNode);
     }
   }
 
@@ -111,21 +123,61 @@ export class InstallManager {
   }
 
   hoistDeps() {
-    const dependentInfo: Map<string, DependentInfo> = collectDependencyInfo(this.srcDeps, this.directDeps);
-    const peerDependentInfo = collectDependencyInfo(this.peerDeps, this.directDeps);
+    const dependentInfo: Map<string, DependentInfo> = this.collectDependencyInfo(this.srcDeps);
+    const peerDependentInfo = this.collectDependencyInfo(this.peerDeps, false);
     // merge peer dependent info list into regular dependent info list
-    for (const [dep, info] of dependentInfo.entries()) {
-      if (peerDependentInfo.has(dep)) {
-        const peerInfo = peerDependentInfo.get(dep)!;
-        if (!info.sameVer || !peerInfo.sameVer || info.by[0].ver !== peerInfo.by[0].ver) {
-          info.sameVer = false;
-        }
-        info.by.push(...peerInfo.by);
-        peerDependentInfo.delete(dep);
+    for (const [peerDep, peerInfo] of peerDependentInfo.entries()) {
+      if (!peerInfo.missing)
+        continue;
+
+      const normInfo = dependentInfo.get(peerDep);
+      if (normInfo) {
+        peerInfo.duplicatePeer = true;
+        peerInfo.missing = false;
+        peerInfo.by.unshift(normInfo.by[0]);
       }
     }
 
+    for (const [depName, item] of this.directDepsList.traverse()) {
+      const info: DependentInfo = {
+        sameVer: true,
+        direct: true,
+        missing: false,
+        duplicatePeer: false,
+        by: [{ver: item.ver, name: item.by}]
+      };
+      dependentInfo.set(depName, info);
+    }
+
     return [dependentInfo, peerDependentInfo];
+  }
+
+  protected collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, notPeerDeps = true) {
+    const dependentInfos: Map<string, DependentInfo> = new Map();
+
+    for (const [depName, versionList] of trackedRaw.entries()) {
+      const directVer = this.directDeps.get(depName);
+      const versions = sortByVersion(versionList, depName);
+      if (directVer) {
+        versions.unshift(directVer.value[1]);
+        if (notPeerDeps) {
+          this.directDepsList.removeNode(directVer);
+        }
+      }
+      const hasDiffVersion = _containsDiffVersion(versionList);
+
+      const direct = this.directDeps.has(depName);
+      const info: DependentInfo = {
+        sameVer: !hasDiffVersion,
+        direct,
+        missing: notPeerDeps ? false : !direct,
+        duplicatePeer: false,
+        by: versions.map(item => ({ver: item.ver, name: item.by}))
+      };
+      dependentInfos.set(depName, info);
+    }
+
+    return dependentInfos;
   }
 
   protected _trackSrcDependency(name: string, version: string, byWhom: string) {
@@ -211,22 +263,4 @@ function sortByVersion(verInfoList: DepInfo[], name: string) {
   return verInfoList;
 }
 
-function collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, directDeps: Map<string, DepInfo>) {
-  const dependentInfos: Map<string, DependentInfo> = new Map();
-  for (const [depName, versionList] of trackedRaw.entries()) {
-    const directVer = directDeps.get(depName);
-    let versions = sortByVersion(versionList, depName);
-    if (directVer) {
-      versions.unshift(directVer);
-    }
-    const hasDiffVersion = _containsDiffVersion(versionList);
 
-    const info: DependentInfo = {
-      sameVer: !hasDiffVersion,
-      direct: directDeps.has(depName),
-      by: versions.map(item => ({ver: item.ver, name: item.by}))
-    };
-    dependentInfos.set(depName, info);
-  }
-  return dependentInfos;
-}
