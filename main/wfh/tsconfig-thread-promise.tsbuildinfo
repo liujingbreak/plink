@@ -142,13 +142,13 @@
         "affectsGlobalScope": true
       },
       "../thread-promise-pool/ts/worker.ts": {
-        "version": "6b99307dcd68388d14a9174ac88f7135a78fca70d6b62c41a26365e3d7ff3a9b",
-        "signature": "c5df60f92867ca691d526a296905cbebf068d5d525341df6577c56b9883b19d4",
+        "version": "aeb5adda4fdcf1af467fdd2fc6f0036a19decc4e7862f6b4bb0d3ac89b3f87e3",
+        "signature": "1fcdba9967b5ef8ad69e71a046a96ab5b193c681294dd16ea3b64acab13b9500",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/thread-pool.ts": {
-        "version": "e1115dc53075be0d55d6c140c2d75aa623395eecd1f578eb15dc03660d13b2f9",
-        "signature": "df9a9db42a053abb2f5185e1ed19bd4899c1e621a135bed269d7e7697171c843",
+        "version": "193dffeefa75430d01c698b7342d42ebe8b806ec4d42fca972ce6039836615c5",
+        "signature": "04e9a39d90fb97dcae83a9de7a7826b8a3ff0f0d986be08a8c1debd64451e78c",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/promise-queque.ts": {
@@ -897,6 +897,7 @@
       "pretty": true,
       "rootDir": "../thread-promise-pool/ts",
       "composite": true,
+      "watch": true,
       "configFilePath": "./tsconfig-thread-promise.json"
     },
     "referencedMap": {
@@ -1587,6 +1588,7 @@
         "../thread-promise-pool/ts/index.ts"
       ],
       "../thread-promise-pool/ts/thread-pool.ts": [
+        "../node_modules/@types/node/os.d.ts",
         "../node_modules/@types/node/worker_threads.d.ts",
         "../thread-promise-pool/ts/worker.ts"
       ],
@@ -2276,6 +2278,7 @@
         "../thread-promise-pool/ts/worker.ts"
       ],
       "../thread-promise-pool/ts/thread-pool.ts": [
+        "../node_modules/@types/node/worker_threads.d.ts",
         "../thread-promise-pool/ts/worker.ts"
       ],
       "../thread-promise-pool/ts/worker.ts": [

@@ -1,5 +1,35 @@
+// tslint:disable no-console
 import {isMainThread, parentPort, workerData, WorkerOptions} from 'worker_threads';
 
+let verbose = false;
+let initialDone: Promise<any> = Promise.resolve();
+
+process.on('uncaughtException', function(err) {
+  // log.error('Uncaught exception', err, err.stack);
+  console.error(`[thread-pool] worker pid:${workerData.id} Uncaught exception: `, err);
+  parentPort!.postMessage({
+    type: 'error',
+    data: err.toString()
+  });
+});
+
+process.on('unhandledRejection', err => {
+  // log.warn('unhandledRejection', err);
+  console.error(`[thread-pool] worker pid:${workerData.id} unhandledRejection`, err);
+  parentPort!.postMessage({
+    type: 'error',
+    data: err ? err.toString() : err
+  });
+});
+
+export interface InitialOptions {
+  verbose?: boolean;
+  /** After worker being created, the exported function will be run,
+   * You can put any initial logic in it, like calling `require('source-map-support/register')` or
+   * setup process event handling for uncaughtException and unhandledRejection.
+   */
+  initializer?: {file: string; exportFn?: string};
+}
 export interface Task {
   file: string;
   /**
@@ -29,7 +59,16 @@ export interface Command {
 }
 
 if (workerData) {
-  executeOnEvent(workerData);
+  verbose = !!(workerData as InitialOptions).verbose;
+  if ((workerData as InitialOptions).initializer) {
+    const {file, exportFn} = (workerData as InitialOptions).initializer!;
+    if (exportFn == null)
+      initialDone = Promise.resolve(require(file));
+    else
+      initialDone = Promise.resolve(require(file)[exportFn]());
+  } else {
+    initialDone = Promise.resolve();
+  }
 }
 
 if (!isMainThread) {
@@ -38,14 +77,24 @@ if (!isMainThread) {
 
 async function executeOnEvent(data: Task | Command) {
   if ((data as Command).exit) {
+    if (verbose)
+      console.log(`[thread-pool] worker pid:${workerData.id} exit`);
     process.exit(0);
     return;
   }
+  if (verbose) {
+    console.log(`[thread-pool] worker ${workerData.id} run`);
+  }
   try {
+    await initialDone;
     const result = await Promise.resolve(require((data as Task).file)[(data as Task).exportFn](
       ...((data as Task).args || [])
       ));
-    if ((result as TaskResult).transferList) {
+
+    if (verbose) {
+      console.log(`[thread-pool] worker pid:${workerData.id} wait`);
+    }
+    if (result != null && (result as TaskResult).transferList) {
       const transferList = (result as TaskResult).transferList;
       delete result.transferList;
       parentPort!.postMessage({ type: 'wait', data: result }, transferList);
@@ -54,9 +103,17 @@ async function executeOnEvent(data: Task | Command) {
     }
 
   } catch (ex) {
-    parentPort!.postMessage({
-      type: 'error',
-      data: ex
-    });
+    console.log(`[thread-pool] worker ${workerData.id} error`, ex);
+    try {
+      parentPort!.postMessage({
+        type: 'error',
+        data: ex.toString()
+      });
+    } catch (err) {
+      parentPort!.postMessage({
+        type: 'error',
+        data: err.toString()
+      });
+    }
   }
 }

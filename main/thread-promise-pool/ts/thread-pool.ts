@@ -1,6 +1,8 @@
-import {Worker} from 'worker_threads';
+// tslint:disable no-console
+import {Worker, WorkerOptions} from 'worker_threads';
 // import {queue} from './promise-queque';
-import {Task, Command} from './worker';
+import {Task, Command, InitialOptions} from './worker';
+import os from 'os';
 export {Task};
 
 class PromisedTask<T> {
@@ -58,19 +60,24 @@ export class Pool {
   private idleTimers = new WeakMap<Worker, ReturnType<typeof setTimeout>>();
 
   private tasks: PromisedTask<any>[] = [];
+  private totalCreatedWorkers = 0;
 
   /**
-   * @param maxParalle max number of paralle workers
+   * @param maxParalle max number of paralle workers, default is `os.cpus().length - 1`
    * @param idleTimeMs let worker exit to release memory, after a worker being idle for some time (in ms)
-   * @param workerInitTaskFactory generate initial task for a newly created woker, like initialize some environment
+   * @param workerOptions thread worker options, e.g. initializing some environment
    * stuff
    */
-  constructor(private maxParalle: number, private idleTimeMs: number, private workerInitTaskFactory?: () => Task) {
+  constructor(private maxParalle = os.cpus().length - 1, private idleTimeMs = 0, private workerOptions?: WorkerOptions & InitialOptions) {
   }
 
   async submit<T>(task: Task): Promise<T> {
     // 1. Bind a task with a promise
     const promisedTask = new PromisedTask<T>(task);
+
+    if (this.workerOptions?.verbose) {
+      console.log(`[thread-pool] submit task, idle workers: ${this.idleWorkers.length}, running workers: ${this.runningWorkers.size}`);
+    }
 
     if (this.idleWorkers.length > 0) {
       // 2. Look for availabe idle worker
@@ -110,14 +117,22 @@ export class Pool {
   }
 
   private createWorker(task: PromisedTask<any>) {
-    const worker = new Worker(require.resolve('./worker'));
-    if (this.workerInitTaskFactory) {
-      this.tasks.push(task);
-      const promisedInitTask = new PromisedTask(this.workerInitTaskFactory());
-      this.runWorker(promisedInitTask, worker);
+    let worker: Worker;
+    if (this.workerOptions && (this.workerOptions.verbose || this.workerOptions.initializer)) {
+      if (this.workerOptions.verbose)
+        console.log('[thread-pool] createWorker');
+      worker = new Worker(require.resolve('./worker'), {
+        workerData: {
+          id: ++this.totalCreatedWorkers + '',
+          verbose: this.workerOptions.verbose,
+          initializer: this.workerOptions.initializer},
+          ...this.workerOptions
+      });
     } else {
-      this.runWorker(task, worker);
+      worker = new Worker(require.resolve('./worker'), this.workerOptions);
     }
+    this.runWorker(task, worker);
+
     const onWorkerExit = () => {
       if (this.runningWorkers.has(worker)) {
         this.runningWorkers.delete(worker);
