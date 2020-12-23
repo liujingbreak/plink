@@ -31,7 +31,7 @@ nodeRoutePath: /
 # enable devMode to denote default builder tool do not do things like uglify JS bundles,
 # and also it will set process.env.NODE_ENV = 'production' if false
 # revisioning file name...
-devMode: true
+devMode: false
 
 # You don't want others read your source code in production environment
 enableSourceMaps: false

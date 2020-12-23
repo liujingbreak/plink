@@ -13,5 +13,5 @@ export interface ServerMetaInfo {
     checksum: Checksum;
     id: string;
 }
-export declare function sendAppZip(opt?: Options, file?: string): Promise<unknown>;
+export declare function sendAppZip(opt?: Options, file?: string): Promise<void>;
 export declare function toLines(src: Observable<Buffer>): Observable<string>;

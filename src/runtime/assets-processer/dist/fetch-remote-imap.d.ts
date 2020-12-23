@@ -38,7 +38,7 @@ export declare class ImapManager {
     fileWritingState: ImapCommandContext['fileWritingState'];
     watching: boolean;
     private toFetchAppsState;
-    private ctx;
+    private ctx?;
     constructor(env: string, zipDownloadDir?: string | undefined);
     fetchChecksum(): Promise<void>;
     fetchUpdateCheckSum(appName: string): Promise<void>;

@@ -23,7 +23,7 @@ xdescribe('imap-msg-parser', () => {
   it('parseLinesOfTokens() should work', async () => {
     const handler = createServerDataHandler();
 
-    const done = new Promise((resolve, rej) => {
+    const done = new Promise<void>((resolve, rej) => {
         handler.output.subscribe(
         tks => {},
         (err) => rej(err),

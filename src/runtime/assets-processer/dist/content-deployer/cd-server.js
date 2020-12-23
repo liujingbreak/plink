@@ -14,7 +14,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -199,7 +199,7 @@ function activate(app, imap) {
                 process.send(msg);
             }
             else
-                fetch_remote_1.retry(2, fetch_remote_1.forkExtractExstingZip);
+                fetch_remote_1.retry(2, fetch_remote_1.forkExtractExstingZip).then(() => __api_1.default.eventBus.emit(__api_1.default.packageName + '.downloaded'));
         }
         function initPm2() {
             return __awaiter(this, void 0, void 0, function* () {
@@ -226,7 +226,7 @@ function activate(app, imap) {
                     }
                     if (packet.data.extractZip && packet.data.pid !== process.pid) {
                         log.info('Other process triggers "extractZip" from id:', lodash_1.default.get(packet, 'process.pm_id'));
-                        fetch_remote_1.retry(2, fetch_remote_1.forkExtractExstingZip);
+                        fetch_remote_1.retry(2, fetch_remote_1.forkExtractExstingZip).then(() => __api_1.default.eventBus.emit(__api_1.default.packageName + '.downloaded'));
                     }
                 });
             });

@@ -315,7 +315,7 @@ export class ImapManager {
   watching = false;
   private toFetchAppsState = new BehaviorSubject<string[]>([]);
 
-  private ctx: ImapCommandContext;
+  private ctx?: ImapCommandContext;
 
   constructor(public env: string, public zipDownloadDir?: string) {
     if (zipDownloadDir == null)

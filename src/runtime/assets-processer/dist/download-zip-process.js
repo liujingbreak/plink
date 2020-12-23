@@ -44,7 +44,7 @@ function downloadZip(fetchUrl) {
                 const writeStream = fs_1.default.createWriteStream(fileName);
                 writeStream.on('finish', () => {
                     process.send && process.send({ log: 'zip file is written: ' + fileName });
-                    resolve();
+                    resolve(null);
                 });
                 request_1.default({
                     uri: resource, method: 'GET', encoding: null

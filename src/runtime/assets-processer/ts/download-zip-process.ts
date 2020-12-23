@@ -30,11 +30,11 @@ async function downloadZip(fetchUrl: string) {
   // log.info('fetch', resource);
   process.send && process.send({log: `[pid:${process.pid}] fetch `+ resource});
   await retry(async () => {
-    await new Promise<Buffer>((resolve, rej) => {
+    await new Promise<Buffer|null>((resolve, rej) => {
       const writeStream = fs.createWriteStream(fileName);
       writeStream.on('finish', () => {
         process.send && process.send({log: 'zip file is written: ' + fileName});
-        resolve();
+        resolve(null);
       });
       request({
         uri: resource, method: 'GET', encoding: null

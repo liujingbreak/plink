@@ -63,7 +63,7 @@ export async function sendAppZip(opt: Options = {} as Options, file?: string) {
   }
 
 
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     // const concurQ = new PromQ(opt.numOfConc, 20);
 
     let finishedSet = new Set<string>();

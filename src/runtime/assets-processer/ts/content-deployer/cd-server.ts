@@ -208,7 +208,7 @@ export async function activate(app: Application, imap: ImapManager) {
       };
       process.send!(msg);
     } else
-      retry(2, forkExtractExstingZip);
+      retry(2, forkExtractExstingZip).then(() => api.eventBus.emit(api.packageName + '.downloaded'));
   }
 
   async function initPm2() {
@@ -238,7 +238,7 @@ export async function activate(app: Application, imap: ImapManager) {
 
       if (packet.data.extractZip && packet.data.pid !== process.pid) {
         log.info('Other process triggers "extractZip" from id:', _.get(packet, 'process.pm_id'));
-        retry(2, forkExtractExstingZip);
+        retry(2, forkExtractExstingZip).then(() => api.eventBus.emit(api.packageName + '.downloaded'));
       }
     });
   }

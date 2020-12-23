@@ -66,7 +66,7 @@ async function start() {
 
 async function tryExtract(file: string) {
   const data: Buffer = await readFileAsync(file);
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     const zip = new AdmZip(data);
     zip.extractAllToAsync(zipExtractDir, true, (err) => {
       if (err) {
