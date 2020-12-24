@@ -103,8 +103,8 @@ function activate() {
         __api_1.default.use('/', serve_index_1.default(staticFolder, { icons: true, stylesheet }));
     }
     else {
-        log.info(chalk_1.default.blueBright(`If you want to serve directory index page of static resource folder ${staticFolder}\n` +
-            ` start command with "-c --prop ${__api_1.default.packageName}.serveIndex=true staticDir=<resource directory>`));
+        log.info(chalk_1.default.blueBright(`If you want to serve directory index page for resource directory other than ${staticFolder}\n` +
+            ` start command with "-c none --prop ${__api_1.default.packageName}.serveIndex=true --prop staticDir=<resource directory>`));
     }
     __api_1.default.expressAppSet(app => cd_server_1.activate(app, imap));
     index_html_route_1.fallbackIndexHtml();

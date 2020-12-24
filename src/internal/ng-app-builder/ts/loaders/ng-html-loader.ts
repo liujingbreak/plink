@@ -37,10 +37,7 @@ loader.compileHtml = load;
 
 export = loader;
 
-async function load(
-  content: string,
-  loader: LoaderContext
-  ): Promise<string> {
+async function load(content: string, loader: LoaderContext): Promise<string> {
 
   return replaceForHtml(content, loader.resourcePath, (text: string) => {
     return new Observable<string>(subscriber => {

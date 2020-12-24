@@ -90,8 +90,8 @@ export function activate() {
     process.title = 'File server on ' + staticFolder;
     api.use('/', serveIndex(staticFolder, {icons: true, stylesheet}));
   } else {
-    log.info(chalk.blueBright(`If you want to serve directory index page of static resource folder ${staticFolder}\n` +
-      ` start command with "-c --prop ${api.packageName}.serveIndex=true staticDir=<resource directory>`));
+    log.info(chalk.blueBright(`If you want to serve directory index page for resource directory other than ${staticFolder}\n` +
+      ` start command with "-c none --prop ${api.packageName}.serveIndex=true --prop staticDir=<resource directory>`));
   }
   api.expressAppSet(app => activateCd(app, imap));
   fallbackIndexHtml();
