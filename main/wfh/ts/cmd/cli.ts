@@ -23,7 +23,7 @@ const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
   return prev;
 };
 
-export async function drcpCommand(startTime: number) {
+export async function createCommands(startTime: number) {
   process.title = 'Plink - command line';
   // const {stateFactory}: typeof store = require('../store');
   await import('./cli-slice');
@@ -47,9 +47,19 @@ export async function drcpCommand(startTime: number) {
   });
 
   program.version(pk.version, '-v, --vers', 'output the current version');
-  subDrcpCommand(program);
+  
+  let wsState: pkgMgr.WorkspaceState | undefined;
   if (process.env.PLINK_SAFE !== 'true') {
-    cliExtensions = loadExtensionCommand(program);
+    const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
+    wsState = getPkgState().workspaces.get(workspaceKey(process.cwd()));
+    if (wsState != null) {
+      spaceOnlySubWfhCommand(program);
+    }
+  }
+
+  subWfhCommand(program);
+  if (process.env.PLINK_SAFE !== 'true') {
+    cliExtensions = loadExtensionCommand(program, wsState);
   } else {
     // tslint:disable-next-line: no-console
     console.log('Value of environment varaible "PLINK_SAFE" is true, skip loading extension');
@@ -63,7 +73,7 @@ export async function drcpCommand(startTime: number) {
   }
 }
 
-function subDrcpCommand(program: commander.Command) {
+function subWfhCommand(program: commander.Command) {
   /**
    * command init
    */
@@ -136,78 +146,6 @@ function subDrcpCommand(program: commander.Command) {
   withGlobalOptions(listCmd);
 
   /**
-   * command run
-   */
-  const runCmd = program.command('run <target> [arguments...]')
-  .description('Run specific module\'s exported function\n')
-  .action(async (target: string, args: string[]) => {
-    const config = await (await import('../config')).default;
-    await config.init(runCmd.opts() as tp.GlobalOptions);
-    const logConfig = await (await import('../log-config')).default;
-    logConfig(config());
-    await (await import('../package-runner')).runSinglePackage({target, args});
-  });
-  withGlobalOptions(runCmd);
-  runCmd.usage(runCmd.usage() + '\n' + chalk.green('plink run <target> [arguments...]\n') +
-  `e.g.\n  ${chalk.green('plink run forbar-package/dist/file#function argument1 argument2...')}\n` +
-  'execute exported function of TS/JS file from specific package or path\n\n' +
-  '<target> - JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n' +
-  'e.g. \n' +
-  chalk.green('package-name/dist/foobar.js#myFunction') +
-  ', function can be async which returns Promise\n' +
-  chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
-  ', relative or absolute path\n');
-
-  /**
-   * tsc command
-   */
-  const tscCmd = program.command('tsc [package...]')
-  .description('Run Typescript compiler')
-  .option('-w, --watch', 'Typescript compiler watch mode', false)
-  .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
-    prev.push(...v.split(',')); return prev;
-  }, [] as string[])
-  // .option('--ws,--workspace <workspace-dir>', 'only include those linked packages which are dependency of specific workspaces',
-  //   arrayOptionFn, [])
-  .option('--jsx', 'includes TSX file', false)
-  .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
-  .option('--source-map <inline|file>', 'Source map style: "inline" or "file"', 'inline')
-  .action(async (packages: string[]) => {
-    const opt = tscCmd.opts();
-
-    const config = await (await import('../config')).default;
-    await config.init(runCmd.opts() as tp.GlobalOptions);
-    const logConfig = await (await import('../log-config')).default;
-    logConfig(config());
-    const tsc = await import('../ts-cmd');
-    // await tsc.tsc({
-    //   package: packages,
-    //   project: opt.project,
-    //   watch: opt.watch,
-    //   sourceMap: opt.sourceMap,
-    //   jsx: opt.jsx,
-    //   ed: opt.emitDeclarationOnly
-    // }).toPromise();
-    await tsc.tsc({
-      package: packages,
-      project: opt.project,
-      watch: opt.watch,
-      sourceMap: opt.sourceMap,
-      jsx: opt.jsx,
-      ed: opt.emitDeclarationOnly
-    });
-  });
-  withGlobalOptions(tscCmd);
-  tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side Typescript files.\n\n' +
-  'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
-  '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
-  'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs in ' +
-  'both Node.js and Browser) in directory `isom`.\n' +
-  hlDesc('plink tsc\n') + 'Compile linked packages that are dependencies of current workspace (you shall run this command only in a workspace directory)\n' +
-  hlDesc('plink tsc <package..>\n') + ' Only compile specific packages by providing package name or short name\n' +
-  hlDesc('plink tsc [package...] -w\n') + ' Watch packages change and compile when new typescript file is changed or created\n\n');
-
-  /**
    * Bump command
    */
   const bumpCmd = program.command('bump [package...]')
@@ -262,10 +200,75 @@ function subDrcpCommand(program: commander.Command) {
   withGlobalOptions(publishCmd);
 }
 
-function loadExtensionCommand(program: commander.Command): string[] {
-  // const {getState} = require('./cli-slice') as typeof cliStore;
-  const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
-  const ws = getPkgState().workspaces.get(workspaceKey(process.cwd()));
+function spaceOnlySubWfhCommand(program: commander.Command) {
+  /**
+     * command run
+     */
+  const runCmd = program.command('run <target> [arguments...]')
+  .description('Run specific module\'s exported function\n')
+  .action(async (target: string, args: string[]) => {
+    const config = await (await import('../config')).default;
+    await config.init(runCmd.opts() as tp.GlobalOptions);
+    const logConfig = await (await import('../log-config')).default;
+    logConfig(config());
+    await (await import('../package-runner')).runSinglePackage({target, args});
+  });
+  withGlobalOptions(runCmd);
+  runCmd.usage(runCmd.usage() + '\n' + chalk.green('plink run <target> [arguments...]\n') +
+  `e.g.\n  ${chalk.green('plink run forbar-package/dist/file#function argument1 argument2...')}\n` +
+  'execute exported function of TS/JS file from specific package or path\n\n' +
+  '<target> - JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n' +
+  'e.g. \n' +
+  chalk.green('package-name/dist/foobar.js#myFunction') +
+  ', function can be async which returns Promise\n' +
+  chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
+  ', relative or absolute path\n');
+
+
+  /**
+   * tsc command
+   */
+  const tscCmd = program.command('tsc [package...]')
+  .description('Run Typescript compiler')
+  .option('-w, --watch', 'Typescript compiler watch mode', false)
+  .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
+    prev.push(...v.split(',')); return prev;
+  }, [] as string[])
+  // .option('--ws,--workspace <workspace-dir>', 'only include those linked packages which are dependency of specific workspaces',
+  //   arrayOptionFn, [])
+  .option('--jsx', 'includes TSX file', false)
+  .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
+  .option('--source-map <inline|file>', 'Source map style: "inline" or "file"', 'inline')
+  .action(async (packages: string[]) => {
+    const opt = tscCmd.opts();
+
+    const config = await (await import('../config')).default;
+    await config.init(tscCmd.opts() as tp.GlobalOptions);
+    const logConfig = await (await import('../log-config')).default;
+    logConfig(config());
+    const tsc = await import('../ts-cmd');
+
+    await tsc.tsc({
+      package: packages,
+      project: opt.project,
+      watch: opt.watch,
+      sourceMap: opt.sourceMap,
+      jsx: opt.jsx,
+      ed: opt.emitDeclarationOnly
+    });
+  });
+  withGlobalOptions(tscCmd);
+  tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side Typescript files.\n\n' +
+  'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
+  '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
+  'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs in ' +
+  'both Node.js and Browser) in directory `isom`.\n' +
+  hlDesc('plink tsc\n') + 'Compile linked packages that are dependencies of current workspace (you shall run this command only in a workspace directory)\n' +
+  hlDesc('plink tsc <package..>\n') + ' Only compile specific packages by providing package name or short name\n' +
+  hlDesc('plink tsc [package...] -w\n') + ' Watch packages change and compile when new typescript file is changed or created\n\n');
+}
+
+function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceState | undefined): string[] {
   if (ws == null)
     return [];
 
@@ -369,7 +372,7 @@ function checkPlinkVersion() {
     }
     if (depVer && !semver.satisfies(pk.version, depVer)) {
       // tslint:disable-next-line: no-console
-      console.log(boxString(`Please run commands to re-install local Plink v${pk.version}, required is v${depVer}:\n\n` +
+      console.log(boxString(`Please run commands to re-install local Plink v${pk.version}, expected is v${depVer}:\n\n` +
         '  plink clean-symlinks\n  npm i\n  npm ddp'));
     }
   }

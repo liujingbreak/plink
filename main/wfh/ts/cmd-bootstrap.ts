@@ -16,7 +16,7 @@ process.on('exit', () => {
 
 (async function run() {
   initProcess();
-  (require('./cmd/cli') as typeof _cli).drcpCommand(startTime);
+  (require('./cmd/cli') as typeof _cli).createCommands(startTime);
 })().catch(err => {
   console.log(err);
   process.exit(1);
