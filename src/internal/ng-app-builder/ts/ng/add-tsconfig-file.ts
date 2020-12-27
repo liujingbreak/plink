@@ -11,13 +11,8 @@ import Path from 'path';
 import chalk from 'chalk';
 import { AngularBuilderOptions } from './common';
 import * as pkgMgr from '@wfh/plink/wfh/dist/package-mgr';
-// import * as util from 'util';
-// const log = require('log4js').getLogger('add-tsconfig-file');
 
-  // initCli(browserOptions)
-  // .then(drcpConfig => {
-  //   return injectorSetup(pkInfo, drcpConfig, browserOptions);
-  // });
+const log = require('log4js').getLogger(api.packageName + '.add-tsconfig-file');
 
 export function addSourceFiles(compilerOptions: any, entryFiles: string[], tsconfigFile: string,
   fileReplacements: AngularBuilderOptions['fileReplacements'], reportDir: string): string[] {
@@ -31,7 +26,7 @@ export function addSourceFiles(compilerOptions: any, entryFiles: string[], tscon
   const installedPkgs = getState().workspaces.get(workspaceKey(process.cwd()))!.installedComponents!;
 
   // compilerOptions = addAdditionalPathsForTsResolve(projDir, compilerOptions);
-  console.log(compilerOptions);
+  log.info(compilerOptions);
   const g = new Graph(jsonToCompilerOptions(compilerOptions), fileReplacements,
     path => {
       const els = path.split('/');

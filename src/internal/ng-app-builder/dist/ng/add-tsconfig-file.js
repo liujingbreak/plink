@@ -15,12 +15,7 @@ const __api_1 = __importDefault(require("__api"));
 const typescript_1 = require("typescript");
 const path_1 = __importDefault(require("path"));
 const chalk_1 = __importDefault(require("chalk"));
-// import * as util from 'util';
-// const log = require('log4js').getLogger('add-tsconfig-file');
-// initCli(browserOptions)
-// .then(drcpConfig => {
-//   return injectorSetup(pkInfo, drcpConfig, browserOptions);
-// });
+const log = require('log4js').getLogger(__api_1.default.packageName + '.add-tsconfig-file');
 function addSourceFiles(compilerOptions, entryFiles, tsconfigFile, fileReplacements, reportDir) {
     // console.log('addSourceFiles: compilerOptions', compilerOptions);
     const projDir = path_1.default.dirname(tsconfigFile);
@@ -28,7 +23,7 @@ function addSourceFiles(compilerOptions, entryFiles, tsconfigFile, fileReplaceme
     // const cwd = process.cwd();
     const installedPkgs = getState().workspaces.get(workspaceKey(process.cwd())).installedComponents;
     // compilerOptions = addAdditionalPathsForTsResolve(projDir, compilerOptions);
-    console.log(compilerOptions);
+    log.info(compilerOptions);
     const g = new ts_dep_1.default(ts_compiler_1.jsonToCompilerOptions(compilerOptions), fileReplacements, path => {
         const els = path.split('/');
         const hasScopename = els[0].startsWith('@');

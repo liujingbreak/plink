@@ -1,7 +1,6 @@
 /// <reference lib="es2017" />
 /// <reference path="./hmr-module.d.ts" />
-// tslint:disable: max-line-length
-// tslint:disable: member-ordering
+// tslint:disable: max-line-length member-ordering
 /**
  * A combo set for using Redux-toolkit along with redux-observable
  */
