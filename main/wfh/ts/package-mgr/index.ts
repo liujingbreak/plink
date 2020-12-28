@@ -755,7 +755,10 @@ async function installWorkspace(ws: WorkspaceState) {
   await new Promise(resolve => setTimeout(resolve, 5000));
   try {
     await exe('npm', 'install', {cwd: dir}).promise;
-    await exe('npm', 'dedupe', {cwd: dir}).promise;
+    // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
+    // why, I have to add a process.nextTick() between them to workaround
+    await new Promise(resolve => process.nextTick(resolve));
+    await exe('npm', 'ddp', {cwd: dir}).promise;
   } catch (e) {
     // tslint:disable-next-line: no-console
     console.log('Failed to install dependencies', e.stack);
