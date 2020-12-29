@@ -92,8 +92,8 @@ function activate() {
             utils_1.commandProxy(proxyPath, httpProxySet[proxyPath]);
         }
     }
-    const zss = static_middleware_1.createZipRoute(maxAgeMap);
-    __api_1.default.use('/', zss.handler);
+    // const zss = createZipRoute(maxAgeMap);
+    // api.use('/', zss.handler);
     const staticHandler = static_middleware_1.createStaticRoute(staticFolder, maxAgeMap);
     __api_1.default.use('/', staticHandler);
     __api_1.default.use('/', static_middleware_1.createStaticRoute(__api_1.default.config.resolve('dllDestDir'), maxAgeMap));

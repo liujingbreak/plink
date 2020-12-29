@@ -3,8 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createZipRoute = exports.createStaticRoute = void 0;
-const serve_static_zip_1 = __importDefault(require("serve-static-zip"));
+exports.createStaticRoute = void 0;
 const path_1 = __importDefault(require("path"));
 const lodash_1 = __importDefault(require("lodash"));
 const express_1 = __importDefault(require("express"));
@@ -17,12 +16,12 @@ function createStaticRoute(staticDir, maxAgeMap = {}) {
     });
 }
 exports.createStaticRoute = createStaticRoute;
-function createZipRoute(maxAgeMap = {}) {
-    const maxAgeNumMap = parseMaxAgeMap(maxAgeMap);
-    const zss = serve_static_zip_1.default('', { setHeaders: createSetHeaderFunc(maxAgeNumMap) });
-    return zss;
-}
-exports.createZipRoute = createZipRoute;
+// export function createZipRoute(maxAgeMap: {[extname: string]: string} = {}):
+// serveZip.ZipResourceMiddleware {
+//   const maxAgeNumMap = parseMaxAgeMap(maxAgeMap);
+//   const zss = serveZip('', {setHeaders: createSetHeaderFunc(maxAgeNumMap)});
+//   return zss;
+// }
 function createSetHeaderFunc(maxAgeNumMap) {
     return (res, path, entry) => {
         var ext = path_1.default.extname(path).toLowerCase();

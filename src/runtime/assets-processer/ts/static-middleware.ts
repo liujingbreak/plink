@@ -1,4 +1,4 @@
-import serveZip from 'serve-static-zip';
+// import serveZip from 'serve-static-zip';
 import {Response, Handler} from 'express';
 import Path from 'path';
 import _ from 'lodash';
@@ -14,12 +14,12 @@ export function createStaticRoute(staticDir: string, maxAgeMap: {[extname: strin
   });
 }
 
-export function createZipRoute(maxAgeMap: {[extname: string]: string} = {}):
-serveZip.ZipResourceMiddleware {
-  const maxAgeNumMap = parseMaxAgeMap(maxAgeMap);
-  const zss = serveZip('', {setHeaders: createSetHeaderFunc(maxAgeNumMap)});
-  return zss;
-}
+// export function createZipRoute(maxAgeMap: {[extname: string]: string} = {}):
+// serveZip.ZipResourceMiddleware {
+//   const maxAgeNumMap = parseMaxAgeMap(maxAgeMap);
+//   const zss = serveZip('', {setHeaders: createSetHeaderFunc(maxAgeNumMap)});
+//   return zss;
+// }
 
 function createSetHeaderFunc(maxAgeNumMap: {[extname: string]: number}) {
   return (res: Response, path: string, entry: any) => {

@@ -10,7 +10,7 @@ import * as fetchRemote from './fetch-remote';
 import { ImapManager } from './fetch-remote-imap';
 import { WithMailServerConfig } from './fetch-types';
 import { fallbackIndexHtml, proxyToDevServer } from './index-html-route';
-import { createStaticRoute, createZipRoute } from './static-middleware';
+import { createStaticRoute } from './static-middleware';
 import { commandProxy } from './utils';
 const log = require('log4js').getLogger(api.packageName);
 const serverFavicon = require('serve-favicon');
@@ -78,9 +78,9 @@ export function activate() {
     }
   }
 
-  const zss = createZipRoute(maxAgeMap);
+  // const zss = createZipRoute(maxAgeMap);
 
-  api.use('/', zss.handler);
+  // api.use('/', zss.handler);
   const staticHandler = createStaticRoute(staticFolder, maxAgeMap);
   api.use('/', staticHandler);
   api.use('/', createStaticRoute(api.config.resolve('dllDestDir'), maxAgeMap));

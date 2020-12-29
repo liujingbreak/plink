@@ -1812,6 +1812,7 @@
       "pretty": true,
       "rootDir": "..",
       "composite": true,
+      "project": "../../wfh/tsconfig-redux-toolkit.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit.json"
     },
     "referencedMap": {
