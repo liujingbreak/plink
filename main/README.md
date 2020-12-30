@@ -10,7 +10,7 @@
 ```
 > New version of readme and other documentation are still in-progress.
 
-If heard about **Lerna** and **Yarn**'s workspace concept, yes this tool is a little bit in the same category.
+If heard about **Lerna**, **Yarn**'s workspace concept and [Nx](https://nx.dev), yes this tool is a little bit in the same category.
 > [Yarn's workspaces feature](https://yarnpkg.com/features/workspaces)
 
 (This document is still at work-in-progress)
@@ -27,6 +27,8 @@ If heard about **Lerna** and **Yarn**'s workspace concept, yes this tool is a li
   - [Unlike Yarn workspaces](#unlike-yarn-workspaces)
   - [Plink toolkit packages](#plink-toolkit-packages)
 ## Purpose
+To embrass **Monorepo** and **Multiple-repo** at same time.
+
 Web (or Node.js) frameworks or libraries like Angular, React, Vue, NestJS, they all come up with command line tools which help developer to initialize web projects, most of them are like scaffolding tool.
 
 'Quick and easy' is how they please developers. but 'Quick and easy' shouldn't mean that a resulting application will suffer from a maintainability, extendibility issue. Especially for enterprise.
@@ -34,13 +36,31 @@ Web (or Node.js) frameworks or libraries like Angular, React, Vue, NestJS, they 
 A naive scaffolding tool based application is kinda single project application with very limited way to share reusable module, architecture and configuration. Hard to having long term maintainance and hard to benefit future projects.
 
 ## A command line tool
- > to manipulate monorepo style projects
-### Plink monorepo style
+- to manipulate monorepo style projects and also connect multiple repos.
+
+- to resue and share packages/components/tools between multiple projects or repos.
+
+### Why Monorepos ?
+[A perfect monorepo pitch in Nx](https://nx.dev/latest/node/core-concepts/why-monorepos)
+
+A monorepo is a single git repository that holds the source code for multiple applications and libraries, along with the tooling for them.
+
+What are the benefits of a monorepo?
+- **Shared code** - Keep your code DRY across your entire organization. Reuse validation code, UI components and types across the code base. Reuse code between the backend and the frontend.
+
+- **Atomic changes** - Change a server API and modify the clients that consume that API in the same commit. You can change a button component in a shared library and the applications that use that component in the same commit. This saves the pain of trying to coordinate commits across multiple repositories.
+
+- **Developer mobility** - Get a consistent way of building and testing applications written using different tools and technologies. Developers can confidently contribute to other teams’ applications and verify that their changes are safe.
+
+- **Single set of dependencies** - Use a single version of third party dependencies for all your apps. Less frequently used applications don’t get left behind with a 3 year old version of a framework library or an old version of webpack.
+### Plink monorepo multiple-repo style
 - You may have multiple web (Node.js) projects, some are based on Node.js Express.js framework, some are based on React and Redux, and some are based on Angular.
 
 - You may have a single source code directory contains reusable (partially) modules, some Redux code could be shared in React projects and Angular project, some Node.js code may be reused on all web projects as backend server or build process enhancement.
 
-- Source code is organized in form of Node packages, so that they can be shared cross repositaries. Projects in the same repo can directly reference relative source code. Other project can install them as node package to their build and deploy environment.
+- Source code is organized in form of Node packages at first place, so that they can be shared cross repositaries. Projects in the same repo can directly reference relative source code. Other project can install them as node package to their build and deploy environment.
+
+- **You may link multiple projects that is inside or outside current repository, build them together, run them together, without **
 
 ### Directory structure may look like:
 ```

@@ -16,6 +16,7 @@ import { drawPuppy, getCmdOptions, printConfig } from './utils';
 // import {createLazyPackageFileFinder} from '@wfh/plink/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
+import TemplatePlugin from '@wfh/webpack-common/dist/template-html-plugin';
 
 const log = log4js.getLogger('cra-scripts');
 const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -134,6 +135,7 @@ export = function(webpackEnv: 'production' | 'development') {
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
   } else {
+    config.plugins!.unshift(new TemplatePlugin());
     setupSplitChunks(config, (mod) => {
       const file = mod.nameForCondition ? mod.nameForCondition() : null;
       if (file == null)

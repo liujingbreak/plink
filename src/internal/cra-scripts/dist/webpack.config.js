@@ -13,6 +13,7 @@ const __api_1 = __importDefault(require("__api"));
 const utils_1 = require("./utils");
 // import {createLazyPackageFileFinder} from '@wfh/plink/wfh/dist/package-utils';
 const webpack_lib_1 = __importDefault(require("./webpack-lib"));
+const template_html_plugin_1 = __importDefault(require("@wfh/webpack-common/dist/template-html-plugin"));
 const log = log4js_1.default.getLogger('cra-scripts');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
 function insertLessLoaderRule(origRules) {
@@ -246,6 +247,7 @@ module.exports = function (webpackEnv) {
         webpack_lib_1.default(cmdOption.buildTarget, config, nodePath);
     }
     else {
+        config.plugins.unshift(new template_html_plugin_1.default());
         splitChunks_1.default(config, (mod) => {
             const file = mod.nameForCondition ? mod.nameForCondition() : null;
             if (file == null)
