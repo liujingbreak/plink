@@ -12,7 +12,7 @@ export interface GlobalOptions {
 export interface InitCmdOptions extends GlobalOptions {
   force: boolean;
   production: boolean;
-  // yarn: boolean;
+  lintHook: boolean;
 }
 
 export interface LintOptions extends GlobalOptions {
@@ -34,4 +34,9 @@ export interface PackOptions extends GlobalOptions {
 
 export interface PublishOptions extends PackOptions {
   public: boolean;
+}
+
+export interface AnalyseOptions extends GlobalOptions {
+  dir?: string[];
+  file?: string[];
 }

@@ -64,9 +64,9 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
   ))).subscribe();
 
   if (workspace) {
-    actions.updateWorkspace({dir: workspace, isForce: opt.force});
+    actions.updateWorkspace({dir: workspace, isForce: opt.force, createHook: opt.lintHook});
   } else {
-    actions.initRootDir({isForce: opt.force});
+    actions.initRootDir({isForce: opt.force, createHook: opt.lintHook});
     setImmediate(() => listProject());
   }
   // setImmediate(() => printWorkspaces());

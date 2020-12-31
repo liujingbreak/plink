@@ -1,3 +1,5 @@
+import 'source-map-support/register';
+
 import Path from 'path';
 // import chalk from 'chalk';
 import config from '../config';

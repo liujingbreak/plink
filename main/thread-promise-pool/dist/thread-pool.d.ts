@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { WorkerOptions } from 'worker_threads';
 import { Task, InitialOptions } from './worker';
+import { Task as ProcessTask } from './worker-process';
 export { Task };
 export declare class Pool {
     private maxParalle;
@@ -20,6 +21,8 @@ export declare class Pool {
      */
     constructor(maxParalle?: number, idleTimeMs?: number, workerOptions?: (WorkerOptions & InitialOptions) | undefined);
     submit<T>(task: Task): Promise<T>;
+    submitProcess<T>(task: ProcessTask): Promise<T>;
     private runWorker;
+    private createChildProcess;
     private createWorker;
 }

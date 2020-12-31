@@ -4,23 +4,23 @@ import {isMainThread, parentPort, workerData, WorkerOptions} from 'worker_thread
 let verbose = false;
 let initialDone: Promise<any> = Promise.resolve();
 
-process.on('uncaughtException', function(err) {
-  // log.error('Uncaught exception', err, err.stack);
-  console.error(`[thread-pool] worker pid:${workerData.id} Uncaught exception: `, err);
-  parentPort!.postMessage({
-    type: 'error',
-    data: err.toString()
-  });
-});
+// process.on('uncaughtException', function(err) {
+//   // log.error('Uncaught exception', err, err.stack);
+//   console.error(`[thread-pool] worker pid:${workerData.id} Uncaught exception: `, err);
+//   parentPort!.postMessage({
+//     type: 'error',
+//     data: err.toString()
+//   });
+// });
 
-process.on('unhandledRejection', err => {
-  // log.warn('unhandledRejection', err);
-  console.error(`[thread-pool] worker pid:${workerData.id} unhandledRejection`, err);
-  parentPort!.postMessage({
-    type: 'error',
-    data: err ? err.toString() : err
-  });
-});
+// process.on('unhandledRejection', err => {
+//   // log.warn('unhandledRejection', err);
+//   console.error(`[thread-pool] worker pid:${workerData.id} unhandledRejection`, err);
+//   parentPort!.postMessage({
+//     type: 'error',
+//     data: err ? err.toString() : err
+//   });
+// });
 
 export interface InitialOptions {
   verbose?: boolean;
@@ -78,21 +78,21 @@ if (!isMainThread) {
 async function executeOnEvent(data: Task | Command) {
   if ((data as Command).exit) {
     if (verbose)
-      console.log(`[thread-pool] worker pid:${workerData.id} exit`);
+      console.log(`[thread-pool] worker ${workerData.id} exit`);
     process.exit(0);
     return;
   }
+  await initialDone;
   if (verbose) {
     console.log(`[thread-pool] worker ${workerData.id} run`);
   }
   try {
-    await initialDone;
     const result = await Promise.resolve(require((data as Task).file)[(data as Task).exportFn](
       ...((data as Task).args || [])
       ));
 
     if (verbose) {
-      console.log(`[thread-pool] worker pid:${workerData.id} wait`);
+      console.log(`[thread-pool] worker ${workerData.id} wait`);
     }
     if (result != null && (result as TaskResult).transferList) {
       const transferList = (result as TaskResult).transferList;

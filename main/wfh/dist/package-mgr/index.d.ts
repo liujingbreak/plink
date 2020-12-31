@@ -160,6 +160,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<{
         isForce: boolean;
+        createHook: boolean;
     }>): void;
     /** Check and install dependency, if there is linked package used in more than one workspace,
      * to switch between different workspace */
@@ -277,6 +278,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
+        createHook: boolean;
     }>): void;
     updateDir(): void;
     _syncLinkedPackages(d: {
@@ -1870,6 +1872,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         lastCreatedWorkspace?: string | undefined;
     }, action: PayloadAction<{
         isForce: boolean;
+        createHook: boolean;
     }>): void;
     /** Check and install dependency, if there is linked package used in more than one workspace,
      * to switch between different workspace */
@@ -1987,6 +1990,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     }, action: PayloadAction<{
         dir: string;
         isForce: boolean;
+        createHook: boolean;
     }>): void;
     updateDir(): void;
     _syncLinkedPackages(d: {

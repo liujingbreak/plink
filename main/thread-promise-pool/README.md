@@ -5,7 +5,10 @@ Create a thread pool, set maximum number of parallel threads to `os.cpus().lengt
 ```ts
 import os from 'os';
 
-const pool = new Pool(os.cpus().length - 1, 6000, workerOptions);
+const pool = new Pool(os.cpus().length - 1, 6000, {
+  initializer: {file: 'source-map-support/register'},
+  cwd: 'dist'
+});
 
 // Add 1 task to thread pool
 const donePromise = pool.submit({

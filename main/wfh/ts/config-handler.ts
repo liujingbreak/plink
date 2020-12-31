@@ -241,6 +241,6 @@ export function setTsCompilerOptForNodePath(cwd: string, baseUrl = './', assigne
       dir => Path.relative(cwd, dir).replace(/\\/g, '/')));
   }
 
-  return assigneeOptions;
+  return assigneeOptions as CompilerOptions;
 }
 

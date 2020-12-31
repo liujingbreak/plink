@@ -100,11 +100,11 @@ export const slice = stateFactory.newSlice({
   initialState: state,
   reducers: {
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d, action: PayloadAction<{isForce: boolean}>) {},
+    initRootDir(d, action: PayloadAction<{isForce: boolean, createHook: boolean}>) {},
 
     /** Check and install dependency, if there is linked package used in more than one workspace, 
      * to switch between different workspace */
-    updateWorkspace(d, action: PayloadAction<{dir: string, isForce: boolean}>) {
+    updateWorkspace(d, action: PayloadAction<{dir: string, isForce: boolean, createHook: boolean}>) {
     },
     updateDir() {},
     _syncLinkedPackages(d, {payload}: PayloadAction<PackageInfo[]>) {
@@ -297,7 +297,7 @@ stateFactory.addEpic((action$, state$) => {
 
     //  updateWorkspace
     action$.pipe(ofPayloadAction(slice.actions.updateWorkspace),
-      switchMap(({payload: {dir, isForce}}) => {
+      switchMap(({payload: {dir, isForce, createHook}}) => {
         dir = Path.resolve(dir);
         actionDispatcher.setCurrentWorkspace(dir);
         maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), Path.resolve(dir, 'app.js'));
@@ -306,7 +306,7 @@ stateFactory.addEpic((action$, state$) => {
           // call initRootDirectory(),
           // only call _hoistWorkspaceDeps when "srcPackages" state is changed by action `_syncLinkedPackages`
           return merge(
-            defer(() => of(initRootDirectory())),
+            defer(() => of(initRootDirectory(createHook))),
             // wait for _syncLinkedPackages finish
             getStore().pipe(
               distinctUntilChanged((s1, s2) => s1.srcPackages === s2.srcPackages),
@@ -331,7 +331,7 @@ stateFactory.addEpic((action$, state$) => {
           // call initRootDirectory() and wait for it finished by observe action '_syncLinkedPackages',
           // then call _hoistWorkspaceDeps
           return merge(
-            defer(() => of(initRootDirectory())),
+            defer(() => of(initRootDirectory(createHook))),
             action$.pipe(
               ofPayloadAction(slice.actions._syncLinkedPackages),
               take(1),
@@ -348,13 +348,13 @@ stateFactory.addEpic((action$, state$) => {
       map(({payload}) => {
         checkAllWorkspaces();
         if (getState().workspaces.has(workspaceKey(process.cwd()))) {
-          actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: payload.isForce});
+          actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: payload.isForce, createHook: payload.createHook});
         } else {
           const curr = getState().currWorkspace;
           if (curr != null) {
             if (getState().workspaces.has(curr)) {
               const path = Path.resolve(getRootDir(), curr);
-              actionDispatcher.updateWorkspace({dir: path, isForce: payload.isForce});
+              actionDispatcher.updateWorkspace({dir: path, isForce: payload.isForce, createHook: payload.createHook});
             } else {
               actionDispatcher.setCurrentWorkspace(null);
             }
@@ -685,7 +685,7 @@ async function deleteUselessSymlink() {
   // }
 }
 
-async function initRootDirectory() {
+async function initRootDirectory(createHook = false) {
   const rootPath = getRootDir();
   fs.mkdirpSync(distDir);
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(distDir, 'config.local.yaml'));
@@ -703,10 +703,12 @@ async function initRootDirectory() {
 
   const projectDirs = getProjectList();
 
-  projectDirs.forEach(prjdir => {
-    _writeGitHook(prjdir);
-    maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
-  });
+  if (createHook) {
+    projectDirs.forEach(prjdir => {
+      _writeGitHook(prjdir);
+      maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
+    });
+  }
 
   await _scanPackageAndLink();
   await deleteUselessSymlink();

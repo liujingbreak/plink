@@ -10,6 +10,7 @@ import {packages4Workspace} from '../package-mgr/package-list-helper';
 import * as _ from 'lodash';
 import { isDrcpSymlink, sexyFont, getRootDir, boxString } from '../utils/misc';
 import _scanNodeModules from '../utils/symlinks';
+import {exe} from '../process-utils';
 import fs from 'fs';
 import Path from 'path';
 import semver from 'semver';
@@ -74,18 +75,18 @@ export async function createCommands(startTime: number) {
 }
 
 function subWfhCommand(program: commander.Command) {
-  /**
-   * command init
+  /** command init
    */
   const initCmd = program.command('init [workspace-directory]')
   .description('Initialize workspace directory, generate basic configuration files for project and component packages')
   .option('-f, --force', 'Force run "npm install" in specific workspace directory', false)
+  .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
   .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false)
   .action(async (workspace?: string) => {
     // tslint:disable-next-line: no-console
     console.log(sexyFont('PLink').string);
-    await (await import('./cli-init')).default(initCmd.opts() as any, workspace);
+    await (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions, workspace);
   });
   withGlobalOptions(initCmd);
 
@@ -126,12 +127,22 @@ function subWfhCommand(program: commander.Command) {
   /**
    * command clean
    */
-  program.command('clean-symlinks')
-  .description('Clean symlinks from node_modules, always do this before run "npm install" in root directory')
+  program.command('cs').alias('clear-symlinks')
+  .description('Clear symlinks from node_modules, always do this before run "npm install" in root directory')
   // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
   .action(async () => {
     const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
     await scanNodeModules('all');
+  });
+
+  program.command('upgrade')
+  .description('Reinstall local Plink to the version specified in package.json')
+  .action(async () => {
+    const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
+    await scanNodeModules('all');
+    await exe('npm', 'i').promise;
+    await new Promise(resolve => process.nextTick(resolve));
+    await exe('npm', 'ddp').promise;
   });
 
   /**
@@ -198,12 +209,24 @@ function subWfhCommand(program: commander.Command) {
       await (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packages});
     });
   withGlobalOptions(publishCmd);
+
+  const analysisCmd = program.command('analyse')
+    .description('Use Typescript compiler parse source code, draw a dependence graph with DFS algarithm')
+    // .option('-d, --dir <directory>',
+    //   'specific target directory instead of packages, target can be any directory that contains JS/TS files',
+    //   arrayOptionFn, [])
+    .option('-f, --file <file>',
+      'specific target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
+    .action(async (packages: string[]) => {
+      return (await import('./cli-analyse')).default(packages, analysisCmd.opts() as tp.AnalyseOptions);
+    });
+  analysisCmd.usage(analysisCmd.usage() + '\n' +
+    'e.g.\n  ' + chalk.blue('plink analyse -f packages/foobar1/**/* -f packages/foobar2/ts/main.ts'));
+  withGlobalOptions(analysisCmd);
 }
 
 function spaceOnlySubWfhCommand(program: commander.Command) {
-  /**
-     * command run
-     */
+  /** command run*/
   const runCmd = program.command('run <target> [arguments...]')
   .description('Run specific module\'s exported function\n')
   .action(async (target: string, args: string[]) => {
@@ -326,7 +349,7 @@ function hl(text: string) {
 }
 
 function hlDesc(text: string) {
-  return chalk.green(text);
+  return chalk.gray(text);
 }
 
 export function withGlobalOptions(program: commander.Command): commander.Command {
@@ -373,7 +396,7 @@ function checkPlinkVersion() {
     if (depVer && !semver.satisfies(pk.version, depVer)) {
       // tslint:disable-next-line: no-console
       console.log(boxString(`Please run commands to re-install local Plink v${pk.version}, expected is v${depVer}:\n\n` +
-        '  plink clean-symlinks\n  npm i\n  npm ddp'));
+        '  plink upgrade'));
     }
   }
 }
