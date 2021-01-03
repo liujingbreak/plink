@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.digestInstallingFiles = exports.fetchAllZips = exports.checkZipFile = exports.main = void 0;
+exports.digestInstallingFiles = exports.fetchAllZips = exports.zipDir = exports.checkZipFile = exports.main = void 0;
 // tslint:disable: no-console
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const yazl_1 = require("yazl");
@@ -77,27 +77,7 @@ function checkZipFile(zipFileOrDir, installDir, appName, excludePat) {
         }
         if (fs_extra_1.default.statSync(zipFileOrDir).isDirectory()) {
             const destZip = path_1.resolve(installDir, `${appName}.zip`);
-            fs_extra_1.default.mkdirpSync(path_2.default.dirname(destZip));
-            log.info(`${zipFileOrDir} is a directory, zipping into ${destZip}`);
-            const zipFile = new yazl_1.ZipFile();
-            const zipDone = new Promise(resolve => {
-                zipFile.outputStream.pipe(fs_extra_1.default.createWriteStream(destZip))
-                    .on('close', resolve);
-            });
-            if (excludePat && typeof excludePat === 'string') {
-                excludePat = new RegExp(excludePat);
-            }
-            glob_1.default(zipFileOrDir.replace(/[\\/]/, '/') + '/**/*', { nodir: true }, (err, matches) => {
-                for (let item of matches) {
-                    // item = item.replace(/[/\\]/, '/');
-                    if (excludePat == null || !excludePat.test(item)) {
-                        log.info(`- zip content: ${item}`);
-                        zipFile.addFile(item, path_2.default.relative(zipFileOrDir, item).replace(/[\\/]/, '/'));
-                    }
-                }
-                zipFile.end({ forceZip64Format: false });
-            });
-            yield zipDone;
+            yield zipDir(zipFileOrDir, destZip, excludePat);
             log.info(destZip + ' is zipped: ' + fs_extra_1.default.existsSync(destZip));
             zipFileOrDir = destZip;
         }
@@ -105,6 +85,32 @@ function checkZipFile(zipFileOrDir, installDir, appName, excludePat) {
     });
 }
 exports.checkZipFile = checkZipFile;
+function zipDir(srcDir, destZip, excludePat) {
+    return __awaiter(this, void 0, void 0, function* () {
+        fs_extra_1.default.mkdirpSync(path_2.default.dirname(destZip));
+        log.info(`${srcDir} is a directory, zipping into ${destZip}`);
+        const zipFile = new yazl_1.ZipFile();
+        const zipDone = new Promise(resolve => {
+            zipFile.outputStream.pipe(fs_extra_1.default.createWriteStream(destZip))
+                .on('close', resolve);
+        });
+        if (excludePat && typeof excludePat === 'string') {
+            excludePat = new RegExp(excludePat);
+        }
+        glob_1.default(srcDir.replace(/[\\/]/, '/') + '/**/*', { nodir: true }, (err, matches) => {
+            for (let item of matches) {
+                // item = item.replace(/[/\\]/, '/');
+                if (excludePat == null || !excludePat.test(item)) {
+                    log.info(`- zip content: ${item}`);
+                    zipFile.addFile(item, path_2.default.relative(srcDir, item).replace(/[\\/]/, '/'));
+                }
+            }
+            zipFile.end({ forceZip64Format: false });
+        });
+        yield zipDone;
+    });
+}
+exports.zipDir = zipDir;
 /**
  * drcp run assets-processer/ts/remote-deploy.ts#fetchAllZips --env test -c conf/remote-deploy-test.yaml
  */

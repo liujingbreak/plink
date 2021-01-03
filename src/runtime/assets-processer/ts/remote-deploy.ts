@@ -71,36 +71,40 @@ export async function checkZipFile(zipFileOrDir: string, installDir: string, app
   }
   if (fs.statSync(zipFileOrDir).isDirectory()) {
     const destZip = resolve(installDir, `${appName}.zip`);
-    fs.mkdirpSync(Path.dirname(destZip));
-    log.info(`${zipFileOrDir} is a directory, zipping into ${destZip}`);
-
-    const zipFile = new ZipFile();
-    const zipDone = new Promise(resolve => {
-      zipFile.outputStream.pipe(fs.createWriteStream(destZip))
-      .on('close', resolve);
-    });
-
-    if (excludePat && typeof excludePat === 'string') {
-      excludePat = new RegExp(excludePat);
-    }
-
-    glob(zipFileOrDir.replace(/[\\/]/, '/') + '/**/*', {nodir: true}, (err, matches) => {
-      for (let item of matches) {
-        // item = item.replace(/[/\\]/, '/');
-        if (excludePat == null || !(excludePat as RegExp).test(item)) {
-          log.info(`- zip content: ${item}`);
-          zipFile.addFile(item, Path.relative(zipFileOrDir, item).replace(/[\\/]/, '/'));
-        }
-      }
-      zipFile.end({forceZip64Format: false});
-    });
-
-    await zipDone;
+    await zipDir(zipFileOrDir, destZip, excludePat);
 
     log.info(destZip + ' is zipped: ' + fs.existsSync(destZip));
     zipFileOrDir = destZip;
   }
   return zipFileOrDir;
+}
+
+export async function zipDir(srcDir: string, destZip: string, excludePat?: RegExp | string) {
+  fs.mkdirpSync(Path.dirname(destZip));
+  log.info(`${srcDir} is a directory, zipping into ${destZip}`);
+
+  const zipFile = new ZipFile();
+  const zipDone = new Promise(resolve => {
+    zipFile.outputStream.pipe(fs.createWriteStream(destZip))
+    .on('close', resolve);
+  });
+
+  if (excludePat && typeof excludePat === 'string') {
+    excludePat = new RegExp(excludePat);
+  }
+
+  glob(srcDir.replace(/[\\/]/, '/') + '/**/*', {nodir: true}, (err, matches) => {
+    for (let item of matches) {
+      // item = item.replace(/[/\\]/, '/');
+      if (excludePat == null || !(excludePat as RegExp).test(item)) {
+        log.info(`- zip content: ${item}`);
+        zipFile.addFile(item, Path.relative(srcDir, item).replace(/[\\/]/, '/'));
+      }
+    }
+    zipFile.end({forceZip64Format: false});
+  });
+
+  await zipDone;
 }
 
 /**

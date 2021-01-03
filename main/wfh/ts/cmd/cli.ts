@@ -48,7 +48,8 @@ export async function createCommands(startTime: number) {
   });
 
   program.version(pk.version, '-v, --vers', 'output the current version');
-  
+  program.addHelpCommand('help [command]', 'show help information, same as "-h". ');
+
   let wsState: pkgMgr.WorkspaceState | undefined;
   if (process.env.PLINK_SAFE !== 'true') {
     const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;

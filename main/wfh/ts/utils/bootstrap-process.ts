@@ -32,6 +32,11 @@ export function initConfig(options: GlobalOptions) {
   return config;
 }
 
+/**
+ * - Register process event handler for SIGINT and shutdown command
+ * - Initialize redux-store for Plink
+ * @param onShutdownSignal 
+ */
 export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
   process.on('SIGINT', function() {
     // tslint:disable-next-line: no-console
