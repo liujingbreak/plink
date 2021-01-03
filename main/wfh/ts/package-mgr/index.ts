@@ -756,11 +756,15 @@ async function installWorkspace(ws: WorkspaceState) {
   fs.writeFileSync(installJsonFile, ws.installJsonStr, 'utf8');
   await new Promise(resolve => setTimeout(resolve, 5000));
   try {
-    await exe('npm', 'install', {cwd: dir}).promise;
+    const env = {...process.env, NODE_ENV: 'development'};
+    await exe('npm', 'install', {
+      cwd: dir,
+      env // Force development mode, otherwise "devDependencies" will not be installed
+    }).promise;
     // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
     // why, I have to add a process.nextTick() between them to workaround
     await new Promise(resolve => process.nextTick(resolve));
-    await exe('npm', 'ddp', {cwd: dir}).promise;
+    await exe('npm', 'ddp', {cwd: dir, env}).promise;
   } catch (e) {
     // tslint:disable-next-line: no-console
     console.log('Failed to install dependencies', e.stack);

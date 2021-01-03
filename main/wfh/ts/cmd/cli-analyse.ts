@@ -30,7 +30,8 @@ async function analyseFiles(files: string[]) {
       resolve(matches);
     });
   }));
-  files = _.flatten((await Promise.all(matchDones))).filter(f => /\.[jt]sx?$/.test(f));
+  files = _.flatten((await Promise.all(matchDones)))
+  .filter(f => /\.[jt]sx?$/.test(f));
   const threadPool = new Pool(cpus - 1, 0, {
     // initializer: {file: 'source-map-support/register'},
     verbose: false

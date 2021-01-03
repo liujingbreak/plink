@@ -8,6 +8,7 @@ import serialize from 'serialize-javascript';
 import {enableMapSet} from 'immer';
 import {isMainThread} from 'worker_threads';
 import {PlinkEnv} from './node-path';
+import chalk from 'chalk';
 // import chalk from 'chalk';
 
 export {ofPayloadAction};
@@ -87,17 +88,17 @@ export async function saveState() {
   saved = true;
   if (actionCount === 0) {
     // tslint:disable-next-line: no-console
-    console.log('[package-mgr] state is not changed');
+    console.log(chalk.gray('[package-mgr] state is not changed'));
     return;
   }
   if (!isMainThread) {
     // tslint:disable-next-line: no-console
-    console.log('[package-mgr] not in main thread, skip saving state');
+    console.log(chalk.gray('[package-mgr] not in main thread, skip saving state'));
     return;
   }
   if (process.send) {
     // tslint:disable-next-line: no-console
-    console.log('[package-mgr] in a forked process, skip saving state');
+    console.log(chalk.gray('[package-mgr] in a forked process, skip saving state'));
     return;
   }
   const store = await stateFactory.rootStoreReady;
@@ -109,10 +110,10 @@ export async function saveState() {
     (err) => {
       if (err) {
         // tslint:disable-next-line: no-console
-        console.log(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`, err);
+        console.log(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`), err);
         return;
       }
       // tslint:disable-next-line: no-console
-      console.log(`[package-mgr] state file ${Path.relative(process.cwd(), stateFile!)} saved (${actionCount})`);
+      console.log(chalk.gray(`[package-mgr] state file ${Path.relative(process.cwd(), stateFile!)} saved (${actionCount})`));
     });
 }

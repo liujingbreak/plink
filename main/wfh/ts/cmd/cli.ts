@@ -25,7 +25,7 @@ const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
 };
 
 export async function createCommands(startTime: number) {
-  process.title = 'Plink - command line';
+  process.title = 'Plink';
   // const {stateFactory}: typeof store = require('../store');
   await import('./cli-slice');
   // stateFactory.configureStore();
@@ -33,6 +33,7 @@ export async function createCommands(startTime: number) {
 
   let cliExtensions: string[] | undefined;
   const program = new commander.Command('plink')
+  .description(chalk.cyan('A pluggable monorepo and mult-repo management tool'))
   .action(args => {
     // tslint:disable-next-line: no-console
     console.log(sexyFont('PLink').string);
@@ -43,7 +44,7 @@ export async function createCommands(startTime: number) {
     if (cliExtensions && cliExtensions.length > 0) {
       // tslint:disable-next-line: no-console
       console.log(`Found ${cliExtensions.length} command line extension` +
-      `${cliExtensions.length > 1 ? 's' : ''}: ${cliExtensions.join(', ')}`);
+      `${cliExtensions.length > 1 ? 's' : ''}: ${cliExtensions.map(pkg => chalk.blue(pkg)).join(', ')}`);
     }
   });
 
@@ -141,9 +142,10 @@ function subWfhCommand(program: commander.Command) {
   .action(async () => {
     const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
     await scanNodeModules('all');
-    await exe('npm', 'i').promise;
+    const env = {...process.env, NODE_ENV: 'development'};
+    await exe('npm', 'i', {env}).promise;
     await new Promise(resolve => process.nextTick(resolve));
-    await exe('npm', 'ddp').promise;
+    await exe('npm', 'ddp', {env}).promise;
   });
 
   /**
@@ -221,8 +223,9 @@ function subWfhCommand(program: commander.Command) {
     .action(async (packages: string[]) => {
       return (await import('./cli-analyse')).default(packages, analysisCmd.opts() as tp.AnalyseOptions);
     });
+
   analysisCmd.usage(analysisCmd.usage() + '\n' +
-    'e.g.\n  ' + chalk.blue('plink analyse -f packages/foobar1/**/* -f packages/foobar2/ts/main.ts'));
+    'e.g.\n  ' + chalk.blue('plink analyse -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts'));
   withGlobalOptions(analysisCmd);
 }
 

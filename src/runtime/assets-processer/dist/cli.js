@@ -27,19 +27,42 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const dist_1 = require("@wfh/plink/wfh/dist");
+const path_1 = __importDefault(require("path"));
+const defaultCfg = { config: [], prop: [] };
 const cliExt = (program, withGlobalOptions) => {
+    // ------- zip -------
     const cmd = program.command('zip <srcDir> <destZipFile>')
         .description('Create zip file in 64 zip mode')
         .option('-e, --exclude <regex>', 'exclude files')
         .action((srcDir, destZipFile) => __awaiter(void 0, void 0, void 0, function* () {
-        const defaultCfg = { config: [], prop: [] };
         dist_1.initConfig(defaultCfg);
         dist_1.prepareLazyNodeInjector();
         const { zipDir } = yield Promise.resolve().then(() => __importStar(require('./remote-deploy')));
         yield zipDir(srcDir, destZipFile, cmd.opts().exclude);
     }));
+    // -------- listzip --------
+    program.command('listzip <file>')
+        .description('List zip file content and size')
+        .action((file) => __awaiter(void 0, void 0, void 0, function* () {
+        const { listZip } = require('./cli-unzip');
+        yield listZip(file);
+    }));
+    // -------- unzip --------
+    const unzipCmd = program.command('unzip <zipFileDirectory>')
+        .description('Extract all zip files from specific directory')
+        .requiredOption('-d,--dest <dir>', 'destination directory')
+        .action((zipFileDirectory) => __awaiter(void 0, void 0, void 0, function* () {
+        dist_1.initConfig(defaultCfg);
+        dist_1.prepareLazyNodeInjector();
+        const { forkExtractExstingZip } = yield Promise.resolve().then(() => __importStar(require('@wfh/assets-processer/dist/fetch-remote')));
+        yield forkExtractExstingZip(zipFileDirectory, path_1.default.resolve(unzipCmd.opts().dest), true);
+    }));
+    withGlobalOptions(unzipCmd);
 };
 exports.default = cliExt;
 

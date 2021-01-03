@@ -1,3 +1,6 @@
+/**
+ * DEPRECATED !!!!!!!!!!!!!!!!!!
+ */
 /* eslint max-lines: "off" */
 /**
  * Do not require this file until wfh dependencies is installed and config.yaml file is generated

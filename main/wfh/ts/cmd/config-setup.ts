@@ -11,18 +11,15 @@ const log = log4js.getLogger('wfh.cliAdvanced');
 export function addupConfigs(onEachYaml: (file: string, configContent: string) => void) {
   const componentConfigs: {
     outputPathMap: {[k: string]: string};
-    vendorBundleMap: {[k: string]: string[]};
     browserSideConfigProp: string[]
-  } = {outputPathMap: {}, vendorBundleMap: {}, browserSideConfigProp: []};
-  const vendorBundleMap = componentConfigs.vendorBundleMap;
+  } = {outputPathMap: {}, browserSideConfigProp: []};
   const browserSideConfigProp = componentConfigs.browserSideConfigProp;
-  // var entryPageMapping = componentConfigs.entryPageMapping;
+
   const componentConfigs4Env = {}; // key is env:string, value is componentConfigs
   const trackOutputPath = {}; // For checking conflict
   for (const pkg of packageUtils.allPackages()) {
     const {name, json, shortName} = pkg;
-  // packageUtils.findAllPackages(
-  // (name: string, entryPath: string, parsedName: {name: string, scope: string}, json: any, packagePath: string) => {
+
     const dr = pkg.json.dr;
     if (!dr)
       continue;
@@ -53,18 +50,6 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
     }
     trackOutputPath[outputPath] = name;
     componentConfigs.outputPathMap[name] = outputPath;
-    // chunks
-    var chunk = _.has(json, 'dr.chunk') ? dr.chunk : dr.bundle;
-    if (!chunk) {
-      if ((dr.entryPage || dr.entryView))
-        chunk = shortName; // Entry package should have a default chunk name as its package short name
-    }
-    if (chunk) {
-      if (_.has(vendorBundleMap, chunk))
-        vendorBundleMap[chunk].push(name);
-      else
-        vendorBundleMap[chunk] = [name];
-    }
   }
 
   const superConfig = require('../../config.yaml');
@@ -74,7 +59,7 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
   }
   // var res = {'config.yaml': jsYaml.safeDump(superConfig)};
   _.each(componentConfigs4Env, (configs, env) => {
-    const tmplFile = Path.join(__dirname, 'templates', 'config.' + env + '-template.yaml');
+    const tmplFile = Path.join(__dirname, '../../templates', 'config.' + env + '-template.yaml');
     if (fs.existsSync(tmplFile)) {
       configs = Object.assign(jsYaml.safeLoad(fs.readFileSync(tmplFile, 'utf8'), {filename: tmplFile}), configs);
     }

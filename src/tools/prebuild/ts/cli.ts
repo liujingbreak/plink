@@ -11,7 +11,7 @@ import _cliDeploy from './cli-deploy';
 import log4js from 'log4js';
 import _genKeypair from './cli-keypair';
 import {CliExtension, GlobalOptions, initConfigAsync} from '@wfh/plink/wfh/dist';
-import {prepareLazyNodeInjector} from '@wfh/plink/wfh/dist/package-runner';
+// import {prepareLazyNodeInjector} from '@wfh/plink/wfh/dist/package-runner';
 
 // import * as tsAstQuery from './ts-ast-query';
 import * as _unzip from './cli-unzip';
@@ -64,7 +64,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .option('--secret <credential code>', 'credential code for deploy to "prod" environment')
   .option('--force', 'Force overwriting remote zip assets without SHA1 checksum comparison, by default remote server will reject file of existing same SHA1',
     false)
-  .action(async (appName, zip) => {
+  .action(async (appName: string, zip: string) => {
     await initConfigAsync(sendCmd.opts() as GlobalOptions);
     (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
 
@@ -120,25 +120,25 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     (await import('./cli-ts-ast-util')).listExportedFunction(file);
   });
 
-  // -------- listzip --------
-  program.command('listzip <file>')
-  .description('List zip file content and size')
-  .action(async file => {
-    const {listZip}: typeof _unzip = require('./cli-unzip');
-    await listZip(file);
-  });
+  // // -------- listzip --------
+  // program.command('listzip <file>')
+  // .description('List zip file content and size')
+  // .action(async file => {
+  //   const {listZip}: typeof _unzip = require('./cli-unzip');
+  //   await listZip(file);
+  // });
 
-  // -------- unzip --------
-  const unzipCmd = program.command('unzip <zipFileDirectory>')
-  .description('Extract all zip files from specific directory')
-  .requiredOption('-d,--dest <dir>', 'destination directory')
-  .action(async (zipFileDirectory: string) => {
-    await initConfigAsync(unzipCmd.opts() as GlobalOptions);
-    prepareLazyNodeInjector({});
-    const {forkExtractExstingZip} = await import('@wfh/assets-processer/dist/fetch-remote');
-    await forkExtractExstingZip(zipFileDirectory, Path.resolve(unzipCmd.opts().dest), true);
-  });
-  withGlobalOptions(unzipCmd);
+  // // -------- unzip --------
+  // const unzipCmd = program.command('unzip <zipFileDirectory>')
+  // .description('Extract all zip files from specific directory')
+  // .requiredOption('-d,--dest <dir>', 'destination directory')
+  // .action(async (zipFileDirectory: string) => {
+  //   await initConfigAsync(unzipCmd.opts() as GlobalOptions);
+  //   prepareLazyNodeInjector({});
+  //   const {forkExtractExstingZip} = await import('@wfh/assets-processer/dist/fetch-remote');
+  //   await forkExtractExstingZip(zipFileDirectory, Path.resolve(unzipCmd.opts().dest), true);
+  // });
+  // withGlobalOptions(unzipCmd);
 };
 
 export {cliExt as default};
