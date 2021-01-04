@@ -150,14 +150,15 @@ module.exports = function (webpackEnv) {
     utils_1.drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${__api_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
     console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
     const cmdOption = utils_1.getCmdOptions();
-    log.info('webpackEnv =', webpackEnv);
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
-    // if (cmdOption.devMode || cmdOption.watch) {
-    //   webpackEnv = 'development';
-    //   log.info('[cra-scripts] Development mode is on:', webpackEnv);
-    // } else {
-    //   process.env.GENERATE_SOURCEMAP = 'false';
-    // }
+    if (cmdOption.devMode || cmdOption.watch) {
+        webpackEnv = 'development';
+        log.info('[cra-scripts] Development mode is on:', webpackEnv);
+    }
+    else {
+        // process.env.GENERATE_SOURCEMAP = 'false';
+    }
+    log.info('webpackEnv =', webpackEnv);
     const origWebpackConfig = require('react-scripts/config/webpack.config');
     process.env.INLINE_RUNTIME_CHUNK = 'true';
     const { default: craPaths, configFileInPackage } = require('./cra-scripts-paths');

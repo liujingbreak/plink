@@ -20,6 +20,9 @@ if (!envSetDone) {
     console.log(chalk.gray('[node-path] By default, Plink reads and writes state files in directory "<root-dir>/dist",\n' +
     'you may change it by' +
     ' setting environment variable PLINK_DATA_DIR to another relative directory'));
+  } else {
+    // tslint:disable-next-line: no-console
+    console.log(chalk.gray('[node-path] PLINK_DATA_DIR: ' + process.env.PLINK_DATA_DIR));
   }
   const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR);
 

@@ -1,6 +1,6 @@
 {
   "name": "@wfh/plink",
-  "version": "0.9.11-2",
+  "version": "0.9.11-4",
   "description": "Plink - A monorepo management tool to link packages and projects",
   "main": "wfh/lib/main.js",
   "bin": {
@@ -37,7 +37,7 @@
     "chalk": "^2.4.1",
     "cheerio": "^0.22.0",
     "chokidar": "^2.1.5",
-    "eslint": "^6.8.0",
+    "eslint": "^7.17.0",
     "eslint-plugin-react": "^7.4.0",
     "estraverse": "^4.2.0",
     "event-stream": "^3.3.5",

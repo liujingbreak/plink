@@ -26,14 +26,14 @@ export = function(webpackEnv: 'production' | 'development') {
   console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
 
   const cmdOption = getCmdOptions();
-  log.info('webpackEnv =', webpackEnv);
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
-  // if (cmdOption.devMode || cmdOption.watch) {
-  //   webpackEnv = 'development';
-  //   log.info('[cra-scripts] Development mode is on:', webpackEnv);
-  // } else {
-  //   process.env.GENERATE_SOURCEMAP = 'false';
-  // }
+  if (cmdOption.devMode || cmdOption.watch) {
+    webpackEnv = 'development';
+    log.info('[cra-scripts] Development mode is on:', webpackEnv);
+  } else {
+    // process.env.GENERATE_SOURCEMAP = 'false';
+  }
+  log.info('webpackEnv =', webpackEnv);
   const origWebpackConfig = require('react-scripts/config/webpack.config');
 
   process.env.INLINE_RUNTIME_CHUNK = 'true';

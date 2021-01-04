@@ -730,7 +730,7 @@ async function installWorkspace(ws: WorkspaceState) {
   // tslint:disable-next-line: no-console
   console.log('Install dependencies in ' + dir);
   try {
-    await copyNpmrcToWorkspace(dir);
+    await copyNpmrcToWorkspace();
   } catch (e) {
     console.error(e);
   }
@@ -784,8 +784,8 @@ async function installWorkspace(ws: WorkspaceState) {
   }
 }
 
-async function copyNpmrcToWorkspace(wsdir: string) {
-  const target = Path.resolve(wsdir, '.npmrc');
+async function copyNpmrcToWorkspace() {
+  const target = Path.resolve(getRootDir(), '.npmrc');
   if (fs.existsSync(target))
     return;
   const isChina = await getStore().pipe(

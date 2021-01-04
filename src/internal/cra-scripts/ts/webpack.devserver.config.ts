@@ -1,7 +1,6 @@
 import {Configuration} from 'webpack';
 import {printConfig} from './utils';
 import changeDevServer from '@wfh/webpack-common/dist/devServer';
-
 const origDevServerConfig = require('react-scripts/config/webpackDevServer.config');
 
 export = function(proxy: string, allowedHost: string) {
