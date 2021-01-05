@@ -1,5 +1,5 @@
 import {CliExtension, prepareLazyNodeInjector, initConfig, GlobalOptions} from '@wfh/plink/wfh/dist';
-import Path from 'path';
+// import Path from 'path';
 import * as _unzip from './cli-unzip';
 
 const defaultCfg: GlobalOptions = {config: [], prop: []};
@@ -25,14 +25,14 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   });
 
   // -------- unzip --------
-  const unzipCmd = program.command('unzip <zipFileDirectory>')
+  const unzipCmd = program.command('unzip <zipFile> [destination_dir]')
   .description('Extract all zip files from specific directory')
-  .requiredOption('-d,--dest <dir>', 'destination directory')
-  .action(async (zipFileDirectory: string) => {
+  // .requiredOption('-d,--dest <dir>', 'destination directory')
+  .action(async (zipFile: string, destDir?: string) => {
     initConfig(defaultCfg);
     prepareLazyNodeInjector();
-    const {forkExtractExstingZip} = await import('@wfh/assets-processer/dist/fetch-remote');
-    await forkExtractExstingZip(zipFileDirectory, Path.resolve(unzipCmd.opts().dest), true);
+    const {unZip} = await import('./cli-unzip');
+    await unZip(zipFile, destDir);
   });
   withGlobalOptions(unzipCmd);
 };

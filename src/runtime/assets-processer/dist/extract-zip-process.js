@@ -16,6 +16,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * @deprecated
  */
+require("source-map-support/register");
 const adm_zip_1 = __importDefault(require("adm-zip"));
 const os_1 = __importDefault(require("os"));
 const util_1 = __importDefault(require("util"));

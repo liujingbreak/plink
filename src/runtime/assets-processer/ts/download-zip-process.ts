@@ -1,7 +1,6 @@
 // tslint:disable:no-console
 // import {ZipResourceMiddleware} from 'serve-static-zip';
 import request from 'request';
-
 import fs from 'fs';
 // import Path from 'path';
 

@@ -12,9 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listZip = void 0;
+exports.unZip = exports.listZip = void 0;
 const yauzl_1 = __importDefault(require("yauzl"));
 const chalk_1 = __importDefault(require("chalk"));
+const fs_1 = require("fs");
+const fs_extra_1 = require("fs-extra");
+const path_1 = __importDefault(require("path"));
 function listZip(fileName) {
     return __awaiter(this, void 0, void 0, function* () {
         const zip = yield new Promise((resolve, rej) => {
@@ -27,7 +30,7 @@ function listZip(fileName) {
         });
         const list = [];
         if (zip == null) {
-            throw new Error(`yauzl can not create zip file ${fileName}`);
+            throw new Error(`yauzl can not list zip file ${fileName}`);
         }
         zip.on('entry', (entry) => {
             list.push(entry.fileName);
@@ -42,5 +45,42 @@ function listZip(fileName) {
     });
 }
 exports.listZip = listZip;
+function unZip(fileName, toDir = process.cwd()) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const zip = yield new Promise((resolve, rej) => {
+            yauzl_1.default.open(fileName, { lazyEntries: true }, (err, zip) => {
+                if (err) {
+                    return rej(err);
+                }
+                resolve(zip);
+            });
+        });
+        if (zip == null) {
+            throw new Error(`yauzl can not unzip zip file ${fileName}`);
+        }
+        zip.on('entry', (entry) => {
+            // tslint:disable-next-line: no-console
+            console.log(entry.fileName + chalk_1.default.gray(` (size: ${entry.uncompressedSize >> 10} Kb)`));
+            zip.openReadStream(entry, (err, readStream) => {
+                if (err) {
+                    console.error(`yauzl is unable to extract file ${entry.fileName}`, err);
+                    zip.readEntry();
+                    return;
+                }
+                readStream.on('end', () => { zip.readEntry(); });
+                const target = path_1.default.resolve(toDir, entry.fileName);
+                // tslint:disable-next-line: no-console
+                console.log(`write ${target} ` + chalk_1.default.gray(` (size: ${entry.uncompressedSize >> 10} Kb)`));
+                fs_extra_1.mkdirpSync(path_1.default.dirname(target));
+                readStream.pipe(fs_1.createWriteStream(target));
+            });
+        });
+        zip.readEntry();
+        return new Promise(resolve => {
+            zip.on('end', () => resolve());
+        });
+    });
+}
+exports.unZip = unZip;
 
 //# sourceMappingURL=cli-unzip.js.map

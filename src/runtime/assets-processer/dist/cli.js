@@ -27,12 +27,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const dist_1 = require("@wfh/plink/wfh/dist");
-const path_1 = __importDefault(require("path"));
 const defaultCfg = { config: [], prop: [] };
 const cliExt = (program, withGlobalOptions) => {
     // ------- zip -------
@@ -53,14 +49,14 @@ const cliExt = (program, withGlobalOptions) => {
         yield listZip(file);
     }));
     // -------- unzip --------
-    const unzipCmd = program.command('unzip <zipFileDirectory>')
+    const unzipCmd = program.command('unzip <zipFile> [destination_dir]')
         .description('Extract all zip files from specific directory')
-        .requiredOption('-d,--dest <dir>', 'destination directory')
-        .action((zipFileDirectory) => __awaiter(void 0, void 0, void 0, function* () {
+        // .requiredOption('-d,--dest <dir>', 'destination directory')
+        .action((zipFile, destDir) => __awaiter(void 0, void 0, void 0, function* () {
         dist_1.initConfig(defaultCfg);
         dist_1.prepareLazyNodeInjector();
-        const { forkExtractExstingZip } = yield Promise.resolve().then(() => __importStar(require('@wfh/assets-processer/dist/fetch-remote')));
-        yield forkExtractExstingZip(zipFileDirectory, path_1.default.resolve(unzipCmd.opts().dest), true);
+        const { unZip } = yield Promise.resolve().then(() => __importStar(require('./cli-unzip')));
+        yield unZip(zipFile, destDir);
     }));
     withGlobalOptions(unzipCmd);
 };

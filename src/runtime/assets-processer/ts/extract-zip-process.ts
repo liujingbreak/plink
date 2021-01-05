@@ -2,6 +2,7 @@
 /**
  * @deprecated
  */
+import 'source-map-support/register';
 import AdmZip from 'adm-zip';
 import os from 'os';
 import util from 'util';
