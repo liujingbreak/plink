@@ -47,7 +47,6 @@ var config = {
 	},
 	categories: {
 		'default': {appenders: ['out', 'file'], level: 'info'},
-		'@bk/credit-appl': {appenders: ['out', 'file'], level: 'info'},
 		'@wfh/plink': {appenders: ['file'], level: 'debug'},
 		'@dr-core/assets-processer': {appenders: ['infoOut', 'file'], level: 'debug'},
 		'@wfh/plink.store.action': {appenders: ['out'], level: 'warn'},
@@ -84,24 +83,24 @@ module.exports.setup = function(options) {
 		console.log('[log4js.js] only file out');
 	}
 
-	if (logger.slackChannelId) {
-		var slackInstalled = true;
-		try {
-			require.resolve('@log4js-node/slack');
-		} catch (ex) {
-			slackInstalled = false;
-			console.log('[log4js.js] slack is not installed yet.');
-		}
-		if (slackInstalled) {
-			config.appenders.slack = {
-				type: '@log4js-node/slack',
-				token: SLACK_API_TOKEN,
-				channel_id: logger.slackChannelId,
-				username: os.hostname() + ' ' + os.userInfo().username
-			};
-			config.appenders.errorSlack = {type: 'logLevelFilter', appender: 'slack', level: 'error'};
-			config.categories['@bk/credit-appl'].appenders.push('slack');
-		}
-	}
+	// if (logger.slackChannelId) {
+	// 	var slackInstalled = true;
+	// 	try {
+	// 		require.resolve('@log4js-node/slack');
+	// 	} catch (ex) {
+	// 		slackInstalled = false;
+	// 		console.log('[log4js.js] slack is not installed yet.');
+	// 	}
+	// 	if (slackInstalled) {
+	// 		config.appenders.slack = {
+	// 			type: '@log4js-node/slack',
+	// 			token: SLACK_API_TOKEN,
+	// 			channel_id: logger.slackChannelId,
+	// 			username: os.hostname() + ' ' + os.userInfo().username
+	// 		};
+	// 		config.appenders.errorSlack = {type: 'logLevelFilter', appender: 'slack', level: 'error'};
+	// 		config.categories.default.appenders.push('slack');
+	// 	}
+	// }
 	return config;
 };

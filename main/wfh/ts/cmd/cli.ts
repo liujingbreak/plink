@@ -214,7 +214,7 @@ function subWfhCommand(program: commander.Command) {
   withGlobalOptions(publishCmd);
 
   const analysisCmd = program.command('analyse')
-    .description('Use Typescript compiler parse source code, draw a dependence graph with DFS algarithm')
+    .description('Use Typescript compiler to parse source code, draw a dependence graph with DFS algarithm')
     // .option('-d, --dir <directory>',
     //   'specific target directory instead of packages, target can be any directory that contains JS/TS files',
     //   arrayOptionFn, [])
