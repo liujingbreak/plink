@@ -1,5 +1,5 @@
-HTTP 请求代理工具
-------
+**此工具和 http-proxy-middleware 的主要差别是支持 Angular project HTTPClient interceptor, this tool is not recommended if you are not running Angular.**
+# HTTP 请求代理工具
 Config your config.yaml or config.{env}.yaml
 
 ## 配置多个自启动代理

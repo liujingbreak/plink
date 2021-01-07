@@ -18,7 +18,8 @@
     "typescript": "^4.1.2",
     "web-vitals": "^0.2.4",
     "@wfh/doc-entry": "1.0.0",
-    "sass": "^1.29.0"
+    "sass": "^1.29.0",
+    "@wfh/tool-misc": "~1.1.1"
   },
   "devDependencies": {
     "@wfh/cra-scripts": "1.0.21",
