@@ -33,7 +33,7 @@ export async function createCommands(startTime: number) {
 
   let cliExtensions: string[] | undefined;
   const program = new commander.Command('plink')
-  .description(chalk.cyan('A pluggable monorepo and mult-repo management tool'))
+  .description(chalk.cyan('A pluggable monorepo and multi-repo management tool'))
   .action(args => {
     // tslint:disable-next-line: no-console
     console.log(sexyFont('PLink').string);
