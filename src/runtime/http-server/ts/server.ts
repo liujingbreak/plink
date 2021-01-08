@@ -52,11 +52,11 @@ export function activate() {
       sslSetting.cert = 'cert.pem';
     }
     if (!fileAccessable(Path.resolve(rootPath, sslSetting.key))) {
-      log.error('There is no file available referenced by config.yaml property "ssl"."key" ' + sslSetting.key);
+      log.error('There is no file available referenced by config.yaml property "ssl"."key" ' + Path.resolve(rootPath, sslSetting.key));
       return;
     }
     if (!fileAccessable(Path.resolve(rootPath, sslSetting.cert))) {
-      log.error('There is no file available referenced by config.yaml property "ssl"."cert" ' + sslSetting.cert);
+      log.error('There is no file available referenced by config.yaml property "ssl"."cert" ' + Path.resolve(rootPath, sslSetting.cert));
       return;
     }
     log.debug('SSL enabled');
@@ -93,10 +93,12 @@ export function activate() {
     log.info('start HTTPS');
     const startPromises = [];
     let port: number | string = sslSetting.port ? sslSetting.port : 433;
+    let httpPort = config().port ? config().port : 80;
+
     port = typeof(port) === 'number' ? port : normalizePort(port as string);
     server = https.createServer({
-      key: fs.readFileSync(sslSetting.key),
-      cert: fs.readFileSync(sslSetting.cert)
+      key: fs.readFileSync(Path.resolve(rootPath, sslSetting.key)),
+      cert: fs.readFileSync(Path.resolve(rootPath, sslSetting.cert))
     }, app);
 
     server.listen(port);
@@ -121,10 +123,10 @@ export function activate() {
         });
         res.end('');
       });
-      port = config().port ? config().port : 80;
-      redirectHttpServer.listen(port);
+
+      redirectHttpServer.listen(httpPort);
       redirectHttpServer.on('error', (error: Error) => {
-        onError(server, port, error);
+        onError(server, httpPort, error);
       });
 
       startPromises.push(new Promise(resolve => {
@@ -136,7 +138,7 @@ export function activate() {
     .then((servers: any[]) => {
       onListening(servers[0], 'HTTPS server', port);
       if (servers.length > 1)
-        onListening(servers[1], 'HTTP Forwarding server', port);
+        onListening(servers[1], 'HTTP Forwarding server', httpPort);
       api.eventBus.emit('serverStarted', {});
     });
   }

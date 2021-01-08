@@ -14,7 +14,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -71,11 +71,11 @@ function activate() {
             sslSetting.cert = 'cert.pem';
         }
         if (!fileAccessable(Path.resolve(rootPath, sslSetting.key))) {
-            log.error('There is no file available referenced by config.yaml property "ssl"."key" ' + sslSetting.key);
+            log.error('There is no file available referenced by config.yaml property "ssl"."key" ' + Path.resolve(rootPath, sslSetting.key));
             return;
         }
         if (!fileAccessable(Path.resolve(rootPath, sslSetting.cert))) {
-            log.error('There is no file available referenced by config.yaml property "ssl"."cert" ' + sslSetting.cert);
+            log.error('There is no file available referenced by config.yaml property "ssl"."cert" ' + Path.resolve(rootPath, sslSetting.cert));
             return;
         }
         log.debug('SSL enabled');
@@ -111,10 +111,11 @@ function activate() {
         log.info('start HTTPS');
         const startPromises = [];
         let port = sslSetting.port ? sslSetting.port : 433;
+        let httpPort = config().port ? config().port : 80;
         port = typeof (port) === 'number' ? port : normalizePort(port);
         server = https.createServer({
-            key: fs.readFileSync(sslSetting.key),
-            cert: fs.readFileSync(sslSetting.cert)
+            key: fs.readFileSync(Path.resolve(rootPath, sslSetting.key)),
+            cert: fs.readFileSync(Path.resolve(rootPath, sslSetting.cert))
         }, app);
         server.listen(port);
         if (/^v8.\d.\d+$/.test(process.version)) {
@@ -137,10 +138,9 @@ function activate() {
                 });
                 res.end('');
             });
-            port = config().port ? config().port : 80;
-            redirectHttpServer.listen(port);
+            redirectHttpServer.listen(httpPort);
             redirectHttpServer.on('error', (error) => {
-                onError(server, port, error);
+                onError(server, httpPort, error);
             });
             startPromises.push(new Promise(resolve => {
                 redirectHttpServer.on('listening', () => resolve(redirectHttpServer));
@@ -150,7 +150,7 @@ function activate() {
             .then((servers) => {
             onListening(servers[0], 'HTTPS server', port);
             if (servers.length > 1)
-                onListening(servers[1], 'HTTP Forwarding server', port);
+                onListening(servers[1], 'HTTP Forwarding server', httpPort);
             __api_1.default.eventBus.emit('serverStarted', {});
         });
     }

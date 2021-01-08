@@ -31,6 +31,10 @@ async function analyseFiles(files: string[]) {
     });
   }));
   files = _.flatten((await Promise.all(matchDones)))
+  // .map(file => {
+  //   console.log(file);
+  //   return file;
+  // })
   .filter(f => /\.[jt]sx?$/.test(f));
   const threadPool = new Pool(cpus - 1, 0, {
     // initializer: {file: 'source-map-support/register'},
