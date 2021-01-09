@@ -238,7 +238,7 @@ export const slice = stateFactory.newSlice({
     updateGitIgnores(d, {payload}: PayloadAction<{file: string, lines: string[]}>) {
       d.gitIgnores[payload.file] = payload.lines.map(line => line.startsWith('/') ? line : '/' + line);
     },
-    _relatedPackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {},
+    _onRelatedPackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {},
     packagesUpdated(d) {
       d.packagesUpdateChecksum++;
     },
@@ -259,6 +259,7 @@ export const slice = stateFactory.newSlice({
 
 export const actionDispatcher = stateFactory.bindActionCreators(slice);
 export const {updateGitIgnores, onLinkedPackageAdded} = actionDispatcher;
+const {_onRelatedPackageUpdated} = actionDispatcher;
 
 /**
  * Carefully access any property on config, since config setting probably hasn't been set yet at this momment
@@ -371,7 +372,8 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
       map(({payload}) => {
         const wsKey = workspaceKey(payload.dir);
-        actionDispatcher._relatedPackageUpdated(wsKey);
+        _onRelatedPackageUpdated(wsKey);
+        deleteDuplicatedInstalledPkg(wsKey);
         setImmediate(() => actionDispatcher.workspaceStateUpdated());
       }),
       ignoreElements()
@@ -457,7 +459,7 @@ stateFactory.addEpic((action$, state$) => {
       }),
       ignoreElements()
     ),
-    action$.pipe(ofPayloadAction(slice.actions._relatedPackageUpdated),
+    action$.pipe(ofPayloadAction(slice.actions._onRelatedPackageUpdated),
       map(action => pkgTsconfigForEditorRequestMap.add(action.payload)),
       debounceTime(800),
       concatMap(() => {
@@ -584,7 +586,7 @@ function updateInstalledPackageForWorkspace(wsKey: string) {
     }
   })());
   actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
-  actionDispatcher._relatedPackageUpdated(wsKey);
+  _onRelatedPackageUpdated(wsKey);
 }
 
 /**
@@ -944,4 +946,19 @@ function _writeGitHook(project: string) {
     }
   }
   // }
+}
+
+function deleteDuplicatedInstalledPkg(workspaceKey: string) {
+  const wsState = getState().workspaces.get(workspaceKey)!;
+  const doNothing = () => {};
+  wsState.linkedDependencies.concat(wsState.linkedDevDependencies).map(([pkgName]) => {
+    const dir = Path.resolve(getRootDir(), workspaceKey, 'node_modules', pkgName);
+    return fs.promises.access(dir)
+    .then(() => {
+      // tslint:disable-next-line: no-console
+      console.log(`[init] Previous installed ${Path.relative(getRootDir(),dir)} is deleted, due to linked package ${pkgName}`);
+      return fs.promises.unlink(dir);
+    })
+    .catch(doNothing);
+  });
 }

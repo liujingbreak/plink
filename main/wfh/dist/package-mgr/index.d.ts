@@ -1196,7 +1196,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         file: string;
         lines: string[];
     }>): void;
-    _relatedPackageUpdated(d: {
+    _onRelatedPackageUpdated(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;
@@ -2908,7 +2908,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         file: string;
         lines: string[];
     }>): void;
-    _relatedPackageUpdated(d: {
+    _onRelatedPackageUpdated(d: {
         inited: boolean;
         srcPackages: Map<string, {
             name: string;

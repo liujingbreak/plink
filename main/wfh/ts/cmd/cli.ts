@@ -306,19 +306,6 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
   // const cmdInfoPacks = new Array<Parameters<typeof cliStore.cliActionDispatcher.updateLoadedCmd>[0] extends (infer I)[] ? I : unknown>(1);
   const loadedCmdMap = new Map<string, string>();
 
-  program.command = function(this: typeof program, nameAndArgs: string, ...restArgs: any[]) {
-    const cmdName = /^\S+/.exec(nameAndArgs)![0];
-    if (loadedCmdMap.has(cmdName)) {
-      throw new Error(`Conflict command name ${cmdName} from extensions "${filePath}" and "${loadedCmdMap.get(cmdName)}"`);
-    }
-    loadedCmdMap.set(cmdName, filePath!);
-    // cmdInfoPacks[0] = {cmd: cmdName, file: filePath!};
-    // cliStore.cliActionDispatcher.updateLoadedCmd(cmdInfoPacks);
-    // tslint:disable-next-line: no-console
-    // console.log(`Loading command "${cmdName}" from extension ${filePath}`);
-    return origPgmCommand.call(this, nameAndArgs, ...restArgs);
-  } as any;
-
   const availables: string[] = [];
   for (const pk of packages4Workspace()) {
     const dr = pk.json.dr;
@@ -335,6 +322,24 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
     } catch (e) {}
 
     if (filePath != null) {
+      program.command = function(this: typeof program, nameAndArgs: string, ...restArgs: any[]) {
+        const cmdName = /^\S+/.exec(nameAndArgs)![0];
+        if (loadedCmdMap.has(cmdName)) {
+          throw new Error(`Conflict command name ${cmdName} from extensions "${filePath}" and "${loadedCmdMap.get(cmdName)}"`);
+        }
+        loadedCmdMap.set(cmdName, filePath!);
+        // cmdInfoPacks[0] = {cmd: cmdName, file: filePath!};
+        // cliStore.cliActionDispatcher.updateLoadedCmd(cmdInfoPacks);
+        // tslint:disable-next-line: no-console
+        // console.log(`Loading command "${cmdName}" from extension ${filePath}`);
+        const subCmd: ReturnType<typeof origPgmCommand> = origPgmCommand.call(this, nameAndArgs, ...restArgs);
+        const originDescFn = subCmd.description;
+        subCmd.description = function(this: ReturnType<typeof origPgmCommand>, str: string, ...remainder: any[]) {
+          str = `[${chalk.cyan(pk.name)}] ` + str;
+          return originDescFn.call(this, str, ...remainder);
+        } as any;
+        return subCmd;
+      } as any;
       try {
         const subCmdFactory: tp.CliExtension = funcName ? require(filePath)[funcName] :
           require(filePath);
