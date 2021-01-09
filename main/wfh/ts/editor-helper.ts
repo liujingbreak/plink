@@ -21,11 +21,6 @@ export function updateTsconfigFileForEditor(wsKey: string) {
   const ws = getState().workspaces.get(wsKey);
   if (ws == null)
     return;
-  // const pks: PackageInfo[] = [
-  //   ...ws.linkedDependencies.map(([name, ver]) => srcPackages.get(name)),
-  //   ...ws.linkedDevDependencies.map(([name, ver]) => srcPackages.get(name))
-  // ].filter(pk => pk != null) as PackageInfo[];
-
 
   // const wsDir = Path.resolve(getRootDir(), wsKey);
   writeTsconfig4project(getProjectList(), Path.resolve(getRootDir(), wsKey));
@@ -33,7 +28,7 @@ export function updateTsconfigFileForEditor(wsKey: string) {
   //   (file, content) => updateGitIgnores({file, content}));
 }
 
-function writeTsconfig4project(projectDirs: string[], workspaceDir: string | null) {
+function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
     Path.dirname(require.resolve('@wfh/plink/package.json'));
 
@@ -49,8 +44,16 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string | nul
       include.push(includeDir + '**/*.tsx');
     });
     const tsconfigFile = createTsConfig('', proj, workspaceDir, drcpDir, include );
+    const projDir = Path.resolve(proj);
     updateGitIgnores({file: Path.resolve(proj, '.gitignore'),
-      lines: [Path.relative(Path.resolve(proj), tsconfigFile).replace(/\\/g, '/')]});
+      lines: [
+        Path.relative(projDir, tsconfigFile).replace(/\\/g, '/')
+      ]
+    });
+    updateGitIgnores({
+      file: Path.resolve(getRootDir(), '.gitignore'),
+      lines: [Path.relative(getRootDir(), Path.resolve(workspaceDir, 'types'))]
+    });
     // const gitIgnoreFile = findGitIngoreFile(proj);
     // if (gitIgnoreFile) {
     //   fs.readFile(gitIgnoreFile, 'utf8', (err, data) => {

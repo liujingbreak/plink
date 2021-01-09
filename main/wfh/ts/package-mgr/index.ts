@@ -63,10 +63,7 @@ const state: PackagesState = {
   project2Packages: new Map(),
   srcPackages: new Map(),
   gitIgnores: {},
-  linkedDrcp: isDrcpSymlink ?
-    createPackageInfo(Path.resolve(
-      getRootDir(), 'node_modules/@wfh/plink/package.json'), false, getRootDir())
-    : null,
+  linkedDrcp: null,
   workspaceUpdateChecksum: 0,
   packagesUpdateChecksum: 0
   // _computed: {
@@ -269,6 +266,13 @@ export const {updateGitIgnores, onLinkedPackageAdded} = actionDispatcher;
 stateFactory.addEpic((action$, state$) => {
   const pkgTsconfigForEditorRequestMap = new Set<string>();
   const packageAddedList = new Array<string>();
+
+  actionDispatcher._change(d => {
+    d.linkedDrcp = isDrcpSymlink ?
+    createPackageInfo(Path.resolve(
+      getRootDir(), 'node_modules/@wfh/plink/package.json'), false, getRootDir())
+    : null;
+  });
 
   return merge(
     getStore().pipe(map(s => s.project2Packages),
@@ -767,7 +771,19 @@ async function installWorkspace(ws: WorkspaceState) {
     await exe('npm', 'ddp', {cwd: dir, env}).promise;
   } catch (e) {
     // tslint:disable-next-line: no-console
-    console.log('Failed to install dependencies', e.stack);
+    console.log(chalk.red('[init] Failed to install dependencies'), e.stack);
+    actionDispatcher._change(d => {
+      const wsd = d.workspaces.get(ws.id)!;
+      wsd.installJsonStr = '';
+      wsd.installJson.dependencies = {};
+      wsd.installJson.devDependencies = {};
+      const lockFile = Path.resolve(dir, 'package-lock.json');
+      if (fs.existsSync(lockFile)) {
+        // tslint:disable-next-line: no-console
+        console.log(`[init] problematic ${lockFile} is deleted, please try again`);
+        fs.unlinkSync(lockFile);
+      }
+    });
     throw e;
   } finally {
     // tslint:disable-next-line: no-console
