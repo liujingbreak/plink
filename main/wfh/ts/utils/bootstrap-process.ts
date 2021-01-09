@@ -40,7 +40,7 @@ export function initConfig(options: GlobalOptions) {
 export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
   process.on('SIGINT', function() {
     // tslint:disable-next-line: no-console
-    console.log('Recieve SIGINT, bye.');
+    console.log('pid ' + process.pid + ': bye');
     onShut();
   });
   process.on('message', function(msg) {
@@ -58,12 +58,9 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
   async function onShut() {
     if (onShutdownSignal) {
       await Promise.resolve(onShutdownSignal);
-      await saveState();
-      process.exit(0);
-    } else {
-      await saveState();
-      process.exit(0);
     }
+    await saveState();
+    process.nextTick(() => process.exit(0));
   }
 }
 

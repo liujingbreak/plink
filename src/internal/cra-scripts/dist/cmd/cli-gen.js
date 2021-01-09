@@ -12,15 +12,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.genPackage = void 0;
+exports.genSlice = exports.genComponents = exports.genPackage = void 0;
 // tslint:disable no-console
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const path_1 = __importDefault(require("path"));
 const chalk_1 = __importDefault(require("chalk"));
 const misc_1 = require("@wfh/plink/wfh/dist/utils/misc");
 const template_gen_1 = __importDefault(require("@wfh/plink/wfh/dist/template-gen"));
-function genPackage(path, dryrun = false) {
+function genPackage(path, compName = 'Sample', dryrun = false) {
     return __awaiter(this, void 0, void 0, function* () {
+        compName = compName.charAt(0).toUpperCase() + compName.slice(1);
+        const sCompName = compName.charAt(0).toLowerCase() + compName.slice(1);
         if (!path) {
             throw new Error('Lack of arguments');
         }
@@ -39,15 +41,15 @@ function genPackage(path, dryrun = false) {
         yield template_gen_1.default(path_1.default.resolve(__dirname, '../../template'), dir, {
             fileMapping: [
                 [/^my\-feature/, 'sample'],
-                [/^MyFeature/, 'Sample'],
-                [/^MyComponent/, 'SampleComponent']
+                [/^MyFeature/, compName],
+                [/^MyComponent/, compName + 'Component']
             ],
             textMapping: {
                 packageName: path_1.default.basename(path),
-                MyComponent: 'SampleComponent',
-                SliceName: 'Sample',
-                sliceName: 'sample',
-                MyComponentPath: 'sample/SampleComponent'
+                MyComponent: compName + 'Component',
+                SliceName: compName,
+                sliceName: sCompName,
+                MyComponentPath: `${sCompName}/${compName}Component`
             }
         }, { dryrun });
         // copyTempl(dir, Path.basename(path), dryrun);
@@ -56,35 +58,60 @@ function genPackage(path, dryrun = false) {
     });
 }
 exports.genPackage = genPackage;
-// function copyTempl(to: string, pkName: string, dryrun: boolean) {
-//   const templDir = Path.resolve(__dirname, '../../template');
-//   const files = fs.readdirSync(templDir);
-//   for (const sub of files) {
-//     const file = Path.resolve(templDir, sub);
-//     if (fs.statSync(file).isDirectory()) {
-//       if (!dryrun)
-//         fs.mkdirpSync(Path.resolve(to, sub));
-//       const relative = Path.relative(templDir, file);
-//       files.push(...fs.readdirSync(file).map(child => Path.join(relative, child)));
-//       continue;
-//     }
-//     const newFile = Path.resolve(to, sub.slice(0, sub.lastIndexOf('.')).replace(/\.([^./\\]+)$/, '.$1'));
-//     if (!fs.existsSync(newFile)) {
-//       if (sub === 'package.json.json') {
-//         const pkJsonStr = fs.readFileSync(Path.resolve(templDir, sub), 'utf8');
-//         const newFile = Path.resolve(to, 'package.json');
-//         if (!dryrun)
-//           fs.writeFile(newFile, _.template(pkJsonStr)({name: '@bk/' + Path.basename(pkName)}));
-//         console.log(`[cra-scripts cmd] ${chalk.green(Path.relative(Path.resolve(), newFile))} is created`);
-//         continue;
-//       }
-//       if (!dryrun)
-//         fs.copyFile(Path.resolve(templDir, sub), newFile, () => {});
-//       console.log(`[cra-scripts cmd] ${chalk.green(Path.relative(Path.resolve(), newFile))} is created`);
-//     } else {
-//       console.log('[cra-scripts cmd] target file already exists:', Path.relative(Path.resolve(), newFile));
-//     }
-//   }
-// }
+function genComponents(dir, compNames, dryrun = false) {
+    return __awaiter(this, void 0, void 0, function* () {
+        dir = path_1.default.resolve(dir);
+        if (dryrun) {
+            // tslint:disable-next-line: no-console
+            console.log('[cra-scripts cmd] dryrun mode');
+        }
+        else {
+            fs_extra_1.default.mkdirpSync(dir);
+        }
+        for (let compName of compNames) {
+            compName = compName.charAt(0).toUpperCase() + compName.slice(1);
+            const sCompName = compName.charAt(0).toUpperCase() + compName.slice(1);
+            yield template_gen_1.default(path_1.default.resolve(__dirname, '../../template-comp'), dir, {
+                fileMapping: [
+                    [/^my\-feature/, 'sample'],
+                    [/^MyComponent/, compName + 'Component']
+                ],
+                textMapping: {
+                    MyComponent: compName + 'Component',
+                    SliceName: compName,
+                    sliceName: sCompName
+                }
+            }, { dryrun });
+        }
+    });
+}
+exports.genComponents = genComponents;
+function genSlice(dir, targetNames, dryrun = false) {
+    return __awaiter(this, void 0, void 0, function* () {
+        dir = path_1.default.resolve(dir);
+        if (dryrun) {
+            // tslint:disable-next-line: no-console
+            console.log('[cra-scripts cmd] dryrun mode');
+        }
+        else {
+            fs_extra_1.default.mkdirpSync(dir);
+        }
+        for (let targetName of targetNames) {
+            targetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
+            const smallTargetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
+            yield template_gen_1.default(path_1.default.resolve(__dirname, '../../template-slice'), dir, {
+                fileMapping: [
+                    [/^my\-feature/, 'sample'],
+                    [/^MyFeature/, smallTargetName]
+                ],
+                textMapping: {
+                    SliceName: targetName,
+                    sliceName: smallTargetName
+                }
+            }, { dryrun });
+        }
+    });
+}
+exports.genSlice = genSlice;
 
 //# sourceMappingURL=cli-gen.js.map

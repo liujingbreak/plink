@@ -266,6 +266,11 @@ function spaceOnlySubWfhCommand(program: commander.Command) {
   .option('--jsx', 'includes TSX file', false)
   .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
   .option('--source-map <inline|file>', 'Source map style: "inline" or "file"', 'inline')
+  .option('--copath, --compiler-options-paths <pathMapJson>',
+    'Add more "paths" property to compiler options. ' +
+    '(e.g. --copath \'{\"@/*":["/Users/worker/ocean-ui/src/*"]}\')', (v, prev) => {
+    prev.push(...v.split(',')); return prev;
+  }, [] as string[])
   .action(async (packages: string[]) => {
     const opt = tscCmd.opts();
 
@@ -281,7 +286,8 @@ function spaceOnlySubWfhCommand(program: commander.Command) {
       watch: opt.watch,
       sourceMap: opt.sourceMap,
       jsx: opt.jsx,
-      ed: opt.emitDeclarationOnly
+      ed: opt.emitDeclarationOnly,
+      pathsJsons: opt.compilerOptionsPaths
     });
   });
   withGlobalOptions(tscCmd);
@@ -335,7 +341,7 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
         const subCmd: ReturnType<typeof origPgmCommand> = origPgmCommand.call(this, nameAndArgs, ...restArgs);
         const originDescFn = subCmd.description;
         subCmd.description = function(this: ReturnType<typeof origPgmCommand>, str: string, ...remainder: any[]) {
-          str = `[${chalk.cyan(pk.name)}] ` + str;
+          str = chalk.blue(`[${pk.name}]`) + ' ' + str;
           return originDescFn.call(this, str, ...remainder);
         } as any;
         return subCmd;

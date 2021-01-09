@@ -2,10 +2,11 @@
 	"extends": "tsconfig-base.json",
 	"compilerOptions": {
 		"jsx": "preserve",
-		"module":"ES2015",
+		"module":"esnext",
 		"target":"es2015",
 		"downlevelIteration": true,
 		"isolatedModules": false,
+		"resolveJsonModule": false,
 		"lib": ["es2016",
 			"es2015",
 			"dom"

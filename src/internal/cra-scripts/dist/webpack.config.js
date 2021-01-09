@@ -14,8 +14,82 @@ const utils_1 = require("./utils");
 // import {createLazyPackageFileFinder} from '@wfh/plink/wfh/dist/package-utils';
 const webpack_lib_1 = __importDefault(require("./webpack-lib"));
 const template_html_plugin_1 = __importDefault(require("@wfh/webpack-common/dist/template-html-plugin"));
+const resolve_1 = __importDefault(require("resolve"));
+// import {changeTsConfigFile} from './change-tsconfig';
 const log = log4js_1.default.getLogger('cra-scripts');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
+/**
+ * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
+ */
+function changeForkTsCheckerPlugin(config) {
+    const plugins = config.plugins;
+    const cnst = require(resolve_1.default.sync('react-dev-utils/ForkTsCheckerWebpackPlugin', { basedir: path_1.default.resolve('node_modules/react-scripts') }));
+    // let forkTsCheckIdx = -1;
+    for (let i = 0, l = plugins.length; i < l; i++) {
+        if (plugins[i] instanceof cnst) {
+            plugins[i].reportFiles = [];
+            // forkTsCheckIdx = i;
+            break;
+        }
+    }
+    // if (forkTsCheckIdx >= 0) {
+    //   plugins.splice(forkTsCheckIdx, 1);
+    //   log.info('Remove ForkTsCheckerWebpackPlugin due to its not working with linked files');
+    // }
+}
+/**
+ * react-scripts/config/env.js filters NODE_PATH for only allowing relative path, this breaks
+ * Plink's NODE_PATH setting.
+ */
+function reviseNodePathEnv() {
+    const { nodePath } = JSON.parse(process.env.__plink);
+    process.env.NODE_PATH = nodePath.join(path_1.default.delimiter);
+}
+/**
+ * Help to replace ts, js file by configuration
+ */
+function appendOurOwnTsLoader(config) {
+    const myTsLoaderOpts = {
+        tsConfigFile: path_1.default.resolve('tsconfig.json'),
+        injector: __api_1.default.browserInjector,
+        compileExpContex: file => {
+            const pkg = __api_1.default.findPackageByFile(file);
+            if (pkg) {
+                return { __api: __api_1.default.getNodeApiForPackage(pkg) };
+            }
+            else {
+                return {};
+            }
+        }
+    };
+    config.module.rules.push({
+        test: createRuleTestFunc4Src(/\.[jt]sx?$/),
+        enforce: 'pre',
+        use: {
+            options: myTsLoaderOpts,
+            loader: require.resolve('@wfh/webpack-common/dist/ts-loader')
+        }
+    });
+}
+function runConfigHandlers(config, webpackEnv) {
+    const { configFileInPackage } = require('./cra-scripts-paths');
+    const cmdOption = utils_1.getCmdOptions();
+    __api_1.default.config.configHandlerMgr().runEachSync((cfgFile, result, handler) => {
+        if (handler.webpack != null) {
+            log.info('Execute command line Webpack configuration overrides', cfgFile);
+            handler.webpack(config, webpackEnv, cmdOption);
+        }
+    });
+    if (configFileInPackage) {
+        const cfgMgr = new config_handler_1.ConfigHandlerMgr([configFileInPackage]);
+        cfgMgr.runEachSync((cfgFile, result, handler) => {
+            if (handler.webpack != null) {
+                log.info('Execute Webpack configuration overrides from ', cfgFile);
+                handler.webpack(config, webpackEnv, cmdOption);
+            }
+        });
+    }
+}
 function insertLessLoaderRule(origRules) {
     var _a, _b, _c;
     const oneOf = (_a = origRules.find(rule => rule.oneOf)) === null || _a === void 0 ? void 0 : _a.oneOf;
@@ -47,7 +121,15 @@ function insertLessLoaderRule(origRules) {
                 newUseItem.options = Object.assign(Object.assign({}, (newUseItem.options || {})), { importLoaders: 2 });
             }
             return newUseItem;
-        }).concat('less-loader');
+        }).concat({
+            loader: 'less-loader',
+            options: {
+                lessOptions: {
+                    javascriptEnabled: true
+                },
+                additionalData: __api_1.default.config.get([__api_1.default.packageName, 'lessLoaderAdditionalData'], '')
+            }
+        });
     }
 }
 const fileLoaderOptions = {
@@ -153,15 +235,16 @@ module.exports = function (webpackEnv) {
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
     if (cmdOption.devMode || cmdOption.watch) {
         webpackEnv = 'development';
-        log.info('[cra-scripts] Development mode is on:', webpackEnv);
+        log.info('Development mode is on:', webpackEnv);
     }
     else {
         // process.env.GENERATE_SOURCEMAP = 'false';
     }
     log.info('webpackEnv =', webpackEnv);
     const origWebpackConfig = require('react-scripts/config/webpack.config');
+    reviseNodePathEnv();
     process.env.INLINE_RUNTIME_CHUNK = 'true';
-    const { default: craPaths, configFileInPackage } = require('./cra-scripts-paths');
+    const { default: craPaths } = require('./cra-scripts-paths');
     const config = origWebpackConfig(webpackEnv);
     if (webpackEnv === 'production') {
         // Try to workaround create-react-app issue: default InlineChunkPlugin 's test property does not match 
@@ -184,37 +267,10 @@ module.exports = function (webpackEnv) {
     // Make sure babel compiles source folder out side of current src directory
     findAndChangeRule(config.module.rules);
     replaceSassLoader(config.module.rules);
-    const myTsLoaderOpts = {
-        tsConfigFile: path_1.default.resolve('tsconfig.json'),
-        injector: __api_1.default.browserInjector,
-        compileExpContex: file => {
-            const pkg = __api_1.default.findPackageByFile(file);
-            if (pkg) {
-                return { __api: __api_1.default.getNodeApiForPackage(pkg) };
-            }
-            else {
-                return {};
-            }
-        }
-    };
-    config.module.rules.push({
-        test: createRuleTestFunc4Src(/\.[jt]sx?$/),
-        enforce: 'pre',
-        use: {
-            options: myTsLoaderOpts,
-            loader: require.resolve('@wfh/webpack-common/dist/ts-loader')
-        }
-    });
+    appendOurOwnTsLoader(config);
     insertLessLoaderRule(config.module.rules);
-    // const foundPkg = findPackage(cmdOption.buildTarget);
-    // if (foundPkg == null) {
-    //   throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
-    // }
-    // const {dir, packageJson} = foundPkg;
+    changeForkTsCheckerPlugin(config);
     if (cmdOption.buildType === 'app') {
-        // TODO: do not hard code
-        // config.resolve!.alias!['alias:dr.cra-app-entry'] = packageJson.name + '/' + packageJson.dr['cra-app-entry'];
-        // log.info(`[cra-scripts] alias:dr.cra-app-entry: ${config.resolve!.alias!['alias:dr.cra-app-entry']}`);
         config.output.path = craPaths().appBuild;
         // config.devtool = 'source-map';
     }
@@ -229,19 +285,6 @@ module.exports = function (webpackEnv) {
     const resolveModules = ['node_modules', ...nodePath];
     config.resolve.modules = resolveModules;
     Object.assign(config.resolve.alias, require('rxjs/_esm2015/path-mapping')());
-    // config.plugins!.push(new (class {
-    //   apply(compiler: Compiler) {
-    //     compiler.hooks.emit.tap('drcp-cli-stats', compilation => {
-    //       const stats = compilation.getStats();
-    //       compilation.assets['stats.json'] = new RawSource(JSON.stringify(stats.toJson('verbose')));
-    //       setTimeout(() => {
-    //         log.info('[cra-scripts] stats:');
-    //         log.info(stats.toString('normal'));
-    //         log.info('');
-    //       }, 0);
-    //     });
-    //   }
-    // })());
     // config.plugins!.push(new ProgressPlugin({ profile: true }));
     config.stats = 'normal'; // Not working
     if (cmdOption.buildType === 'lib') {
@@ -257,23 +300,10 @@ module.exports = function (webpackEnv) {
             return pkg == null;
         });
     }
-    __api_1.default.config.configHandlerMgr().runEachSync((cfgFile, result, handler) => {
-        if (handler.webpack != null) {
-            log.info('Execute command line Webpack configuration overrides', cfgFile);
-            handler.webpack(config, webpackEnv, cmdOption);
-        }
-    });
-    if (configFileInPackage) {
-        const cfgMgr = new config_handler_1.ConfigHandlerMgr([configFileInPackage]);
-        cfgMgr.runEachSync((cfgFile, result, handler) => {
-            if (handler.webpack != null) {
-                log.info('Execute Webpack configuration overrides from ', cfgFile);
-                handler.webpack(config, webpackEnv, cmdOption);
-            }
-        });
-    }
-    log.info(`[cra-scripts] output.publicPath: ${config.output.publicPath}`);
+    runConfigHandlers(config, webpackEnv);
+    log.info(`output.publicPath: ${config.output.publicPath}`);
     fs_extra_1.default.writeFileSync(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), utils_1.printConfig(config));
+    // changeTsConfigFile();
     return config;
 };
 

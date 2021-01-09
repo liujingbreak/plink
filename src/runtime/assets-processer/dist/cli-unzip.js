@@ -59,6 +59,11 @@ function unZip(fileName, toDir = process.cwd()) {
             throw new Error(`yauzl can not unzip zip file ${fileName}`);
         }
         zip.on('entry', (entry) => {
+            if (entry.fileName.endsWith('/')) {
+                // some zip format contains directory
+                zip.readEntry();
+                return;
+            }
             // tslint:disable-next-line: no-console
             console.log(entry.fileName + chalk_1.default.gray(` (size: ${entry.uncompressedSize >> 10} Kb)`));
             zip.openReadStream(entry, (err, readStream) => {
@@ -71,7 +76,9 @@ function unZip(fileName, toDir = process.cwd()) {
                 const target = path_1.default.resolve(toDir, entry.fileName);
                 // tslint:disable-next-line: no-console
                 console.log(`write ${target} ` + chalk_1.default.gray(` (size: ${entry.uncompressedSize >> 10} Kb)`));
-                fs_extra_1.mkdirpSync(path_1.default.dirname(target));
+                const dir = path_1.default.dirname(target);
+                if (!fs_1.existsSync(dir))
+                    fs_extra_1.mkdirpSync(dir);
                 readStream.pipe(fs_1.createWriteStream(target));
             });
         });

@@ -152,17 +152,19 @@ export interface PackageTsDirs {
   destDir: string;
   isomDir?: string;
   globs?: string[];
+  include?: string[] | string;
 }
 
 export function getTscConfigOfPkg(json: any): PackageTsDirs {
   const globs: string[] | undefined = get(json, 'dr.ts.globs');
   const srcDir = get(json, 'dr.ts.src', 'ts');
   const isomDir = get(json, 'dr.ts.isom', 'isom');
+  const include = get(json, 'dr.ts.include');
   let destDir = get(json, 'dr.ts.dest', 'dist');
 
   destDir = trim(trim(destDir, '\\'), '/');
   return {
-    srcDir, destDir, isomDir, globs
+    srcDir, destDir, isomDir, globs, include
   };
 }
 

@@ -102,7 +102,7 @@ export class InstallManager {
         }
       }
       if (json.devDependencies) {
-        log.warn(`${json.name} contains "devDepenendies", if they are necessary for compiling this component` +
+        log.warn(`${json.name} contains "devDepenendies", if they are necessary for compiling this component ` +
           'you should move them to "dependencies" or "peerDependencies"');
         // for (const name of Object.keys(json.devDependencies)) {
         //   const version = json.devDependencies[name];

@@ -30,6 +30,7 @@ export interface PackageTsDirs {
     destDir: string;
     isomDir?: string;
     globs?: string[];
+    include?: string[] | string;
 }
 export declare function getTscConfigOfPkg(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;

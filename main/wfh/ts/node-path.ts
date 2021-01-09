@@ -1,6 +1,9 @@
 import * as Path from 'path';
 import * as fs from 'fs';
 import chalk from 'chalk';
+import log4js from 'log4js';
+import {hookCommonJsRequire} from './loaderHooks';
+
 
 let envSetDone = false;
 
@@ -14,7 +17,7 @@ if (!envSetDone) {
    */
   const exitingEnvVar = process.env.__plink ? JSON.parse(process.env.__plink) as PlinkEnv : null;
 
-  if (process.env.PLINK_DATA_DIR == null) {
+  if (!process.env.PLINK_DATA_DIR) {
     process.env.PLINK_DATA_DIR = 'dist';
     // tslint:disable-next-line: no-console
     console.log(chalk.gray('[node-path] By default, Plink reads and writes state files in directory "<root-dir>/dist",\n' +
@@ -118,3 +121,10 @@ export interface PlinkEnv {
   symlinkDir: string;
   nodePath: string[];
 }
+
+
+hookCommonJsRequire((file, target, req, resolve) => {
+  if (target === 'log4js') {
+    return log4js;
+  }
+});

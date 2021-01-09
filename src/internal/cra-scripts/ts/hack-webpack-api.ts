@@ -4,6 +4,11 @@ import _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages')
 import {getCmdOptions} from './utils';
 import Path from 'path';
 
+/**
+ * CRA only has "build" command which runs Webpack compiler.run() function, but we want to
+ * support "watch" function, so hack Webpack's compiler.run() function by replacing it with
+ * compiler.watch() function
+ */
 export function hackWebpack4Compiler() {
   const webpack: typeof _webpack = require(Path.resolve('node_modules/webpack'));
   if (getCmdOptions().buildType !== 'lib' || !getCmdOptions().watch) {

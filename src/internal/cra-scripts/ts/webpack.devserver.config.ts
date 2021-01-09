@@ -8,6 +8,9 @@ export = function(proxy: string, allowedHost: string) {
   devServerCfg.stats = 'normal';
   devServerCfg.quiet = false;
   changeDevServer({devServer: devServerCfg});
+  if (devServerCfg.watchOptions && devServerCfg.watchOptions.ignored) {
+    delete devServerCfg.watchOptions.ignored;
+  }
   // tslint:disable-next-line: no-console
   console.log('Dev server configure:', printConfig(devServerCfg));
   return devServerCfg!;

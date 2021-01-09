@@ -1,6 +1,6 @@
 import yauzl from 'yauzl';
 import chalk from 'chalk';
-import { createWriteStream } from 'fs';
+import { createWriteStream, existsSync } from 'fs';
 import {mkdirpSync} from 'fs-extra';
 import Path from 'path';
 
@@ -44,6 +44,11 @@ export async function unZip(fileName: string, toDir = process.cwd()) {
     throw new Error(`yauzl can not unzip zip file ${fileName}`);
   }
   zip.on('entry', (entry: yauzl.Entry) => {
+    if (entry.fileName.endsWith('/')) {
+      // some zip format contains directory
+      zip.readEntry();
+      return;
+    }
     // tslint:disable-next-line: no-console
     console.log(entry.fileName + chalk.gray(` (size: ${entry.uncompressedSize >> 10} Kb)`));
 
@@ -57,7 +62,9 @@ export async function unZip(fileName: string, toDir = process.cwd()) {
       const target = Path.resolve(toDir, entry.fileName);
       // tslint:disable-next-line: no-console
       console.log(`write ${target} ` + chalk.gray(` (size: ${entry.uncompressedSize >> 10} Kb)`));
-      mkdirpSync(Path.dirname(target));
+      const dir = Path.dirname(target);
+      if (!existsSync(dir))
+        mkdirpSync(dir);
       readStream!.pipe(createWriteStream(target));
     });
   });

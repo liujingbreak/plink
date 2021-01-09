@@ -1,11 +1,13 @@
 import { CompilerOptions } from 'typescript';
 export interface TscCmdParam {
+    include?: string[];
     package?: string[];
     project?: string[];
     watch?: boolean;
     sourceMap?: string;
     jsx?: boolean;
     ed?: boolean;
+    pathsJsons: string[];
     compileOptions?: {
         [key in keyof CompilerOptions]?: any;
     };

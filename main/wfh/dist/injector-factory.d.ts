@@ -11,4 +11,7 @@ export declare class DrPackageInjector extends RJ {
     readInjectFile(fileNameWithoutExt?: string): void;
 }
 export declare let nodeInjector: DrPackageInjector;
+/**
+ * Avoid package load different log4js than Plink's
+ */
 export declare let webInjector: DrPackageInjector;

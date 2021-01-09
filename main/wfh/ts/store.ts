@@ -106,14 +106,13 @@ export async function saveState() {
 
   const jsonStr = serialize(mergedState, {space: '  '});
   fse.mkdirpSync(Path.dirname(stateFile!));
-  fs.writeFile(stateFile!, jsonStr,
-    (err) => {
-      if (err) {
-        // tslint:disable-next-line: no-console
-        console.log(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`), err);
-        return;
-      }
-      // tslint:disable-next-line: no-console
-      console.log(chalk.gray(`[package-mgr] state file ${Path.relative(process.cwd(), stateFile!)} saved (${actionCount})`));
-    });
+  try {
+    await fs.promises.writeFile(stateFile!, jsonStr);
+    // tslint:disable-next-line: no-console
+    console.log(chalk.gray(
+      `[package-mgr] state file ${Path.relative(process.cwd(), stateFile!)} saved (${actionCount})`));
+  } catch (err) {
+    // tslint:disable-next-line: no-console
+    console.log(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`), err);
+  }
 }

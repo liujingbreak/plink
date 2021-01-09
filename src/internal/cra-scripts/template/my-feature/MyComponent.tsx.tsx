@@ -1,12 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-
+import classNames from 'classnames/bind';
 import styles from './$__MyComponent__$.module.scss';
+
+const cx = classNames.bind(styles);
+
+const imgCls = cx('assets');
+const textCls = cx('red');
 
 const $__MyComponent__$: React.FC<{}> = function(prop) {
   return <>
-    <div className={styles.assets}></div>
-    <div className={styles.red}>You component goes here</div>
+    <div className={imgCls}></div>
+    <div className={textCls}>You component goes here</div>
     </>;
 };
 

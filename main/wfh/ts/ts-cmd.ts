@@ -30,12 +30,14 @@ const root = config().rootPath;
 // const nodeModules = join(root, 'node_modules');
 
 export interface TscCmdParam {
+  include?: string[];
   package?: string[];
   project?: string[];
   watch?: boolean;
   sourceMap?: string;
   jsx?: boolean;
   ed?: boolean;
+  pathsJsons: string[];
   compileOptions?: {[key in keyof CompilerOptions]?: any};
 }
 
@@ -118,7 +120,7 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
     emitDeclarationOnly: argv.ed
     // preserveSymlinks: true
   };
-  setupCompilerOptionsWithPackages(compilerOptions);
+  setupCompilerOptionsWithPackages(compilerOptions, argv.pathsJsons);
 
   log.info('typescript compilerOptions:', compilerOptions);
 
@@ -152,14 +154,23 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
       }
     });
 
-    srcDirs.forEach(srcDir => {
-      const relPath = resolve(realPath, srcDir!).replace(/\\/g, '/');
-
-      compGlobs.push(relPath + '/**/*.ts');
-      if (argv.jsx) {
-        compGlobs.push(relPath + '/**/*.tsx');
+    if (tscCfg.include) {
+      tscCfg.include = ([] as string[]).concat(tscCfg.include);
+    }
+    if (tscCfg.include && tscCfg.include.length > 0) {
+      for (const pattern of tscCfg.include) {
+        const includePath = resolve(realPath, pattern).replace(/\\/g, '/');
+        compGlobs.push(includePath);
       }
-    });
+    } else {
+      srcDirs.forEach(srcDir => {
+        const relPath = resolve(realPath, srcDir!).replace(/\\/g, '/');
+        compGlobs.push(relPath + '/**/*.ts');
+        if (argv.jsx) {
+          compGlobs.push(relPath + '/**/*.tsx');
+        }
+      });
+    }
   }
 
 
@@ -301,16 +312,20 @@ function changePath(commonRootDir: string, packageDirTree: DirTree<ComponentDirI
   });
 }
 
-function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions) {
+function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, pathsJsons: string[]) {
   let wsKey: string | null | undefined = workspaceKey(process.cwd());
   if (!getState().workspaces.has(wsKey))
     wsKey = getState().currWorkspace;
   if (wsKey == null) {
     throw new Error('Current directory is not a work space');
   }
-  // const typeRoots = Array.from(packageUtils.typeRootsFromPackages(wsKey));
+
   setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions, {
     enableTypeRoots: true,
     workspaceDir: resolve(root, wsKey)
   });
+
+  pathsJsons.reduce((pathMap, jsonStr) => {
+    return {...pathMap, ...JSON.parse(jsonStr)};
+  }, compilerOptions.paths);
 }

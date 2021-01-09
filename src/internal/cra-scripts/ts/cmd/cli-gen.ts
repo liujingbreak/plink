@@ -6,7 +6,9 @@ import chalk from 'chalk';
 import {boxString} from '@wfh/plink/wfh/dist/utils/misc';
 import generateStructure from '@wfh/plink/wfh/dist/template-gen';
 
-export async function genPackage(path: string, dryrun = false) {
+export async function genPackage(path: string, compName = 'Sample', dryrun = false) {
+  compName = compName.charAt(0).toUpperCase() + compName.slice(1);
+  const sCompName = compName.charAt(0).toLowerCase() + compName.slice(1);
   if (!path) {
     throw new Error('Lack of arguments');
   }
@@ -25,15 +27,15 @@ export async function genPackage(path: string, dryrun = false) {
     {
       fileMapping: [
         [/^my\-feature/, 'sample'],
-        [/^MyFeature/, 'Sample'],
-        [/^MyComponent/, 'SampleComponent']
+        [/^MyFeature/, compName],
+        [/^MyComponent/, compName + 'Component']
       ],
       textMapping: {
         packageName: Path.basename(path),
-        MyComponent: 'SampleComponent',
-        SliceName: 'Sample',
-        sliceName: 'sample',
-        MyComponentPath: 'sample/SampleComponent'
+        MyComponent: compName + 'Component',
+        SliceName: compName,
+        sliceName: sCompName,
+        MyComponentPath: `${sCompName}/${compName}Component`
       }
     },
     {dryrun});
@@ -45,33 +47,57 @@ export async function genPackage(path: string, dryrun = false) {
     `and run command:\n  ${chalk.cyan('plink init')}`));
 }
 
-// function copyTempl(to: string, pkName: string, dryrun: boolean) {
-//   const templDir = Path.resolve(__dirname, '../../template');
-//   const files = fs.readdirSync(templDir);
-//   for (const sub of files) {
-//     const file = Path.resolve(templDir, sub);
-//     if (fs.statSync(file).isDirectory()) {
-//       if (!dryrun)
-//         fs.mkdirpSync(Path.resolve(to, sub));
-//       const relative = Path.relative(templDir, file);
-//       files.push(...fs.readdirSync(file).map(child => Path.join(relative, child)));
-//       continue;
-//     }
-//     const newFile = Path.resolve(to, sub.slice(0, sub.lastIndexOf('.')).replace(/\.([^./\\]+)$/, '.$1'));
-//     if (!fs.existsSync(newFile)) {
-//       if (sub === 'package.json.json') {
-//         const pkJsonStr = fs.readFileSync(Path.resolve(templDir, sub), 'utf8');
-//         const newFile = Path.resolve(to, 'package.json');
-//         if (!dryrun)
-//           fs.writeFile(newFile, _.template(pkJsonStr)({name: '@bk/' + Path.basename(pkName)}));
-//         console.log(`[cra-scripts cmd] ${chalk.green(Path.relative(Path.resolve(), newFile))} is created`);
-//         continue;
-//       }
-//       if (!dryrun)
-//         fs.copyFile(Path.resolve(templDir, sub), newFile, () => {});
-//       console.log(`[cra-scripts cmd] ${chalk.green(Path.relative(Path.resolve(), newFile))} is created`);
-//     } else {
-//       console.log('[cra-scripts cmd] target file already exists:', Path.relative(Path.resolve(), newFile));
-//     }
-//   }
-// }
+export async function genComponents(dir: string, compNames: string[], dryrun = false) {
+  dir = Path.resolve(dir);
+
+  if (dryrun) {
+    // tslint:disable-next-line: no-console
+    console.log('[cra-scripts cmd] dryrun mode');
+  } else {
+    fs.mkdirpSync(dir);
+  }
+  for (let compName of compNames) {
+    compName = compName.charAt(0).toUpperCase() + compName.slice(1);
+    const sCompName = compName.charAt(0).toUpperCase() + compName.slice(1);
+    await generateStructure(Path.resolve(__dirname, '../../template-comp'), dir,
+    {
+      fileMapping: [
+        [/^my\-feature/, 'sample'],
+        [/^MyComponent/, compName + 'Component']
+      ],
+      textMapping: {
+        MyComponent: compName + 'Component',
+        SliceName: compName,
+        sliceName: sCompName
+      }
+    },
+    {dryrun});
+  }
+}
+
+export async function genSlice(dir: string, targetNames: string[], dryrun = false) {
+  dir = Path.resolve(dir);
+
+  if (dryrun) {
+    // tslint:disable-next-line: no-console
+    console.log('[cra-scripts cmd] dryrun mode');
+  } else {
+    fs.mkdirpSync(dir);
+  }
+  for (let targetName of targetNames) {
+    targetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
+    const smallTargetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
+    await generateStructure(Path.resolve(__dirname, '../../template-slice'), dir,
+    {
+      fileMapping: [
+        [/^my\-feature/, 'sample'],
+        [/^MyFeature/, smallTargetName]
+      ],
+      textMapping: {
+        SliceName: targetName,
+        sliceName: smallTargetName
+      }
+    },
+    {dryrun});
+  }
+}

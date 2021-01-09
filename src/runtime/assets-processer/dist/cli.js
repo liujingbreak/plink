@@ -50,7 +50,7 @@ const cliExt = (program, withGlobalOptions) => {
     }));
     // -------- unzip --------
     const unzipCmd = program.command('unzip <zipFile> [destination_dir]')
-        .description('Extract all zip files from specific directory')
+        .description('Extract zip files to specific directory')
         // .requiredOption('-d,--dest <dir>', 'destination directory')
         .action((zipFile, destDir) => __awaiter(void 0, void 0, void 0, function* () {
         dist_1.initConfig(defaultCfg);

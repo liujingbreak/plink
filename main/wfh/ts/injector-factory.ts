@@ -101,9 +101,9 @@ export let nodeInjector = new DrPackageInjector(require.resolve, false);
 /**
  * Avoid package load different log4js than Plink's
  */
-nodeInjector.fromRoot().factory('log4js', file => {
-  return log4js;
-}); // .alias('log4js', '@wfh/plink/wfh/dist/logger');
+// nodeInjector.fromRoot().factory('log4js', file => {
+//   return log4js;
+// }); // .alias('log4js', '@wfh/plink/wfh/dist/logger');
 
 export let webInjector = new DrPackageInjector(undefined, true);
 

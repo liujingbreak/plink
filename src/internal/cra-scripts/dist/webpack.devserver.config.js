@@ -10,6 +10,9 @@ module.exports = function (proxy, allowedHost) {
     devServerCfg.stats = 'normal';
     devServerCfg.quiet = false;
     devServer_1.default({ devServer: devServerCfg });
+    if (devServerCfg.watchOptions && devServerCfg.watchOptions.ignored) {
+        delete devServerCfg.watchOptions.ignored;
+    }
     // tslint:disable-next-line: no-console
     console.log('Dev server configure:', utils_1.printConfig(devServerCfg));
     return devServerCfg;

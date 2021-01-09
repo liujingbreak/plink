@@ -7,6 +7,11 @@ exports.hackWebpack4Compiler = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const utils_1 = require("./utils");
 const path_1 = __importDefault(require("path"));
+/**
+ * CRA only has "build" command which runs Webpack compiler.run() function, but we want to
+ * support "watch" function, so hack Webpack's compiler.run() function by replacing it with
+ * compiler.watch() function
+ */
 function hackWebpack4Compiler() {
     const webpack = require(path_1.default.resolve('node_modules/webpack'));
     if (utils_1.getCmdOptions().buildType !== 'lib' || !utils_1.getCmdOptions().watch) {

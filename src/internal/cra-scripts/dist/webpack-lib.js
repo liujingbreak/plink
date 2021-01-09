@@ -122,7 +122,10 @@ function findAndChangeRule(rules) {
 function forkTsc(targetPackage, nodePath) {
     return __awaiter(this, void 0, void 0, function* () {
         // const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
-        const workerData = { package: [targetPackage], ed: true, jsx: true, watch: utils_1.getCmdOptions().watch };
+        const workerData = {
+            package: [targetPackage], ed: true, jsx: true, watch: utils_1.getCmdOptions().watch,
+            pathsJsons: []
+        };
         const worker = new worker_threads_1.Worker(require.resolve('./tsd-generate-thread'), {
             workerData, env: { NODE_PATH: nodePath.join(path_1.default.delimiter) }
         });

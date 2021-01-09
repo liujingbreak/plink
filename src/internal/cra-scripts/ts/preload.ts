@@ -9,8 +9,9 @@ import {getCmdOptions} from './utils';
 import Path from 'path';
 import fs from 'fs-extra';
 import {hackWebpack4Compiler} from './hack-webpack-api';
-import Module from 'module';
-import {sep, resolve, dirname} from 'path';
+import {sep} from 'path';
+import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
+import {register as registerForkTsChecker} from './hack-fork-ts-checker';
 // Avoid child process require us!
 const deleteExecArgIdx: number[] = [];
 for (let i = 0, l = process.execArgv.length; i < l; i++) {
@@ -31,19 +32,24 @@ deleteExecArgIdx.reduce((offset, deleteIdx) => {
 export function poo() {
   let getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
 
-  const reactScriptsPath = `${sep}node_modules${sep}react-scripts${sep}`;
-  const reactDevUtilsPath = `${sep}node_modules${sep}react-dev-utils${sep}`;
-  const buildScriptsPath = Path.join('node_modules', 'react-scripts', 'scripts', 'build.js');
+  const reactScriptsPath = Path.resolve('node_modules/react-scripts');
+  // const reactDevUtilsPath = Path.resolve('node_modules/react-dev-utils');
+  const buildScriptsPath = Path.resolve('node_modules', 'react-scripts', 'scripts', 'build.js');
+
+  const reactWebpackCfg = Path.resolve('node_modules/react-scripts/config/webpack.config.js');
+  const reactWebpackDevServerCfg = Path.resolve('node_modules/react-scripts/config/webpackDevServer.config.js');
+  const clearConsole = Path.resolve('node_modules/react-dev-utils/clearConsole.js');
+  const craPaths = Path.resolve('node_modules/react-scripts/config/paths.js');
+
+  const craPackagesPathPrefix = Path.resolve('node_modules/react-');
 
   // Disable @pmmmwh/react-refresh-webpack-plugin, since it excludes our node_modules
   // from HMR
   process.env.FAST_REFRESH = 'false';
 
-  const superReq = Module.prototype.require;
-  // TODO: Should use require-injector new version
-  Module.prototype.require = function(this: Module, target: string) {
-    if (this.filename.indexOf(reactScriptsPath) >= 0) {
-      if (this.filename.endsWith(buildScriptsPath)) {
+  hookCommonJsRequire((filename, target, req, resolve) => {
+    if (filename.startsWith(reactScriptsPath + sep)) {
+      if (filename === buildScriptsPath) {
         if (target === 'fs-extra' && getCmdOptions().buildType === 'lib') {
           // Disable copy public path
           return Object.assign({}, fs, {
@@ -56,40 +62,34 @@ export function poo() {
           return hackWebpack4Compiler();
         }
       }
-      switch (target) {
-        case '../config/webpack.config':
-          target = require.resolve('./webpack.config');
-          // console.log(this.filename, target);
-          break;
-
-        case '../config/webpackDevServer.config':
-          target = require.resolve('./webpack.devserver.config');
-          break;
-
+      switch (resolve(target)) {
+        case reactWebpackCfg:
+          return require('./webpack.config');
+        case reactWebpackDevServerCfg:
+          return require('./webpack.devserver.config');
+        case clearConsole:
+          return noClearConsole;
+        case craPaths:
+          return getCraPaths();
         default:
-          if (target.endsWith('/clearConsole')) {
-            return clearConsole;
-          } else if (target.endsWith('/paths') &&
-            /[\\/]react-scripts[\\/]config[\\/]paths$/.test(
-              resolve(dirname(this.filename), target))) {
-            // console.log(`[preload] source: ${this.filename},\n  target: react-scripts/config/paths`);
-            return getCraPaths();
-          }
       }
-    } else if (this.filename.indexOf(reactDevUtilsPath) >= 0) {
-      if (target.endsWith('/clearConsole')) {
-        return clearConsole;
+    } else if (filename.startsWith(craPackagesPathPrefix)) {
+      switch (resolve(target)) {
+        case craPaths:
+          return getCraPaths();
+        case clearConsole:
+          return noClearConsole;
+        default:
       }
     }
-    return superReq.call(this, target);
-  } as any;
+  });
+
+  registerForkTsChecker();
 }
 
 
 
-function clearConsole() {
+function noClearConsole() {
   // origClearConsole();
   drawPuppy('pooed on create-react-app');
 }
-
-// require(Path.resolve('node_modules/react-scripts/bin/react-scripts.js'));

@@ -55,7 +55,7 @@ class FolderScanner {
 
   private checkFolder(dir: string) {
     const self = this;
-    if (fs.statSync(dir).isDirectory()) {
+    if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
       const pkJsonPath = Path.join(dir, 'package.json');
       if (fs.existsSync(pkJsonPath)) {
         this.out.next(pkJsonPath);

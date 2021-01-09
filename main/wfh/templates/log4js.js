@@ -47,8 +47,7 @@ var config = {
 	},
 	categories: {
 		'default': {appenders: ['out', 'file'], level: 'info'},
-		'@wfh/plink': {appenders: ['file'], level: 'debug'},
-		'@dr-core/assets-processer': {appenders: ['infoOut', 'file'], level: 'debug'},
+		'@dr-core/assets-processer': {appenders: ['infoOut', 'file'], level: 'info'},
 		'@wfh/plink.store.action': {appenders: ['out'], level: 'warn'},
 		'wfh.module-dep-helper': {appenders: ['infoOut', 'file'], level: 'info'},
 		'wfh.ManualChunkPlugin': {appenders: ['infoOut', 'file'], level: 'debug'},

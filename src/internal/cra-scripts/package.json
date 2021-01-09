@@ -1,10 +1,15 @@
 {
   "name": "@wfh/cra-scripts",
-  "version": "1.0.26",
+  "version": "1.0.27-2",
   "description": "Something like create-react-rewired",
   "main": "dist/preload.js",
   "dr": {
-    "cli": "dist/cmd/cli.js#default"
+    "cli": "dist/cmd/cli.js#default",
+    "config": {
+      "server": {
+        "lessLoaderAdditionalData": ""
+      }
+    }
   },
   "dependencies": {
     "@types/react-dev-utils": "^9.0.4",
@@ -15,7 +20,9 @@
     "chalk": "^4.1.0",
     "classnames": "^2.2.6",
     "@types/classnames": "^2.2.11",
-    "source-map-explorer": "^2.5.1"
+    "source-map-explorer": "^2.5.1",
+    "resolve": "~1.19.0",
+    "@types/resolve": "^1.17.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

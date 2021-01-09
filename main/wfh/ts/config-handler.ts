@@ -153,7 +153,7 @@ export class ConfigHandlerMgr {
 export interface CompilerOptionSetOpt {
   /** Will add typeRoots property for specific workspace */
   workspaceDir?: string;
-  enableTypeRoots: boolean;
+  enableTypeRoots?: boolean;
   /** Default false, Do not include linked package symlinks directory in path*/
   noSymlinks?: boolean;
   extraNodePath?: string[];

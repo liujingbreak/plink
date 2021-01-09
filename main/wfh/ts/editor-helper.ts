@@ -52,7 +52,7 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
     });
     updateGitIgnores({
       file: Path.resolve(getRootDir(), '.gitignore'),
-      lines: [Path.relative(getRootDir(), Path.resolve(workspaceDir, 'types'))]
+      lines: [Path.relative(getRootDir(), Path.resolve(workspaceDir, 'types')).replace(/\\/g, '/')]
     });
     // const gitIgnoreFile = findGitIngoreFile(proj);
     // if (gitIgnoreFile) {

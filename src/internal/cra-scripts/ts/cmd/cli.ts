@@ -5,12 +5,12 @@ import {CliExtension, GlobalOptions} from '@wfh/plink/wfh/dist/cmd/types';
 import Path from 'path';
 import commander from 'Commander';
 import {saveCmdOptionsToEnv} from '../utils';
-import {initConfigAsync, initProcess} from '@wfh/plink/wfh/dist';
+import {initConfigAsync} from '@wfh/plink/wfh/dist';
 import {fork} from 'child_process';
 import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
 import log4js from 'log4js';
-import {initTsconfig} from './cli-init';
-import genSliceCmd from './cli-gen-slice';
+// import {initTsconfig} from './cli-init';
+import * as _preload from '../preload';
 
 // import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 const log = log4js.getLogger('cra');
@@ -19,12 +19,27 @@ const cli: CliExtension = (program, withGlobalOptions) => {
 
   const genCmd = program.command('cra-gen <path>')
   .description('Generate a sample package')
+  .option('--comp <name>', 'Sample component name', 'Sample')
   .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
   .action(async (dir: string) => {
-    (await import('./cli-gen')).genPackage(dir, genCmd.opts().dryRun);
+    (await import('./cli-gen')).genPackage(dir, genCmd.opts().comp, genCmd.opts().dryRun);
   });
 
-  genSliceCmd(program, withGlobalOptions);
+  const genCompCmd = program.command('cra-gen-comp <dir> <componentName...>')
+  .description('Generate sample components')
+  .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
+  .action(async (dir: string, compNames: string[]) => {
+    (await import('./cli-gen')).genComponents(dir, compNames, genCompCmd.opts().dryRun);
+  });
+  genCompCmd.usage(genCompCmd.usage() + '\ne.g.\n  plink cra-comp ../packages/foobar/components Toolbar Layout Profile');
+
+  const genSliceCmd = program.command('cra-gen-slice <dir> <sliceName...>')
+  .description('Generate a sample Redux-toolkit Slice file (with Redux-observable epic)')
+  .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
+  .action(async (dir: string, sliceName: string[]) => {
+    (await import('./cli-gen')).genSlice(dir, sliceName, genSliceCmd.opts().dryRun);
+  });
+  // withGlobalOptions(genSliceCmd);
 
   const buildCmd = program.command('cra-build <app|lib> <package-name>')
   .description('Compile react application or library, <package-name> is the target package name,\n' +
@@ -62,7 +77,7 @@ const cli: CliExtension = (program, withGlobalOptions) => {
   .action(async () => {
     const opt: GlobalOptions = {prop: [], config: []};
     await initConfigAsync(opt);
-    await initTsconfig();
+    // await initTsconfig();
   });
   // withGlobalOptions(initCmd);
 
@@ -93,9 +108,8 @@ function arrayOptionFn(curr: string, prev: string[] | undefined) {
 }
 
 async function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', pkgName: string) {
-  initProcess();
   const cfg = await initConfigAsync(buildCmd.opts() as GlobalOptions);
-  await initTsconfig();
+  // await initTsconfig();
   saveCmdOptionsToEnv(pkgName, buildCmd, type);
   if (process.env.PORT == null && cfg().port)
     process.env.PORT = cfg().port + '';
@@ -105,7 +119,8 @@ async function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', 
     log.error(`type argument must be one of "${['app', 'lib']}"`);
     return;
   }
-  await (await import('../preload')).poo();
+  const preload: typeof _preload = require('../preload');
+  preload.poo();
 }
 
 export {cli as default};

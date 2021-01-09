@@ -40,18 +40,30 @@ const dist_1 = require("@wfh/plink/wfh/dist");
 const child_process_1 = require("child_process");
 const initInjectors_1 = __importDefault(require("@wfh/webpack-common/dist/initInjectors"));
 const log4js_1 = __importDefault(require("log4js"));
-const cli_init_1 = require("./cli-init");
-const cli_gen_slice_1 = __importDefault(require("./cli-gen-slice"));
 // import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 const log = log4js_1.default.getLogger('cra');
 const cli = (program, withGlobalOptions) => {
     const genCmd = program.command('cra-gen <path>')
         .description('Generate a sample package')
+        .option('--comp <name>', 'Sample component name', 'Sample')
         .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
         .action((dir) => __awaiter(void 0, void 0, void 0, function* () {
-        (yield Promise.resolve().then(() => __importStar(require('./cli-gen')))).genPackage(dir, genCmd.opts().dryRun);
+        (yield Promise.resolve().then(() => __importStar(require('./cli-gen')))).genPackage(dir, genCmd.opts().comp, genCmd.opts().dryRun);
     }));
-    cli_gen_slice_1.default(program, withGlobalOptions);
+    const genCompCmd = program.command('cra-gen-comp <dir> <componentName...>')
+        .description('Generate sample components')
+        .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
+        .action((dir, compNames) => __awaiter(void 0, void 0, void 0, function* () {
+        (yield Promise.resolve().then(() => __importStar(require('./cli-gen')))).genComponents(dir, compNames, genCompCmd.opts().dryRun);
+    }));
+    genCompCmd.usage(genCompCmd.usage() + '\ne.g.\n  plink cra-comp ../packages/foobar/components Toolbar Layout Profile');
+    const genSliceCmd = program.command('cra-gen-slice <dir> <sliceName...>')
+        .description('Generate a sample Redux-toolkit Slice file (with Redux-observable epic)')
+        .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
+        .action((dir, sliceName) => __awaiter(void 0, void 0, void 0, function* () {
+        (yield Promise.resolve().then(() => __importStar(require('./cli-gen')))).genSlice(dir, sliceName, genSliceCmd.opts().dryRun);
+    }));
+    // withGlobalOptions(genSliceCmd);
     const buildCmd = program.command('cra-build <app|lib> <package-name>')
         .description('Compile react application or library, <package-name> is the target package name,\n' +
         'argument "app" for building a complete application like create-react-app,\n' +
@@ -85,7 +97,7 @@ const cli = (program, withGlobalOptions) => {
         .action(() => __awaiter(void 0, void 0, void 0, function* () {
         const opt = { prop: [], config: [] };
         yield dist_1.initConfigAsync(opt);
-        yield cli_init_1.initTsconfig();
+        // await initTsconfig();
     }));
     // withGlobalOptions(initCmd);
     const smeCmd = program.command('cra-analyze [app-base-path]')
@@ -114,9 +126,8 @@ function arrayOptionFn(curr, prev) {
 }
 function initEverything(buildCmd, type, pkgName) {
     return __awaiter(this, void 0, void 0, function* () {
-        dist_1.initProcess();
         const cfg = yield dist_1.initConfigAsync(buildCmd.opts());
-        yield cli_init_1.initTsconfig();
+        // await initTsconfig();
         utils_1.saveCmdOptionsToEnv(pkgName, buildCmd, type);
         if (process.env.PORT == null && cfg().port)
             process.env.PORT = cfg().port + '';
@@ -125,7 +136,8 @@ function initEverything(buildCmd, type, pkgName) {
             log.error(`type argument must be one of "${['app', 'lib']}"`);
             return;
         }
-        yield (yield Promise.resolve().then(() => __importStar(require('../preload')))).poo();
+        const preload = require('../preload');
+        preload.poo();
     });
 }
 

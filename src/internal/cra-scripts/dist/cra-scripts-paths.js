@@ -60,6 +60,9 @@ function paths() {
     // console.log('[cra-scripts-paths] changed react-scripts paths:\n', changedPaths);
     craScriptsPaths = changedPaths;
     fs_extra_1.default.mkdirpSync(changedPaths.appBuild);
+    // fork-ts-checker needs this file path
+    process.env._plink_cra_scripts_indexJs = changedPaths.appIndexJs;
+    process.env._plink_cra_scripts_tsConfig = changedPaths.appTsConfig;
     return changedPaths;
 }
 exports.default = paths;

@@ -197,7 +197,7 @@ function postProcessConfig(cliOpt: CliOptions) {
 function mergeFromYamlJsonFile(setting: DrcpSettings, localConfigPath: string) {
   if (!fs.existsSync(localConfigPath)) {
     // tslint:disable-next-line: no-console
-    console.log(cyan('[config]') + ' File does not exist: %s', localConfigPath);
+    console.log(cyan('[config]') + chalk.yellow(' File does not exist: %s', localConfigPath));
     return;
   }
   // tslint:disable-next-line: no-console

@@ -17,6 +17,8 @@ import { drawPuppy, getCmdOptions, printConfig } from './utils';
 import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
 import TemplatePlugin from '@wfh/webpack-common/dist/template-html-plugin';
+import nodeResolve from 'resolve';
+// import {changeTsConfigFile} from './change-tsconfig';
 
 const log = log4js.getLogger('cra-scripts');
 const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -29,16 +31,17 @@ export = function(webpackEnv: 'production' | 'development') {
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
   if (cmdOption.devMode || cmdOption.watch) {
     webpackEnv = 'development';
-    log.info('[cra-scripts] Development mode is on:', webpackEnv);
+    log.info('Development mode is on:', webpackEnv);
   } else {
     // process.env.GENERATE_SOURCEMAP = 'false';
   }
   log.info('webpackEnv =', webpackEnv);
   const origWebpackConfig = require('react-scripts/config/webpack.config');
+  reviseNodePathEnv();
 
   process.env.INLINE_RUNTIME_CHUNK = 'true';
 
-  const {default: craPaths, configFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
+  const {default: craPaths}: typeof _craPaths = require('./cra-scripts-paths');
 
   const config: Configuration = origWebpackConfig(webpackEnv);
   if (webpackEnv === 'production') {
@@ -63,7 +66,87 @@ export = function(webpackEnv: 'production' | 'development') {
   // Make sure babel compiles source folder out side of current src directory
   findAndChangeRule(config.module!.rules);
   replaceSassLoader(config.module!.rules);
+  appendOurOwnTsLoader(config);
+  insertLessLoaderRule(config.module!.rules);
+  changeForkTsCheckerPlugin(config);
 
+  if (cmdOption.buildType === 'app') {
+    config.output!.path = craPaths().appBuild;
+    // config.devtool = 'source-map';
+  }
+
+  // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
+  if (config.resolve && config.resolve.plugins) {
+    const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
+    const srcScopePluginIdx = config.resolve.plugins.findIndex(plugin => plugin instanceof ModuleScopePlugin);
+    if (srcScopePluginIdx >= 0) {
+      config.resolve.plugins.splice(srcScopePluginIdx, 1);
+    }
+  }
+
+  const resolveModules = ['node_modules', ...nodePath];
+  config.resolve!.modules = resolveModules;
+
+  Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
+
+  // config.plugins!.push(new ProgressPlugin({ profile: true }));
+
+  config.stats = 'normal'; // Not working
+
+  if (cmdOption.buildType === 'lib') {
+    change4lib(cmdOption.buildTarget, config, nodePath);
+  } else {
+    config.plugins!.unshift(new TemplatePlugin());
+    setupSplitChunks(config, (mod) => {
+      const file = mod.nameForCondition ? mod.nameForCondition() : null;
+      if (file == null)
+        return true;
+      const pkg = api.findPackageByFile(file);
+      return pkg == null;
+    });
+  }
+
+  runConfigHandlers(config, webpackEnv);
+  log.info(`output.publicPath: ${config.output!.publicPath}`);
+  fs.writeFileSync(Path.resolve(reportDir, 'webpack.config.plink.js'), printConfig(config));
+
+  // changeTsConfigFile();
+  return config;
+};
+
+/**
+ * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
+ */
+function changeForkTsCheckerPlugin(config: Configuration) {
+  const plugins = config.plugins!;
+  const cnst = require(nodeResolve.sync('react-dev-utils/ForkTsCheckerWebpackPlugin',
+    {basedir: Path.resolve('node_modules/react-scripts')}));
+  // let forkTsCheckIdx = -1;
+  for (let i = 0, l = plugins.length; i < l; i++) {
+    if (plugins[i] instanceof cnst) {
+      (plugins[i] as any).reportFiles = [];
+      // forkTsCheckIdx = i;
+      break;
+    }
+  }
+  // if (forkTsCheckIdx >= 0) {
+  //   plugins.splice(forkTsCheckIdx, 1);
+  //   log.info('Remove ForkTsCheckerWebpackPlugin due to its not working with linked files');
+  // }
+}
+/**
+ * react-scripts/config/env.js filters NODE_PATH for only allowing relative path, this breaks
+ * Plink's NODE_PATH setting.
+ */
+function reviseNodePathEnv() {
+  const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
+  process.env.NODE_PATH = nodePath.join(Path.delimiter);
+}
+
+/**
+ * Help to replace ts, js file by configuration
+ */
+function appendOurOwnTsLoader(config: Configuration) {
   const myTsLoaderOpts: TsLoaderOpts = {
     tsConfigFile: Path.resolve('tsconfig.json'),
     injector: api.browserInjector,
@@ -84,67 +167,11 @@ export = function(webpackEnv: 'production' | 'development') {
       loader: require.resolve('@wfh/webpack-common/dist/ts-loader')
     }
   });
-  insertLessLoaderRule(config.module!.rules);
+}
 
-  // const foundPkg = findPackage(cmdOption.buildTarget);
-  // if (foundPkg == null) {
-  //   throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
-  // }
-  // const {dir, packageJson} = foundPkg;
-
-  if (cmdOption.buildType === 'app') {
-    // TODO: do not hard code
-    // config.resolve!.alias!['alias:dr.cra-app-entry'] = packageJson.name + '/' + packageJson.dr['cra-app-entry'];
-    // log.info(`[cra-scripts] alias:dr.cra-app-entry: ${config.resolve!.alias!['alias:dr.cra-app-entry']}`);
-    config.output!.path = craPaths().appBuild;
-    // config.devtool = 'source-map';
-  }
-
-
-  // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
-  if (config.resolve && config.resolve.plugins) {
-    const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
-    const srcScopePluginIdx = config.resolve.plugins.findIndex(plugin => plugin instanceof ModuleScopePlugin);
-    if (srcScopePluginIdx >= 0) {
-      config.resolve.plugins.splice(srcScopePluginIdx, 1);
-    }
-  }
-
-  const resolveModules = ['node_modules', ...nodePath];
-  config.resolve!.modules = resolveModules;
-
-  Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
-  // config.plugins!.push(new (class {
-  //   apply(compiler: Compiler) {
-  //     compiler.hooks.emit.tap('drcp-cli-stats', compilation => {
-  //       const stats = compilation.getStats();
-  //       compilation.assets['stats.json'] = new RawSource(JSON.stringify(stats.toJson('verbose')));
-  //       setTimeout(() => {
-  //         log.info('[cra-scripts] stats:');
-  //         log.info(stats.toString('normal'));
-  //         log.info('');
-  //       }, 0);
-  //     });
-  //   }
-  // })());
-
-  // config.plugins!.push(new ProgressPlugin({ profile: true }));
-
-  config.stats = 'normal'; // Not working
-
-  if (cmdOption.buildType === 'lib') {
-    change4lib(cmdOption.buildTarget, config, nodePath);
-  } else {
-    config.plugins!.unshift(new TemplatePlugin());
-    setupSplitChunks(config, (mod) => {
-      const file = mod.nameForCondition ? mod.nameForCondition() : null;
-      if (file == null)
-        return true;
-      const pkg = api.findPackageByFile(file);
-      return pkg == null;
-    });
-  }
-
+function runConfigHandlers(config: Configuration, webpackEnv: string) {
+  const {configFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
+  const cmdOption = getCmdOptions();
   api.config.configHandlerMgr().runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
     if (handler.webpack != null) {
       log.info('Execute command line Webpack configuration overrides', cfgFile);
@@ -161,10 +188,7 @@ export = function(webpackEnv: 'production' | 'development') {
       }
     });
   }
-  log.info(`[cra-scripts] output.publicPath: ${config.output!.publicPath}`);
-  fs.writeFileSync(Path.resolve(reportDir, 'webpack.config.plink.js'), printConfig(config));
-  return config;
-};
+}
 
 function insertLessLoaderRule(origRules: RuleSetRule[]): void {
   const oneOf = origRules.find(rule => rule.oneOf)?.oneOf!;
@@ -204,7 +228,15 @@ function insertLessLoaderRule(origRules: RuleSetRule[]): void {
         };
       }
       return newUseItem;
-    }).concat('less-loader');
+    }).concat({
+      loader: 'less-loader',
+      options: {
+        lessOptions: {
+          javascriptEnabled: true
+        },
+        additionalData: api.config.get([api.packageName, 'lessLoaderAdditionalData'], '')
+      }
+    });
   }
 }
 

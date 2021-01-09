@@ -26,7 +26,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
 
   // -------- unzip --------
   const unzipCmd = program.command('unzip <zipFile> [destination_dir]')
-  .description('Extract all zip files from specific directory')
+  .description('Extract zip files to specific directory')
   // .requiredOption('-d,--dest <dir>', 'destination directory')
   .action(async (zipFile: string, destDir?: string) => {
     initConfig(defaultCfg);

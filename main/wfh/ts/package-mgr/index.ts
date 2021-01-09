@@ -353,7 +353,9 @@ stateFactory.addEpic((action$, state$) => {
       map(({payload}) => {
         checkAllWorkspaces();
         if (getState().workspaces.has(workspaceKey(process.cwd()))) {
-          actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: payload.isForce, createHook: payload.createHook});
+          actionDispatcher.updateWorkspace({dir: process.cwd(),
+            isForce: payload.isForce,
+            createHook: payload.createHook});
         } else {
           const curr = getState().currWorkspace;
           if (curr != null) {
@@ -696,7 +698,6 @@ async function initRootDirectory(createHook = false) {
   fs.mkdirpSync(distDir);
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(distDir, 'config.local.yaml'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/log4js.js'), rootPath + '/log4js.js');
-  maybeCopyTemplate(Path.resolve(__dirname, '../../templates', 'module-resolve.server.tmpl.ts'), rootPath + '/module-resolve.server.ts');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates',
       'gitignore.txt'), getRootDir() + '/.gitignore');
   await cleanInvalidSymlinks();
@@ -736,7 +737,7 @@ async function installWorkspace(ws: WorkspaceState) {
   // tslint:disable-next-line: no-console
   console.log('Install dependencies in ' + dir);
   try {
-    await copyNpmrcToWorkspace();
+    await copyNpmrcToWorkspace(dir);
   } catch (e) {
     console.error(e);
   }
@@ -802,8 +803,8 @@ async function installWorkspace(ws: WorkspaceState) {
   }
 }
 
-async function copyNpmrcToWorkspace() {
-  const target = Path.resolve(getRootDir(), '.npmrc');
+async function copyNpmrcToWorkspace(workspaceDir: string) {
+  const target = Path.resolve(workspaceDir, '.npmrc');
   if (fs.existsSync(target))
     return;
   const isChina = await getStore().pipe(
@@ -953,11 +954,13 @@ function deleteDuplicatedInstalledPkg(workspaceKey: string) {
   const doNothing = () => {};
   wsState.linkedDependencies.concat(wsState.linkedDevDependencies).map(([pkgName]) => {
     const dir = Path.resolve(getRootDir(), workspaceKey, 'node_modules', pkgName);
-    return fs.promises.access(dir)
-    .then(() => {
-      // tslint:disable-next-line: no-console
-      console.log(`[init] Previous installed ${Path.relative(getRootDir(),dir)} is deleted, due to linked package ${pkgName}`);
-      return fs.promises.unlink(dir);
+    return fs.promises.lstat(dir)
+    .then((stat) => {
+      if (!stat.isSymbolicLink()) {
+        // tslint:disable-next-line: no-console
+        console.log(`[init] Previous installed ${Path.relative(getRootDir(),dir)} is deleted, due to linked package ${pkgName}`);
+        return fs.promises.unlink(dir);
+      }
     })
     .catch(doNothing);
   });

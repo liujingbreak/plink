@@ -129,7 +129,10 @@ async function forkTsc(targetPackage: string, nodePath: string[]) {
 
   // const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
-  const workerData: TscCmdParam = {package: [targetPackage], ed: true, jsx: true, watch: getCmdOptions().watch};
+  const workerData: TscCmdParam = {
+    package: [targetPackage], ed: true, jsx: true, watch: getCmdOptions().watch,
+    pathsJsons: []
+  };
 
   const worker = new Worker(require.resolve('./tsd-generate-thread'), {
     workerData, env: {NODE_PATH: nodePath.join(Path.delimiter)}

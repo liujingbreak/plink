@@ -15,3 +15,6 @@ node_modules
 **/*.d.ts.map
 .prettierignore
 prettier.config.js
+
+/react-space\types
+/react-space/types
