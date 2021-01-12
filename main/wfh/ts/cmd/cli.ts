@@ -148,6 +148,12 @@ function subWfhCommand(program: commander.Command) {
     await exe('npm', 'ddp', {env}).promise;
   });
 
+  program.command('dockerize <workspace-dir>')
+  .description('[TBI] Generate Dockerfile for specific workspace directory, and generate docker image');
+
+  program.command('pkg <workspace-dir>')
+  .description('[TBI] Use Pkg (https://github.com/vercel/pkg) to package Node.js project into an executable ');
+
   /**
    * command ls
    */

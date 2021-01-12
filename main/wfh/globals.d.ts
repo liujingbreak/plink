@@ -4,9 +4,11 @@ import { EventEmitter } from 'events';
 import {PackageInfo} from './dist/package-mgr/package-info-gathering';
 import {DrcpConfig} from './dist/config-handler';
 import {InjectorFactory} from './dist/require-injectors';
-
+import {Logger} from 'log4js';
 export interface DrcpApi {
 	packageName: string;
+	/** Only available in Node.js server side environment */
+	logger: Logger;
 	packageShortName: string;
 	packageInstance: NodePackage & PackageBrowserInstance;
 	entryPage: string;
@@ -19,23 +21,31 @@ export interface DrcpApi {
 	 * config.yaml property `packageContextPathMapping`
 	 */
 	contextPath: string;
+	/** Deprecated */
 	buildUtils: any;
+	/** Deprecated */
 	compileNodePath: any[];
 	eventBus: EventEmitter;
 	packageInfo: PackageInfo;
 	config: DrcpConfig;
+	/** Deprecated */
 	argv: any;
 	/** Availabe only if package-runner#initWebInjector() is executed */
 	browserInjector: InjectorFactory;
+	/** Deprecated */
 	findPackageByFile(path: string): PackageBrowserInstance | undefined;
 	getNodeApiForPackage<T extends DrcpApi>(pk: {longName: string}): T;
 	extend(target: any): void;
 	isBrowser(): boolean;
 	isNode(): boolean;
 	parsePackageName(packageName: string): {scope: string, name: string};
+	/** Deprecated */
 	getBuildLocale(): string;
+	/** Deprecated */
 	isDefaultLocale(): boolean;
+	/** Deprecated */
 	assetsUrl(packageName: string, path?: string): string;
+	/** Deprecated */
 	entryPageUrl(packageName: string, path?: string, locale?: string): string;
 	/**
 	 * @param {string} url
@@ -49,7 +59,9 @@ export interface DrcpApi {
 	 * in client side JS/TS code.
 	 */
 	serverUrl(this: DrcpApi, packageNameOrPath: string, path?: string): string;
+	/** Deprecated */
 	getProjectDirs(): string[];
+
 	addBrowserSideConfig(name: string, value: any): void;
 }
 

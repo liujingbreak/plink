@@ -10,7 +10,7 @@ import {PackageInfo} from './package-info-gathering';
 import PackageInstance from './package-instance';
 // import PackageInstance from '../packageNodeInstance';
 import _ from 'lodash';
-
+import {Logger, getLogger} from 'log4js';
 
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 
@@ -31,6 +31,8 @@ function parseName(longName: string) {
 class NodeApi implements assetsUrl.PackageApi {
   packageShortName: string;
   contextPath: string;
+
+  // TODO: deprecated, should be removed
   buildUtils = require('../../lib/gulp/buildUtils');
   // packageUtils = packageUitls;
   compileNodePath = [config().nodePath];
@@ -39,6 +41,7 @@ class NodeApi implements assetsUrl.PackageApi {
   argv: any;
   packageInfo: PackageInfo;
   default: NodeApi;
+  logger: Logger;
 
   browserInjector: Inject;
   findPackageByFile: (file: string) => PackageInstance | undefined;
@@ -47,6 +50,7 @@ class NodeApi implements assetsUrl.PackageApi {
   constructor(public packageName: string, public packageInstance: PackageInstance) {
     this.packageShortName = parseName(packageName).name;
     this.contextPath = this._contextPath();
+    this.logger = getLogger(this.packageName);
   }
 
   isBrowser() {

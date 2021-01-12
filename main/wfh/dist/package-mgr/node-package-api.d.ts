@@ -4,6 +4,7 @@ import Inject from 'require-injector';
 import * as assetsUrl from '../../dist/assets-url';
 import { PackageInfo } from './package-info-gathering';
 import PackageInstance from './package-instance';
+import { Logger } from 'log4js';
 declare class NodeApi implements assetsUrl.PackageApi {
     packageName: string;
     packageInstance: PackageInstance;
@@ -16,6 +17,7 @@ declare class NodeApi implements assetsUrl.PackageApi {
     argv: any;
     packageInfo: PackageInfo;
     default: NodeApi;
+    logger: Logger;
     browserInjector: Inject;
     findPackageByFile: (file: string) => PackageInstance | undefined;
     getNodeApiForPackage: (pkInstance: any, NodeApi: any) => any;
