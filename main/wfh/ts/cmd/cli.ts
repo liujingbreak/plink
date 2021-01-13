@@ -380,7 +380,6 @@ export function withGlobalOptions(program: commander.Command): commander.Command
   .option('--prop <property-path=value as JSON | literal>',
     hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n') +
     '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
-    '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
     '--prop arraylike.prop[0]=foobar\n' +
     '--prop ["@wfh/foo.bar","prop",0]=true',
     arrayOptionFn, [] as string[]);

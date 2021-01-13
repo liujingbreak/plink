@@ -313,14 +313,23 @@ function changePath(commonRootDir: string, packageDirTree: DirTree<ComponentDirI
 }
 
 function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, pathsJsons: string[]) {
-  let wsKey: string | null | undefined = workspaceKey(process.cwd());
+  const cwd = process.cwd();
+  let wsKey: string | null | undefined = workspaceKey(cwd);
   if (!getState().workspaces.has(wsKey))
     wsKey = getState().currWorkspace;
   if (wsKey == null) {
     throw new Error('Current directory is not a work space');
   }
 
-  setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions, {
+  // if (compilerOptions.paths == null)
+  //   compilerOptions.paths = {};
+
+  // for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
+  //   const realDir = relative(cwd, realPath).replace(/\\/g, '/');
+  //   compilerOptions.paths[name] = [realDir];
+  //   compilerOptions.paths[name + '/*'] = [realDir + '/*'];
+  // }
+  setTsCompilerOptForNodePath(cwd, './', compilerOptions, {
     enableTypeRoots: true,
     workspaceDir: resolve(root, wsKey)
   });

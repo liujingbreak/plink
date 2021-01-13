@@ -43,7 +43,7 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
       include.push(includeDir + '**/*.ts');
       include.push(includeDir + '**/*.tsx');
     });
-    const tsconfigFile = createTsConfig('', proj, workspaceDir, drcpDir, include );
+    const tsconfigFile = createTsConfig(proj, workspaceDir, drcpDir, include );
     const projDir = Path.resolve(proj);
     updateGitIgnores({file: Path.resolve(proj, '.gitignore'),
       lines: [
@@ -76,7 +76,7 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
  * @param include 
  * @return tsconfig file path
  */
-function createTsConfig(pkgName: string, dir: string, workspace: string | null, drcpDir: string,
+function createTsConfig(dir: string, workspace: string | null, drcpDir: string,
   include = ['.']) {
   const tsjson: any = {
     extends: null,
@@ -95,18 +95,16 @@ function createTsConfig(pkgName: string, dir: string, workspace: string | null, 
   const commonDir = closestCommonParentDir(Array.from(getState().srcPackages.values()).map(el => el.realPath));
 
   for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
-    if (pkgName === name)
-      continue;
     const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
     pathMapping[name] = [realDir];
     pathMapping[name + '/*'] = [realDir + '/*'];
   }
 
-  if (pkgName !== '@wfh/plink') {
-    drcpDir = Path.relative(proj, drcpDir).replace(/\\/g, '/');
-    pathMapping['@wfh/plink'] = [drcpDir];
-    pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
-  }
+  // if (pkgName !== '@wfh/plink') {
+  drcpDir = Path.relative(proj, drcpDir).replace(/\\/g, '/');
+  pathMapping['@wfh/plink'] = [drcpDir];
+  pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
+  // }
 
   tsjson.compilerOptions = {
     rootDir: Path.relative(proj, commonDir).replace(/\\/g, '/'),
