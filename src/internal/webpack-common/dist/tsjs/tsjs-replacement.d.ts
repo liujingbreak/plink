@@ -10,6 +10,14 @@ export default class TsPreCompiler {
     tsCo: CompilerOptions;
     importTranspiler: ImportClauseTranspile;
     constructor(tsConfigFile: string, isServerSide: boolean, findPackageByFile: (file: string) => BrowserPackage | null | undefined);
+    /**
+     * replaceContext can put any Javascript object which contains properties or memember functions
+     * @param file
+     * @param source
+     * @param replaceContext
+     * @param compiledSource
+     * @param astPositionConvert
+     */
     parse(file: string, source: string, replaceContext: {
         [key: string]: any;
     }, compiledSource?: ts.SourceFile, astPositionConvert?: (pos: number) => number): string;

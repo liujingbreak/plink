@@ -1,6 +1,7 @@
 import _webpack from 'webpack';
 import chalk from 'chalk';
-import _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
+// Don't install @types/react-dev-utils, it breaks latest html-webpack-plugin's own type definitions 
+const _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
 import {getCmdOptions} from './utils';
 import Path from 'path';
 

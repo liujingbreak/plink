@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hackWebpack4Compiler = void 0;
 const chalk_1 = __importDefault(require("chalk"));
+// Don't install @types/react-dev-utils, it breaks latest html-webpack-plugin's own type definitions 
+const _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
 const utils_1 = require("./utils");
 const path_1 = __importDefault(require("path"));
 /**

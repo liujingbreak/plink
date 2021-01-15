@@ -248,7 +248,7 @@ module.exports = function (webpackEnv) {
     const config = origWebpackConfig(webpackEnv);
     if (webpackEnv === 'production') {
         // Try to workaround create-react-app issue: default InlineChunkPlugin 's test property does not match 
-        // runtime chunk file name
+        // runtime chunk file name when we set optimization.runtimeChunk to "single" instead of default CRA's value
         config.output.filename = 'static/js/[name]-[contenthash:8].js';
         config.output.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
         config.output.devtoolModuleFilenameTemplate =

@@ -45,6 +45,14 @@ class TsPreCompiler {
             });
         }
     }
+    /**
+     * replaceContext can put any Javascript object which contains properties or memember functions
+     * @param file
+     * @param source
+     * @param replaceContext
+     * @param compiledSource
+     * @param astPositionConvert
+     */
     parse(file, source, replaceContext, compiledSource, astPositionConvert) {
         const pk = this.findPackageByFile(file);
         if (pk == null)
