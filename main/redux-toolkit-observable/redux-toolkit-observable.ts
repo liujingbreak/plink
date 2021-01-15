@@ -16,8 +16,7 @@ import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject, EMPTY } from 'rxjs';
 import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError } from 'rxjs/operators';
 
-export {PayloadAction,
-  CreateSliceOptions, SliceCaseReducers, Slice};
+export {PayloadAction, SliceCaseReducers, Slice};
 // export type CallBackActionReducer<SS> = CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 
 export interface ExtraSliceReducers<SS> {
@@ -102,9 +101,9 @@ export class StateFactory {
     this.reducerMap = {};
 
     this.rootStoreReady = this.store$.pipe(
-      filter<EnhancedStore<any, PayloadAction<any>>>(store => store != null),
+      filter(store => store != null),
       take(1)
-    ).toPromise();
+    ).toPromise() as Promise<EnhancedStore<any, PayloadAction>>;
 
     const errorSlice = this.newSlice(errorSliceOpt);
 
@@ -288,6 +287,10 @@ export class StateFactory {
     ).subscribe();
   }
 
+  getRootStore() {
+    return this.store$.getValue();
+  }
+
   private errorHandleMiddleware: Middleware = (api) => {
     return (next) => {
       return (action: PayloadAction) => {
@@ -323,12 +326,8 @@ export class StateFactory {
     return slice;
   }
 
-  private createRootReducer(): Reducer {
+  private createRootReducer(): Reducer<any, PayloadAction> {
     return combineReducers(this.reducerMap);
-  }
-
-  private getRootStore() {
-    return this.store$.getValue();
   }
 }
 

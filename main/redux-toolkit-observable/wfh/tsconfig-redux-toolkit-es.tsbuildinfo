@@ -1779,16 +1779,16 @@
     },
     "options": {
       "baseUrl": "../../wfh",
-      "outDir": "../dist",
+      "outDir": "../es",
       "declaration": true,
-      "module": 1,
-      "target": 1,
+      "module": 6,
+      "target": 3,
       "noImplicitAny": true,
       "suppressImplicitAnyIndexErrors": true,
       "allowSyntheticDefaultImports": true,
       "esModuleInterop": true,
       "inlineSourceMap": true,
-      "inlineSources": true,
+      "inlineSources": false,
       "moduleResolution": 2,
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
@@ -1807,8 +1807,9 @@
       "pretty": true,
       "rootDir": "..",
       "composite": true,
-      "watch": true,
-      "configFilePath": "../../wfh/tsconfig-redux-toolkit.json"
+      "sourceMap": false,
+      "project": "../../wfh/tsconfig-redux-toolkit-es.json",
+      "configFilePath": "../../wfh/tsconfig-redux-toolkit-es.json"
     },
     "referencedMap": {
       "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts": [

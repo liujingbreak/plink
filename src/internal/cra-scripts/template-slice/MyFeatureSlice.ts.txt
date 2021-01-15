@@ -1,4 +1,4 @@
-import {PayloadAction} from '@wfh/redux-toolkit-observable/redux-toolkit-observable';
+import { PayloadAction } from '@reduxjs/toolkit';
 import { ofPayloadAction, stateFactory } from '../state-factory';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
 import {of, from, merge, Observable} from 'rxjs';

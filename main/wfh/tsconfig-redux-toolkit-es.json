@@ -2,10 +2,13 @@
 	"extends": "./tsconfig-base.json",
 	"compilerOptions": {
     "rootDir": "../redux-toolkit-observable",
-		"target": "es5",
-    "outDir": "../redux-toolkit-observable/dist",
+    "target": "ES2016",
+    "module": "ES2020",
+    "outDir": "../redux-toolkit-observable/es",
     "declaration": true,
-    "composite": true
+    "composite": true,
+    "sourceMap": false,
+    "inlineSources": false
   },
   "include": [
     "../redux-toolkit-observable/*.ts"

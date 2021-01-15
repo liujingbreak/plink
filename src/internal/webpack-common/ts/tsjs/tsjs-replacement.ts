@@ -32,6 +32,14 @@ export default class TsPreCompiler {
     }
   }
 
+  /**
+   * replaceContext can put any Javascript object which contains properties or memember functions
+   * @param file 
+   * @param source 
+   * @param replaceContext 
+   * @param compiledSource 
+   * @param astPositionConvert 
+   */
   parse(file: string, source: string, replaceContext: {[key: string]: any}, compiledSource?: ts.SourceFile,
     astPositionConvert?: (pos: number) => number): string {
     const pk = this.findPackageByFile(file);

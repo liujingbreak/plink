@@ -47,11 +47,9 @@ export interface ConfigHandler {
     /**
        *
        * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
-       * @param drcpCliArgv Override command line argumemnt for DRCP
+       * @param drcpCliArgv @deprecated Override command line argumemnt for DRCP
        */
-    onConfig(configSetting: {
-        [prop: string]: any;
-    }, drcpCliArgv?: {
+    onConfig(configSetting: DrcpSettings, drcpCliArgv?: {
         [prop: string]: any;
     }): Promise<void> | void;
 }
