@@ -58,7 +58,7 @@ export async function genComponents(dir: string, compNames: string[], dryrun = f
   }
   for (let compName of compNames) {
     compName = compName.charAt(0).toUpperCase() + compName.slice(1);
-    const sCompName = compName.charAt(0).toUpperCase() + compName.slice(1);
+    const sCompName = compName.charAt(0).toLowerCase() + compName.slice(1);
     await generateStructure(Path.resolve(__dirname, '../../template-comp'), dir,
     {
       fileMapping: [
@@ -86,7 +86,7 @@ export async function genSlice(dir: string, targetNames: string[], dryrun = fals
   }
   for (let targetName of targetNames) {
     targetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
-    const smallTargetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
+    const smallTargetName = targetName.charAt(0).toLowerCase() + targetName.slice(1);
     await generateStructure(Path.resolve(__dirname, '../../template-slice'), dir,
     {
       fileMapping: [

@@ -9,7 +9,7 @@ import {
   ConfigureStoreOptions, createSlice as reduxCreateSlice, CreateSliceOptions,
   Draft, EnhancedStore, PayloadAction, ReducersMapObject,
   Slice, SliceCaseReducers, Reducer,
-  ValidateSliceCaseReducers, Middleware
+  ValidateSliceCaseReducers, Middleware, ActionCreatorWithPayload
 } from '@reduxjs/toolkit';
 // import {Action} from 'redux';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
@@ -27,8 +27,7 @@ export interface ExtraSliceReducers<SS> {
 export type ReducerWithDefaultActions<SS,
   ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
 
-type SimpleActionCreator<P> = ((payload?: P) => PayloadAction<P>) & {type: string};
-export function ofPayloadAction<P>(...actionCreators: SimpleActionCreator<P>[]):
+export function ofPayloadAction<P>(...actionCreators: ActionCreatorWithPayload<P>[]):
   (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P>> {
   return ofType(...actionCreators.map(c => c.type));
 }

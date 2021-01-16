@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { ofPayloadAction, stateFactory } from '../state-factory';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
-import {of, from, merge, Observable} from 'rxjs';
+import {of, from, merge} from 'rxjs';
 
 /**
  * In case you are compile this package to a library with typescript definition file '.d.ts',
@@ -29,7 +29,7 @@ const initialState: $__SliceName__$State = {
 };
 
 const $__SliceName__$Slice = stateFactory.newSlice({
-  name: '$__SliceName__$',
+  name: '$__sliceName__$',
   initialState,
   reducers: {
     exampleAction(s: $__SliceName__$State, {payload}: PayloadAction<boolean>) {

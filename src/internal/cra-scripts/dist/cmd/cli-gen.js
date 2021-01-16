@@ -70,7 +70,7 @@ function genComponents(dir, compNames, dryrun = false) {
         }
         for (let compName of compNames) {
             compName = compName.charAt(0).toUpperCase() + compName.slice(1);
-            const sCompName = compName.charAt(0).toUpperCase() + compName.slice(1);
+            const sCompName = compName.charAt(0).toLowerCase() + compName.slice(1);
             yield template_gen_1.default(path_1.default.resolve(__dirname, '../../template-comp'), dir, {
                 fileMapping: [
                     [/^my\-feature/, 'sample'],
@@ -98,7 +98,7 @@ function genSlice(dir, targetNames, dryrun = false) {
         }
         for (let targetName of targetNames) {
             targetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
-            const smallTargetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
+            const smallTargetName = targetName.charAt(0).toLowerCase() + targetName.slice(1);
             yield template_gen_1.default(path_1.default.resolve(__dirname, '../../template-slice'), dir, {
                 fileMapping: [
                     [/^my\-feature/, 'sample'],

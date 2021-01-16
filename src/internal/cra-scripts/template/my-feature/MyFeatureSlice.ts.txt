@@ -29,7 +29,7 @@ const initialState: $__SliceName__$State = {
 };
 
 const $__SliceName__$Slice = stateFactory.newSlice({
-  name: '$__SliceName__$',
+  name: '$__sliceName__$',
   initialState,
   reducers: {
     exampleAction(s: $__SliceName__$State, {payload}: PayloadAction<boolean>) {
