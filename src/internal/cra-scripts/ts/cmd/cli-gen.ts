@@ -28,14 +28,14 @@ export async function genPackage(path: string, compName = 'Sample', dryrun = fal
       fileMapping: [
         [/^my\-feature/, 'sample'],
         [/^MyFeature/, compName],
-        [/^MyComponent/, compName + 'Component']
+        [/^MyComponent/, compName + 'Comp']
       ],
       textMapping: {
         packageName: Path.basename(path),
-        MyComponent: compName + 'Component',
+        MyComponent: compName + 'Comp',
         SliceName: compName,
         sliceName: sCompName,
-        MyComponentPath: `${sCompName}/${compName}Component`
+        MyComponentPath: `${sCompName}/${compName}Comp`
       }
     },
     {dryrun});
@@ -63,10 +63,10 @@ export async function genComponents(dir: string, compNames: string[], dryrun = f
     {
       fileMapping: [
         [/^my\-feature/, 'sample'],
-        [/^MyComponent/, compName + 'Component']
+        [/^MyComponent/, compName + 'Comp']
       ],
       textMapping: {
-        MyComponent: compName + 'Component',
+        MyComponent: compName + 'Comp',
         SliceName: compName,
         sliceName: sCompName
       }
@@ -90,7 +90,6 @@ export async function genSlice(dir: string, targetNames: string[], dryrun = fals
     await generateStructure(Path.resolve(__dirname, '../../template-slice'), dir,
     {
       fileMapping: [
-        [/^my\-feature/, 'sample'],
         [/^MyFeature/, smallTargetName]
       ],
       textMapping: {

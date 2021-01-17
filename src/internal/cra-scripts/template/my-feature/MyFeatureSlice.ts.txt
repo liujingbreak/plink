@@ -39,7 +39,7 @@ const $__SliceName__$Slice = stateFactory.newSlice({
   }
 });
 
-export const $__sliceName__$Actions = stateFactory.bindActionCreators($__SliceName__$Slice);
+export const actions = stateFactory.bindActionCreators($__SliceName__$Slice);
 
 const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}>((action$, state$) => {
 
@@ -53,7 +53,7 @@ const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}
       map(s => s.foo),
       distinctUntilChanged(),
       map(changedFoo => {
-        $__sliceName__$Actions._change(s => {
+        actions._change(s => {
           s._computed.bar = 'changed ' + changedFoo;
         });
       })
