@@ -9,7 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *  - change rootNames in parameters of ts.createProgram()
  *  - change compilerOptions.rootDir in parameters of ts.createProgram()
  */
-// import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
+const loaderHooks_1 = require("@wfh/plink/wfh/dist/loaderHooks");
 // import {getState} from '@wfh/plink/wfh/dist/package-mgr';
 // import {getRootDir} from '@wfh/plink/wfh/dist';
 // import {closestCommonParentDir} from '@wfh/plink/wfh/dist/utils/misc';
@@ -22,10 +22,10 @@ const indexJs = process.env._plink_cra_scripts_indexJs;
 // const tsconfigFile = process.env._plink_cra_scripts_tsConfig!;
 // const tsCoJson = ts.readConfigFile(tsconfigFile, (file) => fs.readFileSync(file, 'utf-8')).config.compilerOptions;
 // const plinkRoot = getRootDir();
-// tslint:disable-next-line: no-console
-console.log(chalk_1.default.cyan('[hack-for-ts-checker]') + ' fork-ts-checker-webpack-plugin runs');
 const forkTsDir = path_1.default.resolve('node_modules', 'fork-ts-checker-webpack-plugin') + path_1.default.sep;
 const tsJs = resolve_1.default.sync('typescript', { basedir: forkTsDir });
+// tslint:disable-next-line: no-console
+console.log(chalk_1.default.cyan('[hack-for-ts-checker]') + ' fork-ts-checker-webpack-plugin runs, ' + forkTsDir);
 const hackedTs = require(tsJs);
 const _createPrm = hackedTs.createProgram;
 hackedTs.createProgram = function (rootNames, options, host) {
@@ -69,16 +69,16 @@ hackedTs.createProgram = function (rootNames, options, host) {
     }
 };
 Object.assign(hackedTs.createProgram, _createPrm);
-// hookCommonJsRequire((filename, target, rq, resolve) => {
-//   if (filename.startsWith(forkTsDir)) {
-//     // console.log(filename, target);
-//     if (target.indexOf('typescript') >= 0 && resolve(target) === tsJs) {
-//       // tslint:disable-next-line: no-console
-//       console.log(chalk.cyan('[hack-for-ts-checker]') + ' monkey-patch typescript');
-//       // const ts: typeof _ts = require('typescript');
-//       return hackedTs;
-//     }
-//   }
-// });
+loaderHooks_1.hookCommonJsRequire((filename, target, rq, resolve) => {
+    if (filename.startsWith(forkTsDir)) {
+        // console.log(filename, target);
+        if (target.indexOf('typescript') >= 0 && resolve(target) === tsJs) {
+            // tslint:disable-next-line: no-console
+            console.log(chalk_1.default.cyan('[hack-for-ts-checker]') + ' monkey-patch typescript');
+            // const ts: typeof _ts = require('typescript');
+            return hackedTs;
+        }
+    }
+});
 
-//# sourceMappingURL=hack-fork-ts-checker-worker.js.map
+//# sourceMappingURL=../../../../../../web-fun-house/src/internal/cra-scripts/dist/hack-fork-ts-checker-worker.js.map

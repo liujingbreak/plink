@@ -42,14 +42,14 @@ function genPackage(path, compName = 'Sample', dryrun = false) {
             fileMapping: [
                 [/^my\-feature/, 'sample'],
                 [/^MyFeature/, compName],
-                [/^MyComponent/, compName + 'Component']
+                [/^MyComponent/, compName + 'Comp']
             ],
             textMapping: {
                 packageName: path_1.default.basename(path),
-                MyComponent: compName + 'Component',
+                MyComponent: compName + 'Comp',
                 SliceName: compName,
                 sliceName: sCompName,
-                MyComponentPath: `${sCompName}/${compName}Component`
+                MyComponentPath: `${sCompName}/${compName}Comp`
             }
         }, { dryrun });
         // copyTempl(dir, Path.basename(path), dryrun);
@@ -74,10 +74,10 @@ function genComponents(dir, compNames, dryrun = false) {
             yield template_gen_1.default(path_1.default.resolve(__dirname, '../../template-comp'), dir, {
                 fileMapping: [
                     [/^my\-feature/, 'sample'],
-                    [/^MyComponent/, compName + 'Component']
+                    [/^MyComponent/, compName + 'Comp']
                 ],
                 textMapping: {
-                    MyComponent: compName + 'Component',
+                    MyComponent: compName + 'Comp',
                     SliceName: compName,
                     sliceName: sCompName
                 }
@@ -101,7 +101,6 @@ function genSlice(dir, targetNames, dryrun = false) {
             const smallTargetName = targetName.charAt(0).toLowerCase() + targetName.slice(1);
             yield template_gen_1.default(path_1.default.resolve(__dirname, '../../template-slice'), dir, {
                 fileMapping: [
-                    [/^my\-feature/, 'sample'],
                     [/^MyFeature/, smallTargetName]
                 ],
                 textMapping: {
@@ -114,4 +113,4 @@ function genSlice(dir, targetNames, dryrun = false) {
 }
 exports.genSlice = genSlice;
 
-//# sourceMappingURL=cli-gen.js.map
+//# sourceMappingURL=../../../../../../../web-fun-house/src/internal/cra-scripts/dist/cmd/cli-gen.js.map

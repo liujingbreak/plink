@@ -1,8 +1,8 @@
 import React from 'react';
-import {bind} from 'classnames/bind';
+import classnames from 'classnames/bind';
 import styles from './$__MyComponent__$.module.scss';
 
-const cx = bind(styles);
+const cx = classnames.bind(styles);
 const cls = cx('red', 'bold');
 
 const $__MyComponent__$: React.FC<{}> = function(prop) {

@@ -15,6 +15,10 @@ export interface GenerateOption {
  * file name suffix is removed, therefor you should use a double suffix as a template
  * file name (like 'hellow.ts.txt' will become 'hellow.ts').
  *
+ * lodash template setting:
+ * - interpolate: /\$__([\s\S]+?)__\$/g,
+ * - evaluate: /\/\*<%([\s\S]+?)%>\*\//g,
+ *
  * The template file content is replace by lodash template function
  * @param templDir
  * @param targetPath

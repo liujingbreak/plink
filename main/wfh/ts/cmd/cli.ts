@@ -137,11 +137,16 @@ function subWfhCommand(program: commander.Command) {
     await scanNodeModules('all');
   });
 
-  program.command('upgrade')
+  const cmdUpgrade = program.command('upgrade')
   .description('Reinstall local Plink to the version specified in package.json')
+  .option('--plink-repo,--plink <Plink src directory>',
+    'For development purpose, use Plink as a symlink instead of installing Plink locally, option value is the Plink source repository directory')
   .action(async () => {
     const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
-    await scanNodeModules('all');
+    const deleted = await scanNodeModules('all');
+    if (cmdUpgrade.opts().plinkRepo) {
+      (await import('./cli-link-plink')).reinstallWithLinkedPlink(cmdUpgrade.opts().plinkRepo, deleted);
+    }
     const env = {...process.env, NODE_ENV: 'development'};
     await exe('npm', 'i', {env}).promise;
     await new Promise(resolve => process.nextTick(resolve));

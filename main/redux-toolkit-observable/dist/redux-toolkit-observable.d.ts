@@ -3,7 +3,7 @@
 /**
  * A combo set for using Redux-toolkit along with redux-observable
  */
-import { CaseReducer, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers, Middleware } from '@reduxjs/toolkit';
+import { CaseReducer, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers, Middleware, ActionCreatorWithPayload } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
 export { PayloadAction, SliceCaseReducers, Slice };
@@ -14,10 +14,7 @@ export interface ExtraSliceReducers<SS> {
     _change: CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 }
 export declare type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
-declare type SimpleActionCreator<P> = ((payload?: P) => PayloadAction<P>) & {
-    type: string;
-};
-export declare function ofPayloadAction<P>(...actionCreators: SimpleActionCreator<P>[]): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P>>;
+export declare function ofPayloadAction<P>(...actionCreators: ActionCreatorWithPayload<P>[]): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P>>;
 export interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output extends PayloadAction<Payload> = PayloadAction<Payload>, CaseReducers extends SliceCaseReducers<any> = SliceCaseReducers<any>, Name extends string = string> {
     preloadedState: ConfigureStoreOptions['preloadedState'];
     slices: Slice<State, CaseReducers, Name>[];

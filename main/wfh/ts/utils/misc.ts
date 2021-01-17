@@ -187,7 +187,12 @@ export function closestCommonParentDir(paths: Iterable<string>) {
       }
     }
   }
-  return commonDir ? commonDir.join(Path.sep) : process.cwd();
+  let dir = commonDir ? commonDir.join(Path.sep) : process.cwd();
+  if (dir.endsWith(':')) {
+    // window disk root directory like "c:", needs to turn it to "c:\\", since path module malfunctions on "c:"
+    dir += Path.sep;
+  }
+  return dir;
 }
 
 // interface MapOrSet extends Iterable<any> {

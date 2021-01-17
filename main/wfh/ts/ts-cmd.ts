@@ -206,33 +206,31 @@ async function compile(compGlobs: string[], tsProject: any, commonRootDir: strin
   // which is outputed
 
   const streams: any[] = [];
-
-  // if (!emitTdsOnly) {
-  //   const jsStream = tsResult.js
-  //     .pipe(changePath(commonRootDir, packageDirTree))
-  //     .pipe(sourcemaps.write('.', {includeContent: true}));
-  //   streams.push(jsStream);
-  // }
   const jsStream = tsResult.js
     .pipe(changePath(commonRootDir, packageDirTree))
-    .pipe(sourcemaps.write('.', {includeContent: true}));
+    .pipe(sourcemaps.write('.', {includeContent: true})); // source map output is problematic, which mess with directories
   streams.push(jsStream);
   streams.push(tsResult.dts.pipe(changePath(commonRootDir, packageDirTree)));
 
   const emittedList = [] as EmitList;
   const all = merge(streams)
   .pipe(through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
-
+    if (file.path.endsWith('.map')) {
+      next(null);
+      return;
+    }
     // if (emitTdsOnly && !file.path.endsWith('.d.ts'))
     //   return next();
-    const displayPath = relative(process.cwd(), file.path);
+    const displayPath = file.path;
     const displaySize = Math.round((file.contents as Buffer).byteLength / 1024 * 10) / 10;
 
     log.info('%s %s Kb', displayPath, chalk.blueBright(displaySize + ''));
     emittedList.push([displayPath, displaySize]);
+    fs.promises.writeFile(file.path, file.contents as Buffer);
     next(null, file);
   }))
-  .pipe(gulp.dest(commonRootDir));
+  .resume();
+  // .pipe(gulp.dest(commonRootDir));
 
   try {
     await new Promise<EmitList>((resolve, reject) => {
@@ -287,11 +285,12 @@ function watch(compGlobs: string[], tsProject: any, commonRootDir: string, packa
 
 function changePath(commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
   return through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
+
     const treePath = relative(commonRootDir, file.path);
-    file._originPath = file.path;
+    const _originPath = file.path; // absolute path
     const {srcDir, destDir, pkgDir: dir} = packageDirTree.getAllData(treePath).pop()!;
-    const absFile = resolve(commonRootDir, treePath);
-    const pathWithinPkg = relative(dir, absFile);
+    // const absFile = resolve(commonRootDir, treePath);
+    const pathWithinPkg = relative(dir, _originPath);
     // console.log(dir, tsDirs);
     const prefix = srcDir;
     // for (const prefix of [tsDirs.srcDir, tsDirs.isomDir]) {

@@ -1,7 +1,7 @@
 
 import { Chunk, Grammar, Lexer, parser } from '../LLn-parser';
 
-export type Token = Chunk<string, string> & {text: string};
+export type Token = Chunk<string, string> & {/** string literal contains "" or '' */text: string;};
 
 const lexer: Lexer<string, string, Token> = function(
   strLookAhead, emitter) {

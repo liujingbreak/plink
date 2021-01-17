@@ -16,14 +16,25 @@ export const lstatAsync = util.promisify(fs.lstat);
 export const _symlinkAsync = util.promisify(fs.symlink);
 export const unlinkAsync = util.promisify(fs.unlink);
 
+/**
+ * Return all deleted symlinks
+ * @param deleteOption 
+ */
 export default async function scanNodeModules(deleteOption: 'all' | 'invalid' = 'invalid') {
   const deleteAll = deleteOption === 'all';
-  await listModuleSymlinks(Path.join(process.cwd(), 'node_modules'), link => validateLink(link, deleteAll));
+  const deletedList: string[] = [];
+  await listModuleSymlinks(Path.join(process.cwd(), 'node_modules'),
+    link => {
+      if (validateLink(link, deleteAll)) {
+        deletedList.push(link);
+      }
+    });
+  return deletedList;
 }
 
 export async function listModuleSymlinks(
   parentDir: string,
-  onFound: (link: string) => Promise<any>) {
+  onFound: (link: string) => void | Promise<void>) {
   const level1Dirs = await readdirAsync(parentDir);
   await Promise.all(level1Dirs.map(async dir => {
     if (dir.startsWith('@')) {
@@ -41,7 +52,7 @@ export async function listModuleSymlinks(
       isSymlink = fs.lstatSync(file).isSymbolicLink();
     } catch (e) {}
     if (isSymlink) {
-      await onFound(file);
+      await Promise.resolve(onFound(file));
     }
   }
 }

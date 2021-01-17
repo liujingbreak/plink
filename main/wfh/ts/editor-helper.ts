@@ -34,6 +34,8 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
 
   const recipeManager: typeof _recp = require('./recipe-manager');
 
+  const srcRootDir = closestCommonParentDir(Array.from(getState().srcPackages.values()).map(el => el.realPath));
+
   for (const proj of projectDirs) {
     const include: string[] = [];
     recipeManager.eachRecipeSrc(proj, (srcDir: string) => {
@@ -43,7 +45,7 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
       include.push(includeDir + '**/*.ts');
       include.push(includeDir + '**/*.tsx');
     });
-    const tsconfigFile = createTsConfig(proj, workspaceDir, drcpDir, include );
+    const tsconfigFile = createTsConfig(proj, srcRootDir, workspaceDir, drcpDir, include );
     const projDir = Path.resolve(proj);
     updateGitIgnores({file: Path.resolve(proj, '.gitignore'),
       lines: [
@@ -76,14 +78,13 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
  * @param include 
  * @return tsconfig file path
  */
-function createTsConfig(dir: string, workspace: string | null, drcpDir: string,
+function createTsConfig(proj: string, srcRootDir: string, workspace: string | null, drcpDir: string,
   include = ['.']) {
   const tsjson: any = {
     extends: null,
     include
   };
   // tsjson.include = [];
-  const proj = dir;
   tsjson.extends = Path.relative(proj, Path.resolve(drcpDir, 'wfh/tsconfig-base.json'));
   if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
     tsjson.extends = './' + tsjson.extends;
@@ -91,8 +92,7 @@ function createTsConfig(dir: string, workspace: string | null, drcpDir: string,
   tsjson.extends = tsjson.extends.replace(/\\/g, '/');
 
   const pathMapping: {[key: string]: string[]} = {};
-  const extraNodePath: string[] = [Path.resolve(dir, 'node_modules')];
-  const commonDir = closestCommonParentDir(Array.from(getState().srcPackages.values()).map(el => el.realPath));
+  const extraNodePath: string[] = [Path.resolve(proj, 'node_modules')];
 
   for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
     const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
@@ -107,7 +107,7 @@ function createTsConfig(dir: string, workspace: string | null, drcpDir: string,
   // }
 
   tsjson.compilerOptions = {
-    rootDir: Path.relative(proj, commonDir).replace(/\\/g, '/'),
+    rootDir: Path.relative(proj, srcRootDir).replace(/\\/g, '/'),
       // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
     skipLibCheck: false,
     jsx: 'preserve',

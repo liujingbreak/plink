@@ -169,11 +169,14 @@ export interface CompilerOptions {
 /**
  * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
  * and process.env.NODE_PATHS
- * @param cwd project directory where tsconfig file is (virtual), "typeRoots" is relative to this parameter
+ * @param tsconfigDir project directory where tsconfig file is (virtual), "typeRoots" is relative to this parameter
  * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions 
  */
-export function setTsCompilerOptForNodePath(cwd: string, baseUrl = './', assigneeOptions: Partial<CompilerOptions>,
+export function setTsCompilerOptForNodePath(
+  tsconfigDir: string,
+  baseUrl = './',
+  assigneeOptions: Partial<CompilerOptions>,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
   let pathsDirs: string[] = [];
@@ -202,7 +205,7 @@ export function setTsCompilerOptForNodePath(cwd: string, baseUrl = './', assigne
   }
 
   if (Path.isAbsolute(baseUrl)) {
-    let relBaseUrl = Path.relative(cwd, baseUrl);
+    let relBaseUrl = Path.relative(tsconfigDir, baseUrl);
     if (!relBaseUrl.startsWith('.'))
       relBaseUrl = './' + relBaseUrl;
     baseUrl = relBaseUrl;
@@ -216,29 +219,29 @@ export function setTsCompilerOptForNodePath(cwd: string, baseUrl = './', assigne
 
   // console.log('pathsDirs', pathsDirs);
   for (const dir of pathsDirs) {
-    const relativeDir = Path.relative(Path.resolve(cwd, baseUrl), dir).replace(/\\/g, '/');
+    const relativeDir = Path.relative(Path.resolve(tsconfigDir, baseUrl), dir).replace(/\\/g, '/');
     // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
     assigneeOptions.paths['*'].push(relativeDir + '/@types/*');
     assigneeOptions.paths['*'].push(relativeDir + '/*');
   }
 
   assigneeOptions.typeRoots = [
-    Path.relative(cwd, Path.resolve(__dirname, '..', 'types')).replace(/\\/g, '/')
+    Path.relative(tsconfigDir, Path.resolve(__dirname, '..', 'types')).replace(/\\/g, '/')
   ];
   if (opts.workspaceDir != null) {
     assigneeOptions.typeRoots.push(
-      Path.relative(cwd, Path.resolve(opts.workspaceDir, 'types')).replace(/\\/g, '/'));
+      Path.relative(tsconfigDir, Path.resolve(opts.workspaceDir, 'types')).replace(/\\/g, '/'));
   }
   if (opts.enableTypeRoots ) {
     assigneeOptions.typeRoots.push(...pathsDirs.map(dir => {
-      const relativeDir = Path.relative(cwd, dir).replace(/\\/g, '/');
+      const relativeDir = Path.relative(tsconfigDir, dir).replace(/\\/g, '/');
       return relativeDir + '/@types';
     }));
   }
 
   if (opts.extraTypeRoot) {
     assigneeOptions.typeRoots.push(...opts.extraTypeRoot.map(
-      dir => Path.relative(cwd, dir).replace(/\\/g, '/')));
+      dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/')));
   }
 
   return assigneeOptions as CompilerOptions;

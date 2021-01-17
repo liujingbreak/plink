@@ -90,8 +90,8 @@ export interface CompilerOptions {
 /**
  * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
  * and process.env.NODE_PATHS
- * @param cwd project directory where tsconfig file is (virtual), "typeRoots" is relative to this parameter
+ * @param tsconfigDir project directory where tsconfig file is (virtual), "typeRoots" is relative to this parameter
  * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions
  */
-export declare function setTsCompilerOptForNodePath(cwd: string, baseUrl: string | undefined, assigneeOptions: Partial<CompilerOptions>, opts?: CompilerOptionSetOpt): CompilerOptions;
+export declare function setTsCompilerOptForNodePath(tsconfigDir: string, baseUrl: string | undefined, assigneeOptions: Partial<CompilerOptions>, opts?: CompilerOptionSetOpt): CompilerOptions;

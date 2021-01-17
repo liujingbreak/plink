@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {bind} from 'classnames/bind';
+import classnames from 'classnames/bind';
 import styles from './$__MyComponent__$.module.scss';
 
-const cx = bind(styles);
+const cx = classnames.bind(styles);
 
 const imgCls = cx('assets');
 const textCls = cx('red');

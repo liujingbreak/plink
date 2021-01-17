@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { ofPayloadAction, stateFactory } from '../state-factory';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
-import {of, from, merge, Observable} from 'rxjs';
+import {of, from, merge} from 'rxjs';
 
 /**
  * In case you are compile this package to a library with typescript definition file '.d.ts',
@@ -28,23 +28,23 @@ const initialState: $__SliceName__$State = {
   }
 };
 
-const $__SliceName__$Slice = stateFactory.newSlice({
+const $__sliceName__$Slice = stateFactory.newSlice({
   name: '$__sliceName__$',
   initialState,
   reducers: {
-    exampleAction(s: $__SliceName__$State, {payload}: PayloadAction<boolean>) {
+    exampleAction(s, {payload}: PayloadAction<boolean>) {
       // modify state draft
       s.foo = payload;
     }
   }
 });
 
-export const actions = stateFactory.bindActionCreators($__SliceName__$Slice);
+export const dispatcher = stateFactory.bindActionCreators($__sliceName__$Slice);
 
 const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}>((action$, state$) => {
 
   return merge(
-    action$.pipe(ofPayloadAction($__SliceName__$Slice.actions.exampleAction),
+    action$.pipe(ofPayloadAction($__sliceName__$Slice.actions.exampleAction),
       switchMap(({payload}) => {
         return from(Promise.resolve('mock async HTTP request call'));
       })
@@ -53,7 +53,7 @@ const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}
       map(s => s.foo),
       distinctUntilChanged(),
       map(changedFoo => {
-        actions._change(s => {
+        dispatcher._change(s => {
           s._computed.bar = 'changed ' + changedFoo;
         });
       })
@@ -70,16 +70,16 @@ const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}
 });
 
 export function getState() {
-  return stateFactory.sliceState($__SliceName__$Slice);
+  return stateFactory.sliceState($__sliceName__$Slice);
 }
 
 export function getStore() {
-  return stateFactory.sliceStore($__SliceName__$Slice);
+  return stateFactory.sliceStore($__sliceName__$Slice);
 }
 
 if (module.hot) {
   module.hot.dispose(data => {
-    stateFactory.removeSlice($__SliceName__$Slice);
+    stateFactory.removeSlice($__sliceName__$Slice);
     releaseEpic();
   });
 }

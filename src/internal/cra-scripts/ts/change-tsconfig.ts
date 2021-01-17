@@ -13,14 +13,31 @@ export function changeTsConfigFile() {
     ).map(prjDir => Path.resolve(plinkRoot, prjDir))).replace(/\\/g, '/');
 
   const tsconfigJson = JSON.parse(fs.readFileSync(process.env._plink_cra_scripts_tsConfig!, 'utf8'));
-  setTsCompilerOptForNodePath(process.cwd(), './', tsconfigJson.compilerOptions, {
+  const tsconfigDir = Path.dirname(process.env._plink_cra_scripts_tsConfig!);
+
+  const pathMapping: {[key: string]: string[]} = {};
+
+  for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
+    const realDir = Path.relative(tsconfigDir, realPath).replace(/\\/g, '/');
+    pathMapping[name] = [realDir];
+    pathMapping[name + '/*'] = [realDir + '/*'];
+  }
+
+  if (getState().linkedDrcp) {
+    const drcpDir = Path.relative(tsconfigDir, getState().linkedDrcp!.realPath).replace(/\\/g, '/');
+    pathMapping['@wfh/plink'] = [drcpDir];
+    pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
+  }
+  tsconfigJson.compilerOptions.paths = pathMapping;
+
+  setTsCompilerOptForNodePath(tsconfigDir, './', tsconfigJson.compilerOptions, {
     workspaceDir: process.cwd()
   });
 
   tsconfigJson.include = [Path.relative(process.cwd(), process.env._plink_cra_scripts_indexJs!)];
   tsconfigJson.compilerOptions.rootDir = rootDir;
   // tslint:disable-next-line: no-console
-  // console.log('tsconfigJson:', tsconfigJson);
+  // console.log('[change-tsconfig] tsconfigJson:', JSON.stringify(tsconfigJson, null, '  '));
   // fs.writeFileSync(Path.resolve('tsconfig.json'), JSON.stringify(tsconfigJson, null, '  '));
   return tsconfigJson;
 }

@@ -39,7 +39,7 @@ export const exampleSlice = stateFactory.newSlice({
   }
 });
 
-export const actionDispatcher = stateFactory.bindActionCreators(exampleSlice);
+export const dispatcher = stateFactory.bindActionCreators(exampleSlice);
 
 const releaseEpic = stateFactory.addEpic<{example: ExampleState}>((action$, state$) => {
   // const gService = getModuleInjector().get(GlobalStateStore);
@@ -54,7 +54,7 @@ const releaseEpic = stateFactory.addEpic<{example: ExampleState}>((action$, stat
       map(s => s.foo),
       distinctUntilChanged(),
       map(changedFoo => {
-        actionDispatcher._change(s => {
+        dispatcher._change(s => {
           s._computed.bar = 'changed ' + changedFoo;
         });
       })

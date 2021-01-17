@@ -4,7 +4,7 @@
  *  - change rootNames in parameters of ts.createProgram()
  *  - change compilerOptions.rootDir in parameters of ts.createProgram()
  */
-// import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
+import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
 // import {getState} from '@wfh/plink/wfh/dist/package-mgr';
 // import {getRootDir} from '@wfh/plink/wfh/dist';
 // import {closestCommonParentDir} from '@wfh/plink/wfh/dist/utils/misc';
@@ -24,11 +24,12 @@ const indexJs = process.env._plink_cra_scripts_indexJs!;
 
 // const plinkRoot = getRootDir();
 
-
-// tslint:disable-next-line: no-console
-console.log(chalk.cyan('[hack-for-ts-checker]') + ' fork-ts-checker-webpack-plugin runs');
 const forkTsDir = Path.resolve('node_modules', 'fork-ts-checker-webpack-plugin') + Path.sep;
 const tsJs = nodeResolve.sync('typescript', {basedir: forkTsDir});
+
+
+// tslint:disable-next-line: no-console
+console.log(chalk.cyan('[hack-for-ts-checker]') + ' fork-ts-checker-webpack-plugin runs, ' + forkTsDir);
 
 const hackedTs: typeof ts = require(tsJs);
 
@@ -75,14 +76,14 @@ hackedTs.createProgram = function(rootNames: readonly string[], options: Compile
 } as any;
 Object.assign(hackedTs.createProgram, _createPrm);
 
-// hookCommonJsRequire((filename, target, rq, resolve) => {
-//   if (filename.startsWith(forkTsDir)) {
-//     // console.log(filename, target);
-//     if (target.indexOf('typescript') >= 0 && resolve(target) === tsJs) {
-//       // tslint:disable-next-line: no-console
-//       console.log(chalk.cyan('[hack-for-ts-checker]') + ' monkey-patch typescript');
-//       // const ts: typeof _ts = require('typescript');
-//       return hackedTs;
-//     }
-//   }
-// });
+hookCommonJsRequire((filename, target, rq, resolve) => {
+  if (filename.startsWith(forkTsDir)) {
+    // console.log(filename, target);
+    if (target.indexOf('typescript') >= 0 && resolve(target) === tsJs) {
+      // tslint:disable-next-line: no-console
+      console.log(chalk.cyan('[hack-for-ts-checker]') + ' monkey-patch typescript');
+      // const ts: typeof _ts = require('typescript');
+      return hackedTs;
+    }
+  }
+});
