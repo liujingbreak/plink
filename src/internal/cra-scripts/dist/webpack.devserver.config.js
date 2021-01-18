@@ -18,4 +18,4 @@ module.exports = function (proxy, allowedHost) {
     return devServerCfg;
 };
 
-//# sourceMappingURL=../../../../../../web-fun-house/src/internal/cra-scripts/dist/webpack.devserver.config.js.map
+//# sourceMappingURL=webpack.devserver.config.js.map

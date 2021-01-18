@@ -67,4 +67,4 @@ function paths() {
 }
 exports.default = paths;
 
-//# sourceMappingURL=../../../../../../web-fun-house/src/internal/cra-scripts/dist/cra-scripts-paths.js.map
+//# sourceMappingURL=cra-scripts-paths.js.map

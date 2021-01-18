@@ -24,4 +24,4 @@ if (process.send && /[\\\/]fork-ts-checker-webpack-plugin[\\\/]/.test(process.ar
     require('./hack-fork-ts-checker-worker');
 }
 
-//# sourceMappingURL=../../../../../../web-fun-house/src/internal/cra-scripts/dist/hack-fork-ts-checker.js.map
+//# sourceMappingURL=hack-fork-ts-checker.js.map

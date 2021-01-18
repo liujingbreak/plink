@@ -21,4 +21,4 @@ function _findPackage(shortName) {
 }
 exports.findPackage = lodash_1.default.memoize(_findPackage);
 
-//# sourceMappingURL=../../../../../../web-fun-house/src/internal/cra-scripts/dist/build-target-helper.js.map
+//# sourceMappingURL=build-target-helper.js.map

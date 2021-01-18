@@ -40,4 +40,4 @@ function changeTsConfigFile() {
 }
 exports.changeTsConfigFile = changeTsConfigFile;
 
-//# sourceMappingURL=../../../../../../web-fun-house/src/internal/cra-scripts/dist/change-tsconfig.js.map
+//# sourceMappingURL=change-tsconfig.js.map

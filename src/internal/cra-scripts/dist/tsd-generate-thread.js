@@ -20,4 +20,4 @@ const bootstrap_process_1 = require("@wfh/plink/wfh/dist/utils/bootstrap-process
     });
 })().catch(err => worker_threads_1.parentPort.postMessage(err));
 
-//# sourceMappingURL=../../../../../../web-fun-house/src/internal/cra-scripts/dist/tsd-generate-thread.js.map
+//# sourceMappingURL=tsd-generate-thread.js.map
