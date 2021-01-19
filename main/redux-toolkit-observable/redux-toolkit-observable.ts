@@ -13,7 +13,7 @@ import {
 } from '@reduxjs/toolkit';
 // import {Action} from 'redux';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
-import { BehaviorSubject, Observable, ReplaySubject, Subject, EMPTY } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError } from 'rxjs/operators';
 
 export {PayloadAction, SliceCaseReducers, Slice};
@@ -148,10 +148,10 @@ export class StateFactory {
                 this.debugLog.next(['[redux-toolkit-obs]', `unsubscribe from ${epicId}`]);
               }))
             ),
-            catchError(err => {
+            catchError((err, src) => {
               this.reportActionError(err);
               console.error(err);
-              return EMPTY;
+              return src;
             })
           )
         ),

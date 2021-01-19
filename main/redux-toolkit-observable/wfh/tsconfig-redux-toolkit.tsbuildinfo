@@ -1087,18 +1087,13 @@
         "affectsGlobalScope": false
       },
       "../redux-toolkit-observable.ts": {
-        "version": "ee5a71859befa9ffd7058dc6fdef799bef3960134932ddc525917be10d30d212",
+        "version": "77a75001cb53cbc1941ba3823e22ed839c1631991ef8f9097b54bc10e95168f4",
         "signature": "ad98b1d398c21a1186659f1b541a3e026a0f996b224834e817255990944842fb",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/anymatch/index.d.ts": {
         "version": "48b52264fa193879a074197839dbb4796fa07e86350ff888e5361e06aa46df76",
         "signature": "48b52264fa193879a074197839dbb4796fa07e86350ff888e5361e06aa46df76",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/color-name/index.d.ts": {
-        "version": "f0cb4b3ab88193e3e51e9e2622e4c375955003f1f81239d72c5b7a95415dad3e",
-        "signature": "f0cb4b3ab88193e3e51e9e2622e4c375955003f1f81239d72c5b7a95415dad3e",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/expect/index.d.ts": {
@@ -1812,7 +1807,6 @@
       "pretty": true,
       "rootDir": "..",
       "composite": true,
-      "watch": true,
       "configFilePath": "../../wfh/tsconfig-redux-toolkit.json"
     },
     "referencedMap": {
@@ -4843,7 +4837,6 @@
     "semanticDiagnosticsPerFile": [
       "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
       "../../node_modules/@types/anymatch/index.d.ts",
-      "../../node_modules/@types/color-name/index.d.ts",
       "../../node_modules/@types/expect/index.d.ts",
       "../../node_modules/@types/fancy-log/index.d.ts",
       "../../node_modules/@types/fs-extra/index.d.ts",

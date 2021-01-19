@@ -7,7 +7,7 @@
   "builders": "ts/build-angular/builders.json",
   "schematics": "./ts/ng/schematics/collection.json",
   "dr": {
-    "mergeTds": "types/__api",
+    "typeRoot": "types",
     "category": [
       "tool",
       "internal",

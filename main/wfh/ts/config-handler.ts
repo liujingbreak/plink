@@ -8,6 +8,8 @@ import {register as registerTsNode} from 'ts-node';
 import {GlobalOptions as CliOptions} from './cmd/types';
 import {PlinkEnv} from './node-path';
 import {getRootDir} from './utils/misc';
+import * as _pkHelper from './package-mgr/package-list-helper';
+import * as _pkgMgr from './package-mgr';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 
@@ -184,6 +186,7 @@ export function setTsCompilerOptForNodePath(
   if (opts.workspaceDir != null) {
     pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
   }
+
   if (opts.extraNodePath && opts.extraNodePath.length > 0) {
     pathsDirs.push(...opts.extraNodePath);
   }
@@ -226,12 +229,13 @@ export function setTsCompilerOptForNodePath(
   }
 
   assigneeOptions.typeRoots = [
-    Path.relative(tsconfigDir, Path.resolve(__dirname, '..', 'types')).replace(/\\/g, '/')
+    Path.relative(tsconfigDir, Path.resolve(__dirname, '..', 'types')).replace(/\\/g, '/'),
+    ...typeRootsInPackages(opts.workspaceDir).map(dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/'))
   ];
-  if (opts.workspaceDir != null) {
-    assigneeOptions.typeRoots.push(
-      Path.relative(tsconfigDir, Path.resolve(opts.workspaceDir, 'types')).replace(/\\/g, '/'));
-  }
+  // if (opts.workspaceDir != null) {
+  //   assigneeOptions.typeRoots.push(
+  //     Path.relative(tsconfigDir, Path.resolve(opts.workspaceDir, 'types')).replace(/\\/g, '/'));
+  // }
   if (opts.enableTypeRoots ) {
     assigneeOptions.typeRoots.push(...pathsDirs.map(dir => {
       const relativeDir = Path.relative(tsconfigDir, dir).replace(/\\/g, '/');
@@ -245,5 +249,22 @@ export function setTsCompilerOptForNodePath(
   }
 
   return assigneeOptions as CompilerOptions;
+}
+
+function typeRootsInPackages(onlyIncludeWorkspace?: string) {
+  const {packages4WorkspaceKey} = require('./package-mgr/package-list-helper') as typeof _pkHelper;
+  const {getState, workspaceKey}: typeof _pkgMgr = require('./package-mgr');
+  const wsKeys = onlyIncludeWorkspace ? [workspaceKey(onlyIncludeWorkspace)] : getState().workspaces.keys();
+  const dirs: string[] = [];
+  for (const wsKey of wsKeys) {
+    console.log(wsKey);
+    for (const pkg of packages4WorkspaceKey(wsKey)) {
+      if (pkg.json.dr.typeRoot) {
+        const dir = Path.resolve(pkg.realPath, pkg.json.dr.typeRoot);
+        dirs.push(dir);
+      }
+    }
+  }
+  return dirs;
 }
 

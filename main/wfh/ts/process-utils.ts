@@ -45,7 +45,9 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
   }
 
   let res: ChildProcess;
+
   const promise = checkTimeout(new Promise<string>((resolve, reject) => {
+    const allDone: Promise<any>[] = [];
     res = sysSpawn(command, args as string[], opts);
     // console.log(command, args);
     let output: string;
@@ -61,6 +63,10 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
       });
       res.stdout!.resume();
       res.stderr!.resume();
+      allDone.push(
+        new Promise<void>(resolve => res.stdout!.on('end', resolve)),
+        new Promise<void>(resolve => res.stderr!.on('end', resolve))
+      );
     }
     res.on('error', (err) => {
       reject(err);
@@ -76,7 +82,8 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
         }
         return reject(new Error(errMsg + '\n' + (output ? output : '')));
       } else {
-        resolve(output);
+        Promise.all(allDone)
+        .then(() => resolve(output));
       }
     });
   }), opts.timeout)

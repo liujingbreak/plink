@@ -173,49 +173,49 @@ function changePackageJson(packageTarballMap: Map<string, string>) {
       changeDependencies(devDepsAst.value as ObjectAst, wsDir, jsonFile, replacements);
     }
 
-    if (package2tarball.size > 0) {
-      const appendToAst = depsAst ? depsAst : devDepsAst;
-      if (appendToAst == null) {
-        // There is no dependencies or DevDependencies
-        replacements.push({replacement: ',\n  dependencies: {\n    ', start: pkj.length - 2, end: pkj.length - 2});
-        appendRemainderPkgs(pkj.length - 2);
-        replacements.push({replacement: '\n  }\n', start: pkj.length - 2, end: pkj.length - 2});
-      } else {
-        let appendPos = (appendToAst.value).end - 1;
-        const existingEntries = (appendToAst.value as ObjectAst).properties;
-        if (existingEntries.length > 0) {
-          appendPos = existingEntries[existingEntries.length - 1].value.end;
-        }
-        replacements.push({
-          replacement: ',\n    ', start: appendPos, end: appendPos
-        });
-        appendRemainderPkgs(appendPos);
-        replacements.push({
-          replacement: '\n', start: appendPos, end: appendPos
-        });
-      }
-    }
+    // if (package2tarball.size > 0) {
+    //   const appendToAst = depsAst ? depsAst : devDepsAst;
+    //   if (appendToAst == null) {
+    //     // There is no dependencies or DevDependencies
+    //     replacements.push({replacement: ',\n  dependencies: {\n    ', start: pkj.length - 2, end: pkj.length - 2});
+    //     appendRemainderPkgs(pkj.length - 2);
+    //     replacements.push({replacement: '\n  }\n', start: pkj.length - 2, end: pkj.length - 2});
+    //   } else {
+    //     let appendPos = (appendToAst.value).end - 1;
+    //     const existingEntries = (appendToAst.value as ObjectAst).properties;
+    //     if (existingEntries.length > 0) {
+    //       appendPos = existingEntries[existingEntries.length - 1].value.end;
+    //     }
+    //     replacements.push({
+    //       replacement: ',\n    ', start: appendPos, end: appendPos
+    //     });
+    //     appendRemainderPkgs(appendPos);
+    //     replacements.push({
+    //       replacement: '\n', start: appendPos, end: appendPos
+    //     });
+    //   }
+    // }
 
-    function appendRemainderPkgs(appendPos: number) {
-      let i = 1;
-      for (const [pkName, tarFile] of package2tarball) {
-        let newVersion = Path.relative(wsDir, tarFile).replace(/\\/g, '/');
-        log.info(`Append ${jsonFile}: "${pkName}": ${newVersion}`);
+    // function appendRemainderPkgs(appendPos: number) {
+    //   let i = 1;
+    //   for (const [pkName, tarFile] of package2tarball) {
+    //     let newVersion = Path.relative(wsDir, tarFile).replace(/\\/g, '/');
+    //     log.info(`Append ${jsonFile}: "${pkName}": ${newVersion}`);
 
-        if (!newVersion.startsWith('.')) {
-          newVersion = './' + newVersion;
-        }
-        replacements.push({
-          replacement: `"${pkName}": ${newVersion}`, start: appendPos, end: appendPos
-        });
-        if (i !== package2tarball.size) {
-          replacements.push({
-            replacement: ',\n    ', start: appendPos, end: appendPos
-          });
-        }
-        i++;
-      }
-    }
+    //     if (!newVersion.startsWith('.')) {
+    //       newVersion = './' + newVersion;
+    //     }
+    //     replacements.push({
+    //       replacement: `"${pkName}": ${newVersion}`, start: appendPos, end: appendPos
+    //     });
+    //     if (i !== package2tarball.size) {
+    //       replacements.push({
+    //         replacement: ',\n    ', start: appendPos, end: appendPos
+    //       });
+    //     }
+    //     i++;
+    //   }
+    // }
 
 
     if (replacements.length > 0) {
@@ -226,6 +226,8 @@ function changePackageJson(packageTarballMap: Map<string, string>) {
     }
   }
   function changeDependencies(deps: ObjectAst, wsDir: string, jsonFile: string, replacements: ReplacementInf[]) {
+    // console.log(deps.properties.map(prop => prop.name.text + ':' + (prop.value as Token).text));
+    // console.log(Array.from(package2tarball.entries()));
     const foundDeps = deps.properties.filter(({name}) => package2tarball.has(JSON.parse(name.text)));
     for (const foundDep of foundDeps) {
       const verToken = foundDep.value as Token;
@@ -241,7 +243,7 @@ function changePackageJson(packageTarballMap: Map<string, string>) {
         end: verToken.end!,
         text: JSON.stringify(newVersion)
       });
-      package2tarball.delete(pkName);
+      // package2tarball.delete(pkName);
     }
   }
 }

@@ -59,11 +59,11 @@ const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}
       })
     )
   ).pipe(
-    catchError(ex => {
+    catchError((ex, src) => {
       // tslint:disable-next-line: no-console
       console.error(ex);
       // gService.toastAction('网络错误\n' + ex.message);
-      return of<PayloadAction>();
+      return src;
     }),
     ignoreElements()
   );

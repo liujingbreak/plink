@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from './state-factory';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
-import {of, from, merge} from 'rxjs';
+import {from, merge} from 'rxjs';
 
 /**
  * In case you are compile this package to a library with typescript definition file '.d.ts',
@@ -60,11 +60,11 @@ const releaseEpic = stateFactory.addEpic<{example: ExampleState}>((action$, stat
       })
     )
   ).pipe(
-    catchError(ex => {
+    catchError((ex, src) => {
       // tslint:disable-next-line: no-console
       console.error(ex);
       // gService.toastAction('网络错误\n' + ex.message);
-      return of<PayloadAction>();
+      return src;
     }),
     ignoreElements()
   );

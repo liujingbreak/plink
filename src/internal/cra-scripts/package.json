@@ -1,6 +1,6 @@
 {
   "name": "@wfh/cra-scripts",
-  "version": "1.0.27",
+  "version": "1.0.28-0",
   "description": "Something like create-react-rewired",
   "main": "dist/preload.js",
   "dr": {
@@ -10,7 +10,7 @@
         "lessLoaderAdditionalData": ""
       }
     },
-    "mergeTds": "types/__api"
+    "typeRoot": "types"
   },
   "dependencies": {
     "less-loader": "~7.0.2",

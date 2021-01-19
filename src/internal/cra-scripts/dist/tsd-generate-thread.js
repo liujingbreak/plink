@@ -14,7 +14,7 @@ const bootstrap_process_1 = require("@wfh/plink/wfh/dist/utils/bootstrap-process
 (function () {
     return __awaiter(this, void 0, void 0, function* () {
         bootstrap_process_1.initProcess();
-        yield bootstrap_process_1.initConfig({ config: [], prop: [] });
+        bootstrap_process_1.initConfig({ config: [], prop: [] });
         const { tsc } = require('@wfh/plink/wfh/dist/ts-cmd');
         yield tsc(worker_threads_1.workerData);
     });

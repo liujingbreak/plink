@@ -13,13 +13,13 @@ import config from '../config';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 import { updateTsconfigFileForEditor } from '../editor-helper';
 import logConfig from '../log-config';
-import { allPackages, packages4WorkspaceKey } from './package-list-helper';
+import { allPackages } from './package-list-helper';
 import { spawn } from '../process-utils';
 import { exe } from '../process-utils';
 import { setProjectList} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
 import { getRootDir, isDrcpSymlink } from '../utils/misc';
-import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync, symlinkAsync } from '../utils/symlinks';
+import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
 // import { actions as _cleanActions } from '../cmd/cli-clean';
 import {PlinkEnv} from '../node-path';
 
@@ -467,7 +467,7 @@ stateFactory.addEpic((action$, state$) => {
       concatMap(() => {
         const dones = Array.from(pkgTsconfigForEditorRequestMap.values()).map(wsKey => {
           updateTsconfigFileForEditor(wsKey);
-          return collectDtsFiles(wsKey);
+          // return collectDtsFiles(wsKey);
         });
         return from(Promise.all(dones));
       }),
@@ -595,43 +595,43 @@ function updateInstalledPackageForWorkspace(wsKey: string) {
  * Create sub directory "types" under current workspace
  * @param wsKey 
  */
-function collectDtsFiles(wsKey: string) {
-  const wsTypesDir = Path.resolve(getRootDir(), wsKey, 'types');
-  fs.mkdirpSync(wsTypesDir);
-  const mergeTds: Map<string, string> = new Map();
-  for (const pkg of packages4WorkspaceKey(wsKey)) {
-    if (pkg.json.dr.mergeTds) {
-      const file = pkg.json.dr.mergeTds;
-      if (typeof file === 'string') {
-        mergeTds.set(pkg.shortName + '-' + Path.basename(file), Path.resolve(pkg.realPath, file));
-      } else if (Array.isArray(file)) {
-        for (const f of file as string[])
-          mergeTds.set(pkg.shortName + '-' + Path.basename(f), Path.resolve(pkg.realPath,f));
-      }
-    }
-  }
-  // console.log(mergeTds);
-  for (const chrFileName of fs.readdirSync(wsTypesDir)) {
-    if (!mergeTds.has(chrFileName)) {
-    //   mergeTds.delete(chrFileName);
-    // } else {
-      const useless = Path.resolve(wsTypesDir, chrFileName);
-      fs.unlink(useless);
-      // tslint:disable-next-line: no-console
-      console.log('Delete', useless);
-    }
-  }
-  const done: Promise<any>[] = new Array(mergeTds.size);
-  let i = 0;
-  for (const dts of mergeTds.keys()) {
-    const target = mergeTds.get(dts)!;
-    const absDts = Path.resolve(wsTypesDir, dts);
-    // tslint:disable-next-line: no-console
-    // console.log(`Create symlink ${absDts} --> ${target}`);
-    done[i++] = symlinkAsync(target, absDts);
-  }
-  return Promise.all(done);
-}
+// function collectDtsFiles(wsKey: string) {
+//   const wsTypesDir = Path.resolve(getRootDir(), wsKey, 'types');
+//   fs.mkdirpSync(wsTypesDir);
+//   const mergeTds: Map<string, string> = new Map();
+//   for (const pkg of packages4WorkspaceKey(wsKey)) {
+//     if (pkg.json.dr.mergeTds) {
+//       const file = pkg.json.dr.mergeTds;
+//       if (typeof file === 'string') {
+//         mergeTds.set(pkg.shortName + '-' + Path.basename(file), Path.resolve(pkg.realPath, file));
+//       } else if (Array.isArray(file)) {
+//         for (const f of file as string[])
+//           mergeTds.set(pkg.shortName + '-' + Path.basename(f), Path.resolve(pkg.realPath,f));
+//       }
+//     }
+//   }
+//   // console.log(mergeTds);
+//   for (const chrFileName of fs.readdirSync(wsTypesDir)) {
+//     if (!mergeTds.has(chrFileName)) {
+//     //   mergeTds.delete(chrFileName);
+//     // } else {
+//       const useless = Path.resolve(wsTypesDir, chrFileName);
+//       fs.unlink(useless);
+//       // tslint:disable-next-line: no-console
+//       console.log('Delete', useless);
+//     }
+//   }
+//   const done: Promise<any>[] = new Array(mergeTds.size);
+//   let i = 0;
+//   for (const dts of mergeTds.keys()) {
+//     const target = mergeTds.get(dts)!;
+//     const absDts = Path.resolve(wsTypesDir, dts);
+//     // tslint:disable-next-line: no-console
+//     // console.log(`Create symlink ${absDts} --> ${target}`);
+//     done[i++] = symlinkAsync(target, absDts);
+//   }
+//   return Promise.all(done);
+// }
 
 /**
  * Delete workspace state if its directory does not exist

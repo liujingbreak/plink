@@ -5,7 +5,7 @@ import chalk from 'chalk';
 import * as packageUtils from './package-utils';
 import * as fs from 'fs-extra';
 import * as _ from 'lodash';
-import {sep, resolve, join, relative} from 'path';
+import {sep, resolve, join, relative, dirname} from 'path';
 import ts from 'typescript';
 import File from 'vinyl';
 import {getTscConfigOfPkg, PackageTsDirs, closestCommonParentDir} from './utils/misc';
@@ -214,7 +214,7 @@ async function compile(compGlobs: string[], tsProject: any, commonRootDir: strin
 
   const emittedList = [] as EmitList;
   const all = merge(streams)
-  .pipe(through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
+  .pipe(through.obj(async function(file: File, en: string, next: (...arg: any[]) => void) {
     if (file.path.endsWith('.map')) {
       next(null);
       return;
@@ -226,7 +226,8 @@ async function compile(compGlobs: string[], tsProject: any, commonRootDir: strin
 
     log.info('%s %s Kb', displayPath, chalk.blueBright(displaySize + ''));
     emittedList.push([displayPath, displaySize]);
-    fs.promises.writeFile(file.path, file.contents as Buffer);
+    await fs.mkdirp(dirname(file.path));
+    await fs.promises.writeFile(file.path, file.contents as Buffer);
     next(null, file);
   }))
   .resume();
