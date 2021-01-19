@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { ofPayloadAction, stateFactory } from '../state-factory';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
-import {of, from, merge} from 'rxjs';
+import {from, merge} from 'rxjs';
 
 /**
  * In case you are compile this package to a library with typescript definition file '.d.ts',
@@ -9,10 +9,10 @@ import {of, from, merge} from 'rxjs';
  * "This is likely not portable, a type annotation is necessary" 
  * https://github.com/microsoft/TypeScript/issues/30858
  */
-export * as immerInternal from 'immer/dist/internal';
-import * as reduxTook from '@reduxjs/toolkit';
-export * as rxjs from 'rxjs';
-export {reduxTook};
+// export * as immerInternal from 'immer/dist/internal';
+// import * as reduxTook from '@reduxjs/toolkit';
+// export * as rxjs from 'rxjs';
+// export {reduxTook};
 
 export interface $__SliceName__$State {
   foo: boolean;

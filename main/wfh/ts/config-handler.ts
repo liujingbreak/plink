@@ -257,7 +257,6 @@ function typeRootsInPackages(onlyIncludeWorkspace?: string) {
   const wsKeys = onlyIncludeWorkspace ? [workspaceKey(onlyIncludeWorkspace)] : getState().workspaces.keys();
   const dirs: string[] = [];
   for (const wsKey of wsKeys) {
-    console.log(wsKey);
     for (const pkg of packages4WorkspaceKey(wsKey)) {
       if (pkg.json.dr.typeRoot) {
         const dir = Path.resolve(pkg.realPath, pkg.json.dr.typeRoot);

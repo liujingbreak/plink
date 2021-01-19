@@ -9,10 +9,10 @@ import {from, merge} from 'rxjs';
  * "This is likely not portable, a type annotation is necessary" 
  * https://github.com/microsoft/TypeScript/issues/30858
  */
-export * as immerInternal from 'immer/dist/internal';
-import * as reduxTook from '@reduxjs/toolkit';
-export * as rxjs from 'rxjs';
-export {reduxTook};
+// export * as immerInternal from 'immer/dist/internal';
+// import * as reduxTook from '@reduxjs/toolkit';
+// export * as rxjs from 'rxjs';
+// export {reduxTook};
 
 export interface $__SliceName__$State {
   foo: boolean;

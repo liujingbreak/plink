@@ -142,8 +142,8 @@
         "affectsGlobalScope": true
       },
       "../hmr-module.d.ts": {
-        "version": "0f0560aa06b802daa9e931728fb9f01d76802fc37f63f75b093b44cbb9edf939",
-        "signature": "0f0560aa06b802daa9e931728fb9f01d76802fc37f63f75b093b44cbb9edf939",
+        "version": "b49f3864215005d660e64a36719c599f26736099b8b3005a619d6f8c44a3142d",
+        "signature": "b49f3864215005d660e64a36719c599f26736099b8b3005a619d6f8c44a3142d",
         "affectsGlobalScope": true
       },
       "../../node_modules/symbol-observable/index.d.ts": {
@@ -1807,6 +1807,7 @@
       "pretty": true,
       "rootDir": "..",
       "composite": true,
+      "watch": true,
       "configFilePath": "../../wfh/tsconfig-redux-toolkit.json"
     },
     "referencedMap": {

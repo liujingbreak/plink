@@ -4,7 +4,7 @@ interface NodeModule {
    */
   hot: {
     data: {[key: string]: any};
-    accept(file: string, cb: () => void): void;
+    accept(file?: string, cb?: () => void): void;
     accept(errorHandler: () => void): void;
     decline(dependencies: string | string[]): void;
     /**
