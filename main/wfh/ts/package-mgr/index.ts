@@ -734,6 +734,26 @@ async function writeConfigFiles() {
 
 async function installWorkspace(ws: WorkspaceState) {
   const dir = Path.resolve(getRootDir(), ws.id);
+  try {
+    await installInDir(dir, ws.originInstallJsonStr, ws.installJsonStr);
+  } catch (ex) {
+    actionDispatcher._change(d => {
+      const wsd = d.workspaces.get(ws.id)!;
+      wsd.installJsonStr = '';
+      wsd.installJson.dependencies = {};
+      wsd.installJson.devDependencies = {};
+      const lockFile = Path.resolve(dir, 'package-lock.json');
+      if (fs.existsSync(lockFile)) {
+        // tslint:disable-next-line: no-console
+        console.log(`[init] problematic ${lockFile} is deleted, please try again`);
+        fs.unlinkSync(lockFile);
+      }
+    });
+    throw ex;
+  }
+}
+
+export async function installInDir(dir: string, originPkgJsonStr: string, toInstallPkgJsonStr: string) {
   // tslint:disable-next-line: no-console
   console.log('Install dependencies in ' + dir);
   try {
@@ -760,8 +780,9 @@ async function installWorkspace(ws: WorkspaceState) {
   const installJsonFile = Path.resolve(dir, 'package.json');
   // tslint:disable-next-line: no-console
   console.log('[init] write', installJsonFile);
-  fs.writeFileSync(installJsonFile, ws.installJsonStr, 'utf8');
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  fs.writeFileSync(installJsonFile, toInstallPkgJsonStr, 'utf8');
+  await new Promise(resolve => process.nextTick(resolve));
+  // await new Promise(resolve => setTimeout(resolve, 5000));
   try {
     const env = {...process.env, NODE_ENV: 'development'};
     await exe('npm', 'install', {
@@ -775,24 +796,12 @@ async function installWorkspace(ws: WorkspaceState) {
   } catch (e) {
     // tslint:disable-next-line: no-console
     console.log(chalk.red('[init] Failed to install dependencies'), e.stack);
-    actionDispatcher._change(d => {
-      const wsd = d.workspaces.get(ws.id)!;
-      wsd.installJsonStr = '';
-      wsd.installJson.dependencies = {};
-      wsd.installJson.devDependencies = {};
-      const lockFile = Path.resolve(dir, 'package-lock.json');
-      if (fs.existsSync(lockFile)) {
-        // tslint:disable-next-line: no-console
-        console.log(`[init] problematic ${lockFile} is deleted, please try again`);
-        fs.unlinkSync(lockFile);
-      }
-    });
     throw e;
   } finally {
     // tslint:disable-next-line: no-console
     console.log('Recover ' + installJsonFile);
     // 3. Recover package.json and symlinks deleted in Step.1.
-    fs.writeFileSync(installJsonFile, ws.originInstallJsonStr, 'utf8');
+    fs.writeFileSync(installJsonFile, originPkgJsonStr, 'utf8');
     await recoverSymlinks();
   }
 

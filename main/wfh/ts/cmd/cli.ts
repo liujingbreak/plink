@@ -10,7 +10,6 @@ import {packages4Workspace} from '../package-mgr/package-list-helper';
 import * as _ from 'lodash';
 import { isDrcpSymlink, sexyFont, getRootDir, boxString } from '../utils/misc';
 import _scanNodeModules from '../utils/symlinks';
-import {exe} from '../process-utils';
 import fs from 'fs';
 import Path from 'path';
 import semver from 'semver';
@@ -138,19 +137,13 @@ function subWfhCommand(program: commander.Command) {
   });
 
   const cmdUpgrade = program.command('upgrade')
-  .description('Reinstall local Plink to the version specified in package.json')
+  .alias('install')
+  .description('Reinstall local Plink along with other dependencies.' +
+    ' (Unlike "npm install" which does not work with node_modules that may contains symlinks)')
   .option('--plink-repo,--plink <Plink src directory>',
     'For development purpose, use Plink as a symlink instead of installing Plink locally, option value is the Plink source repository directory')
   .action(async () => {
-    const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
-    const deleted = await scanNodeModules('all');
-    if (cmdUpgrade.opts().plinkRepo) {
-      (await import('./cli-link-plink')).reinstallWithLinkedPlink(cmdUpgrade.opts().plinkRepo, deleted);
-    }
-    const env = {...process.env, NODE_ENV: 'development'};
-    await exe('npm', 'i', {env}).promise;
-    await new Promise(resolve => process.nextTick(resolve));
-    await exe('npm', 'ddp', {env}).promise;
+    await (await import('./cli-link-plink')).reinstallWithLinkedPlink(cmdUpgrade.opts().plinkRepo);
   });
 
   program.command('dockerize <workspace-dir>')
