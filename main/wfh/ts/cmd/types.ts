@@ -36,7 +36,7 @@ export interface PublishOptions extends PackOptions {
   public: boolean;
 }
 
-export interface AnalyseOptions extends GlobalOptions {
+export interface AnalyzeOptions extends GlobalOptions {
   dir?: string[];
   file?: string[];
 }

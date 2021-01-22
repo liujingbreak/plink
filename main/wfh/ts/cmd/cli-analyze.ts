@@ -1,4 +1,4 @@
-import {AnalyseOptions} from './types';
+import {AnalyzeOptions} from './types';
 import os from 'os';
 import config from '../config';
 import Path from 'path';
@@ -11,7 +11,7 @@ import {Pool} from '../../../thread-promise-pool/dist';
 // const log = log4js.getLogger('wfh.analyse');
 const cpus = os.cpus().length;
 
-export default async function(packages: string[], opts: AnalyseOptions) {
+export default async function(packages: string[], opts: AnalyzeOptions) {
   await config.init(opts);
   logConfig(config());
   if (opts.file) {

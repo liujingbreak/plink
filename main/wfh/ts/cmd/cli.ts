@@ -217,7 +217,8 @@ function subWfhCommand(program: commander.Command) {
     });
   withGlobalOptions(publishCmd);
 
-  const analysisCmd = program.command('analyse')
+  const analysisCmd = program.command('analyze')
+    .alias('analyse')
     .description('Use Typescript compiler to parse source code, draw a dependence graph with DFS algarithm')
     // .option('-d, --dir <directory>',
     //   'specific target directory instead of packages, target can be any directory that contains JS/TS files',
@@ -225,11 +226,11 @@ function subWfhCommand(program: commander.Command) {
     .option('-f, --file <file>',
       'specific target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
     .action(async (packages: string[]) => {
-      return (await import('./cli-analyse')).default(packages, analysisCmd.opts() as tp.AnalyseOptions);
+      return (await import('./cli-analyze')).default(packages, analysisCmd.opts() as tp.AnalyzeOptions);
     });
 
   analysisCmd.usage(analysisCmd.usage() + '\n' +
-    'e.g.\n  ' + chalk.blue('plink analyse -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts'));
+    'e.g.\n  ' + chalk.blue('plink analyze -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts'));
   withGlobalOptions(analysisCmd);
 }
 
