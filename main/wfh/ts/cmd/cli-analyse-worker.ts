@@ -8,12 +8,14 @@ import Path from 'path';
 import {DFS, Vertex} from '../utils/graph';
 import {jsonToCompilerOptions} from '../ts-compiler';
 import {setTsCompilerOptForNodePath} from '../config-handler';
+import {initProcess} from '../utils/bootstrap-process';
 
 
 const baseTsconfigFile = Path.resolve(__dirname, '../../tsconfig-tsx.json');
 const tsxTsconfig = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'));
 tsxTsconfig.config.compilerOptions.allowJs = true;
 const co = jsonToCompilerOptions(tsxTsconfig.config.compilerOptions);
+initProcess();
 
 setTsCompilerOptForNodePath(process.cwd(), './', co);
 const resCache = ts.createModuleResolutionCache(process.cwd(),

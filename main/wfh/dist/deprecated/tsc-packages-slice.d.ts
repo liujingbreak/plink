@@ -12,27 +12,13 @@ export interface TscState {
     configs: Map<string, PackageJsonTscPropertyItem[]>;
 }
 export declare const tscSlice: import("@reduxjs/toolkit").Slice<TscState, {
-    putConfig(draft: {
-        configs: Map<string, {
-            rootDir: string;
-            outDir: string;
-            files?: string[] | undefined;
-            references?: string[] | undefined;
-        }[]>;
-    }, { payload }: PayloadAction<{
+    putConfig(draft: import("immer/dist/internal").WritableDraft<TscState>, { payload }: PayloadAction<{
         pkg: string;
         items: PackageJsonTscPropertyItem[];
     }[]>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<TscState>, "tsc">;
 export declare const tscActionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
-    putConfig(draft: {
-        configs: Map<string, {
-            rootDir: string;
-            outDir: string;
-            files?: string[] | undefined;
-            references?: string[] | undefined;
-        }[]>;
-    }, { payload }: PayloadAction<{
+    putConfig(draft: import("immer/dist/internal").WritableDraft<TscState>, { payload }: PayloadAction<{
         pkg: string;
         items: PackageJsonTscPropertyItem[];
     }[]>): void;
