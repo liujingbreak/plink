@@ -33,8 +33,7 @@ export function dfsTraverseFiles(files: string[]) {
       return dfs.vertexOf(file);
     });
   });
-  // tslint:disable-next-line: no-console
-  console.log('[cli-analysie-worker] visit', files);
+
   dfs.visit(files.map(file => new Vertex(file)));
   if (dfs.backEdges.length > 0) {
     for (const edges of dfs.backEdges) {

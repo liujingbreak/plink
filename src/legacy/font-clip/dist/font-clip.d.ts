@@ -1,4 +1,4 @@
-/// <reference path="../../../../../web-fun-house/src/legacy/font-clip/ts/fonteditor-core.d.ts" />
+/// <reference path="fonteditor-core.d.ts" />
 import { CreateOpt } from 'fonteditor-core';
 export declare function convert(str: string): string;
 /**

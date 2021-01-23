@@ -4,5 +4,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const worker_threads_1 = require("worker_threads");
 console.log('hellow');
 console.log(worker_threads_1.workerData);
-
-//# sourceMappingURL=test-worker.js.map
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGVzdC13b3JrZXIuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJ0ZXN0LXdvcmtlci50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLDZCQUE2QjtBQUM3QixtREFBMEM7QUFFMUMsT0FBTyxDQUFDLEdBQUcsQ0FBQyxRQUFRLENBQUMsQ0FBQztBQUN0QixPQUFPLENBQUMsR0FBRyxDQUFDLDJCQUFVLENBQUMsQ0FBQyIsInNvdXJjZXNDb250ZW50IjpbIi8vIHRzbGludDpkaXNhYmxlOiBuby1jb25zb2xlXG5pbXBvcnQge3dvcmtlckRhdGF9IGZyb20gJ3dvcmtlcl90aHJlYWRzJztcblxuY29uc29sZS5sb2coJ2hlbGxvdycpO1xuY29uc29sZS5sb2cod29ya2VyRGF0YSk7XG4iXX0=

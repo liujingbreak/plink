@@ -1,0 +1,9 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const handler = {
+    webpack(cfg, env, cmdOpt) {
+        // Change webpack configure here
+    }
+};
+exports.default = handler;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY29uZmlnLW92ZXJyaWRlcy5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbImNvbmZpZy1vdmVycmlkZXMudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUFFQSxNQUFNLE9BQU8sR0FBd0I7SUFDbkMsT0FBTyxDQUFDLEdBQUcsRUFBRSxHQUFHLEVBQUUsTUFBTTtRQUN0QixnQ0FBZ0M7SUFDbEMsQ0FBQztDQUNGLENBQUM7QUFFRixrQkFBZSxPQUFPLENBQUMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge1JlYWN0U2NyaXB0c0hhbmRsZXJ9IGZyb20gJ0B3ZmgvY3JhLXNjcmlwdHMvZGlzdC90eXBlcyc7XG5cbmNvbnN0IGhhbmRsZXI6IFJlYWN0U2NyaXB0c0hhbmRsZXIgPSB7XG4gIHdlYnBhY2soY2ZnLCBlbnYsIGNtZE9wdCkge1xuICAgIC8vIENoYW5nZSB3ZWJwYWNrIGNvbmZpZ3VyZSBoZXJlXG4gIH1cbn07XG5cbmV4cG9ydCBkZWZhdWx0IGhhbmRsZXI7XG4iXX0=

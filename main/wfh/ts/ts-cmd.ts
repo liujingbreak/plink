@@ -1,13 +1,13 @@
 // tslint:disable: max-line-length
-const gulpTs = require('gulp-typescript');
+// const gulpTs = require('gulp-typescript');
 import chalk from 'chalk';
 /// <reference path="types.d.ts" />
 import * as packageUtils from './package-utils';
 import * as fs from 'fs-extra';
 import * as _ from 'lodash';
-import {sep, resolve, join, relative, dirname} from 'path';
+import {resolve, join, relative, sep} from 'path';
 import ts from 'typescript';
-import File from 'vinyl';
+// import File from 'vinyl';
 import {getTscConfigOfPkg, PackageTsDirs, closestCommonParentDir} from './utils/misc';
 import {CompilerOptions} from 'typescript';
 import config from './config';
@@ -15,19 +15,16 @@ import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions}
 import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
-import * as sourcemaps from 'gulp-sourcemaps';
+// import * as sourcemaps from 'gulp-sourcemaps';
+import glob from 'glob';
 
-// import Path from 'path';
-const gulp = require('gulp');
-const through = require('through2');
-const chokidar = require('chokidar');
-const merge = require('merge2');
-// const sourcemaps = require('gulp-sourcemaps');
+// const gulp = require('gulp');
+// const through = require('through2');
+// const chokidar = require('chokidar');
+// const merge = require('merge2');
 
 const log = log4js.getLogger('wfh.typescript');
-// exports.init = init;
 const root = config().rootPath;
-// const nodeModules = join(root, 'node_modules');
 
 export interface TscCmdParam {
   include?: string[];
@@ -45,7 +42,7 @@ interface ComponentDirInfo extends PackageTsDirs {
   pkgDir: string;
 }
 
-type EmitList = Array<[string, number]>;
+// type EmitList = Array<[string, number]>;
 
 /**
  * @param {object} argv
@@ -54,7 +51,7 @@ type EmitList = Array<[string, number]>;
  * @param {function} onCompiled () => void
  * @return void
  */
-export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void) {
+export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => void*/): string[] {
   // const possibleSrcDirs = ['isom', 'ts'];
   const compGlobs: string[] = [];
   // var compStream = [];
@@ -78,7 +75,7 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
     baseCompilerOptions = {...baseCompilerOptions, ...tsxTsconfig.config.compilerOptions};
   }
 
-  let promCompile = Promise.resolve( [] as EmitList);
+  // const promCompile = Promise.resolve( [] as EmitList);
   const packageDirTree = new DirTree<ComponentDirInfo>();
 
   let countPkg = 0;
@@ -115,7 +112,7 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
     rootDir: destDir,
     skipLibCheck: true,
     inlineSourceMap: argv.sourceMap === 'inline',
-    sourceMap: true,
+    sourceMap: argv.sourceMap !== 'inline',
     inlineSources: argv.sourceMap === 'inline',
     emitDeclarationOnly: argv.ed
     // preserveSymlinks: true
@@ -123,15 +120,8 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
   setupCompilerOptionsWithPackages(compilerOptions, argv.pathsJsons);
 
   log.info('typescript compilerOptions:', compilerOptions);
+  // const tsProject = gulpTs.createProject({...compilerOptions, typescript: require('typescript')});
 
-  const tsProject = gulpTs.createProject({...compilerOptions, typescript: require('typescript')});
-
-  if (argv.watch) {
-    log.info('Watch mode');
-    watch(compGlobs, tsProject, commonRootDir, packageDirTree, argv.ed, argv.jsx, onCompiled);
-  } else {
-    promCompile = compile(compGlobs, tsProject, commonRootDir, packageDirTree, argv.ed);
-  }
 
   function onComponent(name: string, packagePath: string, _parsedName: any, json: any, realPath: string) {
     countPkg++;
@@ -173,144 +163,256 @@ export function tsc(argv: TscCmdParam, onCompiled?: (emitted: EmitList) => void)
     }
   }
 
+  // return promCompile.then((list) => {
+  //   if (argv.watch !== true && process.send) {
+  //     process.send('plink-tsc compiled');
+  //   }
+  //   return list;
+  // });
 
-  return promCompile.then((list) => {
-    if (argv.watch !== true && process.send) {
+  if (argv.watch) {
+    log.info('Watch mode');
+    watch(compGlobs, compilerOptions, commonRootDir, packageDirTree);
+    return [];
+    // watch(compGlobs, tsProject, commonRootDir, packageDirTree, argv.ed, argv.jsx, onCompiled);
+  } else {
+    const emitted = compile(compGlobs, compilerOptions, commonRootDir, packageDirTree);
+    if (process.send)
       process.send('plink-tsc compiled');
+    return emitted;
+    // promCompile = compile(compGlobs, tsProject, commonRootDir, packageDirTree, argv.ed);
+  }
+}
+
+const formatHost: ts.FormatDiagnosticsHost = {
+  getCanonicalFileName: path => path,
+  getCurrentDirectory: ts.sys.getCurrentDirectory,
+  getNewLine: () => ts.sys.newLine
+};
+
+function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
+  const rootFiles: string[] = _.flatten(
+    globPatterns.map(pattern => glob.sync(pattern).filter(file => !file.endsWith('.d.ts')))
+  );
+  const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, process.cwd().replace(/\\/g, '/'),
+    undefined, 'tsconfig.json').options;
+  const programHost = ts.createWatchCompilerHost(rootFiles, compilerOptions, ts.sys, ts.createEmitAndSemanticDiagnosticsBuilderProgram,
+    reportDiagnostic, reportWatchStatusChanged);
+
+  const origCreateProgram = programHost.createProgram;
+  programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
+    host?: ts.CompilerHost) {
+    if (host) {
+      overrideCompilerHost(host, commonRootDir, packageDirTree);
     }
-    return list;
+    return origCreateProgram.apply(this, arguments);
+  };
+  ts.createWatchProgram(programHost);
+}
+
+function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
+  const rootFiles: string[] = _.flatten(
+    globPatterns.map(pattern => glob.sync(pattern).filter(file => !file.endsWith('.d.ts')))
+  );
+  // console.log(rootFiles);
+  const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, process.cwd().replace(/\\/g, '/'),
+    undefined, 'tsconfig.json').options;
+  const host = ts.createCompilerHost(compilerOptions);
+  const emitted = overrideCompilerHost(host, commonRootDir, packageDirTree);
+  const program = ts.createProgram(rootFiles, compilerOptions, host);
+  const emitResult = program.emit();
+  const allDiagnostics = ts.getPreEmitDiagnostics(program)
+    .concat(emitResult.diagnostics);
+
+  allDiagnostics.forEach(diagnostic => {
+    reportDiagnostic(diagnostic);
   });
+  if (emitResult.emitSkipped) {
+    throw new Error('Compile failed');
+  }
+  return emitted;
 }
 
-async function compile(compGlobs: string[], tsProject: any, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>, emitTdsOnly = false) {
-  // const gulpBase = root + SEP;
-  const startTime = new Date().getTime();
+function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>): string[] {
+  const emittedList: string[] = [];
 
-  function printDuration(isError: boolean) {
-    const sec = Math.ceil((new Date().getTime() - startTime) / 1000);
-    const min = `${Math.floor(sec / 60)} minutes ${sec % 60} secends`;
-    log.info(`Compiled ${isError ? 'with errors ' : ''}in ` + min);
-  }
-
-
-  const compileErrors: string[] = [];
-  log.info('tsc compiles: ', compGlobs.join(', '));
-  const tsResult = gulp.src(compGlobs)
-  .pipe(sourcemaps.init())
-  .pipe(tsProject())
-  .on('error', (err: Error) => {
-    compileErrors.push(err.message);
-  });
-
-  // LJ: Let's try to use --sourceMap with --inlineSource, so that I don't need to change file path in source map
-  // which is outputed
-
-  const streams: any[] = [];
-  const jsStream = tsResult.js
-    .pipe(changePath(commonRootDir, packageDirTree))
-    .pipe(sourcemaps.write('.', {includeContent: true})); // source map output is problematic, which mess with directories
-  streams.push(jsStream);
-  streams.push(tsResult.dts.pipe(changePath(commonRootDir, packageDirTree)));
-
-  const emittedList = [] as EmitList;
-  const all = merge(streams)
-  .pipe(through.obj(async function(file: File, en: string, next: (...arg: any[]) => void) {
-    if (file.path.endsWith('.map')) {
-      next(null);
-      return;
-    }
-    // if (emitTdsOnly && !file.path.endsWith('.d.ts'))
-    //   return next();
-    const displayPath = file.path;
-    const displaySize = Math.round((file.contents as Buffer).byteLength / 1024 * 10) / 10;
-
-    log.info('%s %s Kb', displayPath, chalk.blueBright(displaySize + ''));
-    emittedList.push([displayPath, displaySize]);
-    await fs.mkdirp(dirname(file.path));
-    await fs.promises.writeFile(file.path, file.contents as Buffer);
-    next(null, file);
-  }))
-  .resume();
-  // .pipe(gulp.dest(commonRootDir));
-
-  try {
-    await new Promise<EmitList>((resolve, reject) => {
-      all.on('end', () => {
-        if (compileErrors.length > 0) {
-          log.error('\n---------- Failed to compile Typescript files, check out below error message -------------\n');
-          compileErrors.forEach(msg => log.error(msg));
-          return reject(new Error('Failed to compile Typescript files'));
-        }
-        resolve(emittedList);
-      });
-      all.on('error', reject);
-      all.resume();
-    });
-    return emittedList;
-  } finally {
-    printDuration(false);
-  }
-}
-
-function watch(compGlobs: string[], tsProject: any, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>,
-  emitTdsOnly = false, hasTsx = false, onCompiled?: (emitted: EmitList) => void) {
-  const compileFiles: string[] = [];
-  let promCompile = Promise.resolve( [] as EmitList);
-
-  const delayCompile = _.debounce((globs: string[]) => {
-    const globsCopy = globs.slice(0, globs.length);
-    globs.splice(0);
-    promCompile = promCompile.catch(() => [] as EmitList)
-      .then(() => compile(globsCopy, tsProject, commonRootDir, packageDirTree, emitTdsOnly))
-      .catch(() => [] as EmitList);
-    if (onCompiled)
-      promCompile = promCompile.then(emitted => {
-        onCompiled(emitted);
-        return emitted;
-      });
-  }, 200);
-
-  const watcher = chokidar.watch(compGlobs, {ignored: /(\.d\.ts|\.js)$/ });
-  watcher.on('add', (path: string) => onChangeFile(path, 'added'));
-  watcher.on('change', (path: string) => onChangeFile(path, 'changed'));
-  watcher.on('unlink', (path: string) => onChangeFile(path, 'removed'));
-
-  function onChangeFile(path: string, reason: string) {
-    if (reason !== 'removed')
-      compileFiles.push(path);
-    log.info(`File ${chalk.cyan(relative(root, path))} has been ` + chalk.yellow(reason));
-    delayCompile(compileFiles);
-  }
-}
-
-
-function changePath(commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
-  return through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
-
-    const treePath = relative(commonRootDir, file.path);
-    const _originPath = file.path; // absolute path
+  const _writeFile = host.writeFile;
+  const writeFile: ts.WriteFileCallback = function(fileName, data, writeByteOrderMark, onError, sourceFiles) {
+    const treePath = relative(commonRootDir, fileName);
+    const _originPath = fileName; // absolute path
     const {srcDir, destDir, pkgDir: dir} = packageDirTree.getAllData(treePath).pop()!;
-    // const absFile = resolve(commonRootDir, treePath);
     const pathWithinPkg = relative(dir, _originPath);
-    // console.log(dir, tsDirs);
     const prefix = srcDir;
-    // for (const prefix of [tsDirs.srcDir, tsDirs.isomDir]) {
     if (prefix === '.' || prefix.length === 0) {
-      file.path = join(dir, destDir, pathWithinPkg);
-      // break;
+      fileName = join(dir, destDir, pathWithinPkg);
     } else if (pathWithinPkg.startsWith(prefix + sep)) {
-      file.path = join(dir, destDir, pathWithinPkg.slice(prefix.length + 1));
-      // break;
+      fileName = join(dir, destDir, pathWithinPkg.slice(prefix.length + 1));
     }
-    // }
-    // console.log('pathWithinPkg', pathWithinPkg);
-    // console.log('file.path', file.path);
-    file.base = commonRootDir;
-    // console.log('file.base', file.base);
-    // console.log('file.relative', file.relative);
-    next(null, file);
-  });
+    // const displaySize = Math.round((file.contents as Buffer).byteLength / 1024 * 10) / 10;
+
+    // log.info('%s %s Kb', displayPath, chalk.blueBright(displaySize + ''));
+    emittedList.push(fileName);
+    // tslint:disable-next-line: no-console
+    console.log('write file', fileName);
+    // await fs.mkdirp(dirname(file.path));
+    // await fs.promises.writeFile(file.path, file.contents as Buffer);
+
+    // It seems Typescript compiler always uses slash instead of back slash in file path, even in Windows
+    return _writeFile.call(this, fileName.replace(/\\/g, '/'), ...Array.prototype.slice.call(arguments, 1));
+  };
+
+  host.writeFile = writeFile;
+  const _getSourceFile = host.getSourceFile;
+  const getSourceFile: typeof _getSourceFile = function(fileName) {
+    // console.log('getSourceFile', fileName);
+    return _getSourceFile.apply(this, arguments);
+  };
+  host.getSourceFile = getSourceFile;
+  return emittedList;
 }
+
+function reportDiagnostic(diagnostic: ts.Diagnostic) {
+  let fileInfo = '';
+  if (diagnostic.file) {
+    const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
+    fileInfo = `${diagnostic.file.fileName}, line: ${line + 1}, column: ${character + 1}`;
+  }
+  console.error(chalk.red(`Error ${diagnostic.code} ${fileInfo} :`), ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
+}
+
+function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
+  console.info(chalk.cyan(ts.formatDiagnostic(diagnostic, formatHost)));
+}
+
+// async function compile(compGlobs: string[], tsProject: any, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>, emitTdsOnly = false) {
+//   // const gulpBase = root + SEP;
+//   const startTime = new Date().getTime();
+
+//   function printDuration(isError: boolean) {
+//     const sec = Math.ceil((new Date().getTime() - startTime) / 1000);
+//     const min = `${Math.floor(sec / 60)} minutes ${sec % 60} secends`;
+//     log.info(`Compiled ${isError ? 'with errors ' : ''}in ` + min);
+//   }
+
+
+//   const compileErrors: string[] = [];
+//   log.info('tsc compiles: ', compGlobs.join(', '));
+//   const tsResult = gulp.src(compGlobs)
+//   .pipe(sourcemaps.init())
+//   .pipe(tsProject())
+//   .on('error', (err: Error) => {
+//     compileErrors.push(err.message);
+//   });
+
+//   // LJ: Let's try to use --sourceMap with --inlineSource, so that I don't need to change file path in source map
+//   // which is outputed
+
+//   const streams: any[] = [];
+//   const jsStream = tsResult.js
+//     .pipe(changePath(commonRootDir, packageDirTree))
+//     .pipe(sourcemaps.write('.', {includeContent: true})); // source map output is problematic, which mess with directories
+//   streams.push(jsStream);
+//   streams.push(tsResult.dts.pipe(changePath(commonRootDir, packageDirTree)));
+
+//   const emittedList = [] as EmitList;
+//   const all = merge(streams)
+//   .pipe(through.obj(async function(file: File, en: string, next: (...arg: any[]) => void) {
+//     if (file.path.endsWith('.map')) {
+//       next(null);
+//       return;
+//     }
+//     // if (emitTdsOnly && !file.path.endsWith('.d.ts'))
+//     //   return next();
+//     const displayPath = file.path;
+//     const displaySize = Math.round((file.contents as Buffer).byteLength / 1024 * 10) / 10;
+
+//     log.info('%s %s Kb', displayPath, chalk.blueBright(displaySize + ''));
+//     emittedList.push([displayPath, displaySize]);
+//     await fs.mkdirp(dirname(file.path));
+//     await fs.promises.writeFile(file.path, file.contents as Buffer);
+//     next(null, file);
+//   }))
+//   .resume();
+//   // .pipe(gulp.dest(commonRootDir));
+
+//   try {
+//     await new Promise<EmitList>((resolve, reject) => {
+//       all.on('end', () => {
+//         if (compileErrors.length > 0) {
+//           log.error('\n---------- Failed to compile Typescript files, check out below error message -------------\n');
+//           compileErrors.forEach(msg => log.error(msg));
+//           return reject(new Error('Failed to compile Typescript files'));
+//         }
+//         resolve(emittedList);
+//       });
+//       all.on('error', reject);
+//       all.resume();
+//     });
+//     return emittedList;
+//   } finally {
+//     printDuration(false);
+//   }
+// }
+
+// function watch(compGlobs: string[], tsProject: any, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>,
+//   emitTdsOnly = false, hasTsx = false, onCompiled?: (emitted: EmitList) => void) {
+//   const compileFiles: string[] = [];
+//   let promCompile = Promise.resolve( [] as EmitList);
+
+//   const delayCompile = _.debounce((globs: string[]) => {
+//     const globsCopy = globs.slice(0, globs.length);
+//     globs.splice(0);
+//     promCompile = promCompile.catch(() => [] as EmitList)
+//       .then(() => compile(globsCopy, tsProject, commonRootDir, packageDirTree, emitTdsOnly))
+//       .catch(() => [] as EmitList);
+//     if (onCompiled)
+//       promCompile = promCompile.then(emitted => {
+//         onCompiled(emitted);
+//         return emitted;
+//       });
+//   }, 200);
+
+//   const watcher = chokidar.watch(compGlobs, {ignored: /(\.d\.ts|\.js)$/ });
+//   watcher.on('add', (path: string) => onChangeFile(path, 'added'));
+//   watcher.on('change', (path: string) => onChangeFile(path, 'changed'));
+//   watcher.on('unlink', (path: string) => onChangeFile(path, 'removed'));
+
+//   function onChangeFile(path: string, reason: string) {
+//     if (reason !== 'removed')
+//       compileFiles.push(path);
+//     log.info(`File ${chalk.cyan(relative(root, path))} has been ` + chalk.yellow(reason));
+//     delayCompile(compileFiles);
+//   }
+// }
+
+
+// function changePath(commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
+//   return through.obj(function(file: File, en: string, next: (...arg: any[]) => void) {
+
+//     const treePath = relative(commonRootDir, file.path);
+//     const _originPath = file.path; // absolute path
+//     const {srcDir, destDir, pkgDir: dir} = packageDirTree.getAllData(treePath).pop()!;
+//     // const absFile = resolve(commonRootDir, treePath);
+//     const pathWithinPkg = relative(dir, _originPath);
+//     // console.log(dir, tsDirs);
+//     const prefix = srcDir;
+//     // for (const prefix of [tsDirs.srcDir, tsDirs.isomDir]) {
+//     if (prefix === '.' || prefix.length === 0) {
+//       file.path = join(dir, destDir, pathWithinPkg);
+//       // break;
+//     } else if (pathWithinPkg.startsWith(prefix + sep)) {
+//       file.path = join(dir, destDir, pathWithinPkg.slice(prefix.length + 1));
+//       // break;
+//     }
+//     // }
+//     // console.log('pathWithinPkg', pathWithinPkg);
+//     // console.log('file.path', file.path);
+//     file.base = commonRootDir;
+//     // console.log('file.base', file.base);
+//     // console.log('file.relative', file.relative);
+//     next(null, file);
+//   });
+// }
 
 function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, pathsJsons: string[]) {
   const cwd = process.cwd();
