@@ -825,7 +825,7 @@ async function copyNpmrcToWorkspace(workspaceDir: string) {
   if (isChina) {
     // tslint:disable-next-line: no-console
     console.log('create .npmrc to', target);
-    fs.copyFileSync(Path.resolve(__dirname, '../../../.npmrc'), target);
+    fs.copyFileSync(Path.resolve(__dirname, '../../templates/npmrc-for-cn.txt'), target);
   }
 }
 

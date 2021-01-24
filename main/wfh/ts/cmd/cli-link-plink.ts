@@ -7,9 +7,9 @@ import {getState, installInDir} from '../package-mgr';
  * 
  * @return a function to write the original package.json file back
  */
-export async function reinstallWithLinkedPlink(plinkRepoPath: string) {
+export async function reinstallWithLinkedPlink() {
   const rootDir = getRootDir();
-  
+
   const pkjsonFile = Path.resolve(rootDir, 'package.json');
   const origPkJsonStr = fs.readFileSync(pkjsonFile, 'utf8');
   const pkJson = JSON.parse(origPkJsonStr);
@@ -31,6 +31,7 @@ export async function reinstallWithLinkedPlink(plinkRepoPath: string) {
     }
   }
   const str = JSON.stringify(pkJson, null, '  ');
-  console.log('Install with package.json:', str)
+  // tslint:disable-next-line: no-console
+  console.log('Install with package.json:', str);
   await installInDir(rootDir, origPkJsonStr, str);
 }

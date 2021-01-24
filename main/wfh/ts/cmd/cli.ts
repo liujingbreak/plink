@@ -136,14 +136,15 @@ function subWfhCommand(program: commander.Command) {
     await scanNodeModules('all');
   });
 
-  const cmdUpgrade = program.command('upgrade')
+  /**
+   * command upgrade
+   */
+  program.command('upgrade')
   .alias('install')
   .description('Reinstall local Plink along with other dependencies.' +
     ' (Unlike "npm install" which does not work with node_modules that may contains symlinks)')
-  .option('--plink-repo,--plink <Plink src directory>',
-    'For development purpose, use Plink as a symlink instead of installing Plink locally, option value is the Plink source repository directory')
   .action(async () => {
-    await (await import('./cli-link-plink')).reinstallWithLinkedPlink(cmdUpgrade.opts().plinkRepo);
+    await (await import('./cli-link-plink')).reinstallWithLinkedPlink();
   });
 
   program.command('dockerize <workspace-dir>')

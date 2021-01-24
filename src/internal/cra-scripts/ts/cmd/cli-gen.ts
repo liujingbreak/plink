@@ -23,15 +23,16 @@ export async function genPackage(path: string, compName = 'Sample', dryrun = fal
   if (ma) {
     path = ma[1];
   }
+  const packageName = Path.basename(path);
   await generateStructure(Path.resolve(__dirname, '../../template'), dir,
     {
       fileMapping: [
         [/^my\-feature/, 'sample'],
-        [/^MyFeature/, compName],
+        [/^MyFeature/, sCompName],
         [/^MyComponent/, compName + 'Comp']
       ],
       textMapping: {
-        packageName: Path.basename(path),
+        packageName,
         MyComponent: compName + 'Comp',
         SliceName: compName,
         sliceName: sCompName,
@@ -42,9 +43,10 @@ export async function genPackage(path: string, compName = 'Sample', dryrun = fal
 
   // copyTempl(dir, Path.basename(path), dryrun);
   console.log('[cra-scripts cmd]\n' + boxString(
-    `Please modify ${Path.resolve(path, 'package.json')} to change package name,\n` +
-
-    `and run command:\n  ${chalk.cyan('plink init')}`));
+    `1. Modify ${Path.resolve(path, 'package.json')} to change current package name "${packageName}",` +
+    ` if you don't like it.\n` +
+    `2. Add "${packageName}" as dependency in ${process.cwd()}/package.json.\n` +
+    `3. Run command:\n  ${chalk.cyan('plink init .')}`));
 }
 
 export async function genComponents(dir: string, compNames: string[], dryrun = false) {

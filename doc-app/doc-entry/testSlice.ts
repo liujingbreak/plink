@@ -1,5 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
+import { ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
 import {from, merge} from 'rxjs';
 
@@ -9,27 +9,27 @@ import {from, merge} from 'rxjs';
  * "This is likely not portable, a type annotation is necessary" 
  * https://github.com/microsoft/TypeScript/issues/30858
  */
-export * as immerInternal from 'immer/dist/internal';
-import * as reduxTook from '@reduxjs/toolkit';
-export * as rxjs from 'rxjs';
-export {reduxTook};
+// export * as immerInternal from 'immer/dist/internal';
+// import * as reduxTook from '@reduxjs/toolkit';
+// export * as rxjs from 'rxjs';
+// export {reduxTook};
 
-export interface ExampleState {
+export interface TestState {
   foo: boolean;
   _computed: {
     bar: string;
   };
 }
 
-const initialState: ExampleState = {
+const initialState: TestState = {
   foo: true,
   _computed: {
     bar: ''
   }
 };
 
-export const exampleSlice = stateFactory.newSlice({
-  name: 'example',
+const testSlice = stateFactory.newSlice({
+  name: 'test',
   initialState,
   reducers: {
     exampleAction(s, {payload}: PayloadAction<boolean>) {
@@ -39,13 +39,12 @@ export const exampleSlice = stateFactory.newSlice({
   }
 });
 
-export const dispatcher = stateFactory.bindActionCreators(exampleSlice);
+export const dispatcher = stateFactory.bindActionCreators(testSlice);
 
-const releaseEpic = stateFactory.addEpic<{example: ExampleState}>((action$, state$) => {
-  // const gService = getModuleInjector().get(GlobalStateStore);
+const releaseEpic = stateFactory.addEpic<{Test: TestState}>((action$, state$) => {
 
   return merge(
-    action$.pipe(ofPayloadAction(exampleSlice.actions.exampleAction),
+    action$.pipe(ofPayloadAction(testSlice.actions.exampleAction),
       switchMap(({payload}) => {
         return from(Promise.resolve('mock async HTTP request call'));
       })
@@ -71,16 +70,16 @@ const releaseEpic = stateFactory.addEpic<{example: ExampleState}>((action$, stat
 });
 
 export function getState() {
-  return stateFactory.sliceState(exampleSlice);
+  return stateFactory.sliceState(testSlice);
 }
 
 export function getStore() {
-  return stateFactory.sliceStore(exampleSlice);
+  return stateFactory.sliceStore(testSlice);
 }
 
 if (module.hot) {
   module.hot.dispose(data => {
-    stateFactory.removeSlice(exampleSlice);
+    stateFactory.removeSlice(testSlice);
     releaseEpic();
   });
 }

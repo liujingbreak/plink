@@ -1,5 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { ofPayloadAction, stateFactory } from '../state-factory';
+import { ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
 import {from, merge} from 'rxjs';
 

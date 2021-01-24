@@ -1091,6 +1091,11 @@
         "signature": "ad98b1d398c21a1186659f1b541a3e026a0f996b224834e817255990944842fb",
         "affectsGlobalScope": false
       },
+      "../state-factory-browser.ts": {
+        "version": "44cd467700d8243e8d9f5e675e8d0699015ad978fe4e10ecec5313a9ab50f744",
+        "signature": "a606199d7ed533bd21455062d8ae11018ccbb3fb765caa2c867d0bc8eb6ac2f8",
+        "affectsGlobalScope": false
+      },
       "../../node_modules/@types/anymatch/index.d.ts": {
         "version": "48b52264fa193879a074197839dbb4796fa07e86350ff888e5361e06aa46df76",
         "signature": "48b52264fa193879a074197839dbb4796fa07e86350ff888e5361e06aa46df76",
@@ -1672,8 +1677,8 @@
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/serialize-javascript/index.d.ts": {
-        "version": "6009bf461acd397abb57ba29ee071eb5d696366869cdf11340753a01e8b58e63",
-        "signature": "6009bf461acd397abb57ba29ee071eb5d696366869cdf11340753a01e8b58e63",
+        "version": "1bca1cfad2d2219942a3b6c23f22121c2105a957c6d9fcc89afce6b706ed5dc7",
+        "signature": "1bca1cfad2d2219942a3b6c23f22121c2105a957c6d9fcc89afce6b706ed5dc7",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/source-list-map/index.d.ts": {
@@ -3321,6 +3326,11 @@
         "../../node_modules/rxjs/index.d.ts",
         "../../node_modules/rxjs/operators/index.d.ts",
         "../hmr-module.d.ts"
+      ],
+      "../state-factory-browser.ts": [
+        "../../node_modules/immer/dist/immer.d.ts",
+        "../../node_modules/rxjs/operators/index.d.ts",
+        "../redux-toolkit-observable.ts"
       ]
     },
     "exportedModulesMap": {
@@ -4833,6 +4843,9 @@
         "../../node_modules/redux-observable/index.d.ts",
         "../../node_modules/redux/index.d.ts",
         "../../node_modules/rxjs/index.d.ts"
+      ],
+      "../state-factory-browser.ts": [
+        "../redux-toolkit-observable.ts"
       ]
     },
     "semanticDiagnosticsPerFile": [
@@ -5190,7 +5203,8 @@
       "../../node_modules/typescript/lib/lib.es5.d.ts",
       "../../node_modules/typescript/lib/lib.esnext.intl.d.ts",
       "../hmr-module.d.ts",
-      "../redux-toolkit-observable.ts"
+      "../redux-toolkit-observable.ts",
+      "../state-factory-browser.ts"
     ]
   },
   "version": "4.1.2"

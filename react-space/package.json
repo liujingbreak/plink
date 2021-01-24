@@ -18,7 +18,6 @@
     "typescript": "^4.1.2",
     "web-vitals": "^0.2.4",
     "@wfh/doc-entry": "1.0.0",
-    "sass": "^1.29.0",
     "@wfh/tool-misc": "~1.1.1"
   },
   "devDependencies": {
@@ -26,7 +25,8 @@
     "@wfh/webpack-common": "1.0.2",
     "@wfh/redux-toolkit-observable": "1.0.5",
     "axios-observable": "^1.1.3",
-    "react-app-polyfill": "^2.0.0"
+    "react-app-polyfill": "^2.0.0",
+    "sass": "^1.29.0"
   },
   "scripts": {
     "start": "react-scripts start",

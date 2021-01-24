@@ -221,11 +221,12 @@ export function setTsCompilerOptForNodePath(
     assigneeOptions.paths['*'] = [];
 
   // console.log('pathsDirs', pathsDirs);
+  const absBaseUrl = Path.resolve(tsconfigDir, baseUrl);
   for (const dir of pathsDirs) {
-    const relativeDir = Path.relative(Path.resolve(tsconfigDir, baseUrl), dir).replace(/\\/g, '/');
+    const relativeDir = Path.relative(absBaseUrl, dir).replace(/\\/g, '/');
     // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
-    assigneeOptions.paths['*'].push(relativeDir + '/@types/*');
-    assigneeOptions.paths['*'].push(relativeDir + '/*');
+    assigneeOptions.paths['*'].push(Path.join(relativeDir, '@types/*').replace(/\\/g, '/'));
+    assigneeOptions.paths['*'].push(Path.join(relativeDir, '*').replace(/\\/g, '/'));
   }
 
   assigneeOptions.typeRoots = [

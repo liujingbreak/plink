@@ -1,5 +1,5 @@
 import {PayloadAction, InferActionsType} from '../redux-toolkit-observable';
-import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from './state-factory';
+import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
 import {from, merge, Observable} from 'rxjs';
 

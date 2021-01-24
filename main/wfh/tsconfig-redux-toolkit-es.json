@@ -14,8 +14,8 @@
     "../redux-toolkit-observable/*.ts"
   ],
   "exclude": [
-    "../redux-toolkit-observable/es/**/*.ts",
-    "../redux-toolkit-observable/dist/**/*.ts",
+    "../redux-toolkit-observable/es/**/*",
+    "../redux-toolkit-observable/dist/**/*",
     "../redux-toolkit-observable/example/**/*.ts",
     "../redux-toolkit-observable/template/**/*.ts"
   ]

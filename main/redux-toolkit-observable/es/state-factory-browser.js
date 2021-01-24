@@ -1,0 +1,27 @@
+// tslint:disable:no-console
+import { ofPayloadAction, StateFactory } from './redux-toolkit-observable';
+import { enableES5, enableMapSet } from 'immer';
+import { tap } from 'rxjs/operators';
+enableES5();
+enableMapSet();
+export const stateFactory = module.hot && module.hot.data && module.hot.data.stateFactory ? module.hot.data.stateFactory :
+    new StateFactory({});
+let sub;
+if (process.env.REACT_APP_env !== 'prod') {
+    sub = stateFactory.log$.pipe(tap(params => {
+        if (params[0] === 'state')
+            console.log('%c redux:state ', 'font-weight: bold; color: black; background: #44c2fd;', ...params.slice(1));
+        else if (params[0] === 'action')
+            console.log('%c redux:action ', 'font-weight: bold; color: white; background: #8c61ff;', ...params.slice(1));
+        else
+            console.log(...params);
+    })).subscribe();
+}
+export { ofPayloadAction };
+if (module.hot) {
+    module.hot.dispose(data => {
+        data.stateFactory = stateFactory;
+        sub.unsubscribe();
+    });
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic3RhdGUtZmFjdG9yeS1icm93c2VyLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vc3RhdGUtZmFjdG9yeS1icm93c2VyLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLDRCQUE0QjtBQUM1QixPQUFPLEVBQUUsZUFBZSxFQUFFLFlBQVksRUFBRSxNQUFNLDRCQUE0QixDQUFDO0FBQzNFLE9BQU8sRUFBRSxTQUFTLEVBQUUsWUFBWSxFQUFFLE1BQU0sT0FBTyxDQUFDO0FBQ2hELE9BQU8sRUFBRSxHQUFHLEVBQUUsTUFBTSxnQkFBZ0IsQ0FBQztBQUVyQyxTQUFTLEVBQUUsQ0FBQztBQUNaLFlBQVksRUFBRSxDQUFDO0FBRWYsTUFBTSxDQUFDLE1BQU0sWUFBWSxHQUFHLE1BQU0sQ0FBQyxHQUFHLElBQUksTUFBTSxDQUFDLEdBQUcsQ0FBQyxJQUFJLElBQUksTUFBTSxDQUFDLEdBQUcsQ0FBQyxJQUFJLENBQUMsWUFBWSxDQUFDLENBQUMsQ0FBQyxNQUFNLENBQUMsR0FBRyxDQUFDLElBQUksQ0FBQyxZQUE0QixDQUFBLENBQUM7SUFDdkksSUFBSSxZQUFZLENBQUMsRUFBRSxDQUFDLENBQUM7QUFFdkIsSUFBSSxHQUFzRCxDQUFDO0FBQzNELElBQUksT0FBTyxDQUFDLEdBQUcsQ0FBQyxhQUFhLEtBQUssTUFBTSxFQUFFO0lBQ3hDLEdBQUcsR0FBRyxZQUFZLENBQUMsSUFBSSxDQUFDLElBQUksQ0FDMUIsR0FBRyxDQUFDLE1BQU0sQ0FBQyxFQUFFO1FBQ1gsSUFBSSxNQUFNLENBQUMsQ0FBQyxDQUFDLEtBQUssT0FBTztZQUN2QixPQUFPLENBQUMsR0FBRyxDQUFDLGlCQUFpQixFQUFFLHVEQUF1RCxFQUFFLEdBQUcsTUFBTSxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQyxDQUFDO2FBQ3pHLElBQUksTUFBTSxDQUFDLENBQUMsQ0FBQyxLQUFLLFFBQVE7WUFDL0IsT0FBTyxDQUFDLEdBQUcsQ0FBQyxrQkFBa0IsRUFBRSx1REFBdUQsRUFBRSxHQUFHLE1BQU0sQ0FBQyxLQUFLLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FBQzs7WUFFM0csT0FBTyxDQUFDLEdBQUcsQ0FBQyxHQUFHLE1BQU0sQ0FBQyxDQUFDO0lBQzNCLENBQUMsQ0FBQyxDQUNILENBQUMsU0FBUyxFQUFFLENBQUM7Q0FDZjtBQUVELE9BQU8sRUFBRSxlQUFlLEVBQUUsQ0FBQztBQUUzQixJQUFJLE1BQU0sQ0FBQyxHQUFHLEVBQUU7SUFDZCxNQUFNLENBQUMsR0FBRyxDQUFDLE9BQU8sQ0FBQyxJQUFJLENBQUMsRUFBRTtRQUN4QixJQUFJLENBQUMsWUFBWSxHQUFHLFlBQVksQ0FBQztRQUNqQyxHQUFHLENBQUMsV0FBVyxFQUFFLENBQUM7SUFDcEIsQ0FBQyxDQUFDLENBQUM7Q0FDSiJ9
