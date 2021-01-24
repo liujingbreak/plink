@@ -10,19 +10,10 @@ export declare function eachRecipeSrc(callback: EachRecipeSrcCallback): void;
 export declare function eachRecipeSrc(projectDir: string, callback: EachRecipeSrcCallback): void;
 export declare type EachRecipeCallback = (recipeDir: string, isFromInstallation: boolean, jsonFileName: string, jsonFileContent: string) => void;
 /**
- * @name eachRecipe
- * @param  {Function} callback function(recipeDir, isFromInstallation, jsonFileName = 'package.json'): void
+ * @returns Observable of tuple [project, package.json file]
  */
-/**
- * eachInstalledRecipe
- * @param callback function(recipeDir, isFromInstallation, jsonFileName = 'package.json'): void
-*/
+export declare function scanPackages(): Observable<[string, string]>;
 /**
  * @return array of linked package's package.json file path
  */
-export declare function linkComponentsAsync(symlinksDir: string): Observable<{
-    proj: string;
-    jsonFile: string;
-    json: any;
-}>;
 export declare function clean(): Promise<void>;

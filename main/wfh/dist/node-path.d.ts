@@ -8,6 +8,6 @@ export interface PlinkEnv {
     distDir: string;
     isDrcpSymlink: boolean;
     rootDir: string;
-    symlinkDir: string;
+    symlinkDir: string | null;
     nodePath: string[];
 }

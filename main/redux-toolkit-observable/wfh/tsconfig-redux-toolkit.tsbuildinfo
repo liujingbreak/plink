@@ -1677,8 +1677,8 @@
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/serialize-javascript/index.d.ts": {
-        "version": "1bca1cfad2d2219942a3b6c23f22121c2105a957c6d9fcc89afce6b706ed5dc7",
-        "signature": "1bca1cfad2d2219942a3b6c23f22121c2105a957c6d9fcc89afce6b706ed5dc7",
+        "version": "6009bf461acd397abb57ba29ee071eb5d696366869cdf11340753a01e8b58e63",
+        "signature": "6009bf461acd397abb57ba29ee071eb5d696366869cdf11340753a01e8b58e63",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/source-list-map/index.d.ts": {
@@ -1798,7 +1798,7 @@
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
       "noUnusedLocals": true,
-      "preserveSymlinks": false,
+      "preserveSymlinks": true,
       "downlevelIteration": false,
       "strictNullChecks": true,
       "resolveJsonModule": true,

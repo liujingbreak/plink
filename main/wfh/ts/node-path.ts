@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import chalk from 'chalk';
 import log4js from 'log4js';
 import {hookCommonJsRequire} from './loaderHooks';
-
+import _ from 'lodash';
 
 let envSetDone = false;
 
@@ -29,7 +29,10 @@ if (!envSetDone) {
   }
   const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR);
 
-  const symlinkDir = exitingEnvVar ? exitingEnvVar.symlinkDir : Path.resolve(rootDir, 'node_modules');
+  let symlinkDir = exitingEnvVar ? exitingEnvVar.symlinkDir : Path.resolve('.links');
+  if (symlinkDir && !fs.existsSync(symlinkDir)) {
+    symlinkDir = null;
+  }
   const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(Path.resolve(rootDir, 'node_modules/@wfh/plink')).isSymbolicLink();
   const nodePath = setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
   const distDir = Path.resolve(rootDir, process.env.PLINK_DATA_DIR);
@@ -73,34 +76,29 @@ function findRootDir(distDir: string) {
  * @param rootDir 
  * @param isDrcpSymlink 
  */
-function setupNodePath(rootDir: string, symlinkDir: string, isDrcpSymlink: boolean) {
-  let nodePaths: Set<string>;
-  // const symlinkDir = Path.resolve(rootDir, 'dist', 'symlinks');
-  if (rootDir !== process.cwd()) {
-    nodePaths = new Set([
-      Path.resolve(process.cwd(), 'node_modules'),
-      symlinkDir,
-      Path.resolve(rootDir, 'node_modules')
-    ]);
-  } else {
-    nodePaths = new Set([
-      symlinkDir,
-      Path.resolve(rootDir, 'node_modules')
-    ]);
+function setupNodePath(rootDir: string, symlinkDir: string | null, isDrcpSymlink: boolean) {
+  const nodePaths: string[] = [Path.resolve(rootDir, 'node_modules')];
+  if (symlinkDir) {
+    nodePaths.unshift(symlinkDir);
   }
+  if (rootDir !== process.cwd()) {
+    nodePaths.unshift(Path.resolve(process.cwd(), 'node_modules'));
+  }
+
 
   /**
    * Somehow when I install @wfh/plink in an new directory, npm does not dedupe dependencies from 
    * @wfh/plink/node_modules directory up to current node_modules directory, results in MODULE_NOT_FOUND
    * from @wfh/plink/redux-toolkit-abservable for rxjs
    */
-  nodePaths.add(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/@wfh/plink')) + Path.sep + 'node_modules');
+  nodePaths.push(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/@wfh/plink')) + Path.sep + 'node_modules');
   if (process.env.NODE_PATH) {
     for (const path of process.env.NODE_PATH.split(Path.delimiter)) {
-      nodePaths.add(path);
+      nodePaths.push(path);
     }
   }
-  const pathArray = Array.from(nodePaths.values());
+
+  const pathArray = _.uniq(nodePaths);
   process.env.NODE_PATH = pathArray.join(Path.delimiter);
   // tslint:disable-next-line: no-console
   console.log(chalk.gray('[node-path] NODE_PATH', process.env.NODE_PATH));
@@ -118,7 +116,7 @@ export interface PlinkEnv {
   distDir: string;
   isDrcpSymlink: boolean;
   rootDir: string;
-  symlinkDir: string;
+  symlinkDir: string | null;
   nodePath: string[];
 }
 

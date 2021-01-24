@@ -8,26 +8,14 @@ import {Observable, merge} from 'rxjs';
 import * as fs from 'fs-extra';
 import scanNodeModules from './utils/symlinks';
 import findPackageJson from './package-mgr/find-package';
-import * as rwPackageJson from './rwPackageJson';
+// import * as rwPackageJson from './rwPackageJson';
 import {map} from 'rxjs/operators';
-// import {actions as cleanActions} from './cmd/cli-clean';
-// const log = require('log4js').getLogger('wfh.' + Path.basename(__filename));
-// import config from './config';
-// import {getRootDir} from './utils';
 
 let projectList: string[] = [];
-// let workspaceDirs: string[] = [];
 
 export function setProjectList(list: string[]) {
   projectList = list;
 }
-
-// export function setWorkspaceDirs(list: string[]) {
-//   workspaceDirs = list;
-// }
-
-// let cleanActions: ActionsType;
-// cleanActionsProm.then(actions => cleanActions = actions);
 
 export type EachRecipeSrcCallback = (srcDir: string, projectDir: string) => void;
 /**
@@ -113,80 +101,37 @@ export type EachRecipeCallback = (recipeDir: string,
   jsonFileName: string,
   jsonFileContent: string) => void;
 
-// function eachDownloadedRecipe(callback: EachRecipeCallback, excludeRecipeSet?: Set<string>) {
-//   let srcRecipeSet: Set<string>;
-//   if (excludeRecipeSet) {
-//     srcRecipeSet = excludeRecipeSet;
-//   } else {
-//     srcRecipeSet = new Set();
-//     eachRecipeSrc((x, y, recipeName) => {
-//       if (recipeName) srcRecipeSet.add(recipeName);
-//     });
-//   }
-//   if (config().installedRecipes) {
-//     const regexList = (config().installedRecipes as string[]).map(s => new RegExp(s));
-//     const pkjson = require(Path.resolve('package.json')); // <workspace>/package.json
-//     const deps = Object.assign({}, pkjson.dependencies || {}, pkjson.devDependencies || {});
-//     if (!deps)
-//       return;
-//     const drcpName = require('../../package.json').name;
-//     _.each(deps, function(ver, depName) {
-//       if (depName !== drcpName && !srcRecipeSet.has(depName) && _.some(regexList, regex => regex.test(depName))) {
-//         log.debug('looking for installed recipe: %s', depName);
-//         let p;
-//         try {
-//           p = Path.resolve('node_modules', depName); // <workspace>/node_modules/<depName>
-//           callback(p, true, 'package.json');
-//         } catch (e) {
-//           log.info(`${depName} seems to be not installed`);
-//         }
-//       }
-//     });
-//   }
-// }
-
 /**
- * @name eachRecipe
- * @param  {Function} callback function(recipeDir, isFromInstallation, jsonFileName = 'package.json'): void
+ * @returns Observable of tuple [project, package.json file]
  */
-// export function eachRecipe(callback: EachRecipeCallback) {
-//   // const srcRecipeSet = new Set();
-//   eachRecipeSrc((srcDir, proj) => {
-//     // srcRecipeSet.add(recipeName);
-//     if (recipeDir)
-//       callback(recipeDir, false, 'package.json');
-//   });
-//   eachInstalledRecipe(callback);
-// }
-
-/**
- * eachInstalledRecipe
- * @param callback function(recipeDir, isFromInstallation, jsonFileName = 'package.json'): void
-*/
-// export function eachInstalledRecipe(callback: EachRecipeCallback) {
-//   // eachDownloadedRecipe(callback);
-//   // const rootDir = getRootDir();
-//   for (const dir of workspaceDirs)
-//     callback(dir, true, 'package.json');
-// }
+export function scanPackages() {
+  const obs: Observable<[string, string]>[] = [];
+  eachRecipeSrc((src, proj) => {
+    obs.push(findPackageJson(src, false)
+    .pipe(
+      map(jsonFile => [proj, jsonFile])
+    ));
+  });
+  return merge(...obs);
+}
 
 /**
  * @return array of linked package's package.json file path
  */
-export function linkComponentsAsync(symlinksDir: string) {
-  // const pkJsonFiles: string[] = [];
-  const obs: Observable<{proj: string, jsonFile: string, json: any}>[] = [];
-  eachRecipeSrc((src, proj) => {
-    obs.push(
-      findPackageJson(src, false).pipe(
-        rwPackageJson.symbolicLinkPackages(symlinksDir),
-        map(([jsonFile, json]) => {
-          return {proj, jsonFile, json};
-        })
-      ));
-  });
-  return merge(...obs);
-}
+// export function linkComponentsAsync(symlinksDir: string) {
+//   // const pkJsonFiles: string[] = [];
+//   const obs: Observable<{proj: string, jsonFile: string, json: any}>[] = [];
+//   eachRecipeSrc((src, proj) => {
+//     obs.push(
+//       findPackageJson(src, false).pipe(
+//         rwPackageJson.symbolicLinkPackages(symlinksDir),
+//         map(([jsonFile, json]) => {
+//           return {proj, jsonFile, json};
+//         })
+//       ));
+//   });
+//   return merge(...obs);
+// }
 
 export async function clean() {
   await scanNodeModules('all');

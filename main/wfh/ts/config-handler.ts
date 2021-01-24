@@ -201,9 +201,11 @@ export function setTsCompilerOptForNodePath(
 
   if (opts.noSymlinks) {
     const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-    const idx = pathsDirs.indexOf(symlinkDir);
-    if (idx >= 0) {
-      pathsDirs.splice(idx, 1);
+    if (symlinkDir) {
+      const idx = pathsDirs.indexOf(symlinkDir);
+      if (idx >= 0) {
+        pathsDirs.splice(idx, 1);
+      }
     }
   }
 

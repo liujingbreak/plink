@@ -3,7 +3,7 @@ import * as Path from 'path';
 // const jsonLint = require('json-lint');
 const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
 import * as _ from 'lodash';
-import {map, filter} from 'rxjs/operators';
+import {map} from 'rxjs/operators';
 import {Observable} from 'rxjs';
 // import config from './config';
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
@@ -11,15 +11,13 @@ const isWin32 = require('os').platform().indexOf('win32') >= 0;
 // type Callback = (...args: any[]) => void;
 
 export function symbolicLinkPackages(destDir: string) {
-  return function(src: Observable<string>) {
+  return function(src: Observable<{name: string, realPath: string}>) {
     return src.pipe(
-      map<string, [string, any]>(pkjsonFile => {
-        let newPath: string, json: any;
+      map(({name, realPath}) => {
+        let newPath: string;
         try {
-          const content = fs.readFileSync(pkjsonFile, {encoding: 'utf-8'});
 
-          json = JSON.parse(content);
-          newPath = Path.join(destDir, json.name);
+          newPath = Path.join(destDir, name);
           let stat: fs.Stats, exists = false;
           try {
             stat = fs.lstatSync(newPath);
@@ -33,24 +31,22 @@ export function symbolicLinkPackages(destDir: string) {
           log.debug('symblink to %s', newPath);
           if (exists) {
             if (stat!.isFile() ||
-              (stat!.isSymbolicLink() && fs.realpathSync(newPath) !== Path.dirname(pkjsonFile))) {
+              (stat!.isSymbolicLink() && fs.realpathSync(newPath) !== realPath)) {
               fs.unlinkSync(newPath);
-              _symbolicLink(Path.dirname(pkjsonFile), newPath);
+              _symbolicLink(realPath, newPath);
             } else if (stat!.isDirectory()) {
               log.info('Remove installed package "%s"', Path.relative(process.cwd(), newPath));
               fs.removeSync(newPath);
-              _symbolicLink(Path.dirname(pkjsonFile), newPath);
+              _symbolicLink(realPath, newPath);
             }
           } else {
-            _symbolicLink(Path.dirname(pkjsonFile), newPath);
+            _symbolicLink(realPath, newPath);
           }
-          return [pkjsonFile, json];
         } catch(err) {
           log.error(err);
-          return [pkjsonFile, null];
         }
-      }),
-      filter((pkjsonNContent) => pkjsonNContent[1] != null)
+      })
+      // filter((pkjsonNContent) => pkjsonNContent[1] != null)
     );
   };
 }
