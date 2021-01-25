@@ -32,6 +32,7 @@ export interface TscCmdParam {
 
 interface ComponentDirInfo extends PackageTsDirs {
   pkgDir: string;
+  symlinkDir: string;
 }
 
 /**
@@ -82,9 +83,12 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   if (countPkg === 0) {
     throw new Error('No available srouce package found in current workspace');
   }
-  const commonRootDir = closestCommonParentDir(Array.from(compDirInfo.values()).map(el => el.pkgDir));
+  const commonRootDir = closestCommonParentDir(
+    Array.from(getState().project2Packages.keys())
+    .map(relPath => resolve(root, relPath)));
+
   for (const info of compDirInfo.values()) {
-    const treePath = relative(commonRootDir, info.pkgDir);
+    const treePath = relative(commonRootDir, info.symlinkDir);
     packageDirTree.putData(treePath, info);
   }
   const destDir = commonRootDir.replace(/\\/g, '/');
@@ -113,14 +117,19 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   // const tsProject = gulpTs.createProject({...compilerOptions, typescript: require('typescript')});
 
 
-  function onComponent(name: string, packagePath: string, _parsedName: any, json: any, realPath: string) {
+  function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, _realPath: string) {
     countPkg++;
     const tscCfg = getTscConfigOfPkg(json);
+    // For workaround https://github.com/microsoft/TypeScript/issues/37960
+    // Use a symlink path instead of a real path, so that Typescript compiler will not
+    // recognize them as from somewhere with "node_modules", the symlink must be reside
+    // in directory which does not contain "node_modules" as part of absolute path.
+    const symlinkDir = resolve('.links', name);
 
-    compDirInfo.set(name, {...tscCfg, pkgDir: realPath});
+    compDirInfo.set(name, {...tscCfg, pkgDir: _realPath, symlinkDir});
 
     if (tscCfg.globs) {
-      compGlobs.push(...tscCfg.globs.map(file => resolve(realPath, file).replace(/\\/g, '/')));
+      compGlobs.push(...tscCfg.globs.map(file => resolve(symlinkDir, file).replace(/\\/g, '/')));
       return;
     }
 
@@ -128,7 +137,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
       if (srcDir == null)
         return false;
       try {
-        return fs.statSync(join(realPath, srcDir)).isDirectory();
+        return fs.statSync(join(symlinkDir, srcDir)).isDirectory();
       } catch (e) {
         return false;
       }
@@ -139,12 +148,12 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     }
     if (tscCfg.include && tscCfg.include.length > 0) {
       for (const pattern of tscCfg.include) {
-        const includePath = resolve(realPath, pattern).replace(/\\/g, '/');
+        const includePath = resolve(symlinkDir, pattern).replace(/\\/g, '/');
         compGlobs.push(includePath);
       }
     } else {
       srcDirs.forEach(srcDir => {
-        const relPath = resolve(realPath, srcDir!).replace(/\\/g, '/');
+        const relPath = resolve(symlinkDir, srcDir!).replace(/\\/g, '/');
         compGlobs.push(relPath + '/**/*.ts');
         if (argv.jsx) {
           compGlobs.push(relPath + '/**/*.tsx');
@@ -192,7 +201,7 @@ function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: stri
   const origCreateProgram = programHost.createProgram;
   programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
     host?: ts.CompilerHost) {
-    if (host) {
+    if (host && (host as any)._overrided == null) {
       overrideCompilerHost(host, commonRootDir, packageDirTree, compilerOptions);
     }
     return origCreateProgram.apply(this, arguments);
@@ -230,17 +239,23 @@ function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, pack
   const writeFile: ts.WriteFileCallback = function(fileName, data, writeByteOrderMark, onError, sourceFiles) {
     const treePath = relative(commonRootDir, fileName);
     const _originPath = fileName; // absolute path
-    const {srcDir, destDir, pkgDir: dir} = packageDirTree.getAllData(treePath).pop()!;
-    const pathWithinPkg = relative(dir, _originPath);
+    const foundPkgInfo = packageDirTree.getAllData(treePath).pop();
+    if (foundPkgInfo == null) {
+      // this file is not part of source package.
+      log.info('skip', fileName);
+      return;
+    }
+    const {srcDir, destDir, pkgDir, symlinkDir} = foundPkgInfo;
+
+    const pathWithinPkg = relative(symlinkDir, _originPath);
     const prefix = srcDir;
     if (prefix === '.' || prefix.length === 0) {
-      fileName = join(dir, destDir, pathWithinPkg);
+      fileName = join(pkgDir, destDir, pathWithinPkg);
     } else if (pathWithinPkg.startsWith(prefix + sep)) {
-      fileName = join(dir, destDir, pathWithinPkg.slice(prefix.length + 1));
+      fileName = join(pkgDir, destDir, pathWithinPkg.slice(prefix.length + 1));
     }
     emittedList.push(fileName);
-    // tslint:disable-next-line: no-console
-    console.log('write file', fileName);
+    log.info('write file', fileName);
     // await fs.mkdirp(dirname(file.path));
     // await fs.promises.writeFile(file.path, file.contents as Buffer);
 
@@ -259,8 +274,8 @@ function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, pack
   const _resolveModuleNames = host.resolveModuleNames;
 
   host.resolveModuleNames = function(moduleNames, containingFile, reusedNames, redirectedRef, opt) {
-    if (containingFile.indexOf('testSlice.ts') >= 0)
-      console.log('resolving %j from %j', moduleNames, containingFile);
+    // if (containingFile.indexOf('testSlice.ts') >= 0)
+    //   console.log('resolving %j from %j', moduleNames, containingFile);
     let result: ReturnType<NonNullable<typeof _resolveModuleNames>>;
     if (_resolveModuleNames) {
       result = _resolveModuleNames.apply(this, arguments) as ReturnType<typeof _resolveModuleNames>;
@@ -272,11 +287,11 @@ function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, pack
         return resolved.resolvedModule;
       });
     }
-    if (containingFile.indexOf('testSlice.ts') >= 0)
-      console.log('resolved:', result.map(item => item ? `${item.isExternalLibraryImport ? '[external]': '          '} ${item.resolvedFileName}, ` : item));
+    // if (containingFile.indexOf('testSlice.ts') >= 0)
+    //   console.log('resolved:', result.map(item => item ? `${item.isExternalLibraryImport ? '[external]': '          '} ${item.resolvedFileName}, ` : item));
     return result;
   };
-
+  (host as any)._overrided = true;
   return emittedList;
 }
 

@@ -1,7 +1,7 @@
 import * as fs from 'fs-extra';
 import * as Path from 'path';
 // const jsonLint = require('json-lint');
-const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
+const log = require('log4js').getLogger('@wfh/plink.rwPackageJson');
 import * as _ from 'lodash';
 import {map} from 'rxjs/operators';
 import {Observable} from 'rxjs';

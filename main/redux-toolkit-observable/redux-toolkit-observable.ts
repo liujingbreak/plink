@@ -82,6 +82,7 @@ export class StateFactory {
    * If you call next() on this subject, it can save action dispatch an action even before store is configured
    */
   actionsToDispatch = new ReplaySubject<PayloadAction<any>>(20);
+  reportActionError: (err: Error) => void;
 
   private epicSeq = 0;
   // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
@@ -89,7 +90,6 @@ export class StateFactory {
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
   private epicWithUnsub$: Subject<[Epic, Subject<string>]>;
 
-  private reportActionError: (err: Error) => void;
 
   private errorSlice: InferSliceType<typeof errorSliceOpt>;
 
@@ -339,7 +339,6 @@ const errorSliceOpt = {
     }
   }
 };
-
 
 if (module.hot) {
   module.hot.decline();

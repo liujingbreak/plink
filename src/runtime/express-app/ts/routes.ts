@@ -153,23 +153,33 @@ export function setupApi(api: DrcpApi, app: Application) {
 	 *  api.router().use('/api', api.cors());
 	 * @return void
 	 */
-  apiPrototype.cors = function() {
-    var setting = api.config();
-    var corsOpt = _.get(setting, api.packageShortName + '-enableCORS') || _.get(setting, 'enableCORS');
-    var cors = require('cors');
-    var whiteOriginSet = {};
+  apiPrototype.cors = function(allowedOrigins?: string[]) {
+    const setting = api.config();
+    let corsOpt = _.get(setting, api.packageShortName + '-enableCORS') || _.get(setting, 'enableCORS');
+    const cors = require('cors');
+    const whiteOriginSet = new Set<string>();
     if (_.isArray(corsOpt)) {
-      corsOpt.forEach(domain => whiteOriginSet[domain] = true);
+      corsOpt.forEach(domain => whiteOriginSet.add(domain));
     }
-    var corsOptions = {
-      origin(origin: string, callback: (_arg: any, pass: boolean) => void) {
-        var pass = origin == null || corsOpt === true || _.has(whiteOriginSet, origin);
-        callback(pass ? null : {status: 400, message: 'Bad Request (CORS) for origin: ' + origin}, pass);
-        if (!pass)
-          log.info('CORS request blocked for origin: ' + origin);
-      },
-      credentials: true
-    };
+    let corsOptions: {origin: string[] | ((...args: any[]) => void); credentials: boolean};
+    if (allowedOrigins) {
+      corsOptions = {
+        origin: allowedOrigins,
+        credentials: true
+      };
+    } else {
+      corsOptions = {
+        // origin: ['http://localhost:14333'],
+        origin(origin: string, callback: (_arg: any, pass: boolean) => void) {
+          var pass = origin == null || corsOpt === true || whiteOriginSet.has(origin);
+          callback(pass ? null : {status: 400, message: 'Bad Request (CORS) for origin: ' + origin},
+            pass);
+          if (!pass)
+            log.info('CORS request blocked for origin: ' + origin);
+        },
+        credentials: true
+      };
+    }
     return cors(corsOptions);
   };
 }

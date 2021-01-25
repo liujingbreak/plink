@@ -263,7 +263,7 @@ const {_onRelatedPackageUpdated} = actionDispatcher;
  * Carefully access any property on config, since config setting probably hasn't been set yet at this momment
  */
 stateFactory.addEpic((action$, state$) => {
-  const pkgTsconfigForEditorRequestMap = new Set<string>();
+  const updatedWorkspaceSet = new Set<string>();
   const packageAddedList = new Array<string>();
 
   actionDispatcher._change(d => {
@@ -358,13 +358,8 @@ stateFactory.addEpic((action$, state$) => {
     ),
 
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
-      switchMap(({payload}) => {
+      map(({payload}) => {
         const wsKey = workspaceKey(payload.dir);
-        return _createSymlinks$().pipe(
-          map(() => wsKey)
-        );
-      }),
-      map((wsKey) => {
         _onRelatedPackageUpdated(wsKey);
         deleteDuplicatedInstalledPkg(wsKey);
         setImmediate(() => actionDispatcher.workspaceStateUpdated());
@@ -454,17 +449,18 @@ stateFactory.addEpic((action$, state$) => {
       ignoreElements()
     ),
     action$.pipe(ofPayloadAction(slice.actions._onRelatedPackageUpdated),
-      map(action => pkgTsconfigForEditorRequestMap.add(action.payload)),
+      map(action => updatedWorkspaceSet.add(action.payload)),
       debounceTime(800),
       concatMap(() => {
-        const dones = Array.from(pkgTsconfigForEditorRequestMap.values()).map(wsKey => {
+        const dones = Array.from(updatedWorkspaceSet.values()).map(wsKey => {
           updateTsconfigFileForEditor(wsKey);
-          // return collectDtsFiles(wsKey);
+          return _createSymlinksForWorkspace(wsKey);
         });
-        return from(Promise.all(dones));
+        return merge(...dones);
       }),
+      count(),
       map(async () => {
-        pkgTsconfigForEditorRequestMap.clear();
+        updatedWorkspaceSet.clear();
         await writeConfigFiles();
         actionDispatcher.packagesUpdated();
       })
@@ -752,25 +748,32 @@ async function _scanPackageAndLink() {
   // _createSymlinks();
 }
 
-function _createSymlinks$() {
-  const obsList: Observable<void>[] = [];
-  for (const key of getState().workspaces.keys()) {
-    obsList.push(_createSymlinksForWorkspace(key));
-  }
-  return merge(...obsList).pipe(count());
-}
+// function _createSymlinks$() {
+//   const obsList: Observable<void>[] = [];
+//   for (const key of getState().workspaces.keys()) {
+//     obsList.push(_createSymlinksForWorkspace(key));
+//   }
+//   return merge(...obsList).pipe(count());
+// }
 
 function _createSymlinksForWorkspace(wsKey: string) {
   const symlinkDir = Path.resolve(getRootDir(), wsKey, '.links');
   fs.mkdirpSync(symlinkDir);
   const ws = getState().workspaces.get(wsKey)!;
+
   const pkgNames = ws.linkedDependencies.map(item => item[0])
   .concat(ws.linkedDevDependencies.map(item => item[0]));
 
   const pkgNameSet = new Set(pkgNames);
-
+  if (ws.installedComponents) {
+    for (const pname of ws.installedComponents.keys())
+      pkgNameSet.add(pname);
+  }
+  actionDispatcher.updateGitIgnores({
+    file: Path.resolve(getRootDir(), '.gitignore'),
+    lines: [Path.relative(getRootDir(), symlinkDir).replace(/\\/g, '/')]});
   return merge(
-    from(pkgNames.map(name => getState().srcPackages.get(name)!))
+    from(pkgNames.map(name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!))
     .pipe(
       symbolicLinkPackages(symlinkDir)
     ),

@@ -27,13 +27,14 @@ declare module '@wfh/plink/wfh/globals' {
     expressAppUse(callable: (app: express.Application, exp: typeof express) => void): void;
     /**
 	 * e.g.
-	 * 	api.router().options('/api', api.cors());
-	 * 	api.router().get('/api', api.cors());
-	 * Or
-	 *  api.router().use('/api', api.cors());
+  ```
+    api.expressAppSet((app, express) => {
+      app.use(api.contentPath, api.cors());
+    });
+  ```
 	 * @return void
 	 */
-    cors(): express.RequestHandler;
+    cors(allowedOrigins?: string[]): express.RequestHandler;
 
     param(name: string, ...rest: any[]): any;
     _router: express.Router;

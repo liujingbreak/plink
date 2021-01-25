@@ -47,11 +47,11 @@ export declare class StateFactory {
         payload: any;
         type: string;
     }>;
+    reportActionError: (err: Error) => void;
     private epicSeq;
     private debugLog;
     private reducerMap;
     private epicWithUnsub$;
-    private reportActionError;
     private errorSlice;
     constructor(preloadedState: ConfigureStoreOptions['preloadedState']);
     configureStore(middlewares?: Middleware[]): this;
