@@ -1798,7 +1798,7 @@
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
       "noUnusedLocals": true,
-      "preserveSymlinks": true,
+      "preserveSymlinks": false,
       "downlevelIteration": false,
       "strictNullChecks": true,
       "resolveJsonModule": true,

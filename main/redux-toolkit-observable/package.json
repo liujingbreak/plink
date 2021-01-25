@@ -1,6 +1,6 @@
 {
   "name": "@wfh/redux-toolkit-observable",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A convenient Redux-toolkit + Redux-observable encapsulation",
   "main": "dist/redux-toolkit-observable.js",
   "types": "dist/redux-toolkit-observable.d.ts",
@@ -10,7 +10,8 @@
   },
   "peerDependencies": {
     "@reduxjs/toolkit": "~1.5.0",
-    "redux-observable": "~1.2.0"
+    "redux-observable": "~1.2.0",
+    "rxjs": "^6.4.0"
   },
   "repository": {
     "type": "git",

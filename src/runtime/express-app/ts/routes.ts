@@ -2,6 +2,7 @@ import express, {Application} from 'express';
 import api, {DrcpApi} from '__api';
 import _ from 'lodash';
 import Path from 'path';
+import _cors from 'cors';
 
 var log = require('log4js').getLogger(api.packageName + '.setApi');
 var swig = require('swig-templates');
@@ -156,12 +157,12 @@ export function setupApi(api: DrcpApi, app: Application) {
   apiPrototype.cors = function(allowedOrigins?: string[]) {
     const setting = api.config();
     let corsOpt = _.get(setting, api.packageShortName + '-enableCORS') || _.get(setting, 'enableCORS');
-    const cors = require('cors');
+    const cors = require('cors') as typeof _cors;
     const whiteOriginSet = new Set<string>();
     if (_.isArray(corsOpt)) {
       corsOpt.forEach(domain => whiteOriginSet.add(domain));
     }
-    let corsOptions: {origin: string[] | ((...args: any[]) => void); credentials: boolean};
+    let corsOptions: _cors.CorsOptions;
     if (allowedOrigins) {
       corsOptions = {
         origin: allowedOrigins,
@@ -184,20 +185,3 @@ export function setupApi(api: DrcpApi, app: Application) {
   };
 }
 
-// function revertRenderFunction(req, res, next) {
-// 	log.trace('release hijacked res.render()');
-// 	if (res.__origRender) {
-// 		res.render = res.__origRender;
-// 		delete res.__origRender;
-// 	}
-// 	next();
-// }
-
-// function revertRenderFunctionForError(err, req, res, next) {
-// 	log.trace('encounter error, release hijacked res.render()');
-// 	if (res.__origRender) {
-// 		res.render = res.__origRender;
-// 		delete res.__origRender;
-// 	}
-// 	next(err);
-// }
