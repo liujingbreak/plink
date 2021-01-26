@@ -17,9 +17,9 @@ export declare class Vertex<T> {
 export declare function getPathTo<T>(v: Vertex<T>, temp?: Vertex<T>[]): void;
 export declare class DFS<T> {
     private adjacencyOf;
+    backEdges: [Vertex<T>, Vertex<T>][];
     private time;
     private vertexMap;
-    backEdges: [Vertex<T>, Vertex<T>][];
     constructor(adjacencyOf: (u: Vertex<T>) => Iterable<Vertex<T>>);
     visit(g: Iterable<Vertex<T>>): void;
     vertexOf(data: T): Vertex<T>;

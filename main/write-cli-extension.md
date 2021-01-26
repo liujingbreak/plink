@@ -24,7 +24,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     (await import('your-function-file')).foobar();
   });
   // If you want to utilize Plink's configuration system
-  withGlobalOptions(cliExt);
+  withGlobalOptions(cmd);
 };
 
 export default cliExt;

@@ -186,11 +186,6 @@
         "signature": "48b52264fa193879a074197839dbb4796fa07e86350ff888e5361e06aa46df76",
         "affectsGlobalScope": false
       },
-      "../node_modules/@types/color-name/index.d.ts": {
-        "version": "f0cb4b3ab88193e3e51e9e2622e4c375955003f1f81239d72c5b7a95415dad3e",
-        "signature": "f0cb4b3ab88193e3e51e9e2622e4c375955003f1f81239d72c5b7a95415dad3e",
-        "affectsGlobalScope": false
-      },
       "../node_modules/@types/expect/index.d.ts": {
         "version": "975f84de013567851d216d78a3a86736bb330cae11fdc907b222dffa148b31d2",
         "signature": "975f84de013567851d216d78a3a86736bb330cae11fdc907b222dffa148b31d2",
@@ -767,8 +762,8 @@
         "affectsGlobalScope": false
       },
       "../node_modules/@types/serialize-javascript/index.d.ts": {
-        "version": "6009bf461acd397abb57ba29ee071eb5d696366869cdf11340753a01e8b58e63",
-        "signature": "6009bf461acd397abb57ba29ee071eb5d696366869cdf11340753a01e8b58e63",
+        "version": "1bca1cfad2d2219942a3b6c23f22121c2105a957c6d9fcc89afce6b706ed5dc7",
+        "signature": "1bca1cfad2d2219942a3b6c23f22121c2105a957c6d9fcc89afce6b706ed5dc7",
         "affectsGlobalScope": false
       },
       "../node_modules/@types/source-list-map/index.d.ts": {
@@ -2295,7 +2290,6 @@
     },
     "semanticDiagnosticsPerFile": [
       "../node_modules/@types/anymatch/index.d.ts",
-      "../node_modules/@types/color-name/index.d.ts",
       "../node_modules/@types/expect/index.d.ts",
       "../node_modules/@types/fancy-log/index.d.ts",
       "../node_modules/@types/fs-extra/index.d.ts",

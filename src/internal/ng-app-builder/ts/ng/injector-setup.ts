@@ -18,7 +18,7 @@ export function injectorSetup(packageInfo: ReturnType<typeof walkPackages>,
   drcpArgs: AngularBuilderOptions['drcpArgs'],
   deployUrl: AngularBuilderOptions['deployUrl'],
   baseHref: AngularBuilderOptions['baseHref'], ssr = false) {
-  const [pks, apiProto] = initInjectorForNodePackages(drcpArgs, packageInfo);
+  const [pks, apiProto] = initInjectorForNodePackages(packageInfo);
   initWebInjector(pks, apiProto);
 
   const publicUrlObj = parse(deployUrl || '');

@@ -56,6 +56,7 @@ export function setupApi(api: DrcpApi, app: Application) {
     }
     var router = self._router = express.Router();
     var contextPath = self.contextPath;
+    console.log(self.config().rootPath, self.packageInstance.path);
     var packageRelPath = Path.relative(self.config().rootPath, self.packageInstance.path);
     if (Path.sep === '\\') {
       packageRelPath = packageRelPath.replace(/\\/g, '/');

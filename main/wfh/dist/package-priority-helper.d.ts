@@ -1,4 +1,8 @@
-import PackageNodeInstance from './packageNodeInstance';
-import PackageBrowserInstance from './package-mgr/package-instance';
-export declare type PackageInstance = PackageBrowserInstance | PackageNodeInstance;
-export declare function orderPackages(packages: PackageInstance[], run: (...arg: any[]) => Promise<any> | any, priorityProperty?: string): Promise<void>;
+export interface PackageInfo {
+    name: string;
+    priority?: string | number;
+}
+export declare type PackageInfoWithPriority = {
+    [key in keyof PackageInfo]-?: PackageInfo[key];
+};
+export declare function orderPackages(packages: PackageInfo[], run: (pk: PackageInfoWithPriority) => Promise<any> | any): Promise<void>;

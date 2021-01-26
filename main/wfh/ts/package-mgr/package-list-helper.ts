@@ -38,7 +38,7 @@ export function* allPackages(_types?: PackageType | PackageType[],
   }
 }
 
-export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true) {
+export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true): Generator<PackageInfo> {
   const ws = getState().workspaces.get(wsKey);
   if (!ws)
     return;

@@ -81,7 +81,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   }
 
   if (countPkg === 0) {
-    throw new Error('No available srouce package found in current workspace');
+    throw new Error('No available source package found in current workspace');
   }
   const commonRootDir = closestCommonParentDir(
     Array.from(getState().project2Packages.keys())

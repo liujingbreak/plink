@@ -36,10 +36,10 @@ export class PrerenderForExpress {
   }
 
   asMiddleware() {
-    if (api.argv.hmr) {
-      log.warn('Hot module replacement mode is on, no prerendered page will be served\n');
-      return (req: Request, res: Response, next: NextFunction) => next();
-    }
+    // if (api.argv.hmr) {
+    //   log.warn('Hot module replacement mode is on, no prerendered page will be served\n');
+    //   return (req: Request, res: Response, next: NextFunction) => next();
+    // }
     return (req: Request, res: Response, next: NextFunction) => {
       if (req.method !== 'GET')
         return next();

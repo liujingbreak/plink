@@ -3,24 +3,23 @@ import config from '../config';
 import logConfig from '../log-config';
 import {GlobalOptions} from './types';
 import * as pkMgr from '../package-mgr';
+// import {getRootDir} from '../utils/misc';
+import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import chalk from 'chalk';
 import Path from 'path';
 import * as _ from 'lodash';
-import NodePackage from '../packageNodeInstance';
 import {printWorkspaces/*, printWorkspaceHoistedDeps*/} from './cli-init';
 import {take, map, distinctUntilChanged, skip} from 'rxjs/operators';
 import {createCliTable} from '../utils/misc';
+import * as priorityHelper from '../package-priority-helper';
+import {isServerPackage, readPriorityProperty} from '../package-runner';
 
-interface ComponentListItem {
-  pk: NodePackage;
-  desc: string;
-}
 export default async function list(opt: GlobalOptions & {json: boolean}) {
   await config.init(opt);
   logConfig(config());
   // const pmgr: typeof pkMgr = require('../package-mgr');
 
-  const pkRunner = require('../../lib/packageMgr/packageRunner');
+  // const pkRunner = require('../../lib/packageMgr/packageRunner');
 
   if (opt.json)
     console.log(JSON.stringify(jsonOfLinkedPackageForProjects(), null, '  '));
@@ -29,12 +28,16 @@ export default async function list(opt: GlobalOptions & {json: boolean}) {
 
   const table = createCliTable({horizontalLines: false});
   table.push(
-    [{colSpan: 2, hAlign: 'center', content: chalk.bold('SERVER COMPONENTS')}],
-    [chalk.bold('Package'), chalk.bold('Directory')],
-    ['------', '-------']);
+    [{colSpan: 3, hAlign: 'center', content: chalk.bold('SERVER COMPONENTS')}],
+    [chalk.bold('Package'), 'Priority', chalk.bold('Directory')],
+    ['------', '-------', '--------']);
 
-  const list: ComponentListItem[] = await pkRunner.listServerComponents();
-  list.forEach(row => table.push([row.desc, chalk.blue(Path.relative(config().rootPath, row.pk.path))]));
+  const list: ServerPackageView[] = await listServerPackages();
+  list.forEach(row => table.push([
+    row.name,
+    row.priority,
+    chalk.cyan(Path.relative(config().rootPath, row.dir))
+  ]));
   console.log(table.toString());
   printWorkspaces();
 }
@@ -88,4 +91,40 @@ function jsonOfLinkedPackageForProjects() {
     }
   }
   return all;
+}
+
+interface ServerPackageView {
+  name: string;
+  priority: string;
+  dir: string;
+}
+
+async function listServerPackages(): Promise<ServerPackageView[]> {
+  let wsKey: string | null | undefined = pkMgr.workspaceKey(process.cwd());
+  wsKey = pkMgr.getState().workspaces.has(wsKey) ? wsKey : pkMgr.getState().currWorkspace;
+  if (wsKey == null) {
+    return [] as ServerPackageView[];
+  }
+
+  const pkgs = Array.from(packages4WorkspaceKey(wsKey, true))
+  .filter(isServerPackage)
+  .map(pkg => ({
+    name: pkg.name,
+    priority: readPriorityProperty(pkg.json)
+  }));
+
+  const list: Array<[string, string | number]> = [];
+
+  await priorityHelper.orderPackages(pkgs, pk => {
+    list.push([pk.name, pk.priority]);
+  });
+  const workspace = pkMgr.getState().workspaces.get(wsKey)!;
+  return list.map(([name, pri]) => {
+    const pkg = pkMgr.getState().srcPackages.get(name) || workspace.installedComponents!.get(name)!;
+    return {
+      name,
+      priority: pri + '',
+      dir: pkg.realPath
+    };
+  });
 }

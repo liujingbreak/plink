@@ -1,6 +1,6 @@
 import commander from 'commander';
 import {withGlobalOptions, GlobalOptions, initConfigAsync, initProcess} from './index';
-import * as pkgMgr from '../lib/packageMgr/index';
+import * as _runner from './package-runner';
 
 const pk = require('../../package');
 
@@ -18,8 +18,8 @@ const program = new commander.Command()
     });
     await initConfigAsync(program.opts() as GlobalOptions);
 
-    const {runServer} = require('../lib/packageMgr/index') as typeof pkgMgr;
-    const shutdown = await runServer(program.opts());
+    const {runServer} = require('./package-runner') as typeof _runner;
+    const shutdown = await runServer();
     resolve(shutdown);
   });
 });

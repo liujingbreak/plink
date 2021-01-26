@@ -53,7 +53,7 @@ config.done = new Promise<DrcpSettings>(resolve => {
 
 config.init = async (_argv: CliOptions) => {
   argv = _argv;
-  localConfigPath = argv.config.length > 0 ? argv.config : [Path.join(distDir, 'config.local.yaml')];
+  localConfigPath = argv.config && argv.config.length > 0 ? argv.config : [Path.join(distDir, 'config.local.yaml')];
   const res = await load();
   initResolve(res);
   return res;
@@ -61,7 +61,7 @@ config.init = async (_argv: CliOptions) => {
 
 config.initSync = (_argv: CliOptions) => {
   argv = _argv;
-  localConfigPath = argv.config.length > 0 ? argv.config : [Path.join(distDir, 'config.local.yaml')];
+  localConfigPath = argv.config && argv.config.length > 0 ? argv.config : [Path.join(distDir, 'config.local.yaml')];
   const res = loadSync();
   return res;
 };

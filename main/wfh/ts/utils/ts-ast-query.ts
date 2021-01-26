@@ -24,6 +24,7 @@ export type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], i
 /**
  * Return truethy value that iteration stops.
  */
+// tslint:disable-next-line: max-line-length
 export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => true | void;
 
 export function printFile(file: string, query?: string | null, withType = true) {

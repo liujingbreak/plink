@@ -6,7 +6,7 @@
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dr": {
-		"cli": "./dist/cmd.js#default",
+		"cli": "./dist/cli/cmd.js#default",
 		"config": {
 			"server": {
 				"fillPalettes": [

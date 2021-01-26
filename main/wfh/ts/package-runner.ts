@@ -8,14 +8,15 @@ import {PackageInfo, walkPackages} from './package-mgr/package-info-gathering';
 import { nodeInjector, webInjector } from './injector-factory';
 import _NodeApi from './package-mgr/node-package-api';
 // import Package from './packageNodeInstance';
-import { orderPackages, PackageInstance } from './package-priority-helper';
+import { orderPackages } from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
 import Path from 'path';
 import Events from 'events';
 import {createLazyPackageFileFinder, packages4Workspace} from './package-utils';
 import log4js from 'log4js';
 import config from './config';
-import {isCwdWorkspace} from './package-mgr';
+import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} from './package-mgr';
+import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
 
 const log = log4js.getLogger('package-runner');
 
@@ -23,25 +24,37 @@ export interface ServerRunnerEvent {
   file: string;
   functionName: string;
 }
-export class ServerRunner {
-  // packageCache: {[shortName: string]: NodePackage} = {};
-  // corePackages: {[shortName: string]: NodePackage} = {};
-  deactivatePackages: NodePackage[];
 
-  async shutdownServer() {
-    log.info('shutting down');
-    await this._deactivatePackages(this.deactivatePackages);
+export function isServerPackage(pkg: PackageState) {
+  return pkg.json.dr && pkg.json.dr.type && (pkg.json.dr.type === 'server' || (pkg.json.dr.type  as string[]).includes('server'));
+}
+
+export function readPriorityProperty(json: any) {
+  return _.get(json, 'dr.serverPriority');
+}
+
+export async function runServer() {
+  let wsKey: string | null | undefined = workspaceKey(process.cwd());
+  wsKey = getState().workspaces.has(wsKey) ? wsKey : getState().currWorkspace;
+  if (wsKey == null) {
+    throw new Error('Current directory is not a workspace directory');
   }
+  const pkgs = Array.from(packages4WorkspaceKey(wsKey, true))
+  .filter(isServerPackage)
+  .map(item => item.name);
 
-  protected async _deactivatePackages(comps: NodePackage[]) {
-    for (const comp of comps) {
-      const exp = require(comp.longName);
+  const reverseOrderPkgExports = await runPackages('#activate', pkgs);
+
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return async () => {
+    log.info('shutting down');
+    for (const {name, exp} of reverseOrderPkgExports) {
       if (_.isFunction(exp.deactivate)) {
-        log.info('deactivate', comp.longName);
+        log.info('deactivate', name);
         await Promise.resolve(exp.deactivate());
       }
     }
-  }
+  };
 }
 
 const apiCache: {[name: string]: any} = {};
@@ -98,17 +111,21 @@ export async function runSinglePackage({target, args}: {target: string, args: st
   await Promise.resolve(_exports[func].apply(global, args || []));
 }
 
-export function runPackages(argv: {target: string, package: string[], [key: string]: any}) {
-  const includeNameSet = new Set<string>();
-  argv.package.forEach(name => includeNameSet.add(name));
-  const [fileToRun, funcToRun] = (argv.target as string).split('#');
-  const [packages, proto] = initInjectorForNodePackages(argv, walkPackages());
+export async function runPackages(target: string, includePackages: Iterable<string>): Promise<{name: string; exp: any}[]> {
+  const includeNameSet = new Set<string>(includePackages);
+  const pkgExportsInReverOrder: {name: string; exp: any}[] = [];
+
+  const [fileToRun, funcToRun] = (target as string).split('#');
+  const [packages, proto] = initInjectorForNodePackages(walkPackages());
   const components = packages.filter(pk => {
     // setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
     if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
       pk.dr != null) {
       try {
-        require.resolve(pk.longName + '/' + fileToRun);
+        if (fileToRun)
+          require.resolve(pk.longName + '/' + fileToRun);
+        else
+          require.resolve(pk.longName);
         return true;
       } catch (err) {
         return false;
@@ -116,25 +133,31 @@ export function runPackages(argv: {target: string, package: string[], [key: stri
     }
     return false;
   });
-  return orderPackages(components, (pkInstance: PackageInstance)  => {
-    const mod = pkInstance.longName + '/' + fileToRun;
+
+  const packageNamesInOrder: string[] = [];
+
+  await orderPackages(components.map(item => ({name: item.longName, priority: _.get(item.json, 'dr.serverPriority')})),
+  pkInstance  => {
+    packageNamesInOrder.push(pkInstance.name);
+    const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
     log.info('require(%s)', JSON.stringify(mod));
-    const fileExports: any = require(mod);
+    const fileExports = require(mod);
+    pkgExportsInReverOrder.unshift({name: pkInstance.name, exp: fileExports});
     if (_.isFunction(fileExports[funcToRun])) {
       log.info('Run %s %s()', mod, funcToRun);
       return fileExports[funcToRun]();
     }
-  })
-  .then(() => {
-    (proto.eventBus as Events.EventEmitter).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
   });
+  (proto.eventBus as Events.EventEmitter).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
+  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
+  NodeApi.prototype.eventBus.emit('packagesActivated', includeNameSet);
+  return pkgExportsInReverOrder;
 }
 
-export function initInjectorForNodePackages(argv: {[key: string]: any}, packageInfo: PackageInfo):
+export function initInjectorForNodePackages(packageInfo: PackageInfo):
   [PackageBrowserInstance[], _NodeApi] {
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
-  proto.argv = argv;
   // const packageInfo: PackageInfo = walkPackages(config, packageUtils);
   proto.packageInfo = packageInfo;
   const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
@@ -261,54 +284,3 @@ function getApiForPackage(pkInstance: any, NodeApi: typeof _NodeApi) {
   api.default = api; // For ES6 import syntax
   return api;
 }
-
-// export async function runServer() {
-//   let packagesTypeMap;
-//   // NodeApi.prototype.argv = argv;
-//   // NodeApi.prototype.runBuilder = function(buildArgv, skipNames) {
-//   //   _.assign(buildArgv, argv);
-//   //   if (!Array.isArray(skipNames))
-//   //     skipNames = [skipNames];
-//   //   // var builders = _.filter(packagesTypeMap.builder, packageIns => !_.includes(excludeNames, packageIns.longName) );
-
-//   //   return helper.runBuilderComponents(packagesTypeMap.builder, buildArgv, skipNames);
-//   // };
-
-//   packagesTypeMap = await requireServerPackages();
-//   // deactivateOrder = [];
-//   await activateCoreComponents();
-//   await activateNormalComponents();
-//   const newRunner = new ServerRunner();
-//   deactivateOrder.reverse();
-//   newRunner.deactivatePackages = deactivateOrder;
-//   await new Promise(resolve => setTimeout(resolve, 500));
-//   return () => {
-//     return newRunner.shutdownServer();
-//   };
-// }
-
-// function requireServerPackages(dontLoad) {
-// 	return helper.traversePackages(!dontLoad)
-// 	.then(packagesTypeMap => {
-// 		// var proto = NodeApi.prototype;
-// 		// proto.argv = argv;
-
-// 		// create API instance and inject factories
-
-// 		_.each(packagesTypeMap.server, (p, idx) => {
-// 			if (!checkPackageName(p.scope, p.shortName, false)) {
-// 				return;
-// 			}
-// 			if (_.includes([].concat(_.get(p, 'json.dr.type')), 'core')) {
-// 				corePackages[p.shortName] = p;
-// 			} else {
-// 				packageCache[p.shortName] = p;
-// 			}
-// 			// if (!dontLoad)
-// 			// 	p.exports = require(p.moduleName);
-// 		});
-// 		eventBus.emit('loadEnd', packageCache);
-// 		return packagesTypeMap;
-// 	});
-// }
-

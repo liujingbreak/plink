@@ -23,10 +23,10 @@ export function getPathTo<T>(v: Vertex<T>, temp = [] as Vertex<T>[]) {
 }
 
 export class DFS<T> {
+  backEdges: [Vertex<T>, Vertex<T>][] = [];
+
   private time = 0;
   private vertexMap = new Map<T, Vertex<T>>();
-
-  backEdges: [Vertex<T>, Vertex<T>][] = [];
 
   constructor(private adjacencyOf: (u: Vertex<T>) => Iterable<Vertex<T>>) {}
 

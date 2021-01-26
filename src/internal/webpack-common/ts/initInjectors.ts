@@ -10,7 +10,7 @@ export default async function walkPackagesAndSetupInjector(deployUrl: string, ss
   Promise<ReturnType<typeof walkPackages>> {
 
   const packageInfo = walkPackages();
-  const [pks, apiProto] = initInjectorForNodePackages({}, packageInfo);
+  const [pks, apiProto] = initInjectorForNodePackages(packageInfo);
   await initWebInjector(pks, apiProto);
 
   const publicUrlObj = parse(deployUrl || '');
