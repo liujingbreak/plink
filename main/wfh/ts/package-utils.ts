@@ -1,5 +1,5 @@
 import LRU from 'lru-cache';
-import PackageBrowserInstance from './package-mgr/package-instance';
+import PackageInstance from './packageNodeInstance';
 import LazyPackageFactory from './package-mgr/lazy-package-factory';
 import {getState} from './package-mgr';
 // import * as Path from 'path';
@@ -15,9 +15,9 @@ export {PackageType, allPackages, packages4WorkspaceKey, packages4Workspace};
 const lazyPackageFactory = new LazyPackageFactory(allPackages());
 
 export function createLazyPackageFileFinder() {
-  const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
+  const cache = new LRU<string, PackageInstance>({max: 20, maxAge: 20000});
 
-  return function(file: string): PackageBrowserInstance | undefined {
+  return function(file: string): PackageInstance | undefined {
     let found = cache.get(file);
     if (!found) {
       found = lazyPackageFactory.getPackageByPath(file)!;

@@ -1,13 +1,10 @@
 /* tslint:disable max-line-length */
 import * as _ from 'lodash';
 import LRU from 'lru-cache';
-import PackageBrowserInstance from './package-mgr/package-instance';
 import {PackageInfo, walkPackages} from './package-mgr/package-info-gathering';
-// const NodeApi = require('../lib/nodeApi');
-// const {nodeInjector} = require('../lib/injectorFactory');
 import { nodeInjector, webInjector } from './injector-factory';
 import _NodeApi from './package-mgr/node-package-api';
-// import Package from './packageNodeInstance';
+import PackageInstance from './packageNodeInstance';
 import { orderPackages } from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
 import Path from 'path';
@@ -58,7 +55,7 @@ export async function runServer() {
 }
 
 const apiCache: {[name: string]: any} = {};
-// const packageTree = new DirTree<PackageBrowserInstance>();
+// const packageTree = new DirTree<PackageInstance>();
 
 /**
  * Lazily init injector for packages and run specific package only,
@@ -119,8 +116,7 @@ export async function runPackages(target: string, includePackages: Iterable<stri
   const [packages, proto] = initInjectorForNodePackages(walkPackages());
   const components = packages.filter(pk => {
     // setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
-    if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName)) &&
-      pk.dr != null) {
+    if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName))) {
       try {
         if (fileToRun)
           require.resolve(pk.longName + '/' + fileToRun);
@@ -155,13 +151,13 @@ export async function runPackages(target: string, includePackages: Iterable<stri
 }
 
 export function initInjectorForNodePackages(packageInfo: PackageInfo):
-  [PackageBrowserInstance[], _NodeApi] {
+  [PackageInstance[], _NodeApi] {
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
   // const packageInfo: PackageInfo = walkPackages(config, packageUtils);
   proto.packageInfo = packageInfo;
-  const cache = new LRU<string, PackageBrowserInstance>({max: 20, maxAge: 20000});
-  proto.findPackageByFile = function(file: string): PackageBrowserInstance | undefined {
+  const cache = new LRU<string, PackageInstance>({max: 20, maxAge: 20000});
+  proto.findPackageByFile = function(file: string): PackageInstance | undefined {
     var found = cache.get(file);
     if (!found) {
       found = packageInfo.dirTree.getAllData(file).pop();
@@ -170,25 +166,18 @@ export function initInjectorForNodePackages(packageInfo: PackageInfo):
     }
     return found;
   };
-  proto.getNodeApiForPackage = function(packageInstance: any) {
+  proto.getNodeApiForPackage = function(packageInstance: PackageInstance) {
     return getApiForPackage(packageInstance, NodeApi);
   };
-  const drPackages = packageInfo.allModules.filter(pk => {
-    if (pk.dr) {
-      setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
-      return true;
-    }
-    return false;
+  packageInfo.allModules.forEach(pk => {
+    setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
   });
-  return [drPackages, proto];
+  return [packageInfo.allModules, proto];
 }
 
-export function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any) {
+export function initWebInjector(packages: PackageInstance[], apiPrototype: any) {
   _.each(packages, pack => {
-    if (pack.dr) {
-      // no vendor package's path information
-      webInjector.addPackage(pack.longName, pack.packagePath);
-    }
+    webInjector.addPackage(pack.longName, pack.path);
   });
   webInjector.fromAllPackages()
   .replaceCode('__api', '__api')
@@ -217,7 +206,7 @@ export function prepareLazyNodeInjector(argv?: {[key: string]: any}) {
     }
   });
   proto.findPackageByFile = createLazyPackageFileFinder();
-  proto.getNodeApiForPackage = function(packageInstance: any) {
+  proto.getNodeApiForPackage = function(packageInstance: NodePackage) {
     return getApiForPackage(packageInstance, NodeApi);
   };
   nodeInjector.fromRoot()
@@ -225,7 +214,9 @@ export function prepareLazyNodeInjector(argv?: {[key: string]: any}) {
   .value('__injector', nodeInjector)
   .factory('__api', (sourceFilePath: string) => {
     const packageInstance = proto.findPackageByFile(sourceFilePath);
-    return getApiForPackage(packageInstance, NodeApi);
+    if (packageInstance)
+      return getApiForPackage(packageInstance, NodeApi);
+    return null;
   });
 }
 
@@ -260,19 +251,19 @@ export function mapPackagesByType(types: string[], onEachPackage: (nodePackage: 
   return packagesMap;
 }
 
-function setupNodeInjectorFor(pkInstance: PackageBrowserInstance, NodeApi: typeof _NodeApi ) {
+function setupNodeInjectorFor(pkInstance: PackageInstance, NodeApi: typeof _NodeApi ) {
   function apiFactory() {
     return getApiForPackage(pkInstance, NodeApi);
   }
-  nodeInjector.fromDir(pkInstance.realPackagePath)
+  nodeInjector.fromDir(pkInstance.realPath)
   .value('__injector', nodeInjector)
   .factory('__api', apiFactory);
-  nodeInjector.fromDir(pkInstance.packagePath)
+  nodeInjector.fromDir(pkInstance.path)
   .value('__injector', nodeInjector)
   .factory('__api', apiFactory);
 }
 
-function getApiForPackage(pkInstance: any, NodeApi: typeof _NodeApi) {
+function getApiForPackage(pkInstance: NodePackage, NodeApi: typeof _NodeApi) {
   if (_.has(apiCache, pkInstance.longName)) {
     return apiCache[pkInstance.longName];
   }

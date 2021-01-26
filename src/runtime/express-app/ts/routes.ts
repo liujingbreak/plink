@@ -4,17 +4,17 @@ import _ from 'lodash';
 import Path from 'path';
 import _cors from 'cors';
 
-var log = require('log4js').getLogger(api.packageName + '.setApi');
-var swig = require('swig-templates');
+let log = require('log4js').getLogger(api.packageName + '.setApi');
+let swig = require('swig-templates');
 
 interface RouterDefCallback {
   (app: Application, exp: typeof express): void;
   packageName?: string;
 }
 
-var routerSetupFuncs: RouterDefCallback[] = [];
-// var middlewares = [];
-var appSets: RouterDefCallback[] = [];
+let routerSetupFuncs: RouterDefCallback[] = [];
+// let middlewares = [];
+let appSets: RouterDefCallback[] = [];
 
 
 export function createPackageDefinedRouters(app: Application) {
@@ -38,7 +38,7 @@ export function applyPackageDefinedAppSetting(app: Application) {
 }
 
 export function setupApi(api: DrcpApi, app: Application) {
-  var apiPrototype: DrcpApi = Object.getPrototypeOf(api);
+  let apiPrototype: DrcpApi = Object.getPrototypeOf(api);
   apiPrototype.express = express;
   apiPrototype.expressApp = app;
   apiPrototype.swig = swig;
@@ -49,15 +49,15 @@ export function setupApi(api: DrcpApi, app: Application) {
 	 * @return {[type]} [description]
 	 */
   apiPrototype.router = function(this: typeof api) {
-    var self = this;
-    var calleePackageName = this.packageName;
+    let self = this;
+    let calleePackageName = this.packageName;
     if (self._router) {
       return self._router;
     }
-    var router = self._router = express.Router();
-    var contextPath = self.contextPath;
-    console.log(self.config().rootPath, self.packageInstance.path);
-    var packageRelPath = Path.relative(self.config().rootPath, self.packageInstance.path);
+    let router = self._router = express.Router();
+    let contextPath = self.contextPath;
+
+    let packageRelPath = Path.relative(self.config().rootPath, self.packageInstance.path);
     if (Path.sep === '\\') {
       packageRelPath = packageRelPath.replace(/\\/g, '/');
     }
@@ -94,7 +94,7 @@ export function setupApi(api: DrcpApi, app: Application) {
     routerSetupFuncs.push(setupRouter);
 
     function customizedRender() {
-      var args = [].slice.call(arguments);
+      let args = [].slice.call(arguments);
       if (arguments[0].endsWith('_drcp-express-error.html'))
         return oldRender.apply(this, args);
       else if (_.startsWith(args[0], '/')) {
@@ -121,7 +121,7 @@ export function setupApi(api: DrcpApi, app: Application) {
 	 */
     'param'].forEach(function(method) {
     apiPrototype[method] = function(_x: any) {
-      var args = [].slice.apply(arguments);
+      let args = [].slice.apply(arguments);
       function setupMiddleware(app: Application) {
         app[method].apply(app, args);
       }
@@ -173,7 +173,7 @@ export function setupApi(api: DrcpApi, app: Application) {
       corsOptions = {
         // origin: ['http://localhost:14333'],
         origin(origin: string, callback: (_arg: any, pass: boolean) => void) {
-          var pass = origin == null || corsOpt === true || whiteOriginSet.has(origin);
+          let pass = origin == null || corsOpt === true || whiteOriginSet.has(origin);
           callback(pass ? null : {status: 400, message: 'Bad Request (CORS) for origin: ' + origin},
             pass);
           if (!pass)

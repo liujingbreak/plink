@@ -7,8 +7,9 @@ import npmimportCssLoader from 'require-injector/dist/css-loader';
 import Inject from 'require-injector';
 import * as assetsUrl from '../../dist/assets-url';
 import {PackageInfo} from './package-info-gathering';
-import PackageInstance from './package-instance';
-// import PackageInstance from '../packageNodeInstance';
+// import PackageInstance from './package-instance';
+// import NodePackageInstance from '../packageNodeInstance';
+import PackageInstance from '../packageNodeInstance';
 import _ from 'lodash';
 import {Logger, getLogger} from 'log4js';
 
@@ -45,7 +46,7 @@ class NodeApi implements assetsUrl.PackageApi {
 
   browserInjector: Inject;
   findPackageByFile: (file: string) => PackageInstance | undefined;
-  getNodeApiForPackage: (pkInstance: any, NodeApi: any) => any;
+  getNodeApiForPackage: (pkInstance: PackageInstance) => NodeApi;
 
   constructor(public packageName: string, public packageInstance: PackageInstance) {
     this.packageShortName = parseName(packageName).name;

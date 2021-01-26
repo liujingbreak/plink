@@ -1,30 +1,29 @@
 // import * as Path from 'path';
-import * as fs from 'fs';
 import * as _ from 'lodash';
 import {DirTree} from 'require-injector/dist/dir-tree';
-import PackageBrowserInstance from './package-instance';
+import PackageInstance from '../packageNodeInstance';
 import {PackageInfo} from '.';
 
 /**
  * @deprecated
  */
 export default class LazyPackageFactory {
-  packagePathMap: DirTree<PackageBrowserInstance>;
+  packagePathMap: DirTree<PackageInstance>;
 
   constructor(private packagesIterable: Iterable<PackageInfo>) {
   }
 
-  getPackageByPath(file: string): PackageBrowserInstance | null {
+  getPackageByPath(file: string): PackageInstance | null {
     if (this.packagePathMap == null) {
-      this.packagePathMap = new DirTree<PackageBrowserInstance>();
+      this.packagePathMap = new DirTree<PackageInstance>();
       for (const info of this.packagesIterable) {
-        const pk = createPackage(info.path, info.json);
+        const pk = createPackage(info);
         this.packagePathMap.putData(info.path, pk);
         if (info.realPath !== info.path)
           this.packagePathMap.putData(info.realPath, pk);
       }
     }
-    let found: PackageBrowserInstance[];
+    let found: PackageInstance[];
     found = this.packagePathMap.getAllData(file);
     if (found.length > 0)
       return found[found.length - 1];
@@ -44,36 +43,24 @@ export function parseName(longName: string): {name: string; scope?: string} {
   return {name: longName};
 }
 
-function createPackage(packagePath: string, pkJson: any) {
-  const name: string = pkJson.name;
-  const instance = new PackageBrowserInstance({
-    isVendor: false,
-    longName: pkJson.name,
-    shortName: parseName(pkJson.name).name,
-    packagePath,
-    realPackagePath: fs.realpathSync(packagePath)
+function createPackage(info: PackageInfo) {
+  const instance = new PackageInstance({
+    longName: info.name,
+    shortName: parseName(info.name).name,
+    path: info.path,
+    realPath: info.realPath,
+    json: info.json
   });
   let noParseFiles: string[] | undefined;
-  if (pkJson.dr) {
-    if (pkJson.dr.noParse) {
-      noParseFiles = [].concat(pkJson.dr.noParse).map(trimNoParseSetting);
+  if (info.json.dr) {
+    if (info.json.dr.noParse) {
+      noParseFiles = [].concat(info.json.dr.noParse).map(trimNoParseSetting);
     }
-    if (pkJson.dr.browserifyNoParse) {
-      noParseFiles = [].concat(pkJson.dr.browserifyNoParse).map(trimNoParseSetting);
+    if (info.json.dr.browserifyNoParse) {
+      noParseFiles = [].concat(info.json.dr.browserifyNoParse).map(trimNoParseSetting);
     }
   }
-  // const mainFile: string = pkJson.browser || pkJson.main;
-  instance.init({
-    // file: mainFile ? Path.resolve(instance.realPackagePath, mainFile) : undefined, // package.json "browser"
-    // style: pkJson.style ? resolveStyle(name, nodePaths) : null,
-    parsedName: parseName(name),
-    browserifyNoParse: noParseFiles,
-    translatable: !_.has(pkJson, 'dr.translatable') || _.get(pkJson, 'dr.translatable'),
-    dr: pkJson.dr,
-    json: pkJson,
-    i18n: pkJson.dr && pkJson.dr.i18n ? pkJson.dr.i18n : null,
-    appType: _.get(pkJson, 'dr.appType')
-  });
+
   return instance;
 }
 
