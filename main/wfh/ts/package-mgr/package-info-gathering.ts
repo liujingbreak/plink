@@ -3,20 +3,20 @@ import * as _ from 'lodash';
 // var chalk = require('chalk');
 const log = require('log4js').getLogger('buildUtil.' + Path.basename(__filename, '.js'));
 import {DirTree} from 'require-injector/dist/dir-tree';
-import PackageBrowserInstance from './package-instance';
+import PackageInstance from '../packageNodeInstance';
 import * as packageUtils from '../package-utils';
 import config from '../config';
-import {createPackageInfo} from './index';
-
+import {PackageInfo as PackageState} from './index';
+import {parseName} from './lazy-package-factory';
 export interface BundleInfo {
-  moduleMap: {[name: string]: PackageBrowserInstance};
+  moduleMap: {[name: string]: PackageInstance};
 }
 export interface PackageInfo extends BundleInfo {
-  allModules: PackageBrowserInstance[];
-  dirTree: DirTree<PackageBrowserInstance>;
+  allModules: PackageInstance[];
+  dirTree: DirTree<PackageInstance>;
 }
 
-export {PackageBrowserInstance};
+export {PackageInstance};
 
 let packageInfo: PackageInfo;
 /**
@@ -58,83 +58,62 @@ function _walkPackages(): PackageInfo {
     moduleMap: {}
   };
   const info: PackageInfo = {
-    allModules: null as unknown as PackageBrowserInstance[], // array
+    allModules: null as unknown as PackageInstance[], // array
     moduleMap: _.clone(configBundleInfo.moduleMap),
-    dirTree: null as unknown as DirTree<PackageBrowserInstance>
+    dirTree: null as unknown as DirTree<PackageInstance>
   };
 
-  // packageUtils.findAllPackages((
-  //   name: string, path: string, parsedName: {scope: string, name: string}, pkJson: any, realPath: string) => {
-  //   // console.log(path, realPath)
-  //   addPackageToInfo(info, name, parsedName, pkJson, path, realPath);
-  // });
   for (const pk of packageUtils.packages4Workspace()) {
-    addPackageToInfo(info, pk.name, {name: pk.shortName, scope: pk.scope}, pk.json, pk.path, pk.realPath);
+    addPackageToInfo(info, pk);
   }
-  const drcpPkg = createPackageInfo(packageUtils.findPackageJsonPath('@wfh/plink')!);
-  addPackageToInfo(info, '@wfh/plink',
-    {scope: drcpPkg.scope, name: drcpPkg.shortName},
-    require('@wfh/plink/package.json'), drcpPkg.path, drcpPkg.realPath);
+  // if (getState().linkedDrcp) {
+  //   addPackageToInfo(info, getState().linkedDrcp!);
+  // }
 
   info.allModules = _.values(info.moduleMap);
 
   return info;
 }
 
-function addPackageToInfo(info: PackageInfo, name: string,
-  parsedName: {scope: string, name: string}, pkJson: any, packagePath: string, realPackagePath: string) {
-  let noParseFiles, instance;
-  if (_.has(info.moduleMap, name)) {
-    instance = info.moduleMap[name];
+function addPackageToInfo(info: PackageInfo, pkg: PackageState) {
+  let instance;
+  if (_.has(info.moduleMap, pkg.name)) {
+    instance = info.moduleMap[pkg.name];
   } else {
+    const parsed = parseName(pkg.name);
     // There are also node packages
-    instance = new PackageBrowserInstance({});
+    instance = new PackageInstance({
+      moduleName: pkg.name,
+      shortName: parsed.name,
+      name: pkg.name,
+      longName: pkg.name,
+      scope: pkg.scope,
+      path: pkg.path,
+      json: pkg.json,
+      realPath: pkg.realPath
+    });
   }
-  if (!pkJson.dr) {
-    pkJson.dr = {};
-  }
-  if (pkJson.dr.noParse) {
-    noParseFiles = [].concat(pkJson.dr.noParse).map(trimNoParseSetting);
-  }
-  if (pkJson.dr.browserifyNoParse) {
-    noParseFiles = [].concat(pkJson.dr.browserifyNoParse).map(trimNoParseSetting);
-  }
-  instance.init({
-    longName: name,
-    realPackagePath,
-    packagePath,
-    shortName: parsedName.name,
-    isVendor: false,
-    parsedName,
-    browserifyNoParse: noParseFiles,
-    translatable: !_.has(pkJson, 'dr.translatable') || _.get(pkJson, 'dr.translatable'),
-    dr: pkJson.dr,
-    json: pkJson,
-    i18n: pkJson.dr.i18n ? pkJson.dr.i18n : null,
-    appType: pkJson.dr.appType
-  });
   info.moduleMap[instance.longName] = instance;
 }
 
-function trimNoParseSetting(p: string) {
-  p = p.replace(/\\/g, '/');
-  if (p.startsWith('./')) {
-    p = p.substring(2);
-  }
-  return p;
-}
+// function trimNoParseSetting(p: string) {
+//   p = p.replace(/\\/g, '/');
+//   if (p.startsWith('./')) {
+//     p = p.substring(2);
+//   }
+//   return p;
+// }
 
 function createPackageDirTree(packageInfo: PackageInfo) {
-  const tree = new DirTree<PackageBrowserInstance>();
+  const tree = new DirTree<PackageInstance>();
   var count = 0;
   packageInfo.allModules.forEach(moduleInstance => {
-    // log.info(moduleInstance.longName);
     if (moduleInstance == null)
       return;
-    if (moduleInstance.realPackagePath)
-      tree.putData(moduleInstance.realPackagePath, moduleInstance);
-    if (moduleInstance.packagePath !== moduleInstance.realPackagePath)
-      tree.putData(moduleInstance.packagePath, moduleInstance);
+    if (moduleInstance.realPath)
+      tree.putData(moduleInstance.realPath, moduleInstance);
+    if (moduleInstance.path !== moduleInstance.realPath)
+      tree.putData(moduleInstance.path, moduleInstance);
     count++;
   });
   log.info('Total %s node packages', count);

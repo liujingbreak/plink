@@ -51,23 +51,23 @@ function createPackage(info: PackageInfo) {
     realPath: info.realPath,
     json: info.json
   });
-  let noParseFiles: string[] | undefined;
-  if (info.json.dr) {
-    if (info.json.dr.noParse) {
-      noParseFiles = [].concat(info.json.dr.noParse).map(trimNoParseSetting);
-    }
-    if (info.json.dr.browserifyNoParse) {
-      noParseFiles = [].concat(info.json.dr.browserifyNoParse).map(trimNoParseSetting);
-    }
-  }
+  // let noParseFiles: string[] | undefined;
+  // if (info.json.dr) {
+  //   if (info.json.dr.noParse) {
+  //     noParseFiles = [].concat(info.json.dr.noParse).map(trimNoParseSetting);
+  //   }
+  //   if (info.json.dr.browserifyNoParse) {
+  //     noParseFiles = [].concat(info.json.dr.browserifyNoParse).map(trimNoParseSetting);
+  //   }
+  // }
 
   return instance;
 }
 
-function trimNoParseSetting(p: string) {
-  p = p.replace(/\\/g, '/');
-  if (p.startsWith('./')) {
-    p = p.substring(2);
-  }
-  return p;
-}
+// function trimNoParseSetting(p: string) {
+//   p = p.replace(/\\/g, '/');
+//   if (p.startsWith('./')) {
+//     p = p.substring(2);
+//   }
+//   return p;
+// }

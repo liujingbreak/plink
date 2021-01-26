@@ -828,7 +828,9 @@ function* doListInstalledComp4Workspace(state: PackagesState, workspaceKey: stri
         const pkjsonFile = Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json');
         if (fs.existsSync(pkjsonFile)) {
           const pk = createPackageInfo(
-            Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true);
+            Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true,
+            Path.resolve(getRootDir(), workspaceKey, '.links')
+          );
           if (pk.json.dr) {
             yield pk;
           }

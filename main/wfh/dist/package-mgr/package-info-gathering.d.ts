@@ -1,15 +1,15 @@
 import { DirTree } from 'require-injector/dist/dir-tree';
-import PackageBrowserInstance from './package-instance';
+import PackageInstance from '../packageNodeInstance';
 export interface BundleInfo {
     moduleMap: {
-        [name: string]: PackageBrowserInstance;
+        [name: string]: PackageInstance;
     };
 }
 export interface PackageInfo extends BundleInfo {
-    allModules: PackageBrowserInstance[];
-    dirTree: DirTree<PackageBrowserInstance>;
+    allModules: PackageInstance[];
+    dirTree: DirTree<PackageInstance>;
 }
-export { PackageBrowserInstance };
+export { PackageInstance };
 /**
  * walkPackages
  * @param {*} config

@@ -1,6 +1,6 @@
-import PackageBrowserInstance from './package-mgr/package-instance';
 import { PackageInfo } from './package-mgr/package-info-gathering';
 import _NodeApi from './package-mgr/node-package-api';
+import PackageInstance from './packageNodeInstance';
 import NodePackage from './packageNodeInstance';
 import { PackageInfo as PackageState } from './package-mgr';
 export interface ServerRunnerEvent {
@@ -23,10 +23,10 @@ export declare function runPackages(target: string, includePackages: Iterable<st
     exp: any;
 }[]>;
 export declare function initInjectorForNodePackages(packageInfo: PackageInfo): [
-    PackageBrowserInstance[],
+    PackageInstance[],
     _NodeApi
 ];
-export declare function initWebInjector(packages: PackageBrowserInstance[], apiPrototype: any): void;
+export declare function initWebInjector(packages: PackageInstance[], apiPrototype: any): void;
 /**
  * Support `import api from '__api';`
  * @param argv
@@ -35,5 +35,5 @@ export declare function prepareLazyNodeInjector(argv?: {
     [key: string]: any;
 }): void;
 export declare function mapPackagesByType(types: string[], onEachPackage: (nodePackage: NodePackage) => void): {
-    [type: string]: NodePackage[];
+    [type: string]: PackageInstance[];
 };

@@ -1,8 +1,8 @@
-import PackageBrowserInstance from './package-mgr/package-instance';
+import PackageInstance from './packageNodeInstance';
 import { lookupPackageJson } from './cmd/utils';
 import { PackageType, allPackages, packages4WorkspaceKey, packages4Workspace } from './package-mgr/package-list-helper';
 export { PackageType, allPackages, packages4WorkspaceKey, packages4Workspace };
-export declare function createLazyPackageFileFinder(): (file: string) => PackageBrowserInstance | undefined;
+export declare function createLazyPackageFileFinder(): (file: string) => PackageInstance | undefined;
 export declare type FindPackageCb = (fullName: string, 
 /** @Deprecated empty string */
 packagePath: string, parsedName: {

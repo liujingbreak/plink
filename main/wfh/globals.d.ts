@@ -1,5 +1,4 @@
 import NodePackage from './dist/packageNodeInstance';
-import PackageBrowserInstance from './dist/package-mgr/package-instance';
 import { EventEmitter } from 'events';
 import {PackageInfo} from './dist/package-mgr/package-info-gathering';
 import {DrcpConfig} from './dist/config-handler';
@@ -10,7 +9,7 @@ export interface DrcpApi {
 	/** Only available in Node.js server side environment */
 	logger: Logger;
 	packageShortName: string;
-	packageInstance: NodePackage & PackageBrowserInstance;
+	packageInstance: NodePackage;
 	entryPage: string;
 	/** @Deprecated */
 	packageUtils: never;

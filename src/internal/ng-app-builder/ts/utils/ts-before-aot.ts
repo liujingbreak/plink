@@ -16,9 +16,9 @@ export type TsHandler = (ast: ts.SourceFile) => ReplacementInf[];
 function createTsHandlers(): Array<[string, TsHandler]> {
   const funcs: Array<[string, TsHandler]> = [];
   for (const pk of api.packageInfo.allModules) {
-    if (pk.dr && pk.dr.ngTsHandler) {
-      const [filePath, exportName] = pk.dr.ngTsHandler.split('#');
-      const path = resolve(pk.realPackagePath, filePath);
+    if (pk.json.dr && pk.json.dr.ngTsHandler) {
+      const [filePath, exportName] = pk.json.dr.ngTsHandler.split('#');
+      const path = resolve(pk.realPath, filePath);
       const func = require(path)[exportName] as TsHandler;
       funcs.push([
         path + '#' + exportName,

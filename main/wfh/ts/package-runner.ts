@@ -14,7 +14,7 @@ import log4js from 'log4js';
 import config from './config';
 import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} from './package-mgr';
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
-
+import chalk from 'chalk';
 const log = log4js.getLogger('package-runner');
 
 export interface ServerRunnerEvent {
@@ -136,11 +136,11 @@ export async function runPackages(target: string, includePackages: Iterable<stri
   pkInstance  => {
     packageNamesInOrder.push(pkInstance.name);
     const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
-    log.info('require(%s)', JSON.stringify(mod));
+    log.debug('require(%s)', JSON.stringify(mod));
     const fileExports = require(mod);
     pkgExportsInReverOrder.unshift({name: pkInstance.name, exp: fileExports});
     if (_.isFunction(fileExports[funcToRun])) {
-      log.info('Run %s %s()', mod, funcToRun);
+      log.info(funcToRun + ` ${chalk.cyan(mod)}`);
       return fileExports[funcToRun]();
     }
   });
@@ -154,7 +154,7 @@ export function initInjectorForNodePackages(packageInfo: PackageInfo):
   [PackageInstance[], _NodeApi] {
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
-  // const packageInfo: PackageInfo = walkPackages(config, packageUtils);
+  proto.argv = {};
   proto.packageInfo = packageInfo;
   const cache = new LRU<string, PackageInstance>({max: 20, maxAge: 20000});
   proto.findPackageByFile = function(file: string): PackageInstance | undefined {
@@ -195,7 +195,7 @@ export function initWebInjector(packages: PackageInstance[], apiPrototype: any) 
 export function prepareLazyNodeInjector(argv?: {[key: string]: any}) {
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
-  proto.argv = argv;
+  proto.argv = argv || {};
   let packageInfo: PackageInfo;
 
   Object.defineProperty(proto, 'packageInfo', {

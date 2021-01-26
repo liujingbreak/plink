@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import Inject from 'require-injector';
 import * as assetsUrl from '../../dist/assets-url';
 import { PackageInfo } from './package-info-gathering';
-import PackageInstance from './package-instance';
+import PackageInstance from '../packageNodeInstance';
 import { Logger } from 'log4js';
 declare class NodeApi implements assetsUrl.PackageApi {
     packageName: string;
@@ -20,7 +20,7 @@ declare class NodeApi implements assetsUrl.PackageApi {
     logger: Logger;
     browserInjector: Inject;
     findPackageByFile: (file: string) => PackageInstance | undefined;
-    getNodeApiForPackage: (pkInstance: any, NodeApi: any) => any;
+    getNodeApiForPackage: (pkInstance: PackageInstance) => NodeApi;
     constructor(packageName: string, packageInstance: PackageInstance);
     isBrowser(): boolean;
     isNode(): boolean;

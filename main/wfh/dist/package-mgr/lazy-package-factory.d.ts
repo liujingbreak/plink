@@ -1,14 +1,14 @@
 import { DirTree } from 'require-injector/dist/dir-tree';
-import PackageBrowserInstance from './package-instance';
+import PackageInstance from '../packageNodeInstance';
 import { PackageInfo } from '.';
 /**
  * @deprecated
  */
 export default class LazyPackageFactory {
     private packagesIterable;
-    packagePathMap: DirTree<PackageBrowserInstance>;
+    packagePathMap: DirTree<PackageInstance>;
     constructor(packagesIterable: Iterable<PackageInfo>);
-    getPackageByPath(file: string): PackageBrowserInstance | null;
+    getPackageByPath(file: string): PackageInstance | null;
 }
 export declare function parseName(longName: string): {
     name: string;
