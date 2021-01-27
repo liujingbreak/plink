@@ -31,12 +31,10 @@ function parseName(longName: string) {
 
 class NodeApi implements assetsUrl.PackageApi {
   packageShortName: string;
-  contextPath: string;
-
   // TODO: deprecated, should be removed
   buildUtils = require('../../lib/gulp/buildUtils');
   // packageUtils = packageUitls;
-  compileNodePath = [config().nodePath];
+  // compileNodePath = [config().nodePath];
   eventBus: EventEmitter;
   config = config;
   argv: any;
@@ -48,9 +46,14 @@ class NodeApi implements assetsUrl.PackageApi {
   findPackageByFile: (file: string) => PackageInstance | undefined;
   getNodeApiForPackage: (pkInstance: PackageInstance) => NodeApi;
 
+  get contextPath() {
+    return this._contextPath();
+  }
+
+
   constructor(public packageName: string, public packageInstance: PackageInstance) {
     this.packageShortName = parseName(packageName).name;
-    this.contextPath = this._contextPath();
+    // this.contextPath = this._contextPath();
     this.logger = getLogger(this.packageName);
   }
 
@@ -112,16 +115,16 @@ class NodeApi implements assetsUrl.PackageApi {
   }
 
   _contextPath(packageName?: string) {
-    let packageShortName;
-    if (!packageName) {
-      packageName = this.packageName;
-      packageShortName = this.parsePackageName(packageName).name;
-    } else {
-      packageShortName = this.packageShortName;
-    }
-    var path = config.get('packageContextPathMapping[' + packageShortName + ']') ||
-      config.get(['packageContextPathMapping', packageName]);
-    path = path != null ? path : '/' + packageShortName;
+    // let packageShortName;
+    // if (!packageName) {
+    //   packageName = this.packageName;
+    //   packageShortName = this.parsePackageName(packageName).name;
+    // } else {
+    //   packageShortName = this.packageShortName;
+    // }
+    var path = config.get('packageContextPathMapping[' + this.packageShortName + ']') ||
+      config.get(['packageContextPathMapping', packageName || this.packageName]);
+    path = path != null ? path : '/' + this.packageShortName;
     if (this.config().nodeRoutePath) {
       path = this.config().nodeRoutePath + '/' + path;
     }

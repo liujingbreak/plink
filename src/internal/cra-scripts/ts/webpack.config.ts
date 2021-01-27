@@ -84,6 +84,8 @@ export = function(webpackEnv: 'production' | 'development') {
     }
   }
 
+  // config.resolve!.symlinks = false;
+
   const resolveModules = ['node_modules', ...nodePath];
   config.resolve!.modules = resolveModules;
 
@@ -304,7 +306,9 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
 function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) {
   return function testOurSourceFile(file: string)  {
     const pk = api.findPackageByFile(file);
-    const yes = ((pk && pk.dr) || (appSrc && file.startsWith(appSrc))) &&
+    if (pk == null && file.indexOf('.links') > 0)
+      log.warn('createRuleTestFunc4Src', file, pk);
+    const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
       (origTest instanceof RegExp) ? origTest.test(file) :
         (origTest instanceof Function ? origTest(file) : origTest === file);
     // log.info(`[webpack.config] babel-loader: ${file}`, yes);

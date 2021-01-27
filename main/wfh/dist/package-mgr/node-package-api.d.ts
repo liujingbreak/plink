@@ -9,9 +9,7 @@ declare class NodeApi implements assetsUrl.PackageApi {
     packageName: string;
     packageInstance: PackageInstance;
     packageShortName: string;
-    contextPath: string;
     buildUtils: any;
-    compileNodePath: any[];
     eventBus: EventEmitter;
     config: import("..").DrcpConfig;
     argv: any;
@@ -21,6 +19,7 @@ declare class NodeApi implements assetsUrl.PackageApi {
     browserInjector: Inject;
     findPackageByFile: (file: string) => PackageInstance | undefined;
     getNodeApiForPackage: (pkInstance: PackageInstance) => NodeApi;
+    get contextPath(): any;
     constructor(packageName: string, packageInstance: PackageInstance);
     isBrowser(): boolean;
     isNode(): boolean;

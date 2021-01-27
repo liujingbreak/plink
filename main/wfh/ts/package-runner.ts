@@ -15,6 +15,8 @@ import config from './config';
 import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} from './package-mgr';
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
 import chalk from 'chalk';
+import {getSymlinkForPackage} from './utils/misc';
+
 const log = log4js.getLogger('package-runner');
 
 export interface ServerRunnerEvent {
@@ -258,9 +260,12 @@ function setupNodeInjectorFor(pkInstance: PackageInstance, NodeApi: typeof _Node
   nodeInjector.fromDir(pkInstance.realPath)
   .value('__injector', nodeInjector)
   .factory('__api', apiFactory);
-  nodeInjector.fromDir(pkInstance.path)
-  .value('__injector', nodeInjector)
-  .factory('__api', apiFactory);
+  const symlinkDir = getSymlinkForPackage(pkInstance.name);
+  if (symlinkDir) {
+    nodeInjector.fromDir(symlinkDir)
+    .value('__injector', nodeInjector)
+    .factory('__api', apiFactory);
+  }
 }
 
 function getApiForPackage(pkInstance: NodePackage, NodeApi: typeof _NodeApi) {

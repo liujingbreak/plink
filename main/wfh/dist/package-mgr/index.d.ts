@@ -162,4 +162,4 @@ export declare function installInDir(dir: string, originPkgJsonStr: string, toIn
  * @param symLink symlink path of package
  * @param realPath real path of package
  */
-export declare function createPackageInfo(pkJsonFile: string, isInstalled?: boolean, symLinkParentDir?: string): PackageInfo;
+export declare function createPackageInfo(pkJsonFile: string, isInstalled?: boolean): PackageInfo;

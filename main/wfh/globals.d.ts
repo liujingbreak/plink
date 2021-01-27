@@ -32,7 +32,7 @@ export interface DrcpApi {
 	/** Availabe only if package-runner#initWebInjector() is executed */
 	browserInjector: InjectorFactory;
 	/** Deprecated */
-	findPackageByFile(path: string): PackageBrowserInstance | undefined;
+	findPackageByFile(path: string): NodePackage | undefined;
 	getNodeApiForPackage<T extends DrcpApi>(pk: {longName: string}): T;
 	extend(target: any): void;
 	isBrowser(): boolean;

@@ -269,7 +269,7 @@ stateFactory.addEpic((action$, state$) => {
   actionDispatcher._change(d => {
     d.linkedDrcp = isDrcpSymlink ?
     createPackageInfo(Path.resolve(
-      getRootDir(), 'node_modules/@wfh/plink/package.json'), false, getRootDir())
+      getRootDir(), 'node_modules/@wfh/plink/package.json'), false)
     : null;
   });
 
@@ -748,14 +748,6 @@ async function _scanPackageAndLink() {
   // _createSymlinks();
 }
 
-// function _createSymlinks$() {
-//   const obsList: Observable<void>[] = [];
-//   for (const key of getState().workspaces.keys()) {
-//     obsList.push(_createSymlinksForWorkspace(key));
-//   }
-//   return merge(...obsList).pipe(count());
-// }
-
 function _createSymlinksForWorkspace(wsKey: string) {
   const symlinkDir = Path.resolve(getRootDir(), wsKey, '.links');
   fs.mkdirpSync(symlinkDir);
@@ -806,10 +798,9 @@ async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) 
  * @param symLink symlink path of package
  * @param realPath real path of package
  */
-export function createPackageInfo(pkJsonFile: string, isInstalled = false,
-  symLinkParentDir?: string): PackageInfo {
+export function createPackageInfo(pkJsonFile: string, isInstalled = false): PackageInfo {
   const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
-  return createPackageInfoWithJson(pkJsonFile, json, isInstalled, symLinkParentDir);
+  return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
 }
 /**
  * List those installed packages which are referenced by workspace package.json file,
@@ -828,8 +819,7 @@ function* doListInstalledComp4Workspace(state: PackagesState, workspaceKey: stri
         const pkjsonFile = Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json');
         if (fs.existsSync(pkjsonFile)) {
           const pk = createPackageInfo(
-            Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true,
-            Path.resolve(getRootDir(), workspaceKey, '.links')
+            Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true
           );
           if (pk.json.dr) {
             yield pk;

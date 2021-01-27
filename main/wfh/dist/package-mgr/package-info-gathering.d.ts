@@ -19,5 +19,4 @@ export { PackageInstance };
  * @return {PackageInfo}
  */
 export declare function walkPackages(): PackageInfo;
-export declare function listBundleInfo(): PackageInfo;
 export declare function saveCache(packageInfo: PackageInfo): void;

@@ -13,6 +13,9 @@ import _scanNodeModules from '../utils/symlinks';
 import fs from 'fs';
 import Path from 'path';
 import semver from 'semver';
+import {overrideCommand} from './override-commander';
+import {initInjectorForNodePackages} from '../package-runner';
+import {walkPackages} from '../package-mgr/package-info-gathering';
 // import Path from 'path';
 const pk = require('../../../package');
 // const WIDTH = 130;
@@ -311,21 +314,16 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
   if (ws == null)
     return [];
 
-  const origPgmCommand = program.command;
-
   let filePath: string | null = null;
 
-  // const cmdInfoPacks = new Array<Parameters<typeof cliStore.cliActionDispatcher.updateLoadedCmd>[0] extends (infer I)[] ? I : unknown>(1);
-  const loadedCmdMap = new Map<string, string>();
-
+  initInjectorForNodePackages(walkPackages());
+  const overrider = overrideCommand(program, ws);
   const availables: string[] = [];
   for (const pk of packages4Workspace()) {
     const dr = pk.json.dr;
     if (dr == null || dr.cli == null)
       continue;
     const [pkgFilePath, funcName] = (dr.cli as string).split('#');
-    // if (!_.has(ws.originInstallJson.dependencies, extension.pkName) && !_.has(ws.originInstallJson.devDependencies, extension.pkName))
-    //   continue;
 
     availables.push(pk.name);
 
@@ -334,31 +332,14 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
     } catch (e) {}
 
     if (filePath != null) {
-      program.command = function(this: typeof program, nameAndArgs: string, ...restArgs: any[]) {
-        const cmdName = /^\S+/.exec(nameAndArgs)![0];
-        if (loadedCmdMap.has(cmdName)) {
-          throw new Error(`Conflict command name ${cmdName} from extensions "${filePath}" and "${loadedCmdMap.get(cmdName)}"`);
-        }
-        loadedCmdMap.set(cmdName, filePath!);
-        // cmdInfoPacks[0] = {cmd: cmdName, file: filePath!};
-        // cliStore.cliActionDispatcher.updateLoadedCmd(cmdInfoPacks);
-        // tslint:disable-next-line: no-console
-        // console.log(`Loading command "${cmdName}" from extension ${filePath}`);
-        const subCmd: ReturnType<typeof origPgmCommand> = origPgmCommand.call(this, nameAndArgs, ...restArgs);
-        const originDescFn = subCmd.description;
-        subCmd.description = function(this: ReturnType<typeof origPgmCommand>, str: string, ...remainder: any[]) {
-          str = chalk.blue(`[${pk.name}]`) + ' ' + str;
-          return originDescFn.call(this, str, ...remainder);
-        } as any;
-        return subCmd;
-      } as any;
+      overrider.forPackage(pk, filePath);
       try {
         const subCmdFactory: tp.CliExtension = funcName ? require(filePath)[funcName] :
           require(filePath);
         subCmdFactory(program, withGlobalOptions);
       } catch (e) {
         // tslint:disable-next-line: no-console
-        console.error(`Failed to load command line extension in package ${pk.name}: "${e.message}"`);
+        console.error(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
       }
     }
   }

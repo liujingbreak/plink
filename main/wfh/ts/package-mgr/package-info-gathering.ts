@@ -4,10 +4,10 @@ import * as _ from 'lodash';
 const log = require('log4js').getLogger('buildUtil.' + Path.basename(__filename, '.js'));
 import {DirTree} from 'require-injector/dist/dir-tree';
 import PackageInstance from '../packageNodeInstance';
-import * as packageUtils from '../package-utils';
-import config from '../config';
+import {packages4Workspace} from './package-list-helper';
 import {PackageInfo as PackageState} from './index';
 import {parseName} from './lazy-package-factory';
+import {getSymlinkForPackage} from '../utils/misc';
 export interface BundleInfo {
   moduleMap: {[name: string]: PackageInstance};
 }
@@ -36,14 +36,6 @@ export function walkPackages() {
   return packageInfo;
 }
 
-export function listBundleInfo() {
-  config.set('bundlePerPackage', false);
-  const packageInfo = walkPackages();
-  saveCache(packageInfo);
-  return packageInfo;
-}
-
-
 export function saveCache(packageInfo: PackageInfo) {
   // if (isFromCache)
   // 	return;
@@ -53,7 +45,6 @@ export function saveCache(packageInfo: PackageInfo) {
 }
 
 function _walkPackages(): PackageInfo {
-  // const nodePaths = process.env.NODE_PATH!.split(Path.delimiter);
   const configBundleInfo: BundleInfo = {
     moduleMap: {}
   };
@@ -63,12 +54,9 @@ function _walkPackages(): PackageInfo {
     dirTree: null as unknown as DirTree<PackageInstance>
   };
 
-  for (const pk of packageUtils.packages4Workspace()) {
+  for (const pk of packages4Workspace()) {
     addPackageToInfo(info, pk);
   }
-  // if (getState().linkedDrcp) {
-  //   addPackageToInfo(info, getState().linkedDrcp!);
-  // }
 
   info.allModules = _.values(info.moduleMap);
 
@@ -112,8 +100,9 @@ function createPackageDirTree(packageInfo: PackageInfo) {
       return;
     if (moduleInstance.realPath)
       tree.putData(moduleInstance.realPath, moduleInstance);
-    if (moduleInstance.path !== moduleInstance.realPath)
-      tree.putData(moduleInstance.path, moduleInstance);
+    const symlink = getSymlinkForPackage(moduleInstance.longName);
+    if (symlink && symlink !== moduleInstance.realPath)
+      tree.putData(symlink, moduleInstance);
     count++;
   });
   log.info('Total %s node packages', count);
