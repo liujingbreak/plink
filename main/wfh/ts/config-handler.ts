@@ -10,6 +10,7 @@ import {PlinkEnv} from './node-path';
 import {getRootDir} from './utils/misc';
 import * as _pkHelper from './package-mgr/package-list-helper';
 import * as _pkgMgr from './package-mgr';
+import {BehaviorSubject} from 'rxjs';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 
@@ -36,6 +37,7 @@ export interface DrcpSettings extends BaseDrcpSetting {
 
 export interface DrcpConfig {
   done: Promise<DrcpSettings>;
+  configureStore: BehaviorSubject<DrcpSettings | null>;
   configHandlerMgr(): ConfigHandlerMgr;
   get<K extends keyof BaseDrcpSetting>(path: K, defaultValue?: BaseDrcpSetting[K]): BaseDrcpSetting[K];
   get(path: string|string[], defaultValue?: any): any;
@@ -169,9 +171,10 @@ export interface CompilerOptions {
   [key: string]: any;
 }
 /**
- * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
+ * Set "baseUrl", "paths" and "typeRoots" property relative to tsconfigDir, process.cwd()
  * and process.env.NODE_PATHS
- * @param tsconfigDir project directory where tsconfig file is (virtual), "typeRoots" is relative to this parameter
+ * @param tsconfigDir project directory where tsconfig file is (virtual),
+ * "baseUrl", "typeRoots" is relative to this parameter
  * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions 
  */

@@ -1,6 +1,13 @@
 import * as ts from 'typescript';
 export declare function readTsConfig(tsconfigFile: string): ts.CompilerOptions;
-export declare function jsonToCompilerOptions(jsonCompilerOpt: any, file?: string): ts.CompilerOptions;
+/**
+ * call ts.parseJsonConfigFileContent()
+ * @param jsonCompilerOpt
+ * @param file
+ * @param basePath - (tsconfig file directory)
+ *  A root directory to resolve relative path entries in the config file to. e.g. outDir
+ */
+export declare function jsonToCompilerOptions(jsonCompilerOpt: any, file?: string, basePath?: string): ts.CompilerOptions;
 /**
  * Refer to https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#transpiling-a-single-file
  * @param tsCode

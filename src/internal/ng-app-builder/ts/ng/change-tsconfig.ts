@@ -7,7 +7,7 @@ import ts from 'typescript';
 import appTsconfig from '../../misc/tsconfig.app.json';
 import { DrcpSetting as NgAppBuilderSetting } from '../configurable';
 import { findAppModuleFileFromMain } from '../utils/parse-app-module';
-import { addSourceFiles } from './add-tsconfig-file';
+import { addSourceFiles as _addSourceFiles } from './add-tsconfig-file';
 import { AngularBuilderOptions } from './common';
 import {setTsCompilerOptForNodePath} from '@wfh/plink/wfh/dist/config-handler';
 import {getState} from '@wfh/plink/wfh/dist/package-mgr';
@@ -104,10 +104,8 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
       ...oldJson.angularCompilerOptions
     }
   };
-
   setTsCompilerOptForNodePath(tsConfigFileDir, process.cwd(), tsjson.compilerOptions, {enableTypeRoots: true, workspaceDir: process.cwd()});
   // Object.assign(tsjson.compilerOptions.paths, appTsconfig.compilerOptions.paths, pathMapping);
-
   if (oldJson.extends) {
     tsjson.extends = oldJson.extends;
   }
@@ -124,7 +122,8 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
   if (oldJson.files)
     tsjson.files = oldJson.files;
 
-  const sourceFiles: typeof addSourceFiles = require('./add-tsconfig-file').addSourceFiles;
+  // console.log(tsjson.compilerOptions);
+  const addSourceFiles: typeof _addSourceFiles = require('./add-tsconfig-file').addSourceFiles;
 
   if (!tsjson.files)
     tsjson.files = [];
@@ -132,7 +131,7 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
   // will cause problem if unused file is included in TS compilation, not only about cpu/memory cost,
   // but also having problem like same component might be declared in multiple modules which is
   // consider as error in Angular compiler. 
-  tsjson.files.push(...(sourceFiles(tsjson.compilerOptions, tsjson.files, file,
+  tsjson.files.push(...(addSourceFiles(tsjson.compilerOptions, tsjson.files, file,
     browserOptions.fileReplacements, reportDir).map(p => {
       if (Path.isAbsolute(p)) {
         return Path.relative(tsConfigFileDir, p).replace(/\\/g, '/');

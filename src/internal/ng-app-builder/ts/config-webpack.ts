@@ -153,7 +153,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
           // Attempt to resolve the module via Node
           const resolvedRequest = require.resolve(request);
           const comp = api.findPackageByFile(resolvedRequest);
-          if (comp == null || comp.dr == null ) {
+          if (comp == null || comp.json.dr == null || comp.json.plink == null ) {
             // It's a node_module
             callback(null, request);
           } else if (comp != null && comp.longName === api.packageName &&
@@ -376,7 +376,7 @@ function changeSplitChunks(param: AngularCliParam, webpackConfig: any) {
     const resource = module.nameForCondition ? module.nameForCondition() : '';
     // console.log(`vendor test, resource: ${resource}, chunks: ${chunks.map( c => c.name)}`);
     const pk = api.findPackageByFile(resource);
-    return pk == null || pk.dr == null;
+    return pk == null || pk.json.dr == null || pk.json.plink == null;
   }
 }
 

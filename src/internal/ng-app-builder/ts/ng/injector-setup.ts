@@ -4,22 +4,21 @@ import Path from 'path';
 import _ from 'lodash';
 import {createNgRouterPath} from '../../isom/api-share';
 import {walkPackages } from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
-import {initInjectorForNodePackages, initWebInjector} from '@wfh/plink/wfh/dist/package-runner';
+import {initInjectorForNodePackages} from '@wfh/plink/wfh/dist/package-runner';
 import {AngularBuilderOptions} from './common';
 
 export default function walkPackagesAndSetupInjector(browserOptions: AngularBuilderOptions, ssr = false):
   ReturnType<typeof walkPackages> {
   const packageInfo = walkPackages();
-  injectorSetup(packageInfo, browserOptions.drcpArgs, browserOptions.deployUrl, browserOptions.baseHref, ssr);
+  injectorSetup(browserOptions.deployUrl, browserOptions.baseHref, ssr);
   return packageInfo;
 }
 
-export function injectorSetup(packageInfo: ReturnType<typeof walkPackages>,
-  drcpArgs: AngularBuilderOptions['drcpArgs'],
+export function injectorSetup(
   deployUrl: AngularBuilderOptions['deployUrl'],
   baseHref: AngularBuilderOptions['baseHref'], ssr = false) {
-  const [pks, apiProto] = initInjectorForNodePackages(packageInfo);
-  initWebInjector(pks, apiProto);
+  const apiProto = initInjectorForNodePackages()[1];
+  // initWebInjector(pks, apiProto);
 
   const publicUrlObj = parse(deployUrl || '');
   const baseHrefPath = baseHref ? parse(baseHref).pathname : undefined;

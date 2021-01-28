@@ -862,7 +862,6 @@
       "pretty": true,
       "rootDir": "./share",
       "composite": true,
-      "watch": true,
       "configFilePath": "./tsconfig-share.json"
     },
     "referencedMap": {

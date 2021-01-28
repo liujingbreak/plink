@@ -20,7 +20,11 @@ export default async function(isStatic: boolean, env: string, app: string, pushB
 
   if (scriptsFile) {
     if (scriptsFile.endsWith('.sh')) {
-      await spawn('bash', scriptsFile, env, app, isStatic ? 'true' : 'false').promise;
+      const ev = {...process.env};
+      delete ev.__plink;
+      await spawn('bash', scriptsFile, env, app, isStatic ? 'true' : 'false', {
+        env: ev
+      }).promise;
     } else if (scriptsFile.indexOf('#') < 0) {
       // tslint:disable-next-line: no-console
       log.error(chalk.redBright(`Wrong format of ${scriptsFile}, in which no "#" is found`));

@@ -33,7 +33,7 @@ const {
 memstats();
 initCli(drcpBuilderOptions)
 .then((drcpConfig) => {
-  injectorSetup(packageInfo, drcpBuilderOptions.drcpArgs, deployUrl, baseHref);
+  injectorSetup(deployUrl, baseHref);
   const create: typeof createTsConfig = require('./change-tsconfig').createTsConfig;
   const content = create(tsconfigFile, ngOptions, config, packageInfo, reportDir);
 

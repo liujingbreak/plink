@@ -117,13 +117,14 @@ export default class TsDependencyGraph {
 
   private _walk() {
     const resolve = (path: string, file: string, cb?: (resolvedFile: string) => void) => {
+      // console.log('resolving', path, file);
       const resolved = ts.resolveModuleName(path, file, this.co, this.host, this.resCache).resolvedModule;
       // console.log('     resolve', path, resolved ? resolved.resolvedFileName : resolved);
       if (resolved) {
         const dep = resolved.resolvedFileName;
         if (resolved.extension === Extension.Ts || resolved.extension === Extension.Tsx /*dep.endsWith('.ts') && !dep.endsWith('.d.ts')*/) {
           if (this.checkResolved(dep, file, !!resolved.isExternalLibraryImport)) {
-          // log.debug('dep: ' + Path.relative(rootPath, dep) + ',\n  from ' + Path.relative(rootPath, file));
+            // console.log('dep: ' + Path.relative(rootPath, dep) + ',\n  from ' + Path.relative(rootPath, file));
             this.toWalk.push(dep);
             if (cb) {
               cb(dep);

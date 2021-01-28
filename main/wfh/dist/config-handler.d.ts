@@ -1,4 +1,5 @@
 import { GlobalOptions as CliOptions } from './cmd/types';
+import { BehaviorSubject } from 'rxjs';
 export interface BaseDrcpSetting {
     port: number | string;
     publicPath: string;
@@ -20,6 +21,7 @@ export interface DrcpSettings extends BaseDrcpSetting {
 }
 export interface DrcpConfig {
     done: Promise<DrcpSettings>;
+    configureStore: BehaviorSubject<DrcpSettings | null>;
     configHandlerMgr(): ConfigHandlerMgr;
     get<K extends keyof BaseDrcpSetting>(path: K, defaultValue?: BaseDrcpSetting[K]): BaseDrcpSetting[K];
     get(path: string | string[], defaultValue?: any): any;
@@ -88,9 +90,10 @@ export interface CompilerOptions {
     [key: string]: any;
 }
 /**
- * Set "baseUrl", "paths" and "typeRoots" property based on Root path, process.cwd()
+ * Set "baseUrl", "paths" and "typeRoots" property relative to tsconfigDir, process.cwd()
  * and process.env.NODE_PATHS
- * @param tsconfigDir project directory where tsconfig file is (virtual), "typeRoots" is relative to this parameter
+ * @param tsconfigDir project directory where tsconfig file is (virtual),
+ * "baseUrl", "typeRoots" is relative to this parameter
  * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions
  */

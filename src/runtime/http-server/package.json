@@ -1,7 +1,7 @@
 {
   "name": "@wfh/http-server",
   "description": "http and https server used by Plink",
-  "version": "1.1.3",
+  "version": "1.1.4-0",
   "main": "dist/server.js",
   "dr": {
     "type": [

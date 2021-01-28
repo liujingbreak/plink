@@ -60,16 +60,16 @@ function getStyleLoaders(type: string): any[] {
 
 export function isIssuerAngular(file: string): boolean {
   const component = api.findPackageByFile(file);
-  if (!(component && component.dr && component.dr.angularCompiler))
+  if (component == null)
     return false;
-  const relPath = Path.relative(component.realPackagePath, file);
+  const relPath = Path.relative(component.realPath, file);
   return !/^[^/\\]+\.(?:ts|js)x?$/.test(relPath);
 }
 
 export function isIssuerNotAngular(file: string): boolean {
   const component = api.findPackageByFile(file);
-  if ((component && component.dr && component.dr.angularCompiler)) {
-    const relPath = Path.relative(component.realPackagePath, file);
+  if (component) {
+    const relPath = Path.relative(component.realPath, file);
     return /^[^/\\]+\.(?:ts|js)x?$/.test(relPath);
   } else
     return true;

@@ -103,9 +103,9 @@ export default class ApiAotCompiler {
     return textPatcher._replaceSorted(this.src, this.replacements);
   }
 
-  getApiForFile(file: string) {
-    api.findPackageByFile(file);
-  }
+  // getApiForFile(file: string) {
+  //   api.findPackageByFile(file);
+  // }
 
   protected _callTsHandlers(tsHandlers: Array<[string, TsHandler]>): void {
     for (const [name, func] of tsHandlers) {

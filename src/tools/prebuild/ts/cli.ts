@@ -21,6 +21,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
 
   // ----------- deploy ----------
   const deployCmd = program.command('deploy <app-name> [ts-scripts#function-or-shell]')
+  .description('Deploy (for Plink internally)')
   .option('--push,--static', 'push to remote file server after build script execution finished', false)
   .option('--no-push-branch', 'Do not push to release branch', false)
   // .option('--secret <secret>', 'credential word')
@@ -31,7 +32,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .action(async (app: string, scriptsFile?: string) => {
     const opt = deployCmd.opts();
     await initConfigAsync(deployCmd.opts() as GlobalOptions);
-    (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
+    // (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
 
     const cliDeploy = (require('./cli-deploy').default as typeof _cliDeploy);
     const log = log4js.getLogger('prebuild');
@@ -66,7 +67,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     false)
   .action(async (appName: string, zip: string) => {
     await initConfigAsync(sendCmd.opts() as GlobalOptions);
-    (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
+    // (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
 
     await (require('./_send-patch') as typeof sp).send(sendCmd.opts().env, appName, zip,
     parseInt(sendCmd.opts().con, 10),

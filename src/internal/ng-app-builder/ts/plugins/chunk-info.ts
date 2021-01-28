@@ -54,7 +54,7 @@ export default class ChunkInfoPlugin {
         const moduleName = this.moduleFileName(module);
         log.info('│    │  ├─ %s', moduleName);
         const pk = api.findPackageByFile(Path.resolve(this.compiler.options.context, moduleName));
-        if (module.buildInfo.fileDependencies && (showFileDep || (pk && pk.dr && module.buildInfo.fileDependencies))) {
+        if (module.buildInfo.fileDependencies && (showFileDep || (pk && (pk.json.dr || pk.json.plink) && module.buildInfo.fileDependencies))) {
           for (const filepath of module.buildInfo.fileDependencies) {
             logFd.info('│    │  │  ├─ %s', chalk.blue('(fileDependency): ' + Path.relative(this.compiler.options.context, filepath)));
           }
@@ -62,7 +62,7 @@ export default class ChunkInfoPlugin {
         _.each(module.blocks, (block: any) => {
           const cacheGroups = _.map(block.chunkGroup, (cg: any) => cg.name).filter(name => name).join(', ');
           log.info(`│    │  │  ├─ (block ${block.constructor.name}): chunk group (${cacheGroups})`);
-          if (showDependency || (pk && pk.dr)) {
+          if (showDependency || (pk && (pk.json.dr || pk.json.plink))) {
             _.each(block.dependencies, (bDep: any) => {
               logD.info(`│    │  │  │  ├─ ${bDep.constructor.name}`);
               if (bDep.module)

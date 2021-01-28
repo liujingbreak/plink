@@ -1,4 +1,4 @@
-import {CliExtension, prepareLazyNodeInjector, initConfig, GlobalOptions} from '@wfh/plink/wfh/dist';
+import {CliExtension, initConfig, GlobalOptions} from '@wfh/plink/wfh/dist';
 // import Path from 'path';
 import * as _unzip from './cli-unzip';
 
@@ -11,7 +11,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .option('-e, --exclude <regex>', 'exclude files')
   .action(async (srcDir: string, destZipFile: string) => {
     initConfig(defaultCfg);
-    prepareLazyNodeInjector();
+    // prepareLazyNodeInjector();
     const {zipDir} = await import('./remote-deploy');
     await zipDir(srcDir, destZipFile, cmd.opts().exclude);
   });
@@ -30,7 +30,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   // .requiredOption('-d,--dest <dir>', 'destination directory')
   .action(async (zipFile: string, destDir?: string) => {
     initConfig(defaultCfg);
-    prepareLazyNodeInjector();
+    // prepareLazyNodeInjector();
     const {unZip} = await import('./cli-unzip');
     await unZip(zipFile, destDir);
   });

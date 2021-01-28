@@ -11,7 +11,6 @@ export default class ApiAotCompiler {
     importTranspiler: ImportClauseTranspile;
     constructor(file: string, src: string);
     parse(transpileExp: (source: string) => string): string;
-    getApiForFile(file: string): void;
     protected _callTsHandlers(tsHandlers: Array<[string, TsHandler]>): void;
     protected traverseTsAst(ast: ts.Node, level?: number): void;
     /**

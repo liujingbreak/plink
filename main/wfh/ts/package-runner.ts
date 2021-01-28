@@ -16,6 +16,7 @@ import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} fro
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
 import chalk from 'chalk';
 import {getSymlinkForPackage} from './utils/misc';
+import {filter, tap} from 'rxjs/operators';
 
 const log = log4js.getLogger('package-runner');
 
@@ -115,9 +116,9 @@ export async function runPackages(target: string, includePackages: Iterable<stri
   const pkgExportsInReverOrder: {name: string; exp: any}[] = [];
 
   const [fileToRun, funcToRun] = (target as string).split('#');
-  const [packages, proto] = initInjectorForNodePackages(walkPackages());
+  const [packages, proto] = initInjectorForNodePackages();
   const components = packages.filter(pk => {
-    // setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
+    // setupRequireInjects(pk, NodeApi); // All component package should be able to access '__api', even they are not included
     if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName))) {
       try {
         if (fileToRun)
@@ -152,8 +153,12 @@ export async function runPackages(target: string, includePackages: Iterable<stri
   return pkgExportsInReverOrder;
 }
 
-export function initInjectorForNodePackages(packageInfo: PackageInfo):
+/**
+ * So that we can use `import api from '__plink'` anywhere in our package
+ */
+export function initInjectorForNodePackages():
   [PackageInstance[], _NodeApi] {
+  const packageInfo: PackageInfo = walkPackages();
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
   const proto = NodeApi.prototype;
   proto.argv = {};
@@ -171,26 +176,37 @@ export function initInjectorForNodePackages(packageInfo: PackageInfo):
   proto.getNodeApiForPackage = function(packageInstance: PackageInstance) {
     return getApiForPackage(packageInstance, NodeApi);
   };
+  proto.browserInjector = webInjector;
   packageInfo.allModules.forEach(pk => {
-    setupNodeInjectorFor(pk, NodeApi); // All component package should be able to access '__api', even they are not included
+    setupRequireInjects(pk, NodeApi); // All component package should be able to access '__api', even they are not included
   });
+  // console.log('>>>>>>>>>>>>>>>>>>')
+  config.configureStore.pipe(
+    filter(setting => setting != null),
+    tap(setting => {
+      // console.log('>>>>>>>>>++++++>>>>>>>>>')
+      nodeInjector.readInjectFile();
+      webInjector.readInjectFile('module-resolve.browser');
+    })
+  ).subscribe();
   return [packageInfo.allModules, proto];
 }
 
-export function initWebInjector(packages: PackageInstance[], apiPrototype: any) {
-  _.each(packages, pack => {
-    webInjector.addPackage(pack.longName, pack.path);
-  });
-  webInjector.fromAllPackages()
-  .replaceCode('__api', '__api')
-  .substitute(/^([^{]*)\{locale\}(.*)$/,
-    (_filePath: string, match: RegExpExecArray) => match[1] + apiPrototype.getBuildLocale() + match[2]);
+// function initWebInjector(packages: PackageInstance[], apiPrototype: any) {
+//   _.each(packages, pack => {
+//     webInjector.addPackage(pack.longName, pack.realPath);
+//   });
+//   webInjector.fromAllPackages()
+//   .replaceCode('__api', '__api')
+//   .substitute(/^([^{]*)\{locale\}(.*)$/,
+//     (_filePath: string, match: RegExpExecArray) => match[1] + apiPrototype.getBuildLocale() + match[2]);
 
-  webInjector.readInjectFile('module-resolve.browser');
-  apiPrototype.browserInjector = webInjector;
-}
+//   webInjector.readInjectFile('module-resolve.browser');
+//   apiPrototype.browserInjector = webInjector;
+// }
 
 /**
+ * @deprecated
  * Support `import api from '__api';`
  * @param argv 
  */
@@ -253,18 +269,27 @@ export function mapPackagesByType(types: string[], onEachPackage: (nodePackage: 
   return packagesMap;
 }
 
-function setupNodeInjectorFor(pkInstance: PackageInstance, NodeApi: typeof _NodeApi ) {
+function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeApi ) {
   function apiFactory() {
     return getApiForPackage(pkInstance, NodeApi);
   }
   nodeInjector.fromDir(pkInstance.realPath)
   .value('__injector', nodeInjector)
-  .factory('__api', apiFactory);
+  .factory('__api', apiFactory)
+  .factory('__plink', apiFactory);
+
+  webInjector.fromDir(pkInstance.realPath)
+  .replaceCode('__api', '__api');
+  // .substitute(/^([^{]*)\{locale\}(.*)$/,
+  //   (_filePath: string, match: RegExpExecArray) => match[1] + apiPrototype.getBuildLocale() + match[2]);
   const symlinkDir = getSymlinkForPackage(pkInstance.name);
   if (symlinkDir) {
     nodeInjector.fromDir(symlinkDir)
     .value('__injector', nodeInjector)
-    .factory('__api', apiFactory);
+    .factory('__plink', apiFactory);
+
+    webInjector.fromDir(symlinkDir)
+    .replaceCode('__api', '__api');
   }
 }
 

@@ -7,7 +7,7 @@ import commander from 'Commander';
 import {saveCmdOptionsToEnv} from '../utils';
 import {initConfigAsync} from '@wfh/plink/wfh/dist';
 import {fork} from 'child_process';
-import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
+// import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
 import log4js from 'log4js';
 // import {initTsconfig} from './cli-init';
 import * as _preload from '../preload';
@@ -122,7 +122,7 @@ async function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', 
   saveCmdOptionsToEnv(pkgName, buildCmd, type);
   if (process.env.PORT == null && cfg().port)
     process.env.PORT = cfg().port + '';
-  await walkPackagesAndSetupInjector(process.env.PUBLIC_URL || '/');
+  // await walkPackagesAndSetupInjector(process.env.PUBLIC_URL || '/');
   if (!['app', 'lib'].includes(type)) {
 
     log.error(`type argument must be one of "${['app', 'lib']}"`);

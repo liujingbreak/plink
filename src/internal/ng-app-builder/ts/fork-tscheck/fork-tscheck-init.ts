@@ -1,6 +1,5 @@
 import '@wfh/plink/wfh/dist/node-path';
 import {initProcess, initConfig, GlobalOptions} from '@wfh/plink/wfh/dist';
-import {walkPackages } from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
 
 // import {initInjectorForNodePackages, initWebInjector} from '@wfh/plink/wfh/dist/package-runner';
 import * as _checker from './hack-type-checker';
@@ -18,8 +17,7 @@ initConfig(drcpCliOpt);
 const otherCfg = JSON.parse(process.env._ngcli_plink_cfg!);
 
 
-const packageInfo = walkPackages();
-injectorSetup(packageInfo, drcpCliOpt, otherCfg.deployUrl, otherCfg.baseHref);
+injectorSetup(otherCfg.deployUrl, otherCfg.baseHref);
 
 // const [pks, apiProto] = initInjectorForNodePackages({}, packageInfo);
 

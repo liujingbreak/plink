@@ -5,7 +5,7 @@ import * as ts from 'typescript';
 import {SyntaxKind as sk, CompilerOptions} from 'typescript';
 import ImportClauseTranspile from './default-import-ts-transpiler';
 import api from '__api';
-import BrowserPackage from '@wfh/plink/wfh/dist/package-mgr/package-instance';
+import BrowserPackage from '@wfh/plink/wfh/dist/packageNodeInstance';
 import {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
 import * as textPatcher from '@wfh/plink/wfh/dist/utils/patch-text';
 import { readTsConfig, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';

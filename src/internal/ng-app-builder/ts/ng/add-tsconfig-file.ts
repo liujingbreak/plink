@@ -12,7 +12,7 @@ import chalk from 'chalk';
 import { AngularBuilderOptions } from './common';
 import * as pkgMgr from '@wfh/plink/wfh/dist/package-mgr';
 
-const log = require('log4js').getLogger(api.packageName + '.add-tsconfig-file');
+// const log = require('log4js').getLogger(api.packageName + '.add-tsconfig-file');
 
 export function addSourceFiles(compilerOptions: any, entryFiles: string[], tsconfigFile: string,
   fileReplacements: AngularBuilderOptions['fileReplacements'], reportDir: string): string[] {
@@ -24,10 +24,11 @@ export function addSourceFiles(compilerOptions: any, entryFiles: string[], tscon
 
   // const cwd = process.cwd();
   const installedPkgs = getState().workspaces.get(workspaceKey(process.cwd()))!.installedComponents!;
-
+  // log.info(compilerOptions);
   // compilerOptions = addAdditionalPathsForTsResolve(projDir, compilerOptions);
-  log.info(compilerOptions);
-  const g = new Graph(jsonToCompilerOptions(compilerOptions), fileReplacements,
+  const co = jsonToCompilerOptions(compilerOptions, tsconfigFile, projDir);
+  // log.info(tsconfigFile, co);
+  const g = new Graph(co, fileReplacements,
     path => {
       const els = path.split('/');
       const hasScopename = els[0].startsWith('@');

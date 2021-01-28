@@ -104,7 +104,7 @@ function drPackageOutputPath(this: unknown, loaderCtx: wl.LoaderContext) {
 
   if (browserPackage) {
     let outDir = _.trimStart(api.config.get(['outputPathMap', browserPackage.longName]), '/');
-    let sourcePkgDir = browserPackage.realPackagePath;
+    let sourcePkgDir = browserPackage.realPath;
     let relativeInPkg = path.relative(sourcePkgDir, realpathDir).replace(/\\/g, '/');
     return outDir + '/' + relativeInPkg;
   } else {

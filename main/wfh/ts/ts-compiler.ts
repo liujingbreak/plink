@@ -9,8 +9,16 @@ export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
     undefined, tsconfigFile).options;
 }
 
-export function jsonToCompilerOptions(jsonCompilerOpt: any, file = 'tsconfig.json'): ts.CompilerOptions {
-  return ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, process.cwd().replace(/\\/g, '/'),
+/**
+ * call ts.parseJsonConfigFileContent()
+ * @param jsonCompilerOpt 
+ * @param file 
+ * @param basePath - (tsconfig file directory) 
+ *  A root directory to resolve relative path entries in the config file to. e.g. outDir
+ */
+export function jsonToCompilerOptions(jsonCompilerOpt: any, file = 'tsconfig.json',
+  basePath = process.cwd()): ts.CompilerOptions {
+  return ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, basePath.replace(/\\/g, '/'),
   undefined, file).options;
 }
 

@@ -1,4 +1,4 @@
-import DrComponent from '@wfh/plink/wfh/dist/package-mgr/package-instance';
+import DrComponent from '@wfh/plink/wfh/dist/packageNodeInstance';
 export interface WebpackConfig {
     [key: string]: any;
 }

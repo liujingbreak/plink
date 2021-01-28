@@ -245,14 +245,16 @@ function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, pack
       log.info('skip', fileName);
       return;
     }
-    const {srcDir, destDir, pkgDir, symlinkDir} = foundPkgInfo;
+    const {srcDir, destDir, pkgDir, isomDir, symlinkDir} = foundPkgInfo;
 
     const pathWithinPkg = relative(symlinkDir, _originPath);
-    const prefix = srcDir;
-    if (prefix === '.' || prefix.length === 0) {
+
+    if (srcDir === '.' || srcDir.length === 0) {
       fileName = join(pkgDir, destDir, pathWithinPkg);
-    } else if (pathWithinPkg.startsWith(prefix + sep)) {
-      fileName = join(pkgDir, destDir, pathWithinPkg.slice(prefix.length + 1));
+    } else if (pathWithinPkg.startsWith(srcDir + sep)) {
+      fileName = join(pkgDir, destDir, pathWithinPkg.slice(srcDir.length + 1));
+    } else if (isomDir && pathWithinPkg.startsWith(isomDir + sep)) {
+      fileName = join(pkgDir, isomDir, pathWithinPkg.slice(isomDir.length + 1));
     }
     emittedList.push(fileName);
     log.info('write file', fileName);

@@ -32,7 +32,7 @@ export function replaceHtml(filename: string, source: string): Observable<string
         if (pk == null)
           return of('resource not found: ' + text);
         const absPath = Path.resolve(Path.dirname(filename), text);
-        text = pk.longName + '/' + Path.relative(pk.realPackagePath, absPath).replace(/\\/g, '/');
+        text = pk.longName + '/' + Path.relative(pk.realPath, absPath).replace(/\\/g, '/');
       }
       // We can't replace to Assets URL here, because at this moment in AOT mode,
       // Webpack is not ready to run file-loader yet, we have to replace this `[drcp_...]`

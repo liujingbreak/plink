@@ -15,7 +15,6 @@ import Path from 'path';
 import semver from 'semver';
 import {overrideCommand} from './override-commander';
 import {initInjectorForNodePackages} from '../package-runner';
-import {walkPackages} from '../package-mgr/package-info-gathering';
 // import Path from 'path';
 const pk = require('../../../package');
 // const WIDTH = 130;
@@ -316,7 +315,7 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
 
   let filePath: string | null = null;
 
-  initInjectorForNodePackages(walkPackages());
+  initInjectorForNodePackages();
   const overrider = overrideCommand(program, ws);
   const availables: string[] = [];
   for (const pk of packages4Workspace()) {

@@ -101,7 +101,6 @@ export default class TSReadHooker {
         //   const ij = api.browserInjector;
         //   console.log(ij.dirTree.traverse());
         // }
-
         let changed = api.browserInjector.injectToFile(file, content);
 
         // if (file.indexOf('app.module.ts') >= 0)

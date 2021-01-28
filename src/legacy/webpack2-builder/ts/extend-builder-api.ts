@@ -1,5 +1,5 @@
 import api from '__api';
-import DrComponent from '@wfh/plink/wfh/dist/package-mgr/package-instance';
+import DrComponent from '@wfh/plink/wfh/dist/packageNodeInstance';
 const Webpack = require('webpack');
 
 export interface WebpackConfig {

@@ -8,6 +8,7 @@ import {ConfigHandlerMgr, DrcpSettings, DrcpConfig, ConfigHandler} from './confi
 import {GlobalOptions as CliOptions} from './cmd/types';
 import {getLanIPv4} from './utils/network-util';
 import {PlinkEnv} from './node-path';
+import {BehaviorSubject} from 'rxjs';
 const yamljs = require('yamljs');
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
@@ -21,6 +22,7 @@ let rootPath = rootDir;
 let setting: DrcpSettings;
 
 let localConfigPath: string[];
+const configureStore = new BehaviorSubject<DrcpSettings | null>(null);
 
 (Promise as any).defer = defer;
 
@@ -101,6 +103,8 @@ config.resolve = function(pathPropName: 'destDir'|'staticDir'|'serverDir', ...pa
 };
 
 config.load = load;
+
+config.configureStore = configureStore;
 
 config.configHandlerMgr = () => handlers;
 /**
@@ -191,6 +195,7 @@ function postProcessConfig(cliOpt: CliOptions) {
     // tslint:disable-next-line: no-console
     console.log(cyan('[config]') + ' Production mode');
   }
+  configureStore.next(setting);
   return setting;
 }
 
