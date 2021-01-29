@@ -63,6 +63,16 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     onLinkedPackageAdded(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     addProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    /** payload: workspace keys  */
+    createSymlinksForWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
+        file: string;
+        lines: string[];
+    }>): void;
+    packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
+    setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
+    setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
+    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<void>): void;
     _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -82,15 +92,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
-    updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
-        file: string;
-        lines: string[];
-    }>): void;
     _onRelatedPackageUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: workspaceKey }: PayloadAction<string>): void;
-    packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
-    setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
-    setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
-    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<void>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
@@ -110,6 +112,16 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     onLinkedPackageAdded(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     addProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    /** payload: workspace keys  */
+    createSymlinksForWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
+        file: string;
+        lines: string[];
+    }>): void;
+    packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
+    setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
+    setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
+    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<void>): void;
     _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -129,15 +141,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
-    updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
-        file: string;
-        lines: string[];
-    }>): void;
     _onRelatedPackageUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: workspaceKey }: PayloadAction<string>): void;
-    packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
-    setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
-    setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
-    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<void>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
     file: string;

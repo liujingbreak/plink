@@ -31,8 +31,6 @@ function parseName(longName: string) {
 
 class NodeApi implements assetsUrl.PackageApi {
   packageShortName: string;
-  // TODO: deprecated, should be removed
-  buildUtils = require('../../lib/gulp/buildUtils');
   // packageUtils = packageUitls;
   // compileNodePath = [config().nodePath];
   eventBus: EventEmitter;

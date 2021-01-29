@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as Path from 'path';
 import {Subscriber, Observable, merge} from 'rxjs';
-
+import {getLogger} from 'log4js';
+const log = getLogger('plink.package-mgr.find-package');
 /**
  * Recursively lookup `fromDir` folder for private module's package.json file
  */
@@ -41,14 +42,14 @@ class FolderScanner {
           const testDir = Path.resolve(parentDir, 'node_modules');
           if (fs.lstatSync(testDir).isSymbolicLink()) {
             // tslint:disable-next-line: no-console
-            console.log('[find-package] found a symlink node_modules:', testDir);
+            log.info('Found a symlink node_modules:', testDir);
           }
           continue;
         }
         const dir = Path.join(parentDir, name);
         this.checkFolder(dir);
       } catch (er) {
-        console.error('[find-package]', er);
+        console.error('', er);
       }
     }
   }

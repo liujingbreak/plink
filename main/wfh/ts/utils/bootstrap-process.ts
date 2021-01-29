@@ -1,19 +1,19 @@
 import '../node-path';
-// import log4js from 'log4js';
+import log4js from 'log4js';
 import config from '../config';
-import logConfig from '../log-config';
+// import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
-
+const log = log4js.getLogger('plink.bootstrap-process');
 process.on('uncaughtException', function(err) {
   // log.error('Uncaught exception', err, err.stack);
-  console.error('Uncaught exception: ', err);
+  log.error('Uncaught exception: ', err);
   throw err; // let PM2 handle exception
 });
 
 process.on('unhandledRejection', err => {
   // log.warn('unhandledRejection', err);
-  console.error('unhandledRejection', err);
+  log.error('unhandledRejection', err);
 });
 
 // const log = log4js.getLogger('bootstrap-process');
@@ -21,14 +21,14 @@ process.on('unhandledRejection', err => {
 export async function initConfigAsync(options: GlobalOptions) {
   // initProcess(onShutdownSignal);
   await config.init(options);
-  logConfig(config());
+  // logConfig(config());
   return config;
 }
 
 export function initConfig(options: GlobalOptions) {
   // initProcess(onShutdownSignal);
   config.initSync(options);
-  logConfig(config());
+  // logConfig(config());
   return config;
 }
 
@@ -40,18 +40,19 @@ export function initConfig(options: GlobalOptions) {
 export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
   process.on('SIGINT', function() {
     // tslint:disable-next-line: no-console
-    console.log('pid ' + process.pid + ': bye');
+    log.info('pid ' + process.pid + ': bye');
     onShut();
   });
   process.on('message', function(msg) {
     if (msg === 'shutdown') {
       // tslint:disable-next-line: no-console
-      console.log('Recieve shutdown message from PM2, bye.');
+      log.info('Recieve shutdown message from PM2, bye.');
       onShut();
     }
   });
 
-  const {saveState, stateFactory}: typeof store = require('../store');
+  const {saveState, stateFactory, startLogging}: typeof store = require('../store');
+  startLogging();
   stateFactory.configureStore();
   // process.nextTick(() => stateFactory.configureStore());
 
@@ -63,4 +64,6 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
     process.nextTick(() => process.exit(0));
   }
 }
+
+
 

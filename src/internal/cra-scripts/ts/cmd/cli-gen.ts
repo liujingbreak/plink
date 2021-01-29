@@ -5,6 +5,7 @@ import _ from 'lodash';
 import chalk from 'chalk';
 import {boxString} from '@wfh/plink/wfh/dist/utils/misc';
 import generateStructure from '@wfh/plink/wfh/dist/template-gen';
+import plink from '__plink';
 
 export async function genPackage(path: string, compName = 'Sample', dryrun = false) {
   compName = compName.charAt(0).toUpperCase() + compName.slice(1);
@@ -15,7 +16,7 @@ export async function genPackage(path: string, compName = 'Sample', dryrun = fal
   const dir = Path.resolve(path);
   if (dryrun) {
     // tslint:disable-next-line: no-console
-    console.log('[cra-scripts cmd] dryrun mode');
+    plink.logger.info('dryrun mode');
   } else {
     fs.mkdirpSync(dir);
   }
@@ -42,9 +43,9 @@ export async function genPackage(path: string, compName = 'Sample', dryrun = fal
     {dryrun});
 
   // copyTempl(dir, Path.basename(path), dryrun);
-  console.log('[cra-scripts cmd]\n' + boxString(
+  plink.logger.info('\n' + boxString(
     `1. Modify ${Path.resolve(path, 'package.json')} to change current package name "${packageName}",` +
-    ` if you don't like it.\n` +
+    ' if you don\'t like it.\n' +
     `2. Add "${packageName}" as dependency in ${process.cwd()}/package.json.\n` +
     `3. Run command:\n  ${chalk.cyan('plink init .')}`));
 }
@@ -54,7 +55,7 @@ export async function genComponents(dir: string, compNames: string[], dryrun = f
 
   if (dryrun) {
     // tslint:disable-next-line: no-console
-    console.log('[cra-scripts cmd] dryrun mode');
+    plink.logger.info('dryrun mode');
   } else {
     fs.mkdirpSync(dir);
   }
@@ -82,7 +83,7 @@ export async function genSlice(dir: string, targetNames: string[], dryrun = fals
 
   if (dryrun) {
     // tslint:disable-next-line: no-console
-    console.log('[cra-scripts cmd] dryrun mode');
+    plink.logger.info('dryrun mode');
   } else {
     fs.mkdirpSync(dir);
   }

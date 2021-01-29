@@ -1,6 +1,5 @@
 // tslint:disable: no-console
 import config from '../config';
-import logConfig from '../log-config';
 import {GlobalOptions} from './types';
 import * as pkMgr from '../package-mgr';
 // import {getRootDir} from '../utils/misc';
@@ -15,12 +14,6 @@ import * as priorityHelper from '../package-priority-helper';
 import {isServerPackage, readPriorityProperty} from '../package-runner';
 
 export default async function list(opt: GlobalOptions & {json: boolean}) {
-  await config.init(opt);
-  logConfig(config());
-  // const pmgr: typeof pkMgr = require('../package-mgr');
-
-  // const pkRunner = require('../../lib/packageMgr/packageRunner');
-
   if (opt.json)
     console.log(JSON.stringify(jsonOfLinkedPackageForProjects(), null, '  '));
   else
@@ -44,7 +37,6 @@ export default async function list(opt: GlobalOptions & {json: boolean}) {
 
 export async function checkDir(opt: GlobalOptions) {
   await config.init(opt);
-  logConfig(config());
   pkMgr.getStore().pipe(
     map(s => s.packagesUpdateChecksum), distinctUntilChanged(),
     skip(1), take(1),
@@ -69,7 +61,8 @@ function listPackagesByProjects() {
       content: chalk.bold('Project: ') + (prj ? chalk.cyan(prj) : chalk.cyan('(root directory)'))}
     ],
       ['Package name', 'version', 'Path'],
-      ['------------', '-------', '----']);
+      ['------------', '-------', '----']
+    );
     const pkgs = pkgNames.map(name => linkedPkgs.get(name)!);
     for (const pk of pkgs) {
       table.push([

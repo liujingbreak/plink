@@ -1,19 +1,17 @@
-import * as Path from 'path';
 import * as _ from 'lodash';
-// var chalk = require('chalk');
-const log = require('log4js').getLogger('buildUtil.' + Path.basename(__filename, '.js'));
+import {getLogger} from 'log4js';
 import {DirTree} from 'require-injector/dist/dir-tree';
 import PackageInstance from '../packageNodeInstance';
 import {packages4Workspace} from './package-list-helper';
 import {PackageInfo as PackageState} from './index';
 import {parseName} from './lazy-package-factory';
 import {getSymlinkForPackage} from '../utils/misc';
-export interface BundleInfo {
-  moduleMap: {[name: string]: PackageInstance};
-}
-export interface PackageInfo extends BundleInfo {
+const log = getLogger('plink.package-info-gethering');
+
+export interface PackageInfo {
   allModules: PackageInstance[];
   dirTree: DirTree<PackageInstance>;
+  moduleMap: {[name: string]: PackageInstance};
 }
 
 export {PackageInstance};
@@ -36,29 +34,18 @@ export function walkPackages() {
   return packageInfo;
 }
 
-export function saveCache(packageInfo: PackageInfo) {
-  // if (isFromCache)
-  // 	return;
-  // mkdirp.sync(Path.join(config().rootPath, config().destDir));
-  // fs.writeFileSync(packageInfoCacheFile, JSON.stringify(cycle.decycle(packageInfo)));
-  // log.debug('write to cache ', packageInfoCacheFile);
-}
-
 function _walkPackages(): PackageInfo {
-  const configBundleInfo: BundleInfo = {
-    moduleMap: {}
-  };
   const info: PackageInfo = {
-    allModules: null as unknown as PackageInstance[], // array
-    moduleMap: _.clone(configBundleInfo.moduleMap),
+    get allModules() {
+      return Object.values(info.moduleMap);
+    }, // array
+    moduleMap: {},
     dirTree: null as unknown as DirTree<PackageInstance>
   };
 
   for (const pk of packages4Workspace()) {
     addPackageToInfo(info, pk);
   }
-
-  info.allModules = _.values(info.moduleMap);
 
   return info;
 }

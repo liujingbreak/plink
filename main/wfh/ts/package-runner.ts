@@ -18,7 +18,7 @@ import chalk from 'chalk';
 import {getSymlinkForPackage} from './utils/misc';
 import {filter, tap} from 'rxjs/operators';
 
-const log = log4js.getLogger('package-runner');
+const log = log4js.getLogger('plink.package-runner');
 
 export interface ServerRunnerEvent {
   file: string;
@@ -82,7 +82,7 @@ export async function runSinglePackage({target, args}: {target: string, args: st
       }
     }
   }
-  prepareLazyNodeInjector(passinArgv);
+  initInjectorForNodePackages();
   const [file, func] = target.split('#');
 
   const guessingFile: string[] = [

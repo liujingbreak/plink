@@ -6,7 +6,7 @@ import Path from 'path';
 import * as packageUtils from '../package-utils';
 import config from '../config';
 const jsYaml = require('js-yaml');
-const log = log4js.getLogger('wfh.cliAdvanced');
+const log = log4js.getLogger('plink.cliAdvanced');
 
 export function addupConfigs(onEachYaml: (file: string, configContent: string) => void) {
   const componentConfigs: {

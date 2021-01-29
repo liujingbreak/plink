@@ -10,7 +10,7 @@ import {lookupPackageJson, findPackagesByNames} from './cmd/utils';
 import {PackageType, allPackages, packages4WorkspaceKey, packages4Workspace} from './package-mgr/package-list-helper';
 export {PackageType, allPackages, packages4WorkspaceKey, packages4Workspace};
 
-// const log = log4js.getLogger('wfh.package-utils');
+// const log = log4js.getLogger('plink.package-utils');
 
 const lazyPackageFactory = new LazyPackageFactory(allPackages());
 

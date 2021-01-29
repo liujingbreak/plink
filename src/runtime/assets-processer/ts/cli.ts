@@ -4,7 +4,7 @@ import * as _unzip from './cli-unzip';
 
 const defaultCfg: GlobalOptions = {config: [], prop: []};
 
-const cliExt: CliExtension = (program, withGlobalOptions) => {
+const cliExt: CliExtension = (program) => {
   // ------- zip -------
   const cmd = program.command('zip <srcDir> <destZipFile>')
   .description('Create zip file in 64 zip mode')
@@ -25,7 +25,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   });
 
   // -------- unzip --------
-  const unzipCmd = program.command('unzip <zipFile> [destination_dir]')
+  program.command('unzip <zipFile> [destination_dir]')
   .description('Extract zip files to specific directory')
   // .requiredOption('-d,--dest <dir>', 'destination directory')
   .action(async (zipFile: string, destDir?: string) => {
@@ -34,7 +34,6 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     const {unZip} = await import('./cli-unzip');
     await unZip(zipFile, destDir);
   });
-  withGlobalOptions(unzipCmd);
 };
 
 export default cliExt;

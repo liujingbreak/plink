@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as Path from 'path';
 import log4js from 'log4js';
 import {getRootDir} from './utils/misc';
-const log = log4js.getLogger('wfh.injectorFactory');
+const log = log4js.getLogger('plink.injector-factory');
 
 const packageNamePathMap: {[name: string]: string} = {};
 
@@ -86,7 +86,7 @@ export class DrPackageInjector extends RJ {
           exported = exported.default;
         exported(this);
       } else {
-        log.info(file1 + ' doesn\'t exist, skip it.');
+        log.debug(file1 + ' doesn\'t exist, skip it.');
       }
     });
 
@@ -97,13 +97,6 @@ export class DrPackageInjector extends RJ {
 }
 
 export let nodeInjector = new DrPackageInjector(require.resolve, false);
-// console.log('~~~~~~~~~~~~~~~~~~~~~~~')
-/**
- * Avoid package load different log4js than Plink's
- */
-// nodeInjector.fromRoot().factory('log4js', file => {
-//   return log4js;
-// }); // .alias('log4js', '@wfh/plink/wfh/dist/logger');
 
 export let webInjector = new DrPackageInjector(undefined, true);
 

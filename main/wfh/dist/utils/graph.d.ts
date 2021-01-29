@@ -3,7 +3,7 @@ export declare enum Color {
     gray = 1,
     black = 2
 }
-export declare class Vertex<T> {
+declare class Vertex<T> {
     data: T;
     color: Color;
     /** discovery time */
@@ -23,7 +23,8 @@ export declare class DFS<T> {
     constructor(adjacencyOf: (u: Vertex<T>) => Iterable<Vertex<T>>);
     visit(g: Iterable<Vertex<T>>): void;
     vertexOf(data: T): Vertex<T>;
-    printCyclicBackEdge(edge: Vertex<T>, edgeTo: Vertex<T>): string;
-    _printParentUntil(edge: Vertex<T>, edgeAncestor: Vertex<T>): string;
+    printCyclicBackEdge(edge: Vertex<T>, edgeTo: Vertex<T>): string[];
+    _printParentUntil(edge: Vertex<T>, edgeAncestor: Vertex<T>): string[];
     private visitVertex;
 }
+export {};

@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-const log = require('log4js').getLogger('packagePriorityHelper');
+const log = require('log4js').getLogger('plink.package-priority-helper');
 
 const priorityStrReg = /(before|after)\s+(\S+)/;
 

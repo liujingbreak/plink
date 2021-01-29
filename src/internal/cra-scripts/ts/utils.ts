@@ -7,7 +7,6 @@ import {gt} from 'semver';
 import commander from 'Commander';
 import {stateFactory, GlobalOptions} from '@wfh/plink/wfh/dist';
 import config from '@wfh/plink/wfh/dist/config';
-import logConfig from '@wfh/plink/wfh/dist/log-config';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -91,8 +90,7 @@ export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, bui
   process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
 
   stateFactory.configureStore();
-  const setting = config.initSync(cmd.opts() as GlobalOptions);
-  logConfig(setting);
+  config.initSync(cmd.opts() as GlobalOptions);
   return cmdOptions;
 }
 

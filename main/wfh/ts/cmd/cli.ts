@@ -15,15 +15,11 @@ import Path from 'path';
 import semver from 'semver';
 import {overrideCommand} from './override-commander';
 import {initInjectorForNodePackages} from '../package-runner';
-// import Path from 'path';
-const pk = require('../../../package');
+import {hl, hlDesc, arrayOptionFn} from './utils';
+import {getLogger} from 'log4js';
+const pk = require('../../../package.json');
 // const WIDTH = 130;
-
-const arrayOptionFn = (curr: string, prev: string[] | undefined) => {
-  if (prev)
-    prev.push(curr);
-  return prev;
-};
+const log = getLogger('plink.cli');
 
 export async function createCommands(startTime: number) {
   process.title = 'Plink';
@@ -52,6 +48,7 @@ export async function createCommands(startTime: number) {
   program.version(pk.version, '-v, --vers', 'output the current version');
   program.addHelpCommand('help [command]', 'show help information, same as "-h". ');
 
+  const overrider = overrideCommand(program);
   let wsState: pkgMgr.WorkspaceState | undefined;
   if (process.env.PLINK_SAFE !== 'true') {
     const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
@@ -63,7 +60,7 @@ export async function createCommands(startTime: number) {
 
   subWfhCommand(program);
   if (process.env.PLINK_SAFE !== 'true') {
-    cliExtensions = loadExtensionCommand(program, wsState);
+    cliExtensions = loadExtensionCommand(program, wsState, overrider);
   } else {
     // tslint:disable-next-line: no-console
     console.log('Value of environment varaible "PLINK_SAFE" is true, skip loading extension');
@@ -72,7 +69,7 @@ export async function createCommands(startTime: number) {
   try {
     await program.parseAsync(process.argv, {from: 'node'});
   } catch (e) {
-    console.error(chalk.redBright(e), e.stack);
+    log.error(chalk.redBright(e), e.stack);
     process.exit(1);
   }
 }
@@ -91,7 +88,7 @@ function subWfhCommand(program: commander.Command) {
     console.log(sexyFont('PLink').string);
     await (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions, workspace);
   });
-  withGlobalOptions(initCmd);
+  // withGlobalOptions(initCmd);
 
   const updateDirCmd = program.command('update-dir')
   .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
@@ -99,7 +96,7 @@ function subWfhCommand(program: commander.Command) {
   .action(async (workspace: string) => {
     await (await import('./cli-ls')).checkDir(updateDirCmd.opts() as any);
   });
-  withGlobalOptions(updateDirCmd);
+  // withGlobalOptions(updateDirCmd);
 
   /**
    * command project
@@ -122,7 +119,7 @@ function subWfhCommand(program: commander.Command) {
   .action(async packages => {
     await (await import('./cli-lint')).default(packages, lintCmd.opts() as any);
   });
-  withGlobalOptions(lintCmd);
+  // withGlobalOptions(lintCmd);
   lintCmd.usage(lintCmd.usage() +
     hl('\ndrcp lint --pj <project-dir..> [--fix]') + ' Lint TS files from specific project directory\n' +
     hl('\ndrcp lint <component-package..> [--fix]') + ' Lint TS files from specific component packages');
@@ -164,7 +161,7 @@ function subWfhCommand(program: commander.Command) {
   .action(async () => {
     await (await import('./cli-ls')).default(listCmd.opts() as any);
   });
-  withGlobalOptions(listCmd);
+  // withGlobalOptions(listCmd);
 
   /**
    * Bump command
@@ -180,7 +177,7 @@ function subWfhCommand(program: commander.Command) {
     .action(async (packages: string[]) => {
       (await import('./cli-bump')).default({...bumpCmd.opts() as tp.BumpOptions, packages});
     });
-  withGlobalOptions(bumpCmd);
+  // withGlobalOptions(bumpCmd);
   // bumpCmd.usage(bumpCmd.usage() + '\n' + hl('plink bump <package> ...') + ' to recursively bump package.json from multiple directories\n' +
   //   hl('plink bump <dir> -i minor') + ' to bump minor version number, default is patch number');
 
@@ -198,7 +195,7 @@ function subWfhCommand(program: commander.Command) {
     .action(async (packages: string[]) => {
       await (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packages});
     });
-  withGlobalOptions(packCmd);
+  // withGlobalOptions(packCmd);
   packCmd.usage(packCmd.usage() + '\nBy default, run "npm pack" for each linked package which are dependencies of current workspace');
 
   /**
@@ -218,7 +215,7 @@ function subWfhCommand(program: commander.Command) {
     .action(async (packages: string[]) => {
       await (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packages});
     });
-  withGlobalOptions(publishCmd);
+  // withGlobalOptions(publishCmd);
 
   const analysisCmd = program.command('analyze')
     .alias('analyse')
@@ -234,7 +231,7 @@ function subWfhCommand(program: commander.Command) {
 
   analysisCmd.usage(analysisCmd.usage() + '\n' +
     'e.g.\n  ' + chalk.blue('plink analyze -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts'));
-  withGlobalOptions(analysisCmd);
+  // withGlobalOptions(analysisCmd);
 }
 
 function spaceOnlySubWfhCommand(program: commander.Command) {
@@ -242,13 +239,9 @@ function spaceOnlySubWfhCommand(program: commander.Command) {
   const runCmd = program.command('run <target> [arguments...]')
   .description('Run specific module\'s exported function\n')
   .action(async (target: string, args: string[]) => {
-    const config = await (await import('../config')).default;
-    await config.init(runCmd.opts() as tp.GlobalOptions);
-    const logConfig = await (await import('../log-config')).default;
-    logConfig(config());
     await (await import('../package-runner')).runSinglePackage({target, args});
   });
-  withGlobalOptions(runCmd);
+  // withGlobalOptions(runCmd);
   runCmd.usage(runCmd.usage() + '\n' + chalk.green('plink run <target> [arguments...]\n') +
   `e.g.\n  ${chalk.green('plink run forbar-package/dist/file#function argument1 argument2...')}\n` +
   'execute exported function of TS/JS file from specific package or path\n\n' +
@@ -281,11 +274,6 @@ function spaceOnlySubWfhCommand(program: commander.Command) {
   }, [] as string[])
   .action(async (packages: string[]) => {
     const opt = tscCmd.opts();
-
-    const config = await (await import('../config')).default;
-    await config.init(tscCmd.opts() as tp.GlobalOptions);
-    const logConfig = await (await import('../log-config')).default;
-    logConfig(config());
     const tsc = await import('../ts-cmd');
 
     await tsc.tsc({
@@ -298,7 +286,7 @@ function spaceOnlySubWfhCommand(program: commander.Command) {
       pathsJsons: opt.compilerOptionsPaths
     });
   });
-  withGlobalOptions(tscCmd);
+  // withGlobalOptions(tscCmd);
   tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side Typescript files.\n\n' +
   'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
   '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
@@ -309,14 +297,13 @@ function spaceOnlySubWfhCommand(program: commander.Command) {
   hlDesc('plink tsc [package...] -w\n') + ' Watch packages change and compile when new typescript file is changed or created\n\n');
 }
 
-function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceState | undefined): string[] {
+function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceState | undefined, overrider: ReturnType<typeof overrideCommand>): string[] {
   if (ws == null)
     return [];
 
   let filePath: string | null = null;
 
   initInjectorForNodePackages();
-  const overrider = overrideCommand(program, ws);
   const availables: string[] = [];
   for (const pk of packages4Workspace()) {
     const dr = pk.json.dr;
@@ -328,45 +315,34 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
 
     try {
       filePath = require.resolve(pk.name + '/' + pkgFilePath);
-    } catch (e) {}
-
-    if (filePath != null) {
       overrider.forPackage(pk, filePath);
-      try {
-        const subCmdFactory: tp.CliExtension = funcName ? require(filePath)[funcName] :
-          require(filePath);
-        subCmdFactory(program, withGlobalOptions);
-      } catch (e) {
-        // tslint:disable-next-line: no-console
-        console.error(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
-      }
+      const subCmdFactory: tp.CliExtension = funcName ? require(filePath)[funcName] :
+        require(filePath);
+      subCmdFactory(program);
+    } catch (e) {
+      // tslint:disable-next-line: no-console
+      log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
+      filePath = null;
     }
   }
   return availables;
 }
 
-function hl(text: string) {
-  return chalk.green(text);
-}
+// export function withGlobalOptions(program: commander.Command): commander.Command {
+//   program.option('-c, --config <config-file>',
+//     hlDesc('Read config files, if there are multiple files, the latter one overrides previous one'),
+//     (value, prev) => { prev.push(...value.split(',')); return prev;}, [] as string[])
+//   .option('--prop <expression>',
+//     hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n') +
+//     '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
+//     '--prop arraylike.prop[0]=foobar\n' +
+//     '--prop ["@wfh/foo.bar","prop",0]=true',
+//     arrayOptionFn, [] as string[])
+//   .option('-v,--verbose', 'Set log level to "DEBUG"');
+//   // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 
-function hlDesc(text: string) {
-  return chalk.gray(text);
-}
-
-export function withGlobalOptions(program: commander.Command): commander.Command {
-  program.option('-c, --config <config-file>',
-    hlDesc('Read config files, if there are multiple files, the latter one overrides previous one'),
-    (value, prev) => { prev.push(...value.split(',')); return prev;}, [] as string[])
-  .option('--prop <property-path=value as JSON | literal>',
-    hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n') +
-    '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
-    '--prop arraylike.prop[0]=foobar\n' +
-    '--prop ["@wfh/foo.bar","prop",0]=true',
-    arrayOptionFn, [] as string[]);
-  // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
-
-  return program;
-}
+//   return program;
+// }
 
 let versionChecked = false;
 process.on('beforeExit', () => {

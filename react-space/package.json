@@ -24,6 +24,8 @@
     "@wfh/cra-scripts": "1.0.21",
     "@wfh/webpack-common": "1.0.2",
     "@wfh/redux-toolkit-observable": "1.0.5",
+    "@reduxjs/toolkit": "~1.5.0",
+    "redux-observable": "~1.2.0",
     "axios-observable": "^1.1.3",
     "react-app-polyfill": "^2.0.0",
     "@wfh/express-app": "1.1.8",

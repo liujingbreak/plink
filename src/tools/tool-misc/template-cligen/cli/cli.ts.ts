@@ -1,17 +1,14 @@
-import {CliExtension, GlobalOptions, initConfig} from '@wfh/plink/wfh/dist';
+import {CliExtension} from '@wfh/plink/wfh/dist';
 
-const cliExt: CliExtension = (program, withGlobalOptions) => {
+const cliExt: CliExtension = (program) => {
   const cmd = program.command('$__foobar__$ [argument1...]')
   .description('$__foobar__$ description')
   .option('-f, --file <spec>', 'sample option')
   .action(async (argument1: string[]) => {
-    // If you want to utilize Plink's configuration system
-    initConfig(cmd.opts() as GlobalOptions);
-    // TODO
-    (await import('./cli-$__foobar__')).default(argument1, cmd.opts());
+    (await import('./cli-$__foobar__$')).$__foobarId__$(argument1, cmd.opts() as any);
   });
-  // If you want to utilize Plink's configuration system
-  withGlobalOptions(cmd);
+
+  // TODO: Add more sub command here
 };
 
 export default cliExt;

@@ -3,7 +3,6 @@ import 'source-map-support/register';
 import Path from 'path';
 // import chalk from 'chalk';
 import config from '../config';
-import logConfig from '../log-config';
 import log4js from 'log4js';
 import {LintOptions} from './types';
 import _ from 'lodash';
@@ -13,13 +12,12 @@ import {Pool} from '../../../thread-promise-pool/dist';
 import os from 'os';
 import tsLintPackageAsync from './tslint-worker';
 
-const log = log4js.getLogger('wfh.lint');
+const log = log4js.getLogger('plink.cli-lint');
 
 const cpus = os.cpus().length;
 
 export default async function(packages: string[], opts: LintOptions) {
   await config.init(opts);
-  logConfig(config());
   return lint(packages, opts.pj, opts.fix);
 }
 

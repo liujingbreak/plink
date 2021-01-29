@@ -4,7 +4,7 @@ export enum Color {
   black
 }
 
-export class Vertex<T> {
+class Vertex<T> {
   /** discovery time */
   d: number;
   /** finishing time */
@@ -49,21 +49,21 @@ export class DFS<T> {
     }
   }
 
-  printCyclicBackEdge(edge: Vertex<T>, edgeTo: Vertex<T>): string {
-    return this._printParentUntil(edge, edgeTo) + '->' + edgeTo.data;
+  printCyclicBackEdge(edge: Vertex<T>, edgeTo: Vertex<T>): string[] {
+    return [...this._printParentUntil(edge, edgeTo), edgeTo.data +''];
   }
 
-  _printParentUntil(edge: Vertex<T>, edgeAncestor: Vertex<T>): string {
+  _printParentUntil(edge: Vertex<T>, edgeAncestor: Vertex<T>): string[] {
     if (edge == null) {
-      return '';
+      return [];
     }
     if (edge === edgeAncestor) {
-      return edgeAncestor.data + '';
+      return [edgeAncestor.data + ''];
     }
     if (edge.p)
-      return this._printParentUntil(edge.p[0], edgeAncestor) + ' -> ' + edge.data;
+      return [...this._printParentUntil(edge.p[0], edgeAncestor), edge.data + ''];
     else
-      return '? -> ' + edge.data;
+      return ['? -> ', edge.data + ''];
   }
 
   private visitVertex(u: Vertex<T>) {
@@ -76,7 +76,9 @@ export class DFS<T> {
       } else if (v.color === Color.gray) {
         this.backEdges.push([u, v]);
       } else {
-        v.p!.push(u);
+        if (v.p == null)
+          v.p = [];
+        v.p.push(u);
       }
     }
     u.color = Color.black;

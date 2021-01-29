@@ -12,7 +12,7 @@ import { setTsCompilerOptForNodePath } from './config-handler';
 import { getProjectList, getState, updateGitIgnores } from './package-mgr';
 import * as _recp from './recipe-manager';
 import { closestCommonParentDir, getRootDir } from './utils/misc';
-const log = log4js.getLogger('editor-helper');
+const log = log4js.getLogger('plink.editor-helper');
 const {parse} = require('comment-json');
 
 export function updateTsconfigFileForEditor(wsKey: string) {

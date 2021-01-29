@@ -1,4 +1,4 @@
-// tslint:disable: prefer-const
+// tslint:disable: prefer-const max-line-length
 require('yamlify/register');
 import _ from 'lodash';
 import fs from 'fs';
@@ -9,10 +9,11 @@ import {GlobalOptions as CliOptions} from './cmd/types';
 import {getLanIPv4} from './utils/network-util';
 import {PlinkEnv} from './node-path';
 import {BehaviorSubject} from 'rxjs';
+import log4js from 'log4js';
+const log = log4js.getLogger('plink.config');
+
 const yamljs = require('yamljs');
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-
-const {cyan} = chalk;
 
 let argv: CliOptions | undefined;
 
@@ -23,6 +24,42 @@ let setting: DrcpSettings;
 
 let localConfigPath: string[];
 const configureStore = new BehaviorSubject<DrcpSettings | null>(null);
+
+configDefaultLog();
+
+function configDefaultLog() {
+  log4js.configure({
+    appenders: {
+      out: {
+        type: 'stdout',
+        layout: {type: 'pattern', pattern: '%[%c%] - %m'}
+      }
+    },
+    categories: {
+      default: {appenders: ['out'], level: 'info'}
+    }
+  });
+  /**
+   - %r time in toLocaleTimeString format
+   - %p log level
+   - %c log category
+   - %h hostname
+   - %m log data
+   - %d date, formatted - default is ISO8601, format options are: ISO8601, ISO8601_WITH_TZ_OFFSET, ABSOLUTE, DATE, or any string compatible with the date-format library. e.g. %d{DATE}, %d{yyyy/MM/dd-hh.mm.ss}
+   - %% % - for when you want a literal % in your output
+   - %n newline
+   - %z process id (from process.pid)
+   - %f full path of filename (requires enableCallStack: true on the category, see configuration object)
+   - %f{depth} path’s depth let you chose to have only filename (%f{1}) or a chosen number of directories
+   - %l line number (requires enableCallStack: true on the category, see configuration object)
+   - %o column postion (requires enableCallStack: true on the category, see configuration object)
+   - %s call stack (requires enableCallStack: true on the category, see configuration object)
+   - %x{<tokenname>} add dynamic tokens to your log. Tokens are specified in the tokens parameter.
+   - %X{<tokenname>} add values from the Logger context. Tokens are keys into the context values.
+   - %[ start a coloured block (colour will be taken from the log level, similar to colouredLayout)
+   - %] end a coloured block
+   */
+}
 
 (Promise as any).defer = defer;
 
@@ -161,7 +198,7 @@ function prepareConfigFiles(fileList?: string[], cliOption?: CliOptions) {
     devMode: cliOption == null || !cliOption.production
   };
   _.assign(setting, initSetting);
-  // console.log(setting);
+  // log.info(setting);
   // Merge from <root>/config.yaml
   var configFileList = [
     Path.resolve(__dirname, '..', 'config.yaml')
@@ -190,10 +227,10 @@ function postProcessConfig(cliOpt: CliOptions) {
   mergeFromCliArgs(setting, cliOpt);
   if (setting.devMode) {
     // tslint:disable-next-line: no-console
-    console.log(cyan('[config]') + ' Development mode');
+    log.info(' Development mode');
   } else {
     // tslint:disable-next-line: no-console
-    console.log(cyan('[config]') + ' Production mode');
+    log.info(' Production mode');
   }
   configureStore.next(setting);
   return setting;
@@ -202,11 +239,11 @@ function postProcessConfig(cliOpt: CliOptions) {
 function mergeFromYamlJsonFile(setting: DrcpSettings, localConfigPath: string) {
   if (!fs.existsSync(localConfigPath)) {
     // tslint:disable-next-line: no-console
-    console.log(cyan('[config]') + chalk.yellow(' File does not exist: %s', localConfigPath));
+    log.info(chalk.yellow(' File does not exist: %s', localConfigPath));
     return;
   }
   // tslint:disable-next-line: no-console
-  console.log(cyan('[config]') + ` Read ${localConfigPath}`);
+  log.info(` Read ${localConfigPath}`);
   var configObj: {[key: string]: any};
 
   const matched = /\.([^.]+)$/.exec(localConfigPath);
@@ -244,7 +281,7 @@ function mergeFromCliArgs(setting: DrcpSettings, cliOpt: CliOptions) {
     }
     _.set(setting, propPath, value);
     // tslint:disable-next-line: no-console
-    console.log(`[config] set ${propPath} = ${value}`);
+    log.info(`[config] set ${propPath} = ${value}`);
   }
 }
 

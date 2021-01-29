@@ -11,9 +11,10 @@ import {getRootDir} from './utils/misc';
 import * as _pkHelper from './package-mgr/package-list-helper';
 import * as _pkgMgr from './package-mgr';
 import {BehaviorSubject} from 'rxjs';
+import {getLogger} from 'log4js';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
-
+const log = getLogger('plink.config-handler');
 export interface BaseDrcpSetting {
   port: number | string;
   publicPath: string;
@@ -105,7 +106,7 @@ export class ConfigHandlerMgr {
         ,transformers: {
           after: [
             context => (src) => {
-              console.log('ts-node compiles:', src.fileName);
+              log.debug('ts-node compiles:', src.fileName);
               // console.log(src.text);
               return src;
             }
@@ -134,7 +135,7 @@ export class ConfigHandlerMgr {
   async runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any) {
     let lastRes: any;
     for (const {file, handler} of this.configHandlers) {
-      console.log(green(Path.basename(__filename, '.js') + ' - ') + ' run', cyan(file));
+      log.info(green(Path.basename(__filename, '.js') + ' - ') + ' run', cyan(file));
       const currRes = await func(file, lastRes, handler as any as H);
       if (currRes !== undefined)
         lastRes = currRes;
@@ -145,7 +146,7 @@ export class ConfigHandlerMgr {
   runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any) {
     let lastRes: any;
     for (const {file, handler} of this.configHandlers) {
-      console.log(green(Path.basename(__filename, '.js') + ' - ') + ' run', cyan(file));
+      log.info(green(Path.basename(__filename, '.js') + ' - ') + ' run', cyan(file));
       const currRes = func(file, lastRes, handler as any as H);
       if (currRes !== undefined)
         lastRes = currRes;

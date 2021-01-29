@@ -1,7 +1,7 @@
 import * as fs from 'fs-extra';
 import * as Path from 'path';
-// const jsonLint = require('json-lint');
-const log = require('log4js').getLogger('@wfh/plink.rwPackageJson');
+import {getLogger} from 'log4js';
+const log = getLogger('plink.rwPackageJson');
 import * as _ from 'lodash';
 import {map} from 'rxjs/operators';
 import {Observable} from 'rxjs';
@@ -16,7 +16,6 @@ export function symbolicLinkPackages(destDir: string) {
       map(({name, realPath}) => {
         let newPath: string;
         try {
-
           newPath = Path.join(destDir, name);
           let stat: fs.Stats, exists = false;
           try {
@@ -28,7 +27,7 @@ export function symbolicLinkPackages(destDir: string) {
             } else
               throw e;
           }
-          log.debug('symblink to %s', newPath);
+
           if (exists) {
             if (stat!.isFile() ||
               (stat!.isSymbolicLink() && fs.realpathSync(newPath) !== realPath)) {
@@ -46,7 +45,6 @@ export function symbolicLinkPackages(destDir: string) {
           log.error(err);
         }
       })
-      // filter((pkjsonNContent) => pkjsonNContent[1] != null)
     );
   };
 }

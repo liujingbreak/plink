@@ -11,18 +11,16 @@ import jsonParser, {ObjectAst, Token} from '../utils/json-sync-parser';
 import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
 import config from '../config';
 import {PackOptions, PublishOptions} from './types';
-import logConfig from '../log-config';
 import {getPackagesOfProjects, getState, workspaceKey} from '../package-mgr';
 import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import log4js from 'log4js';
 import {findPackagesByNames} from './utils';
 
 let tarballDir: string;
-const log = log4js.getLogger('cli-pack');
+const log = log4js.getLogger('plink.cli-pack');
 
 async function init(opts: PublishOptions | PackOptions) {
   await config.init(opts);
-  logConfig(config());
   tarballDir = Path.resolve(config().rootPath, 'tarballs');
   fsext.mkdirpSync(tarballDir);
 }

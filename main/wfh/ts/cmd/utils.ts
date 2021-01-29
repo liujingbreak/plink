@@ -1,17 +1,11 @@
-import chalk from 'chalk';
 import fs from 'fs-extra';
 import Path from 'path';
 import {createPackageInfo} from '../package-mgr';
 import {PackagesState, PackageInfo} from '../package-mgr';
 import * as _ from 'lodash';
+import chalk from 'chalk';
 
 import _config from '../config';
-
-export function writeFile(file: string, content: string) {
-  fs.writeFileSync(file, content);
-  // tslint:disable-next-line: no-console
-  console.log('%s is written', chalk.cyan(Path.relative(process.cwd(), file)));
-}
 
 export function* completePackageName(state: PackagesState, guessingNames: string[]) {
   for (const pkg of findPackagesByNames(state, guessingNames)) {
@@ -73,4 +67,18 @@ export function lookupPackageJson(moduleName: string) {
     }
   }
   return null;
+}
+
+export function hl(text: string) {
+  return chalk.green(text);
+}
+
+export function hlDesc(text: string) {
+  return chalk.gray(text);
+}
+
+export function arrayOptionFn(curr: string, prev: string[] | undefined) {
+  if (prev)
+    prev.push(curr);
+  return prev;
 }

@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import * as packageUtils from './package-utils';
 import * as fs from 'fs-extra';
 import * as _ from 'lodash';
-import {resolve, join, relative, sep} from 'path';
+import Path, {resolve, join, relative, sep} from 'path';
 import ts from 'typescript';
 import {getTscConfigOfPkg, PackageTsDirs, closestCommonParentDir} from './utils/misc';
 import {CompilerOptions} from 'typescript';
@@ -15,7 +15,7 @@ import log4js from 'log4js';
 import glob from 'glob';
 
 
-const log = log4js.getLogger('wfh.typescript');
+const log = log4js.getLogger('plink.ts-cmd');
 const root = config().rootPath;
 
 export interface TscCmdParam {
@@ -90,6 +90,8 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   for (const info of compDirInfo.values()) {
     const treePath = relative(commonRootDir, info.symlinkDir);
     packageDirTree.putData(treePath, info);
+
+
   }
   const destDir = commonRootDir.replace(/\\/g, '/');
   const compilerOptions: RequiredCompilerOptions = {
@@ -195,8 +197,12 @@ function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: stri
   );
   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, process.cwd().replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
+
+  function _reportDiagnostic(diagnostic: ts.Diagnostic) {
+    return reportDiagnostic(diagnostic, commonRootDir, packageDirTree);
+  }
   const programHost = ts.createWatchCompilerHost(rootFiles, compilerOptions, ts.sys, ts.createEmitAndSemanticDiagnosticsBuilderProgram,
-    reportDiagnostic, reportWatchStatusChanged);
+    _reportDiagnostic, reportWatchStatusChanged);
 
   const origCreateProgram = programHost.createProgram;
   programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
@@ -223,8 +229,11 @@ function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: st
   const allDiagnostics = ts.getPreEmitDiagnostics(program)
     .concat(emitResult.diagnostics);
 
+  function _reportDiagnostic(diagnostic: ts.Diagnostic) {
+    return reportDiagnostic(diagnostic, commonRootDir, packageDirTree);
+  }
   allDiagnostics.forEach(diagnostic => {
-    reportDiagnostic(diagnostic);
+    _reportDiagnostic(diagnostic);
   });
   if (emitResult.emitSkipped) {
     throw new Error('Compile failed');
@@ -234,35 +243,26 @@ function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: st
 
 function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>, co: ts.CompilerOptions): string[] {
   const emittedList: string[] = [];
-
-  const _writeFile = host.writeFile;
+  // It seems to not able to write file through symlink in Windows
+  // const _writeFile = host.writeFile;
   const writeFile: ts.WriteFileCallback = function(fileName, data, writeByteOrderMark, onError, sourceFiles) {
-    const treePath = relative(commonRootDir, fileName);
-    const _originPath = fileName; // absolute path
-    const foundPkgInfo = packageDirTree.getAllData(treePath).pop();
-    if (foundPkgInfo == null) {
-      // this file is not part of source package.
-      log.info('skip', fileName);
+    const destFile = realPathOf(fileName, commonRootDir, packageDirTree);
+    if (destFile == null) {
+      log.debug('skip', fileName);
       return;
     }
-    const {srcDir, destDir, pkgDir, isomDir, symlinkDir} = foundPkgInfo;
-
-    const pathWithinPkg = relative(symlinkDir, _originPath);
-
-    if (srcDir === '.' || srcDir.length === 0) {
-      fileName = join(pkgDir, destDir, pathWithinPkg);
-    } else if (pathWithinPkg.startsWith(srcDir + sep)) {
-      fileName = join(pkgDir, destDir, pathWithinPkg.slice(srcDir.length + 1));
-    } else if (isomDir && pathWithinPkg.startsWith(isomDir + sep)) {
-      fileName = join(pkgDir, isomDir, pathWithinPkg.slice(isomDir.length + 1));
-    }
-    emittedList.push(fileName);
-    log.info('write file', fileName);
-    // await fs.mkdirp(dirname(file.path));
-    // await fs.promises.writeFile(file.path, file.contents as Buffer);
-
+    emittedList.push(destFile);
+    log.info('write file', destFile);
+    // Typescript's writeFile() function performs weird with symlinks under watch mode in Windows:
+    // Every time a ts file is changed, it triggers the symlink being compiled and to be written which is
+    // as expected by me,
+    // but late on it triggers the same real file also being written immediately, this is not what I expect,
+    // and it does not actually write out any changes to final JS file.
+    // So I decide to use original Node.js file system API
+    fs.mkdirpSync(Path.dirname(destFile));
+    fs.writeFileSync(destFile, data);
     // It seems Typescript compiler always uses slash instead of back slash in file path, even in Windows
-    return _writeFile.call(this, fileName.replace(/\\/g, '/'), ...Array.prototype.slice.call(arguments, 1));
+    // return _writeFile.call(this, destFile.replace(/\\/g, '/'), ...Array.prototype.slice.call(arguments, 1));
   };
   host.writeFile = writeFile;
 
@@ -273,35 +273,32 @@ function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, pack
   };
   host.getSourceFile = getSourceFile;
 
-  const _resolveModuleNames = host.resolveModuleNames;
+  // const _resolveModuleNames = host.resolveModuleNames;
 
-  host.resolveModuleNames = function(moduleNames, containingFile, reusedNames, redirectedRef, opt) {
-    // if (containingFile.indexOf('testSlice.ts') >= 0)
-    //   console.log('resolving %j from %j', moduleNames, containingFile);
-    let result: ReturnType<NonNullable<typeof _resolveModuleNames>>;
-    if (_resolveModuleNames) {
-      result = _resolveModuleNames.apply(this, arguments) as ReturnType<typeof _resolveModuleNames>;
-    } else {
-      result = moduleNames.map(moduleName => {
-        const resolved = ts.resolveModuleName(moduleName, containingFile, co, host,  ts.createModuleResolutionCache(
-          ts.sys.getCurrentDirectory(), path => path, co
-        ));
-        return resolved.resolvedModule;
-      });
-    }
-    // if (containingFile.indexOf('testSlice.ts') >= 0)
-    //   console.log('resolved:', result.map(item => item ? `${item.isExternalLibraryImport ? '[external]': '          '} ${item.resolvedFileName}, ` : item));
-    return result;
-  };
-  (host as any)._overrided = true;
+  // host.resolveModuleNames = function(moduleNames, containingFile, reusedNames, redirectedRef, opt) {
+  //   let result: ReturnType<NonNullable<typeof _resolveModuleNames>>;
+  //   if (_resolveModuleNames) {
+  //     result = _resolveModuleNames.apply(this, arguments) as ReturnType<typeof _resolveModuleNames>;
+  //   } else {
+  //     result = moduleNames.map(moduleName => {
+  //       const resolved = ts.resolveModuleName(moduleName, containingFile, co, host,  ts.createModuleResolutionCache(
+  //         ts.sys.getCurrentDirectory(), path => path, co
+  //       ));
+  //       return resolved.resolvedModule;
+  //     });
+  //   }
+  //   return result;
+  // };
+  // (host as any)._overrided = true;
   return emittedList;
 }
 
-function reportDiagnostic(diagnostic: ts.Diagnostic) {
+function reportDiagnostic(diagnostic: ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
   let fileInfo = '';
   if (diagnostic.file) {
     const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-    fileInfo = `${diagnostic.file.fileName}, line: ${line + 1}, column: ${character + 1}`;
+    const realFile = realPathOf(diagnostic.file.fileName, commonRootDir, packageDirTree) || diagnostic.file.fileName;
+    fileInfo = `${realFile}, line: ${line + 1}, column: ${character + 1}`;
   }
   console.error(chalk.red(`Error ${diagnostic.code} ${fileInfo} :`), ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
 }
@@ -335,4 +332,33 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
   pathsJsons.reduce((pathMap, jsonStr) => {
     return {...pathMap, ...JSON.parse(jsonStr)};
   }, compilerOptions.paths);
+}
+
+/**
+ * Return real path of targeting file, return null if targeting file is not in our compiliation scope
+ * @param fileName 
+ * @param commonRootDir 
+ * @param packageDirTree 
+ */
+function realPathOf(fileName: string, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>): string | null {
+  const treePath = relative(commonRootDir, fileName);
+  const _originPath = fileName; // absolute path
+  const foundPkgInfo = packageDirTree.getAllData(treePath).pop();
+  if (foundPkgInfo == null) {
+    // this file is not part of source package.
+    // log.info('Not part of entry files', fileName);
+    return null;
+  }
+  const {srcDir, destDir, pkgDir, isomDir, symlinkDir} = foundPkgInfo;
+
+  const pathWithinPkg = relative(symlinkDir, _originPath);
+
+  if (srcDir === '.' || srcDir.length === 0) {
+    fileName = join(pkgDir, destDir, pathWithinPkg);
+  } else if (pathWithinPkg.startsWith(srcDir + sep)) {
+    fileName = join(pkgDir, destDir, pathWithinPkg.slice(srcDir.length + 1));
+  } else if (isomDir && pathWithinPkg.startsWith(isomDir + sep)) {
+    fileName = join(pkgDir, isomDir, pathWithinPkg.slice(isomDir.length + 1));
+  }
+  return fileName;
 }

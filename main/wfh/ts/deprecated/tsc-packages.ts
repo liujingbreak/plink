@@ -16,7 +16,7 @@ import { getState as getTscState } from './tsc-packages-slice';
 import {findPackagesByNames} from '../cmd/utils';
 import {allPackages} from '../package-mgr/package-list-helper';
 import {fork} from 'child_process';
-const log = log4js.getLogger('wfh.tsc-packages');
+const log = log4js.getLogger('plink.tsc-packages');
 
 export interface Tsconfig {
   extends?: string;

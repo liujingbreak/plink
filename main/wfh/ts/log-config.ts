@@ -4,13 +4,14 @@ import Path from 'path';
 import {DrcpSettings} from './config-handler';
 // import config from './config';
 import log4js from 'log4js';
+const log = log4js.getLogger('plink.log-config');
 
 export default function(configObj: DrcpSettings) {
   const {rootPath} = configObj;
-  console.log('[log-config] log4js at', require.resolve('log4js'));
+  log.info('[log-config] log4js at', require.resolve('log4js'));
   const log4jsConfig = Path.join(rootPath, 'log4js.js');
   if (!fs.existsSync(log4jsConfig)) {
-    console.log('Logging configuration is not found %s', log4jsConfig);
+    log.info('Logging configuration is not found %s', log4jsConfig);
     return;
   }
   fs.mkdirpSync(Path.resolve(rootPath, 'logs'));
@@ -32,8 +33,8 @@ export default function(configObj: DrcpSettings) {
     log4js.getLogger('logConfig').info(`\n\n-------------- Log ${new Date().toLocaleString()} ----------------\n`);
     import('./store').then(store => store.startLogging());
   } catch (e) {
-    console.log(e);
-    // console.log('\nIt seems current log4js configure file is outdated, please delete\n\t' + log4jsConfig +
+    log.error(e);
+    // log.info('\nIt seems current log4js configure file is outdated, please delete\n\t' + log4jsConfig +
     // 	'\n  and run "drcp init" to get a new one.\n');
     // // log4js.configure({
     // // 	appenders: {out: {type: 'stdout'}},

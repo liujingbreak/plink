@@ -41,26 +41,18 @@ stateFactory.actionsToDispatch.pipe(
 
 
 export async function startLogging() {
-  const defaultLog = log4js.getLogger('@wfh/plink.store');
-  const logState = log4js.getLogger('@wfh/plink.store.state');
-  const logAction = log4js.getLogger('@wfh/plink.store.action');
+  const defaultLog = log4js.getLogger('plink.store');
+  // const logState = log4js.getLogger('plink.store.state');
+  const logAction = log4js.getLogger('plink.store.action');
 
   stateFactory.log$.pipe(
     tap(params => {
-      if (params[0] === 'state')
-        (logState.debug as any)(...params.slice(1));
-      else if (params[0] === 'action') {
-        (logAction.info as any)(...params.slice(1));
-        // console.log(...params.slice(1));
+      if (params[0] === 'state') {
+        // (logState.debug as any)(...params.slice(1));
+      } else if (params[0] === 'action') {
+        (logAction.debug as any)(...params.slice(1));
       } else
         (defaultLog.debug as any)(...params);
-
-      // if (params[0] === 'state') {
-      //   console.log('[redux:state]', ...params.slice(1));
-      // } else if (params[0] === 'action')
-      //   console.log('[redux:action]', ...params.slice(1));
-      // else
-      //   console.log(...params);
     })
   ).subscribe();
 }
@@ -85,20 +77,21 @@ process.on('beforeExit', async (code) => {
  * won't be triggered prior to process.exit(0)
  */
 export async function saveState() {
+  const log = log4js.getLogger('plink.store');
   saved = true;
   if (actionCount === 0) {
     // tslint:disable-next-line: no-console
-    console.log(chalk.gray('[package-mgr] state is not changed'));
+    log.info(chalk.gray('state is not changed'));
     return;
   }
   if (!isMainThread) {
     // tslint:disable-next-line: no-console
-    console.log(chalk.gray('[package-mgr] not in main thread, skip saving state'));
+    log.info(chalk.gray('not in main thread, skip saving state'));
     return;
   }
   if (process.send) {
     // tslint:disable-next-line: no-console
-    console.log(chalk.gray('[package-mgr] in a forked process, skip saving state'));
+    log.info(chalk.gray('in a forked process, skip saving state'));
     return;
   }
   const store = await stateFactory.rootStoreReady;
@@ -109,10 +102,10 @@ export async function saveState() {
   try {
     await fs.promises.writeFile(stateFile!, jsonStr);
     // tslint:disable-next-line: no-console
-    console.log(chalk.gray(
-      `[package-mgr] state file ${Path.relative(process.cwd(), stateFile!)} saved (${actionCount})`));
+    log.info(chalk.gray(
+      `state file ${Path.relative(process.cwd(), stateFile!)} saved (${actionCount} actions)`));
   } catch (err) {
     // tslint:disable-next-line: no-console
-    console.log(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`), err);
+    log.error(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`), err);
   }
 }

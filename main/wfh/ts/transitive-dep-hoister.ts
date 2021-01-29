@@ -2,10 +2,9 @@
 import * as fs from 'fs';
 // import {mkdirpSync} from 'fs-extra';
 import * as _ from 'lodash';
-import * as Path from 'path';
 import {SimpleLinkedList, SimpleLinkedListNode} from './utils/misc';
 const semver = require('semver');
-const log = require('log4js').getLogger('wfh.' + Path.basename(__filename, '.js'));
+const log = require('log4js').getLogger('plink.transitive-dep-hoister');
 
 export interface PackageJsonInterf {
   version: string;

@@ -5,7 +5,8 @@ import {from, Observable, of} from 'rxjs';
 import {mergeMap} from 'rxjs/operators';
 import chalk from 'chalk';
 import _ from 'lodash';
-
+import {getLogger} from 'log4js';
+const log = getLogger('plink.template-gen');
 export interface TemplReplacement {
   fileMapping?: [RegExp, string][];
   /** lodah template */
@@ -85,7 +86,7 @@ function _recurseDir(templDir: string, targetPath: string, replacement: TemplRep
                   if (!replacement.includeTextType!.test(newFile)) {
                     await promises.copyFile(absSub, newFile);
                     // tslint:disable-next-line: no-console
-                    console.log(`[plink gen] ${chalk.green(Path.relative(Path.resolve(), newFile))} is copied`);
+                    log.info(`${chalk.cyan(Path.relative(Path.resolve(), newFile))} is copied`);
                   } else {
                     let content = await promises.readFile(absSub, 'utf-8');
                     try {
@@ -96,15 +97,15 @@ function _recurseDir(templDir: string, targetPath: string, replacement: TemplRep
                     }
                     await promises.writeFile(newFile, content);
                     // tslint:disable-next-line: no-console
-                    console.log(`[plink gen] ${chalk.green(Path.relative(Path.resolve(), newFile))} is written`);
+                    log.info(`${chalk.cyan(Path.relative(Path.resolve(), newFile))} is written`);
                   }
                 } else {
                   // tslint:disable-next-line: no-console
-                  console.log(`[plink gen] ${chalk.green(Path.relative(Path.resolve(), newFile))} is created`);
+                  log.info(`${chalk.cyan(Path.relative(Path.resolve(), newFile))} is created`);
                 }
               } else {
                 // tslint:disable-next-line: no-console
-                console.log('[plink gen] target file already exists:', Path.relative(Path.resolve(), newFile));
+                log.info('target file already exists:', Path.relative(Path.resolve(), newFile));
               }
             })());
           }

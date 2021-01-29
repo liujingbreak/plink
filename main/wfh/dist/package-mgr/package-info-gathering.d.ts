@@ -1,13 +1,11 @@
 import { DirTree } from 'require-injector/dist/dir-tree';
 import PackageInstance from '../packageNodeInstance';
-export interface BundleInfo {
+export interface PackageInfo {
+    allModules: PackageInstance[];
+    dirTree: DirTree<PackageInstance>;
     moduleMap: {
         [name: string]: PackageInstance;
     };
-}
-export interface PackageInfo extends BundleInfo {
-    allModules: PackageInstance[];
-    dirTree: DirTree<PackageInstance>;
 }
 export { PackageInstance };
 /**
@@ -19,4 +17,3 @@ export { PackageInstance };
  * @return {PackageInfo}
  */
 export declare function walkPackages(): PackageInfo;
-export declare function saveCache(packageInfo: PackageInfo): void;

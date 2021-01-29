@@ -1,11 +1,13 @@
 declare module '__api' {
-  // import ExpressAppApi from '@wfh/express-app/dist/api-types';
   import {DrcpApi} from '@wfh/plink/wfh/globals';
-  // import {_DrcpNgApi} from '@wfh/ng-app-builder/globals';
-  
-	const api: DrcpApi; // & ExpressAppApi & _DrcpNgApi;
+	const api: DrcpApi;
 	export {DrcpApi};
   export default api;
+}
+
+declare module '__plink' {
+	export * from '__api';
+  export {default} from '__api';
 }
 
 interface ComponentInjector {

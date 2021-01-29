@@ -9,7 +9,6 @@ declare class NodeApi implements assetsUrl.PackageApi {
     packageName: string;
     packageInstance: PackageInstance;
     packageShortName: string;
-    buildUtils: any;
     eventBus: EventEmitter;
     config: import("..").DrcpConfig;
     argv: any;

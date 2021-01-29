@@ -10,14 +10,14 @@ import * as _prebuildPost from './prebuild-post';
 import _cliDeploy from './cli-deploy';
 import log4js from 'log4js';
 import _genKeypair from './cli-keypair';
-import {CliExtension, GlobalOptions, initConfigAsync} from '@wfh/plink/wfh/dist';
+import {CliExtension} from '@wfh/plink';
 // import {prepareLazyNodeInjector} from '@wfh/plink/wfh/dist/package-runner';
 
 // import * as tsAstQuery from './ts-ast-query';
 import * as _unzip from './cli-unzip';
 // import * as astUtil from './cli-ts-ast-util';
 
-const cliExt: CliExtension = (program, withGlobalOptions) => {
+const cliExt: CliExtension = (program) => {
 
   // ----------- deploy ----------
   const deployCmd = program.command('deploy <app-name> [ts-scripts#function-or-shell]')
@@ -31,9 +31,6 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     false)
   .action(async (app: string, scriptsFile?: string) => {
     const opt = deployCmd.opts();
-    await initConfigAsync(deployCmd.opts() as GlobalOptions);
-    // (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
-
     const cliDeploy = (require('./cli-deploy').default as typeof _cliDeploy);
     const log = log4js.getLogger('prebuild');
     log.info('commit comment:', deployCmd.opts().cc);
@@ -41,8 +38,6 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
       deployCmd.opts().cc);
   });
   createEnvOption(deployCmd);
-  withGlobalOptions(deployCmd);
-
   // -------- githash ----------
   const githashCmd = createEnvOption(program.command('githash'), false)
   .action(async () => {
@@ -55,7 +50,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
       console.log(await Artifacts.stringifyListAllVersions());
     }
   });
-  withGlobalOptions(githashCmd);
+  // withGlobalOptions(githashCmd);
 
   // ------ send --------
   const sendCmd = createEnvOption(program.command('send <app-name> <zipFileOrDir>'))
@@ -66,23 +61,18 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .option('--force', 'Force overwriting remote zip assets without SHA1 checksum comparison, by default remote server will reject file of existing same SHA1',
     false)
   .action(async (appName: string, zip: string) => {
-    await initConfigAsync(sendCmd.opts() as GlobalOptions);
-    // (await import('@wfh/plink/wfh/dist/package-runner')).prepareLazyNodeInjector({});
-
     await (require('./_send-patch') as typeof sp).send(sendCmd.opts().env, appName, zip,
     parseInt(sendCmd.opts().con, 10),
     parseInt(sendCmd.opts().nodes, 10),
     sendCmd.opts().force,
     sendCmd.opts().secret);
   });
-  withGlobalOptions(sendCmd);
+  // withGlobalOptions(sendCmd);
 
   // ------ mockzip --------
   const mockzipCmd = program.command('mockzip');
   mockzipCmd.option('-d,--dir <dir>', 'create a mock zip file in specific directory');
   mockzipCmd.action(async () => {
-    await initConfigAsync(mockzipCmd.opts() as GlobalOptions);
-
     const Artifacts: typeof _Artifacts = require('./artifacts');
 
     const fileContent = '' + new Date().toUTCString();
@@ -95,7 +85,7 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
     // tslint:disable-next-line: no-console
     log.info('Mock zip:', file);
   });
-  withGlobalOptions(mockzipCmd);
+  // withGlobalOptions(mockzipCmd);
 
   // ---------- keypair ------------
   const keypairCmd = program.command('keypair [file-name]')
@@ -120,26 +110,6 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .action(async file => {
     (await import('./cli-ts-ast-util')).listExportedFunction(file);
   });
-
-  // // -------- listzip --------
-  // program.command('listzip <file>')
-  // .description('List zip file content and size')
-  // .action(async file => {
-  //   const {listZip}: typeof _unzip = require('./cli-unzip');
-  //   await listZip(file);
-  // });
-
-  // // -------- unzip --------
-  // const unzipCmd = program.command('unzip <zipFileDirectory>')
-  // .description('Extract all zip files from specific directory')
-  // .requiredOption('-d,--dest <dir>', 'destination directory')
-  // .action(async (zipFileDirectory: string) => {
-  //   await initConfigAsync(unzipCmd.opts() as GlobalOptions);
-  //   prepareLazyNodeInjector({});
-  //   const {forkExtractExstingZip} = await import('@wfh/assets-processer/dist/fetch-remote');
-  //   await forkExtractExstingZip(zipFileDirectory, Path.resolve(unzipCmd.opts().dest), true);
-  // });
-  // withGlobalOptions(unzipCmd);
 };
 
 export {cliExt as default};

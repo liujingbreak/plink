@@ -13,7 +13,7 @@ const rootPath = getRootDir();
  * @param dirs 
  */
 export default async function(action?: 'add' | 'remove', dirs?: string[]) {
-  await config.init({config: [], prop: [], logStat: false});
+  await config.init({config: [], prop: []});
   getStore().pipe(
     pluck('project2Packages'), distinctUntilChanged(),
     map(project2Packages => Array.from(project2Packages.keys())),

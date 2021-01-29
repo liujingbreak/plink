@@ -1,12 +1,11 @@
 import commander from 'commander';
-export type CliExtension = (program: commander.Command,
-  withGlobalCliOptions: (subCommand: commander.Command) => void) => void;
+export type CliExtension = (program: commander.Command) => void;
 
 export interface GlobalOptions {
   config: string[];
   prop: string[];
-  logStat?: boolean;
   production?: boolean;
+  verbose?: boolean;
 }
 
 export interface InitCmdOptions extends GlobalOptions {

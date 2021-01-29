@@ -9,7 +9,7 @@ import * as TJS from 'typescript-json-schema';
 import ts from 'typescript';
 import Selector from '@wfh/prebuild/dist/ts-ast-query';
 import glob from 'glob';
-import {CliExtension, GlobalOptions, initConfigAsync, initProcess, setTsCompilerOptForNodePath} from '@wfh/plink/wfh/dist';
+import {CliExtension, setTsCompilerOptForNodePath} from '@wfh/plink/wfh/dist';
 import pkgUtils from '@wfh/plink/wfh/dist/package-utils';
 
 
@@ -17,14 +17,12 @@ const baseTsconfigFile = require.resolve('@wfh/plink/wfh/tsconfig-base.json');
 
 const log = log4js.getLogger(pk.name);
 
-const cliExt: CliExtension = (program, withGlobalOptions) => {
-  const cmd = program.command('json-schema-gen [package...]')
+const cliExt: CliExtension = (program) => {
+  program.command('json-schema-gen [package...]')
   .description('Scan packages and generate json schema. ' +
   'You package.json file must contains:\n  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}')
   .option('-f, --file <spec>', 'run single file')
   .action(async (packages: string[]) => {
-    await initConfigAsync(cmd.opts() as GlobalOptions);
-    initProcess();
     const dones: Promise<void>[] = [];
 
     const baseTsconfig = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8')).config;
@@ -89,7 +87,6 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
       packageUtils.findAllPackages(onComponent, 'src');
     await Promise.all(dones);
   });
-  withGlobalOptions(cmd);
 };
 
 export default cliExt;
