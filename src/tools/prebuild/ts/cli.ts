@@ -40,6 +40,7 @@ const cliExt: CliExtension = (program) => {
   createEnvOption(deployCmd);
   // -------- githash ----------
   const githashCmd = createEnvOption(program.command('githash'), false)
+  .description('List git hash information of each static resource zip file in directory "install-<env>"')
   .action(async () => {
     const Artifacts: typeof _Artifacts = require('./artifacts');
     if (githashCmd.opts().env) {

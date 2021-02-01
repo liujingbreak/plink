@@ -2,6 +2,7 @@ import commander from 'commander';
 import {GlobalOptions, initConfigAsync, initProcess} from './index';
 import * as _runner from './package-runner';
 import logConfig from './log-config';
+import {withGlobalOptions} from './cmd/override-commander';
 
 const pk = require('../../package.json');
 
@@ -24,6 +25,8 @@ const program = new commander.Command()
     resolve(shutdown);
   });
 });
+
+withGlobalOptions(program);
 
 program.parseAsync(process.argv)
 .catch(e => {

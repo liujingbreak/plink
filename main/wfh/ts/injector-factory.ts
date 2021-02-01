@@ -1,7 +1,6 @@
 import RJ, {InjectorOption} from 'require-injector';
 import {doInjectorConfigSync} from './require-injectors';
 import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
-// import {ResolveOption} from 'require-injector/dist/node-inject';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as Path from 'path';
@@ -9,7 +8,7 @@ import log4js from 'log4js';
 import {getRootDir} from './utils/misc';
 const log = log4js.getLogger('plink.injector-factory');
 
-const packageNamePathMap: {[name: string]: string} = {};
+const packageNamePathMap = new Map<string, {symlink?: string; realPath: string;}>();
 
 const emptyFactoryMap = {
   factory: emptryChainableFunction,
@@ -28,9 +27,9 @@ export class DrPackageInjector extends RJ {
     });
   }
 
-  addPackage(name: string, dir: string) {
+  addPackage(name: string, dir: string, symlinkDir?: string) {
     log.debug('add %s %s', name, dir);
-    packageNamePathMap[name] = dir;
+    packageNamePathMap.set(name, {symlink: symlinkDir, realPath: dir});
   }
 
   fromComponent(name: string | string[], dir?: string | string[]) {
@@ -56,7 +55,11 @@ export class DrPackageInjector extends RJ {
   }
 
   fromAllComponents() {
-    return super.fromDir(_.values(packageNamePathMap));
+    const realpaths = Array.from(packageNamePathMap.values())
+      .map(item => item.realPath);
+    const symlinks = Array.from(packageNamePathMap.values())
+    .map(item => item.symlink).filter(dir => dir != null);
+    return super.fromDir(realpaths.concat(symlinks as string[]));
   }
 
   fromAllPackages() {

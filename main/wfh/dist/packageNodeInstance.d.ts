@@ -5,6 +5,7 @@ export default class Package implements NodePackageAttr {
     name: string;
     longName: string;
     scope: string;
+    /** If this property is not same as "realPath", then it is a symlink */
     path: string;
     json: any;
     api: Api;

@@ -5,8 +5,6 @@ import Path from 'path';
 import _ from 'lodash';
 import {gt} from 'semver';
 import commander from 'Commander';
-import {stateFactory, GlobalOptions} from '@wfh/plink/wfh/dist';
-import config from '@wfh/plink/wfh/dist/config';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -89,8 +87,8 @@ export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, bui
   }
   process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
 
-  stateFactory.configureStore();
-  config.initSync(cmd.opts() as GlobalOptions);
+  // stateFactory.configureStore();
+  // config.initSync(cmd.opts() as GlobalOptions);
   return cmdOptions;
 }
 

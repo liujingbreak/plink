@@ -6,6 +6,7 @@ export interface PackageInfo {
     scope: string;
     shortName: string;
     json: any;
+    /** If this property is not same as "realPath", then it is a symlink */
     path: string;
     realPath: string;
     isInstalled: boolean;

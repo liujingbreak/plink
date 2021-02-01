@@ -273,6 +273,8 @@ function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeA
   function apiFactory() {
     return getApiForPackage(pkInstance, NodeApi);
   }
+  nodeInjector.addPackage(pkInstance.longName, pkInstance.realPath,
+    pkInstance.path === pkInstance.realPath ? undefined : pkInstance.path);
   nodeInjector.fromDir(pkInstance.realPath)
   .value('__injector', nodeInjector)
   .factory('__api', apiFactory)

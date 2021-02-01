@@ -4,6 +4,7 @@ export declare function overrideCommand(program: commander.Command, ws?: Workspa
     forPackage(pkg: PackageInfo, cmdExecutionFile: string): void;
     commandMetaInfos: Map<string, OurCommandMetadata>;
 };
+export declare function withGlobalOptions(program: commander.Command): commander.Command;
 interface OurCommandMetadata {
     nameAndArgs: string;
     alias?: string;

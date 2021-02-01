@@ -3,7 +3,7 @@ import { FactoryMapCollection, FactoryMapInterf } from 'require-injector/dist/fa
 export declare class DrPackageInjector extends RJ {
     protected noNode: boolean;
     constructor(resolve: InjectorOption['resolve'], noNode?: boolean);
-    addPackage(name: string, dir: string): void;
+    addPackage(name: string, dir: string, symlinkDir?: string): void;
     fromComponent(name: string | string[], dir?: string | string[]): FactoryMapCollection;
     fromAllComponents(): FactoryMapInterf;
     fromAllPackages(): FactoryMapInterf;

@@ -113,7 +113,7 @@ export function overrideCommand(program: commander.Command, ws?: WorkspaceState)
   };
 }
 
-function withGlobalOptions(program: commander.Command): commander.Command {
+export function withGlobalOptions(program: commander.Command): commander.Command {
   program.option('-c, --config <config-file>',
     hlDesc('Read config files, if there are multiple files, the latter one overrides previous one'),
     (value, prev) => { prev.push(...value.split(',')); return prev;}, [] as string[])

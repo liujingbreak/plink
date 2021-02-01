@@ -20,7 +20,6 @@ let tarballDir: string;
 const log = log4js.getLogger('plink.cli-pack');
 
 async function init(opts: PublishOptions | PackOptions) {
-  await config.init(opts);
   tarballDir = Path.resolve(config().rootPath, 'tarballs');
   fsext.mkdirpSync(tarballDir);
 }
