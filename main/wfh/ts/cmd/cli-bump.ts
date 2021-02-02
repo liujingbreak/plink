@@ -1,5 +1,4 @@
 import {BumpOptions} from './types';
-import config from '../config';
 import {getState, pathToProjKey} from '../package-mgr';
 import { exe } from '../process-utils';
 import {findPackagesByNames} from './utils';
@@ -8,8 +7,6 @@ import log4js from 'log4js';
 const log = log4js.getLogger('plin.cli-bump');
 
 export default async function(options: BumpOptions & {packages: string[]}) {
-  await config.init(options);
-
   if (options.packages.length > 0) {
     await bumpPackages(options.packages, options.increVersion);
   } else if (options.project.length > 0) {

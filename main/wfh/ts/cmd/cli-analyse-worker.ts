@@ -117,7 +117,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
     {
       query: ':CallExpression>.expression:ImportKeyword',
       callback(ast, path) {
-        const dep = resolve(((ast.parent as ts.CallExpression).arguments[0] as ts.StringLiteral).getText(), file,
+        const dep = resolve(((ast.parent as ts.CallExpression).arguments[0] as ts.StringLiteral).text, file,
           ctx, ast.getStart(), q.src);
         if (dep)
           deps.push(dep);
@@ -130,7 +130,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
         if (node.expression.kind === ts.SyntaxKind.Identifier &&
           (node.expression as ts.Identifier).text === 'require' &&
           node.arguments[0].kind === ts.SyntaxKind.StringLiteral) {
-          const dep = resolve((node.arguments[0] as ts.StringLiteral).getText(), file, ctx, ast.getStart(), q.src);
+          const dep = resolve((node.arguments[0] as ts.StringLiteral).text, file, ctx, ast.getStart(), q.src);
           if (dep)
             deps.push(dep);
         }
@@ -154,7 +154,8 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
     // console.log(`[cli-analysie-worker] can not resolve dynamic value ${path} in ${file} @${lineInfo.line + 1}:${lineInfo.character + 1}`);
     return null;
   }
-  path = path.slice(1, -1);
+  if (path.startsWith('"') || path.startsWith('\''))
+    path = path.slice(1, -1);
 
   if (path.startsWith('.')) {
     const ext = Path.extname(path);
@@ -186,7 +187,8 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
       // skip unknown extension path
     }
   } else {
-    ctx.externalDeps.add(/^((?:@[^/]+\/)?[^/]+)/.exec(path)![1]);
+    const m = /^((?:@[^/]+\/)?[^/]+)/.exec(path);
+    ctx.externalDeps.add(m ? m[1] : path);
   }
 }
 

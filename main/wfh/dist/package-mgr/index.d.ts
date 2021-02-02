@@ -52,12 +52,19 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         isForce: boolean;
         createHook: boolean;
     }>): void;
-    /** Check and install dependency, if there is linked package used in more than one workspace,
-     * to switch between different workspace */
+    /**
+     * - Create initial files in root directory
+     * - Scan linked packages and install transitive dependency
+     * - Switch to different workspace
+     * - Delete nonexisting workspace
+     * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
+     * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
+     */
     updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
         dir: string;
         isForce: boolean;
         createHook: boolean;
+        packageJsonFiles?: string[];
     }>): void;
     updateDir(): void;
     _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<PackageInfo[]>): void;
@@ -89,7 +96,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     _associatePackageToPrj(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
-            pkgs: PackageInfo[];
+            pkgs: {
+                name: string;
+            }[];
         };
         type: string;
     }): void;
@@ -101,12 +110,19 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         isForce: boolean;
         createHook: boolean;
     }>): void;
-    /** Check and install dependency, if there is linked package used in more than one workspace,
-     * to switch between different workspace */
+    /**
+     * - Create initial files in root directory
+     * - Scan linked packages and install transitive dependency
+     * - Switch to different workspace
+     * - Delete nonexisting workspace
+     * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
+     * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
+     */
     updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
         dir: string;
         isForce: boolean;
         createHook: boolean;
+        packageJsonFiles?: string[];
     }>): void;
     updateDir(): void;
     _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<PackageInfo[]>): void;
@@ -138,7 +154,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     _associatePackageToPrj(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
-            pkgs: PackageInfo[];
+            pkgs: {
+                name: string;
+            }[];
         };
         type: string;
     }): void;
@@ -151,6 +169,7 @@ export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorW
 export declare function getState(): PackagesState;
 export declare function getStore(): Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;
+export declare function projKeyToPath(key: string): string;
 export declare function workspaceKey(path: string): string;
 export declare function getPackagesOfProjects(projects: string[]): Generator<PackageInfo, void, unknown>;
 /**

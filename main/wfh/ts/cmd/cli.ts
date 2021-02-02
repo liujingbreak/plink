@@ -13,7 +13,7 @@ import _scanNodeModules from '../utils/symlinks';
 import fs from 'fs';
 import Path from 'path';
 import semver from 'semver';
-import {overrideCommand} from './override-commander';
+import {CommandOverrider} from './override-commander';
 import {initInjectorForNodePackages} from '../package-runner';
 import {hl, hlDesc, arrayOptionFn} from './utils';
 import {getLogger} from 'log4js';
@@ -48,17 +48,17 @@ export async function createCommands(startTime: number) {
   program.version(pk.version, '-v, --vers', 'output the current version');
   program.addHelpCommand('help [command]', 'show help information, same as "-h". ');
 
-  const overrider = overrideCommand(program);
+  const overrider = new CommandOverrider(program);
   let wsState: pkgMgr.WorkspaceState | undefined;
   if (process.env.PLINK_SAFE !== 'true') {
     const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
     wsState = getPkgState().workspaces.get(workspaceKey(process.cwd()));
     if (wsState != null) {
-      spaceOnlySubWfhCommand(program);
+      overrider.forPackage(null, spaceOnlySubWfhCommand);
     }
   }
 
-  subWfhCommand(program);
+  overrider.forPackage(null, subWfhCommand);
   if (process.env.PLINK_SAFE !== 'true') {
     cliExtensions = loadExtensionCommand(program, wsState, overrider);
   } else {
@@ -69,7 +69,7 @@ export async function createCommands(startTime: number) {
   try {
     await program.parseAsync(process.argv, {from: 'node'});
   } catch (e) {
-    log.error(chalk.redBright(e), e.stack);
+    log.error('Failed to execute command due to:' + chalk.redBright(e.message), e.stack);
     process.exit(1);
   }
 }
@@ -128,7 +128,7 @@ function subWfhCommand(program: commander.Command) {
    * command clean
    */
   program.command('cs').alias('clear-symlinks')
-  .description('Clear symlinks from node_modules, always do this before run "npm install" in root directory')
+  .description('Clear symlinks from node_modules, do this before run "npm install" in root directory, if there is any symlinks in current node_modules')
   // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
   .action(async () => {
     const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
@@ -146,11 +146,11 @@ function subWfhCommand(program: commander.Command) {
     await (await import('./cli-link-plink')).reinstallWithLinkedPlink();
   });
 
-  program.command('dockerize <workspace-dir>')
-  .description('[TBI] Generate Dockerfile for specific workspace directory, and generate docker image');
+  // program.command('dockerize <workspace-dir>')
+  // .description(chalk.gray('[TBI] Generate Dockerfile for specific workspace directory, and generate docker image'));
 
-  program.command('pkg <workspace-dir>')
-  .description('[TBI] Use Pkg (https://github.com/vercel/pkg) to package Node.js project into an executable ');
+  // program.command('pkg <workspace-dir>')
+  // .description(chalk.gray('[TBI] Use Pkg (https://github.com/vercel/pkg) to package Node.js project into an executable '));
 
   /**
    * command ls
@@ -220,11 +220,11 @@ function subWfhCommand(program: commander.Command) {
   const analysisCmd = program.command('analyze')
     .alias('analyse')
     .description('Use Typescript compiler to parse source code, draw a dependence graph with DFS algarithm')
-    // .option('-d, --dir <directory>',
-    //   'specific target directory instead of packages, target can be any directory that contains JS/TS files',
-    //   arrayOptionFn, [])
+    .option('-d, --dir <directory>',
+      'specify target directory, scan JS/JSX/TS/TSX files under target directory')
     .option('-f, --file <file>',
-      'specific target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
+      'specify target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
+    .option('-j', 'Show result in JSON', false)
     .action(async (packages: string[]) => {
       return (await import('./cli-analyze')).default(packages, analysisCmd.opts() as tp.AnalyzeOptions);
     });
@@ -297,12 +297,9 @@ function spaceOnlySubWfhCommand(program: commander.Command) {
   hlDesc('plink tsc [package...] -w\n') + ' Watch packages change and compile when new typescript file is changed or created\n\n');
 }
 
-function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceState | undefined, overrider: ReturnType<typeof overrideCommand>): string[] {
+function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceState | undefined, overrider: CommandOverrider): string[] {
   if (ws == null)
     return [];
-
-  let filePath: string | null = null;
-
   initInjectorForNodePackages();
   const availables: string[] = [];
   for (const pk of packages4Workspace()) {
@@ -314,15 +311,10 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
     availables.push(pk.name);
 
     try {
-      filePath = require.resolve(pk.name + '/' + pkgFilePath);
-      overrider.forPackage(pk, filePath);
-      const subCmdFactory: tp.CliExtension = funcName ? require(filePath)[funcName] :
-        require(filePath);
-      subCmdFactory(program);
+      overrider.forPackage(pk, pkgFilePath, funcName);
     } catch (e) {
       // tslint:disable-next-line: no-console
       log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
-      filePath = null;
     }
   }
   return availables;

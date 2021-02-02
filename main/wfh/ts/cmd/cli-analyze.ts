@@ -1,6 +1,5 @@
 import {AnalyzeOptions} from './types';
 import os from 'os';
-import config from '../config';
 import Path from 'path';
 import glob from 'glob';
 import _ from 'lodash';
@@ -11,65 +10,91 @@ import * as op from 'rxjs/operators';
 import {merge, from} from 'rxjs';
 import {Context} from './cli-analyse-worker';
 import {createCliTable} from '../utils/misc';
-// import log4js from 'log4js';
+import log4js from 'log4js';
 import {Pool} from '../../../thread-promise-pool/dist';
 import chalk from 'chalk';
+import {findPackagesByNames} from './utils';
+import {getState} from '../package-mgr';
 
-// const log = log4js.getLogger('plink.analyse');
+const log = log4js.getLogger('plink.analyse');
 const cpus = os.cpus().length;
 
 export default async function(packages: string[], opts: AnalyzeOptions) {
-  await config.init(opts);
-  if (opts.file) {
+  if (opts.file && opts.file.length > 0) {
     dispatcher.analyzeFile(opts.file);
+  } else if (opts.dir) {
+    dispatcher.analyzeFile([opts.dir.replace(/\\/g, '/') + '/**/*']);
+  } else {
+    // log.warn('Sorry, not implemented yet, use with argument "-f" for now.');
+    let i = 0;
+    for (const pkg of findPackagesByNames(getState(), packages)) {
+      if (pkg == null) {
+        log.error(`Can not find package for name "${packages[i]}"`);
+        continue;
+      }
+      dispatcher.analyzeFile([pkg.realPath.replace(/\\/g, '/') + '/**/*']);
+      i++;
+    }
   }
   getStore().pipe(
     map(s => s.result), op.distinctUntilChanged(),
     op.skip(1),
     op.tap((result) => {
-
       if (result!.canNotResolve.length > 0) {
         const table = createCliTable({horizontalLines: false});
         table.push([{colSpan: 2, content: chalk.bold('Can not resolve dependecies'), hAlign: 'center'}]);
-
+        table.push([{hAlign: 'right', content: '--'}, '--------']);
+        let i = 1;
         for (const msg of result!.canNotResolve) {
           // tslint:disable-next-line: no-console
           console.log(`Can not resolve dependecy: ${JSON.stringify(msg, null, '  ')}`);
-          table.push(['', JSON.stringify(msg, null, '  ')]);
+          table.push([{hAlign: 'right', content: i++}, JSON.stringify(msg, null, '  ')]);
         }
         // tslint:disable-next-line: no-console
         console.log(table.toString());
       }
+
       if (result!.cyclic.length > 0) {
+        let i = 1;
         const table = createCliTable({horizontalLines: false});
         table.push([{colSpan: 2, content: chalk.bold('Cyclic dependecies'), hAlign: 'center'}]);
+        table.push([{hAlign: 'right', content: '--'}, '--------']);
         for (const msg of result!.cyclic) {
-          table.push(['', msg]);
+          table.push([{hAlign: 'right', content: i++}, msg]);
         }
         // tslint:disable-next-line: no-console
         console.log(table.toString());
       }
 
       if (result!.externalDeps.length > 0) {
+        let i = 1;
         const table = createCliTable({horizontalLines: false});
         table.push([{colSpan: 2, content: chalk.bold('External dependecies'), hAlign: 'center'}]);
-
-        for (const msg of result!.externalDeps) {
-          table.push(['', msg]);
+        if (!opts.j) {
+          table.push([{hAlign: 'right', content: '--'}, '--------']);
+          for (const msg of result!.externalDeps) {
+            table.push([{hAlign: 'right', content: i++}, msg]);
+          }
         }
         // tslint:disable-next-line: no-console
         console.log(table.toString());
+        if (opts.j) {
+          // tslint:disable-next-line: no-console
+          console.log(JSON.stringify(result!.externalDeps, null, '  '));
+        }
       }
 
       if (result!.relativeDepsOutSideDir.length > 0) {
+        let i = 1;
         const table = createCliTable({horizontalLines: false});
         table.push([{
           colSpan: 2,
           content: chalk.bold(`Dependencies outside of ${result!.commonDir}`),
           hAlign: 'center'
         }]);
+        table.push([{hAlign: 'right', content: '--'}, '--------']);
         for (const msg of result!.relativeDepsOutSideDir) {
-          table.push(['', msg]);
+          table.push([{hAlign: 'right', content: i++}, msg]);
         }
         // tslint:disable-next-line: no-console
         console.log(table.toString());
@@ -90,17 +115,18 @@ const slice = stateFactory.newSlice({
   name: 'analyze',
   initialState: initState,
   reducers: {
+    /** payload: glob patterns */
     analyzeFile(d, {payload}: PayloadAction<string[]>) {
       d.inputFiles = payload;
     }
   }
 });
 
-function getStore() {
+export function getStore() {
   return stateFactory.sliceStore(slice);
 }
 
-const dispatcher = stateFactory.bindActionCreators(slice);
+export const dispatcher = stateFactory.bindActionCreators(slice);
 
 stateFactory.addEpic<{analyze: AnalyzeState}>((action$, state$) => {
   return merge(

@@ -93,11 +93,19 @@ export const slice = stateFactory.newSlice({
     /** Do this action after any linked package is removed or added  */
     initRootDir(d, action: PayloadAction<{isForce: boolean, createHook: boolean}>) {},
 
-    /** Check and install dependency, if there is linked package used in more than one workspace, 
-     * to switch between different workspace */
-    updateWorkspace(d, action: PayloadAction<{dir: string, isForce: boolean, createHook: boolean}>) {
+    /** 
+     * - Create initial files in root directory
+     * - Scan linked packages and install transitive dependency
+     * - Switch to different workspace
+     * - Delete nonexisting workspace
+     * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
+     * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
+     */
+    updateWorkspace(d, action: PayloadAction<{dir: string,
+      isForce: boolean, createHook: boolean, packageJsonFiles?: string[]}>) {
     },
     updateDir() {},
+
     _syncLinkedPackages(d, {payload}: PayloadAction<PackageInfo[]>) {
       d.inited = true;
       d.srcPackages = new Map();
@@ -211,7 +219,7 @@ export const slice = stateFactory.newSlice({
       };
 
       // log.info(installJson)
-      // const installedComp = doListInstalledComp4Workspace(state.workspaces, state.srcPackages, wsKey);
+      // const installedComp = scanInstalledPackage4Workspace(state.workspaces, state.srcPackages, wsKey);
 
       const existing = state.workspaces.get(wsKey);
 
@@ -234,7 +242,7 @@ export const slice = stateFactory.newSlice({
     _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
       // d._computed.workspaceKeys.push(workspaceKey);
     },
-    _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: PackageInfo[]}>) {
+    _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: {name: string}[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
     },
     _onRelatedPackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {}
@@ -243,7 +251,6 @@ export const slice = stateFactory.newSlice({
 
 export const actionDispatcher = stateFactory.bindActionCreators(slice);
 export const {updateGitIgnores, onLinkedPackageAdded} = actionDispatcher;
-const {_onRelatedPackageUpdated} = actionDispatcher;
 
 /**
  * Carefully access any property on config, since config setting probably hasn't been set yet at this momment
@@ -286,7 +293,7 @@ stateFactory.addEpic((action$, state$) => {
 
     //  updateWorkspace
     action$.pipe(ofPayloadAction(slice.actions.updateWorkspace),
-      switchMap(({payload: {dir, isForce, createHook}}) => {
+      concatMap(({payload: {dir, isForce, createHook, packageJsonFiles}}) => {
         dir = Path.resolve(dir);
         actionDispatcher.setCurrentWorkspace(dir);
         maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), Path.resolve(dir, 'app.js'));
@@ -309,7 +316,8 @@ stateFactory.addEpic((action$, state$) => {
         // call initRootDirectory() and wait for it finished by observing action '_syncLinkedPackages',
         // then call _hoistWorkspaceDeps
         return merge(
-          defer(() => of(initRootDirectory(createHook))),
+          packageJsonFiles != null ? _scanAndSyncPackages(packageJsonFiles):
+            defer(() => of(initRootDirectory(createHook))),
           action$.pipe(
             ofPayloadAction(slice.actions._syncLinkedPackages),
             take(1),
@@ -346,7 +354,7 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
       map(({payload}) => {
         const wsKey = workspaceKey(payload.dir);
-        _onRelatedPackageUpdated(wsKey);
+        actionDispatcher._onRelatedPackageUpdated(wsKey);
         deleteDuplicatedInstalledPkg(wsKey);
         setImmediate(() => actionDispatcher.workspaceStateUpdated());
       }),
@@ -355,7 +363,7 @@ stateFactory.addEpic((action$, state$) => {
 
     action$.pipe(ofPayloadAction(slice.actions.updateDir),
       concatMap(() => defer(() => from(
-        _scanPackageAndLink().then(() => {
+        _scanAndSyncPackages().then(() => {
           for (const key of getState().workspaces.keys()) {
             updateInstalledPackageForWorkspace(key);
           }
@@ -486,7 +494,7 @@ stateFactory.addEpic((action$, state$) => {
       ignoreElements()
     ),
     action$.pipe(ofPayloadAction(slice.actions.addProject, slice.actions.deleteProject),
-      concatMap(() => from(_scanPackageAndLink()))
+      concatMap(() => from(_scanAndSyncPackages()))
     )
   ).pipe(
     ignoreElements(),
@@ -508,6 +516,9 @@ export function getStore(): Observable<PackagesState> {
 export function pathToProjKey(path: string) {
   const relPath = Path.relative(getRootDir(), path);
   return relPath.startsWith('..') ? Path.resolve(path) : relPath;
+}
+export function projKeyToPath(key: string) {
+  return Path.isAbsolute(key) ? key : Path.resolve(getRootDir(), key);
 }
 
 export function workspaceKey(path: string) {
@@ -557,7 +568,7 @@ export function isCwdWorkspace() {
 }
 
 function updateInstalledPackageForWorkspace(wsKey: string) {
-  const pkgEntry = doListInstalledComp4Workspace(getState(), wsKey);
+  const pkgEntry = scanInstalledPackage4Workspace(getState(), wsKey);
 
   const installed = new Map((function*(): Generator<[string, PackageInfo]> {
     for (const pk of pkgEntry) {
@@ -565,7 +576,7 @@ function updateInstalledPackageForWorkspace(wsKey: string) {
     }
   })());
   actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
-  _onRelatedPackageUpdated(wsKey);
+  actionDispatcher._onRelatedPackageUpdated(wsKey);
 }
 
 /**
@@ -600,7 +611,7 @@ async function initRootDirectory(createHook = false) {
     });
   }
 
-  await _scanPackageAndLink();
+  await _scanAndSyncPackages();
   await _deleteUselessSymlink(Path.resolve(getRootDir(), 'node_modules'), new Set<string>());
 }
 
@@ -710,26 +721,50 @@ async function copyNpmrcToWorkspace(workspaceDir: string) {
   }
 }
 
-async function _scanPackageAndLink() {
-  const rm = (await import('../recipe-manager'));
-
+async function _scanAndSyncPackages(includePackageJsonFiles?: string[]) {
   const projPkgMap: Map<string, PackageInfo[]> = new Map();
-  const pkgList: PackageInfo[] = [];
-  await rm.scanPackages().pipe(
-    tap(([proj, jsonFile]) => {
-      if (!projPkgMap.has(proj))
-        projPkgMap.set(proj, []);
-      const info = createPackageInfo(jsonFile, false);
-      pkgList.push(info);
-      projPkgMap.get(proj)!.push(info);
-    })
-  ).toPromise();
+  let pkgList: PackageInfo[];
 
-  for (const [prj, pkgs] of projPkgMap.entries()) {
-    actionDispatcher._associatePackageToPrj({prj, pkgs});
+  if (includePackageJsonFiles) {
+    const prjKeys = Array.from(getState().project2Packages.keys());
+    const prjDirs = Array.from(getState().project2Packages.keys()).map(prjKey => projKeyToPath(prjKey));
+    pkgList = includePackageJsonFiles.map(jsonFile => {
+      const info = createPackageInfo(jsonFile, false);
+      const prjIdx = prjDirs.findIndex(dir => info.realPath.startsWith(dir + Path.sep));
+      if (prjIdx < 0) {
+        throw new Error(`${jsonFile} is not under any known Project directorys: ${prjDirs.join(', ')}`);
+      }
+      const prjPackageNames = getState().project2Packages.get(prjKeys[prjIdx])!;
+      if (!prjPackageNames.includes(info.name)) {
+        actionDispatcher._associatePackageToPrj({
+          prj: prjKeys[prjIdx],
+          pkgs: [...prjPackageNames.map(name => ({name})), info]
+        });
+      }
+      return info;
+    });
+  } else {
+    const rm = (await import('../recipe-manager'));
+    pkgList = [];
+    await rm.scanPackages().pipe(
+      tap(([proj, jsonFile]) => {
+        if (!projPkgMap.has(proj))
+          projPkgMap.set(proj, []);
+        const info = createPackageInfo(jsonFile, false);
+        if (info.json.dr || info.json.plink) {
+          pkgList.push(info);
+          projPkgMap.get(proj)!.push(info);
+        } else {
+          log.info(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`);
+        }
+      })
+    ).toPromise();
+    for (const [prj, pkgs] of projPkgMap.entries()) {
+      actionDispatcher._associatePackageToPrj({prj, pkgs});
+    }
   }
+
   actionDispatcher._syncLinkedPackages(pkgList);
-  // _createSymlinks();
 }
 
 function _createSymlinksForWorkspace(wsKey: string) {
@@ -793,7 +828,7 @@ export function createPackageInfo(pkJsonFile: string, isInstalled = false): Pack
  * those packages must have "dr" property in package.json 
  * @param workspaceKey 
  */
-function* doListInstalledComp4Workspace(state: PackagesState, workspaceKey: string) {
+function* scanInstalledPackage4Workspace(state: PackagesState, workspaceKey: string) {
   const originInstallJson = state.workspaces.get(workspaceKey)!.originInstallJson;
   // const depJson = process.env.NODE_ENV === 'production' ? [originInstallJson.dependencies] :
   //   [originInstallJson.dependencies, originInstallJson.devDependencies];
@@ -807,7 +842,7 @@ function* doListInstalledComp4Workspace(state: PackagesState, workspaceKey: stri
           const pk = createPackageInfo(
             Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true
           );
-          if (pk.json.dr) {
+          if (pk.json.dr || pk.json.plink) {
             yield pk;
           }
         }

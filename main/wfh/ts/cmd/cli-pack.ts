@@ -11,7 +11,7 @@ import jsonParser, {ObjectAst, Token} from '../utils/json-sync-parser';
 import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
 import config from '../config';
 import {PackOptions, PublishOptions} from './types';
-import {getPackagesOfProjects, getState, workspaceKey} from '../package-mgr';
+import {getPackagesOfProjects, getState, workspaceKey, actionDispatcher} from '../package-mgr';
 import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import log4js from 'log4js';
 import {findPackagesByNames} from './utils';
@@ -94,6 +94,15 @@ async function packPackages(packageDirs: string[]) {
       )),
       tarInfos.map(item => item.filename));
     await changePackageJson(package2tarball);
+    await new Promise(resolve => process.nextTick(resolve));
+    for (const key of getState().workspaces.keys()) {
+      log.debug('update worksapce ', Path.resolve(config().rootPath, key));
+      actionDispatcher.updateWorkspace({
+        dir: Path.resolve(config().rootPath, key),
+        isForce: false,
+        createHook: false
+      });
+    }
   }
 }
 
@@ -155,7 +164,10 @@ async function npmPack(packagePath: string):
  */
 function changePackageJson(packageTarballMap: Map<string, string>) {
   const package2tarball = new Map(packageTarballMap);
-  for (const workspace of [...getState().workspaces.keys(), config().rootPath]) {
+  // include Root dir
+  for (const workspace of _.uniq([
+    ...getState().workspaces.keys(), '']).map(dir => Path.resolve(config().rootPath, dir))
+  ) {
     const wsDir = Path.resolve(config().rootPath, workspace);
     const jsonFile = Path.resolve(wsDir, 'package.json');
     const pkj = fs.readFileSync(jsonFile, 'utf8');
@@ -218,7 +230,7 @@ function changePackageJson(packageTarballMap: Map<string, string>) {
     if (replacements.length > 0) {
       const replaced = replaceCode(pkj, replacements);
       // tslint:disable-next-line: no-console
-      log.info('Updated package.json\n', replaced);
+      log.info(`Updated ${jsonFile}\n`, replaced);
       fs.writeFileSync(jsonFile, replaced);
     }
   }

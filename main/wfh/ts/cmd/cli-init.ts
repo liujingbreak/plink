@@ -3,7 +3,6 @@ import chalk from 'chalk';
 import Path from 'path';
 import {merge} from 'rxjs';
 import { distinctUntilChanged, map, take, skip, scan } from 'rxjs/operators';
-import config from '../config';
 import { actionDispatcher as actions, getState, getStore, WorkspaceState} from '../package-mgr';
 import { packages4WorkspaceKey } from '../package-utils';
 // import { getRootDir } from '../utils/misc';
@@ -13,7 +12,6 @@ import * as options from './types';
 import {createCliTable} from '../utils/misc';
 
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
-  await config.init(opt);
   const cwd = process.cwd();
   getStore().pipe(
     distinctUntilChanged((s1, s2) => s1.workspaceUpdateChecksum === s2.workspaceUpdateChecksum),

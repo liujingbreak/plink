@@ -1,14 +1,17 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { from, merge, of } from 'rxjs';
 // import {cliActionDispatcher, getStore, cliSlice, CliExtension} from './cli-slice';
-import { catchError, distinctUntilChanged, ignoreElements, map } from 'rxjs/operators';
+import * as op from 'rxjs/operators';
 import * as pkgMgr from '../package-mgr';
 import { stateFactory } from '../store';
-
+import {OurCommandMetadata} from './types';
 
 export interface CliState {
   /** key is package name */
   extensions: Map<string, CliExtension>;
+  /** key is package name, value is Command name and args */
+  commandByPackage: Map<string, OurCommandMetadata['nameAndArgs'][]>;
+  commandInfoByName: Map<OurCommandMetadata['nameAndArgs'], OurCommandMetadata>;
   version: string;
   osLang?: string;
   osCountry?: string;
@@ -24,6 +27,8 @@ export interface CliExtension {
 
 const initialState: CliState = {
   extensions: new Map(),
+  commandByPackage: new Map(),
+  commandInfoByName: new Map(),
   version: ''
   // loadedExtensionCmds: new Map()
 };
@@ -41,11 +46,19 @@ export const cliSlice = stateFactory.newSlice({
     updateLocale(d, {payload: [lang, country]}: PayloadAction<[string, string]>) {
       d.osLang = lang;
       d.osCountry = country;
+    },
+    addCommandMeta(d, {payload: {pkg, metas}}: PayloadAction<{pkg: string; metas: OurCommandMetadata[]}>) {
+      const names = metas.map(meta => /^\s*?(\S+)/.exec(meta.nameAndArgs)![1]);
+      const existingMetas = d.commandByPackage.get(pkg);
+      if (existingMetas) {
+        existingMetas.push(...names);
+      } else {
+        d.commandByPackage.set(pkg, names);
+      }
+      for (let i = 0, l = names.length; i < l; i++) {
+        d.commandInfoByName.set(names[i], metas[i]);
+      }
     }
-    // updateLoadedCmd(d, {payload}: PayloadAction<{cmd: string, file: string}[]>) {
-    //   for (const row of payload)
-    //     d.loadedExtensionCmds.set(row.cmd, row.file);
-    // }
   }
 });
 
@@ -68,8 +81,8 @@ const drcpPkJson = require('../../../package.json');
 stateFactory.addEpic((action$, state$) => {
 
   return merge(
-    getStore().pipe(map(s => s.version), distinctUntilChanged(),
-      map(version => {
+    getStore().pipe(op.map(s => s.version), op.distinctUntilChanged(),
+      op.map(version => {
         // console.log('quick!!!!!!!!!!', getState());
         if (version !== drcpPkJson.version) {
           cliActionDispatcher.plinkUpgraded(drcpPkJson.version);
@@ -113,7 +126,7 @@ stateFactory.addEpic((action$, state$) => {
     //   );
     // }),
     from(getLocale()).pipe(
-      map(locale => {
+      op.map(locale => {
         const [lang, country] = locale.split(/[_-]/);
         if (getState().osLang !== lang || getState().osCountry !== country) {
           cliActionDispatcher.updateLocale([lang, country]);
@@ -122,12 +135,12 @@ stateFactory.addEpic((action$, state$) => {
       })
     )
   ).pipe(
-    catchError(ex => {
+    op.catchError(ex => {
       // tslint:disable-next-line: no-console
       console.error(ex);
       return of<PayloadAction>();
     }),
-    ignoreElements()
+    op.ignoreElements()
   );
 });
 

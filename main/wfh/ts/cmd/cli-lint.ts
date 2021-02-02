@@ -2,7 +2,6 @@ import 'source-map-support/register';
 
 import Path from 'path';
 // import chalk from 'chalk';
-import config from '../config';
 import log4js from 'log4js';
 import {LintOptions} from './types';
 import _ from 'lodash';
@@ -17,7 +16,6 @@ const log = log4js.getLogger('plink.cli-lint');
 const cpus = os.cpus().length;
 
 export default async function(packages: string[], opts: LintOptions) {
-  await config.init(opts);
   return lint(packages, opts.pj, opts.fix);
 }
 

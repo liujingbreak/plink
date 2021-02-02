@@ -36,7 +36,6 @@ export default async function list(opt: GlobalOptions & {json: boolean}) {
 }
 
 export async function checkDir(opt: GlobalOptions) {
-  await config.init(opt);
   pkMgr.getStore().pipe(
     map(s => s.packagesUpdateChecksum), distinctUntilChanged(),
     skip(1), take(1),

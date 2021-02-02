@@ -5,10 +5,6 @@
   "main": "build/lib-bundle.js",
   "types": "build/public_api.d.ts",
   "dr": {
-    "ts": {
-      "src": "",
-      "dest": "build"
-    },
     "cra-lib-entry": "public_api.ts",
     "cra-app-entry": "entry.tsx",
     "config-overrides-path": "config-overrides.ts"

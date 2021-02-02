@@ -1,3 +1,3 @@
-import { CliExtension } from '@wfh/plink/wfh/dist';
+import { CliExtension } from '@wfh/plink';
 declare const cliExt: CliExtension;
 export default cliExt;

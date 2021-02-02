@@ -29,6 +29,24 @@ export interface PublishOptions extends PackOptions {
     public: boolean;
 }
 export interface AnalyzeOptions extends GlobalOptions {
-    dir?: string[];
+    dir?: string;
     file?: string[];
+    j: boolean;
+}
+export interface OurCommandMetadata {
+    pkgName: string;
+    nameAndArgs: string;
+    alias?: string;
+    desc: string;
+    usage: string;
+    options: OurCommandOption[];
+}
+export interface OurCommandOption<T = string> {
+    flags: string;
+    desc: string;
+    defaultValue: string | boolean | T[] | T;
+    isRequired: boolean;
+}
+export interface OurAugmentedCommander extends commander.Command {
+    _plinkMeta: Partial<OurCommandMetadata>;
 }

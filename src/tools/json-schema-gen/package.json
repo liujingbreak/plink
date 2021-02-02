@@ -1,6 +1,6 @@
 {
   "name": "@wfh/json-schema-gen",
-  "version": "1.0.17",
+  "version": "1.0.18-0",
   "description": "Generate json-schemas from your Typescript source inside each package",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
