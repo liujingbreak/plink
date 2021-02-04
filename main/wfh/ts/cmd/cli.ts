@@ -54,11 +54,17 @@ export async function createCommands(startTime: number) {
     const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
     wsState = getPkgState().workspaces.get(workspaceKey(process.cwd()));
     if (wsState != null) {
-      overrider.forPackage(null, spaceOnlySubWfhCommand);
+      overrider.forPackage(null, program => {
+        spaceOnlySubWfhCommand(program);
+        subWfhCommand(program);
+      });
+    } else {
+      overrider.forPackage(null, subWfhCommand);
     }
+  } else {
+    overrider.forPackage(null, subWfhCommand);
   }
 
-  overrider.forPackage(null, subWfhCommand);
   if (process.env.PLINK_SAFE !== 'true') {
     cliExtensions = loadExtensionCommand(program, wsState, overrider);
   } else {
@@ -66,6 +72,7 @@ export async function createCommands(startTime: number) {
     console.log('Value of environment varaible "PLINK_SAFE" is true, skip loading extension');
   }
 
+  overrider.appendGlobalOptions();
   try {
     await program.parseAsync(process.argv, {from: 'node'});
   } catch (e) {

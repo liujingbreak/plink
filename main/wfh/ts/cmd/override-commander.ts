@@ -6,27 +6,26 @@ import * as _bootstrap from '../utils/bootstrap-process';
 import { GlobalOptions, OurCommandMetadata, OurAugmentedCommander, CliExtension } from './types';
 import {cliActionDispatcher} from './cli-slice';
 import log4js from 'log4js';
+
 const log = log4js.getLogger('plink.override-commander');
 
 export class CommandOverrider {
   private loadedCmdMap = new Map<string, string>();
   private origPgmCommand: commander.Command['command'];
+  private currClieCreatorFile: string;
+  private currCliCreatorPkg: PackageInfo | null = null;
+  private currCliPkgMataInfos: OurCommandMetadata[];
+  private allSubCmds: OurAugmentedCommander[] = [];
+  private metaMap = new WeakMap<commander.Command, Partial<OurCommandMetadata>>();
+  private pkgMetasMap = new Map<string, OurCommandMetadata[]>();
 
   constructor(private program: commander.Command, ws?: WorkspaceState) {
     this.origPgmCommand = program.command;
-  }
-
-  forPackage(pk: PackageInfo, pkgFilePath: string, funcName: string): void;
-  forPackage(pk: null, commandCreation: (program: commander.Command) => void): void;
-  forPackage(pk: PackageInfo | null,
-    pkgFilePath: string | ((program: commander.Command) => void),
-    funcName?: string) {
     const self = this;
-    const commandMetaInfos: OurCommandMetadata[] = [];
-    let filePath: string | null = null;
 
     function command(this: commander.Command, nameAndArgs: string, ...restArgs: any[]) {
-
+      const pk = self.currCliCreatorPkg;
+      const filePath = self.currClieCreatorFile;
       const cmdName = /^\S+/.exec(nameAndArgs)![0];
       if (self.loadedCmdMap.has(cmdName)) {
         if (filePath)
@@ -38,13 +37,14 @@ export class CommandOverrider {
       self.loadedCmdMap.set(cmdName, filePath ? filePath : '@wfh/plink');
 
       const subCmd: commander.Command = self.origPgmCommand.call(this, nameAndArgs, ...restArgs);
-      const meta: Partial<OurCommandMetadata> = (subCmd as OurAugmentedCommander)._plinkMeta = {
+      const meta: Partial<OurCommandMetadata> = {
         pkgName: pk ? pk.name : '@wfh/plink',
         nameAndArgs,
         options: [],
         desc: pk == null ? '' : chalk.blue(`[${pk.name}]`)
       };
-      commandMetaInfos.push(meta as OurCommandMetadata);
+      self.metaMap.set(subCmd, meta);
+      self.currCliPkgMataInfos.push(meta as OurCommandMetadata);
 
       subCmd.description(meta.desc!);
 
@@ -60,6 +60,7 @@ export class CommandOverrider {
 
       const originOptionFn = subCmd.option;
       subCmd.option = createOptionFn(false, originOptionFn);
+      subCmd._origOption = originOptionFn;
 
       const originReqOptionFn = subCmd.requiredOption;
       subCmd.requiredOption = createOptionFn(true, originReqOptionFn);
@@ -67,13 +68,17 @@ export class CommandOverrider {
       function description(this: commander.Command, str: string, ...remainder: any[]) {
         if (pk)
           str = chalk.blue(`[${pk.name}]`) + ' ' + str;
-        (this as OurAugmentedCommander)._plinkMeta.desc = str;
+
+        const _plinkMeta = self.metaMap.get(this)!;
+        _plinkMeta.desc = str;
         return originDescFn.call(this, str, ...remainder);
       }
 
       function alias(this: commander.Command, alias?: string) {
-        if (alias)
-          (this as OurAugmentedCommander)._plinkMeta.alias = alias;
+        if (alias) {
+          const _plinkMeta = self.metaMap.get(this)!;
+          _plinkMeta.alias = alias;
+        }
         return originAliasFn.apply(this, arguments);
       }
 
@@ -83,10 +88,12 @@ export class CommandOverrider {
           if (remaining.length > 1) {
             defaultValue = remaining[remaining.length - 1];
           }
-          (this as OurAugmentedCommander)._plinkMeta.options!.push({
+          const _plinkMeta = self.metaMap.get(this)!;
+          _plinkMeta.options!.push({
             flags, desc, defaultValue, isRequired
           });
-          return originOptionFn.apply(this, arguments);
+
+          return originOptionFn.call(this, flags, desc, ...remaining);
         };
       }
 
@@ -113,23 +120,36 @@ export class CommandOverrider {
 
         return originActionFn.call(this, actionCallback);
       }
-
-      withGlobalOptions(subCmd);
+      self.allSubCmds.push(subCmd as OurAugmentedCommander);
       return subCmd;
     }
-
     this.program.command = command as any;
+  }
+
+  forPackage(pk: PackageInfo, pkgFilePath: string, funcName: string): void;
+  forPackage(pk: null, commandCreation: (program: commander.Command) => void): void;
+  forPackage(pk: PackageInfo | null,
+    pkgFilePath: string | ((program: commander.Command) => void),
+    funcName?: string) {
+    const commandMetaInfos = this.currCliPkgMataInfos = [];
+    this.currCliCreatorPkg = pk;
+
+    let filePath: string | null = null;
+
 
     if (typeof pkgFilePath === 'function') {
       pkgFilePath(this.program);
-      cliActionDispatcher.addCommandMeta({pkg: '@wfh/plink', metas: commandMetaInfos});
+      this.pkgMetasMap.set('@wfh/plink', commandMetaInfos);
+      // cliActionDispatcher.addCommandMeta({pkg: '@wfh/plink', metas: commandMetaInfos});
     } else if (pk) {
       try {
         filePath = require.resolve(pk.name + '/' + pkgFilePath);
+        this.currClieCreatorFile = filePath;
         const subCmdFactory: CliExtension = funcName ? require(filePath)[funcName] :
           require(filePath);
         subCmdFactory(this.program);
-        cliActionDispatcher.addCommandMeta({pkg: pk.name, metas: commandMetaInfos});
+        this.pkgMetasMap.set(pk.name, commandMetaInfos);
+        // cliActionDispatcher.addCommandMeta({pkg: pk.name, metas: commandMetaInfos});
       } catch (e) {
         // tslint:disable-next-line: no-console
         log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
@@ -138,15 +158,29 @@ export class CommandOverrider {
       }
     }
   }
+
+  appendGlobalOptions() {
+    for (const cmd of this.allSubCmds) {
+      withGlobalOptions(cmd);
+    }
+    for (const [pkg, metas] of this.pkgMetasMap.entries()) {
+      cliActionDispatcher.addCommandMeta({pkg, metas});
+    }
+  }
 }
 
-export function withGlobalOptions(program: commander.Command): commander.Command {
-  program.option('-c, --config <config-file>',
+export function withGlobalOptions(program: OurAugmentedCommander | commander.Command): commander.Command {
+  if (program._origOption == null) {
+    program._origOption = program.option;
+  }
+  (program as OurAugmentedCommander)._origOption('-c, --config <config-file>',
     hlDesc('Read config files, if there are multiple files, the latter one overrides previous one'),
     (value, prev) => {
-      return prev.concat(value.split(','));
+      prev.push(...value.split(','));
+      return prev;
+      // return prev.concat(value.split(','));
     }, [] as string[])
-  .option('--prop <expression>',
+  ._origOption('--prop <expression>',
     hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n' +
     '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
     '--prop arraylike.prop[0]=foobar\n' +

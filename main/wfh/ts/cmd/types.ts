@@ -59,6 +59,6 @@ export interface OurCommandOption<T = string> {
 }
 
 export interface OurAugmentedCommander extends commander.Command {
-  _plinkMeta: Partial<OurCommandMetadata>;
+  _origOption: commander.Command['option'];
 }
 
