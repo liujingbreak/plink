@@ -143,7 +143,9 @@ export class CommandOverrider {
 export function withGlobalOptions(program: commander.Command): commander.Command {
   program.option('-c, --config <config-file>',
     hlDesc('Read config files, if there are multiple files, the latter one overrides previous one'),
-    (value, prev) => { prev.push(...value.split(',')); return prev;}, [] as string[])
+    (value, prev) => {
+      return prev.concat(value.split(','));
+    }, [] as string[])
   .option('--prop <expression>',
     hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n' +
     '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
