@@ -7,9 +7,9 @@ import fs from 'fs';
 import pCfg from '@wfh/plink/wfh/dist/config';
 import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
 import {ReactScriptsHandler} from './types';
-import log4js from 'log4js';
 import fsext from 'fs-extra';
-const log = log4js.getLogger('cra-scripts-paths');
+import plink from '__plink';
+const log = plink.logger;
 
 export interface CraScriptsPaths {
   dotenv: string;
@@ -51,7 +51,6 @@ export default function paths() {
   const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
   const changedPaths = paths;
 
-  // console.log('[debug] ', foundPkg);
   if (cmdOption.buildType === 'lib') {
     changedPaths.appBuild = Path.resolve(dir, 'build');
     changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-lib-entry', 'public_api.ts'));
@@ -59,6 +58,7 @@ export default function paths() {
     changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-app-entry', 'start.tsx'));
     changedPaths.appBuild = pCfg.resolve('staticDir');
   }
+  log.debug(changedPaths);
 
   pCfg.configHandlerMgr().runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
     if (handler.changeCraPaths != null) {

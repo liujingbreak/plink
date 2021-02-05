@@ -21,7 +21,8 @@ export default function change(buildPackage: string, config: Configuration, node
   }
   const {dir: pkDir, packageJson: pkJson} = foundPkg;
 
-  config.entry = Path.resolve(pkDir, 'public_api.ts');
+  if (Array.isArray(config.entry))
+    config.entry = config.entry.filter(item => !/[\\/]react-dev-utils[\\/]webpackHotDevClient/.test(item));
 
   config.output!.path = Path.resolve(pkDir, 'build'); // Have to override it cuz' react-scripts assign `undefined` in non-production env
   config.output!.filename = 'lib-bundle.js';
@@ -131,7 +132,8 @@ async function forkTsc(targetPackage: string, nodePath: string[]) {
 
   const workerData: TscCmdParam = {
     package: [targetPackage], ed: true, jsx: true, watch: getCmdOptions().watch,
-    pathsJsons: []
+    pathsJsons: [],
+    overridePackgeDirs: {[targetPackage]: {destDir: 'build', srcDir: ''}}
   };
 
   const worker = new Worker(require.resolve('./tsd-generate-thread'), {

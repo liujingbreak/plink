@@ -18,3 +18,5 @@ prettier.config.js
 /react-space/.links
 /typess
 /.links
+
+/react-space/types

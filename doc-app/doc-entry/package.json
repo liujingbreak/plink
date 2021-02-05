@@ -4,11 +4,8 @@
   "description": "",
   "main": "build/lib-bundle.js",
   "dr": {
-    "ts": {
-      "src": "",
-      "dest": "build"
-    },
     "cra-app-entry": "start.tsx",
+    "cra-lib-entry": "main/MainComponent.tsx",
     "config-overrides-path": "config-overrides.ts"
   },
   "sideEffects": false,

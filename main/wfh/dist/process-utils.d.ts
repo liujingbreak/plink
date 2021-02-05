@@ -1,7 +1,11 @@
 /// <reference types="node" />
-import { ChildProcess, SpawnOptions } from 'child_process';
+import { ChildProcess, SpawnOptions, ForkOptions as SysForkOptions } from 'child_process';
 export declare const isWindows: boolean;
 export interface Option extends SpawnOptions {
+    timeout?: number;
+    silent?: boolean;
+}
+export interface ForkOptions extends SysForkOptions {
     timeout?: number;
     silent?: boolean;
 }
@@ -23,6 +27,7 @@ export interface Result {
  */
 export declare function promisifySpawn(command: string, ...args: Array<string | Option>): Promise<string>;
 export declare function spawn(command: string, ...args: Array<string | Option>): Result;
+export declare function fork(jsFile: string, ...args: Array<string | ForkOptions>): Result;
 /**
  * Fix some executable command for windows
  * @param  {string} command     [description]

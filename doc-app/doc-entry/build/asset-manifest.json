@@ -1,0 +1,11 @@
+{
+  "files": {
+    "main.js": "/lib-bundle.js",
+    "main.js.map": "/lib-bundle.js.map",
+    "doc-entry/static/media/demo-assets.jpg": "/doc-entry/static/media/demo-assets.58659843.jpg",
+    "index.html": "/index.html"
+  },
+  "entrypoints": [
+    "lib-bundle.js"
+  ]
+}

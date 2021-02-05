@@ -5,6 +5,7 @@ export interface GlobalOptions {
     prop: string[];
     production?: boolean;
     verbose?: boolean;
+    dev?: boolean;
 }
 export interface InitCmdOptions extends GlobalOptions {
     force: boolean;

@@ -8,12 +8,11 @@ import {saveCmdOptionsToEnv} from '../utils';
 import {initConfigAsync} from '@wfh/plink/wfh/dist';
 import {fork} from 'child_process';
 // import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
-import log4js from 'log4js';
 // import {initTsconfig} from './cli-init';
 import * as _preload from '../preload';
 import {config} from '@wfh/plink';
+import plink from '__plink';
 // import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
-const log = log4js.getLogger('cra');
 
 const cli: CliExtension = (program) => {
 
@@ -46,7 +45,7 @@ const cli: CliExtension = (program) => {
     'argument "app" for building a complete application like create-react-app,\n' +
     'argument "lib" for building a library')
   .option('-w, --watch', 'When build a library, watch file changes and compile', false)
-  .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
+  // .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
   .option('-i, --include <module-path-regex>',
   '(multiple value), when argument is "lib", we will set external property of Webpack configuration for all request not begin with "." (except "@babel/runtimer"), ' +
   'meaning all external modules will not be included in the output bundle file, you need to explicitly provide a list in' +
@@ -55,10 +54,11 @@ const cli: CliExtension = (program) => {
   .action(async (type, pkgName) => {
     await initEverything(buildCmd, type, pkgName);
     if (buildCmd.opts().sourceMap) {
-      log.info('source map is enabled');
+      plink.logger.info('source map is enabled');
       process.env.GENERATE_SOURCEMAP = 'true';
     }
     require('react-scripts/scripts/build');
+    
   });
   withClicOpt(buildCmd);
 
@@ -102,9 +102,7 @@ const cli: CliExtension = (program) => {
 };
 
 function withClicOpt(cmd: commander.Command) {
-  cmd
-  // .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
-  .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', undefined);
+  cmd.option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', undefined);
 }
 
 function arrayOptionFn(curr: string, prev: string[] | undefined) {
@@ -123,7 +121,7 @@ async function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', 
   // await walkPackagesAndSetupInjector(process.env.PUBLIC_URL || '/');
   if (!['app', 'lib'].includes(type)) {
 
-    log.error(`type argument must be one of "${['app', 'lib']}"`);
+    plink.logger.error(`type argument must be one of "${['app', 'lib']}"`);
     return;
   }
   const preload: typeof _preload = require('../preload');

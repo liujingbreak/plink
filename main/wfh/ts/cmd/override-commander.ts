@@ -195,7 +195,8 @@ export function withGlobalOptions(program: OurAugmentedCommander | commander.Com
     '--prop arraylike.prop[0]=foobar\n' +
     '--prop ["@wfh/foo.bar","prop",0]=true'),
     arrayOptionFn, [] as string[])
-  .option('--verbose', hlDesc('Specify log level as "debug"'), false);
+  .option('--verbose', hlDesc('Specify log level as "debug"'), false)
+  .option('--dev', hlDesc('same effect as setting Plink property "devMode"'), false);
   // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 
   return program;

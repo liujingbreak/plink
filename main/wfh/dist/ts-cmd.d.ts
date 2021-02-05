@@ -1,3 +1,4 @@
+import { PackageTsDirs } from './utils/misc';
 import { CompilerOptions } from 'typescript';
 export interface TscCmdParam {
     include?: string[];
@@ -10,6 +11,9 @@ export interface TscCmdParam {
     pathsJsons: string[];
     compileOptions?: {
         [key in keyof CompilerOptions]?: any;
+    };
+    overridePackgeDirs?: {
+        [pkgName: string]: PackageTsDirs;
     };
 }
 /**

@@ -1,8 +1,13 @@
 /* tslint:disable:no-console indent */
-import {spawn as sysSpawn, ChildProcess, SpawnOptions} from 'child_process';
+import {spawn as sysSpawn, ChildProcess, SpawnOptions, fork as sysFork, ForkOptions as SysForkOptions} from 'child_process';
 export const isWindows = process.platform === 'win32';
 
 export interface Option extends SpawnOptions {
+  timeout?: number;
+  silent?: boolean;
+}
+
+export interface ForkOptions extends SysForkOptions {
   timeout?: number;
   silent?: boolean;
 }
@@ -44,11 +49,51 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
     opts.stdio = 'inherit';
   }
 
-  let res: ChildProcess;
+  const res = sysSpawn(command, args as string[], opts);
+  const promise = checkTimeout(promisifyChildProcess(res, opts, `${command} ${args.join(' ')}`), opts.timeout)
+  .catch(e => {
+    if (e.message === 'Timeout' && res) {
+      console.log('Kill the child process');
+      res.kill('SIGHUP');
+    }
+    throw e;
+  });
+  return {
+    childProcess: res!,
+    promise
+  };
+}
 
-  const promise = checkTimeout(new Promise<string>((resolve, reject) => {
+export function fork(jsFile: string, ...args: Array<string|ForkOptions>): Result {
+  let opts: ForkOptions = args[args.length - 1] as ForkOptions;
+  if (typeof opts === 'string') {
+    opts = {};
+  } else {
+    args = args.slice(0, -1);
+  }
+
+  if (opts == null) {
+    opts = {};
+  }
+
+  const res = sysFork(jsFile, args as string[], opts);
+  const promise = checkTimeout(promisifyChildProcess(res, opts, `Fork of ${jsFile}`), opts.timeout)
+  .catch(e => {
+    if (e.message === 'Timeout' && res) {
+      console.log('Kill the child process');
+      res.kill('SIGHUP');
+    }
+    throw e;
+  });
+  return {
+    childProcess: res!,
+    promise
+  };
+}
+
+function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptions, desc: string) {
+  return new Promise<string>((resolve, reject) => {
     const allDone: Promise<any>[] = [];
-    res = sysSpawn(command, args as string[], opts);
     // console.log(command, args);
     let output: string;
     if (opts && opts.silent) {
@@ -73,7 +118,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
     });
     res.on('exit', function(code, signal) {
       if (code !== 0 && signal !== 'SIGINT') {
-        const errMsg = `Child process "${command} ${args.join(' ')}" exit with code ${code}, signal ` + signal;
+        const errMsg = `Child process "${desc}" exit with code ${code}, signal ` + signal;
         if (opts == null || opts.silent !== true) {
           console.log(errMsg);
           if (output) {
@@ -86,18 +131,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
         .then(() => resolve(output));
       }
     });
-  }), opts.timeout)
-  .catch(e => {
-    if (e.message === 'Timeout' && res) {
-      console.log('Kill the child process');
-      res.kill('SIGHUP');
-    }
-    throw e;
   });
-  return {
-    childProcess: res!,
-    promise
-  };
 }
 
 function checkTimeout<T>(origPromise: Promise<T>, timeBox = 600000): Promise<T> {

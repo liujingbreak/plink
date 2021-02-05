@@ -25,10 +25,6 @@ deleteExecArgIdx.reduce((offset, deleteIdx) => {
   return offset + 2;
 }, 0);
 
-// drawPuppy('Loading my poo...');
-// saveCmdArgToEnv();
-// poo();
-
 export function poo() {
   let getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
 

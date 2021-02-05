@@ -109,7 +109,7 @@ function subWfhCommand(program: commander.Command) {
 
   const updateDirCmd = program.command('update-dir')
   .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
-  'Because we store absolute path info of each package in internal state, these information becomes invalid once you rename or moved directory')
+  'Because we store absolute path info of each package in internal state, and it will become invalid after you rename or move directory')
   .action(async (workspace: string) => {
     await (await import('./cli-ls')).checkDir(updateDirCmd.opts() as any);
   });
@@ -374,8 +374,8 @@ function checkPlinkVersion() {
     }
     if (depVer && !semver.satisfies(pk.version, depVer)) {
       // tslint:disable-next-line: no-console
-      console.log(boxString(`Please run commands to re-install local Plink v${pk.version}, expected is v${depVer}:\n\n` +
-        '  plink upgrade'));
+      console.log(boxString(`Local installed Plink version ${chalk.cyan(pk.version)} does not match dependency version ${chalk.green(depVer)} in package.json, ` +
+        `run command "${chalk.green('plink upgrade')}" to upgrade or downgrade to expected version`));
     }
   }
 }

@@ -28,9 +28,10 @@ export interface TscCmdParam {
   ed?: boolean;
   pathsJsons: string[];
   compileOptions?: {[key in keyof CompilerOptions]?: any};
+  overridePackgeDirs?: {[pkgName: string]: PackageTsDirs};
 }
 
-interface ComponentDirInfo extends PackageTsDirs {
+interface PackageDirInfo extends PackageTsDirs {
   pkgDir: string;
   symlinkDir: string;
 }
@@ -46,7 +47,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   // const possibleSrcDirs = ['isom', 'ts'];
   const compGlobs: string[] = [];
   // var compStream = [];
-  const compDirInfo: Map<string, ComponentDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
+  const compDirInfo: Map<string, PackageDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
   const baseTsconfigFile = require.resolve('../tsconfig-base.json');
   const baseTsconfig = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'));
   if (baseTsconfig.error) {
@@ -67,7 +68,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   }
 
   // const promCompile = Promise.resolve( [] as EmitList);
-  const packageDirTree = new DirTree<ComponentDirInfo>();
+  const packageDirTree = new DirTree<PackageDirInfo>();
 
   let countPkg = 0;
   if (argv.package && argv.package.length > 0)
@@ -121,7 +122,8 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
 
   function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, _realPath: string) {
     countPkg++;
-    const tscCfg = getTscConfigOfPkg(json);
+    const tscCfg: PackageTsDirs = argv.overridePackgeDirs && _.has(argv.overridePackgeDirs, name) ?
+      argv.overridePackgeDirs[name] : getTscConfigOfPkg(json);
     // For workaround https://github.com/microsoft/TypeScript/issues/37960
     // Use a symlink path instead of a real path, so that Typescript compiler will not
     // recognize them as from somewhere with "node_modules", the symlink must be reside
@@ -191,7 +193,7 @@ const formatHost: ts.FormatDiagnosticsHost = {
   getNewLine: () => ts.sys.newLine
 };
 
-function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
+function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
   const rootFiles: string[] = _.flatten(
     globPatterns.map(pattern => glob.sync(pattern).filter(file => !file.endsWith('.d.ts')))
   );
@@ -215,7 +217,7 @@ function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: stri
   ts.createWatchProgram(programHost);
 }
 
-function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
+function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
   const rootFiles: string[] = _.flatten(
     globPatterns.map(pattern => glob.sync(pattern).filter(file => !file.endsWith('.d.ts')))
   );
@@ -241,7 +243,7 @@ function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: st
   return emitted;
 }
 
-function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>, co: ts.CompilerOptions): string[] {
+function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, co: ts.CompilerOptions): string[] {
   const emittedList: string[] = [];
   // It seems to not able to write file through symlink in Windows
   // const _writeFile = host.writeFile;
@@ -293,7 +295,7 @@ function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, pack
   return emittedList;
 }
 
-function reportDiagnostic(diagnostic: ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>) {
+function reportDiagnostic(diagnostic: ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
   let fileInfo = '';
   if (diagnostic.file) {
     const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
@@ -340,7 +342,7 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
  * @param commonRootDir 
  * @param packageDirTree 
  */
-function realPathOf(fileName: string, commonRootDir: string, packageDirTree: DirTree<ComponentDirInfo>): string | null {
+function realPathOf(fileName: string, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>): string | null {
   const treePath = relative(commonRootDir, fileName);
   const _originPath = fileName; // absolute path
   const foundPkgInfo = packageDirTree.getAllData(treePath).pop();
