@@ -29,7 +29,7 @@ export class CommandOverrider {
       const cmdName = /^\S+/.exec(nameAndArgs)![0];
       if (self.loadedCmdMap.has(cmdName)) {
         if (filePath)
-          throw new Error(`Conflict command name ${cmdName} from extensions "${filePath}" and "${this.loadedCmdMap.get(cmdName)}"`);
+          throw new Error(`Conflict command name ${cmdName} from extensions "${filePath}" and "${self.loadedCmdMap.get(cmdName)}"`);
         else
           throw new Error(`Conflict with existing Plink command name ${cmdName}`);
       }
@@ -50,7 +50,7 @@ export class CommandOverrider {
 
       const originDescFn = subCmd.description;
 
-      subCmd.description = description as any;
+      // subCmd.description = description as any;
 
       const originActionFn = subCmd.action;
       subCmd.action = action;
@@ -60,24 +60,31 @@ export class CommandOverrider {
 
       const originOptionFn = subCmd.option;
       subCmd.option = createOptionFn(false, originOptionFn);
-      subCmd._origOption = originOptionFn;
+      (subCmd as OurAugmentedCommander)._origOption = originOptionFn;
 
       const originReqOptionFn = subCmd.requiredOption;
       subCmd.requiredOption = createOptionFn(true, originReqOptionFn);
 
-      function description(this: commander.Command, str: string, ...remainder: any[]) {
-        if (pk)
-          str = chalk.blue(`[${pk.name}]`) + ' ' + str;
+      subCmd.description = function description(str?: string,
+        argsDescription?: { [argName: string]: string; }) {
+        if (str) {
+          if (pk)
+            str = chalk.blue(`[${pk.name}]`) + ' ' + str;
 
-        const _plinkMeta = self.metaMap.get(this)!;
-        _plinkMeta.desc = str;
-        return originDescFn.call(this, str, ...remainder);
-      }
+          const plinkMeta = self.metaMap.get(this)!;
+          plinkMeta.desc = str;
+          if (argsDescription) {
+            plinkMeta.argDesc = argsDescription;
+          }
+        }
+        // console.log(str);
+        return originDescFn.call(subCmd, str, argsDescription) as any;
+      };
 
       function alias(this: commander.Command, alias?: string) {
         if (alias) {
-          const _plinkMeta = self.metaMap.get(this)!;
-          _plinkMeta.alias = alias;
+          const plinkMeta = self.metaMap.get(this)!;
+          plinkMeta.alias = alias;
         }
         return originAliasFn.apply(this, arguments);
       }
@@ -88,8 +95,8 @@ export class CommandOverrider {
           if (remaining.length > 1) {
             defaultValue = remaining[remaining.length - 1];
           }
-          const _plinkMeta = self.metaMap.get(this)!;
-          _plinkMeta.options!.push({
+          const plinkMeta = self.metaMap.get(this)!;
+          plinkMeta.options!.push({
             flags, desc, defaultValue, isRequired
           });
 
@@ -163,15 +170,17 @@ export class CommandOverrider {
     for (const cmd of this.allSubCmds) {
       withGlobalOptions(cmd);
     }
-    for (const [pkg, metas] of this.pkgMetasMap.entries()) {
-      cliActionDispatcher.addCommandMeta({pkg, metas});
-    }
+    process.nextTick(() => {
+      for (const [pkg, metas] of this.pkgMetasMap.entries()) {
+        cliActionDispatcher.addCommandMeta({pkg, metas});
+      }
+    });
   }
 }
 
 export function withGlobalOptions(program: OurAugmentedCommander | commander.Command): commander.Command {
-  if (program._origOption == null) {
-    program._origOption = program.option;
+  if ((program as OurAugmentedCommander)._origOption == null) {
+    (program as OurAugmentedCommander)._origOption = program.option;
   }
   (program as OurAugmentedCommander)._origOption('-c, --config <config-file>',
     hlDesc('Read config files, if there are multiple files, the latter one overrides previous one'),
@@ -179,14 +188,14 @@ export function withGlobalOptions(program: OurAugmentedCommander | commander.Com
       prev.push(...value.split(','));
       return prev;
       // return prev.concat(value.split(','));
-    }, [] as string[])
-  ._origOption('--prop <expression>',
+    }, [] as string[]);
+  (program as OurAugmentedCommander)._origOption('--prop <expression>',
     hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n' +
     '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
     '--prop arraylike.prop[0]=foobar\n' +
     '--prop ["@wfh/foo.bar","prop",0]=true'),
     arrayOptionFn, [] as string[])
-  .option('--verbose', hlDesc('Set log level to "debug"'), false);
+  .option('--verbose', hlDesc('Specify log level as "debug"'), false);
   // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 
   return program;

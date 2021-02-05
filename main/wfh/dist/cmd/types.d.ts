@@ -40,6 +40,9 @@ export interface OurCommandMetadata {
     desc: string;
     usage: string;
     options: OurCommandOption[];
+    argDesc?: {
+        [arg: string]: string;
+    };
 }
 export interface OurCommandOption<T = string> {
     flags: string;

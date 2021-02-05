@@ -673,7 +673,7 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
   // tslint:disable-next-line: no-console
   log.info('write', installJsonFile);
   fs.writeFileSync(installJsonFile, toInstallPkgJsonStr, 'utf8');
-  await new Promise(resolve => process.nextTick(resolve));
+  await new Promise(resolve => setImmediate(resolve));
   // await new Promise(resolve => setTimeout(resolve, 5000));
   try {
     const env = {...process.env, NODE_ENV: 'development'};
@@ -682,8 +682,8 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
       env // Force development mode, otherwise "devDependencies" will not be installed
     }).promise;
     // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
-    // why, I have to add a process.nextTick() between them to workaround
-    await new Promise(resolve => process.nextTick(resolve));
+    // why, I have to add a setImmediate() between them to workaround
+    await new Promise(resolve => setImmediate(resolve));
     await exe('npm', 'ddp', {cwd: dir, env}).promise;
   } catch (e) {
     // tslint:disable-next-line: no-console

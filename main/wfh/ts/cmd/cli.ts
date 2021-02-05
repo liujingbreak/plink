@@ -21,6 +21,9 @@ const pk = require('../../../package.json');
 // const WIDTH = 130;
 const log = getLogger('plink.cli');
 
+export const cliPackageArgDesc = 'Single or multiple package names, the "scope" name part can be omitted,' +
+'if the scope name (the part between "@" "/") are listed configuration property "packageScopes"';
+
 export async function createCommands(startTime: number) {
   process.title = 'Plink';
   // const {stateFactory}: typeof store = require('../store');
@@ -84,8 +87,15 @@ export async function createCommands(startTime: number) {
 function subWfhCommand(program: commander.Command) {
   /** command init
    */
-  const initCmd = program.command('init [workspace-directory]')
-  .description('Initialize workspace directory, generate basic configuration files for project and component packages')
+  const initCmd = program.command('init [work-directory]')
+  .description('Initialize and update work directory, generate basic configuration files for project and component packages,' +
+    ' calculate hoisted transitive dependencies, and run "npm install" in current directory.',
+    {
+      'work-directory': 'A relative or abosolute directory path, use "." to specify current directory,\n  ommitting this argument meaning:\n' +
+        '  - If current directory is already a "work directory", update it.\n' +
+        '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
+        ' directory.'
+    })
   .option('-f, --force', 'Force run "npm install" in specific workspace directory', false)
   .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
@@ -109,7 +119,12 @@ function subWfhCommand(program: commander.Command) {
    * command project
    */
   program.command('project [add|remove] [project-dir...]')
-  .description('Associate, disassociate or list associated project folders')
+  .description('Associate, disassociate or list associated project folders, late on Plink will' +
+    'Scan source code directories from associated projects', {
+      'add|remove': 'Specify whether Associate to a project or Disassociate from a project',
+      'project-dir': 'Specify target project repo directory (absolute path or relative path to current directory)' +
+        ', specify multiple project by seperating with space character'
+    })
   .action(async (action: 'add'|'remove'|undefined, projectDir: string[]) => {
     // tslint:disable-next-line: no-console
     console.log(sexyFont('PLink').string);
@@ -120,7 +135,9 @@ function subWfhCommand(program: commander.Command) {
    * command lint
    */
   const lintCmd = program.command('lint [package...]')
-  .description('source code style check')
+  .description('source code style check', {
+    package: cliPackageArgDesc
+  })
   .option('--pj <project1,project2...>', 'lint only TS code from specific project', arrayOptionFn, [])
   .option('--fix', 'Run eslint/tslint fix, this could cause your source code being changed unexpectedly', false)
   .action(async packages => {
@@ -148,7 +165,7 @@ function subWfhCommand(program: commander.Command) {
   program.command('upgrade')
   .alias('install')
   .description('Reinstall local Plink along with other dependencies.' +
-    ' (Unlike "npm install" which does not work with node_modules that may contains symlinks)')
+    ' (Unlike "npm install" which does not work with node_modules that might contain symlinks)')
   .action(async () => {
     await (await import('./cli-link-plink')).reinstallWithLinkedPlink();
   });
@@ -174,12 +191,13 @@ function subWfhCommand(program: commander.Command) {
    * Bump command
    */
   const bumpCmd = program.command('bump [package...]')
-    .description('bump package.json version number for specific package, same as "npm version" does')
+    .description('bump package.json version number for specific package, same as "npm version" does',
+      {package: cliPackageArgDesc})
     .option<string[]>('--pj, --project <project-dir,...>', 'only bump component packages from specific project directory',
       (value, prev) => {
         prev.push(...value.split(',')); return prev;
       }, [])
-    .option('-i, --incre-version <major | minor | patch | premajor | preminor | prepatch | prerelease>',
+    .option('-i, --incre-version <value>',
       'version increment, valid values are: major, minor, patch, prerelease', 'patch')
     .action(async (packages: string[]) => {
       (await import('./cli-bump')).default({...bumpCmd.opts() as tp.BumpOptions, packages});
@@ -192,7 +210,7 @@ function subWfhCommand(program: commander.Command) {
    * Pack command
    */
   const packCmd = program.command('pack [package...]')
-    .description('npm pack every pakage into tarball files')
+    .description('npm pack every pakage into tarball files', {package: cliPackageArgDesc})
     .option('--dir <package directory>', 'pack packages by specifying directories', arrayOptionFn, [])
     .option('-w,--workspace <workspace-dir>', 'pack packages which are linked as dependency of specific workspaces',
       arrayOptionFn, [])
@@ -209,7 +227,7 @@ function subWfhCommand(program: commander.Command) {
    * Pack command
    */
   const publishCmd = program.command('publish [package...]')
-    .description('run npm publish')
+    .description('run npm publish', {package: cliPackageArgDesc})
     .option('--dir <package directory>', 'publish packages by specifying directories', arrayOptionFn, [])
     .option<string[]>('--pj, --project <project-dir,...>',
     'project directories to be looked up for all packages which need to be packed to tarball files',
@@ -264,7 +282,8 @@ function spaceOnlySubWfhCommand(program: commander.Command) {
    * tsc command
    */
   const tscCmd = program.command('tsc [package...]')
-  .description('Run Typescript compiler')
+  .description('Run Typescript compiler to compile source code for target packages, ' +
+  'which have been linked to current work directory', {package: cliPackageArgDesc})
   .option('-w, --watch', 'Typescript compiler watch mode', false)
   .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
     prev.push(...v.split(',')); return prev;
@@ -327,21 +346,6 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
   return availables;
 }
 
-// export function withGlobalOptions(program: commander.Command): commander.Command {
-//   program.option('-c, --config <config-file>',
-//     hlDesc('Read config files, if there are multiple files, the latter one overrides previous one'),
-//     (value, prev) => { prev.push(...value.split(',')); return prev;}, [] as string[])
-//   .option('--prop <expression>',
-//     hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n') +
-//     '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
-//     '--prop arraylike.prop[0]=foobar\n' +
-//     '--prop ["@wfh/foo.bar","prop",0]=true',
-//     arrayOptionFn, [] as string[])
-//   .option('-v,--verbose', 'Set log level to "DEBUG"');
-//   // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
-
-//   return program;
-// }
 
 let versionChecked = false;
 process.on('beforeExit', () => {

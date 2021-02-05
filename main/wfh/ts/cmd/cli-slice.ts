@@ -49,12 +49,13 @@ export const cliSlice = stateFactory.newSlice({
     },
     addCommandMeta(d, {payload: {pkg, metas}}: PayloadAction<{pkg: string; metas: OurCommandMetadata[]}>) {
       const names = metas.map(meta => /^\s*?(\S+)/.exec(meta.nameAndArgs)![1]);
-      const existingMetas = d.commandByPackage.get(pkg);
-      if (existingMetas) {
-        existingMetas.push(...names);
-      } else {
-        d.commandByPackage.set(pkg, names);
-      }
+      // const existingMetas = d.commandByPackage.get(pkg);
+      d.commandByPackage.set(pkg, names);
+      // if (existingMetas) {
+      //   existingMetas.push(...names);
+      // } else {
+      //   d.commandByPackage.set(pkg, names);
+      // }
       for (let i = 0, l = names.length; i < l; i++) {
         d.commandInfoByName.set(names[i], metas[i]);
       }

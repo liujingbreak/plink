@@ -94,7 +94,7 @@ async function packPackages(packageDirs: string[]) {
       )),
       tarInfos.map(item => item.filename));
     await changePackageJson(package2tarball);
-    await new Promise(resolve => process.nextTick(resolve));
+    await new Promise(resolve => setImmediate(resolve));
     for (const key of getState().workspaces.keys()) {
       log.debug('update worksapce ', Path.resolve(config().rootPath, key));
       actionDispatcher.updateWorkspace({

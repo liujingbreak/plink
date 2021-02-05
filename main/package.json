@@ -1,6 +1,6 @@
 {
   "name": "@wfh/plink",
-  "version": "0.10.1-1",
+  "version": "0.10.1-2",
   "description": "Plink - A monorepo management tool to link packages and projects",
   "main": "wfh/dist/index.js",
   "types": "wfh/dist/index.d.ts",
@@ -64,7 +64,7 @@
     "yamljs": "^0.3.0",
     "open": "^7.0.2",
     "comment-json": "^3.0.2",
-    "commander": "~6.1.0",
+    "commander": "~7.0.0",
     "@reduxjs/toolkit": "~1.5.0",
     "redux-observable": "~1.2.0",
     "log4js": "^6.1.2",
