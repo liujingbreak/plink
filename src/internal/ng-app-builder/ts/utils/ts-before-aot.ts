@@ -2,7 +2,7 @@ import * as ts from 'typescript';
 import {SyntaxKind as sk} from 'typescript';
 import replaceCode, * as textPatcher from './patch-text';
 import {ReplacementInf} from './patch-text';
-import api, {DrcpApi} from '__api';
+import api from '__plink';
 import vm = require('vm');
 import {dirname, relative, resolve} from 'path';
 import ImportClauseTranspile from './default-import-ts-transpiler';
@@ -67,7 +67,7 @@ export default class ApiAotCompiler {
     // We don't want to single out and evaluate lower level expression like `__api.packageName` from
     // `__api.config.get(__api.packageName)`, we just evaluate the whole latter expression
 
-    const nodeApi = api.getNodeApiForPackage<DrcpApi>(pk);
+    const nodeApi = api.getNodeApiForPackage(pk);
     nodeApi.__dirname = dirname(this.file);
     const context = vm.createContext({__api: nodeApi});
 

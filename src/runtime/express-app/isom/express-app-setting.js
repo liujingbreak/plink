@@ -1,0 +1,23 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getSetting = exports.defaultSetting = void 0;
+const plink_1 = require("@wfh/plink");
+/**
+ * Plink runs this funtion to get package level setting value
+ */
+function defaultSetting() {
+    return {
+        enableCORS: true
+    };
+}
+exports.defaultSetting = defaultSetting;
+/**
+ * The return setting value is merged with files specified by command line options "--prop" and "-c"
+ * @return setting of current package
+ */
+function getSetting() {
+    // tslint:disable:no-string-literal
+    return plink_1.config()['@wfh/express-app'];
+}
+exports.getSetting = getSetting;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZXhwcmVzcy1hcHAtc2V0dGluZy5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbImV4cHJlc3MtYXBwLXNldHRpbmcudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7O0FBQUEsc0NBQWtDO0FBVWxDOztHQUVHO0FBQ0gsU0FBZ0IsY0FBYztJQUM1QixPQUFPO1FBQ0wsVUFBVSxFQUFFLElBQUk7S0FDakIsQ0FBQztBQUNKLENBQUM7QUFKRCx3Q0FJQztBQUVEOzs7R0FHRztBQUNILFNBQWdCLFVBQVU7SUFDeEIsbUNBQW1DO0lBQ25DLE9BQU8sY0FBTSxFQUFFLENBQUMsa0JBQWtCLENBQUUsQ0FBQztBQUN2QyxDQUFDO0FBSEQsZ0NBR0MiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge2NvbmZpZ30gZnJvbSAnQHdmaC9wbGluayc7XG5cbi8qKlxuICogUGFja2FnZSBzZXR0aW5nIHR5cGVcbiAqL1xuZXhwb3J0IGludGVyZmFjZSBFeHByZXNzQXBwU2V0dGluZyB7XG4gIC8qKiBhbGxvdyBDT1JTICovXG4gIGVuYWJsZUNPUlM6IGJvb2xlYW4gfCBzdHJpbmdbXTtcbn1cblxuLyoqXG4gKiBQbGluayBydW5zIHRoaXMgZnVudGlvbiB0byBnZXQgcGFja2FnZSBsZXZlbCBzZXR0aW5nIHZhbHVlXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBkZWZhdWx0U2V0dGluZygpOiBFeHByZXNzQXBwU2V0dGluZyB7XG4gIHJldHVybiB7XG4gICAgZW5hYmxlQ09SUzogdHJ1ZVxuICB9O1xufVxuXG4vKipcbiAqIFRoZSByZXR1cm4gc2V0dGluZyB2YWx1ZSBpcyBtZXJnZWQgd2l0aCBmaWxlcyBzcGVjaWZpZWQgYnkgY29tbWFuZCBsaW5lIG9wdGlvbnMgXCItLXByb3BcIiBhbmQgXCItY1wiXG4gKiBAcmV0dXJuIHNldHRpbmcgb2YgY3VycmVudCBwYWNrYWdlXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBnZXRTZXR0aW5nKCk6IEV4cHJlc3NBcHBTZXR0aW5nIHtcbiAgLy8gdHNsaW50OmRpc2FibGU6bm8tc3RyaW5nLWxpdGVyYWxcbiAgcmV0dXJuIGNvbmZpZygpWydAd2ZoL2V4cHJlc3MtYXBwJ10hO1xufVxuIl19

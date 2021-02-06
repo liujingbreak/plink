@@ -1,7 +1,7 @@
 {
   "name": "@wfh/http-server",
   "description": "http and https server used by Plink",
-  "version": "1.1.4-0",
+  "version": "1.1.4",
   "main": "dist/server.js",
   "dr": {
     "type": [
@@ -13,22 +13,9 @@
       "internal",
       "nodejs"
     ],
-    "config": {
-      "server": {
-        "ssl": {
-          "enabled": false,
-          "key": "key.pem",
-          "cert": "cert.pem",
-          "port": 443,
-          "httpForward": true
-        },
-        "noHealthCheck": false
-      }
-    },
-    "config.local": {
-      "server": {
-        "noHealthCheck": true
-      }
+    "setting": {
+      "value": "isom/http-server-setting.js#defaultSetting",
+      "type": "isom/http-server-setting#HttpServerSetting"
     }
   },
   "author": "LJ"

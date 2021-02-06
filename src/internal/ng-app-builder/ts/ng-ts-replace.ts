@@ -5,22 +5,21 @@ import * as _ from 'lodash';
 import * as log4js from 'log4js';
 import { Observable, of, throwError } from 'rxjs';
 import {map} from 'rxjs/operators';
-import * as ts from 'typescript';
+// import * as ts from 'typescript';
 import api, {DrcpApi} from '__api';
 import { replaceHtml } from './ng-aot-assets';
 import { HookReadFunc } from './utils/read-hook-vfshost';
-import Selector from './utils/ts-ast-query';
+// import Selector from './utils/ts-ast-query';
 import ApiAotCompiler from './utils/ts-before-aot';
 import {transform as transformViewChild} from './utils/upgrade-viewchild-ng8';
 import LRU from 'lru-cache';
 const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName + '.ng-ts-replace');
-
-const apiTmplTs = _.template('import __DrApi from \'@wfh/ng-app-builder/src/app/api\';\
-var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packageName%>\');\
-__api.default = __api;');
-// const includeTsFile = Path.join(__dirname, '..', 'src', 'drcp-include.ts');
+const needLogFile = api.config()['@wfh/ng-app-builder'].logChangedTsFile;
+// const apiTmplTs = _.template('import __DrApi from \'@wfh/ng-app-builder/src/app/api\';\
+// var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packageName%>\');\
+// __api.default = __api;');
 
 (Object.getPrototypeOf(api) as DrcpApi).browserApiConfig = browserLegoConfig;
 
@@ -61,11 +60,6 @@ export default class TSReadHooker {
   }
 
   private createTsReadHook(tsconfigFile: string, preserveSymlinks = false): HookReadFunc {
-    // let drcpIncludeBuf: ArrayBuffer;
-    // const tsconfigFile = ngParam.browserOptions.tsConfig;
-
-    // const preserveSymlinks = ngParam.browserOptions.preserveSymlinks != null ? ngParam.browserOptions.preserveSymlinks :
-    //   false;
     const tsCompilerOptions = readTsConfig(tsconfigFile);
     const ng8Compliant = api.config.get(api.packageName + '.ng8Compliant', true);
 
@@ -89,31 +83,28 @@ export default class TSReadHooker {
 
         this.tsFileCount++;
 
-        const compPkg = api.findPackageByFile(file);
+        // const compPkg = api.findPackageByFile(file);
         let content = Buffer.from(buf).toString();
-        let needLogFile = false;
+        
 
-        const tsSelector = new Selector(content, file);
-        const hasImportApi = tsSelector.findAll(':ImportDeclaration>.moduleSpecifier:StringLiteral').some(ast => {
-          return (ast as ts.StringLiteral).text === '__api';
-        });
+        // const tsSelector = new Selector(content, file);
+        // const hasImportApi = tsSelector.findAll(':ImportDeclaration > .moduleSpecifier:StringLiteral').some(ast => {
+        //   return (ast as ts.StringLiteral).text === '__api';
+        // });
         // if (file.endsWith('project-modules.ts')) {
         //   const ij = api.browserInjector;
         //   console.log(ij.dirTree.traverse());
         // }
         let changed = api.browserInjector.injectToFile(file, content);
 
-        // if (file.indexOf('app.module.ts') >= 0)
-        //   log.warn(`${process.pid}, file: ${file},\n` + changed);
-
         if (ng8Compliant)
           changed = transformViewChild(changed, file);
 
         changed = new ApiAotCompiler(file, changed).parse(source => transpileSingleTs(source, tsCompilerOptions));
-        if (hasImportApi && compPkg) {
-          changed = apiTmplTs({packageName: compPkg.longName}) + '\n' + changed;
-          log.warn('Deprecated usage: import ... from "__api" in ', file);
-        }
+        // if (hasImportApi && compPkg) {
+        //   changed = apiTmplTs({packageName: compPkg.longName}) + '\n' + changed;
+        //   log.warn('Deprecated usage: import ... from "__api" in ', file);
+        // }
 
         if (needLogFile)
           log.info(chalk.cyan(file) + ':\n' + changed);

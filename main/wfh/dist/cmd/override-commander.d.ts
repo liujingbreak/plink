@@ -14,6 +14,6 @@ export declare class CommandOverrider {
     constructor(program: commander.Command, ws?: WorkspaceState);
     forPackage(pk: PackageInfo, pkgFilePath: string, funcName: string): void;
     forPackage(pk: null, commandCreation: (program: commander.Command) => void): void;
-    appendGlobalOptions(): void;
+    appendGlobalOptions(saveToStore: boolean): void;
 }
 export declare function withGlobalOptions(program: OurAugmentedCommander | commander.Command): commander.Command;

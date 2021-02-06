@@ -1,44 +1,20 @@
-import { PackageInfo } from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
-// import { DrcpConfig } from '@wfh/plink/wfh/dist/config-handler';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import Path from 'path';
 import ts from 'typescript';
 import appTsconfig from '../../misc/tsconfig.app.json';
-import { DrcpSetting as NgAppBuilderSetting } from '../configurable';
+// import { DrcpSetting as NgAppBuilderSetting } from '../configurable';
 import { findAppModuleFileFromMain } from '../utils/parse-app-module';
 import { addSourceFiles as _addSourceFiles } from './add-tsconfig-file';
 import { AngularBuilderOptions } from './common';
-import {setTsCompilerOptForNodePath} from '@wfh/plink/wfh/dist/config-handler';
+import {setTsCompilerOptForNodePath} from '@wfh/plink/wfh/dist/package-mgr/package-list-helper';
 import {getState} from '@wfh/plink/wfh/dist/package-mgr';
 // const currPackageName = require('../../package.json').name;
 
 export type ParialBrowserOptions = Pick<AngularBuilderOptions, 'preserveSymlinks' | 'main' | 'fileReplacements'>;
 
 
-export function createTsConfig(file: string,
-  browserOptions: ParialBrowserOptions,
-  config: NgAppBuilderSetting,
-  packageInfo: PackageInfo,
-  reportDir: string) {
-
-  // const reportFile = config.resolve('destDir', 'ng-app-builder.report', 'tsconfig.json');
-  return overrideTsConfig(file, packageInfo, browserOptions,
-    config, reportDir);
-}
-
-/**
- * Let's override tsconfig.json files for Angular at rutime :)
- * - Read into memory
- * - Do not override properties of compilerOptions,angularCompilerOptions that exists in current file
- * - "extends" must be ...
- * - Traverse packages to build proper includes and excludes list and ...
- * - Find file where AppModule is in, find its package, move its directory to top of includes list,
- * 	which fixes ng cli windows bug
- */
-function overrideTsConfig(file: string, pkInfo: PackageInfo,
-  browserOptions: ParialBrowserOptions,
-  config: NgAppBuilderSetting, reportDir: string): string {
+export function createTsConfig(file: string, browserOptions: ParialBrowserOptions, reportDir: string) {
 
   const cwd = process.cwd();
   const result = ts.parseConfigFileTextToJson(file, fs.readFileSync(file, 'utf8'));
@@ -74,17 +50,18 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
 
   const tsConfigFileDir = Path.dirname(file);
 
-  var tsjson: {compilerOptions: any, [key: string]: any, files?: string[], include: string[]} = {
+  const tsjson: {compilerOptions: any, [key: string]: any, files?: string[], include?: string[]} = {
     // extends: require.resolve('@wfh/webpack2-builder/configs/tsconfig.json'),
-    include: config
-      .tsconfigInclude
-      .map(preserveSymlinks ? p => p : globRealPath)
-      .map(
-        pattern => Path.relative(tsConfigFileDir, pattern).replace(/\\/g, '/')
-      ).concat(
-        Path.resolve(__dirname, '..', '..').replace(/\\/g, '/') + '/src/**/*.ts'
-      ),
-    exclude: [], // tsExclude,
+    // include: config
+    //   .tsconfigInclude
+    //   .map(preserveSymlinks ? p => p : globRealPath)
+    //   .map(
+    //     pattern => Path.relative(tsConfigFileDir, pattern).replace(/\\/g, '/')
+    //   ).concat(
+    //     Path.resolve(__dirname, '..', '..').replace(/\\/g, '/') + '/src/**/*.ts'
+    //   ),
+    // include: [Path.resolve(__dirname, '..', '..').replace(/\\/g, '/') + '/src/**/*.ts'],
+    // exclude: [], // tsExclude,
     compilerOptions: {
       ...appTsconfig.compilerOptions,
       baseUrl: cwd,
@@ -104,7 +81,10 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
       ...oldJson.angularCompilerOptions
     }
   };
-  setTsCompilerOptForNodePath(tsConfigFileDir, process.cwd(), tsjson.compilerOptions, {enableTypeRoots: true, workspaceDir: process.cwd()});
+  setTsCompilerOptForNodePath(tsConfigFileDir, process.cwd(), tsjson.compilerOptions, {
+    noTypeRootsInPackages: true,
+    workspaceDir: process.cwd()
+  });
   // Object.assign(tsjson.compilerOptions.paths, appTsconfig.compilerOptions.paths, pathMapping);
   if (oldJson.extends) {
     tsjson.extends = oldJson.extends;
@@ -143,13 +123,13 @@ function overrideTsConfig(file: string, pkInfo: PackageInfo,
   return JSON.stringify(tsjson, null, '  ');
 }
 
-function globRealPath(glob: string) {
-  const res = /^([^*]+)\/[^/*]*\*/.exec(glob);
-  if (res) {
-    return fs.realpathSync(res[1]).replace(/\\/g, '/') + res.input.slice(res[1].length);
-  }
-  return glob;
-}
+// function globRealPath(glob: string) {
+//   const res = /^([^*]+)\/[^/*]*\*/.exec(glob);
+//   if (res) {
+//     return fs.realpathSync(res[1]).replace(/\\/g, '/') + res.input.slice(res[1].length);
+//   }
+//   return glob;
+// }
 
 function lookupEntryPackage(lookupDir: string): any {
   while (true) {

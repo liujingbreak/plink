@@ -7,8 +7,6 @@ import { from, merge, Observable, of, defer, throwError} from 'rxjs';
 import { distinctUntilChanged, filter, map, switchMap, debounceTime,
   take, concatMap, skip, ignoreElements, scan, catchError, tap } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
-import { updateTsconfigFileForEditor } from '../editor-helper';
-import { allPackages } from './package-list-helper';
 import { spawn } from '../process-utils';
 import { exe } from '../process-utils';
 import { setProjectList} from '../recipe-manager';
@@ -39,7 +37,10 @@ export interface PackagesState {
   /** key of current "workspaces" */
   currWorkspace?: string | null;
   project2Packages: Map<string, string[]>;
-  linkedDrcp: PackageInfo | null;
+  /** Drcp is the original name of Plink project */
+  linkedDrcp?: PackageInfo | null;
+  linkedDrcpProject?: string | null;
+  installedDrcp?: PackageInfo | null;
   gitIgnores: {[file: string]: string[]};
   isInChina?: boolean;
   /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
@@ -60,7 +61,6 @@ const state: PackagesState = {
   project2Packages: new Map(),
   srcPackages: new Map(),
   gitIgnores: {},
-  linkedDrcp: null,
   workspaceUpdateChecksum: 0,
   packagesUpdateChecksum: 0
 };
@@ -104,13 +104,28 @@ export const slice = stateFactory.newSlice({
     updateWorkspace(d, action: PayloadAction<{dir: string,
       isForce: boolean, createHook: boolean, packageJsonFiles?: string[]}>) {
     },
+    scanAndSyncPackages(d, action: PayloadAction<{packageJsonFiles?: string[]}>) {},
     updateDir() {},
-
-    _syncLinkedPackages(d, {payload}: PayloadAction<PackageInfo[]>) {
+    updatePlinkPackageInfo(d) {
+      const plinkPkg = createPackageInfo(require.resolve('@wfh/plink/package.json'), false);
+      if (isDrcpSymlink) {
+        d.linkedDrcp = plinkPkg;
+        d.installedDrcp = null;
+        d.linkedDrcpProject = pathToProjKey(Path.dirname(d.linkedDrcp!.realPath));
+      } else {
+        d.linkedDrcp = null;
+        d.installedDrcp = plinkPkg;
+        d.linkedDrcpProject = null;
+      }
+    },
+    _syncLinkedPackages(d, {payload}: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>) {
       d.inited = true;
-      d.srcPackages = new Map();
-      for (const pkInfo of payload) {
-        d.srcPackages.set(pkInfo.name, pkInfo);
+      let map = d.srcPackages;
+      if (payload[1] === 'clean') {
+        map = d.srcPackages = new Map();
+      }
+      for (const pkInfo of payload[0]) {
+        map.set(pkInfo.name, pkInfo);
       }
     },
     onLinkedPackageAdded(d, action: PayloadAction<string[]>) {},
@@ -148,6 +163,7 @@ export const slice = stateFactory.newSlice({
     workspaceStateUpdated(d, {payload}: PayloadAction<void>) {
       d.workspaceUpdateChecksum += 1;
     },
+    onWorkspacePackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {},
     _hoistWorkspaceDeps(state, {payload: {dir}}: PayloadAction<{dir: string}>) {
       if (state.srcPackages == null) {
         throw new Error('"srcPackages" is null, need to run `init` command first');
@@ -244,8 +260,7 @@ export const slice = stateFactory.newSlice({
     },
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: {name: string}[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
-    },
-    _onRelatedPackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {}
+    }
   }
 });
 
@@ -259,14 +274,13 @@ stateFactory.addEpic((action$, state$) => {
   const updatedWorkspaceSet = new Set<string>();
   const packageAddedList = new Array<string>();
 
-  actionDispatcher._change(d => {
-    d.linkedDrcp = isDrcpSymlink ?
-    createPackageInfo(Path.resolve(
-      getRootDir(), 'node_modules/@wfh/plink/package.json'), false)
-    : null;
-  });
-
   return merge(
+    // To override stored state. 
+  // Do not put following logic in initialState! It will be overridden by previously saved state
+
+    of(1).pipe(tap(() => process.nextTick(() => actionDispatcher.updatePlinkPackageInfo())),
+      ignoreElements()
+    ),
     getStore().pipe(map(s => s.project2Packages),
       distinctUntilChanged(),
       map(pks => {
@@ -316,7 +330,7 @@ stateFactory.addEpic((action$, state$) => {
         // call initRootDirectory() and wait for it finished by observing action '_syncLinkedPackages',
         // then call _hoistWorkspaceDeps
         return merge(
-          packageJsonFiles != null ? _scanAndSyncPackages(packageJsonFiles):
+          packageJsonFiles != null ? scanAndSyncPackages(packageJsonFiles):
             defer(() => of(initRootDirectory(createHook))),
           action$.pipe(
             ofPayloadAction(slice.actions._syncLinkedPackages),
@@ -326,6 +340,22 @@ stateFactory.addEpic((action$, state$) => {
         );
       }),
       ignoreElements()
+    ),
+    action$.pipe(ofPayloadAction(slice.actions.scanAndSyncPackages),
+      concatMap(({payload}) => {
+        return merge(
+          scanAndSyncPackages(payload.packageJsonFiles),
+          action$.pipe(
+            ofPayloadAction(slice.actions._syncLinkedPackages),
+            take(1),
+            tap(() => {
+              for (const wsKey of getState().workspaces.keys()) {
+                actionDispatcher._hoistWorkspaceDeps({dir: Path.resolve(getRootDir(), wsKey)});
+              }
+            })
+          )
+        );
+      })
     ),
 
     // initRootDir
@@ -354,7 +384,7 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
       map(({payload}) => {
         const wsKey = workspaceKey(payload.dir);
-        actionDispatcher._onRelatedPackageUpdated(wsKey);
+        actionDispatcher.onWorkspacePackageUpdated(wsKey);
         deleteDuplicatedInstalledPkg(wsKey);
         setImmediate(() => actionDispatcher.workspaceStateUpdated());
       }),
@@ -362,8 +392,9 @@ stateFactory.addEpic((action$, state$) => {
     ),
 
     action$.pipe(ofPayloadAction(slice.actions.updateDir),
+      tap(() => actionDispatcher.updatePlinkPackageInfo()),
       concatMap(() => defer(() => from(
-        _scanAndSyncPackages().then(() => {
+        scanAndSyncPackages().then(() => {
           for (const key of getState().workspaces.keys()) {
             updateInstalledPackageForWorkspace(key);
           }
@@ -442,17 +473,14 @@ stateFactory.addEpic((action$, state$) => {
       }),
       ignoreElements()
     ),
-    action$.pipe(ofPayloadAction(slice.actions._onRelatedPackageUpdated),
+    action$.pipe(ofPayloadAction(slice.actions.onWorkspacePackageUpdated),
       map(action => updatedWorkspaceSet.add(action.payload)),
       debounceTime(800),
-      concatMap(() => {
-        const keys = Array.from(updatedWorkspaceSet.values()).map(wsKey => {
-          updateTsconfigFileForEditor(wsKey);
-          return wsKey;
-        });
-        actionDispatcher.createSymlinksForWorkspace(keys);
+      tap(() => {
+
+        actionDispatcher.createSymlinksForWorkspace(Array.from(updatedWorkspaceSet.values()));
         updatedWorkspaceSet.clear();
-        return from(writeConfigFiles());
+        // return from(writeConfigFiles());
       }),
       map(async () => {
         actionDispatcher.packagesUpdated();
@@ -494,12 +522,12 @@ stateFactory.addEpic((action$, state$) => {
       ignoreElements()
     ),
     action$.pipe(ofPayloadAction(slice.actions.addProject, slice.actions.deleteProject),
-      concatMap(() => from(_scanAndSyncPackages()))
+      concatMap(() => scanAndSyncPackages())
     )
   ).pipe(
     ignoreElements(),
     catchError(err => {
-      console.error('[package-mgr.index]', err.stack ? err.stack : err);
+      log.error(err.stack ? err.stack : err);
       return throwError(err);
     })
   );
@@ -541,20 +569,6 @@ export function* getPackagesOfProjects(projects: string[]) {
   }
 }
 
-/**
- * List linked packages
- */
-export function listPackages(): string {
-  let out = '';
-  let i = 0;
-  for (const {name} of allPackages('*', 'src')) {
-    out += `${i++}. ${name}`;
-    out += '\n';
-  }
-
-  return out;
-}
-
 export function getProjectList() {
   return Array.from(getState().project2Packages.keys()).map(pj => Path.resolve(getRootDir(), pj));
 }
@@ -576,7 +590,7 @@ function updateInstalledPackageForWorkspace(wsKey: string) {
     }
   })());
   actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
-  actionDispatcher._onRelatedPackageUpdated(wsKey);
+  actionDispatcher.onWorkspacePackageUpdated(wsKey);
 }
 
 /**
@@ -594,9 +608,10 @@ function checkAllWorkspaces() {
 }
 
 async function initRootDirectory(createHook = false) {
+  log.debug('initRootDirectory');
   const rootPath = getRootDir();
   fs.mkdirpSync(distDir);
-  maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(distDir, 'config.local.yaml'));
+  // maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(distDir, 'config.local.yaml'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/log4js.js'), rootPath + '/log4js.js');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates',
       'gitignore.txt'), getRootDir() + '/.gitignore');
@@ -611,18 +626,18 @@ async function initRootDirectory(createHook = false) {
     });
   }
 
-  await _scanAndSyncPackages();
+  await scanAndSyncPackages();
   await _deleteUselessSymlink(Path.resolve(getRootDir(), 'node_modules'), new Set<string>());
 }
 
-async function writeConfigFiles() {
-  return (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
-    // tslint:disable-next-line: no-console
-    log.info('write config file:', file);
-    writeFile(Path.join(distDir, file),
-      '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
-  });
-}
+// async function writeConfigFiles() {
+//   return (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
+//     // tslint:disable-next-line: no-console
+//     log.info('write config file:', file);
+//     writeFile(Path.join(distDir, file),
+//       '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
+//   });
+// }
 
 async function installWorkspace(ws: WorkspaceState) {
   const dir = Path.resolve(getRootDir(), ws.id);
@@ -676,7 +691,7 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
   await new Promise(resolve => setImmediate(resolve));
   // await new Promise(resolve => setTimeout(resolve, 5000));
   try {
-    const env = {...process.env, NODE_ENV: 'development'};
+    const env = {...process.env, NODE_ENV: 'development'} as NodeJS.ProcessEnv;
     await exe('npm', 'install', {
       cwd: dir,
       env // Force development mode, otherwise "devDependencies" will not be installed
@@ -721,7 +736,7 @@ async function copyNpmrcToWorkspace(workspaceDir: string) {
   }
 }
 
-async function _scanAndSyncPackages(includePackageJsonFiles?: string[]) {
+async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
   const projPkgMap: Map<string, PackageInfo[]> = new Map();
   let pkgList: PackageInfo[];
 
@@ -743,6 +758,7 @@ async function _scanAndSyncPackages(includePackageJsonFiles?: string[]) {
       }
       return info;
     });
+    actionDispatcher._syncLinkedPackages([pkgList, 'update']);
   } else {
     const rm = (await import('../recipe-manager'));
     pkgList = [];
@@ -755,16 +771,15 @@ async function _scanAndSyncPackages(includePackageJsonFiles?: string[]) {
           pkgList.push(info);
           projPkgMap.get(proj)!.push(info);
         } else {
-          log.info(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`);
+          log.debug(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`);
         }
       })
     ).toPromise();
     for (const [prj, pkgs] of projPkgMap.entries()) {
       actionDispatcher._associatePackageToPrj({prj, pkgs});
     }
+    actionDispatcher._syncLinkedPackages([pkgList, 'clean']);
   }
-
-  actionDispatcher._syncLinkedPackages(pkgList);
 }
 
 function _createSymlinksForWorkspace(wsKey: string) {
@@ -790,7 +805,7 @@ function _createSymlinksForWorkspace(wsKey: string) {
       ).pipe(
         symbolicLinkPackages(symlinkDir)
       ),
-    from(_deleteUselessSymlink(symlinkDir, pkgNameSet))
+    _deleteUselessSymlink(symlinkDir, pkgNameSet)
   );
 }
 
@@ -935,8 +950,8 @@ function deleteDuplicatedInstalledPkg(workspaceKey: string) {
     .catch(doNothing);
   });
 }
-function writeFile(file: string, content: string) {
-  fs.writeFileSync(file, content);
-  // tslint:disable-next-line: no-console
-  log.info('%s is written', chalk.cyan(Path.relative(process.cwd(), file)));
-}
+// function writeFile(file: string, content: string) {
+//   fs.writeFileSync(file, content);
+//   // tslint:disable-next-line: no-console
+//   log.info('%s is written', chalk.cyan(Path.relative(process.cwd(), file)));
+// }

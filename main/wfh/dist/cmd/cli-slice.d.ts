@@ -1,8 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { OurCommandMetadata } from './types';
 export interface CliState {
-    /** key is package name */
-    extensions: Map<string, CliExtension>;
     /** key is package name, value is Command name and args */
     commandByPackage: Map<string, OurCommandMetadata['nameAndArgs'][]>;
     commandInfoByName: Map<OurCommandMetadata['nameAndArgs'], OurCommandMetadata>;
@@ -16,7 +14,6 @@ export interface CliExtension {
     funcName?: string;
 }
 export declare const cliSlice: import("@reduxjs/toolkit").Slice<CliState, {
-    updateExtensions(draft: import("immer/dist/internal").WritableDraft<CliState>, { payload }: PayloadAction<CliExtension[]>): void;
     plinkUpgraded(d: import("immer/dist/internal").WritableDraft<CliState>, { payload: newVersion }: PayloadAction<string>): void;
     updateLocale(d: import("immer/dist/internal").WritableDraft<CliState>, { payload: [lang, country] }: PayloadAction<[string, string]>): void;
     addCommandMeta(d: import("immer/dist/internal").WritableDraft<CliState>, { payload: { pkg, metas } }: {
@@ -28,7 +25,6 @@ export declare const cliSlice: import("@reduxjs/toolkit").Slice<CliState, {
     }): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>, "cli">;
 export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
-    updateExtensions(draft: import("immer/dist/internal").WritableDraft<CliState>, { payload }: PayloadAction<CliExtension[]>): void;
     plinkUpgraded(d: import("immer/dist/internal").WritableDraft<CliState>, { payload: newVersion }: PayloadAction<string>): void;
     updateLocale(d: import("immer/dist/internal").WritableDraft<CliState>, { payload: [lang, country] }: PayloadAction<[string, string]>): void;
     addCommandMeta(d: import("immer/dist/internal").WritableDraft<CliState>, { payload: { pkg, metas } }: {

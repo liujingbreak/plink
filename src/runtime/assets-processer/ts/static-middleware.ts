@@ -6,7 +6,7 @@ import express from 'express';
 
 const ms = require('ms');
 
-export function createStaticRoute(staticDir: string, maxAgeMap: {[extname: string]: string | number} = {}): Handler {
+export function createStaticRoute(staticDir: string, maxAgeMap: {[extname: string]: string | number | null} = {}): Handler {
   let maxAgeNumMap = parseMaxAgeMap(maxAgeMap);
   return express.static(staticDir, {
     setHeaders: createSetHeaderFunc(maxAgeNumMap),
@@ -46,15 +46,11 @@ function setCacheControlHeader(res: Response, _maxage: number | null = 0, immuta
   res.setHeader('Cache-Control', cacheControl);
 }
 
-function parseMaxAgeMap(maxAgeMap: {[extname: string]: string | number}) {
+function parseMaxAgeMap(maxAgeMap: {[extname: string]: string | number | null}) {
   let maxAgeNumMap: {[extname: string]: number} = {};
-  if (maxAgeMap) {
-    Object.keys(maxAgeMap).forEach(key => {
-      const value = maxAgeMap[key];
+  for (const [key, value] of Object.entries(maxAgeMap)) {
+    if (value != null)
       maxAgeNumMap[key] = typeof value === 'string' ? ms(value) : value;
-    });
-  } else {
-    maxAgeNumMap = {};
   }
   return maxAgeNumMap;
 }

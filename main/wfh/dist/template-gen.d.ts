@@ -9,6 +9,13 @@ export interface TemplReplacement {
 }
 export interface GenerateOption {
     dryrun?: boolean;
+    /** By default, after copying all template files to target directory, file name suffix will be trimed,
+     *  e.g.
+     *
+     *  If the template file is named "foobar.ts.txt", then it will become "foobar.ts" in target directory.
+     *
+     */
+    keepFileSuffix?: boolean;
 }
 /**
  * The template file name and directory name is replaced by regular expression,
@@ -21,8 +28,8 @@ export interface GenerateOption {
  *
  * The template file content is replace by lodash template function
  * @param templDir
- * @param targetPath
+ * @param targetDir
  * @param replacement
  * @param opt
  */
-export default function generateStructure(templDir: string, targetPath: string, replacement: TemplReplacement, opt?: GenerateOption): Promise<any>;
+export default function generateStructure(templDir: string, targetDir: string, replacement: TemplReplacement, opt?: GenerateOption): Promise<any>;

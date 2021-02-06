@@ -7,8 +7,8 @@ import Path from 'path';
 // import {EOL as eol} from 'os';
 import {DFS} from '../utils/graph';
 import {jsonToCompilerOptions} from '../ts-compiler';
-import {setTsCompilerOptForNodePath} from '../config-handler';
-import {initProcess} from '../utils/bootstrap-process';
+// import {setTsCompilerOptForNodePath} from '../package-mgr/package-list-helper';
+import {initAsChildProcess} from '../utils/bootstrap-process';
 import {closestCommonParentDir} from '../utils/misc';
 
 
@@ -17,8 +17,8 @@ const coJson = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(ba
   .config.compilerOptions;
 coJson.allowJs = true;
 coJson.resolveJsonModule = true;
-initProcess();
-setTsCompilerOptForNodePath(process.cwd(), './', coJson, {workspaceDir: process.cwd()});
+initAsChildProcess();
+// setTsCompilerOptForNodePath(process.cwd(), './', coJson, {workspaceDir: process.cwd()});
 const co = jsonToCompilerOptions(coJson, baseTsconfigFile, process.cwd());
 
 

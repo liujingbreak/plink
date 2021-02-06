@@ -2,23 +2,34 @@
 
 let verbose = false;
 
-process.on('uncaughtException', function(err) {
+function sendMsg(msg: any) {
+  return process.send!(msg, null, {}, err => {
+    if (err)
+      console.error(`[thread-pool] pid:${process.pid} failed to send Error message: `, msg, err);
+  });
+}
+
+process.on('uncaughtException', onUncaughtException);
+
+// let doNotSendToParent = false;
+function onUncaughtException(err: any) {
   // log.error('Uncaught exception', err, err.stack);
   console.error(`[thread-pool] pid:${process.pid} Uncaught exception: `, err);
-  process.send!({
+  sendMsg({
     type: 'error',
     data: err.toString()
   });
-});
+}
 
-process.on('unhandledRejection', err => {
-  // log.warn('unhandledRejection', err);
+process.on('unhandledRejection', onUnhandledRejection);
+
+function onUnhandledRejection(err: any) {
   console.error(`[thread-pool] pid:${process.pid} unhandledRejection`, err);
-  process.send!({
+  sendMsg({
     type: 'error',
     data: err ? err.toString() : err
   });
-});
+}
 
 export interface InitialOptions {
   verbose?: boolean;
@@ -49,7 +60,10 @@ async function executeOnEvent(data: Task | Command) {
   if ((data as Command).exit) {
     if (verbose)
       console.log(`[thread-pool] child process ${process.pid} exit`);
-    process.exit(0);
+    process.off('message', executeOnEvent);
+    // process.off('uncaughtException', onUncaughtException);
+    // process.off('unhandledRejection', onUnhandledRejection);
+    // setImmediate(() => process.exit(0));
     return;
   }
 
@@ -88,17 +102,17 @@ async function executeOnEvent(data: Task | Command) {
     if (verbose) {
       console.log(`[thread-pool] child process ${process.pid} wait`);
     }
-    process.send!({ type: 'wait', data: result });
+    sendMsg({ type: 'wait', data: result });
 
   } catch (ex) {
     console.log(`[thread-pool] child process ${process.pid} error`, ex);
     try {
-      process.send!({
+      sendMsg({
         type: 'error',
         data: ex.toString()
       });
     } catch (err) {
-      process.send!({
+      sendMsg({
         type: 'error',
         data: err.toString()
       });

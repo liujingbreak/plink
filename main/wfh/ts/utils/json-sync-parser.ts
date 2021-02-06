@@ -70,8 +70,16 @@ export interface ArrayAst extends Ast {
   items: Array<Ast | Token>;
 }
 
-export interface ValueAst extends Ast {
-  value: Token;
+export function isObjectAst(ast: Ast | Token): ast is ObjectAst {
+  return ast.type === AstType.object;
+}
+
+export function isArrayAst(ast: Ast | Token): ast is ArrayAst {
+  return ast.type === AstType.array;
+}
+
+export function isToken(ast: Ast | Token): ast is Token {
+  return (ast as Token).text != null;
 }
 
 const grammar: Grammar<Token, ObjectAst> = function(tokenLa) {

@@ -1,7 +1,7 @@
 {
   "name": "@wfh/express-app",
   "description": "Work with Plink, base Express app",
-  "version": "1.1.9-1",
+  "version": "1.1.9",
   "main": "dist/app.js",
   "types": "dist/routes.d.ts",
   "dependencies": {
@@ -34,7 +34,11 @@
       "core",
       "server"
     ],
-    "typeRoot": "types"
+    "typeRoot": "types",
+    "setting": {
+      "value": "isom/express-app-setting.js#defaultSetting",
+      "type": "isom/express-app-setting#ExpressAppSetting"
+    }
   },
   "author": "LJ"
 }

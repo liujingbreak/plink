@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 // import fs from 'fs';
-import {CliExtension, GlobalOptions} from '@wfh/plink/wfh/dist/cmd/types';
+import {CliExtension} from '@wfh/plink/wfh/dist/cmd/types';
 // import replacePatches, { ReplacementInf } from '@wfh/plink/wfh/dist/utils/patch-text';
 import Path from 'path';
 import commander from 'Commander';
 import {saveCmdOptionsToEnv} from '../utils';
-import {initConfigAsync} from '@wfh/plink/wfh/dist';
 import {fork} from 'child_process';
 // import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
 // import {initTsconfig} from './cli-init';
 import * as _preload from '../preload';
 import {config} from '@wfh/plink';
 import plink from '__plink';
-// import {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
+// import {ObjectAst} from '@wfh/plink/wfh/di st/utils/json-sync-parser';
 
 const cli: CliExtension = (program) => {
 
@@ -58,7 +57,6 @@ const cli: CliExtension = (program) => {
       process.env.GENERATE_SOURCEMAP = 'true';
     }
     require('react-scripts/scripts/build');
-    
   });
   withClicOpt(buildCmd);
 
@@ -79,10 +77,9 @@ const cli: CliExtension = (program) => {
   // });
   // // withGlobalOptions(initCmd);
 
-  const smeCmd = program.command('cra-analyse [webpck-output-path]')
+  program.command('cra-analyse [webpck-output-path]')
   .description('Run source-map-explorer')
   .action(async (outputPath: string) => {
-    await initConfigAsync(smeCmd.opts() as GlobalOptions);
     const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
     const smeBin: string = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'];
 

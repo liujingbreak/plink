@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { /* getModuleInjector, */ ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
-import {map, distinctUntilChanged, catchError, ignoreElements, switchMap} from 'rxjs/operators';
-import {from, merge} from 'rxjs';
+import { ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
+import * as op from 'rxjs/operators';
+import * as rx from 'rxjs';
 
 export interface ExampleState {
   foo: boolean;
@@ -31,31 +31,29 @@ export const exampleSlice = stateFactory.newSlice({
 export const dispatcher = stateFactory.bindActionCreators(exampleSlice);
 
 const releaseEpic = stateFactory.addEpic<{example: ExampleState}>((action$, state$) => {
-  // const gService = getModuleInjector().get(GlobalStateStore);
-
-  return merge(
+  return rx.merge(
     action$.pipe(ofPayloadAction(exampleSlice.actions.exampleAction),
-      switchMap(({payload}) => {
-        return from(Promise.resolve('mock async HTTP request call'));
+      op.switchMap(({payload}) => {
+        return rx.from(Promise.resolve('mock async HTTP request call'));
       })
     ),
     getStore().pipe(
-      map(s => s.foo),
-      distinctUntilChanged(),
-      map(changedFoo => {
+      op.map(s => s.foo),
+      op.distinctUntilChanged(),
+      op.map(changedFoo => {
         dispatcher._change(s => {
           s._computed.bar = 'changed ' + changedFoo;
         });
       })
     )
   ).pipe(
-    catchError((ex, src) => {
+    op.catchError((ex, src) => {
       // tslint:disable-next-line: no-console
       console.error(ex);
       // gService.toastAction('网络错误\n' + ex.message);
       return src;
     }),
-    ignoreElements()
+    op.ignoreElements()
   );
 });
 

@@ -1,7 +1,7 @@
 import Path from 'path';
 import fs from 'fs';
 import fse from 'fs-extra';
-import {tap, filter} from 'rxjs/operators';
+import {tap, filter, takeWhile} from 'rxjs/operators';
 import {StateFactory, ofPayloadAction} from '../../redux-toolkit-observable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
 import serialize from 'serialize-javascript';
@@ -15,8 +15,13 @@ export {ofPayloadAction};
 
 enableMapSet();
 
+export const BEFORE_SAVE_STATE = 'BEFORE_SAVE_STATE';
+const IGNORE_SLICE = ['config', 'configView', 'cli'];
+const IGNORE_ACTION = new Set(['packages/setInChina', 'packages/updatePlinkPackageInfo']);
+const ignoreSliceSet = new Set(IGNORE_SLICE);
+
 const stateFile = Path.resolve((JSON.parse(process.env.__plink!) as PlinkEnv).distDir, 'plink-state.json');
-let actionCount = 0;
+let stateChangeCount = 0;
 /**
  * Since Redux-toolkit does not read initial state with any lazy slice that has not defined in root reducer,
  * e.g. 
@@ -31,17 +36,26 @@ if (savedStore && savedStore.length === 0) {
 }
 // tslint:disable-next-line: no-eval
 export const lastSavedState = savedStore ? eval('(' + savedStore + ')') : {};
+for (const ignoreSliceName of IGNORE_SLICE) {
+  delete lastSavedState[ignoreSliceName];
+}
 
 export const stateFactory = new StateFactory(lastSavedState);
+const defaultLog = log4js.getLogger('plink.store');
 
 stateFactory.actionsToDispatch.pipe(
-  filter(action => !action.type.endsWith('/_init')),
-  tap(() => actionCount++)
+  filter(action => !action.type.endsWith('/_init') &&
+    !IGNORE_ACTION.has(action.type) &&
+    !ignoreSliceSet.has(action.type.slice(0, action.type.indexOf('/')))
+  ),
+  takeWhile(action => action.type !== BEFORE_SAVE_STATE),
+  tap((action) => {
+    stateChangeCount++;
+  })
 ).subscribe();
 
-
 export async function startLogging() {
-  const defaultLog = log4js.getLogger('plink.store');
+
   // const logState = log4js.getLogger('plink.store.state');
   const logAction = log4js.getLogger('plink.store.action');
 
@@ -67,7 +81,8 @@ let saved = false;
 process.on('beforeExit', async (code) => {
   if (saved)
     return;
-  saveState();
+  stateFactory.dispatch({type: 'BEFORE_SAVE_STATE', payload: null});
+  process.nextTick(() => saveState());
   // // tslint:disable-next-line: no-console
   // console.log(chalk.green(`Done in ${new Date().getTime() - process.uptime()} s`));
 });
@@ -79,7 +94,7 @@ process.on('beforeExit', async (code) => {
 export async function saveState() {
   const log = log4js.getLogger('plink.store');
   saved = true;
-  if (actionCount === 0) {
+  if (stateChangeCount === 0) {
     // tslint:disable-next-line: no-console
     log.info(chalk.gray('state is not changed'));
     return;
@@ -103,7 +118,7 @@ export async function saveState() {
     await fs.promises.writeFile(stateFile!, jsonStr);
     // tslint:disable-next-line: no-console
     log.info(chalk.gray(
-      `state file ${Path.relative(process.cwd(), stateFile!)} saved (${actionCount} actions)`));
+      `state file ${Path.relative(process.cwd(), stateFile!)} saved (${stateChangeCount})`));
   } catch (err) {
     // tslint:disable-next-line: no-console
     log.error(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`), err);

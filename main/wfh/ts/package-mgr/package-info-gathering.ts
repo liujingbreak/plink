@@ -6,7 +6,7 @@ import {packages4Workspace} from './package-list-helper';
 import {PackageInfo as PackageState} from './index';
 import {parseName} from './lazy-package-factory';
 import {getSymlinkForPackage} from '../utils/misc';
-const log = getLogger('plink.package-info-gethering');
+const log = getLogger('plink.package-info-gathering');
 
 export interface PackageInfo {
   allModules: PackageInstance[];
@@ -28,7 +28,7 @@ let packageInfo: PackageInfo;
 export function walkPackages() {
   if (packageInfo)
     return packageInfo;
-  log.info('scan for packages info');
+  log.debug('scan for packages info');
   packageInfo = _walkPackages();
   createPackageDirTree(packageInfo);
   return packageInfo;
@@ -92,7 +92,7 @@ function createPackageDirTree(packageInfo: PackageInfo) {
       tree.putData(symlink, moduleInstance);
     count++;
   });
-  log.info('Total %s node packages', count);
+  log.info('%s Plink compliant node packages found', count);
   packageInfo.dirTree = tree;
 }
 

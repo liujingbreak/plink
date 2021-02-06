@@ -5,10 +5,10 @@ import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import Path, {resolve, join, relative, sep} from 'path';
 import ts from 'typescript';
-import {getTscConfigOfPkg, PackageTsDirs, closestCommonParentDir} from './utils/misc';
+import {getTscConfigOfPkg, PackageTsDirs} from './utils/misc';
 import {CompilerOptions} from 'typescript';
 import config from './config';
-import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions} from './config-handler';
+import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions} from './package-mgr/package-list-helper';
 import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
@@ -19,14 +19,13 @@ const log = log4js.getLogger('plink.ts-cmd');
 const root = config().rootPath;
 
 export interface TscCmdParam {
-  include?: string[];
   package?: string[];
   project?: string[];
   watch?: boolean;
   sourceMap?: string;
   jsx?: boolean;
   ed?: boolean;
-  pathsJsons: string[];
+  pathsJsons?: string[];
   compileOptions?: {[key in keyof CompilerOptions]?: any};
   overridePackgeDirs?: {[pkgName: string]: PackageTsDirs};
 }
@@ -69,6 +68,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
 
   // const promCompile = Promise.resolve( [] as EmitList);
   const packageDirTree = new DirTree<PackageDirInfo>();
+  const commonRootDir = process.cwd();
 
   let countPkg = 0;
   if (argv.package && argv.package.length > 0)
@@ -80,20 +80,20 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
       onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath);
     }
   }
+  for (const info of compDirInfo.values()) {
+    const treePath = relative(commonRootDir, info.symlinkDir);
+    log.debug('treePath', treePath);
+    packageDirTree.putData(treePath, info);
+  }
+
 
   if (countPkg === 0) {
     throw new Error('No available source package found in current workspace');
   }
-  const commonRootDir = closestCommonParentDir(
-    Array.from(getState().project2Packages.keys())
-    .map(relPath => resolve(root, relPath)));
+  // const commonRootDir = closestCommonParentDir(
+  //   Array.from(getState().project2Packages.keys())
+  //   .map(relPath => resolve(root, relPath)));
 
-  for (const info of compDirInfo.values()) {
-    const treePath = relative(commonRootDir, info.symlinkDir);
-    packageDirTree.putData(treePath, info);
-
-
-  }
   const destDir = commonRootDir.replace(/\\/g, '/');
   const compilerOptions: RequiredCompilerOptions = {
     ...baseCompilerOptions,
@@ -299,7 +299,7 @@ function reportDiagnostic(diagnostic: ts.Diagnostic, commonRootDir: string, pack
   let fileInfo = '';
   if (diagnostic.file) {
     const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-    const realFile = realPathOf(diagnostic.file.fileName, commonRootDir, packageDirTree) || diagnostic.file.fileName;
+    const realFile = realPathOf(diagnostic.file.fileName, commonRootDir, packageDirTree, true) || diagnostic.file.fileName;
     fileInfo = `${realFile}, line: ${line + 1}, column: ${character + 1}`;
   }
   console.error(chalk.red(`Error ${diagnostic.code} ${fileInfo} :`), ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
@@ -309,7 +309,7 @@ function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
   console.info(chalk.cyan(ts.formatDiagnostic(diagnostic, formatHost)));
 }
 
-function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, pathsJsons: string[]) {
+function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, pathsJsons?: string[]) {
   const cwd = process.cwd();
   let wsKey: string | null | undefined = workspaceKey(cwd);
   if (!getState().workspaces.has(wsKey))
@@ -331,9 +331,11 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
     workspaceDir: resolve(root, wsKey)
   });
 
-  pathsJsons.reduce((pathMap, jsonStr) => {
-    return {...pathMap, ...JSON.parse(jsonStr)};
-  }, compilerOptions.paths);
+  if (pathsJsons && pathsJsons.length > 0) {
+    pathsJsons.reduce((pathMap, jsonStr) => {
+      return {...pathMap, ...JSON.parse(jsonStr)};
+    }, compilerOptions.paths);
+  }
 }
 
 /**
@@ -342,7 +344,7 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
  * @param commonRootDir 
  * @param packageDirTree 
  */
-function realPathOf(fileName: string, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>): string | null {
+function realPathOf(fileName: string, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, isSrcFile = false): string | null {
   const treePath = relative(commonRootDir, fileName);
   const _originPath = fileName; // absolute path
   const foundPkgInfo = packageDirTree.getAllData(treePath).pop();
@@ -356,9 +358,9 @@ function realPathOf(fileName: string, commonRootDir: string, packageDirTree: Dir
   const pathWithinPkg = relative(symlinkDir, _originPath);
 
   if (srcDir === '.' || srcDir.length === 0) {
-    fileName = join(pkgDir, destDir, pathWithinPkg);
+    fileName = join(pkgDir, isSrcFile ? srcDir : destDir, pathWithinPkg);
   } else if (pathWithinPkg.startsWith(srcDir + sep)) {
-    fileName = join(pkgDir, destDir, pathWithinPkg.slice(srcDir.length + 1));
+    fileName = join(pkgDir, isSrcFile ? srcDir : destDir, pathWithinPkg.slice(srcDir.length + 1));
   } else if (isomDir && pathWithinPkg.startsWith(isomDir + sep)) {
     fileName = join(pkgDir, isomDir, pathWithinPkg.slice(isomDir.length + 1));
   }

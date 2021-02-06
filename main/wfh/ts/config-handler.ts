@@ -3,46 +3,30 @@ import * as Path from 'path';
 import chalk from 'chalk';
 import _ from 'lodash';
 const {parse} = require('comment-json');
-const {cyan, green} = chalk;
+const {cyan} = chalk;
 import {register as registerTsNode} from 'ts-node';
 import {GlobalOptions as CliOptions} from './cmd/types';
-import {PlinkEnv} from './node-path';
 import {getRootDir} from './utils/misc';
-import * as _pkHelper from './package-mgr/package-list-helper';
-import * as _pkgMgr from './package-mgr';
-import {BehaviorSubject} from 'rxjs';
 import {getLogger} from 'log4js';
+import {DrcpSettings} from './config/config-slice';
+import {setTsCompilerOptForNodePath} from './package-mgr/package-list-helper';
+import {BehaviorSubject} from 'rxjs';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 const log = getLogger('plink.config-handler');
-export interface BaseDrcpSetting {
-  port: number | string;
-  publicPath: string;
-  /** @deprecated use package-mgr/index#getProjectList() instead */
-  projectList: undefined;
-  localIP: string;
-  devMode: boolean;
-  destDir: string;
-  staticDir: string;
-  recipeFolder?: string;
-  rootPath: string;
-  // log4jsReloadSeconds: number;
-  logStat: boolean;
-  packageScopes: string[];
-  installedRecipes: string[];
-  wfhSrcPath: string;
-}
-export interface DrcpSettings extends BaseDrcpSetting {
-  [prop: string]: any;
-}
 
+export {DrcpSettings};
 export interface DrcpConfig {
-  done: Promise<DrcpSettings>;
-  configureStore: BehaviorSubject<DrcpSettings | null>;
-  configHandlerMgr(): ConfigHandlerMgr;
-  get<K extends keyof BaseDrcpSetting>(path: K, defaultValue?: BaseDrcpSetting[K]): BaseDrcpSetting[K];
+  /**
+   * Used to run command line option "-c" specified TS/JS files one by one 
+   */
+  configHandlerMgr: BehaviorSubject<ConfigHandlerMgr | undefined>;
+  /** lodash like get function, return specific setting property value
+   * @return 
+   */
+  get<K extends keyof DrcpSettings>(path: K, defaultValue?: DrcpSettings[K]): DrcpSettings[K];
   get(path: string|string[], defaultValue?: any): any;
-  set<K extends keyof BaseDrcpSetting>(path: K, value: BaseDrcpSetting[K] | any): void;
+  set<K extends keyof DrcpSettings>(path: K, value: DrcpSettings[K] | any): void;
   set(path: string|string[], value: any): void;
   /**
    * Resolve a path based on `rootPath`
@@ -51,16 +35,20 @@ export interface DrcpConfig {
    * @param  {string} property name or property path, like "name", "name.childProp[1]"
    * @return {string}     absolute path
    */
-  resolve(dir: 'destDir'|'staticDir'|'serverDir', ...path: string[]): string;
+  resolve(dir: 'rootPath' | 'destDir'|'staticDir'|'serverDir', ...path: string[]): string;
   resolve(...path: string[]): string;
+  /** @return all settings in a big JSON object */
   (): DrcpSettings;
-  load(): Promise<DrcpSettings>;
-  reload(): Promise<DrcpSettings>;
-  loadSync(): DrcpSettings;
-  init(argv: CliOptions): Promise<DrcpSettings>;
+  reload(): DrcpSettings;
+  // init(argv: CliOptions): Promise<DrcpSettings>;
   initSync(argv: CliOptions): DrcpSettings;
-  wfhSrcPath(): string | false;
-  setDefault(propPath: string, value: any): DrcpSettings;
+  /**
+   * ConfigHandlerMgr changes everytime Plink settings are initialized or reloaded.
+   * ConfigHandlerMgr is used to run command line option "-c" specified TS/JS files one by one.
+   * 
+   */
+  configHandlerMgrChanged(cb: (handler: ConfigHandlerMgr) => void): void;
+  configHandlerMgrCreated(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void>;
 }
 
 export interface ConfigHandler {
@@ -69,10 +57,11 @@ export interface ConfigHandler {
 	 * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
 	 * @param drcpCliArgv (deprecated) Override command line argumemnt for DRCP
 	 */
-  onConfig(configSetting: DrcpSettings, drcpCliArgv?: {[prop: string]: any}): Promise<void> | void;
+  onConfig(configSetting: DrcpSettings, cliOpt: CliOptions): void;
 }
 
 export class ConfigHandlerMgr {
+  static compilerOptions: any;
   private static _tsNodeRegistered = false;
 
   private static initConfigHandlers(files: string[], rootPath: string): Array<{file: string, handler: ConfigHandler}> {
@@ -85,6 +74,7 @@ export class ConfigHandlerMgr {
       const {compilerOptions} = parse(
         fs.readFileSync(internalTscfgFile, 'utf8')
       );
+      ConfigHandlerMgr.compilerOptions = compilerOptions;
 
       setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions);
 
@@ -132,10 +122,10 @@ export class ConfigHandlerMgr {
 	 * returns the changed result, keep the last result, if resturns undefined
 	 * @returns last result
 	 */
-  async runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any) {
+  async runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any, desc?: string) {
     let lastRes: any;
     for (const {file, handler} of this.configHandlers) {
-      log.info(green(Path.basename(__filename, '.js') + ' - ') + ' run', cyan(file));
+      log.info(`Read ${desc || 'settings'}:\n  ` + cyan(file));
       const currRes = await func(file, lastRes, handler as any as H);
       if (currRes !== undefined)
         lastRes = currRes;
@@ -143,10 +133,11 @@ export class ConfigHandlerMgr {
     return lastRes;
   }
 
-  runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any) {
+  runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any, desc?: string) {
     let lastRes: any;
+    const cwd = process.cwd();
     for (const {file, handler} of this.configHandlers) {
-      log.info(green(Path.basename(__filename, '.js') + ' - ') + ' run', cyan(file));
+      log.info(`Read ${desc || 'settings'}:\n  ` + cyan(Path.relative(cwd, file)));
       const currRes = func(file, lastRes, handler as any as H);
       if (currRes !== undefined)
         lastRes = currRes;
@@ -155,122 +146,4 @@ export class ConfigHandlerMgr {
   }
 }
 
-export interface CompilerOptionSetOpt {
-  /** Will add typeRoots property for specific workspace */
-  workspaceDir?: string;
-  enableTypeRoots?: boolean;
-  /** Default false, Do not include linked package symlinks directory in path*/
-  noSymlinks?: boolean;
-  extraNodePath?: string[];
-  extraTypeRoot?: string[];
-}
-
-export interface CompilerOptions {
-  baseUrl: string;
-  typeRoots: string[];
-  paths: {[path: string]: string[]};
-  [key: string]: any;
-}
-/**
- * Set "baseUrl", "paths" and "typeRoots" property relative to tsconfigDir, process.cwd()
- * and process.env.NODE_PATHS
- * @param tsconfigDir project directory where tsconfig file is (virtual),
- * "baseUrl", "typeRoots" is relative to this parameter
- * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
- * @param assigneeOptions 
- */
-export function setTsCompilerOptForNodePath(
-  tsconfigDir: string,
-  baseUrl = './',
-  assigneeOptions: Partial<CompilerOptions>,
-  opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
-
-  let pathsDirs: string[] = [];
-  // workspace node_modules should be the first
-  if (opts.workspaceDir != null) {
-    pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
-  }
-
-  if (opts.extraNodePath && opts.extraNodePath.length > 0) {
-    pathsDirs.push(...opts.extraNodePath);
-  }
-  if (process.env.NODE_PATH) {
-    pathsDirs.push(...process.env.NODE_PATH.split(Path.delimiter));
-  }
-
-  // console.log('temp..............', pathsDirs);
-  // console.log('extraNodePath', opts.extraNodePath);
-
-  pathsDirs = _.uniq(pathsDirs);
-
-  if (opts.noSymlinks) {
-    const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-    if (symlinkDir) {
-      const idx = pathsDirs.indexOf(symlinkDir);
-      if (idx >= 0) {
-        pathsDirs.splice(idx, 1);
-      }
-    }
-  }
-
-  if (Path.isAbsolute(baseUrl)) {
-    let relBaseUrl = Path.relative(tsconfigDir, baseUrl);
-    if (!relBaseUrl.startsWith('.'))
-      relBaseUrl = './' + relBaseUrl;
-    baseUrl = relBaseUrl;
-  }
-  // console.log('+++++++++', pathsDirs, opts.extraNodePath);
-  assigneeOptions.baseUrl = baseUrl.replace(/\\/g, '/');
-  if (assigneeOptions.paths == null)
-    assigneeOptions.paths = {'*': []};
-  else
-    assigneeOptions.paths['*'] = [];
-
-  // console.log('pathsDirs', pathsDirs);
-  const absBaseUrl = Path.resolve(tsconfigDir, baseUrl);
-  for (const dir of pathsDirs) {
-    const relativeDir = Path.relative(absBaseUrl, dir).replace(/\\/g, '/');
-    // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
-    assigneeOptions.paths['*'].push(Path.join(relativeDir, '@types/*').replace(/\\/g, '/'));
-    assigneeOptions.paths['*'].push(Path.join(relativeDir, '*').replace(/\\/g, '/'));
-  }
-
-  assigneeOptions.typeRoots = [
-    Path.relative(tsconfigDir, Path.resolve(__dirname, '..', 'types')).replace(/\\/g, '/'),
-    ...typeRootsInPackages(opts.workspaceDir).map(dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/'))
-  ];
-  // if (opts.workspaceDir != null) {
-  //   assigneeOptions.typeRoots.push(
-  //     Path.relative(tsconfigDir, Path.resolve(opts.workspaceDir, 'types')).replace(/\\/g, '/'));
-  // }
-  if (opts.enableTypeRoots ) {
-    assigneeOptions.typeRoots.push(...pathsDirs.map(dir => {
-      const relativeDir = Path.relative(tsconfigDir, dir).replace(/\\/g, '/');
-      return relativeDir + '/@types';
-    }));
-  }
-
-  if (opts.extraTypeRoot) {
-    assigneeOptions.typeRoots.push(...opts.extraTypeRoot.map(
-      dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/')));
-  }
-
-  return assigneeOptions as CompilerOptions;
-}
-
-function typeRootsInPackages(onlyIncludeWorkspace?: string) {
-  const {packages4WorkspaceKey} = require('./package-mgr/package-list-helper') as typeof _pkHelper;
-  const {getState, workspaceKey}: typeof _pkgMgr = require('./package-mgr');
-  const wsKeys = onlyIncludeWorkspace ? [workspaceKey(onlyIncludeWorkspace)] : getState().workspaces.keys();
-  const dirs: string[] = [];
-  for (const wsKey of wsKeys) {
-    for (const pkg of packages4WorkspaceKey(wsKey)) {
-      if (pkg.json.dr.typeRoot) {
-        const dir = Path.resolve(pkg.realPath, pkg.json.dr.typeRoot);
-        dirs.push(dir);
-      }
-    }
-  }
-  return dirs;
-}
 

@@ -18,6 +18,19 @@ export default class Selector {
     src: ts.SourceFile;
     constructor(src: string, file: string);
     constructor(src: ts.SourceFile);
+    /**
+       *
+       * @param ast root AST node
+       * @param query Like CSS select := ["^"] <selector element> (" " | ">") <selector element>
+       *   where <selector element> := "." <property name> <index>? | ":" <Typescript Syntax kind name> | *
+       *   where <index> := "[" "0"-"9" "]"
+       * e.g.
+       *  - .elements:ImportSpecifier > .name
+       *  - .elements[2] > .name
+       *  - .statements[0] :ImportSpecifier > :Identifier
+     * @param cb return true to skip rest nodes
+     */
+    some(ast?: ts.Node | null, query?: string | null, cb?: traverseCbType | null): boolean;
     walkAst(handlers: WalkCallback[]): void;
     walkAst(ast: ts.Node, handlers: WalkCallback[]): void;
     /**
@@ -30,7 +43,7 @@ export default class Selector {
        *  - .elements:ImportSpecifier > .name
        *  - .elements[2] > .name
        *  - ^.statements[0] :ImportSpecifier > :Identifier
-     * Begining with "^" means strictly comparing from first queried AST node
+     * Begining with "^" meaning strictly matching starts with root node
        * @param callback
        */
     findMapTo<T>(query: string, callback: AstHandler<T>): T | null;

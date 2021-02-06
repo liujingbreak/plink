@@ -1,5 +1,5 @@
 // tslint:disable:no-console
-import Selector, {Query/*, AstCharacter*/} from '../ts-ast-query';
+import Selector, {Query/*, AstCharacter*/} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import * as fs from 'fs';
 import {resolve} from 'path';
 import * as ts from 'typescript';

@@ -4,6 +4,7 @@ import Path from 'path';
 import {merge} from 'rxjs';
 import { distinctUntilChanged, map, take, skip, scan } from 'rxjs/operators';
 import { actionDispatcher as actions, getState, getStore, WorkspaceState} from '../package-mgr';
+import '../editor-helper';
 import { packages4WorkspaceKey } from '../package-utils';
 // import { getRootDir } from '../utils/misc';
 import { listProject } from './cli-project';
@@ -75,9 +76,9 @@ export function printWorkspaces() {
     horizontalLines: false,
     colAligns: ['right', 'right']
   });
-  const sep = ['--------------', '------------------', '------------', '----------', '-----'];
+  const sep = ['--------------', '------------------', '------------', '----------', '-----'].map(item => chalk.gray(item));
   table.push([{colSpan: 5, content: chalk.underline('Worktree Space and linked dependencies\n'), hAlign: 'center'}],
-    ['Worktree Space', 'Dependency package', 'Expected version', 'Actual version', 'state'].map(item => chalk.underline(item)),
+    ['WORKTREE SPACE', 'DEPENDENCY PACKAGE', 'EXPECTED VERSION', 'ACTUAL VERSION', 'STATE'].map(item => chalk.gray(item)),
     sep);
 
   let wsIdx = 0;
@@ -130,16 +131,16 @@ function convertVersion(pkgJson: {
 export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
   console.log(chalk.bold(`\nHoisted Transitive Dependency & Dependents (${workspace.id})`));
   const table = createTable();
-  table.push(['Dependency', 'Dependent'].map(item => chalk.underline(item)),
-    ['---', '---']);
+  table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
+    ['---', '---'].map(item => chalk.gray(item)));
   for (const [dep, dependents] of workspace.hoistInfo!.entries()) {
     table.push(renderHoistDepInfo(dep, dependents));
   }
   console.log(table.toString());
   if (workspace.hoistDevInfo.size > 0) {
     const table = createTable();
-    table.push(['Dependency', 'Dependent'].map(item => chalk.underline(item)),
-    ['---', '---']);
+    table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
+    ['---', '---'].map(item => chalk.gray(item)));
     console.log(chalk.bold(`\nHoisted Transitive (dev) Dependency & Dependents (${workspace.id})`));
     for (const [dep, dependents] of workspace.hoistDevInfo!.entries()) {
       table.push(renderHoistDepInfo(dep, dependents));
@@ -149,8 +150,8 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
   if (workspace.hoistPeerDepInfo.size > 0) {
     console.log(chalk.bold(`Hoisted Transitive Peer Dependencies (${workspace.id})`));
     const table = createTable();
-    table.push(['Dependency', 'Dependent'].map(item => chalk.underline(item)),
-    ['---', '---']);
+    table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
+    ['---', '---'].map(item => chalk.gray(item)));
     for (const [dep, dependents] of workspace.hoistPeerDepInfo!.entries()) {
       table.push(renderHoistPeerDepInfo(dep, dependents));
     }
@@ -159,8 +160,8 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
   if (workspace.hoistDevPeerDepInfo.size > 0) {
     console.log(chalk.yellowBright(`\nHoisted Transitive Peer Dependencies (dev) (${workspace.id})`));
     const table = createTable();
-    table.push(['Dependency', 'Dependent'].map(item => chalk.underline(item)),
-    ['---', '---']);
+    table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
+    ['---', '---'].map(item => chalk.gray(item)));
     for (const [dep, dependents] of workspace.hoistDevPeerDepInfo!.entries()) {
       table.push(renderHoistPeerDepInfo(dep, dependents));
     }
@@ -177,7 +178,7 @@ function createTable() {
   return table;
 }
 
-function renderHoistDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown): string[] {
+function renderHoistDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown): [dep: string, ver: string] {
   return [
     dependents.sameVer ? dep : dependents.direct ? chalk.yellow(dep) : chalk.bgRed(dep),
     dependents.by.map((item, idx) =>
@@ -185,7 +186,7 @@ function renderHoistDepInfo(dep: string, dependents: WorkspaceState['hoistInfo']
     ).join('\n')
   ];
 }
-function renderHoistPeerDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown) {
+function renderHoistPeerDepInfo(dep: string, dependents: WorkspaceState['hoistInfo'] extends Map<string, infer T> ? T : unknown): [dep: string, ver: string] {
   return [
     dependents.missing ? chalk.bgYellow(dep) : (dependents.duplicatePeer ? dep : chalk.green(dep)),
     dependents.by.map((item, idx) =>

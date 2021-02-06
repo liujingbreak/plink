@@ -37,7 +37,7 @@ export function packageAssetsFolders(deployUrl: string, onEach: (dir: string, ou
           :'assets';
 
       let assetsDir = Path.resolve(packagePath, assetsFolder);
-      var assetsDirMap = api.config.get('outputPathMap.' + name);
+      var assetsDirMap = api.config().outputPathMap[name];
 
       if (assetsDirMap != null)
         assetsDirMap = _.trim(assetsDirMap, '/');

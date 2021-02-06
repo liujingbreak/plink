@@ -18,6 +18,7 @@ import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
 import TemplatePlugin from '@wfh/webpack-common/dist/template-html-plugin';
 import nodeResolve from 'resolve';
+import {getSetting} from '../isom/cra-scripts-setting';
 // import {changeTsConfigFile} from './change-tsconfig';
 
 const log = log4js.getLogger('cra-scripts');
@@ -174,12 +175,12 @@ function appendOurOwnTsLoader(config: Configuration) {
 function runConfigHandlers(config: Configuration, webpackEnv: string) {
   const {configFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
   const cmdOption = getCmdOptions();
-  api.config.configHandlerMgr().runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+  api.config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
     if (handler.webpack != null) {
       log.info('Execute command line Webpack configuration overrides', cfgFile);
       handler.webpack(config, webpackEnv, cmdOption);
     }
-  });
+  }, 'create-react-app Webpack config'));
 
   if (configFileInPackage) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
@@ -188,7 +189,7 @@ function runConfigHandlers(config: Configuration, webpackEnv: string) {
         log.info('Execute Webpack configuration overrides from ', cfgFile);
         handler.webpack(config, webpackEnv, cmdOption);
       }
-    });
+    }, 'create-react-app Webpack config');
   }
 }
 
@@ -236,7 +237,7 @@ function insertLessLoaderRule(origRules: RuleSetRule[]): void {
         lessOptions: {
           javascriptEnabled: true
         },
-        additionalData: api.config.get([api.packageName, 'lessLoaderAdditionalData'], '')
+        additionalData: getSetting().lessLoaderAdditionalData
       }
     });
   }

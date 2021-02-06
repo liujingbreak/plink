@@ -1087,8 +1087,8 @@
         "affectsGlobalScope": false
       },
       "../redux-toolkit-observable.ts": {
-        "version": "0a3a41ddd486b369340137f1aa1d149a72f0d78f8a15ee2b8fc37dc99ff29d5b",
-        "signature": "bd0957828d8f69876a0bbda849955be5f73a5e6cf0281b0dfca71943dd85eff8",
+        "version": "50d65772a7713c046b02944f414215319d998b7508f31a2a8287be605393b29b",
+        "signature": "4adda915ad1966c079483397f007613077e31c85abeb58ab4d78583751ce24f9",
         "affectsGlobalScope": false
       },
       "../state-factory-browser.ts": {
@@ -1798,7 +1798,7 @@
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
       "noUnusedLocals": true,
-      "preserveSymlinks": true,
+      "preserveSymlinks": false,
       "downlevelIteration": false,
       "strictNullChecks": true,
       "resolveJsonModule": true,

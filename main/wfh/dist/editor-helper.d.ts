@@ -1,1 +1,1 @@
-export declare function updateTsconfigFileForEditor(wsKey: string): void;
+export declare function updateTsconfigFileForProjects(wsKey: string, includeProject?: string): void;

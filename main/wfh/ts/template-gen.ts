@@ -17,6 +17,13 @@ export interface TemplReplacement {
 
 export interface GenerateOption {
   dryrun?: boolean;
+  /** By default, after copying all template files to target directory, file name suffix will be trimed,
+   *  e.g.
+   * 
+   *  If the template file is named "foobar.ts.txt", then it will become "foobar.ts" in target directory.
+   * 
+   */
+  keepFileSuffix?: boolean;
 }
 
 const lodashTemplateSetting: NonNullable<Parameters<typeof _.template>[1]> = {
@@ -39,19 +46,20 @@ const lodashTemplateSetting: NonNullable<Parameters<typeof _.template>[1]> = {
  * 
  * The template file content is replace by lodash template function
  * @param templDir 
- * @param targetPath 
+ * @param targetDir 
  * @param replacement 
  * @param opt 
  */
 export default function generateStructure(
-  templDir: string, targetPath: string, replacement: TemplReplacement, opt: GenerateOption = {dryrun: false}) {
+  templDir: string, targetDir: string, replacement: TemplReplacement, opt: GenerateOption = {dryrun: false}) {
   if (replacement.includeTextType == null) {
     replacement.includeTextType = /(?:[tj]sx?|s?css|json|yaml|yml|html|svg)$/;
   }
-  return _recurseDir(templDir, targetPath, replacement, opt).toPromise();
+  fse.mkdirpSync(targetDir);
+  return _recurseDir(templDir, targetDir, replacement, opt).toPromise();
 }
 
-function _recurseDir(templDir: string, targetPath: string, replacement: TemplReplacement,
+function _recurseDir(templDir: string, targetDir: string, replacement: TemplReplacement,
   opt: GenerateOption = {dryrun: false}, targetIsEmpty = false): Observable<any> {
   const dryrun = !!opt.dryrun;
   return from(promises.readdir(templDir)).pipe(
@@ -65,10 +73,10 @@ function _recurseDir(templDir: string, targetPath: string, replacement: TemplRep
             for (const [reg, repl] of replacement.fileMapping || []) {
               newDir = newDir.replace(reg, repl);
             }
-            newDir = Path.resolve(targetPath, newDir);
+            newDir = Path.resolve(targetDir, newDir);
             // console.log(newDir, absSub);
             const done$ = dryrun ? of(undefined) :
-              from(fse.mkdirp(Path.resolve(targetPath, newDir)));
+              from(fse.mkdirp(Path.resolve(targetDir, newDir)));
             return done$.pipe(
               mergeMap(() => _recurseDir(absSub, newDir, replacement, opt, true))
             );
@@ -77,10 +85,11 @@ function _recurseDir(templDir: string, targetPath: string, replacement: TemplRep
             for (const [reg, repl] of replacement.fileMapping || []) {
               newFile = newFile.replace(reg, repl);
             }
-            newFile = Path.resolve(targetPath, newFile.slice(0, newFile.lastIndexOf('.'))
-              .replace(/\.([^./\\]+)$/, '.$1'));
+            newFile = Path.resolve(targetDir,
+              opt.keepFileSuffix ? newFile : newFile.replace(/\.([^./\\]+)$/, '')
+            );
 
-            return from((async () => {
+            return (async () => {
               if (targetIsEmpty || !existsSync(newFile)) {
                 if (!dryrun) {
                   if (!replacement.includeTextType!.test(newFile)) {
@@ -107,7 +116,7 @@ function _recurseDir(templDir: string, targetPath: string, replacement: TemplRep
                 // tslint:disable-next-line: no-console
                 log.info('target file already exists:', Path.relative(Path.resolve(), newFile));
               }
-            })());
+            })();
           }
         })
       );

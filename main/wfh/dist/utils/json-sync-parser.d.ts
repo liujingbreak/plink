@@ -22,8 +22,8 @@ export interface ObjectAst extends Ast {
 export interface ArrayAst extends Ast {
     items: Array<Ast | Token>;
 }
-export interface ValueAst extends Ast {
-    value: Token;
-}
+export declare function isObjectAst(ast: Ast | Token): ast is ObjectAst;
+export declare function isArrayAst(ast: Ast | Token): ast is ArrayAst;
+export declare function isToken(ast: Ast | Token): ast is Token;
 export default function parse(content: string): ObjectAst;
 export {};

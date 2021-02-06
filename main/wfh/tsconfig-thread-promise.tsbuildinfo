@@ -142,17 +142,17 @@
         "affectsGlobalScope": true
       },
       "../thread-promise-pool/ts/worker.ts": {
-        "version": "9741daf381804db6af97ea9ffc27077ec97428f4bf31f31c090099ecca240286",
+        "version": "304265cc6d7fe64eeb2d3c917ea20e543de5c6c8d5f8fa33f65ea16ebfaa1599",
         "signature": "1fcdba9967b5ef8ad69e71a046a96ab5b193c681294dd16ea3b64acab13b9500",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/worker-process.ts": {
-        "version": "91a4a9be641fb40bdb41e4a2b5e53c9a7336201ccaccc7c17a1e6354d9c517fb",
+        "version": "ab5e38d32a4c4465500883e7c76365d060625c6b0aba8684e60955a1c09ad51f",
         "signature": "b690bde83c0a69c2ff94b457e53bb72bf418ae9b5adcc7e441325ba0d3cfb027",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/thread-pool.ts": {
-        "version": "3f26707c798909160aaa0941fbd546892bf6d08aeda5d638f447591c975eba57",
+        "version": "e7da6b799f7636ce609ba8e7d509ca03dcc055745342f67158a71deba08b83e0",
         "signature": "2c49d3d051a5372097d69772f4347e2496066049b3cdfea5d445ecd9f527fac6",
         "affectsGlobalScope": false
       },

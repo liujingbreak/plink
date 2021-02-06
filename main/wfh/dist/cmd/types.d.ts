@@ -3,9 +3,16 @@ export declare type CliExtension = (program: commander.Command) => void;
 export interface GlobalOptions {
     config: string[];
     prop: string[];
-    production?: boolean;
+    /** set log level to "debug" */
     verbose?: boolean;
+    /**
+     * By turning on this option, Plink setting property "devMode" will automatcially set to `true`,
+     * and process.env.NODE_ENV will also
+     * being updated to 'developement' or 'production correspondingly.
+     * */
     dev?: boolean;
+    /** Customized environment value, package setting can return different setting values based on this value */
+    env?: string;
 }
 export interface InitCmdOptions extends GlobalOptions {
     force: boolean;

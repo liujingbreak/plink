@@ -9,7 +9,7 @@ import { send } from './_send-patch';
 import {stringifyListAllVersions} from './artifacts';
 import api from '__api';
 import log4js from 'log4js';
-import {Configuration} from './types';
+import {getSetting} from '../isom/prebuild-setting';
 const log = log4js.getLogger(api.packageName + '.send-patch');
 
 let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
@@ -17,7 +17,7 @@ let pkJson: {name: string; version: string; devDependencies: any} = require(Path
 export async function main(env: string, appName: string, buildStaticOnly = false,
   pushBranch = true, isForce = false, secret?: string, commitComment?: string) {
 
-  const setting: Configuration = api.config.get(api.packageName);
+  const setting = getSetting();
   const rootDir = api.config().rootPath;
   const releaseBranch: string = setting.prebuildReleaseBranch;
 
@@ -83,7 +83,7 @@ export async function main(env: string, appName: string, buildStaticOnly = false
 }
 
 async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: string, appName: string, commitComment?: string) {
-  const releaseRemote = api.config.get(api.packageName).prebuildGitRemote;
+  const releaseRemote = api.config()['@wfh/prebuild'].prebuildGitRemote;
 
   await spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir }).promise;
   // removeDevDeps();
@@ -102,7 +102,7 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
 }
 
 async function addTag(rootDir: string, commitComment?: string) {
-  const setting: Configuration = api.config.get(api.packageName);
+  const setting = getSetting();
   const releaseRemote = setting.prebuildGitRemote;
   const current = dayjs();
   const tagName = `${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;

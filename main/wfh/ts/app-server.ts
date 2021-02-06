@@ -1,5 +1,5 @@
 import commander from 'commander';
-import {GlobalOptions, initConfigAsync, initProcess} from './index';
+import {GlobalOptions, initConfig, initProcess} from './index';
 import * as _runner from './package-runner';
 import logConfig from './log-config';
 import {withGlobalOptions} from './cmd/override-commander';
@@ -18,7 +18,7 @@ const program = new commander.Command()
     initProcess(() => {
       return serverStarted.then(shutdown => shutdown());
     });
-    const setting = await initConfigAsync(program.opts() as GlobalOptions);
+    const setting = initConfig(program.opts() as GlobalOptions);
     logConfig(setting());
     const {runServer} = require('./package-runner') as typeof _runner;
     const shutdown = await runServer();

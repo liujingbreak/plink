@@ -1,0 +1,24 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getSetting = exports.defaultSetting = void 0;
+const plink_1 = require("@wfh/plink");
+/**
+ * Plink runs this funtion to get package level setting value by merge
+ * the returned value with files that is specified by command line options "--prop" and "-c"
+ */
+function defaultSetting() {
+    return {
+        lessLoaderAdditionalData: ''
+    };
+}
+exports.defaultSetting = defaultSetting;
+/**
+ * The return setting value is merged with files specified by command line options "--prop" and "-c"
+ * @return setting of current package
+ */
+function getSetting() {
+    // tslint:disable:no-string-literal
+    return plink_1.config()['@wfh/cra-scripts'];
+}
+exports.getSetting = getSetting;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY3JhLXNjcmlwdHMtc2V0dGluZy5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbImNyYS1zY3JpcHRzLXNldHRpbmcudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7O0FBQUEsc0NBQWtDO0FBVWxDOzs7R0FHRztBQUNILFNBQWdCLGNBQWM7SUFDNUIsT0FBTztRQUNMLHdCQUF3QixFQUFFLEVBQUU7S0FDN0IsQ0FBQztBQUNKLENBQUM7QUFKRCx3Q0FJQztBQUVEOzs7R0FHRztBQUNILFNBQWdCLFVBQVU7SUFDeEIsbUNBQW1DO0lBQ25DLE9BQU8sY0FBTSxFQUFFLENBQUMsa0JBQWtCLENBQUUsQ0FBQztBQUN2QyxDQUFDO0FBSEQsZ0NBR0MiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge2NvbmZpZ30gZnJvbSAnQHdmaC9wbGluayc7XG5cbi8qKlxuICogUGFja2FnZSBzZXR0aW5nIHR5cGVcbiAqL1xuZXhwb3J0IGludGVyZmFjZSBDcmFTY3JpcHRzU2V0dGluZyB7XG4gIC8qKiBMZXNzIGxvYWRlciBvcHRpb246IGFkZGl0aW9uYWxEYXRhICovXG4gIGxlc3NMb2FkZXJBZGRpdGlvbmFsRGF0YTogc3RyaW5nO1xufVxuXG4vKipcbiAqIFBsaW5rIHJ1bnMgdGhpcyBmdW50aW9uIHRvIGdldCBwYWNrYWdlIGxldmVsIHNldHRpbmcgdmFsdWUgYnkgbWVyZ2VcbiAqIHRoZSByZXR1cm5lZCB2YWx1ZSB3aXRoIGZpbGVzIHRoYXQgaXMgc3BlY2lmaWVkIGJ5IGNvbW1hbmQgbGluZSBvcHRpb25zIFwiLS1wcm9wXCIgYW5kIFwiLWNcIlxuICovXG5leHBvcnQgZnVuY3Rpb24gZGVmYXVsdFNldHRpbmcoKTogQ3JhU2NyaXB0c1NldHRpbmcge1xuICByZXR1cm4ge1xuICAgIGxlc3NMb2FkZXJBZGRpdGlvbmFsRGF0YTogJydcbiAgfTtcbn1cblxuLyoqXG4gKiBUaGUgcmV0dXJuIHNldHRpbmcgdmFsdWUgaXMgbWVyZ2VkIHdpdGggZmlsZXMgc3BlY2lmaWVkIGJ5IGNvbW1hbmQgbGluZSBvcHRpb25zIFwiLS1wcm9wXCIgYW5kIFwiLWNcIlxuICogQHJldHVybiBzZXR0aW5nIG9mIGN1cnJlbnQgcGFja2FnZVxuICovXG5leHBvcnQgZnVuY3Rpb24gZ2V0U2V0dGluZygpIHtcbiAgLy8gdHNsaW50OmRpc2FibGU6bm8tc3RyaW5nLWxpdGVyYWxcbiAgcmV0dXJuIGNvbmZpZygpWydAd2ZoL2NyYS1zY3JpcHRzJ10hO1xufVxuIl19

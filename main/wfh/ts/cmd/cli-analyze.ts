@@ -99,7 +99,8 @@ export default async function(packages: string[], opts: AnalyzeOptions) {
         // tslint:disable-next-line: no-console
         console.log(table.toString());
       }
-    })
+    }),
+    op.take(1)
   ).subscribe();
 
 }
@@ -138,11 +139,6 @@ stateFactory.addEpic<{analyze: AnalyzeState}>((action$, state$) => {
     )
   ).pipe(
     catchError((err, src) => {
-      action$.pipe(ofPayloadAction(slice.actions.analyzeFile),
-        map(({payload}) => {
-          analyseFiles(payload);
-        })
-      ),
       console.error(err);
       return src;
     }),

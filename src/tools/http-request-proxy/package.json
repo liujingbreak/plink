@@ -1,27 +1,14 @@
 {
   "name": "@wfh/http-request-proxy",
-  "version": "5.1.6",
+  "version": "5.1.7",
   "description": "Work with Plink, isomophic http proxy server work with Angular HTTP client",
   "main": "dist/server.js",
   "types": "dist/server.d.ts",
   "dr": {
     "type": "server",
-    "category": "tool",
-    "config": {
-      "server": {
-        "trackRequestStream": false,
-        "proxies": {},
-        "timeout": 60000
-      }
-    },
-    "config.local": {
-      "server": {
-        "trackRequestStream": false,
-        "proxies": {
-          "/": "https://www-demo.foobar.com"
-        },
-        "timeout": 60000
-      }
+    "setting": {
+      "value": "isom/http-request-proxy-setting.js#default",
+      "type": "isom/http-request-proxy-setting#HttpRequestProxySetting"
     }
   },
   "scripts": {

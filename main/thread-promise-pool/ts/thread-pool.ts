@@ -15,7 +15,7 @@ class PromisedTask<T> {
   resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0];
   reject: Parameters<ConstructorParameters<typeof Promise>[0]>[1];
 
-  constructor(private task: Task) {
+  constructor(private task: Task, verbose = false) {
     this.promise = new Promise<T>((resolve, reject) => {
       this.resolve = resolve;
       this.reject = reject;
@@ -35,6 +35,10 @@ class PromisedTask<T> {
     };
 
     const onExit = (code: number) => {
+      // if (this.verbose) {
+        // console.log('[thread-pool] PromisedTask on exit');
+      // }
+
       unsubscribeWorker();
       if (code !== 0) {
         this.reject('Thread exist with code ' + code);
@@ -75,15 +79,15 @@ class PromisedProcessTask<T> {
       this.reject = reject;
     });
   }
-  runByProcess(worker: ChildProcess) {
+  runByProcess(worker: ChildProcess, verbose: boolean) {
 
     const onMessage = (msg: {type: 'error' | 'wait', data: T}) => {
       if (msg.type === 'wait') {
-        unsubscribeWorker();
         this.resolve(msg.data);
-      } else if (msg.type === 'error') {
         unsubscribeWorker();
+      } else if (msg.type === 'error') {
         this.reject(msg.data);
+        unsubscribeWorker();
       }
     };
 
@@ -110,7 +114,7 @@ class PromisedProcessTask<T> {
     // worker.on('messageerror', onError); // TODO: not sure if work will exit
     worker.on('error', onError);
     worker.on('exit', onExit);
-    const msg = {...this.task};
+    const msg = {...this.task, verbose};
     if (!worker.send(msg)) {
       this.reject('Is Child process event threshold full? This is weird.');
     }
@@ -137,7 +141,7 @@ export class Pool {
 
   submit<T>(task: Task): Promise<T> {
     // 1. Bind a task with a promise
-    const promisedTask = new PromisedTask<T>(task);
+    const promisedTask = new PromisedTask<T>(task, this.workerOptions?.verbose);
 
     if (this.workerOptions?.verbose) {
       console.log(`[thread-pool] submit task, idle workers: ${this.idleWorkers.length}, running workers: ${this.runningWorkers.size}`);
@@ -182,8 +186,8 @@ export class Pool {
       if (worker instanceof Worker)
         (task as PromisedTask<any>).runByWorker(worker);
       else
-        (task as PromisedProcessTask<any>).runByProcess(worker);
-      await task.promise;
+        (task as PromisedProcessTask<any>).runByProcess(worker, !!this.workerOptions?.verbose);
+      await task.promise.catch(e => {});
     }
     // No more task, put worker in idle
     this.runningWorkers.delete(worker);
@@ -194,8 +198,12 @@ export class Pool {
       const cmd: Command = {exit: true};
       if (worker instanceof Worker) {
         worker.postMessage(cmd);
+        if (this.workerOptions?.verbose)
+          console.log('[thread-pool] Remove expired worker threads');
       } else {
         worker.send(cmd);
+        if (this.workerOptions?.verbose)
+          console.log('[thread-pool] Remove expired child process');
       }
       this.idleTimers.delete(worker);
     }, this.idleTimeMs);
@@ -216,7 +224,7 @@ export class Pool {
           verbose: this.workerOptions.verbose,
           initializer: this.workerOptions.initializer
           });
-        initTask.runByProcess(worker);
+        initTask.runByProcess(worker, !!this.workerOptions?.verbose);
         await initTask.promise;
       }
     }

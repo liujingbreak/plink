@@ -78,13 +78,14 @@ if (!isMainThread) {
 async function executeOnEvent(data: Task | Command) {
   if ((data as Command).exit) {
     if (verbose)
-      console.log(`[thread-pool] worker ${workerData.id} exit`);
-    process.exit(0);
+      console.log(`[thread-pool] worker ${workerData?.id} exit`);
+    parentPort!.off('message', executeOnEvent);
+    // Don't call process.exit(0), there might be some unfinished output stream still on-going at this moment.
     return;
   }
   await initialDone;
   if (verbose) {
-    console.log(`[thread-pool] worker ${workerData.id} run`);
+    console.log(`[thread-pool] worker ${workerData?.id} run`);
   }
   try {
     const result = await Promise.resolve(require((data as Task).file)[(data as Task).exportFn](
@@ -92,7 +93,7 @@ async function executeOnEvent(data: Task | Command) {
       ));
 
     if (verbose) {
-      console.log(`[thread-pool] worker ${workerData.id} wait`);
+      console.log(`[thread-pool] worker ${workerData?.id} wait`);
     }
     if (result != null && (result as TaskResult).transferList) {
       const transferList = (result as TaskResult).transferList;
@@ -103,7 +104,7 @@ async function executeOnEvent(data: Task | Command) {
     }
 
   } catch (ex) {
-    console.log(`[thread-pool] worker ${workerData.id} error`, ex);
+    console.log(`[thread-pool] worker ${workerData?.id} error`, ex);
     try {
       parentPort!.postMessage({
         type: 'error',

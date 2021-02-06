@@ -17,18 +17,19 @@
     "@types/react-redux": "^7.1.11",
     "typescript": "^4.1.2",
     "web-vitals": "^0.2.4",
-    "@wfh/doc-entry": "1.0.0",
-    "@wfh/tool-misc": "~1.1.1"
+    "@wfh/doc-entry": "1.0.0"
   },
   "devDependencies": {
-    "@wfh/cra-scripts": "1.0.21",
-    "@wfh/webpack-common": "1.0.2",
+    "@wfh/cra-scripts": "../tarballs/wfh-cra-scripts-1.0.30-0.tgz",
+    "@wfh/webpack-common": "../tarballs/wfh-webpack-common-1.0.7-1.tgz",
     "@wfh/redux-toolkit-observable": "1.0.5",
     "@reduxjs/toolkit": "~1.5.0",
     "redux-observable": "~1.2.0",
     "axios-observable": "^1.1.3",
     "react-app-polyfill": "^2.0.0",
     "@wfh/express-app": "1.1.8",
+    "@wfh/json-schema-gen": "1.0.18-0",
+    "@wfh/tool-misc": "~1.1.1",
     "sass": "^1.29.0",
     "rxjs": "~6.4.0"
   },

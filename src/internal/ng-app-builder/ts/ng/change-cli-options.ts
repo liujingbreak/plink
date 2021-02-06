@@ -15,7 +15,7 @@ import {Worker} from 'worker_threads';
 import ts from 'typescript';
 import Url from 'url';
 import { AngularBuilderOptions } from './common';
-import injectorSetup from './injector-setup';
+import {injectorSetup} from './injector-setup';
 import { DrcpBuilderOptions } from '../server';
 import {Data} from './change-tsconfig-worker';
 import memstats from '@wfh/plink/wfh/dist/utils/mem-stats';
@@ -95,13 +95,13 @@ async function processBrowserBuiliderOptions(
     }
   }
 
-  await config.configHandlerMgr().runEach<AngularConfigHandler>((file, obj, handler) => {
+  await config.configHandlerMgrCreated(mgr => mgr.runEach<AngularConfigHandler>((file, obj, handler) => {
     console.log(green('change-cli-options - ') + ' run', cyan(file));
     if (handler.angularJson)
       return handler.angularJson(browserOptions, devServerConfig);
     else
       return obj;
-  });
+  }));
 
   if (!browserOptions.deployUrl)
     browserOptions.deployUrl = '/';
@@ -139,7 +139,7 @@ async function processBrowserBuiliderOptions(
   const pkJson = lookupEntryPackage(Path.resolve(browserOptions.main));
   if (pkJson) {
     console.log(green('change-cli-options - ') + `Set entry package ${cyan(pkJson.name)}'s output path to /`);
-    config.set(['outputPathMap', pkJson.name], '/'); // static assets in entry package should always be output to root path
+    // config.set(['outputPathMap', pkJson.name], '/'); // static assets in entry package should always be output to root path
   }
   // Be compatible to old DRCP build tools
   const {deployUrl} = browserOptions;
@@ -164,7 +164,7 @@ async function processBrowserBuiliderOptions(
 
   browserOptions.commonChunk = false;
 
-  const packagesInfo = injectorSetup(browserOptions);
+  const packagesInfo = injectorSetup(browserOptions.deployUrl, browserOptions.baseHref);
   await hackTsConfig(browserOptions, config, packagesInfo);
 
 
@@ -247,8 +247,7 @@ function createTsConfigSync(tsconfigFile: string,
   packageInfo: ReturnType<typeof injectorSetup>) {
   const {createTsConfig} = require('./change-tsconfig') as {createTsConfig: typeof _createTsConfig};
   memstats();
-  return createTsConfig(tsconfigFile, browserOptions, config.get(currPackageName),
-    packageInfo, config.resolve('destDir', 'ng-app-builder.report'));
+  return createTsConfig(tsconfigFile, browserOptions, config.resolve('destDir', 'ng-app-builder.report'));
 }
 
 function createTsConfigInWorker(tsconfigFile: string,
@@ -266,13 +265,11 @@ function createTsConfigInWorker(tsconfigFile: string,
     const workerData: Data = {
       tsconfigFile,
       reportDir,
-      config: config.get(currPackageName),
       ngOptions: {
         preserveSymlinks: browserOptions.preserveSymlinks,
         main: browserOptions.main,
         fileReplacements: JSON.parse(JSON.stringify(browserOptions.fileReplacements))
       },
-      packageInfo,
       drcpBuilderOptions: JSON.parse(JSON.stringify({drcpArgs: browserOptions.drcpArgs, drcpConfig: browserOptions.drcpConfig})) as DrcpBuilderOptions,
       baseHref: browserOptions.baseHref,
       deployUrl: browserOptions.deployUrl

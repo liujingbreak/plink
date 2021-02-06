@@ -1,14 +1,15 @@
+import chalk from 'chalk';
 import fs from 'fs-extra';
 import Path from 'path';
-import {createPackageInfo} from '../package-mgr';
-import {PackagesState, PackageInfo} from '../package-mgr';
-import * as _ from 'lodash';
-import chalk from 'chalk';
-
 import _config from '../config';
+import { createPackageInfo, PackageInfo, PackagesState, getState } from '../package-mgr';
 
-export function* completePackageName(state: PackagesState, guessingNames: string[]) {
-  for (const pkg of findPackagesByNames(state, guessingNames)) {
+export function completePackageName(guessingNames: string[]):
+  Generator<string | null, void, unknown>;
+export function completePackageName(state: PackagesState, guessingNames: string[]):
+  Generator<string | null, void, unknown>;
+export function* completePackageName(state: PackagesState | string[], guessingNames?: string[]) {
+  for (const pkg of findPackagesByNames(state as PackagesState, guessingNames as string[])) {
     if (pkg) {
       yield pkg.name;
     } else {
@@ -18,18 +19,26 @@ export function* completePackageName(state: PackagesState, guessingNames: string
 }
 
 /** Use package-utils.ts#lookForPackages() */
-export function* findPackagesByNames(state: PackagesState, guessingNames: string[]):
-  Generator<PackageInfo | null> {
-  const config: typeof _config = require('../config');
+export function findPackagesByNames(guessingNames: string[]):
+  Generator<PackageInfo | null | undefined>;
+export function findPackagesByNames(state: PackagesState, guessingNames: string[]):
+  Generator<PackageInfo | null | undefined>;
+export function* findPackagesByNames(state: PackagesState | string[], guessingNames?: string[]):
+  Generator<PackageInfo | null | undefined> {
+  if (guessingNames === undefined) {
+    guessingNames = state as string[];
+    state = getState();
+  }
+  const config: typeof _config = require('../config').default;
 
   const prefixes = ['', ...config().packageScopes.map(scope => `@${scope}/`)];
-  const available = state.srcPackages;
+  const available = (state as PackagesState).srcPackages;
   for (const gn of guessingNames) {
     let found = false;
     for (const prefix of prefixes) {
       const name = prefix + gn;
-      if (name === '@wfh/plink' && state.linkedDrcp) {
-        yield state.linkedDrcp;
+      if (name === '@wfh/plink' && (state as PackagesState).linkedDrcp) {
+        yield (state as PackagesState).linkedDrcp;
         found = true;
         break;
       }

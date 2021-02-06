@@ -5,15 +5,16 @@ import _ from 'lodash';
 import Url from 'url';
 import log4js from 'log4js';
 const log = log4js.getLogger(api.packageName);
-
+import {getSetting} from '../isom/assets-processer-setting';
 interface ReqWithNextCb extends Request {
   __goNext: NextFunction;
 }
 export function proxyToDevServer() {
   // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
-  const config: proxy.Config | undefined = api.config.get(api.packageName).indexHtmlProxy;
-  if (config == null)
+  let setting: proxy.Config | undefined = getSetting().indexHtmlProxy;
+  if (setting == null)
     return;
+  const config: proxy.Config = _.cloneDeep(setting);
   config.changeOrigin = true;
   config.ws = true;
   // config.logProvider = () => hpmLog;
@@ -38,7 +39,7 @@ export function proxyToDevServer() {
 }
 
 export function fallbackIndexHtml() {
-  const ruleObj: {[key: string]: string} = api.config.get(api.packageName).fallbackIndexHtml;
+  const ruleObj: {[key: string]: string} = getSetting().fallbackIndexHtml;
 
   const rules: Array<{reg: RegExp, tmpl: _.TemplateExecutor}> = [];
 

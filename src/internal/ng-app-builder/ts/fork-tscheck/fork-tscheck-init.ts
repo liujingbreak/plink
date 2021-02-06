@@ -1,5 +1,5 @@
 import '@wfh/plink/wfh/dist/node-path';
-import {initProcess, initConfig, GlobalOptions} from '@wfh/plink/wfh/dist';
+import {initAsChildProcess, initConfig, GlobalOptions} from '@wfh/plink/wfh/dist';
 
 // import {initInjectorForNodePackages, initWebInjector} from '@wfh/plink/wfh/dist/package-runner';
 import * as _checker from './hack-type-checker';
@@ -11,7 +11,7 @@ import {injectorSetup} from '../ng/injector-setup';
 // import ReadHookHost from '../utils/read-hook-vfshost';
 // import * as fs from 'fs';
 
-initProcess();
+initAsChildProcess();
 const drcpCliOpt = JSON.parse(process.env._ngcli_plink_arg!) as GlobalOptions;
 initConfig(drcpCliOpt);
 const otherCfg = JSON.parse(process.env._ngcli_plink_cfg!);

@@ -5,7 +5,6 @@ import './node-path';
 import chalk from 'chalk';
 import {initProcess} from './utils/bootstrap-process';
 import * as _cli from './cmd/cli';
-// debugger;
 
 const startTime = new Date().getTime();
 

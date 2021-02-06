@@ -5,10 +5,10 @@ import api from '__api';
 import Url from 'url';
 import fs from 'fs-extra';
 import Path from 'path';
-import {Configuration} from './types';
+import {getSetting} from '../isom/prebuild-setting';
 
 const log = log4js.getLogger(api.packageName + '.send-patch');
-const installUrlMap = api.config.get(api.packageName) as Configuration;
+const installUrlMap = getSetting();
 
 export async function send(env: string, appName: string, zipFile: string,
   numOfConc?: number, numOfNode?: number, force = false, secret?: string) {

@@ -1,6 +1,6 @@
 {
   "name": "@wfh/thread-promise-pool",
-  "version": "1.0.1-0",
+  "version": "1.0.1-1",
   "description": "2 Node.js utilities: a thread worker pool and a promise queue",
   "main": "dist/index.js",
   "scripts": {

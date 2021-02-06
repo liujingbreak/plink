@@ -13,7 +13,7 @@ const tempDir = resolve(rootDir, 'dist/merge-temp');
 const envs = ['local', 'dev', 'test', 'stage', 'prod'];
 
 export async function prepare() {
-  const setting = api.config.get(api.packageName);
+  const setting = api.config()['@wfh/prebuild'];
   let releaseBranch = setting.prebuildReleaseBranch;
   const releaseRemote = setting.prebuildGitRemote;
 

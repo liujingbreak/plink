@@ -1,42 +1,61 @@
 // tslint:disable: max-line-length
 import * as fs from 'fs-extra';
-// import {map, distinctUntilChanged} from 'rxjs/operators';
-// import {Observable} from 'rxjs';
-// import {ofPayloadAction} from './store';
-// import {PayloadAction} from '@reduxjs/toolkit';
-// import {typeRootsFromPackages} from './package-utils';
 import _ from 'lodash';
 import log4js from 'log4js';
 import Path from 'path';
-import { setTsCompilerOptForNodePath } from './config-handler';
-import { getProjectList, getState, updateGitIgnores } from './package-mgr';
+import { setTsCompilerOptForNodePath, packages4WorkspaceKey } from './package-mgr/package-list-helper';
+import { getProjectList, pathToProjKey, getState, updateGitIgnores, slice as pkgSlice } from './package-mgr';
+import { stateFactory, ofPayloadAction } from './store';
 import * as _recp from './recipe-manager';
 import { closestCommonParentDir, getRootDir } from './utils/misc';
+import {getPackageSettingFiles} from './config';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
+
+// import Selector from './utils/ts-ast-query';
 const log = log4js.getLogger('plink.editor-helper');
 const {parse} = require('comment-json');
 
-export function updateTsconfigFileForEditor(wsKey: string) {
-  // const srcPackages = getState().srcPackages;
-            // const wsKey = workspaceKey(payload.dir);
+stateFactory.addEpic((action$, state$) => {
+  return rx.merge(
+    action$.pipe(ofPayloadAction(pkgSlice.actions.createSymlinksForWorkspace),
+      op.tap(({payload: wsKeys}) => {
+        writePackageSettingType();
+        for (const wsKey of wsKeys) {
+          updateTsconfigFileForProjects(wsKey);
+        }
+      })
+    )
+  ).pipe(
+    op.ignoreElements(),
+    op.catchError((err, caught) => {
+      log.error(err);
+      return caught;
+    })
+  );
+});
+
+export function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
   const ws = getState().workspaces.get(wsKey);
   if (ws == null)
     return;
 
-  // const wsDir = Path.resolve(getRootDir(), wsKey);
-  writeTsconfig4project(getProjectList(), Path.resolve(getRootDir(), wsKey));
-  // return writeTsconfigForEachPackage(wsDir, pks,
-  //   (file, content) => updateGitIgnores({file, content}));
-}
-
-function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
-  const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
-    Path.dirname(require.resolve('@wfh/plink/package.json'));
+  const projectDirs = getProjectList();
+  const workspaceDir = Path.resolve(getRootDir(), wsKey);
 
   const recipeManager: typeof _recp = require('./recipe-manager');
 
-  const srcRootDir = closestCommonParentDir(Array.from(getState().srcPackages.values()).map(el => el.realPath));
+  const srcRootDir = closestCommonParentDir(projectDirs);
 
-  for (const proj of projectDirs) {
+  if (includeProject) {
+    writeTsConfigForProj(includeProject);
+  } else {
+    for (const proj of projectDirs) {
+      writeTsConfigForProj(proj);
+    }
+  }
+
+  function writeTsConfigForProj(proj: string) {
     const include: string[] = [];
     recipeManager.eachRecipeSrc(proj, (srcDir: string) => {
       let includeDir = Path.relative(proj, srcDir).replace(/\\/g, '/');
@@ -45,7 +64,18 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
       include.push(includeDir + '**/*.ts');
       include.push(includeDir + '**/*.tsx');
     });
-    const tsconfigFile = createTsConfig(proj, srcRootDir, workspaceDir, drcpDir, include );
+
+    if (pathToProjKey(proj) === getState().linkedDrcpProject) {
+      include.push('main/wfh/**/*.ts');
+    }
+    include.push('dist/*.d.ts');
+    const tsconfigFile = createTsConfig(proj, srcRootDir, workspaceDir, {},
+      // {'_package-settings': [Path.relative(proj, packageSettingDtsFileOf(workspaceDir))
+      //   .replace(/\\/g, '/')
+      //   .replace(/\.d\.ts$/, '')]
+      // },
+      include
+    );
     const projDir = Path.resolve(proj);
     updateGitIgnores({file: Path.resolve(proj, '.gitignore'),
       lines: [
@@ -56,17 +86,38 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
       file: Path.resolve(getRootDir(), '.gitignore'),
       lines: [Path.relative(getRootDir(), Path.resolve(workspaceDir, 'types')).replace(/\\/g, '/')]
     });
-    // const gitIgnoreFile = findGitIngoreFile(proj);
-    // if (gitIgnoreFile) {
-    //   fs.readFile(gitIgnoreFile, 'utf8', (err, data) => {
-    //     if (err) {
-    //       log.error(err);
-    //       return;
-    //     }
-    //     onGitIgnoreFileUpdate(gitIgnoreFile, data);
-    //   });
-    // }
   }
+}
+
+function writePackageSettingType() {
+  const done = new Array(getState().workspaces.size);
+  let i = 0;
+  for (const wsKey of getState().workspaces.keys()) {
+    let header = '';
+    let body = 'export interface PackagesConfig {\n';
+    for (const [typeFile, typeExport, _defaultFile, _defaultExport, pkg] of getPackageSettingFiles(wsKey)) {
+      const varName = pkg.shortName.replace(/-([^])/g, (match, g1) => g1.toUpperCase());
+      const typeName = varName.charAt(0).toUpperCase() + varName.slice(1);
+      header += `import {${typeExport} as ${typeName}} from '${pkg.name}/${typeFile}';\n`;
+      body += `  '${pkg.name}': ${typeName};\n`;
+    }
+    body += '}\n';
+    // log.info(header + body);
+    const workspaceDir = Path.resolve(getRootDir(), wsKey);
+    const file = packageSettingDtsFileOf(workspaceDir);
+    log.info(`write file: ${file}`);
+    done[i++] = fs.promises.writeFile(file, header + body);
+    const dir = Path.dirname(file);
+    const srcRootDir = closestCommonParentDir([
+      dir,
+      closestCommonParentDir(Array.from(packages4WorkspaceKey(wsKey)).map(pkg => pkg.realPath))
+    ]);
+    createTsConfig(dir, srcRootDir, workspaceDir, {}, ['*.ts']);
+  }
+}
+
+function packageSettingDtsFileOf(workspaceDir: string) {
+  return Path.resolve(workspaceDir, '.links/_package-settings.d.ts');
 }
 
 /**
@@ -78,12 +129,14 @@ function writeTsconfig4project(projectDirs: string[], workspaceDir: string) {
  * @param include 
  * @return tsconfig file path
  */
-function createTsConfig(proj: string, srcRootDir: string, workspace: string | null, drcpDir: string,
-  include = ['.']) {
+function createTsConfig(proj: string, srcRootDir: string, workspace: string | null,
+  extraPathMapping: {[path: string]: string[]},
+  include = ['**/*.ts']) {
   const tsjson: any = {
     extends: null,
     include
   };
+  let drcpDir = (getState().linkedDrcp || getState().installedDrcp)!.realPath;
   // tsjson.include = [];
   tsjson.extends = Path.relative(proj, Path.resolve(drcpDir, 'wfh/tsconfig-base.json'));
   if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
@@ -92,7 +145,6 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
   tsjson.extends = tsjson.extends.replace(/\\/g, '/');
 
   const pathMapping: {[key: string]: string[]} = {};
-  const extraNodePath: string[] = [Path.resolve(proj, 'node_modules')];
 
   for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
     const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
@@ -105,9 +157,11 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
   pathMapping['@wfh/plink'] = [drcpDir];
   pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
   // }
+  Object.assign(pathMapping, extraPathMapping);
 
+  const rootDir = Path.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
   tsjson.compilerOptions = {
-    rootDir: Path.relative(proj, srcRootDir).replace(/\\/g, '/'),
+    rootDir,
       // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
     skipLibCheck: false,
     jsx: 'preserve',
@@ -118,10 +172,7 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
   };
   setTsCompilerOptForNodePath(proj, proj, tsjson.compilerOptions, {
     enableTypeRoots: true,
-    workspaceDir: workspace != null ? workspace : undefined,
-    // If user execute 'init <workspace>' in root directory, env.NODE_PATH does not contain workspace 
-    // directory, in this case we need explicityly add node path 
-    extraNodePath
+    workspaceDir: workspace != null ? workspace : undefined
   });
   const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
   writeTsConfigFile(tsconfigFile, tsjson);

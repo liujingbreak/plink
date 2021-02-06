@@ -1,4 +1,4 @@
-import Selector from './ts-ast-query';
+import Selector from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import fs from 'fs';
 import ts, {SyntaxKind} from 'typescript';
 import chalk from 'chalk';

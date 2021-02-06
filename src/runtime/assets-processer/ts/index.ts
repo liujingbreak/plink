@@ -11,7 +11,8 @@ import { ImapManager } from './fetch-remote-imap';
 import { WithMailServerConfig } from './fetch-types';
 import { fallbackIndexHtml, proxyToDevServer } from './index-html-route';
 import { createStaticRoute } from './static-middleware';
-import { commandProxy } from './utils';
+import { httpProxy } from './utils';
+import {getSetting} from '../isom/assets-processer-setting';
 const log = require('log4js').getLogger(api.packageName);
 const serverFavicon = require('serve-favicon');
 
@@ -49,32 +50,18 @@ export function activate() {
   if (favicon)
     api.use(serverFavicon(favicon));
 
-  var maxAgeMap = api.config.get(api.packageName + '.cacheControlMaxAge', {
-    // Format https://www.npmjs.com/package/ms
-    // js: '365 days',
-    // css: '365 days',
-    // less: '365 days',
-    // html: 0, // null meaning 'cache-control: no-store'
-    // png: '365 days',
-    // jpg: '365 days',
-    // gif: '365 days',
-    // svg: '365 days',
-    // eot: 365 days
-    // ttf: 365 days
-    // woff: 365 days
-    // woff2: 365 days
-  });
+  var maxAgeMap = getSetting().cacheControlMaxAge;
   log.info('cache control', maxAgeMap);
   log.info('Serve static dir', staticFolder);
 
   // api.use('/', createResponseTimestamp);
   proxyToDevServer();
 
-  const httpProxySet = api.config.get([api.packageName, 'httpProxy']) as {[proxyPath: string]: string};
+  const httpProxySet = getSetting().httpProxy;
   if (httpProxySet) {
     for (const proxyPath of Object.keys(httpProxySet)) {
       log.info(`Enable HTTP proxy ${proxyPath} -> ${httpProxySet[proxyPath]}`);
-      commandProxy(proxyPath, httpProxySet[proxyPath]);
+      httpProxy(proxyPath, httpProxySet[proxyPath]);
     }
   }
 
@@ -83,7 +70,7 @@ export function activate() {
   // api.use('/', zss.handler);
   const staticHandler = createStaticRoute(staticFolder, maxAgeMap);
   api.use('/', staticHandler);
-  api.use('/', createStaticRoute(api.config.resolve('dllDestDir'), maxAgeMap));
+  // api.use('/', createStaticRoute(api.config.resolve('dllDestDir'), maxAgeMap));
 
   if (api.config.get([api.packageName, 'serveIndex'])) {
     const stylesheet = Path.resolve(__dirname, '../serve-index.css');
@@ -131,7 +118,7 @@ function _findFaviconInConfig(property: string) {
   }
   let faviconFile: string | undefined;
   let faviconPackage: string;
-  _.each(config()[property], (path, pkName) => {
+  _.each(config()[property] as any, (path, pkName) => {
     if (path === '/') {
       packageUtils.lookForPackages(pkName, (fullName: string, entryPath: string, parsedName: {}, json: any, packagePath: string) => {
         var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';

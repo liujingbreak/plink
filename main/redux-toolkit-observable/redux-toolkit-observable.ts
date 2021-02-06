@@ -11,13 +11,11 @@ import {
   Slice, SliceCaseReducers, Reducer,
   ValidateSliceCaseReducers, Middleware, ActionCreatorWithPayload
 } from '@reduxjs/toolkit';
-// import {Action} from 'redux';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError } from 'rxjs/operators';
 
 export {PayloadAction, SliceCaseReducers, Slice};
-// export type CallBackActionReducer<SS> = CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 
 export interface ExtraSliceReducers<SS> {
   _init: CaseReducer<SS, PayloadAction<{isLazy: boolean}>>;
@@ -31,13 +29,6 @@ export function ofPayloadAction<P>(...actionCreators: ActionCreatorWithPayload<P
   (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P>> {
   return ofType(...actionCreators.map(c => c.type));
 }
-
-// export function ofPayloadAction(...actionCreators: any[]):
-//   (source: Observable<any>) => Observable<PayloadAction<string>> {
-//   return ofType<any>(...actionCreators.map(c => c.type));
-// }
-
-// type StateFromReducer<T> = T extends Reducer<CombinedState<infer S>> ? S : unknown;
 
 export interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output extends PayloadAction<Payload> = PayloadAction<Payload>,
 CaseReducers extends SliceCaseReducers<any> = SliceCaseReducers<any>, Name extends string = string> {
@@ -73,7 +64,7 @@ export class StateFactory {
    * Redux-observable's state$ does not notify state change event when a lazy loaded (replaced) slice initialize state 
    */
   realtimeState$: BehaviorSubject<{[key: string]: any}>;
-  private store$ = new BehaviorSubject<EnhancedStore<any, PayloadAction<any>> | undefined>(undefined);
+  store$ = new BehaviorSubject<EnhancedStore<any, PayloadAction<any>> | undefined>(undefined);
   log$: Observable<any[]>;
 
   rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
@@ -166,10 +157,6 @@ export class StateFactory {
       return this.actionsToDispatch;
     });
 
-    // this.actionsToDispatch.pipe(
-    //   tap(action => store.dispatch(action))
-    // ).subscribe();
-
     return this;
   }
 
@@ -218,8 +205,7 @@ export class StateFactory {
    * @returns a function to unsubscribe from this epic
    * @param epic 
    */
-  addEpic<S = any>(
-    epic: Epic<PayloadAction<any>, any, S>) {
+  addEpic<S = any>(epic: Epic<PayloadAction<any>, any, S>) {
     const epicId = 'Epic-' + ++this.epicSeq;
     const unsubscribeEpic = new Subject<string>();
     this.epicWithUnsub$.next([epic, unsubscribeEpic]);

@@ -21,6 +21,7 @@ import configDevServer from '@wfh/webpack-common/dist/devServer';
 import chalk from 'chalk';
 import memstats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {WepackConfigHandler} from './configurable';
+import * as op from 'rxjs/operators';
 // import setupAssets from '@wfh/assets-processer/dist/dev-serve-assets';
 
 
@@ -181,11 +182,19 @@ export default async function changeWebpackConfig(context: BuilderContext, param
     Object.getPrototypeOf(api).ssr = param.ssr;
   }
 
-  await api.config.configHandlerMgr().runEach<WepackConfigHandler>((file, lastResult, handler) => {
-    if (handler.webpackConfig)
-      return handler.webpackConfig(webpackConfig);
-    return lastResult;
-  });
+
+  await api.config.configHandlerMgr.pipe(
+    op.distinctUntilChanged(),
+    op.filter(mgr => mgr != null),
+    op.concatMap(mgr => {
+      return mgr!.runEach<WepackConfigHandler>((file, lastResult, handler) => {
+        if (handler.webpackConfig)
+          return handler.webpackConfig(webpackConfig);
+        return lastResult;
+      });
+    }),
+    op.take(1)
+  ).toPromise();
   const wfname = api.config.resolve('destDir', 'ng-app-builder.report',
     `webpack-${param.ssr ? 'ssr' : 'browser'}.config.${++context.webpackRunCount}.js`);
   fs.writeFileSync(wfname, printConfig(webpackConfig));

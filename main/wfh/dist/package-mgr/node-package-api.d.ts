@@ -5,7 +5,7 @@ import * as assetsUrl from '../../dist/assets-url';
 import { PackageInfo } from './package-info-gathering';
 import PackageInstance from '../packageNodeInstance';
 import { Logger } from 'log4js';
-declare class NodeApi implements assetsUrl.PackageApi {
+declare class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     packageName: string;
     packageInstance: PackageInstance;
     packageShortName: string;
@@ -18,12 +18,15 @@ declare class NodeApi implements assetsUrl.PackageApi {
     browserInjector: Inject;
     findPackageByFile: (file: string) => PackageInstance | undefined;
     getNodeApiForPackage: (pkInstance: PackageInstance) => NodeApi;
+    assetsUrl: typeof assetsUrl.assetsUrl;
+    serverUrl: typeof assetsUrl.serverUrl;
+    /** @deprecated */
+    entryPageUrl: typeof assetsUrl.entryPageUrl;
     get contextPath(): any;
     constructor(packageName: string, packageInstance: PackageInstance);
     isBrowser(): boolean;
     isNode(): boolean;
     addBrowserSideConfig(path: string, value: any): void;
-    getProjectDirs(): undefined;
     /**
        * @param {string} url
        * @param {string} sourceFile
@@ -51,4 +54,4 @@ declare class NodeApi implements assetsUrl.PackageApi {
     isDefaultLocale(): boolean;
     getBuildLocale(): any;
 }
-export = NodeApi;
+export default NodeApi;

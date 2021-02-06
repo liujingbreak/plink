@@ -17,7 +17,7 @@ if (process.send && /[\\\/]fork-ts-checker-webpack-plugin[\\\/]/.test(process.ar
   // Current process is a child process forked by fork-ts-checker-webpack-plugin
   require('@wfh/plink/wfh/dist/node-path');
   const plink: typeof _plink = require('@wfh/plink/wfh/dist');
-  plink.initProcess();
+  plink.initAsChildProcess();
   require('./hack-fork-ts-checker-worker');
 }
 

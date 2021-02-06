@@ -1,8 +1,13 @@
 import * as Url from 'url';
 
+interface ConfigSetting {
+  staticAssetsURL: string;
+  outputPathMap: {[name: string]: string};
+}
+
 export interface PackageApi {
   packageName: string;
-  config(): {[key: string]: any};
+  config(): ConfigSetting;
   isDefaultLocale(): boolean;
   getBuildLocale(): string;
   isNode(): boolean;
@@ -16,6 +21,7 @@ export interface ExtendedApi {
 }
 
 export function patchToApi(apiPrototype: any) {
+  
   apiPrototype.assetsUrl = assetsUrl;
 
   apiPrototype.entryPageUrl = entryPageUrl;

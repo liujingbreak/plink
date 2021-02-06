@@ -18,15 +18,14 @@ process.on('unhandledRejection', err => {
 
 // const log = log4js.getLogger('bootstrap-process');
 
-export async function initConfigAsync(options: GlobalOptions) {
-  // initProcess(onShutdownSignal);
-  await config.init(options);
-  // logConfig(config());
-  return config;
-}
+// export async function initConfigAsync(options: GlobalOptions) {
+//   // initProcess(onShutdownSignal);
+//   await config.init(options);
+//   // logConfig(config());
+//   return config;
+// }
 
 export function initConfig(options: GlobalOptions) {
-  // initProcess(onShutdownSignal);
   config.initSync(options);
   // logConfig(config());
   return config;
@@ -62,6 +61,19 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
     await saveState();
     setImmediate(() => process.exit(0));
   }
+}
+
+/**
+ * Initialize redux-store for Plink.
+ * 
+ * Unlink initProcess() which registers process event handler for SIGINT and shutdown command,
+ * in case this is running as a forked child process, it will stand by until parent process explicitly
+ *  sends a signal to exit
+ */
+export function initAsChildProcess() {
+  const {stateFactory, startLogging}: typeof store = require('../store');
+  startLogging();
+  stateFactory.configureStore();
 }
 
 

@@ -1,5 +1,6 @@
 import RJ, {InjectorOption} from 'require-injector';
-import {doInjectorConfigSync} from './require-injectors';
+import _config from './config';
+import {DrcpSettings} from './config/config-slice';
 import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
 import * as _ from 'lodash';
 import * as fs from 'fs';
@@ -32,7 +33,7 @@ export class DrPackageInjector extends RJ {
     packageNamePathMap.set(name, {symlink: symlinkDir, realPath: dir});
   }
 
-  fromComponent(name: string | string[], dir?: string | string[]) {
+  fromPlinkPackage(name: string | string[], dir?: string | string[]) {
     const names = ([] as string[]).concat(name);
     if (dir) {
       const dirs = ([] as string[]).concat(dir);
@@ -45,8 +46,12 @@ export class DrPackageInjector extends RJ {
     }
     const factoryMaps: FactoryMapInterf[] = [];
     for (const nm of names) {
-      if (_.has(packageNamePathMap, nm)) {
-        factoryMaps.push(super.fromDir(packageNamePathMap[nm]));
+      const paths = packageNamePathMap.get(nm);
+      if (paths) {
+        factoryMaps.push(super.fromDir(paths.realPath));
+        if (paths.symlink) {
+          factoryMaps.push(super.fromDir(paths.symlink));
+        }
       } else {
         factoryMaps.push(super.fromPackage(nm));
       }
@@ -103,6 +108,37 @@ export let nodeInjector = new DrPackageInjector(require.resolve, false);
 
 export let webInjector = new DrPackageInjector(undefined, true);
 
+export interface InjectorConfigHandler {
+  /** For Node.js runtime, replace module in "require()" or import syntax */
+  setupNodeInjector?(factory: DrPackageInjector, setting: DrcpSettings): void;
+  /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */
+  setupWebInjector?(factory: DrPackageInjector, setting: DrcpSettings): void;
+}
+
+/** @deprecated */
+export function doInjectorConfig(factory: DrPackageInjector, isNode = false) {
+  const config: typeof _config = require('./config').default;
+  config.configHandlerMgrChanged(handler => {
+    handler.runEach<InjectorConfigHandler>((file: string, lastResult: any, handler) => {
+      if (isNode && handler.setupNodeInjector)
+        handler.setupNodeInjector(factory, config());
+      else if (!isNode && handler.setupWebInjector)
+        handler.setupWebInjector(factory, config());
+    }, 'Injector configuration for ' + (isNode ? 'Node.js runtime' : 'client side build tool'));
+  });
+}
+
+export function doInjectorConfigSync(factory: DrPackageInjector, isNode = false) {
+  const config: typeof _config = require('./config').default;
+  config.configHandlerMgrChanged(handler => {
+    handler.runEachSync<InjectorConfigHandler>((file: string, lastResult: any, handler) => {
+      if (isNode && handler.setupNodeInjector)
+        handler.setupNodeInjector(factory, config());
+      else if (!isNode && handler.setupWebInjector)
+        handler.setupWebInjector(factory, config());
+    }, 'Injector configuration for ' + (isNode ? 'Node.js runtime' : 'client side build tool'));
+  });
+}
 
 function emptryChainableFunction() {
   return emptyFactoryMap;

@@ -15,6 +15,7 @@ import {getPackagesOfProjects, getState, workspaceKey, actionDispatcher} from '.
 import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import log4js from 'log4js';
 import {findPackagesByNames} from './utils';
+import '../editor-helper';
 
 let tarballDir: string;
 const log = log4js.getLogger('plink.cli-pack');
@@ -95,14 +96,9 @@ async function packPackages(packageDirs: string[]) {
       tarInfos.map(item => item.filename));
     await changePackageJson(package2tarball);
     await new Promise(resolve => setImmediate(resolve));
-    for (const key of getState().workspaces.keys()) {
-      log.debug('update worksapce ', Path.resolve(config().rootPath, key));
-      actionDispatcher.updateWorkspace({
-        dir: Path.resolve(config().rootPath, key),
-        isForce: false,
-        createHook: false
-      });
-    }
+    actionDispatcher.scanAndSyncPackages({
+      packageJsonFiles: packageDirs.map(dir => Path.resolve(dir, 'package.json'))
+    });
   }
 }
 

@@ -77,19 +77,6 @@ e2etestHelper:
         driverPath: 'node_modules/@dr/chrome-driver/linux64'
 
 
-# To enable HTTP access control (CORS), you may set `express-app-enableCORS` to `true` or
-# a white list for allowed origins
-#
-# express-app-enableCORS: false
-# Or
-# express-app-enableCORS:
-#   - http://www.example.com
-#   - http://other-allowed-origin.com
-# Also call
-#   api.router().use('/api', api.cors());
-# in server javascript
-express-app-enableCORS: true
-
 # Disable colorful console log message, useful for outputing console log to a file instead of terminal screen,
 # because the colorful log message contains extra messy character as special color indicator, that's what terminal can understand for printing colorful text.
 #

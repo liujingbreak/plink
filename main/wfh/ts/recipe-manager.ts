@@ -1,6 +1,6 @@
 // tslint:disable:max-line-length
 /**
- * To avoid circle referecing, This file should not depends on package-mgr/index !!!
+ * To avoid cyclic referecing, This file should not depends on package-mgr/index !!!
  */
 import * as _ from 'lodash';
 import * as Path from 'path';
@@ -19,6 +19,8 @@ export function setProjectList(list: string[]) {
 
 export type EachRecipeSrcCallback = (srcDir: string, projectDir: string) => void;
 /**
+ * @deprecated
+ * Use allSrcDirs() instead.
  * Iterate src folder for component items
  * @param {string | string[]} projectDir optional, if not present or null, includes all project src folders
  * @param  {Function} callback (srcDir, recipeDir, recipeName): void
@@ -43,10 +45,18 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
       for (const srcDir of srcDirsOfProject(prjDir)) {
         callback!(srcDir, prjDir);
       }
-      const e2eDir = Path.join(prjDir, 'e2etest');
-      if (fs.existsSync(e2eDir))
-        callback!(e2eDir, prjDir);
+      // const e2eDir = Path.join(prjDir, 'e2etest');
+      // if (fs.existsSync(e2eDir))
+      //   callback!(e2eDir, prjDir);
     });
+  }
+}
+
+export function* allSrcDirs() {
+  for (const projDir of projectList) {
+    for (const srcDir of srcDirsOfProject(projDir)) {
+      yield {srcDir, projDir};
+    }
   }
 }
 
@@ -59,7 +69,7 @@ function* srcDirsOfProject(projectDir: string) {
   let normalizedPrjName = Path.resolve(projectDir).replace(/[\/\\]/g, '.');
   normalizedPrjName = _.trim(normalizedPrjName, '.');
   if (fs.existsSync(pkJsonFile)) {
-    const pkjson = require(pkJsonFile);
+    const pkjson = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
     if (pkjson.packages) {
       for (let pat of ([] as string[]).concat(pkjson.packages)) {
         if (pat.endsWith('/**'))

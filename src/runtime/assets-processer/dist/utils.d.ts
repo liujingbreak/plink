@@ -11,4 +11,6 @@ export declare function createResponseTimestamp(req: Request, res: Response, nex
  * @param proxyPath
  * @param targetUrl
  */
-export declare function commandProxy(proxyPath: string, targetUrl: string): void;
+export declare function httpProxy(proxyPath: string, apiUrl: string, opts?: {
+    deleteOrigin?: boolean;
+}): void;

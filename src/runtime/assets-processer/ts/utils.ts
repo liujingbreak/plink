@@ -4,7 +4,6 @@ import api from '__api';
 import * as Url from 'url';
 import _ from 'lodash';
 import proxy from 'http-proxy-middleware';
-const hpmLog = getLogger(api.packageName + '.commandProxy');
 
 const logTime = getLogger(api.packageName + '.timestamp');
 
@@ -52,40 +51,50 @@ export function createResponseTimestamp(req: Request, res: Response, next: NextF
  * @param proxyPath 
  * @param targetUrl 
  */
-export function commandProxy(proxyPath: string, targetUrl: string) {
+export function httpProxy(proxyPath: string, apiUrl: string,
+  opts: {/** Bypass CORS restrict on target server */ deleteOrigin?: boolean} = {}) {
+
   proxyPath = _.trimEnd(proxyPath, '/');
-  targetUrl = _.trimEnd(targetUrl, '/');
-  const {protocol, host, pathname} = Url.parse(targetUrl, false, true);
+  apiUrl = _.trimEnd(apiUrl, '/');
+  const { protocol, host, pathname } = Url.parse(apiUrl, false, true);
 
-  const patPath = new RegExp(`^${proxyPath}/`);
-
-  // http proxy middleware must be used without any body-parser middleware, so `api.expressAppSet` can put it above other
-  // middlewares
+  const patPath = new RegExp('^' + proxyPath + '/');
+  const hpmLog = getLogger('HPM.' + proxyPath);
   api.expressAppSet(app => {
-    app.use(proxyPath, proxy({
-      // tslint:disable-next-line: max-line-length
-      target: protocol + '//' + host,
-      changeOrigin: true,
-      ws: false,
-      cookieDomainRewrite: {'*': ''},
-      pathRewrite: (path, req) => {
-        const ret = path.replace(patPath, pathname == null ? '' : pathname );
-        hpmLog.info(`proxy to path: ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
-        return ret;
-      },
-      logLevel: 'debug',
-      logProvider: provider => hpmLog,
-      proxyTimeout: 15000
-      // onProxyReq(proxyReq, req, res) {
-      //   const referer = proxyReq.getHeader('referer');
-      //   if (referer) {
-      //     proxyReq.setHeader('referer', `${protocol}//${host}${Url.parse(referer as string).pathname}`);
-      //   }
-      // },
-      // onProxyRes(incoming) {
-      //   log.info('Proxy recieve ' + incoming.statusCode + '\n');
-      // }
-    }));
+    app.use(proxyPath,
+      proxy({
+        // tslint:disable-next-line: max-line-length
+        target: protocol + '//' + host,
+        changeOrigin: true,
+        ws: false,
+        cookieDomainRewrite: { '*': '' },
+        pathRewrite: (path, req) => {
+          const ret = path && path.replace(patPath, pathname == null ? '/' : pathname + '/');
+          // log.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
+          return ret;
+        },
+        logLevel: 'debug',
+        logProvider: provider => hpmLog,
+        proxyTimeout: 10000,
+        onProxyReq(proxyReq, req, res) {
+          if (opts.deleteOrigin)
+            proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
+          hpmLog.info(`Proxy request to ${proxyReq.protocol}//${proxyReq.host}${proxyReq.path} method: ${proxyReq.method}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
+          const referer = proxyReq.getHeader('referer');
+          if (referer) {
+            proxyReq.setHeader('referer', `${protocol}//${host}${Url.parse(referer as string).pathname}`);
+          }
+          // if (api.config().devMode)
+          //   hpmLog.info('on proxy request headers: ', JSON.stringify(proxyReq.getHeaders(), null, '  '));
+        },
+        onProxyRes(incoming) {
+          incoming.headers['Access-Control-Allow-Origin'] = '*';
+          hpmLog.info('Proxy recieve ' + incoming.statusCode + '\n');
+          if (api.config().devMode)
+            hpmLog.info('Proxy recieve ' + incoming.statusCode + '\n', JSON.stringify(incoming.headers, null, '  '));
+        }
+      })
+    );
   });
 }
 

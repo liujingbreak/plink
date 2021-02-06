@@ -156,8 +156,8 @@ export function setupApi(api: DrcpApi, app: Application) {
 	 * @return void
 	 */
   apiPrototype.cors = function(allowedOrigins?: string[]) {
-    const setting = api.config();
-    let corsOpt = _.get(setting, api.packageShortName + '-enableCORS') || _.get(setting, 'enableCORS');
+    const setting = api.config()['@wfh/express-app'];
+    let corsOpt = setting?.enableCORS;
     const cors = require('cors') as typeof _cors;
     const whiteOriginSet = new Set<string>();
     if (_.isArray(corsOpt)) {

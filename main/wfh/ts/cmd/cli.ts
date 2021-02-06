@@ -75,11 +75,11 @@ export async function createCommands(startTime: number) {
     console.log('Value of environment varaible "PLINK_SAFE" is true, skip loading extension');
   }
 
-  overrider.appendGlobalOptions();
+  overrider.appendGlobalOptions(false);
   try {
     await program.parseAsync(process.argv, {from: 'node'});
   } catch (e) {
-    log.error('Failed to execute command due to:' + chalk.redBright(e.message), e.stack);
+    log.error('Failed to execute command due to:' + chalk.redBright(e.message), e);
     process.exit(1);
   }
 }
@@ -87,63 +87,54 @@ export async function createCommands(startTime: number) {
 function subWfhCommand(program: commander.Command) {
   /** command init
    */
-  const initCmd = program.command('init [work-directory]')
-  .description('Initialize and update work directory, generate basic configuration files for project and component packages,' +
-    ' calculate hoisted transitive dependencies, and run "npm install" in current directory.',
-    {
-      'work-directory': 'A relative or abosolute directory path, use "." to specify current directory,\n  ommitting this argument meaning:\n' +
-        '  - If current directory is already a "work directory", update it.\n' +
-        '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
-        ' directory.'
-    })
-  .option('-f, --force', 'Force run "npm install" in specific workspace directory', false)
-  .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
-  // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
-  .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false)
-  .action(async (workspace?: string) => {
-    // tslint:disable-next-line: no-console
-    console.log(sexyFont('PLink').string);
-    await (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions, workspace);
-  });
-  // withGlobalOptions(initCmd);
-
-  const updateDirCmd = program.command('update-dir')
-  .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
-  'Because we store absolute path info of each package in internal state, and it will become invalid after you rename or move directory')
-  .action(async (workspace: string) => {
-    await (await import('./cli-ls')).checkDir(updateDirCmd.opts() as any);
-  });
-  // withGlobalOptions(updateDirCmd);
+  const initCmd = program.command('init [work-directory]').alias('sync')
+    .description('Initialize and update work directory, generate basic configuration files for project and component packages,' +
+      ' calculate hoisted transitive dependencies, and run "npm install" in current directory.',
+      {
+        'work-directory': 'A relative or abosolute directory path, use "." to specify current directory,\n  ommitting this argument meaning:\n' +
+          '  - If current directory is already a "work directory", update it.\n' +
+          '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
+          ' directory.'
+      })
+    .option('-f, --force', 'Force run "npm install" in specific workspace directory', false)
+    .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
+    // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
+    .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false)
+    .action(async (workspace?: string) => {
+      // tslint:disable-next-line: no-console
+      console.log(sexyFont('PLink').string);
+      await (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions, workspace);
+    });
 
   /**
    * command project
    */
   program.command('project [add|remove] [project-dir...]')
-  .description('Associate, disassociate or list associated project folders, late on Plink will' +
-    'Scan source code directories from associated projects', {
-      'add|remove': 'Specify whether Associate to a project or Disassociate from a project',
-      'project-dir': 'Specify target project repo directory (absolute path or relative path to current directory)' +
-        ', specify multiple project by seperating with space character'
-    })
-  .action(async (action: 'add'|'remove'|undefined, projectDir: string[]) => {
-    // tslint:disable-next-line: no-console
-    console.log(sexyFont('PLink').string);
-    (await import('./cli-project')).default(action, projectDir);
-  });
+    .description('Associate, disassociate or list associated project folders, late on Plink will' +
+      'Scan source code directories from associated projects', {
+        'add|remove': 'Specify whether Associate to a project or Disassociate from a project',
+        'project-dir': 'Specify target project repo directory (absolute path or relative path to current directory)' +
+          ', specify multiple project by seperating with space character'
+      })
+    .action(async (action: 'add'|'remove'|undefined, projectDir: string[]) => {
+      // tslint:disable-next-line: no-console
+      console.log(sexyFont('PLink').string);
+      (await import('./cli-project')).default(action, projectDir);
+    });
 
   /**
    * command lint
    */
   const lintCmd = program.command('lint [package...]')
-  .description('source code style check', {
-    package: cliPackageArgDesc
-  })
-  .option('--pj <project1,project2...>', 'lint only TS code from specific project', arrayOptionFn, [])
-  .option('--fix', 'Run eslint/tslint fix, this could cause your source code being changed unexpectedly', false)
-  .action(async packages => {
-    await (await import('./cli-lint')).default(packages, lintCmd.opts() as any);
-  });
-  // withGlobalOptions(lintCmd);
+    .description('source code style check', {
+      package: cliPackageArgDesc
+    })
+    .option('--pj <project1,project2...>', 'lint only TS code from specific project', arrayOptionFn, [])
+    .option('--fix', 'Run eslint/tslint fix, this could cause your source code being changed unexpectedly', false)
+    .action(async packages => {
+      await (await import('./cli-lint')).default(packages, lintCmd.opts() as any);
+    });
+
   lintCmd.usage(lintCmd.usage() +
     hl('\ndrcp lint --pj <project-dir..> [--fix]') + ' Lint TS files from specific project directory\n' +
     hl('\ndrcp lint <component-package..> [--fix]') + ' Lint TS files from specific component packages');
@@ -152,23 +143,23 @@ function subWfhCommand(program: commander.Command) {
    * command clean
    */
   program.command('cs').alias('clear-symlinks')
-  .description('Clear symlinks from node_modules, do this before run "npm install" in root directory, if there is any symlinks in current node_modules')
-  // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
-  .action(async () => {
-    const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
-    await scanNodeModules('all');
-  });
+    .description('Clear symlinks from node_modules, do this before run "npm install" in root directory, if there is any symlinks in current node_modules')
+    // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
+    .action(async () => {
+      const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
+      await scanNodeModules('all');
+    });
 
   /**
    * command upgrade
    */
   program.command('upgrade')
-  .alias('install')
-  .description('Reinstall local Plink along with other dependencies.' +
-    ' (Unlike "npm install" which does not work with node_modules that might contain symlinks)')
-  .action(async () => {
-    await (await import('./cli-link-plink')).reinstallWithLinkedPlink();
-  });
+    .alias('install')
+    .description('Reinstall local Plink along with other dependencies.' +
+      ' (Unlike "npm install" which does not work with node_modules that might contain symlinks)')
+    .action(async () => {
+      await (await import('./cli-link-plink')).reinstallWithLinkedPlink();
+    });
 
   // program.command('dockerize <workspace-dir>')
   // .description(chalk.gray('[TBI] Generate Dockerfile for specific workspace directory, and generate docker image'));
@@ -180,12 +171,11 @@ function subWfhCommand(program: commander.Command) {
    * command ls
    */
   const listCmd = program.command('ls').alias('list')
-  .option('-j, --json', 'list linked dependencies in form of JSON', false)
-  .description('If you want to know how many packages will actually run, this command prints out a list and the priorities, including installed packages')
-  .action(async () => {
-    await (await import('./cli-ls')).default(listCmd.opts() as any);
-  });
-  // withGlobalOptions(listCmd);
+    .option('-j, --json', 'list linked dependencies in form of JSON', false)
+    .description('If you want to know how many packages will actually run, this command prints out a list and the priorities, including installed packages')
+    .action(async () => {
+      await (await import('./cli-ls')).default(listCmd.opts() as any);
+    });
 
   /**
    * Bump command
@@ -240,7 +230,7 @@ function subWfhCommand(program: commander.Command) {
     .action(async (packages: string[]) => {
       await (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packages});
     });
-  // withGlobalOptions(publishCmd);
+
 
   const analysisCmd = program.command('analyze')
     .alias('analyse')
@@ -256,71 +246,83 @@ function subWfhCommand(program: commander.Command) {
 
   analysisCmd.usage(analysisCmd.usage() + '\n' +
     'e.g.\n  ' + chalk.blue('plink analyze -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts'));
-  // withGlobalOptions(analysisCmd);
+
+  const updateDirCmd = program.command('update-dir')
+    .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
+    'Because we store absolute path info of each package in internal state, and it will become invalid after you rename or move directory')
+    .action(async (workspace: string) => {
+      await (await import('./cli-ls')).checkDir(updateDirCmd.opts() as any);
+    });
 }
 
 function spaceOnlySubWfhCommand(program: commander.Command) {
-  /** command run*/
-  const runCmd = program.command('run <target> [arguments...]')
-  .description('Run specific module\'s exported function\n')
-  .action(async (target: string, args: string[]) => {
-    await (await import('../package-runner')).runSinglePackage({target, args});
-  });
-  // withGlobalOptions(runCmd);
-  runCmd.usage(runCmd.usage() + '\n' + chalk.green('plink run <target> [arguments...]\n') +
-  `e.g.\n  ${chalk.green('plink run forbar-package/dist/file#function argument1 argument2...')}\n` +
-  'execute exported function of TS/JS file from specific package or path\n\n' +
-  '<target> - JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n' +
-  'e.g. \n' +
-  chalk.green('package-name/dist/foobar.js#myFunction') +
-  ', function can be async which returns Promise\n' +
-  chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
-  ', relative or absolute path\n');
-
-
   /**
    * tsc command
    */
   const tscCmd = program.command('tsc [package...]')
-  .description('Run Typescript compiler to compile source code for target packages, ' +
-  'which have been linked to current work directory', {package: cliPackageArgDesc})
-  .option('-w, --watch', 'Typescript compiler watch mode', false)
-  .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
-    prev.push(...v.split(',')); return prev;
-  }, [] as string[])
-  // .option('--ws,--workspace <workspace-dir>', 'only include those linked packages which are dependency of specific workspaces',
-  //   arrayOptionFn, [])
-  .option('--jsx', 'includes TSX file', false)
-  .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
-  .option('--source-map <inline|file>', 'Source map style: "inline" or "file"', 'inline')
-  .option('--copath, --compiler-options-paths <pathMapJson>',
-    'Add more "paths" property to compiler options. ' +
-    '(e.g. --copath \'{\"@/*":["/Users/worker/ocean-ui/src/*"]}\')', (v, prev) => {
-    prev.push(...v.split(',')); return prev;
-  }, [] as string[])
-  .action(async (packages: string[]) => {
-    const opt = tscCmd.opts();
-    const tsc = await import('../ts-cmd');
+    .description('Run Typescript compiler to compile source code for target packages, ' +
+    'which have been linked to current work directory', {package: cliPackageArgDesc})
+    .option('-w, --watch', 'Typescript compiler watch mode', false)
+    .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
+      prev.push(...v.split(',')); return prev;
+    }, [] as string[])
+    // .option('--ws,--workspace <workspace-dir>', 'only include those linked packages which are dependency of specific workspaces',
+    //   arrayOptionFn, [])
+    .option('--jsx', 'includes TSX file', false)
+    .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
+    .option('--source-map <inline|file>', 'Source map style: "inline" or "file"', 'inline')
+    .option('--copath, --compiler-options-paths <pathMapJson>',
+      'Add more "paths" property to compiler options. ' +
+      '(e.g. --copath \'{\"@/*":["/Users/worker/ocean-ui/src/*"]}\')', (v, prev) => {
+      prev.push(...v.split(',')); return prev;
+    }, [] as string[])
+    .action(async (packages: string[]) => {
+      const opt = tscCmd.opts();
+      const tsc = await import('../ts-cmd');
 
-    await tsc.tsc({
-      package: packages,
-      project: opt.project,
-      watch: opt.watch,
-      sourceMap: opt.sourceMap,
-      jsx: opt.jsx,
-      ed: opt.emitDeclarationOnly,
-      pathsJsons: opt.compilerOptionsPaths
+      await tsc.tsc({
+        package: packages,
+        project: opt.project,
+        watch: opt.watch,
+        sourceMap: opt.sourceMap,
+        jsx: opt.jsx,
+        ed: opt.emitDeclarationOnly,
+        pathsJsons: opt.compilerOptionsPaths
+      });
     });
-  });
-  // withGlobalOptions(tscCmd);
+
   tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side Typescript files.\n\n' +
-  'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
-  '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
-  'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs in ' +
-  'both Node.js and Browser) in directory `isom`.\n' +
-  hlDesc('plink tsc\n') + 'Compile linked packages that are dependencies of current workspace (you shall run this command only in a workspace directory)\n' +
-  hlDesc('plink tsc <package..>\n') + ' Only compile specific packages by providing package name or short name\n' +
-  hlDesc('plink tsc [package...] -w\n') + ' Watch packages change and compile when new typescript file is changed or created\n\n');
+    'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
+    '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
+    'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs in ' +
+    'both Node.js and Browser) in directory `isom`.\n' +
+    hlDesc('plink tsc\n') + 'Compile linked packages that are dependencies of current workspace (you shall run this command only in a workspace directory)\n' +
+    hlDesc('plink tsc <package..>\n') + ' Only compile specific packages by providing package name or short name\n' +
+    hlDesc('plink tsc [package...] -w\n') + ' Watch packages change and compile when new typescript file is changed or created\n\n');
+
+  program.command('setting [package]')
+    .description('List packages setting and values', {package: 'package name, only list setting for specific package'})
+    .action(async (pkgName: string) => {
+      await (await import('./cli-setting')).default(pkgName);
+    });
+    /** command run*/
+  const runCmd = program.command('run <target> [arguments...]')
+    .description('Run specific module\'s exported function\n')
+    .action(async (target: string, args: string[]) => {
+      await (await import('../package-runner')).runSinglePackage({target, args});
+    });
+
+  runCmd.usage(runCmd.usage() + '\n' + chalk.green('plink run <target> [arguments...]\n') +
+    `e.g.\n  ${chalk.green('plink run forbar-package/dist/file#function argument1 argument2...')}\n` +
+    'execute exported function of TS/JS file from specific package or path\n\n' +
+    '<target> - JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n' +
+    'e.g. \n' +
+    chalk.green('package-name/dist/foobar.js#myFunction') +
+    ', function can be async which returns Promise\n' +
+    chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
+    ', relative or absolute path\n');
+
+
 }
 
 function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceState | undefined, overrider: CommandOverrider): string[] {

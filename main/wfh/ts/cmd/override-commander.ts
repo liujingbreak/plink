@@ -112,7 +112,7 @@ export class CommandOverrider {
               appenders: {
                 out: {
                   type: 'stdout',
-                  layout: {type: 'pattern', pattern: '%[[%p] %c%] - %m'}
+                  layout: {type: 'pattern', pattern: (process.send ? '%z' : '') + '%[[%p] %c%] - %m'}
                 }
               },
               categories: {
@@ -143,11 +143,9 @@ export class CommandOverrider {
 
     let filePath: string | null = null;
 
-
     if (typeof pkgFilePath === 'function') {
       pkgFilePath(this.program);
       this.pkgMetasMap.set('@wfh/plink', commandMetaInfos);
-      // cliActionDispatcher.addCommandMeta({pkg: '@wfh/plink', metas: commandMetaInfos});
     } else if (pk) {
       try {
         filePath = require.resolve(pk.name + '/' + pkgFilePath);
@@ -156,7 +154,6 @@ export class CommandOverrider {
           require(filePath);
         subCmdFactory(this.program);
         this.pkgMetasMap.set(pk.name, commandMetaInfos);
-        // cliActionDispatcher.addCommandMeta({pkg: pk.name, metas: commandMetaInfos});
       } catch (e) {
         // tslint:disable-next-line: no-console
         log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
@@ -166,10 +163,12 @@ export class CommandOverrider {
     }
   }
 
-  appendGlobalOptions() {
+  appendGlobalOptions(saveToStore: boolean) {
     for (const cmd of this.allSubCmds) {
       withGlobalOptions(cmd);
     }
+    if (!saveToStore)
+      return;
     process.nextTick(() => {
       for (const [pkg, metas] of this.pkgMetasMap.entries()) {
         cliActionDispatcher.addCommandMeta({pkg, metas});
@@ -196,7 +195,11 @@ export function withGlobalOptions(program: OurAugmentedCommander | commander.Com
     '--prop ["@wfh/foo.bar","prop",0]=true'),
     arrayOptionFn, [] as string[])
   .option('--verbose', hlDesc('Specify log level as "debug"'), false)
-  .option('--dev', hlDesc('same effect as setting Plink property "devMode"'), false);
+  .option('--dev', hlDesc('By turning on this option,' +
+    ' Plink setting property "devMode" will automatcially set to `true`,' +
+    ' and process.env.NODE_ENV will also being updated to \'developement\' or \'production correspondingly. '), false)
+  .option('--env <setting-env>', hlDesc('customized environment value, package setting file may return different values based on its value (cliOptions.env)'));
+
   // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 
   return program;

@@ -1,7 +1,6 @@
-import {setTsCompilerOptForNodePath} from '@wfh/plink/wfh/dist/config-handler';
 import {closestCommonParentDir} from '@wfh/plink/wfh/dist/utils/misc';
 import {getState} from '@wfh/plink/wfh/dist/package-mgr';
-import {getRootDir} from '@wfh/plink/wfh/dist';
+import {getRootDir, setTsCompilerOptForNodePath} from '@wfh/plink';
 import Path from 'path';
 import fs from 'fs';
 

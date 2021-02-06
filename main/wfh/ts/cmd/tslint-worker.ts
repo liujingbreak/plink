@@ -1,18 +1,20 @@
-import log4js from 'log4js';
+import 'source-map-support/register';
+// import log4js from 'log4js';
 import Path from 'path';
 import gulp from 'gulp';
 import _ from 'lodash';
 import fs from 'fs';
 const tslint = require('gulp-tslint');
 
-const log = log4js.getLogger('plink.tslint-worker');
+// const log = log4js.getLogger('plink.tslint-worker');
 
 
 export default function tsLintPackageAsync(fullName: string, json: any, packagePath: string, fix: boolean) {
   let dir;
   // packagePath = fs.realpathSync(packagePath);
-  log.info('TSlint Scan', packagePath);
+  // tslint:disable-next-line: no-console
   console.log('TSlint Scan', packagePath);
+
   if (fullName === '@wfh/plink')
     packagePath = packagePath + '/wfh';
   for (let pDir = packagePath; dir !== pDir; pDir = Path.dirname(dir)) {
@@ -21,7 +23,8 @@ export default function tsLintPackageAsync(fullName: string, json: any, packageP
       break;
   }
   const rcfile = Path.resolve(dir, 'tslint.json');
-  log.debug('Use', rcfile);
+  // tslint:disable-next-line: no-console
+  console.log('Use', rcfile);
   const packagePath0 = packagePath.replace(/\\/g, '/');
 
   // TODO: use require('../../dist/utils').getTsDirsOfPackage;
@@ -41,6 +44,7 @@ export default function tsLintPackageAsync(fullName: string, json: any, packageP
       allowWarnings: true
     }))
     .on('error', (err: Error) => reject(err));
+
     stream.resume();
     stream.on('end', () => resolve());
   });

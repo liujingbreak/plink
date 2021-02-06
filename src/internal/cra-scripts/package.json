@@ -1,16 +1,15 @@
 {
   "name": "@wfh/cra-scripts",
-  "version": "1.0.30-0",
+  "version": "1.0.30",
   "description": "Something like create-react-rewired",
   "main": "dist/preload.js",
   "dr": {
     "cli": "dist/cmd/cli.js#default",
-    "config": {
-      "server": {
-        "lessLoaderAdditionalData": ""
-      }
-    },
-    "typeRoot": "types"
+    "typeRoot": "types",
+    "setting": {
+      "value": "isom/cra-scripts-setting.js#defaultSetting",
+      "type": "isom/cra-scripts-setting#CraScriptsSetting"
+    }
   },
   "dependencies": {
     "less-loader": "~7.0.2",

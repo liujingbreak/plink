@@ -36,7 +36,10 @@ export declare class StateFactory {
     realtimeState$: BehaviorSubject<{
         [key: string]: any;
     }>;
-    private store$;
+    store$: BehaviorSubject<EnhancedStore<any, {
+        payload: any;
+        type: string;
+    }, readonly Middleware<{}, any, import("redux").Dispatch<import("redux").AnyAction>>[]> | undefined>;
     log$: Observable<any[]>;
     rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
     /**

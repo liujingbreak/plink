@@ -16,7 +16,6 @@ import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} fro
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
 import chalk from 'chalk';
 import {getSymlinkForPackage} from './utils/misc';
-import {filter, tap} from 'rxjs/operators';
 
 const log = log4js.getLogger('plink.package-runner');
 
@@ -148,7 +147,7 @@ export async function runPackages(target: string, includePackages: Iterable<stri
     }
   });
   (proto.eventBus as Events.EventEmitter).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
-  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
+  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
   NodeApi.prototype.eventBus.emit('packagesActivated', includeNameSet);
   return pkgExportsInReverOrder;
 }
@@ -159,7 +158,7 @@ export async function runPackages(target: string, includePackages: Iterable<stri
 export function initInjectorForNodePackages():
   [PackageInstance[], _NodeApi] {
   const packageInfo: PackageInfo = walkPackages();
-  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
+  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
   const proto = NodeApi.prototype;
   proto.argv = {};
   proto.packageInfo = packageInfo;
@@ -181,14 +180,16 @@ export function initInjectorForNodePackages():
     setupRequireInjects(pk, NodeApi); // All component package should be able to access '__api', even they are not included
   });
   // console.log('>>>>>>>>>>>>>>>>>>')
-  config.configureStore.pipe(
-    filter(setting => setting != null),
-    tap(setting => {
-      // console.log('>>>>>>>>>++++++>>>>>>>>>')
-      nodeInjector.readInjectFile();
-      webInjector.readInjectFile('module-resolve.browser');
-    })
-  ).subscribe();
+  // config.configureStore.pipe(
+  //   filter(setting => setting != null),
+  //   tap(setting => {
+  //     // console.log('>>>>>>>>>++++++>>>>>>>>>')
+  //     nodeInjector.readInjectFile();
+  //     webInjector.readInjectFile('module-resolve.browser');
+  //   })
+  // ).subscribe();
+  nodeInjector.readInjectFile();
+  webInjector.readInjectFile('module-resolve.browser');
   return [packageInfo.allModules, proto];
 }
 
@@ -211,7 +212,7 @@ export function initInjectorForNodePackages():
  * @param argv 
  */
 export function prepareLazyNodeInjector(argv?: {[key: string]: any}) {
-  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api');
+  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
   const proto = NodeApi.prototype;
   proto.argv = argv || {};
   let packageInfo: PackageInfo;
@@ -301,8 +302,6 @@ function getApiForPackage(pkInstance: NodePackage, NodeApi: typeof _NodeApi) {
   }
 
   const api = new NodeApi(pkInstance.longName, pkInstance);
-  // api.constructor = NodeApi;
-  pkInstance.api = api;
   apiCache[pkInstance.longName] = api;
   api.default = api; // For ES6 import syntax
   return api;

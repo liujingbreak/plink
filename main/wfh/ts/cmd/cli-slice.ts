@@ -5,10 +5,7 @@ import * as op from 'rxjs/operators';
 import * as pkgMgr from '../package-mgr';
 import { stateFactory } from '../store';
 import {OurCommandMetadata} from './types';
-
 export interface CliState {
-  /** key is package name */
-  extensions: Map<string, CliExtension>;
   /** key is package name, value is Command name and args */
   commandByPackage: Map<string, OurCommandMetadata['nameAndArgs'][]>;
   commandInfoByName: Map<OurCommandMetadata['nameAndArgs'], OurCommandMetadata>;
@@ -26,7 +23,6 @@ export interface CliExtension {
 }
 
 const initialState: CliState = {
-  extensions: new Map(),
   commandByPackage: new Map(),
   commandInfoByName: new Map(),
   version: ''
@@ -37,9 +33,6 @@ export const cliSlice = stateFactory.newSlice({
   name: 'cli',
   initialState,
   reducers: {
-    updateExtensions(draft, {payload}: PayloadAction<CliExtension[]>) {
-      draft.extensions = new Map(payload.map(ex => [ex.pkName, ex]));
-    },
     plinkUpgraded(d, {payload: newVersion}: PayloadAction<string>) {
       d.version = newVersion;
     },
@@ -90,42 +83,6 @@ stateFactory.addEpic((action$, state$) => {
         }
       })
     ),
-    // pkgMgr.getStore().pipe(
-    //   map(s => s.srcPackages),
-    //   distinctUntilChanged(),
-    //   skip(1),
-    //   debounceTime(200),
-    //   map(srcPackages => {
-    //     scanPackageJson(srcPackages.values());
-    //   })
-    // ),
-    // action$.pipe(ofPayloadAction(pkgMgr.slice.actions._installWorkspace),
-    //   map(action => action.payload.workspaceKey),
-    //   mergeMap(ws => pkgMgr.getStore().pipe(
-    //     map(s => s.workspaces.get(ws)!.installedComponents),
-    //     distinctUntilChanged(),
-    //     filter(installed => installed != null && installed.size > 0),
-    //     map(installed => {
-    //       scanPackageJson(installed!.values());
-    //     })
-    //   ))
-    // ),
-    // action$.pipe(ofPayloadAction(cliSlice.actions.plinkUpgraded),
-    //   map(() => {
-    //     scanPackageJson(allPackages());
-    //   })
-    // ),
-    // ...Array.from(pkgMgr.getState().workspaces.keys()).map(key => {
-    //   return pkgMgr.getStore().pipe(
-    //     map(s => s.workspaces.get(key)!.installedComponents),
-    //     distinctUntilChanged(),
-    //     skip(1),
-    //     filter(installed => installed != null && installed.size > 0),
-    //     map(installed => {
-    //       scanPackageJson(installed!.values());
-    //     })
-    //   );
-    // }),
     from(getLocale()).pipe(
       op.map(locale => {
         const [lang, country] = locale.split(/[_-]/);
@@ -134,6 +91,12 @@ stateFactory.addEpic((action$, state$) => {
           pkgMgr.actionDispatcher.setInChina(country ? country.toUpperCase() === 'CN' : false);
         }
       })
+    ),
+    action$.pipe(op.filter(action => action.type === 'BEFORE_SAVE_STATE'),
+      op.tap(() => cliActionDispatcher._change(s => {
+        s.commandByPackage.clear();
+        s.commandInfoByName.clear();
+      }))
     )
   ).pipe(
     op.catchError(ex => {
@@ -144,19 +107,6 @@ stateFactory.addEpic((action$, state$) => {
     op.ignoreElements()
   );
 });
-
-// function scanPackageJson(pkgs: Iterable<pkgMgr.PackageInfo>) {
-//   const extensions: CliExtension[] = [];
-//   for (const pk of pkgs) {
-//     const dr = pk.json.dr;
-//     if (dr && dr.cli) {
-//       const parts = (dr.cli as string).split('#');
-//       extensions.push({pkName: pk.name, pkgFilePath: parts[0], funcName: parts[1]});
-//     }
-//   }
-//   cliActionDispatcher.updateExtensions(extensions);
-// }
-
 
 export function availabeCliExtension() {
 }

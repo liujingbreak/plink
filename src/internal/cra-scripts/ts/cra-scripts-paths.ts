@@ -60,12 +60,12 @@ export default function paths() {
   }
   log.debug(changedPaths);
 
-  pCfg.configHandlerMgr().runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+  pCfg.configHandlerMgrChanged(handler => handler.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
     if (handler.changeCraPaths != null) {
       log.info('Execute CRA scripts paths overrides', cfgFile);
       handler.changeCraPaths(changedPaths);
     }
-  });
+  }));
 
   configFileInPackage = Path.resolve(dir, _.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
 

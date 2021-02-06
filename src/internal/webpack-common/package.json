@@ -1,6 +1,6 @@
 {
   "name": "@wfh/webpack-common",
-  "version": "1.0.7-1",
+  "version": "1.0.7",
   "description": "Common Webpack configuration parts for create-react-app and Angular cli",
   "main": "dist/index.js",
   "dr": {},

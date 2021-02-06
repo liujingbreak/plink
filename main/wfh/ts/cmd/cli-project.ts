@@ -5,7 +5,7 @@ import { distinctUntilChanged, map, skip, take, pluck } from 'rxjs/operators';
 import { actionDispatcher as pkgActions, getStore } from '../package-mgr';
 import { boxString, getRootDir } from '../utils/misc';
 // import { writeFile } from './utils';
-import config from '../config';
+// import config from '../config';
 const rootPath = getRootDir();
 
 /**
@@ -13,7 +13,6 @@ const rootPath = getRootDir();
  * @param dirs 
  */
 export default async function(action?: 'add' | 'remove', dirs?: string[]) {
-  await config.init({config: [], prop: []});
   getStore().pipe(
     pluck('project2Packages'), distinctUntilChanged(),
     map(project2Packages => Array.from(project2Packages.keys())),

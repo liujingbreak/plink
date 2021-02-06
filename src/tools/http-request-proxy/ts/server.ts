@@ -1,11 +1,12 @@
 import api from '__api';
 import * as _ from 'lodash';
-import * as log4js from 'log4js';
 import * as express from 'express';
-var log = log4js.getLogger(api.packageName);
 import doProxy from './proxy-handler';
 import {ProxyInstanceForBrowser} from '../isom/proxy-instance';
+import {getSetting} from '../isom/http-request-proxy-setting';
 export * from '../isom/proxy-instance';
+
+const log = api.logger;
 
 export function activate() {
   // api.router().use('/', api.cors());
@@ -14,7 +15,7 @@ export function activate() {
   if (multiProxies) {
     _.each(multiProxies, (target, name) => useProxy(api.router(), target, name));
   } else {
-    var proxyTo = api.config.get(api.packageName + '.proxyTo');
+    var proxyTo = getSetting().proxyTo;
     if (proxyTo == null) {
       log.warn('No proxy configuration "%s" found', api.packageName + '.proxies');
       return;

@@ -19,7 +19,10 @@ export interface PackagesState {
     /** key of current "workspaces" */
     currWorkspace?: string | null;
     project2Packages: Map<string, string[]>;
-    linkedDrcp: PackageInfo | null;
+    /** Drcp is the original name of Plink project */
+    linkedDrcp?: PackageInfo | null;
+    linkedDrcpProject?: string | null;
+    installedDrcp?: PackageInfo | null;
     gitIgnores: {
         [file: string]: string[];
     };
@@ -66,8 +69,12 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         createHook: boolean;
         packageJsonFiles?: string[];
     }>): void;
+    scanAndSyncPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
+        packageJsonFiles?: string[];
+    }>): void;
     updateDir(): void;
-    _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<PackageInfo[]>): void;
+    updatePlinkPackageInfo(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
+    _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
     onLinkedPackageAdded(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     addProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
@@ -81,6 +88,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
     setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
     workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<void>): void;
+    onWorkspacePackageUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: workspaceKey }: PayloadAction<string>): void;
     _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -102,7 +110,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
-    _onRelatedPackageUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: workspaceKey }: PayloadAction<string>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
@@ -124,8 +131,12 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         createHook: boolean;
         packageJsonFiles?: string[];
     }>): void;
+    scanAndSyncPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
+        packageJsonFiles?: string[];
+    }>): void;
     updateDir(): void;
-    _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<PackageInfo[]>): void;
+    updatePlinkPackageInfo(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
+    _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
     onLinkedPackageAdded(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     addProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
@@ -139,6 +150,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
     setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
     workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<void>): void;
+    onWorkspacePackageUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: workspaceKey }: PayloadAction<string>): void;
     _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -160,7 +172,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
-    _onRelatedPackageUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: workspaceKey }: PayloadAction<string>): void;
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
     file: string;
@@ -172,10 +183,6 @@ export declare function pathToProjKey(path: string): string;
 export declare function projKeyToPath(key: string): string;
 export declare function workspaceKey(path: string): string;
 export declare function getPackagesOfProjects(projects: string[]): Generator<PackageInfo, void, unknown>;
-/**
- * List linked packages
- */
-export declare function listPackages(): string;
 export declare function getProjectList(): string[];
 export declare function isCwdWorkspace(): boolean;
 export declare function installInDir(dir: string, originPkgJsonStr: string, toInstallPkgJsonStr: string): Promise<void>;

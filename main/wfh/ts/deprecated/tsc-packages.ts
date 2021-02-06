@@ -10,7 +10,7 @@ import { merge, Observable, EMPTY } from 'rxjs';
 import {reduce, concatMap, filter} from 'rxjs/operators';
 import { CompilerOptions } from 'typescript';
 import config from '../config';
-import { setTsCompilerOptForNodePath } from '../config-handler';
+import { setTsCompilerOptForNodePath } from '../package-mgr/package-list-helper';
 import { getState, PackageInfo, workspaceKey } from '../package-mgr';
 import { getState as getTscState } from './tsc-packages-slice';
 import {findPackagesByNames} from '../cmd/utils';

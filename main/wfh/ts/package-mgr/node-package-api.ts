@@ -2,13 +2,10 @@
 import {EventEmitter} from 'events';
 
 import config from '../config';
-
 import npmimportCssLoader from 'require-injector/dist/css-loader';
 import Inject from 'require-injector';
 import * as assetsUrl from '../../dist/assets-url';
 import {PackageInfo} from './package-info-gathering';
-// import PackageInstance from './package-instance';
-// import NodePackageInstance from '../packageNodeInstance';
 import PackageInstance from '../packageNodeInstance';
 import _ from 'lodash';
 import {Logger, getLogger} from 'log4js';
@@ -29,7 +26,7 @@ function parseName(longName: string) {
 
 // var suppressWarn4Urls = config.get('suppressWarning.assetsUrl', []).map(line => new RegExp(line));
 
-class NodeApi implements assetsUrl.PackageApi {
+class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
   packageShortName: string;
   // packageUtils = packageUitls;
   // compileNodePath = [config().nodePath];
@@ -43,6 +40,11 @@ class NodeApi implements assetsUrl.PackageApi {
   browserInjector: Inject;
   findPackageByFile: (file: string) => PackageInstance | undefined;
   getNodeApiForPackage: (pkInstance: PackageInstance) => NodeApi;
+
+  assetsUrl: typeof assetsUrl.assetsUrl;
+  serverUrl: typeof assetsUrl.serverUrl;
+  /** @deprecated */
+  entryPageUrl: typeof assetsUrl.entryPageUrl;
 
   get contextPath() {
     return this._contextPath();
@@ -68,9 +70,6 @@ class NodeApi implements assetsUrl.PackageApi {
     this.config().browserSideConfigProp.push(path);
   }
 
-  getProjectDirs() {
-    return this.config().projectList;
-  }
   /**
 	 * @param {string} url
 	 * @param {string} sourceFile
@@ -140,18 +139,18 @@ class NodeApi implements assetsUrl.PackageApi {
     return this.argv.locale || this.config.get('locales[0]');
   }
 
-//   getBuildLocale() {
-//     return this.argv.locale || this.config.get('locales[0]');
-//   }
+  // serverUrl(packageNameOrPath: string, path?: string) {
+  //   return assetsUrl.serverUrl.apply(this, arguments);
+  // }
 
-//   localeBundleFolder() {
-//     return this.isDefaultLocale() ? '' : this.getBuildLocale() + '/';
-//   }
-
-//   isDefaultLocale() {
-//     return this.config.get('locales[0]') === this.getBuildLocale();
-//   }
+  // publicUrl(staticAssetsURL: string, outputPathMap: {[name: string]: string},
+  //   useLocale: string | null, packageName: string | null, path: string) {
+  //     return 
+  //   }
 }
+
 NodeApi.prototype.eventBus = new EventEmitter();
+
 assetsUrl.patchToApi(NodeApi.prototype);
-export = NodeApi;
+
+export default NodeApi;
