@@ -1,4 +1,4 @@
-import {config, InjectorConfigHandler} from '@wfh/plink';
+import {config} from '@wfh/plink';
 
 /**
  * Package setting type
@@ -38,16 +38,3 @@ export function getSetting() {
   // tslint:disable:no-string-literal
   return config()['$__foobarPackage__$']!;
 }
-
-const otherConfigures: InjectorConfigHandler = {
-    /** For Node.js runtime, replace module in "require()" or import syntax */
-    setupNodeInjector(factory, setting) {
-      // factory.fromPackage('@wfh/foobar').alias('moduleA', 'moduleB');
-    },
-    /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */
-    setupWebInjector(factory, setting) {
-      // factory.fromPackage('@wfh/foobar').alias('moduleA', 'moduleB');
-    }
-};
-
-export default otherConfigures;

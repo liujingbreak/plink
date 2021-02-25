@@ -137,11 +137,11 @@ function load(cliOption: CliOptions) {
   dispatcher._change(s => {
     s.localIP = getLanIPv4();
   });
-  const pkgSettingJsFiles = loadPackageSettings();
+  loadPackageSettings();
   const configFileList = cliOption.config || [];
   configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(localConfigPath));
-  const handlers = new ConfigHandlerMgr(pkgSettingJsFiles.concat(
-    configFileList.filter(name => /\.[tj]s$/.test(name))));
+  const handlers = new ConfigHandlerMgr(
+    configFileList.filter(name => /\.[tj]s$/.test(name)));
   handlers$.next(handlers);
   dispatcher._change(draft => {
     handlers.runEachSync<ConfigHandler>((_file, obj, handler) => {
@@ -323,16 +323,20 @@ function loadPackageSettings(): string[] {
     try {
       const absFile = Path.resolve(pkg.realPath, jsFile);
       const exps = require(absFile);
-      let value = exps[defaultSettingExport];
-      if (typeof value === 'function') {
-        value = value(getState());
+      const defaultSettingFactory = exps[defaultSettingExport];
+
+      if (typeof defaultSettingFactory === 'function') {
+        const value = defaultSettingFactory(getState());
+        dispatcher._change(s => s[pkg.name] = value);
+      } else {
+        log.warn(`Failed to load package setting from ${pkg.name}/${jsFile}.\n Export name "${defaultSettingExport}" is not found`);
       }
+      // Not used for now
       if (exps.default != null) {
         jsFiles.push(absFile);
       }
-      dispatcher._change(s => s[pkg.name] = value);
     } catch (err) {
-      log.error(`Failed to load default config from ${pkg.name}/${jsFile}.'${defaultSettingExport}`, err);
+      log.error(`Failed to load package setting from ${pkg.name}/${jsFile}.'${defaultSettingExport}`, err);
     }
   }
   return jsFiles;

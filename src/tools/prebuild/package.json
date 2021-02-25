@@ -1,6 +1,6 @@
 {
   "name": "@wfh/prebuild",
-  "version": "1.0.43",
+  "version": "1.0.44",
   "description": "Work with Plink, prebuild command line tool for monorepo based project",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,7 +21,7 @@
       }
     },
     "setting": {
-      "value": "isom/prebuild-setting.js#default",
+      "value": "isom/prebuild-setting.js#defaultSetting",
       "type": "isom/prebuild-setting#PrebuildSetting"
     }
   },
