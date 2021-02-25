@@ -1,6 +1,6 @@
 import {getState, pathToProjKey, workspaceKey, PackageInfo} from './index';
 import Path from 'path';
-import {PlinkEnv} from '../node-path';
+import {PlinkEnv, calcNodePaths} from '../node-path';
 import _ from 'lodash';
 import {getLogger} from 'log4js';
 
@@ -108,25 +108,22 @@ export function setTsCompilerOptForNodePath(
   assigneeOptions: Partial<CompilerOptions>,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
+  const {rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+  let symlinkDir: string | undefined;
   let pathsDirs: string[] = [];
   // workspace node_modules should be the first
   if (opts.workspaceDir != null) {
-    pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
+    symlinkDir = Path.resolve(opts.workspaceDir, '.links');
+    // pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
+    pathsDirs.push(...calcNodePaths(rootDir, symlinkDir, opts.workspaceDir || process.cwd()));
   }
 
   if (opts.extraNodePath && opts.extraNodePath.length > 0) {
     pathsDirs.push(...opts.extraNodePath);
   }
-  if (process.env.NODE_PATH) {
-    pathsDirs.push(...process.env.NODE_PATH.split(Path.delimiter));
-  }
-
-  // console.log('temp..............', pathsDirs);
-  // console.log('extraNodePath', opts.extraNodePath);
 
   pathsDirs = _.uniq(pathsDirs);
 
-  const {symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
   if (opts.noSymlinks && symlinkDir) {
     const idx = pathsDirs.indexOf(symlinkDir);
     if (idx >= 0) {

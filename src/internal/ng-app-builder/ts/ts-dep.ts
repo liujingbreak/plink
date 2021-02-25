@@ -1,10 +1,11 @@
-import Query from './utils/ts-ast-query';
+import Query, {typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import fs from 'fs';
-import ts, {Extension} from 'typescript';
+// import ts, {Extension} from 'typescript';
 import Path from 'path';
 import {EOL as eol} from 'os';
 import { createWriteStream } from 'fs-extra';
 const cwd = process.cwd();
+const {Extension} = ts;
 // import api from '__api';
 // const log = require('log4js').getLogger(api.packageName + '.ts-deps');
 

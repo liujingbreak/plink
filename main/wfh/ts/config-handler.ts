@@ -76,7 +76,10 @@ export class ConfigHandlerMgr {
       );
       ConfigHandlerMgr.compilerOptions = compilerOptions;
 
-      setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions);
+      setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions, {
+        enableTypeRoots: true,
+        workspaceDir: process.cwd()
+      });
 
       compilerOptions.module = 'commonjs';
       compilerOptions.noUnusedLocals = false;

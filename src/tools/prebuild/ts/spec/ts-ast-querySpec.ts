@@ -1,9 +1,7 @@
 // tslint:disable:no-console
-import Selector, {Query/*, AstCharacter*/} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
+import Selector, {Query, typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import * as fs from 'fs';
 import {resolve} from 'path';
-import * as ts from 'typescript';
-// const log = require('log4js').getLogger('ts-ast-querySpec');
 
 describe('ts-ast-query', () => {
   it('printAll demo', () => {

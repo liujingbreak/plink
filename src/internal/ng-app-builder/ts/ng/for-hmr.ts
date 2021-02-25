@@ -1,8 +1,7 @@
 import Path from 'path';
 import fs from 'fs';
 import replaceCode from '@wfh/plink/wfh/dist/utils/patch-text';
-import TsAstSelector from '../utils/ts-ast-query';
-import ts from 'typescript';
+import TsAstSelector, {typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import log4js from 'log4js';
 
 const log = log4js.getLogger('@wfh/ng-app-builder.for-hmr');

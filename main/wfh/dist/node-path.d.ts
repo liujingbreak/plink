@@ -1,3 +1,4 @@
+export declare function calcNodePaths(rootDir: string, symlinkDir: string | null, cwd?: string): string[];
 /**
  * Get environment variables predefined by
 ```

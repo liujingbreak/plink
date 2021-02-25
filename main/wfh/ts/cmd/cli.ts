@@ -158,6 +158,7 @@ function subWfhCommand(program: commander.Command) {
     .description('Reinstall local Plink along with other dependencies.' +
       ' (Unlike "npm install" which does not work with node_modules that might contain symlinks)')
     .action(async () => {
+      skipVersionCheck = true;
       await (await import('./cli-link-plink')).reinstallWithLinkedPlink();
     });
 
@@ -349,11 +350,11 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
 }
 
 
-let versionChecked = false;
+let skipVersionCheck = false;
 process.on('beforeExit', () => {
-  if (versionChecked)
+  if (skipVersionCheck)
     return;
-  versionChecked = true;
+  skipVersionCheck = true;
   checkPlinkVersion();
 });
 

@@ -800,7 +800,7 @@ function _createSymlinksForWorkspace(wsKey: string) {
     file: Path.resolve(getRootDir(), '.gitignore'),
     lines: [Path.relative(getRootDir(), symlinkDir).replace(/\\/g, '/')]});
   return merge(
-    from(pkgNames.map(
+    from(Array.from(pkgNameSet).map(
         name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!)
       ).pipe(
         symbolicLinkPackages(symlinkDir)

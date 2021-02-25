@@ -1,8 +1,8 @@
-import Selector from '@wfh/plink/wfh/dist/utils/ts-ast-query';
+import Selector, {typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import fs from 'fs';
-import ts, {SyntaxKind} from 'typescript';
 import chalk from 'chalk';
 
+const {SyntaxKind} = ts;
 /**
  * List exported public functions and its parameters
  */

@@ -5,6 +5,7 @@ import uniq from 'lodash/uniq';
 import _ from 'lodash';
 import ts, { SyntaxKind as sk} from 'typescript';
 import chalk from 'chalk';
+export {ts as typescript};
 
 export let astSchemaCache: {[kind: string]: string[]} = {};
 // let fileCounting = 0;

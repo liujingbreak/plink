@@ -1,5 +1,5 @@
-import Selector from './ts-ast-query';
-import ts from 'typescript';
+import Selector, {typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
+
 import replaceCode, {Replacement} from './patch-text';
 const log = require('log4js').getLogger('Modify Ng8 ViewChild arguments');
 
@@ -28,7 +28,8 @@ export function transform(content: string, file: string) {
       }
       return null;
     }
-    throw new Error('Unsupported @ViewChild argument' + sel.printAll(call.arguments[1]));
+    sel.printAllNoType();
+    throw new Error('Unsupported @ViewChild argument ' + sel.printAll(call.arguments[1]));
   })
   .filter(item => item != null);
   if (replacements.length > 0) {

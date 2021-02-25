@@ -1,4 +1,5 @@
 import ts from 'typescript';
+export { ts as typescript };
 export declare let astSchemaCache: {
     [kind: string]: string[];
 };

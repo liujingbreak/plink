@@ -1,5 +1,4 @@
-import * as ts from 'typescript';
-import Selector from './ts-ast-query';
+import Selector, {typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import * as Path from 'path';
 // import {readTsConfig} from '@wfh/plink/wfh/dist/ts-compiler';
 

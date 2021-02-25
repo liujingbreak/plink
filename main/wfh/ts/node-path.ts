@@ -34,7 +34,7 @@ if (!envSetDone) {
     symlinkDir = null;
   }
   const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(Path.resolve(rootDir, 'node_modules/@wfh/plink')).isSymbolicLink();
-  const nodePath = setupNodePath(rootDir, symlinkDir, isDrcpSymlink);
+  const nodePath = setupNodePath(rootDir, symlinkDir);
   const distDir = Path.resolve(rootDir, process.env.PLINK_DATA_DIR);
   process.env.__plink = JSON.stringify({distDir, isDrcpSymlink, rootDir, symlinkDir, nodePath} as PlinkEnv);
 
@@ -76,13 +76,22 @@ function findRootDir(distDir: string) {
  * @param rootDir 
  * @param isDrcpSymlink 
  */
-function setupNodePath(rootDir: string, symlinkDir: string | null, isDrcpSymlink: boolean) {
+function setupNodePath(rootDir: string, symlinkDir: string | null, cwd = process.cwd()) {
+  const pathArray = calcNodePaths(rootDir, symlinkDir, cwd);
+  process.env.NODE_PATH = pathArray.join(Path.delimiter);
+  // tslint:disable-next-line: no-console
+  console.log(chalk.gray('[node-path] NODE_PATH', process.env.NODE_PATH));
+  require('module').Module._initPaths();
+  return pathArray;
+}
+
+export function calcNodePaths(rootDir: string, symlinkDir: string | null, cwd = process.cwd()) {
   const nodePaths: string[] = [Path.resolve(rootDir, 'node_modules')];
   if (symlinkDir) {
     nodePaths.unshift(symlinkDir);
   }
-  if (rootDir !== process.cwd()) {
-    nodePaths.unshift(Path.resolve(process.cwd(), 'node_modules'));
+  if (rootDir !== cwd) {
+    nodePaths.unshift(Path.resolve(cwd, 'node_modules'));
   }
 
 
@@ -98,12 +107,7 @@ function setupNodePath(rootDir: string, symlinkDir: string | null, isDrcpSymlink
     }
   }
 
-  const pathArray = _.uniq(nodePaths);
-  process.env.NODE_PATH = pathArray.join(Path.delimiter);
-  // tslint:disable-next-line: no-console
-  console.log(chalk.gray('[node-path] NODE_PATH', process.env.NODE_PATH));
-  require('module').Module._initPaths();
-  return pathArray;
+  return _.uniq(nodePaths);
 }
 
 /**

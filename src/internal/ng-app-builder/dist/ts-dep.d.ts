@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import { typescript as ts } from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 export default class TsDependencyGraph {
     private co;
     private packageFileResolver?;
