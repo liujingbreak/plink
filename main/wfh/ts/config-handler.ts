@@ -125,7 +125,7 @@ export class ConfigHandlerMgr {
   async runEach<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any, desc?: string) {
     let lastRes: any;
     for (const {file, handler} of this.configHandlers) {
-      log.info(`Read ${desc || 'settings'}:\n  ` + cyan(file));
+      log.debug(`Read ${desc || 'settings'}:\n  ` + cyan(file));
       const currRes = await func(file, lastRes, handler as any as H);
       if (currRes !== undefined)
         lastRes = currRes;
@@ -137,7 +137,7 @@ export class ConfigHandlerMgr {
     let lastRes: any;
     const cwd = process.cwd();
     for (const {file, handler} of this.configHandlers) {
-      log.info(`Read ${desc || 'settings'}:\n  ` + cyan(Path.relative(cwd, file)));
+      log.debug(`Read ${desc || 'settings'}:\n  ` + cyan(Path.relative(cwd, file)));
       const currRes = func(file, lastRes, handler as any as H);
       if (currRes !== undefined)
         lastRes = currRes;
