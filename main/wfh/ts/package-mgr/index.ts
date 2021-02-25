@@ -11,7 +11,7 @@ import { spawn } from '../process-utils';
 import { exe } from '../process-utils';
 import { setProjectList} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
-import { getRootDir, isDrcpSymlink } from '../utils/misc';
+// import { getRootDir } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
 import {symbolicLinkPackages} from '../rwPackageJson';
 import {PlinkEnv} from '../node-path';
@@ -50,7 +50,7 @@ export interface PackagesState {
   lastCreatedWorkspace?: string;
 }
 
-const {distDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {distDir, rootDir, plinkDir, isDrcpSymlink} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
@@ -107,7 +107,7 @@ export const slice = stateFactory.newSlice({
     scanAndSyncPackages(d, action: PayloadAction<{packageJsonFiles?: string[]}>) {},
     updateDir() {},
     updatePlinkPackageInfo(d) {
-      const plinkPkg = createPackageInfo(require.resolve('@wfh/plink/package.json'), false);
+      const plinkPkg = createPackageInfo(Path.resolve(plinkDir, 'package.json'), false);
       if (isDrcpSymlink) {
         d.linkedDrcp = plinkPkg;
         d.installedDrcp = null;
@@ -350,7 +350,7 @@ stateFactory.addEpic((action$, state$) => {
             take(1),
             tap(() => {
               for (const wsKey of getState().workspaces.keys()) {
-                actionDispatcher._hoistWorkspaceDeps({dir: Path.resolve(getRootDir(), wsKey)});
+                actionDispatcher._hoistWorkspaceDeps({dir: Path.resolve(rootDir, wsKey)});
               }
             })
           )
@@ -370,7 +370,7 @@ stateFactory.addEpic((action$, state$) => {
           const curr = getState().currWorkspace;
           if (curr != null) {
             if (getState().workspaces.has(curr)) {
-              const path = Path.resolve(getRootDir(), curr);
+              const path = Path.resolve(rootDir, curr);
               actionDispatcher.updateWorkspace({dir: path, isForce: payload.isForce, createHook: payload.createHook});
             } else {
               actionDispatcher.setCurrentWorkspace(null);
@@ -542,15 +542,15 @@ export function getStore(): Observable<PackagesState> {
 }
 
 export function pathToProjKey(path: string) {
-  const relPath = Path.relative(getRootDir(), path);
+  const relPath = Path.relative(rootDir, path);
   return relPath.startsWith('..') ? Path.resolve(path) : relPath;
 }
 export function projKeyToPath(key: string) {
-  return Path.isAbsolute(key) ? key : Path.resolve(getRootDir(), key);
+  return Path.isAbsolute(key) ? key : Path.resolve(rootDir, key);
 }
 
 export function workspaceKey(path: string) {
-  let rel = Path.relative(getRootDir(), Path.resolve(path));
+  let rel = Path.relative(rootDir, Path.resolve(path));
   if (Path.sep === '\\')
     rel = rel.replace(/\\/g, '/');
   return rel;
@@ -570,7 +570,7 @@ export function* getPackagesOfProjects(projects: string[]) {
 }
 
 export function getProjectList() {
-  return Array.from(getState().project2Packages.keys()).map(pj => Path.resolve(getRootDir(), pj));
+  return Array.from(getState().project2Packages.keys()).map(pj => Path.resolve(rootDir, pj));
 }
 
 export function isCwdWorkspace() {
@@ -598,7 +598,7 @@ function updateInstalledPackageForWorkspace(wsKey: string) {
  */
 function checkAllWorkspaces() {
   for (const key of getState().workspaces.keys()) {
-    const dir = Path.resolve(getRootDir(), key);
+    const dir = Path.resolve(rootDir, key);
     if (!fs.existsSync(dir)) {
       // tslint:disable-next-line: no-console
       log.info(`Workspace ${key} does not exist anymore.`);
@@ -609,12 +609,12 @@ function checkAllWorkspaces() {
 
 async function initRootDirectory(createHook = false) {
   log.debug('initRootDirectory');
-  const rootPath = getRootDir();
+  const rootPath = rootDir;
   fs.mkdirpSync(distDir);
   // maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(distDir, 'config.local.yaml'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/log4js.js'), rootPath + '/log4js.js');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates',
-      'gitignore.txt'), getRootDir() + '/.gitignore');
+      'gitignore.txt'), rootDir + '/.gitignore');
   await cleanInvalidSymlinks();
 
   const projectDirs = getProjectList();
@@ -627,7 +627,7 @@ async function initRootDirectory(createHook = false) {
   }
 
   await scanAndSyncPackages();
-  await _deleteUselessSymlink(Path.resolve(getRootDir(), 'node_modules'), new Set<string>());
+  await _deleteUselessSymlink(Path.resolve(rootDir, 'node_modules'), new Set<string>());
 }
 
 // async function writeConfigFiles() {
@@ -640,7 +640,7 @@ async function initRootDirectory(createHook = false) {
 // }
 
 async function installWorkspace(ws: WorkspaceState) {
-  const dir = Path.resolve(getRootDir(), ws.id);
+  const dir = Path.resolve(rootDir, ws.id);
   try {
     await installInDir(dir, ws.originInstallJsonStr, ws.installJsonStr);
   } catch (ex) {
@@ -783,7 +783,7 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
 }
 
 function _createSymlinksForWorkspace(wsKey: string) {
-  const symlinkDir = Path.resolve(getRootDir(), wsKey, '.links');
+  const symlinkDir = Path.resolve(rootDir, wsKey, '.links');
   fs.mkdirpSync(symlinkDir);
   const ws = getState().workspaces.get(wsKey)!;
 
@@ -797,8 +797,8 @@ function _createSymlinksForWorkspace(wsKey: string) {
   }
 
   actionDispatcher.updateGitIgnores({
-    file: Path.resolve(getRootDir(), '.gitignore'),
-    lines: [Path.relative(getRootDir(), symlinkDir).replace(/\\/g, '/')]});
+    file: Path.resolve(rootDir, '.gitignore'),
+    lines: [Path.relative(rootDir, symlinkDir).replace(/\\/g, '/')]});
   return merge(
     from(Array.from(pkgNameSet).map(
         name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!)
@@ -852,10 +852,10 @@ function* scanInstalledPackage4Workspace(state: PackagesState, workspaceKey: str
       continue;
     for (const dep of Object.keys(deps)) {
       if (!state.srcPackages.has(dep) && dep !== '@wfh/plink') {
-        const pkjsonFile = Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json');
+        const pkjsonFile = Path.resolve(rootDir, workspaceKey, 'node_modules', dep, 'package.json');
         if (fs.existsSync(pkjsonFile)) {
           const pk = createPackageInfo(
-            Path.resolve(getRootDir(), workspaceKey, 'node_modules', dep, 'package.json'), true
+            Path.resolve(rootDir, workspaceKey, 'node_modules', dep, 'package.json'), true
           );
           if (pk.json.dr || pk.json.plink) {
             yield pk;
@@ -909,7 +909,7 @@ function cp(from: string, to: string) {
  * @param {string} to relative to rootPath 
  */
 function maybeCopyTemplate(from: string, to: string) {
-  if (!fs.existsSync(Path.resolve(getRootDir(), to)))
+  if (!fs.existsSync(Path.resolve(rootDir, to)))
     cp(Path.resolve(__dirname, from), to);
 }
 
@@ -918,7 +918,7 @@ function _writeGitHook(project: string) {
   const gitPath = Path.resolve(project, '.git/hooks');
   if (fs.existsSync(gitPath)) {
     const hookStr = '#!/bin/sh\n' +
-      `cd "${getRootDir()}"\n` +
+      `cd "${rootDir}"\n` +
       // 'drcp init\n' +
       // 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
       `plink lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
@@ -938,12 +938,12 @@ function deleteDuplicatedInstalledPkg(workspaceKey: string) {
   const wsState = getState().workspaces.get(workspaceKey)!;
   const doNothing = () => {};
   wsState.linkedDependencies.concat(wsState.linkedDevDependencies).map(([pkgName]) => {
-    const dir = Path.resolve(getRootDir(), workspaceKey, 'node_modules', pkgName);
+    const dir = Path.resolve(rootDir, workspaceKey, 'node_modules', pkgName);
     return fs.promises.lstat(dir)
     .then((stat) => {
       if (!stat.isSymbolicLink()) {
         // tslint:disable-next-line: no-console
-        log.info(`Previous installed ${Path.relative(getRootDir(),dir)} is deleted, due to linked package ${pkgName}`);
+        log.info(`Previous installed ${Path.relative(rootDir,dir)} is deleted, due to linked package ${pkgName}`);
         return fs.promises.unlink(dir);
       }
     })

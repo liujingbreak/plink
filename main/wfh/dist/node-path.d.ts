@@ -1,4 +1,4 @@
-export declare function calcNodePaths(rootDir: string, symlinkDir: string | null, cwd?: string): string[];
+export declare function calcNodePaths(rootDir: string, symlinksDir: string | null, cwd: string | undefined, plinkDir: string): string[];
 /**
  * Get environment variables predefined by
 ```
@@ -11,4 +11,5 @@ export interface PlinkEnv {
     rootDir: string;
     symlinkDir: string | null;
     nodePath: string[];
+    plinkDir: string;
 }

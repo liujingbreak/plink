@@ -33,10 +33,13 @@ if (!envSetDone) {
   if (symlinkDir && !fs.existsSync(symlinkDir)) {
     symlinkDir = null;
   }
-  const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(Path.resolve(rootDir, 'node_modules/@wfh/plink')).isSymbolicLink();
-  const nodePath = setupNodePath(rootDir, symlinkDir);
+  let plinkDir = Path.resolve(rootDir, 'node_modules/@wfh/plink');
+  const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(plinkDir).isSymbolicLink();
+  if (isDrcpSymlink)
+    plinkDir = fs.realpathSync(plinkDir);
+  const nodePath = setupNodePath(rootDir, symlinkDir, plinkDir);
   const distDir = Path.resolve(rootDir, process.env.PLINK_DATA_DIR);
-  process.env.__plink = JSON.stringify({distDir, isDrcpSymlink, rootDir, symlinkDir, nodePath} as PlinkEnv);
+  process.env.__plink = JSON.stringify({distDir, isDrcpSymlink, rootDir, symlinkDir, nodePath, plinkDir} as PlinkEnv);
 
   // delete register from command line option, to avoid child process get this option, since we have NODE_PATH set
   // for child process
@@ -76,8 +79,8 @@ function findRootDir(distDir: string) {
  * @param rootDir 
  * @param isDrcpSymlink 
  */
-function setupNodePath(rootDir: string, symlinkDir: string | null, cwd = process.cwd()) {
-  const pathArray = calcNodePaths(rootDir, symlinkDir, cwd);
+function setupNodePath(rootDir: string, symlinksDir: string | null, plinkDir: string) {
+  const pathArray = calcNodePaths(rootDir, symlinksDir, process.cwd(), plinkDir);
   process.env.NODE_PATH = pathArray.join(Path.delimiter);
   // tslint:disable-next-line: no-console
   console.log(chalk.gray('[node-path] NODE_PATH', process.env.NODE_PATH));
@@ -85,22 +88,21 @@ function setupNodePath(rootDir: string, symlinkDir: string | null, cwd = process
   return pathArray;
 }
 
-export function calcNodePaths(rootDir: string, symlinkDir: string | null, cwd = process.cwd()) {
+export function calcNodePaths(rootDir: string, symlinksDir: string | null, cwd = process.cwd(), plinkDir: string) {
   const nodePaths: string[] = [Path.resolve(rootDir, 'node_modules')];
-  if (symlinkDir) {
-    nodePaths.unshift(symlinkDir);
+  if (symlinksDir) {
+    nodePaths.unshift(symlinksDir);
   }
   if (rootDir !== cwd) {
     nodePaths.unshift(Path.resolve(cwd, 'node_modules'));
   }
-
 
   /**
    * Somehow when I install @wfh/plink in an new directory, npm does not dedupe dependencies from 
    * @wfh/plink/node_modules directory up to current node_modules directory, results in MODULE_NOT_FOUND
    * from @wfh/plink/redux-toolkit-abservable for rxjs
    */
-  nodePaths.push(fs.realpathSync(Path.resolve(rootDir!, 'node_modules/@wfh/plink')) + Path.sep + 'node_modules');
+  nodePaths.push(plinkDir + Path.sep + 'node_modules');
   if (process.env.NODE_PATH) {
     for (const path of process.env.NODE_PATH.split(Path.delimiter)) {
       nodePaths.push(path);
@@ -122,6 +124,7 @@ export interface PlinkEnv {
   rootDir: string;
   symlinkDir: string | null;
   nodePath: string[];
+  plinkDir: string;
 }
 
 

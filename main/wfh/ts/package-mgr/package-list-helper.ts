@@ -108,14 +108,14 @@ export function setTsCompilerOptForNodePath(
   assigneeOptions: Partial<CompilerOptions>,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
-  const {rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-  let symlinkDir: string | undefined;
+  const {rootDir, plinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+  let symlinksDir: string | undefined;
   let pathsDirs: string[] = [];
   // workspace node_modules should be the first
   if (opts.workspaceDir != null) {
-    symlinkDir = Path.resolve(opts.workspaceDir, '.links');
+    symlinksDir = Path.resolve(opts.workspaceDir, '.links');
     // pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
-    pathsDirs.push(...calcNodePaths(rootDir, symlinkDir, opts.workspaceDir || process.cwd()));
+    pathsDirs.push(...calcNodePaths(rootDir, symlinksDir, opts.workspaceDir || process.cwd(), plinkDir));
   }
 
   if (opts.extraNodePath && opts.extraNodePath.length > 0) {
@@ -124,8 +124,8 @@ export function setTsCompilerOptForNodePath(
 
   pathsDirs = _.uniq(pathsDirs);
 
-  if (opts.noSymlinks && symlinkDir) {
-    const idx = pathsDirs.indexOf(symlinkDir);
+  if (opts.noSymlinks && symlinksDir) {
+    const idx = pathsDirs.indexOf(symlinksDir);
     if (idx >= 0) {
       pathsDirs.splice(idx, 1);
     }

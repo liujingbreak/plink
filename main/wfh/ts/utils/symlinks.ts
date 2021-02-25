@@ -5,7 +5,7 @@
  */
 
 import * as fs from 'fs';
-import {removeSync} from 'fs-extra';
+// import {removeSync} from 'fs-extra';
 import Path from 'path';
 import util from 'util';
 import os from 'os';
@@ -73,7 +73,7 @@ export function linkDrcp() {
       fs.mkdirSync('node_modules/@wfh');
 
     if (target != null) {
-      removeSync(Path.resolve('node_modules/@wfh/plink'));
+      fs.unlinkSync(Path.resolve('node_modules/@wfh/plink'));
       // fs.unlinkSync(Path.resolve('node_modules/@wfh/plink'));
     }
     fs.symlinkSync(Path.relative(Path.resolve('node_modules', '@wfh'), sourceDir),

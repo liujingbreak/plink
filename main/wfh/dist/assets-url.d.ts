@@ -1,8 +1,12 @@
+interface ConfigSetting {
+    staticAssetsURL: string;
+    outputPathMap: {
+        [name: string]: string;
+    };
+}
 export interface PackageApi {
     packageName: string;
-    config(): {
-        [key: string]: any;
-    };
+    config(): ConfigSetting;
     isDefaultLocale(): boolean;
     getBuildLocale(): string;
     isNode(): boolean;
@@ -30,3 +34,4 @@ export declare function publicUrl(staticAssetsURL: string, outputPathMap: {
     [name: string]: string;
 }, useLocale: string | null, packageName: string | null, path: string): string;
 export declare function serverUrl(this: PackageApi, packageNameOrPath: string, path?: string): string;
+export {};
