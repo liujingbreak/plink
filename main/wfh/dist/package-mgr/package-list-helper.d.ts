@@ -6,6 +6,8 @@ export declare function packages4Workspace(workspaceDir?: string, includeInstall
 export interface CompilerOptionSetOpt {
     /** Will add typeRoots property for specific workspace, and add paths of file "_package-settings.d.ts" */
     workspaceDir?: string;
+    /** Add real path of all link package to "paths" property */
+    realPackagePaths?: boolean;
     enableTypeRoots?: boolean;
     noTypeRootsInPackages?: boolean;
     /** Default false, Do not include linked package symlinks directory in path*/

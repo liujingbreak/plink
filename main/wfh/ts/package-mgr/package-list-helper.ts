@@ -80,6 +80,8 @@ export function packages4Workspace(workspaceDir?: string, includeInstalled = tru
 export interface CompilerOptionSetOpt {
   /** Will add typeRoots property for specific workspace, and add paths of file "_package-settings.d.ts" */
   workspaceDir?: string;
+  /** Add real path of all link package to "paths" property */
+  realPackagePaths?: boolean;
   enableTypeRoots?: boolean;
   noTypeRootsInPackages?: boolean;
   /** Default false, Do not include linked package symlinks directory in path*/
@@ -141,29 +143,72 @@ export function setTsCompilerOptForNodePath(
   if (assigneeOptions.paths == null)
     assigneeOptions.paths = {};
 
-  const absBaseUrl = Path.resolve(tsconfigDir, baseUrl);
+  const baseUrlAbsPath = Path.resolve(tsconfigDir, baseUrl);
   // if (opts.workspaceDir != null) {
   //   assigneeOptions.paths['_package-settings'] = [
-  //     Path.relative(absBaseUrl, opts.workspaceDir).replace(/\\/g, '/') + '/_package-settings'];
+  //     Path.relative(baseUrlAbsPath, opts.workspaceDir).replace(/\\/g, '/') + '/_package-settings'];
   // }
 
   assigneeOptions.baseUrl = baseUrl.replace(/\\/g, '/');
-  const otherPaths: string[] = assigneeOptions.paths['*'] = [];
+  if (opts.realPackagePaths) {
+    Object.assign(assigneeOptions.paths, pathMappingForLinkedPkgs(baseUrlAbsPath));
+  }
+  if (assigneeOptions.paths['*'] == null)
+    assigneeOptions.paths['*'] = [] as string[];
+  const wildcardPaths: string[] = assigneeOptions.paths['*'];
 
   for (const dir of pathsDirs) {
-    const relativeDir = Path.relative(absBaseUrl, dir).replace(/\\/g, '/');
+    const relativeDir = Path.relative(baseUrlAbsPath, dir).replace(/\\/g, '/');
     // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
-    otherPaths.push(Path.join(relativeDir, '@types/*').replace(/\\/g, '/'));
-    otherPaths.push(Path.join(relativeDir, '*').replace(/\\/g, '/'));
+    wildcardPaths.push(Path.join(relativeDir, '@types/*').replace(/\\/g, '/'));
+    wildcardPaths.push(Path.join(relativeDir, '*').replace(/\\/g, '/'));
+  }
+  assigneeOptions.paths['*'] = _.uniq(wildcardPaths);
+  appendTypeRoots(pathsDirs, tsconfigDir, assigneeOptions, opts);
+
+  return assigneeOptions as CompilerOptions;
+}
+
+function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {
+  let drcpDir = (getState().linkedDrcp || getState().installedDrcp)!.realPath;
+
+  const pathMapping: {[key: string]: string[]} = {};
+
+  for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
+    const realDir = Path.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
+    pathMapping[name] = [realDir];
+    pathMapping[name + '/*'] = [realDir + '/*'];
   }
 
+  // if (pkgName !== '@wfh/plink') {
+  drcpDir = Path.relative(baseUrlAbsPath, drcpDir).replace(/\\/g, '/');
+  pathMapping['@wfh/plink'] = [drcpDir];
+  pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
+  return pathMapping;
+}
 
-  assigneeOptions.typeRoots = opts.noTypeRootsInPackages ? [] : [
-    Path.relative(tsconfigDir, Path.resolve(__dirname, '../../types')).replace(/\\/g, '/'),
-    ...typeRootsInPackages(opts.workspaceDir).map(dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/'))
-  ];
+/**
+ * 
+ * @param pathsDirs Node path like path information
+ * @param tsconfigDir 
+ * @param assigneeOptions 
+ * @param opts 
+ */
+function appendTypeRoots(pathsDirs: string[], tsconfigDir: string, assigneeOptions: Partial<CompilerOptions>,
+  opts: CompilerOptionSetOpt) {
+
+  if (!opts.noTypeRootsInPackages) {
+    if (assigneeOptions.typeRoots == null)
+      assigneeOptions.typeRoots = [];
+    assigneeOptions.typeRoots.push(
+      Path.relative(tsconfigDir, Path.resolve(__dirname, '../../types')).replace(/\\/g, '/'),
+      ...typeRootsInPackages(opts.workspaceDir).map(dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/'))
+    );
+  }
 
   if (opts.enableTypeRoots ) {
+    if (assigneeOptions.typeRoots == null)
+      assigneeOptions.typeRoots = [];
     assigneeOptions.typeRoots.push(...pathsDirs.map(dir => {
       const relativeDir = Path.relative(tsconfigDir, dir).replace(/\\/g, '/');
       return relativeDir + '/@types';
@@ -171,14 +216,15 @@ export function setTsCompilerOptForNodePath(
   }
 
   if (opts.extraTypeRoot) {
+    if (assigneeOptions.typeRoots == null)
+      assigneeOptions.typeRoots = [];
     assigneeOptions.typeRoots.push(...opts.extraTypeRoot.map(
       dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/')));
   }
 
-  if (assigneeOptions.typeRoots.length === 0)
+  assigneeOptions.typeRoots = _.uniq(assigneeOptions.typeRoots);
+  if (assigneeOptions.typeRoots != null && assigneeOptions.typeRoots.length === 0)
     delete assigneeOptions.typeRoots;
-
-  return assigneeOptions as CompilerOptions;
 }
 
 function typeRootsInPackages(onlyIncludeWorkspace?: string) {

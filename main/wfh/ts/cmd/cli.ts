@@ -17,6 +17,7 @@ import {CommandOverrider} from './override-commander';
 import {initInjectorForNodePackages} from '../package-runner';
 import {hl, hlDesc, arrayOptionFn} from './utils';
 import {getLogger} from 'log4js';
+import {CliOptions as TsconfigCliOptions} from './cli-tsconfig-hook';
 const pk = require('../../../package.json');
 // const WIDTH = 130;
 const log = getLogger('plink.cli');
@@ -176,6 +177,16 @@ function subWfhCommand(program: commander.Command) {
     .description('If you want to know how many packages will actually run, this command prints out a list and the priorities, including installed packages')
     .action(async () => {
       await (await import('./cli-ls')).default(listCmd.opts() as any);
+    });
+
+  const tsconfigCmd = program.command('tsconfig')
+    .description('List tsconfig.json, jsconfig.json files which will be updated automatically by Plink, (a monorepo means there are node packages which are symlinked from real source code directory' +
+      ', if you have customized tsconfig.json file, this command helps to update "compilerOptions.paths" properties)')
+    .option('--hook <file>', 'add tsconfig/jsconfig file to Plink\'s automatic updating file list', arrayOptionFn, [])
+    .option('--unhook <file>', 'remove tsconfig/jsconfig file from Plink\'s automatic updating file list', arrayOptionFn, [])
+    .option('--clean,--unhook-all', 'remove all tsconfig files from from Plink\'s automatic updating file list', false)
+    .action(async () => {
+      (await import('./cli-tsconfig-hook')).doTsconfig(tsconfigCmd.opts() as TsconfigCliOptions);
     });
 
   /**

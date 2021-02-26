@@ -1,8 +1,10 @@
 import {BumpOptions} from './types';
-import {getState, pathToProjKey} from '../package-mgr';
+import {getState, pathToProjKey, actionDispatcher} from '../package-mgr';
 import { exe } from '../process-utils';
 import {findPackagesByNames} from './utils';
 import log4js from 'log4js';
+// import Path from 'path';
+import '../editor-helper';
 
 const log = log4js.getLogger('plin.cli-bump');
 
@@ -20,7 +22,9 @@ export default async function(options: BumpOptions & {packages: string[]}) {
       [] as string[]);
 
     await bumpPackages(pkgNames, options.increVersion);
+    await new Promise(resolve => setImmediate(resolve));
   }
+  actionDispatcher.scanAndSyncPackages({});
 }
 
 async function bumpPackages(pkgNames: string[], increVersion: string) {

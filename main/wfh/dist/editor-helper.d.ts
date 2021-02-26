@@ -1,1 +1,21 @@
+import * as rx from 'rxjs';
+import { PayloadAction } from '@reduxjs/toolkit';
+interface EditorHelperState {
+    /** tsconfig files should be changed according to linked packages state */
+    tsconfigByRelPath: Map<string, HookedTsconfig>;
+}
+interface HookedTsconfig {
+    /** Path relative to root path */
+    relPath: string;
+    baseUrl: string;
+    originJson: any;
+}
+export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
+    hookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
+    unHookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
+    unHookAll(): void;
+} & import("../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>>;
+export declare function getState(): EditorHelperState;
+export declare function getStore(): rx.Observable<EditorHelperState>;
 export declare function updateTsconfigFileForProjects(wsKey: string, includeProject?: string): void;
+export {};

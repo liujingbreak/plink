@@ -3,20 +3,52 @@ import * as fs from 'fs-extra';
 import _ from 'lodash';
 import log4js from 'log4js';
 import Path from 'path';
-import { setTsCompilerOptForNodePath, packages4WorkspaceKey } from './package-mgr/package-list-helper';
-import { getProjectList, pathToProjKey, getState, updateGitIgnores, slice as pkgSlice } from './package-mgr';
+import { setTsCompilerOptForNodePath, packages4WorkspaceKey, CompilerOptions } from './package-mgr/package-list-helper';
+import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
+  isCwdWorkspace } from './package-mgr';
 import { stateFactory, ofPayloadAction } from './store';
 import * as _recp from './recipe-manager';
 import { closestCommonParentDir, getRootDir } from './utils/misc';
 import {getPackageSettingFiles} from './config';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import { PayloadAction } from '@reduxjs/toolkit';
 
 // import Selector from './utils/ts-ast-query';
 const log = log4js.getLogger('plink.editor-helper');
 const {parse} = require('comment-json');
 
-stateFactory.addEpic((action$, state$) => {
+interface EditorHelperState {
+  /** tsconfig files should be changed according to linked packages state */
+  tsconfigByRelPath: Map<string, HookedTsconfig>;
+}
+
+interface HookedTsconfig {
+  /** Path relative to root path */
+  relPath: string;
+  baseUrl: string;
+  originJson: any;
+}
+
+const initialState: EditorHelperState = {tsconfigByRelPath: new Map()};
+
+const slice = stateFactory.newSlice({
+  name: 'editor-helper',
+  initialState,
+  reducers: {
+    hookTsconfig(s, {payload}: PayloadAction<string[]>) {},
+    unHookTsconfig(s, {payload}: PayloadAction<string[]>) {
+      const rootPath = getRootDir();
+      for (const file of payload) {
+        const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
+        s.tsconfigByRelPath.delete(relPath);
+      }
+    },
+    unHookAll() {}
+  }
+});
+
+stateFactory.addEpic<EditorHelperState>((action$, state$) => {
   return rx.merge(
     action$.pipe(ofPayloadAction(pkgSlice.actions.createSymlinksForWorkspace),
       op.tap(({payload: wsKeys}) => {
@@ -24,6 +56,59 @@ stateFactory.addEpic((action$, state$) => {
         for (const wsKey of wsKeys) {
           updateTsconfigFileForProjects(wsKey);
         }
+        const wsDir = isCwdWorkspace() ? process.cwd() :
+          getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
+          : undefined;
+        for (const data of getState().tsconfigByRelPath.values()) {
+          updateHookedTsconfig(data, wsDir);
+        }
+      })
+    ),
+    action$.pipe(ofPayloadAction(slice.actions.hookTsconfig),
+      op.mergeMap(action => {
+        const rootDir = getRootDir();
+        return action.payload.map(file => [file, rootDir]);
+      }),
+      op.mergeMap(([file, rootPath]) => {
+        const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
+        const fileContent = fs.readFileSync(file, 'utf8');
+        const json: {compilerOptions: CompilerOptions} = JSON.parse(fileContent);
+
+        const data: HookedTsconfig = {
+          relPath,
+          baseUrl: json.compilerOptions.baseUrl,
+          originJson: json
+        };
+        dispatcher._change(s => {
+          s.tsconfigByRelPath.set(relPath, data);
+        });
+
+        const tsconfigDir = Path.dirname(file);
+        const backupFile = Path.resolve(tsconfigDir, 'tsconfig.orig.json');
+        if (!fs.existsSync(backupFile)) {
+          fs.writeFileSync(backupFile, fileContent);
+        }
+        const wsDir = isCwdWorkspace() ? process.cwd() :
+          getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
+          : undefined;
+        return updateHookedTsconfig(data, wsDir);
+      })
+    ),
+    action$.pipe(ofPayloadAction(slice.actions.unHookTsconfig),
+      op.mergeMap(({payload}) => payload),
+      op.mergeMap(file => {
+        const tsconfigDir = Path.dirname(file);
+        const backupFile = Path.resolve(tsconfigDir, 'tsconfig.orig.json');
+        if (fs.existsSync(backupFile)) {
+          const fileContent = fs.readFileSync(backupFile, 'utf8');
+          return fs.promises.writeFile(file, fileContent);
+        }
+        return Promise.resolve();
+      })
+    ),
+    action$.pipe(ofPayloadAction(slice.actions.unHookAll),
+      op.tap(() => {
+        dispatcher.unHookTsconfig(Array.from(getState().tsconfigByRelPath.keys()));
       })
     )
   ).pipe(
@@ -34,9 +119,18 @@ stateFactory.addEpic((action$, state$) => {
     })
   );
 });
+export const dispatcher = stateFactory.bindActionCreators(slice);
+
+export function getState() {
+  return stateFactory.sliceState(slice);
+}
+
+export function getStore() {
+  return stateFactory.sliceStore(slice);
+}
 
 export function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
-  const ws = getState().workspaces.get(wsKey);
+  const ws = getPkgState().workspaces.get(wsKey);
   if (ws == null)
     return;
 
@@ -65,7 +159,7 @@ export function updateTsconfigFileForProjects(wsKey: string, includeProject?: st
       include.push(includeDir + '**/*.tsx');
     });
 
-    if (pathToProjKey(proj) === getState().linkedDrcpProject) {
+    if (pathToProjKey(proj) === getPkgState().linkedDrcpProject) {
       include.push('main/wfh/**/*.ts');
     }
     include.push('dist/*.d.ts');
@@ -90,9 +184,9 @@ export function updateTsconfigFileForProjects(wsKey: string, includeProject?: st
 }
 
 function writePackageSettingType() {
-  const done = new Array(getState().workspaces.size);
+  const done = new Array(getPkgState().workspaces.size);
   let i = 0;
-  for (const wsKey of getState().workspaces.keys()) {
+  for (const wsKey of getPkgState().workspaces.keys()) {
     let header = '';
     let body = 'export interface PackagesConfig {\n';
     for (const [typeFile, typeExport, _defaultFile, _defaultExport, pkg] of getPackageSettingFiles(wsKey)) {
@@ -136,7 +230,7 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
     extends: null,
     include
   };
-  let drcpDir = (getState().linkedDrcp || getState().installedDrcp)!.realPath;
+  const drcpDir = (getPkgState().linkedDrcp || getPkgState().installedDrcp)!.realPath;
   // tsjson.include = [];
   tsjson.extends = Path.relative(proj, Path.resolve(drcpDir, 'wfh/tsconfig-base.json'));
   if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
@@ -144,20 +238,20 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
   }
   tsjson.extends = tsjson.extends.replace(/\\/g, '/');
 
-  const pathMapping: {[key: string]: string[]} = {};
+  // const pathMapping: {[key: string]: string[]} = {};
 
-  for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
-    const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
-    pathMapping[name] = [realDir];
-    pathMapping[name + '/*'] = [realDir + '/*'];
-  }
-
-  // if (pkgName !== '@wfh/plink') {
-  drcpDir = Path.relative(proj, drcpDir).replace(/\\/g, '/');
-  pathMapping['@wfh/plink'] = [drcpDir];
-  pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
+  // for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
+  //   const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
+  //   pathMapping[name] = [realDir];
+  //   pathMapping[name + '/*'] = [realDir + '/*'];
   // }
-  Object.assign(pathMapping, extraPathMapping);
+
+  // // if (pkgName !== '@wfh/plink') {
+  // drcpDir = Path.relative(proj, drcpDir).replace(/\\/g, '/');
+  // pathMapping['@wfh/plink'] = [drcpDir];
+  // pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
+  // // }
+  // Object.assign(pathMapping, extraPathMapping);
 
   const rootDir = Path.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
   tsjson.compilerOptions = {
@@ -168,15 +262,29 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
     target: 'es2015',
     module: 'commonjs',
     declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
-    paths: pathMapping
+    paths: extraPathMapping
   };
   setTsCompilerOptForNodePath(proj, proj, tsjson.compilerOptions, {
     enableTypeRoots: true,
-    workspaceDir: workspace != null ? workspace : undefined
+    workspaceDir: workspace != null ? workspace : undefined,
+    realPackagePaths: true
   });
   const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
   writeTsConfigFile(tsconfigFile, tsjson);
   return tsconfigFile;
+}
+
+
+function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string) {
+  const file = Path.resolve(getRootDir(), data.relPath);
+  const tsconfigDir = Path.dirname(file);
+
+  const json = _.cloneDeep(data.originJson);
+  const newCo = setTsCompilerOptForNodePath(tsconfigDir, data.baseUrl,
+    json.compilerOptions, {workspaceDir, realPackagePaths: true});
+  json.compilerOptions = newCo;
+  log.info(file, 'is updated');
+  return fs.promises.writeFile(file, JSON.stringify(json, null, '  '));
 }
 
 function overrideTsConfig(src: any, target: any) {

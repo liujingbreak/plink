@@ -1,5 +1,5 @@
 import generateStructure from '@wfh/plink/wfh/dist/template-gen';
-import fsex from 'fs-extra';
+// import fsex from 'fs-extra';
 import Path from 'path';
 import fs from 'fs';
 // import chalk from 'chalk';
@@ -10,7 +10,7 @@ import {allSrcDirs} from '@wfh/plink/wfh/dist/recipe-manager';
 import {getProjectList, actionDispatcher as pkgMgrDispatcher} from '@wfh/plink/wfh/dist/package-mgr';
 import parse, {isArrayAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 import replaceText from '@wfh/plink/wfh/dist/utils/patch-text';
-// import {updateTsconfigFileForProjects} from '@wfh/plink/wfh/dist/editor-helper';
+import '@wfh/plink/wfh/dist/editor-helper';
 
 
 // TODO: support file type other than "ts"
@@ -27,9 +27,9 @@ export async function generateConfig(file: string, opt: {dryRun: boolean, type: 
     plink.logger.warn('We recommend using Typescript file as configuration, which can provide type check in Visual Code editor.');
   }
 
-  if (!opt.dryRun) {
-    fsex.mkdirpSync(Path.dirname(file));
-  }
+  // if (!opt.dryRun) {
+  //   fsex.mkdirpSync(Path.dirname(file));
+  // }
 
   let isUnderSrcDir = false;
   const srcDirs = Array.from(allSrcDirs()).map(item => item.srcDir);
@@ -74,7 +74,7 @@ export async function generateConfig(file: string, opt: {dryRun: boolean, type: 
         fs.writeFileSync(projJsonFile, output);
         await new Promise(resolve => setImmediate(resolve));
           // updateTsconfigFileForProjects(workspaceKey(process.cwd()), projDir);
-        pkgMgrDispatcher.updateWorkspace({dir: process.cwd(), isForce: false, createHook: false});
+        pkgMgrDispatcher.scanAndSyncPackages({});
         plink.logger.info(projJsonFile + ' is updated.');
       }
     } else {

@@ -57,6 +57,14 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     this.logger = getLogger(this.packageName);
   }
 
+  /**
+   * return A log witch catgory name "<package name>.<nameAfterPackageName>"
+   * @param nameAfterPackageName 
+   */
+  getLogger(nameAfterPackageName: string) {
+    return getLogger(this.packageName + '.' + nameAfterPackageName);
+  }
+
   isBrowser() {
     return false;
   }
@@ -132,9 +140,11 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     return parseName(packageName);
   }
 
+  /** @deprecated */
   isDefaultLocale() {
     return this.config.get('locales[0]') === this.getBuildLocale();
   }
+  /** @deprecated */
   getBuildLocale() {
     return this.argv.locale || this.config.get('locales[0]');
   }

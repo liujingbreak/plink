@@ -55,7 +55,8 @@ export default function generateStructure(
   if (replacement.includeTextType == null) {
     replacement.includeTextType = /(?:[tj]sx?|s?css|json|yaml|yml|html|svg)$/;
   }
-  fse.mkdirpSync(targetDir);
+  if (!opt.dryrun)
+    fse.mkdirpSync(targetDir);
   return _recurseDir(templDir, targetDir, replacement, opt).toPromise();
 }
 

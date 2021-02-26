@@ -24,6 +24,11 @@ declare class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     entryPageUrl: typeof assetsUrl.entryPageUrl;
     get contextPath(): any;
     constructor(packageName: string, packageInstance: PackageInstance);
+    /**
+     * return A log witch catgory name "<package name>.<nameAfterPackageName>"
+     * @param nameAfterPackageName
+     */
+    getLogger(nameAfterPackageName: string): Logger;
     isBrowser(): boolean;
     isNode(): boolean;
     addBrowserSideConfig(path: string, value: any): void;
@@ -51,7 +56,9 @@ declare class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
         name: string;
         scope: string;
     };
+    /** @deprecated */
     isDefaultLocale(): boolean;
+    /** @deprecated */
     getBuildLocale(): any;
 }
 export default NodeApi;

@@ -32,6 +32,10 @@ export interface BasePlinkSettings {
   packageScopes: string[];
   /** Plink command line options */
   cliOptions?: GlobalOptions;
+  logger?: {
+    noFileLimit: boolean;
+    onlyFileOut: boolean;
+  };
   /** command line "--prop <json-path>=<json-value>" arguments */
   [cliProp: string]: unknown;
   /** @deprecated */
