@@ -41,7 +41,7 @@ class PromisedTask<T> {
 
       unsubscribeWorker();
       if (code !== 0) {
-        this.reject('Thread exist with code ' + code);
+        this.reject(`Thread ${worker.threadId} exist with code ` + code);
       }
     };
 
@@ -136,7 +136,7 @@ export class Pool {
    * @param workerOptions thread worker options, e.g. initializing some environment
    * stuff
    */
-  constructor(private maxParalle = os.cpus().length - 1, private idleTimeMs = 0, private workerOptions?: WorkerOptions & InitialOptions) {
+  constructor(private maxParalle = os.cpus().length - 1, private idleTimeMs = 0, public workerOptions?: WorkerOptions & InitialOptions) {
   }
 
   submit<T>(task: Task): Promise<T> {
@@ -199,11 +199,11 @@ export class Pool {
       if (worker instanceof Worker) {
         worker.postMessage(cmd);
         if (this.workerOptions?.verbose)
-          console.log('[thread-pool] Remove expired worker threads');
+          console.log('[thread-pool] Remove expired worker thread:', worker.threadId);
       } else {
         worker.send(cmd);
         if (this.workerOptions?.verbose)
-          console.log('[thread-pool] Remove expired child process');
+          console.log('[thread-pool] Remove expired child process:', worker.pid);
       }
       this.idleTimers.delete(worker);
     }, this.idleTimeMs);
@@ -214,20 +214,20 @@ export class Pool {
     let worker: ChildProcess = fork(require.resolve('./worker-process'), {serialization: 'advanced', stdio: 'inherit'});
     this.runningWorkers.add(worker);
 
-    if (this.workerOptions && (this.workerOptions.verbose || this.workerOptions.initializer)) {
+    // if (this.workerOptions && (this.workerOptions.verbose || this.workerOptions.initializer)) {
+    const verbose = !!this.workerOptions?.verbose;
+    if (verbose)
+      console.log('[thread-pool] createChildProcess');
 
-      if (this.workerOptions.verbose)
-        console.log('[thread-pool] createChildProcess');
-
-      if (this.workerOptions.initializer) {
-        const initTask = new PromisedProcessTask({
-          verbose: this.workerOptions.verbose,
-          initializer: this.workerOptions.initializer
-          });
-        initTask.runByProcess(worker, !!this.workerOptions?.verbose);
-        await initTask.promise;
-      }
+    if (this.workerOptions?.initializer) {
+      const initTask = new PromisedProcessTask({
+        verbose,
+        initializer: this.workerOptions?.initializer
+        });
+      initTask.runByProcess(worker, !!this.workerOptions?.verbose);
+      await initTask.promise;
     }
+    // }
     this.runWorker(worker);
 
     const onWorkerExit = () => {
@@ -247,19 +247,18 @@ export class Pool {
 
   private createWorker(task: PromisedTask<any>) {
     let worker: Worker;
-    if (this.workerOptions && (this.workerOptions.verbose || this.workerOptions.initializer)) {
-      if (this.workerOptions.verbose)
+    if (this.workerOptions?.verbose) {
         console.log('[thread-pool] createWorker');
-      worker = new Worker(require.resolve('./worker'), {
-        workerData: {
-          id: ++this.totalCreatedWorkers + '',
-          verbose: this.workerOptions.verbose,
-          initializer: this.workerOptions.initializer},
-          ...this.workerOptions
-      });
-    } else {
-      worker = new Worker(require.resolve('./worker'), this.workerOptions);
     }
+    worker = new Worker(require.resolve('./worker'), {
+      ...this.workerOptions,
+      workerData: {
+        id: ++this.totalCreatedWorkers + '',
+        verbose: !!this.workerOptions?.verbose,
+        initializer: this.workerOptions?.initializer,
+        ...this.workerOptions?.workerData || {}
+      }
+    });
     this.runWorker(worker);
 
     const onWorkerExit = () => {

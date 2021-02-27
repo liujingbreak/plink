@@ -6,7 +6,7 @@ export { Task };
 export declare class Pool {
     private maxParalle;
     private idleTimeMs;
-    private workerOptions?;
+    workerOptions?: (WorkerOptions & InitialOptions) | undefined;
     private runningWorkers;
     /** Last in first run, always run the latest created worker, give chance for old ones to be removed after timeout */
     private idleWorkers;

@@ -22,10 +22,10 @@ export function setAstPropertyCache(cache: typeof astSchemaCache) {
 export type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => T;
 
 /**
- * Return truethy value that iteration stops.
+ * @returns true - make iteration stops, `SKIP` - to skip interating child nodes (move on to next sibling node) 
  */
 // tslint:disable-next-line: max-line-length
-export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => true | void;
+export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | true | void;
 
 export function printFile(file: string, query?: string | null, withType = true) {
   if (query) {
@@ -275,12 +275,13 @@ export default class Selector {
   /**
 	 * 
 	 * @param ast 
-	 * @param cb return true to skip traversing child node
+	 * @param cb return true to skip traversing child node and remaining sibling nodes
 	 * @param level default 0
+   * @returns true - stop traverse remaining nodes
 	 */
   traverse(ast: ts.Node,
     cb: traverseCbType,
-    propName = '', parents: ts.Node[] = [], pathEls: string[] = []): true | void {
+    propName = '', parents: ts.Node[] = [], pathEls: string[] = []): boolean {
 
     let needPopPathEl = false;
 
@@ -299,7 +300,7 @@ export default class Selector {
 
     const res = cb(ast, pathEls, parents, ast.getChildCount(this.src) <= 0, comments.trim());
 
-    if (res !== true) {
+    if (res !== 'SKIP' && res !== true) {
       parents.push(ast);
       const _value2key = new Map<any, string>();
 
@@ -323,7 +324,7 @@ export default class Selector {
           propName = _value2key.get(child);
         }
         const isStop = self.traverse(child, cb, propName, parents, pathEls);
-        return isStop as unknown as true | undefined;
+        return isStop;
           // return undefined;
       },
         subArray => {
@@ -339,7 +340,7 @@ export default class Selector {
     }
     if (needPopPathEl)
       pathEls.pop();
-    return res;
+    return res === true;
   }
 
   pathForAst(ast: ts.Node, withType = true): string {
@@ -385,15 +386,16 @@ export default class Selector {
   }
 
   protected traverseArray(nodes: ts.NodeArray<ts.Node> | ts.Node[],
-    cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void,
-    propName = '', parents: ts.Node[] = [], pathEls: string[] = []): true | undefined {
+    cb: traverseCbType,
+    propName = '', parents: ts.Node[] = [], pathEls: string[] = []): boolean {
 
     let i = 0;
     for (const ast of nodes) {
       const isStop = this.traverse(ast, cb, propName + `[${i++}]`, parents, pathEls);
       if (isStop)
-        return isStop as unknown as true | undefined;
+        return true;
     }
+    return false;
   }
 }
 

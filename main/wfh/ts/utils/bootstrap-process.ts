@@ -25,6 +25,10 @@ process.on('unhandledRejection', err => {
 //   return config;
 // }
 
+/**
+ * Must invoke initProcess() before this function
+ * @param options 
+ */
 export function initConfig(options: GlobalOptions) {
   config.initSync(options);
   // logConfig(config());
@@ -65,6 +69,8 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
 
 /**
  * Initialize redux-store for Plink.
+ * 
+ * Use this function instead of initProcess() in case it is in a forked child process or worker thread.
  * 
  * Unlink initProcess() which registers process event handler for SIGINT and shutdown command,
  * in case this is running as a forked child process, it will stand by until parent process explicitly

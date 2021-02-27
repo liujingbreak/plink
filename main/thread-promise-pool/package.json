@@ -3,6 +3,7 @@
   "version": "1.0.1-1",
   "description": "2 Node.js utilities: a thread worker pool and a promise queue",
   "main": "dist/index.js",
+  "dr": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

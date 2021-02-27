@@ -4,6 +4,13 @@
   "description": "A tool to scan source package files and generate translatable files",
   "main": "translate-generator.js",
   "loader": "loader",
+  "dr": {
+    "cli": "dist/cli/cli.js#default"
+  },
+  "dependencies": {
+    "@types/glob": "^7.1.1",
+    "glob": "^7.1.2"
+  },
   "---deprecated.dr": {
     "builderPriority": 0,
     "config": {

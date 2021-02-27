@@ -23,6 +23,8 @@
     "@wfh/cra-scripts": "../tarballs/wfh-cra-scripts-1.0.30-0.tgz",
     "@wfh/webpack-common": "../tarballs/wfh-webpack-common-1.0.7-1.tgz",
     "@wfh/redux-toolkit-observable": "1.0.5",
+    "@wfh/translate-generator": "1.1.4",
+    "@wfh/thread-promise-pool": "1.0.1-1",
     "@reduxjs/toolkit": "~1.5.0",
     "redux-observable": "~1.2.0",
     "axios-observable": "^1.1.3",

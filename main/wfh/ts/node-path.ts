@@ -4,6 +4,13 @@ import chalk from 'chalk';
 import log4js from 'log4js';
 import {hookCommonJsRequire} from './loaderHooks';
 import _ from 'lodash';
+import {isMainThread} from 'worker_threads';
+
+let logPrefix = 'node-path - ';
+if (process.send)
+  logPrefix = `[pid: ${process.pid}]` + logPrefix;
+else if (!isMainThread)
+  logPrefix = '[thread]' + logPrefix;
 
 let envSetDone = false;
 
@@ -20,12 +27,12 @@ if (!envSetDone) {
   if (!process.env.PLINK_DATA_DIR) {
     process.env.PLINK_DATA_DIR = 'dist';
     // tslint:disable-next-line: no-console
-    console.log(chalk.gray('[node-path] By default, Plink reads and writes state files in directory "<root-dir>/dist",\n' +
+    console.log(chalk.gray(logPrefix + 'By default, Plink reads and writes state files in directory "<root-dir>/dist",\n' +
     'you may change it by' +
     ' setting environment variable PLINK_DATA_DIR to another relative directory'));
   } else {
     // tslint:disable-next-line: no-console
-    console.log(chalk.gray('[node-path] PLINK_DATA_DIR: ' + process.env.PLINK_DATA_DIR));
+    console.log(chalk.gray(logPrefix + 'PLINK_DATA_DIR: ' + process.env.PLINK_DATA_DIR));
   }
   const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR);
 
@@ -83,7 +90,7 @@ function setupNodePath(rootDir: string, symlinksDir: string | null, plinkDir: st
   const pathArray = calcNodePaths(rootDir, symlinksDir, process.cwd(), plinkDir);
   process.env.NODE_PATH = pathArray.join(Path.delimiter);
   // tslint:disable-next-line: no-console
-  console.log(chalk.gray('[node-path] NODE_PATH', process.env.NODE_PATH));
+  console.log(chalk.gray(logPrefix + 'NODE_PATH', process.env.NODE_PATH));
   require('module').Module._initPaths();
   return pathArray;
 }

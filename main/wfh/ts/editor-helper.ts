@@ -24,7 +24,9 @@ interface EditorHelperState {
 }
 
 interface HookedTsconfig {
-  /** Path relative to root path */
+  /** absolute path or path relative to root path, any path that is stored in Redux store, the better it is in form of
+   * relative path of Root path
+   */
   relPath: string;
   baseUrl: string;
   originJson: any;
@@ -49,16 +51,28 @@ const slice = stateFactory.newSlice({
 });
 
 stateFactory.addEpic<EditorHelperState>((action$, state$) => {
+  let plinkInteralTsconfigJson: any;
   return rx.merge(
     action$.pipe(ofPayloadAction(pkgSlice.actions.createSymlinksForWorkspace),
       op.tap(({payload: wsKeys}) => {
-        writePackageSettingType();
-        for (const wsKey of wsKeys) {
-          updateTsconfigFileForProjects(wsKey);
-        }
         const wsDir = isCwdWorkspace() ? process.cwd() :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
+        writePackageSettingType();
+        if (getPkgState().linkedDrcp) {
+          const relPath = Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json');
+          if (plinkInteralTsconfigJson == null) {
+            plinkInteralTsconfigJson = JSON.parse(fs.readFileSync(relPath, 'utf8'));
+          }
+          updateHookedTsconfig({
+            relPath,
+            baseUrl: '.',
+            originJson: plinkInteralTsconfigJson
+          }, wsDir);
+        }
+        for (const wsKey of wsKeys) {
+          updateTsconfigFileForProjects(wsKey);
+        }
         for (const data of getState().tsconfigByRelPath.values()) {
           updateHookedTsconfig(data, wsDir);
         }
@@ -265,8 +279,8 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
     paths: extraPathMapping
   };
   setTsCompilerOptForNodePath(proj, proj, tsjson.compilerOptions, {
-    enableTypeRoots: true,
     workspaceDir: workspace != null ? workspace : undefined,
+    enableTypeRoots: true,
     realPackagePaths: true
   });
   const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
@@ -276,12 +290,15 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
 
 
 function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string) {
-  const file = Path.resolve(getRootDir(), data.relPath);
+  const file = Path.isAbsolute(data.relPath) ? data.relPath :
+    Path.resolve(getRootDir(), data.relPath);
   const tsconfigDir = Path.dirname(file);
 
   const json = _.cloneDeep(data.originJson);
   const newCo = setTsCompilerOptForNodePath(tsconfigDir, data.baseUrl,
-    json.compilerOptions, {workspaceDir, realPackagePaths: true});
+    json.compilerOptions, {
+      workspaceDir, enableTypeRoots: true, realPackagePaths: true
+    });
   json.compilerOptions = newCo;
   log.info(file, 'is updated');
   return fs.promises.writeFile(file, JSON.stringify(json, null, '  '));

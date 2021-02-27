@@ -152,8 +152,8 @@
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/thread-pool.ts": {
-        "version": "e7da6b799f7636ce609ba8e7d509ca03dcc055745342f67158a71deba08b83e0",
-        "signature": "2c49d3d051a5372097d69772f4347e2496066049b3cdfea5d445ecd9f527fac6",
+        "version": "800ceb643b7696c6f1c26d917eeafbd80d8c1194c3bed07de90d08a6a9329895",
+        "signature": "a2373753d77e8f1461fa1dbc62471c0626da55e2cf336117d84c86bd29f29326",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/promise-queque.ts": {

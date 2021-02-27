@@ -15,6 +15,7 @@ import {dispatcher, getState, DrcpSettings} from './config-slice';
 // Refactor: circular reference
 import * as _pkgList from '../package-mgr/package-list-helper';
 import * as _pkgMgr from '../package-mgr';
+import {isMainThread} from 'worker_threads';
 
 const log = log4js.getLogger('plink.config');
 const yamljs = require('yamljs');
@@ -27,11 +28,16 @@ export const handlers$ = new rx.BehaviorSubject<ConfigHandlerMgr | undefined>(un
 configDefaultLog();
 
 function configDefaultLog() {
+  let logPatternPrefix = '';
+  if (process.send)
+    logPatternPrefix = 'pid:%z ';
+  else if (!isMainThread)
+    logPatternPrefix = '[thread]';
   log4js.configure({
     appenders: {
       out: {
         type: 'stdout',
-        layout: {type: 'pattern', pattern: (process.send ? '%z' : '') + '%[%c%] - %m'}
+        layout: {type: 'pattern', pattern: logPatternPrefix + '%[%c%] - %m'}
       }
     },
     categories: {

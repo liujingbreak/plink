@@ -7,9 +7,9 @@ export declare function saveAstPropertyCache(file: string): void;
 export declare function setAstPropertyCache(cache: typeof astSchemaCache): void;
 export declare type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => T;
 /**
- * Return truethy value that iteration stops.
+ * @returns true - make iteration stops, `SKIP` - to skip interating child nodes (move on to next sibling node)
  */
-export declare type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => true | void;
+export declare type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | true | void;
 export declare function printFile(file: string, query?: string | null, withType?: boolean): void;
 export interface WalkCallback {
     query: string;
@@ -81,13 +81,14 @@ export default class Selector {
     /**
        *
        * @param ast
-       * @param cb return true to skip traversing child node
+       * @param cb return true to skip traversing child node and remaining sibling nodes
        * @param level default 0
+     * @returns true - stop traverse remaining nodes
        */
-    traverse(ast: ts.Node, cb: traverseCbType, propName?: string, parents?: ts.Node[], pathEls?: string[]): true | void;
+    traverse(ast: ts.Node, cb: traverseCbType, propName?: string, parents?: ts.Node[], pathEls?: string[]): boolean;
     pathForAst(ast: ts.Node, withType?: boolean): string;
     protected propNameForAst(ast: ts.Node): string | null;
-    protected traverseArray(nodes: ts.NodeArray<ts.Node> | ts.Node[], cb: (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => true | void, propName?: string, parents?: ts.Node[], pathEls?: string[]): true | undefined;
+    protected traverseArray(nodes: ts.NodeArray<ts.Node> | ts.Node[], cb: traverseCbType, propName?: string, parents?: ts.Node[], pathEls?: string[]): boolean;
 }
 export interface AstCharacter {
     propertyName?: string;

@@ -5,7 +5,9 @@ interface EditorHelperState {
     tsconfigByRelPath: Map<string, HookedTsconfig>;
 }
 interface HookedTsconfig {
-    /** Path relative to root path */
+    /** absolute path or path relative to root path, any path that is stored in Redux store, the better it is in form of
+     * relative path of Root path
+     */
     relPath: string;
     baseUrl: string;
     originJson: any;
