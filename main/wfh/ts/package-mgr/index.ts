@@ -160,10 +160,11 @@ export const slice = stateFactory.newSlice({
       else
         d.currWorkspace = null;
     },
-    workspaceStateUpdated(d, {payload}: PayloadAction<void>) {
+    /** paramter: workspace key */
+    workspaceStateUpdated(d, {payload}: PayloadAction<string>) {
       d.workspaceUpdateChecksum += 1;
     },
-    onWorkspacePackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {},
+    // onWorkspacePackageUpdated(d, {payload: workspaceKey}: PayloadAction<string>) {},
     _hoistWorkspaceDeps(state, {payload: {dir}}: PayloadAction<{dir: string}>) {
       if (state.srcPackages == null) {
         throw new Error('"srcPackages" is null, need to run `init` command first');
@@ -255,9 +256,7 @@ export const slice = stateFactory.newSlice({
       state.lastCreatedWorkspace = wsKey;
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
     },
-    _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {
-      // d._computed.workspaceKeys.push(workspaceKey);
-    },
+    _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {},
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: {name: string}[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
     }
@@ -384,9 +383,9 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
       map(({payload}) => {
         const wsKey = workspaceKey(payload.dir);
-        actionDispatcher.onWorkspacePackageUpdated(wsKey);
+        // actionDispatcher.onWorkspacePackageUpdated(wsKey);
         deleteDuplicatedInstalledPkg(wsKey);
-        setImmediate(() => actionDispatcher.workspaceStateUpdated());
+        setImmediate(() => actionDispatcher.workspaceStateUpdated(wsKey));
       }),
       ignoreElements()
     ),
@@ -473,7 +472,7 @@ stateFactory.addEpic((action$, state$) => {
       }),
       ignoreElements()
     ),
-    action$.pipe(ofPayloadAction(slice.actions.onWorkspacePackageUpdated),
+    action$.pipe(ofPayloadAction(slice.actions.workspaceStateUpdated),
       map(action => updatedWorkspaceSet.add(action.payload)),
       debounceTime(800),
       tap(() => {
@@ -590,7 +589,7 @@ function updateInstalledPackageForWorkspace(wsKey: string) {
     }
   })());
   actionDispatcher._change(d => d.workspaces.get(wsKey)!.installedComponents = installed);
-  actionDispatcher.onWorkspacePackageUpdated(wsKey);
+  actionDispatcher.workspaceStateUpdated(wsKey);
 }
 
 /**

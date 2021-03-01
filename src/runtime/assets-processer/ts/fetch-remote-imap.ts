@@ -26,7 +26,7 @@ const currChecksumFile = Path.resolve('checksum.' + (setting.fetchMailServer ? e
 export async function sendMail(subject: string, text: string, file?: string) {
   log.info('login');
   if (!setting.fetchMailServer) {
-    log.warn('fetchMailServer is not configured! Skip sendMail');
+    log.info('fetchMailServer is not configured! Skip sendMail');
     return;
   }
   const {

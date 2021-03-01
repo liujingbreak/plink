@@ -60,14 +60,12 @@ export function dfsTraverseFiles(files: string[]): ReturnType<Context['toPlainOb
   const commonParentDir = closestCommonParentDir(files);
   const context = new Context(commonParentDir);
 
-  const dfs: DFS<string> = new DFS<string>(vertex => {
-    const q = new Query(fs.readFileSync(vertex.data, 'utf8'), vertex.data);
-    return parseFile(q, vertex.data, context).map(file => {
-      return dfs.vertexOf(file);
-    });
+  const dfs: DFS<string> = new DFS<string>(data => {
+    const q = new Query(fs.readFileSync(data, 'utf8'), data);
+    return parseFile(q, data, context);
   });
 
-  dfs.visit(files.map(file => dfs.vertexOf(file)));
+  dfs.visit(files);
   const cwd = process.cwd();
   if (dfs.backEdges.length > 0) {
     for (const edges of dfs.backEdges) {

@@ -181,6 +181,7 @@ export function exe(command: string, ...argsAndOption: Array<string|Option>): Re
     switch (command) {
       // case 'node':
       case 'npm':
+      case 'npx':
       case 'yarn':
       case 'gulp':
         command += '.cmd';

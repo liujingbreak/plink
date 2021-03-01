@@ -40,8 +40,8 @@ export default async function(dtsFileBase: string, typeExport: string, _compiler
       // }
       metas.push({
         property: node.name.getText(),
-        desc: comment ? comment.replace(/(?:^\/\*\*\s*|\*\/$|\r?\n\s*\*)/gm, '') : '',
-        type: node.type?.getText().replace(/\r?\n\s*/gm, '') || '',
+        desc: comment ? comment.replace(/(?:^\/\*\*\s*|\*\/$)/g, '').replace(/^\s*\*/mg, '') : '',
+        type: node.type?.getText() || '',
         optional: !!node.questionToken
       });
     });

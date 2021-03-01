@@ -87,8 +87,8 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
     setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
     setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
-    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<void>): void;
-    onWorkspacePackageUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: workspaceKey }: PayloadAction<string>): void;
+    /** paramter: workspace key */
+    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
     _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
         payload: {
             dir: string;
@@ -149,8 +149,8 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
     setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
     setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
-    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<void>): void;
-    onWorkspacePackageUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: workspaceKey }: PayloadAction<string>): void;
+    /** paramter: workspace key */
+    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
     _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
         payload: {
             dir: string;

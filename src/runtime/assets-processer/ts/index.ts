@@ -11,32 +11,13 @@ import { ImapManager } from './fetch-remote-imap';
 import { WithMailServerConfig } from './fetch-types';
 import { fallbackIndexHtml, proxyToDevServer } from './index-html-route';
 import { createStaticRoute } from './static-middleware';
-import { httpProxy } from './utils';
+import { setupHttpProxy } from './utils';
 import {getSetting} from '../isom/assets-processer-setting';
 const log = require('log4js').getLogger(api.packageName);
 const serverFavicon = require('serve-favicon');
 
-// const buildUtils = api.buildUtils;
-
 const config = api.config;
 
-// export function compile() {
-//   const argv = api.argv;
-//   if (config().devMode && !argv.copyAssets) {
-//     log.info('DevMode enabled, skip copying assets to static folder');
-//     return;
-//   }
-//   if (!api.isDefaultLocale() && !argv.copyAssets) {
-//     log.info('Build for "%s" which is not default locale, skip copying assets to static folder',
-//       api.getBuildLocale());
-//     return;
-//   }
-
-//   copyRootPackageFavicon();
-//   // const {zipStatic} = require('./dist/zip');
-//   return copyAssets();
-//   // .then(zipStatic);
-// }
 
 export function deactivate() {
   fetchRemote.stop();
@@ -61,7 +42,7 @@ export function activate() {
   if (httpProxySet) {
     for (const proxyPath of Object.keys(httpProxySet)) {
       log.info(`Enable HTTP proxy ${proxyPath} -> ${httpProxySet[proxyPath]}`);
-      httpProxy(proxyPath, httpProxySet[proxyPath]);
+      setupHttpProxy(proxyPath, httpProxySet[proxyPath]);
     }
   }
 
@@ -95,18 +76,8 @@ export function activate() {
   if (!api.config().devMode) {
     return;
   }
-
-  // setupDevAssets(api.config().staticAssetsURL, api.use.bind(api));
 }
 
-// function copyRootPackageFavicon() {
-//   var favicon = findFavicon();
-//   if (!favicon)
-//     return;
-//   log.info('Copy favicon.ico from ' + favicon);
-//   fs.mkdirpSync(config.resolve('staticDir'));
-//   fs.copySync(Path.resolve(favicon), Path.resolve(config().rootPath, config.resolve('staticDir')));
-// }
 
 function findFavicon() {
   return _findFaviconInConfig('packageContextPathMapping') || _findFaviconInConfig('outputPathMap');
@@ -136,40 +107,3 @@ function _findFaviconInConfig(property: string) {
   return faviconFile;
 }
 
-// function copyAssets() {
-//   var streams: any[] = [];
-//   packageUtils.findAllPackages((name: string, _entryPath: string, parsedName: {name: string}, json: any, packagePath: string) => {
-//     var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
-//     var assetsDir = Path.join(packagePath, assetsFolder);
-//     if (fs.existsSync(assetsDir)) {
-//       var assetsDirMap = api.config.get('outputPathMap.' + name);
-//       if (assetsDirMap != null)
-//         assetsDirMap = _.trim(assetsDirMap, '/');
-//       var src = [Path.join(packagePath, assetsFolder, '**', '*')];
-//       var stream = gulp.src(src, {base: Path.join(packagePath, assetsFolder)})
-//       .pipe(through.obj(function(file, enc, next) {
-//         var pathInPk = Path.relative(assetsDir, file.path);
-//         file.path = Path.join(assetsDir, assetsDirMap != null ? assetsDirMap : parsedName.name, pathInPk);
-//         log.debug(file.path);
-//         next(null, file);
-//       }));
-//       streams.push(stream);
-//     }
-//   });
-//   if (streams.length === 0) {
-//     return null;
-//   }
-//   // var contextPath = _.get(api, 'ngEntryComponent.shortName', '');
-//   var outputDir = api.webpackConfig.output.path;
-//   log.info('Output assets to ', outputDir);
-//   return new Promise((resolve, reject) => {
-//     es.merge(streams)
-//     .pipe(gulp.dest(outputDir))
-//     .on('end', function() {
-//       log.debug('flush');
-//       buildUtils.writeTimestamp('assets');
-//       resolve();
-//     })
-//     .on('error', reject);
-//   });
-// }

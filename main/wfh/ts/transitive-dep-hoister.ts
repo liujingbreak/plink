@@ -82,7 +82,7 @@ export class InstallManager {
         ver: version === '*' ? '' : version,
         verNum: m ? m[2] : undefined,
         pre: m ? m[1] : '',
-        by: `(${workspaceName})`
+        by: `(${workspaceName || '<root directory>'})`
       }]);
       this.directDeps.set(name, currNode);
     }

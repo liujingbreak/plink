@@ -9,7 +9,7 @@ export declare type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.N
 /**
  * @returns true - make iteration stops, `SKIP` - to skip interating child nodes (move on to next sibling node)
  */
-export declare type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | true | void;
+export declare type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | boolean | void;
 export declare function printFile(file: string, query?: string | null, withType?: boolean): void;
 export interface WalkCallback {
     query: string;

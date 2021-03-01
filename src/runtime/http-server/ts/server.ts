@@ -7,7 +7,6 @@ import * as log4js from 'log4js';
 import api from '__api';
 import {getLanIPv4} from '@wfh/plink/wfh/dist/utils/network-util';
 
-var config: any;
 const log = log4js.getLogger(api.packageName);
 var server: https.Server | http.Server;
 
@@ -39,10 +38,10 @@ function initHealthServer() {
 }
 
 export function activate() {
-  config = api.config;
+  const config = api.config;
   const rootPath: string = config().rootPath;
 
-  const sslSetting: any = config.get(api.packageName + '.ssl') || config().ssl;
+  const sslSetting: any = config()['@wfh/http-server'].ssl;
 
   if (sslSetting && sslSetting.enabled) {
     if (!sslSetting.key) {

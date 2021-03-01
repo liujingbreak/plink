@@ -5,7 +5,7 @@ import {CBOptions, generate} from './cli-gcmd';
 const cliExt: CliExtension = (program) => {
   const cmd = program.command('gcmd <package-name> <command-name>')
   .alias('gen-command')
-  .description('Generate a Plink command line implementation in specific package')
+  .description('Bootstrap a Plink command line implementation in specific package')
   // .option('--for-template <templateName>', 'Create a template generator command', false)
   .option('-d, --dry-run', 'Dryrun', false)
   .action(async (packageName: string, cmdName: string) => {
@@ -15,7 +15,7 @@ const cliExt: CliExtension = (program) => {
 
   const settingCmd = program.command('gsetting <package-name...>').alias('gen-setting')
   .option('-d, --dry-run', 'Dryrun', false)
-  .description('Generate a package setting file', {
+  .description('Bootstrap a package setting file', {
     'package-name': cliPackageArgDesc
   })
   .action(async (packageNames: string[]) => {

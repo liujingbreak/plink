@@ -25,7 +25,7 @@ export type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], i
  * @returns true - make iteration stops, `SKIP` - to skip interating child nodes (move on to next sibling node) 
  */
 // tslint:disable-next-line: max-line-length
-export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | true | void;
+export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | boolean | void;
 
 export function printFile(file: string, query?: string | null, withType = true) {
   if (query) {

@@ -1,25 +1,14 @@
 {
   "name": "@wfh/prebuild",
-  "version": "1.0.44",
+  "version": "1.0.45-1",
   "description": "Work with Plink, prebuild command line tool for monorepo based project",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dr": {
     "cli": "dist/cli.js#default",
-    "config": {
-      "server": {
-        "prebuildGitRemote": "deploy",
-        "prebuildReleaseBranch": "release-server",
-        "tagPushRemote": "origin",
-        "byEnv": {
-          "local": {
-            "installEndpoint": "http://localhost:14333",
-            "sendConcurrency": 1,
-            "sendNodes": 1
-          }
-        }
-      }
-    },
+    "type": [
+      "server"
+    ],
     "setting": {
       "value": "isom/prebuild-setting.js#defaultSetting",
       "type": "isom/prebuild-setting#PrebuildSetting"

@@ -268,6 +268,14 @@ function subWfhCommand(program: commander.Command) {
 }
 
 function spaceOnlySubWfhCommand(program: commander.Command) {
+  const addCmd = program.command('add [package...]')
+    .description('Add dependency to worktree space package.json file, specify option "--dev" to add as "devDependencies" ', {
+      package: 'package name in form of "<a linked package name without scope part>", "<package name>@<version>", '
+    })
+    .action(async (packages: string[]) => {
+      await (await import('./cli-add-package')).add(packages, addCmd.opts() as any);
+    });
+
   /**
    * tsc command
    */

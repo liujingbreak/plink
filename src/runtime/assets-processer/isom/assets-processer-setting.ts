@@ -1,5 +1,5 @@
 import {config} from '@wfh/plink';
-
+import {Config as ProxyConfig} from 'http-proxy-middleware';
 /**
  * Package setting type
  */
@@ -16,6 +16,15 @@ export interface AssetsProcesserSetting {
   fetchIntervalSec: number;
   /** Response maxAge header value against different media type file */
   cacheControlMaxAge: {[key: string]: string | null};
+  /** For HTML 5 history based client side route, serving index.html for 
+   * specific path.
+   * 
+   * Key is a RegExp string, value is target path.
+   * e.g.  {'^/[^/?#.]+': '<%=match[0]%>/index.html'}
+   * 
+   * In case user access "/hellow?uid=123", the actual Express.js
+   * `request.path` will be change to "/index.html", `request.query` will be kept
+   */
   fallbackIndexHtml: {[key: string]: string};
   httpProxy: {[proxyPath: string]: string};
   fetchMailServer: {
@@ -32,8 +41,19 @@ export interface AssetsProcesserSetting {
    */
   serveIndex: boolean;
   requireToken: boolean;
-  /** Fallback index html proxy setting */
-  indexHtmlProxy?: {[target: string]: string};
+  /** 
+   * @type import('http-proxy-middleware').Config
+   * Proxy request to another dev server, if proxy got an error response, then fallback request to
+   * local static file resource
+   * e.g. {target: http://localhsot:3000} for create-react-app dev server,
+   * {target: http://localhost:4200} for Angular dev server
+   * 
+   * Default value is {target: 'http://localhost:4200'} when "--dev" mode is on.
+   * 
+   * ChangeOrigin and ws (websocket) will be enabled, since devServer mostly like will
+   * enable Webpack HMR through websocket.
+  */
+  proxyToDevServer?: ProxyConfig;
 }
 
 /**
@@ -61,7 +81,7 @@ export function defaultSetting(): AssetsProcesserSetting {
       woff: '365 days',
       woff2: '365 days'
     },
-    fallbackIndexHtml: {'^/[^/?#]+': '<%=match[0]%>/index.html'},
+    fallbackIndexHtml: {'^/[^/?#.]+': '<%=match[0]%>/index.html'},
     httpProxy: {},
     fetchMailServer: null,
     serveIndex: false,
@@ -75,9 +95,7 @@ export function defaultSetting(): AssetsProcesserSetting {
       fetchIntervalSec: 60,
       cacheControlMaxAge: {},
       fetchMailServer: null,
-      indexHtmlProxy: {
-        target: 'http://localhost:4200'
-      }
+      proxyToDevServer: {target: 'http://localhost:4200'}
     };
     return Object.assign(defaultValue, devValue);
   }

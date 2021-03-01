@@ -28,11 +28,12 @@ export class DFS<T> {
   private time = 0;
   private vertexMap = new Map<T, Vertex<T>>();
 
-  constructor(private adjacencyOf: (u: Vertex<T>) => Iterable<Vertex<T>>) {}
+  constructor(private adjacencyOf: (u:T) => Iterable<T>) {}
 
-  visit(g: Iterable<Vertex<T>>) {
+  visit(g: Iterable<T>) {
     this.time = 0;
-    for (const u of g) {
+    for (const data of g) {
+      const u = this.vertexOf(data);
       if (u.color === Color.white) {
         this.visitVertex(u);
       }
@@ -69,7 +70,8 @@ export class DFS<T> {
   private visitVertex(u: Vertex<T>) {
     u.d = ++this.time;
     u.color = Color.gray;
-    for (const v of this.adjacencyOf(u)) {
+    for (const vData of this.adjacencyOf(u.data)) {
+      const v = this.vertexOf(vData);
       if (v.color === Color.white) {
         v.p = [u];
         this.visitVertex(v);

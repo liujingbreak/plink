@@ -47,11 +47,13 @@ export function createResponseTimestamp(req: Request, res: Response, next: NextF
 }
 
 /**
+ * This function uses http-proxy-middleware internally.
+ * 
  * Create and use an HTTP request proxy for specific request path
  * @param proxyPath 
  * @param targetUrl 
  */
-export function httpProxy(proxyPath: string, apiUrl: string,
+export function setupHttpProxy(proxyPath: string, apiUrl: string,
   opts: {/** Bypass CORS restrict on target server */ deleteOrigin?: boolean} = {}) {
 
   proxyPath = _.trimEnd(proxyPath, '/');

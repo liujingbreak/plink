@@ -108,7 +108,10 @@ function create(app: express.Express, setting: any) {
   // catch 404 and forward to error handler
   app.use(function(req, res, next) {
     // log.info('Not Found: ' + req.originalUrl);
-    var err = new Error('Not Found');
+    if (req.url.indexOf('/favicon.ico/') >= 0) {
+      return res.status(404);
+    }
+    const err = new Error('Not Found');
     (err as any).status = 404;
     next(err);
   });

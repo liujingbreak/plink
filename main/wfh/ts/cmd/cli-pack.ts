@@ -14,6 +14,7 @@ import {PackOptions, PublishOptions} from './types';
 import {getPackagesOfProjects, getState, workspaceKey, actionDispatcher} from '../package-mgr';
 import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import log4js from 'log4js';
+import stripAnsi from 'strip-ansi';
 import {findPackagesByNames} from './utils';
 import '../editor-helper';
 
@@ -36,7 +37,7 @@ export async function pack(opts: PackOptions) {
     await packPackages(opts.dir);
   } else if (opts.packages && opts.packages.length > 0) {
     const dirs = Array.from(findPackagesByNames(getState(), opts.packages))
-    .filter(pkg => pkg)
+    .filter(pkg => pkg && (pkg.json.dr != null || pkg.json.plink != null))
     .map(pkg => pkg!.realPath);
 
     await packPackages(dirs);
@@ -75,16 +76,22 @@ function *linkedPackagesOfWorkspace(workspaceDir: string) {
 }
 
 async function packPackages(packageDirs: string[]) {
+  const excludeFromSync = new Set<string>();
   const package2tarball = new Map<string, string>();
-  if (packageDirs && packageDirs.length > 0) {
-    const pgPaths: string[] = packageDirs;
 
-    const done = queueUp(4, pgPaths.map(packageDir => () => npmPack(packageDir)));
+
+  if (packageDirs && packageDirs.length > 0) {
+    // const pgPaths: string[] = packageDirs;
+
+    const done = queueUp(4, packageDirs.map(packageDir => () => npmPack(packageDir)));
     const tarInfos = (await done).filter(item => typeof item != null) as
       (typeof done extends Promise<(infer T)[]> ? NonNullable<T> : unknown)[];
 
     for (const item of tarInfos) {
       package2tarball.set(item.name, Path.resolve(tarballDir, item!.filename));
+      if (item.name === '@wfh/plink') {
+        excludeFromSync.add(item.dir);
+      }
     }
     // log.info(Array.from(package2tarball.entries())
     //   .map(([pkName, ver]) => `"${pkName}": "${ver}",`)
@@ -97,7 +104,8 @@ async function packPackages(packageDirs: string[]) {
     await changePackageJson(package2tarball);
     await new Promise(resolve => setImmediate(resolve));
     actionDispatcher.scanAndSyncPackages({
-      packageJsonFiles: packageDirs.map(dir => Path.resolve(dir, 'package.json'))
+      packageJsonFiles: packageDirs.filter(dir => !excludeFromSync.has(dir))
+        .map(dir => Path.resolve(dir, 'package.json'))
     });
   }
 }
@@ -136,7 +144,7 @@ async function publishProject(projectDirs: string[], npmCliOpts: string[]) {
 }
 
 async function npmPack(packagePath: string):
-  Promise<{name: string, filename: string} | null> {
+  Promise<{name: string; filename: string; dir: string;} | null> {
   try {
     const output = await promisifyExe('npm', 'pack', Path.resolve(packagePath),
       {silent: true, cwd: tarballDir});
@@ -147,7 +155,8 @@ async function npmPack(packagePath: string):
     log.info(output);
     return {
       name: packageName,
-      filename: resultInfo.get('filename')!
+      filename: resultInfo.get('filename')!,
+      dir: packagePath
     };
   } catch (e) {
     handleExption(packagePath, e);
@@ -277,7 +286,7 @@ npm notice
 
  */
 function parseNpmPackOutput(output: string) {
-  const lines = output.split(/\r?\n/);
+  const lines = stripAnsi(output).split(/\r?\n/);
   const linesOffset = _.findLastIndex(lines, line => line.indexOf('Tarball Details') >= 0);
   const tarballInfo = new Map<string, string>();
   lines.slice(linesOffset).forEach(line => {

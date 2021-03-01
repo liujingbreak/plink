@@ -311,7 +311,7 @@ export function* getPackageSettingFiles(workspaceKey: string, includePkg?: Set<s
       }
       yield [typeFile.replace(/\.[^./\\]+$/g, ''), typeExportName, valueFile, valueExport, pkg];
     } catch (err) {
-      log.warn(`Skip loading setting of package ${pkg.name}, due to (this might be caused by incorrect package.json format stored last time)`, err);
+      log.warn(`Skip loading setting of package ${pkg.name}, due to (this might be caused by incorrect package.json format)`, err);
     }
   }
 }

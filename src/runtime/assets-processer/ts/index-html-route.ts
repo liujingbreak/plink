@@ -2,7 +2,7 @@ import proxy from 'http-proxy-middleware';
 import {NextFunction, Request} from 'express';
 import api from '__api';
 import _ from 'lodash';
-import Url from 'url';
+// import Url from 'url';
 import log4js from 'log4js';
 const log = log4js.getLogger(api.packageName);
 import {getSetting} from '../isom/assets-processer-setting';
@@ -11,7 +11,7 @@ interface ReqWithNextCb extends Request {
 }
 export function proxyToDevServer() {
   // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
-  let setting: proxy.Config | undefined = getSetting().indexHtmlProxy;
+  let setting: proxy.Config | undefined = getSetting().proxyToDevServer;
   if (setting == null)
     return;
   const config: proxy.Config = _.cloneDeep(setting);
@@ -62,7 +62,8 @@ export function fallbackIndexHtml() {
       // Reference to https://github.com/kapouer/express-urlrewrite/blob/master/index.js#L45
       req.url = req.originalUrl = tmpl({match});
       log.debug('rewrite url %s to %s', orig, req.url);
-      req.query = Url.parse(req.url, true, true).query;
+      // const qpSetting: string | undefined = api.expressApp.get('query parser');
+
       return true;
     });
     next();

@@ -20,8 +20,8 @@ export declare class DFS<T> {
     backEdges: [Vertex<T>, Vertex<T>][];
     private time;
     private vertexMap;
-    constructor(adjacencyOf: (u: Vertex<T>) => Iterable<Vertex<T>>);
-    visit(g: Iterable<Vertex<T>>): void;
+    constructor(adjacencyOf: (u: T) => Iterable<T>);
+    visit(g: Iterable<T>): void;
     vertexOf(data: T): Vertex<T>;
     printCyclicBackEdge(edge: Vertex<T>, edgeTo: Vertex<T>): string[];
     _printParentUntil(edge: Vertex<T>, edgeAncestor: Vertex<T>): string[];

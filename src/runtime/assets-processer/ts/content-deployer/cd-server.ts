@@ -10,7 +10,7 @@ import _ from 'lodash';
 import memstat from '@wfh/plink/wfh/dist/utils/mem-stats';
 import crypto, {Hash} from 'crypto';
 import api from '__api';
-import {stringifyListAllVersions} from '@wfh/prebuild/dist/artifacts';
+// import {stringifyListAllVersions} from '@wfh/prebuild/dist/artifacts';
 
 const log = require('log4js').getLogger(api.packageName + '.cd-server');
 
@@ -55,7 +55,8 @@ export async function activate(app: Application, imap: ImapManager) {
       res.header('Connection', 'close');
       res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
       req.socket.end();
-      res.connection.end();
+      if (res.connection)
+        res.connection.end();
       return;
     }
 
@@ -104,10 +105,10 @@ export async function activate(app: Application, imap: ImapManager) {
 
 
   const router = api.express.Router();
-  router.get('/_githash', async (req, res) => {
-    res.setHeader('content-type', 'text/plain');
-    res.send(await stringifyListAllVersions());
-  });
+  // router.get('/_githash', async (req, res) => {
+  //   res.setHeader('content-type', 'text/plain');
+  //   res.send(await stringifyListAllVersions());
+  // });
 
   router.put<{file: string, hash: string}>('/_install_force/:file/:hash', async (req, res, next) => {
     (req as any)._installForce = true;
@@ -121,7 +122,8 @@ export async function activate(app: Application, imap: ImapManager) {
       res.header('Connection', 'close');
       res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
       req.socket.end();
-      res.connection.end();
+      if (res.connection)
+        res.connection.end();
       return;
     }
     const existing = filesHash.get(req.params.file);
@@ -132,7 +134,8 @@ export async function activate(app: Application, imap: ImapManager) {
       res.header('Connection', 'close');
       res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
       req.socket.end();
-      res.connection.end();
+      if (res.connection)
+        res.connection.end();
       return;
     }
 
@@ -148,7 +151,8 @@ export async function activate(app: Application, imap: ImapManager) {
       `- found existing: ${JSON.stringify(existing, null, '  ')}\n` +
       `- hashs:\n  ${JSON.stringify(filesHash, null, '  ')}`);
       req.socket.end();
-      res.connection.end();
+      if (res.connection)
+        res.connection.end();
       return;
     }
 

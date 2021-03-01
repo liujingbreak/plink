@@ -30,7 +30,7 @@ export function symbolicLinkPackages(destDir: string) {
 
           if (exists) {
             if (stat!.isFile() ||
-              (stat!.isSymbolicLink() && fs.realpathSync(newPath) !== realPath)) {
+              (stat!.isSymbolicLink() && isSymlinkTo(newPath, realPath))) {
               fs.unlinkSync(newPath);
               _symbolicLink(realPath, newPath);
             } else if (stat!.isDirectory()) {
@@ -47,6 +47,14 @@ export function symbolicLinkPackages(destDir: string) {
       })
     );
   };
+}
+
+function isSymlinkTo(newPath: string, realPath: string) {
+  try {
+    return fs.realpathSync(newPath) !== realPath;
+  } catch (ex) {
+    return false;
+  }
 }
 
 function _symbolicLink(dir: string, link: any) {
