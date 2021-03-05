@@ -26,7 +26,7 @@ const cliExt: CliExtension = (program) => {
   .option('-d, --dry-run', 'Dryrun', false)
   // .option('-t, --type <file-type>', 'Configuation file type, valid types are "ts", "yaml", "json"', 'ts')
   .description('Generate a workspace configuration file (Typescript file), used to override package settings', {
-    file: 'Output configuration file path (with or without suffix name ".ts"), e.g. "../conf/foobar.prod"'
+    file: 'Output configuration file path (with or without suffix name ".ts"), e.g. "conf/foobar.prod"'
   })
   .action(async (file: string) => {
     await (await import('./cli-gcfg')).generateConfig(file, cfgCmd.opts() as any);

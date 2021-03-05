@@ -189,7 +189,7 @@ export function withGlobalOptions(program: OurAugmentedCommander | commander.Com
       // return prev.concat(value.split(','));
     }, [] as string[]);
   (program as OurAugmentedCommander)._origOption('--prop <expression>',
-    hlDesc('<property-path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n' +
+    hlDesc('<property path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n' +
     '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
     '--prop arraylike.prop[0]=foobar\n' +
     '--prop ["@wfh/foo.bar","prop",0]=true'),
@@ -198,7 +198,7 @@ export function withGlobalOptions(program: OurAugmentedCommander | commander.Com
   .option('--dev', hlDesc('By turning on this option,' +
     ' Plink setting property "devMode" will automatcially set to `true`,' +
     ' and process.env.NODE_ENV will also being updated to \'developement\' or \'production correspondingly. '), false)
-  .option('--env <setting-env>', hlDesc('customized environment value, package setting file may return different values based on its value (cliOptions.env)'));
+  .option('--env <setting environment>', hlDesc('A string denotes runtime environment name, package setting file may return different values based on its value (cliOptions.env)'));
 
   // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
 

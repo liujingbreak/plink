@@ -71,9 +71,9 @@ export interface WorkspaceState {
   originInstallJsonStr: string;
   installJson: PackageJsonInterf;
   installJsonStr: string;
-  /** names of those symlink packages */
+  /** names of those linked source packages */
   linkedDependencies: [string, string][];
-  // /** names of those symlink packages */
+  /** names of those linked source packages */
   linkedDevDependencies: [string, string][];
 
   /** installed DR component packages [name, version]*/
@@ -170,7 +170,16 @@ export const slice = stateFactory.newSlice({
         throw new Error('"srcPackages" is null, need to run `init` command first');
       }
 
-      const pkjsonStr = fs.readFileSync(Path.resolve(dir, 'package.json'), 'utf8');
+      let pkjsonStr: string;
+      const pkgjsonFile = Path.resolve(dir, 'package.json');
+      const lockFile = Path.resolve(dir, 'plink.install.lock');
+      if (fs.existsSync(lockFile)) {
+        log.warn('Plink init/sync process was interrupted last time, recover content of ' + pkgjsonFile);
+        pkjsonStr = fs.readFileSync(lockFile, 'utf8');
+        fs.unlinkSync(lockFile);
+      }
+
+      pkjsonStr = fs.readFileSync(pkgjsonFile, 'utf8');
       const pkjson: PackageJsonInterf = JSON.parse(pkjsonStr);
       // for (const deps of [pkjson.dependencies, pkjson.devDependencies] as {[name: string]: string}[] ) {
       //   Object.entries(deps);
@@ -555,6 +564,10 @@ export function workspaceKey(path: string) {
   return rel;
 }
 
+export function workspaceDir(key: string) {
+  return Path.resolve(rootDir, key);
+}
+
 export function* getPackagesOfProjects(projects: string[]) {
   for (const prj of projects) {
     const pkgNames = getState().project2Packages.get(pathToProjKey(prj));
@@ -687,6 +700,11 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
   // tslint:disable-next-line: no-console
   log.info('write', installJsonFile);
   fs.writeFileSync(installJsonFile, toInstallPkgJsonStr, 'utf8');
+  // save a lock file to indicate in-process of installing, once installation is completed without interruption, delete it.
+  // check if there is existing lock file, meaning a previous installation is interrupted.
+  const lockFile = Path.resolve(dir, 'plink.install.lock');
+  fs.promises.writeFile(lockFile, originPkgJsonStr);
+
   await new Promise(resolve => setImmediate(resolve));
   // await new Promise(resolve => setTimeout(resolve, 5000));
   try {
@@ -708,6 +726,7 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
     log.info('Recover ' + installJsonFile);
     // 3. Recover package.json and symlinks deleted in Step.1.
     fs.writeFileSync(installJsonFile, originPkgJsonStr, 'utf8');
+    fs.promises.unlink(lockFile);
     await recoverSymlinks();
   }
 

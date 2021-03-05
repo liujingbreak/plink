@@ -1,0 +1,17 @@
+{
+  "name": "@wfh/doc-ui-common",
+  "version": "1.0.0",
+  "description": "Common UI functions for Plink doc site",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dr": {
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "canvas-5-polyfill": "0.1.5",
+    "animejs": "3.2.1"
+  }
+}

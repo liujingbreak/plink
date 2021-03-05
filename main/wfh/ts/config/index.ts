@@ -18,7 +18,8 @@ import * as _pkgMgr from '../package-mgr';
 import {isMainThread} from 'worker_threads';
 
 const log = log4js.getLogger('plink.config');
-const yamljs = require('yamljs');
+// const yamljs = require('yamljs');
+import yamljs from 'yamljs';
 const {rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 let rootPath = rootDir;

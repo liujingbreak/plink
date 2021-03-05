@@ -25,7 +25,13 @@
         "../../../../bk/tuitui-fe/server-workspace/.links/@types/*",
         "../../../../bk/tuitui-fe/server-workspace/.links/*",
         "../../../../bk/tuitui-fe/server-workspace/node_modules/@types/*",
-        "../../../../bk/tuitui-fe/server-workspace/node_modules/*"
+        "../../../../bk/tuitui-fe/server-workspace/node_modules/*",
+        "../../../credit-appl/cra-studio/node_modules/@types/*",
+        "../../../credit-appl/cra-studio/node_modules/*",
+        "../../../credit-appl/cra-studio/.links/@types/*",
+        "../../../credit-appl/cra-studio/.links/*",
+        "../../.links/@types/*",
+        "../../.links/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -142,10 +148,10 @@
         "../*"
       ],
       "@bk/tuitui-new-server": [
-        "../../../../bk/tuitui-fe/server-workspace/packages/tuitui-new-server"
+        "../../../tuitui-fe/server-workspace/packages/tuitui-new-server"
       ],
       "@bk/tuitui-new-server/*": [
-        "../../../../bk/tuitui-fe/server-workspace/packages/tuitui-new-server/*"
+        "../../../tuitui-fe/server-workspace/packages/tuitui-new-server/*"
       ],
       "@bk/credit-appl-conf": [
         "../../../credit-appl/conf"
@@ -406,10 +412,16 @@
         "../../../credit-matryoshka/packages/bcl-alpha-server/*"
       ],
       "@wfh/tuitui-server-tool": [
-        "../../../../bk/tuitui-fe/server-workspace/packages/tuitui-server-tool"
+        "../../../tuitui-fe/server-workspace/packages/tuitui-server-tool"
       ],
       "@wfh/tuitui-server-tool/*": [
-        "../../../../bk/tuitui-fe/server-workspace/packages/tuitui-server-tool/*"
+        "../../../tuitui-fe/server-workspace/packages/tuitui-server-tool/*"
+      ],
+      "@wfh/doc-ui-common": [
+        "../../doc-app/doc-ui-common"
+      ],
+      "@wfh/doc-ui-common/*": [
+        "../../doc-app/doc-ui-common/*"
       ]
     },
     "typeRoots": [
@@ -428,7 +440,10 @@
       "../../../credit-appl/ng-space/.links/@types",
       "../../../credit-appl/node_modules/@types",
       "../../../../bk/tuitui-fe/server-workspace/.links/@types",
-      "../../../../bk/tuitui-fe/server-workspace/node_modules/@types"
+      "../../../../bk/tuitui-fe/server-workspace/node_modules/@types",
+      "../../../credit-appl/cra-studio/node_modules/@types",
+      "../../../credit-appl/cra-studio/.links/@types",
+      "../../.links/@types"
     ]
   },
   "include": [

@@ -39,8 +39,9 @@ export interface WorkspaceState {
     originInstallJsonStr: string;
     installJson: PackageJsonInterf;
     installJsonStr: string;
-    /** names of those symlink packages */
+    /** names of those linked source packages */
     linkedDependencies: [string, string][];
+    /** names of those linked source packages */
     linkedDevDependencies: [string, string][];
     /** installed DR component packages [name, version]*/
     installedComponents?: Map<string, PackageInfo>;
@@ -182,6 +183,7 @@ export declare function getStore(): Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;
 export declare function projKeyToPath(key: string): string;
 export declare function workspaceKey(path: string): string;
+export declare function workspaceDir(key: string): string;
 export declare function getPackagesOfProjects(projects: string[]): Generator<PackageInfo, void, unknown>;
 export declare function getProjectList(): string[];
 export declare function isCwdWorkspace(): boolean;

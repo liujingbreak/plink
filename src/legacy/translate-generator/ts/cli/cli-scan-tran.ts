@@ -5,16 +5,16 @@ import fsext from 'fs-extra';
 import Path from 'path';
 import glob from 'glob';
 import {Pool} from '@wfh/thread-promise-pool';
-import chalk from 'chalk';
+import {getTscConfigOfPkg} from '@wfh/plink/wfh/dist/utils/misc';
 // Chalk is useful for printing colorful text in a terminal
 // import chalk from 'chalk';
 
-export interface Translatables {
+export interface Translatable {
+  key: string;
+  text: string | null;
   start: number;
   end: number;
   desc: string;
-  default: string;
-  text: string | null;
 }
 
 export type StringInfo = [
@@ -28,18 +28,20 @@ export type StringInfo = [
   type: string
 ];
 
-export async function scanTran(dir: string, output?: string) {
-  let transByFile: {[file: string]: Translatables[]};
-  let oldMetaFileExits = false;
-  if (output == null) {
-    output = Path.resolve(dir, 'scan-tran.json');
+export async function scanTran(dir: string, metaDir?: string) {
+  // let transByFile: {[file: string]: Translatables[]};
+  if (metaDir == null) {
+    const pkg = plink.findPackageByFile(dir);
+    if (pkg == null) {
+      throw new Error(`${dir} is not inside any of linked source package, you have to specify a metadata output directory`);
+    }
+    metaDir = Path.resolve(pkg.realPath, getTscConfigOfPkg(pkg.json).srcDir, 'i18n');
   }
-  if (fs.existsSync(output)) {
-    transByFile = JSON.parse(fs.readFileSync(output, 'utf8'));
-    oldMetaFileExits = true;
-  } else {
-    transByFile = {};
+
+  if (!fs.existsSync(metaDir)) {
+    fsext.mkdirpSync(metaDir);
   }
+
   if (!fs.statSync(dir).isDirectory()) {
     plink.logger.error(`${dir} is not a directory`);
     return;
@@ -60,33 +62,21 @@ export async function scanTran(dir: string, output?: string) {
 
   await Promise.all(files.map(async file => {
     try {
-      const relFilePath = Path.relative(Path.dirname(output!), file).replace(/\\/g, '/');
-      const res = await pool.submit<StringInfo[]>({
+      const relPath = Path.relative(dir, file);
+      const metadataFile = Path.resolve(metaDir!, relPath.replace(/\.[^./\\]+$/g, '.yaml'));
+      await pool.submit<StringInfo[]>({
         file: Path.resolve(__dirname, 'cli-scan-tran-worker.js'),
         exportFn: 'scanFile',
-        args: [file, transByFile[relFilePath]]
+        args: [file, metadataFile]
       });
-      plink.logger.info(file + `: ${chalk.green(res.length)} found`);
-      const translatables = res.map<Translatables>(([start, end, text, line, col, type]) => ({
-        start, end, desc: `line: ${line}, col: ${col}: ${type}`, default: text, text: null
-      }));
-      if (!translatables || translatables.length === 0) {
-        delete transByFile[relFilePath];
-      } else {
-        transByFile[relFilePath] = translatables;
-      }
     } catch (ex) {
       plink.logger.error(ex);
     }
   }));
 
-  // if (!output.endsWith('json')) {
-  //   output = output + '.json';
-  // }
-  fsext.mkdirpSync(Path.dirname(output));
-  fs.promises.writeFile(output, JSON.stringify(transByFile, null, '  '));
-  plink.logger.info(output + ' is ' + (oldMetaFileExits ? 'updated' : 'written'));
-  // plink.logger.info('Command is executing with configuration:', config());
-  // TODO: Your command job implementation here
+
+  // fsext.mkdirpSync(Path.dirname(output));
+  // fs.promises.writeFile(output, JSON.stringify(transByFile, null, '  '));
+  // plink.logger.info(output + ' is ' + (oldMetaFileExits ? 'updated' : 'written'));
 }
 

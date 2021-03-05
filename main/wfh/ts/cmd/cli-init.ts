@@ -90,12 +90,16 @@ export function printWorkspaces() {
     let i = 0;
     const pkJson = getState().workspaces.get(reldir)!.originInstallJson;
     // console.log(pkJson);
+    let workspaceLabel = chalk.gray(reldir ? `  ${reldir}` : '  (root directory)');
+    if (getState().currWorkspace === reldir) {
+      workspaceLabel = chalk.inverse(workspaceLabel);
+    }
 
     for (const {name: dep, json: {version: ver}, isInstalled} of packages4WorkspaceKey(reldir)) {
       const expectedVer = convertVersion(pkJson, dep);
       const same = expectedVer === ver;
       table.push([
-        i === 0 ? chalk.cyan(reldir ? `  ${reldir}/` : '  (root directory)') : '',
+        i === 0 ? workspaceLabel : '',
         same ? dep : chalk.red(dep),
         same ? expectedVer : chalk.bgRed(expectedVer),
         ver,
@@ -105,6 +109,7 @@ export function printWorkspaces() {
     }
     wsIdx++;
   }
+
   console.log(table.toString());
 }
 

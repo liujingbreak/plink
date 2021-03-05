@@ -3,7 +3,8 @@ import fs from 'fs';
 // import chalk from 'chalk';
 // import Path from 'path';
 import {logger, initAsChildProcess} from '@wfh/plink';
-import {StringInfo, Translatables} from './cli-scan-tran';
+import {StringInfo, Translatable} from './cli-scan-tran';
+import yamljs from 'yamljs';
 // enforce default log4js configuration
 import '@wfh/plink/wfh/dist/config';
 const log = logger.getLogger('@wfh/translate-generator');
@@ -19,38 +20,44 @@ const INCLUDE_SYNTAX = [kinds.StringLiteral,
   kinds.LastTemplateToken
 ];
 
-export function scanFile(file: string, trans: Translatables[] | undefined): StringInfo[] {
+export function scanFile(file: string, metaDataFile: string): StringInfo[] {
   const sel = new Selector(fs.readFileSync(file, 'utf8'), file);
-  
   const info: StringInfo[] = [];
-  const transMap = new Map<string, Translatables>();
-  if (trans) {
-    for (const item of trans) {
-      transMap.set(item.default, item);
+  const oldTransMap = new Map<string, Translatable>();
+  if (fs.existsSync(metaDataFile)) {
+    const translatbles = yamljs.load(metaDataFile) as Translatable[];
+    for (const item of translatbles) {
+      oldTransMap.set(item.key, item);
     }
   }
 
+  const newTranslatebles: Translatable[] = [];
   sel.some(null, null, (ast, path, parents, isLeaf, comment) => {
     if (EXCLUDE_SYNTAX.includes(ast.kind))
       return 'SKIP';
     if (INCLUDE_SYNTAX.includes(ast.kind)) {
       const lineCol = ts.getLineAndCharacterOfPosition(sel.src, ast.getStart());
-      const scannedInfoItem: StringInfo = [
-        ast.getStart(), ast.getEnd(), ast.getText(), lineCol.line + 1, lineCol.character + 1,
-        kinds[ast.kind]
-      ];
-      info.push(scannedInfoItem);
+      const scannedInfoItem: Translatable = {
+        key: ast.getText(),
+        text: null,
+        start: ast.getStart(),
+        end: ast.getEnd(),
+        desc: `${kinds[ast.kind]} line:${lineCol.line + 1}, col:${lineCol.character + 1}`
+      };
+
+      newTranslatebles.push(scannedInfoItem);
       if (log.isDebugEnabled())
         log.debug(`${file} (${lineCol.line + 1}:${lineCol.character + 1}):`, ast.getText());
-      const originTrans = transMap.get(ast.getText());
+      const originTrans = oldTransMap.get(ast.getText());
       if (originTrans != null && originTrans.text != null) {
-        scannedInfoItem[2] = originTrans.text;
+        scannedInfoItem.text = originTrans.text;
       }
       return 'SKIP';
     }
   });
+  fs.writeFileSync(metaDataFile, yamljs.stringify(newTranslatebles, 3));
   // console.log(file + `: ${chalk.green(info.length)} found.`);
-  // log.info(file + `: ${chalk.green(info.length)} found.`);
+  log.info(metaDataFile + ' is written');
 
   return info;
 }

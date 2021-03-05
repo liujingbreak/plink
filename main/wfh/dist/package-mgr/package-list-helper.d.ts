@@ -3,6 +3,10 @@ export declare type PackageType = '*' | 'build' | 'core';
 export declare function allPackages(_types?: PackageType | PackageType[], recipeType?: 'src' | 'installed', projectDirs?: string[]): Generator<PackageInfo>;
 export declare function packages4WorkspaceKey(wsKey: string, includeInstalled?: boolean): Generator<PackageInfo>;
 export declare function packages4Workspace(workspaceDir?: string, includeInstalled?: boolean): Generator<PackageInfo, any, unknown>;
+/**
+ * @returns a map of workspace keys of which has specified dependency
+ */
+export declare function workspacesOfDependencies(...depPkgNames: string[]): Set<string>;
 export interface CompilerOptionSetOpt {
     /** Will add typeRoots property for specific workspace, and add paths of file "_package-settings.d.ts" */
     workspaceDir?: string;

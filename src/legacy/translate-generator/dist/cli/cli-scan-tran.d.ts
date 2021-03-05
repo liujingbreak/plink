@@ -1,9 +1,9 @@
-export interface Translatables {
+export interface Translatable {
+    key: string;
+    text: string | null;
     start: number;
     end: number;
     desc: string;
-    default: string;
-    text: string | null;
 }
 export declare type StringInfo = [
     start: number,
@@ -15,4 +15,4 @@ export declare type StringInfo = [
     col: number,
     type: string
 ];
-export declare function scanTran(dir: string, output?: string): Promise<void>;
+export declare function scanTran(dir: string, metaDir?: string): Promise<void>;

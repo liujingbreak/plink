@@ -252,21 +252,6 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
   }
   tsjson.extends = tsjson.extends.replace(/\\/g, '/');
 
-  // const pathMapping: {[key: string]: string[]} = {};
-
-  // for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
-  //   const realDir = Path.relative(proj, realPath).replace(/\\/g, '/');
-  //   pathMapping[name] = [realDir];
-  //   pathMapping[name + '/*'] = [realDir + '/*'];
-  // }
-
-  // // if (pkgName !== '@wfh/plink') {
-  // drcpDir = Path.relative(proj, drcpDir).replace(/\\/g, '/');
-  // pathMapping['@wfh/plink'] = [drcpDir];
-  // pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
-  // // }
-  // Object.assign(pathMapping, extraPathMapping);
-
   const rootDir = Path.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
   tsjson.compilerOptions = {
     rootDir,

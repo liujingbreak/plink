@@ -77,6 +77,27 @@ export function packages4Workspace(workspaceDir?: string, includeInstalled = tru
   return packages4WorkspaceKey(wsKey, includeInstalled);
 }
 
+/**
+ * @returns a map of workspace keys of which has specified dependency
+ */
+export function workspacesOfDependencies(...depPkgNames: string[]) {
+  const deps = new Set(depPkgNames);
+  const wsKeys = new Set<string>();
+  for (const [key, wsState] of getState().workspaces.entries()) {
+    for (const [pkgName] of wsState.linkedDependencies.concat(wsState.linkedDevDependencies)) {
+      if (deps.has(pkgName)) {
+        wsKeys.add(key);
+      }
+    }
+    for (const [pkgName] of wsState.installedComponents?.keys() || []) {
+      if (deps.has(pkgName)) {
+        wsKeys.add(key);
+      }
+    }
+  }
+  return wsKeys;
+}
+
 export interface CompilerOptionSetOpt {
   /** Will add typeRoots property for specific workspace, and add paths of file "_package-settings.d.ts" */
   workspaceDir?: string;

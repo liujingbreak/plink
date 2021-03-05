@@ -35,7 +35,7 @@ export async function createCommands(startTime: number) {
   let cliExtensions: string[] | undefined;
   const program = new commander.Command('plink')
   .description(chalk.cyan('A pluggable monorepo and multi-repo management tool'))
-  .action(args => {
+  .action((args: string[]) => {
     // tslint:disable-next-line: no-console
     console.log(sexyFont('PLink').string);
     // tslint:disable-next-line: no-console
@@ -47,7 +47,11 @@ export async function createCommands(startTime: number) {
       console.log(`Found ${cliExtensions.length} command line extension` +
       `${cliExtensions.length > 1 ? 's' : ''}: ${cliExtensions.map(pkg => chalk.blue(pkg)).join(', ')}`);
     }
+    // tslint:disable-next-line: no-console
+    console.log('\n', chalk.bgRed('Please specify a sub command listed above'));
+    process.nextTick(() => process.exit(1));
   });
+  program.addHelpText('before', sexyFont('PLink').string);
 
   program.version(pk.version, '-v, --vers', 'output the current version');
   program.addHelpCommand('help [command]', 'show help information, same as "-h". ');
@@ -59,14 +63,14 @@ export async function createCommands(startTime: number) {
     wsState = getPkgState().workspaces.get(workspaceKey(process.cwd()));
     if (wsState != null) {
       overrider.forPackage(null, program => {
-        spaceOnlySubWfhCommand(program);
-        subWfhCommand(program);
+        spaceOnlySubCommands(program);
+        subComands(program);
       });
     } else {
-      overrider.forPackage(null, subWfhCommand);
+      overrider.forPackage(null, subComands);
     }
   } else {
-    overrider.forPackage(null, subWfhCommand);
+    overrider.forPackage(null, subComands);
   }
 
   if (process.env.PLINK_SAFE !== 'true') {
@@ -85,7 +89,7 @@ export async function createCommands(startTime: number) {
   }
 }
 
-function subWfhCommand(program: commander.Command) {
+function subComands(program: commander.Command) {
   /** command init
    */
   const initCmd = program.command('init [work-directory]').alias('sync')
@@ -179,6 +183,17 @@ function subWfhCommand(program: commander.Command) {
       await (await import('./cli-ls')).default(listCmd.opts() as any);
     });
 
+  const addCmd = program.command('add [dependency...]')
+    .description('Add dependency to package.json file, with option "--dev" to add as "devDependencies", ' +
+      'without option "--to" this command adds dependency to current worktree space\'s package.json file',
+      {
+        dependency: 'dependency package name in form of "<a linked package name without scope part>", "<package name>@<version>", '
+      })
+    .option('--to <pkg name | worktree dir | pkg dir>', 'add dependency to the package.json of specific linked source package by name or directory, or a worktree space directory')
+    .action(async (packages: string[]) => {
+      await (await import('./cli-add-package')).addDependencyTo(packages, addCmd.opts().to, addCmd.opts().dev);
+    });
+
   const tsconfigCmd = program.command('tsconfig')
     .description('List tsconfig.json, jsconfig.json files which will be updated automatically by Plink, (a monorepo means there are node packages which are symlinked from real source code directory' +
       ', if you have customized tsconfig.json file, this command helps to update "compilerOptions.paths" properties)')
@@ -267,15 +282,7 @@ function subWfhCommand(program: commander.Command) {
     });
 }
 
-function spaceOnlySubWfhCommand(program: commander.Command) {
-  const addCmd = program.command('add [package...]')
-    .description('Add dependency to worktree space package.json file, specify option "--dev" to add as "devDependencies" ', {
-      package: 'package name in form of "<a linked package name without scope part>", "<package name>@<version>", '
-    })
-    .action(async (packages: string[]) => {
-      await (await import('./cli-add-package')).add(packages, addCmd.opts() as any);
-    });
-
+function spaceOnlySubCommands(program: commander.Command) {
   /**
    * tsc command
    */
