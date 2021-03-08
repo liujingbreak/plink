@@ -51,8 +51,10 @@ export default async function(pkgName?: string) {
           printPackage(pkg);
         }
       }
+      const tbl = createCliTable();
+      tbl.push(['Complete setting values:'])
       // tslint:disable-next-line: no-console
-      console.log(chalk.cyan('Complete setting values:'));
+      console.log(tbl.toString());
       // tslint:disable-next-line: no-console
       console.log(util.inspect(setting, false, 5));
     })
@@ -108,7 +110,7 @@ function printPackage({name: pkgName, realPath}: PackageInfo) {
   for (const prop of meta.properties) {
     const propMeta = state.propertyByName.get(pkgName + ',' + prop)!;
     console.log('   ' + chalk.cyan(propMeta.property) + ': ' +
-      (propMeta.optional ? chalk.gray('(optional) ') : '') + chalk.magenta(propMeta.type));
+      (propMeta.optional ? chalk.gray('(optional) ') : '') + chalk.magenta(propMeta.type.replace(/\n/g, '\n  ')));
     // console.log('    ' + (propMeta.optional ? chalk.gray('  (optional) ') : '  ') + chalk.magenta(propMeta.type));
     if (propMeta.desc)
       console.log('      - ' + propMeta.desc.trim().replace(/\n/g, '\n      '));

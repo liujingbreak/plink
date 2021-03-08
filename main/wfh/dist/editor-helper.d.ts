@@ -19,5 +19,4 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
 } & import("../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>>;
 export declare function getState(): EditorHelperState;
 export declare function getStore(): rx.Observable<EditorHelperState>;
-export declare function updateTsconfigFileForProjects(wsKey: string, includeProject?: string): void;
 export {};

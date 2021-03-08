@@ -51,28 +51,22 @@ const slice = stateFactory.newSlice({
 });
 
 stateFactory.addEpic<EditorHelperState>((action$, state$) => {
-  let plinkInteralTsconfigJson: any;
   return rx.merge(
-    action$.pipe(ofPayloadAction(pkgSlice.actions.createSymlinksForWorkspace),
+    action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceBatchChanged),
       op.tap(({payload: wsKeys}) => {
         const wsDir = isCwdWorkspace() ? process.cwd() :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
         writePackageSettingType();
         if (getPkgState().linkedDrcp) {
-          const relPath = Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json');
-          if (plinkInteralTsconfigJson == null) {
-            plinkInteralTsconfigJson = JSON.parse(fs.readFileSync(relPath, 'utf8'));
-          }
+          const plinkTsconfig = Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json');
           updateHookedTsconfig({
-            relPath,
+            relPath: Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json'),
             baseUrl: '.',
-            originJson: plinkInteralTsconfigJson
+            originJson: JSON.parse(fs.readFileSync(plinkTsconfig, 'utf8'))
           }, wsDir);
         }
-        for (const wsKey of wsKeys) {
-          updateTsconfigFileForProjects(wsKey);
-        }
+        updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
         for (const data of getState().tsconfigByRelPath.values()) {
           updateHookedTsconfig(data, wsDir);
         }
@@ -143,7 +137,7 @@ export function getStore() {
   return stateFactory.sliceStore(slice);
 }
 
-export function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
+function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
   const ws = getPkgState().workspaces.get(wsKey);
   if (ws == null)
     return;

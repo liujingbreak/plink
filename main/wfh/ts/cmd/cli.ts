@@ -49,6 +49,7 @@ export async function createCommands(startTime: number) {
     }
     // tslint:disable-next-line: no-console
     console.log('\n', chalk.bgRed('Please specify a sub command listed above'));
+    checkPlinkVersion();
     process.nextTick(() => process.exit(1));
   });
   program.addHelpText('before', sexyFont('PLink').string);
@@ -63,7 +64,9 @@ export async function createCommands(startTime: number) {
     wsState = getPkgState().workspaces.get(workspaceKey(process.cwd()));
     if (wsState != null) {
       overrider.forPackage(null, program => {
+        overrider.nameStyler = str => chalk.green(str);
         spaceOnlySubCommands(program);
+        overrider.nameStyler = undefined;
         subComands(program);
       });
     } else {
@@ -74,7 +77,9 @@ export async function createCommands(startTime: number) {
   }
 
   if (process.env.PLINK_SAFE !== 'true') {
+    overrider.nameStyler = str => chalk.cyan(str);
     cliExtensions = loadExtensionCommand(program, wsState, overrider);
+    overrider.nameStyler = undefined;
   } else {
     // tslint:disable-next-line: no-console
     console.log('Value of environment varaible "PLINK_SAFE" is true, skip loading extension');
@@ -396,7 +401,7 @@ function checkPlinkVersion() {
       return;
     }
     if (depVer.endsWith('.tgz')) {
-      const matched = /-(\d+\.\d+\.[^.]+)\.tgz$/.exec(depVer);
+      const matched = /-(\d+\.\d+\.[^]+?)\.tgz$/.exec(depVer);
       if (matched == null)
         return;
       depVer = matched[1];

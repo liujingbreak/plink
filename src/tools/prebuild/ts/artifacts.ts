@@ -65,8 +65,8 @@ export async function stringifyListAllVersions() {
   let buf = '';
   for (const [env, appHash] of envMap.entries()) {
     for (const [app, githash] of appHash.entries()) {
-      buf += `  ${env} - ${app}\n${githash}\n`;
-      buf += '\n';
+      buf += `${env} - ${app}\n${githash.replace(/^/mg, '  ')}\n`;
+      buf += '-----------------------------\n';
     }
   }
   return buf;

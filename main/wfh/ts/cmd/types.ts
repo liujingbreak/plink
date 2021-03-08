@@ -67,7 +67,4 @@ export interface OurCommandOption<T = string> {
   isRequired: boolean;
 }
 
-export interface OurAugmentedCommander extends commander.Command {
-  _origOption: commander.Command['option'];
-}
 

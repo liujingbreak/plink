@@ -5,9 +5,9 @@ import {config, InjectorConfigHandler} from '@wfh/plink';
  */
 export interface PrebuildSetting {
   /** Build target Git remote name */
-  prebuildGitRemote: string;
+  prebuildDeployRemote: string;
   /** Build targe Git branch name */
-  prebuildReleaseBranch: string;
+  prebuildDeployBranch: string;
   /** Build target Git remote name for tag only */
   tagPushRemote: string;
 
@@ -24,8 +24,8 @@ export interface PrebuildSetting {
  */
 export function defaultSetting(): PrebuildSetting {
   const defaultValue: PrebuildSetting = {
-    prebuildGitRemote: 'deploy',
-    prebuildReleaseBranch: 'release-server',
+    prebuildDeployRemote: 'deploy',
+    prebuildDeployBranch: 'release-server',
     tagPushRemote: 'origin',
     byEnv: {
       local: {

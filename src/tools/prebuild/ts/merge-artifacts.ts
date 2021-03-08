@@ -5,7 +5,7 @@ import {resolve, basename} from 'path';
 import fs from 'fs-extra';
 import api from '__api';
 
-const log = require('log4js').getLogger('merge-artifacts');
+const log = api.logger;
 
 const rootDir = getRootDir();
 const tempDir = resolve(rootDir, 'dist/merge-temp');
@@ -14,8 +14,8 @@ const envs = ['local', 'dev', 'test', 'stage', 'prod'];
 
 export async function prepare() {
   const setting = api.config()['@wfh/prebuild'];
-  let releaseBranch = setting.prebuildReleaseBranch;
-  const releaseRemote = setting.prebuildGitRemote;
+  let releaseBranch = setting.prebuildDeployBranch;
+  const releaseRemote = setting.prebuildDeployRemote;
 
   // await checkRemote();
 
@@ -73,7 +73,7 @@ async function cleanupRepo() {
 }
 
 export function mergeBack() {
-  log.info('merge artifacts');
+  log.info('---- merge artifacts ------');
   for (const env of envs) {
     mergeDir('install-' + env);
     mergeDir('server-content-' + env);

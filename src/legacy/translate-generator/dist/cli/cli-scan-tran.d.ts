@@ -15,4 +15,4 @@ export declare type StringInfo = [
     col: number,
     type: string
 ];
-export declare function scanTran(dir: string, metaDir?: string): Promise<void>;
+export declare function scanTran(locale: string, pkgName: string | undefined, rootDir?: string, jsDir?: string, metaDir?: string, excludeJs?: boolean): Promise<void>;

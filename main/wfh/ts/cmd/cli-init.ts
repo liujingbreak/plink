@@ -90,9 +90,11 @@ export function printWorkspaces() {
     let i = 0;
     const pkJson = getState().workspaces.get(reldir)!.originInstallJson;
     // console.log(pkJson);
-    let workspaceLabel = chalk.gray(reldir ? `  ${reldir}` : '  (root directory)');
+    let workspaceLabel = reldir ? `  ${reldir}` : '  (root directory)';
     if (getState().currWorkspace === reldir) {
       workspaceLabel = chalk.inverse(workspaceLabel);
+    } else {
+      workspaceLabel = chalk.gray(workspaceLabel);
     }
 
     for (const {name: dep, json: {version: ver}, isInstalled} of packages4WorkspaceKey(reldir)) {

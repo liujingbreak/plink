@@ -98,7 +98,7 @@ async function packPackages(packageDirs: string[]) {
     //   .join('\n'));
     await deleteOldTar(tarInfos.map(item => new RegExp('^' +
       _.escapeRegExp(item.name.replace('@', '').replace(/[/\\]/g, '-'))
-        + '\\-\\d+(?:\\.\\d+){1,2}(?:\\-[^\\-])?\\.tgz$', 'i'
+        + '\\-\\d+(?:\\.\\d+){1,2}(?:\\-[^]+?)?\\.tgz$', 'i'
       )),
       tarInfos.map(item => item.filename));
     await changePackageJson(package2tarball);
@@ -307,7 +307,9 @@ function deleteOldTar(deleteFileReg: RegExp[], keepfiles: string[]) {
 
   if (!fs.existsSync(tarballDir))
     fsext.mkdirpSync(tarballDir);
-  // TODO: wait for timeout
+
+  // console.log(tarSet, deleteFileReg);
+
   for (const file of fs.readdirSync(tarballDir)) {
     if (!tarSet.has(file) && deleteFileReg.some(reg => reg.test(file))) {
       log.warn('Remove ' + file);

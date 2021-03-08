@@ -1,22 +1,19 @@
 
 import api from '__api';
-import log4js from 'log4js';
 import {spawn} from '@wfh/plink/wfh/dist/process-utils';
 import chalk from 'chalk';
 import {main as prebuildPost} from './prebuild-post';
 import Path from 'path';
 import * as _ma from './merge-artifacts';
 
-const log = log4js.getLogger(api.packageName + '.cli-deploy');
+const log = api.logger;
 
 export default async function(isStatic: boolean, env: string, app: string, pushBranch = true,
   isForce: boolean,
   secret: string | undefined | null, scriptsFile?: string, commitComment?: string) {
 
   log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile}`);
-  if (pushBranch) {
-    await (require('./merge-artifacts') as typeof _ma).prepare();
-  }
+  await (require('./merge-artifacts') as typeof _ma).prepare();
 
   if (scriptsFile) {
     if (scriptsFile.endsWith('.sh')) {

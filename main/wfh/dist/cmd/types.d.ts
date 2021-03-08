@@ -58,6 +58,3 @@ export interface OurCommandOption<T = string> {
     defaultValue: string | boolean | T[] | T;
     isRequired: boolean;
 }
-export interface OurAugmentedCommander extends commander.Command {
-    _origOption: commander.Command['option'];
-}

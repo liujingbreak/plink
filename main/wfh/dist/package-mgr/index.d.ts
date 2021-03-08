@@ -74,20 +74,20 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         packageJsonFiles?: string[];
     }>): void;
     updateDir(): void;
-    updatePlinkPackageInfo(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
+    _updatePlinkPackageInfo(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
     _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
     onLinkedPackageAdded(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     addProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    /** payload: workspace keys  */
-    createSymlinksForWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    /** payload: workspace keys, happens as debounced workspace change event */
+    workspaceBatchChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         file: string;
         lines: string[];
     }>): void;
     packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
     setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
-    setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
+    _setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
     /** paramter: workspace key */
     workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
     _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
@@ -136,20 +136,20 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         packageJsonFiles?: string[];
     }>): void;
     updateDir(): void;
-    updatePlinkPackageInfo(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
+    _updatePlinkPackageInfo(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
     _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
     onLinkedPackageAdded(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     addProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    /** payload: workspace keys  */
-    createSymlinksForWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    /** payload: workspace keys, happens as debounced workspace change event */
+    workspaceBatchChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         file: string;
         lines: string[];
     }>): void;
     packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
     setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
-    setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
+    _setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
     /** paramter: workspace key */
     workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
     _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
@@ -187,6 +187,12 @@ export declare function workspaceDir(key: string): string;
 export declare function getPackagesOfProjects(projects: string[]): Generator<PackageInfo, void, unknown>;
 export declare function getProjectList(): string[];
 export declare function isCwdWorkspace(): boolean;
+/**
+ * This method is meant to trigger editor-helper to update tsconfig files, so
+ * editor-helper must be import at first
+ * @param dir
+ */
+export declare function switchCurrentWorkspace(dir: string): void;
 export declare function installInDir(dir: string, originPkgJsonStr: string, toInstallPkgJsonStr: string): Promise<void>;
 /**
  *

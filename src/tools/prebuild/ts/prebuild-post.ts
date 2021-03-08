@@ -7,22 +7,21 @@ import { mergeBack, getCurrBranchName } from './merge-artifacts';
 import { digestInstallingFiles, checkZipFile } from '@wfh/assets-processer/dist/remote-deploy';
 import { send } from './_send-patch';
 import {stringifyListAllVersions} from './artifacts';
-import api from '__api';
-import log4js from 'log4js';
+import api from '__plink';
 import {getSetting} from '../isom/prebuild-setting';
-const log = log4js.getLogger(api.packageName + '.send-patch');
+const log = api.logger;
 
 let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
 
-export async function main(env: string, appName: string, buildStaticOnly = false,
+export async function main(env: string, appName: 'node-server' | string, buildStaticOnly = false,
   pushBranch = true, isForce = false, secret?: string, commitComment?: string) {
 
   const setting = getSetting();
   const rootDir = api.config().rootPath;
-  const releaseBranch: string = setting.prebuildReleaseBranch;
+  const deployBranch: string = setting.prebuildDeployBranch;
 
-  if (pushBranch)
-    mergeBack();
+  // if (pushBranch)
+  mergeBack();
 
   const zipSrc = api.config.resolve('staticDir');
   let zipFile: string | undefined;
@@ -41,7 +40,7 @@ export async function main(env: string, appName: string, buildStaticOnly = false
     }
   }
 
-  if (appName === 'node-server' || buildStaticOnly !== true) {
+  if (appName === 'node-server') {
     await digestInstallingFiles();
     log.info(await stringifyListAllVersions());
   }
@@ -49,7 +48,7 @@ export async function main(env: string, appName: string, buildStaticOnly = false
   // const zipDir = Path.resolve('install-' + env);
 
   try {
-    await spawn('git', 'branch', '-D', releaseBranch, { cwd: rootDir, silent: true }).promise;
+    await spawn('git', 'branch', '-D', deployBranch, { cwd: rootDir, silent: true }).promise;
   } catch (e) {
     log.debug(e.message);
   }
@@ -73,22 +72,20 @@ export async function main(env: string, appName: string, buildStaticOnly = false
     }
   }
 
-  if (pushBranch)
-    await pushReleaseBranch(releaseBranch, rootDir, env, appName, commitComment);
-
-  if (appName === 'node-server' || buildStaticOnly !== true) {
-    await addTag(rootDir, commitComment);
-  }
+  log.info('------- push to deployment remote -------');
+  await pushDeployBranch(deployBranch, rootDir, env, appName, commitComment);
+  log.info('------- create tag and new release branch -------');
+  await pushTagAndReleaseBranch(rootDir, pushBranch, commitComment);
   await spawn('git', 'checkout', currBranch, { cwd: rootDir }).promise;
 }
 
-async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: string, appName: string, commitComment?: string) {
-  const releaseRemote = api.config()['@wfh/prebuild'].prebuildGitRemote;
+async function pushDeployBranch(releaseBranch: string, rootDir: string, env: string, appName: string, commitComment?: string) {
+  const deployRemote = api.config()['@wfh/prebuild'].prebuildDeployRemote;
 
-  await spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir }).promise;
+  await spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir, silent: true }).promise;
   // removeDevDeps();
   changeGitIgnore();
-  await spawn('git', 'add', '.', { cwd: rootDir }).promise;
+  await spawn('git', 'add', '.', { cwd: rootDir, silent: true }).promise;
   const hookFiles = [Path.resolve(rootDir, '.git/hooks/pre-push'),
     Path.resolve(rootDir, '.git/hooks/pre-commit')];
   for (const gitHooks of hookFiles) {
@@ -97,22 +94,25 @@ async function pushReleaseBranch(releaseBranch: string, rootDir: string, env: st
     }
   }
   log.info('commitComment', commitComment);
-  await spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`, { cwd: rootDir }).promise;
-  await spawn('git', 'push', '-f', releaseRemote, releaseBranch, { cwd: rootDir }).promise;
+  await spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`, { cwd: rootDir, silent: true }).promise;
+  await spawn('git', 'push', '-f', deployRemote, releaseBranch, { cwd: rootDir}).promise;
 }
 
-async function addTag(rootDir: string, commitComment?: string) {
+async function pushTagAndReleaseBranch(rootDir: string, pushBranch: boolean, commitComment?: string) {
   const setting = getSetting();
-  const releaseRemote = setting.prebuildGitRemote;
+  const releaseRemote = setting.tagPushRemote;
   const current = dayjs();
   const tagName = `${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
-  await spawn('git', 'tag', '-a', 'v' + tagName, '-m', commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`,
-    { cwd: rootDir }).promise;
-  await spawn('git', 'push', releaseRemote, 'v' + tagName, { cwd: rootDir }).promise;
+  await spawn('git', 'tag', '-a', 'v' + tagName, '-m',
+    commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`,
+    { cwd: rootDir}).promise;
+  await spawn('git', 'push', setting.prebuildDeployRemote, 'v' + tagName, { cwd: rootDir}).promise;
 
-  if (setting.tagPushRemote && setting.tagPushRemote !== setting.prebuildGitRemote) {
-    await spawn('git', 'push', setting.tagPushRemote, 'HEAD:release/' + tagName, { cwd: rootDir }).promise;
-    await spawn('git', 'push', setting.tagPushRemote, 'v' + tagName, { cwd: rootDir }).promise;
+  if (pushBranch && releaseRemote && releaseRemote !== setting.prebuildDeployRemote) {
+    await spawn('git', 'push', releaseRemote, 'HEAD:release/' + tagName, { cwd: rootDir }).promise;
+    await spawn('git', 'push', releaseRemote, 'v' + tagName, { cwd: rootDir }).promise;
+  } else {
+    log.info('Skip pushing ' + pushBranch);
   }
 }
 

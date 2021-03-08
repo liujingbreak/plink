@@ -105,8 +105,9 @@ export const slice = stateFactory.newSlice({
       isForce: boolean, createHook: boolean, packageJsonFiles?: string[]}>) {
     },
     scanAndSyncPackages(d, action: PayloadAction<{packageJsonFiles?: string[]}>) {},
+
     updateDir() {},
-    updatePlinkPackageInfo(d) {
+    _updatePlinkPackageInfo(d) {
       const plinkPkg = createPackageInfo(Path.resolve(plinkDir, 'package.json'), false);
       if (isDrcpSymlink) {
         d.linkedDrcp = plinkPkg;
@@ -143,8 +144,8 @@ export const slice = stateFactory.newSlice({
         d.project2Packages.delete(dir);
       }
     },
-    /** payload: workspace keys  */
-    createSymlinksForWorkspace(d, action: PayloadAction<string[]>) {},
+    /** payload: workspace keys, happens as debounced workspace change event */
+    workspaceBatchChanged(d, action: PayloadAction<string[]>) {},
     updateGitIgnores(d, {payload}: PayloadAction<{file: string, lines: string[]}>) {
       d.gitIgnores[payload.file] = payload.lines.map(line => line.startsWith('/') ? line : '/' + line);
     },
@@ -154,7 +155,7 @@ export const slice = stateFactory.newSlice({
     setInChina(d, {payload}: PayloadAction<boolean>) {
       d.isInChina = payload;
     },
-    setCurrentWorkspace(d, {payload: dir}: PayloadAction<string | null>) {
+    _setCurrentWorkspace(d, {payload: dir}: PayloadAction<string | null>) {
       if (dir != null)
         d.currWorkspace = workspaceKey(dir);
       else
@@ -284,9 +285,9 @@ stateFactory.addEpic((action$, state$) => {
 
   return merge(
     // To override stored state. 
-  // Do not put following logic in initialState! It will be overridden by previously saved state
+    // Do not put following logic in initialState! It will be overridden by previously saved state
 
-    of(1).pipe(tap(() => process.nextTick(() => actionDispatcher.updatePlinkPackageInfo())),
+    of(1).pipe(tap(() => process.nextTick(() => actionDispatcher._updatePlinkPackageInfo())),
       ignoreElements()
     ),
     getStore().pipe(map(s => s.project2Packages),
@@ -317,7 +318,7 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions.updateWorkspace),
       concatMap(({payload: {dir, isForce, createHook, packageJsonFiles}}) => {
         dir = Path.resolve(dir);
-        actionDispatcher.setCurrentWorkspace(dir);
+        actionDispatcher._setCurrentWorkspace(dir);
         maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), Path.resolve(dir, 'app.js'));
         checkAllWorkspaces();
         if (isForce) {
@@ -357,8 +358,14 @@ stateFactory.addEpic((action$, state$) => {
             ofPayloadAction(slice.actions._syncLinkedPackages),
             take(1),
             tap(() => {
+              const currWs = getState().currWorkspace;
               for (const wsKey of getState().workspaces.keys()) {
-                actionDispatcher._hoistWorkspaceDeps({dir: Path.resolve(rootDir, wsKey)});
+                if (wsKey !== currWs)
+                  actionDispatcher._hoistWorkspaceDeps({dir: Path.resolve(rootDir, wsKey)});
+              }
+              if (currWs != null) {
+                // Make sure "current workspace" is the last one being updated, so that it remains "current"
+                actionDispatcher._hoistWorkspaceDeps({dir: Path.resolve(rootDir, currWs)});
               }
             })
           )
@@ -381,7 +388,7 @@ stateFactory.addEpic((action$, state$) => {
               const path = Path.resolve(rootDir, curr);
               actionDispatcher.updateWorkspace({dir: path, isForce: payload.isForce, createHook: payload.createHook});
             } else {
-              actionDispatcher.setCurrentWorkspace(null);
+              actionDispatcher._setCurrentWorkspace(null);
             }
           }
         }
@@ -400,14 +407,13 @@ stateFactory.addEpic((action$, state$) => {
     ),
 
     action$.pipe(ofPayloadAction(slice.actions.updateDir),
-      tap(() => actionDispatcher.updatePlinkPackageInfo()),
-      concatMap(() => defer(() => from(
-        scanAndSyncPackages().then(() => {
-          for (const key of getState().workspaces.keys()) {
-            updateInstalledPackageForWorkspace(key);
-          }
-        })
-      )))
+      tap(() => actionDispatcher._updatePlinkPackageInfo()),
+      concatMap(() => scanAndSyncPackages()),
+      tap(() => {
+        for (const key of getState().workspaces.keys()) {
+          updateInstalledPackageForWorkspace(key);
+        }
+      })
     ),
     // Handle newly added workspace
     getStore().pipe(map(s => s.workspaces),
@@ -485,8 +491,7 @@ stateFactory.addEpic((action$, state$) => {
       map(action => updatedWorkspaceSet.add(action.payload)),
       debounceTime(800),
       tap(() => {
-
-        actionDispatcher.createSymlinksForWorkspace(Array.from(updatedWorkspaceSet.values()));
+        actionDispatcher.workspaceBatchChanged(Array.from(updatedWorkspaceSet.values()));
         updatedWorkspaceSet.clear();
         // return from(writeConfigFiles());
       }),
@@ -494,7 +499,7 @@ stateFactory.addEpic((action$, state$) => {
         actionDispatcher.packagesUpdated();
       })
     ),
-    action$.pipe(ofPayloadAction(slice.actions.createSymlinksForWorkspace),
+    action$.pipe(ofPayloadAction(slice.actions.workspaceBatchChanged),
       concatMap(({payload: wsKeys}) => {
         return merge(...wsKeys.map(_createSymlinksForWorkspace));
       })
@@ -591,6 +596,16 @@ export function isCwdWorkspace() {
   if (ws == null)
     return false;
   return true;
+}
+
+/**
+ * This method is meant to trigger editor-helper to update tsconfig files, so
+ * editor-helper must be import at first
+ * @param dir 
+ */
+export function switchCurrentWorkspace(dir: string) {
+  actionDispatcher._setCurrentWorkspace(dir);
+  actionDispatcher.workspaceBatchChanged([workspaceKey(dir)]);
 }
 
 function updateInstalledPackageForWorkspace(wsKey: string) {

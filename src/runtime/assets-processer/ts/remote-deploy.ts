@@ -169,7 +169,7 @@ export async function digestInstallingFiles(rootDir?: string) {
 
     const checksum = await Promise.all(checksumDones);
     const checksumText = JSON.stringify(checksum, null, '  ');
-    console.log(`checksum.${env}.json:\n`, checksumText);
+    // console.log(`checksum.${env}.json:\n`, checksumText);
     fs.writeFileSync(Path.resolve(rootDir, `checksum.${env}.json`), checksumText);
   }
 }

@@ -1,7 +1,8 @@
 import Selector, {typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import fs from 'fs';
+import fsext from 'fs-extra';
 // import chalk from 'chalk';
-// import Path from 'path';
+import Path from 'path';
 import {logger, initAsChildProcess} from '@wfh/plink';
 import {StringInfo, Translatable} from './cli-scan-tran';
 import yamljs from 'yamljs';
@@ -25,7 +26,7 @@ export function scanFile(file: string, metaDataFile: string): StringInfo[] {
   const info: StringInfo[] = [];
   const oldTransMap = new Map<string, Translatable>();
   if (fs.existsSync(metaDataFile)) {
-    const translatbles = yamljs.load(metaDataFile) as Translatable[];
+    const {data: translatbles} = yamljs.load(metaDataFile) as {target: string, data: Translatable[]};
     for (const item of translatbles) {
       oldTransMap.set(item.key, item);
     }
@@ -36,6 +37,11 @@ export function scanFile(file: string, metaDataFile: string): StringInfo[] {
     if (EXCLUDE_SYNTAX.includes(ast.kind))
       return 'SKIP';
     if (INCLUDE_SYNTAX.includes(ast.kind)) {
+      if (ts.isCallExpression(ast.parent) &&
+      ((ast.parent as ts.CallExpression).expression.getText() === 'require' || (ast.parent as ts.CallExpression).expression.kind === ts.SyntaxKind.ImportKeyword) &&
+      (ast.parent as ts.CallExpression).arguments[0] === ast) {
+        return 'SKIP';
+      }
       const lineCol = ts.getLineAndCharacterOfPosition(sel.src, ast.getStart());
       const scannedInfoItem: Translatable = {
         key: ast.getText(),
@@ -55,7 +61,13 @@ export function scanFile(file: string, metaDataFile: string): StringInfo[] {
       return 'SKIP';
     }
   });
-  fs.writeFileSync(metaDataFile, yamljs.stringify(newTranslatebles, 3));
+  if (newTranslatebles.length > 0) {
+    fsext.mkdirpSync(Path.dirname(metaDataFile));
+    fs.writeFileSync(metaDataFile, yamljs.stringify({
+      target: Path.relative(Path.dirname(metaDataFile), file).replace(/\\/g, '/'),
+      data: newTranslatebles
+    }, 3));
+  }
   // console.log(file + `: ${chalk.green(info.length)} found.`);
   log.info(metaDataFile + ' is written');
 

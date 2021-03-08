@@ -1,136 +1,316 @@
 import commander from 'commander';
 import {WorkspaceState, PackageInfo} from '../package-mgr';
 import chalk from 'chalk';
-import {hlDesc, arrayOptionFn} from './utils';
+import {arrayOptionFn} from './utils';
 import * as _bootstrap from '../utils/bootstrap-process';
-import { GlobalOptions, OurCommandMetadata, OurAugmentedCommander, CliExtension } from './types';
+import { GlobalOptions, OurCommandMetadata, CliExtension } from './types';
 import {cliActionDispatcher} from './cli-slice';
 import log4js from 'log4js';
+import stripAnsi from 'strip-ansi';
 
 const log = log4js.getLogger('plink.override-commander');
 
+interface CommandContext {
+  currClieCreatorFile: string;
+  currCliCreatorPkg: PackageInfo | null;
+  metaMap: WeakMap<PlinkCommand, Partial<OurCommandMetadata>>;
+  currCliPkgMataInfos: OurCommandMetadata[];
+  nameStyler?: (cmdName: string) => string;
+}
+
+export class PlinkCommandHelp extends commander.Help {
+  subcommandTerm(cmd: commander.Command): string {
+    const str = super.subcommandTerm(cmd);
+    if (cmd instanceof PlinkCommand && cmd.nameStyler) {
+      return cmd.nameStyler(str);
+    }
+    return str;
+  }
+
+  optionTerm(option: PlinkCmdOption) {
+    return option.optionStyler ? option.optionStyler(option.flags) : option.flags;
+  }
+
+  longestSubcommandTermLengthForReal(cmd: commander.Command, helper: PlinkCommandHelp) {
+    return helper.visibleCommands(cmd).reduce((max, command) => {
+      return Math.max(max, stripAnsi(helper.subcommandTerm(command)).length);
+    }, 0);
+  }
+
+  longestOptionTermLengthForReal(cmd: commander.Command, helper: PlinkCommandHelp) {
+    return helper.visibleOptions(cmd).reduce((max, option) => {
+      return Math.max(max, stripAnsi(helper.optionTerm(option)).length);
+    }, 0);
+  }
+
+  // subcommandDescription(cmd: commander.Command) {
+  //   return stripAnsi(super.subcommandDescription(cmd));
+  // }
+
+  realPadWidth(cmd: commander.Command, helper: PlinkCommandHelp) {
+    return Math.max(
+      helper.longestOptionTermLengthForReal(cmd, helper),
+      helper.longestSubcommandTermLengthForReal(cmd, helper),
+      helper.longestArgumentTermLength(cmd, helper)
+    );
+  }
+
+  formatHelp(cmd: commander.Command, helper: PlinkCommandHelp) {
+    // const termWidth = helper.padWidth(cmd, helper); // It is bigger than actual width due to colorful character
+    const realTermWidth = helper.realPadWidth(cmd, helper);
+    // console.log('termWidth=', termWidth);
+    const helpWidth = helper.helpWidth || 80;
+    const itemIndentWidth = 2;
+    const itemSeparatorWidth = 2; // between term and description
+    function formatItem(term: string, description: string, styler?: PlinkCommand['nameStyler']) {
+      if (description) {
+        // Support colorful characters
+        const fullText = `${term}${' '.repeat(realTermWidth + itemIndentWidth - stripAnsi(term).length)}${description}`;
+        return helper.wrap(fullText, helpWidth - itemIndentWidth, realTermWidth + itemSeparatorWidth);
+      }
+      return term;
+    }
+    function formatList(textArray: string[]) {
+      return textArray.join('\n').replace(/^/gm, ' '.repeat(itemIndentWidth));
+    }
+
+    // Usage
+    const output = [`Usage: ${helper.commandUsage(cmd)}`, ''];
+
+    // Description
+    const commandDescription = helper.commandDescription(cmd);
+    if (commandDescription.length > 0) {
+      output.push(commandDescription, '');
+    }
+
+    // Arguments
+    const argumentList = helper.visibleArguments(cmd).map((argument) => {
+      return formatItem(argument.term, argument.description);
+    });
+    if (argumentList.length > 0) {
+      output.push('Arguments:', formatList(argumentList), '');
+    }
+
+    // Options
+    const optionList = helper.visibleOptions(cmd).map((option) => {
+      return formatItem(helper.optionTerm(option), helper.optionDescription(option),
+        (option as PlinkCmdOption).optionStyler);
+    });
+    if (optionList.length > 0) {
+      output.push('Options:', formatList(optionList), '');
+    }
+
+    // Commands
+    let pkgName = '';
+    const commandList = helper.visibleCommands(cmd).map((cmd) => {
+      let header = '';
+      if (pkgName !== (cmd as PlinkCommand).pkgName) {
+        pkgName = (cmd as PlinkCommand).pkgName;
+        header = pkgName ? `\n${chalk.inverse(chalk.gray('Provided by package ' + pkgName + ': '))}\n` :
+          '\n';
+      }
+      pkgName = (cmd as PlinkCommand).pkgName;
+      return header + formatItem(helper.subcommandTerm(cmd), helper.subcommandDescription(cmd),
+        (cmd as PlinkCommand).nameStyler);
+    });
+    if (commandList.length > 0) {
+      output.push('Commands:', formatList(commandList), '');
+    }
+
+    return output.join('\n');
+  }
+
+  // wrap(str: string, width: number, indent: number, minColumnWidth = 40) {
+  //   // Detect manually wrapped and indented strings by searching for line breaks
+  //   // followed by multiple spaces/tabs.
+  //   if (str.match(/[\n]\s+/)) return str;
+  //   // Do not wrap if not enough room for a wrapped column of text (as could end up with a word per line).
+  //   const columnWidth = width - indent;
+  //   if (columnWidth < minColumnWidth) return str;
+
+  //   const leadingStr = str.substr(0, indent);
+  //   const columnText = str.substr(indent);
+
+  //   const indentString = ' '.repeat(indent);
+  //   const regex = new RegExp('.{1,' + (columnWidth - 1) + '}([\\s\u200B]|$)|[^\\s\u200B]+?([\\s\u200B]|$)', 'g');
+
+  //   const lines = columnText.match(regex) || [];
+  //   return leadingStr + lines.map((line, i) => {
+  //     if (line.slice(-1) === '\n') {
+  //       line = line.slice(0, line.length - 1);
+  //     }
+  //     return ((i > 0) ? indentString : '') + line.trimRight();
+  //   }).join('\n');
+  // }
+}
+export class PlinkCommand extends commander.Command {
+  nameStyler?: (cmdName: string) => string;
+  optionStyler?: (cmdName: string) => string;
+  subCmds: PlinkCommand[] = [];
+  /** value is file path for pkg name */
+  loadedCmdMap = new Map<string, string>();
+  pkgName: string;
+
+  constructor(public ctx: CommandContext, name?: string) {
+    super(name);
+  }
+
+  addGlobalOptionsToSubCmds() {
+    if (this.subCmds == null)
+      return;
+    for (const subCmd of this.subCmds) {
+      withGlobalOptions(subCmd);
+    }
+  }
+
+  createCommand(cmdName?: string): commander.Command {
+    const pk = this.ctx.currCliCreatorPkg;
+    const filePath = this.ctx.currClieCreatorFile;
+    if (cmdName && cmdName !== 'help') {
+      if (this.loadedCmdMap.has(cmdName)) {
+        if (filePath)
+          throw new Error(`Conflict command name "${cmdName}" from extensions "${filePath}" and "${this.loadedCmdMap.get(cmdName)}"`);
+        else
+          throw new Error(`Conflict with existing Plink command name ${cmdName}`);
+      }
+      this.loadedCmdMap.set(cmdName, filePath ? filePath : '@wfh/plink');
+    }
+
+    const subCmd = new PlinkCommand(this.ctx, cmdName);
+    subCmd.nameStyler = this.ctx.nameStyler;
+    subCmd.pkgName = pk != null ? pk.name : '';
+    this.subCmds.push(subCmd);
+
+    // subCmd.setContextData(this.currClieCreatorFile, this.currCliCreatorPkg, this.metaMap, this);
+
+    const meta: Partial<OurCommandMetadata> = {
+      pkgName: pk ? pk.name : '@wfh/plink',
+      nameAndArgs: cmdName,
+      options: [],
+      desc: ''
+    };
+    this.ctx.metaMap.set(subCmd, meta);
+    this.ctx.currCliPkgMataInfos.push(meta as OurCommandMetadata);
+    subCmd.description(meta.desc!);
+    return subCmd;
+  }
+
+  // description(str?: string,
+  //   argsDescription?: { [argName: string]: string; }) {
+  //   if (str !== undefined) {
+  //     if (this.ctx.currCliCreatorPkg)
+  //       str = chalk.gray(`<${this.ctx.currCliCreatorPkg.name}>`) + ' ' + str;
+  //     const plinkMeta = this.ctx.metaMap.get(this)!;
+  //     plinkMeta.desc = str;
+  //     if (argsDescription) {
+  //       plinkMeta.argDesc = argsDescription;
+  //     }
+  //     return super.description(str, argsDescription);
+  //   }
+  //   return super.description() as any;
+  // }
+
+  alias(alias?: string) {
+    if (alias) {
+      const plinkMeta = this.ctx.metaMap.get(this)!;
+      plinkMeta.alias = alias;
+    }
+    return super.alias(alias as any) as any;
+  }
+
+  createOption(flags: string, description?: string, ...remaining: any[]) {
+    let defaultValue: any;
+    if (remaining.length > 1) {
+      defaultValue = remaining[remaining.length - 1];
+    }
+    const plinkMeta = this.ctx.metaMap.get(this)!;
+    plinkMeta.options!.push({
+      flags, desc: description || '', defaultValue, isRequired: false
+    });
+    const opt = new PlinkCmdOption(flags, description);
+    opt.optionStyler = this.optionStyler;
+    return opt;
+  }
+  option(...args: any[]) {
+    (this._saveOptions as any)(false, ...args);
+    return (super.option as any)(...args);
+  }
+  requiredOption(...args: any[]) {
+    (this._saveOptions as any)(true, ...args);
+    return (super.requiredOption as any)(...args);
+  }
+  action(fn: (...args: any[]) => void | Promise<void>) {
+    function actionCallback() {
+      const {initConfig} = require('../utils/bootstrap-process') as typeof _bootstrap;
+      if ((this.opts() as GlobalOptions).verbose) {
+        log4js.configure({
+          appenders: {
+            out: {
+              type: 'stdout',
+              layout: {type: 'pattern', pattern: (process.send ? '%z' : '') + '%[[%p] %c%] - %m'}
+            }
+          },
+          categories: {
+            default: {appenders: ['out'], level: 'debug'},
+            plink: {appenders: ['out'], level: 'debug'}
+          }
+        });
+      }
+      initConfig(this.opts() as GlobalOptions);
+      return fn.apply(this, arguments);
+    }
+    return super.action(actionCallback);
+  }
+  createHelp() {
+    return Object.assign(new PlinkCommandHelp(), this.configureHelp());
+  }
+  _saveOptions(isRequired: boolean, flags: string, desc: string, ...remaining: any[]) {
+    let defaultValue: any;
+    if (remaining.length > 1) {
+      defaultValue = remaining[remaining.length - 1];
+    }
+    const plinkMeta = this.ctx.metaMap.get(this)!;
+    plinkMeta.options!.push({
+      flags, desc, defaultValue, isRequired
+    });
+  }
+}
+
+class PlinkCmdOption extends commander.Option {
+  optionStyler?: (cmdName: string) => string;
+}
 export class CommandOverrider {
-  private loadedCmdMap = new Map<string, string>();
-  private origPgmCommand: commander.Command['command'];
+  nameStyler: PlinkCommand['nameStyler'];
   private currClieCreatorFile: string;
   private currCliCreatorPkg: PackageInfo | null = null;
   private currCliPkgMataInfos: OurCommandMetadata[];
-  private allSubCmds: OurAugmentedCommander[] = [];
+  // private allSubCmds: OurAugmentedCommander[] = [];
   private metaMap = new WeakMap<commander.Command, Partial<OurCommandMetadata>>();
   private pkgMetasMap = new Map<string, OurCommandMetadata[]>();
 
   constructor(private program: commander.Command, ws?: WorkspaceState) {
-    this.origPgmCommand = program.command;
+    this.program.createCommand = PlinkCommand.prototype.createCommand;
     const self = this;
-
-    function command(this: commander.Command, nameAndArgs: string, ...restArgs: any[]) {
-      const pk = self.currCliCreatorPkg;
-      const filePath = self.currClieCreatorFile;
-      const cmdName = /^\S+/.exec(nameAndArgs)![0];
-      if (self.loadedCmdMap.has(cmdName)) {
-        if (filePath)
-          throw new Error(`Conflict command name ${cmdName} from extensions "${filePath}" and "${self.loadedCmdMap.get(cmdName)}"`);
-        else
-          throw new Error(`Conflict with existing Plink command name ${cmdName}`);
+    (this.program as PlinkCommand).ctx = {
+      get currClieCreatorFile() {
+        return self.currClieCreatorFile;
+      },
+      get currCliCreatorPkg() {
+        return self.currCliCreatorPkg;
+      },
+      metaMap: self.metaMap,
+      get currCliPkgMataInfos(): OurCommandMetadata[] {
+        return self.currCliPkgMataInfos;
+      },
+      get nameStyler() {
+        return self.nameStyler;
       }
-
-      self.loadedCmdMap.set(cmdName, filePath ? filePath : '@wfh/plink');
-
-      const subCmd: commander.Command = self.origPgmCommand.call(this, nameAndArgs, ...restArgs);
-      const meta: Partial<OurCommandMetadata> = {
-        pkgName: pk ? pk.name : '@wfh/plink',
-        nameAndArgs,
-        options: [],
-        desc: pk == null ? '' : chalk.blue(`[${pk.name}]`)
-      };
-      self.metaMap.set(subCmd, meta);
-      self.currCliPkgMataInfos.push(meta as OurCommandMetadata);
-
-      subCmd.description(meta.desc!);
-
-      const originDescFn = subCmd.description;
-
-      // subCmd.description = description as any;
-
-      const originActionFn = subCmd.action;
-      subCmd.action = action;
-
-      const originAliasFn = subCmd.alias;
-      subCmd.alias = alias;
-
-      const originOptionFn = subCmd.option;
-      subCmd.option = createOptionFn(false, originOptionFn);
-      (subCmd as OurAugmentedCommander)._origOption = originOptionFn;
-
-      const originReqOptionFn = subCmd.requiredOption;
-      subCmd.requiredOption = createOptionFn(true, originReqOptionFn);
-
-      subCmd.description = function description(str?: string,
-        argsDescription?: { [argName: string]: string; }) {
-        if (str) {
-          if (pk)
-            str = chalk.blue(`[${pk.name}]`) + ' ' + str;
-
-          const plinkMeta = self.metaMap.get(this)!;
-          plinkMeta.desc = str;
-          if (argsDescription) {
-            plinkMeta.argDesc = argsDescription;
-          }
-        }
-        // console.log(str);
-        return originDescFn.call(subCmd, str, argsDescription) as any;
-      };
-
-      function alias(this: commander.Command, alias?: string) {
-        if (alias) {
-          const plinkMeta = self.metaMap.get(this)!;
-          plinkMeta.alias = alias;
-        }
-        return originAliasFn.apply(this, arguments);
-      }
-
-      function createOptionFn(isRequired: boolean, originOptionFn: commander.Command['option'] | commander.Command['requiredOption']) {
-        return function(this: commander.Command, flags: string, desc: string, ...remaining: any[]) {
-          let defaultValue: any;
-          if (remaining.length > 1) {
-            defaultValue = remaining[remaining.length - 1];
-          }
-          const plinkMeta = self.metaMap.get(this)!;
-          plinkMeta.options!.push({
-            flags, desc, defaultValue, isRequired
-          });
-
-          return originOptionFn.call(this, flags, desc, ...remaining);
-        };
-      }
-
-      function action(this: commander.Command, cb: (...args: any[]) => any) {
-        function actionCallback() {
-          const {initConfig} = require('../utils/bootstrap-process') as typeof _bootstrap;
-          if ((subCmd.opts() as GlobalOptions).verbose) {
-            log4js.configure({
-              appenders: {
-                out: {
-                  type: 'stdout',
-                  layout: {type: 'pattern', pattern: (process.send ? '%z' : '') + '%[[%p] %c%] - %m'}
-                }
-              },
-              categories: {
-                default: {appenders: ['out'], level: 'debug'},
-                plink: {appenders: ['out'], level: 'debug'}
-              }
-            });
-          }
-          initConfig(subCmd.opts() as GlobalOptions);
-          return cb.apply(this, arguments);
-        }
-
-        return originActionFn.call(this, actionCallback);
-      }
-      self.allSubCmds.push(subCmd as OurAugmentedCommander);
-      return subCmd;
-    }
-    this.program.command = command as any;
+      // loadedCmdMap: self.loadedCmdMap
+    };
+    (this.program as PlinkCommand).subCmds = [];
+    (this.program as PlinkCommand).loadedCmdMap = new Map();
+    (this.program as PlinkCommand).addGlobalOptionsToSubCmds = PlinkCommand.prototype.addGlobalOptionsToSubCmds;
+    this.program.createHelp = PlinkCommand.prototype.createHelp;
   }
 
   forPackage(pk: PackageInfo, pkgFilePath: string, funcName: string): void;
@@ -161,12 +341,14 @@ export class CommandOverrider {
         filePath = null;
       }
     }
+    this.currCliCreatorPkg = null;
   }
 
   appendGlobalOptions(saveToStore: boolean) {
-    for (const cmd of this.allSubCmds) {
-      withGlobalOptions(cmd);
-    }
+    (this.program as PlinkCommand).addGlobalOptionsToSubCmds();
+    // for (const cmd of this.allSubCmds) {
+    //   withGlobalOptions(cmd);
+    // }
     if (!saveToStore)
       return;
     process.nextTick(() => {
@@ -177,30 +359,30 @@ export class CommandOverrider {
   }
 }
 
-export function withGlobalOptions(program: OurAugmentedCommander | commander.Command): commander.Command {
-  if ((program as OurAugmentedCommander)._origOption == null) {
-    (program as OurAugmentedCommander)._origOption = program.option;
-  }
-  (program as OurAugmentedCommander)._origOption('-c, --config <config-file>',
-    hlDesc('Read config files, if there are multiple files, the latter one overrides previous one'),
+export function withGlobalOptions(cmd: commander.Command | PlinkCommand): commander.Command {
+  if (cmd instanceof PlinkCommand)
+    cmd.optionStyler = str => chalk.gray(str);
+  (cmd.option as commander.Command['option'])('-c, --config <config-file>',
+    'Read config files, if there are multiple files, the latter one overrides previous one',
     (value, prev) => {
       prev.push(...value.split(','));
       return prev;
       // return prev.concat(value.split(','));
     }, [] as string[]);
-  (program as OurAugmentedCommander)._origOption('--prop <expression>',
-    hlDesc('<property path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string\n e.g.\n' +
-    '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080\n' +
-    '--prop arraylike.prop[0]=foobar\n' +
-    '--prop ["@wfh/foo.bar","prop",0]=true'),
+
+  (cmd.option as commander.Command['option'])('--prop <expression>',
+    '<property path>=<value as JSON | literal> ... directly set configuration properties, property name is lodash.set() path-like string. e.g. ' +
+    '--prop port=8080 --prop devMode=false --prop @wfh/foobar.api=http://localhost:8080 ' +
+    '--prop arraylike.prop[0]=foobar ' +
+    '--prop ["@wfh/foo.bar","prop",0]=true',
     arrayOptionFn, [] as string[])
-  .option('--verbose', hlDesc('Specify log level as "debug"'), false)
-  .option('--dev', hlDesc('By turning on this option,' +
+  .option('--verbose', 'Specify log level as "debug"', false)
+  .option('--dev', 'By turning on this option,' +
     ' Plink setting property "devMode" will automatcially set to `true`,' +
-    ' and process.env.NODE_ENV will also being updated to \'developement\' or \'production correspondingly. '), false)
-  .option('--env <setting environment>', hlDesc('A string denotes runtime environment name, package setting file may return different values based on its value (cliOptions.env)'));
-
-  // .option('--log-stat', hlDesc('Print internal Redux state/actions for debug'));
-
-  return program;
+    ' and process.env.NODE_ENV will also being updated to \'developement\' or \'production correspondingly. ',
+    false)
+  .option('--env <setting environment>', 'A string denotes runtime environment name, package setting file may return different values based on its value (cliOptions.env)');
+  if (cmd instanceof PlinkCommand)
+    cmd.optionStyler = undefined;
+  return cmd;
 }
