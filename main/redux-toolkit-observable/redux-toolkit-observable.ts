@@ -79,14 +79,14 @@ export class StateFactory {
   // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
   private debugLog = new ReplaySubject<any[]>(15);
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
-  private epicWithUnsub$: Subject<[Epic, Subject<string>]>;
+  private epicWithUnsub$: Subject<[Epic, string, Subject<string>]>;
 
 
   private errorSlice: InferSliceType<typeof errorSliceOpt>;
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<any>(preloadedState);
-    this.epicWithUnsub$ = new ReplaySubject();
+    this.epicWithUnsub$ = new ReplaySubject<[Epic, string, Subject<string>]>();
     this.log$ = this.debugLog.asObservable();
     this.reducerMap = {};
 
@@ -131,12 +131,17 @@ export class StateFactory {
 
     epicMiddleware.run((action$, state$, dependencies) => {
       return this.epicWithUnsub$.pipe(
-        mergeMap(([epic, unsub]) => (epic(action$, state$, dependencies) as ReturnType<Epic>)
+        tap(([epic, epicId, unsub]) => {
+          this.debugLog.next([`[redux-toolkit-obs] ${epicId} is about to be subscribed`]);
+          // console.log(`[redux-toolkit-obs] ${epicId} is about to be subscribed`);
+        }),
+        mergeMap(([epic, epicId, unsub]) => (epic(action$, state$, dependencies) as ReturnType<Epic>)
           .pipe(
             takeUntil(unsub.pipe(
               take(1),
               tap(epicId => {
                 this.debugLog.next(['[redux-toolkit-obs]', `unsubscribe from ${epicId}`]);
+                // console.log(`[redux-toolkit-obs] unsubscribe ${epicId}`);
               }))
             ),
             catchError((err, src) => {
@@ -208,8 +213,8 @@ export class StateFactory {
   addEpic<S = any>(epic: Epic<PayloadAction<any>, any, S>) {
     const epicId = 'Epic-' + ++this.epicSeq;
     const unsubscribeEpic = new Subject<string>();
-    this.epicWithUnsub$.next([epic, unsubscribeEpic]);
-    this.debugLog.next(['[redux-toolkit-obs]', epicId + ' is added']);
+    this.epicWithUnsub$.next([epic, epicId, unsubscribeEpic]);
+    this.debugLog.next([`[redux-toolkit-obs] ${epicId} is added`]);
     return () => {
       unsubscribeEpic.next(epicId);
       unsubscribeEpic.complete();

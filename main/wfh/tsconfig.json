@@ -1,157 +1,17 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "./tsconfig-base.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../react-space/node_modules/@types/*",
-        "../../react-space/node_modules/*",
-        "../../react-space/.links/@types/*",
-        "../../react-space/.links/*",
-        "../../node_modules/@types/*",
-        "../../node_modules/*",
-        "../../../tuitui-fe/server-workspace/.links/@types/*",
-        "../../../tuitui-fe/server-workspace/.links/*",
-        "../../../tuitui-fe/server-workspace/node_modules/@types/*",
-        "../../../tuitui-fe/server-workspace/node_modules/*",
         "../../../credit-appl/ng-space/node_modules/@types/*",
         "../../../credit-appl/ng-space/node_modules/*",
         "../../../credit-appl/ng-space/.links/@types/*",
         "../../../credit-appl/ng-space/.links/*",
         "../../../credit-appl/node_modules/@types/*",
-        "../../../credit-appl/node_modules/*",
-        "../../../../bk/tuitui-fe/server-workspace/.links/@types/*",
-        "../../../../bk/tuitui-fe/server-workspace/.links/*",
-        "../../../../bk/tuitui-fe/server-workspace/node_modules/@types/*",
-        "../../../../bk/tuitui-fe/server-workspace/node_modules/*",
-        "../../../credit-appl/cra-studio/node_modules/@types/*",
-        "../../../credit-appl/cra-studio/node_modules/*",
-        "../../../credit-appl/cra-studio/.links/@types/*",
-        "../../../credit-appl/cra-studio/.links/*",
-        "../../.links/@types/*",
-        "../../.links/*"
-      ],
-      "@wfh/cra-scripts": [
-        "../../src/internal/cra-scripts"
-      ],
-      "@wfh/cra-scripts/*": [
-        "../../src/internal/cra-scripts/*"
-      ],
-      "@wfh/ng-app-builder": [
-        "../../src/internal/ng-app-builder"
-      ],
-      "@wfh/ng-app-builder/*": [
-        "../../src/internal/ng-app-builder/*"
-      ],
-      "@wfh/webpack-common": [
-        "../../src/internal/webpack-common"
-      ],
-      "@wfh/webpack-common/*": [
-        "../../src/internal/webpack-common/*"
-      ],
-      "@wfh/font-clip": [
-        "../../src/legacy/font-clip"
-      ],
-      "@wfh/font-clip/*": [
-        "../../src/legacy/font-clip/*"
-      ],
-      "@wfh/translate-generator": [
-        "../../src/legacy/translate-generator"
-      ],
-      "@wfh/translate-generator/*": [
-        "../../src/legacy/translate-generator/*"
-      ],
-      "@wfh/webpack2-builder": [
-        "../../src/legacy/webpack2-builder"
-      ],
-      "@wfh/webpack2-builder/*": [
-        "../../src/legacy/webpack2-builder/*"
-      ],
-      "@wfh/assets-processer": [
-        "../../src/runtime/assets-processer"
-      ],
-      "@wfh/assets-processer/*": [
-        "../../src/runtime/assets-processer/*"
-      ],
-      "@wfh/express-app": [
-        "../../src/runtime/express-app"
-      ],
-      "@wfh/express-app/*": [
-        "../../src/runtime/express-app/*"
-      ],
-      "@wfh/http-server": [
-        "../../src/runtime/http-server"
-      ],
-      "@wfh/http-server/*": [
-        "../../src/runtime/http-server/*"
-      ],
-      "@wfh/http-request-proxy": [
-        "../../src/tools/http-request-proxy"
-      ],
-      "@wfh/http-request-proxy/*": [
-        "../../src/tools/http-request-proxy/*"
-      ],
-      "@wfh/jasmine-helper": [
-        "../../src/tools/jasmine-helper"
-      ],
-      "@wfh/jasmine-helper/*": [
-        "../../src/tools/jasmine-helper/*"
-      ],
-      "@wfh/json-schema-gen": [
-        "../../src/tools/json-schema-gen"
-      ],
-      "@wfh/json-schema-gen/*": [
-        "../../src/tools/json-schema-gen/*"
-      ],
-      "@wfh/log4js-pm2intercom": [
-        "../../src/tools/log4js-intercom"
-      ],
-      "@wfh/log4js-pm2intercom/*": [
-        "../../src/tools/log4js-intercom/*"
-      ],
-      "@wfh/prebuild": [
-        "../../src/tools/prebuild"
-      ],
-      "@wfh/prebuild/*": [
-        "../../src/tools/prebuild/*"
-      ],
-      "@wfh/tool-misc": [
-        "../../src/tools/tool-misc"
-      ],
-      "@wfh/tool-misc/*": [
-        "../../src/tools/tool-misc/*"
-      ],
-      "@wfh/redux-toolkit-observable": [
-        "../redux-toolkit-observable"
-      ],
-      "@wfh/redux-toolkit-observable/*": [
-        "../redux-toolkit-observable/*"
-      ],
-      "@wfh/thread-promise-pool": [
-        "../thread-promise-pool"
-      ],
-      "@wfh/thread-promise-pool/*": [
-        "../thread-promise-pool/*"
-      ],
-      "@wfh/doc-entry": [
-        "../../doc-app/doc-entry"
-      ],
-      "@wfh/doc-entry/*": [
-        "../../doc-app/doc-entry/*"
-      ],
-      "@wfh/plink": [
-        ".."
-      ],
-      "@wfh/plink/*": [
-        "../*"
-      ],
-      "@bk/tuitui-new-server": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-new-server"
-      ],
-      "@bk/tuitui-new-server/*": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-new-server/*"
+        "../../../credit-appl/node_modules/*"
       ],
       "@bk/credit-appl-conf": [
         "../../../credit-appl/conf"
@@ -399,6 +259,120 @@
       "@bk/credit-appl-docs/*": [
         "../../../credit-appl/docs/design/*"
       ],
+      "@wfh/cra-scripts": [
+        "../../src/internal/cra-scripts"
+      ],
+      "@wfh/cra-scripts/*": [
+        "../../src/internal/cra-scripts/*"
+      ],
+      "@wfh/ng-app-builder": [
+        "../../src/internal/ng-app-builder"
+      ],
+      "@wfh/ng-app-builder/*": [
+        "../../src/internal/ng-app-builder/*"
+      ],
+      "@wfh/webpack-common": [
+        "../../src/internal/webpack-common"
+      ],
+      "@wfh/webpack-common/*": [
+        "../../src/internal/webpack-common/*"
+      ],
+      "@wfh/font-clip": [
+        "../../src/legacy/font-clip"
+      ],
+      "@wfh/font-clip/*": [
+        "../../src/legacy/font-clip/*"
+      ],
+      "@wfh/translate-generator": [
+        "../../src/legacy/translate-generator"
+      ],
+      "@wfh/translate-generator/*": [
+        "../../src/legacy/translate-generator/*"
+      ],
+      "@wfh/webpack2-builder": [
+        "../../src/legacy/webpack2-builder"
+      ],
+      "@wfh/webpack2-builder/*": [
+        "../../src/legacy/webpack2-builder/*"
+      ],
+      "@wfh/assets-processer": [
+        "../../src/runtime/assets-processer"
+      ],
+      "@wfh/assets-processer/*": [
+        "../../src/runtime/assets-processer/*"
+      ],
+      "@wfh/express-app": [
+        "../../src/runtime/express-app"
+      ],
+      "@wfh/express-app/*": [
+        "../../src/runtime/express-app/*"
+      ],
+      "@wfh/http-server": [
+        "../../src/runtime/http-server"
+      ],
+      "@wfh/http-server/*": [
+        "../../src/runtime/http-server/*"
+      ],
+      "@wfh/http-request-proxy": [
+        "../../src/tools/http-request-proxy"
+      ],
+      "@wfh/http-request-proxy/*": [
+        "../../src/tools/http-request-proxy/*"
+      ],
+      "@wfh/jasmine-helper": [
+        "../../src/tools/jasmine-helper"
+      ],
+      "@wfh/jasmine-helper/*": [
+        "../../src/tools/jasmine-helper/*"
+      ],
+      "@wfh/json-schema-gen": [
+        "../../src/tools/json-schema-gen"
+      ],
+      "@wfh/json-schema-gen/*": [
+        "../../src/tools/json-schema-gen/*"
+      ],
+      "@wfh/log4js-pm2intercom": [
+        "../../src/tools/log4js-intercom"
+      ],
+      "@wfh/log4js-pm2intercom/*": [
+        "../../src/tools/log4js-intercom/*"
+      ],
+      "@wfh/prebuild": [
+        "../../src/tools/prebuild"
+      ],
+      "@wfh/prebuild/*": [
+        "../../src/tools/prebuild/*"
+      ],
+      "@wfh/tool-misc": [
+        "../../src/tools/tool-misc"
+      ],
+      "@wfh/tool-misc/*": [
+        "../../src/tools/tool-misc/*"
+      ],
+      "@wfh/redux-toolkit-observable": [
+        "../redux-toolkit-observable"
+      ],
+      "@wfh/redux-toolkit-observable/*": [
+        "../redux-toolkit-observable/*"
+      ],
+      "@wfh/thread-promise-pool": [
+        "../thread-promise-pool"
+      ],
+      "@wfh/thread-promise-pool/*": [
+        "../thread-promise-pool/*"
+      ],
+      "@wfh/doc-entry": [
+        "../../doc-app/doc-entry"
+      ],
+      "@wfh/doc-entry/*": [
+        "../../doc-app/doc-entry/*"
+      ],
+      "@wfh/doc-ui-common": [
+        "../../doc-app/doc-ui-common"
+      ],
+      "@wfh/doc-ui-common/*": [
+        "../../doc-app/doc-ui-common/*"
+      ],
       "@bk/bcl-alpha-client": [
         "../../../credit-matryoshka/packages/bcl-alpha-client"
       ],
@@ -411,42 +385,22 @@
       "@bk/bcl-alpha-server/*": [
         "../../../credit-matryoshka/packages/bcl-alpha-server/*"
       ],
-      "@wfh/tuitui-server-tool": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-server-tool"
+      "@wfh/plink": [
+        ".."
       ],
-      "@wfh/tuitui-server-tool/*": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-server-tool/*"
-      ],
-      "@wfh/doc-ui-common": [
-        "../../doc-app/doc-ui-common"
-      ],
-      "@wfh/doc-ui-common/*": [
-        "../../doc-app/doc-ui-common/*"
+      "@wfh/plink/*": [
+        "../*"
       ]
     },
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
-      "../../src/internal/cra-scripts/types",
-      "../../src/runtime/express-app/types",
-      "../../react-space/node_modules/@types",
-      "../../react-space/.links/@types",
-      "../../node_modules/@types",
-      "../node_modules/@types",
-      "../../../tuitui-fe/server-workspace/.links/@types",
-      "../../../tuitui-fe/server-workspace/node_modules/@types",
       "../../src/internal/ng-app-builder/types",
+      "../../src/runtime/express-app/types",
       "../../../credit-appl/ng-space/node_modules/@types",
       "../../../credit-appl/ng-space/.links/@types",
       "../../../credit-appl/node_modules/@types",
-      "../../../../bk/tuitui-fe/server-workspace/.links/@types",
-      "../../../../bk/tuitui-fe/server-workspace/node_modules/@types",
-      "../../../credit-appl/cra-studio/node_modules/@types",
-      "../../../credit-appl/cra-studio/.links/@types",
-      "../../.links/@types"
+      "../node_modules/@types"
     ]
-  },
-  "include": [
-    "ts/**/*.ts"
-  ]
+  }
 }

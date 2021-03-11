@@ -17,7 +17,7 @@ import { PayloadAction } from '@reduxjs/toolkit';
 // import Selector from './utils/ts-ast-query';
 const log = log4js.getLogger('plink.editor-helper');
 const {parse} = require('comment-json');
-
+const rootPath = getRootDir();
 interface EditorHelperState {
   /** tsconfig files should be changed according to linked packages state */
   tsconfigByRelPath: Map<string, HookedTsconfig>;
@@ -32,7 +32,9 @@ interface HookedTsconfig {
   originJson: any;
 }
 
-const initialState: EditorHelperState = {tsconfigByRelPath: new Map()};
+const initialState: EditorHelperState = {
+  tsconfigByRelPath: new Map()
+};
 
 const slice = stateFactory.newSlice({
   name: 'editor-helper',
@@ -40,9 +42,8 @@ const slice = stateFactory.newSlice({
   reducers: {
     hookTsconfig(s, {payload}: PayloadAction<string[]>) {},
     unHookTsconfig(s, {payload}: PayloadAction<string[]>) {
-      const rootPath = getRootDir();
       for (const file of payload) {
-        const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
+        const relPath = relativePath(file);
         s.tsconfigByRelPath.delete(relPath);
       }
     },
@@ -50,22 +51,34 @@ const slice = stateFactory.newSlice({
   }
 });
 
+export const dispatcher = stateFactory.bindActionCreators(slice);
+
 stateFactory.addEpic<EditorHelperState>((action$, state$) => {
   return rx.merge(
+    new rx.Observable(sub => {
+      if (getPkgState().linkedDrcp) {
+        const file = Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json');
+        const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
+        if (!getState().tsconfigByRelPath.has(relPath)) {
+          process.nextTick(() => dispatcher.hookTsconfig([file]));
+        }
+      }
+      sub.complete();
+    }),
     action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceBatchChanged),
       op.tap(({payload: wsKeys}) => {
         const wsDir = isCwdWorkspace() ? process.cwd() :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
         writePackageSettingType();
-        if (getPkgState().linkedDrcp) {
-          const plinkTsconfig = Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json');
-          updateHookedTsconfig({
-            relPath: Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json'),
-            baseUrl: '.',
-            originJson: JSON.parse(fs.readFileSync(plinkTsconfig, 'utf8'))
-          }, wsDir);
-        }
+        // if (getPkgState().linkedDrcp) {
+        //   const plinkTsconfig = Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json');
+        //   updateHookedTsconfig({
+        //     relPath: Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json'),
+        //     baseUrl: '.',
+        //     originJson: JSON.parse(fs.readFileSync(plinkTsconfig, 'utf8'))
+        //   }, wsDir);
+        // }
         updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
         for (const data of getState().tsconfigByRelPath.values()) {
           updateHookedTsconfig(data, wsDir);
@@ -74,14 +87,14 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     ),
     action$.pipe(ofPayloadAction(slice.actions.hookTsconfig),
       op.mergeMap(action => {
-        const rootDir = getRootDir();
-        return action.payload.map(file => [file, rootDir]);
+        return action.payload;
       }),
-      op.mergeMap(([file, rootPath]) => {
+      op.mergeMap((file) => {
         const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
-        const fileContent = fs.readFileSync(file, 'utf8');
+        const backupFile = backupTsConfigOf(file);
+        const isBackupExists = fs.existsSync(backupFile);
+        const fileContent = isBackupExists ? fs.readFileSync(backupFile, 'utf8') : fs.readFileSync(file, 'utf8');
         const json: {compilerOptions: CompilerOptions} = JSON.parse(fileContent);
-
         const data: HookedTsconfig = {
           relPath,
           baseUrl: json.compilerOptions.baseUrl,
@@ -91,9 +104,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
           s.tsconfigByRelPath.set(relPath, data);
         });
 
-        const tsconfigDir = Path.dirname(file);
-        const backupFile = Path.resolve(tsconfigDir, 'tsconfig.orig.json');
-        if (!fs.existsSync(backupFile)) {
+        if (!isBackupExists) {
           fs.writeFileSync(backupFile, fileContent);
         }
         const wsDir = isCwdWorkspace() ? process.cwd() :
@@ -105,11 +116,11 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions.unHookTsconfig),
       op.mergeMap(({payload}) => payload),
       op.mergeMap(file => {
-        const tsconfigDir = Path.dirname(file);
-        const backupFile = Path.resolve(tsconfigDir, 'tsconfig.orig.json');
-        if (fs.existsSync(backupFile)) {
-          const fileContent = fs.readFileSync(backupFile, 'utf8');
-          return fs.promises.writeFile(file, fileContent);
+        const absFile = Path.resolve(rootPath, file);
+        const backup = backupTsConfigOf(absFile);
+        if (fs.existsSync(backup)) {
+          log.info('Roll back:', absFile);
+          return fs.promises.copyFile(backup, absFile);
         }
         return Promise.resolve();
       })
@@ -127,7 +138,6 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     })
   );
 });
-export const dispatcher = stateFactory.bindActionCreators(slice);
 
 export function getState() {
   return stateFactory.sliceState(slice);
@@ -135,6 +145,10 @@ export function getState() {
 
 export function getStore() {
   return stateFactory.sliceStore(slice);
+}
+
+function relativePath(file: string) {
+  return Path.relative(rootPath, file).replace(/\\/g, '/');
 }
 
 function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
@@ -204,7 +218,6 @@ function writePackageSettingType() {
       body += `  '${pkg.name}': ${typeName};\n`;
     }
     body += '}\n';
-    // log.info(header + body);
     const workspaceDir = Path.resolve(getRootDir(), wsKey);
     const file = packageSettingDtsFileOf(workspaceDir);
     log.info(`write file: ${file}`);
@@ -267,15 +280,27 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
   return tsconfigFile;
 }
 
+function backupTsConfigOf(file: string) {
+  // const tsconfigDir = Path.dirname(file);
+  const m = /([^/\\.]+)(\.[^/\\.]+)?$/.exec(file);
+  const backupFile = Path.resolve(file.slice(0, file.length - m![0].length) + m![1] + '.orig' + m![2]);
+  return backupFile;
+}
 
-function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string) {
+
+async function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string) {
   const file = Path.isAbsolute(data.relPath) ? data.relPath :
     Path.resolve(getRootDir(), data.relPath);
   const tsconfigDir = Path.dirname(file);
+  const backup = backupTsConfigOf(file);
 
-  const json = _.cloneDeep(data.originJson);
+  const json: {compilerOptions?: CompilerOptions} = fs.existsSync(backup) ?
+    JSON.parse(await fs.promises.readFile(backup, 'utf8')) : _.cloneDeep(data.originJson);
+  if (json.compilerOptions?.paths && json.compilerOptions.paths['_package-settings'] != null) {
+    delete json.compilerOptions.paths['_package-settings'];
+  }
   const newCo = setTsCompilerOptForNodePath(tsconfigDir, data.baseUrl,
-    json.compilerOptions, {
+    json.compilerOptions as any, {
       workspaceDir, enableTypeRoots: true, realPackagePaths: true
     });
   json.compilerOptions = newCo;

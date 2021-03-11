@@ -18,7 +18,7 @@ const log = log4js.getLogger(pk.name);
 const cliExt: CliExtension = (program) => {
   program.command('json-schema-gen <package...>').alias('jsg')
   .description('Scan packages and generate json schema. ' +
-  'You package.json file must contains:\n  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}',
+  'You package.json file must contains:  "dr": {jsonSchema: "<interface files whose path is relative to package directory>"}',
     {package: cliPackageArgDesc})
   .option('-f, --file <spec>', 'run single file')
   .action(async (packages: string[]) => {

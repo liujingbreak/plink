@@ -11,10 +11,10 @@ export interface CliOptions {
 }
 
 export function doTsconfig(opts: CliOptions) {
-  if (opts.hook) {
+  if (opts.hook && opts.hook.length > 0) {
     dispatcher.hookTsconfig(opts.hook);
   }
-  if (opts.unhook) {
+  if (opts.unhook && opts.unhook.length > 0) {
     dispatcher.unHookTsconfig(opts.unhook);
   }
   if (opts.unhookAll) {
@@ -31,6 +31,7 @@ export function doTsconfig(opts: CliOptions) {
       console.log('No hooked files found, hook file by command options "--hook <file>"');
       return false;
     }),
+    op.debounceTime(0), // There will be two change events happening, let's get the last change result only
     op.tap((datas) => {
       // tslint:disable-next-line: no-console
       console.log('Hooked tsconfig files:');

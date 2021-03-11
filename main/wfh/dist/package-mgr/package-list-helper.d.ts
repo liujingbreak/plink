@@ -22,7 +22,7 @@ export interface CompilerOptionSetOpt {
 export interface CompilerOptions {
     baseUrl: string;
     typeRoots: string[];
-    paths: {
+    paths?: {
         [path: string]: string[];
     };
     [key: string]: any;

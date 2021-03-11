@@ -1087,7 +1087,7 @@
         "affectsGlobalScope": false
       },
       "../redux-toolkit-observable.ts": {
-        "version": "4cf1a25f26bbcc02f8c04fba6263088cf3486f3f0faac42a66fa4d94e31ae433",
+        "version": "fd4ac4754cdb4cb0503c675f7f9c4fdd5f275ec8e84686f58301441dd6a48ba5",
         "signature": "4adda915ad1966c079483397f007613077e31c85abeb58ab4d78583751ce24f9",
         "affectsGlobalScope": false
       },
@@ -1779,6 +1779,11 @@
       "../../node_modules/@types/webpack/index.d.ts": {
         "version": "6a11a44c28aeb36e551aad316a3c30e5edd9244396378f664dea164c4ce49fe0",
         "signature": "6a11a44c28aeb36e551aad316a3c30e5edd9244396378f664dea164c4ce49fe0",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/yamljs/index.d.ts": {
+        "version": "bbe2107a96f15b2cfebcfebfc8933619cb285c43bf1ef6946f78fd92b2de6893",
+        "signature": "bbe2107a96f15b2cfebcfebfc8933619cb285c43bf1ef6946f78fd92b2de6893",
         "affectsGlobalScope": false
       }
     },
@@ -4986,6 +4991,7 @@
       "../../node_modules/@types/webpack-sources/node_modules/source-map/source-map.d.ts",
       "../../node_modules/@types/webpack/index.d.ts",
       "../../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts",
+      "../../node_modules/@types/yamljs/index.d.ts",
       "../../node_modules/chokidar/types/index.d.ts",
       "../../node_modules/immer/dist/core/current.d.ts",
       "../../node_modules/immer/dist/core/finalize.d.ts",
