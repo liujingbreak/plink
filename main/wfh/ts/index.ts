@@ -3,6 +3,8 @@ export {default as config} from './config/index';
 export * from './require-injectors';
 export {InjectorConfigHandler, DrPackageInjector, nodeInjector, webInjector} from './injector-factory';
 export * from './cmd/types';
+export {PlinkCommand, CliExtension} from './cmd/override-commander';
+export {default as commander} from 'commander';
 export {findPackagesByNames, lookupPackageJson} from './cmd/utils';
 export {cliPackageArgDesc} from './cmd/cli';
 export * from './store';

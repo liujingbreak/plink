@@ -18,7 +18,9 @@
     "typescript": "^4.1.2",
     "web-vitals": "^0.2.4",
     "@wfh/doc-entry": "1.0.0",
-    "@wfh/doc-ui-common": "1.0.0"
+    "@wfh/doc-ui-common": "1.0.0",
+    "@wfh/http-server": "1.1.4",
+    "@wfh/assets-processer": "1.1.67-2"
   },
   "devDependencies": {
     "@wfh/cra-scripts": "../tarballs/wfh-cra-scripts-1.0.30-0.tgz",

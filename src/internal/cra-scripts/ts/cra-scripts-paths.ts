@@ -6,33 +6,12 @@ import fs from 'fs';
 // import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 import pCfg from '@wfh/plink/wfh/dist/config';
 import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
-import {ReactScriptsHandler} from './types';
+import {ReactScriptsHandler, CraScriptsPaths} from './types';
 import fsext from 'fs-extra';
 import plink from '__plink';
 const log = plink.logger;
 
-export interface CraScriptsPaths {
-  dotenv: string;
-  appPath: string;
-  appBuild: string;
-  appPublic: string;
-  appHtml: string;
-  appIndexJs: string;
-  appPackageJson: string;
-  appSrc: string;
-  appTsConfig: string;
-  appJsConfig: string;
-  yarnLockFile: string;
-  testsSetup: string;
-  proxySetup: string;
-  appNodeModules: string;
-  publicUrlOrPath: string;
-  // These properties only exist before ejecting:
-  ownPath: string;
-  ownNodeModules: string; // This is empty on npm 3
-  appTypeDeclarations: string;
-  ownTypeDeclarations: string;
-}
+
 
 let craScriptsPaths: CraScriptsPaths;
 export let configFileInPackage: string | undefined | null;

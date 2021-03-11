@@ -119,7 +119,7 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     return (this.contextPath + '/' + path).replace(/\/\//g, '/');
   }
 
-  _contextPath(packageName?: string) {
+  _contextPath(packageName?: string): string {
     // let packageShortName;
     // if (!packageName) {
     //   packageName = this.packageName;
@@ -127,7 +127,7 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     // } else {
     //   packageShortName = this.packageShortName;
     // }
-    var path = config.get('packageContextPathMapping[' + this.packageShortName + ']') ||
+    let path: string = config.get('packageContextPathMapping[' + this.packageShortName + ']') ||
       config.get(['packageContextPathMapping', packageName || this.packageName]);
     path = path != null ? path : '/' + this.packageShortName;
     if (this.config().nodeRoutePath) {

@@ -15,6 +15,7 @@ import {Pool} from '../../../thread-promise-pool/dist';
 import chalk from 'chalk';
 import {findPackagesByNames} from './utils';
 import {getState} from '../package-mgr';
+import {getTscConfigOfPkg} from '../utils/misc';
 
 const log = log4js.getLogger('plink.analyse');
 const cpus = os.cpus().length;
@@ -22,8 +23,8 @@ const cpus = os.cpus().length;
 export default async function(packages: string[], opts: AnalyzeOptions) {
   if (opts.file && opts.file.length > 0) {
     dispatcher.analyzeFile(opts.file);
-  } else if (opts.dir) {
-    dispatcher.analyzeFile([opts.dir.replace(/\\/g, '/') + '/**/*']);
+  } else if (opts.dir && opts.dir.length > 0) {
+    dispatcher.analyzeFile(opts.dir.map(dir => dir.replace(/\\/g, '/') + '/**/*'));
   } else {
     // log.warn('Sorry, not implemented yet, use with argument "-f" for now.');
     let i = 0;
@@ -32,7 +33,12 @@ export default async function(packages: string[], opts: AnalyzeOptions) {
         log.error(`Can not find package for name "${packages[i]}"`);
         continue;
       }
-      dispatcher.analyzeFile([pkg.realPath.replace(/\\/g, '/') + '/**/*']);
+      const dirs = getTscConfigOfPkg(pkg.json);
+      const patterns = [`${pkg.realPath.replace(/\\/g, '/')}/${dirs.srcDir}/**/*`];
+      if (dirs.isomDir) {
+        patterns.push(`${pkg.realPath.replace(/\\/g, '/')}/${dirs.srcDir}/**/*.ts`);
+      }
+      dispatcher.analyzeFile(patterns);
       i++;
     }
   }

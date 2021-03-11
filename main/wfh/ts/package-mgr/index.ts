@@ -1,3 +1,7 @@
+/**
+ * Unfortunately, this file is very long, you need to fold by indention for better view of source code in Editor
+ */
+
 import { PayloadAction } from '@reduxjs/toolkit';
 import chalk from 'chalk';
 import fs from 'fs-extra';
@@ -84,6 +88,15 @@ export interface WorkspaceState {
 
   hoistDevInfo: Map<string, DependentInfo>;
   hoistDevPeerDepInfo: Map<string, DependentInfo>;
+
+  hoistInfoSummary: {
+    /** User should manully add them as dependencies of workspace */
+    missingDeps: {[name: string]: string};
+    /** User should manully add them as devDependencies of workspace */
+    missingDevDeps: {[name: string]: string};
+    /** versions are conflict */
+    conflictDeps: string[];
+  };
 }
 
 export const slice = stateFactory.newSlice({
@@ -220,6 +233,7 @@ export const slice = stateFactory.newSlice({
       const wsKey = workspaceKey(dir);
       const {hoisted: hoistedDeps, hoistedPeers: hoistPeerDepInfo} = listCompDependency(
         linkedDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
+          // .concat(plinkApiRequiredDeps()),
         wsKey, updatingDeps, state.srcPackages
       );
 
@@ -250,6 +264,31 @@ export const slice = stateFactory.newSlice({
 
       const existing = state.workspaces.get(wsKey);
 
+      const hoistInfoSummary: WorkspaceState['hoistInfoSummary'] = {
+        conflictDeps: [], missingDeps: {}, missingDevDeps: {}
+      };
+
+      for (const depsInfo of [hoistedDeps, hoistPeerDepInfo]) {
+        for (const [dep, info] of depsInfo.entries()) {
+          if (info.missing) {
+            hoistInfoSummary.missingDeps[dep] = info.by[0].ver;
+          }
+          if (!info.sameVer && !info.direct) {
+            hoistInfoSummary.conflictDeps.push(dep);
+          }
+        }
+      }
+      for (const depsInfo of [hoistedDevDeps, devHoistPeerDepInfo]) {
+        for (const [dep, info] of depsInfo.entries()) {
+          if (info.missing) {
+            hoistInfoSummary.missingDevDeps[dep] = info.by[0].ver;
+          }
+          if (!info.sameVer && !info.direct) {
+            hoistInfoSummary.conflictDeps.push(dep);
+          }
+        }
+      }
+
       const wp: WorkspaceState = {
         id: wsKey,
         originInstallJson: pkjson,
@@ -261,7 +300,8 @@ export const slice = stateFactory.newSlice({
         hoistInfo: hoistedDeps,
         hoistPeerDepInfo,
         hoistDevInfo: hoistedDevDeps,
-        hoistDevPeerDepInfo: devHoistPeerDepInfo
+        hoistDevPeerDepInfo: devHoistPeerDepInfo,
+        hoistInfoSummary
       };
       state.lastCreatedWorkspace = wsKey;
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
@@ -313,7 +353,6 @@ stateFactory.addEpic((action$, state$) => {
         return currMap;
       })
     ),
-
     //  updateWorkspace
     action$.pipe(ofPayloadAction(slice.actions.updateWorkspace),
       concatMap(({payload: {dir, isForce, createHook, packageJsonFiles}}) => {
@@ -728,6 +767,8 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
       cwd: dir,
       env // Force development mode, otherwise "devDependencies" will not be installed
     }).promise;
+    await new Promise(resolve => setImmediate(resolve));
+    await exe('npm', 'prune', {cwd: dir, env}).promise;
     // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
     // why, I have to add a setImmediate() between them to workaround
     await new Promise(resolve => setImmediate(resolve));
@@ -983,8 +1024,26 @@ function deleteDuplicatedInstalledPkg(workspaceKey: string) {
     .catch(doNothing);
   });
 }
-// function writeFile(file: string, content: string) {
-//   fs.writeFileSync(file, content);
-//   // tslint:disable-next-line: no-console
-//   log.info('%s is written', chalk.cyan(Path.relative(process.cwd(), file)));
+
+// /**
+//    * If a source code package uses Plink's __plink API ( like `.logger`) or extends Plink's command line,
+//    * they need ensure some Plink's dependencies are installed as 1st level dependency in their workspace,
+//    * otherwise Visual Code Editor can not find correct type definitions while referencing Plink's logger or
+//    * Command interface.
+//    * 
+//    * So I need to make sure these dependencies are installed in each workspace
+//    */
+
+// function plinkApiRequiredDeps(): PackageJsonInterf {
+//   const plinkJson: PackageJsonInterf = require('@wfh/plink/package.json');
+//   const fakeJson: PackageJsonInterf = {
+//     version: plinkJson.version,
+//     name: plinkJson.name,
+//     dependencies: {}
+//   };
+//   for (const dep of ['commander', 'log4js']) {
+//     const version = plinkJson.dependencies![dep];
+//     fakeJson.dependencies![dep] = version;
+//   }
+//   return fakeJson;
 // }

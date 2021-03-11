@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // import fs from 'fs';
-import {CliExtension} from '@wfh/plink/wfh/dist/cmd/types';
+import {CliExtension} from '@wfh/plink';
 // import replacePatches, { ReplacementInf } from '@wfh/plink/wfh/dist/utils/patch-text';
 import Path from 'path';
 import commander from 'Commander';

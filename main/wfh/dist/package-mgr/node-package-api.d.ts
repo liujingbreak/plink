@@ -22,7 +22,7 @@ declare class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     serverUrl: typeof assetsUrl.serverUrl;
     /** @deprecated */
     entryPageUrl: typeof assetsUrl.entryPageUrl;
-    get contextPath(): any;
+    get contextPath(): string;
     constructor(packageName: string, packageInstance: PackageInstance);
     /**
      * return A log witch catgory name "<package name>.<nameAfterPackageName>"
@@ -51,7 +51,7 @@ declare class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
        * @return {[type]} [description]
        */
     joinContextPath(path: string): string;
-    _contextPath(packageName?: string): any;
+    _contextPath(packageName?: string): string;
     parsePackageName(packageName: string): {
         name: string;
         scope: string;

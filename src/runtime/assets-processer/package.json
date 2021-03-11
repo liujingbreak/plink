@@ -1,6 +1,6 @@
 {
   "name": "@wfh/assets-processer",
-  "version": "1.1.67-2",
+  "version": "1.1.67",
   "description": "Work with Plink, copy assets to destDir folder only when devMode is false",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,8 +41,7 @@
     "adm-zip": "^0.4.14",
     "@types/adm-zip": "^0.4.33",
     "pify": "~4.0.1",
-    "http-proxy-middleware": "^0.19.2",
-    "@types/http-proxy-middleware": "^0.19.3",
+    "http-proxy-middleware": "~1.0.6",
     "@types/through2": "^2.0.34",
     "nodemailer": "^6.3.0",
     "@types/nodemailer": "^6.2.1",

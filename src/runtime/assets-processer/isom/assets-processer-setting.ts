@@ -1,5 +1,5 @@
 import {config} from '@wfh/plink';
-import {Config as ProxyConfig} from 'http-proxy-middleware';
+import {Options} from 'http-proxy-middleware';
 /**
  * Package setting type
  */
@@ -53,7 +53,7 @@ export interface AssetsProcesserSetting {
    * ChangeOrigin and ws (websocket) will be enabled, since devServer mostly like will
    * enable Webpack HMR through websocket.
   */
-  proxyToDevServer?: ProxyConfig;
+  proxyToDevServer?: Options;
 }
 
 /**

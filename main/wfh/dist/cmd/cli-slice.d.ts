@@ -2,8 +2,8 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import { OurCommandMetadata } from './types';
 export interface CliState {
     /** key is package name, value is Command name and args */
-    commandByPackage: Map<string, OurCommandMetadata['nameAndArgs'][]>;
-    commandInfoByName: Map<OurCommandMetadata['nameAndArgs'], OurCommandMetadata>;
+    commandByPackage: Map<string, OurCommandMetadata['name'][]>;
+    commandInfoByName: Map<OurCommandMetadata['name'], OurCommandMetadata>;
     version: string;
     osLang?: string;
     osCountry?: string;

@@ -7,6 +7,9 @@ declare module '@wfh/plink/wfh/globals' {
     expressApp: express.Application;
     swig: any;
     use: express.Router['use'];
+    /** return a pre-created express Router whose context path by default is package name,
+     * 
+    */
     router(): express.Router;
     /**
      * Before any system middleware
@@ -26,14 +29,14 @@ declare module '@wfh/plink/wfh/globals' {
      */
     expressAppUse(callable: (app: express.Application, exp: typeof express) => void): void;
     /**
-	 * e.g.
+     * e.g.
   ```
     api.expressAppSet((app, express) => {
       app.use(api.contentPath, api.cors());
     });
   ```
-	 * @return void
-	 */
+    * @return void
+    */
     cors(allowedOrigins?: string[]): express.RequestHandler;
 
     param(name: string, ...rest: any[]): any;

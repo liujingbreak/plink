@@ -43,10 +43,15 @@ export async function addDependencyTo(packages: string[], to?: string, dev = fal
       wsDirs = Array.from(workspacesOfDependencies(foundPkg.name));
     }
   }
-  await add(packages, wsDirs, to, dev);
+  await add(packages, to, dev);
+  setImmediate(() => {
+    for (const wsDir of wsDirs) {
+      pkgDispater.updateWorkspace({dir: wsDir, isForce: false, createHook: false});
+    }
+  });
 }
 
-async function add(packages: string[], wsDirs: string[], toDir: string, dev = false) {
+async function add(packages: string[], toDir: string, dev = false) {
   const targetJsonFile = Path.resolve(toDir, 'package.json');
   const pkgJsonStr = fs.readFileSync(targetJsonFile, 'utf-8');
   const objAst = parse(pkgJsonStr);
@@ -98,6 +103,8 @@ async function add(packages: string[], wsDirs: string[], toDir: string, dev = fa
   }));
   if (newLines.length > 0)
     newLines = newLines.slice(0, newLines.length - 2); // trim last comma
+  else
+    return;
   log.debug(newLines);
 
   if (depsAst == null) {
@@ -121,12 +128,6 @@ async function add(packages: string[], wsDirs: string[], toDir: string, dev = fa
   const newJsonText = replaceText(pkgJsonStr, patches);
   log.info(`Write file: ${targetJsonFile}:\n` + newJsonText);
   fs.writeFileSync(targetJsonFile, newJsonText);
-
-  setImmediate(() => {
-    for (const wsDir of wsDirs) {
-      pkgDispater.updateWorkspace({dir: wsDir, isForce: false, createHook: false});
-    }
-  });
 }
 
 async function fetchRemoteVersion(pkgName: string) {

@@ -133,6 +133,8 @@ export async function runPackages(target: string, includePackages: Iterable<stri
   });
 
   const packageNamesInOrder: string[] = [];
+  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
+
 
   await orderPackages(components.map(item => ({name: item.longName, priority: _.get(item.json, 'dr.serverPriority')})),
   pkInstance  => {
@@ -143,11 +145,10 @@ export async function runPackages(target: string, includePackages: Iterable<stri
     pkgExportsInReverOrder.unshift({name: pkInstance.name, exp: fileExports});
     if (_.isFunction(fileExports[funcToRun])) {
       log.info(funcToRun + ` ${chalk.cyan(mod)}`);
-      return fileExports[funcToRun]();
+      return fileExports[funcToRun](apiCache[pkInstance.name]);
     }
   });
   (proto.eventBus as Events.EventEmitter).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
-  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
   NodeApi.prototype.eventBus.emit('packagesActivated', includeNameSet);
   return pkgExportsInReverOrder;
 }

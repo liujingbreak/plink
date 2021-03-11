@@ -1,5 +1,6 @@
 import express = require('express');
-import {Request, Response, NextFunction} from 'express';
+import * as rx from 'rxjs';
+import {Request, Response, NextFunction, Application} from 'express';
 import * as Path from 'path';
 import * as fs from 'fs';
 // var favicon = require('serve-favicon');
@@ -19,7 +20,10 @@ const VIEW_PATH = Path.relative(api.config().rootPath,
   Path.resolve(__dirname, '..', 'views'));
 var app: express.Express;
 
+const expressAppReady$ = new rx.ReplaySubject<Application>(1);
+
 export = {
+
   activate() {
     app = express();
     setupApi(api, app);
@@ -27,10 +31,14 @@ export = {
       log.info('packagesActivated');
       process.nextTick(() => {
         create(app, api.config());
+        expressAppReady$.next(app);
+        expressAppReady$.complete();
         api.eventBus.emit('appCreated', app);
       });
     });
   },
+  expressAppReady$,
+
   set app(expressApp: express.Express) {
     app = expressApp;
   },

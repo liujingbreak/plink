@@ -1,6 +1,6 @@
 {
   "name": "@wfh/prebuild",
-  "version": "1.0.45-6",
+  "version": "1.0.45",
   "description": "Work with Plink, prebuild command line tool for monorepo based project",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,7 +16,6 @@
   },
   "scripts": {},
   "dependencies": {
-    "commander": "~5.1.0",
     "boxen": "~4.2.0",
     "adm-zip": "^0.4.14",
     "@types/adm-zip": "^0.4.33",

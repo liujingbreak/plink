@@ -3,7 +3,7 @@ import {WorkspaceState, PackageInfo} from '../package-mgr';
 import chalk from 'chalk';
 import {arrayOptionFn} from './utils';
 import * as _bootstrap from '../utils/bootstrap-process';
-import { GlobalOptions, OurCommandMetadata, CliExtension } from './types';
+import { GlobalOptions, OurCommandMetadata } from './types';
 import {cliActionDispatcher} from './cli-slice';
 import log4js from 'log4js';
 import stripAnsi from 'strip-ansi';
@@ -143,6 +143,9 @@ export class PlinkCommandHelp extends commander.Help {
   //   }).join('\n');
   // }
 }
+/**
+ * Extend commander, check commander API at https://www.npmjs.com/package/commander
+ */
 export class PlinkCommand extends commander.Command {
   nameStyler?: (cmdName: string) => string;
   optionStyler?: (cmdName: string) => string;
@@ -185,30 +188,28 @@ export class PlinkCommand extends commander.Command {
 
     const meta: Partial<OurCommandMetadata> = {
       pkgName: pk ? pk.name : '@wfh/plink',
-      nameAndArgs: cmdName,
+      name: cmdName,
       options: [],
       desc: ''
     };
     this.ctx.metaMap.set(subCmd, meta);
     this.ctx.currCliPkgMataInfos.push(meta as OurCommandMetadata);
-    subCmd.description(meta.desc!);
+    // subCmd.description(meta.desc!);
     return subCmd;
   }
 
-  // description(str?: string,
-  //   argsDescription?: { [argName: string]: string; }) {
-  //   if (str !== undefined) {
-  //     if (this.ctx.currCliCreatorPkg)
-  //       str = chalk.gray(`<${this.ctx.currCliCreatorPkg.name}>`) + ' ' + str;
-  //     const plinkMeta = this.ctx.metaMap.get(this)!;
-  //     plinkMeta.desc = str;
-  //     if (argsDescription) {
-  //       plinkMeta.argDesc = argsDescription;
-  //     }
-  //     return super.description(str, argsDescription);
-  //   }
-  //   return super.description() as any;
-  // }
+  description(str?: string,
+    argsDescription?: { [argName: string]: string; }) {
+    if (str !== undefined) {
+      const plinkMeta = this.ctx.metaMap.get(this)!;
+      plinkMeta.desc = str;
+      if (argsDescription) {
+        plinkMeta.argDesc = argsDescription;
+      }
+      return super.description(str, argsDescription);
+    }
+    return super.description() as any;
+  }
 
   alias(alias?: string) {
     if (alias) {
@@ -276,37 +277,31 @@ export class PlinkCommand extends commander.Command {
   }
 }
 
+export type CliExtension = (program: commander.Command) => void;
+
 class PlinkCmdOption extends commander.Option {
   optionStyler?: (cmdName: string) => string;
 }
 export class CommandOverrider {
-  nameStyler: PlinkCommand['nameStyler'];
-  private currClieCreatorFile: string;
-  private currCliCreatorPkg: PackageInfo | null = null;
-  private currCliPkgMataInfos: OurCommandMetadata[];
+  // nameStyler: PlinkCommand['nameStyler'];
+  // private currClieCreatorFile: string;
+  // private currCliCreatorPkg: PackageInfo | null = null;
+  // private currCliPkgMataInfos: OurCommandMetadata[];
   // private allSubCmds: OurAugmentedCommander[] = [];
-  private metaMap = new WeakMap<commander.Command, Partial<OurCommandMetadata>>();
+  // private metaMap = new WeakMap<commander.Command, Partial<OurCommandMetadata>>();
   private pkgMetasMap = new Map<string, OurCommandMetadata[]>();
+  private ctx: Partial<CommandContext> = {
+    metaMap: new WeakMap<commander.Command, Partial<OurCommandMetadata>>()
+  };
+
+  set nameStyler(v: PlinkCommand['nameStyler']) {
+    this.ctx.nameStyler = v;
+  }
 
   constructor(private program: commander.Command, ws?: WorkspaceState) {
     this.program.createCommand = PlinkCommand.prototype.createCommand;
-    const self = this;
-    (this.program as PlinkCommand).ctx = {
-      get currClieCreatorFile() {
-        return self.currClieCreatorFile;
-      },
-      get currCliCreatorPkg() {
-        return self.currCliCreatorPkg;
-      },
-      metaMap: self.metaMap,
-      get currCliPkgMataInfos(): OurCommandMetadata[] {
-        return self.currCliPkgMataInfos;
-      },
-      get nameStyler() {
-        return self.nameStyler;
-      }
-      // loadedCmdMap: self.loadedCmdMap
-    };
+
+    (this.program as PlinkCommand).ctx = this.ctx as CommandContext;
     (this.program as PlinkCommand).subCmds = [];
     (this.program as PlinkCommand).loadedCmdMap = new Map();
     (this.program as PlinkCommand).addGlobalOptionsToSubCmds = PlinkCommand.prototype.addGlobalOptionsToSubCmds;
@@ -318,8 +313,8 @@ export class CommandOverrider {
   forPackage(pk: PackageInfo | null,
     pkgFilePath: string | ((program: commander.Command) => void),
     funcName?: string) {
-    const commandMetaInfos = this.currCliPkgMataInfos = [];
-    this.currCliCreatorPkg = pk;
+    const commandMetaInfos: OurCommandMetadata[] = this.ctx.currCliPkgMataInfos = [];
+    this.ctx.currCliCreatorPkg = pk;
 
     let filePath: string | null = null;
 
@@ -329,10 +324,10 @@ export class CommandOverrider {
     } else if (pk) {
       try {
         filePath = require.resolve(pk.name + '/' + pkgFilePath);
-        this.currClieCreatorFile = filePath;
+        this.ctx.currClieCreatorFile = filePath;
         const subCmdFactory: CliExtension = funcName ? require(filePath)[funcName] :
           require(filePath);
-        subCmdFactory(this.program);
+        subCmdFactory(this.program as PlinkCommand);
         this.pkgMetasMap.set(pk.name, commandMetaInfos);
       } catch (e) {
         // tslint:disable-next-line: no-console
@@ -341,7 +336,7 @@ export class CommandOverrider {
         filePath = null;
       }
     }
-    this.currCliCreatorPkg = null;
+    this.ctx.currCliCreatorPkg = null;
   }
 
   appendGlobalOptions(saveToStore: boolean) {

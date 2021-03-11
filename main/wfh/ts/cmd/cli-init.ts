@@ -174,6 +174,7 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
     }
     console.log(table.toString());
   }
+  printColorExplaination(workspace);
 }
 
 function createTable() {
@@ -202,4 +203,20 @@ function renderHoistPeerDepInfo(dep: string, dependents: DependentInfo): [dep: s
       `${dependents.direct && idx === 0 ? chalk.green(item.ver) : idx > 0 ? item.ver : chalk.cyan(item.ver)}: ${chalk.grey(item.name)}`
     ).join('\n')
   ];
+}
+
+function printColorExplaination(workspace: WorkspaceState) {
+  const summary = workspace.hoistInfoSummary;
+  if (summary.conflictDeps.length > 0) {
+    console.log(`Above listed transitive dependencies: "${chalk.red(summary.conflictDeps.join(', '))}" have ` +
+      'conflict dependency version, resolve them by choosing a version and add them to worktree space.\n');
+  }
+  if (_.size(summary.missingDeps) > 0) {
+    console.log(`Above listed transitive peer dependencies in ${chalk.bgYellow('yellow')} should be added to worktree space as "dependencies":\n` +
+      chalk.yellow(JSON.stringify(summary.missingDeps, null, '  ').replace(/^([^])/mg, (m, p1) => '  ' + p1) + '\n'));
+  }
+  if (_.size(summary.missingDevDeps) > 0) {
+    console.log('Above listed transitive peer dependencies might should be added to worktree space as "devDependencies":\n' +
+      chalk.yellow(JSON.stringify(summary.missingDevDeps, null, '  ').replace(/^([^])/mg, (m, p1) => '  ' + p1)) + '\n');
+  }
 }

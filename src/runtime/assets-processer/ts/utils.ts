@@ -3,7 +3,7 @@ import {getLogger} from 'log4js';
 import api from '__api';
 import * as Url from 'url';
 import _ from 'lodash';
-import proxy from 'http-proxy-middleware';
+import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
 
 const logTime = getLogger(api.packageName + '.timestamp');
 

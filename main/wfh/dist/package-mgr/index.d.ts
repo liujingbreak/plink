@@ -1,3 +1,6 @@
+/**
+ * Unfortunately, this file is very long, you need to fold by indention for better view of source code in Editor
+ */
 import { PayloadAction } from '@reduxjs/toolkit';
 import { Observable } from 'rxjs';
 import { PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
@@ -49,6 +52,18 @@ export interface WorkspaceState {
     hoistPeerDepInfo: Map<string, DependentInfo>;
     hoistDevInfo: Map<string, DependentInfo>;
     hoistDevPeerDepInfo: Map<string, DependentInfo>;
+    hoistInfoSummary: {
+        /** User should manully add them as dependencies of workspace */
+        missingDeps: {
+            [name: string]: string;
+        };
+        /** User should manully add them as devDependencies of workspace */
+        missingDevDeps: {
+            [name: string]: string;
+        };
+        /** versions are conflict */
+        conflictDeps: string[];
+    };
 }
 export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     /** Do this action after any linked package is removed or added  */

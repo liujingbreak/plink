@@ -7,8 +7,8 @@ import { stateFactory } from '../store';
 import {OurCommandMetadata} from './types';
 export interface CliState {
   /** key is package name, value is Command name and args */
-  commandByPackage: Map<string, OurCommandMetadata['nameAndArgs'][]>;
-  commandInfoByName: Map<OurCommandMetadata['nameAndArgs'], OurCommandMetadata>;
+  commandByPackage: Map<string, OurCommandMetadata['name'][]>;
+  commandInfoByName: Map<OurCommandMetadata['name'], OurCommandMetadata>;
   version: string;
   osLang?: string;
   osCountry?: string;
@@ -41,7 +41,7 @@ export const cliSlice = stateFactory.newSlice({
       d.osCountry = country;
     },
     addCommandMeta(d, {payload: {pkg, metas}}: PayloadAction<{pkg: string; metas: OurCommandMetadata[]}>) {
-      const names = metas.map(meta => /^\s*?(\S+)/.exec(meta.nameAndArgs)![1]);
+      const names = metas.map(meta => /^\s*?(\S+)/.exec(meta.name)![1]);
       // const existingMetas = d.commandByPackage.get(pkg);
       d.commandByPackage.set(pkg, names);
       // if (existingMetas) {

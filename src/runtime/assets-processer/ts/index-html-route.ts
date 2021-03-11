@@ -1,4 +1,4 @@
-import proxy from 'http-proxy-middleware';
+import {createProxyMiddleware as proxy, Options} from 'http-proxy-middleware';
 import {NextFunction, Request} from 'express';
 import api from '__api';
 import _ from 'lodash';
@@ -11,10 +11,10 @@ interface ReqWithNextCb extends Request {
 }
 export function proxyToDevServer() {
   // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
-  let setting: proxy.Config | undefined = getSetting().proxyToDevServer;
+  let setting: Options | undefined = getSetting().proxyToDevServer;
   if (setting == null)
     return;
-  const config: proxy.Config = _.cloneDeep(setting);
+  const config: Options = _.cloneDeep(setting);
   config.changeOrigin = true;
   config.ws = true;
   // config.logProvider = () => hpmLog;

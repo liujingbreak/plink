@@ -16,6 +16,9 @@ export declare class PlinkCommandHelp extends commander.Help {
     realPadWidth(cmd: commander.Command, helper: PlinkCommandHelp): number;
     formatHelp(cmd: commander.Command, helper: PlinkCommandHelp): string;
 }
+/**
+ * Extend commander, check commander API at https://www.npmjs.com/package/commander
+ */
 export declare class PlinkCommand extends commander.Command {
     ctx: CommandContext;
     nameStyler?: (cmdName: string) => string;
@@ -27,6 +30,9 @@ export declare class PlinkCommand extends commander.Command {
     constructor(ctx: CommandContext, name?: string);
     addGlobalOptionsToSubCmds(): void;
     createCommand(cmdName?: string): commander.Command;
+    description(str?: string, argsDescription?: {
+        [argName: string]: string;
+    }): any;
     alias(alias?: string): any;
     createOption(flags: string, description?: string, ...remaining: any[]): PlinkCmdOption;
     option(...args: any[]): any;
@@ -35,17 +41,15 @@ export declare class PlinkCommand extends commander.Command {
     createHelp(): PlinkCommandHelp & Partial<commander.Help>;
     _saveOptions(isRequired: boolean, flags: string, desc: string, ...remaining: any[]): void;
 }
+export declare type CliExtension = (program: commander.Command) => void;
 declare class PlinkCmdOption extends commander.Option {
     optionStyler?: (cmdName: string) => string;
 }
 export declare class CommandOverrider {
     private program;
-    nameStyler: PlinkCommand['nameStyler'];
-    private currClieCreatorFile;
-    private currCliCreatorPkg;
-    private currCliPkgMataInfos;
-    private metaMap;
     private pkgMetasMap;
+    private ctx;
+    set nameStyler(v: PlinkCommand['nameStyler']);
     constructor(program: commander.Command, ws?: WorkspaceState);
     forPackage(pk: PackageInfo, pkgFilePath: string, funcName: string): void;
     forPackage(pk: null, commandCreation: (program: commander.Command) => void): void;

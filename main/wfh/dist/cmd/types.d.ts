@@ -1,5 +1,3 @@
-import commander from 'commander';
-export declare type CliExtension = (program: commander.Command) => void;
 export interface GlobalOptions {
     config: string[];
     prop: string[];
@@ -37,13 +35,13 @@ export interface PublishOptions extends PackOptions {
     public: boolean;
 }
 export interface AnalyzeOptions extends GlobalOptions {
-    dir?: string;
+    dir?: string[];
     file?: string[];
     j: boolean;
 }
 export interface OurCommandMetadata {
     pkgName: string;
-    nameAndArgs: string;
+    name: string;
     alias?: string;
     desc: string;
     usage: string;

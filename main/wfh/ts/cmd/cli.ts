@@ -264,20 +264,24 @@ function subComands(program: commander.Command) {
     });
 
 
-  const analysisCmd = program.command('analyze')
+  const analysisCmd = program.command('analyze [pkg-name...]')
     .alias('analyse')
-    .description('Use Typescript compiler to parse source code, draw a dependence graph with DFS algarithm')
+    .description('Use Typescript compiler to parse source code, list dependences by DFS algarithm', {
+      'pkg-name': 'the name of target source package, the package must be Plink compliant package, this command will only ' +
+        'scan special source code directory like "ts/" and "isom/" of target package'
+      })
     .option('-d, --dir <directory>',
-      'specify target directory, scan JS/JSX/TS/TSX files under target directory')
+      '(multiple) specify target directory, scan JS/JSX/TS/TSX files under target directory', arrayOptionFn, [])
     .option('-f, --file <file>',
-      'specify target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
+      '(multiple) specify target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
     .option('-j', 'Show result in JSON', false)
     .action(async (packages: string[]) => {
       return (await import('./cli-analyze')).default(packages, analysisCmd.opts() as tp.AnalyzeOptions);
     });
 
   analysisCmd.usage(analysisCmd.usage() + '\n' +
-    'e.g.\n  ' + chalk.blue('plink analyze -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts'));
+    'e.g.\n  ' + chalk.blue('plink analyze -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts\n  ' +
+    'plink analyze -d packages/foobar1/src -d packages/foobar2/ts'));
 
   const updateDirCmd = program.command('update-dir')
     .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
