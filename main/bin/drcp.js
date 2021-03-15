@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require('../install-cli/bin/drcp');
+require('../wfh/dist/cmd-bootstrap');

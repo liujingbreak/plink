@@ -5,15 +5,14 @@ import * as Path from 'path';
 import * as fs from 'fs';
 // var favicon = require('serve-favicon');
 import * as log4js from 'log4js';
-var cookieParser = require('cookie-parser');
-// var bodyParser = require('body-parser');
+import {logger, ExtensionContext} from '@wfh/plink';
+const cookieParser = require('cookie-parser');
 import bodyParser from 'body-parser';
-var engines = require('consolidate');
-var swig = require('swig-templates');
+const engines = require('consolidate');
 import {setupApi, applyPackageDefinedAppSetting, createPackageDefinedRouters} from './routes';
 import api from '__api';
-var log = log4js.getLogger(api.packageName);
-var compression = require('compression');
+const log = logger.getLogger('@wfh/express-app');
+const compression = require('compression');
 // var swigInjectLoader = require('swig-package-tmpl-loader');
 
 const VIEW_PATH = Path.relative(api.config().rootPath,
@@ -24,7 +23,7 @@ const expressAppReady$ = new rx.ReplaySubject<Application>(1);
 
 export = {
 
-  activate() {
+  activate(api: ExtensionContext) {
     app = express();
     setupApi(api, app);
     api.eventBus.on('packagesActivated', function() {
@@ -49,10 +48,10 @@ export = {
 
 function create(app: express.Express, setting: any) {
   // view engine setup
-  swig.setDefaults({
-    varControls: ['{=', '=}'],
-    cache: setting.devMode ? false : 'memory'
-  });
+  // swig.setDefaults({
+  //   varControls: ['{=', '=}'],
+  //   cache: setting.devMode ? false : 'memory'
+  // });
   // var injector = require('__injector');
   // var translateHtml = require('@dr/translate-generator').htmlReplacer();
   // swigInjectLoader.swigSetup(swig, {
@@ -62,9 +61,9 @@ function create(app: express.Express, setting: any) {
   // 	// }
   // });
 
-  engines.requires.swig = swig;
-  app.engine('html', engines.swig);
-  app.set('view cache', false);
+  // engines.requires.swig = swig;
+  app.engine('html', engines.lodash);
+  // app.set('view cache', false);
   // app.engine('jade', engines.jade);
   app.set('trust proxy', true);
   app.set('views', [setting.rootPath]);

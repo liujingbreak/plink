@@ -5,7 +5,6 @@
   "main": "wfh/dist/index.js",
   "types": "wfh/dist/index.d.ts",
   "bin": {
-    "drcp": "bin/drcp.js",
     "plink": "bin/drcp.js"
   },
   "dr": {},

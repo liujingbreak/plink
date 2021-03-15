@@ -148,15 +148,6 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
   getBuildLocale() {
     return this.argv.locale || this.config.get('locales[0]');
   }
-
-  // serverUrl(packageNameOrPath: string, path?: string) {
-  //   return assetsUrl.serverUrl.apply(this, arguments);
-  // }
-
-  // publicUrl(staticAssetsURL: string, outputPathMap: {[name: string]: string},
-  //   useLocale: string | null, packageName: string | null, path: string) {
-  //     return 
-  //   }
 }
 
 NodeApi.prototype.eventBus = new EventEmitter();

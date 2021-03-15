@@ -1,5 +1,5 @@
 import { Application } from 'express';
-import { DrcpApi } from '__api';
+import { ExtensionContext } from '@wfh/plink';
 export declare function createPackageDefinedRouters(app: Application): void;
 export declare function applyPackageDefinedAppSetting(app: Application): void;
-export declare function setupApi(api: DrcpApi, app: Application): void;
+export declare function setupApi(api: ExtensionContext, app: Application): void;

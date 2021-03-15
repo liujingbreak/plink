@@ -1,6 +1,7 @@
 export * from './config-handler';
 export {default as config} from './config/index';
 export * from './require-injectors';
+export {default as ExtensionContext} from './package-mgr/node-package-api';
 export {InjectorConfigHandler, DrPackageInjector, nodeInjector, webInjector} from './injector-factory';
 export * from './cmd/types';
 export {PlinkCommand, CliExtension} from './cmd/override-commander';

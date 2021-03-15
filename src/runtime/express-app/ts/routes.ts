@@ -1,11 +1,12 @@
 import express, {Application} from 'express';
 import api, {DrcpApi} from '__api';
+import {ExtensionContext} from '@wfh/plink';
 import _ from 'lodash';
 import Path from 'path';
 import _cors from 'cors';
 
 let log = require('log4js').getLogger(api.packageName + '.setApi');
-let swig = require('swig-templates');
+// let swig = require('swig-templates');
 
 interface RouterDefCallback {
   (app: Application, exp: typeof express): void;
@@ -37,11 +38,11 @@ export function applyPackageDefinedAppSetting(app: Application) {
   });
 }
 
-export function setupApi(api: DrcpApi, app: Application) {
+export function setupApi(api: ExtensionContext, app: Application) {
   let apiPrototype: DrcpApi = Object.getPrototypeOf(api);
   apiPrototype.express = express;
   apiPrototype.expressApp = app;
-  apiPrototype.swig = swig;
+  // apiPrototype.swig = swig;
 
   /**
 	 * setup a router under package context path
@@ -185,4 +186,3 @@ export function setupApi(api: DrcpApi, app: Application) {
     return cors(corsOptions);
   };
 }
-

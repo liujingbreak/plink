@@ -5,7 +5,7 @@ declare module '@wfh/plink/wfh/globals' {
   interface DrcpApi {
     express: typeof express;
     expressApp: express.Application;
-    swig: any;
+    // swig: any;
     use: express.Router['use'];
     /** return a pre-created express Router whose context path by default is package name,
      * 

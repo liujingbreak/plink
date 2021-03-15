@@ -1,3 +1,4 @@
+import { PackageInfo } from './package-mgr/package-info-gathering';
 import _NodeApi from './package-mgr/node-package-api';
 import PackageInstance from './packageNodeInstance';
 import NodePackage from './packageNodeInstance';
@@ -25,7 +26,7 @@ export declare function runPackages(target: string, includePackages: Iterable<st
  * So that we can use `import api from '__plink'` anywhere in our package
  */
 export declare function initInjectorForNodePackages(): [
-    PackageInstance[],
+    PackageInfo,
     _NodeApi
 ];
 /**

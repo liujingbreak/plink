@@ -115,8 +115,8 @@ export async function runPackages(target: string, includePackages: Iterable<stri
   const pkgExportsInReverOrder: {name: string; exp: any}[] = [];
 
   const [fileToRun, funcToRun] = (target as string).split('#');
-  const [packages, proto] = initInjectorForNodePackages();
-  const components = packages.filter(pk => {
+  const [packageInfo, proto] = initInjectorForNodePackages();
+  const components = packageInfo.allModules.filter(pk => {
     // setupRequireInjects(pk, NodeApi); // All component package should be able to access '__api', even they are not included
     if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName))) {
       try {
@@ -145,7 +145,7 @@ export async function runPackages(target: string, includePackages: Iterable<stri
     pkgExportsInReverOrder.unshift({name: pkInstance.name, exp: fileExports});
     if (_.isFunction(fileExports[funcToRun])) {
       log.info(funcToRun + ` ${chalk.cyan(mod)}`);
-      return fileExports[funcToRun](apiCache[pkInstance.name]);
+      return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
     }
   });
   (proto.eventBus as Events.EventEmitter).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
@@ -157,7 +157,7 @@ export async function runPackages(target: string, includePackages: Iterable<stri
  * So that we can use `import api from '__plink'` anywhere in our package
  */
 export function initInjectorForNodePackages():
-  [PackageInstance[], _NodeApi] {
+  [PackageInfo, _NodeApi] {
   const packageInfo: PackageInfo = walkPackages();
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
   const proto = NodeApi.prototype;
@@ -180,18 +180,9 @@ export function initInjectorForNodePackages():
   packageInfo.allModules.forEach(pk => {
     setupRequireInjects(pk, NodeApi); // All component package should be able to access '__api', even they are not included
   });
-  // console.log('>>>>>>>>>>>>>>>>>>')
-  // config.configureStore.pipe(
-  //   filter(setting => setting != null),
-  //   tap(setting => {
-  //     // console.log('>>>>>>>>>++++++>>>>>>>>>')
-  //     nodeInjector.readInjectFile();
-  //     webInjector.readInjectFile('module-resolve.browser');
-  //   })
-  // ).subscribe();
   nodeInjector.readInjectFile();
   webInjector.readInjectFile('module-resolve.browser');
-  return [packageInfo.allModules, proto];
+  return [packageInfo, proto];
 }
 
 // function initWebInjector(packages: PackageInstance[], apiPrototype: any) {

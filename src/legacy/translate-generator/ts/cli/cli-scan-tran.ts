@@ -7,7 +7,6 @@ import glob from 'glob';
 import {Pool} from '@wfh/thread-promise-pool';
 import {getTscConfigOfPkg} from '@wfh/plink/wfh/dist/utils/misc';
 import {findPackagesByNames} from '@wfh/plink/wfh/dist/cmd/utils';
-// import { PackageInfo } from '@wfh/plink/wfh/dist/package-mgr';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 // Chalk is useful for printing colorful text in a terminal
