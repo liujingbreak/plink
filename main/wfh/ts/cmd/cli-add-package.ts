@@ -8,6 +8,7 @@ import {getLogger} from 'log4js';
 import _ from 'lodash';
 import chalk from 'chalk';
 import stripAnsi from 'strip-ansi';
+import {getRootDir} from '../utils/misc';
 import {workspacesOfDependencies} from '../package-mgr/package-list-helper';
 import {actionDispatcher as pkgDispater, isCwdWorkspace, getState, workspaceDir, workspaceKey} from '../package-mgr/index';
 const log = getLogger('plink.cli-add-package');
@@ -31,6 +32,7 @@ export async function addDependencyTo(packages: string[], to?: string, dev = fal
     }
     wsDirs.push(to);
   } else {
+    console.log(to);
     const tryWsKey = workspaceKey(to);
     if (getState().workspaces.has(tryWsKey)) {
       wsDirs.push(Path.resolve(to));
@@ -40,8 +42,11 @@ export async function addDependencyTo(packages: string[], to?: string, dev = fal
         throw new Error('No matched linked package or worktree space is found for option "--to"');
       }
       to = foundPkg.realPath;
-      wsDirs = Array.from(workspacesOfDependencies(foundPkg.name));
+      const rootDir = getRootDir();
+      wsDirs = Array.from(workspacesOfDependencies(foundPkg.name))
+        .map(ws => Path.resolve(rootDir, ws));
     }
+    console.log('wsDirs', wsDirs);
   }
   await add(packages, to, dev);
   setImmediate(() => {
