@@ -5,11 +5,14 @@ import styles from './$__MyComponent__$.module.scss';
 const cx = classnames.bind(styles);
 const cls = cx('red', 'bold');
 
-const $__MyComponent__$: React.FC<{}> = function(prop) {
+export type $__MyComponent__$Props = React.PropsWithChildren<{
+}>;
+
+const $__MyComponent__$: React.FC<$__MyComponent__$Props> = function(props) {
   return (
     <div className={cls}>You component goes here</div>
   );
 };
 
-export default $__MyComponent__$;
+export {$__MyComponent__$};
 

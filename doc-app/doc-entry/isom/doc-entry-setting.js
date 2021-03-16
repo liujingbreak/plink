@@ -1,0 +1,27 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getSetting = exports.defaultSetting = void 0;
+const plink_1 = require("@wfh/plink");
+/**
+ * Plink runs this funtion to get package level setting value,
+ * function name "defaultSetting" must be also configured in package.json file
+ */
+function defaultSetting() {
+    const defaultValue = {
+        basename: '/plink'
+    };
+    process.env.PUBLIC_URL = defaultValue.basename + '/';
+    process.env.REACT_APP_routeBasename = defaultValue.basename;
+    return defaultValue;
+}
+exports.defaultSetting = defaultSetting;
+/**
+ * The return setting value is merged with files specified by command line options "--prop" and "-c"
+ * @return setting of current package
+ */
+function getSetting() {
+    // tslint:disable:no-string-literal
+    return plink_1.config()['@wfh/doc-entry'];
+}
+exports.getSetting = getSetting;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZG9jLWVudHJ5LXNldHRpbmcuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJkb2MtZW50cnktc2V0dGluZy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7QUFBQSxzQ0FBa0M7QUFVbEM7OztHQUdHO0FBQ0gsU0FBZ0IsY0FBYztJQUM1QixNQUFNLFlBQVksR0FBb0I7UUFDcEMsUUFBUSxFQUFFLFFBQVE7S0FDbkIsQ0FBQztJQUVELE9BQU8sQ0FBQyxHQUFXLENBQUMsVUFBVSxHQUFHLFlBQVksQ0FBQyxRQUFRLEdBQUcsR0FBRyxDQUFDO0lBQzlELE9BQU8sQ0FBQyxHQUFHLENBQUMsdUJBQXVCLEdBQUcsWUFBWSxDQUFDLFFBQVEsQ0FBQztJQUM1RCxPQUFPLFlBQVksQ0FBQztBQUN0QixDQUFDO0FBUkQsd0NBUUM7QUFFRDs7O0dBR0c7QUFDSCxTQUFnQixVQUFVO0lBQ3hCLG1DQUFtQztJQUNuQyxPQUFPLGNBQU0sRUFBRSxDQUFDLGdCQUFnQixDQUFFLENBQUM7QUFDckMsQ0FBQztBQUhELGdDQUdDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtjb25maWd9IGZyb20gJ0B3ZmgvcGxpbmsnO1xuXG4vKipcbiAqIFBhY2thZ2Ugc2V0dGluZyB0eXBlXG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgRG9jRW50cnlTZXR0aW5nIHtcbiAgLyoqIFJvdXRlciBiYXNlbmFtZSAqL1xuICBiYXNlbmFtZTogc3RyaW5nO1xufVxuXG4vKipcbiAqIFBsaW5rIHJ1bnMgdGhpcyBmdW50aW9uIHRvIGdldCBwYWNrYWdlIGxldmVsIHNldHRpbmcgdmFsdWUsXG4gKiBmdW5jdGlvbiBuYW1lIFwiZGVmYXVsdFNldHRpbmdcIiBtdXN0IGJlIGFsc28gY29uZmlndXJlZCBpbiBwYWNrYWdlLmpzb24gZmlsZVxuICovXG5leHBvcnQgZnVuY3Rpb24gZGVmYXVsdFNldHRpbmcoKTogRG9jRW50cnlTZXR0aW5nIHtcbiAgY29uc3QgZGVmYXVsdFZhbHVlOiBEb2NFbnRyeVNldHRpbmcgPSB7XG4gICAgYmFzZW5hbWU6ICcvcGxpbmsnXG4gIH07XG5cbiAgKHByb2Nlc3MuZW52IGFzIGFueSkuUFVCTElDX1VSTCA9IGRlZmF1bHRWYWx1ZS5iYXNlbmFtZSArICcvJztcbiAgcHJvY2Vzcy5lbnYuUkVBQ1RfQVBQX3JvdXRlQmFzZW5hbWUgPSBkZWZhdWx0VmFsdWUuYmFzZW5hbWU7XG4gIHJldHVybiBkZWZhdWx0VmFsdWU7XG59XG5cbi8qKlxuICogVGhlIHJldHVybiBzZXR0aW5nIHZhbHVlIGlzIG1lcmdlZCB3aXRoIGZpbGVzIHNwZWNpZmllZCBieSBjb21tYW5kIGxpbmUgb3B0aW9ucyBcIi0tcHJvcFwiIGFuZCBcIi1jXCJcbiAqIEByZXR1cm4gc2V0dGluZyBvZiBjdXJyZW50IHBhY2thZ2VcbiAqL1xuZXhwb3J0IGZ1bmN0aW9uIGdldFNldHRpbmcoKSB7XG4gIC8vIHRzbGludDpkaXNhYmxlOm5vLXN0cmluZy1saXRlcmFsXG4gIHJldHVybiBjb25maWcoKVsnQHdmaC9kb2MtZW50cnknXSE7XG59XG4iXX0=

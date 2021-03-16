@@ -1,26 +1,36 @@
-import React, {useCallback} from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
-import classNames from 'classnames/bind';
-import {MDCRipple} from '@material/ripple/index';
-import '@material/ripple/styles.scss';
-import styles from './Main.module.scss';
-
-
-const cx = classNames.bind(styles);
-const bannerImgCls = cx('assets', 'matRipple', 'mdc-ripple-surface', 'mdc-ripple-surface--primary');
+// import classNames from 'classnames/bind';
+// import {RippleComp} from '@wfh/doc-ui-common/client/material/RippleComp';
+import './Main.module.scss';
+import {BrowserRouter as Router} from 'react-router-dom';
+import {RoutesComp} from './RoutesComp';
+import {Provider as ReduxProvider} from 'react-redux';
+import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
+import './markdown-setup';
+// const cx = classNames.bind(styles);
+// const bannerImgCls = cx('assets');
 
 const MainComp: React.FC<{}> = function(prop) {
-  const onDivReady = useCallback((div: HTMLDivElement) => {
-    // tslint:disable-next-line: no-unused-expression
-    new MDCRipple(div);
+  const [reduxStore, setReduxStore] = React.useState(stateFactory.getRootStore());
+
+  React.useEffect(() => {
+    stateFactory.rootStoreReady.then(store => {
+      setReduxStore(store);
+    });
   }, []);
 
-  return <>
-    <div className={bannerImgCls} ref={onDivReady}></div>
-    <div className={styles.red}>You component goes here!</div>
-    </>;
+  if (reduxStore == null) {
+    return <>...</>;
+  }
+  return <ReduxProvider store={reduxStore}>
+      <Router basename={process.env.REACT_APP_routeBasename}>
+        <RoutesComp/>
+      </Router>
+    </ReduxProvider>;
 };
 
+stateFactory.configureStore();
 
 export default MainComp;
 

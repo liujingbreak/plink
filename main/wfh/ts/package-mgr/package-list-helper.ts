@@ -135,10 +135,24 @@ export function setTsCompilerOptForNodePath(
   let symlinksDir: string | undefined;
   let pathsDirs: string[] = [];
   // workspace node_modules should be the first
+  const baseUrlAbsPath = Path.resolve(tsconfigDir, baseUrl);
+
+  if (opts.realPackagePaths) {
+    Object.assign(assigneeOptions.paths, pathMappingForLinkedPkgs(baseUrlAbsPath));
+  }
+
   if (opts.workspaceDir != null) {
     symlinksDir = Path.resolve(opts.workspaceDir, '.links');
     // pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
     pathsDirs.push(...calcNodePaths(rootDir, symlinksDir, opts.workspaceDir || process.cwd(), plinkDir));
+
+    const wsState = getState().workspaces.get(workspaceKey(opts.workspaceDir));
+
+    if (wsState) {
+      assignSpecialPaths(wsState.installJson.dependencies, assigneeOptions, baseUrlAbsPath);
+      assignSpecialPaths(wsState.installJson.devDependencies, assigneeOptions, baseUrlAbsPath);
+      assignSpecialPaths(wsState.installJson.peerDependencies, assigneeOptions, baseUrlAbsPath);
+    }
   }
 
   if (opts.extraNodePath && opts.extraNodePath.length > 0) {
@@ -163,17 +177,13 @@ export function setTsCompilerOptForNodePath(
 
   if (assigneeOptions.paths == null)
     assigneeOptions.paths = {};
-
-  const baseUrlAbsPath = Path.resolve(tsconfigDir, baseUrl);
   // if (opts.workspaceDir != null) {
   //   assigneeOptions.paths['_package-settings'] = [
   //     Path.relative(baseUrlAbsPath, opts.workspaceDir).replace(/\\/g, '/') + '/_package-settings'];
   // }
 
   assigneeOptions.baseUrl = baseUrl.replace(/\\/g, '/');
-  if (opts.realPackagePaths) {
-    Object.assign(assigneeOptions.paths, pathMappingForLinkedPkgs(baseUrlAbsPath));
-  }
+
   if (assigneeOptions.paths['*'] == null)
     assigneeOptions.paths['*'] = [] as string[];
   const wildcardPaths: string[] = assigneeOptions.paths['*'];
@@ -188,6 +198,28 @@ export function setTsCompilerOptForNodePath(
   appendTypeRoots(pathsDirs, tsconfigDir, assigneeOptions, opts);
 
   return assigneeOptions as CompilerOptions;
+}
+
+/**
+ * For those special scoped package which is like @loadable/component, its type definition package is
+ * @types/loadable__component
+ */
+function assignSpecialPaths(dependencies: {[dep: string]: string} | undefined,
+  assigneeOptions: Partial<CompilerOptions>, absBaseUrlPath: string) {
+  if (dependencies == null)
+    return;
+
+  for (const item of Object.keys(dependencies)) {
+    const m = /^@types\/(.*?)__(.*?)$/.exec(item);
+    if (m) {
+      const originPkgName = `@${m[1]}/${m[2]}`;
+      const relativeDir = Path.relative(absBaseUrlPath, 'node_modules/' + item).replace(/\\/g, '/');
+      if (assigneeOptions.paths == null)
+        assigneeOptions.paths = {};
+      assigneeOptions.paths[originPkgName] = [relativeDir];
+      assigneeOptions.paths[originPkgName + '/*'] = [relativeDir + '/*'];
+    }
+  }
 }
 
 function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {

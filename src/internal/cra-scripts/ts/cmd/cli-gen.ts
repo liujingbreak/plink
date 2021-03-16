@@ -30,14 +30,14 @@ export async function genPackage(path: string, compName = 'Sample', dryrun = fal
       fileMapping: [
         [/^my\-feature/, 'sample'],
         [/^MyFeature/, sCompName],
-        [/^MyComponent/, compName + 'Comp']
+        [/^MyComponent/, compName]
       ],
       textMapping: {
         packageName,
-        MyComponent: compName + 'Comp',
+        MyComponent: compName,
         SliceName: compName,
         sliceName: sCompName,
-        MyComponentPath: `${sCompName}/${compName}Comp`
+        MyComponentPath: `${sCompName}/${compName}`
       }
     },
     {dryrun});
@@ -66,10 +66,10 @@ export async function genComponents(dir: string, compNames: string[], dryrun = f
     {
       fileMapping: [
         [/^my\-feature/, 'sample'],
-        [/^MyComponent/, compName + 'Comp']
+        [/^MyComponent/, compName]
       ],
       textMapping: {
-        MyComponent: compName + 'Comp',
+        MyComponent: compName,
         SliceName: compName,
         sliceName: sCompName
       }

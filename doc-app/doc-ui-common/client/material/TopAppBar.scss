@@ -1,0 +1,8 @@
+@use "theme";
+@use "@material/icon-button";
+@use "@material/top-app-bar/mdc-top-app-bar";
+
+.mdc-top-app-bar {
+  @include icon-button.core-styles;
+}
+// https://github.com/css-modules/css-modules

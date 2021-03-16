@@ -89,6 +89,9 @@ export = function(webpackEnv: 'production' | 'development') {
 
   const resolveModules = ['node_modules', ...nodePath];
   config.resolve!.modules = resolveModules;
+  if (config.resolveLoader == null)
+    config.resolveLoader = {};
+  config.resolveLoader.modules = resolveModules;
 
   Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
 

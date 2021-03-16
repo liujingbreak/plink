@@ -11,7 +11,20 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@material/ripple": "^8.0.0",
     "canvas-5-polyfill": "0.1.5",
-    "animejs": "3.2.1"
+    "animejs": "3.2.1",
+    "@types/animejs": "3.1.2",
+    "@types/markdown-it": "12.0.1",
+    "markdown-it": "12.0.4",
+    "highlight.js": "10.6.0",
+    "axios": "0.21.1",
+    "github-markdown-css": "4.0.0",
+    "@types/mermaid": "8.2.2",
+    "mermaid": "8.9.2",
+    "cheerio": "1.0.0-rc.5",
+    "@material/top-app-bar": "10.0.0",
+    "@material/icon-button": "10.0.0",
+    "@material/theme": "10.0.0"
   }
 }

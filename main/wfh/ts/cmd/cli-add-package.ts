@@ -32,7 +32,6 @@ export async function addDependencyTo(packages: string[], to?: string, dev = fal
     }
     wsDirs.push(to);
   } else {
-    console.log(to);
     const tryWsKey = workspaceKey(to);
     if (getState().workspaces.has(tryWsKey)) {
       wsDirs.push(Path.resolve(to));
@@ -46,7 +45,6 @@ export async function addDependencyTo(packages: string[], to?: string, dev = fal
       wsDirs = Array.from(workspacesOfDependencies(foundPkg.name))
         .map(ws => Path.resolve(rootDir, ws));
     }
-    console.log('wsDirs', wsDirs);
   }
   await add(packages, to, dev);
   setImmediate(() => {

@@ -6,11 +6,20 @@
   "dr": {
     "cra-app-entry": "start.tsx",
     "cra-lib-entry": "main/MainComponent.tsx",
-    "config-overrides-path": "config-overrides.ts"
+    "config-overrides-path": "config-overrides.ts",
+    "setting": {
+      "value": "isom/doc-entry-setting.js#defaultSetting",
+      "type": "isom/doc-entry-setting#DocEntrySetting"
+    }
   },
   "sideEffects": false,
   "dependencies": {
-    "@material/ripple": "^8.0.0"
+    "@material/ripple": "^8.0.0",
+    "react-router-dom": "5.2.0",
+    "@loadable/component": "5.14.1",
+    "@types/react-router-dom": "5.1.7",
+    "@types/webpack": "~4.41.25",
+    "@types/loadable__component": "5.13.3"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

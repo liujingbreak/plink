@@ -8,7 +8,10 @@ const cx = classnames.bind(styles);
 const imgCls = cx('assets');
 const textCls = cx('red');
 
-const $__MyComponent__$: React.FC<{}> = function(prop) {
+export type $__MyComponent__$Props = React.PropsWithChildren<{
+}>;
+
+const $__MyComponent__$: React.FC<$__MyComponent__$Props> = function(props) {
   return <>
     <div className={imgCls}></div>
     <div className={textCls}>You component goes here</div>

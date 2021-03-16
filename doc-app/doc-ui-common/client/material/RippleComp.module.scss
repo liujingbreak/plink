@@ -1,0 +1,8 @@
+@use "theme";
+@use "@material/ripple";
+
+.matRipple {
+  @include ripple.surface;
+  @include ripple.radius-bounded;
+  @include ripple.states;
+}

@@ -1,0 +1,81 @@
+$diagram-color: change-color($color: #c5cae9, $alpha: 0.4);
+
+.diagramTable {
+  border-radius: 5px;
+  box-shadow: 2px 3px 5px rgba(0,0,0, 0.3);
+  overflow: hidden;
+  // display: flex;
+  // flex-direction: column;
+  span {
+    display: inline-block;
+  }
+  .layer {
+    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    background: $diagram-color;
+    border-bottom: 1px solid adjust-color($color: $diagram-color, $lightness: -10%);
+    &:last-child {
+      border-bottom: 0;
+    }
+    > :global(.title) {
+      flex-shrink: 0;
+      text-align: right;
+      padding: 0.5rem;
+      font-weight: bold;
+      max-width: 10rem;
+      overflow: hidden;
+    }
+    > :global(.content) {
+      flex-grow: 1;
+      display: flex;
+      justify-content: space-between;
+    }
+  }
+  .block {
+    flex-grow: 1;
+    flex-basis: 0%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 10px;
+    margin: 0.5rem 3px;
+    overflow: hidden;
+    font-size: 0.8rem;
+    background: $diagram-color;
+    box-shadow: 2px 3px 3px rgba(0,0,0, 0.2);
+    &:global(.empty) {
+      padding: 0.5rem;
+    }
+    > :global(.title) {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      text-align: center;
+      overflow: hidden;
+    }
+    > :global(.content) {
+      flex-grow: 1;
+      display: flex;
+      &:global(.no-children) {
+        display: inline-block;
+        padding: 0.5rem;
+      }
+      &:global(.horiztontal) {
+        display: block;
+      }
+    }
+
+    &:global(.has-content) {
+      > :global(.content) {
+        text-align: left;
+        color: change-color($color: $diagram-color, $lightness: 50%, $alpha: 1, $saturation: 30%);
+        background: adjust-color($color: $diagram-color, $lightness: -10%);
+      }
+    }
+  }
+}
+
+
+
+// https://github.com/css-modules/css-modules

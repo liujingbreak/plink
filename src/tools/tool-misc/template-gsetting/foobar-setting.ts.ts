@@ -1,4 +1,4 @@
-import {config} from '@wfh/plink';
+import {config, PlinkSettings} from '@wfh/plink';
 
 /**
  * Package setting type
@@ -12,7 +12,7 @@ export interface $__Foobar__$Setting {
  * Plink runs this funtion to get package level setting value,
  * function name "defaultSetting" must be also configured in package.json file
  */
-export function defaultSetting(): $__Foobar__$Setting {
+export function defaultSetting(cliOptions: NonNullable<PlinkSettings['cliOptions']>): $__Foobar__$Setting {
   const defaultValue: $__Foobar__$Setting = {
     disabled: false
   };

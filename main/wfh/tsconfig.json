@@ -6,22 +6,12 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../../tuitui-fe/server-workspace/.links/@types/*",
-        "../../../tuitui-fe/server-workspace/.links/*",
-        "../../../tuitui-fe/server-workspace/node_modules/@types/*",
-        "../../../tuitui-fe/server-workspace/node_modules/*"
-      ],
-      "@bk/tuitui-new-server": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-new-server"
-      ],
-      "@bk/tuitui-new-server/*": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-new-server/*"
-      ],
-      "@wfh/tuitui-server-tool": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-server-tool"
-      ],
-      "@wfh/tuitui-server-tool/*": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-server-tool/*"
+        "../../react-space/node_modules/@types/*",
+        "../../react-space/node_modules/*",
+        "../../react-space/.links/@types/*",
+        "../../react-space/.links/*",
+        "../../node_modules/@types/*",
+        "../../node_modules/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -142,14 +132,22 @@
       ],
       "@wfh/plink/*": [
         "../*"
+      ],
+      "@loadable/component": [
+        "../../react-space/node_modules/@types/loadable__component"
+      ],
+      "@loadable/component/*": [
+        "../../react-space/node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
+      "../../src/internal/cra-scripts/types",
       "../../src/runtime/express-app/types",
-      "../../../tuitui-fe/server-workspace/.links/@types",
-      "../../../tuitui-fe/server-workspace/node_modules/@types",
+      "../../react-space/node_modules/@types",
+      "../../react-space/.links/@types",
+      "../../node_modules/@types",
       "../node_modules/@types"
     ]
   }

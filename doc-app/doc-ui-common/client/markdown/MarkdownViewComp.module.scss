@@ -1,0 +1,30 @@
+// @import 'github-markdown-css/github-markdown.css';
+@import 'variables';
+
+:global .markdown-body {
+  padding: $padding-width;
+  background-color: #fffde7;
+
+  h1 {
+    font-size: 3rem;
+    text-align: center;
+  }
+  img {
+    &.round-corner {
+      margin: 0.5rem;
+      border-radius: 10px;
+      box-shadow: 2px 2px 3px rgba(0,0,0, 0.3);
+    }
+    
+  }
+  .flex {
+    display: flex;
+    overflow:hidden;
+    align-items: flex-start;
+    justify-content: space-around;
+    // > * {
+    //   flex: 0 1 0%;
+    // }
+  }
+}
+// https://github.com/css-modules/css-modules

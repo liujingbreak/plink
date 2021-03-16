@@ -1,4 +1,5 @@
 export * from './config-handler';
+export { DrcpSettings as PlinkSettings } from './config-handler';
 export { default as config } from './config/index';
 export * from './require-injectors';
 export { default as ExtensionContext } from './package-mgr/node-package-api';

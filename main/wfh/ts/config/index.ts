@@ -333,7 +333,7 @@ function loadPackageSettings(): string[] {
       const defaultSettingFactory = exps[defaultSettingExport];
 
       if (typeof defaultSettingFactory === 'function') {
-        const value = defaultSettingFactory(getState());
+        const value = defaultSettingFactory(getState().cliOptions);
         dispatcher._change(s => s[pkg.name] = value);
       } else {
         log.warn(`Failed to load package setting from ${pkg.name}/${jsFile}.\n Export name "${defaultSettingExport}" is not found`);
