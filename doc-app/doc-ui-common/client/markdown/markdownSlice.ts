@@ -9,11 +9,15 @@ export interface MarkdownState {
   markdowns: {[key: string]: string};
 
   contents: {[key: string]: string};
+  computed: {
+    reactHtml: {[key: string]: {__html: string}}
+  };
 }
 
 const initialState: MarkdownState = {
   markdowns: {},
-  contents: {}
+  contents: {},
+  computed: {reactHtml: {}}
 };
 
 const markdownSlice = stateFactory.newSlice({
@@ -37,7 +41,10 @@ const releaseEpic = stateFactory.addEpic<{Markdown: MarkdownState}>((action$, st
         return axiosObs.get<string>(url)
         .pipe(
           op.tap(res => {
-            dispatcher._change(s => s.contents[key] = res.data);
+            dispatcher._change(s => {
+              s.contents[key] = res.data;
+              s.computed.reactHtml[key] = {__html: res.data};
+            });
           })
         );
       })

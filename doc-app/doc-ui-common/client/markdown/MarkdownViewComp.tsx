@@ -22,6 +22,9 @@ export interface MarkdownViewCompProps {
 const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
   const props = props0 as ReturnType<ReturnType<typeof mapToPropFactory>>;
   const routeParams = useParams<{mdKey: string}>();
+ // {__html: props.contents[routeParams.mdKey]}
+
+  React.useEffect(() => {}, []);
 
   const containerRef = React.createRef<HTMLDivElement>();
 
@@ -50,7 +53,7 @@ const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
 
   if (routeParams.mdKey) {
     return (
-      <div ref={containerRef} className={cls} dangerouslySetInnerHTML={{__html: props.contents[routeParams.mdKey]}}></div>
+      <div ref={containerRef} className={cls} dangerouslySetInnerHTML={props.contents[routeParams.mdKey]}></div>
     );
   }
   return <>Loading ...</>;
@@ -60,7 +63,7 @@ function mapToPropFactory() {
   return function(rootState: any, props: MarkdownViewCompProps) {
     return {
       ...props,
-      contents: getState().contents
+      contents: getState().computed.reactHtml
     };
   };
 }
