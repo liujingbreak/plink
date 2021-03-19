@@ -12,9 +12,10 @@ import * as rx from 'rxjs';
 // }
 
 export type TopAppBarProps = React.PropsWithChildren<{
-  title: string;
+  title: React.ReactNode ;
   type?: 'fixed' | 'prominent' | 'dense' | 'short';
   getMdcRef?: (ref: MDCTopAppBar) => void;
+
 }>;
 
 const typeStyleMap: {[key in NonNullable<TopAppBarProps['type']>]: {header: string; main: string}} = {

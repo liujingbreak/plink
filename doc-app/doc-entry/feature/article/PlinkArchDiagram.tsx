@@ -12,6 +12,7 @@ const diagramTableCls = cx('diagramTable');
 
 export type PlinkArchDiagramProps = React.PropsWithChildren<{
   containerDom: Element;
+  dataKey: string;
 }>;
 
 const PlinkArchDiagram: React.FC<PlinkArchDiagramProps> = function(props0) {
@@ -26,7 +27,7 @@ const PlinkArchDiagram: React.FC<PlinkArchDiagramProps> = function(props0) {
 };
 
 function mapToProps(rootState: unknown, ownProps: PlinkArchDiagramProps) {
-  const blocks = getState().plinkArch;
+  const blocks = getState()[ownProps.dataKey];
   return {
     ...ownProps,
     data: blocks || ([] as Block[])

@@ -21,7 +21,7 @@ export default async function list(opt: GlobalOptions & {json: boolean}) {
 
   const table = createCliTable({horizontalLines: false});
   table.push(
-    [{colSpan: 3, hAlign: 'center', content: chalk.bold('SERVER COMPONENTS')}],
+    [{colSpan: 3, hAlign: 'center', content: chalk.bold('SERVER PACKAGES')}],
     ['PACKAGE', 'PRIORITY', 'DIRECTORY'].map(item => chalk.gray(item)),
     ['------', '-------', '--------'].map(item => chalk.gray(item))
   );

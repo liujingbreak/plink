@@ -1,4 +1,5 @@
-$diagram-color: change-color($color: #c5cae9, $alpha: 0.4);
+$diagram-color: change-color($color: #c5cae9, $alpha: 0.5);
+$block-border-color: change-color($diagram-color, $alpha: 1, $saturation: 50%, $lightness: 70%);
 
 .diagramTable {
   border-radius: 5px;
@@ -38,7 +39,7 @@ $diagram-color: change-color($color: #c5cae9, $alpha: 0.4);
     text-align: center;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 2px solid $block-border-color;
     border-radius: 10px;
     margin: 0.5rem 3px;
     overflow: hidden;
@@ -57,6 +58,7 @@ $diagram-color: change-color($color: #c5cae9, $alpha: 0.4);
     > :global(.content) {
       flex-grow: 1;
       display: flex;
+      flex-wrap: wrap;
       &:global(.no-children) {
         display: inline-block;
         padding: 0.5rem;
@@ -69,7 +71,7 @@ $diagram-color: change-color($color: #c5cae9, $alpha: 0.4);
     &:global(.has-content) {
       > :global(.content) {
         text-align: left;
-        color: change-color($color: $diagram-color, $lightness: 50%, $alpha: 1, $saturation: 30%);
+        color: change-color($color: $diagram-color, $lightness: 40%, $alpha: 1, $saturation: 40%);
         background: adjust-color($color: $diagram-color, $lightness: -10%);
       }
     }

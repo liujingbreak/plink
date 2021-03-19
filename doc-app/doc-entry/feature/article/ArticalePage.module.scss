@@ -1,3 +1,16 @@
-
+.logo {
+  display: inline-block;
+  background-image: url(./company-logo.png);
+  width: (382px/4);
+  height: (188px/4);
+  background-position: center;
+  background-size: contain;
+  margin-right: 2rem;
+}
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
 // https://github.com/css-modules/css-modules

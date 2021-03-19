@@ -19,7 +19,9 @@ const md = new MarkdownIt({
     if (lang) {
       try {
         return highlight.highlight(lang, str, true).value;
-      } catch (e) {}
+      } catch (e) {
+        log.error(e);
+      }
     }
     return str;
   }
@@ -32,7 +34,7 @@ const loader: loader.Loader = function(source, sourceMap) {
     const $ = cheerio.load(html);
     log.debug(html);
 
-    const done: rx.Observable<string>[] = [];
+    const done: (rx.Observable<string>|Promise<string>)[] = [];
 
     const imgs = $('img');
     imgs.each((idx, img) => {
@@ -123,3 +125,4 @@ function load(request: string, ctx: loader.LoaderContext) {
     });
   });
 }
+
