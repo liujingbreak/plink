@@ -11,9 +11,7 @@
         "../../react-space/.links/@types/*",
         "../../react-space/.links/*",
         "../../node_modules/@types/*",
-        "../../node_modules/*",
-        "../../.links/@types/*",
-        "../../.links/*"
+        "../../node_modules/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -136,10 +134,10 @@
         "../*"
       ],
       "@loadable/component": [
-        "../../node_modules/@types/loadable__component"
+        "../../react-space/node_modules/@types/loadable__component"
       ],
       "@loadable/component/*": [
-        "../../node_modules/@types/loadable__component/*"
+        "../../react-space/node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
@@ -150,8 +148,7 @@
       "../../react-space/node_modules/@types",
       "../../react-space/.links/@types",
       "../../node_modules/@types",
-      "../node_modules/@types",
-      "../../.links/@types"
+      "../node_modules/@types"
     ]
   }
 }

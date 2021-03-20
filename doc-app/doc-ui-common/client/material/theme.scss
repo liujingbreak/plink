@@ -1,13 +1,6 @@
-// @use "@material/theme" with (
-//   $primary: #212121,
-//   $secondary: #ce93d8,
-//   $on-primary: #e0e0e0,
-//   $on-secondary: #101010,
-// );
-
 @use "@material/theme" with (
-  $primary: rgb(1, 93, 174),
-  $secondary: #212121,
-  $on-primary: #e3f2fd,
-  $on-secondary: #ffffff,
+  $primary: #212121,
+  $secondary: #ce93d8,
+  $on-primary: #e0e0e0,
+  $on-secondary: #101010,
 );

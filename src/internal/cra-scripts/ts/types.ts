@@ -26,3 +26,4 @@ export interface ReactScriptsHandler {
   changeCraPaths?(craPaths: CraScriptsPaths): void;
   webpack?(cfg: Configuration, env: string, cmdOpt: CommandOption): void;
 }
+export {default as webpack} from 'webpack';

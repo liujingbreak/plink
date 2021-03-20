@@ -45,7 +45,11 @@ const loader: loader.Loader = function(source, sourceMap) {
           }
         });
         return rx.merge(...done).pipe(
-          op.catchError(err => {log.error(err); return rx.of();}),
+          op.catchError(err => {
+            log.error(err);
+            cb(err, source, sourceMap);
+            return rx.of();
+          }),
           op.finalize(() => {
             cb(null, $.html(), sourceMap);
           })

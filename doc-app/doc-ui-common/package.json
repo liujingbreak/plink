@@ -7,6 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dr": {
+    "setting": {
+      "value": "isom/doc-ui-common-setting.js#defaultSetting",
+      "type": "isom/doc-ui-common-setting#DocUiCommonSetting"
+    }
   },
   "author": "",
   "license": "ISC",
