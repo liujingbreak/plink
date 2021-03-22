@@ -1,6 +1,4 @@
 import {loader} from 'webpack';
-import MarkdownIt from 'markdown-it';
-import * as highlight from 'highlight.js';
 import cheerio from 'cheerio';
 import {logger} from '@wfh/plink';
 import * as rx from 'rxjs';
@@ -8,63 +6,56 @@ import * as op from 'rxjs/operators';
 import vm from 'vm';
 import _ from 'lodash';
 import util from 'util';
+import path from 'path';
 import { jsonToCompilerOptions, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';
-// import path from 'path';
+import {Pool} from '@wfh/thread-promise-pool';
 
 const log = logger.getLogger('@wfh/doc-ui-common.markdown-loader');
 
-const md = new MarkdownIt({
-  html: true,
-  highlight(str, lang, attrs) {
-    if (lang) {
-      try {
-        return highlight.highlight(lang, str, true).value;
-      } catch (e) {}
-    }
-    return str;
-  }
-});
+
+let threadPool: Pool;
 
 const loader: loader.Loader = function(source, sourceMap) {
+  if (threadPool == null) {
+    threadPool = new Pool();
+  }
   const cb = this.async();
   if (cb) {
-    const html = md.render(source as string);
-    const $ = cheerio.load(html);
-    log.debug(html);
+    rx.from(threadPool.submit<string>({
+      file: path.resolve(__dirname, 'markdown-loader-worker.js'), exportFn: 'parseToHtml', args: [source]
+    })).pipe(
+      op.mergeMap(html => {
+        const $ = cheerio.load(html);
+        log.debug(html);
+        const done: (rx.Observable<string>|Promise<string>)[] = [];
 
-    const done: rx.Observable<string>[] = [];
-
-    const imgs = $('img');
-    imgs.each((idx, img) => {
-      const imgQ = $(img);
-      const imgSrc = imgQ.attr('src');
-      log.info('found img src=' + imgQ.attr('src'));
-      if (imgSrc) {
-        done.push(load(imgSrc.startsWith('.') ? imgSrc : './' + imgSrc, this)
-          .pipe(
-            op.tap(resolved => {
-              imgQ.attr('src', resolved);
-              log.info(`resolve ${imgSrc} to ${util.inspect(resolved)}`);
-            })
-          ));
-      }
-    });
-
-    // const componentIds = $('div[id]');
-    // componentIds.each((idx, div) => {
-    //   const id = (div as unknown as HTMLDivElement).id;
-    //   if (id.startsWith('component:')) {
-    //   }
-    // });
-
-    rx.merge(...done).subscribe({
-      error(err) {
-        log.error(err);
-      },
-      complete() {
-        cb(null, $.html(), sourceMap);
-      }
-    });
+        const imgs = $('img');
+        imgs.each((idx, img) => {
+          const imgQ = $(img);
+          const imgSrc = imgQ.attr('src');
+          log.info('found img src=' + imgQ.attr('src'));
+          if (imgSrc) {
+            done.push(loadModuleInWebpack(imgSrc.startsWith('.') ? imgSrc : './' + imgSrc, this)
+              .pipe(
+                op.tap(resolved => {
+                  imgQ.attr('src', resolved);
+                  log.info(`resolve ${imgSrc} to ${util.inspect(resolved)}`);
+                })
+              ));
+          }
+        });
+        return rx.merge(...done).pipe(
+          op.catchError(err => {
+            log.error(err);
+            cb(err, source, sourceMap);
+            return rx.of();
+          }),
+          op.finalize(() => {
+            cb(null, $.html(), sourceMap);
+          })
+        );
+      })
+    ).subscribe();
   }
 };
 
@@ -101,7 +92,7 @@ const co = jsonToCompilerOptions({
   }
 );
 
-function load(request: string, ctx: loader.LoaderContext) {
+function loadModuleInWebpack(request: string, ctx: loader.LoaderContext) {
   return new rx.Observable<string>(subscriber => {
     // Unlike extract-loader, we does not support embedded require statement in source code 
     ctx.loadModule(request, (err: Error, source) => {
@@ -123,3 +114,4 @@ function load(request: string, ctx: loader.LoaderContext) {
     });
   });
 }
+

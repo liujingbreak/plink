@@ -25,6 +25,7 @@ const blockDiagramSlice = stateFactory.newSlice({
   name: 'blockDiagram',
   initialState,
   reducers: {
+    /** key shoud be value of attribute "data-key" in Markdown file */
     create(s, {payload}: PayloadAction<[key: string, blocks: Block[]]>) {
       // modify state draft
       s[payload[0]] = payload[1];

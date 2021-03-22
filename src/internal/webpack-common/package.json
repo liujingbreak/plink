@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "dr": {},
   "dependencies": {
-    "@types/webpack-dev-server": "^3.11.2"
+    "@types/webpack-dev-server": "^3.11.2",
+    "worker-loader": "3.0.8"
   },
   "author": "LJ",
   "license": "MIT"

@@ -48,7 +48,7 @@ export async function createCommands(startTime: number) {
       `${cliExtensions.length > 1 ? 's' : ''}: ${cliExtensions.map(pkg => chalk.blue(pkg)).join(', ')}`);
     }
     // tslint:disable-next-line: no-console
-    console.log('\n', chalk.bgRed('Please specify a sub command listed above'));
+    console.log('\n', chalk.bgRed('Please determine a sub command listed above'));
     checkPlinkVersion();
     process.nextTick(() => process.exit(1));
   });
@@ -101,7 +101,7 @@ function subComands(program: commander.Command) {
     .description('Initialize and update work directory, generate basic configuration files for project and component packages,' +
       ' calculate hoisted transitive dependencies, and run "npm install" in current directory.',
       {
-        'work-directory': 'A relative or abosolute directory path, use "." to specify current directory,\n  ommitting this argument meaning:\n' +
+        'work-directory': 'A relative or abosolute directory path, use "." to determine current directory,\n  ommitting this argument meaning:\n' +
           '  - If current directory is already a "work directory", update it.\n' +
           '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
           ' directory.'
@@ -122,9 +122,9 @@ function subComands(program: commander.Command) {
   program.command('project [add|remove] [project-dir...]')
     .description('Associate, disassociate or list associated project folders, late on Plink will' +
       'Scan source code directories from associated projects', {
-        'add|remove': 'Specify whether Associate to a project or Disassociate from a project',
-        'project-dir': 'Specify target project repo directory (absolute path or relative path to current directory)' +
-          ', specify multiple project by seperating with space character'
+        'add|remove': 'Determine whether Associate to a project or Disassociate from a project',
+        'project-dir': 'Determine target project repo directory (absolute path or relative path to current directory)' +
+          ', determine multiple project by seperating with space character'
       })
     .action(async (action: 'add'|'remove'|undefined, projectDir: string[]) => {
       // tslint:disable-next-line: no-console
@@ -271,9 +271,9 @@ function subComands(program: commander.Command) {
         'scan special source code directory like "ts/" and "isom/" of target package'
       })
     .option('-d, --dir <directory>',
-      '(multiple) specify target directory, scan JS/JSX/TS/TSX files under target directory', arrayOptionFn, [])
+      '(multiple) determine target directory, scan JS/JSX/TS/TSX files under target directory', arrayOptionFn, [])
     .option('-f, --file <file>',
-      '(multiple) specify target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
+      '(multiple) determine target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
     .option('-j', 'Show result in JSON', false)
     .action(async (packages: string[]) => {
       return (await import('./cli-analyze')).default(packages, analysisCmd.opts() as tp.AnalyzeOptions);

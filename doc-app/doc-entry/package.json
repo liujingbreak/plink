@@ -12,7 +12,7 @@
       "type": "isom/doc-entry-setting#DocEntrySetting"
     }
   },
-  "sideEffects": false,
+  "sideEffects": true,
   "dependencies": {
     "@material/ripple": "^8.0.0",
     "react-router-dom": "5.2.0",

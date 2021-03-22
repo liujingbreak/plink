@@ -81,7 +81,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         onProxyReq(proxyReq, req, res) {
           if (opts.deleteOrigin)
             proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
-          hpmLog.info(`Proxy request to ${proxyReq.protocol}//${proxyReq.host}${proxyReq.path} method: ${proxyReq.method}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
+          hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
           const referer = proxyReq.getHeader('referer');
           if (referer) {
             proxyReq.setHeader('referer', `${protocol}//${host}${Url.parse(referer as string).pathname}`);

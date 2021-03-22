@@ -2,21 +2,24 @@
 @import 'variables';
 
 :global .markdown-body {
-  padding: $padding-width;
+  padding: 1rem 1rem 1rem 2rem;
   background-color: #fffde7;
 
   h1 {
+    margin-top: 4rem;
     font-size: 3rem;
     text-align: center;
   }
-  img {
-    &.round-corner {
-      margin: 0.5rem;
-      border-radius: 10px;
-      box-shadow: 2px 2px 3px rgba(0,0,0, 0.3);
+  .round-corner {
+    overflow: hidden;
+    margin: 0.5rem;
+    border-radius: 10px;
+    box-shadow: 2px 2px 3px rgba(0,0,0, 0.3);
+    > img {
+      display: block;
     }
-    
   }
+
   .flex {
     display: flex;
     overflow:hidden;
