@@ -29,6 +29,8 @@
     "cheerio": "1.0.0-rc.5",
     "@material/top-app-bar": "10.0.0",
     "@material/icon-button": "10.0.0",
-    "@material/theme": "10.0.0"
+    "@material/theme": "10.0.0",
+    "@material/drawer": "10.0.0",
+    "@material/list": "10.0.0"
   }
 }

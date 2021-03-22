@@ -12,5 +12,13 @@
   align-items: center;
   justify-content: space-between;
 }
+.articale-page {
+  display: flex;
+  height: 100vh;
+}
+.main-content {
+  overflow: auto;
+  height: 100%;
+}
 
 // https://github.com/css-modules/css-modules
