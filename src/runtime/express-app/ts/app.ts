@@ -115,12 +115,17 @@ function create(app: express.Express, setting: any) {
   // catch 404 and forward to error handler
   app.use(function(req, res, next) {
     // log.info('Not Found: ' + req.originalUrl);
-    if (req.url.indexOf('/favicon.ico/') >= 0) {
+    if (req.url.indexOf('/favicon/') >= 0) {
       return res.status(404);
     }
-    const err = new Error('Not Found');
-    (err as any).status = 404;
-    next(err);
+    // const err = new Error('Not Found');
+    res.status(404);
+    // next(err);
+    log.info(`Not found: ${req.originalUrl}, UA: "${req.header('user-agent')}"`);
+    res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
+      message: 'Sorry, page is not found',
+      error: null
+    });
   });
 
   // development error handler

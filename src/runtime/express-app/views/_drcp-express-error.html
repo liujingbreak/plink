@@ -4,7 +4,9 @@
 	<title>oops!</title>
 </head>
 <body>
-	<h1 style="text-align: center"><%=error.status%> - <%=message%></h1>
-	<pre><%=error.stack%></pre>
+	<h1 style="text-align: center"><%= error ? error.status : '' %> <%=message%></h1>
+	<% if (error) { %>
+		<pre><%=error.stack%></pre>
+	<% } %>
 </body>
 </html>
