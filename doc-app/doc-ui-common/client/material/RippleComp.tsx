@@ -8,11 +8,10 @@ import * as rx from 'rxjs';
 const cx = classnames.bind(styles);
 
 
-export interface RippleCompProps {
+export type RippleCompProps = React.PropsWithChildren<{
   color?: 'primary' | 'accent';
   getMdcRef?: (ref: MDCRipple) => void;
-  children?: any;
-}
+}>;
 
 const RippleComp: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleCompProps> = function(props, ref) {
   const cls = cx('matRipple', 'mdc-ripple-surface',

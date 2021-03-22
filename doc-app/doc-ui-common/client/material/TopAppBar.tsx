@@ -50,7 +50,7 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
   }, []);
 
   let headerStyle = props.type ? typeStyleMap[props.type].header : '';
-  let mainStyle = props.type ? typeStyleMap[props.type].main : '';
+  // let mainStyle = props.type ? typeStyleMap[props.type].main : '';
 
   return (<>
     <header className={'mdc-top-app-bar ' + headerStyle} ref={onDivReady}>

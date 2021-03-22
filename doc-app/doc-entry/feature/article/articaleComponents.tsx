@@ -1,7 +1,7 @@
 import {PlinkArchDiagram} from './PlinkArchDiagram';
 import {dispatcher as blockDiagramDispatcher} from './blockDiagramSlice';
 
-export const renderByMdKey: {[mdKey: string]: {[id: string]: (id: string, dom: Element, dataKey: string) => React.ReactElement}} = {
+export const renderByMdKey: {[mdKey: string]: {[id: string]: (id: string, dom: Element, dataKey: string) => React.ReactNode}} = {
   intro: {
     PlinkArchDiagram(id, dom, dataKey) {
       return (<PlinkArchDiagram key={id + ',' + dataKey} containerDom={dom} dataKey={dataKey} />);
