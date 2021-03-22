@@ -10,7 +10,7 @@ import React, {
 import classnames from 'classnames/bind';
 import * as rx from 'rxjs';
 import {MDCList} from '@material/list';
-import {MDCRipple} from '@material/ripple/index';
+import {MDCRipple} from '@material/ripple';
 import './List.scss';
 
 export type ListItem = {

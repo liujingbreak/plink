@@ -2,6 +2,7 @@ import React from 'react';
 // import classnames from 'classnames/bind';
 import './TopAppBar.scss';
 import {MDCTopAppBar} from '@material/top-app-bar';
+import {RippleComp} from './RippleComp';
 import * as rx from 'rxjs';
 // const cx = classnames.bind(styles);
 // const cls = cx('mdc-top-app-bar');
@@ -55,7 +56,9 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
     <header className={'mdc-top-app-bar ' + headerStyle} ref={onDivReady}>
       <div className='mdc-top-app-bar__row'>
         <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-start'>
-          <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Open navigation menu' onClick={props.onDrawerMenuClick}>menu</button>
+          <RippleComp>
+            <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Open navigation menu' onClick={props.onDrawerMenuClick}>menu</button>
+          </RippleComp>
           <span className='mdc-top-app-bar__title'>{props.title}</span>
         </section>
         {/* <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-end' role='toolbar'>

@@ -11,6 +11,7 @@ const cx = classnames.bind(styles);
 export interface RippleCompProps {
   color?: 'primary' | 'accent';
   getMdcRef?: (ref: MDCRipple) => void;
+  children?: any;
 }
 
 const RippleComp: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleCompProps> = function(props, ref) {
