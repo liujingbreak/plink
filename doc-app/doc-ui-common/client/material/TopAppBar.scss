@@ -4,5 +4,6 @@
 
 .mdc-top-app-bar {
   @include icon-button.core-styles;
+  position: absolute;
+  z-index: 7;
 }
-// https://github.com/css-modules/css-modules

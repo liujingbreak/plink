@@ -14,6 +14,7 @@ import * as rx from 'rxjs';
 export type TopAppBarProps = React.PropsWithChildren<{
   title: string;
   type?: 'fixed' | 'prominent' | 'dense' | 'short';
+  onDrawerMenuClick?: () => void;
   getMdcRef?: (ref: MDCTopAppBar) => void;
 }>;
 
@@ -53,7 +54,7 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
     <header className={'mdc-top-app-bar ' + headerStyle} ref={onDivReady}>
       <div className='mdc-top-app-bar__row'>
         <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-start'>
-          {/* <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Close'>close</button> */}
+          <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Open navigation menu' onClick={props.onDrawerMenuClick}>menu</button>
           <span className='mdc-top-app-bar__title'>{props.title}</span>
         </section>
         {/* <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-end' role='toolbar'>
@@ -62,10 +63,7 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
           <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Open menu'>more_vert</button>
         </section> */}
       </div>
-    </header>
-    <main className={mainStyle}>
-      {props.children}
-    </main></>
+    </header></>
   );
 };
 const Forwarded = React.forwardRef(TopAppBar);

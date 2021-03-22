@@ -1,0 +1,9 @@
+.articale-page {
+  display: flex;
+  height: 100vh;
+
+  .main-content {
+    overflow: auto;
+    height: 100%;
+  }
+}
