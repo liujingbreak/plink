@@ -51,10 +51,8 @@ const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
     props.mdKey != null ? props.contents[routeParams.mdKey] : null
   ]);
 
-  if (routeParams.mdKey) {
-    return (
-      <div ref={containerRef} className={cls} dangerouslySetInnerHTML={props.contents[routeParams.mdKey]}></div>
-    );
+  if (props.mdKey) {
+    return <div ref={containerRef} className={cls} dangerouslySetInnerHTML={props.contents[props.mdKey]}></div>;
   }
   return <>Loading ...</>;
 };

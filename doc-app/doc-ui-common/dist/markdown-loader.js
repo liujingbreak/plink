@@ -38,6 +38,7 @@ const loader = function (source, sourceMap) {
         threadPool = new thread_promise_pool_1.Pool();
     }
     const cb = this.async();
+    const toc = []
     if (cb) {
         rx.from(threadPool.submit({
             file: path_1.default.resolve(__dirname, 'markdown-loader-worker.js'), exportFn: 'parseToHtml', args: [source]
@@ -58,12 +59,24 @@ const loader = function (source, sourceMap) {
                     })));
                 }
             });
+            const headings = $('h1, h2, h3, h5, h5, h6')
+            headings.each((idx, heading) => {
+                const headingQ = $(heading);
+                if (headingQ) {
+                    const headingText = headingQ.text();
+                    const id = encodeURI(headingText)
+                    log.info(`set heading <${heading.name}> id=${id}`);
+                    headingQ.attr('id', id)
+                    toc.push({ tag: heading.name, text: headingText, id })
+                }
+            });
+            console.log('toc: ', toc)
             return rx.merge(...done).pipe(op.catchError(err => {
                 log.error(err);
-                cb(err, source, sourceMap);
+                cb(err, JSON.stringify({ toc, content: source }), sourceMap);
                 return rx.of();
             }), op.finalize(() => {
-                cb(null, $.html(), sourceMap);
+                cb(null, JSON.stringify({ toc, content: $.html() }), sourceMap);
             }));
         })).subscribe();
     }
