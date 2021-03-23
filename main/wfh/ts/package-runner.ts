@@ -15,7 +15,6 @@ import config from './config';
 import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} from './package-mgr';
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
 import chalk from 'chalk';
-import {getSymlinkForPackage} from './utils/misc';
 
 const log = log4js.getLogger('plink.package-runner');
 
@@ -277,7 +276,7 @@ function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeA
   .replaceCode('__api', '__api');
   // .substitute(/^([^{]*)\{locale\}(.*)$/,
   //   (_filePath: string, match: RegExpExecArray) => match[1] + apiPrototype.getBuildLocale() + match[2]);
-  const symlinkDir = getSymlinkForPackage(pkInstance.name);
+  const symlinkDir = pkInstance.path !== pkInstance.realPath ? pkInstance.path : null;
   if (symlinkDir) {
     nodeInjector.fromDir(symlinkDir)
     .value('__injector', nodeInjector)

@@ -5,6 +5,8 @@ import * as fs from 'fs';
 import fsext from 'fs-extra';
 import * as Path from 'path';
 import {promisifyExe} from '../process-utils';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 // import {boxString} from './utils';
 // import * as recipeManager from './recipe-manager';
 import jsonParser, {ObjectAst, Token} from '../utils/json-sync-parser';
@@ -82,8 +84,14 @@ async function packPackages(packageDirs: string[]) {
 
   if (packageDirs && packageDirs.length > 0) {
     // const pgPaths: string[] = packageDirs;
-
-    const done = queueUp(4, packageDirs.map(packageDir => () => npmPack(packageDir)));
+    const done = rx.from(packageDirs).pipe(
+      op.mergeMap(packageDir => rx.defer(() => npmPack(packageDir)), 4),
+      op.reduce<ReturnType<typeof npmPack> extends Promise<infer T> ? T : unknown>((all, item) => {
+        all.push(item);
+        return all;
+      }, [])
+    ).toPromise();
+    // const done = queueUp(4, packageDirs.map(packageDir => () => npmPack(packageDir)));
     const tarInfos = (await done).filter(item => typeof item != null) as
       (typeof done extends Promise<(infer T)[]> ? NonNullable<T> : unknown)[];
 

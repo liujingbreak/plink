@@ -36,17 +36,23 @@ if (!envSetDone) {
   }
   const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR);
 
-  let symlinkDir = exitingEnvVar ? exitingEnvVar.symlinkDir : Path.resolve('.links');
-  if (symlinkDir && !fs.existsSync(symlinkDir)) {
-    symlinkDir = null;
-  }
+  // tslint:disable-next-line: max-line-length
+  // We can change this path to another directory like '.links', if we dont hope node_modules being polluted by symlinks;
+  const symlinkDirName = exitingEnvVar && exitingEnvVar.symlinkDirName ?
+    exitingEnvVar.symlinkDirName : 'node_modules';
+  // if (symlinkDir && !fs.existsSync(Path.resolve(symlinkDir))) {
+  //   symlinkDir = null;
+  // }
   let plinkDir = Path.resolve(rootDir, 'node_modules/@wfh/plink');
   const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(plinkDir).isSymbolicLink();
   if (isDrcpSymlink)
     plinkDir = fs.realpathSync(plinkDir);
-  const nodePath = setupNodePath(rootDir, symlinkDir, plinkDir);
+  const nodePath = setupNodePath(rootDir,
+    fs.existsSync(Path.resolve(symlinkDirName)) ? Path.resolve(symlinkDirName) : null,
+    plinkDir);
   const distDir = Path.resolve(rootDir, process.env.PLINK_DATA_DIR);
-  process.env.__plink = JSON.stringify({distDir, isDrcpSymlink, rootDir, symlinkDir, nodePath, plinkDir} as PlinkEnv);
+  process.env.__plink = JSON.stringify({
+    distDir, isDrcpSymlink, rootDir, symlinkDirName, nodePath, plinkDir} as PlinkEnv);
 
   // delete register from command line option, to avoid child process get this option, since we have NODE_PATH set
   // for child process
@@ -122,14 +128,15 @@ export function calcNodePaths(rootDir: string, symlinksDir: string | null, cwd =
 /**
  * Get environment variables predefined by
 ```
-const {isDrcpSymlink, symlinkDir, rootDir, nodePath, distDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {isDrcpSymlink, symlinkDirName, rootDir, nodePath, distDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 ```
  */
 export interface PlinkEnv {
   distDir: string;
+  /** is Plink a symlink, Drcp is old name of Plink */
   isDrcpSymlink: boolean;
   rootDir: string;
-  symlinkDir: string | null;
+  symlinkDirName: string | 'node_modules';
   nodePath: string[];
   plinkDir: string;
 }

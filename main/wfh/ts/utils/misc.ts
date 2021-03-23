@@ -8,7 +8,7 @@ import {PlinkEnv} from '../node-path';
 import * as cfonts from 'cfonts';
 import Table from 'cli-table3';
 
-const {isDrcpSymlink, rootDir, symlinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {isDrcpSymlink, rootDir, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export {isDrcpSymlink};
 
@@ -170,9 +170,9 @@ export function getTscConfigOfPkg(json: any): PackageTsDirs {
 
 export const getRootDir = () => rootDir;
 
-export function getSymlinkForPackage(pkgName: string) {
-  if (symlinkDir)
-    return Path.resolve(symlinkDir, pkgName);
+export function getSymlinkForPackage(pkgName: string, workspaceDir = process.cwd()) {
+  if (symlinkDirName)
+    return Path.resolve(workspaceDir, symlinkDirName, pkgName);
   return null;
 }
 

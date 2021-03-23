@@ -5,7 +5,6 @@ import PackageInstance from '../packageNodeInstance';
 import {packages4Workspace} from './package-list-helper';
 import {PackageInfo as PackageState} from './index';
 import {parseName} from './lazy-package-factory';
-import {getSymlinkForPackage} from '../utils/misc';
 const log = getLogger('plink.package-info-gathering');
 
 export interface PackageInfo {
@@ -82,14 +81,14 @@ function addPackageToInfo(info: PackageInfo, pkg: PackageState) {
 function createPackageDirTree(packageInfo: PackageInfo) {
   const tree = new DirTree<PackageInstance>();
   var count = 0;
-  packageInfo.allModules.forEach(moduleInstance => {
-    if (moduleInstance == null)
+  packageInfo.allModules.forEach(pkg => {
+    if (pkg == null)
       return;
-    if (moduleInstance.realPath)
-      tree.putData(moduleInstance.realPath, moduleInstance);
-    const symlink = getSymlinkForPackage(moduleInstance.longName);
-    if (symlink && symlink !== moduleInstance.realPath)
-      tree.putData(symlink, moduleInstance);
+    if (pkg.realPath)
+      tree.putData(pkg.realPath, pkg);
+    // const symlink = getSymlinkForPackage(pkg.longName);
+    if (pkg.path !== pkg.realPath)
+      tree.putData(pkg.path, pkg);
     count++;
   });
   log.info('%s Plink compliant node packages found', count);

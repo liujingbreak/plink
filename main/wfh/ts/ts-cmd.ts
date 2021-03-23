@@ -13,8 +13,9 @@ import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
 import glob from 'glob';
+import {PlinkEnv} from './node-path';
 
-
+const {symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
 const log = log4js.getLogger('plink.ts-cmd');
 const root = config().rootPath;
 
@@ -128,7 +129,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     // Use a symlink path instead of a real path, so that Typescript compiler will not
     // recognize them as from somewhere with "node_modules", the symlink must be reside
     // in directory which does not contain "node_modules" as part of absolute path.
-    const symlinkDir = resolve('.links', name);
+    const symlinkDir = resolve(symlinkDirName, name);
 
     compDirInfo.set(name, {...tscCfg, pkgDir: _realPath, symlinkDir});
 

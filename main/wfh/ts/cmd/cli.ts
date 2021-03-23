@@ -204,7 +204,7 @@ function subComands(program: commander.Command) {
       ', if you have customized tsconfig.json file, this command helps to update "compilerOptions.paths" properties)')
     .option('--hook <file>', 'add tsconfig/jsconfig file to Plink\'s automatic updating file list', arrayOptionFn, [])
     .option('--unhook <file>', 'remove tsconfig/jsconfig file from Plink\'s automatic updating file list', arrayOptionFn, [])
-    .option('--clean,--unhook-all', 'remove all tsconfig files from from Plink\'s automatic updating file list', false)
+    .option('--clear,--unhook-all', 'remove all tsconfig files from from Plink\'s automatic updating file list', false)
     .action(async () => {
       (await import('./cli-tsconfig-hook')).doTsconfig(tsconfigCmd.opts() as TsconfigCliOptions);
     });

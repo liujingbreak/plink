@@ -4,7 +4,8 @@
 
 import { PayloadAction } from '@reduxjs/toolkit';
 import chalk from 'chalk';
-import fs from 'fs-extra';
+import fsext from 'fs-extra';
+import fs from 'fs';
 import _ from 'lodash';
 import Path from 'path';
 import { from, merge, Observable, of, defer, throwError} from 'rxjs';
@@ -54,7 +55,7 @@ export interface PackagesState {
   lastCreatedWorkspace?: string;
 }
 
-const {distDir, rootDir, plinkDir, isDrcpSymlink} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {distDir, rootDir, plinkDir, isDrcpSymlink, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
@@ -676,7 +677,7 @@ function checkAllWorkspaces() {
 async function initRootDirectory(createHook = false) {
   log.debug('initRootDirectory');
   const rootPath = rootDir;
-  fs.mkdirpSync(distDir);
+  fsext.mkdirpSync(distDir);
   // maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(distDir, 'config.local.yaml'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/log4js.js'), rootPath + '/log4js.js');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates',
@@ -693,7 +694,7 @@ async function initRootDirectory(createHook = false) {
   }
 
   await scanAndSyncPackages();
-  await _deleteUselessSymlink(Path.resolve(rootDir, 'node_modules'), new Set<string>());
+  // await _deleteUselessSymlink(Path.resolve(rootDir, 'node_modules'), new Set<string>());
 }
 
 // async function writeConfigFiles() {
@@ -738,7 +739,7 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
 
   const target = Path.resolve(dir, 'node_modules');
   if (!fs.existsSync(target)) {
-    fs.mkdirpSync(target);
+    fsext.mkdirpSync(target);
   }
 
   // 1. Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
@@ -748,7 +749,6 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
     symlinksInModuleDir.push({content: linkContent, link});
     return unlinkAsync(link);
   });
-
   // 2. Run `npm install`
   const installJsonFile = Path.resolve(dir, 'package.json');
   // tslint:disable-next-line: no-console
@@ -857,28 +857,36 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
 }
 
 function _createSymlinksForWorkspace(wsKey: string) {
-  const symlinkDir = Path.resolve(rootDir, wsKey, '.links');
-  fs.mkdirpSync(symlinkDir);
+  if (symlinkDirName !== '.links' && fs.existsSync(Path.resolve(rootDir, wsKey, '.links'))) {
+    fsext.remove(Path.resolve(rootDir, wsKey, '.links'))
+    .catch(ex => log.info(ex));
+  }
+  const symlinkDir = Path.resolve(rootDir, wsKey, symlinkDirName || 'node_modules');
+  fsext.mkdirpSync(symlinkDir);
   const ws = getState().workspaces.get(wsKey)!;
 
   const pkgNames = ws.linkedDependencies.map(item => item[0])
   .concat(ws.linkedDevDependencies.map(item => item[0]));
 
   const pkgNameSet = new Set(pkgNames);
-  if (ws.installedComponents) {
-    for (const pname of ws.installedComponents.keys())
-      pkgNameSet.add(pname);
+  if (symlinkDirName !== 'node_modules') {
+    if (ws.installedComponents) {
+      for (const pname of ws.installedComponents.keys())
+        pkgNameSet.add(pname);
+    }
   }
 
-  actionDispatcher.updateGitIgnores({
-    file: Path.resolve(rootDir, '.gitignore'),
-    lines: [Path.relative(rootDir, symlinkDir).replace(/\\/g, '/')]});
+  if (symlinkDirName !== 'node_modules') {
+    actionDispatcher.updateGitIgnores({
+      file: Path.resolve(rootDir, '.gitignore'),
+      lines: [Path.relative(rootDir, symlinkDir).replace(/\\/g, '/')]});
+  }
+
   return merge(
-    from(Array.from(pkgNameSet).map(
-        name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!)
-      ).pipe(
-        symbolicLinkPackages(symlinkDir)
-      ),
+    from(pkgNameSet.values()).pipe(
+      map(name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!),
+      symbolicLinkPackages(symlinkDir)
+    ),
     _deleteUselessSymlink(symlinkDir, pkgNameSet)
   );
 }
@@ -891,10 +899,7 @@ async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) 
     if ( drcpName !== pkgName && !excludeSet.has(pkgName)) {
       // tslint:disable-next-line: no-console
       log.info(`Delete extraneous symlink: ${link}`);
-      const done = new Promise<void>((res, rej) => {
-        fs.unlink(link, (err) => { if (err) return rej(err); else res();});
-      });
-      dones.push(done);
+      dones.push(fs.promises.unlink(link));
     }
   });
   await done1;
@@ -967,7 +972,7 @@ function cp(from: string, to: string) {
     from = arguments[1];
     to = arguments[2];
   }
-  fs.copySync(from, to);
+  fsext.copySync(from, to);
   // shell.cp(...arguments);
   if (/[/\\]$/.test(to))
     to = Path.basename(from); // to is a folder
@@ -997,7 +1002,7 @@ function _writeGitHook(project: string) {
       // 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
       `plink lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
     if (fs.existsSync(gitPath + '/pre-commit'))
-      fs.unlink(gitPath + '/pre-commit');
+      fs.unlinkSync(gitPath + '/pre-commit');
     fs.writeFileSync(gitPath + '/pre-push', hookStr);
     // tslint:disable-next-line: no-console
     log.info('Write ' + gitPath + '/pre-push');

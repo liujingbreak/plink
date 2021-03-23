@@ -2,14 +2,15 @@ export declare function calcNodePaths(rootDir: string, symlinksDir: string | nul
 /**
  * Get environment variables predefined by
 ```
-const {isDrcpSymlink, symlinkDir, rootDir, nodePath, distDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {isDrcpSymlink, symlinkDirName, rootDir, nodePath, distDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 ```
  */
 export interface PlinkEnv {
     distDir: string;
+    /** is Plink a symlink, Drcp is old name of Plink */
     isDrcpSymlink: boolean;
     rootDir: string;
-    symlinkDir: string | null;
+    symlinkDirName: string | 'node_modules';
     nodePath: string[];
     plinkDir: string;
 }

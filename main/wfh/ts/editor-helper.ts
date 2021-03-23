@@ -13,6 +13,10 @@ import {getPackageSettingFiles} from './config';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import { PayloadAction } from '@reduxjs/toolkit';
+import {PlinkEnv} from './node-path';
+
+const {symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
+
 
 // import Selector from './utils/ts-ast-query';
 const log = log4js.getLogger('plink.editor-helper');
@@ -232,7 +236,7 @@ function writePackageSettingType() {
 }
 
 function packageSettingDtsFileOf(workspaceDir: string) {
-  return Path.resolve(workspaceDir, '.links/_package-settings.d.ts');
+  return Path.resolve(workspaceDir, symlinkDirName, '_package-settings.d.ts');
 }
 
 /**

@@ -131,18 +131,21 @@ export function setTsCompilerOptForNodePath(
   assigneeOptions: Partial<CompilerOptions>,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
-  const {rootDir, plinkDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+  const {rootDir, plinkDir, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
   let symlinksDir: string | undefined;
   let pathsDirs: string[] = [];
   // workspace node_modules should be the first
   const baseUrlAbsPath = Path.resolve(tsconfigDir, baseUrl);
 
   if (opts.realPackagePaths) {
+    if (assigneeOptions.paths == null) {
+      assigneeOptions.paths = {};
+    }
     Object.assign(assigneeOptions.paths, pathMappingForLinkedPkgs(baseUrlAbsPath));
   }
 
   if (opts.workspaceDir != null) {
-    symlinksDir = Path.resolve(opts.workspaceDir, '.links');
+    symlinksDir = Path.resolve(opts.workspaceDir, symlinkDirName);
     // pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
     pathsDirs.push(...calcNodePaths(rootDir, symlinksDir, opts.workspaceDir || process.cwd(), plinkDir));
 

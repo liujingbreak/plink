@@ -34,7 +34,7 @@ export interface PackageTsDirs {
 }
 export declare function getTscConfigOfPkg(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;
-export declare function getSymlinkForPackage(pkgName: string): string | null;
+export declare function getSymlinkForPackage(pkgName: string, workspaceDir?: string): string | null;
 export declare function closestCommonParentDir(paths: Iterable<string>): string;
 export declare function isEqualMapSet<T>(set1: Set<T> | Map<T, any>, set2: Set<T> | Map<T, any>): boolean;
 export declare class SimpleLinkedListNode<T> {

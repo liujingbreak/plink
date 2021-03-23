@@ -9,6 +9,8 @@ import * as fs from 'fs';
 import Path from 'path';
 import util from 'util';
 import os from 'os';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 
 export const isWin32 = os.platform().indexOf('win32') >= 0;
 export const readdirAsync = util.promisify(fs.readdir);
@@ -32,19 +34,34 @@ export default async function scanNodeModules(deleteOption: 'all' | 'invalid' = 
   return deletedList;
 }
 
-export async function listModuleSymlinks(
+export function listModuleSymlinks(
   parentDir: string,
   onFound: (link: string) => void | Promise<void>) {
-  const level1Dirs = await readdirAsync(parentDir);
-  await Promise.all(level1Dirs.map(async dir => {
-    if (dir.startsWith('@')) {
-      // it is a scope package
-      const subdirs = await readdirAsync(Path.resolve(parentDir, dir));
-      await Promise.all(subdirs.map(file => onEachFile(Path.resolve(parentDir, dir, file))));
-    } else {
-      await onEachFile(Path.resolve(parentDir, dir));
-    }
-  }));
+  // const level1Dirs = await readdirAsync(parentDir);
+  return rx.from(readdirAsync(parentDir)).pipe(
+    op.concatMap(level1Dirs => level1Dirs),
+    op.mergeMap(dir => {
+      if (dir.startsWith('@')) {
+        // it is a scope package
+        return rx.from(readdirAsync(Path.resolve(parentDir, dir)))
+        .pipe(
+          op.mergeMap(subdirs => subdirs),
+          op.mergeMap(file => onEachFile(Path.resolve(parentDir, dir, file)))
+        );
+      } else {
+        return onEachFile(Path.resolve(parentDir, dir));
+      }
+    })
+  ).toPromise();
+  // await Promise.all(level1Dirs.map(async dir => {
+  //   if (dir.startsWith('@')) {
+  //     // it is a scope package
+  //     const subdirs = await readdirAsync(Path.resolve(parentDir, dir));
+  //     await Promise.all(subdirs.map(file => onEachFile(Path.resolve(parentDir, dir, file))));
+  //   } else {
+  //     await onEachFile(Path.resolve(parentDir, dir));
+  //   }
+  // }));
 
   async function onEachFile(file: string) {
     let isSymlink = false;
