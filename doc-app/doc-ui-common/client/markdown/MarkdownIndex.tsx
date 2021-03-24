@@ -135,7 +135,7 @@ function mapToPropFactory() {
   return function(rootState: any, props: MarkdownIndexProps) {
     return {
       ...props,
-      toc: getState().toc
+      toc: getState().contents[props.mdKey]?.toc || []
     };
   };
 }
