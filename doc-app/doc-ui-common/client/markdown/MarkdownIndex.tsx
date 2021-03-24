@@ -5,8 +5,14 @@ import {connect} from 'react-redux';
 import {RippleComp} from '@wfh/doc-ui-common/client/material/RippleComp';
 import {TOC} from '@wfh/doc-ui-common/isom/md-types';
 import debounce from 'lodash/debounce';
+import anime from 'animejs';
 import './MarkdownIndex.scss';
 
+const checkElementInView = (targetEl: HTMLElement) => {
+  const windowHeight = window.screen.height;
+  const clientRects = targetEl.getClientRects();
+  return clientRects[0].top >= 0 && clientRects[0].top < (windowHeight / 2);
+};
 interface MarkdownIndexProps {
   mdKey: string;
   scrollRef: React.RefObject<HTMLDivElement>;
@@ -14,7 +20,7 @@ interface MarkdownIndexProps {
 }
 const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
   const bodyRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   const [open, setOpen] = useState<boolean>(true);
   const [isTop, setIsTop] = useState<boolean>(true);
@@ -33,6 +39,31 @@ const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
       }
     }, 0);
   }, [open, bodyRef, listRef]);
+
+  const handleIndexItemClick = useCallback((item: TOC) => {
+    const targetEl = document.getElementById(item.id);
+    if (targetEl && scrollRef.current) {
+      const inView = checkElementInView(targetEl);
+      const targetOffsetTop = targetEl.offsetTop;
+      if (inView && isTop) {
+        return;
+      }
+      if (targetOffsetTop < 56) {
+        setOpen(true);
+      } else {
+        setOpen(false);
+      }
+      setTimeout(() => {
+        const targetOffsetTopAfter = targetEl.offsetTop;
+        anime({
+          targets: scrollRef.current,
+          scrollTop: targetOffsetTopAfter - 120,
+          duration: 300,
+          easing: 'easeInOutQuad'
+        });
+      }, 300);
+    }
+  }, [open, isTop, scrollRef]);
 
   const handleScroll = debounce(() => {
     if (scrollRef.current) {
@@ -81,11 +112,16 @@ const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
         'md-index-content': true,
         open
       })} ref={bodyRef}>
-        <div className='md-index-list' ref={listRef}>
+        <ul className='md-index-list' ref={listRef}>
           {toc.map((item) => (
-            <a key={item.id} href={`#${item.id}`} className='md-index-link'>{item.text}</a>
+            <li
+              key={item.id}
+              // href={`#${item.id}`}
+              className='md-index-link'
+              onClick={() => handleIndexItemClick(item)}
+            >{item.text}</li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   ) : null;

@@ -6,7 +6,7 @@
   width: 100%;
   background-color: #fff;
   z-index: 10;
-  transition: background-color .2s ease, padding .2s ease;
+  transition: background-color .15s ease, padding .15s ease;
   &.isTop {
     position: relative;
     top: 0;
@@ -14,6 +14,12 @@
     background-color: #fffde7;
     .md-index-content {
       background-color: #fffde7;
+    }
+    .md-index-head {
+      padding-bottom: 16px;
+    }
+    .md-index-list {
+      padding: 16px 2rem;
     }
   }
   .md-index-head {
@@ -24,6 +30,7 @@
     margin: 0;
     padding: 8px 1.3rem 8px 2rem;
     cursor: pointer;
+    transition: padding .15s ease;
   }
   .md-index-icon {
     position: relative;
@@ -41,13 +48,15 @@
     position: relative;
     display: block;
     background-color: #FFF;
-    transition: height .25s ease-in, background-color .25s ease;
+    transition: height .15s ease-in, background-color .15s ease;
     overflow: hidden;
   }
   .md-index-list {
     position: relative;
     display: block;
-    padding: 8px 2rem;
+    padding: 8px 2rem 16px;
+    margin: 0;
+    transition: padding .15s ease;
     &::before {
       position: absolute;
       display: block;
@@ -62,10 +71,14 @@
   }
   .md-index-link {
     position: relative;
+    box-sizing: border-box;
     display: block;
     padding: 2px 0 2px 15px;
     margin: 0 0 5px;
     font-size: 16px;
+    color: #0366d6;
+    cursor: pointer;
+    transition: opacity .25s ease, color .25s ease-in-out;
     &::before {
       position: absolute;
       display: block;
@@ -78,6 +91,9 @@
       border-radius: 50%;
       color: #222;
       background-color: #222;
+    }
+    &:hover {
+      opacity: .65;
     }
   }
 }
