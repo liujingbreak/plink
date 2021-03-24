@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import classnames from 'classnames/bind';
 import {getState, dispatcher} from './markdownSlice';
 import {connect} from 'react-redux';
-import {RippleComp} from '@wfh/doc-ui-common/client/material/RippleComp';
 import {TOC} from '@wfh/doc-ui-common/isom/md-types';
 import debounce from 'lodash/debounce';
 import anime from 'animejs';
@@ -16,16 +15,16 @@ const checkElementInView = (targetEl: HTMLElement) => {
 interface MarkdownIndexProps {
   mdKey: string;
   scrollRef: React.RefObject<HTMLDivElement>;
+  contentRef: React.RefObject<HTMLDivElement>;
   toc?: TOC[];
 }
-const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
+const MarkdownIndex = ({ mdKey, scrollRef, contentRef, toc }: MarkdownIndexProps) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
   const [open, setOpen] = useState<boolean>(true);
   const [isTop, setIsTop] = useState<boolean>(true);
-  const [wrapperHeight, setWrapperHeight] = useState<number>(0);
   const toggleIndex = useCallback(() => {
     setOpen(!open);
   }, [open]);
@@ -75,7 +74,6 @@ const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
       } else {
         setIsTop(false);
       }
-
       if (scrollTop > 56 && open) {
         setOpen(false);
       } else {
@@ -85,14 +83,10 @@ const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
   }, 15);
 
   useEffect(() => {
-    setTimeout(() => {
-      console.log('wrapperRef: ', wrapperRef, scrollRef);
-      if (wrapperRef.current && scrollRef.current) {
-        scrollRef.current.style.paddingTop = `${wrapperRef.current.offsetHeight}px`;
-        setWrapperHeight(wrapperRef.current.offsetHeight);
-      }
-    }, 100);
-  }, [mdKey, wrapperRef, scrollRef]);
+    if (wrapperRef.current && contentRef.current) {
+      contentRef.current.style.paddingTop = `${wrapperRef.current.offsetHeight + 56}px`;
+    }
+  }, [mdKey, wrapperRef, contentRef]);
 
   useEffect(() => {
     handleToggle();
@@ -107,19 +101,17 @@ const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
         scrollRef.current.removeEventListener('scroll', handleScroll);
       }
     };
-  }, []);
+  }, [scrollRef.current]);
 
   return toc && toc.length > 0 ? (
     <div className={classnames({
       'md-index': true,
       isTop
     })} ref={wrapperRef}>
-      <RippleComp>
-        <div className='md-index-head' onClick={toggleIndex}>
-          <h2 className='md-index-title'>目录</h2>
-          <i className='md-index-icon material-icons mdc-icon-button__icon mdc-icon-button__icon--on'>{open ? 'expand_less' : 'expand_more'}</i>
-        </div>
-      </RippleComp>
+      <div className='md-index-head' onClick={toggleIndex}>
+        <h2 className='md-index-title'>目录</h2>
+        <i className='md-index-icon material-icons mdc-icon-button__icon mdc-icon-button__icon--on'>{open ? 'expand_less' : 'expand_more'}</i>
+      </div>
       <div className={classnames({
         'md-index-content': true,
         open
@@ -143,7 +135,7 @@ function mapToPropFactory() {
   return function(rootState: any, props: MarkdownIndexProps) {
     return {
       ...props,
-      toc: getState().toc
+      toc: getState().contents[props.mdKey]?.toc || []
     };
   };
 }

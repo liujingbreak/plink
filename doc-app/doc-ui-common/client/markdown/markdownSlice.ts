@@ -3,13 +3,12 @@ import { stateFactory, ofPayloadAction } from '@wfh/redux-toolkit-observable/es/
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import axiosObs from 'axios-observable';
-import { TOC, LoaderRecivedData } from '@wfh/doc-ui-common/isom/md-types';
+import { LoaderRecivedData } from '@wfh/doc-ui-common/isom/md-types';
 
 export interface MarkdownState {
   /** value is markdown url */
   markdowns: {[key: string]: string};
-  toc: TOC[];
-  contents: {[key: string]: string};
+  contents: {[key: string]: LoaderRecivedData};
   computed: {
     reactHtml: {[key: string]: {__html: string}}
   };
@@ -17,7 +16,6 @@ export interface MarkdownState {
 
 const initialState: MarkdownState = {
   markdowns: {},
-  toc: [],
   contents: {},
   computed: {reactHtml: {}}
 };
@@ -44,8 +42,7 @@ const releaseEpic = stateFactory.addEpic<{Markdown: MarkdownState}>((action$, st
         .pipe(
           op.tap(res => {
             dispatcher._change(s => {
-              s.toc = res.data.toc;
-              s.contents[key] = res.data.content;
+              s.contents[key] = res.data;
               s.computed.reactHtml[key] = {__html: res.data.content};
             });
           })

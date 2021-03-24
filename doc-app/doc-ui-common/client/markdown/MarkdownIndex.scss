@@ -4,10 +4,13 @@
   top: 56px;
   padding: 0;
   width: 100%;
-  background-color: #fff;
-  z-index: 10;
+  background-color: #fafafa;
+  z-index: 1;
   transition: background-color .15s ease, padding .15s ease;
   &.isTop {
+    position: absolute;
+    box-sizing: border-box;
+    top: 56px;
     padding: 16px 0;
     background-color: #fffde7;
     .md-index-content {
@@ -45,7 +48,7 @@
   .md-index-content {
     position: relative;
     display: block;
-    background-color: #FFF;
+    background-color: #fafafa;
     transition: height .15s ease-in, background-color .15s ease;
     overflow: hidden;
   }

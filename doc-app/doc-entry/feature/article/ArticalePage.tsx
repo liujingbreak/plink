@@ -22,10 +22,13 @@ export type ArticalePageProps = React.PropsWithChildren<{
 const ArticalePage: React.FC<ArticalePageProps> = function(props) {
   const routeParams = useParams<{mdKey: string}>();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState(EMPTY_ARR);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   const onContentLoaded = useCallback<NonNullable<MarkdownViewCompProps['onContent']>>((div) => {
+    setLoaded(true);
     const renderers = renderByMdKey[routeParams.mdKey];
     if (!renderers) return;
 
@@ -44,7 +47,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
         });
     }
     setPortals(els);
-  }, EMPTY_ARR);
+  }, [EMPTY_ARR, loaded]);
 
   const onDrawerToggle = useCallback(() => {
     setDrawerOpen(!drawerOpen);
@@ -57,13 +60,17 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     </div>
   );
 
+  useEffect(() => {
+    setLoaded(false);
+  }, [routeParams.mdKey]);
+
   return (
     <div className={articaleCls}>
-      <Drawer title='文档' open={drawerOpen} content={<DocListComponents currentKey={routeParams.mdKey} />}>
+      <Drawer title='文档' type='modal' open={drawerOpen} content={<DocListComponents currentKey={routeParams.mdKey} />}>
         <TopAppBar title={title} type='short' onDrawerMenuClick={onDrawerToggle} />
         <main className={contentCls} ref={scrollRef}>
-          <div className='mdc-top-app-bar--fixed-adjust'>
-            <MarkdownIndex mdKey={routeParams.mdKey} scrollRef={scrollRef} />
+          <div className='mdc-top-app-bar--fixed-adjust' ref={contentRef}>
+            {loaded ? <MarkdownIndex mdKey={routeParams.mdKey} scrollRef={scrollRef} contentRef={contentRef} /> : null}
             <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded}/>
             {portals}
           </div>
