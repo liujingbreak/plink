@@ -8,6 +8,9 @@
   z-index: 10;
   transition: background-color .15s ease, padding .15s ease;
   &.isTop {
+    position: absolute;
+    box-sizing: border-box;
+    top: 56px;
     padding: 16px 0;
     background-color: #fffde7;
     .md-index-content {
