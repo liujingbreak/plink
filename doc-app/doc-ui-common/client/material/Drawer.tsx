@@ -8,11 +8,13 @@ import React, {
   useCallback,
   useImperativeHandle
 } from 'react';
+import classnames from 'classnames/bind';
 import './Drawer.scss';
 import {MDCDrawer} from '@material/drawer';
 import * as rx from 'rxjs';
 
 export type DrawerProps = PropsWithChildren<{
+  type?: 'modal' | 'dismissible'
   title?: string;
   subTitle?: string;
   open: boolean;
@@ -20,7 +22,7 @@ export type DrawerProps = PropsWithChildren<{
   getMdcRef?: (ref: MDCDrawer) => void;
 }>;
 
-const Drawer: ForwardRefRenderFunction<Promise<MDCDrawer>, DrawerProps> = function({ title, subTitle, open, getMdcRef, content, children }, ref) {
+const Drawer: ForwardRefRenderFunction<Promise<MDCDrawer>, DrawerProps> = function({ type = 'modal', title, subTitle, open, getMdcRef, content, children }, ref) {
   const [drawer, setDrawer] = useState<MDCDrawer | null>(null);
   const sub$ = useMemo(() => new rx.ReplaySubject<MDCDrawer>(), []);
 
@@ -56,7 +58,11 @@ const Drawer: ForwardRefRenderFunction<Promise<MDCDrawer>, DrawerProps> = functi
 
   return (
     <>
-      <aside className='mdc-drawer mdc-drawer--dismissible' ref={onDivReady}>
+      <aside className={classnames({
+        'mdc-drawer': true,
+        'mdc-drawer--modal': type === 'modal',
+        'mdc-drawer--dismissible': type === 'dismissible'
+      })} ref={onDivReady}>
         {title || subTitle ? <div className='mdc-drawer__header'>
           {title ? <h3 className='mdc-drawer__title'>{title}</h3> : null}
           {subTitle ? <h6 className='mdc-drawer__subtitle'>email@material.io</h6> : null}
@@ -65,6 +71,7 @@ const Drawer: ForwardRefRenderFunction<Promise<MDCDrawer>, DrawerProps> = functi
           {content ? content : null}
         </div>
       </aside>
+      {type === 'modal' ? <div className='mdc-drawer-scrim'></div> : null}
       <div className='mdc-drawer-app-content'>
         {children}
       </div>

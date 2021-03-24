@@ -24,7 +24,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState(EMPTY_ARR);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
   const onContentLoaded = useCallback<NonNullable<MarkdownViewCompProps['onContent']>>((div) => {
@@ -66,7 +66,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
 
   return (
     <div className={articaleCls}>
-      <Drawer title='文档' open={drawerOpen} content={<DocListComponents currentKey={routeParams.mdKey} />}>
+      <Drawer title='文档' type='modal' open={drawerOpen} content={<DocListComponents currentKey={routeParams.mdKey} />}>
         <TopAppBar title={title} type='short' onDrawerMenuClick={onDrawerToggle} />
         <main className={contentCls} ref={scrollRef}>
           <div className='mdc-top-app-bar--fixed-adjust' ref={contentRef}>
