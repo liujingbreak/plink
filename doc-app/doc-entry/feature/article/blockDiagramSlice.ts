@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import * as op from 'rxjs/operators';
-import * as rx from 'rxjs';
+import {merge} from 'rxjs';
 
 export interface BlockDiagramState {
   [key: string]: Block[];
@@ -37,7 +37,7 @@ export const dispatcher = stateFactory.bindActionCreators(blockDiagramSlice);
 
 const releaseEpic = stateFactory.addEpic<{BlockDiagram: BlockDiagramState}>((action$, state$) => {
 
-  return rx.merge(
+  return merge(
     // action$.pipe(ofPayloadAction(blockDiagramSlice.actions.exampleAction),
     //   op.switchMap(({payload}) => {
     //     return rx.from(Promise.resolve('mock async HTTP request call'));

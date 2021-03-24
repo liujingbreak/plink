@@ -77,8 +77,11 @@ const cli: CliExtension = (program) => {
   // });
   // // withGlobalOptions(initCmd);
 
-  program.command('cra-analyse [webpck-output-path]')
-  .description('Run source-map-explorer')
+  program.command('cra-analyze [webpck-output-path]')
+  .alias('cra-analyse')
+  .description('Run source-map-explorer', {
+    'webpck-output-path': 'Normally this path should be <root-dir>dist/static/<output-path-basename>, under which there are files matches subpath "static/js/*.js"'
+  })
   .action(async (outputPath: string) => {
     const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
     const smeBin: string = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'];
@@ -86,7 +89,7 @@ const cli: CliExtension = (program) => {
     await new Promise<any>((resolve, rej) => {
       const cp = fork(Path.resolve(smePkgDir, smeBin), [
         '--gzip', '--no-root',
-        Path.resolve('staticDir', outputPath ? outputPath : '', 'static/js/*.js')
+        Path.resolve(outputPath ? outputPath : '', 'static/js/*.js')
       ], {stdio: ['inherit', 'inherit', 'inherit', 'ipc']});
       cp.on('error', err => {
         console.error(err);

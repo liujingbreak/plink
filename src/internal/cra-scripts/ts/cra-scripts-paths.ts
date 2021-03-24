@@ -42,7 +42,7 @@ export default function paths() {
   pCfg.configHandlerMgrChanged(handler => handler.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
     if (handler.changeCraPaths != null) {
       log.info('Execute CRA scripts paths overrides', cfgFile);
-      handler.changeCraPaths(changedPaths);
+      handler.changeCraPaths(changedPaths, plink.config().cliOptions?.env!, cmdOption);
     }
   }));
 
@@ -53,7 +53,7 @@ export default function paths() {
     cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
       if (handler.changeCraPaths != null) {
         log.info('Execute CRA scripts paths configuration overrides from ', cfgFile);
-        handler.changeCraPaths(changedPaths);
+        handler.changeCraPaths(changedPaths, plink.config().cliOptions?.env!, cmdOption);
       }
     });
   } else {
@@ -66,6 +66,7 @@ export default function paths() {
   // fork-ts-checker needs this file path
   process.env._plink_cra_scripts_indexJs = changedPaths.appIndexJs;
   process.env._plink_cra_scripts_tsConfig = changedPaths.appTsConfig;
+  // log.warn(changedPaths);
   return changedPaths;
 }
 

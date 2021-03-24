@@ -5,7 +5,7 @@
   "main": "build/lib-bundle.js",
   "dr": {
     "cra-app-entry": "start.tsx",
-    "cra-lib-entry": "main/MainComponent.tsx",
+    "cra-lib-entry": "feature/article/blockDiagramSlice.ts",
     "config-overrides-path": "config-overrides.ts",
     "setting": {
       "value": "isom/doc-entry-setting.js#defaultSetting",

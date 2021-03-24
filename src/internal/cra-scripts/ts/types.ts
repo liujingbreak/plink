@@ -23,7 +23,7 @@ export interface CraScriptsPaths {
   ownTypeDeclarations: string;
 }
 export interface ReactScriptsHandler {
-  changeCraPaths?(craPaths: CraScriptsPaths): void;
+  changeCraPaths?(craPaths: CraScriptsPaths, env: string, cmdOpt: CommandOption): void;
   webpack?(cfg: Configuration, env: string, cmdOpt: CommandOption): void;
 }
 export {default as webpack} from 'webpack';

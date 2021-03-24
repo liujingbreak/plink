@@ -1,8 +1,8 @@
-import {ReactScriptsHandler, CraScriptsPaths} from '@wfh/cra-scripts/dist/types';
+import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
 // import plinkConfig from '@wfh/plink/wfh/dist/config';
 
 const handler: ReactScriptsHandler = {
-  changeCraPaths(craPaths: CraScriptsPaths) {
+  changeCraPaths(craPaths, env, cmdOpt) {
     // change CRA paths:
 
     // output directory will be dist/static/main

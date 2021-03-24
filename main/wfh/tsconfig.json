@@ -6,20 +6,10 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../../tuitui-fe/server-workspace/node_modules/@types/*",
-        "../../../tuitui-fe/server-workspace/node_modules/*"
-      ],
-      "@bk/tuitui-new-server": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-new-server"
-      ],
-      "@bk/tuitui-new-server/*": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-new-server/*"
-      ],
-      "@bk/tuitui-server-tool": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-server-tool"
-      ],
-      "@bk/tuitui-server-tool/*": [
-        "../../../tuitui-fe/server-workspace/packages/tuitui-server-tool/*"
+        "../../react-space/node_modules/@types/*",
+        "../../react-space/node_modules/*",
+        "../../node_modules/@types/*",
+        "../../node_modules/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -140,12 +130,21 @@
       ],
       "@wfh/plink/*": [
         "../*"
+      ],
+      "@loadable/component": [
+        "../../react-space/node_modules/@types/loadable__component"
+      ],
+      "@loadable/component/*": [
+        "../../react-space/node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
-      "../../../tuitui-fe/server-workspace/node_modules/@types",
+      "../../src/internal/cra-scripts/types",
+      "../../src/runtime/express-app/types",
+      "../../react-space/node_modules/@types",
+      "../../node_modules/@types",
       "../node_modules/@types"
     ]
   }

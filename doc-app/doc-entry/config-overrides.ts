@@ -1,11 +1,13 @@
-import {ReactScriptsHandler, CraScriptsPaths} from '@wfh/cra-scripts/dist/types';
+import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
 import {default as docUiCommon} from '@wfh/doc-ui-common/dist/webpack-config';
+
 const handler: ReactScriptsHandler = {
-  changeCraPaths(craPaths: CraScriptsPaths) {
+  changeCraPaths(craPaths, env, cmdOpt) {
     // change CRA paths:
 
     // output directory will be dist/static/main
-    craPaths.appBuild = craPaths.appBuild + '/plink';
+    if (cmdOpt.buildType === 'app')
+      craPaths.appBuild = craPaths.appBuild + '/plink';
     // webpack output.publicPath will be /main/, same as set environment variable PUBLIC_URL
     // craPaths.publicUrlOrPath = '/main/';
   },
