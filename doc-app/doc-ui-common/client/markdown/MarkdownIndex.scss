@@ -1,0 +1,97 @@
+.md-index {
+  position: absolute;
+  box-sizing: border-box;
+  top: 56px;
+  padding: 0;
+  width: 100%;
+  background-color: #fff;
+  z-index: 10;
+  transition: background-color .15s ease, padding .15s ease;
+  &.isTop {
+    padding: 16px 0;
+    background-color: #fffde7;
+    .md-index-content {
+      background-color: #fffde7;
+    }
+    .md-index-head {
+      padding-bottom: 16px;
+    }
+    .md-index-list {
+      padding: 16px 2rem;
+    }
+  }
+  .md-index-head {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 0;
+    padding: 8px 1.3rem 8px 2rem;
+    cursor: pointer;
+    transition: padding .15s ease;
+  }
+  .md-index-icon {
+    position: relative;
+    font-size: 22px;
+    display: inline;
+    margin: 0 6px 0 0;
+  }
+  .md-index-title {
+    position: relative;
+    display: inline;
+    margin: 0;
+    font-size: 18px;
+  }
+  .md-index-content {
+    position: relative;
+    display: block;
+    background-color: #FFF;
+    transition: height .15s ease-in, background-color .15s ease;
+    overflow: hidden;
+  }
+  .md-index-list {
+    position: relative;
+    display: block;
+    padding: 8px 2rem 16px;
+    margin: 0;
+    transition: padding .15s ease;
+    &::before {
+      position: absolute;
+      display: block;
+      content: "";
+      top: 1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 3rem);
+      height: 1px;
+      background-color: rgba(0, 0, 0, .05);
+    }
+  }
+  .md-index-link {
+    position: relative;
+    box-sizing: border-box;
+    display: block;
+    padding: 2px 0 2px 15px;
+    margin: 0 0 5px;
+    font-size: 16px;
+    color: #0366d6;
+    cursor: pointer;
+    transition: opacity .25s ease, color .25s ease-in-out;
+    &::before {
+      position: absolute;
+      display: block;
+      content: "";
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      color: #222;
+      background-color: #222;
+    }
+    &:hover {
+      opacity: .65;
+    }
+  }
+}

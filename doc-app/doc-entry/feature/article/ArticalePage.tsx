@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 // import ReactDom from 'react-dom';
 import classnames from 'classnames/bind';
 import styles from './ArticalePage.module.scss';
 import {TopAppBar} from '@wfh/doc-ui-common/client/material/TopAppBar';
 import {Drawer} from '@wfh/doc-ui-common/client/material/Drawer';
 import {useParams} from 'react-router-dom';
+import {MarkdownIndex} from '@wfh/doc-ui-common/client/markdown/MarkdownIndex';
 import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client/markdown/MarkdownViewComp';
 import {renderByMdKey} from './articaleComponents';
 import {DocListComponents} from './DocListComponents';
@@ -20,6 +21,7 @@ export type ArticalePageProps = React.PropsWithChildren<{
 
 const ArticalePage: React.FC<ArticalePageProps> = function(props) {
   const routeParams = useParams<{mdKey: string}>();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState(EMPTY_ARR);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
 
@@ -59,8 +61,9 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     <div className={articaleCls}>
       <Drawer title='文档' open={drawerOpen} content={<DocListComponents currentKey={routeParams.mdKey} />}>
         <TopAppBar title={title} type='short' onDrawerMenuClick={onDrawerToggle} />
-        <main className={contentCls}>
+        <main className={contentCls} ref={scrollRef}>
           <div className='mdc-top-app-bar--fixed-adjust'>
+            <MarkdownIndex mdKey={routeParams.mdKey} scrollRef={scrollRef} />
             <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded}/>
             {portals}
           </div>
