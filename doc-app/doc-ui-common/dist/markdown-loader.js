@@ -64,7 +64,7 @@ const loader = function (source, sourceMap) {
                 const headingQ = $(heading);
                 if (headingQ) {
                     const headingText = headingQ.text();
-                    const id = encodeURI(headingText)
+                    const id = encodeURIComponent(idx + headingText)
                     log.info(`set heading <${heading.name}> id=${id}`);
                     headingQ.attr('id', id)
                     toc.push({ tag: heading.name, text: headingText, id })

@@ -8,8 +8,6 @@
   z-index: 10;
   transition: background-color .15s ease, padding .15s ease;
   &.isTop {
-    position: relative;
-    top: 0;
     padding: 16px 0;
     background-color: #fffde7;
     .md-index-content {

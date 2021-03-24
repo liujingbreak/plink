@@ -19,11 +19,13 @@ interface MarkdownIndexProps {
   toc?: TOC[];
 }
 const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
   const [open, setOpen] = useState<boolean>(true);
   const [isTop, setIsTop] = useState<boolean>(true);
+  const [wrapperHeight, setWrapperHeight] = useState<number>(0);
   const toggleIndex = useCallback(() => {
     setOpen(!open);
   }, [open]);
@@ -83,6 +85,16 @@ const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
   }, 15);
 
   useEffect(() => {
+    setTimeout(() => {
+      console.log('wrapperRef: ', wrapperRef, scrollRef);
+      if (wrapperRef.current && scrollRef.current) {
+        scrollRef.current.style.paddingTop = `${wrapperRef.current.offsetHeight}px`;
+        setWrapperHeight(wrapperRef.current.offsetHeight);
+      }
+    }, 100);
+  }, [mdKey, wrapperRef, scrollRef]);
+
+  useEffect(() => {
     handleToggle();
   }, [open]);
 
@@ -101,7 +113,7 @@ const MarkdownIndex = ({ mdKey, scrollRef, toc }: MarkdownIndexProps) => {
     <div className={classnames({
       'md-index': true,
       isTop
-    })}>
+    })} ref={wrapperRef}>
       <RippleComp>
         <div className='md-index-head' onClick={toggleIndex}>
           <h2 className='md-index-title'>目录</h2>
