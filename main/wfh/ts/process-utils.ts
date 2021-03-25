@@ -1,5 +1,6 @@
 /* tslint:disable:no-console indent */
 import {spawn as sysSpawn, ChildProcess, SpawnOptions, fork as sysFork, ForkOptions as SysForkOptions} from 'child_process';
+import {Writable} from 'stream';
 export const isWindows = process.platform === 'win32';
 
 export interface Option extends SpawnOptions {
@@ -48,7 +49,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
   if (!(opts && opts.silent)) {
     opts.stdio = 'inherit';
   }
-
+  console.log(opts.cwd || process.cwd(), '> spawn process:', command, ...args);
   const res = sysSpawn(command, args as string[], opts);
   const promise = checkTimeout(promisifyChildProcess(res, opts, `${command} ${args.join(' ')}`), opts.timeout)
   .catch(e => {
@@ -93,25 +94,15 @@ export function fork(jsFile: string, ...args: Array<string|ForkOptions>): Result
 
 function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptions, desc: string) {
   return new Promise<string>((resolve, reject) => {
-    const allDone: Promise<any>[] = [];
-    // console.log(command, args);
-    let output: string;
+    let output: ReturnType<typeof createStringWriter> | undefined;
+    let errOutput: typeof output;
     if (opts && opts.silent) {
-      output = '';
+      output = createStringWriter();
+      errOutput = createStringWriter();
       res.stdout!.setEncoding('utf-8');
-      res.stdout!.on('data', (chunk) => {
-        output += chunk;
-      });
+      res.stdout!.pipe(output.writer);
       res.stderr!.setEncoding('utf-8');
-      res.stderr!.on('data', (chunk) => {
-        output += chunk;
-      });
-      res.stdout!.resume();
-      res.stderr!.resume();
-      allDone.push(
-        new Promise<void>(resolve => res.stdout!.on('end', resolve)),
-        new Promise<void>(resolve => res.stderr!.on('end', resolve))
-      );
+      res.stderr!.pipe(errOutput.writer);
     }
     res.on('error', (err) => {
       reject(err);
@@ -121,14 +112,18 @@ function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptions, de
         const errMsg = `Child process "${desc}" exit with code ${code}, signal ` + signal;
         if (opts == null || opts.silent !== true) {
           console.log(errMsg);
-          if (output) {
-            console.log(output);
-          }
+          if (output)
+            output.done.then(data => console.log(data));
+          if (errOutput)
+            errOutput.done.then(data => console.error(data));
         }
         return reject(new Error(errMsg + '\n' + (output ? output : '')));
       } else {
-        Promise.all(allDone)
-        .then(() => resolve(output));
+        if (output && errOutput)
+          Promise.all([output.done, errOutput.done])
+            .then(datas => resolve(datas.join('')));
+        else
+          resolve('');
       }
     });
   });
@@ -192,3 +187,31 @@ export function exe(command: string, ...argsAndOption: Array<string|Option>): Re
   }
   return spawn(command, ...argsAndOption);
 }
+
+export function createStringWriter(): {writer: Writable, done: Promise<string>} {
+  let strs: string[] = [];
+  let resolve: (str: string) => void;
+  const done = new Promise<string>(res => {
+    resolve = res;
+  });
+  const writer = new Writable({
+    writev(cks, cb) {
+      for (const data of cks) {
+        strs.push(data.chunk as string);
+      }
+      cb();
+    },
+    final(cb) {
+      resolve(strs.join(''));
+      cb();
+    }
+  });
+
+  return {
+    writer,
+    done
+  }
+}
+
+
+

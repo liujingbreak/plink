@@ -132,10 +132,14 @@
         "../*"
       ],
       "@loadable/component": [
-        "../../react-space/node_modules/@types/loadable__component"
+        "../../react-space/node_modules/@types/loadable__component",
+        "../../node_modules/@types/loadable__component",
+        "../node_modules/@types/loadable__component"
       ],
       "@loadable/component/*": [
-        "../../react-space/node_modules/@types/loadable__component/*"
+        "../../react-space/node_modules/@types/loadable__component/*",
+        "../../node_modules/@types/loadable__component/*",
+        "../node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [

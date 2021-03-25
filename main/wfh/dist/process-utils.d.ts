@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import { ChildProcess, SpawnOptions, ForkOptions as SysForkOptions } from 'child_process';
+import { Writable } from 'stream';
 export declare const isWindows: boolean;
 export interface Option extends SpawnOptions {
     timeout?: number;
@@ -46,3 +47,7 @@ export declare function promisifyExe(command: string, ...argsAndOption: Array<st
  * @return {object} {promise: Promise, childProcess: child_process}
  */
 export declare function exe(command: string, ...argsAndOption: Array<string | Option>): Result;
+export declare function createStringWriter(): {
+    writer: Writable;
+    done: Promise<string>;
+};

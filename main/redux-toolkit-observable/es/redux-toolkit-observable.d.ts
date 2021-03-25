@@ -14,7 +14,9 @@ export interface ExtraSliceReducers<SS> {
     _change: CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 }
 export declare type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
-export declare function ofPayloadAction<P>(...actionCreators: ActionCreatorWithPayload<P>[]): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P>>;
+export declare function ofPayloadAction<P1>(actionCreators1: ActionCreatorWithPayload<P1>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1>>;
+export declare function ofPayloadAction<P1, P2>(actionCreators1: ActionCreatorWithPayload<P1>, actionCreators2: ActionCreatorWithPayload<P2>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2>>;
+export declare function ofPayloadAction<P1, P2, P3>(actionCreators1: ActionCreatorWithPayload<P1>, actionCreators2: ActionCreatorWithPayload<P2>, actionCreators3: ActionCreatorWithPayload<P3>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2 | P3>>;
 export interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output extends PayloadAction<Payload> = PayloadAction<Payload>, CaseReducers extends SliceCaseReducers<any> = SliceCaseReducers<any>, Name extends string = string> {
     preloadedState: ConfigureStoreOptions['preloadedState'];
     slices: Slice<State, CaseReducers, Name>[];

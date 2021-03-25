@@ -1,4 +1,4 @@
-import {getState, pathToProjKey, workspaceKey, PackageInfo} from './index';
+import {getState, pathToProjKey, workspaceKey, PackageInfo, WorkspaceState} from './index';
 import Path from 'path';
 import {PlinkEnv, calcNodePaths} from '../node-path';
 import _ from 'lodash';
@@ -133,6 +133,7 @@ export function setTsCompilerOptForNodePath(
 
   const {rootDir, plinkDir, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
   let symlinksDir: string | undefined;
+  /** for paths mapping "*" */
   let pathsDirs: string[] = [];
   // workspace node_modules should be the first
   const baseUrlAbsPath = Path.resolve(tsconfigDir, baseUrl);
@@ -144,18 +145,13 @@ export function setTsCompilerOptForNodePath(
     Object.assign(assigneeOptions.paths, pathMappingForLinkedPkgs(baseUrlAbsPath));
   }
 
+  let wsState: WorkspaceState | undefined;
   if (opts.workspaceDir != null) {
     symlinksDir = Path.resolve(opts.workspaceDir, symlinkDirName);
     // pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
     pathsDirs.push(...calcNodePaths(rootDir, symlinksDir, opts.workspaceDir || process.cwd(), plinkDir));
 
-    const wsState = getState().workspaces.get(workspaceKey(opts.workspaceDir));
-
-    if (wsState) {
-      assignSpecialPaths(wsState.installJson.dependencies, assigneeOptions, baseUrlAbsPath);
-      assignSpecialPaths(wsState.installJson.devDependencies, assigneeOptions, baseUrlAbsPath);
-      assignSpecialPaths(wsState.installJson.peerDependencies, assigneeOptions, baseUrlAbsPath);
-    }
+    wsState = getState().workspaces.get(workspaceKey(opts.workspaceDir));
   }
 
   if (opts.extraNodePath && opts.extraNodePath.length > 0) {
@@ -180,6 +176,12 @@ export function setTsCompilerOptForNodePath(
 
   if (assigneeOptions.paths == null)
     assigneeOptions.paths = {};
+
+  if (wsState) {
+    assignSpecialPaths(wsState.installJson.dependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
+    assignSpecialPaths(wsState.installJson.devDependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
+    assignSpecialPaths(wsState.installJson.peerDependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
+  }
   // if (opts.workspaceDir != null) {
   //   assigneeOptions.paths['_package-settings'] = [
   //     Path.relative(baseUrlAbsPath, opts.workspaceDir).replace(/\\/g, '/') + '/_package-settings'];
@@ -208,19 +210,24 @@ export function setTsCompilerOptForNodePath(
  * @types/loadable__component
  */
 function assignSpecialPaths(dependencies: {[dep: string]: string} | undefined,
+  nodePaths: Iterable<string>,
   assigneeOptions: Partial<CompilerOptions>, absBaseUrlPath: string) {
   if (dependencies == null)
     return;
 
+  if (assigneeOptions.paths == null)
+    assigneeOptions.paths = {};
   for (const item of Object.keys(dependencies)) {
     const m = /^@types\/(.*?)__(.*?)$/.exec(item);
     if (m) {
       const originPkgName = `@${m[1]}/${m[2]}`;
-      const relativeDir = Path.relative(absBaseUrlPath, 'node_modules/' + item).replace(/\\/g, '/');
-      if (assigneeOptions.paths == null)
-        assigneeOptions.paths = {};
-      assigneeOptions.paths[originPkgName] = [relativeDir];
-      assigneeOptions.paths[originPkgName + '/*'] = [relativeDir + '/*'];
+      const exactOne: string[] = assigneeOptions.paths[originPkgName] = [];
+      const wildOne: string[] = assigneeOptions.paths[originPkgName + '/*'] = [];
+      for (const dir of nodePaths) {
+        const relativeDir = Path.relative(absBaseUrlPath, dir + '/' + item).replace(/\\/g, '/');
+        exactOne.push(relativeDir);
+        wildOne.push(relativeDir + '/*');
+      }
     }
   }
 }

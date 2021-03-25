@@ -6,7 +6,6 @@
 /// <reference types="node" />
 import * as fs from 'fs';
 export declare const isWin32: boolean;
-export declare const readdirAsync: typeof fs.readdir.__promisify__;
 export declare const lstatAsync: typeof fs.lstat.__promisify__;
 export declare const _symlinkAsync: typeof fs.symlink.__promisify__;
 export declare const unlinkAsync: typeof fs.unlink.__promisify__;

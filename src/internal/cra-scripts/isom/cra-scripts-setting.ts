@@ -6,6 +6,10 @@ import {config} from '@wfh/plink';
 export interface CraScriptsSetting {
   /** Less loader option: additionalData */
   lessLoaderAdditionalData: string;
+  // /** In build library mode, webpack configuration externals */
+  // libExternalRequest: Array<string | RegExp>;
+  // /** In build library mode, by default webpack configuration externals */
+  // libIncludeRequest: Array<string | RegExp>;
 }
 
 /**
@@ -15,6 +19,7 @@ export interface CraScriptsSetting {
 export function defaultSetting(): CraScriptsSetting {
   return {
     lessLoaderAdditionalData: ''
+    // libExternalRequest: [/[^?!]/, /^/]
   };
 }
 

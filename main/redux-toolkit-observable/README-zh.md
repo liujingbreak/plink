@@ -23,13 +23,11 @@ https://redux-observable.js.org/
 ### Author slice store
 #### 0. import dependencies and polyfill
 > Make sure you have polyfill for ES5: `core-js/es/object/index`, if your framework is not using babel loader, like Angular.
-
 ```ts
 import { PayloadAction } from '@reduxjs/toolkit';
-// For browser side Webpack based project, which has a babel or ts-loader configured.
-import { getModuleInjector, ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-abservable/es/state-factory-browser';
+import { getModuleInjector, ofPayloadAction, stateFactory } from '@bk/module-shared/redux-toolkit-abservable/state-factory';
 ```
-> For Node.js server side project, you can wrapper a state factory somewhere or directly use "@wfh/redux-toolkit-abservabledist/redux-toolkit-observable'"
+
 #### 1. create a Slice
 Define your state type
 ```ts
@@ -72,18 +70,16 @@ export const exampleActionDispatcher = stateFactory.bindActionCreators(exampleSl
 ```
 
 #### 2. create an Epic
-Create a redux-abservable epic to handle specific actions, do async logic and dispatching new actions .
+Create a redux-abservable epic to handle specific actions, do async logic and dispatch new actions .
 
 ```ts
 const releaseEpic = stateFactory.addEpic((action$) => {
   return merge(
-    // observe incoming action stream, dispatch new actions (or return action stream)
     action$.pipe(ofPayloadAction(exampleSlice.actions.exampleAction),
       switchMap(({payload}) => {
         return from(Promise.resolve('mock async HTTP request call'));
       })
     ),
-    // observe state changing event stream and dispatch new Action with convient anonymous "_change" action (reducer callback)
     getStore().pipe(
       map(s => s.foo),
       distinctUntilChanged(),
@@ -93,7 +89,7 @@ const releaseEpic = stateFactory.addEpic((action$) => {
         });
       })
     ),
-    // ... more observe operator pipeline definitions
+    ...
   ).pipe(
     catchError(ex => {
       // tslint:disable-next-line: no-console
@@ -105,9 +101,9 @@ const releaseEpic = stateFactory.addEpic((action$) => {
   );
 }
 ```
-`action$.pipe(ofPayloadAction(exampleSlice.actions.exampleAction)` meaning filter actions for only interested action , `exampleAction`, accept multiple arguments.
+`action$.pipe(ofPayloadAction(exampleSlice.actions.exampleAction)` meaning filter actions for only interested action `exampleAction`
 
-`getStore().pipe(map(s => s.foo), distinctUntilChanged())` meaning observe and reacting on specific state change event.
+`getStore().pipe(map(s => s.foo), distinctUntilChanged())` meaning reacting on specific state change event.
 `getStore()` is defined later.
 
 `exampleActionDispatcher._change()` dispatch any new actions.
@@ -132,9 +128,6 @@ if (module.hot) {
   });
 }
 ```
-
-#### 5. Connect to React Component
-TBD.
 
 ### Use slice store in your component
 
@@ -170,6 +163,7 @@ What's different from using redux-toolkit and redux-abservable directly, what's 
 
 - `bindActionCreators()`\
   our store can be lazily configured, dispatch is not available at beginning, thats why we need a customized `bindActionCreators()`
+
 
 ### The most frequently used RxJS operators
 There are 2 scenarios you need to interect directly with RxJS.

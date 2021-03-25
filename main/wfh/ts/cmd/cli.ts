@@ -232,7 +232,7 @@ function subComands(program: commander.Command) {
    * Pack command
    */
   const packCmd = program.command('pack [package...]')
-    .description('npm pack every pakage into tarball files', {package: cliPackageArgDesc})
+    .description('npm pack pakage into tarball files and change version value from related package.json', {package: cliPackageArgDesc})
     .option('--dir <package directory>', 'pack packages by specifying directories', arrayOptionFn, [])
     .option('-w,--workspace <workspace-dir>', 'pack packages which are linked as dependency of specific workspaces',
       arrayOptionFn, [])

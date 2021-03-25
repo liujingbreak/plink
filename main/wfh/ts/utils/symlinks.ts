@@ -13,7 +13,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 
 export const isWin32 = os.platform().indexOf('win32') >= 0;
-export const readdirAsync = util.promisify(fs.readdir);
+// export const readdirAsync = util.promisify(fs.readdir);
 export const lstatAsync = util.promisify(fs.lstat);
 export const _symlinkAsync = util.promisify(fs.symlink);
 export const unlinkAsync = util.promisify(fs.unlink);
@@ -38,18 +38,19 @@ export function listModuleSymlinks(
   parentDir: string,
   onFound: (link: string) => void | Promise<void>) {
   // const level1Dirs = await readdirAsync(parentDir);
-  return rx.from(readdirAsync(parentDir)).pipe(
+  return rx.from(fs.promises.readdir(parentDir)).pipe(
     op.concatMap(level1Dirs => level1Dirs),
-    op.mergeMap(dir => {
-      if (dir.startsWith('@')) {
+    op.mergeMap(dirname => {
+      const dir = Path.resolve(parentDir, dirname);
+      if (dirname.startsWith('@') && fs.statSync(dir).isDirectory()) {
         // it is a scope package
-        return rx.from(readdirAsync(Path.resolve(parentDir, dir)))
+        return rx.from(fs.promises.readdir(dir))
         .pipe(
           op.mergeMap(subdirs => subdirs),
-          op.mergeMap(file => onEachFile(Path.resolve(parentDir, dir, file)))
+          op.mergeMap(file => onEachFile(Path.resolve(dir, file)))
         );
       } else {
-        return onEachFile(Path.resolve(parentDir, dir));
+        return onEachFile(dir);
       }
     })
   ).toPromise();

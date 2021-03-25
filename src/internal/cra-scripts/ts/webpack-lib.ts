@@ -55,34 +55,38 @@ export default function change(buildPackage: string, config: Configuration, node
 
   findAndChangeRule(config.module!.rules);
 
-  const reqSet = new Set<string>();
+  const externalRequestSet = new Set<string>();
   const includeModuleRe = (getCmdOptions().includes || [])
     .map(mod => new RegExp(mod));
 
-  if (config.externals == null)
+  if (config.externals == null) {
     config.externals = [];
+  }
+
+  let entrySet: Set<string>;
+
   (config.externals as Extract<Configuration['externals'], Array<any>>)
-  .push(
-    (context: any, request: any, callback: (error?: any, result?: any) => void ) => {
-      if (includeModuleRe.some(rg => rg.test(request))) {
-        return callback();
+    .push(
+      async (context: any, request: any, callback: (error?: any, result?: any) => void ) => {
+        if (includeModuleRe.some(rg => rg.test(request))) {
+          return callback();
+        }
+        if (entrySet == null && config.entry)
+          entrySet = await createEntrySet(config.entry);
+
+        // TODO: Should be configurable
+
+        if ((!request.startsWith('.') && !entrySet.has(request) &&
+          !/[?!]/.test(request)) && (!/[\\/]@babel[\\/]runtime[\\/]/.test(request))
+          ||
+          request.indexOf('/bklib.min') >= 0) {
+          // log.info('external request:', request, `(${context})`);
+          externalRequestSet.add(request);
+          return callback(null, 'commonjs ' + request);
+        }
+        callback();
       }
-      // if (request.indexOf('js-sdk-ocr') >= 0 || request.indexOf('@bk/js-sdk-store') >= 0 ||
-      //   request.indexOf('@bk/react-component') >= 0) {
-      //   return callback();
-      // }
-      // TODO: Should be configurable
-      if ((!request.startsWith('.') && request !== config.entry &&
-        !/[?!]/.test(request)) && (!/[\\/]@babel[\\/]runtime[\\/]/.test(request))
-         ||
-        request.indexOf('/bklib.min') >= 0) {
-        // log.info('external request:', request, `(${context})`);
-        reqSet.add(request);
-        return callback(null, 'commonjs ' + request);
-      }
-      callback();
-    }
-  );
+    );
 
   config.plugins!.push(
     // new EsmWebpackPlugin(),
@@ -92,11 +96,31 @@ export default function change(buildPackage: string, config: Configuration, node
       apply(compiler: Compiler) {
         compiler.hooks.done.tap('cra-scripts', stats => {
           this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
-          log.warn(chalk.red('external request:\n  ' + Array.from(reqSet.values()).join(', ')));
+          log.warn(chalk.red('external request:\n  ' + Array.from(externalRequestSet.values()).join(', ')));
         });
       }
     })()
   );
+}
+
+async function createEntrySet(configEntry: NonNullable<Configuration['entry']>, entrySet?: Set<string>) {
+  if (entrySet == null)
+    entrySet = new Set<string>();
+
+  if (Array.isArray(configEntry)) {
+    for (const entry of configEntry) {
+      entrySet.add(entry);
+    }
+  } else if (typeof configEntry === 'string') {
+    entrySet.add(configEntry);
+  } else if (typeof configEntry === 'function') {
+    await Promise.resolve(configEntry()).then(entries => createEntrySet(entries));
+  } else if (typeof configEntry === 'object') {
+    for (const [_key, value] of Object.entries(configEntry)) {
+      createEntrySet(value);
+    }
+  }
+  return entrySet;
 }
 
 

@@ -81,7 +81,7 @@ export default class TsPreCompiler {
         log.error('Evaluate %s, result:', origText, res);
         throw ex;
       }
-      log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +
+      log.debug(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +
         Path.relative(process.cwd(), file));
     }
 

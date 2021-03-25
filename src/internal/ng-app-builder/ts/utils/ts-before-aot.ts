@@ -49,7 +49,7 @@ export default class ApiAotCompiler {
 
   parse(transpileExp: (source: string) => string): string {
     const pk = api.findPackageByFile(this.file);
-    // console.log('parse', this.file, pk == null ? '' : 'yes');
+    // log.warn('parse', this.file, pk == null ? '' : 'yes');
     if (pk == null)
       return this.src;
     if (!tsHandlers)
@@ -90,7 +90,7 @@ export default class ApiAotCompiler {
         log.error('Evaluate %s, result:', origText, res);
         throw ex;
       }
-      log.info(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +
+      log.debug(`Evaluate "${chalk.yellow(origText)}" to: ${chalk.cyan(repl.text)} in\n\t` +
         relative(process.cwd(), this.file));
     }
 

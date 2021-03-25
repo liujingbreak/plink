@@ -192,9 +192,9 @@ export const slice = stateFactory.newSlice({
         log.warn('Plink init/sync process was interrupted last time, recover content of ' + pkgjsonFile);
         pkjsonStr = fs.readFileSync(lockFile, 'utf8');
         fs.unlinkSync(lockFile);
+      } else {
+        pkjsonStr = fs.readFileSync(pkgjsonFile, 'utf8');
       }
-
-      pkjsonStr = fs.readFileSync(pkgjsonFile, 'utf8');
       const pkjson: PackageJsonInterf = JSON.parse(pkjsonStr);
       // for (const deps of [pkjson.dependencies, pkjson.devDependencies] as {[name: string]: string}[] ) {
       //   Object.entries(deps);
@@ -308,6 +308,7 @@ export const slice = stateFactory.newSlice({
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
     },
     _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {},
+    // _createSymlinksForWorkspace(d, action: PayloadAction<string>) {},
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: {name: string}[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
     }
@@ -511,19 +512,24 @@ stateFactory.addEpic((action$, state$) => {
         ignoreElements()
       );
     }),
-    action$.pipe(ofPayloadAction(slice.actions._installWorkspace),
+    action$.pipe(ofPayloadAction(slice.actions._installWorkspace, slice.actions.workspaceBatchChanged),
       concatMap(action => {
-        const wsKey = action.payload.workspaceKey;
-        return getStore().pipe(
-          map(s => s.workspaces.get(wsKey)),
-          distinctUntilChanged(),
-          filter(ws => ws != null),
-          take(1),
-          concatMap(ws => from(installWorkspace(ws!))),
-          map(() => {
-            updateInstalledPackageForWorkspace(wsKey);
-          })
-        );
+        if (action.type === slice.actions._installWorkspace.type) {
+          const wsKey = (action.payload as Parameters<typeof slice.actions._installWorkspace>[0]).workspaceKey;
+          return getStore().pipe(
+            map(s => s.workspaces.get(wsKey)),
+            distinctUntilChanged(),
+            filter(ws => ws != null),
+            take(1),
+            concatMap(ws => installWorkspace(ws!)),
+            map(() => {
+              updateInstalledPackageForWorkspace(wsKey);
+            })
+          );
+        } else {
+          const wsKeys = action.payload as Parameters<typeof slice.actions.workspaceBatchChanged>[0];
+          return merge(...wsKeys.map(_createSymlinksForWorkspace)); 
+        }
       }),
       ignoreElements()
     ),
@@ -539,11 +545,11 @@ stateFactory.addEpic((action$, state$) => {
         actionDispatcher.packagesUpdated();
       })
     ),
-    action$.pipe(ofPayloadAction(slice.actions.workspaceBatchChanged),
-      concatMap(({payload: wsKeys}) => {
-        return merge(...wsKeys.map(_createSymlinksForWorkspace));
-      })
-    ),
+    // action$.pipe(ofPayloadAction(slice.actions.workspaceBatchChanged),
+    //   concatMap(({payload: wsKeys}) => {
+    //     return merge(...wsKeys.map(_createSymlinksForWorkspace));
+    //   })
+    // ),
     getStore().pipe(map(s => s.gitIgnores),
       distinctUntilChanged(),
       map(gitIgnores => Object.keys(gitIgnores).join(',')),
@@ -745,6 +751,7 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
   // 1. Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
   // backup them for late recovery
   await listModuleSymlinks(target, link => {
+    log.debug('Remove symlink', link);
     const linkContent = fs.readlinkSync(link);
     symlinksInModuleDir.push({content: linkContent, link});
     return unlinkAsync(link);
@@ -915,7 +922,7 @@ async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) 
  */
 export function createPackageInfo(pkJsonFile: string, isInstalled = false): PackageInfo {
   const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
-  return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
+  return createPackageInfoWithJson(pkJsonFile, json, isInstalled, symlinkDirName);
 }
 /**
  * List those installed packages which are referenced by workspace package.json file,

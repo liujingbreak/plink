@@ -25,6 +25,13 @@ export interface ExtraSliceReducers<SS> {
 export type ReducerWithDefaultActions<SS,
   ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
 
+export function ofPayloadAction<P1>(actionCreators1: ActionCreatorWithPayload<P1>):
+  (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1>>;
+export function ofPayloadAction<P1, P2>(actionCreators1: ActionCreatorWithPayload<P1>, actionCreators2: ActionCreatorWithPayload<P2>):
+(source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2>>;
+export function ofPayloadAction<P1, P2, P3>(actionCreators1: ActionCreatorWithPayload<P1>,
+  actionCreators2: ActionCreatorWithPayload<P2>, actionCreators3: ActionCreatorWithPayload<P3>):
+(source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2 | P3>>;
 export function ofPayloadAction<P>(...actionCreators: ActionCreatorWithPayload<P>[]):
   (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P>> {
   return ofType(...actionCreators.map(c => c.type));
