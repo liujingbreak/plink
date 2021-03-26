@@ -84,10 +84,11 @@ const MarkdownIndex = ({ mdKey, scrollRef, contentRef, toc }: MarkdownIndexProps
   }, 15);
 
   useEffect(() => {
-    if (wrapperRef.current && contentRef.current) {
-      contentRef.current.style.paddingTop = `${wrapperRef.current.offsetHeight + 56}px`;
+    if (listRef.current && contentRef.current) {
+      contentRef.current.style.paddingTop = `${listRef.current.offsetHeight + 56}px`;
+      handleToggle();
     }
-  }, [mdKey, wrapperRef, contentRef]);
+  }, [mdKey, listRef, contentRef]);
 
   useEffect(() => {
     handleToggle();

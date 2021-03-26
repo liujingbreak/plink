@@ -33,8 +33,8 @@ const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
   const [loaded, setLoaded] = React.useState<boolean>(false);
 
   React.useEffect(() => {
+    setLoaded(false);
     if (props.mdKey) {
-      setLoaded(false);
       dispatcher.getHtml(props.mdKey);
     }
   }, [props.mdKey]);
