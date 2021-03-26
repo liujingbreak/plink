@@ -14,9 +14,9 @@ const checkElementInView = (targetEl: HTMLElement) => {
 };
 interface MarkdownIndexProps {
   mdKey: string;
+  toc?: TOC[];
   scrollRef: React.RefObject<HTMLDivElement>;
   contentRef: React.RefObject<HTMLDivElement>;
-  toc?: TOC[];
 }
 const MarkdownIndex = ({ mdKey, scrollRef, contentRef, toc }: MarkdownIndexProps) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -25,6 +25,7 @@ const MarkdownIndex = ({ mdKey, scrollRef, contentRef, toc }: MarkdownIndexProps
 
   const [open, setOpen] = useState<boolean>(true);
   const [isTop, setIsTop] = useState<boolean>(true);
+
   const toggleIndex = useCallback(() => {
     setOpen(!open);
   }, [open]);

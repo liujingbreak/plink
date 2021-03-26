@@ -6,6 +6,7 @@ import {getState, dispatcher} from './markdownSlice';
 import {connect} from 'react-redux';
 import {useParams} from 'react-router-dom';
 import unescape from 'lodash/unescape';
+import {MarkdownIndex} from './MarkdownIndex';
 // import mermaid from 'mermaid';
 import 'highlight.js/scss/solarized-light.scss';
 // import * as op from 'rxjs/operators';
@@ -17,6 +18,7 @@ export interface MarkdownViewCompProps {
   /** markdown file relative path, which is compiled by markdown-loader */
   mdKey?: string;
   onContent?: (dom: HTMLDivElement) => void;
+  scrollBodyRef: React.RefObject<HTMLDivElement>;
 }
 
 const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
@@ -27,9 +29,12 @@ const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
   React.useEffect(() => {}, []);
 
   const containerRef = React.createRef<HTMLDivElement>();
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const [loaded, setLoaded] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     if (props.mdKey) {
+      setLoaded(false);
       dispatcher.getHtml(props.mdKey);
     }
   }, [props.mdKey]);
@@ -46,13 +51,19 @@ const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
         container.innerHTML = svgStr;
         // el.innerHTML = svgStr;
       });
+      setLoaded(true);
     }
   }, [containerRef.current,
     props.mdKey != null ? props.contents[routeParams.mdKey] : null
   ]);
 
   if (props.mdKey) {
-    return <div ref={containerRef} className={cls} dangerouslySetInnerHTML={props.contents[props.mdKey]}></div>;
+    return (
+      <div ref={contentRef}>
+        {loaded ? <MarkdownIndex mdKey={props.mdKey} scrollRef={props.scrollBodyRef} contentRef={contentRef} /> : null}
+        <div ref={containerRef} className={cls} dangerouslySetInnerHTML={props.contents[props.mdKey]}></div>
+      </div>
+    );
   }
   return <>Loading ...</>;
 };
