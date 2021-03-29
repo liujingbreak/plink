@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 // import ReactDom from 'react-dom';
 import classnames from 'classnames/bind';
 import styles from './ArticalePage.module.scss';
+import debounce from 'lodash/debounce';
+import {dispatcher} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 import {TopAppBar} from '@wfh/doc-ui-common/client/material/TopAppBar';
 import {Drawer} from '@wfh/doc-ui-common/client/material/Drawer';
 import {useParams} from 'react-router-dom';
@@ -50,6 +52,23 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     setDrawerOpen(!drawerOpen);
   }, [drawerOpen]);
 
+  const handleScroll = debounce(() => {
+    dispatcher.scrollProcess();
+  }, 20);
+
+  useEffect(() => {
+    if (scrollBodyRef.current) {
+      dispatcher.setScrollBodyEl(scrollBodyRef.current);
+      scrollBodyRef.current.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      if (scrollBodyRef.current) {
+        scrollBodyRef.current.removeEventListener('scroll', handleScroll);
+      }
+      dispatcher.clearScrollCallback();
+    };
+  }, [scrollBodyRef.current]);
+
   const title = (
     <div className={titleCls}>
       <div className={logoCls}></div>
@@ -63,11 +82,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
         <TopAppBar title={title} type='short' onDrawerMenuClick={onDrawerToggle} />
         <main className={contentCls} ref={scrollBodyRef}>
           <div className='mdc-top-app-bar--fixed-adjust'>
-            <MarkdownViewComp
-              mdKey={routeParams.mdKey}
-              onContent={onContentLoaded}
-              scrollBodyRef={scrollBodyRef}
-            />
+            <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded} />
             {portals}
           </div>
         </main>

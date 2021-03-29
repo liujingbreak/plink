@@ -18,7 +18,6 @@ export interface MarkdownViewCompProps {
   /** markdown file relative path, which is compiled by markdown-loader */
   mdKey?: string;
   onContent?: (dom: HTMLDivElement) => void;
-  scrollBodyRef: React.RefObject<HTMLDivElement>;
 }
 
 const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
@@ -60,7 +59,7 @@ const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
   if (props.mdKey) {
     return (
       <div ref={contentRef}>
-        {loaded ? <MarkdownIndex mdKey={props.mdKey} scrollRef={props.scrollBodyRef} contentRef={contentRef} /> : null}
+        {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : null}
         <div ref={containerRef} className={cls} dangerouslySetInnerHTML={props.contents[props.mdKey]}></div>
       </div>
     );
