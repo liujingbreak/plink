@@ -6,6 +6,7 @@ import {getState, dispatcher} from './markdownSlice';
 import {connect} from 'react-redux';
 import {useParams} from 'react-router-dom';
 import unescape from 'lodash/unescape';
+import {MarkdownIndex} from './MarkdownIndex';
 // import mermaid from 'mermaid';
 import 'highlight.js/scss/solarized-light.scss';
 // import * as op from 'rxjs/operators';
@@ -27,8 +28,11 @@ const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
   React.useEffect(() => {}, []);
 
   const containerRef = React.createRef<HTMLDivElement>();
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const [loaded, setLoaded] = React.useState<boolean>(false);
 
   React.useEffect(() => {
+    setLoaded(false);
     if (props.mdKey) {
       dispatcher.getHtml(props.mdKey);
     }
@@ -46,13 +50,19 @@ const MarkdownViewComp: React.FC<MarkdownViewCompProps> = function(props0) {
         container.innerHTML = svgStr;
         // el.innerHTML = svgStr;
       });
+      setLoaded(true);
     }
   }, [containerRef.current,
     props.mdKey != null ? props.contents[routeParams.mdKey] : null
   ]);
 
   if (props.mdKey) {
-    return <div ref={containerRef} className={cls} dangerouslySetInnerHTML={props.contents[props.mdKey]}></div>;
+    return (
+      <div ref={contentRef}>
+        {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : null}
+        <div ref={containerRef} className={cls} dangerouslySetInnerHTML={props.contents[props.mdKey]}></div>
+      </div>
+    );
   }
   return <>Loading ...</>;
 };

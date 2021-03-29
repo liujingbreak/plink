@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 // import ReactDom from 'react-dom';
 import classnames from 'classnames/bind';
 import styles from './ArticalePage.module.scss';
+import debounce from 'lodash/debounce';
+import {dispatcher} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 import {TopAppBar} from '@wfh/doc-ui-common/client/material/TopAppBar';
 import {Drawer} from '@wfh/doc-ui-common/client/material/Drawer';
 import {useParams} from 'react-router-dom';
-import {MarkdownIndex} from '@wfh/doc-ui-common/client/markdown/MarkdownIndex';
 import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client/markdown/MarkdownViewComp';
 import {renderByMdKey} from './articaleComponents';
 import {DocListComponents} from './DocListComponents';
@@ -15,20 +16,18 @@ const logoCls = cx('logo');
 const titleCls = cx('title');
 const articaleCls = cx('articale-page');
 const contentCls = cx('main-content');
+const bkLogoCls = cx('bk-logo');
 const EMPTY_ARR: any[] = [];
 export type ArticalePageProps = React.PropsWithChildren<{
 }>;
 
 const ArticalePage: React.FC<ArticalePageProps> = function(props) {
   const routeParams = useParams<{mdKey: string}>();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState(EMPTY_ARR);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
-  const [loaded, setLoaded] = useState<boolean>(false);
 
   const onContentLoaded = useCallback<NonNullable<MarkdownViewCompProps['onContent']>>((div) => {
-    setLoaded(true);
     const renderers = renderByMdKey[routeParams.mdKey];
     if (!renderers) return;
 
@@ -47,11 +46,28 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
         });
     }
     setPortals(els);
-  }, [EMPTY_ARR, loaded]);
+  }, [EMPTY_ARR]);
 
   const onDrawerToggle = useCallback(() => {
     setDrawerOpen(!drawerOpen);
   }, [drawerOpen]);
+
+  const handleScroll = debounce(() => {
+    dispatcher.scrollProcess();
+  }, 20);
+
+  useEffect(() => {
+    if (scrollBodyRef.current) {
+      dispatcher.setScrollBodyEl(scrollBodyRef.current);
+      scrollBodyRef.current.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      if (scrollBodyRef.current) {
+        scrollBodyRef.current.removeEventListener('scroll', handleScroll);
+      }
+      dispatcher.clearScrollCallback();
+    };
+  }, [scrollBodyRef.current]);
 
   const title = (
     <div className={titleCls}>
@@ -60,18 +76,13 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     </div>
   );
 
-  useEffect(() => {
-    setLoaded(false);
-  }, [routeParams.mdKey]);
-
   return (
     <div className={articaleCls}>
-      <Drawer title='文档' type='modal' open={drawerOpen} content={<DocListComponents currentKey={routeParams.mdKey} />}>
+      <Drawer title={<i className={bkLogoCls} />} type='modal' open={drawerOpen} content={<DocListComponents currentKey={routeParams.mdKey} onItemClick={onDrawerToggle} />}>
         <TopAppBar title={title} type='short' onDrawerMenuClick={onDrawerToggle} />
-        <main className={contentCls} ref={scrollRef}>
-          <div className='mdc-top-app-bar--fixed-adjust' ref={contentRef}>
-            {loaded ? <MarkdownIndex mdKey={routeParams.mdKey} scrollRef={scrollRef} contentRef={contentRef} /> : null}
-            <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded}/>
+        <main className={contentCls} ref={scrollBodyRef}>
+          <div className='mdc-top-app-bar--fixed-adjust'>
+            <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded} />
             {portals}
           </div>
         </main>

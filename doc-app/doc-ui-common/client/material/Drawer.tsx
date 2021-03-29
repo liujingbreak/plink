@@ -15,7 +15,7 @@ import * as rx from 'rxjs';
 
 export type DrawerProps = PropsWithChildren<{
   type?: 'modal' | 'dismissible'
-  title?: string;
+  title?: any;
   subTitle?: string;
   open: boolean;
   content?: any;
@@ -65,7 +65,7 @@ const Drawer: ForwardRefRenderFunction<Promise<MDCDrawer>, DrawerProps> = functi
       })} ref={onDivReady}>
         {title || subTitle ? <div className='mdc-drawer__header'>
           {title ? <h3 className='mdc-drawer__title'>{title}</h3> : null}
-          {subTitle ? <h6 className='mdc-drawer__subtitle'>email@material.io</h6> : null}
+          {subTitle ? <h6 className='mdc-drawer__subtitle'>{subTitle}</h6> : null}
         </div> : null}
         <div className='mdc-drawer__content'>
           {content ? content : null}

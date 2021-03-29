@@ -6,8 +6,9 @@ import {List} from '@wfh/doc-ui-common/client/material/List';
 
 interface DocListComponentsProps {
   currentKey?: string;
+  onItemClick?: () => any;
 }
-const DocListComponents = ({ currentKey }: DocListComponentsProps) => {
+const DocListComponents = ({ currentKey, onItemClick }: DocListComponentsProps) => {
   const history = useHistory();
   const listItems = mdFiles.map(item => ({
     key: item.key,
@@ -17,7 +18,10 @@ const DocListComponents = ({ currentKey }: DocListComponentsProps) => {
   const onRouteChange = useCallback((key: string) => {
     if (key === currentKey) return;
     history.push(`/doc/${key}`);
-  }, [history, currentKey]);
+    if (onItemClick) {
+      onItemClick();
+    }
+  }, [history, currentKey, onItemClick]);
 
   return mdFiles && mdFiles.length > 0 ? (
     <List

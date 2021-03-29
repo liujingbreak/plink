@@ -5,6 +5,13 @@
 @include drawer.dismissible-core-styles;
 @include drawer.modal-core-styles;
 
+.mdc-drawer__header {
+  padding-top: 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, .05);
+}
+.mdc-drawer--open {
+  z-index: 10;
+}
 .mdc-drawer-app-content {
   flex: auto;
   overflow: auto;
