@@ -37,12 +37,12 @@ export function ofPayloadAction<P>(...actionCreators: ActionCreatorWithPayload<P
   return ofType(...actionCreators.map(c => c.type));
 }
 
-export interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output extends PayloadAction<Payload> = PayloadAction<Payload>,
-CaseReducers extends SliceCaseReducers<any> = SliceCaseReducers<any>, Name extends string = string> {
-  preloadedState: ConfigureStoreOptions['preloadedState'];
-  slices: Slice<State, CaseReducers, Name>[];
-  epics: Epic<PayloadAction<Payload>, Output, State>[];
-}
+// interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output extends PayloadAction<Payload> = PayloadAction<Payload>,
+// CaseReducers extends SliceCaseReducers<any> = SliceCaseReducers<any>, Name extends string = string> {
+//   preloadedState: ConfigureStoreOptions['preloadedState'];
+//   slices: Slice<State, CaseReducers, Name>[];
+//   epics: Epic<PayloadAction<Payload>, Output, State>[];
+// }
 
 export interface ErrorState {
   actionError?: Error;
@@ -56,12 +56,14 @@ const defaultSliceReducers: Partial<ExtraSliceReducers<any>> = {
 
 type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends CreateSliceOptions<infer S, any, string> ? S : unknown;
 
+/** A Helper infer type */
 export type InferSliceType<MyCreateSliceOptionsType> =
   Slice<InferStateType<MyCreateSliceOptionsType>,
   (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) &
     ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>,
   string>;
 
+/** A Helper infer type */
 export type InferActionsType<MyCreateSliceOptionsType> =
 InferSliceType<MyCreateSliceOptionsType>['actions'];
 export class StateFactory {
@@ -70,14 +72,13 @@ export class StateFactory {
    * 
    * Redux-observable's state$ does not notify state change event when a lazy loaded (replaced) slice initialize state 
    */
-  realtimeState$: BehaviorSubject<{[key: string]: any}>;
+  realtimeState$: BehaviorSubject<unknown>;
   store$ = new BehaviorSubject<EnhancedStore<any, PayloadAction<any>> | undefined>(undefined);
   log$: Observable<any[]>;
 
   rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
   /**
-   * Unlike store.dispatch(action),
-   * If you call next() on this subject, it can save action dispatch an action even before store is configured
+   * same as store.dispatch(action), but this one goes through Redux-observable's epic middleware
    */
   actionsToDispatch = new ReplaySubject<PayloadAction<any>>(20);
   reportActionError: (err: Error) => void;
@@ -86,14 +87,14 @@ export class StateFactory {
   // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
   private debugLog = new ReplaySubject<any[]>(15);
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
-  private epicWithUnsub$: Subject<[Epic, string, Subject<string>]>;
+  private epicWithUnsub$: Subject<[Epic<PayloadAction<unknown>>, string, Subject<string>]>;
 
 
   private errorSlice: InferSliceType<typeof errorSliceOpt>;
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
-    this.realtimeState$ = new BehaviorSubject<any>(preloadedState);
-    this.epicWithUnsub$ = new ReplaySubject<[Epic, string, Subject<string>]>();
+    this.realtimeState$ = new BehaviorSubject<unknown>(preloadedState);
+    this.epicWithUnsub$ = new ReplaySubject<[Epic<PayloadAction<unknown>>, string, Subject<string>]>();
     this.log$ = this.debugLog.asObservable();
     this.reducerMap = {};
 
@@ -110,18 +111,47 @@ export class StateFactory {
 
   }
 
-  configureStore(middlewares?: Middleware[]) {
+  // configureStore(middlewares?: Middleware[]): this;
+  /**
+   * 
+   * @param opt Be aware, turn off option "serializableCheck" and "immutableCheck" from Redux default middlewares
+   */
+  configureStore(opt?: {[key in Exclude<'reducer', keyof ConfigureStoreOptions<unknown, PayloadAction<unknown>>>]: ConfigureStoreOptions<unknown, PayloadAction<unknown>>[key]}) {
     if (this.store$.getValue())
       return this;
     const rootReducer = this.createRootReducer();
     const epicMiddleware = createEpicMiddleware<PayloadAction<any>>();
 
-    const middleware = middlewares ? [epicMiddleware, this.errorHandleMiddleware, ...middlewares] : [epicMiddleware, this.errorHandleMiddleware];
-    const store = configureStore<any, PayloadAction<any>, Middleware<any>[]>({
-      reducer: rootReducer,
-      // preloadedState: this.preloadedState,
-      middleware
-    });
+    let cfgOpt = opt as ConfigureStoreOptions<unknown, PayloadAction<unknown>>;
+    const ourMiddlwares = [this.errorHandleMiddleware, epicMiddleware];
+    if (cfgOpt) {
+      cfgOpt.reducer = rootReducer;
+      cfgOpt.devTools = false;
+      if (cfgOpt.middleware) {
+        const exitingMid = cfgOpt.middleware;
+        if (typeof exitingMid === 'function') {
+          cfgOpt.middleware = (getDefault) => {
+            return [...exitingMid(getDefault), ...ourMiddlwares];
+          };
+        } else {
+          cfgOpt.middleware = [...exitingMid, ...ourMiddlwares];
+        }
+      } else {
+        cfgOpt.middleware = (getDefault) => {
+          return [...getDefault({serializableCheck: false, immutableCheck: false}), ...ourMiddlwares];
+        };
+      }
+    } else {
+      cfgOpt = {
+        reducer: rootReducer,
+        middleware(getDefault) {
+          return [...getDefault({serializableCheck: false, immutableCheck: false}), ...ourMiddlwares];
+        },
+        devTools: false
+      };
+    }
+
+    const store = configureStore(cfgOpt);
 
     this.store$.next(store);
 
@@ -142,8 +172,9 @@ export class StateFactory {
           this.debugLog.next([`[redux-toolkit-obs] ${epicId} is about to be subscribed`]);
           // console.log(`[redux-toolkit-obs] ${epicId} is about to be subscribed`);
         }),
-        mergeMap(([epic, epicId, unsub]) => (epic(action$, state$, dependencies) as ReturnType<Epic>)
+        mergeMap(([epic, epicId, unsub]) => (epic(action$, state$, dependencies))
           .pipe(
+            // tap(action => console.log('action: ', action.type)),
             takeUntil(unsub.pipe(
               take(1),
               tap(epicId => {
@@ -158,7 +189,6 @@ export class StateFactory {
             })
           )
         ),
-        // tslint:disable-next-line: no-console
         takeUntil(action$.pipe(
           ofType('STOP_EPIC'),
           tap(() => this.debugLog.next(['[redux-toolkit-obs]', 'Stop all epics']))
@@ -167,7 +197,7 @@ export class StateFactory {
     });
     this.addEpic((action$) => {
       return this.actionsToDispatch;
-    });
+    }, 'internalDispatcher');
 
     return this;
   }
@@ -216,12 +246,13 @@ export class StateFactory {
   /**
    * @returns a function to unsubscribe from this epic
    * @param epic 
+   * @param epicName a name for debug and logging purpose
    */
-  addEpic<S = any>(epic: Epic<PayloadAction<any>, any, S>) {
-    const epicId = 'Epic-' + ++this.epicSeq;
+  addEpic<S = any>(epic: Epic<PayloadAction<any>, any, S>, epicName?: string) {
+    const epicId = 'Epic-' + (epicName || ++this.epicSeq);
     const unsubscribeEpic = new Subject<string>();
-    this.epicWithUnsub$.next([epic, epicId, unsubscribeEpic]);
     this.debugLog.next([`[redux-toolkit-obs] ${epicId} is added`]);
+    this.epicWithUnsub$.next([epic, epicId, unsubscribeEpic]);
     return () => {
       unsubscribeEpic.next(epicId);
       unsubscribeEpic.complete();
@@ -292,8 +323,8 @@ export class StateFactory {
     return (next) => {
       return (action: PayloadAction) => {
         try {
+          // console.log('action in errorHandleMiddleware', action.type);
           this.debugLog.next(['action', action != null ? action.type : action]);
-
           const ret = next(action);
           return ret;
         } catch (err) {

@@ -2,7 +2,7 @@ export interface TemplReplacement {
     fileMapping?: [RegExp, string][];
     /** lodah template */
     textMapping?: {
-        [key: string]: string;
+        [key: string]: any;
     };
     /** Suffix name of target file, default: /(?:[tj]sx?|s?css|json|yaml|yml|html|svg)$/ */
     includeTextType?: RegExp;

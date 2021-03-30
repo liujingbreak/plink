@@ -14,31 +14,6 @@ import plink from '__plink';
 // import {ObjectAst} from '@wfh/plink/wfh/di st/utils/json-sync-parser';
 
 const cli: CliExtension = (program) => {
-
-  const genCmd = program.command('cra-gen <path>')
-  .description('Generate a sample package')
-  .option('--comp <name>', 'Sample component name', 'Sample')
-  .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
-  .action(async (dir: string) => {
-    (await import('./cli-gen')).genPackage(dir, genCmd.opts().comp, genCmd.opts().dryRun);
-  });
-
-  const genCompCmd = program.command('cra-gen-comp <dir> <componentName...>')
-  .description('Generate sample components')
-  .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
-  .action(async (dir: string, compNames: string[]) => {
-    (await import('./cli-gen')).genComponents(dir, compNames, genCompCmd.opts().dryRun);
-  });
-  genCompCmd.usage(genCompCmd.usage() + '\ne.g.\n  plink cra-comp ../packages/foobar/components Toolbar Layout Profile');
-
-  const genSliceCmd = program.command('cra-gen-slice <dir> <sliceName...>')
-  .description('Generate a sample Redux-toolkit Slice file (with Redux-observable epic)')
-  .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
-  .action(async (dir: string, sliceName: string[]) => {
-    (await import('./cli-gen')).genSlice(dir, sliceName, genSliceCmd.opts().dryRun);
-  });
-  // withGlobalOptions(genSliceCmd);
-
   const buildCmd = program.command('cra-build <app|lib> <package-name>')
   .description('Compile react application or library, <package-name> is the target package name,\n' +
     'argument "app" for building a complete application like create-react-app,\n' +

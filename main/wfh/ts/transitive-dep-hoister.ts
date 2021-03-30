@@ -46,7 +46,8 @@ export interface DependentInfo {
   /** Is a direct dependency of space package.json */
   direct: boolean;
   /** In case a transitive peer dependency, it should not
-   * be installed automatically, unless it is also a direct dependency of current space 
+   * be installed automatically, unless it is also a direct dependency of current space,
+   * setting to `true` to remind user to install manually 
    */
   missing: boolean;
   /** Same trasitive dependency in both normal and peer dependencies list
@@ -125,6 +126,7 @@ export class InstallManager {
     const dependentInfo: Map<string, DependentInfo> = this.collectDependencyInfo(this.srcDeps);
     const peerDependentInfo = this.collectDependencyInfo(this.peerDeps, false);
     // merge peer dependent info list into regular dependent info list
+    // In case peer dependency duplicates to existing transitive dependency, set "missing" to `false`
     for (const [peerDep, peerInfo] of peerDependentInfo.entries()) {
       if (!peerInfo.missing)
         continue;
@@ -137,6 +139,7 @@ export class InstallManager {
       }
     }
 
+    // merge directDepsList into dependentInfo
     for (const [depName, item] of this.directDepsList.traverse()) {
       const info: DependentInfo = {
         sameVer: true,
@@ -169,7 +172,7 @@ export class InstallManager {
       const info: DependentInfo = {
         sameVer: !hasDiffVersion,
         direct,
-        missing: notPeerDeps ? false : !direct,
+        missing: !notPeerDeps && !direct,
         duplicatePeer: false,
         by: versions.map(item => ({ver: item.ver, name: item.by}))
       };

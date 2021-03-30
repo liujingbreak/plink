@@ -17,16 +17,13 @@ export declare type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<
 export declare function ofPayloadAction<P1>(actionCreators1: ActionCreatorWithPayload<P1>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1>>;
 export declare function ofPayloadAction<P1, P2>(actionCreators1: ActionCreatorWithPayload<P1>, actionCreators2: ActionCreatorWithPayload<P2>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2>>;
 export declare function ofPayloadAction<P1, P2, P3>(actionCreators1: ActionCreatorWithPayload<P1>, actionCreators2: ActionCreatorWithPayload<P2>, actionCreators3: ActionCreatorWithPayload<P3>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2 | P3>>;
-export interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output extends PayloadAction<Payload> = PayloadAction<Payload>, CaseReducers extends SliceCaseReducers<any> = SliceCaseReducers<any>, Name extends string = string> {
-    preloadedState: ConfigureStoreOptions['preloadedState'];
-    slices: Slice<State, CaseReducers, Name>[];
-    epics: Epic<PayloadAction<Payload>, Output, State>[];
-}
 export interface ErrorState {
     actionError?: Error;
 }
 declare type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends CreateSliceOptions<infer S, any, string> ? S : unknown;
+/** A Helper infer type */
 export declare type InferSliceType<MyCreateSliceOptionsType> = Slice<InferStateType<MyCreateSliceOptionsType>, (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) & ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>, string>;
+/** A Helper infer type */
 export declare type InferActionsType<MyCreateSliceOptionsType> = InferSliceType<MyCreateSliceOptionsType>['actions'];
 export declare class StateFactory {
     private preloadedState;
@@ -35,9 +32,7 @@ export declare class StateFactory {
      *
      * Redux-observable's state$ does not notify state change event when a lazy loaded (replaced) slice initialize state
      */
-    realtimeState$: BehaviorSubject<{
-        [key: string]: any;
-    }>;
+    realtimeState$: BehaviorSubject<unknown>;
     store$: BehaviorSubject<EnhancedStore<any, {
         payload: any;
         type: string;
@@ -45,8 +40,7 @@ export declare class StateFactory {
     log$: Observable<any[]>;
     rootStoreReady: Promise<EnhancedStore<any, PayloadAction<any>>>;
     /**
-     * Unlike store.dispatch(action),
-     * If you call next() on this subject, it can save action dispatch an action even before store is configured
+     * same as store.dispatch(action), but this one goes through Redux-observable's epic middleware
      */
     actionsToDispatch: ReplaySubject<{
         payload: any;
@@ -59,7 +53,13 @@ export declare class StateFactory {
     private epicWithUnsub$;
     private errorSlice;
     constructor(preloadedState: ConfigureStoreOptions['preloadedState']);
-    configureStore(middlewares?: Middleware[]): this;
+    /**
+     *
+     * @param opt Be aware, turn off option "serializableCheck" and "immutableCheck" from Redux default middlewares
+     */
+    configureStore(opt?: {
+        [key in Exclude<'reducer', keyof ConfigureStoreOptions<unknown, PayloadAction<unknown>>>]: ConfigureStoreOptions<unknown, PayloadAction<unknown>>[key];
+    }): this;
     /**
      * Create our special slice with a default reducer action:
      * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
@@ -72,8 +72,9 @@ export declare class StateFactory {
     /**
      * @returns a function to unsubscribe from this epic
      * @param epic
+     * @param epicName a name for debug and logging purpose
      */
-    addEpic<S = any>(epic: Epic<PayloadAction<any>, any, S>): () => void;
+    addEpic<S = any>(epic: Epic<PayloadAction<any>, any, S>, epicName?: string): () => void;
     sliceState<SS, CaseReducers extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(slice: Slice<SS, CaseReducers, Name>): SS;
     sliceStore<SS>(slice: Slice<SS>): Observable<SS>;
     getErrorState(): ErrorState;

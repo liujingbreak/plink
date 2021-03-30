@@ -26,7 +26,6 @@ const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export = function(webpackEnv: 'production' | 'development') {
   drawPuppy('Pooing on create-react-app', `If you want to know how Webpack is configured, check: ${api.config.resolve('destDir', 'cra-scripts.report')}`);
-  console.log('process.env.PUBLIC_URL=', process.env.PUBLIC_URL);
 
   const cmdOption = getCmdOptions();
   // `npm run build` by default is in production mode, below hacks the way react-scripts does

@@ -2,18 +2,21 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import { ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
+// We suggest to use axios-observable instead of axios or fetch,
+// since axios-observable gives a easier way to CANCEL request (which is simply `unsubscribe()` from it)
+import axiosObs from 'axios-observable';
 
 export interface $__SliceName__$State {
-  foo: boolean;
+  foobar: string;
   _computed: {
-    bar: string;
+    reactHtml: {__html: string};
   };
 }
 
 const initialState: $__SliceName__$State = {
-  foo: true,
+  foobar: 'You component',
   _computed: {
-    bar: ''
+    reactHtml: {__html: 'You component goes here'}
   }
 };
 
@@ -21,9 +24,9 @@ const $__sliceName__$Slice = stateFactory.newSlice({
   name: '$__sliceName__$',
   initialState,
   reducers: {
-    exampleAction(s, {payload}: PayloadAction<boolean>) {
+    exampleAction(s, {payload}: PayloadAction<string>) {
       // modify state draft
-      s.foo = payload;
+      s.foobar = payload;
     }
   }
 });
@@ -34,16 +37,20 @@ const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}
 
   return rx.merge(
     action$.pipe(ofPayloadAction($__sliceName__$Slice.actions.exampleAction),
+      // switchMap will cancel (unsubscribe) previous unfinished action.
+      // Choose one of switchMap, concatMap, mergeMap, exhaustMap from async reaction to certain Actions
       op.switchMap(({payload}) => {
-        return rx.from(Promise.resolve('mock async HTTP request call'));
+        // mock async HTTP request call, you may return a Promise as well.
+        // return Promise.resolve('some data'); 
+        return axiosObs.get('https://www.baidu.com/guoji');
       })
     ),
     getStore().pipe(
-      op.map(s => s.foo),
+      op.map(s => s.foobar),
       op.distinctUntilChanged(),
       op.map(changedFoo => {
         dispatcher._change(s => {
-          s._computed.bar = 'changed ' + changedFoo;
+          s._computed.reactHtml.__html = changedFoo + ' goes here';
         });
       })
     )
@@ -51,7 +58,7 @@ const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}
     op.catchError((ex, src) => {
       // tslint:disable-next-line: no-console
       console.error(ex);
-      // gService.toastAction('网络错误\n' + ex.message);
+      // To recover from async action errors, always return "src" stream when error is encountered.
       return src;
     }),
     op.ignoreElements()

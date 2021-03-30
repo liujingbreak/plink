@@ -146,6 +146,31 @@
         "signature": "b49f3864215005d660e64a36719c599f26736099b8b3005a619d6f8c44a3142d",
         "affectsGlobalScope": true
       },
+      "../../node_modules/@types/react/global.d.ts": {
+        "version": "ecf78e637f710f340ec08d5d92b3f31b134a46a4fcf2e758690d8c46ce62cba6",
+        "signature": "ecf78e637f710f340ec08d5d92b3f31b134a46a4fcf2e758690d8c46ce62cba6",
+        "affectsGlobalScope": true
+      },
+      "../../node_modules/csstype/index.d.ts": {
+        "version": "0a6f28e1d77b99b0ef7da2f0bf50f301ea8a7eb7b4f573e458e725452a477bd2",
+        "signature": "0a6f28e1d77b99b0ef7da2f0bf50f301ea8a7eb7b4f573e458e725452a477bd2",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/prop-types/index.d.ts": {
+        "version": "a7e32dcb90bf0c1b7a1e4ac89b0f7747cbcba25e7beddc1ebf17be1e161842ad",
+        "signature": "a7e32dcb90bf0c1b7a1e4ac89b0f7747cbcba25e7beddc1ebf17be1e161842ad",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/scheduler/tracing.d.ts": {
+        "version": "f5a8b384f182b3851cec3596ccc96cb7464f8d3469f48c74bf2befb782a19de5",
+        "signature": "f5a8b384f182b3851cec3596ccc96cb7464f8d3469f48c74bf2befb782a19de5",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/react/index.d.ts": {
+        "version": "5d708266116e778d6a4140fca2ac36f71d99b4c68bc3be63a45ba8bf5ade5348",
+        "signature": "5d708266116e778d6a4140fca2ac36f71d99b4c68bc3be63a45ba8bf5ade5348",
+        "affectsGlobalScope": true
+      },
       "../../node_modules/symbol-observable/index.d.ts": {
         "version": "7ccece60f62968f5765383f1f5322ace6937e42c3a2068834ac214fe24f9b7bc",
         "signature": "7ccece60f62968f5765383f1f5322ace6937e42c3a2068834ac214fe24f9b7bc",
@@ -154,6 +179,16 @@
       "../../node_modules/redux/index.d.ts": {
         "version": "dc7b63bcdfaf08b68a9fabeab720173481db52014bbb40314f5a6757387b6516",
         "signature": "dc7b63bcdfaf08b68a9fabeab720173481db52014bbb40314f5a6757387b6516",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/hoist-non-react-statics/index.d.ts": {
+        "version": "bfe1b52cf71aea9bf8815810cc5d9490fa9617313e3d3c2ee3809a28b80d0bb4",
+        "signature": "bfe1b52cf71aea9bf8815810cc5d9490fa9617313e3d3c2ee3809a28b80d0bb4",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/react-redux/index.d.ts": {
+        "version": "89fb470ea4979b52a206816172c98f92141a95494b40ee2b8d75a901d0555ba7",
+        "signature": "89fb470ea4979b52a206816172c98f92141a95494b40ee2b8d75a901d0555ba7",
         "affectsGlobalScope": false
       },
       "../../node_modules/immer/dist/utils/env.d.ts": {
@@ -1087,8 +1122,13 @@
         "affectsGlobalScope": false
       },
       "../redux-toolkit-observable.ts": {
-        "version": "a6e33cae8dd8974490dc132d978f1a10ecca758b387daa726ddd5bd8382b7361",
-        "signature": "ffcea63b84d0b7c1324025b129de03337d1e8932581f14be8bfe46884511eb80",
+        "version": "a3491f0ba8b2e48c9845e6842afb9e948cdb6e4f5c83be7018ddf4c73e2f263d",
+        "signature": "3db3081ec5511cdc6fd9c3bffa24b7bc6afb673854d5571552bf2c8b29b27185",
+        "affectsGlobalScope": false
+      },
+      "../react-redux-helper.ts": {
+        "version": "396849334f6b7429446cf4bc424f67b7eb5dc8705af628d04840ac80cadf8f45",
+        "signature": "d18d2741f88d86ebc6e7f4aacdb0d29e30d12de65101d9740a2a8ed11625b0b7",
         "affectsGlobalScope": false
       },
       "../state-factory-browser.ts": {
@@ -1476,6 +1516,11 @@
         "signature": "db80fcbd0c9693ac9964c31c11979a3d33550a612981021d99e935c0e3d9c36c",
         "affectsGlobalScope": false
       },
+      "../../node_modules/@types/scheduler/index.d.ts": {
+        "version": "3169db033165677f1d414baf0c82ba27801089ca1b66d97af464512a47df31b5",
+        "signature": "3169db033165677f1d414baf0c82ba27801089ca1b66d97af464512a47df31b5",
+        "affectsGlobalScope": false
+      },
       "../../node_modules/@types/semver/classes/semver.d.ts": {
         "version": "d9e55d93aa33fad61bd5c63800972d00ba8879ec5d29f6f3bce67d16d86abc33",
         "signature": "d9e55d93aa33fad61bd5c63800972d00ba8879ec5d29f6f3bce67d16d86abc33",
@@ -1792,12 +1837,12 @@
       "outDir": "../es",
       "declaration": true,
       "module": 6,
-      "target": 3,
+      "target": 2,
       "noImplicitAny": true,
       "suppressImplicitAnyIndexErrors": true,
       "allowSyntheticDefaultImports": true,
       "esModuleInterop": true,
-      "inlineSourceMap": true,
+      "inlineSourceMap": false,
       "inlineSources": false,
       "moduleResolution": 2,
       "experimentalDecorators": true,
@@ -1818,6 +1863,7 @@
       "rootDir": "..",
       "composite": true,
       "sourceMap": false,
+      "watch": true,
       "project": "../../wfh/tsconfig-redux-toolkit-es.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit-es.json"
     },
@@ -1847,6 +1893,9 @@
         "../../node_modules/@types/undertaker/index.d.ts",
         "../../node_modules/@types/vinyl-fs/index.d.ts",
         "../../node_modules/chokidar/types/index.d.ts"
+      ],
+      "../../node_modules/@types/hoist-non-react-statics/index.d.ts": [
+        "../../node_modules/@types/react/index.d.ts"
       ],
       "../../node_modules/@types/lodash/ts3.1/common/array.d.ts": [
         "../../node_modules/@types/lodash/ts3.1/common/collection.d.ts",
@@ -2195,6 +2244,17 @@
       ],
       "../../node_modules/@types/node/zlib.d.ts": [
         "../../node_modules/@types/node/stream.d.ts"
+      ],
+      "../../node_modules/@types/react-redux/index.d.ts": [
+        "../../node_modules/@types/hoist-non-react-statics/index.d.ts",
+        "../../node_modules/@types/react/index.d.ts",
+        "../../node_modules/redux/index.d.ts"
+      ],
+      "../../node_modules/@types/react/index.d.ts": [
+        "../../node_modules/@types/prop-types/index.d.ts",
+        "../../node_modules/@types/react/global.d.ts",
+        "../../node_modules/@types/scheduler/tracing.d.ts",
+        "../../node_modules/csstype/index.d.ts"
       ],
       "../../node_modules/@types/semver/classes/comparator.d.ts": [
         "../../node_modules/@types/semver/classes/semver.d.ts",
@@ -3325,6 +3385,11 @@
         "../../node_modules/rxjs/internal/operators/withlatestfrom.d.ts",
         "../../node_modules/rxjs/internal/operators/zip.d.ts",
         "../../node_modules/rxjs/internal/operators/zipall.d.ts"
+      ],
+      "../react-redux-helper.ts": [
+        "../../node_modules/@types/react-redux/index.d.ts",
+        "../../node_modules/@types/react/index.d.ts",
+        "../redux-toolkit-observable.ts"
       ],
       "../redux-toolkit-observable.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
@@ -3366,6 +3431,9 @@
         "../../node_modules/@types/vinyl-fs/index.d.ts",
         "../../node_modules/chokidar/types/index.d.ts"
       ],
+      "../../node_modules/@types/hoist-non-react-statics/index.d.ts": [
+        "../../node_modules/@types/react/index.d.ts"
+      ],
       "../../node_modules/@types/lodash/ts3.1/common/array.d.ts": [
         "../../node_modules/@types/lodash/ts3.1/common/collection.d.ts",
         "../../node_modules/@types/lodash/ts3.1/common/common.d.ts",
@@ -3713,6 +3781,17 @@
       ],
       "../../node_modules/@types/node/zlib.d.ts": [
         "../../node_modules/@types/node/stream.d.ts"
+      ],
+      "../../node_modules/@types/react-redux/index.d.ts": [
+        "../../node_modules/@types/hoist-non-react-statics/index.d.ts",
+        "../../node_modules/@types/react/index.d.ts",
+        "../../node_modules/redux/index.d.ts"
+      ],
+      "../../node_modules/@types/react/index.d.ts": [
+        "../../node_modules/@types/prop-types/index.d.ts",
+        "../../node_modules/@types/react/global.d.ts",
+        "../../node_modules/@types/scheduler/tracing.d.ts",
+        "../../node_modules/csstype/index.d.ts"
       ],
       "../../node_modules/@types/semver/classes/comparator.d.ts": [
         "../../node_modules/@types/semver/classes/semver.d.ts",
@@ -4844,6 +4923,12 @@
         "../../node_modules/rxjs/internal/operators/zip.d.ts",
         "../../node_modules/rxjs/internal/operators/zipall.d.ts"
       ],
+      "../react-redux-helper.ts": [
+        "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
+        "../../node_modules/@types/react-redux/index.d.ts",
+        "../../node_modules/redux/index.d.ts",
+        "../redux-toolkit-observable.ts"
+      ],
       "../redux-toolkit-observable.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
         "../../node_modules/redux-observable/index.d.ts",
@@ -4863,6 +4948,7 @@
       "../../node_modules/@types/glob-stream/index.d.ts",
       "../../node_modules/@types/glob/index.d.ts",
       "../../node_modules/@types/gulp/index.d.ts",
+      "../../node_modules/@types/hoist-non-react-statics/index.d.ts",
       "../../node_modules/@types/jasmine/index.d.ts",
       "../../node_modules/@types/js-yaml/index.d.ts",
       "../../node_modules/@types/lodash/ts3.1/common/array.d.ts",
@@ -4927,6 +5013,12 @@
       "../../node_modules/@types/node/wasi.d.ts",
       "../../node_modules/@types/node/worker_threads.d.ts",
       "../../node_modules/@types/node/zlib.d.ts",
+      "../../node_modules/@types/prop-types/index.d.ts",
+      "../../node_modules/@types/react-redux/index.d.ts",
+      "../../node_modules/@types/react/global.d.ts",
+      "../../node_modules/@types/react/index.d.ts",
+      "../../node_modules/@types/scheduler/index.d.ts",
+      "../../node_modules/@types/scheduler/tracing.d.ts",
       "../../node_modules/@types/semver/classes/comparator.d.ts",
       "../../node_modules/@types/semver/classes/range.d.ts",
       "../../node_modules/@types/semver/classes/semver.d.ts",
@@ -4994,6 +5086,7 @@
       "../../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts",
       "../../node_modules/@types/yamljs/index.d.ts",
       "../../node_modules/chokidar/types/index.d.ts",
+      "../../node_modules/csstype/index.d.ts",
       "../../node_modules/immer/dist/core/current.d.ts",
       "../../node_modules/immer/dist/core/finalize.d.ts",
       "../../node_modules/immer/dist/core/immerclass.d.ts",
@@ -5210,6 +5303,7 @@
       "../../node_modules/typescript/lib/lib.es5.d.ts",
       "../../node_modules/typescript/lib/lib.esnext.intl.d.ts",
       "../hmr-module.d.ts",
+      "../react-redux-helper.ts",
       "../redux-toolkit-observable.ts",
       "../state-factory-browser.ts"
     ]

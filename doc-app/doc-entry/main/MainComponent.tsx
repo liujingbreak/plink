@@ -7,18 +7,13 @@ import {BrowserRouter as Router} from 'react-router-dom';
 import {RoutesComp} from './RoutesComp';
 import {Provider as ReduxProvider} from 'react-redux';
 import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
+import { useStoreOfStateFactory } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import './markdown-setup';
 // const cx = classNames.bind(styles);
 // const bannerImgCls = cx('assets');
 
 const MainComp: React.FC<{}> = function(prop) {
-  const [reduxStore, setReduxStore] = React.useState(stateFactory.getRootStore());
-
-  React.useEffect(() => {
-    stateFactory.rootStoreReady.then(store => {
-      setReduxStore(store);
-    });
-  }, []);
+  const reduxStore = useStoreOfStateFactory(stateFactory);
 
   if (reduxStore == null) {
     return <>...</>;

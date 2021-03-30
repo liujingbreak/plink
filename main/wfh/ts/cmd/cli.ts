@@ -183,6 +183,7 @@ function subComands(program: commander.Command) {
    */
   const listCmd = program.command('ls').alias('list')
     .option('-j, --json', 'list linked dependencies in form of JSON', false)
+    .option('--hoist', 'list hoisted transitive Dependency information', false)
     .description('If you want to know how many packages will actually run, this command prints out a list and the priorities, including installed packages')
     .action(async () => {
       await (await import('./cli-ls')).default(listCmd.opts() as any);

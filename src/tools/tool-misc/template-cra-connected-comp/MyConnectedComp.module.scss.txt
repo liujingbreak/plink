@@ -1,0 +1,13 @@
+
+.$__MyComponent__$ {
+  background: #ee6464;
+  text-align: center;/*<%
+  if (withImage) {
+  %>*/
+  img {
+    display: block;
+  }/*<%
+  } %>*/
+}
+
+// https://github.com/css-modules/css-modules

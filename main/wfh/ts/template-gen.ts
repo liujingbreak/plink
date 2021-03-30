@@ -10,7 +10,7 @@ const log = getLogger('plink.template-gen');
 export interface TemplReplacement {
   fileMapping?: [RegExp, string][];
   /** lodah template */
-  textMapping?: {[key: string]: string};
+  textMapping?: {[key: string]: any};
   /** Suffix name of target file, default: /(?:[tj]sx?|s?css|json|yaml|yml|html|svg)$/ */
   includeTextType?: RegExp;
 }
@@ -24,12 +24,14 @@ export interface GenerateOption {
    * 
    */
   keepFileSuffix?: boolean;
+  /** overwrite existing file */
+  // overwrite?: boolean;
 }
 
 const lodashTemplateSetting: NonNullable<Parameters<typeof _.template>[1]> = {
   interpolate: /\$__([\s\S]+?)__\$/g,
   evaluate: /\/\*<%([\s\S]+?)%>\*\//g,
-  // escape: /<%-([\s\S]+?)%>/g,
+  escape: /<%-([\s\S]+?)%>/g
   // evaluate: /<%([\s\S]+?)%>/g,
   // interpolate: /<%=([\s\S]+?)%>/g,
   // variable: '',

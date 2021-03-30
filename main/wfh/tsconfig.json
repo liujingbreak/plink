@@ -125,6 +125,12 @@
       "@wfh/doc-ui-common/*": [
         "../../doc-app/doc-ui-common/*"
       ],
+      "@wfh/hellow-app": [
+        "../../doc-app/hellow-app"
+      ],
+      "@wfh/hellow-app/*": [
+        "../../doc-app/hellow-app/*"
+      ],
       "@wfh/plink": [
         ".."
       ],

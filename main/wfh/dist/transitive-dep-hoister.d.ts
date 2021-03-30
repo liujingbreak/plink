@@ -29,7 +29,8 @@ export interface DependentInfo {
     /** Is a direct dependency of space package.json */
     direct: boolean;
     /** In case a transitive peer dependency, it should not
-     * be installed automatically, unless it is also a direct dependency of current space
+     * be installed automatically, unless it is also a direct dependency of current space,
+     * setting to `true` to remind user to install manually
      */
     missing: boolean;
     /** Same trasitive dependency in both normal and peer dependencies list

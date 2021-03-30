@@ -6,7 +6,7 @@
   "types": "build/public_api.d.ts",
   "dr": {
     "cra-lib-entry": "public_api.ts",
-    "cra-app-entry": "entry.tsx",
+    "cra-app-entry": "index.tsx",
     "config-overrides-path": "config-overrides.ts"
   },
   "sideEffects": false,

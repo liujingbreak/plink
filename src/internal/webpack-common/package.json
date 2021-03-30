@@ -1,15 +1,12 @@
 {
   "name": "@wfh/webpack-common",
-  "version": "1.0.10-1",
+  "version": "1.0.10-3",
   "description": "Common Webpack configuration parts for create-react-app and Angular cli",
   "main": "dist/index.js",
   "dr": {},
   "dependencies": {
     "@types/webpack-dev-server": "^3.11.2",
     "worker-loader": "3.0.8"
-  },
-  "peerDependencies": {
-    "html-webpack-plugin": "^4.5.0"
   },
   "author": "LJ",
   "license": "MIT"

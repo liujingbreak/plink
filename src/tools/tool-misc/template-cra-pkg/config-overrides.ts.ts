@@ -6,9 +6,9 @@ const handler: ReactScriptsHandler = {
     // change CRA paths:
 
     // output directory will be dist/static/main
-    craPaths.appBuild = craPaths.appBuild + '/main';
+    craPaths.appBuild = craPaths.appBuild + '$__appBuild__$';
     // webpack output.publicPath will be /main/, same as set environment variable PUBLIC_URL
-    craPaths.publicUrlOrPath = '/main/';
+    craPaths.publicUrlOrPath = '$__publicUrlOrPath__$';
   },
 
   webpack(cfg, env, cmdOpt) {

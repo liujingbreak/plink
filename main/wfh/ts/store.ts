@@ -15,6 +15,48 @@ export {ofPayloadAction};
 
 enableMapSet();
 
+configDefaultLog();
+
+function configDefaultLog() {
+  let logPatternPrefix = '';
+  if (process.send)
+    logPatternPrefix = 'pid:%z ';
+  else if (!isMainThread)
+    logPatternPrefix = '[thread]';
+  log4js.configure({
+    appenders: {
+      out: {
+        type: 'stdout',
+        layout: {type: 'pattern', pattern: logPatternPrefix + '%[%c%] - %m'}
+      }
+    },
+    categories: {
+      default: {appenders: ['out'], level: 'info'}
+    }
+  });
+  /**
+   - %r time in toLocaleTimeString format
+   - %p log level
+   - %c log category
+   - %h hostname
+   - %m log data
+   - %d date, formatted - default is ISO8601, format options are: ISO8601, ISO8601_WITH_TZ_OFFSET, ABSOLUTE, DATE, or any string compatible with the date-format library. e.g. %d{DATE}, %d{yyyy/MM/dd-hh.mm.ss}
+   - %% % - for when you want a literal % in your output
+   - %n newline
+   - %z process id (from process.pid)
+   - %f full path of filename (requires enableCallStack: true on the category, see configuration object)
+   - %f{depth} path’s depth let you chose to have only filename (%f{1}) or a chosen number of directories
+   - %l line number (requires enableCallStack: true on the category, see configuration object)
+   - %o column postion (requires enableCallStack: true on the category, see configuration object)
+   - %s call stack (requires enableCallStack: true on the category, see configuration object)
+   - %x{<tokenname>} add dynamic tokens to your log. Tokens are specified in the tokens parameter.
+   - %X{<tokenname>} add values from the Logger context. Tokens are keys into the context values.
+   - %[ start a coloured block (colour will be taken from the log level, similar to colouredLayout)
+   - %] end a coloured block
+   */
+}
+
+
 export const BEFORE_SAVE_STATE = 'BEFORE_SAVE_STATE';
 const IGNORE_SLICE = ['config', 'configView', 'cli'];
 const IGNORE_ACTION = new Set(['packages/setInChina', 'packages/updatePlinkPackageInfo']);
@@ -124,3 +166,14 @@ export async function saveState() {
     log.error(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`), err);
   }
 }
+
+// TEST async action for Thunk middleware
+// stateFactory.store$.subscribe(store => {
+//   if (store) {
+//     debugger;
+//     store.dispatch((async (dispatch: any) => {
+//       await new Promise(resolve => setTimeout(resolve, 500));
+//       dispatch({type: 'ok'});
+//     }) as any);
+//   }
+// });

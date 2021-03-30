@@ -7,13 +7,18 @@ import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import chalk from 'chalk';
 import Path from 'path';
 import * as _ from 'lodash';
-import {printWorkspaces/*, printWorkspaceHoistedDeps*/} from './cli-init';
+import {printWorkspaces, printWorkspaceHoistedDeps} from './cli-init';
 import {take, map, distinctUntilChanged, skip} from 'rxjs/operators';
 import {createCliTable} from '../utils/misc';
 import * as priorityHelper from '../package-priority-helper';
 import {isServerPackage, readPriorityProperty} from '../package-runner';
 
-export default async function list(opt: GlobalOptions & {json: boolean}) {
+export default async function list(opt: GlobalOptions & {json: boolean, hoist: boolean}) {
+  if (opt.hoist) {
+    for (const wsState of pkMgr.getState().workspaces.values()) {
+      printWorkspaceHoistedDeps(wsState);
+    }
+  }
   if (opt.json)
     console.log(JSON.stringify(jsonOfLinkedPackageForProjects(), null, '  '));
   else

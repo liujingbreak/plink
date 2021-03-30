@@ -15,6 +15,7 @@ process.on('exit', () => {
 
 (async function run() {
   initProcess();
+  await new Promise(resolve => process.nextTick(resolve));
   (require('./cmd/cli') as typeof _cli).createCommands(startTime);
 })().catch(err => {
   console.log(err);

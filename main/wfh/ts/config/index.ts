@@ -15,7 +15,6 @@ import {dispatcher, getState, DrcpSettings} from './config-slice';
 // Refactor: circular reference
 import * as _pkgList from '../package-mgr/package-list-helper';
 import * as _pkgMgr from '../package-mgr';
-import {isMainThread} from 'worker_threads';
 
 const log = log4js.getLogger('plink.config');
 // const yamljs = require('yamljs');
@@ -25,47 +24,6 @@ const {rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 let rootPath = rootDir;
 
 export const handlers$ = new rx.BehaviorSubject<ConfigHandlerMgr | undefined>(undefined);
-
-configDefaultLog();
-
-function configDefaultLog() {
-  let logPatternPrefix = '';
-  if (process.send)
-    logPatternPrefix = 'pid:%z ';
-  else if (!isMainThread)
-    logPatternPrefix = '[thread]';
-  log4js.configure({
-    appenders: {
-      out: {
-        type: 'stdout',
-        layout: {type: 'pattern', pattern: logPatternPrefix + '%[%c%] - %m'}
-      }
-    },
-    categories: {
-      default: {appenders: ['out'], level: 'info'}
-    }
-  });
-  /**
-   - %r time in toLocaleTimeString format
-   - %p log level
-   - %c log category
-   - %h hostname
-   - %m log data
-   - %d date, formatted - default is ISO8601, format options are: ISO8601, ISO8601_WITH_TZ_OFFSET, ABSOLUTE, DATE, or any string compatible with the date-format library. e.g. %d{DATE}, %d{yyyy/MM/dd-hh.mm.ss}
-   - %% % - for when you want a literal % in your output
-   - %n newline
-   - %z process id (from process.pid)
-   - %f full path of filename (requires enableCallStack: true on the category, see configuration object)
-   - %f{depth} path’s depth let you chose to have only filename (%f{1}) or a chosen number of directories
-   - %l line number (requires enableCallStack: true on the category, see configuration object)
-   - %o column postion (requires enableCallStack: true on the category, see configuration object)
-   - %s call stack (requires enableCallStack: true on the category, see configuration object)
-   - %x{<tokenname>} add dynamic tokens to your log. Tokens are specified in the tokens parameter.
-   - %X{<tokenname>} add values from the Logger context. Tokens are keys into the context values.
-   - %[ start a coloured block (colour will be taken from the log level, similar to colouredLayout)
-   - %] end a coloured block
-   */
-}
 
 /**
  * read and return configuration
@@ -100,12 +58,6 @@ config.get = function(propPath: string, defaultValue: any) {
   return _.get(getState(), propPath, defaultValue);
 };
 
-// config.setDefault = function(propPath: string, value: any) {
-//   if (!_.has(setting, propPath)) {
-//     _.set(setting, propPath, value);
-//   }
-//   return setting;
-// };
 
 /**
  * Resolve a path based on `rootPath`

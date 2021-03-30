@@ -15,8 +15,8 @@ export type PlinkArchDiagramProps = React.PropsWithChildren<{
   dataKey: string;
 }>;
 
-const PlinkArchDiagram: React.FC<PlinkArchDiagramProps> = function(props0) {
-  const props = props0 as ReturnType<typeof mapToProps>;
+const PlinkArchDiagram: React.FC<ReturnType<ReturnType<typeof mapToPropsFactory>>> = function(props) {
+  // const props = props0 as ReturnType<ReturnType<typeof mapToPropsFactory>>;
   const diagram = (<div className={diagramTableCls}>
     {props.data.map(row => {
       return renderBlock(row);
@@ -26,15 +26,17 @@ const PlinkArchDiagram: React.FC<PlinkArchDiagramProps> = function(props0) {
   return ReactDom.createPortal(diagram, props.containerDom);
 };
 
-function mapToProps(rootState: unknown, ownProps: PlinkArchDiagramProps) {
-  const blocks = getState()[ownProps.dataKey];
-  return {
-    ...ownProps,
-    data: blocks || ([] as Block[])
+function mapToPropsFactory() {
+  return function mapToProps(rootState: unknown, ownProps: PlinkArchDiagramProps) {
+    const blocks = getState()[ownProps.dataKey];
+    return {
+      ...ownProps,
+      data: blocks || ([] as Block[])
+    };
   };
 }
 
-const Connected = connect(mapToProps)(PlinkArchDiagram);
+const Connected = connect(mapToPropsFactory)(PlinkArchDiagram);
 export {Connected as PlinkArchDiagram};
 
 function renderBlock(block: Block | string) {
