@@ -1,5 +1,4 @@
 /* tslint:disable max-line-length */
-import * as fs from 'fs';
 // import {mkdirpSync} from 'fs-extra';
 import * as _ from 'lodash';
 import {SimpleLinkedList, SimpleLinkedListNode} from './utils/misc';
@@ -14,17 +13,17 @@ export interface PackageJsonInterf {
   dependencies?: {[nm: string]: string};
 }
 export function listCompDependency(
-  pkJsonFiles: string[] | PackageJsonInterf[],
+  pkJsonFiles: Map<string, {json: PackageJsonInterf}>,
   workspace: string,
   workspaceDeps: {[name: string]: string},
-  excludeDep: Map<string, any> | Set<string>
+  workspaceDevDeps: {[name: string]: string}
 ) {
   // log.info('scan components from:\n', pkJsonFiles.join('\n'));
   const installer = new InstallManager(workspaceDeps, workspace, excludeDep);
-  if (typeof pkJsonFiles[0] === 'string')
-    installer.scanSrcDeps(pkJsonFiles as string[]);
-  else
-    installer.scanFor(pkJsonFiles as PackageJsonInterf[]);
+  // if (typeof pkJsonFiles[0] === 'string')
+  //   installer.scanSrcDeps(pkJsonFiles as string[]);
+  // else
+  installer.scanFor(pkJsonFiles as PackageJsonInterf[]);
   // installer.scanInstalledPeerDeps();
   const [HoistedDepInfo, HoistedPeerDepInfo] = installer.hoistDeps();
   return {
@@ -118,9 +117,9 @@ export class InstallManager {
     }
   }
 
-  scanSrcDeps(jsonFiles: string[]) {
-    return this.scanFor(jsonFiles.map(packageJson => JSON.parse(fs.readFileSync(packageJson, 'utf8'))));
-  }
+  // scanSrcDeps(jsonFiles: string[]) {
+  //   return this.scanFor(jsonFiles.map(packageJson => JSON.parse(fs.readFileSync(packageJson, 'utf8'))));
+  // }
 
   hoistDeps() {
     const dependentInfo: Map<string, DependentInfo> = this.collectDependencyInfo(this.srcDeps);

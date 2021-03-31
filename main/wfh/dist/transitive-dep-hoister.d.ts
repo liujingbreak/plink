@@ -11,7 +11,7 @@ export interface PackageJsonInterf {
         [nm: string]: string;
     };
 }
-export declare function listCompDependency(pkJsonFiles: string[] | PackageJsonInterf[], workspace: string, workspaceDeps: {
+export declare function listCompDependency(pkJsonFiles: PackageJsonInterf[], workspace: string, workspaceDeps: {
     [name: string]: string;
 }, excludeDep: Map<string, any> | Set<string>): {
     hoisted: Map<string, DependentInfo>;
@@ -56,7 +56,6 @@ export declare class InstallManager {
         [name: string]: string;
     }, workspaceName: string, excludeDeps: Map<string, any> | Set<string>);
     scanFor(pkJsons: PackageJsonInterf[]): void;
-    scanSrcDeps(jsonFiles: string[]): void;
     hoistDeps(): Map<string, DependentInfo>[];
     protected collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, notPeerDeps?: boolean): Map<string, DependentInfo>;
     protected _trackSrcDependency(name: string, version: string, byWhom: string): void;
