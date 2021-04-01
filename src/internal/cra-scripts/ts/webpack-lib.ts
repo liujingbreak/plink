@@ -4,7 +4,7 @@ import {findPackage} from './build-target-helper';
 import Path from 'path';
 import { getCmdOptions } from './utils';
 import {TscCmdParam} from '@wfh/plink/wfh/dist/ts-cmd';
-import log4js from 'log4js';
+import {logger as log4js} from '@wfh/plink';
 import chalk from 'chalk';
 import {Worker} from 'worker_threads';
 import _ from 'lodash';

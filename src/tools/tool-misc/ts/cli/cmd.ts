@@ -36,8 +36,8 @@ const cliExt: CliExtension = (program) => {
     .description('For create-react-app project, generate a sample package')
     .option('--comp <name>', 'Sample component name', 'sample')
     .option('--feature <name>', 'Sample feature directory and slice name', 'sampleFeature')
-    .option('--app-build-dir,--output <dir-name>', 'This option changes "publicUrlOrPath" and "appBuild" values in config-override.ts,' +
-      ' this has same effect of setting environment variable `PUBLIC_URL` and Webpack configure property `output.path`')
+    .option('--output <dir-name>', 'This option changes "appBuild" values in config-override.ts,' +
+      ' internally create-react-app changes Webpack configure property `output.path` according to this value')
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .action(async (dir: string) => {
       (await import('./cli-cra-gen')).genPackage(dir, genCraCmd.opts().comp,

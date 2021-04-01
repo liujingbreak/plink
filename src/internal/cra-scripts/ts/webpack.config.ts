@@ -6,7 +6,7 @@ import { Options as TsLoaderOpts } from '@wfh/webpack-common/dist/ts-loader';
 import fs from 'fs-extra';
 import _ from 'lodash';
 // import walkPackagesAndSetupInjector from './injector-setup';
-import log4js from 'log4js';
+import {logger} from '@wfh/plink';
 import Path from 'path';
 import { Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem } from 'webpack';
 import api from '__api';
@@ -21,7 +21,7 @@ import nodeResolve from 'resolve';
 import {getSetting} from '../isom/cra-scripts-setting';
 // import {changeTsConfigFile} from './change-tsconfig';
 
-const log = log4js.getLogger('cra-scripts');
+const log = logger.getLogger('@wfh/cra-scripts.webpack-config');
 const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export = function(webpackEnv: 'production' | 'development') {
@@ -35,7 +35,7 @@ export = function(webpackEnv: 'production' | 'development') {
   } else {
     // process.env.GENERATE_SOURCEMAP = 'false';
   }
-  log.info('webpackEnv =', webpackEnv);
+  log.info('webpackEnv :', webpackEnv);
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   reviseNodePathEnv();
 
@@ -112,7 +112,7 @@ export = function(webpackEnv: 'production' | 'development') {
   }
 
   runConfigHandlers(config, webpackEnv);
-  log.info(`output.publicPath: ${config.output!.publicPath}`);
+  log.debug(`output.publicPath: ${config.output!.publicPath}`);
   fs.writeFileSync(Path.resolve(reportDir, 'webpack.config.plink.js'), printConfig(config));
 
   // changeTsConfigFile();

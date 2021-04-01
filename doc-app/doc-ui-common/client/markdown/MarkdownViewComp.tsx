@@ -1,7 +1,7 @@
 import React from 'react';
-import classnames from 'classnames/bind';
+// import classnames from 'classnames/bind';
 import 'github-markdown-css/github-markdown.css';
-import styles from './MarkdownViewComp.module.scss';
+import './MarkdownViewComp.module.scss';
 import {getState, dispatcher} from './markdownSlice';
 import {connect} from 'react-redux';
 import {useParams} from 'react-router-dom';
@@ -10,7 +10,7 @@ import {MarkdownIndex} from './MarkdownIndex';
 // import mermaid from 'mermaid';
 import 'highlight.js/scss/solarized-light.scss';
 // import * as op from 'rxjs/operators';
-const cx = classnames.bind(styles);
+// const cx = classnames.bind(styles);
 const cls = 'markdown-body';
 
 let mermaidIdSeed = 0;

@@ -3,7 +3,6 @@ import classnames from 'classnames/bind';
 import {getState, dispatcher} from './markdownSlice';
 import {connect} from 'react-redux';
 import {TOC} from '@wfh/doc-ui-common/isom/md-types';
-import debounce from 'lodash/debounce';
 import anime from 'animejs';
 import './MarkdownIndex.scss';
 

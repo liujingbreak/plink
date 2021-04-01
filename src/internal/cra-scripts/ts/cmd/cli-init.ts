@@ -3,7 +3,7 @@
 import parse, { ObjectAst } from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 import replacePatches, { ReplacementInf } from '@wfh/plink/wfh/dist/utils/patch-text';
 import fs from 'fs';
-import log4js from 'log4js';
+import {logger as log4js} from '@wfh/plink';
 import _ from 'lodash';
 // import {pathToProjKey} from '@wfh/plink/wfh/dist/package-mgr';
 

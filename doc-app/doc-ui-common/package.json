@@ -31,6 +31,7 @@
     "@material/icon-button": "10.0.0",
     "@material/theme": "10.0.0",
     "@material/drawer": "10.0.0",
-    "@material/list": "10.0.0"
+    "@material/list": "10.0.0",
+    "@material/button": "10.0.0"
   }
 }

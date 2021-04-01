@@ -51,13 +51,13 @@ const loader: loader.Loader = function(source, sourceMap) {
             const headingQ = $(heading);
             if (headingQ) {
                 const headingText = headingQ.text();
-                const id = encodeURIComponent(idx + headingText);
-                log.info(`set heading <${heading.name}> id=${id}`);
+                const id = Buffer.from(idx + headingText).toString('base64');
+                // log.info(`set heading <${heading.name}> id=${id}`);
                 headingQ.attr('id', id);
-                toc.push({ tag: heading.name, text: headingText, id });
+                toc.push({ tag: heading.tagName, text: headingText, id });
             }
         });
-        console.log('toc: ', toc);
+        // console.log('toc: ', toc);
         return rx.merge(...done).pipe(
           op.catchError(err => {
             log.error(err);

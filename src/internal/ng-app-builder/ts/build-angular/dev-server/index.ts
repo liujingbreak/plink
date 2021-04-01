@@ -32,7 +32,7 @@ export default createBuilder<DevServerBuilderOptions, DevServerBuilderOutput>(
         });
       }),
       tap(() => {
-        console.log(drawPuppy('You may also run "node app" and access from http://localhost:14333'));
+        console.log(drawPuppy('You may also run "node app --dev" and access from http://localhost:14333'));
       })
     );
   }

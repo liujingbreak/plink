@@ -1,6 +1,6 @@
 import {Configuration} from 'webpack';
 import Path from 'path';
-import log4js from 'log4js';
+import {logger as log4js} from '@wfh/plink';
 
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 
