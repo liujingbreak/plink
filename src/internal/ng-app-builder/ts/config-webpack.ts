@@ -385,7 +385,7 @@ function changeSplitChunks(param: AngularCliParam, webpackConfig: any) {
     const resource = module.nameForCondition ? module.nameForCondition() : '';
     // console.log(`vendor test, resource: ${resource}, chunks: ${chunks.map( c => c.name)}`);
     const pk = api.findPackageByFile(resource);
-    return pk == null || pk.json.dr == null || pk.json.plink == null;
+    return pk == null || (pk.json.dr == null && pk.json.plink == null);
   }
 }
 
