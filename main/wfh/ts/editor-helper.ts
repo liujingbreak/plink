@@ -15,7 +15,7 @@ import * as op from 'rxjs/operators';
 import { PayloadAction } from '@reduxjs/toolkit';
 import {PlinkEnv} from './node-path';
 
-const {symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {symlinkDirName, workDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 
 // import Selector from './utils/ts-ast-query';
@@ -71,7 +71,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     }),
     action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceBatchChanged),
       op.tap(({payload: wsKeys}) => {
-        const wsDir = isCwdWorkspace() ? process.cwd() :
+        const wsDir = isCwdWorkspace() ? workDir :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
         writePackageSettingType();
@@ -111,7 +111,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
         if (!isBackupExists) {
           fs.writeFileSync(backupFile, fileContent);
         }
-        const wsDir = isCwdWorkspace() ? process.cwd() :
+        const wsDir = isCwdWorkspace() ? workDir :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
         return updateHookedTsconfig(data, wsDir);

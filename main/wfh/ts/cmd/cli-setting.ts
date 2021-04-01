@@ -2,10 +2,9 @@
 import config from '../config/index';
 import {dispatcher, getStore, getState} from '../config/config-view-slice';
 import {workspaceKey, PackageInfo} from '../package-mgr';
-import {findPackagesByNames} from './utils';
-import {completePackageName} from './utils';
+import {findPackagesByNames, completePackageName} from './utils';
 import * as op from 'rxjs/operators';
-import {createCliTable} from '../utils/misc';
+import {createCliTable, plinkEnv} from '../utils/misc';
 import chalk from 'chalk';
 import * as util from 'util';
 import Path from 'path';
@@ -14,7 +13,7 @@ import {getLogger} from 'log4js';
 const log = getLogger('plink.cli-setting');
 
 export default async function(pkgName?: string) {
-  const wskey = workspaceKey(process.cwd());
+  const wskey = workspaceKey(plinkEnv.workDir);
   if (pkgName) {
     const foundPkgName = Array.from(completePackageName([pkgName]))[0];
     if (foundPkgName == null) {
@@ -52,7 +51,7 @@ export default async function(pkgName?: string) {
         }
       }
       const tbl = createCliTable();
-      tbl.push(['Complete setting values:'])
+      tbl.push(['Complete setting values:']);
       // tslint:disable-next-line: no-console
       console.log(tbl.toString());
       // tslint:disable-next-line: no-console
@@ -102,7 +101,7 @@ function printPackage({name: pkgName, realPath}: PackageInfo) {
 
   const tbl = createCliTable({horizontalLines: false});
 
-  tbl.push([`Package ${chalk.green(pkgName)} setting ${'| ' + chalk.gray(Path.relative(process.cwd(), realPath))}`],
+  tbl.push([`Package ${chalk.green(pkgName)} setting ${'| ' + chalk.gray(Path.relative(plinkEnv.workDir, realPath))}`],
     [`  ${chalk.gray(meta.typeFile)}`]);
   // console.log(`Package ${chalk.green(pkgName)} setting ${chalk.gray('| ' + meta.typeFile)}`);
   console.log(tbl.toString());

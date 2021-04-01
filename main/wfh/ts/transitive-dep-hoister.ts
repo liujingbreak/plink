@@ -12,23 +12,40 @@ export interface PackageJsonInterf {
   peerDependencies?: {[nm: string]: string};
   dependencies?: {[nm: string]: string};
 }
+/**
+ * 
+ * @param pkJsonFiles json map of linked package
+ * @param workspace 
+ * @param workspaceDeps 
+ * @param workspaceDevDeps 
+ */
 export function listCompDependency(
-  pkJsonFiles: Map<string, {json: PackageJsonInterf}>,
+  pkJsonFiles: Map<string, {json: PackageJsonInterf;}>,
   workspace: string,
   workspaceDeps: {[name: string]: string},
-  workspaceDevDeps: {[name: string]: string}
+  workspaceDevDeps?: {[name: string]: string}
 ) {
-  // log.info('scan components from:\n', pkJsonFiles.join('\n'));
-  const installer = new InstallManager(workspaceDeps, workspace, excludeDep);
-  // if (typeof pkJsonFiles[0] === 'string')
-  //   installer.scanSrcDeps(pkJsonFiles as string[]);
-  // else
-  installer.scanFor(pkJsonFiles as PackageJsonInterf[]);
-  // installer.scanInstalledPeerDeps();
-  const [HoistedDepInfo, HoistedPeerDepInfo] = installer.hoistDeps();
+  const jsons = Array.from(pkJsonFiles.values()).map(item => item.json);
+  const allDeps = {...workspaceDeps, ...(workspaceDevDeps ? workspaceDevDeps : {})};
+  let scanner = new TransitiveDepScanner(allDeps, workspace, pkJsonFiles);
+  scanner.scanFor(jsons.filter(item => _.has(workspaceDeps, item.name)));
+  const [HoistedDepInfo, HoistedPeerDepInfo] = scanner.hoistDeps();
+  let hoistedDev: Map<string, DependentInfo>;
+  let hoistedDevPeers: Map<string, DependentInfo>;
+  if (workspaceDevDeps) {
+    scanner = new TransitiveDepScanner(allDeps, workspace, pkJsonFiles);
+    scanner.scanFor(jsons.filter(item => _.has(workspaceDevDeps, item.name)));
+    [hoistedDev, hoistedDevPeers] = scanner.hoistDeps(HoistedDepInfo);
+  } else {
+    hoistedDev = new Map();
+    hoistedDevPeers = new Map();
+  }
+  // TODO: devDependencies might contains transitive dependency which duplicates to "dependencies"
   return {
     hoisted: HoistedDepInfo,
-    hoistedPeers: HoistedPeerDepInfo
+    hoistedPeers: HoistedPeerDepInfo,
+    hoistedDev,
+    hoistedDevPeers
   };
 }
 
@@ -65,7 +82,7 @@ export interface DependentInfo {
 
 const versionReg = /^(\D*)(\d.*?)(?:\.tgz)?$/;
 
-export class InstallManager {
+export class TransitiveDepScanner {
   verbosMessage: string;
   /** key is dependency module name */
   private directDeps: Map<string, SimpleLinkedListNode<[string, DepInfo]>> = new Map();
@@ -73,9 +90,15 @@ export class InstallManager {
   private peerDeps: Map<string, DepInfo[]> = new Map();
   private directDepsList: SimpleLinkedList<[string, DepInfo]> = new SimpleLinkedList<[string, DepInfo]>();
 
-  constructor(workspaceDeps: {[name: string]: string}, workspaceName: string, private excludeDeps: Map<string, any> | Set<string>) {
+  /**
+   * 
+   * @param workspaceDeps should include "dependencies" and "devDependencies"
+   * @param workspaceName 
+   * @param excludeLinkedDeps 
+   */
+  constructor(workspaceDeps: {[name: string]: string}, workspaceName: string, private excludeLinkedDeps: Map<string, any> | Set<string>) {
     for (const [name, version] of Object.entries(workspaceDeps)) {
-      if (this.excludeDeps.has(name))
+      if (this.excludeLinkedDeps.has(name))
         continue;
       const m = versionReg.exec(version);
       const currNode = this.directDepsList.push([name, {
@@ -88,8 +111,9 @@ export class InstallManager {
     }
   }
 
-  scanFor(pkJsons: PackageJsonInterf[]) {
-    const self = this;
+  scanFor(pkJsons: Iterable<PackageJsonInterf>) {
+    // this.srcDeps.clear();
+    // this.peerDeps.clear();
 
     for (const json of pkJsons) {
       const deps = json.dependencies;
@@ -97,21 +121,17 @@ export class InstallManager {
         for (const name of Object.keys(deps)) {
           const version = deps[name];
           // log.debug('scanSrcDepsAsync() dep ' + name);
-          self._trackSrcDependency(name, version, json.name);
+          this._trackSrcDependency(name, version, json.name);
         }
       }
       if (json.devDependencies) {
-        log.warn(`${json.name} contains "devDepenendies", if they are necessary for compiling this component ` +
-          'you should move them to "dependencies" or "peerDependencies"');
-        // for (const name of Object.keys(json.devDependencies)) {
-        //   const version = json.devDependencies[name];
-        //   self._trackSrcDependency(this.srcDeps, name, version, json.name);
-        // }
+        log.warn(`A linked package "${json.name}" contains "devDepenendies", if they are necessary for running in worktree space, ` +
+          'you should move them to "dependencies" or "peerDependencies" of that package');
       }
       if (json.peerDependencies) {
         for (const name of Object.keys(json.peerDependencies)) {
           const version = json.peerDependencies[name];
-          self._trackPeerDependency(name, version, json.name);
+          this._trackPeerDependency(name, version, json.name);
         }
       }
     }
@@ -121,24 +141,36 @@ export class InstallManager {
   //   return this.scanFor(jsonFiles.map(packageJson => JSON.parse(fs.readFileSync(packageJson, 'utf8'))));
   // }
 
-  hoistDeps() {
-    const dependentInfo: Map<string, DependentInfo> = this.collectDependencyInfo(this.srcDeps);
-    const peerDependentInfo = this.collectDependencyInfo(this.peerDeps, false);
-    // merge peer dependent info list into regular dependent info list
+  /**
+   * The base algorithm: "new dependencies" = "direct dependencies of workspace" + "transive dependencies"
+   * @param extraDependentInfo extra dependent information to check if they are duplicate.
+   */
+  hoistDeps(extraDependentInfo?: Map<string, DependentInfo>) {
+    const dependentInfo = this.collectDependencyInfo(this.srcDeps);
+    const peerDependentInfo = this.collectDependencyInfo(this.peerDeps, true);
     // In case peer dependency duplicates to existing transitive dependency, set "missing" to `false`
+
     for (const [peerDep, peerInfo] of peerDependentInfo.entries()) {
       if (!peerInfo.missing)
         continue;
 
-      const normInfo = dependentInfo.get(peerDep);
+      let normInfo = dependentInfo.get(peerDep);
       if (normInfo) {
         peerInfo.duplicatePeer = true;
         peerInfo.missing = false;
         peerInfo.by.unshift(normInfo.by[0]);
       }
+      if (extraDependentInfo) {
+        normInfo = extraDependentInfo.get(peerDep);
+        if (normInfo) {
+          peerInfo.duplicatePeer = true;
+          peerInfo.missing = false;
+          peerInfo.by.unshift(normInfo.by[0]);
+        }
+      }
     }
 
-    // merge directDepsList into dependentInfo
+    // merge directDepsList (direct dependencies of workspace) into dependentInfo (transive dependencies)
     for (const [depName, item] of this.directDepsList.traverse()) {
       const info: DependentInfo = {
         sameVer: true,
@@ -153,25 +185,34 @@ export class InstallManager {
     return [dependentInfo, peerDependentInfo];
   }
 
-  protected collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, notPeerDeps = true) {
+  /**
+   * - If there is a direct dependency of workspace, move its version to the top of the version list,
+   * - If it is peer dependency and it is not a direct dependency of workspace,
+   * mark it "missing" so that reminds user to manual install it.
+   * @param trackedRaw 
+   * @param isPeerDeps 
+   */
+  protected collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, isPeerDeps = false) {
     const dependentInfos: Map<string, DependentInfo> = new Map();
 
     for (const [depName, versionList] of trackedRaw.entries()) {
+      // If there is a direct dependency of workspace, move its version to the top of the version list
       const directVer = this.directDeps.get(depName);
       const versions = sortByVersion(versionList, depName);
       if (directVer) {
         versions.unshift(directVer.value[1]);
-        if (notPeerDeps) {
+        if (!isPeerDeps) {
           this.directDepsList.removeNode(directVer);
         }
       }
       const hasDiffVersion = _containsDiffVersion(versionList);
 
-      const direct = this.directDeps.has(depName);
       const info: DependentInfo = {
         sameVer: !hasDiffVersion,
-        direct,
-        missing: !notPeerDeps && !direct,
+        direct: directVer != null,
+        // If it is peer dependency and it is not a direct dependency of workspace,
+        // then mark it "missing" so that reminds user to manual install it.
+        missing: isPeerDeps && directVer == null,
         duplicatePeer: false,
         by: versions.map(item => ({ver: item.ver, name: item.by}))
       };
@@ -182,7 +223,7 @@ export class InstallManager {
   }
 
   protected _trackSrcDependency(name: string, version: string, byWhom: string) {
-    if (this.excludeDeps.has(name))
+    if (this.excludeLinkedDeps.has(name))
       return;
     if (!this.srcDeps.has(name)) {
       this.srcDeps.set(name, []);
@@ -197,7 +238,7 @@ export class InstallManager {
   }
 
   protected _trackPeerDependency(name: string, version: string, byWhom: string) {
-    if (this.excludeDeps.has(name))
+    if (this.excludeLinkedDeps.has(name))
       return;
     if (!this.peerDeps.has(name)) {
       this.peerDeps.set(name, []);

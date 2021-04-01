@@ -1,7 +1,9 @@
 import { BaseLexer, Token } from '../base-LLn-parser';
+import { PlinkEnv } from '../node-path';
 import * as cfonts from 'cfonts';
 import Table from 'cli-table3';
 declare const isDrcpSymlink: boolean;
+export declare const plinkEnv: PlinkEnv;
 export { isDrcpSymlink };
 export declare enum WordTokenType {
     eol = 0,
@@ -34,6 +36,8 @@ export interface PackageTsDirs {
 }
 export declare function getTscConfigOfPkg(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;
+/** get Plink work directory or process.cwd() */
+export declare const getWorkDir: () => string;
 export declare function getSymlinkForPackage(pkgName: string, workspaceDir?: string): string | null;
 export declare function closestCommonParentDir(paths: Iterable<string>): string;
 export declare function isEqualMapSet<T>(set1: Set<T> | Map<T, any>, set2: Set<T> | Map<T, any>): boolean;

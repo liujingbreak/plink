@@ -12,7 +12,7 @@ export {cliPackageArgDesc} from './cmd/cli';
 export * from './store';
 export * from './utils/bootstrap-process';
 export {initInjectorForNodePackages, prepareLazyNodeInjector} from './package-runner';
-export {getRootDir, getSymlinkForPackage} from './utils/misc';
+export {getRootDir, getSymlinkForPackage, plinkEnv} from './utils/misc';
 export {PackagesState, PackageInfo} from './package-mgr';
 export {setTsCompilerOptForNodePath} from './package-mgr/package-list-helper';
 export * as logger from 'log4js';

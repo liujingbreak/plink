@@ -1,13 +1,17 @@
+/**
+ * @Deprecated
+ */
 import fs from 'fs';
 import {removeSync} from 'fs-extra';
 import * as Path from 'path';
+import {getWorkDir} from './utils/misc';
 /**
  * Otherwise `npm install` will get an max stack overflow error
  * @param isDrcpDevMode 
  */
 export function removeProjectSymlink(isDrcpDevMode: boolean) {
   let projects;
-  const projectListFile = Path.join(process.cwd(), 'dr.project.list.json');
+  const projectListFile = Path.join(getWorkDir(), 'dr.project.list.json');
   if (fs.existsSync(projectListFile))
     projects = require(projectListFile);
   if (projects && projects.length > 0) {
@@ -37,8 +41,8 @@ export function removeProjectSymlink(isDrcpDevMode: boolean) {
 /* tslint:disable:no-console */
 export function createProjectSymlink() {
   const isWin32 = require('os').platform().indexOf('win32') >= 0;
-  const nodePath = fs.realpathSync(Path.resolve(process.cwd(), 'node_modules'));
-  const projectListFile = Path.join(process.cwd(), 'dr.project.list.json');
+  const nodePath = fs.realpathSync(Path.resolve(getWorkDir(), 'node_modules'));
+  const projectListFile = Path.join(getWorkDir(), 'dr.project.list.json');
   if (!fs.existsSync(projectListFile))
     return;
   for (const prjdir of require(projectListFile) as string[]) {

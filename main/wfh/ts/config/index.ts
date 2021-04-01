@@ -7,7 +7,7 @@ import chalk from 'chalk';
 import {ConfigHandlerMgr, DrcpConfig, ConfigHandler} from '../config-handler';
 import {GlobalOptions as CliOptions} from '../cmd/types';
 import {getLanIPv4} from '../utils/network-util';
-import {PlinkEnv} from '../node-path';
+// import {PlinkEnv} from '../node-path';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import log4js from 'log4js';
@@ -15,11 +15,12 @@ import {dispatcher, getState, DrcpSettings} from './config-slice';
 // Refactor: circular reference
 import * as _pkgList from '../package-mgr/package-list-helper';
 import * as _pkgMgr from '../package-mgr';
+import {plinkEnv} from '../utils/misc';
 
 const log = log4js.getLogger('plink.config');
 // const yamljs = require('yamljs');
 import yamljs from 'yamljs';
-const {rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {rootDir} = plinkEnv;
 
 let rootPath = rootDir;
 
@@ -278,7 +279,7 @@ function loadPackageSettings(): string[] {
     return [];
   }
   const jsFiles: string[] = [];
-  for (const [_typeFile, _typeExport, jsFile, defaultSettingExport, pkg] of getPackageSettingFiles(workspaceKey(process.cwd()))) {
+  for (const [_typeFile, _typeExport, jsFile, defaultSettingExport, pkg] of getPackageSettingFiles(workspaceKey(plinkEnv.workDir))) {
     try {
       const absFile = Path.resolve(pkg.realPath, jsFile);
       const exps = require(absFile);

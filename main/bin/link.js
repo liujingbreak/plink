@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require('../wfh/dist/utils/symlinks').linkDrcp();
+require('../wfh/dist/link-plink').linkDrcp();

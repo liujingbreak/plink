@@ -18,6 +18,7 @@ import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import log4js from 'log4js';
 import stripAnsi from 'strip-ansi';
 import {findPackagesByNames} from './utils';
+import {plinkEnv} from '../utils/misc';
 import '../editor-helper';
 
 let tarballDir: string;
@@ -44,7 +45,7 @@ export async function pack(opts: PackOptions) {
 
     await packPackages(dirs);
   } else {
-    await packPackages(Array.from(linkedPackagesOfWorkspace(process.cwd())));
+    await packPackages(Array.from(linkedPackagesOfWorkspace(plinkEnv.workDir)));
   }
 }
 
@@ -61,7 +62,7 @@ export async function publish(opts: PublishOptions) {
     .map(pkg => pkg!.realPath);
     await publishPackages(dirs, opts.public ? ['--access', 'public'] : []);
   } else {
-    await publishPackages(Array.from(linkedPackagesOfWorkspace(process.cwd())),
+    await publishPackages(Array.from(linkedPackagesOfWorkspace(plinkEnv.workDir)),
       opts.public ? ['--access', 'public'] : []);
   }
 }

@@ -22,4 +22,3 @@ export declare function scanPackages(): Observable<[string, string]>;
 /**
  * @return array of linked package's package.json file path
  */
-export declare function clean(): Promise<void>;

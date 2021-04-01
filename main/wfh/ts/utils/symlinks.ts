@@ -1,9 +1,3 @@
-/**
- * Do not import any 3rd-party dependency in this file,
- * it is run by `init` command at the time there probably is
- * no dependencies installed yet
- */
-
 import * as fs from 'fs';
 // import {removeSync} from 'fs-extra';
 import Path from 'path';
@@ -11,6 +5,7 @@ import util from 'util';
 import os from 'os';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import {getWorkDir} from './misc';
 
 export const isWin32 = os.platform().indexOf('win32') >= 0;
 // export const readdirAsync = util.promisify(fs.readdir);
@@ -25,7 +20,7 @@ export const unlinkAsync = util.promisify(fs.unlink);
 export default async function scanNodeModules(deleteOption: 'all' | 'invalid' = 'invalid') {
   const deleteAll = deleteOption === 'all';
   const deletedList: string[] = [];
-  await listModuleSymlinks(Path.join(process.cwd(), 'node_modules'),
+  await listModuleSymlinks(Path.join(getWorkDir(), 'node_modules'),
     link => {
       if (validateLink(link, deleteAll)) {
         deletedList.push(link);
@@ -73,49 +68,6 @@ export function listModuleSymlinks(
       await Promise.resolve(onFound(file));
     }
   }
-}
-
-/**
- * 1. create symlink node_modules/@wfh/plink --> directory "main"
- * 2. create symlink <parent directory of "main">/node_modules --> node_modules
- */
-export function linkDrcp() {
-  const sourceDir = Path.resolve(__dirname, '../../..'); // directory "main"
-
-  // 1. create symlink node_modules/@wfh/plink --> directory "main"
-  const target = getRealPath('node_modules/@wfh/plink');
-  if (target !== sourceDir) {
-    if (!fs.existsSync('node_modules'))
-      fs.mkdirSync('node_modules');
-    if (!fs.existsSync('node_modules/@wfh'))
-      fs.mkdirSync('node_modules/@wfh');
-
-    if (target != null) {
-      fs.unlinkSync(Path.resolve('node_modules/@wfh/plink'));
-      // fs.unlinkSync(Path.resolve('node_modules/@wfh/plink'));
-    }
-    fs.symlinkSync(Path.relative(Path.resolve('node_modules', '@wfh'), sourceDir),
-      Path.resolve('node_modules', '@wfh', 'plink'), isWin32 ? 'junction' : 'dir');
-    // tslint:disable-next-line: no-console
-    console.log(Path.resolve('node_modules', '@wfh/plink') + ' is created');
-  }
-
-  // // 2. create symlink <parent directory of "main">/node_modules --> node_modules
-  // const topModuleDir = Path.resolve(sourceDir, '../node_modules');
-  // if (fs.existsSync(topModuleDir)) {
-  //   if (fs.realpathSync(topModuleDir) !== Path.resolve('node_modules')) {
-  //     fs.unlinkSync(topModuleDir);
-  //     fs.symlinkSync(Path.relative(Path.dirname(topModuleDir), Path.resolve('node_modules')),
-  //     topModuleDir, isWin32 ? 'junction' : 'dir');
-  //     // tslint:disable-next-line: no-console
-  //     console.log(topModuleDir + ' is created');
-  //   }
-  // } else {
-  //   fs.symlinkSync(Path.relative(Path.dirname(topModuleDir), Path.resolve('node_modules')),
-  //     topModuleDir, isWin32 ? 'junction' : 'dir');
-  //   // tslint:disable-next-line: no-console
-  //   console.log(topModuleDir + ' is created');
-  // }
 }
 
 /**
@@ -177,22 +129,6 @@ export async function recreateSymlink(link: string, target: string): Promise<boo
     return true;
   } catch (ex) {
     return false;
-  }
-}
-
-/**
- * Unlike fs.realPath(), it supports symlink of which target file no longer exists
- * @param file 
- */
-export function getRealPath(file: string): string | null {
-  try {
-    if (fs.lstatSync(file).isSymbolicLink()) {
-      return Path.resolve(Path.dirname(file), fs.readlinkSync(file));
-    } else {
-      return Path.resolve(file);
-    }
-  } catch (e) {
-    return null;
   }
 }
 

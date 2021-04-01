@@ -9,7 +9,7 @@ import {DFS} from '../utils/graph';
 import {jsonToCompilerOptions} from '../ts-compiler';
 // import {setTsCompilerOptForNodePath} from '../package-mgr/package-list-helper';
 import {initAsChildProcess} from '../utils/bootstrap-process';
-import {closestCommonParentDir} from '../utils/misc';
+import {closestCommonParentDir, plinkEnv} from '../utils/misc';
 
 
 const baseTsconfigFile = Path.resolve(__dirname, '../../tsconfig-tsx.json');
@@ -18,12 +18,12 @@ const coJson = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(ba
 coJson.allowJs = true;
 coJson.resolveJsonModule = true;
 initAsChildProcess();
-// setTsCompilerOptForNodePath(process.cwd(), './', coJson, {workspaceDir: process.cwd()});
-const co = jsonToCompilerOptions(coJson, baseTsconfigFile, process.cwd());
+// setTsCompilerOptForNodePath(plinkEnv.workDir, './', coJson, {workspaceDir: plinkEnv.workDir});
+const co = jsonToCompilerOptions(coJson, baseTsconfigFile, plinkEnv.workDir);
 
 
 
-const resCache = ts.createModuleResolutionCache(process.cwd(),
+const resCache = ts.createModuleResolutionCache(plinkEnv.workDir,
       fileName => fileName,
       co);
 const host = ts.createCompilerHost(co);
@@ -66,7 +66,7 @@ export function dfsTraverseFiles(files: string[]): ReturnType<Context['toPlainOb
   });
 
   dfs.visit(files);
-  const cwd = process.cwd();
+  const cwd = plinkEnv.workDir;
   if (dfs.backEdges.length > 0) {
     for (const edges of dfs.backEdges) {
       // // tslint:disable-next-line: no-console
@@ -82,7 +82,7 @@ export function dfsTraverseFiles(files: string[]): ReturnType<Context['toPlainOb
 function parseFile(q: Query, file: string, ctx: Context) {
   const deps: string[] = [];
   // tslint:disable-next-line: no-console
-  console.log('[cli-analysie-worker] Lookup file', Path.relative(process.cwd(), file));
+  console.log('[cli-analysie-worker] Lookup file', Path.relative(plinkEnv.workDir, file));
   q.walkAst(q.src, [
     {
       query: '.moduleSpecifier:StringLiteral', // Both :ExportDeclaration or :ImportDeclaration
@@ -177,7 +177,7 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
       } else {
         const absPath = Path.resolve(resolved.resolvedFileName);
         if (!absPath.startsWith(ctx.commonDir)) {
-          ctx.relativeDepsOutSideDir.add(Path.relative(process.cwd(), absPath));
+          ctx.relativeDepsOutSideDir.add(Path.relative(plinkEnv.workDir, absPath));
         }
         return absPath;
       }

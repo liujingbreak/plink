@@ -9,7 +9,7 @@ import Path from 'path';
 import * as _ from 'lodash';
 import {printWorkspaces, printWorkspaceHoistedDeps} from './cli-init';
 import {take, map, distinctUntilChanged, skip} from 'rxjs/operators';
-import {createCliTable} from '../utils/misc';
+import {createCliTable, plinkEnv} from '../utils/misc';
 import * as priorityHelper from '../package-priority-helper';
 import {isServerPackage, readPriorityProperty} from '../package-runner';
 
@@ -98,7 +98,7 @@ interface ServerPackageView {
 }
 
 async function listServerPackages(): Promise<ServerPackageView[]> {
-  let wsKey: string | null | undefined = pkMgr.workspaceKey(process.cwd());
+  let wsKey: string | null | undefined = pkMgr.workspaceKey(plinkEnv.workDir);
   wsKey = pkMgr.getState().workspaces.has(wsKey) ? wsKey : pkMgr.getState().currWorkspace;
   if (wsKey == null) {
     return [] as ServerPackageView[];

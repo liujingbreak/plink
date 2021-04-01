@@ -8,7 +8,7 @@ import {getLogger} from 'log4js';
 import _ from 'lodash';
 import chalk from 'chalk';
 import stripAnsi from 'strip-ansi';
-import {getRootDir} from '../utils/misc';
+import {plinkEnv} from '../utils/misc';
 import {workspacesOfDependencies} from '../package-mgr/package-list-helper';
 import {actionDispatcher as pkgDispater, isCwdWorkspace, getState, workspaceDir, workspaceKey} from '../package-mgr/index';
 const log = getLogger('plink.cli-add-package');
@@ -20,7 +20,7 @@ export async function addDependencyTo(packages: string[], to?: string, dev = fal
   let wsDirs: string[] = [];
   if (to == null) {
     if (isCwdWorkspace()) {
-      to = process.cwd();
+      to = plinkEnv.workDir;
     } else {
       const ws = getState().currWorkspace;
       if (ws == null) {
@@ -41,7 +41,7 @@ export async function addDependencyTo(packages: string[], to?: string, dev = fal
         throw new Error('No matched linked package or worktree space is found for option "--to"');
       }
       to = foundPkg.realPath;
-      const rootDir = getRootDir();
+      const rootDir = plinkEnv.rootDir;
       wsDirs = Array.from(workspacesOfDependencies(foundPkg.name))
         .map(ws => Path.resolve(rootDir, ws));
     }

@@ -11,11 +11,24 @@ export interface PackageJsonInterf {
         [nm: string]: string;
     };
 }
-export declare function listCompDependency(pkJsonFiles: PackageJsonInterf[], workspace: string, workspaceDeps: {
+/**
+ *
+ * @param pkJsonFiles json map of linked package
+ * @param workspace
+ * @param workspaceDeps
+ * @param workspaceDevDeps
+ */
+export declare function listCompDependency(pkJsonFiles: Map<string, {
+    json: PackageJsonInterf;
+}>, workspace: string, workspaceDeps: {
     [name: string]: string;
-}, excludeDep: Map<string, any> | Set<string>): {
+}, workspaceDevDeps?: {
+    [name: string]: string;
+}): {
     hoisted: Map<string, DependentInfo>;
     hoistedPeers: Map<string, DependentInfo>;
+    hoistedDev: Map<string, DependentInfo>;
+    hoistedDevPeers: Map<string, DependentInfo>;
 };
 interface DepInfo {
     ver: string;
@@ -44,20 +57,37 @@ export interface DependentInfo {
         name: string;
     }>;
 }
-export declare class InstallManager {
-    private excludeDeps;
+export declare class TransitiveDepScanner {
+    private excludeLinkedDeps;
     verbosMessage: string;
     /** key is dependency module name */
     private directDeps;
     private srcDeps;
     private peerDeps;
     private directDepsList;
+    /**
+     *
+     * @param workspaceDeps should include "dependencies" and "devDependencies"
+     * @param workspaceName
+     * @param excludeLinkedDeps
+     */
     constructor(workspaceDeps: {
         [name: string]: string;
-    }, workspaceName: string, excludeDeps: Map<string, any> | Set<string>);
-    scanFor(pkJsons: PackageJsonInterf[]): void;
-    hoistDeps(): Map<string, DependentInfo>[];
-    protected collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, notPeerDeps?: boolean): Map<string, DependentInfo>;
+    }, workspaceName: string, excludeLinkedDeps: Map<string, any> | Set<string>);
+    scanFor(pkJsons: Iterable<PackageJsonInterf>): void;
+    /**
+     * The base algorithm: "new dependencies" = "direct dependencies of workspace" + "transive dependencies"
+     * @param extraDependentInfo extra dependent information to check if they are duplicate.
+     */
+    hoistDeps(extraDependentInfo?: Map<string, DependentInfo>): Map<string, DependentInfo>[];
+    /**
+     * - If there is a direct dependency of workspace, move its version to the top of the version list,
+     * - If it is peer dependency and it is not a direct dependency of workspace,
+     * mark it "missing" so that reminds user to manual install it.
+     * @param trackedRaw
+     * @param isPeerDeps
+     */
+    protected collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, isPeerDeps?: boolean): Map<string, DependentInfo>;
     protected _trackSrcDependency(name: string, version: string, byWhom: string): void;
     protected _trackPeerDependency(name: string, version: string, byWhom: string): void;
 }

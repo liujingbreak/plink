@@ -15,6 +15,7 @@ import config from './config';
 import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} from './package-mgr';
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
 import chalk from 'chalk';
+import {getWorkDir} from './utils/misc';
 
 const log = log4js.getLogger('plink.package-runner');
 
@@ -32,7 +33,7 @@ export function readPriorityProperty(json: any) {
 }
 
 export async function runServer() {
-  let wsKey: string | null | undefined = workspaceKey(process.cwd());
+  let wsKey: string | null | undefined = workspaceKey(getWorkDir());
   wsKey = getState().workspaces.has(wsKey) ? wsKey : getState().currWorkspace;
   if (wsKey == null) {
     throw new Error('Current directory is not a workspace directory');

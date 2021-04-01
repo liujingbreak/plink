@@ -19,9 +19,9 @@ import { stateFactory, ofPayloadAction } from '../store';
 // import { getRootDir } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
 import {symbolicLinkPackages} from '../rwPackageJson';
-import {PlinkEnv} from '../node-path';
 import { EOL } from 'os';
 import {getLogger} from 'log4js';
+import { plinkEnv } from '../utils/misc';
 const log = getLogger('plink.package-mgr');
 export interface PackageInfo {
   name: string;
@@ -55,7 +55,7 @@ export interface PackagesState {
   lastCreatedWorkspace?: string;
 }
 
-const {distDir, rootDir, plinkDir, isDrcpSymlink, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {distDir, rootDir, plinkDir, isDrcpSymlink, symlinkDirName} = plinkEnv;
 
 const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
@@ -202,51 +202,36 @@ export const slice = stateFactory.newSlice({
 
       const deps = Object.entries<string>(pkjson.dependencies || {});
 
-      const updatingDeps = {...pkjson.dependencies || {}};
+      // const updatingDeps = {...pkjson.dependencies || {}};
       const linkedDependencies: typeof deps = [];
-      deps.filter(dep => {
+      deps.forEach(dep => {
         if (state.srcPackages.has(dep[0])) {
           linkedDependencies.push(dep);
-          delete updatingDeps[dep[0]];
-          return false;
         }
-        return true;
       });
       const devDeps = Object.entries<string>(pkjson.devDependencies || {});
-      const updatingDevDeps = {...pkjson.devDependencies || {}};
+      // const updatingDevDeps = {...pkjson.devDependencies || {}};
       const linkedDevDependencies: typeof devDeps = [];
-      devDeps.filter(dep => {
+      devDeps.forEach(dep => {
         if (state.srcPackages.has(dep[0])) {
           linkedDevDependencies.push(dep);
-          delete updatingDevDeps[dep[0]];
-          return false;
         }
-        return true;
       });
 
-      if (isDrcpSymlink) {
-        // tslint:disable-next-line: no-console
-        log.debug('[_hoistWorkspaceDeps] @wfh/plink is symlink');
-        delete updatingDeps['@wfh/plink'];
-        delete updatingDevDeps['@wfh/plink'];
-      }
-
       const wsKey = workspaceKey(dir);
-      const {hoisted: hoistedDeps, hoistedPeers: hoistPeerDepInfo} = listCompDependency(
-        linkedDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
-          // .concat(plinkApiRequiredDeps()),
-        wsKey, updatingDeps, state.srcPackages
+      const {hoisted: hoistedDeps, hoistedPeers: hoistPeerDepInfo,
+        hoistedDev: hoistedDevDeps, hoistedDevPeers: devHoistPeerDepInfo
+      } =
+        listCompDependency(
+        state.srcPackages, wsKey, pkjson.dependencies || {}, pkjson.devDependencies
       );
 
-      const {hoisted: hoistedDevDeps, hoistedPeers: devHoistPeerDepInfo} = listCompDependency(
-        linkedDevDependencies.map(entry => state.srcPackages.get(entry[0])!.json),
-        wsKey, updatingDevDeps, state.srcPackages
-      );
 
       const installJson: PackageJsonInterf = {
         ...pkjson,
         dependencies: Array.from(hoistedDeps.entries())
         .concat(Array.from(hoistPeerDepInfo.entries()).filter(item => !item[1].missing))
+        .filter(([name]) => !isDrcpSymlink || name !== '@wfh/plink')
         .reduce((dic, [name, info]) => {
           dic[name] = info.by[0].ver;
           return dic;
@@ -254,6 +239,7 @@ export const slice = stateFactory.newSlice({
 
         devDependencies: Array.from(hoistedDevDeps.entries())
         .concat(Array.from(devHoistPeerDepInfo.entries()).filter(item => !item[1].missing))
+        .filter(([name]) => !isDrcpSymlink || name !== '@wfh/plink')
         .reduce((dic, [name, info]) => {
           dic[name] = info.by[0].ver;
           return dic;
@@ -418,8 +404,8 @@ stateFactory.addEpic((action$, state$) => {
     action$.pipe(ofPayloadAction(slice.actions.initRootDir),
       map(({payload}) => {
         checkAllWorkspaces();
-        if (getState().workspaces.has(workspaceKey(process.cwd()))) {
-          actionDispatcher.updateWorkspace({dir: process.cwd(),
+        if (getState().workspaces.has(workspaceKey(plinkEnv.workDir))) {
+          actionDispatcher.updateWorkspace({dir: plinkEnv.workDir,
             isForce: payload.isForce,
             createHook: payload.createHook});
         } else {
@@ -637,7 +623,7 @@ export function getProjectList() {
 }
 
 export function isCwdWorkspace() {
-  const wsKey = workspaceKey(process.cwd());
+  const wsKey = workspaceKey(plinkEnv.workDir);
   const ws = getState().workspaces.get(wsKey);
   if (ws == null)
     return false;
@@ -984,7 +970,7 @@ function cp(from: string, to: string) {
   if (/[/\\]$/.test(to))
     to = Path.basename(from); // to is a folder
   else
-    to = Path.relative(process.cwd(), to);
+    to = Path.relative(plinkEnv.workDir, to);
   // tslint:disable-next-line: no-console
   log.info('Copy to %s', chalk.cyan(to));
 }

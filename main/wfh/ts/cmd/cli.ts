@@ -8,7 +8,7 @@ import * as pkgMgr from '../package-mgr';
 // import '../tsc-packages-slice';
 import {packages4Workspace} from '../package-mgr/package-list-helper';
 import * as _ from 'lodash';
-import { isDrcpSymlink, sexyFont, getRootDir, boxString } from '../utils/misc';
+import { isDrcpSymlink, sexyFont, getRootDir, boxString, plinkEnv } from '../utils/misc';
 import _scanNodeModules from '../utils/symlinks';
 import fs from 'fs';
 import Path from 'path';
@@ -61,7 +61,7 @@ export async function createCommands(startTime: number) {
   let wsState: pkgMgr.WorkspaceState | undefined;
   if (process.env.PLINK_SAFE !== 'true') {
     const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
-    wsState = getPkgState().workspaces.get(workspaceKey(process.cwd()));
+    wsState = getPkgState().workspaces.get(workspaceKey(plinkEnv.workDir));
     if (wsState != null) {
       overrider.forPackage(null, program => {
         overrider.nameStyler = str => chalk.green(str);

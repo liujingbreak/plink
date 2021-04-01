@@ -28,7 +28,7 @@ export class DFS<T> {
   private time = 0;
   private vertexMap = new Map<T, Vertex<T>>();
 
-  constructor(private adjacencyOf: (u:T) => Iterable<T>) {}
+  constructor(private adjacencyOf: (u: T) => Iterable<T>) {}
 
   visit(g: Iterable<T>) {
     this.time = 0;

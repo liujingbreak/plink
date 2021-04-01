@@ -6,7 +6,7 @@ const {parse} = require('comment-json');
 const {cyan} = chalk;
 import {register as registerTsNode} from 'ts-node';
 import {GlobalOptions as CliOptions} from './cmd/types';
-import {getRootDir} from './utils/misc';
+import {getRootDir, getWorkDir} from './utils/misc';
 import {getLogger} from 'log4js';
 import {DrcpSettings} from './config/config-slice';
 import {setTsCompilerOptForNodePath} from './package-mgr/package-list-helper';
@@ -76,9 +76,9 @@ export class ConfigHandlerMgr {
       );
       ConfigHandlerMgr.compilerOptions = compilerOptions;
 
-      setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions, {
+      setTsCompilerOptForNodePath(getWorkDir(), './', compilerOptions, {
         enableTypeRoots: true,
-        workspaceDir: process.cwd()
+        workspaceDir: getWorkDir()
       });
 
       compilerOptions.module = 'commonjs';
@@ -138,7 +138,7 @@ export class ConfigHandlerMgr {
 
   runEachSync<H>(func: (file: string, lastResult: any, handler: H) => Promise<any> | any, desc?: string) {
     let lastRes: any;
-    const cwd = process.cwd();
+    const cwd = getWorkDir();
     for (const {file, handler} of this.configHandlers) {
       log.debug(`Read ${desc || 'settings'}:\n  ` + cyan(Path.relative(cwd, file)));
       const currRes = func(file, lastRes, handler as any as H);

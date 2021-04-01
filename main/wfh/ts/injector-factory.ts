@@ -6,7 +6,7 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as Path from 'path';
 import log4js from 'log4js';
-import {getRootDir} from './utils/misc';
+import {getRootDir, getWorkDir} from './utils/misc';
 const log = log4js.getLogger('plink.injector-factory');
 
 const packageNamePathMap = new Map<string, {symlink?: string; realPath: string;}>();
@@ -84,7 +84,7 @@ export class DrPackageInjector extends RJ {
       fileNameWithoutExt = 'module-resolve.server';
     _.uniq([
       Path.resolve(getRootDir(), fileNameWithoutExt),
-      Path.resolve(process.cwd(), fileNameWithoutExt)
+      Path.resolve(getWorkDir(), fileNameWithoutExt)
     ]).forEach(file => {
       const file1 = fs.existsSync(file + '.ts') ? file + '.ts' : file + '.js';
       if (fs.existsSync(file1)) {

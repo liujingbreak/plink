@@ -16,6 +16,7 @@ import { getState as getTscState } from './tsc-packages-slice';
 import {findPackagesByNames} from '../cmd/utils';
 import {allPackages} from '../package-mgr/package-list-helper';
 import {fork} from 'child_process';
+import {plinkEnv} from '../utils/misc';
 const log = log4js.getLogger('plink.tsc-packages');
 
 export interface Tsconfig {
@@ -89,7 +90,7 @@ export function tsc(opts: TscCmdParam) {
 }
 
 export function generateTsconfigFiles(pkgs: Iterable<string>, opts: TscCmdParam) {
-  let wsKey: string | null | undefined = workspaceKey(process.cwd());
+  let wsKey: string | null | undefined = workspaceKey(plinkEnv.workDir);
   const walked = new Set<string>();
 
   for (const pkg of pkgs) {

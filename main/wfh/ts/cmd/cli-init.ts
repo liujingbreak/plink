@@ -10,10 +10,10 @@ import { packages4WorkspaceKey } from '../package-utils';
 import { listProject } from './cli-project';
 import _ from 'lodash';
 import * as options from './types';
-import {createCliTable} from '../utils/misc';
+import {createCliTable, plinkEnv} from '../utils/misc';
 
 export default async function(opt: options.InitCmdOptions, workspace?: string) {
-  const cwd = process.cwd();
+  const cwd = plinkEnv.workDir;
   getStore().pipe(
     distinctUntilChanged((s1, s2) => s1.packagesUpdateChecksum === s2.packagesUpdateChecksum),
     skip(1),

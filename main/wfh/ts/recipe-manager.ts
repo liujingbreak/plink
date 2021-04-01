@@ -6,7 +6,6 @@ import * as _ from 'lodash';
 import * as Path from 'path';
 import {Observable, merge} from 'rxjs';
 import * as fs from 'fs-extra';
-import scanNodeModules from './utils/symlinks';
 import findPackageJson from './package-mgr/find-package';
 // import * as rwPackageJson from './rwPackageJson';
 import {map} from 'rxjs/operators';
@@ -143,8 +142,8 @@ export function scanPackages() {
 //   return merge(...obs);
 // }
 
-export async function clean() {
-  await scanNodeModules('all');
-}
+// export async function clean() {
+//   await scanNodeModules('all');
+// }
 
 

@@ -5,7 +5,7 @@ import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import Path, {resolve, join, relative, sep} from 'path';
 import ts from 'typescript';
-import {getTscConfigOfPkg, PackageTsDirs} from './utils/misc';
+import {getTscConfigOfPkg, PackageTsDirs, plinkEnv} from './utils/misc';
 import {CompilerOptions} from 'typescript';
 import config from './config';
 import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions} from './package-mgr/package-list-helper';
@@ -13,9 +13,10 @@ import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
 import glob from 'glob';
-import {PlinkEnv} from './node-path';
+// import {PlinkEnv} from './node-path';
 
-const {symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
+
+const {symlinkDirName} = plinkEnv;
 const log = log4js.getLogger('plink.ts-cmd');
 const root = config().rootPath;
 
@@ -69,7 +70,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
 
   // const promCompile = Promise.resolve( [] as EmitList);
   const packageDirTree = new DirTree<PackageDirInfo>();
-  const commonRootDir = process.cwd();
+  const commonRootDir = plinkEnv.workDir;
 
   let countPkg = 0;
   if (argv.package && argv.package.length > 0)
@@ -77,7 +78,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   else if (argv.project && argv.project.length > 0) {
     packageUtils.findAllPackages(onComponent, 'src', argv.project);
   } else {
-    for (const pkg of packageUtils.packages4Workspace(process.cwd(), false)) {
+    for (const pkg of packageUtils.packages4Workspace(plinkEnv.workDir, false)) {
       onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath);
     }
   }
@@ -120,8 +121,8 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   log.info('typescript compilerOptions:', compilerOptions);
   // const tsProject = gulpTs.createProject({...compilerOptions, typescript: require('typescript')});
 
-
-  function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, _realPath: string) {
+  /** set compGlobs */
+  function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, realPath: string) {
     countPkg++;
     const tscCfg: PackageTsDirs = argv.overridePackgeDirs && _.has(argv.overridePackgeDirs, name) ?
       argv.overridePackgeDirs[name] : getTscConfigOfPkg(json);
@@ -129,9 +130,8 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     // Use a symlink path instead of a real path, so that Typescript compiler will not
     // recognize them as from somewhere with "node_modules", the symlink must be reside
     // in directory which does not contain "node_modules" as part of absolute path.
-    const symlinkDir = resolve(symlinkDirName, name);
-
-    compDirInfo.set(name, {...tscCfg, pkgDir: _realPath, symlinkDir});
+    const symlinkDir = resolve(plinkEnv.workDir, symlinkDirName, name);
+    compDirInfo.set(name, {...tscCfg, pkgDir: realPath, symlinkDir});
 
     if (tscCfg.globs) {
       compGlobs.push(...tscCfg.globs.map(file => resolve(symlinkDir, file).replace(/\\/g, '/')));
@@ -167,12 +167,6 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     }
   }
 
-  // return promCompile.then((list) => {
-  //   if (argv.watch !== true && process.send) {
-  //     process.send('plink-tsc compiled');
-  //   }
-  //   return list;
-  // });
 
   if (argv.watch) {
     log.info('Watch mode');
@@ -198,7 +192,8 @@ function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: stri
   const rootFiles: string[] = _.flatten(
     globPatterns.map(pattern => glob.sync(pattern).filter(file => !file.endsWith('.d.ts')))
   );
-  const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, process.cwd().replace(/\\/g, '/'),
+  const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
+    plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
 
   function _reportDiagnostic(diagnostic: ts.Diagnostic) {
@@ -220,10 +215,11 @@ function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: stri
 
 function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
   const rootFiles: string[] = _.flatten(
-    globPatterns.map(pattern => glob.sync(pattern).filter(file => !file.endsWith('.d.ts')))
+    globPatterns.map(pattern => glob.sync(pattern, {cwd: plinkEnv.workDir}).filter(file => !file.endsWith('.d.ts')))
   );
-  // console.log(rootFiles);
-  const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, process.cwd().replace(/\\/g, '/'),
+  log.debug('rootFiles:\n', rootFiles);
+  const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
+    plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
   const host = ts.createCompilerHost(compilerOptions);
   const emitted = overrideCompilerHost(host, commonRootDir, packageDirTree, compilerOptions);
@@ -311,7 +307,7 @@ function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
 }
 
 function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, pathsJsons?: string[]) {
-  const cwd = process.cwd();
+  const cwd = plinkEnv.workDir;
   let wsKey: string | null | undefined = workspaceKey(cwd);
   if (!getState().workspaces.has(wsKey))
     wsKey = getState().currWorkspace;

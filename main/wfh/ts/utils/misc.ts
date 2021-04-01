@@ -8,8 +8,9 @@ import {PlinkEnv} from '../node-path';
 import * as cfonts from 'cfonts';
 import Table from 'cli-table3';
 
-const {isDrcpSymlink, rootDir, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
-
+const {isDrcpSymlink, workDir, rootDir, symlinkDirName, distDir, nodePath, plinkDir} =
+  JSON.parse(process.env.__plink!) as PlinkEnv;
+export const plinkEnv: PlinkEnv = {isDrcpSymlink, workDir, rootDir, symlinkDirName, distDir, nodePath, plinkDir};
 export {isDrcpSymlink};
 
 export enum WordTokenType {
@@ -169,8 +170,12 @@ export function getTscConfigOfPkg(json: any): PackageTsDirs {
 }
 
 export const getRootDir = () => rootDir;
+/** get Plink work directory or process.cwd() */
+export const getWorkDir = () => workDir;
 
-export function getSymlinkForPackage(pkgName: string, workspaceDir = process.cwd()) {
+
+
+export function getSymlinkForPackage(pkgName: string, workspaceDir = workDir) {
   if (symlinkDirName)
     return Path.resolve(workspaceDir, symlinkDirName, pkgName);
   return null;
@@ -193,7 +198,7 @@ export function closestCommonParentDir(paths: Iterable<string>) {
       }
     }
   }
-  let dir = commonDir ? commonDir.join(Path.sep) : process.cwd();
+  let dir = commonDir ? commonDir.join(Path.sep) : workDir;
   if (dir.endsWith(':')) {
     // window disk root directory like "c:", needs to turn it to "c:\\", since path module malfunctions on "c:"
     dir += Path.sep;

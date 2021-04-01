@@ -34,5 +34,6 @@ export interface CompilerOptions {
  * "baseUrl", "typeRoots" is relative to this parameter
  * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions
+ * @param opts CompilerOptionSetOpt
  */
 export declare function setTsCompilerOptForNodePath(tsconfigDir: string, baseUrl: string | undefined, assigneeOptions: Partial<CompilerOptions>, opts?: CompilerOptionSetOpt): CompilerOptions;

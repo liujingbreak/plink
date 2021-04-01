@@ -1,16 +1,15 @@
 import {getState, pathToProjKey, workspaceKey, PackageInfo, WorkspaceState} from './index';
 import Path from 'path';
-import {PlinkEnv, calcNodePaths} from '../node-path';
+import {calcNodePaths} from '../node-path';
 import _ from 'lodash';
 import {getLogger} from 'log4js';
+import {plinkEnv} from '../utils/misc';
 
 export type PackageType = '*' | 'build' | 'core';
 const log = getLogger('plink.package-list-helper');
 
 export function* allPackages(_types?: PackageType | PackageType[],
   recipeType?: 'src' | 'installed', projectDirs?: string[]): Generator<PackageInfo> {
-
-  // const wsKey = pathToWorkspace(process.cwd());
 
   if (recipeType !== 'installed') {
     if (projectDirs) {
@@ -73,7 +72,7 @@ export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true): 
 }
 
 export function packages4Workspace(workspaceDir?: string, includeInstalled = true) {
-  const wsKey = workspaceKey(workspaceDir || process.cwd());
+  const wsKey = workspaceKey(workspaceDir || plinkEnv.workDir);
   return packages4WorkspaceKey(wsKey, includeInstalled);
 }
 
@@ -124,6 +123,7 @@ export interface CompilerOptions {
  * "baseUrl", "typeRoots" is relative to this parameter
  * @param baseUrl compiler option "baseUrl", "paths" will be relative to this paremter
  * @param assigneeOptions 
+ * @param opts CompilerOptionSetOpt
  */
 export function setTsCompilerOptForNodePath(
   tsconfigDir: string,
@@ -131,7 +131,7 @@ export function setTsCompilerOptForNodePath(
   assigneeOptions: Partial<CompilerOptions>,
   opts: CompilerOptionSetOpt = {enableTypeRoots: false}) {
 
-  const {rootDir, plinkDir, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
+  // const {rootDir, plinkDir, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
   let symlinksDir: string | undefined;
   /** for paths mapping "*" */
   let pathsDirs: string[] = [];
@@ -147,9 +147,10 @@ export function setTsCompilerOptForNodePath(
 
   let wsState: WorkspaceState | undefined;
   if (opts.workspaceDir != null) {
-    symlinksDir = Path.resolve(opts.workspaceDir, symlinkDirName);
+    symlinksDir = Path.resolve(opts.workspaceDir, plinkEnv.symlinkDirName);
     // pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
-    pathsDirs.push(...calcNodePaths(rootDir, symlinksDir, opts.workspaceDir || process.cwd(), plinkDir));
+    pathsDirs.push(...calcNodePaths(plinkEnv.rootDir, symlinksDir,
+      opts.workspaceDir || plinkEnv.workDir, plinkEnv.plinkDir));
 
     wsState = getState().workspaces.get(workspaceKey(opts.workspaceDir));
   }

@@ -1,11 +1,11 @@
 // tslint:disable no-console
 import * as ts from 'typescript';
 import {readFileSync} from 'fs';
-
+import {plinkEnv} from './utils/misc';
 
 export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
   const tsconfig = ts.readConfigFile(tsconfigFile, (file) => readFileSync(file, 'utf-8')).config;
-  return ts.parseJsonConfigFileContent(tsconfig, ts.sys, process.cwd().replace(/\\/g, '/'),
+  return ts.parseJsonConfigFileContent(tsconfig, ts.sys, plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, tsconfigFile).options;
 }
 
@@ -17,7 +17,7 @@ export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
  *  A root directory to resolve relative path entries in the config file to. e.g. outDir
  */
 export function jsonToCompilerOptions(jsonCompilerOpt: any, file = 'tsconfig.json',
-  basePath = process.cwd()): ts.CompilerOptions {
+  basePath = plinkEnv.workDir): ts.CompilerOptions {
   return ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, basePath.replace(/\\/g, '/'),
   undefined, file).options;
 }
@@ -52,6 +52,7 @@ class TsCompiler {
     const self = this;
     const compilerHost = ts.createCompilerHost(compilerOptions);
 
+    const cwd = plinkEnv.workDir;
     const serviceHost: ts.LanguageServiceHost = {
       getNewLine() { return '\n'; },
       getCompilationSettings() { return self.compilerOptions;},
@@ -65,7 +66,7 @@ class TsCompiler {
           return ts.ScriptSnapshot.fromString(ts.sys.readFile(fileName)!);
         return undefined;
       },
-      getCurrentDirectory: () => process.cwd(),
+      getCurrentDirectory: () => cwd,
       getDefaultLibFileName: () => compilerHost.getDefaultLibFileName	(compilerOptions),
       fileExists: (f: string) => {
         // console.log(f);
