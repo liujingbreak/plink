@@ -10,7 +10,11 @@ import {findAllPackages} from '@wfh/plink/wfh/dist/package-utils';
 const log = require('log4js').getLogger(api.packageName + '.dev-serve-assets');
 
 // const api = __api as ExpressAppApi & typeof __api;
-
+/**
+ * Used by @wfh/ng-app-builder
+ * @param deployUrl 
+ * @param onEach 
+ */
 export function packageAssetsFolders(deployUrl: string, onEach: (dir: string, outputDir: string) => void) {
   const rootPath = _.trimEnd(parse(deployUrl).pathname || '', '/');
   findAllPackages(
@@ -32,28 +36,31 @@ export function packageAssetsFolders(deployUrl: string, onEach: (dir: string, ou
       onEach(assetsDir, path);
       log.info('assets: ' + path + ' -> ' + assetsDir);
     } else {
-      var assetsFolder = json.dr ?
+      const assetsFolder = json.dr ?
         (json.dr.assetsDir ? json.dr.assetsDir : 'assets')
           :'assets';
 
       let assetsDir = Path.resolve(packagePath, assetsFolder);
-      var assetsDirMap = api.config().outputPathMap[name];
+      let assetsDirConfigured = api.config().outputPathMap[name];
 
-      if (assetsDirMap != null)
-        assetsDirMap = _.trim(assetsDirMap, '/');
-
+      if (assetsDirConfigured != null)
+        assetsDirConfigured = _.trim(assetsDirConfigured, '/');
+      else if (json.dr && json.dr.ngRouterPath) {
+        assetsDirConfigured = _.trim(json.dr.ngRouterPath, '/');
+        log.info(packagePath + `/package.json contains "dr.ngRouterPath", assets directory is changed to "${assetsDirConfigured}"`);
+      }
       if (fs.existsSync(assetsDir)) {
         assetsDir = fs.realpathSync(assetsDir);
         var pathElement = [];
         if (rootPath)
           pathElement.push(rootPath);
 
-        if (assetsDirMap == null)
+        if (assetsDirConfigured == null)
           pathElement.push(parsedName.name);
-        else if (assetsDirMap !== '')
-          pathElement.push(assetsDirMap);
+        else if (assetsDirConfigured !== '')
+          pathElement.push(assetsDirConfigured);
 
-        var path = pathElement.join('/');
+        let path = pathElement.join('/');
         if (path.length > 1)
           path += '/';
         log.info('assets: ' + path + ' -> ' + assetsDir);

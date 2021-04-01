@@ -49,7 +49,7 @@ export default class ApiAotCompiler {
 
   parse(transpileExp: (source: string) => string): string {
     const pk = api.findPackageByFile(this.file);
-    // log.warn('parse', this.file, pk == null ? '' : 'yes');
+    // log.warn('parse', this.file, pk == null ? '[external]' : '[plink package]');
     if (pk == null)
       return this.src;
     if (!tsHandlers)

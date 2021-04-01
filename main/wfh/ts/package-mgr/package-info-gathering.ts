@@ -5,8 +5,11 @@ import PackageInstance from '../packageNodeInstance';
 import {packages4Workspace} from './package-list-helper';
 import {PackageInfo as PackageState} from './index';
 import {parseName} from './lazy-package-factory';
+import {plinkEnv} from '../utils/misc';
+import Path from 'path';
 const log = getLogger('plink.package-info-gathering');
 
+const {workDir, symlinkDirName} = plinkEnv;
 export interface PackageInfo {
   allModules: PackageInstance[];
   dirTree: DirTree<PackageInstance>;
@@ -80,15 +83,20 @@ function addPackageToInfo(info: PackageInfo, pkg: PackageState) {
 
 function createPackageDirTree(packageInfo: PackageInfo) {
   const tree = new DirTree<PackageInstance>();
-  var count = 0;
+  let count = 0;
   packageInfo.allModules.forEach(pkg => {
     if (pkg == null)
       return;
-    if (pkg.realPath)
+
+    if (pkg.realPath) {
       tree.putData(pkg.realPath, pkg);
-    // const symlink = getSymlinkForPackage(pkg.longName);
-    if (pkg.path !== pkg.realPath)
-      tree.putData(pkg.path, pkg);
+    }
+    // Don't trust pkg.path, it is set by command line: plink sync/init, and loaded from state file,
+    // which is not up-to-dates.
+    tree.putData(Path.resolve(workDir, symlinkDirName, pkg.name), pkg);
+    // if (pkg.path !== pkg.realPath) {
+    //   tree.putData(Path.resolve(workDir, symlinkDirName, pkg.name), pkg);
+    // }
     count++;
   });
   log.info('%s Plink compliant node packages found', count);

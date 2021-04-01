@@ -55,7 +55,7 @@ export interface PackagesState {
   lastCreatedWorkspace?: string;
 }
 
-const {distDir, rootDir, plinkDir, isDrcpSymlink, symlinkDirName} = plinkEnv;
+const {distDir, rootDir, plinkDir, isDrcpSymlink, symlinkDirName, workDir} = plinkEnv;
 
 const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
@@ -908,7 +908,7 @@ async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) 
  */
 export function createPackageInfo(pkJsonFile: string, isInstalled = false): PackageInfo {
   const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
-  return createPackageInfoWithJson(pkJsonFile, json, isInstalled, symlinkDirName);
+  return createPackageInfoWithJson(pkJsonFile, json, isInstalled, Path.resolve(workDir, symlinkDirName));
 }
 /**
  * List those installed packages which are referenced by workspace package.json file,
