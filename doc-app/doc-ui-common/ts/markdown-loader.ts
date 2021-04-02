@@ -9,6 +9,7 @@ import util from 'util';
 import path from 'path';
 import { jsonToCompilerOptions, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';
 import {Pool} from '@wfh/thread-promise-pool';
+import {TOC} from '../isom/md-types';
 
 const log = logger.getLogger('@wfh/doc-ui-common.markdown-loader');
 
@@ -20,6 +21,7 @@ const loader: loader.Loader = function(source, sourceMap) {
     threadPool = new Pool();
   }
   const cb = this.async();
+  const toc: TOC[] = [];
   if (cb) {
     rx.from(threadPool.submit<string>({
       file: path.resolve(__dirname, 'markdown-loader-worker.js'), exportFn: 'parseToHtml', args: [source]
@@ -44,14 +46,26 @@ const loader: loader.Loader = function(source, sourceMap) {
               ));
           }
         });
+        const headings = $('h1, h2, h3, h5, h5, h6');
+        headings.each((idx, heading) => {
+            const headingQ = $(heading);
+            if (headingQ) {
+                const headingText = headingQ.text();
+                const id = encodeURIComponent(idx + headingText);
+                log.info(`set heading <${heading.name}> id=${id}`);
+                headingQ.attr('id', id);
+                toc.push({ tag: heading.name, text: headingText, id });
+            }
+        });
+        console.log('toc: ', toc);
         return rx.merge(...done).pipe(
           op.catchError(err => {
             log.error(err);
-            cb(err, source, sourceMap);
+            cb(err, JSON.stringify({ toc, content: source }), sourceMap);
             return rx.of();
           }),
           op.finalize(() => {
-            cb(null, $.html(), sourceMap);
+            cb(null, JSON.stringify({ toc, content: $.html() }), sourceMap);
           })
         );
       })
