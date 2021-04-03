@@ -48,7 +48,7 @@ export interface DrcpConfig {
    * 
    */
   configHandlerMgrChanged(cb: (handler: ConfigHandlerMgr) => void): void;
-  configHandlerMgrCreated(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void>;
+  // configHandlerMgrCreated(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void>;
 }
 
 export interface ConfigHandler {

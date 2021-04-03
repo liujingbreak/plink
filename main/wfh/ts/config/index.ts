@@ -84,24 +84,25 @@ config.configHandlerMgrChanged = function(cb: (handler: ConfigHandlerMgr) => voi
   ).subscribe();
 };
 
-config.configHandlerMgrCreated = function(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void> {
-  return handlers$.pipe(
-    op.distinctUntilChanged(),
-    op.filter(handler => handler != null),
-    op.concatMap(handler => Promise.resolve(cb(handler!))),
-    op.take(1)
-  ).toPromise();
-};
+// config.configHandlerMgrCreated = function(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void> {
+//   return handlers$.pipe(
+//     op.distinctUntilChanged(),
+//     op.filter(handler => handler != null),
+//     op.concatMap(handler => Promise.resolve(cb(handler!))),
+//     op.take(1)
+//   ).toPromise();
+// };
 
 function load(cliOption: CliOptions) {
   dispatcher._change(s => {
     s.localIP = getLanIPv4();
   });
-  loadPackageSettings();
+  const pkgSettingFiles = loadPackageSettings();
   const configFileList = cliOption.config || [];
   configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(localConfigPath));
   const handlers = new ConfigHandlerMgr(
-    configFileList.filter(name => /\.[tj]s$/.test(name)));
+    configFileList.filter(name => /\.[tj]s$/.test(name)).concat(pkgSettingFiles)
+  );
   handlers$.next(handlers);
   dispatcher._change(draft => {
     handlers.runEachSync<ConfigHandler>((_file, obj, handler) => {

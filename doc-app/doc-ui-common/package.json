@@ -14,6 +14,7 @@
   },
   "author": "",
   "license": "ISC",
+  "sideEffects": false,
   "dependencies": {
     "@material/ripple": "^8.0.0",
     "canvas-5-polyfill": "0.1.5",

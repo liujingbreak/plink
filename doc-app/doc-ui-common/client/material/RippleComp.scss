@@ -1,8 +1,10 @@
 @use "theme";
 @use "@material/ripple";
-
+@use "@material/ripple/mixins";
 .matRipple {
   @include ripple.surface;
   @include ripple.radius-bounded;
   @include ripple.states;
 }
+// @include mixins.common;
+// @include mixins.core-styles;

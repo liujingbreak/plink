@@ -90,7 +90,7 @@ export interface WorkspaceState {
   hoistDevInfo: Map<string, DependentInfo>;
   hoistDevPeerDepInfo: Map<string, DependentInfo>;
 
-  hoistInfoSummary: {
+  hoistInfoSummary?: {
     /** User should manully add them as dependencies of workspace */
     missingDeps: {[name: string]: string};
     /** User should manully add them as devDependencies of workspace */

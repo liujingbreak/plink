@@ -207,6 +207,8 @@ function renderHoistPeerDepInfo(dep: string, dependents: DependentInfo): [dep: s
 
 function printColorExplaination(workspace: WorkspaceState) {
   const summary = workspace.hoistInfoSummary;
+  if (summary == null)
+    return;
   if (summary.conflictDeps.length > 0) {
     console.log(`Above listed transitive dependencies: "${chalk.red(summary.conflictDeps.join(', '))}" have ` +
       'conflict dependency version, resolve them by choosing a version and add them to worktree space.\n');

@@ -9,7 +9,7 @@
     "cra-app-entry": "index.tsx",
     "config-overrides-path": "config-overrides.ts"
   },
-  "sideEffects": false,
+  "sideEffects": true,
   "dependencies": {
   },
   "scripts": {
