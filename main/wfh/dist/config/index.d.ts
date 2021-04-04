@@ -1,7 +1,7 @@
 import { ConfigHandlerMgr, DrcpConfig } from '../config-handler';
 import * as rx from 'rxjs';
 import * as _pkgList from '../package-mgr/package-list-helper';
-export declare const handlers$: rx.BehaviorSubject<ConfigHandlerMgr | undefined>;
+export declare const configHandlerMgr$: rx.BehaviorSubject<ConfigHandlerMgr | undefined>;
 declare type PackageInfo = ReturnType<(typeof _pkgList)['packages4Workspace']> extends Generator<infer T> ? T : unknown;
 export interface WithPackageSettingProp {
     setting: {

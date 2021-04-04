@@ -1,4 +1,4 @@
-import {config} from '@wfh/plink';
+import {config, PackageSettingInterf} from '@wfh/plink';
 
 /**
  * Package setting type
@@ -8,11 +8,7 @@ export interface DocEntrySetting {
   basename: string;
 }
 
-/**
- * Plink runs this funtion to get package level setting value,
- * function name "defaultSetting" must be also configured in package.json file
- */
-export function defaultSetting(): DocEntrySetting {
+export const defaultSetting: PackageSettingInterf<DocEntrySetting> = (cliOption) => {
   const defaultValue: DocEntrySetting = {
     basename: '/plink'
   };
@@ -21,6 +17,10 @@ export function defaultSetting(): DocEntrySetting {
   process.env.REACT_APP_routeBasename = defaultValue.basename;
   return defaultValue;
 }
+
+defaultSetting.setupWebInjector = (factory, setting) => {
+
+};
 
 /**
  * The return setting value is merged with files specified by command line options "--prop" and "-c"

@@ -50,7 +50,11 @@ export declare class ConfigHandlerMgr {
         file: string;
         handler: ConfigHandler;
     }>;
-    constructor(files: string[]);
+    /**
+     *
+     * @param files Array of string which is in form of "<file>[#<export name>]"
+     */
+    constructor(fileAndExports0: Iterable<string> | Iterable<[file: string, exportName: string]>);
     /**
        *
        * @param func parameters: (filePath, last returned result, handler function),

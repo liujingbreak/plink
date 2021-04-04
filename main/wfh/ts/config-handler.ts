@@ -64,7 +64,8 @@ export class ConfigHandlerMgr {
   static compilerOptions: any;
   private static _tsNodeRegistered = false;
 
-  private static initConfigHandlers(files: string[], rootPath: string): Array<{file: string, handler: ConfigHandler}> {
+  private static initConfigHandlers(fileAndExports: Iterable<[file: string, exportName: string]>, rootPath: string):
+  Array<{file: string, handler: ConfigHandler}> {
     const exporteds: Array<{file: string, handler: ConfigHandler}> = [];
 
     if (!ConfigHandlerMgr._tsNodeRegistered) {
@@ -107,16 +108,27 @@ export class ConfigHandlerMgr {
         }
       });
     }
-    files.forEach(file => {
+    for (const [file, exportName] of fileAndExports) {
       const exp = require(Path.resolve(file));
-      exporteds.push({file, handler: exp.default ? exp.default : exp});
-    });
+      exporteds.push({file, handler: exp[exportName] ? exp[exportName] : exp});
+    }
     return exporteds;
   }
   protected configHandlers: Array<{file: string, handler: ConfigHandler}>;
 
-  constructor(files: string[]) {
-    this.configHandlers = ConfigHandlerMgr.initConfigHandlers(files, getRootDir());
+  /**
+   * 
+   * @param files Array of string which is in form of "<file>[#<export name>]"
+   */
+  constructor(fileAndExports0: Iterable<string> | Iterable<[file: string, exportName: string]>) {
+    const first = fileAndExports0[Symbol.iterator]().next();
+    let fileAndExports: Iterable<[file: string, exportName: string]>;
+    if (!first.done && typeof first.value === 'string') {
+      fileAndExports = Array.from(fileAndExports0 as Iterable<string>).map(file => [file, 'default']);
+    } else {
+      fileAndExports = fileAndExports0 as Iterable<[file: string, exportName: string]>;
+    }
+    this.configHandlers = ConfigHandlerMgr.initConfigHandlers(fileAndExports, getRootDir());
   }
 
   /**

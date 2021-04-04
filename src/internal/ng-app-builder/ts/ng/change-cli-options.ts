@@ -95,7 +95,7 @@ async function processBrowserBuiliderOptions(
     }
   }
 
-  await config.configHandlerMgrCreated(mgr => mgr.runEach<AngularConfigHandler>((file, obj, handler) => {
+  await config.configHandlerMgrChanged(mgr => mgr.runEach<AngularConfigHandler>((file, obj, handler) => {
     console.log(green('change-cli-options - ') + ' run', cyan(file));
     if (handler.angularJson)
       return handler.angularJson(browserOptions, devServerConfig);

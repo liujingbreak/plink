@@ -100,8 +100,6 @@ export class DrPackageInjector extends RJ {
 
     return doInjectorConfigSync(this, !this.noNode);
   }
-
-
 }
 
 export let nodeInjector = new DrPackageInjector(require.resolve, false);
@@ -109,23 +107,10 @@ export let nodeInjector = new DrPackageInjector(require.resolve, false);
 export let webInjector = new DrPackageInjector(undefined, true);
 
 export interface InjectorConfigHandler {
-  /** For Node.js runtime, replace module in "require()" or import syntax */
-  setupNodeInjector?(factory: DrPackageInjector, setting: DrcpSettings): void;
   /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */
-  setupWebInjector?(factory: DrPackageInjector, setting: DrcpSettings): void;
-}
-
-/** @deprecated */
-export function doInjectorConfig(factory: DrPackageInjector, isNode = false) {
-  const config: typeof _config = require('./config').default;
-  config.configHandlerMgrChanged(handler => {
-    handler.runEach<InjectorConfigHandler>((file: string, lastResult: any, handler) => {
-      if (isNode && handler.setupNodeInjector)
-        handler.setupNodeInjector(factory, config());
-      else if (!isNode && handler.setupWebInjector)
-        handler.setupWebInjector(factory, config());
-    }, 'Injector configuration for ' + (isNode ? 'Node.js runtime' : 'client side build tool'));
-  });
+  setupWebInjector?(factory: DrPackageInjector, allSetting: DrcpSettings): void;
+  /** For Node.js runtime, replace module in "require()" or import syntax */
+  setupNodeInjector?(factory: DrPackageInjector, allSetting: DrcpSettings): void;
 }
 
 export function doInjectorConfigSync(factory: DrPackageInjector, isNode = false) {
@@ -142,4 +127,17 @@ export function doInjectorConfigSync(factory: DrPackageInjector, isNode = false)
 
 function emptryChainableFunction() {
   return emptyFactoryMap;
+}
+
+/** @deprecated */
+export function doInjectorConfig(factory: DrPackageInjector, isNode = false) {
+  const config: typeof _config = require('./config').default;
+  config.configHandlerMgrChanged(handler => {
+    handler.runEach<InjectorConfigHandler>((file: string, lastResult: any, handler) => {
+      if (isNode && handler.setupNodeInjector)
+        handler.setupNodeInjector(factory, config());
+      else if (!isNode && handler.setupWebInjector)
+        handler.setupWebInjector(factory, config());
+    }, 'Injector configuration for ' + (isNode ? 'Node.js runtime' : 'client side build tool'));
+  });
 }

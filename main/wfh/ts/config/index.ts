@@ -16,6 +16,7 @@ import {dispatcher, getState, DrcpSettings} from './config-slice';
 import * as _pkgList from '../package-mgr/package-list-helper';
 import * as _pkgMgr from '../package-mgr';
 import {plinkEnv} from '../utils/misc';
+import {PackageSettingInterf} from './config.types';
 
 const log = log4js.getLogger('plink.config');
 // const yamljs = require('yamljs');
@@ -24,7 +25,7 @@ const {rootDir} = plinkEnv;
 
 let rootPath = rootDir;
 
-export const handlers$ = new rx.BehaviorSubject<ConfigHandlerMgr | undefined>(undefined);
+export const configHandlerMgr$ = new rx.BehaviorSubject<ConfigHandlerMgr | undefined>(undefined);
 
 /**
  * read and return configuration
@@ -74,10 +75,10 @@ config.resolve = function(pathPropName: 'rootPath' | 'destDir'|'staticDir'|'serv
 
 // config.configureStore = configureStore;
 
-config.configHandlerMgr = handlers$;
+config.configHandlerMgr = configHandlerMgr$;
 
 config.configHandlerMgrChanged = function(cb: (handler: ConfigHandlerMgr) => void) {
-  handlers$.pipe(
+  configHandlerMgr$.pipe(
     op.distinctUntilChanged(),
     op.filter(handler => handler != null),
     op.tap(handler => cb(handler!))
@@ -85,7 +86,7 @@ config.configHandlerMgrChanged = function(cb: (handler: ConfigHandlerMgr) => voi
 };
 
 // config.configHandlerMgrCreated = function(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void> {
-//   return handlers$.pipe(
+//   return configHandlerMgr$.pipe(
 //     op.distinctUntilChanged(),
 //     op.filter(handler => handler != null),
 //     op.concatMap(handler => Promise.resolve(cb(handler!))),
@@ -101,9 +102,11 @@ function load(cliOption: CliOptions) {
   const configFileList = cliOption.config || [];
   configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(localConfigPath));
   const handlers = new ConfigHandlerMgr(
-    configFileList.filter(name => /\.[tj]s$/.test(name)).concat(pkgSettingFiles)
+    configFileList.filter(name => /\.[tj]s$/.test(name))
+      .map<[file: string, expName: string]>(item => [Path.resolve(item), 'default'])
+      .concat(pkgSettingFiles)
   );
-  handlers$.next(handlers);
+  configHandlerMgr$.next(handlers);
   dispatcher._change(draft => {
     handlers.runEachSync<ConfigHandler>((_file, obj, handler) => {
       if (handler.onConfig) {
@@ -273,28 +276,27 @@ export function* getPackageSettingFiles(workspaceKey: string, includePkg?: Set<s
 /**
  * @returns absulte path of setting JS files which contains exports named with "default"
  */
-function loadPackageSettings(): string[] {
+function loadPackageSettings(): [file: string, exportName: string][] {
   const {workspaceKey, isCwdWorkspace} = require('../package-mgr') as typeof _pkgMgr;
   if (!isCwdWorkspace()) {
     log.debug('Not in a workspace, skip loading package settings');
     return [];
   }
-  const jsFiles: string[] = [];
+  const jsFiles: [file: string, exportName: string][] = [];
   for (const [_typeFile, _typeExport, jsFile, defaultSettingExport, pkg] of getPackageSettingFiles(workspaceKey(plinkEnv.workDir))) {
     try {
       const absFile = Path.resolve(pkg.realPath, jsFile);
       const exps = require(absFile);
-      const defaultSettingFactory = exps[defaultSettingExport];
+      const defaultSettingFactory: PackageSettingInterf<any> = exps[defaultSettingExport];
 
       if (typeof defaultSettingFactory === 'function') {
-        const value = defaultSettingFactory(getState().cliOptions);
+        const value = defaultSettingFactory(getState().cliOptions!);
         dispatcher._change(s => s[pkg.name] = value);
       } else {
         log.warn(`Failed to load package setting from ${pkg.name}/${jsFile}.\n Export name "${defaultSettingExport}" is not found`);
       }
-      // Not used for now
-      if (exps.default != null) {
-        jsFiles.push(absFile);
+      if (defaultSettingFactory != null) {
+        jsFiles.push([absFile, defaultSettingExport]);
       }
     } catch (err) {
       log.error(`Failed to load package setting from ${pkg.name}/${jsFile}.'${defaultSettingExport}`, err);

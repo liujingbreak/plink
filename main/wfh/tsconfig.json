@@ -383,18 +383,6 @@
       "@wfh/doc-ui-common/*": [
         "../../doc-app/doc-ui-common/*"
       ],
-      "@bk/bcl-alpha-client": [
-        "../../../../bk/credit-bcl/packages/bcl-alpha-client"
-      ],
-      "@bk/bcl-alpha-client/*": [
-        "../../../../bk/credit-bcl/packages/bcl-alpha-client/*"
-      ],
-      "@bk/bcl-alpha-server": [
-        "../../../../bk/credit-bcl/packages/bcl-alpha-server"
-      ],
-      "@bk/bcl-alpha-server/*": [
-        "../../../../bk/credit-bcl/packages/bcl-alpha-server/*"
-      ],
       "@wfh/plink": [
         ".."
       ],

@@ -14,11 +14,11 @@ export declare class DrPackageInjector extends RJ {
 export declare let nodeInjector: DrPackageInjector;
 export declare let webInjector: DrPackageInjector;
 export interface InjectorConfigHandler {
-    /** For Node.js runtime, replace module in "require()" or import syntax */
-    setupNodeInjector?(factory: DrPackageInjector, setting: DrcpSettings): void;
     /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */
-    setupWebInjector?(factory: DrPackageInjector, setting: DrcpSettings): void;
+    setupWebInjector?(factory: DrPackageInjector, allSetting: DrcpSettings): void;
+    /** For Node.js runtime, replace module in "require()" or import syntax */
+    setupNodeInjector?(factory: DrPackageInjector, allSetting: DrcpSettings): void;
 }
+export declare function doInjectorConfigSync(factory: DrPackageInjector, isNode?: boolean): void;
 /** @deprecated */
 export declare function doInjectorConfig(factory: DrPackageInjector, isNode?: boolean): void;
-export declare function doInjectorConfigSync(factory: DrPackageInjector, isNode?: boolean): void;
