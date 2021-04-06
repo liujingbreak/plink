@@ -1,26 +1,11 @@
 // @import "@material/ripple/styles";
+@use "@wfh/doc-ui-common/client/material/theme";
+// @use "@material/theme" as mdcTheme;
 
 :global body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  // margin: 0;
+  background-color: theme.$background;
 }
 
-:global code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-// .red {
-//   background: #ee6464;
-//   text-align: center;
-// }
-// .assets {
-//   background-image: url(./demo-assets.jpg);
-//   background-size: cover;
-//   background-position: center;
-//   height: 40vh;
-// }
+// @debug theme.$background;
+// @debug theme.$primary;

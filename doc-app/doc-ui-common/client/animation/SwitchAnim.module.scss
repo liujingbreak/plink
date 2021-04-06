@@ -1,0 +1,25 @@
+
+.SwitchAnim {
+  position: relative;
+}
+
+$transition: opacity linear .33s, transform ease-out .33s;
+.enterStart {
+  opacity: 0;
+  transform: translate3d(0, 33%, 0);
+  transition: $transition;
+  &.entering {
+    // opacity: 0;
+    // display: none;
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+
+// https://github.com/css-modules/css-modules
+.leaving {
+  position: absolute;
+  transition: $transition;
+  opacity: 0;
+}

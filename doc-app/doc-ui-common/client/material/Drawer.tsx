@@ -26,7 +26,10 @@ const Drawer: ForwardRefRenderFunction<Promise<MDCDrawer>, DrawerProps> = functi
   const [drawer, setDrawer] = useState<MDCDrawer | null>(null);
   const sub$ = useMemo(() => new rx.ReplaySubject<MDCDrawer>(), []);
 
-  const onDivReady = useCallback((div: HTMLDivElement) => {
+  const onDivReady = useCallback((div: HTMLDivElement | null) => {
+    if (div == null) {
+      return;
+    }
     const mdc = new MDCDrawer(div);
     sub$.next(mdc);
     sub$.complete();
@@ -47,7 +50,9 @@ const Drawer: ForwardRefRenderFunction<Promise<MDCDrawer>, DrawerProps> = functi
   useEffect(() => {
     return () => {
       sub$.subscribe({
-        next(mdc) { mdc.destroy();}
+        next(mdc) {
+          mdc.destroy();
+        }
       });
     };
   }, []);

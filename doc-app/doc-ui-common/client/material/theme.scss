@@ -1,6 +1,19 @@
+
+
 @use "@material/theme" with (
   $primary: #212121,
   $secondary: #ce93d8,
   $on-primary: #e0e0e0,
   $on-secondary: #101010,
+
+  // All configurable colors, https://github.com/material-components/material-components-web/blob/master/packages/mdc-theme/_theme-color.scss
+
+  // $accent: ,
+  $surface: #ffffff,
+  $background: #FCFAE9,
+  $on-surface: #101010,
+  // $error: ,
+  // $on-error: ,
 );
+
+@forward "@material/theme";

@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 // import ReactDom from 'react-dom';
 import classnames from 'classnames/bind';
 import styles from './ArticalePage.module.scss';
-import debounce from 'lodash/debounce';
-import {dispatcher} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 import {TopAppBar} from '@wfh/doc-ui-common/client/material/TopAppBar';
 import {Drawer} from '@wfh/doc-ui-common/client/material/Drawer';
-import {useParams} from 'react-router-dom';
+// import {useParams} from 'react-router-dom';
 import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client/markdown/MarkdownViewComp';
 import {renderByMdKey} from './articaleComponents';
 import {DocListComponents} from './DocListComponents';
+import {useParams} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
+
 
 const cx = classnames.bind(styles);
 const logoCls = cx('logo');
@@ -52,33 +52,34 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     setDrawerOpen(!drawerOpen);
   }, [drawerOpen]);
 
-  const handleScroll = debounce(() => {
-    dispatcher.scrollProcess();
-  }, 20);
+  // const handleScroll = debounce(() => {
+  //   dispatcher.scrollProcess();
+  // }, 20);
 
-  useEffect(() => {
-    if (scrollBodyRef.current) {
-      dispatcher.setScrollBodyEl(scrollBodyRef.current);
-      scrollBodyRef.current.addEventListener('scroll', handleScroll);
-    }
-    return () => {
-      if (scrollBodyRef.current) {
-        scrollBodyRef.current.removeEventListener('scroll', handleScroll);
-      }
-      dispatcher.clearScrollCallback();
-    };
-  }, [scrollBodyRef.current]);
+  // useEffect(() => {
+  //   if (scrollBodyRef.current) {
+  //     dispatcher.setScrollBodyEl(scrollBodyRef.current);
+  //     scrollBodyRef.current.addEventListener('scroll', handleScroll);
+  //   }
+  //   return () => {
+  //     if (scrollBodyRef.current) {
+  //       scrollBodyRef.current.removeEventListener('scroll', handleScroll);
+  //     }
+  //     dispatcher.clearScrollCallback();
+  //   };
+  // }, [scrollBodyRef.current]);
 
   const title = (
     <div className={titleCls}>
       <div className={logoCls}></div>
-      用户技术业务前端架构简介
+      简介
     </div>
   );
 
   return (
     <div className={articaleCls}>
-      <Drawer title={<i className={bkLogoCls} />} type='modal' open={drawerOpen} content={<DocListComponents currentKey={routeParams.mdKey} onItemClick={onDrawerToggle} />}>
+      <Drawer title={<i className={bkLogoCls} />} type='modal' open={drawerOpen}
+        content={<DocListComponents currentKey={routeParams.mdKey} onItemClick={onDrawerToggle} />}>
         <TopAppBar title={title} type='short' onDrawerMenuClick={onDrawerToggle} />
         <main className={contentCls} ref={scrollBodyRef}>
           <div className='mdc-top-app-bar--fixed-adjust'>

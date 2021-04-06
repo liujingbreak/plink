@@ -189,7 +189,7 @@ function subComands(program: commander.Command) {
       await (await import('./cli-ls')).default(listCmd.opts() as any);
     });
 
-  const addCmd = program.command('add [dependency...]')
+  const addCmd = program.command('add <dependency...>')
     .description('Add dependency to package.json file, with option "--dev" to add as "devDependencies", ' +
       'without option "--to" this command adds dependency to current worktree space\'s package.json file',
       {

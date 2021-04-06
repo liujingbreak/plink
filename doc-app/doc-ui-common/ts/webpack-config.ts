@@ -10,7 +10,7 @@ const handler: ReactScriptsHandler = {
       findLoader(cfg.module.rules, (loader, ruleSet, idx, useItems) => {
         if (/node_modules[/\\]sass-loader[/\\]/.test(loader)) {
           useItems.push(path.resolve(__dirname, 'sass-theme-loader.js'));
-          return true;
+          // return true;
         }
         return false;
       });

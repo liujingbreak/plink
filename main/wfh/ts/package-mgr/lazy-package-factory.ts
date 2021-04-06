@@ -3,7 +3,8 @@ import * as _ from 'lodash';
 import {DirTree} from 'require-injector/dist/dir-tree';
 import PackageInstance from '../packageNodeInstance';
 import {PackageInfo} from '.';
-
+import {plinkEnv} from '../utils/misc';
+import {resolve} from 'path';
 /**
  * @deprecated
  */
@@ -18,9 +19,8 @@ export default class LazyPackageFactory {
       this.packagePathMap = new DirTree<PackageInstance>();
       for (const info of this.packagesIterable) {
         const pk = createPackage(info);
-        this.packagePathMap.putData(info.path, pk);
-        if (info.realPath !== info.path)
-          this.packagePathMap.putData(info.realPath, pk);
+        this.packagePathMap.putData(info.realPath, pk);
+        this.packagePathMap.putData(resolve(plinkEnv.workDir, info.path), pk);
       }
     }
     let found: PackageInstance[];
@@ -47,7 +47,7 @@ function createPackage(info: PackageInfo) {
   const instance = new PackageInstance({
     longName: info.name,
     shortName: parseName(info.name).name,
-    path: info.path,
+    path: resolve(plinkEnv.workDir, info.path),
     realPath: info.realPath,
     json: info.json
   });

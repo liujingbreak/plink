@@ -1,10 +1,22 @@
 @use "theme";
-@use "@material/ripple";
-@use "@material/ripple/mixins";
+@use "@material/ripple" with (
+  $fade-in-duration: 75ms ,
+  $fade-out-duration: 150ms ,
+  $translate-duration: 500ms ,
+  $states-wash-duration: 15ms
+);
+@use "@material/ripple/styles";
+
 .matRipple {
   @include ripple.surface;
   @include ripple.radius-bounded;
-  @include ripple.states;
+  @include ripple.states-opacities((hover: .1, focus: .15, press: .15));
+  &.dark {
+    @include ripple.states-base-color(black);
+  }
+  &.light {
+    @include ripple.states-base-color(white);
+  }
+  flex: 1;
 }
-// @include mixins.common;
-// @include mixins.core-styles;
+

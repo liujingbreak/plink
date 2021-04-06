@@ -1,33 +1,38 @@
 import React from 'react';
 // import classnames from 'classnames/bind';
 // import styles from './RoutesComp.module.scss';
-// import {Switch, Route} from 'react-router-dom';
+import {Redirect, Switch} from 'react-router-dom';
 import loadable from '@loadable/component';
+// import {SwitchAnim} from '@wfh/doc-ui-common/client/animation//SwitchAnim';
+
 import {AnimatableRoutes} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
+import { TopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 
 export type RoutesCompProps = React.PropsWithChildren<{
 }>;
 
 const LazyDocComponent = loadable(async () => {
   return (await import('../feature/article/ArticalePage')).ArticalePage;
-}, {fallback: <>loading...</>});
+}, {fallback: <>...</>});
+
+const LazyDemoComponent = loadable(async () => {
+  return (await import('../feature/demo/DemoPage')).DemoPage;
+}, {fallback: <>...</>});
 
 const RoutesComp: React.FC<RoutesCompProps> = function(prop) {
-  // const location = useLocation();
-  // const [currLocation, setLocation] = React.useState<ReturnType<typeof useLocation>>(location);
-  // React.useEffect(() => {
-  //   setTimeout(() => setLocation(location), 500);
-  // }, [location]);
-
   return (
+    <>
+    <TopAppBar title='' type='short'/>
     <AnimatableRoutes routes={[
-      {path: '/test', component: 'test ok'},
-      {path: '/doc/:mdKey', component: <LazyDocComponent/>}
-    ]}/>
-    // <Switch>
-    //   <Route path='/test'>test ok</Route>
-    //   <Route path='/doc/:mdKey'><LazyDocComponent/></Route>
-    // </Switch>
+      {path: '/test', children: 'test ok'},
+      {path: '/demo/:demoId', children: <LazyDemoComponent/>},
+      {path: '/demo', children: <LazyDemoComponent/>},
+      {path: '/doc/:mdKey', children: <LazyDocComponent/>}
+    ]}>
+      <Switch>
+        <Redirect from='/' exact to='/demo'/>
+      </Switch>
+    </AnimatableRoutes></>
   );
 };
 

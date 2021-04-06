@@ -2,6 +2,7 @@
 import { ofPayloadAction, StateFactory } from './redux-toolkit-observable';
 import { enableES5, enableMapSet } from 'immer';
 import { tap } from 'rxjs/operators';
+export * from './resource-map';
 enableES5();
 enableMapSet();
 export const stateFactory = module.hot && module.hot.data && module.hot.data.stateFactory ? module.hot.data.stateFactory :

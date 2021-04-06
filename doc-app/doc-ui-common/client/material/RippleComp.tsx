@@ -1,43 +1,45 @@
 import React from 'react';
 import classnames from 'classnames/bind';
 import styles from './RippleComp.scss';
-import '@material/ripple/styles.scss';
+// import '@material/ripple/styles.scss';
 import {MDCRipple} from '@material/ripple/index';
 
 import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 
 const cx = classnames.bind(styles);
 
 
 export type RippleCompProps = React.PropsWithChildren<{
-  color?: 'primary' | 'accent';
+  color?: 'dark' | 'light';
   getMdcRef?: (ref: MDCRipple) => void;
   renderOn?: HTMLElement;
 }>;
 
 const RippleComp: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleCompProps> = function(props, ref) {
-  
+
   React.useEffect(() => {
     if (props.renderOn) {
       renderTo(props.renderOn, props);
     }
   }, [props.renderOn]);
-  const sub$ = React.useMemo(() => new rx.ReplaySubject<MDCRipple>(), []);
+  const sub$ = React.useMemo(() => new rx.BehaviorSubject<MDCRipple | null>(null), []);
 
-  const onDivReady = React.useCallback((div: HTMLDivElement) => {
-    setTimeout(() => {
-    const mdc = renderTo(div, props);
-    sub$.next(mdc);
-    sub$.complete();
-    }, 500);
+  const onDivReady = React.useCallback<React.RefCallback<HTMLDivElement>>((div) => {
+    if (div && sub$.getValue() == null) {
+      setTimeout(() => {
+        const mdc = renderTo(div, props);
+        sub$.next(mdc);
+      }, 200);
+    }
   }, []);
 
-  React.useImperativeHandle(ref, () => sub$.toPromise(), [sub$]);
+  React.useImperativeHandle(ref, () => sub$.pipe(op.filter(item => item != null), op.take(1)).toPromise() as Promise<MDCRipple>, [sub$]);
 
   React.useEffect(() => {
     return () => {
       sub$.subscribe({
-        next(mdc) { mdc.destroy();}
+        next(mdc) { if (mdc) mdc.destroy();}
       });
     };
   }, []);
@@ -51,7 +53,10 @@ const RippleComp: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleCompP
 
 export function renderTo(div: HTMLElement, props: RippleCompProps) {
   const cls = cx(div.className, 'matRipple', 'mdc-ripple-surface',
-    {'mdc-ripple-surface--primary': props.color === 'primary', 'mdc-ripple-surface--accent': props.color === 'primary'});
+    {
+      dark: props.color === 'dark' || props.color == null,
+      light: props.color === 'light'}
+    );
 
   div.className = cls;
   const mdc = new MDCRipple(div);

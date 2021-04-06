@@ -5,9 +5,6 @@
 
 .mdc-top-app-bar {
   @include icon-button.core-styles;
-  position: absolute;
+  // position: absolute;
   z-index: 7;
-  .mdc-top-app-bar__title {
-    padding-left: 0;
-  }
 }

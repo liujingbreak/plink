@@ -17,3 +17,5 @@ export { getRootDir, getSymlinkForPackage, plinkEnv } from './utils/misc';
 export { PackagesState, PackageInfo } from './package-mgr';
 export { setTsCompilerOptForNodePath } from './package-mgr/package-list-helper';
 export * as logger from 'log4js';
+export { log4File } from './logger';
+export { packageOfFileFactory } from './package-mgr/package-info-gathering';

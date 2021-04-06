@@ -37,18 +37,15 @@ const List: ForwardRefRenderFunction<Promise<MDCList>, ListProps> = function({
   const subRipple$ = useMemo(() => new rx.ReplaySubject<MDCRipple>(), []);
 
   const onDivReady = useCallback((div: any) => {
+    if (div == null) {
+      return;
+    }
     const mdc = new MDCList(div);
     sub$.next(mdc);
     sub$.complete();
     if (getMdcRef) {
       getMdcRef(mdc);
     }
-  }, []);
-
-  const onRippleReady = useCallback((div: any) => {
-    const mdc = new MDCRipple(div);
-    subRipple$.next(mdc);
-    subRipple$.complete();
   }, []);
 
   const handleItemClick = (item: ListItem) => {
@@ -81,7 +78,7 @@ const List: ForwardRefRenderFunction<Promise<MDCList>, ListProps> = function({
           })}
           onClick={() => handleItemClick(item)}
         >
-          <span className='mdc-list-item__ripple' ref={onRippleReady}></span>
+          <span className='mdc-list-item__ripple'></span>
           <span className='mdc-list-item__text'>
             {twoLine ? (
               <>

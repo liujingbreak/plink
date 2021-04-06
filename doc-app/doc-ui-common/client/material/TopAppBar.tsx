@@ -29,7 +29,10 @@ const typeStyleMap: {[key in NonNullable<TopAppBarProps['type']>]: {header: stri
 const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBarProps> = function(props, ref) {
   const sub$ = React.useMemo(() => new rx.ReplaySubject<MDCTopAppBar>(), []);
 
-  const onDivReady = React.useCallback((div: HTMLDivElement) => {
+  const onDivReady = React.useCallback((div: HTMLDivElement | null) => {
+    if (div == null) {
+      return;
+    }
     const mdc = new MDCTopAppBar(div);
     sub$.next(mdc);
     sub$.complete();
@@ -55,14 +58,14 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
     <header className={'mdc-top-app-bar ' + headerStyle} ref={onDivReady}>
       <div className='mdc-top-app-bar__row'>
         <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-start'>
-          <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Open navigation menu' onClick={props.onDrawerMenuClick}>menu</button>
+          {/* <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Open navigation menu' onClick={props.onDrawerMenuClick}>menu</button> */}
           <span className='mdc-top-app-bar__title'>{props.title}</span>
         </section>
-        {/* <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-end' role='toolbar'>
-          <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Share'>share</button>
+        <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-end' role='toolbar'>
+          {/* <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Share'>share</button>
           <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Delete'>delete</button>
-          <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Open menu'>more_vert</button>
-        </section> */}
+          <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Open menu'>more_vert</button> */}
+        </section>
       </div>
     </header></>
   );

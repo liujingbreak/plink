@@ -34,8 +34,9 @@ const markdownSlice = stateFactory.newSlice({
       Object.assign(s.markdowns, payload);
     },
     getHtml(s, action: PayloadAction<string>) {},
-    setScrollBodyEl(s, {payload}) {
-      s.scrollBodyEl = payload;
+    setScrollBodyEl(s, {payload}: PayloadAction<HTMLDivElement | null>) {
+      s.scrollBodyEl = payload as any;
+      Object.freeze(payload);
     },
     openIndex(s, action: PayloadAction<boolean>) {
       s.indexOpen = action.payload;

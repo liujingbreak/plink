@@ -1,6 +1,6 @@
 {
   "name": "@wfh/doc-ui-common",
-  "version": "1.0.0",
+  "version": "1.0.1-0",
   "description": "Common UI functions for Plink doc site",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,7 @@
   "license": "ISC",
   "sideEffects": false,
   "dependencies": {
-    "@material/ripple": "^8.0.0",
+    "@material/ripple": "^10.0.0",
     "canvas-5-polyfill": "0.1.5",
     "animejs": "3.2.1",
     "@types/animejs": "3.1.2",

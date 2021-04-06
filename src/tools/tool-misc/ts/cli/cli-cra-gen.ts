@@ -120,10 +120,10 @@ export async function genComponents(dir: string, compNames: string[], connectedT
   }
 }
 
-export async function genSlice(dir: string, targetNames: string[], dryrun = false) {
+export async function genSlice(dir: string, targetNames: string[], opt: {dryRun?: boolean; comp: boolean}) {
   dir = Path.resolve(dir);
 
-  if (dryrun) {
+  if (opt.dryRun) {
     // tslint:disable-next-line: no-console
     plink.logger.info('dryrun mode');
   } else {
@@ -132,16 +132,19 @@ export async function genSlice(dir: string, targetNames: string[], dryrun = fals
   for (let targetName of targetNames) {
     targetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
     const smallTargetName = targetName.charAt(0).toLowerCase() + targetName.slice(1);
-    await generateStructure(Path.resolve(__dirname, '../../template-cra-slice'), dir,
+    await generateStructure(
+      Path.resolve(__dirname, opt.comp ? '../../template-slice4comp' : '../../template-cra-slice'),
+      dir,
     {
       fileMapping: [
-        [/^myFeature/, smallTargetName]
+        [/^myFeature/, smallTargetName],
+        [/^MyComp/, smallTargetName]
       ],
       textMapping: {
         SliceName: targetName,
         sliceName: smallTargetName
       }
     },
-    {dryrun});
+    {dryrun: opt.dryRun});
   }
 }

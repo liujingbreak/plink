@@ -6,9 +6,10 @@ import {packages4Workspace} from './package-list-helper';
 import {PackageInfo as PackageState} from './index';
 import {parseName} from './lazy-package-factory';
 import {plinkEnv} from '../utils/misc';
+import LRU from 'lru-cache';
 import Path from 'path';
-const log = getLogger('plink.package-info-gathering');
 
+const log = getLogger('plink.package-info-gathering');
 const {workDir, symlinkDirName} = plinkEnv;
 export interface PackageInfo {
   allModules: PackageInstance[];
@@ -18,7 +19,11 @@ export interface PackageInfo {
 
 export {PackageInstance};
 
-let packageInfo: PackageInfo;
+let existingFileToPkgHelper: {
+  packageInfo: PackageInfo;
+  getPkgOfFile(file: string): PackageInstance | undefined;
+} | undefined;
+// let packageInfo: PackageInfo;
 /**
  * walkPackages
  * @param {*} config 
@@ -27,35 +32,52 @@ let packageInfo: PackageInfo;
  * @param {*} ignoreCache
  * @return {PackageInfo}
  */
-export function walkPackages() {
-  if (packageInfo)
-    return packageInfo;
-  log.debug('scan for packages info');
-  packageInfo = _walkPackages();
-  createPackageDirTree(packageInfo);
-  return packageInfo;
+
+export function packageOfFileFactory() {
+  if (existingFileToPkgHelper) {
+    return existingFileToPkgHelper;
+  }
+  const cache = new LRU<string, PackageInstance>({max: 20, maxAge: 20000});
+  const packageInfo: PackageInfo = walkPackages();
+
+  function getPkgOfFile(file: string): PackageInstance | undefined {
+    var found = cache.get(file);
+    if (!found) {
+      found = packageInfo.dirTree.getAllData(file).pop();
+      if (found)
+        cache.set(file, found);
+    }
+    return found;
+  }
+  const res = {packageInfo, getPkgOfFile};
+  existingFileToPkgHelper = res;
+  return res;
 }
 
-function _walkPackages(): PackageInfo {
-  const info: PackageInfo = {
+export function walkPackages() {
+  // if (packageInfo)
+  //   return packageInfo;
+  log.debug('scan for packages info');
+  const packageInfo: PackageInfo = {
     get allModules() {
-      return Object.values(info.moduleMap);
+      return Object.values(packageInfo.moduleMap);
     }, // array
     moduleMap: {},
     dirTree: null as unknown as DirTree<PackageInstance>
   };
 
   for (const pk of packages4Workspace()) {
-    addPackageToInfo(info, pk);
+    addPackageToInfo(packageInfo.moduleMap, pk);
   }
-
-  return info;
+  createPackageDirTree(packageInfo);
+  return packageInfo;
 }
 
-function addPackageToInfo(info: PackageInfo, pkg: PackageState) {
+
+function addPackageToInfo(moduleMap: PackageInfo['moduleMap'], pkg: PackageState) {
   let instance;
-  if (_.has(info.moduleMap, pkg.name)) {
-    instance = info.moduleMap[pkg.name];
+  if (_.has(moduleMap, pkg.name)) {
+    instance = moduleMap[pkg.name];
   } else {
     const parsed = parseName(pkg.name);
     // There are also node packages
@@ -65,12 +87,12 @@ function addPackageToInfo(info: PackageInfo, pkg: PackageState) {
       name: pkg.name,
       longName: pkg.name,
       scope: pkg.scope,
-      path: pkg.path,
+      path: Path.resolve(workDir, pkg.path),
       json: pkg.json,
       realPath: pkg.realPath
     });
   }
-  info.moduleMap[instance.longName] = instance;
+  moduleMap[instance.longName] = instance;
 }
 
 // function trimNoParseSetting(p: string) {

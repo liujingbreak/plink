@@ -1,0 +1,19 @@
+
+.DemoPage {
+  a {
+    display: block;
+  }
+}
+
+// https://github.com/css-modules/css-modules
+.rippleContent {
+  height: 3rem;
+  max-width: 300px;
+  display: flex;
+  align-items:stretch;
+
+  &.dark {
+    background-color: #303030;
+    color: #dddddd;
+  }
+}

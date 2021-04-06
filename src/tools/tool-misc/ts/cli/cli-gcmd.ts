@@ -39,7 +39,7 @@ export async function generate(packageName: string, cmdName: string, opts: CBOpt
       }
     }, {dryrun: opts.dryRun});
 
-  const pkJsonFile = Path.resolve(targetPkg.path, 'package.json');
+  const pkJsonFile = Path.resolve(targetPkg.realPath, 'package.json');
 
   if (opts.dryRun) {
     plink.logger.info(chalk.cyan(pkJsonFile) + ' will be changed.');

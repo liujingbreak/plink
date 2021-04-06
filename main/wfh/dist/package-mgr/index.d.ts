@@ -9,7 +9,8 @@ export interface PackageInfo {
     scope: string;
     shortName: string;
     json: any;
-    /** If this property is not same as "realPath", then it is a symlink */
+    /** Be aware: If this property is not same as "realPath",
+     * then it is a symlink whose path is relative to workspace directory */
     path: string;
     realPath: string;
     isInstalled: boolean;

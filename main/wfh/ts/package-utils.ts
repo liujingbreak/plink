@@ -7,6 +7,8 @@ import _ from 'lodash';
 // import log4js from 'log4js';
 // import * as fs from 'fs';
 import {lookupPackageJson, findPackagesByNames} from './cmd/utils';
+import {plinkEnv} from './utils/misc';
+import path from 'path';
 import {PackageType, allPackages, packages4WorkspaceKey, packages4Workspace} from './package-mgr/package-list-helper';
 export {PackageType, allPackages, packages4WorkspaceKey, packages4Workspace};
 
@@ -40,7 +42,8 @@ export function lookForPackages(packageList: string[] | string, cb: FindPackageC
   for (const pkg of findPackagesByNames(getState(), Array.isArray(packageList) ? packageList : [packageList])) {
     if (pkg == null)
       continue;
-    cb(pkg.name, pkg.path, {name: pkg.shortName, scope: pkg.scope}, pkg.json, pkg.realPath, pkg.isInstalled);
+    cb(pkg.name, path.join(plinkEnv.workDir, pkg.path), {name: pkg.shortName, scope: pkg.scope},
+      pkg.json, pkg.realPath, pkg.isInstalled);
   }
 }
 
@@ -81,7 +84,8 @@ export function findPackageByType(_types: PackageType | PackageType[],
 
   const arr = Array.isArray(projectDir) ? projectDir : projectDir == null ? projectDir : [projectDir];
   for (const pkg of allPackages(_types, recipeType, arr)) {
-    callback(pkg.name, pkg.path, {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, pkg.isInstalled);
+    callback(pkg.name, path.join(plinkEnv.workDir, pkg.path),
+      {scope: pkg.scope, name: pkg.shortName}, pkg.json, pkg.realPath, pkg.isInstalled);
   }
 }
 

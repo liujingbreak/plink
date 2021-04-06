@@ -1,7 +1,6 @@
 /* tslint:disable max-line-length */
 import * as _ from 'lodash';
-import LRU from 'lru-cache';
-import {PackageInfo, walkPackages} from './package-mgr/package-info-gathering';
+import {PackageInfo, packageOfFileFactory, walkPackages} from './package-mgr/package-info-gathering';
 import { nodeInjector, webInjector } from './injector-factory';
 import _NodeApi from './package-mgr/node-package-api';
 import PackageInstance from './packageNodeInstance';
@@ -158,21 +157,14 @@ export async function runPackages(target: string, includePackages: Iterable<stri
  */
 export function initInjectorForNodePackages():
   [PackageInfo, _NodeApi] {
-  const packageInfo: PackageInfo = walkPackages();
+  const {getPkgOfFile, packageInfo} = packageOfFileFactory();
+  // const packageInfo: PackageInfo = walkPackages();
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
   const proto = NodeApi.prototype;
   proto.argv = {};
   proto.packageInfo = packageInfo;
-  const cache = new LRU<string, PackageInstance>({max: 20, maxAge: 20000});
-  proto.findPackageByFile = function(file: string): PackageInstance | undefined {
-    var found = cache.get(file);
-    if (!found) {
-      found = packageInfo.dirTree.getAllData(file).pop();
-      if (found)
-        cache.set(file, found);
-    }
-    return found;
-  };
+
+  proto.findPackageByFile = getPkgOfFile;
   proto.getNodeApiForPackage = function(packageInstance: PackageInstance) {
     return getApiForPackage(packageInstance, NodeApi);
   };
@@ -184,19 +176,6 @@ export function initInjectorForNodePackages():
   webInjector.readInjectFile('module-resolve.browser');
   return [packageInfo, proto];
 }
-
-// function initWebInjector(packages: PackageInstance[], apiPrototype: any) {
-//   _.each(packages, pack => {
-//     webInjector.addPackage(pack.longName, pack.realPath);
-//   });
-//   webInjector.fromAllPackages()
-//   .replaceCode('__api', '__api')
-//   .substitute(/^([^{]*)\{locale\}(.*)$/,
-//     (_filePath: string, match: RegExpExecArray) => match[1] + apiPrototype.getBuildLocale() + match[2]);
-
-//   webInjector.readInjectFile('module-resolve.browser');
-//   apiPrototype.browserInjector = webInjector;
-// }
 
 /**
  * @deprecated
@@ -245,7 +224,7 @@ export function mapPackagesByType(types: string[], onEachPackage: (nodePackage: 
       name,
       longName: name,
       scope: pkg.scope,
-      path: pkg.path,
+      path: Path.resolve(getWorkDir(), pkg.path),
       json: pkg.json,
       realPath: pkg.realPath
     });

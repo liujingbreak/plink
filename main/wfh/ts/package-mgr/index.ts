@@ -17,7 +17,7 @@ import { exe } from '../process-utils';
 import { setProjectList} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
 // import { getRootDir } from '../utils/misc';
-import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync, _symlinkAsync } from '../utils/symlinks';
+import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync } from '../utils/symlinks';
 import {symbolicLinkPackages} from '../rwPackageJson';
 import { EOL } from 'os';
 import {getLogger} from 'log4js';
@@ -28,7 +28,8 @@ export interface PackageInfo {
   scope: string;
   shortName: string;
   json: any;
-  /** If this property is not same as "realPath", then it is a symlink */
+  /** Be aware: If this property is not same as "realPath",
+   * then it is a symlink whose path is relative to workspace directory */
   path: string;
   realPath: string;
   isInstalled: boolean;
@@ -55,7 +56,7 @@ export interface PackagesState {
   lastCreatedWorkspace?: string;
 }
 
-const {distDir, rootDir, plinkDir, isDrcpSymlink, symlinkDirName, workDir} = plinkEnv;
+const {distDir, rootDir, plinkDir, isDrcpSymlink, symlinkDirName} = plinkEnv;
 
 const NS = 'packages';
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
@@ -781,7 +782,10 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
 
   function recoverSymlinks() {
     return Promise.all(symlinksInModuleDir.map(({content, link}) => {
-      return _symlinkAsync(content, link, isWin32 ? 'junction' : 'dir');
+      if (!fs.existsSync(link)) {
+        return fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
+      }
+      return Promise.resolve();
     }));
   }
 }
@@ -908,7 +912,7 @@ async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) 
  */
 export function createPackageInfo(pkJsonFile: string, isInstalled = false): PackageInfo {
   const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
-  return createPackageInfoWithJson(pkJsonFile, json, isInstalled, Path.resolve(workDir, symlinkDirName));
+  return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
 }
 /**
  * List those installed packages which are referenced by workspace package.json file,
@@ -945,14 +949,13 @@ function* scanInstalledPackage4Workspace(state: PackagesState, workspaceKey: str
  * @param symLink symlink path of package
  * @param realPath real path of package
  */
-function createPackageInfoWithJson(pkJsonFile: string, json: any, isInstalled = false,
-  symLinkParentDir?: string): PackageInfo {
+function createPackageInfoWithJson(pkJsonFile: string, json: any, isInstalled = false): PackageInfo {
   const m = moduleNameReg.exec(json.name);
   const pkInfo: PackageInfo = {
     shortName: m![2],
     name: json.name,
     scope: m![1],
-    path: symLinkParentDir ? Path.resolve(symLinkParentDir, json.name) : Path.dirname(pkJsonFile),
+    path: Path.join(symlinkDirName, json.name),
     json,
     realPath: fs.realpathSync(Path.dirname(pkJsonFile)),
     isInstalled

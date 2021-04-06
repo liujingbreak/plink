@@ -263,7 +263,7 @@ export function* getPackageSettingFiles(workspaceKey: string, includePkg?: Set<s
         continue;
       }
       if (typeExportName == null) {
-        log.error(`Incorrect package config property format "${setting.type}" in ${pkg.path + Path.sep}package.json` +
+        log.error(`Incorrect package config property format "${setting.type}" in ${pkg.realPath + Path.sep}package.json` +
           ', correct format is "<dts-file-relative-path>#<TS-type-export-name>"');
         continue;
       }

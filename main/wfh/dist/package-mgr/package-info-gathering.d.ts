@@ -16,4 +16,8 @@ export { PackageInstance };
  * @param {*} ignoreCache
  * @return {PackageInfo}
  */
+export declare function packageOfFileFactory(): {
+    packageInfo: PackageInfo;
+    getPkgOfFile(file: string): PackageInstance | undefined;
+};
 export declare function walkPackages(): PackageInfo;

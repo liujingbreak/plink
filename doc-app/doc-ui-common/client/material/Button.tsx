@@ -19,7 +19,10 @@ function doNothing() {}
 
 const Button: React.FC<ButtonProps> = function(props) {
   const btn$ = React.useMemo(() => new rx.ReplaySubject<HTMLButtonElement>(1), []);
-  const onRef = React.useCallback((btn: HTMLButtonElement) => {
+  const onRef = React.useCallback((btn: HTMLButtonElement | null) => {
+    if (btn == null) {
+      return;
+    }
     btn$.next(btn);
     btn$.complete();
     // renderRipple(btn, {});
@@ -28,7 +31,7 @@ const Button: React.FC<ButtonProps> = function(props) {
   React.useEffect(() => {
     btn$.pipe(
       op.tap((btn) => {
-        if (props.disabled == true) {
+        if (props.disabled === true) {
           btn.setAttribute('disabled', '');
         } else {
           btn.removeAttribute('disabled');

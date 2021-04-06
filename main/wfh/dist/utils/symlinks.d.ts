@@ -2,7 +2,6 @@
 import * as fs from 'fs';
 export declare const isWin32: boolean;
 export declare const lstatAsync: typeof fs.lstat.__promisify__;
-export declare const _symlinkAsync: typeof fs.symlink.__promisify__;
 export declare const unlinkAsync: typeof fs.unlink.__promisify__;
 /**
  * Return all deleted symlinks

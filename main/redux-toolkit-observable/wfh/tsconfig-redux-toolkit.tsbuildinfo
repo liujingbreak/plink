@@ -1122,18 +1122,33 @@
         "affectsGlobalScope": false
       },
       "../redux-toolkit-observable.ts": {
-        "version": "a3491f0ba8b2e48c9845e6842afb9e948cdb6e4f5c83be7018ddf4c73e2f263d",
-        "signature": "3db3081ec5511cdc6fd9c3bffa24b7bc6afb673854d5571552bf2c8b29b27185",
+        "version": "31dbb91c3680e1aecdc4a32fef8c27615a98dc83a5bd25ded8e69e8758b32e52",
+        "signature": "dc31db9ac73833e4d0a82076b53258c05c430f109af035a2891c6585bf0eb0dc",
+        "affectsGlobalScope": false
+      },
+      "../resource-map.ts": {
+        "version": "5290d737674e82dcc3aac9b645045b93929f619d0dedcd8517ecfee9ed0dee04",
+        "signature": "c08b1c710de7657e1f626bc7722b4e6271a904b39ce62fb97b8bfd4adf4d4a8d",
         "affectsGlobalScope": false
       },
       "../react-redux-helper.ts": {
-        "version": "396849334f6b7429446cf4bc424f67b7eb5dc8705af628d04840ac80cadf8f45",
-        "signature": "d18d2741f88d86ebc6e7f4aacdb0d29e30d12de65101d9740a2a8ed11625b0b7",
+        "version": "94626a238d69f8e3e991cd7371902cd05e9efa00589bec305cff6877a23cce6a",
+        "signature": "cca19753394599715ec088847b37ea7b139d0d6dd8570a819739f992a82129fd",
         "affectsGlobalScope": false
       },
       "../state-factory-browser.ts": {
-        "version": "44cd467700d8243e8d9f5e675e8d0699015ad978fe4e10ecec5313a9ab50f744",
-        "signature": "a606199d7ed533bd21455062d8ae11018ccbb3fb765caa2c867d0bc8eb6ac2f8",
+        "version": "d292ff66ff2c86a07781780d6f1fa70d3fc8b170941df9d5e28a6cf01b055b1e",
+        "signature": "e8751189fda2bc9787ff2e56062f25b8746a3465b9fee7eaeb5adf3e36f55c79",
+        "affectsGlobalScope": false
+      },
+      "../tiny-redux-toolkit.ts": {
+        "version": "7f3882ff369d2d08469fa5e3e9f9d907aba8396e2228e2cd9d51844b61301602",
+        "signature": "06a1954b9a78de51ec317d57385ecd1f4c3578b18297f2732da95dcb760a858d",
+        "affectsGlobalScope": false
+      },
+      "../tiny-redux-toolkit-hook.ts": {
+        "version": "085a464d644650e4eaa3101fcdeebda46c9126f6a549e250a24d91f89973f31a",
+        "signature": "26c246baf50212060b5a04d0814fa2303efdd1ba947f5321e304786b9716bf3e",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/anymatch/index.d.ts": {
@@ -3387,7 +3402,10 @@
       "../react-redux-helper.ts": [
         "../../node_modules/@types/react-redux/index.d.ts",
         "../../node_modules/@types/react/index.d.ts",
-        "../redux-toolkit-observable.ts"
+        "../../node_modules/rxjs/index.d.ts",
+        "../../node_modules/rxjs/operators/index.d.ts",
+        "../redux-toolkit-observable.ts",
+        "../resource-map.ts"
       ],
       "../redux-toolkit-observable.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
@@ -3396,10 +3414,23 @@
         "../../node_modules/rxjs/operators/index.d.ts",
         "../hmr-module.d.ts"
       ],
+      "../resource-map.ts": [
+        "../../node_modules/immer/dist/internal.d.ts"
+      ],
       "../state-factory-browser.ts": [
         "../../node_modules/immer/dist/immer.d.ts",
         "../../node_modules/rxjs/operators/index.d.ts",
-        "../redux-toolkit-observable.ts"
+        "../redux-toolkit-observable.ts",
+        "../resource-map.ts"
+      ],
+      "../tiny-redux-toolkit-hook.ts": [
+        "../../node_modules/@types/react/index.d.ts",
+        "../../node_modules/rxjs/index.d.ts",
+        "../tiny-redux-toolkit.ts"
+      ],
+      "../tiny-redux-toolkit.ts": [
+        "../../node_modules/rxjs/index.d.ts",
+        "../../node_modules/rxjs/operators/index.d.ts"
       ]
     },
     "exportedModulesMap": {
@@ -4925,7 +4956,9 @@
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
         "../../node_modules/@types/react-redux/index.d.ts",
         "../../node_modules/redux/index.d.ts",
-        "../redux-toolkit-observable.ts"
+        "../../node_modules/rxjs/index.d.ts",
+        "../redux-toolkit-observable.ts",
+        "../resource-map.ts"
       ],
       "../redux-toolkit-observable.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
@@ -4933,8 +4966,19 @@
         "../../node_modules/redux/index.d.ts",
         "../../node_modules/rxjs/index.d.ts"
       ],
+      "../resource-map.ts": [
+        "../../node_modules/immer/dist/internal.d.ts"
+      ],
       "../state-factory-browser.ts": [
-        "../redux-toolkit-observable.ts"
+        "../redux-toolkit-observable.ts",
+        "../resource-map.ts"
+      ],
+      "../tiny-redux-toolkit-hook.ts": [
+        "../../node_modules/rxjs/index.d.ts",
+        "../tiny-redux-toolkit.ts"
+      ],
+      "../tiny-redux-toolkit.ts": [
+        "../../node_modules/rxjs/index.d.ts"
       ]
     },
     "semanticDiagnosticsPerFile": [
@@ -5303,7 +5347,10 @@
       "../hmr-module.d.ts",
       "../react-redux-helper.ts",
       "../redux-toolkit-observable.ts",
-      "../state-factory-browser.ts"
+      "../resource-map.ts",
+      "../state-factory-browser.ts",
+      "../tiny-redux-toolkit-hook.ts",
+      "../tiny-redux-toolkit.ts"
     ]
   },
   "version": "4.1.2"

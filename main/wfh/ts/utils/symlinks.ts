@@ -10,7 +10,7 @@ import {getWorkDir} from './misc';
 export const isWin32 = os.platform().indexOf('win32') >= 0;
 // export const readdirAsync = util.promisify(fs.readdir);
 export const lstatAsync = util.promisify(fs.lstat);
-export const _symlinkAsync = util.promisify(fs.symlink);
+// export const _symlinkAsync = util.promisify(fs.symlink);
 export const unlinkAsync = util.promisify(fs.unlink);
 
 /**
@@ -90,7 +90,7 @@ export async function symlinkAsync(linkTarget: string, link: string) {
   }
   // tslint:disable-next-line: no-console
   console.log(`create symlink ${link} --> ${linkTarget}`);
-  return _symlinkAsync(
+  return fs.promises.symlink(
     Path.relative(Path.dirname(link), linkTarget),
     link, isWin32 ? 'junction' : 'dir'
   );
