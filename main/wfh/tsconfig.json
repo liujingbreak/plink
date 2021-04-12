@@ -6,8 +6,8 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../../credit-appl/ng-space/node_modules/@types/*",
-        "../../../credit-appl/ng-space/node_modules/*",
+        "../../../credit-appl/cra-studio/node_modules/@types/*",
+        "../../../credit-appl/cra-studio/node_modules/*",
         "../../../credit-appl/node_modules/@types/*",
         "../../../credit-appl/node_modules/*"
       ],
@@ -388,14 +388,24 @@
       ],
       "@wfh/plink/*": [
         "../*"
+      ],
+      "@loadable/component": [
+        "../../../credit-appl/cra-studio/node_modules/@types/loadable__component",
+        "../../../credit-appl/node_modules/@types/loadable__component",
+        "../node_modules/@types/loadable__component"
+      ],
+      "@loadable/component/*": [
+        "../../../credit-appl/cra-studio/node_modules/@types/loadable__component/*",
+        "../../../credit-appl/node_modules/@types/loadable__component/*",
+        "../node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
-      "../../src/internal/ng-app-builder/types",
+      "../../src/internal/cra-scripts/types",
       "../../src/runtime/express-app/types",
-      "../../../credit-appl/ng-space/node_modules/@types",
+      "../../../credit-appl/cra-studio/node_modules/@types",
       "../../../credit-appl/node_modules/@types",
       "../node_modules/@types"
     ]

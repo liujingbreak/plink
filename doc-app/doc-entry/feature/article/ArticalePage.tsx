@@ -1,31 +1,34 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 // import ReactDom from 'react-dom';
 import classnames from 'classnames/bind';
 import styles from './ArticalePage.module.scss';
-import {TopAppBar} from '@wfh/doc-ui-common/client/material/TopAppBar';
-import {Drawer} from '@wfh/doc-ui-common/client/material/Drawer';
+// import {TopAppBar} from '@wfh/doc-ui-common/client/material/TopAppBar';
+// import {Drawer} from '@wfh/doc-ui-common/client/material/Drawer';
 // import {useParams} from 'react-router-dom';
 import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client/markdown/MarkdownViewComp';
+import {getStore} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 import {renderByMdKey} from './articaleComponents';
-import {DocListComponents} from './DocListComponents';
+// import {DocListComponents} from './DocListComponents';
 import {useParams} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
+import * as op from 'rxjs/operators';
+import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.state';
 
 
 const cx = classnames.bind(styles);
-const logoCls = cx('logo');
-const titleCls = cx('title');
+// const logoCls = cx('logo');
+// const titleCls = cx('title');
 const articaleCls = cx('articale-page');
-const contentCls = cx('main-content');
-const bkLogoCls = cx('bk-logo');
+// const contentCls = cx('main-content');
+// const bkLogoCls = cx('bk-logo');
 const EMPTY_ARR: any[] = [];
 export type ArticalePageProps = React.PropsWithChildren<{
 }>;
 
 const ArticalePage: React.FC<ArticalePageProps> = function(props) {
   const routeParams = useParams<{mdKey: string}>();
-  const scrollBodyRef = useRef<HTMLDivElement>(null);
+  // const scrollBodyRef = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState(EMPTY_ARR);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+  // const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
   const onContentLoaded = useCallback<NonNullable<MarkdownViewCompProps['onContent']>>((div) => {
     const renderers = renderByMdKey[routeParams.mdKey];
@@ -46,11 +49,11 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
         });
     }
     setPortals(els);
-  }, [EMPTY_ARR]);
+  }, EMPTY_ARR);
 
-  const onDrawerToggle = useCallback(() => {
-    setDrawerOpen(!drawerOpen);
-  }, [drawerOpen]);
+  // const onDrawerToggle = useCallback(() => {
+  //   setDrawerOpen(!drawerOpen);
+  // }, [drawerOpen]);
 
   // const handleScroll = debounce(() => {
   //   dispatcher.scrollProcess();
@@ -69,25 +72,32 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
   //   };
   // }, [scrollBodyRef.current]);
 
-  const title = (
-    <div className={titleCls}>
-      <div className={logoCls}></div>
-      简介
-    </div>
-  );
+  // const title = (
+  //   <div className={titleCls}>
+  //     <div className={logoCls}></div>
+  //     简介
+  //   </div>
+  // );
+  const layout = useAppLayout();
 
+  React.useEffect(() => {
+    const sub = getStore().pipe(
+      op.map(s => s.contents[routeParams.mdKey]),
+      op.distinctUntilChanged(),
+      op.filter(md => {
+        if (md && layout) {
+          layout.actionDispatcher.updateBarTitle('Document: ' + md.toc[0]?.text || 'Document: ');
+          return true;
+        }
+        return false;
+      })
+    ).subscribe();
+    return () => sub.unsubscribe();
+  }, [routeParams.mdKey]);
   return (
     <div className={articaleCls}>
-      <Drawer title={<i className={bkLogoCls} />} type='modal' open={drawerOpen}
-        content={<DocListComponents currentKey={routeParams.mdKey} onItemClick={onDrawerToggle} />}>
-        <TopAppBar title={title} type='short' onDrawerMenuClick={onDrawerToggle} />
-        <main className={contentCls} ref={scrollBodyRef}>
-          <div className='mdc-top-app-bar--fixed-adjust'>
-            <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded} />
-            {portals}
-          </div>
-        </main>
-      </Drawer>
+      <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded} />
+      {portals}
     </div>
   );
 };

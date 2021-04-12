@@ -1,15 +1,32 @@
 import React from 'react';
-import createTookit from './tiny-redux-toolkit';
+import { createSlice } from './tiny-redux-toolkit';
+import * as op from 'rxjs/operators';
+import clone from 'lodash/clone';
 export * from './tiny-redux-toolkit';
-export function useTinyReduxTookit(opt) {
-    const [state, setState] = React.useState(opt.initialState);
-    const tool = React.useMemo(() => createTookit(Object.assign(Object.assign({}, opt), { onStateChange: s => setState(s) })), []);
-    React.useEffect(() => {
-        return tool.destroy;
+/**
+ * For performance reason, better define opts.reducers outside of component rendering function
+ * @param opts
+ * @returns
+ */
+export function useTinyReduxTookit(opts) {
+    // To avoid a mutatable version is passed in
+    const clonedState = clone(opts.initialState);
+    const [state, setState] = React.useState(clonedState);
+    // const [slice, setSlice] = React.useState<Slice<S, R>>();
+    const slice = React.useMemo(() => {
+        const slice = createSlice(Object.assign(Object.assign({}, opts), { initialState: clonedState }));
+        if (opts.epicFactory) {
+            slice.addEpic(opts.epicFactory);
+        }
+        return slice;
     }, []);
-    return Object.assign(Object.assign({ useEpic(epic) {
-            React.useEffect(() => {
-                tool.addEpic(epic);
-            }, []);
-        } }, tool), { state });
+    React.useEffect(() => {
+        const sub = slice.state$.pipe(op.distinctUntilChanged(), op.tap(changed => setState(changed))).subscribe();
+        return () => {
+            // console.log('unmount', slice.name);
+            sub.unsubscribe();
+            slice.destroy();
+        };
+    }, []);
+    return [state, slice];
 }

@@ -1,0 +1,4 @@
+@use 'theme';
+@use "@material/linear-progress";
+@include linear-progress.core-styles;
+// https://github.com/css-modules/css-modules

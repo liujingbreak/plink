@@ -12,7 +12,7 @@
     "tsc": "tsc",
     "build": "tsc -b wfh/tsconfig-plink.json",
     "watch": "tsc  -b wfh/tsconfig-plink.json -w",
-    "build:all": "tsc -p wfh/tsconfig-share.json && tsc -p wfh/tsconfig-redux-toolkit.json && tsc -p wfh/tsconfig.json",
+    "build:redux": "tsc -p wfh/tsconfig-redux-toolkit.json && tsc -p wfh/tsconfig-redux-toolkit-es.json",
     "build:share": "tsc -p wfh/tsconfig-share.json",
     "clean": "rm -rf wfh/*.tsbuildinfo && rm -rf wfh/dist/*"
   },

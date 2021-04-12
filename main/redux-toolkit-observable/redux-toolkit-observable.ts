@@ -34,14 +34,23 @@ export function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string
 (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
 export function ofPayloadAction<P, T extends string>(...actionCreators: ActionCreatorWithPayload<P, T>[]):
   (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P, T>> {
-  return ofType(...actionCreators.map(c => c.type));
+  return ofType(...actionCreators.map(c => c.type)) as any;
 }
 
-// interface ReduxStoreWithEpicOptions<State = any, Payload = any, Output extends PayloadAction<Payload> = PayloadAction<Payload>,
-// CaseReducers extends SliceCaseReducers<any> = SliceCaseReducers<any>, Name extends string = string> {
-//   preloadedState: ConfigureStoreOptions['preloadedState'];
-//   slices: Slice<State, CaseReducers, Name>[];
-//   epics: Epic<PayloadAction<Payload>, Output, State>[];
+// type ActionType<ACR extends SliceCaseReducers<any>, T extends keyof ACR> = ACR[T] extends (state: any, action: infer Action) => any ? Action : void;
+// /**
+//  * Unlink Redux-observable official's ofType() function, it offers better type interence on
+//  * payload type
+//  */
+// export interface OfTypeFn<ACR extends SliceCaseReducers<any>> {
+//   <T1 extends keyof ReducerWithDefaultActions<any, ACR>>(actionType: T1):
+//     (src: Observable<PayloadAction<any>>) => Observable<ActionType<ACR, T1>>;
+//   <T1 extends keyof ReducerWithDefaultActions<any, ACR>, T2 extends keyof ReducerWithDefaultActions<any, ACR>>(
+//     actionType: T1, actionType2: T2):
+//   (src: Observable<PayloadAction<any>>) => Observable<ActionType<ACR, T1 | T2>>;
+//   <T1 extends keyof ReducerWithDefaultActions<any, ACR>, T2 extends keyof ReducerWithDefaultActions<any, ACR>, T3 extends keyof ReducerWithDefaultActions<any, ACR>>(actionType: T1, actionType2: T2, actionType3: T3):
+//   (src: Observable<PayloadAction<any>>) => Observable<ActionType<ACR, T1 | T2 | T3>>;
+//   <T extends keyof ReducerWithDefaultActions<any, ACR>>(...actionTypes: T[]): Observable<ActionType<ACR, T>>;
 // }
 
 export interface ErrorState {
@@ -266,7 +275,7 @@ export class StateFactory {
   }
 
   sliceStore<SS>(slice: Slice<SS>): Observable<SS> {
-    return (this.realtimeState$ as BehaviorSubject<{[key: string]: SS}>).pipe(
+    return (this.realtimeState$ as Subject<{[key: string]: SS}>).pipe(
       map(s => s[slice.name]),
       filter(ss => ss != null),
       distinctUntilChanged()
@@ -357,6 +366,47 @@ export class StateFactory {
   private createRootReducer(): Reducer<any, PayloadAction> {
     return combineReducers(this.reducerMap);
   }
+}
+
+export type PayloadCaseReducers<S, R extends SliceCaseReducers<S>> = {
+  [T in keyof R]: R[T] extends (s: any) => any ?
+    (state: Draft<S>) => S | void | Draft<S> :
+    R[T] extends (s: any, action: PayloadAction<infer P>) => any ?
+      (state: Draft<S>, payload: P) => S | void | Draft<S> : (state: Draft<S>, payload: unknown) => S | void | Draft<S>;
+};
+
+/**
+ * Simplify reducers structure required in Slice creation option.
+ * 
+ * Normally, to create a slice, you need to provide a slice option paramter like:
+ * {name: <name>, initialState: <value>, reducers: {
+ *  caseReducer(state, {payload}: PayloadAction<PayloadType>) {
+ *    // manipulate state draft with destructored payload data
+ *  }
+ * }}
+ * 
+ * Unconvenient thing is the "PayloadAction<PayloadType>" part which specified as second parameter in every case reducer definition,
+ * actually we only care about the Payload type instead of the whole PayloadAction in case reducer.
+ * 
+ * this function accept a simplified version of "case reducer" in form of: 
+ * {
+ *    [caseName]: (Draft<State>, payload: any) => Draft<State> | void;
+ * }
+ * 
+ * return a regular Case reducers, not longer needs to "destructor" action paramter to get payload data.
+ * 
+ * @param payloadReducers 
+ * @returns 
+ */
+export function fromPaylodReducer<S, R extends SliceCaseReducers<S>>(payloadReducers: PayloadCaseReducers<S, R>):
+  CreateSliceOptions<S, R>['reducers'] {
+  const reducers = {} as CreateSliceOptions<S, R>['reducers'];
+  for (const [caseName, simpleReducer] of Object.entries(payloadReducers)) {
+    reducers[caseName as keyof CreateSliceOptions<S, R>['reducers']] = function(s: Draft<S>, action: PayloadAction<any>) {
+      return simpleReducer(s, action.payload);
+    } as any;
+  }
+  return reducers;
 }
 
 const errorSliceOpt = {

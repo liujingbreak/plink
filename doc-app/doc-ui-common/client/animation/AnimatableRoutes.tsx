@@ -1,11 +1,13 @@
 import React from 'react';
-// import classnames from 'classnames/bind';
+import clsDdp from 'classnames/dedupe';
 import styles from './AnimatableRoutes.module.scss';
 import {SwitchAnim, SwitchAnimProps} from './SwitchAnim';
 import {useLocation, matchPath, RouteProps, match} from 'react-router-dom';
 import {PayloadAction} from '@reduxjs/toolkit';
 
 export type AnimatableRoutesProps = React.PropsWithChildren<{
+  parentDom?: {className: string} | null;
+  className?: string;
   /** imutable */
   routes: Array<{[p in 'path' | 'strict' | 'exact' | 'sensitive']?: RouteProps[p]} & {children: SwitchAnimProps['children']}>;
   /**  */
@@ -29,7 +31,7 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
   const [state, dispatcher] = React.useReducer(reducer, {matchedIdx: undefined, routeMatch: null} as AnimatableRoutesState);
   const location = useLocation();
 
-
+  const rootRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     // console.log('location path:', location.pathname);
     let i = 0;
@@ -41,7 +43,6 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
           return {...s, matchedIdx: i, routeMatch: match};
         }});
         matched = true;
-        console.log(match);
         break;
       }
       i++;
@@ -54,34 +55,22 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
     }
   }, [location.pathname]);
 
-  // const routes = React.useMemo(() => prop.routes.map(({path, component}, idx) => {
-  //   // tslint:disable-next-line: no-console
-  //   // console.log('render', location);
+  React.useEffect(() => {
+    if (prop.parentDom) {
+      prop.parentDom.className = clsDdp(prop.parentDom.className, styles.scope, prop.className);
+    }
+  }, [prop.parentDom]);
 
-  //   const DynamicComp: React.FC = function(dynamicCompProp) {
-  //     const routeParams = useParams<{mdKey: string}>();
-  //     React.useEffect(() => {
-  //       // tslint:disable-next-line: no-console
-  //       console.log('create route comp ', idx, path, routeParams);
+  const content = <RouteMatchCtx.Provider value={state.routeMatch}>
+  { state.matchedIdx != null ? // prop.routes[state.matchedIdx].children :
+      <SwitchAnim size='full' parentDom={prop.parentDom == null ? rootRef.current : prop.parentDom} contentHash={state.matchedIdx}>{prop.routes[state.matchedIdx].children}</SwitchAnim> :
+      prop.children ? prop.children : <></>
+  }
+  </RouteMatchCtx.Provider>;
 
-  //       setMatchedIdx(idx);
-  //       return () => {
-  //         // console.log('destroy', path);
-  //       };
-  //     }, []);
-  //     return null;
-  //   };
-  //   return <Route key={path} path={path}><DynamicComp/></Route>;
-  // }), [prop.routes]);
-
-  return (
-    <div className={styles.scope}>
-      <RouteMatchCtx.Provider value={state.routeMatch}>
-      { state.matchedIdx != null ?
-          <SwitchAnim contentHash={state.matchedIdx}>{prop.routes[state.matchedIdx].children}</SwitchAnim> :
-          prop.children ? prop.children : <></>
-      }
-      </RouteMatchCtx.Provider>
+  return prop.parentDom ? content : (
+    <div ref={rootRef} className={clsDdp(styles.scope, prop.className)}>
+      {content}
     </div>
   );
 };

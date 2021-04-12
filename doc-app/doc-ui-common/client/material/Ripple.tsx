@@ -1,28 +1,43 @@
 import React from 'react';
-import classnames from 'classnames/bind';
-import styles from './RippleComp.scss';
+// import classnames from 'classnames/bind';
+import clsddp from 'classnames/dedupe';
+
+import './Ripple.scss';
 // import '@material/ripple/styles.scss';
 import {MDCRipple} from '@material/ripple/index';
 
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 
-const cx = classnames.bind(styles);
+// const cx = classnames.bind(styles);
 
 
-export type RippleCompProps = React.PropsWithChildren<{
+export type RippleProps = React.PropsWithChildren<{
   color?: 'dark' | 'light';
+  className?: string;
   getMdcRef?: (ref: MDCRipple) => void;
-  renderOn?: HTMLElement;
+  renderTo?: HTMLElement;
+  renderToWhen?: rx.Observable<HTMLElement>;
 }>;
 
-const RippleComp: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleCompProps> = function(props, ref) {
+const Ripple: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleProps> = function(props, ref) {
 
   React.useEffect(() => {
-    if (props.renderOn) {
-      renderTo(props.renderOn, props);
+    if (props.renderTo) {
+      renderTo(props.renderTo, props);
     }
-  }, [props.renderOn]);
+  }, [props.renderTo]);
+
+  React.useEffect(() => {
+    if (props.renderToWhen) {
+      props.renderToWhen.pipe(
+        op.filter(dom => dom != null),
+        op.tap(dom => renderTo(dom, props)),
+        op.take(1)
+      ).subscribe();
+    }
+  }, [props.renderToWhen]);
+
   const sub$ = React.useMemo(() => new rx.BehaviorSubject<MDCRipple | null>(null), []);
 
   const onDivReady = React.useCallback<React.RefCallback<HTMLDivElement>>((div) => {
@@ -44,15 +59,15 @@ const RippleComp: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleCompP
     };
   }, []);
 
-  // const Content = props.renderOn ? props.renderOn() : null;
+  // const Content = props.renderTo ? props.renderTo() : null;
 
   return (
       <div ref={onDivReady}>{props.children}</div>
   );
 };
 
-export function renderTo(div: HTMLElement, props: RippleCompProps) {
-  const cls = cx(div.className, 'matRipple', 'mdc-ripple-surface',
+export function renderTo(div: HTMLElement, props: RippleProps) {
+  const cls = clsddp(props.className || '', div.className, 'matRipple', 'mdc-ripple-surface',
     {
       dark: props.color === 'dark' || props.color == null,
       light: props.color === 'light'}
@@ -66,7 +81,7 @@ export function renderTo(div: HTMLElement, props: RippleCompProps) {
   return mdc;
 }
 
-const Forwarded = React.forwardRef(RippleComp);
+const Forwarded = React.forwardRef(Ripple);
 
-export {Forwarded as RippleComp};
+export {Forwarded as Ripple};
 

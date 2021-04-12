@@ -28,7 +28,7 @@ export declare class ResourceMap {
     dataMap: {
         [key: string]: any;
     };
-    replace<T>(reference: ResourceKey<T> | null | undefined, object: T): ResourceKey<T>;
+    set<T>(reference: ResourceKey<T> | null | undefined, object: T): ResourceKey<T>;
     add<T>(object: T): ResourceKey<T>;
     get<T>(reference: ResourceKey<T> | WritableDraft<ResourceKey<T>>): T;
     delete<T>(reference: ResourceKey<T> | WritableDraft<ResourceKey<T>>): T;

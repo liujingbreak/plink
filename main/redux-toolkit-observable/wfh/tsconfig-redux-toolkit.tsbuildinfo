@@ -1122,18 +1122,18 @@
         "affectsGlobalScope": false
       },
       "../redux-toolkit-observable.ts": {
-        "version": "31dbb91c3680e1aecdc4a32fef8c27615a98dc83a5bd25ded8e69e8758b32e52",
-        "signature": "dc31db9ac73833e4d0a82076b53258c05c430f109af035a2891c6585bf0eb0dc",
+        "version": "57eb06d926548cfbefcfef2c73af3e95c9c41d3f5a37c3733c64f3d5f6b79ef3",
+        "signature": "e9c3f8dde46bf1d10293f9b730e6c214cf510c8155c755966ac5b58e22a02f5d",
         "affectsGlobalScope": false
       },
       "../resource-map.ts": {
-        "version": "5290d737674e82dcc3aac9b645045b93929f619d0dedcd8517ecfee9ed0dee04",
-        "signature": "c08b1c710de7657e1f626bc7722b4e6271a904b39ce62fb97b8bfd4adf4d4a8d",
+        "version": "bbf365e12856de4b416fbc559535358f12ef75e87fe42423aa1e3d9a5abc7214",
+        "signature": "8d17b15fd72ab6c614f38a280c017546dba2b7f57b4687ea4a36cdc7f2ce5e08",
         "affectsGlobalScope": false
       },
       "../react-redux-helper.ts": {
-        "version": "94626a238d69f8e3e991cd7371902cd05e9efa00589bec305cff6877a23cce6a",
-        "signature": "cca19753394599715ec088847b37ea7b139d0d6dd8570a819739f992a82129fd",
+        "version": "307486ea367db398e21ce2a46c8ae6cd50c1c311076bc9e3363bd12aa3ee2633",
+        "signature": "3fb188008f0974999904125ffac09cd9bfd62c4aeeb23f58a7c704b70bedb749",
         "affectsGlobalScope": false
       },
       "../state-factory-browser.ts": {
@@ -1142,13 +1142,83 @@
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
-        "version": "7f3882ff369d2d08469fa5e3e9f9d907aba8396e2228e2cd9d51844b61301602",
-        "signature": "06a1954b9a78de51ec317d57385ecd1f4c3578b18297f2732da95dcb760a858d",
+        "version": "9f5faf130481a076e6c4fffae7e80c4689debcd3c14b00f5c3c5c284d379c10f",
+        "signature": "f8f03f46d254ebe92a033e8f81afed6afe4b2ba744a17da8b5583ef2d0f37bca",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/common.d.ts": {
+        "version": "4025cf62742c5bb3d383c8a62342481622c87e3397ea5e7b7baab18b9efd5798",
+        "signature": "4025cf62742c5bb3d383c8a62342481622c87e3397ea5e7b7baab18b9efd5798",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/array.d.ts": {
+        "version": "d03a1ae3d39f757c9f22e4e775b940a98d86bb50ec85529b59e32a17b65c2b90",
+        "signature": "d03a1ae3d39f757c9f22e4e775b940a98d86bb50ec85529b59e32a17b65c2b90",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/collection.d.ts": {
+        "version": "0c75b204aed9cf6ff1c7b4bed87a3ece0d9d6fc857a6350c0c95ed0c38c814e8",
+        "signature": "0c75b204aed9cf6ff1c7b4bed87a3ece0d9d6fc857a6350c0c95ed0c38c814e8",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/date.d.ts": {
+        "version": "187119ff4f9553676a884e296089e131e8cc01691c546273b1d0089c3533ce42",
+        "signature": "187119ff4f9553676a884e296089e131e8cc01691c546273b1d0089c3533ce42",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/function.d.ts": {
+        "version": "035b95793288bf4457a2b80bfe9b7500a29324ad62adcf9991277198e8833096",
+        "signature": "035b95793288bf4457a2b80bfe9b7500a29324ad62adcf9991277198e8833096",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/lang.d.ts": {
+        "version": "f612468e9c3edff588905c4c4f512487a13ac32ffbd291fe07696268ab8c8dfa",
+        "signature": "f612468e9c3edff588905c4c4f512487a13ac32ffbd291fe07696268ab8c8dfa",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/math.d.ts": {
+        "version": "65648639567d214f62c1b21d200c852807e68bdb08311f95ab6f526ef5b98995",
+        "signature": "65648639567d214f62c1b21d200c852807e68bdb08311f95ab6f526ef5b98995",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/number.d.ts": {
+        "version": "00baffbe8a2f2e4875367479489b5d43b5fc1429ecb4a4cc98cfc3009095f52a",
+        "signature": "00baffbe8a2f2e4875367479489b5d43b5fc1429ecb4a4cc98cfc3009095f52a",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/object.d.ts": {
+        "version": "7fc5a3d7cff296cea5c225911726a56283b663328709088fcc912d61f73682fc",
+        "signature": "7fc5a3d7cff296cea5c225911726a56283b663328709088fcc912d61f73682fc",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/seq.d.ts": {
+        "version": "3c92b6dfd43cc1c2485d9eba5ff0b74a19bb8725b692773ef1d66dac48cda4bd",
+        "signature": "3c92b6dfd43cc1c2485d9eba5ff0b74a19bb8725b692773ef1d66dac48cda4bd",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/string.d.ts": {
+        "version": "e34f3f6159b1e23de9bb5521382795aaa5aaed6f53b4702e70a2ec45bc76ddb5",
+        "signature": "e34f3f6159b1e23de9bb5521382795aaa5aaed6f53b4702e70a2ec45bc76ddb5",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/common/util.d.ts": {
+        "version": "2630a7cbb597e85d713b7ef47f2946d4280d3d4c02733282770741d40672b1a5",
+        "signature": "2630a7cbb597e85d713b7ef47f2946d4280d3d4c02733282770741d40672b1a5",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/lodash/ts3.1/index.d.ts": {
+        "version": "bbf144d4354e2aaa6439f32761f3ee798cc68d1600adab6e2a596f25269f106d",
+        "signature": "bbf144d4354e2aaa6439f32761f3ee798cc68d1600adab6e2a596f25269f106d",
+        "affectsGlobalScope": true
+      },
+      "../../node_modules/@types/lodash/ts3.1/clone.d.ts": {
+        "version": "ab5a6d44eab7d01fe4b522c92c4da0645300026a9b7caad5efb0edef8fac9fea",
+        "signature": "ab5a6d44eab7d01fe4b522c92c4da0645300026a9b7caad5efb0edef8fac9fea",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit-hook.ts": {
-        "version": "085a464d644650e4eaa3101fcdeebda46c9126f6a549e250a24d91f89973f31a",
-        "signature": "26c246baf50212060b5a04d0814fa2303efdd1ba947f5321e304786b9716bf3e",
+        "version": "175a4ec1b9922ddc2a45fbdc498a2da50cd9ceac9d4ad56131c38b6b430c3cca",
+        "signature": "6b2a8c13da1c570291cd3fc55f56346b0f5b36dd4d2e7a2005e397f6b2ee66ea",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/anymatch/index.d.ts": {
@@ -1460,71 +1530,6 @@
         "version": "134cd4231ef0bd4cc47d13c8bd7fd040af00a727fc0c75673373943c08326176",
         "signature": "134cd4231ef0bd4cc47d13c8bd7fd040af00a727fc0c75673373943c08326176",
         "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/common.d.ts": {
-        "version": "4025cf62742c5bb3d383c8a62342481622c87e3397ea5e7b7baab18b9efd5798",
-        "signature": "4025cf62742c5bb3d383c8a62342481622c87e3397ea5e7b7baab18b9efd5798",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/array.d.ts": {
-        "version": "d03a1ae3d39f757c9f22e4e775b940a98d86bb50ec85529b59e32a17b65c2b90",
-        "signature": "d03a1ae3d39f757c9f22e4e775b940a98d86bb50ec85529b59e32a17b65c2b90",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/collection.d.ts": {
-        "version": "0c75b204aed9cf6ff1c7b4bed87a3ece0d9d6fc857a6350c0c95ed0c38c814e8",
-        "signature": "0c75b204aed9cf6ff1c7b4bed87a3ece0d9d6fc857a6350c0c95ed0c38c814e8",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/date.d.ts": {
-        "version": "187119ff4f9553676a884e296089e131e8cc01691c546273b1d0089c3533ce42",
-        "signature": "187119ff4f9553676a884e296089e131e8cc01691c546273b1d0089c3533ce42",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/function.d.ts": {
-        "version": "035b95793288bf4457a2b80bfe9b7500a29324ad62adcf9991277198e8833096",
-        "signature": "035b95793288bf4457a2b80bfe9b7500a29324ad62adcf9991277198e8833096",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/lang.d.ts": {
-        "version": "f612468e9c3edff588905c4c4f512487a13ac32ffbd291fe07696268ab8c8dfa",
-        "signature": "f612468e9c3edff588905c4c4f512487a13ac32ffbd291fe07696268ab8c8dfa",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/math.d.ts": {
-        "version": "65648639567d214f62c1b21d200c852807e68bdb08311f95ab6f526ef5b98995",
-        "signature": "65648639567d214f62c1b21d200c852807e68bdb08311f95ab6f526ef5b98995",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/number.d.ts": {
-        "version": "00baffbe8a2f2e4875367479489b5d43b5fc1429ecb4a4cc98cfc3009095f52a",
-        "signature": "00baffbe8a2f2e4875367479489b5d43b5fc1429ecb4a4cc98cfc3009095f52a",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/object.d.ts": {
-        "version": "7fc5a3d7cff296cea5c225911726a56283b663328709088fcc912d61f73682fc",
-        "signature": "7fc5a3d7cff296cea5c225911726a56283b663328709088fcc912d61f73682fc",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/seq.d.ts": {
-        "version": "3c92b6dfd43cc1c2485d9eba5ff0b74a19bb8725b692773ef1d66dac48cda4bd",
-        "signature": "3c92b6dfd43cc1c2485d9eba5ff0b74a19bb8725b692773ef1d66dac48cda4bd",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/string.d.ts": {
-        "version": "e34f3f6159b1e23de9bb5521382795aaa5aaed6f53b4702e70a2ec45bc76ddb5",
-        "signature": "e34f3f6159b1e23de9bb5521382795aaa5aaed6f53b4702e70a2ec45bc76ddb5",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/common/util.d.ts": {
-        "version": "2630a7cbb597e85d713b7ef47f2946d4280d3d4c02733282770741d40672b1a5",
-        "signature": "2630a7cbb597e85d713b7ef47f2946d4280d3d4c02733282770741d40672b1a5",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/lodash/ts3.1/index.d.ts": {
-        "version": "bbf144d4354e2aaa6439f32761f3ee798cc68d1600adab6e2a596f25269f106d",
-        "signature": "bbf144d4354e2aaa6439f32761f3ee798cc68d1600adab6e2a596f25269f106d",
-        "affectsGlobalScope": true
       },
       "../../node_modules/@types/lru-cache/index.d.ts": {
         "version": "db80fcbd0c9693ac9964c31c11979a3d33550a612981021d99e935c0e3d9c36c",
@@ -1877,7 +1882,7 @@
       "pretty": true,
       "rootDir": "..",
       "composite": true,
-      "watch": true,
+      "project": "../../wfh/tsconfig-redux-toolkit.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit.json"
     },
     "referencedMap": {
@@ -1909,6 +1914,9 @@
       ],
       "../../node_modules/@types/hoist-non-react-statics/index.d.ts": [
         "../../node_modules/@types/react/index.d.ts"
+      ],
+      "../../node_modules/@types/lodash/ts3.1/clone.d.ts": [
+        "../../node_modules/@types/lodash/ts3.1/index.d.ts"
       ],
       "../../node_modules/@types/lodash/ts3.1/common/array.d.ts": [
         "../../node_modules/@types/lodash/ts3.1/common/collection.d.ts",
@@ -3402,8 +3410,8 @@
       "../react-redux-helper.ts": [
         "../../node_modules/@types/react-redux/index.d.ts",
         "../../node_modules/@types/react/index.d.ts",
+        "../../node_modules/redux-observable/index.d.ts",
         "../../node_modules/rxjs/index.d.ts",
-        "../../node_modules/rxjs/operators/index.d.ts",
         "../redux-toolkit-observable.ts",
         "../resource-map.ts"
       ],
@@ -3424,8 +3432,9 @@
         "../resource-map.ts"
       ],
       "../tiny-redux-toolkit-hook.ts": [
+        "../../node_modules/@types/lodash/ts3.1/clone.d.ts",
         "../../node_modules/@types/react/index.d.ts",
-        "../../node_modules/rxjs/index.d.ts",
+        "../../node_modules/rxjs/operators/index.d.ts",
         "../tiny-redux-toolkit.ts"
       ],
       "../tiny-redux-toolkit.ts": [
@@ -3463,6 +3472,9 @@
       "../../node_modules/@types/hoist-non-react-statics/index.d.ts": [
         "../../node_modules/@types/react/index.d.ts"
       ],
+      "../../node_modules/@types/lodash/ts3.1/clone.d.ts": [
+        "../../node_modules/@types/lodash/ts3.1/index.d.ts"
+      ],
       "../../node_modules/@types/lodash/ts3.1/common/array.d.ts": [
         "../../node_modules/@types/lodash/ts3.1/common/collection.d.ts",
         "../../node_modules/@types/lodash/ts3.1/common/common.d.ts",
@@ -4955,6 +4967,7 @@
       "../react-redux-helper.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
         "../../node_modules/@types/react-redux/index.d.ts",
+        "../../node_modules/redux-observable/index.d.ts",
         "../../node_modules/redux/index.d.ts",
         "../../node_modules/rxjs/index.d.ts",
         "../redux-toolkit-observable.ts",
@@ -4974,7 +4987,6 @@
         "../resource-map.ts"
       ],
       "../tiny-redux-toolkit-hook.ts": [
-        "../../node_modules/rxjs/index.d.ts",
         "../tiny-redux-toolkit.ts"
       ],
       "../tiny-redux-toolkit.ts": [
@@ -4993,6 +5005,7 @@
       "../../node_modules/@types/hoist-non-react-statics/index.d.ts",
       "../../node_modules/@types/jasmine/index.d.ts",
       "../../node_modules/@types/js-yaml/index.d.ts",
+      "../../node_modules/@types/lodash/ts3.1/clone.d.ts",
       "../../node_modules/@types/lodash/ts3.1/common/array.d.ts",
       "../../node_modules/@types/lodash/ts3.1/common/collection.d.ts",
       "../../node_modules/@types/lodash/ts3.1/common/common.d.ts",

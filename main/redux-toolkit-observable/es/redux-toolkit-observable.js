@@ -231,6 +231,38 @@ export class StateFactory {
         return combineReducers(this.reducerMap);
     }
 }
+/**
+ * Simplify reducers structure required in Slice creation option.
+ *
+ * Normally, to create a slice, you need to provide a slice option paramter like:
+ * {name: <name>, initialState: <value>, reducers: {
+ *  caseReducer(state, {payload}: PayloadAction<PayloadType>) {
+ *    // manipulate state draft with destructored payload data
+ *  }
+ * }}
+ *
+ * Unconvenient thing is the "PayloadAction<PayloadType>" part which specified as second parameter in every case reducer definition,
+ * actually we only care about the Payload type instead of the whole PayloadAction in case reducer.
+ *
+ * this function accept a simplified version of "case reducer" in form of:
+ * {
+ *    [caseName]: (Draft<State>, payload: any) => Draft<State> | void;
+ * }
+ *
+ * return a regular Case reducers, not longer needs to "destructor" action paramter to get payload data.
+ *
+ * @param payloadReducers
+ * @returns
+ */
+export function fromPaylodReducer(payloadReducers) {
+    const reducers = {};
+    for (const [caseName, simpleReducer] of Object.entries(payloadReducers)) {
+        reducers[caseName] = function (s, action) {
+            return simpleReducer(s, action.payload);
+        };
+    }
+    return reducers;
+}
 const errorSliceOpt = {
     initialState: {},
     name: 'error',

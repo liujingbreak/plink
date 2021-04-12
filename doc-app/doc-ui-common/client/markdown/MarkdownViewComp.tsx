@@ -5,7 +5,7 @@ import './MarkdownViewComp.module.scss';
 import {getState, dispatcher} from './markdownSlice';
 import {connect} from 'react-redux';
 import unescape from 'lodash/unescape';
-import {MarkdownIndex} from './MarkdownIndex';
+// import {MarkdownIndex} from './MarkdownIndex';
 import {InjectedCompPropsType} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {SwitchAnim} from '../animation/SwitchAnim';
 
@@ -27,15 +27,14 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
   // const routeParams = useParams<{mdKey: string}>();
  // {__html: props.contents[routeParams.mdKey]}
 
-  React.useEffect(() => {}, []);
-
   // const containerRef = React.createRef<HTMLDivElement>();
   const contentRef = React.useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [containerDom, setContainerDom] = React.useState<HTMLElement>();
 
-  const containerRefCb = React.useCallback((dom: HTMLDivElement) => {
-    setContainerDom(dom);
+  const containerRefCb = React.useCallback((dom: HTMLDivElement | null) => {
+    if (dom)
+      setContainerDom(dom);
   }, []);
 
   React.useEffect(() => {
@@ -75,17 +74,18 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
     props.onContent
   ]);
 
-  if (props.mdKey) {
+  // if (props.mdKey) {
     return (
       <div ref={contentRef}>
-        {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : <>Loading ...</>}
+        {/* {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : <>...</>} */}
         <SwitchAnim contentHash={props.mdKey}>
-          <div ref={containerRefCb} className='markdown-body'></div>
+          <div ref={containerRefCb}
+            className='markdown-body'></div>
         </SwitchAnim>
       </div>
     );
-  }
-  return <></>;
+  // }
+  // return <></>;
 };
 
 function mapToPropsFactory(rootState: unknown, ownProps: MarkdownViewCompProps) {

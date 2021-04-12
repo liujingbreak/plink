@@ -49,6 +49,19 @@ function chalkForColor(col: Color) {
   return chalk.bgHex(col.hex()).hex(col.isDark() ? '#ffffff' : '#000000');
 }
 
+export function mixColor(color1: string, color2: string, weightInterval: number) {
+  const col1 = new Color(color1);
+  const col2 = new Color(color2);
+
+  const count = Math.floor(1 / weightInterval);
+  const mixed = [col1];
+  for (let i = 1; i <= count; i++) {
+    mixed.push(col1.mix(col2, weightInterval * i));
+  }
+  mixed.push(col2);
+  console.log(mixed.map(col => chalkForColor(col)(`  ${col.hex()}  `)).join('\n'));
+}
+
 // export function fillPalettes() {
 //   const input: Array<{[hue: string]: string}> = api.config.get([api.packageName, 'fillPalettes']);
 //   console.log(input);

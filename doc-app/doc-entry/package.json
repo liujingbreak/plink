@@ -14,7 +14,6 @@
   },
   "sideEffects": true,
   "dependencies": {
-    "@material/ripple": "^8.0.0",
     "react-router-dom": "5.2.0",
     "@loadable/component": "5.14.1",
     "@types/react-router-dom": "5.1.7",

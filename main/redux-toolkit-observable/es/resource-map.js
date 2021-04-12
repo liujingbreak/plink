@@ -25,7 +25,7 @@ export class ResourceMap {
         // Ideally, it should be a WeakMap instead
         this.dataMap = {};
     }
-    replace(reference, object) {
+    set(reference, object) {
         if (reference)
             this.delete(reference);
         return this.add(object);

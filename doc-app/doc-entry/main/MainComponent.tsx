@@ -1,17 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 // import classNames from 'classnames/bind';
-// import {RippleComp} from '@wfh/doc-ui-common/client/material/RippleComp';
 import './Main.module.scss';
 import {BrowserRouter as Router} from 'react-router-dom';
 import {RoutesComp} from './RoutesComp';
 import {Provider as ReduxProvider} from 'react-redux';
 import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import { useStoreOfStateFactory } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import { AppLayout } from '@wfh/doc-ui-common/client/components/AppLayout';
+
 import './markdown-setup';
 // const cx = classNames.bind(styles);
 // const bannerImgCls = cx('assets');
-
+const rootEl = document.getElementById('root');
 const MainComp: React.FC<{}> = function(prop) {
   const reduxStore = useStoreOfStateFactory(stateFactory);
 
@@ -19,9 +20,11 @@ const MainComp: React.FC<{}> = function(prop) {
     return <>...</>;
   }
   return <ReduxProvider store={reduxStore}>
-      <Router basename={process.env.REACT_APP_routeBasename}>
-        <RoutesComp/>
-      </Router>
+      <AppLayout parentDom={rootEl}>
+        <Router basename={process.env.REACT_APP_routeBasename}>
+          <RoutesComp/>
+        </Router>
+      </AppLayout>
     </ReduxProvider>;
 };
 

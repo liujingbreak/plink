@@ -30,7 +30,7 @@ export class ResourceMap {
   // Ideally, it should be a WeakMap instead
   dataMap: {[key: string]: any} = {};
 
-  replace<T>(reference: ResourceKey<T> | null | undefined, object: T): ResourceKey<T> {
+  set<T>(reference: ResourceKey<T> | null | undefined, object: T): ResourceKey<T> {
     if (reference)
       this.delete(reference);
     return this.add(object);

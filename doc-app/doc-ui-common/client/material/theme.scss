@@ -1,7 +1,7 @@
 
 
 @use "@material/theme" with (
-  $primary: #212121,
+  $primary: #3b3a3a,
   $secondary: #ce93d8,
   $on-primary: #e0e0e0,
   $on-secondary: #101010,
@@ -11,9 +11,10 @@
   // $accent: ,
   $surface: #ffffff,
   $background: #FCFAE9,
-  $on-surface: #101010,
+  $on-surface: #303030
   // $error: ,
   // $on-error: ,
 );
 
 @forward "@material/theme";
+$raised-btn-ripple-color: white;

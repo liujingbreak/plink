@@ -1,6 +1,32 @@
 
-.SwitchAnim {
+.scope {
   position: relative;
+  &.full {
+    display: flex;
+    flex-direction: column;
+    .movingBox {
+      flex: 1;
+    }
+  }
+  &.animate-opacity {
+    .enterStart {
+      opacity: 0;
+      transition: opacity linear .33s;
+      &.entering {
+        // opacity: 0;
+        // display: none;
+        opacity: 1;
+      }
+    }
+    
+    
+    // https://github.com/css-modules/css-modules
+    .leaving {
+      position: absolute;
+      transition: opacity linear .33s;
+      opacity: 0;
+    }
+  }
 }
 
 $transition: opacity linear .33s, transform ease-out .33s;
@@ -15,7 +41,6 @@ $transition: opacity linear .33s, transform ease-out .33s;
     opacity: 1;
   }
 }
-
 
 // https://github.com/css-modules/css-modules
 .leaving {

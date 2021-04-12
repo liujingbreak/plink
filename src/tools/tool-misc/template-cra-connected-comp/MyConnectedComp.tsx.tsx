@@ -3,7 +3,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 /*<%
 } %>*/
-import classnames from 'classnames/bind';
+// import cls from 'classnames';
+// import clsddp from 'classnames/dedupe';
 import styles from './$__MyComponent__$.module.scss';
 /*<% if (isConnected) { %>*/
 import {connect/*<% if (isEntry) { %>*/, Provider as ReduxProvider /*<% } %>*/} from 'react-redux';
@@ -16,9 +17,6 @@ if (withImage) {
 %>*/import imgSrc from './demo-assets.jpg';/*<%
 } %>*/
 
-
-const cx = classnames.bind(styles);
-const cls = cx('$__MyComponent__$');
 
 export type $__MyComponent__$Props = React.PropsWithChildren<{
   // Define your component properties
@@ -50,11 +48,11 @@ const innerHtml = isConnected ? '' : 'Your component goes here';
 const $__MyComponent__$: React.FC<$__propType__$> = function(props) {
   // Your Component rendering goes here
   /*<% if (withImage) { 
-  %>*/return <div className={cls}>
+  %>*/return <div className={styles.$__MyComponent__$}>
     <img src={imgSrc}></img>
     <h1 /*<% if (isConnected) { %>*/dangerouslySetInnerHTML={props.html}/*<% } %>*/>$__innerHtml__$</h1>
   </div>;/*<%
-   } else {%>*/return <div className={cls} /*<% if (isConnected) { %>*/dangerouslySetInnerHTML={props.html}/*<% }
+   } else {%>*/return <div className={styles.$__MyComponent__$} /*<% if (isConnected) { %>*/dangerouslySetInnerHTML={props.html}/*<% }
      %>*/>$__innerHtml__$</div>;/*<% }
    %>*/
 };

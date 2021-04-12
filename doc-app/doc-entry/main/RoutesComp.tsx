@@ -6,7 +6,6 @@ import loadable from '@loadable/component';
 // import {SwitchAnim} from '@wfh/doc-ui-common/client/animation//SwitchAnim';
 
 import {AnimatableRoutes} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
-import { TopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 
 export type RoutesCompProps = React.PropsWithChildren<{
 }>;
@@ -21,18 +20,18 @@ const LazyDemoComponent = loadable(async () => {
 
 const RoutesComp: React.FC<RoutesCompProps> = function(prop) {
   return (
-    <>
-    <TopAppBar title='' type='short'/>
-    <AnimatableRoutes routes={[
-      {path: '/test', children: 'test ok'},
-      {path: '/demo/:demoId', children: <LazyDemoComponent/>},
-      {path: '/demo', children: <LazyDemoComponent/>},
-      {path: '/doc/:mdKey', children: <LazyDocComponent/>}
-    ]}>
-      <Switch>
-        <Redirect from='/' exact to='/demo'/>
-      </Switch>
-    </AnimatableRoutes></>
+    // <TopAppBar title='' type='dense'>
+      <AnimatableRoutes routes={[
+        {path: '/test', children: 'test ok'},
+        {path: '/demo/:demoId', children: <LazyDemoComponent/>},
+        {path: '/demo', children: <LazyDemoComponent/>},
+        {path: '/doc/:mdKey', children: <LazyDocComponent/>}
+      ]}>
+        <Switch>
+          <Redirect from='/' exact to='/demo'/>
+        </Switch>
+      </AnimatableRoutes>
+    // </TopAppBar>
   );
 };
 

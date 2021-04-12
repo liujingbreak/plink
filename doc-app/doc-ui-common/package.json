@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dr": {
+    "cli": "dist/cli/cli.js#default",
     "setting": {
       "value": "isom/doc-ui-common-setting.js#defaultSetting",
       "type": "isom/doc-ui-common-setting#DocUiCommonSetting"
@@ -16,7 +17,9 @@
   "license": "ISC",
   "sideEffects": false,
   "dependencies": {
-    "@material/ripple": "^10.0.0",
+    "color": "^3.1.3",
+    "@types/color": "^3.0.1",
+    "@material/ripple": "^11.0.0",
     "canvas-5-polyfill": "0.1.5",
     "animejs": "3.2.1",
     "@types/animejs": "3.1.2",
@@ -28,11 +31,12 @@
     "@types/mermaid": "8.2.2",
     "mermaid": "8.9.2",
     "cheerio": "1.0.0-rc.5",
-    "@material/top-app-bar": "10.0.0",
-    "@material/icon-button": "10.0.0",
-    "@material/theme": "10.0.0",
-    "@material/drawer": "10.0.0",
-    "@material/list": "10.0.0",
-    "@material/button": "10.0.0"
+    "@material/top-app-bar": "11.0.0",
+    "@material/icon-button": "11.0.0",
+    "@material/theme": "11.0.0",
+    "@material/drawer": "11.0.0",
+    "@material/list": "11.0.0",
+    "@material/button": "11.0.0",
+    "@material/linear-progress": "11.0.0"
   }
 }

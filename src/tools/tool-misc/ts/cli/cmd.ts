@@ -55,26 +55,12 @@ const cliExt: CliExtension = (program) => {
 
   const genCraSliceCmd = program.command('cra-gen-slice <dir> <sliceName...>')
     .description('For create-react-app project, generate a sample Redux-toolkit Slice file (with Redux-observable epic)')
-    .option('--comp', 'A Slice for managing individual component internal state')
+    .option('--internal', 'A Slice for managing individual component internal state, useful for complicated component')
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .action(async (dir: string, sliceName: string[]) => {
       (await import('./cli-cra-gen')).genSlice(dir, sliceName, genCraSliceCmd.opts() as any);
     });
 
-  program.command('color-info <color-string...>')
-    .description('Show color information', {'color-string': 'In form of CSS color string'})
-    .action(async function(colors: string[]) {
-      for (const info of (await import('../color')).colorInfo(colors)) {
-        // tslint:disable-next-line: no-console
-        console.log(info);
-      }
-    });
-
-  program.command('color-contrast <color-string1> <color-string2>')
-    .description('Show color information', {'color-string1': 'In form of CSS color string'})
-    .action(async function(...colors: string[]) {
-      (await import('../color')).colorContrast(...colors as [string, string]);
-    });
 };
 
 export default cliExt;

@@ -1,23 +1,40 @@
 import React from 'react';
-import createTookit, {Reducers, CreateOptions, ActionWithReducer} from './tiny-redux-toolkit';
-import * as rx from 'rxjs';
+import {createSlice, Reducers, Slice, SliceOptions, EpicFactory} from './tiny-redux-toolkit';
+import * as op from 'rxjs/operators';
+import clone from 'lodash/clone';
 export * from './tiny-redux-toolkit';
+/**
+ * For performance reason, better define opts.reducers outside of component rendering function
+ * @param opts 
+ * @returns 
+ */
+export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers<S>>(
+  opts: SliceOptions<S, R> & {epicFactory?: EpicFactory<S, R>}):
+  [state: S, slice: Slice<S, R>] {
 
-export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers<S>>(opt: Omit<CreateOptions<S, R>, 'onStateChange'>) {
-  const [state, setState] = React.useState<S>(opt.initialState);
+  // To avoid a mutatable version is passed in
+  const clonedState = clone(opts.initialState);
 
-  const tool = React.useMemo(() => createTookit({...opt, onStateChange: s => setState(s)}), []);
+  const [state, setState] = React.useState<S>(clonedState);
+  // const [slice, setSlice] = React.useState<Slice<S, R>>();
+  const slice = React.useMemo<Slice<S, R>>(() => {
+    const slice = createSlice({...opts, initialState: clonedState});
+    if (opts.epicFactory) {
+      slice.addEpic(opts.epicFactory);
+    }
+    return slice;
+  }, []);
 
   React.useEffect(() => {
-    return tool.destroy;
+    const sub = slice.state$.pipe(
+      op.distinctUntilChanged(),
+      op.tap(changed => setState(changed))
+    ).subscribe();
+    return () => {
+      // console.log('unmount', slice.name);
+      sub.unsubscribe();
+      slice.destroy();
+    };
   }, []);
-  return {
-    useEpic(epic: (actions: rx.Observable<ActionWithReducer<S>>, states: rx.BehaviorSubject<S>) => rx.Observable<ActionWithReducer<S>>) {
-      React.useEffect(() => {
-        tool.addEpic(epic);
-      }, []);
-    },
-    ...tool,
-    state
-  };
+  return [state, slice];
 }

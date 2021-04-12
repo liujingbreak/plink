@@ -5,11 +5,12 @@ import * as rx from 'rxjs';
 // We suggest to use axios-observable instead of axios or fetch,
 // since axios-observable gives a easier way to CANCEL request (which is simply `unsubscribe()` from it)
 import axiosObs from 'axios-observable';
+import React from 'react';
 
-export interface $__SliceName__$State<R> {
+export interface $__SliceName__$State {
   foobar: boolean;
   /**  ImmerJS unfriendly object should be kept in ResourceMap, only put Reference in state */
-  renderingObjKey?: ResourceKey<R>;
+  renderingObjKey?: ResourceKey<React.ReactNode>;
   _computed: {
     reactHtml: {__html: string};
   };
@@ -27,8 +28,8 @@ let ID_SEED = 0;
   * ...
   * }
  */
-export function forComponent<RT1>(name: string) {
-  const initialState: $__SliceName__$State<RT1> = {
+export function forComponent(name: string) {
+  const initialState: $__SliceName__$State = {
     foobar: true,
     _computed: {
       reactHtml: {__html: 'You component goes here'}
@@ -52,7 +53,7 @@ export function forComponent<RT1>(name: string) {
 
   const dispatcher = stateFactory.bindActionCreators(slice);
 
-  const releaseEpic = stateFactory.addEpic<{example: $__SliceName__$State<RT1>}>((action$, state$) => {
+  const releaseEpic = stateFactory.addEpic<{example: $__SliceName__$State}>((action$, state$) => {
     return rx.merge(
       action$.pipe(ofPayloadAction(slice.actions.exampleAction),
         // switchMap will cancel (unsubscribe) previous unfinished action.

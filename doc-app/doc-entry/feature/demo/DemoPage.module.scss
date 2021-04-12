@@ -1,19 +1,25 @@
-
-.DemoPage {
-  a {
-    display: block;
+// .DemoPage {
+  
+// }
+.demoButtons {
+  display: flex;
+  justify-content: flex-start;
+  button {
+    margin-right: 1rem;
   }
 }
-
 // https://github.com/css-modules/css-modules
 .rippleContent {
   height: 3rem;
-  max-width: 300px;
   display: flex;
   align-items:stretch;
-
+  text-align: center;
   &.dark {
     background-color: #303030;
     color: #dddddd;
   }
+}
+
+.ripple {
+  line-height: 3rem;
 }

@@ -96,3 +96,30 @@ export declare class StateFactory {
     private addSliceMaybeReplaceReducer;
     private createRootReducer;
 }
+export declare type PayloadCaseReducers<S, R extends SliceCaseReducers<S>> = {
+    [T in keyof R]: R[T] extends (s: any) => any ? (state: Draft<S>) => S | void | Draft<S> : R[T] extends (s: any, action: PayloadAction<infer P>) => any ? (state: Draft<S>, payload: P) => S | void | Draft<S> : (state: Draft<S>, payload: unknown) => S | void | Draft<S>;
+};
+/**
+ * Simplify reducers structure required in Slice creation option.
+ *
+ * Normally, to create a slice, you need to provide a slice option paramter like:
+ * {name: <name>, initialState: <value>, reducers: {
+ *  caseReducer(state, {payload}: PayloadAction<PayloadType>) {
+ *    // manipulate state draft with destructored payload data
+ *  }
+ * }}
+ *
+ * Unconvenient thing is the "PayloadAction<PayloadType>" part which specified as second parameter in every case reducer definition,
+ * actually we only care about the Payload type instead of the whole PayloadAction in case reducer.
+ *
+ * this function accept a simplified version of "case reducer" in form of:
+ * {
+ *    [caseName]: (Draft<State>, payload: any) => Draft<State> | void;
+ * }
+ *
+ * return a regular Case reducers, not longer needs to "destructor" action paramter to get payload data.
+ *
+ * @param payloadReducers
+ * @returns
+ */
+export declare function fromPaylodReducer<S, R extends SliceCaseReducers<S>>(payloadReducers: PayloadCaseReducers<S, R>): CreateSliceOptions<S, R>['reducers'];
