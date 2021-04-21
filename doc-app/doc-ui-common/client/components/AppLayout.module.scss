@@ -2,7 +2,11 @@
 .app-bar {
   &-header {
     background-color: #F9F4D2!important;
-    color: rgba(0,0,0,0.8)!important;
+    color: rgba(0,0,0,0.7)!important;
+    transition: box-shadow 0.2s linear;
+    &.withShadow {
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    }
   }
   &-main {
     flex: 1;
@@ -32,9 +36,13 @@
 }
 .progressBarContainer {
   position: relative;
+
+  // nested to override Material default style "position"
+  .routeProgressBar {
+    position: absolute;
+    z-index: 999;
+    // position: absolute !important;
+    top: 0;
+  }
 }
-.routeProgressBar {
-  z-index: 999;
-  // position: absolute !important;
-  top: 0;
-}
+

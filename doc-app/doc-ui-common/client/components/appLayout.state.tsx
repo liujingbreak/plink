@@ -16,6 +16,7 @@ import { MDCTopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
+// import styles from './AppLayout.module.scss';
 // import { ofPayloadAction } from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit';
 
 export const Ctx = React.createContext<Slice<AppLayoutState, typeof reducers> | null | undefined>(null);
@@ -30,6 +31,7 @@ export interface AppLayoutState {
   showTopLoading: boolean;
   /** scrollable area */
   frontLayer?: HTMLDivElement;
+  frontLayerClassName: string;
   topAppBarRef?: Promise<MDCTopAppBar> | null;
   lastScrollEvent?: React.UIEvent<HTMLDivElement, UIEvent>;
   error?: Error;
@@ -52,6 +54,7 @@ export const reducers = {
   },
   onScroll(s: AppLayoutState, event: React.UIEvent<HTMLDivElement, UIEvent>) {
     s.lastScrollEvent = event;
+    s.frontLayerClassName = s.frontLayer && s.frontLayer.scrollTop > 0 ? 'withShadow' : '';
   }
   // define more reducers...
 };

@@ -22,7 +22,8 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const scrollEvent$ = React.useMemo(() => new rx.Subject<React.UIEvent<HTMLDivElement, UIEvent>>(), []);
   const initialState: AppLayoutState = {
-    showTopLoading: false
+    showTopLoading: false,
+    frontLayerClassName: ''
   };
   const [state, slice] = useTinyReduxTookit({
     name: 'AppLayout',
@@ -50,7 +51,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
 
   React.useEffect(() => {
     const sub = scrollEvent$.pipe(
-      op.throttleTime(300),
+      op.throttleTime(300, undefined, {trailing: true}),
       op.tap(event => slice.actionDispatcher.onScroll(event))
     ).subscribe();
     return () => sub.unsubscribe();
@@ -68,7 +69,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   }
 
   const content = <>
-    <TopAppBar ref={slice.actionDispatcher.setTopBarRef} classNameHeader={cx('app-bar-header')}
+    <TopAppBar ref={slice.actionDispatcher.setTopBarRef} classNameHeader={cx('app-bar-header', state.frontLayerClassName)}
       classNameMain={cx('app-bar-main')} title={state.barTitle} type='dense'
       renderMain={renderMain}
       >
