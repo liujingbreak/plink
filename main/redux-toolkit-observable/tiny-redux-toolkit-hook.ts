@@ -1,8 +1,8 @@
 import React from 'react';
 import {createSlice, Reducers, Slice, SliceOptions, EpicFactory} from './tiny-redux-toolkit';
 import * as op from 'rxjs/operators';
-import clone from 'lodash/clone';
 export * from './tiny-redux-toolkit';
+import * as rx from 'rxjs';
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
  * @param opts 
@@ -13,12 +13,24 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
   [state: S, slice: Slice<S, R>] {
 
   // To avoid a mutatable version is passed in
-  const clonedState = clone(opts.initialState);
+  // const clonedState = clone(opts.initialState);
+  const willUnmountSub = React.useMemo(() => new rx.ReplaySubject<void>(1), []);
 
-  const [state, setState] = React.useState<S>(clonedState);
+  const [state, setState] = React.useState<S>(opts.initialState);
   // const [slice, setSlice] = React.useState<Slice<S, R>>();
   const slice = React.useMemo<Slice<S, R>>(() => {
-    const slice = createSlice({...opts, initialState: clonedState});
+    const slice = createSlice({...opts, initialState: opts.initialState});
+    slice.state$.pipe(
+      op.distinctUntilChanged(),
+      op.tap(changed => setState(changed)),
+      op.takeUntil(willUnmountSub)
+    ).subscribe();
+
+    // Important!!
+    // Epic might contain recurive state changing logic, like subscribing on state$ stream and 
+    // change state, it turns out any subscriber that subscribe state$ later than
+    // epic will get a state change event in reversed order !! So epic must be the last one to
+    // subscribe state$ stream
     if (opts.epicFactory) {
       slice.addEpic(opts.epicFactory);
     }
@@ -26,13 +38,18 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
   }, []);
 
   React.useEffect(() => {
-    const sub = slice.state$.pipe(
-      op.distinctUntilChanged(),
-      op.tap(changed => setState(changed))
-    ).subscribe();
+    // const sub = slice.state$.pipe(
+    //   op.distinctUntilChanged(),
+    //   // Important!!! because this stream is subscribed later than Epic,
+    //   // "changed" value might
+    //   // come in reversed order in case of recursive state changing in "Epic",
+    //   // so always use getValue() to get latest state
+    //   op.tap(() => setState(slice.state$.getValue()))
+    // ).subscribe();
     return () => {
-      // console.log('unmount', slice.name);
-      sub.unsubscribe();
+      willUnmountSub.next();
+      willUnmountSub.complete();
+      // sub.unsubscribe();
       slice.destroy();
     };
   }, []);

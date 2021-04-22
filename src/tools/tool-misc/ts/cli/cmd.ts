@@ -48,8 +48,14 @@ const cliExt: CliExtension = (program) => {
     .description('For create-react-app project, generate sample components')
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .option('--conn <Redux-slice-file>', 'Connect component to Redux store via React-redux')
+    .option('--internal-slice,--is', 'Use a lightweiht Redux-toolkit + redux-observable like tool to manage component internal state,' +
+      ' useful for implementing complex component which might have bigc state and async side effects')
     .action(async (dir: string, compNames: string[]) => {
-      (await import('./cli-cra-gen')).genComponents(dir, compNames, genCraCompCmd.opts().conn, genCraCompCmd.opts().dryRun);
+      (await import('./cli-cra-gen')).genComponents(dir, compNames, {
+        connectedToSlice: genCraCompCmd.opts().conn,
+        dryrun: genCraCompCmd.opts().dryRun,
+        useInternalSlice: genCraCompCmd.opts().is
+      });
     });
   genCraCompCmd.usage(genCraCompCmd.usage() + '\ne.g.\n  plink cra-gen-comp --conn ../packages/foobar/components Toolbar Layout Profile');
 

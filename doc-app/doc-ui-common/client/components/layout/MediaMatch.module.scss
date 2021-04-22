@@ -1,0 +1,19 @@
+
+@use '@material/layout-grid/variables' as gridVar;
+@use 'sass:map';
+@use '@material/layout-grid/mixins' as gridMixin;
+
+.MediaMatch {
+  // display: none;
+  visibility: hidden;
+  position: absolute;
+  @each $size in map.keys(gridVar.$columns) {
+    @include gridMixin.media-query_($size) {
+      &::before {
+        content: "#{$size}";
+      }
+    }
+  }
+}
+
+// https://github.com/css-modules/css-modules

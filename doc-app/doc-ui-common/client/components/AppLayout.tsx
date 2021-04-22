@@ -8,8 +8,10 @@ import { TopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {reducers, AppLayoutState, epicFactory, Ctx} from './appLayout.state';
 import {LinearProgress} from '@wfh/doc-ui-common/client/material/LinearProgress';
+import {MediaMatch} from './layout/MediaMatch';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import '@material/layout-grid/mdc-layout-grid.scss';
 
 const cx = classnames.bind(styles);
 
@@ -23,7 +25,9 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   const scrollEvent$ = React.useMemo(() => new rx.Subject<React.UIEvent<HTMLDivElement, UIEvent>>(), []);
   const initialState: AppLayoutState = {
     showTopLoading: false,
-    frontLayerClassName: ''
+    frontLayerClassName: '',
+    showTopLoadingReqsCount: 0,
+    deviceSize: 'phone'
   };
   const [state, slice] = useTinyReduxTookit({
     name: 'AppLayout',
@@ -45,38 +49,56 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
     }
   }, [containerRef.current]);
 
+  // const progressBarRef = React.useCallback((dom: HTMLDivElement | null) => {
+  //   slice.dispatch({type: 'topLoadingBarReady', reducer(s: AppLayoutState) {
+  //     if (dom)
+  //       s.topLoadingBarRef = dom;
+  //   }});
+  // }, []);
+
   const onScrollRaw = React.useCallback((event: React.UIEvent<HTMLDivElement, UIEvent>) => {
     scrollEvent$.next(event);
   }, []);
 
+  // const renderBelowHeader: TopAppBarProps['renderBelowHeader'] = (type) => {
+  //   return <div className={styles.progressBarContainer} ref={slice.actionDispatcher._setLoadingBarRef}>
+  //     <LinearProgress className={styles.routeProgressBar} determinate={false} open={state.showTopLoading}/>
+  //   </div>;
+  // };
+
   React.useEffect(() => {
     const sub = scrollEvent$.pipe(
       op.throttleTime(300, undefined, {trailing: true}),
-      op.tap(event => slice.actionDispatcher.onScroll(event))
+      op.tap(event => slice.actionDispatcher._onScroll(event))
     ).subscribe();
     return () => sub.unsubscribe();
   }, []);
 
   function renderMain(mainClasName: string) {
-    return <><div className={styles.progressBarContainer}>
-      <LinearProgress className={styles.routeProgressBar} determinate={false} open={state.showTopLoading}/>
-    </div>
+    return <>
     {/* Backdrop style UI https://material.io/components/backdrop#usage */}
-    <div className={styles.backLayer}>
-      <div ref={slice.actionDispatcher.setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
-        onScroll={onScrollRaw}>{props.children}</div>
+    <div className={cls(styles.backLayer, 'mdc-layout-size-' + state.deviceSize)}>
+      <div className={styles.progressBarContainer} ref={slice.actionDispatcher._setLoadingBarRef}>
+        <LinearProgress className={styles.routeProgressBar} determinate={false} open={state.showTopLoading}/>
+      </div>
+      <div ref={slice.actionDispatcher._setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
+        onScroll={onScrollRaw}>
+          {props.children}
+      </div>
     </div></>;
   }
 
-  const content = <>
-    <TopAppBar ref={slice.actionDispatcher.setTopBarRef} classNameHeader={cx('app-bar-header', state.frontLayerClassName)}
+  const content = (
+    <TopAppBar ref={slice.actionDispatcher._setTopBarRef} classNameHeader={cx('app-bar-header', state.frontLayerClassName)}
       classNameMain={cx('app-bar-main')} title={state.barTitle} type='dense'
       renderMain={renderMain}
-      >
+      // belowHeader={}
+    >
     </TopAppBar>
-  </>;
+  );
 
   return <Ctx.Provider value={slice}>
+    <MediaMatch onChange={slice.actionDispatcher._setDeviceSize}/>
     {props.parentDom == null ? <div className={props.className || undefined} ref={containerRef}>{content}</div> : content}
     </Ctx.Provider>;
 };

@@ -11,6 +11,8 @@ import * as rx from 'rxjs';
 // import get from 'lodash/get';
 const cx = classnames.bind(styles);
 
+const ENTERING_DURATION = 330;
+const LEAVING_DURATION = 200;
 interface BaseOptions {
   /** 'full' works like 'flex-grow: 1;', default: 'fit' */
   size?: 'full' | 'fit';
@@ -144,12 +146,12 @@ const epicFactory: EpicFactory<SwitchState, typeof reducers> = function(slice, o
             slice.actionDispatcher.leaving();
             setTimeout(() => {
               slice.actionDispatcher.removeOldContent();
-            }, 350);
+            }, LEAVING_DURATION + 20);
           }
           if (state$.getValue().animFirstContent || hasExisting) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, LEAVING_DURATION));
             slice.actionDispatcher.entering();
-            await new Promise(resolve => setTimeout(resolve, 330));
+            await new Promise(resolve => setTimeout(resolve, ENTERING_DURATION));
             slice.actionDispatcher.switchContentDone();
           }
         }),
@@ -165,7 +167,7 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
     name: 'SwitchAnim',
     initialState: {size: 'fit', contentKeys: [], contentByKey: {}} as SwitchState,
     reducers,
-    debug: process.env.NODE_ENV !== 'production',
+    debug: false, // process.env.NODE_ENV !== 'production',
     epicFactory
   });
 

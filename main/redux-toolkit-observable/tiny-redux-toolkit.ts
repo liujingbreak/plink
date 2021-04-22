@@ -61,7 +61,7 @@ export type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType:
 export interface Slice<S, R extends Reducers<S>> {
   name: string | number;
   state$: rx.BehaviorSubject<S>;
-  dispatch: (action: PayloadAction<S>) => void;
+  dispatch: (action: PayloadAction<S> | Action<S>) => void;
   /** Action creators bound with dispatcher */
   actionDispatcher: Actions<S, R>;
   /** Action creators */
@@ -155,33 +155,26 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     unprocessedAction$.next(action);
   }
 
+  let actionCount = 0;
   const sub = rx.merge(
-    state$.pipe(
-      op.tap(state => {
-        if (opt.debug) {
-          // tslint:disable-next-line: no-console
-          console.log(`%c ${name} internal:state`, 'color: black; background: #e98df5;', state);
-        }
-      }),
-      op.distinctUntilChanged()
-      // op.tap(state => onStateChange(state))
-    ),
     unprocessedAction$.pipe(
       op.tap(action => {
         if (opt.debug) {
           // tslint:disable-next-line: no-console
-          console.log(`%c ${name} internal:action`, 'color: black; background: #fae4fc;', action.type);
+          console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
         }
       }),
       op.tap(action => {
         if (action.reducer) {
           const currState = state$.getValue();
-          const newState = action.reducer(currState, (action as PayloadAction<S>).payload);
-          if (newState !== undefined) {
-            state$.next({...newState});
-          } else {
-            state$.next({...currState});
-          }
+          const draft = {...currState, __ac: ++actionCount};
+          const newState = action.reducer(draft, (action as PayloadAction<S>).payload);
+          const changed = newState ? newState : draft;
+          // if (opt.debug) {
+          //   // tslint:disable-next-line: no-console
+          //   console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', changed);
+          // }
+          state$.next(changed);
         }
         action$.next(action);
       }),
@@ -193,6 +186,14 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
           }
         });
         return caught;
+      })
+    ),
+    state$.pipe(
+      op.tap(state => {
+        if (opt.debug) {
+          // tslint:disable-next-line: no-console
+          console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', state);
+        }
       })
     ),
     opt.rootStore ? state$.pipe(

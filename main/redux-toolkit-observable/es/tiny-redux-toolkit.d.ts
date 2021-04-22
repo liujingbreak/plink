@@ -48,7 +48,7 @@ export declare type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>,
 export interface Slice<S, R extends Reducers<S>> {
     name: string | number;
     state$: rx.BehaviorSubject<S>;
-    dispatch: (action: PayloadAction<S>) => void;
+    dispatch: (action: PayloadAction<S> | Action<S>) => void;
     /** Action creators bound with dispatcher */
     actionDispatcher: Actions<S, R>;
     /** Action creators */

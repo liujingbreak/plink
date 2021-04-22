@@ -1,4 +1,5 @@
 @use 'appLayout';
+
 .app-bar {
   &-header {
     background-color: #F9F4D2!important;
@@ -18,17 +19,16 @@
 // https://github.com/css-modules/css-modules
 
 .container {
-  display: flex;
-  flex-direction: column;
+  height: 100%;
 }
 .backLayer {
-  flex: 1;
+  height: 100%;
+  flex-direction: column;
   display: flex;
-  align-items: stretch;
-  justify-content: center;
+  justify-content: stretch;
 }
 .frontLayer {
-  flex: 1;
+  flex: 1 1;
   padding: appLayout.$frontLayer-padding;
   display: flex;
   align-items: stretch;
@@ -45,4 +45,3 @@
     top: 0;
   }
 }
-

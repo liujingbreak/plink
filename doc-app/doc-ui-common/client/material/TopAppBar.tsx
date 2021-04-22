@@ -24,6 +24,8 @@ export type TopAppBarProps = React.PropsWithChildren<{
   right?: React.ReactNode;
   onDrawerMenuClick?: () => void;
   getMdcRef?: (ref: MDCTopAppBar) => void;
+  // renderBelowHeader?: (topBarType: TopAppBarProps['type']) => React.ReactNode;
+  belowHeader?: React.ReactNode;
 }>;
 
 const typeStyleMap: {[key in NonNullable<TopAppBarProps['type']>]: {header: string; main: string}} = {
@@ -76,6 +78,7 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
           <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Open menu'>more_vert</button> */}
         </section>
       </div>
+      {props.belowHeader ? props.belowHeader : null}
     </header>
     {
     props.renderMain ? props.renderMain(cls(props.classNameMain || '', cx(mainStyle))) :

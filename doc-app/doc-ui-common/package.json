@@ -37,6 +37,7 @@
     "@material/drawer": "11.0.0",
     "@material/list": "11.0.0",
     "@material/button": "11.0.0",
-    "@material/linear-progress": "11.0.0"
+    "@material/linear-progress": "11.0.0",
+    "@material/layout-grid": "11.0.0"
   }
 }

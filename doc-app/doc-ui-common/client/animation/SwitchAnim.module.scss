@@ -1,4 +1,6 @@
 
+$anim-duration: 0.33s;
+
 .scope {
   position: relative;
   &.full {
@@ -11,25 +13,24 @@
   &.animate-opacity {
     .enterStart {
       opacity: 0;
-      transition: opacity linear .33s;
+      transition: opacity linear $anim-duration;
       &.entering {
         // opacity: 0;
         // display: none;
         opacity: 1;
       }
     }
-    
-    
+
     // https://github.com/css-modules/css-modules
     .leaving {
       position: absolute;
-      transition: opacity linear .33s;
+      transition: opacity linear $anim-duration;
       opacity: 0;
     }
   }
 }
 
-$transition: opacity linear .33s, transform ease-out .33s;
+$transition: opacity linear $anim-duration, transform ease-out $anim-duration;
 .enterStart {
   opacity: 0;
   transform: translate3d(0, 33%, 0);
@@ -45,6 +46,8 @@ $transition: opacity linear .33s, transform ease-out .33s;
 // https://github.com/css-modules/css-modules
 .leaving {
   position: absolute;
+  transform: translate3d(0, -50%, 0) scale(0.67) translate3d(0, 50%, 0);
   transition: $transition;
+  overflow: hidden;
   opacity: 0;
 }

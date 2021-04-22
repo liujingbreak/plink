@@ -56,28 +56,23 @@ export function createSlice(opt) {
     function dispatch(action) {
         unprocessedAction$.next(action);
     }
-    const sub = rx.merge(state$.pipe(op.tap(state => {
+    let actionCount = 0;
+    const sub = rx.merge(unprocessedAction$.pipe(op.tap(action => {
         if (opt.debug) {
             // tslint:disable-next-line: no-console
-            console.log(`%c ${name} internal:state`, 'color: black; background: #e98df5;', state);
-        }
-    }), op.distinctUntilChanged()
-    // op.tap(state => onStateChange(state))
-    ), unprocessedAction$.pipe(op.tap(action => {
-        if (opt.debug) {
-            // tslint:disable-next-line: no-console
-            console.log(`%c ${name} internal:action`, 'color: black; background: #fae4fc;', action.type);
+            console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
         }
     }), op.tap(action => {
         if (action.reducer) {
             const currState = state$.getValue();
-            const newState = action.reducer(currState, action.payload);
-            if (newState !== undefined) {
-                state$.next(Object.assign({}, newState));
-            }
-            else {
-                state$.next(Object.assign({}, currState));
-            }
+            const draft = Object.assign(Object.assign({}, currState), { __ac: ++actionCount });
+            const newState = action.reducer(draft, action.payload);
+            const changed = newState ? newState : draft;
+            // if (opt.debug) {
+            //   // tslint:disable-next-line: no-console
+            //   console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', changed);
+            // }
+            state$.next(changed);
         }
         action$.next(action);
     }), op.catchError((err, caught) => {
@@ -87,6 +82,11 @@ export function createSlice(opt) {
             }
         });
         return caught;
+    })), state$.pipe(op.tap(state => {
+        if (opt.debug) {
+            // tslint:disable-next-line: no-console
+            console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', state);
+        }
     })), opt.rootStore ? state$.pipe(op.tap(state => { var _a; return opt.rootStore.next(Object.assign(Object.assign({}, (_a = opt.rootStore) === null || _a === void 0 ? void 0 : _a.getValue()), { [opt.name]: state })); })) : rx.EMPTY).subscribe();
     function destroy() {
         dispatch({

@@ -3,6 +3,7 @@ import React from 'react';
 // import styles from './RoutesComp.module.scss';
 import {Redirect, Switch} from 'react-router-dom';
 import loadable from '@loadable/component';
+import {ShowTopLoading} from '@wfh/doc-ui-common/client/components/ShowTopLoading';
 // import {SwitchAnim} from '@wfh/doc-ui-common/client/animation//SwitchAnim';
 
 import {AnimatableRoutes} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
@@ -12,11 +13,11 @@ export type RoutesCompProps = React.PropsWithChildren<{
 
 const LazyDocComponent = loadable(async () => {
   return (await import('../feature/article/ArticalePage')).ArticalePage;
-}, {fallback: <>...</>});
+}, {fallback: <ShowTopLoading/>});
 
 const LazyDemoComponent = loadable(async () => {
   return (await import('../feature/demo/DemoPage')).DemoPage;
-}, {fallback: <>...</>});
+}, {fallback: <ShowTopLoading/>});
 
 const RoutesComp: React.FC<RoutesCompProps> = function(prop) {
   return (

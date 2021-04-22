@@ -85,10 +85,10 @@ export async function genPackage(path: string, compName: string, featureName: st
     `  (Run command: plink add @wfh/${packageName})\n`));
 }
 
-export async function genComponents(dir: string, compNames: string[], connectedToSlice: string | undefined, dryrun = false) {
+export async function genComponents(dir: string, compNames: string[], opts: {connectedToSlice?: string; dryrun: boolean; useInternalSlice?: boolean}) {
   dir = Path.resolve(dir);
 
-  if (dryrun) {
+  if (opts.dryrun) {
     // tslint:disable-next-line: no-console
     plink.logger.info('dryrun mode');
   } else {
@@ -98,8 +98,8 @@ export async function genComponents(dir: string, compNames: string[], connectedT
     compName = compName.charAt(0).toUpperCase() + compName.slice(1);
 
     let sliceFilePath = '<Your Redux Slice Path>';
-    if (connectedToSlice) {
-      sliceFilePath = Path.relative(dir, connectedToSlice).replace(/\\/g, '/').replace(/\.[^.]+$/, '');
+    if (opts.connectedToSlice) {
+      sliceFilePath = Path.relative(dir, opts.connectedToSlice).replace(/\\/g, '/').replace(/\.[^.]+$/, '');
       if (!sliceFilePath.startsWith('.'))
         sliceFilePath = './' + sliceFilePath;
     }
@@ -113,10 +113,10 @@ export async function genComponents(dir: string, compNames: string[], connectedT
         slice_file: sliceFilePath,
         withImage: false,
         isEntry: false,
-        isConnected: !!connectedToSlice
+        isConnected: !!opts.connectedToSlice
       }
     },
-    {dryrun});
+    {dryrun: opts.dryrun});
   }
 }
 

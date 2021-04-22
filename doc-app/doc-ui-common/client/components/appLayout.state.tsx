@@ -16,6 +16,7 @@ import { MDCTopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
+import {Size} from './layout/MediaMatch';
 // import styles from './AppLayout.module.scss';
 // import { ofPayloadAction } from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit';
 
@@ -27,13 +28,17 @@ export function useAppLayout() {
 
 export interface AppLayoutState {
   barTitle?: string | null;
+  deviceSize: Size;
   /** top progress bar */
   showTopLoading: boolean;
   /** scrollable area */
   frontLayer?: HTMLDivElement;
   frontLayerClassName: string;
   topAppBarRef?: Promise<MDCTopAppBar> | null;
+  /** actually show loadin when showTopLoadingCount > 0, turning off loading when showTopLoadingCount <= 0 */
+  showTopLoadingReqsCount: number;
   lastScrollEvent?: React.UIEvent<HTMLDivElement, UIEvent>;
+  topLoadingBarRef?: HTMLDivElement;
   error?: Error;
 }
 
@@ -42,19 +47,35 @@ export const reducers = {
     s.barTitle = title ? title.toUpperCase() : '';
   },
   setLoadingVisible(s: AppLayoutState, visible: boolean) {
+    // s.showTopLoading = visible;
+    if (visible)
+      s.showTopLoadingReqsCount++;
+    else if (!visible && s.showTopLoadingReqsCount > 0)
+      s.showTopLoadingReqsCount--;
+  },
+  _setLoadingVisible(s: AppLayoutState, visible: boolean) {
     s.showTopLoading = visible;
   },
-  setFrontLayerRef(s: AppLayoutState, div: HTMLDivElement | null) {
+  _setFrontLayerRef(s: AppLayoutState, div: HTMLDivElement | null) {
     if (div) {
       s.frontLayer = div;
     }
   },
-  setTopBarRef(s: AppLayoutState, mdc: Promise<MDCTopAppBar> | null) {
+  _setTopBarRef(s: AppLayoutState, mdc: Promise<MDCTopAppBar> | null) {
     s.topAppBarRef = mdc;
   },
-  onScroll(s: AppLayoutState, event: React.UIEvent<HTMLDivElement, UIEvent>) {
+  _onScroll(s: AppLayoutState, event: React.UIEvent<HTMLDivElement, UIEvent>) {
     s.lastScrollEvent = event;
     s.frontLayerClassName = s.frontLayer && s.frontLayer.scrollTop > 0 ? 'withShadow' : '';
+    // if (s.showTopLoading && s.topLoadingBarRef && s.topLoadingBarRef.getBoundingClientRect().top < 0) {
+    // }
+  },
+  _setLoadingBarRef(s: AppLayoutState, dom: HTMLDivElement | null) {
+    if (dom)
+      s.topLoadingBarRef = dom;
+  },
+  _setDeviceSize(s: AppLayoutState, size: Size) {
+    s.deviceSize = size;
   }
   // define more reducers...
 };
@@ -62,6 +83,16 @@ export const reducers = {
 export const epicFactory: EpicFactory<AppLayoutState, typeof reducers> = function(slice, ofType) {
   return (action$, state$) => {
     return rx.merge(
+      state$.pipe(
+        op.map(s => s.showTopLoadingReqsCount), op.distinctUntilChanged(),
+        op.tap(showTopLoadingReqsCount => {
+          if (showTopLoadingReqsCount > 0) {
+            slice.actionDispatcher._setLoadingVisible(true);
+          } else if (showTopLoadingReqsCount <= 0) {
+            slice.actionDispatcher._setLoadingVisible(false);
+          }
+        })
+      ),
       state$.pipe(
         op.distinctUntilChanged((s1, s2) => s1.topAppBarRef === s2.topAppBarRef && s1.frontLayer === s2.frontLayer),
         op.filter(state => state.frontLayer != null && state.topAppBarRef != null),
