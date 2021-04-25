@@ -55,7 +55,7 @@ export function mixColor(color1: string, color2: string, weightInterval: number)
 
   const count = Math.floor(1 / weightInterval);
   const mixed = [col1];
-  for (let i = 1; i <= count; i++) {
+  for (let i = 1; i < count; i++) {
     mixed.push(col1.mix(col2, weightInterval * i));
   }
   mixed.push(col2);

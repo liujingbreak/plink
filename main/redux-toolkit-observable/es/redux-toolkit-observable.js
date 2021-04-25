@@ -195,8 +195,7 @@ export class StateFactory {
      */
     bindActionCreators(slice) {
         const actionMap = {};
-        for (const [sliceName, actionCreator] of Object.entries(slice.actions)) {
-            const name = sliceName;
+        for (const [name, actionCreator] of Object.entries(slice.actions)) {
             const doAction = (...param) => {
                 const action = actionCreator(...param);
                 this.dispatch(action);

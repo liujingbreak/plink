@@ -1,18 +1,40 @@
-// .DemoPage {
-  
-// }
-.demoButtons {
-  display: flex;
-  justify-content: flex-start;
+@use '@wfh/doc-ui-common/client/material/theme';
+
+.DemoPage {
+  section {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    overflow: hidden;
+    // background: radial-gradient(circle farthest-corner at 0% 0%, white, transparent);      padding: 0.5rem 0 0.5rem 0;
+
+    border-bottom: 1px solid rgba(0,0,0, 0.1);
+    header {
+      // &::before {
+      //   content: '';
+      //   display: inline-block;
+      //   margin-right: 0.5rem;
+      //   width: 0.5rem;
+      //   height: 1rem;
+      //   // background-color: change-color(theme.$primary, $alpha: 0.5);
+      // }
+      display: block;
+      // background: radial-gradient(circle 150px at 50px -100px, change-color(theme.$primary, $alpha: 0.5), transparent);      padding: 0.5rem 0 0.5rem 0;
+      margin-bottom: 0.5rem;
+      font-weight: 300;
+      font-size: 1.3rem;
+    }
+    &:last-child {
+      border-bottom: none;
+    }
+  }
   button {
     margin-right: 1rem;
   }
 }
-// https://github.com/css-modules/css-modules
-.rippleContent {
-  height: 3rem;
-  display: flex;
-  align-items:stretch;
+
+.ripple {
+  line-height: 3rem;
   text-align: center;
   &.dark {
     background-color: #303030;
@@ -20,10 +42,18 @@
   }
 }
 
-.ripple {
-  line-height: 3rem;
-}
-
 .heightPlaceHolder {
   height: 700px;
+}
+
+.buttonSection {
+  > div {
+    display: flex;
+    flex-wrap: wrap;
+    > * {
+      flex: 0 0 auto;
+      // vertical-align: middle;
+      // display: inline-block;
+    }
+  }
 }

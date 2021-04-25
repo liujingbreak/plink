@@ -1,6 +1,7 @@
 import { GlobalOptions as CliOptions } from './cmd/types';
 import { DrcpSettings } from './config/config-slice';
 import { BehaviorSubject } from 'rxjs';
+import { Draft } from '@reduxjs/toolkit';
 export { DrcpSettings };
 export interface DrcpConfig {
     /**
@@ -14,6 +15,7 @@ export interface DrcpConfig {
     get(path: string | string[], defaultValue?: any): any;
     set<K extends keyof DrcpSettings>(path: K, value: DrcpSettings[K] | any): void;
     set(path: string | string[], value: any): void;
+    change(reducer: (setting: Draft<DrcpSettings>) => void): void;
     /**
      * Resolve a path based on `rootPath`
      * @name resolve

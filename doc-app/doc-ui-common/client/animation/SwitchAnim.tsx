@@ -11,8 +11,7 @@ import * as rx from 'rxjs';
 // import get from 'lodash/get';
 const cx = classnames.bind(styles);
 
-const ENTERING_DURATION = 330;
-const LEAVING_DURATION = 200;
+const TRANSION_DURATION = 400;
 interface BaseOptions {
   /** 'full' works like 'flex-grow: 1;', default: 'fit' */
   size?: 'full' | 'fit';
@@ -20,6 +19,7 @@ interface BaseOptions {
   animFirstContent?: boolean;
   type?: 'opacity' | 'translateY';
   className?: string;
+  debug?: boolean;
 }
 
 export type SwitchAnimProps = React.PropsWithChildren<BaseOptions & {
@@ -48,14 +48,20 @@ interface SwitchState extends BaseOptions {
 
 const reducers = {
   setBaseOptions(s: SwitchState, payload: BaseOptions) {
-    s.animFirstContent = payload.animFirstContent;
-    s.size = payload.size;
+    Object.assign(s, payload);
   },
   contentRerendered(s: SwitchState, payload: React.ReactNode) {
     if (s.keyOfEntering && s.contentByKey[s.keyOfEntering]) {
-      s.contentByKey[s.keyOfEntering].renderable = payload;
+      s.contentByKey[s.keyOfEntering] = {
+        ...s.contentByKey[s.keyOfEntering],
+        renderable: payload
+      };
     } else if (s.contentKeys.length > 0) {
-      s.contentByKey[s.contentKeys[s.contentKeys.length - 1]].renderable = payload;
+      const lastKey = s.contentKeys[s.contentKeys.length - 1];
+      s.contentByKey[lastKey] = {
+        ...s.contentByKey[lastKey],
+        renderable: payload
+      };
     }
     return {...s};
   },
@@ -72,20 +78,27 @@ const reducers = {
       clsName: payload.anim ? cx('enterStart') : '',
       onContainerReady(div) {
         if (div)
-          s.contentByKey[key].dom = div;
+          s.contentByKey[key] = {
+            ...s.contentByKey[key],
+            dom: div
+          };
       }
     };
+    Object.freeze(s.contentByKey[key]);
     s.contentKeys.push(key);
-    return {...s};
   },
   leaving(s: SwitchState) {
     if (s.contentKeys.length > 1) {
       s.keyOfLeaving = s.contentKeys[0];
       const content = s.contentByKey[s.keyOfLeaving];
       content.clsName = styles.leaving;
-      content.dom!.style.width = content.dom?.clientWidth + 'px';
-      content.dom!.style.height = content.dom?.clientHeight + 'px';
-      return {...s};
+      if (content.dom) {
+        const style = content.dom.style;
+        style.width = content.dom.clientWidth + 'px';
+        style.height = content.dom.clientHeight + 'px';
+        style.top = '0px';
+        style.left = '0px';
+      }
     }
     return s;
   },
@@ -146,12 +159,13 @@ const epicFactory: EpicFactory<SwitchState, typeof reducers> = function(slice, o
             slice.actionDispatcher.leaving();
             setTimeout(() => {
               slice.actionDispatcher.removeOldContent();
-            }, LEAVING_DURATION + 20);
+            }, TRANSION_DURATION);
           }
           if (state$.getValue().animFirstContent || hasExisting) {
-            await new Promise(resolve => setTimeout(resolve, LEAVING_DURATION));
+            const type = state$.getValue().type;
+            await new Promise(resolve => setTimeout(resolve, type === 'translateY' || type == null ? 200 : 20));
             slice.actionDispatcher.entering();
-            await new Promise(resolve => setTimeout(resolve, ENTERING_DURATION));
+            await new Promise(resolve => setTimeout(resolve, TRANSION_DURATION));
             slice.actionDispatcher.switchContentDone();
           }
         }),
@@ -163,13 +177,15 @@ const epicFactory: EpicFactory<SwitchState, typeof reducers> = function(slice, o
 
 
 const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
-  const [state, slice] = useTinyReduxTookit({
-    name: 'SwitchAnim',
-    initialState: {size: 'fit', contentKeys: [], contentByKey: {}} as SwitchState,
-    reducers,
-    debug: false, // process.env.NODE_ENV !== 'production',
-    epicFactory
-  });
+  const [state, slice] = useTinyReduxTookit(() => {
+    const initialState: SwitchState = {size: 'fit', contentKeys: [], contentByKey: {}};
+    return {
+      name: 'SwitchAnim',
+      initialState,
+      reducers,
+      debug: !!props.debug // process.env.NODE_ENV !== 'production',
+    };
+  }, epicFactory);
 
 
   React.useEffect(() => {
@@ -187,7 +203,7 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
   React.useEffect(() => {
     if (slice)
       slice.actionDispatcher.setBaseOptions(props);
-  }, [props.animFirstContent, props.size, slice]);
+  }, [props.animFirstContent, props.size, slice, props.type, props.className]);
 
   React.useEffect(() => {
     if (props.parentDom) {

@@ -63,7 +63,7 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
 
   const content = <RouteMatchCtx.Provider value={state.routeMatch}>
   { state.matchedIdx != null ? // prop.routes[state.matchedIdx].children :
-      <SwitchAnim size='full' parentDom={prop.parentDom == null ? rootRef.current : prop.parentDom} contentHash={state.matchedIdx}>{prop.routes[state.matchedIdx].children}</SwitchAnim> :
+      <SwitchAnim debug={false} size='full' parentDom={prop.parentDom == null ? rootRef.current : prop.parentDom} contentHash={state.matchedIdx}>{prop.routes[state.matchedIdx].children}</SwitchAnim> :
       prop.children ? prop.children : <></>
   }
   </RouteMatchCtx.Provider>;

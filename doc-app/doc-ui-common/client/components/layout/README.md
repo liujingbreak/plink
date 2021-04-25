@@ -1,9 +1,9 @@
 ## Why we don't use MediaQueryList
 To maintain the **single trueth of source** of device layout breakpoint (media queries) in Material sass file, I don't want to separate the definition of layout breakpoints in both sass and TS/JS files.
 
-Therefore, I go with this approach:
+Therefore,
 - Use Material sass "@material/layout-grid", listerning to window resize event, detect a hidden elements's computed style to predicate which media query rule is taking effect.
-- Set state in JS "AppLayout"
+- Set state in "AppLayout"
 
 ## Material Layout Grid
 ### CSS Classes

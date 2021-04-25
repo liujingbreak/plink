@@ -1,0 +1,18 @@
+
+.cells {
+  // display: flex;
+  // flex-wrap: wrap;
+  // justify-content: flex-start;
+  font-size: 0;
+  > * {
+    // flex: 0 0 auto;
+    font-size: 12px;
+    display: inline-block;
+  }
+}
+.label {
+  margin: 1rem 0 6px 0;
+  font-size: 12px;
+}
+
+// https://github.com/css-modules/css-modules

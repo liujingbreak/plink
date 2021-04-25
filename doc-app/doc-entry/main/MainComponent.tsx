@@ -8,7 +8,7 @@ import {Provider as ReduxProvider} from 'react-redux';
 import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import { useStoreOfStateFactory } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import { AppLayout } from '@wfh/doc-ui-common/client/components/AppLayout';
-
+import '@material-icons/font/css/outline.css';
 import './markdown-setup';
 // const cx = classNames.bind(styles);
 // const bannerImgCls = cx('assets');

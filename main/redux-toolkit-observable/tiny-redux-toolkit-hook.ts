@@ -3,23 +3,25 @@ import {createSlice, Reducers, Slice, SliceOptions, EpicFactory} from './tiny-re
 import * as op from 'rxjs/operators';
 export * from './tiny-redux-toolkit';
 import * as rx from 'rxjs';
+
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
  * @param opts 
  * @returns 
  */
 export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers<S>>(
-  opts: SliceOptions<S, R> & {epicFactory?: EpicFactory<S, R>}):
+  optsFactory: () => SliceOptions<S, R>, epicFactory: EpicFactory<S, R>):
   [state: S, slice: Slice<S, R>] {
 
   // To avoid a mutatable version is passed in
   // const clonedState = clone(opts.initialState);
   const willUnmountSub = React.useMemo(() => new rx.ReplaySubject<void>(1), []);
+  const sliceOptions = React.useMemo(optsFactory, []);
 
-  const [state, setState] = React.useState<S>(opts.initialState);
+  const [state, setState] = React.useState<S>(sliceOptions.initialState);
   // const [slice, setSlice] = React.useState<Slice<S, R>>();
   const slice = React.useMemo<Slice<S, R>>(() => {
-    const slice = createSlice({...opts, initialState: opts.initialState});
+    const slice = createSlice(sliceOptions);
     slice.state$.pipe(
       op.distinctUntilChanged(),
       op.tap(changed => setState(changed)),
@@ -31,8 +33,8 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
     // change state, it turns out any subscriber that subscribe state$ later than
     // epic will get a state change event in reversed order !! So epic must be the last one to
     // subscribe state$ stream
-    if (opts.epicFactory) {
-      slice.addEpic(opts.epicFactory);
+    if (epicFactory) {
+      slice.addEpic(epicFactory);
     }
     return slice;
   }, []);

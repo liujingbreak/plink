@@ -14,16 +14,14 @@ const program = new commander.Command()
   // tslint:disable-next-line: no-console
   console.log('\nPlink version:', pk.version);
 
-  const serverStarted = new Promise<() => Promise<void>>(async resolve => {
-    initProcess(() => {
-      return serverStarted.then(shutdown => shutdown());
-    });
-    const setting = initConfig(program.opts() as GlobalOptions);
-    logConfig(setting());
-    const {runServer} = require('./package-runner') as typeof _runner;
-    const shutdown = await runServer();
-    resolve(shutdown);
+  initProcess(() => {
+    return shutdown();
   });
+  const setting = initConfig(program.opts() as GlobalOptions);
+  logConfig(setting());
+  const {runServer} = require('./package-runner') as typeof _runner;
+  const {started, shutdown} = runServer();
+  await started;
 });
 
 withGlobalOptions(program);

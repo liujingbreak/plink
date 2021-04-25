@@ -11,6 +11,7 @@ import {getLogger} from 'log4js';
 import {DrcpSettings} from './config/config-slice';
 import {setTsCompilerOptForNodePath} from './package-mgr/package-list-helper';
 import {BehaviorSubject} from 'rxjs';
+import {Draft} from '@reduxjs/toolkit';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 const log = getLogger('plink.config-handler');
@@ -28,6 +29,7 @@ export interface DrcpConfig {
   get(path: string|string[], defaultValue?: any): any;
   set<K extends keyof DrcpSettings>(path: K, value: DrcpSettings[K] | any): void;
   set(path: string|string[], value: any): void;
+  change(reducer: (setting: Draft<DrcpSettings>) => void): void;
   /**
    * Resolve a path based on `rootPath`
    * @name resolve

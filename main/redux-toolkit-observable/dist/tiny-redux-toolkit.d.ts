@@ -48,20 +48,22 @@ export declare type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>,
 export interface Slice<S, R extends Reducers<S>> {
     name: string | number;
     state$: rx.BehaviorSubject<S>;
-    dispatch: (action: PayloadAction<S>) => void;
+    dispatch: (action: PayloadAction<S> | Action<S>) => void;
     /** Action creators bound with dispatcher */
     actionDispatcher: Actions<S, R>;
     /** Action creators */
     actions: Actions<S, R>;
     destroy: () => void;
     addEpic(epicFactory: EpicFactory<S, R>): void;
+    getStore(): rx.Observable<S>;
+    getState(): S;
 }
 export declare type Epic<S> = (actions: rx.Observable<PayloadAction<any> | Action<any>>, states: rx.BehaviorSubject<S>) => rx.Observable<Action<any>>;
 declare type PayloadTypeOfAction<ActionCreatorType> = ActionCreatorType extends ActionCreatorWithoutPayload<any> ? void : ActionCreatorType extends ActionCreatorWithPayload<any, infer P> ? P : never;
 /** filter action stream by type */
-export declare function ofPayloadAction<S, P, A extends ActionCreator<S, P>>(actionCreators: A): (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>>>;
-export declare function ofPayloadAction<S, P, A extends ActionCreator<S, P>, S1, P1, A1 extends ActionCreator<S1, P1>>(actionCreators: A, actionCreators1: A1): (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>> | PayloadAction<S1, PayloadTypeOfAction<A1>>>;
-export declare function ofPayloadAction<S, P, A extends ActionCreator<S, P>, S1, P1, A1 extends ActionCreator<S1, P1>, S2, P2, A2 extends ActionCreator<S2, P2>>(actionCreators: A, actionCreators1: A1, actionCreators2: A2): (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>> | PayloadAction<S1, PayloadTypeOfAction<A1>> | PayloadAction<S2, PayloadTypeOfAction<A2>>>;
+export declare function ofPayloadAction<S, A extends ActionCreator<S, any>>(actionCreators: A): (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>>>;
+export declare function ofPayloadAction<S, A extends ActionCreator<S, any>, S1, A1 extends ActionCreator<S1, any>>(actionCreators: A, actionCreators1: A1): (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>> | PayloadAction<S1, PayloadTypeOfAction<A1>>>;
+export declare function ofPayloadAction<S, A extends ActionCreator<S, any>, S1, A1 extends ActionCreator<S1, any>, S2, A2 extends ActionCreator<S2, any>>(actionCreators: A, actionCreators1: A1, actionCreators2: A2): (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>> | PayloadAction<S1, PayloadTypeOfAction<A1>> | PayloadAction<S2, PayloadTypeOfAction<A2>>>;
 export interface SliceOptions<S, R extends Reducers<S>> {
     name: string;
     initialState: S;

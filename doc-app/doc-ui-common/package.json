@@ -38,6 +38,8 @@
     "@material/list": "11.0.0",
     "@material/button": "11.0.0",
     "@material/linear-progress": "11.0.0",
-    "@material/layout-grid": "11.0.0"
+    "@material/layout-grid": "11.0.0",
+    "@material-icons/font": "1.0.8",
+    "@material/slider": "11.0.0"
   }
 }

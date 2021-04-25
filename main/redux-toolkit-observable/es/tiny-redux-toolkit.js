@@ -26,7 +26,7 @@ export function createSlice(opt) {
         if (sliceCount4Name[name] == null) {
             sliceCount4Name[name] = 0;
         }
-        opt.name = name = name + (++sliceCount4Name[name]);
+        opt.name = name = name + '.' + (++sliceCount4Name[name]);
     }
     const actionCreators = {};
     const actionDispatcher = {};
@@ -57,6 +57,7 @@ export function createSlice(opt) {
         unprocessedAction$.next(action);
     }
     let actionCount = 0;
+    let executingReducer = false;
     const sub = rx.merge(unprocessedAction$.pipe(op.tap(action => {
         if (opt.debug) {
             // tslint:disable-next-line: no-console
@@ -65,13 +66,11 @@ export function createSlice(opt) {
     }), op.tap(action => {
         if (action.reducer) {
             const currState = state$.getValue();
-            const draft = Object.assign(Object.assign({}, currState), { __ac: ++actionCount });
-            const newState = action.reducer(draft, action.payload);
-            const changed = newState ? newState : draft;
-            // if (opt.debug) {
-            //   // tslint:disable-next-line: no-console
-            //   console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', changed);
-            // }
+            const shallowCopied = Object.assign(Object.assign({}, currState), { __ac: ++actionCount });
+            executingReducer = true;
+            const newState = action.reducer(shallowCopied, action.payload);
+            executingReducer = false;
+            const changed = newState ? newState : shallowCopied;
             state$.next(changed);
         }
         action$.next(action);
@@ -114,6 +113,15 @@ export function createSlice(opt) {
         addEpic(epicFactory) {
             const epic = epicFactory(slice, ofType);
             addEpic(epic);
+        },
+        getStore() {
+            return state$;
+        },
+        getState() {
+            if (executingReducer) {
+                throw new Error('To be consistent with Redux\'s behaviour, slice.getState() is not allowed to be invoked inside a reducer');
+            }
+            return state$.getValue();
         }
     };
     return slice;

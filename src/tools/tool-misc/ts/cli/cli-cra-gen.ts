@@ -120,7 +120,7 @@ export async function genComponents(dir: string, compNames: string[], opts: {con
   }
 }
 
-export async function genSlice(dir: string, targetNames: string[], opt: {dryRun?: boolean; internal: boolean}) {
+export async function genSlice(dir: string, targetNames: string[], opt: {dryRun?: boolean; tiny: boolean, internal: boolean}) {
   dir = Path.resolve(dir);
 
   if (opt.dryRun) {
@@ -133,7 +133,7 @@ export async function genSlice(dir: string, targetNames: string[], opt: {dryRun?
     targetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
     const smallTargetName = targetName.charAt(0).toLowerCase() + targetName.slice(1);
     await generateStructure(
-      Path.resolve(__dirname, opt.internal ? '../../template-cra-tiny-redux' : '../../template-cra-slice'),
+      Path.resolve(__dirname, opt.tiny ? '../../template-cra-tiny-redux' : opt.internal ? '../../template-slice4comp' : '../../template-cra-slice'),
       dir,
     {
       fileMapping: [

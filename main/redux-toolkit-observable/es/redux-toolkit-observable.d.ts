@@ -65,7 +65,7 @@ export declare class StateFactory {
      * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
      * - initialState is loaded from StateFactory's partial preloadedState
      */
-    newSlice<SS, _CaseReducer extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(opt: CreateSliceOptions<SS, _CaseReducer, Name>): Slice<SS, _CaseReducer & ExtraSliceReducers<SS>, Name>;
+    newSlice<S, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(opt: CreateSliceOptions<S, _CaseReducer, Name>): Slice<S, _CaseReducer & ExtraSliceReducers<S>, Name>;
     removeSlice(slice: {
         name: string;
     }): void;

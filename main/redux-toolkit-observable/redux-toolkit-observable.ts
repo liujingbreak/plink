@@ -75,6 +75,7 @@ export type InferSliceType<MyCreateSliceOptionsType> =
 /** A Helper infer type */
 export type InferActionsType<MyCreateSliceOptionsType> =
 InferSliceType<MyCreateSliceOptionsType>['actions'];
+
 export class StateFactory {
   /**
    * Why I don't use Epic's state$ parameter:
@@ -97,8 +98,6 @@ export class StateFactory {
   private debugLog = new ReplaySubject<any[]>(15);
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
   private epicWithUnsub$: Subject<[Epic<PayloadAction<unknown>>, string, Subject<string>]>;
-
-
   private errorSlice: InferSliceType<typeof errorSliceOpt>;
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
@@ -216,12 +215,12 @@ export class StateFactory {
    * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
    * - initialState is loaded from StateFactory's partial preloadedState
    */
-  newSlice<SS, _CaseReducer extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(
-    opt: CreateSliceOptions<SS, _CaseReducer, Name>):
-    Slice<SS, _CaseReducer & ExtraSliceReducers<SS>, Name> {
+  newSlice<S, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(
+    opt: CreateSliceOptions<S, _CaseReducer, Name>):
+    Slice<S, _CaseReducer & ExtraSliceReducers<S>, Name> {
 
-    const _opt = opt as CreateSliceOptions<SS, _CaseReducer & ExtraSliceReducers<SS>, Name>;
-    const reducers = _opt.reducers as ReducerWithDefaultActions<SS, _CaseReducer>;
+    const _opt = opt as CreateSliceOptions<S, _CaseReducer & ExtraSliceReducers<S>, Name>;
+    const reducers = _opt.reducers as ReducerWithDefaultActions<S, _CaseReducer>;
 
     if (reducers._change == null)
       Object.assign(_opt.reducers, defaultSliceReducers);
@@ -236,7 +235,7 @@ export class StateFactory {
       Object.assign(opt.initialState, this.preloadedState[opt.name]);
     }
     const slice = reduxCreateSlice(
-      opt as CreateSliceOptions<SS, _CaseReducer & ExtraSliceReducers<SS>, Name>);
+      opt as CreateSliceOptions<S, _CaseReducer & ExtraSliceReducers<S>, Name>);
 
     this.addSliceMaybeReplaceReducer(slice);
 
@@ -302,8 +301,7 @@ export class StateFactory {
   bindActionCreators<A, Slice extends {actions: A}>(slice: Slice): Slice['actions'] {
 
     const actionMap = {} as typeof slice.actions;
-    for (const [sliceName, actionCreator] of Object.entries(slice.actions)) {
-      const name = sliceName;
+    for (const [name, actionCreator] of Object.entries(slice.actions)) {
       const doAction = (...param: any[]) => {
         const action = (actionCreator as any)(...param);
         this.dispatch(action);

@@ -1,8 +1,10 @@
 @use 'appLayout';
+@use '../material/theme.scss';
 
 .app-bar {
   &-header {
-    background-color: #F9F4D2!important;
+    // background: linear-gradient(to right, #EFEEDD 0%,white 100%);
+    background-color: white!important;
     color: rgba(0,0,0,0.7)!important;
     transition: box-shadow 0.2s linear;
     &.withShadow {
@@ -28,11 +30,15 @@
   justify-content: stretch;
 }
 .frontLayer {
-  flex: 1 1;
-  padding: appLayout.$frontLayer-padding;
+  flex-grow: 1;
+  // padding: appLayout.$frontLayer-padding;
   display: flex;
   align-items: stretch;
   overflow: auto;
+  > :global(.mdc-layout-grid) {
+    flex-grow: 1;
+    margin: 0;
+  }
 }
 .progressBarContainer {
   position: relative;

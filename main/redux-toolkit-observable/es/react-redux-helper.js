@@ -1,55 +1,37 @@
+import React from 'react';
+import { stateFactory, ofPayloadAction } from './state-factory-browser';
+import { createSliceHelper, createReducers } from './helper';
 import { useEffect, useState } from 'react';
-// let COMPONENT_ID = 0;
-/**
- * Use "state" in React rendering template, use `getState()` to get current computed state from Redux Store,
- * be aware, `state` might not be the same as returned value of `getState()` at some moments.
- *
- * @param name
- * @param sliceFactory
- */
-// export function useInternalReduxForComponent<S extends {[prop: string]: any}, R extends SliceCaseReducers<S>, Name extends string>(
-//   opt: CreateSliceOptions<S, R, Name> & {epicFactory?: EpicFactory<S, R, Name>}): [state: S, slice: Slice<S, R & ExtraSliceReducers<S>, Name>] {
-//   const resourceMap = useMemo(() => new ResourceMap(), []);
-//   const [reactState, setReactState] = useState<S>();
-//   useEffect(() => {
-//     const compId = COMPONENT_ID++;
-//     let existingSlice = existingSliceMap.get(opt.name) as SliceData<{[compId: string]: S}, {}>;
-//     if (existingSlice == null) {
-//       const newReducers = {} as CreateSliceOptions<{[compId: string]: S}, R, Name>['reducers'];
-//       for (const [caseName, reducer] of Object.entries(opt.reducers)) {
-//         newReducers[caseName as keyof R] = function(s: {[compId: string]: S}, action: PayloadAction<any>) {
-//           return (reducer as any)(s[compId], action) as  {[compId: string]: S};
-//         } as any;
-//       }
-//       const slice = stateFactory.newSlice({
-//         name: opt.name,
-//         initialState: {[opt.name]: {[compId]: opt.initialState}} as {[compId: string]: S},
-//         reducers: newReducers
-//       });
-//       const actionDispatcher = stateFactory.bindActionCreators(slice);
-//       const store = stateFactory.sliceStore(slice);
-//       const getState = () => stateFactory.sliceState(slice);
-//       existingSlice = {slice, actionDispatcher, store, getState, epicFactory: opt.epicFactory};
-//       existingSliceMap.set(opt.name, existingSlice);
-//     } else {
-//       const sliceData: SliceData<{[compId: string]: S}, {}> = existingSlice;
-//       sliceData.actionDispatcher._change((draft) => {
-//         s[compId] = opt.initialState;
-//       });
-//     }
-//     if (opt.epicFactory) {
-//       // const epic = opt.epicFactory(existingSlice.slice)
-//       // stateFactory.addEpic()
-//     }
-//     return () => {
-//       const sliceData: SliceData<{[compId: string]: S}, {}> = existingSlice;
-//       sliceData.actionDispatcher._change((draft) => {
-//         delete s[compId];
-//       });
-//     };
-//   }, []);
-//   return {...toolkit, state: reactState};
-// }
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
+let COMPONENT_ID = 0;
+export { ofPayloadAction, createReducers };
+export function useReduxTookit(optsFactory, epicFactory) {
+    const willUnmountSub = React.useMemo(() => new rx.ReplaySubject(1), []);
+    const sliceOptions = React.useMemo(optsFactory, []);
+    const [state, setState] = React.useState(sliceOptions.initialState);
+    const helper = React.useMemo(() => {
+        const helper = createSliceHelper(stateFactory, Object.assign(Object.assign({}, sliceOptions), { name: sliceOptions.name + '.' + COMPONENT_ID++ }));
+        stateFactory.sliceStore(helper).pipe(op.distinctUntilChanged(), op.tap(changed => setState(changed)), op.takeUntil(willUnmountSub)).subscribe();
+        // Important!!
+        // Epic might contain recurive state changing logic, like subscribing on state$ stream and 
+        // change state, it turns out any subscriber that subscribe state$ later than
+        // epic will get a state change event in reversed order !! So epic must be the last one to
+        // subscribe state$ stream
+        if (epicFactory) {
+            helper.setEpic(epicFactory);
+        }
+        return helper;
+    }, []);
+    React.useEffect(() => {
+        return () => {
+            willUnmountSub.next();
+            willUnmountSub.complete();
+            helper.destroy();
+        };
+    }, []);
+    return [state, helper];
+}
 export function useStoreOfStateFactory(stateFactory) {
     const [reduxStore, setReduxStore] = useState(undefined);
     useEffect(() => {

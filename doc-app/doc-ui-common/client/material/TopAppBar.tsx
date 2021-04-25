@@ -4,6 +4,7 @@ import cls from 'classnames';
 import styles from './TopAppBar.scss';
 import {MDCTopAppBar} from '@material/top-app-bar';
 import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import {SwitchAnim} from '../animation/SwitchAnim';
 export {MDCTopAppBar};
 const cx = classnames.bind(styles);
@@ -19,16 +20,18 @@ export type TopAppBarProps = React.PropsWithChildren<{
   classNameMain?: string;
   renderMain?: (mainAreaClassName: string) => React.ReactNode;
   title: React.ReactNode ;
-  type?: 'fixed' | 'prominent' | 'dense' | 'short';
+  type?: 'fixed' | 'prominent' | 'dense' | 'short' | 'standard';
   left?: React.ReactNode;
   right?: React.ReactNode;
   onDrawerMenuClick?: () => void;
   getMdcRef?: (ref: MDCTopAppBar) => void;
   // renderBelowHeader?: (topBarType: TopAppBarProps['type']) => React.ReactNode;
   belowHeader?: React.ReactNode;
+  _onHeaderRef?(headerRef: HTMLHeadElement | null): void;
 }>;
 
 const typeStyleMap: {[key in NonNullable<TopAppBarProps['type']>]: {header: string; main: string}} = {
+  standard: {header: '', main: 'mdc-top-app-bar--fixed-adjust'},
   fixed: {header: 'mdc-top-app-bar--fixed', main: 'mdc-top-app-bar--fixed-adjust'},
   prominent: {header: 'mdc-top-app-bar--prominent', main: 'mdc-top-app-bar--prominent-fixed-adjust'},
   dense: {header: 'mdc-top-app-bar--dense', main: 'mdc-top-app-bar--dense-fixed-adjust'},
@@ -36,32 +39,40 @@ const typeStyleMap: {[key in NonNullable<TopAppBarProps['type']>]: {header: stri
 };
 
 const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBarProps> = function(props, ref) {
-  const sub$ = React.useMemo(() => new rx.ReplaySubject<MDCTopAppBar>(), []);
+  const sub$ = React.useMemo(() => new rx.BehaviorSubject<MDCTopAppBar | null>(null), []);
 
-  const onDivReady = React.useCallback((div: HTMLDivElement | null) => {
+  const onDivReady = React.useCallback((div: HTMLHeadElement | null) => {
+    if (props._onHeaderRef)
+      props._onHeaderRef(div);
     if (div == null) {
+      if (sub$.getValue()) {
+        sub$.getValue()!.destroy();
+        sub$.next(null);
+      }
       return;
     }
     const mdc = new MDCTopAppBar(div);
     sub$.next(mdc);
-    sub$.complete();
+    // sub$.complete();
     if (props.getMdcRef) {
       props.getMdcRef(mdc);
     }
   }, []);
 
-  React.useImperativeHandle(ref, () => sub$.toPromise(), [sub$]);
+  React.useImperativeHandle(ref,
+    () => sub$.pipe(op.filter(item => item != null), op.take(1)).toPromise() as Promise<MDCTopAppBar>,
+    [sub$]);
 
   React.useEffect(() => {
     return () => {
-      sub$.subscribe({
-        next(mdc) { mdc.destroy();}
-      });
+      if (sub$.getValue()) {
+        sub$.getValue()!.destroy();
+      }
     };
   }, []);
 
-  let headerStyle = props.type ? typeStyleMap[props.type].header : '';
-  let mainStyle = props.type ? typeStyleMap[props.type].main : '';
+  let headerStyle = props.type ? typeStyleMap[props.type].header : typeStyleMap.standard.header;
+  let mainStyle = props.type ? typeStyleMap[props.type].main : typeStyleMap.standard.main;
 
   return (<>
     <header className={cls(props.classNameHeader || '', cx('mdc-top-app-bar', headerStyle))} ref={onDivReady}>
@@ -69,7 +80,9 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
         <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-start'>
           {props.left || null}
           {/* <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Open navigation menu' onClick={props.onDrawerMenuClick}>menu</button> */}
-          <span className='mdc-top-app-bar__title'><SwitchAnim type='opacity' contentHash={props.title}>{props.title}</SwitchAnim></span>
+          <span className='mdc-top-app-bar__title'>
+            <SwitchAnim type='opacity' contentHash={props.title}>{props.title}</SwitchAnim>
+          </span>
         </section>
         <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-end' role='toolbar'>
           {props.right || null}

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Options as ProxyOptions } from 'http-proxy-middleware';
 /**
  * Middleware for printing each response process duration time to log
  * @param req
@@ -14,5 +15,7 @@ export declare function createResponseTimestamp(req: Request, res: Response, nex
  * @param targetUrl
  */
 export declare function setupHttpProxy(proxyPath: string, apiUrl: string, opts?: {
+    /** Bypass CORS restrict on target server */
     deleteOrigin?: boolean;
+    onProxyReq?: ProxyOptions['onProxyReq'];
 }): void;

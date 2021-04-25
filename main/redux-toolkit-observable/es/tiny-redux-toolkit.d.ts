@@ -55,6 +55,8 @@ export interface Slice<S, R extends Reducers<S>> {
     actions: Actions<S, R>;
     destroy: () => void;
     addEpic(epicFactory: EpicFactory<S, R>): void;
+    getStore(): rx.Observable<S>;
+    getState(): S;
 }
 export declare type Epic<S> = (actions: rx.Observable<PayloadAction<any> | Action<any>>, states: rx.BehaviorSubject<S>) => rx.Observable<Action<any>>;
 declare type PayloadTypeOfAction<ActionCreatorType> = ActionCreatorType extends ActionCreatorWithoutPayload<any> ? void : ActionCreatorType extends ActionCreatorWithPayload<any, infer P> ? P : never;

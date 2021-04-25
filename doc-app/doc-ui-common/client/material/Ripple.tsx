@@ -1,85 +1,50 @@
 import React from 'react';
-// import classnames from 'classnames/bind';
-import clsddp from 'classnames/dedupe';
+import cls from 'classnames';
+import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {sliceOptionFactory, epicFactory, RippleObservableProps} from './ripple.state';
 
 import './Ripple.scss';
+import styles from './Ripple.module.scss';
 // import '@material/ripple/styles.scss';
 import {MDCRipple} from '@material/ripple/index';
 
-import * as rx from 'rxjs';
+// import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 
 // const cx = classnames.bind(styles);
 
+export {MDCRipple};
 
-export type RippleProps = React.PropsWithChildren<{
-  color?: 'dark' | 'light';
-  className?: string;
-  getMdcRef?: (ref: MDCRipple) => void;
-  renderTo?: HTMLElement;
-  renderToWhen?: rx.Observable<HTMLElement>;
-}>;
+export type RippleProps = RippleObservableProps;
 
 const Ripple: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleProps> = function(props, ref) {
+  const [state, slice] = useTinyReduxTookit(sliceOptionFactory, epicFactory);
 
   React.useEffect(() => {
-    if (props.renderTo) {
-      renderTo(props.renderTo, props);
-    }
-  }, [props.renderTo]);
+    slice.actionDispatcher._syncComponentProps(props);
+  }, [...Object.values(props)]);
+
+  const store = slice.getStore();
+  React.useImperativeHandle(ref, () => store.pipe(
+    op.map(s => s.mdcRef), op.filter(value => value != null),
+    op.distinctUntilChanged(),
+    op.take(1)
+  ).toPromise() as Promise<MDCRipple>, [store]);
 
   React.useEffect(() => {
-    if (props.renderToWhen) {
-      props.renderToWhen.pipe(
-        op.filter(dom => dom != null),
-        op.tap(dom => renderTo(dom, props)),
-        op.take(1)
-      ).subscribe();
-    }
-  }, [props.renderToWhen]);
-
-  const sub$ = React.useMemo(() => new rx.BehaviorSubject<MDCRipple | null>(null), []);
-
-  const onDivReady = React.useCallback<React.RefCallback<HTMLDivElement>>((div) => {
-    if (div && sub$.getValue() == null) {
-      setTimeout(() => {
-        const mdc = renderTo(div, props);
-        sub$.next(mdc);
-      }, 200);
-    }
+    return () => {slice.actionDispatcher.destory();};
   }, []);
-
-  React.useImperativeHandle(ref, () => sub$.pipe(op.filter(item => item != null), op.take(1)).toPromise() as Promise<MDCRipple>, [sub$]);
-
-  React.useEffect(() => {
-    return () => {
-      sub$.subscribe({
-        next(mdc) { if (mdc) mdc.destroy();}
-      });
-    };
-  }, []);
-
   // const Content = props.renderTo ? props.renderTo() : null;
 
-  return (
-      <div ref={onDivReady}>{props.children}</div>
-  );
+  return state.mode === 'wrapper' ?
+      <div className={cls(props.className ? props.className : '', styles.wrapper)}>
+        {props.children}
+        <div tabIndex={0} ref={slice.actionDispatcher.onDomRef}></div>
+      </div> :
+      <div tabIndex={0} ref={slice.actionDispatcher.onDomRef}></div>;
 };
 
-export function renderTo(div: HTMLElement, props: RippleProps) {
-  const cls = clsddp(props.className || '', div.className, 'matRipple', 'mdc-ripple-surface',
-    {
-      dark: props.color === 'dark' || props.color == null,
-      light: props.color === 'light'}
-    );
 
-  div.className = cls;
-  const mdc = new MDCRipple(div);
-  if (props.getMdcRef) {
-    props.getMdcRef(mdc);
-  }
-  return mdc;
-}
 
 const Forwarded = React.forwardRef(Ripple);
 

@@ -1,5 +1,3 @@
-
-
 @use "@material/theme" with (
   $primary: #3b3a3a,
   $secondary: #ce93d8,
@@ -18,3 +16,4 @@
 
 @forward "@material/theme";
 $raised-btn-ripple-color: white;
+

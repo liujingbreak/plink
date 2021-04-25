@@ -61,7 +61,8 @@ const cliExt: CliExtension = (program) => {
 
   const genCraSliceCmd = program.command('cra-gen-slice <dir> <sliceName...>')
     .description('For create-react-app project, generate a sample Redux-toolkit Slice file (with Redux-observable epic)')
-    .option('--internal', 'A Slice for managing individual component internal state, useful for complicated component')
+    .option('--internal', 'A Redux Slice for managing individual component internal state, useful for complicated component', false)
+    .option('--tiny', 'A RxJS based tiny Slice for managing individual component internal state, useful for complicated component', false)
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .action(async (dir: string, sliceName: string[]) => {
       (await import('./cli-cra-gen')).genSlice(dir, sliceName, genCraSliceCmd.opts() as any);

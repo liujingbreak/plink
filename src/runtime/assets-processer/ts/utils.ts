@@ -3,7 +3,7 @@ import {getLogger} from 'log4js';
 import api from '__api';
 import * as Url from 'url';
 import _ from 'lodash';
-import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
+import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
 const logTime = getLogger(api.packageName + '.timestamp');
 
@@ -54,7 +54,11 @@ export function createResponseTimestamp(req: Request, res: Response, next: NextF
  * @param targetUrl 
  */
 export function setupHttpProxy(proxyPath: string, apiUrl: string,
-  opts: {/** Bypass CORS restrict on target server */ deleteOrigin?: boolean} = {}) {
+  opts: {
+    /** Bypass CORS restrict on target server */
+    deleteOrigin?: boolean;
+    onProxyReq?: ProxyOptions['onProxyReq']
+  } = {}) {
 
   proxyPath = _.trimEnd(proxyPath, '/');
   apiUrl = _.trimEnd(apiUrl, '/');
@@ -81,11 +85,14 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         onProxyReq(proxyReq, req, res) {
           if (opts.deleteOrigin)
             proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
-          hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
           const referer = proxyReq.getHeader('referer');
           if (referer) {
             proxyReq.setHeader('referer', `${protocol}//${host}${Url.parse(referer as string).pathname}`);
           }
+          if (opts.onProxyReq) {
+            opts.onProxyReq(proxyReq, req, res);
+          }
+          hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
           // if (api.config().devMode)
           //   hpmLog.info('on proxy request headers: ', JSON.stringify(proxyReq.getHeaders(), null, '  '));
         },

@@ -22,9 +22,9 @@ const loader: loader.Loader = function(source, sourceMap) {
   } else if (pkg) {
     // log.info(file);
     source = (source as string).replace(/@use\s+['"']@wfh\/doc-ui-common\/client\/material\/theme['"']\s*;/m, `@use "@wfh/doc-ui-common/client/material/theme${themeName}" as theme;`);
-    if (file.indexOf('Main.module') >=0 ) {
-      // log.warn(file, source);
-    }
+    // if (file.indexOf('Main.module') >=0 ) {
+    //   // log.warn(file, source);
+    // }
   }
   cb(null, source, sourceMap);
 };

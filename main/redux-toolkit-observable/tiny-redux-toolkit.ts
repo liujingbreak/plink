@@ -68,6 +68,8 @@ export interface Slice<S, R extends Reducers<S>> {
   actions: Actions<S, R>;
   destroy: () => void;
   addEpic(epicFactory: EpicFactory<S, R>): void;
+  getStore(): rx.Observable<S>;
+  getState(): S;
 }
 
 export type Epic<S> = (actions: rx.Observable<PayloadAction<any> | Action<any>>, states: rx.BehaviorSubject<S>) => rx.Observable<Action<any>>;
@@ -115,7 +117,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     if (sliceCount4Name[name] == null) {
       sliceCount4Name[name] = 0;
     }
-    opt.name = name = name + (++sliceCount4Name[name]);
+    opt.name = name = name + '.' + (++sliceCount4Name[name]);
   }
   const actionCreators = {} as Actions<S, R>;
   const actionDispatcher = {} as Actions<S, R>;
@@ -141,7 +143,6 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   const unprocessedAction$ = new rx.Subject<PayloadAction<S> | Action<S>>();
   const action$ = new rx.Subject<PayloadAction<S> | Action<S>>();
 
-
   function ofType<S, R extends Reducers<S>, T extends keyof R>(
     ...actionTypes: T[]) {
     return function(src: rx.Observable<PayloadAction<any>>) {
@@ -156,6 +157,8 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   }
 
   let actionCount = 0;
+  let executingReducer = false;
+
   const sub = rx.merge(
     unprocessedAction$.pipe(
       op.tap(action => {
@@ -167,13 +170,11 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
       op.tap(action => {
         if (action.reducer) {
           const currState = state$.getValue();
-          const draft = {...currState, __ac: ++actionCount};
-          const newState = action.reducer(draft, (action as PayloadAction<S>).payload);
-          const changed = newState ? newState : draft;
-          // if (opt.debug) {
-          //   // tslint:disable-next-line: no-console
-          //   console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', changed);
-          // }
+          const shallowCopied = {...currState, __ac: ++actionCount};
+          executingReducer = true;
+          const newState = action.reducer(shallowCopied, (action as PayloadAction<S>).payload);
+          executingReducer = false;
+          const changed = newState ? newState : shallowCopied;
           state$.next(changed);
         }
         action$.next(action);
@@ -234,6 +235,15 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     addEpic(epicFactory: EpicFactory<S, R>) {
       const epic = epicFactory(slice, ofType as OfTypeFn<S, R>);
       addEpic(epic);
+    },
+    getStore() {
+      return state$;
+    },
+    getState() {
+      if (executingReducer) {
+        throw new Error('To be consistent with Redux\'s behaviour, slice.getState() is not allowed to be invoked inside a reducer');
+      }
+      return state$.getValue();
     }
   };
   return slice;

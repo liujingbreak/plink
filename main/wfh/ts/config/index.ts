@@ -85,6 +85,10 @@ config.configHandlerMgrChanged = function(cb: (handler: ConfigHandlerMgr) => voi
   ).subscribe();
 };
 
+config.change = function(reducer: (setting: DrcpSettings) => void ) {
+  return dispatcher._change(reducer);
+}
+
 // config.configHandlerMgrCreated = function(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void> {
 //   return configHandlerMgr$.pipe(
 //     op.distinctUntilChanged(),

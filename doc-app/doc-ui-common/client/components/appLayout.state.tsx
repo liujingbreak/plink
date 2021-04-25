@@ -11,12 +11,13 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, Slice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, Slice, ofPayloadAction} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import { MDCTopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
 import {Size} from './layout/MediaMatch';
+import {TopAppBarProps} from '../material/TopAppBar';
 // import styles from './AppLayout.module.scss';
 // import { ofPayloadAction } from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit';
 
@@ -34,11 +35,13 @@ export interface AppLayoutState {
   /** scrollable area */
   frontLayer?: HTMLDivElement;
   frontLayerClassName: string;
+  topAppBarType?: TopAppBarProps['type'];
   topAppBarRef?: Promise<MDCTopAppBar> | null;
   /** actually show loadin when showTopLoadingCount > 0, turning off loading when showTopLoadingCount <= 0 */
   showTopLoadingReqsCount: number;
   lastScrollEvent?: React.UIEvent<HTMLDivElement, UIEvent>;
   topLoadingBarRef?: HTMLDivElement;
+  topAppBarDomRef?: HTMLHeadElement;
   error?: Error;
 }
 
@@ -66,9 +69,11 @@ export const reducers = {
   },
   _onScroll(s: AppLayoutState, event: React.UIEvent<HTMLDivElement, UIEvent>) {
     s.lastScrollEvent = event;
-    s.frontLayerClassName = s.frontLayer && s.frontLayer.scrollTop > 0 ? 'withShadow' : '';
-    // if (s.showTopLoading && s.topLoadingBarRef && s.topLoadingBarRef.getBoundingClientRect().top < 0) {
-    // }
+    if (s.frontLayer && s. topAppBarDomRef && s.frontLayer.scrollTop + s.topAppBarDomRef.getBoundingClientRect().top > 0) {
+      s.frontLayerClassName = 'withShadow';
+    } else {
+      s.frontLayerClassName = '';
+    }
   },
   _setLoadingBarRef(s: AppLayoutState, dom: HTMLDivElement | null) {
     if (dom)
@@ -76,13 +81,38 @@ export const reducers = {
   },
   _setDeviceSize(s: AppLayoutState, size: Size) {
     s.deviceSize = size;
+  },
+  _setTopbarType(s: AppLayoutState, type: TopAppBarProps['type']) {
+    s.topAppBarType = type;
+  },
+  _setTopAppBarDomRef(s: AppLayoutState, dom: HTMLHeadElement) {
+    s.topAppBarDomRef = dom;
   }
   // define more reducers...
 };
 
+export function sliceOptionFactory() {
+  const initialState: AppLayoutState = {
+    showTopLoading: false,
+    frontLayerClassName: '',
+    showTopLoadingReqsCount: 0,
+    deviceSize: 'phone'
+  };
+  return {
+    name: 'AppLayout',
+    initialState,
+    reducers,
+    debug: false // process.env.NODE_ENV !== 'production'
+  };
+}
+
 export const epicFactory: EpicFactory<AppLayoutState, typeof reducers> = function(slice, ofType) {
   return (action$, state$) => {
     return rx.merge(
+      action$.pipe(ofPayloadAction(slice.actionDispatcher._setDeviceSize),
+        op.tap(({payload: size}) => {
+          slice.actionDispatcher._setTopbarType(size === 'desktop' ? 'standard' : 'dense');
+        })),
       state$.pipe(
         op.map(s => s.showTopLoadingReqsCount), op.distinctUntilChanged(),
         op.tap(showTopLoadingReqsCount => {

@@ -6,7 +6,7 @@ import clsDdp from 'classnames/dedupe';
 import styles from './AppLayout.module.scss';
 import { TopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import {reducers, AppLayoutState, epicFactory, Ctx} from './appLayout.state';
+import {sliceOptionFactory, epicFactory, Ctx} from './appLayout.state';
 import {LinearProgress} from '@wfh/doc-ui-common/client/material/LinearProgress';
 import {MediaMatch} from './layout/MediaMatch';
 import * as rx from 'rxjs';
@@ -23,19 +23,8 @@ export type AppLayoutProps = React.PropsWithChildren<{
 const AppLayout: React.FC<AppLayoutProps> = function(props) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const scrollEvent$ = React.useMemo(() => new rx.Subject<React.UIEvent<HTMLDivElement, UIEvent>>(), []);
-  const initialState: AppLayoutState = {
-    showTopLoading: false,
-    frontLayerClassName: '',
-    showTopLoadingReqsCount: 0,
-    deviceSize: 'phone'
-  };
-  const [state, slice] = useTinyReduxTookit({
-    name: 'AppLayout',
-    initialState,
-    reducers,
-    debug: process.env.NODE_ENV !== 'production',
-    epicFactory
-  });
+
+  const [state, slice] = useTinyReduxTookit(sliceOptionFactory, epicFactory);
 
   React.useEffect(() => {
     if (props.parentDom) {
@@ -90,9 +79,9 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
 
   const content = (
     <TopAppBar ref={slice.actionDispatcher._setTopBarRef} classNameHeader={cx('app-bar-header', state.frontLayerClassName)}
-      classNameMain={cx('app-bar-main')} title={state.barTitle} type='dense'
+      classNameMain={cx('app-bar-main')} title={state.barTitle} type={state.topAppBarType}
       renderMain={renderMain}
-      // belowHeader={}
+      _onHeaderRef={slice.actionDispatcher._setTopAppBarDomRef}
     >
     </TopAppBar>
   );

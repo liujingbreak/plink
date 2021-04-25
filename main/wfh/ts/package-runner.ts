@@ -31,7 +31,7 @@ export function readPriorityProperty(json: any) {
   return _.get(json, 'dr.serverPriority');
 }
 
-export async function runServer() {
+export function runServer(): {started: Promise<unknown>; shutdown(): Promise<void>} {
   let wsKey: string | null | undefined = workspaceKey(getWorkDir());
   wsKey = getState().workspaces.has(wsKey) ? wsKey : getState().currWorkspace;
   if (wsKey == null) {
@@ -41,18 +41,29 @@ export async function runServer() {
   .filter(isServerPackage)
   .map(item => item.name);
 
-  const reverseOrderPkgExports = await runPackages('#activate', pkgs);
+  const started = runPackages('#activate', pkgs)
+  .then(reverseOrderPkgExports => {
+    return new Promise<typeof reverseOrderPkgExports>(resolve => setTimeout(() => {
+      resolve(reverseOrderPkgExports);
+    }, 500));
+  });
 
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return async () => {
-    log.info('shutting down');
-    for (const {name, exp} of reverseOrderPkgExports) {
-      if (_.isFunction(exp.deactivate)) {
-        log.info('deactivate', name);
-        await Promise.resolve(exp.deactivate());
+  // const reverseOrderPkgExports = await runPackages('#activate', pkgs);
+
+  // await new Promise(resolve => setTimeout(resolve, 500));
+  return {
+    started,
+    async shutdown() {
+      const reverseOrderPkgExports = await started;
+      log.info('shutting down');
+      for (const {name, exp} of reverseOrderPkgExports) {
+        if (_.isFunction(exp.deactivate)) {
+          log.info('deactivate', name);
+          await Promise.resolve(exp.deactivate());
+        }
       }
     }
-  };
+  }
 }
 
 const apiCache: {[name: string]: any} = {};

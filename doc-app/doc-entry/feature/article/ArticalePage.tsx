@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 // import ReactDom from 'react-dom';
-import classnames from 'classnames/bind';
+import cls from 'classnames';
 import styles from './ArticalePage.module.scss';
 // import {TopAppBar} from '@wfh/doc-ui-common/client/material/TopAppBar';
 // import {Drawer} from '@wfh/doc-ui-common/client/material/Drawer';
@@ -14,12 +14,6 @@ import * as op from 'rxjs/operators';
 import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.state';
 
 
-const cx = classnames.bind(styles);
-// const logoCls = cx('logo');
-// const titleCls = cx('title');
-const articaleCls = cx('articale-page');
-// const contentCls = cx('main-content');
-// const bkLogoCls = cx('bk-logo');
 const EMPTY_ARR: any[] = [];
 export type ArticalePageProps = React.PropsWithChildren<{
 }>;
@@ -95,7 +89,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     return () => sub.unsubscribe();
   }, [routeParams.mdKey]);
   return (
-    <div className={articaleCls}>
+    <div className={cls(styles['articale-page'], 'mdc-layout-grid')}>
       <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded} />
       {portals}
     </div>
