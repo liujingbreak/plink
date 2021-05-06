@@ -1087,13 +1087,13 @@
         "affectsGlobalScope": false
       },
       "../redux-toolkit-observable.ts": {
-        "version": "f899c1ca8014e77a98e235920958e6457bba81bcbc370c29cb28ffc8dbecc3da",
+        "version": "58a000083cda2e6323b4399d592f64f7a29340bb90b12cdbe163629af8adcf44",
         "signature": "65f110c39d489623bb7aae7520cad49b22e8714bd9872e6ecbb2a8fec7c55e9e",
         "affectsGlobalScope": false
       },
       "../helper.ts": {
-        "version": "b21e8dd8f9f61087c984f0362f8419002d04c9f0703e44391e748ab026eaf6d3",
-        "signature": "fbf735e9c37310b464d29548977eeac45a88f5426de6a2976786a17863ab8e8e",
+        "version": "3df5dd46a0a5465d28ad5db767f5f48341750a6dd6d9a8469c0189b6b7ab80f2",
+        "signature": "5d616d1719c72bab68aab8359933331ff643cb8ae3196444b0a15b442504f539",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/react/global.d.ts": {
@@ -1142,18 +1142,18 @@
         "affectsGlobalScope": false
       },
       "../react-redux-helper.ts": {
-        "version": "904c65fd0fbafe5bec282cf19a2f062ca70e218d66f40e57f88d5e9e23a0abe3",
-        "signature": "62aec27a57df09f36a70ccd515493c900b705d3bc909c35ea45ba7a97eb12bad",
+        "version": "6130f3f0e979cc0d6bd8924b724a4cc58dbf1e20450643d49e17844fa1f974c2",
+        "signature": "1b4d1fa525becb3a1ab83dd187329ebe00edd370cd4212fab3ef84a214f9baa3",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
-        "version": "884917475c6ef42c129e095aa351c8a5a7bc7d58c495fde217ba115ab3a83e87",
-        "signature": "858fdd4bd7db2701841b1fd2607566e9476d12477e9c47ed1f7d8231eb52abd7",
+        "version": "081eed0027ae62d066366173f3a551e9d1fa5b7039379925a654a9c9f5de81d1",
+        "signature": "b07e54e32d99e995503b57c8ef5ffaac5243a6588391870175ac0c9e55e21a3f",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit-hook.ts": {
-        "version": "e29c535334b53c4ed7df438caafaa3ab775e4254e103ff5ba10a564fff529426",
-        "signature": "f6769429267e7be041b6a97ead765d9be260427a47d91a8fe210a55e2ac9438e",
+        "version": "766f7efcca7fea0b1cd2830cb3b4131afb9654bdbf0011c509f66b0ccec56b43",
+        "signature": "ec5fa1e392ca36afbe6795f46867bbd625110e6abcf7f20193bfcf1dbc5928fd",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/anymatch/index.d.ts": {
@@ -1882,7 +1882,6 @@
       "pretty": true,
       "rootDir": "..",
       "composite": true,
-      "project": "../../wfh/tsconfig-redux-toolkit.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit.json"
     },
     "referencedMap": {
@@ -3408,6 +3407,7 @@
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
         "../../node_modules/redux-observable/index.d.ts",
         "../../node_modules/rxjs/index.d.ts",
+        "../../node_modules/rxjs/operators/index.d.ts",
         "../redux-toolkit-observable.ts"
       ],
       "../react-redux-helper.ts": [

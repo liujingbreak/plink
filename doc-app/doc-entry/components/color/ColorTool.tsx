@@ -1,31 +1,37 @@
 import React from 'react';
 
-// import cls from 'classnames';
+import cls from 'classnames';
 // import clsddp from 'classnames/dedupe';
 import styles from './ColorTool.module.scss';
 // import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
-import {sliceOptionFactory, epicFactory, ColorToolObservableProps} from './colorTool.state';
+import {sliceOptionFactory, epicFactory, ColorToolProps as Props, ColorToolEpicFactory} from './colorTool.state';
 import {ColorInfo} from './ColorInfo';
-export type ColorToolProps = React.PropsWithChildren<ColorToolObservableProps & {
-  // Define extra (non-observable) properties
-}>;
+import {ReactiveCanvas} from '@wfh/doc-ui-common/client/graphics/ReactiveCanvas';
+
+// export type ColorToolProps = ColorToolObservableProps;
+export interface ColorToolProps extends Props {
+  epicFactory?: ColorToolEpicFactory;
+}
 
 const ColorTool: React.FC<ColorToolProps> = function(props) {
 
-  const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
+  const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory, props.epicFactory);
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
-  }, [...Object.values(props)]);
+  }, Object.values(props));
+
   // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div className={styles.ColorTool}>
+  return <div className={cls(styles.scope, {[styles.mix]: state.componentProps?.mixColors != null})}>
     <div className={styles.label}>{state.label || ''}</div>
     <div className={styles.cells}>
-      {state.colors.map(col => (
-        <ColorInfo key={col.hex()} color={col}></ColorInfo>
-      ))}
+      {state.colors.map(col => {
+        const hex = col.hex();
+        return <ColorInfo key={hex} color={col} onClick={state.colorClickCallbacks[hex]}></ColorInfo>;
+      })}
     </div>
+    <ReactiveCanvas epicFactory={state.canvasEpic}/>
   </div>
   ;
 };

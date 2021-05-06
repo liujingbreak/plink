@@ -17,7 +17,7 @@ const Palette: React.FC<PaletteProps> = function(props) {
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
-  }, [...Object.values(props)]);
+  }, Object.values(props));
 
   const lightness = state.inputLightness;
   const sat = state.inputSaturation;
@@ -35,10 +35,9 @@ const Palette: React.FC<PaletteProps> = function(props) {
     : null}
     <ColorTool mixColors={state.mixColors}/>
     {/* <ColorTool satuations={state.satuations}/> */}
-    <ColorTool hue={state.hue}/>
+    <ColorTool hue={state.hue} epicFactory={state.hueToolEpic}/>
   </>;
 };
-
 
 export {Palette};
 

@@ -9,7 +9,10 @@ export interface ServerRunnerEvent {
 }
 export declare function isServerPackage(pkg: PackageState): any;
 export declare function readPriorityProperty(json: any): any;
-export declare function runServer(): Promise<() => Promise<void>>;
+export declare function runServer(): {
+    started: Promise<unknown>;
+    shutdown(): Promise<void>;
+};
 /**
  * Lazily init injector for packages and run specific package only,
  * no fully scanning or ordering on all packages

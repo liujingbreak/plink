@@ -32,6 +32,7 @@ export class Context {
   commonDir: string;
   constructor(
     commonDir: string,
+    public alias: [reg: RegExp, replaceTo: string][],
     public relativeDepsOutSideDir: Set<string> = new Set(),
     public cyclic: string[] = [],
     public canNotResolve: {
@@ -40,7 +41,8 @@ export class Context {
       pos: string;
       reasone: string;
     }[] = [],
-    public externalDeps: Set<string> = new Set()
+    public externalDeps: Set<string> = new Set(),
+    public matchAlias: string[] = []
   ) {
     this.commonDir = commonDir.endsWith(Path.sep) ? commonDir : commonDir + Path.sep;
   }
@@ -56,9 +58,9 @@ export class Context {
   }
 }
 
-export function dfsTraverseFiles(files: string[]): ReturnType<Context['toPlainObject']> {
+export function dfsTraverseFiles(files: string[], alias: [reg: RegExp, replaceTo: string][]): ReturnType<Context['toPlainObject']> {
   const commonParentDir = closestCommonParentDir(files);
-  const context = new Context(commonParentDir);
+  const context = new Context(commonParentDir, alias);
 
   const dfs: DFS<string> = new DFS<string>(data => {
     const q = new Query(fs.readFileSync(data, 'utf8'), data);
@@ -154,6 +156,14 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
   }
   if (path.startsWith('"') || path.startsWith('\''))
     path = path.slice(1, -1);
+
+  for (const [reg, replaceTo] of ctx.alias) {
+    path = path.replace(reg, replaceTo);
+    if (path !== path) {
+      ctx.matchAlias.push(path);
+      break;
+    }
+  }
 
   if (path.startsWith('.')) {
     const ext = Path.extname(path);

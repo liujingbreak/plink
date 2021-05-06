@@ -34,7 +34,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "preserveSymlinks": false,
-    "downlevelIteration": false,
+    "downlevelIteration": true,
     "strictNullChecks": true,
     "diagnostics": false,
     "newLine": "lf",

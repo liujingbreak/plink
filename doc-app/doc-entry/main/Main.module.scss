@@ -18,23 +18,27 @@ a {
 }
 // @debug theme.$background;
 // @debug theme.$primary;
-:global(::-webkit-scrollbar) {
-  width: 6px;
-}
-:global(::-webkit-scrollbar-button), :global(::-webkit-scrollbar-corner) {
-  display: none;
-}
-:global(::-webkit-scrollbar-thumb) {
-  min-height: 2rem;
-  background-clip: padding-box;
-  // border-width: 5px;
-  // border-style: solid;
-  // border-color: red;
-  // border-image: initial;
-  border-radius: 3px;
-  background-color: rgba(0,0,0,0.3);
-  width: 6px;
-}
-:global(::-webkit-scrollbar-track) {
-  background-color: rgba(255,255,255,0.5);
+
+:global .is-windows {
+  :global(::-webkit-scrollbar) {
+    width: 6px;
+    height: 6px;
+  }
+  :global(::-webkit-scrollbar-button), :global(::-webkit-scrollbar-corner) {
+    display: none;
+  }
+  :global(::-webkit-scrollbar-thumb) {
+    min-height: 2rem;
+    background-clip: padding-box;
+    // border-width: 5px;
+    // border-style: solid;
+    // border-color: red;
+    // border-image: initial;
+    border-radius: 3px;
+    background-color: rgba(0,0,0,0.3);
+    width: 6px;
+  }
+  :global(::-webkit-scrollbar-track) {
+    background-color: rgba(255,255,255,0.5);
+  }
 }

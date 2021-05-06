@@ -1,5 +1,6 @@
 import 'source-map-support/register';
 export declare class Context {
+    alias: [reg: RegExp, replaceTo: string][];
     relativeDepsOutSideDir: Set<string>;
     cyclic: string[];
     canNotResolve: {
@@ -9,13 +10,14 @@ export declare class Context {
         reasone: string;
     }[];
     externalDeps: Set<string>;
+    matchAlias: string[];
     commonDir: string;
-    constructor(commonDir: string, relativeDepsOutSideDir?: Set<string>, cyclic?: string[], canNotResolve?: {
+    constructor(commonDir: string, alias: [reg: RegExp, replaceTo: string][], relativeDepsOutSideDir?: Set<string>, cyclic?: string[], canNotResolve?: {
         target: string;
         file: string;
         pos: string;
         reasone: string;
-    }[], externalDeps?: Set<string>);
+    }[], externalDeps?: Set<string>, matchAlias?: string[]);
     toPlainObject(): {
         commonDir: string;
         relativeDepsOutSideDir: string[];
@@ -29,4 +31,4 @@ export declare class Context {
         externalDeps: string[];
     };
 }
-export declare function dfsTraverseFiles(files: string[]): ReturnType<Context['toPlainObject']>;
+export declare function dfsTraverseFiles(files: string[], alias: [reg: RegExp, replaceTo: string][]): ReturnType<Context['toPlainObject']>;

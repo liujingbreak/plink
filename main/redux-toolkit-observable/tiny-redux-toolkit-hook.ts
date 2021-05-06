@@ -10,13 +10,16 @@ import * as rx from 'rxjs';
  * @returns 
  */
 export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers<S>>(
-  optsFactory: () => SliceOptions<S, R>, epicFactory: EpicFactory<S, R>):
-  [state: S, slice: Slice<S, R>] {
+  optsFactory: () => SliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>
+): [state: S, slice: Slice<S, R>] {
 
   // To avoid a mutatable version is passed in
   // const clonedState = clone(opts.initialState);
   const willUnmountSub = React.useMemo(() => new rx.ReplaySubject<void>(1), []);
   const sliceOptions = React.useMemo(optsFactory, []);
+  const epic$s = React.useMemo<rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>[]>(() => {
+    return epicFactories.map(() => new rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>(null));
+  }, []);
 
   const [state, setState] = React.useState<S>(sliceOptions.initialState);
   // const [slice, setSlice] = React.useState<Slice<S, R>>();
@@ -33,11 +36,15 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
     // change state, it turns out any subscriber that subscribe state$ later than
     // epic will get a state change event in reversed order !! So epic must be the last one to
     // subscribe state$ stream
-    if (epicFactory) {
-      slice.addEpic(epicFactory);
+    for (const epicFac$ of epic$s) {
+      slice.addEpic$(epicFac$);
     }
     return slice;
   }, []);
+
+  React.useEffect(() => {
+    epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
+  }, epicFactories);
 
   React.useEffect(() => {
     // const sub = slice.state$.pipe(

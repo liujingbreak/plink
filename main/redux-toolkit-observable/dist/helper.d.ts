@@ -2,20 +2,21 @@ import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
 import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { Observable } from 'rxjs';
-export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, S>;
+export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
     actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
-    setEpic(epicFactory: EpicFactory<S, R>): void;
+    addEpic(epicFactory: EpicFactory<S, R>): void;
+    addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): void;
     destroy(): void;
     getStore(): Observable<S>;
     getState(): S;
 };
 export declare function createSliceHelper<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, opts: CreateSliceOptions<S, R>): SliceHelper<S, R>;
 interface SimpleReducers<S> {
-    [K: string]: (draft: Draft<S>, payload?: any) => void | Draft<S>;
+    [K: string]: (draft: Draft<S>, payload?: any) => S | void | Draft<S>;
 }
 declare type RegularReducers<S, R> = {
-    [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => void | Draft<S> : R[K] extends (s: any, payload: infer P) => any ? (s: Draft<S>, action: PayloadAction<P>) => void | Draft<S> : (s: Draft<S>, action: PayloadAction<unknown>) => void | Draft<S>;
+    [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => S | void | Draft<S> : R[K] extends (s: any, payload: infer P) => any ? (s: Draft<S>, action: PayloadAction<P>) => void | Draft<S> : (s: Draft<S>, action: PayloadAction<unknown>) => void | Draft<S>;
 };
 /**
  * createReducers helps to simplify how we writing definition of SliceCaseReducers,

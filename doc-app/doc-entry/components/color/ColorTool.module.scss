@@ -1,18 +1,27 @@
 
 .cells {
-  // display: flex;
+  display: flex;
   // flex-wrap: wrap;
-  // justify-content: flex-start;
-  font-size: 0;
+  justify-content: flex-start;
+  overflow-x: auto;
+  // white-space: nowrap;
   > * {
-    // flex: 0 0 auto;
+    flex: 1 0 auto;
     font-size: 12px;
-    display: inline-block;
+    // display: inline-block;
   }
 }
 .label {
   margin: 1rem 0 6px 0;
   font-size: 12px;
 }
-
+.scope {
+  flex-wrap: wrap;
+  &.mix {
+    flex-wrap: nowrap;
+  }
+  canvas {
+    display: block;
+  }
+}
 // https://github.com/css-modules/css-modules

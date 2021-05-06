@@ -4,15 +4,16 @@ export enum Color {
   black
 }
 
-class Vertex<T> {
+export class Vertex<T> {
   /** discovery time */
-  d: number;
-  /** finishing time */
-  f: number;
+  d: number = Number.MAX_VALUE;
+  /** finishing time, used to calculate "Strongly connected components" and "Topological sort" */
+  f: number | undefined;
   /** parent vertices */
   p?: Vertex<T>[];
 
-  constructor(public data: T, public color = Color.white) {}
+  constructor(public data: T, public color = Color.white) {
+  }
 }
 
 export function getPathTo<T>(v: Vertex<T>, temp = [] as Vertex<T>[]) {
@@ -22,16 +23,10 @@ export function getPathTo<T>(v: Vertex<T>, temp = [] as Vertex<T>[]) {
   temp.push(v);
 }
 
-export class DFS<T> {
-  backEdges: [Vertex<T>, Vertex<T>][] = [];
-
-  private time = 0;
-  private vertexMap = new Map<T, Vertex<T>>();
-
-  constructor(private adjacencyOf: (u: T) => Iterable<T>) {}
+abstract class BaseGraph<T> {
+  protected vertexMap = new Map<T, Vertex<T>>();
 
   visit(g: Iterable<T>) {
-    this.time = 0;
     for (const data of g) {
       const u = this.vertexOf(data);
       if (u.color === Color.white) {
@@ -40,7 +35,9 @@ export class DFS<T> {
     }
   }
 
-  vertexOf(data: T) {
+  protected abstract visitVertex(u: Vertex<T>): void;
+
+  protected vertexOf(data: T) {
     if (this.vertexMap.has(data)) {
       return this.vertexMap.get(data)!;
     } else {
@@ -48,6 +45,22 @@ export class DFS<T> {
       this.vertexMap.set(data, v);
       return v;
     }
+  }
+}
+
+export class DFS<T> extends BaseGraph<T> {
+  backEdges: [Vertex<T>, Vertex<T>][] = [];
+
+  private time = 0;
+  // private vertexMap = new Map<T, Vertex<T>>();
+
+  constructor(private adjacencyOf: (u: T) => Iterable<T>, private onFinish?: (vertex: Vertex<T>) => any) {
+    super();
+  }
+
+  visit(g: Iterable<T>) {
+    this.time = 0;
+    super.visit(g);
   }
 
   printCyclicBackEdge(edge: Vertex<T>, edgeTo: Vertex<T>): string[] {
@@ -67,7 +80,7 @@ export class DFS<T> {
       return ['? -> ', edge.data + ''];
   }
 
-  private visitVertex(u: Vertex<T>) {
+  protected visitVertex(u: Vertex<T>) {
     u.d = ++this.time;
     u.color = Color.gray;
     for (const vData of this.adjacencyOf(u.data)) {
@@ -85,5 +98,34 @@ export class DFS<T> {
     }
     u.color = Color.black;
     u.f = ++this.time;
+    if (this.onFinish)
+      this.onFinish(u);
+  }
+}
+
+export class BFS<T> extends BaseGraph<T> {
+  constructor(private adjacencyOf: (u: T) => Iterable<T>) {
+    super();
+  }
+
+  protected visitVertex(s: Vertex<T>) {
+    s.color = Color.gray;
+    s.d = 0;
+    const q: Vertex<T>[] = [s];
+    while (q.length > 0) {
+      const u = q.shift()!;
+      for (const vData of this.adjacencyOf(u.data)) {
+        const v = this.vertexOf(vData);
+        if (v.color === Color.white) {
+          v.color = Color.gray;
+          v.d = u.d + 1;
+          if (v.p == null)
+            v.p = [];
+          v.p.push(u);
+          q.push(v);
+        }
+      }
+      u.color = Color.black;
+    }
   }
 }

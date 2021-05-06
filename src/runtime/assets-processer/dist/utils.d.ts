@@ -18,4 +18,9 @@ export declare function setupHttpProxy(proxyPath: string, apiUrl: string, opts?:
     /** Bypass CORS restrict on target server */
     deleteOrigin?: boolean;
     onProxyReq?: ProxyOptions['onProxyReq'];
+    onProxyRes?: ProxyOptions['onProxyRes'];
+    onError?: ProxyOptions['onError'];
+    buffer?: ProxyOptions['buffer'];
+    selfHandleResponse?: ProxyOptions['selfHandleResponse'];
+    proxyTimeout?: ProxyOptions['proxyTimeout'];
 }): void;

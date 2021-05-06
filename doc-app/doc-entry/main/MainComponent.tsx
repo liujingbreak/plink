@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-// import classNames from 'classnames/bind';
+import clsddp from 'classnames/dedupe';
 import './Main.module.scss';
 import {BrowserRouter as Router} from 'react-router-dom';
 import {RoutesComp} from './RoutesComp';
@@ -13,6 +13,10 @@ import './markdown-setup';
 // const cx = classNames.bind(styles);
 // const bannerImgCls = cx('assets');
 const rootEl = document.getElementById('root');
+if (/\WWindows\W/.test(navigator.userAgent)) {
+  document.body.className = clsddp(document.body.className, 'is-windows');
+}
+
 const MainComp: React.FC<{}> = function(prop) {
   const reduxStore = useStoreOfStateFactory(stateFactory);
 

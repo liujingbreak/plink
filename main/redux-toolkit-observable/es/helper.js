@@ -1,14 +1,31 @@
+import { Observable, EMPTY, of } from 'rxjs';
+import * as op from 'rxjs/operators';
 export function createSliceHelper(stateFactory, opts) {
     const slice = stateFactory.newSlice(opts);
     const actionDispatcher = stateFactory.bindActionCreators(slice);
-    let releaseEpic;
-    const helper = Object.assign(Object.assign({}, slice), { actionDispatcher, setEpic(epicFactory) {
-            const epic = epicFactory(helper);
-            releaseEpic = stateFactory.addEpic(epic, opts.name);
-        }, destroy() {
+    function addEpic$(epicFactory$) {
+        const sub = epicFactory$.pipe(op.distinctUntilChanged(), op.switchMap(fac => {
+            if (fac) {
+                const epic = fac(helper);
+                if (epic) {
+                    return new Observable(() => {
+                        const release = stateFactory.addEpic(epic, opts.name);
+                        return release;
+                    });
+                }
+            }
+            return EMPTY;
+        })).subscribe();
+        releaseEpic.push(() => sub.unsubscribe());
+    }
+    let releaseEpic = [];
+    const helper = Object.assign(Object.assign({}, slice), { actionDispatcher, addEpic(epicFactory) {
+            addEpic$(of(epicFactory));
+        }, addEpic$,
+        destroy() {
             stateFactory.removeSlice(slice);
             if (releaseEpic)
-                releaseEpic();
+                releaseEpic.forEach(cb => cb());
         },
         getStore() {
             return stateFactory.sliceStore(slice);

@@ -93,8 +93,15 @@ export function createSlice(opt) {
         });
         sub.unsubscribe();
     }
-    function addEpic(epic) {
-        epic(action$, state$).pipe(op.takeUntil(unprocessedAction$.pipe(op.filter(action => action.type === '__OnDestroy'), op.take(1))), op.tap(action => dispatch(action)), op.catchError((err, caught) => {
+    function addEpic$(epicFactory$) {
+        epicFactory$.pipe(op.distinctUntilChanged(), op.switchMap(fac => {
+            if (fac) {
+                const epic = fac(slice, ofType);
+                if (epic)
+                    return epic(action$, state$);
+            }
+            return rx.EMPTY;
+        }), op.takeUntil(unprocessedAction$.pipe(op.filter(action => action.type === '__OnDestroy'), op.take(1))), op.tap(action => dispatch(action)), op.catchError((err, caught) => {
             console.error(err);
             dispatch({ type: 'epic error', reducer(s) {
                     return Object.assign(Object.assign({}, s), { error: err });
@@ -111,9 +118,9 @@ export function createSlice(opt) {
         actionDispatcher,
         destroy,
         addEpic(epicFactory) {
-            const epic = epicFactory(slice, ofType);
-            addEpic(epic);
+            addEpic$(rx.of(epicFactory));
         },
+        addEpic$,
         getStore() {
             return state$;
         },

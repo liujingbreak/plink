@@ -79,23 +79,21 @@ export function sliceOptionFactory() {
 export const epicFactory: EpicFactory<RippleState, typeof reducers> = function(slice) {
   return (action$) => {
     return rx.merge(
-        rx.merge(
-          slice.getStore().pipe(op.map(s => s.componentProps?.className), op.distinctUntilChanged()),
-          slice.getStore().pipe(op.map(s => s.componentProps?.color), op.distinctUntilChanged()),
-          slice.getStore().pipe(op.map(s => s.mode), op.distinctUntilChanged()),
-          slice.getStore().pipe(op.map(s => s.domRef), op.distinctUntilChanged())
-        ).pipe(
-          op.tap(() => {
-            const s = slice.getState();
-            if (s.domRef && s.componentProps) {
-              const cls = clsddp(styles.overlayer, s.mode === 'overlayer' ? s.componentProps.className : '', 'matRipple', 'mdc-ripple-surface',
-                {
-                  dark: s.componentProps.color === 'dark' || s.componentProps.color == null,
-                  light: s.componentProps.color === 'light'
-                });
-              s.domRef.className = cls;
-            }
-          })
+      slice.getStore().pipe(
+        op.distinctUntilChanged((x, y) => x.componentProps?.className === y.componentProps?.className &&
+          x.componentProps?.color === y.componentProps?.color &&
+          x.domRef === y.domRef &&
+          x.mode === y.mode),
+        op.tap((s) => {
+          if (s.domRef && s.componentProps) {
+            const cls = clsddp(styles.overlayer, s.mode === 'overlayer' ? s.componentProps.className : '', 'matRipple', 'mdc-ripple-surface',
+              {
+                dark: s.componentProps.color === 'dark' || s.componentProps.color == null,
+                light: s.componentProps.color === 'light'
+              });
+            s.domRef.className = cls;
+          }
+        })
       ),
       slice.getStore().pipe(op.map(state => state.componentProps?.children),
         op.distinctUntilChanged(),

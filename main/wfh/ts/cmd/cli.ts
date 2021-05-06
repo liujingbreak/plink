@@ -276,6 +276,7 @@ function subComands(program: commander.Command) {
     .option('-f, --file <file>',
       '(multiple) determine target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
     .option('-j', 'Show result in JSON', false)
+    .option('--alias <alias-express>', 'e.g. --alias "[\'^@/(.+)$\', \'src/$1\']"', arrayOptionFn, [])
     .action(async (packages: string[]) => {
       return (await import('./cli-analyze')).default(packages, analysisCmd.opts() as tp.AnalyzeOptions);
     });

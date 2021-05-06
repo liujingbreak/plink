@@ -57,7 +57,12 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
   opts: {
     /** Bypass CORS restrict on target server */
     deleteOrigin?: boolean;
-    onProxyReq?: ProxyOptions['onProxyReq']
+    onProxyReq?: ProxyOptions['onProxyReq'];
+    onProxyRes?: ProxyOptions['onProxyRes'];
+    onError?: ProxyOptions['onError'];
+    buffer?: ProxyOptions['buffer'];
+    selfHandleResponse?: ProxyOptions['selfHandleResponse'];
+    proxyTimeout?: ProxyOptions['proxyTimeout'];
   } = {}) {
 
   proxyPath = _.trimEnd(proxyPath, '/');
@@ -81,7 +86,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         },
         logLevel: 'debug',
         logProvider: provider => hpmLog,
-        proxyTimeout: 10000,
+        proxyTimeout: opts.proxyTimeout != null ? opts.proxyTimeout : 10000,
         onProxyReq(proxyReq, req, res) {
           if (opts.deleteOrigin)
             proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
@@ -96,11 +101,18 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
           // if (api.config().devMode)
           //   hpmLog.info('on proxy request headers: ', JSON.stringify(proxyReq.getHeaders(), null, '  '));
         },
-        onProxyRes(incoming) {
+        onProxyRes(incoming, req, res) {
           incoming.headers['Access-Control-Allow-Origin'] = '*';
-          hpmLog.info('Proxy recieve ' + incoming.statusCode + '\n');
-          if (api.config().devMode)
-            hpmLog.info('Proxy recieve ' + incoming.statusCode + '\n', JSON.stringify(incoming.headers, null, '  '));
+          if (api.config().devMode) {
+            hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode} + '\n`,
+              JSON.stringify(incoming.headers, null, '  '));
+          } else {
+            hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode} + '\n`);
+          }
+
+          if (opts.onProxyRes) {
+            opts.onProxyRes(incoming, req, res);
+          }
         }
       })
     );

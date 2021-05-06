@@ -5,12 +5,12 @@ import 'canvas-5-polyfill';
 
 export class BaseDrawable implements Drawable {
   animating = false;
-  parent: BaseDrawable;
   inited = false;
-  children: Drawable[];
-  mgr: CanvasMgr;
-  protected cache: HTMLCanvasElement | null;
-  protected cacheCtx: CanvasRenderingContext2D;
+  children: Drawable[] | undefined;
+  parent: BaseDrawable | undefined;
+  mgr: CanvasMgr | undefined;
+  protected cache: HTMLCanvasElement | null | undefined;
+  protected cacheCtx: CanvasRenderingContext2D | undefined;
 
   constructor(children: Drawable[] = []) {
     if (children) {
@@ -75,7 +75,7 @@ export class BaseDrawable implements Drawable {
       }
       this.cacheCtx = this.cache.getContext('2d')!;
     } else {
-      this.cacheCtx.clearRect(0,0,this.cache.width, this.cache.height);
+      this.cacheCtx!.clearRect(0,0,this.cache.width, this.cache.height);
     }
     return this.cacheCtx;
   }
@@ -97,9 +97,9 @@ export class BaseDrawable implements Drawable {
 }
 
 export interface Drawable {
-  parent?: BaseDrawable;
+  parent: BaseDrawable | undefined;
   animating: boolean;
-  mgr: CanvasMgr;
+  mgr: CanvasMgr | undefined;
   /**
    * Being called during requestAnimationFrame(), should not repeatly create objects like offscreen canvas, gradients, Path2D
    * in this method.
@@ -115,12 +115,12 @@ export class CanvasMgr {
   scaleRatio = 2;
   width = 300;
   height = 150;
-  protected animCount: number;
+  protected animCount = 0;
   ctx: CanvasRenderingContext2D;
   renderStarted = false;
-  renderDone: Promise<void>;
+  renderDone: Promise<void> | undefined;
   // paper = paper;
-  private _resolveRenderDone: () => void;
+  private _resolveRenderDone?: () => void;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
@@ -164,7 +164,8 @@ export class CanvasMgr {
       });
     } else {
       this.renderStarted = false;
-      this._resolveRenderDone();
+      if (this._resolveRenderDone)
+        this._resolveRenderDone();
     }
   }
 

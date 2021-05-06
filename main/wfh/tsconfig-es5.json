@@ -2,10 +2,17 @@
 	"extends": "./tsconfig-base.json",
 	"compilerOptions": {
 		"target": "es5",
-		"outDir": "dist-es5"
+		"outDir": "dist-es5",
+		"downlevelIteration": true,
+		"declaration": true,
+		"composite": true
 	},
+	"references": [
+		{"path": "tsconfig-redux-toolkit-es.json"}
+	],
 	"files": [
-		"ts/base-LLn-parser.ts"
+		"ts/base-LLn-parser.ts",
+		"ts/utils/graph.ts"
 	],
 	"include": []
 }

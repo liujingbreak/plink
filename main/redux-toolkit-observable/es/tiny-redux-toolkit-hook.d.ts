@@ -7,7 +7,4 @@ export * from './tiny-redux-toolkit';
  */
 export declare function useTinyReduxTookit<S extends {
     error?: Error;
-}, R extends Reducers<S>>(optsFactory: () => SliceOptions<S, R>, epicFactory: EpicFactory<S, R>): [
-    state: S,
-    slice: Slice<S, R>
-];
+}, R extends Reducers<S>>(optsFactory: () => SliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [state: S, slice: Slice<S, R>];

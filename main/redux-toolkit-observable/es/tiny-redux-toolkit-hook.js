@@ -8,11 +8,14 @@ import * as rx from 'rxjs';
  * @param opts
  * @returns
  */
-export function useTinyReduxTookit(optsFactory, epicFactory) {
+export function useTinyReduxTookit(optsFactory, ...epicFactories) {
     // To avoid a mutatable version is passed in
     // const clonedState = clone(opts.initialState);
     const willUnmountSub = React.useMemo(() => new rx.ReplaySubject(1), []);
     const sliceOptions = React.useMemo(optsFactory, []);
+    const epic$s = React.useMemo(() => {
+        return epicFactories.map(() => new rx.BehaviorSubject(null));
+    }, []);
     const [state, setState] = React.useState(sliceOptions.initialState);
     // const [slice, setSlice] = React.useState<Slice<S, R>>();
     const slice = React.useMemo(() => {
@@ -23,11 +26,14 @@ export function useTinyReduxTookit(optsFactory, epicFactory) {
         // change state, it turns out any subscriber that subscribe state$ later than
         // epic will get a state change event in reversed order !! So epic must be the last one to
         // subscribe state$ stream
-        if (epicFactory) {
-            slice.addEpic(epicFactory);
+        for (const epicFac$ of epic$s) {
+            slice.addEpic$(epicFac$);
         }
         return slice;
     }, []);
+    React.useEffect(() => {
+        epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
+    }, epicFactories);
     React.useEffect(() => {
         // const sub = slice.state$.pipe(
         //   op.distinctUntilChanged(),

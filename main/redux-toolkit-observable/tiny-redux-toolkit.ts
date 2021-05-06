@@ -57,7 +57,7 @@ export interface OfTypeFn<S, R extends Reducers<S>> {
   <K extends keyof R>(...actionTypes: K[]): OfTypePipeOp<S, R, K>;
 }
 
-export type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType: OfTypeFn<S, R>) => Epic<S>;
+export type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType: OfTypeFn<S, R>) => Epic<S> | void;
 export interface Slice<S, R extends Reducers<S>> {
   name: string | number;
   state$: rx.BehaviorSubject<S>;
@@ -68,6 +68,7 @@ export interface Slice<S, R extends Reducers<S>> {
   actions: Actions<S, R>;
   destroy: () => void;
   addEpic(epicFactory: EpicFactory<S, R>): void;
+  addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): void;
   getStore(): rx.Observable<S>;
   getState(): S;
 }
@@ -209,8 +210,17 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     sub.unsubscribe();
   }
 
-  function addEpic(epic: Epic<S>) {
-    epic(action$, state$).pipe(
+  function addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>) {
+    epicFactory$.pipe(
+      op.distinctUntilChanged(),
+      op.switchMap(fac => {
+        if (fac) {
+          const epic = fac(slice, ofType as OfTypeFn<S, R>);
+          if (epic)
+            return epic(action$, state$);
+        }
+        return rx.EMPTY;
+      }),
       op.takeUntil(unprocessedAction$.pipe(op.filter(action => action.type === '__OnDestroy'), op.take(1))),
       op.tap(action => dispatch(action)),
       op.catchError((err, caught) => {
@@ -233,9 +243,9 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     actionDispatcher,
     destroy,
     addEpic(epicFactory: EpicFactory<S, R>) {
-      const epic = epicFactory(slice, ofType as OfTypeFn<S, R>);
-      addEpic(epic);
+      addEpic$(rx.of(epicFactory));
     },
+    addEpic$,
     getStore() {
       return state$;
     },

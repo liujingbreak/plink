@@ -201,6 +201,7 @@ export class StateFactory {
                 this.dispatch(action);
                 return action;
             };
+            doAction.type = actionCreator.type;
             actionMap[name] = doAction;
         }
         return actionMap;

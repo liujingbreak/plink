@@ -44,7 +44,7 @@ export interface OfTypeFn<S, R extends Reducers<S>> {
     <K1 extends keyof R, K2 extends keyof R, K3 extends keyof R>(actionType: K1, actionType2: K2, actionType3: K3): OfTypePipeOp<S, R, K1 | K2 | K3>;
     <K extends keyof R>(...actionTypes: K[]): OfTypePipeOp<S, R, K>;
 }
-export declare type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType: OfTypeFn<S, R>) => Epic<S>;
+export declare type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType: OfTypeFn<S, R>) => Epic<S> | void;
 export interface Slice<S, R extends Reducers<S>> {
     name: string | number;
     state$: rx.BehaviorSubject<S>;
@@ -55,6 +55,7 @@ export interface Slice<S, R extends Reducers<S>> {
     actions: Actions<S, R>;
     destroy: () => void;
     addEpic(epicFactory: EpicFactory<S, R>): void;
+    addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): void;
     getStore(): rx.Observable<S>;
     getState(): S;
 }

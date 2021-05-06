@@ -15,7 +15,8 @@ import {EpicFactory, createReducers} from '@wfh/redux-toolkit-observable/es/reac
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
-export interface ColorToolObservableProps {
+import {ReactiveCanvasProps} from '@wfh/doc-ui-common/client/graphics/ReactiveCanvas';
+export interface ColorToolProps {
   mixColors?: {
     color1: string;
     color2: string;
@@ -31,17 +32,25 @@ export interface ColorToolObservableProps {
     originColor: string;
     hueInterval: number;
   };
+  onColorSelected?(color: Color): any;
 }
 
+// interface ColorToolPropsWithHelperProp extends ColorToolProps {
+//   onSliceHelper?(helper: EpicFactory<ColorToolState, typeof reducers>): void;
+// }
 export interface ColorToolState {
-  componentProps?: ColorToolObservableProps;
+  componentProps?: ColorToolProps;
   colors: readonly Color[];
+  colorClickCallbacks: {[key: string]: () => any};
+  canvasEpic?: ReactiveCanvasProps['epicFactory'];
   label?: string;
   error?: Error;
 }
 
 const reducers = createReducers({
-  _syncComponentProps(s: ColorToolState, payload: ColorToolObservableProps) {
+  onColorSelected(s: ColorToolState, paylaod: Color) {
+  },
+  _syncComponentProps(s: ColorToolState, payload: ColorToolProps) {
     s.componentProps = {...payload};
     if (payload.mixColors) {
       s.label = 'Color mix';
@@ -78,12 +87,16 @@ const reducers = createReducers({
       }
       s.colors = Object.freeze(colors);
     }
+  },
+  createChildEpics(s: ColorToolState, paylod: (s: ColorToolState)=> void) {
+
   }
 });
 
 export function sliceOptionFactory() {
   const initialState: ColorToolState = {
-    colors: [] as Color[]
+    colors: [] as Color[],
+    colorClickCallbacks: {}
   };
   return {
     name: 'ColorTool',
@@ -93,10 +106,34 @@ export function sliceOptionFactory() {
   };
 }
 
-export const epicFactory: EpicFactory<ColorToolState, typeof reducers> = function(slice) {
+export type ColorToolEpicFactory = EpicFactory<ColorToolState, typeof reducers>;
+
+export const epicFactory: ColorToolEpicFactory = function(slice) {
   return (action$, state$) => {
+    slice.actionDispatcher._change(s => {
+      s.canvasEpic = canvasSlice => {
+        // canvasSlice.actionDispatcher.addPaintable();
+      };
+    });
     return rx.merge(
+      state$.pipe(op.map(() => slice.getState().colors), op.distinctUntilChanged(),
+        op.map(colors => {
+          const colorClickCallbacks = {};
+          for (const color of colors) {
+            colorClickCallbacks[color.hex()] = () => {
+              slice.actionDispatcher.onColorSelected(color);
+              const propOnSelected = slice.getState().componentProps?.onColorSelected;
+              if (propOnSelected) {
+                propOnSelected(color);
+              }
+            };
+          }
+          Object.freeze(colorClickCallbacks);
+          slice.actionDispatcher._change(s => {
+            s.colorClickCallbacks = colorClickCallbacks;
+          });
+        })
+      )
     ).pipe(op.ignoreElements());
   };
 };
-

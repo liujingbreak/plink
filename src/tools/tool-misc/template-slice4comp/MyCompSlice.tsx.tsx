@@ -60,15 +60,17 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
 
 import React from 'react';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
-import {sliceOptionFactory, epicFactory, $__MyComponent__$Props} from './$__sliceName__$Slice';
-export {$__MyComponent__$Props};
+import {sliceOptionFactory, epicFactory, $__MyComponent__$Props as Props} from './$__sliceName__$Slice';
+
+// CRA's babel plugin will remove statement "export {$__MyComponent__$Props}" in case there is only type definition, have to reassign and export it.
+export type $__MyComponent__$Props = Props;
 
 const $__MyComponent__$: React.FC<$__MyComponent__$Props> = function(props) {
   const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
-  }, [...Object.values(props)]);
+  }, Object.values(props));
   // dispatch action: slice.actionDispatcher.onClick(evt)
   return <div onClick={slice.actionDispatcher.onClick}>{state}</div>;
 };

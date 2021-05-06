@@ -15,6 +15,9 @@ const handler: ReactScriptsHandler = {
         return false;
       });
     }
+
+    // To work around issue: canvas-5-polyfill requiring node-canvas during Webpack compilation
+    cfg.externals = [...(Array.isArray(cfg.externals) ? cfg.externals : []), 'canvas'];
   }
 };
 

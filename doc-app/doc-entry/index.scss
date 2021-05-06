@@ -50,20 +50,20 @@ body {
     outline: none;
   }
 }
-@mixin webkit-scrollbar {
-  &::-webkit-scrollbar {
-    width: 3px;
-    height: 3px;
-		background: rgba(255,255,255,0.4);
-	}
-	&::-webkit-scrollbar-thumb {
-		background: hsl(1, 0%, 80%);
-	}
-}
-.windows {
-  * {
-    @include webkit-scrollbar();
-  }
-}
+// @mixin webkit-scrollbar {
+//   &::-webkit-scrollbar {
+//     width: 3px;
+//     height: 3px;
+// 		background: rgba(255,255,255,0.4);
+// 	}
+// 	&::-webkit-scrollbar-thumb {
+// 		background: hsl(1, 0%, 80%);
+// 	}
+// }
+// .windows {
+//   * {
+//     @include webkit-scrollbar();
+//   }
+// }
 
 @import-normalize;
