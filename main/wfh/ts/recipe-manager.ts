@@ -11,9 +11,14 @@ import findPackageJson from './package-mgr/find-package';
 import {map} from 'rxjs/operators';
 
 let projectList: string[] = [];
+let linkPatterns: Iterable<string> | undefined;
 
 export function setProjectList(list: string[]) {
   projectList = list;
+}
+
+export function setLinkPatterns(list: Iterable<string>) {
+  linkPatterns = list;
 }
 
 export type EachRecipeSrcCallback = (srcDir: string, projectDir: string) => void;
@@ -55,6 +60,16 @@ export function* allSrcDirs() {
   for (const projDir of projectList) {
     for (const srcDir of srcDirsOfProject(projDir)) {
       yield {srcDir, projDir};
+    }
+  }
+  if (linkPatterns) {
+    for (let pat of linkPatterns) {
+      if (pat.endsWith('/**'))
+        pat = pat.slice(0, -3);
+      else if (pat.endsWith('/*'))
+        pat = pat.slice(0, -2);
+      pat = _.trimStart(pat, '.');
+      yield {srcDir: pat};
     }
   }
 }
@@ -114,36 +129,12 @@ export type EachRecipeCallback = (recipeDir: string,
  * @returns Observable of tuple [project, package.json file]
  */
 export function scanPackages() {
-  const obs: Observable<[string, string]>[] = [];
-  eachRecipeSrc((src, proj) => {
-    obs.push(findPackageJson(src, false)
+  const obs: Observable<[string | undefined, string, string]>[] = [];
+  for (const {srcDir, projDir} of allSrcDirs()) {
+    obs.push(findPackageJson(srcDir, false)
     .pipe(
-      map(jsonFile => [proj, jsonFile])
+      map(jsonFile => [projDir, jsonFile, srcDir])
     ));
-  });
+  }
   return merge(...obs);
 }
-
-/**
- * @return array of linked package's package.json file path
- */
-// export function linkComponentsAsync(symlinksDir: string) {
-//   // const pkJsonFiles: string[] = [];
-//   const obs: Observable<{proj: string, jsonFile: string, json: any}>[] = [];
-//   eachRecipeSrc((src, proj) => {
-//     obs.push(
-//       findPackageJson(src, false).pipe(
-//         rwPackageJson.symbolicLinkPackages(symlinksDir),
-//         map(([jsonFile, json]) => {
-//           return {proj, jsonFile, json};
-//         })
-//       ));
-//   });
-//   return merge(...obs);
-// }
-
-// export async function clean() {
-//   await scanNodeModules('all');
-// }
-
-

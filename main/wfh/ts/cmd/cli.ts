@@ -119,18 +119,30 @@ function subComands(program: commander.Command) {
   /**
    * command project
    */
-  program.command('project [add|remove] [project-dir...]')
-    .description('Associate, disassociate or list associated project folders, late on Plink will' +
-      'Scan source code directories from associated projects', {
-        'add|remove': 'Determine whether Associate to a project or Disassociate from a project',
-        'project-dir': 'Determine target project repo directory (absolute path or relative path to current directory)' +
-          ', determine multiple project by seperating with space character'
+  program.command('project [add|remove] [dir...]')
+    .description('Associate, disassociate or list associated project folders, Plink will' +
+      ' scan source code directories from associated projects', {
+        'add|remove': 'Specify whether Associate to a project or Disassociate from a project',
+        dir: 'Specify target project repo directory (absolute path or relative path to current directory)' +
+          ', specify multiple project by seperating them with space character'
       })
     .action(async (action: 'add'|'remove'|undefined, projectDir: string[]) => {
       // tslint:disable-next-line: no-console
       console.log(sexyFont('PLink').string);
-      (await import('./cli-project')).default(action, projectDir);
+      (await import('./cli-project')).default({isSrcDir: false}, action, projectDir);
     });
+
+  program.command('src [add|remove] [dir...]')
+    .description('Associate, disassociate or list source directories, Plink will' +
+      ' scan source code directories for packages', {
+        'add|remove': 'Specify whether associate to a directory or disassociate from a directory',
+        dir: 'specify multiple directories by seperating them with space character'
+      })
+      .action(async (action: 'add'|'remove'|undefined, dirs: string[]) => {
+        // tslint:disable-next-line: no-console
+        console.log(sexyFont('PLink').string);
+        (await import('./cli-project')).default({isSrcDir: true}, action, dirs);
+      });
 
   /**
    * command lint
@@ -276,7 +288,8 @@ function subComands(program: commander.Command) {
     .option('-f, --file <file>',
       '(multiple) determine target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
     .option('-j', 'Show result in JSON', false)
-    .option('--alias <alias-express>', 'e.g. --alias "[\'^@/(.+)$\', \'src/$1\']"', arrayOptionFn, [])
+    .option('--tsconfig <file>', 'Use "compilerOptions.paths" property to resolve ts/js file module')
+    .option('--alias <alias-express>', 'a JSON express, e.g. --alias \'["^@/(.+)$","src/$1"]\'', arrayOptionFn, [])
     .action(async (packages: string[]) => {
       return (await import('./cli-analyze')).default(packages, analysisCmd.opts() as tp.AnalyzeOptions);
     });
@@ -309,6 +322,7 @@ function spaceOnlySubCommands(program: commander.Command) {
     .option('--jsx', 'includes TSX file', false)
     .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
     .option('--source-map <inline|file>', 'Source map style: "inline" or "file"', 'inline')
+    .option('--merge,--merge-tsconfig <file>', 'Merge compilerOptions "baseUrl" and "paths" from specified tsconfig file')
     .option('--copath, --compiler-options-paths <pathMapJson>',
       'Add more "paths" property to compiler options. ' +
       '(e.g. --copath \'{\"@/*":["/Users/worker/ocean-ui/src/*"]}\')', (v, prev) => {
@@ -325,7 +339,8 @@ function spaceOnlySubCommands(program: commander.Command) {
         sourceMap: opt.sourceMap,
         jsx: opt.jsx,
         ed: opt.emitDeclarationOnly,
-        pathsJsons: opt.compilerOptionsPaths
+        pathsJsons: opt.compilerOptionsPaths,
+        mergeTsconfig: opt.mergeTsconfig
       });
     });
 

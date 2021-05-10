@@ -9,6 +9,7 @@ import {enableMapSet} from 'immer';
 import {isMainThread} from 'worker_threads';
 import {PlinkEnv} from './node-path';
 import chalk from 'chalk';
+export {createReducers} from '../../redux-toolkit-observable/dist/helper';
 // import chalk from 'chalk';
 
 export {ofPayloadAction};

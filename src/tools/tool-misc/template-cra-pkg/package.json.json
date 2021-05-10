@@ -11,6 +11,12 @@
   },
   "sideEffects": true,
   "dependencies": {
+    "axios-observable": "^1.1.3",
+    "axios": "0.21.1",
+    "@reduxjs/toolkit": "~1.5.0",
+    "redux-observable": "~1.2.0",
+    "sass": "^1.29.0",
+    "rxjs": "~6.4.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

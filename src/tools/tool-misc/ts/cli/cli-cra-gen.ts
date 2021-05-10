@@ -58,7 +58,7 @@ export async function genPackage(path: string, compName: string, featureName: st
       ],
       textMapping: {
         MyComponent: compName,
-        slice_file: './' + featureName + 'Slice',
+        slice_file: './' + littleFeatureName + 'Slice',
         withImage: true,
         isEntry: true,
         isConnected: true

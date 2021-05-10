@@ -18,6 +18,7 @@ import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
 import TemplatePlugin from '@wfh/webpack-common/dist/template-html-plugin';
 import nodeResolve from 'resolve';
+// import {PlinkWebpackResolvePlugin} from '@wfh/webpack-common/dist/webpack-resolve-plugin';
 import {getSetting} from '../isom/cra-scripts-setting';
 // import {changeTsConfigFile} from './change-tsconfig';
 
@@ -36,17 +37,17 @@ export = function(webpackEnv: 'production' | 'development') {
     // process.env.GENERATE_SOURCEMAP = 'false';
   }
   log.info('webpackEnv :', webpackEnv);
+  process.env.INLINE_RUNTIME_CHUNK = 'true';
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   reviseNodePathEnv();
-
-  process.env.INLINE_RUNTIME_CHUNK = 'true';
 
   const {default: craPaths}: typeof _craPaths = require('./cra-scripts-paths');
 
   const config: Configuration = origWebpackConfig(webpackEnv);
   if (webpackEnv === 'production') {
-    // Try to workaround create-react-app issue: default InlineChunkPlugin 's test property does not match 
-    // runtime chunk file name when we set optimization.runtimeChunk to "single" instead of default CRA's value
+    // Try to workaround issue: default InlineChunkPlugin 's test property does not match 
+    // CRA's output chunk file name template,
+    // when we set optimization.runtimeChunk to "single" instead of default CRA's value
     config.output!.filename = 'static/js/[name]-[contenthash:8].js';
     config.output!.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
     config.output!.devtoolModuleFilenameTemplate =
@@ -64,7 +65,7 @@ export = function(webpackEnv: 'production' | 'development') {
   });
 
   // Make sure babel compiles source folder out side of current src directory
-  findAndChangeRule(config.module!.rules);
+  changeFileLoader(config.module!.rules);
   replaceSassLoader(config.module!.rules);
   appendOurOwnTsLoader(config);
   insertLessLoaderRule(config.module!.rules);
@@ -91,6 +92,11 @@ export = function(webpackEnv: 'production' | 'development') {
   if (config.resolveLoader == null)
     config.resolveLoader = {};
   config.resolveLoader.modules = resolveModules;
+
+  if (config.resolve!.plugins == null) {
+    config.resolve!.plugins = [];
+  }
+  // config.resolve!.plugins.unshift(new PlinkWebpackResolvePlugin());
 
   Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
 
@@ -175,7 +181,8 @@ function appendOurOwnTsLoader(config: Configuration) {
 }
 
 function runConfigHandlers(config: Configuration, webpackEnv: string) {
-  const {configFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
+  const {getConfigFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
+  const configFileInPackage = getConfigFileInPackage();
   const cmdOption = getCmdOptions();
   api.config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
     if (handler.webpack != null) {
@@ -253,7 +260,11 @@ const fileLoaderOptions = {
   }
 };
 
-function findAndChangeRule(rules: RuleSetRule[]): void {
+/**
+ * 
+ * @param rules 
+ */
+function changeFileLoader(rules: RuleSetRule[]): void {
   const craPaths = require('react-scripts/config/paths');
   // TODO: check in case CRA will use Rule.use instead of "loader"
   checkSet(rules);
@@ -265,27 +276,31 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
         checkSet(rule.loader);
     } else if (rule.oneOf) {
       insertRawLoader(rule.oneOf);
-      return findAndChangeRule(rule.oneOf);
+      return changeFileLoader(rule.oneOf);
     }
   }
 
   function checkSet(set: (RuleSetRule | RuleSetUseItem)[]) {
     for (let i = 0; i < set.length ; i++) {
       const rule = set[i];
+
       if (typeof rule === 'string' && (rule.indexOf('file-loader') >= 0 || rule.indexOf('url-loader') >= 0)) {
         set[i] = {
           loader: rule,
           options: fileLoaderOptions
         };
-      } else if ((typeof (rule as RuleSetRule | RuleSetLoader).loader) === 'string' &&
-        (((rule as RuleSetRule | RuleSetLoader).loader as string).indexOf('file-loader') >= 0 ||
-        ((rule as RuleSetRule | RuleSetLoader).loader as string).indexOf('url-loader') >= 0
+      } else {
+        const ruleSetRule = rule as RuleSetRule | RuleSetLoader;
+         if ((typeof ruleSetRule.loader) === 'string' &&
+        ((ruleSetRule.loader as string).indexOf('file-loader') >= 0 ||
+        (ruleSetRule.loader as string).indexOf('url-loader') >= 0
         )) {
-          if ((rule as RuleSetRule | RuleSetLoader).options) {
-            Object.assign((rule as RuleSetRule | RuleSetLoader).options, fileLoaderOptions);
+          if (ruleSetRule.options) {
+            Object.assign(ruleSetRule.options, fileLoaderOptions);
           } else {
-            (rule as RuleSetRule | RuleSetLoader).options = fileLoaderOptions;
+            ruleSetRule.options = fileLoaderOptions;
           }
+        }
       }
 
 

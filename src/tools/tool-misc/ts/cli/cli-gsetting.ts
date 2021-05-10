@@ -16,52 +16,52 @@ export async function generateSetting(pkgs: string[], opt: {dryRun: boolean}) {
   let i = 0;
   const pkgInfoWithJsonFiles: Array<[pkg: PackageInfo, jsonFile: string] | null> =
     await Promise.all(pkgsInfo.map(async pkgInfo => {
-    if (pkgInfo == null) {
-      plink.logger.error(`Package not found: ${pkgs[i]}`);
-      return null;
-    }
+      if (pkgInfo == null) {
+        plink.logger.error(`Package not found: ${pkgs[i]}`);
+        return null;
+      }
 
-    let camelCased = pkgInfo.shortName.replace(/-([^])/g, (match, g1) => g1.toUpperCase());
-    const upperCaseFirstName = camelCased.charAt(0).toUpperCase() + camelCased.slice(1) + 'Setting';
+      let camelCased = pkgInfo.shortName.replace(/-([^])/g, (match, g1) => g1.toUpperCase());
+      const upperCaseFirstName = camelCased.charAt(0).toUpperCase() + camelCased.slice(1) + 'Setting';
 
-    const json = _.cloneDeep(pkgInfo.json);
-    const pkgjsonProp: WithPackageSettingProp = json.dr || json.plink;
-    if (pkgjsonProp.setting) {
-      plink.logger.warn(`There has been an existing "${pkgInfo.json.dr ? 'dr' : 'plink'}.setting" in ${pkgInfo.realPath}/package.json file`);
-      return null;
-    }
+      const json = _.cloneDeep(pkgInfo.json);
+      const pkgjsonProp: WithPackageSettingProp = json.dr || json.plink;
+      if (pkgjsonProp.setting) {
+        plink.logger.warn(`There has been an existing "${pkgInfo.json.dr ? 'dr' : 'plink'}.setting" in ${pkgInfo.realPath}/package.json file`);
+        return null;
+      }
 
-    pkgjsonProp.setting = {
-      value: `isom/${pkgInfo.shortName}-setting.js#defaultSetting`,
-      type: `isom/${pkgInfo.shortName}-setting#` + upperCaseFirstName
-    };
+      pkgjsonProp.setting = {
+        value: `isom/${pkgInfo.shortName}-setting.js#defaultSetting`,
+        type: `isom/${pkgInfo.shortName}-setting#` + upperCaseFirstName
+      };
 
-    const pkgjsonStr = JSON.stringify(json, null, '  ');
-    const pkgjsonFile = Path.resolve(pkgInfo.realPath, 'package.json');
+      const pkgjsonStr = JSON.stringify(json, null, '  ');
+      const pkgjsonFile = Path.resolve(pkgInfo.realPath, 'package.json');
 
-    let jsonDone: Promise<any>;
-    if (opt.dryRun) {
-      plink.logger.info(`Will write file ${pkgjsonFile}:\n` + pkgjsonStr);
-      jsonDone = Promise.resolve();
-    } else {
-      jsonDone = fs.promises.writeFile(pkgjsonFile, pkgjsonStr);
-      plink.logger.info(`Write file ${pkgjsonFile}`);
-    }
+      let jsonDone: Promise<any>;
+      if (opt.dryRun) {
+        plink.logger.info(`Will write file ${pkgjsonFile}:\n` + pkgjsonStr);
+        jsonDone = Promise.resolve();
+      } else {
+        jsonDone = fs.promises.writeFile(pkgjsonFile, pkgjsonStr);
+        plink.logger.info(`Write file ${pkgjsonFile}`);
+      }
 
-    const filesDone = generateStructure(Path.resolve(__dirname, '../../template-gsetting'),
-      Path.resolve(pkgInfo.realPath, 'isom'), {
-        fileMapping: [
-          [/foobar/g, pkgInfo.shortName]
-        ],
-        textMapping: {
-          foobarPackage: pkgInfo.name,
-          foobar: camelCased,
-          Foobar: camelCased.charAt(0).toUpperCase() + camelCased.slice(1)
-        }
-      }, {dryrun: opt.dryRun});
-    await Promise.all([jsonDone, filesDone]);
-    return [pkgInfo, pkgjsonFile] as [pkg: PackageInfo, jsonFile: string];
-  }));
+      const filesDone = generateStructure(Path.resolve(__dirname, '../../template-gsetting'),
+        Path.resolve(pkgInfo.realPath, 'isom'), {
+          fileMapping: [
+            [/foobar/g, pkgInfo.shortName]
+          ],
+          textMapping: {
+            foobarPackage: pkgInfo.name,
+            foobar: camelCased,
+            Foobar: camelCased.charAt(0).toUpperCase() + camelCased.slice(1)
+          }
+        }, {dryrun: opt.dryRun});
+      await Promise.all([jsonDone, filesDone]);
+      return [pkgInfo, pkgjsonFile] as [pkg: PackageInfo, jsonFile: string];
+    }));
 
   if (!opt.dryRun) {
     const meta = pkgInfoWithJsonFiles.filter(item => item != null);

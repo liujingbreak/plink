@@ -18,6 +18,8 @@ if (process.send && /[\\\/]fork-ts-checker-webpack-plugin[\\\/]/.test(process.ar
   require('@wfh/plink/wfh/dist/node-path');
   const plink: typeof _plink = require('@wfh/plink/wfh/dist');
   plink.initAsChildProcess();
+  const setting = plink.initConfig(JSON.parse(process.env.PLINK_CLI_OPTS!));
+  plink.logConfig(setting());
   require('./hack-fork-ts-checker-worker');
 }
 

@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs';
 export declare function setProjectList(list: string[]): void;
+export declare function setLinkPatterns(list: Iterable<string>): void;
 export declare type EachRecipeSrcCallback = (srcDir: string, projectDir: string) => void;
 /**
  * @deprecated
@@ -13,12 +14,12 @@ export declare function eachRecipeSrc(projectDir: string, callback: EachRecipeSr
 export declare function allSrcDirs(): Generator<{
     srcDir: string;
     projDir: string;
+} | {
+    srcDir: string;
+    projDir?: undefined;
 }, void, unknown>;
 export declare type EachRecipeCallback = (recipeDir: string, isFromInstallation: boolean, jsonFileName: string, jsonFileContent: string) => void;
 /**
  * @returns Observable of tuple [project, package.json file]
  */
-export declare function scanPackages(): Observable<[string, string]>;
-/**
- * @return array of linked package's package.json file path
- */
+export declare function scanPackages(): Observable<[string | undefined, string, string]>;

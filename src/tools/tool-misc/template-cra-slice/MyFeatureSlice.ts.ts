@@ -1,5 +1,5 @@
-import { PayloadAction } from '@reduxjs/toolkit';
 import { ofPayloadAction, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
+import {createReducers} from '@wfh/redux-toolkit-observable/es/helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 // We suggest to use axios-observable instead of axios or fetch,
@@ -20,15 +20,16 @@ const initialState: $__SliceName__$State = {
   }
 };
 
+const reducers = createReducers({
+  exampleAction(s: $__SliceName__$State, payload: string) {
+    // modify state draft
+    s.foobar = payload;
+  }
+});
 const $__sliceName__$Slice = stateFactory.newSlice({
   name: '$__sliceName__$',
   initialState,
-  reducers: {
-    exampleAction(s, {payload}: PayloadAction<string>) {
-      // modify state draft
-      s.foobar = payload;
-    }
-  }
+  reducers
 });
 
 export const dispatcher = stateFactory.bindActionCreators($__sliceName__$Slice);

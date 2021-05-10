@@ -76,6 +76,22 @@ function listPackagesByProjects() {
         Path.relative(cwd, pk.realPath)]);
     }
   }
+  for (const [prj, pkgNames] of pmgr.getState().srcDir2Packages.entries()) {
+    table.push([{
+      colSpan: 3, hAlign: 'left',
+      content: chalk.bold('Source directory: ') + (prj ? chalk.cyan(prj) : chalk.cyan('(root directory)'))}
+    ],
+      ['PACKAGE NAME', 'VERSION', 'PATH'].map(item => chalk.gray(item)),
+      ['------------', '-------', '----'].map(item => chalk.gray(item))
+    );
+    const pkgs = pkgNames.map(name => linkedPkgs.get(name)!);
+    for (const pk of pkgs) {
+      table.push([
+        chalk.cyan(pk.name),
+        chalk.green(pk.json.version),
+        Path.relative(cwd, pk.realPath)]);
+    }
+  }
   return table.toString();
 }
 

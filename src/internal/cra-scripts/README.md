@@ -27,7 +27,7 @@ create-react-app, Redux toolkit, Redux-observable.
 create-react-app react-space --template cra-template-typescript --use-npm
 ```
 
-3. Modify `react-space/package.json` file.
+3. Add extra dependencies to `react-space/package.json` file.
    
 Add dependencies, packages with `@wfh` are required by Plink, others should be your source code package and 3rd party libraries,
 ```json
@@ -36,11 +36,17 @@ Add dependencies, packages with `@wfh` are required by Plink, others should be y
   "@wfh/webpack-common": "1.0.2",
   "@wfh/redux-toolkit-observable": "1.0.5",
   "react-app-polyfill": "^2.0.0",
-  "axios-observable": "^1.1.3",
+  "@reduxjs/toolkit": "~1.5.0",
+  "redux-observable": "~1.2.0",
+  "@types/react-redux": "^7.1.16",
+  "react-redux": "^7.2.2"
   "@foobar/your-feature-package": "1.0.0"
 }
 ```
-
+> You may also use Plink "add" command to add dependencies
+```bash
+plink add --dev @wfh/cra-scripts @wfh/webpack-common @wfh/redux-toolkit-observable react-app-polyfill
+```
 ### Build and watch
 ```bash
 plink init reac-space
@@ -101,7 +107,7 @@ cd <react-space-dir>
 ```
 Run command
 ```bash
-plink cra-gen ../packages/foobar-app
+plink cra-gen-pkg ../packages/foobar-app
 # or 
 # plink run node_modules/@bk/cra-scripts/dist/cmd.js#genPackage portal-home
 ```

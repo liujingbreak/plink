@@ -8,7 +8,7 @@ import styles from './ReactiveCanvas.module.scss';
 export type ReactiveCanvasProps = Props;
 
 const ReactiveCanvas: React.FC<ReactiveCanvasProps> = function(props) {
-  const [, slice] = useTinyReduxTookit(sliceOptionFactory, epicFactory, props.epicFactory);
+  const [, slice] = useTinyReduxTookit(sliceOptionFactory, epicFactory);
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);

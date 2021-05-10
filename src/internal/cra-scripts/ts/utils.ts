@@ -5,6 +5,9 @@ import Path from 'path';
 import _ from 'lodash';
 import {gt} from 'semver';
 import commander from 'Commander';
+import * as _craPaths from './cra-scripts-paths';
+import {config, log4File, ConfigHandlerMgr} from '@wfh/plink';
+import {ReactScriptsHandler} from './types';
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -104,5 +107,28 @@ export function craVersionCheck() {
   const craPackage = require(Path.resolve('node_modules/react-scripts/package.json'));
   if (!gt(craPackage.version, '3.4.0')) {
     throw new Error(`react-scripts version must be greater than 3.4.0, current installed version is ${craPackage.version}`);
+  }
+}
+
+export function runTsConfigHandlers(compilerOptions: any) {
+  const {getConfigFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
+  const configFileInPackage = getConfigFileInPackage();
+  const cmdOpt = getCmdOptions();
+  const log = log4File(__filename);
+  config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+    if (handler.tsCompilerOptions != null) {
+      log.info('Execute TS compiler option overrides', cfgFile);
+      handler.tsCompilerOptions(compilerOptions, cmdOpt);
+    }
+  }, 'create-react-app ts compiler config'));
+
+  if (configFileInPackage) {
+    const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
+    cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+      if (handler.tsCompilerOptions != null) {
+        log.info('Execute TS compiler option overrides from ', cfgFile);
+        handler.tsCompilerOptions(compilerOptions, cmdOpt);
+      }
+    }, 'create-react-app ts compiler config');
   }
 }

@@ -2,5 +2,7 @@
  * @param action
  * @param dirs
  */
-export default function (action?: 'add' | 'remove', dirs?: string[]): Promise<void>;
+export default function (opts: {
+    isSrcDir: boolean;
+}, action?: 'add' | 'remove', dirs?: string[]): Promise<void>;
 export declare function listProject(projects?: string[]): void;

@@ -37,7 +37,8 @@ const cliExt: CliExtension = (program) => {
     .option('--comp <name>', 'Sample component name', 'sample')
     .option('--feature <name>', 'Sample feature directory and slice name', 'sampleFeature')
     .option('--output <dir-name>', 'This option changes "appBuild" values in config-override.ts,' +
-      ' internally create-react-app changes Webpack configure property `output.path` according to this value')
+      ' internally create-react-app changes Webpack configure property `output.path` according to this value (' +
+      ' you may also use environment variable "BUILD_PATH" for create-react-app version above 4.0.3)')
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .action(async (dir: string) => {
       (await import('./cli-cra-gen')).genPackage(dir, genCraCmd.opts().comp,

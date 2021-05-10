@@ -8,6 +8,7 @@ import {logger as log4js} from '@wfh/plink';
 import chalk from 'chalk';
 import {Worker} from 'worker_threads';
 import _ from 'lodash';
+import {PKG_LIB_ENTRY_DEFAULT, PKG_LIB_ENTRY_PROP} from './cra-scripts-paths';
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 // import {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 // const plinkDir = Path.dirname(require.resolve('@wfh/plink/package.json'));
@@ -150,14 +151,18 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
   return;
 }
 
-async function forkTsc(targetPackage: string, nodePath: string[]) {
+async function forkTsc(targetPackageJson: any, nodePath: string[]) {
 
   // const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
-
+  const targetPackage = targetPackageJson.name;
   const workerData: TscCmdParam = {
     package: [targetPackage], ed: true, jsx: true, watch: getCmdOptions().watch,
     pathsJsons: [],
-    overridePackgeDirs: {[targetPackage]: {destDir: 'build', srcDir: ''}}
+    overridePackgeDirs: {[targetPackage]: {
+      destDir: 'build',
+      srcDir: '',
+      include: _.get(targetPackageJson.plink ? targetPackageJson.plink : targetPackageJson.dr, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT)
+    }}
   };
 
   const worker = new Worker(require.resolve('./tsd-generate-thread'), {

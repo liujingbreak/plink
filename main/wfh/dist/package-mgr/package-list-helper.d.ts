@@ -1,4 +1,5 @@
 import { PackageInfo } from './index';
+import ts from 'typescript';
 export declare type PackageType = '*' | 'build' | 'core';
 export declare function allPackages(_types?: PackageType | PackageType[], recipeType?: 'src' | 'installed', projectDirs?: string[]): Generator<PackageInfo>;
 export declare function packages4WorkspaceKey(wsKey: string, includeInstalled?: boolean): Generator<PackageInfo>;
@@ -25,7 +26,7 @@ export interface CompilerOptions {
     paths?: {
         [path: string]: string[];
     };
-    [key: string]: any;
+    [prop: string]: ts.CompilerOptionsValue;
 }
 /**
  * Set "baseUrl", "paths" and "typeRoots" property relative to tsconfigDir, process.cwd()

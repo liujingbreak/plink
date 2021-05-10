@@ -31,7 +31,7 @@ const ColorTool: React.FC<ColorToolProps> = function(props) {
         return <ColorInfo key={hex} color={col} onClick={state.colorClickCallbacks[hex]}></ColorInfo>;
       })}
     </div>
-    <ReactiveCanvas epicFactory={state.canvasEpic}/>
+    <ReactiveCanvas sliceRef={slice.actionDispatcher.canvasSliceRef} />
   </div>
   ;
 };

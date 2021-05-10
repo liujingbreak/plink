@@ -10,24 +10,14 @@ import {jsonToCompilerOptions} from '../ts-compiler';
 // import {setTsCompilerOptForNodePath} from '../package-mgr/package-list-helper';
 import {initAsChildProcess} from '../utils/bootstrap-process';
 import {closestCommonParentDir, plinkEnv} from '../utils/misc';
+import {mergeBaseUrlAndPaths, RequiredCompilerOptions} from '../ts-cmd-util';
 
-
-const baseTsconfigFile = Path.resolve(__dirname, '../../tsconfig-tsx.json');
-const coJson = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'))
-  .config.compilerOptions;
-coJson.allowJs = true;
-coJson.resolveJsonModule = true;
-initAsChildProcess();
+let coJson: RequiredCompilerOptions;
 // setTsCompilerOptForNodePath(plinkEnv.workDir, './', coJson, {workspaceDir: plinkEnv.workDir});
-const co = jsonToCompilerOptions(coJson, baseTsconfigFile, plinkEnv.workDir);
-
-
-
-const resCache = ts.createModuleResolutionCache(plinkEnv.workDir,
-      fileName => fileName,
-      co);
-const host = ts.createCompilerHost(co);
-
+let co: ts.CompilerOptions | undefined;
+let resCache: ts.ModuleResolutionCache;
+let host: ts.CompilerHost;
+initAsChildProcess();
 export class Context {
   commonDir: string;
   constructor(
@@ -53,14 +43,17 @@ export class Context {
       relativeDepsOutSideDir: Array.from(this.relativeDepsOutSideDir.values()),
       cyclic: this.cyclic,
       canNotResolve: this.canNotResolve,
-      externalDeps: Array.from(this.externalDeps.values())
+      externalDeps: Array.from(this.externalDeps.values()),
+      matchAlias: this.matchAlias
     };
   }
 }
 
-export function dfsTraverseFiles(files: string[], alias: [reg: RegExp, replaceTo: string][]): ReturnType<Context['toPlainObject']> {
+export function dfsTraverseFiles(files: string[], tsconfigFile: string | null | undefined,
+  alias: [reg: string, replaceTo: string][]): ReturnType<Context['toPlainObject']> {
+  init(tsconfigFile);
   const commonParentDir = closestCommonParentDir(files);
-  const context = new Context(commonParentDir, alias);
+  const context = new Context(commonParentDir, alias.map(item => [new RegExp(item[0]), item[1]]));
 
   const dfs: DFS<string> = new DFS<string>(data => {
     const q = new Query(fs.readFileSync(data, 'utf8'), data);
@@ -79,6 +72,29 @@ export function dfsTraverseFiles(files: string[], alias: [reg: RegExp, replaceTo
     }
   }
   return context.toPlainObject();
+}
+
+/**
+ * 
+ * @param tsconfigFile all compilerOptions.paths setting will be adopted in resolving files
+ */
+function init(tsconfigFile?: string | null) {
+  if (coJson != null)
+    return;
+  const baseTsconfigFile = Path.resolve(__dirname, '../../tsconfig-tsx.json');
+  const baseTscfg = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'))
+    .config;
+  // console.log(baseTscfg);
+
+  coJson = baseTscfg.compilerOptions;
+  if (tsconfigFile) {
+    mergeBaseUrlAndPaths(ts, tsconfigFile, plinkEnv.workDir, coJson);
+  }
+  coJson.allowJs = true;
+  coJson.resolveJsonModule = true;
+  co = jsonToCompilerOptions(coJson, baseTsconfigFile, plinkEnv.workDir);
+  resCache = ts.createModuleResolutionCache(plinkEnv.workDir, fileName => fileName, co);
+  host = ts.createCompilerHost(co);
 }
 
 function parseFile(q: Query, file: string, ctx: Context) {
@@ -158,45 +174,59 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
     path = path.slice(1, -1);
 
   for (const [reg, replaceTo] of ctx.alias) {
-    path = path.replace(reg, replaceTo);
-    if (path !== path) {
+    const replaced = path.replace(reg, replaceTo);
+    if (path !== replaced) {
+      // console.log(replaced);
       ctx.matchAlias.push(path);
+      // console.log(`resolve alias ${path} to `, replaced);
+      path = replaced;
       break;
     }
   }
 
-  if (path.startsWith('.')) {
-    const ext = Path.extname(path);
-    if (ext === '' || /^\.[jt]sx?$/.test(ext)) {
-      let resolved = ts.resolveModuleName(path, file, co, host, resCache).resolvedModule;
-      if (resolved == null) {
-        // tslint:disable-next-line: max-line-length
-        for (const tryPath of [path + '/index', path + '.js', path + '.jsx', path + '/index.js', path + '/index.jsx']) {
-          resolved = ts.resolveModuleName(tryPath, file, co, host, resCache).resolvedModule;
-          if (resolved != null)
-            return Path.resolve(resolved.resolvedFileName);
-        }
-        const lineInfo = ts.getLineAndCharacterOfPosition(src, pos);
-        ctx.canNotResolve.push({
-          target: path,
-          file,
-          pos: `line:${lineInfo.line + 1}, col:${lineInfo.character + 1}`,
-          reasone: 'Typescript failed to resolve'
-        });
-        return null;
-      } else {
-        const absPath = Path.resolve(resolved.resolvedFileName);
-        if (!absPath.startsWith(ctx.commonDir)) {
-          ctx.relativeDepsOutSideDir.add(Path.relative(plinkEnv.workDir, absPath));
-        }
-        return absPath;
-      }
-    } else {
-      // skip unknown extension path
+  const suffix = Path.extname(path);
+  if (suffix && !/^\.[tj]sx?$/.test(path)) {
+    return null;
+  }
+
+  let resolved = ts.resolveModuleName(path, file, co!, host, resCache).resolvedModule;
+  if (resolved == null) {
+    [path + '/index', path + '.js', path + '.jsx', path + '/index.js', path + '/index.jsx'].some(tryPath => {
+      resolved = ts.resolveModuleName(tryPath, file, co!, host, resCache).resolvedModule;
+      return resolved != null;
+    });
+  }
+  // if (path.startsWith('.') || Path.isAbsolute(path)) {
+  if (resolved == null) {
+    if (!path.startsWith('.') && !Path.isAbsolute(path)) {
+      const m = /^(?:@[^/]+\/)?[^/]+/.exec(path);
+      ctx.externalDeps.add(m ? m[0] : path);
+      return null;
     }
-  } else {
-    const m = /^((?:@[^/]+\/)?[^/]+)/.exec(path);
-    ctx.externalDeps.add(m ? m[1] : path);
+    const lineInfo = ts.getLineAndCharacterOfPosition(src, pos);
+    ctx.canNotResolve.push({
+      target: path,
+      file,
+      pos: `line:${lineInfo.line + 1}, col:${lineInfo.character + 1}`,
+      reasone: 'Typescript failed to resolve'
+    });
+    return null;
+  }
+  if (resolved?.packageId) {
+    // resolved.packageId.name always return @type/xxxx instead of real package
+    // ctx.externalDeps.add(resolved.packageId.name);
+    const m = /^(?:@[^/]+\/)?[^/]+/.exec(path);
+    if (m) {
+      ctx.externalDeps.add(m[0]);
+    } else {
+      ctx.externalDeps.add(resolved.packageId.name);
+    }
+  } else if (resolved) {
+    const absPath = Path.resolve(resolved.resolvedFileName);
+    if (!absPath.startsWith(ctx.commonDir)) {
+      ctx.relativeDepsOutSideDir.add(Path.relative(plinkEnv.workDir, absPath));
+    }
+    return absPath;
   }
 }
 

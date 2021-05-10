@@ -80,7 +80,7 @@ export async function generateConfig(file: string, opt: {dryRun: boolean, type: 
     } else {
       plink.logger.error(`The target file ${file} is not under any of associated project directories:\n`
         + srcDirs.join('\n')
-        + '\n  A Typescript file will not get proper type checked in Editor without tsconfig file, Plink "init" command can ' +
+        + '\n  A Typescript file will not get proper type checked in Editor without tsconfig file, Plink "sync" command can ' +
         ' help to generate an Editor friendly tsconfig file, but it must be one of associated project directory');
       return;
     }

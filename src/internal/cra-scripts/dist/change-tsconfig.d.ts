@@ -1,1 +1,2 @@
-export declare function changeTsConfigFile(): any;
+import ts from 'typescript';
+export declare function changeTsConfigFile(): ts.CompilerOptions;

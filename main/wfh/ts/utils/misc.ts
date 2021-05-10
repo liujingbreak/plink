@@ -83,9 +83,10 @@ export class WordLexer extends BaseLexer<WordTokenType> {
 export function boxString(text: string, lineWidth = 70, whitespaceWrap = true): string {
   const tb = createCliTable({
     colWidths: [lineWidth],
-    wordWrap: whitespaceWrap
+    wordWrap: whitespaceWrap,
+    horizontalLines: false
   });
-  tb.push([text]);
+  tb.push(...text.split(/\n\r?/).map(item => [item]));
   return tb.toString();
   // const lexer = new WordLexer(text);
 
@@ -149,15 +150,16 @@ export function createCliTable(opt?: CliTableOption) {
 }
 
 export interface PackageTsDirs {
+  /** srcDir works like "rootDir" in tsconfig compilerOptions */
   srcDir: string;
   destDir: string;
   isomDir?: string;
-  globs?: string[];
+  /** For plink command tsc, "isomDir" will be ignored if "include" is set in package.json */
   include?: string[] | string;
 }
 
 export function getTscConfigOfPkg(json: any): PackageTsDirs {
-  const globs: string[] | undefined = get(json, 'dr.ts.globs');
+  // const globs: string[] | undefined = get(json, 'dr.ts.globs');
   const srcDir = get(json, 'dr.ts.src', 'ts');
   const isomDir = get(json, 'dr.ts.isom', 'isom');
   const include = get(json, 'dr.ts.include');
@@ -165,7 +167,7 @@ export function getTscConfigOfPkg(json: any): PackageTsDirs {
 
   destDir = trim(trim(destDir, '\\'), '/');
   return {
-    srcDir, destDir, isomDir, globs, include
+    srcDir, destDir, isomDir, include
   };
 }
 

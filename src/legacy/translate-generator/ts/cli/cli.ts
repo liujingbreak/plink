@@ -3,7 +3,7 @@ import plink from '__plink';
 
 const cliExt: CliExtension = (program) => {
   const scanCmd = program.command('scan-tran <locale> [pkg-name]')
-  .description('Can string literals, template expressions, JSX text from specific TS[X], JS[X] files, generate a temporary i18n metadata files',
+  .description('Scan string literals, template expressions, JSX text from specific TS[X], JS[X] files, generate a temporary i18n metadata files',
     {
       locale: 'e.g. "zh", "zh_CN", "zh-CN"...',
       'pkg-name': 'linked (source) package name, will scann package directory for js files,' +

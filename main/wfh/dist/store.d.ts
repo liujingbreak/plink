@@ -1,4 +1,5 @@
 import { StateFactory, ofPayloadAction } from '../../redux-toolkit-observable/dist/redux-toolkit-observable';
+export { createReducers } from '../../redux-toolkit-observable/dist/helper';
 export { ofPayloadAction };
 export declare const BEFORE_SAVE_STATE = "BEFORE_SAVE_STATE";
 export declare const lastSavedState: any;

@@ -29,6 +29,7 @@ export declare class Context {
             reasone: string;
         }[];
         externalDeps: string[];
+        matchAlias: string[];
     };
 }
-export declare function dfsTraverseFiles(files: string[], alias: [reg: RegExp, replaceTo: string][]): ReturnType<Context['toPlainObject']>;
+export declare function dfsTraverseFiles(files: string[], tsconfigFile: string | null | undefined, alias: [reg: string, replaceTo: string][]): ReturnType<Context['toPlainObject']>;

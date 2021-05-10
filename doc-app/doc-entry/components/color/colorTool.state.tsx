@@ -11,11 +11,11 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, createReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, createReducers, ofPayloadAction} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
-import {ReactiveCanvasProps} from '@wfh/doc-ui-common/client/graphics/ReactiveCanvas';
+import {ReactiveCanvasSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
 export interface ColorToolProps {
   mixColors?: {
     color1: string;
@@ -42,7 +42,6 @@ export interface ColorToolState {
   componentProps?: ColorToolProps;
   colors: readonly Color[];
   colorClickCallbacks: {[key: string]: () => any};
-  canvasEpic?: ReactiveCanvasProps['epicFactory'];
   label?: string;
   error?: Error;
 }
@@ -50,6 +49,7 @@ export interface ColorToolState {
 const reducers = createReducers({
   onColorSelected(s: ColorToolState, paylaod: Color) {
   },
+  canvasSliceRef(s: ColorToolState, ref: ReactiveCanvasSlice) {},
   _syncComponentProps(s: ColorToolState, payload: ColorToolProps) {
     s.componentProps = {...payload};
     if (payload.mixColors) {
@@ -89,7 +89,6 @@ const reducers = createReducers({
     }
   },
   createChildEpics(s: ColorToolState, paylod: (s: ColorToolState)=> void) {
-
   }
 });
 
@@ -110,11 +109,6 @@ export type ColorToolEpicFactory = EpicFactory<ColorToolState, typeof reducers>;
 
 export const epicFactory: ColorToolEpicFactory = function(slice) {
   return (action$, state$) => {
-    slice.actionDispatcher._change(s => {
-      s.canvasEpic = canvasSlice => {
-        // canvasSlice.actionDispatcher.addPaintable();
-      };
-    });
     return rx.merge(
       state$.pipe(op.map(() => slice.getState().colors), op.distinctUntilChanged(),
         op.map(colors => {
@@ -133,7 +127,12 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
             s.colorClickCallbacks = colorClickCallbacks;
           });
         })
-      )
+      ),
+      action$.pipe(ofPayloadAction(slice.actionDispatcher.canvasSliceRef),
+        op.tap(({payload: canvasSlice}) => {
+          // TODO:
+          canvasSlice.actionDispatcher.render();
+        }))
     ).pipe(op.ignoreElements());
   };
 };

@@ -28,10 +28,11 @@ export interface CliTableOption extends NonNullable<ConstructorParameters<Table>
 }
 export declare function createCliTable(opt?: CliTableOption): Table.Table;
 export interface PackageTsDirs {
+    /** srcDir works like "rootDir" in tsconfig compilerOptions */
     srcDir: string;
     destDir: string;
     isomDir?: string;
-    globs?: string[];
+    /** For plink command tsc, "isomDir" will be ignored if "include" is set in package.json */
     include?: string[] | string;
 }
 export declare function getTscConfigOfPkg(json: any): PackageTsDirs;

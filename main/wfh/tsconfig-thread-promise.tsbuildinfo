@@ -481,6 +481,36 @@
         "signature": "5e6a8a22741389f36e1d47308bf03289c8e511d52be56fa4943fdaf76cea12c7",
         "affectsGlobalScope": false
       },
+      "../node_modules/@types/react/global.d.ts": {
+        "version": "ecf78e637f710f340ec08d5d92b3f31b134a46a4fcf2e758690d8c46ce62cba6",
+        "signature": "ecf78e637f710f340ec08d5d92b3f31b134a46a4fcf2e758690d8c46ce62cba6",
+        "affectsGlobalScope": true
+      },
+      "../node_modules/csstype/index.d.ts": {
+        "version": "0a6f28e1d77b99b0ef7da2f0bf50f301ea8a7eb7b4f573e458e725452a477bd2",
+        "signature": "0a6f28e1d77b99b0ef7da2f0bf50f301ea8a7eb7b4f573e458e725452a477bd2",
+        "affectsGlobalScope": false
+      },
+      "../node_modules/@types/prop-types/index.d.ts": {
+        "version": "a7e32dcb90bf0c1b7a1e4ac89b0f7747cbcba25e7beddc1ebf17be1e161842ad",
+        "signature": "a7e32dcb90bf0c1b7a1e4ac89b0f7747cbcba25e7beddc1ebf17be1e161842ad",
+        "affectsGlobalScope": false
+      },
+      "../node_modules/@types/scheduler/tracing.d.ts": {
+        "version": "f5a8b384f182b3851cec3596ccc96cb7464f8d3469f48c74bf2befb782a19de5",
+        "signature": "f5a8b384f182b3851cec3596ccc96cb7464f8d3469f48c74bf2befb782a19de5",
+        "affectsGlobalScope": false
+      },
+      "../node_modules/@types/react/index.d.ts": {
+        "version": "5d708266116e778d6a4140fca2ac36f71d99b4c68bc3be63a45ba8bf5ade5348",
+        "signature": "5d708266116e778d6a4140fca2ac36f71d99b4c68bc3be63a45ba8bf5ade5348",
+        "affectsGlobalScope": true
+      },
+      "../node_modules/@types/hoist-non-react-statics/index.d.ts": {
+        "version": "bfe1b52cf71aea9bf8815810cc5d9490fa9617313e3d3c2ee3809a28b80d0bb4",
+        "signature": "bfe1b52cf71aea9bf8815810cc5d9490fa9617313e3d3c2ee3809a28b80d0bb4",
+        "affectsGlobalScope": false
+      },
       "../node_modules/@types/jasmine/index.d.ts": {
         "version": "2c23cf04e1fa16783615b625c0ef5d865b11a7019b6e72c6b523928e379cd011",
         "signature": "2c23cf04e1fa16783615b625c0ef5d865b11a7019b6e72c6b523928e379cd011",
@@ -559,6 +589,26 @@
       "../node_modules/@types/lru-cache/index.d.ts": {
         "version": "db80fcbd0c9693ac9964c31c11979a3d33550a612981021d99e935c0e3d9c36c",
         "signature": "db80fcbd0c9693ac9964c31c11979a3d33550a612981021d99e935c0e3d9c36c",
+        "affectsGlobalScope": false
+      },
+      "../node_modules/symbol-observable/index.d.ts": {
+        "version": "7ccece60f62968f5765383f1f5322ace6937e42c3a2068834ac214fe24f9b7bc",
+        "signature": "7ccece60f62968f5765383f1f5322ace6937e42c3a2068834ac214fe24f9b7bc",
+        "affectsGlobalScope": true
+      },
+      "../node_modules/redux/index.d.ts": {
+        "version": "dc7b63bcdfaf08b68a9fabeab720173481db52014bbb40314f5a6757387b6516",
+        "signature": "dc7b63bcdfaf08b68a9fabeab720173481db52014bbb40314f5a6757387b6516",
+        "affectsGlobalScope": false
+      },
+      "../node_modules/@types/react-redux/index.d.ts": {
+        "version": "89fb470ea4979b52a206816172c98f92141a95494b40ee2b8d75a901d0555ba7",
+        "signature": "89fb470ea4979b52a206816172c98f92141a95494b40ee2b8d75a901d0555ba7",
+        "affectsGlobalScope": false
+      },
+      "../node_modules/@types/scheduler/index.d.ts": {
+        "version": "3169db033165677f1d414baf0c82ba27801089ca1b66d97af464512a47df31b5",
+        "signature": "3169db033165677f1d414baf0c82ba27801089ca1b66d97af464512a47df31b5",
         "affectsGlobalScope": false
       },
       "../node_modules/@types/semver/classes/semver.d.ts": {
@@ -926,6 +976,9 @@
         "../node_modules/@types/vinyl-fs/index.d.ts",
         "../node_modules/chokidar/types/index.d.ts"
       ],
+      "../node_modules/@types/hoist-non-react-statics/index.d.ts": [
+        "../node_modules/@types/react/index.d.ts"
+      ],
       "../node_modules/@types/lodash/ts3.1/common/array.d.ts": [
         "../node_modules/@types/lodash/ts3.1/common/collection.d.ts",
         "../node_modules/@types/lodash/ts3.1/common/common.d.ts",
@@ -1274,6 +1327,17 @@
       "../node_modules/@types/node/zlib.d.ts": [
         "../node_modules/@types/node/stream.d.ts"
       ],
+      "../node_modules/@types/react-redux/index.d.ts": [
+        "../node_modules/@types/hoist-non-react-statics/index.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/redux/index.d.ts"
+      ],
+      "../node_modules/@types/react/index.d.ts": [
+        "../node_modules/@types/prop-types/index.d.ts",
+        "../node_modules/@types/react/global.d.ts",
+        "../node_modules/@types/scheduler/tracing.d.ts",
+        "../node_modules/csstype/index.d.ts"
+      ],
       "../node_modules/@types/semver/classes/comparator.d.ts": [
         "../node_modules/@types/semver/classes/semver.d.ts",
         "../node_modules/@types/semver/index.d.ts"
@@ -1580,6 +1644,9 @@
         "../node_modules/@types/node/events.d.ts",
         "../node_modules/@types/node/fs.d.ts",
         "../node_modules/@types/node/index.d.ts"
+      ],
+      "../node_modules/redux/index.d.ts": [
+        "../node_modules/symbol-observable/index.d.ts"
       ],
       "../thread-promise-pool/ts/index.ts": [
         "../thread-promise-pool/ts/promise-queque.ts",
@@ -1624,6 +1691,9 @@
         "../node_modules/@types/vinyl-fs/index.d.ts",
         "../node_modules/chokidar/types/index.d.ts"
       ],
+      "../node_modules/@types/hoist-non-react-statics/index.d.ts": [
+        "../node_modules/@types/react/index.d.ts"
+      ],
       "../node_modules/@types/lodash/ts3.1/common/array.d.ts": [
         "../node_modules/@types/lodash/ts3.1/common/collection.d.ts",
         "../node_modules/@types/lodash/ts3.1/common/common.d.ts",
@@ -1972,6 +2042,17 @@
       "../node_modules/@types/node/zlib.d.ts": [
         "../node_modules/@types/node/stream.d.ts"
       ],
+      "../node_modules/@types/react-redux/index.d.ts": [
+        "../node_modules/@types/hoist-non-react-statics/index.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/redux/index.d.ts"
+      ],
+      "../node_modules/@types/react/index.d.ts": [
+        "../node_modules/@types/prop-types/index.d.ts",
+        "../node_modules/@types/react/global.d.ts",
+        "../node_modules/@types/scheduler/tracing.d.ts",
+        "../node_modules/csstype/index.d.ts"
+      ],
       "../node_modules/@types/semver/classes/comparator.d.ts": [
         "../node_modules/@types/semver/classes/semver.d.ts",
         "../node_modules/@types/semver/index.d.ts"
@@ -2279,6 +2360,9 @@
         "../node_modules/@types/node/fs.d.ts",
         "../node_modules/@types/node/index.d.ts"
       ],
+      "../node_modules/redux/index.d.ts": [
+        "../node_modules/symbol-observable/index.d.ts"
+      ],
       "../thread-promise-pool/ts/index.ts": [
         "../thread-promise-pool/ts/promise-queque.ts",
         "../thread-promise-pool/ts/thread-pool.ts",
@@ -2301,6 +2385,7 @@
       "../node_modules/@types/glob-stream/index.d.ts",
       "../node_modules/@types/glob/index.d.ts",
       "../node_modules/@types/gulp/index.d.ts",
+      "../node_modules/@types/hoist-non-react-statics/index.d.ts",
       "../node_modules/@types/jasmine/index.d.ts",
       "../node_modules/@types/js-yaml/index.d.ts",
       "../node_modules/@types/lodash/ts3.1/common/array.d.ts",
@@ -2365,6 +2450,12 @@
       "../node_modules/@types/node/wasi.d.ts",
       "../node_modules/@types/node/worker_threads.d.ts",
       "../node_modules/@types/node/zlib.d.ts",
+      "../node_modules/@types/prop-types/index.d.ts",
+      "../node_modules/@types/react-redux/index.d.ts",
+      "../node_modules/@types/react/global.d.ts",
+      "../node_modules/@types/react/index.d.ts",
+      "../node_modules/@types/scheduler/index.d.ts",
+      "../node_modules/@types/scheduler/tracing.d.ts",
       "../node_modules/@types/semver/classes/comparator.d.ts",
       "../node_modules/@types/semver/classes/range.d.ts",
       "../node_modules/@types/semver/classes/semver.d.ts",
@@ -2432,6 +2523,9 @@
       "../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts",
       "../node_modules/@types/yamljs/index.d.ts",
       "../node_modules/chokidar/types/index.d.ts",
+      "../node_modules/csstype/index.d.ts",
+      "../node_modules/redux/index.d.ts",
+      "../node_modules/symbol-observable/index.d.ts",
       "../node_modules/typescript/lib/lib.dom.d.ts",
       "../node_modules/typescript/lib/lib.es2015.collection.d.ts",
       "../node_modules/typescript/lib/lib.es2015.core.d.ts",

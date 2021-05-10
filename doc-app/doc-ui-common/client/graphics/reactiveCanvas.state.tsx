@@ -20,7 +20,8 @@ export type ReactiveCanvasProps = React.PropsWithChildren<{
   className?: string;
   /** default 2 */
   scaleRatio?: number;
-  epicFactory?: EpicFactory<ReactiveCanvasState, typeof reducers>;
+  // epicFactory?: EpicFactory<ReactiveCanvasState, typeof reducers>;
+  sliceRef?(slice: ReactiveCanvasSlice): void;
 }>;
 export interface ReactiveCanvasState {
   componentProps: ReactiveCanvasProps;
@@ -33,11 +34,7 @@ export interface ReactiveCanvasState {
   /** Since it is too expensive to creat a mutable version of Set, so use an Array to wrap it */
   animatingPaintables: [Set<string>];
   /** key is id, mutable!! */
-  components: [Map<string, Paintable>];
-  /** mutable!! key is parent id, value is array of children ids */
-  childrenMap: [Map<string, Set<string>>];
-  /** mutable!! key is children id, value is parent id */
-  parentsMap: [Map<string, string>];
+  components: [Map<string, PaintableWithRelations>];
   renderStarted: boolean;
   error?: Error;
 }
@@ -62,8 +59,17 @@ export class ReactiveCanvasCtx {
 }
 
 export interface Paintable {
+  init(ctx: ReactiveCanvasCtx): void;
   render(canvasCtx: CanvasRenderingContext2D): void;
   destroy(): void;
+}
+
+interface PaintableWithRelations {
+  /** parent id */
+  p?: string;
+  id: string;
+  children?: [Set<string>];
+  paintable: Paintable;
 }
 
 const reducers = {
@@ -82,45 +88,49 @@ const reducers = {
       const ratio = s.componentProps.scaleRatio!;
       s.pixelWidth = vw;
       s.pixelHeight = vh;
-      s.width = vw * ratio;
-      s.height = vh * ratio;
+      s.width = Math.floor(vw * ratio);
+      s.height = Math.floor(vh * ratio);
     }
   },
   render() {},
   addPaintable(s: ReactiveCanvasState, payload: [parentId: string, children: Iterable<Paintable>]) {},
   _addPaintableDone(s: ReactiveCanvasState, [parentId, children]: [parentId: string, children: Iterable<[id: string, paintable: Paintable]>]) {
-    let existingChildren = s.childrenMap[0].get(parentId);
+    const pw = s.components[0].get(parentId)!;
+    let existingChildren = pw.children;
     if (existingChildren == null) {
-      existingChildren = new Set();
-      s.childrenMap[0].set(parentId, existingChildren);
+      existingChildren = [new Set()];
+      pw.children = existingChildren;
     }
     for (const [id, instance] of children) {
-      s.components[0].set(id, instance);
-      existingChildren.add(id);
-      s.parentsMap[0].set(id, parentId);
+      s.components[0].set(id, {id, p: parentId, paintable: instance});
+      existingChildren[0].add(id);
     }
-    s.childrenMap = [...s.childrenMap];
     s.components = [...s.components];
-    s.parentsMap = [...s.parentsMap];
   },
-  removePaintable(s: ReactiveCanvasState, childrenIds: string[]) {
-    for (const id of childrenIds) {
-      const pid = s.parentsMap[0].get(id);
-      if (pid == null)
+  removePaintable(s: ReactiveCanvasState, ids: string[]) {
+    for (const id of ids) {
+      const pw = s.components[0].get(id);
+      if (pw == null)
         continue;
-      s.parentsMap[0].delete(id);
-      s.parentsMap = [s.parentsMap[0]];
-      const childrenIdSet = s.childrenMap[0].get(pid)!;
-      childrenIdSet.delete(id);
-      if (childrenIdSet.size === 0) {
-        s.childrenMap[0].delete(pid);
-        s.childrenMap = [s.childrenMap[0]];
+      s.components[0].delete(id);
+      if (pw.p) {
+        const parentPw = s.components[0].get(pw.p)!;
+        parentPw.children![0].delete(id);
+        parentPw.children = [...parentPw.children!];
       }
     }
   },
-  _removePaintable(s: ReactiveCanvasState, childrenIds: string[]) {
-    for (const id of childrenIds) {
+  _removePaintable(s: ReactiveCanvasState, targets: PaintableWithRelations[]) {
+    for (const {id, p} of targets) {
       s.components[0].delete(id);
+      if (p != null) {
+        const parent = s.components[0].get(p)!;
+        const children = parent.children;
+        if (children) {
+          children[0].delete(id);
+          parent.children = [...children];
+        }
+      }
     }
     s.components = [...s.components];
   },
@@ -135,8 +145,14 @@ let idSeed = 0;
 export function sliceOptionFactory() {
   const rootId = '' + idSeed++;
   const rootPaintable: Paintable = {
+    init(api) {},
     render(ctx) {},
     destroy() {}
+  };
+  const rootPaintableData: PaintableWithRelations = {
+    id: rootId,
+    children: [new Set()],
+    paintable: rootPaintable
   };
   const initialState: ReactiveCanvasState = {
     componentProps: {
@@ -148,10 +164,8 @@ export function sliceOptionFactory() {
     pixelHeight: 0,
     pixelWidth: 0,
     rootId,
-    components: [new Map([ [rootId, rootPaintable] ])],
+    components: [new Map([ [rootId, rootPaintableData] ])],
     animatingPaintables: [new Set()],
-    childrenMap: [new Map()],
-    parentsMap: [new Map()],
     renderStarted: false
   };
   return {
@@ -175,6 +189,13 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
           can.style.height = s.pixelHeight + 'px';
         })
       ),
+      slice.getStore().pipe(op.map(s => s.componentProps.sliceRef),
+        op.distinctUntilChanged(),
+        op.map(sliceRef => {
+          if (sliceRef) {
+            sliceRef(slice);
+          }
+        })),
       action$.pipe(ofPayloadAction(slice.actions.addPaintable),
         op.tap(({payload: [parentId, children]}) => {
           const toBeAdded: [id: string, instance: Paintable][] = [];
@@ -188,15 +209,25 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
         })
       ),
       action$.pipe(ofPayloadAction(slice.actions.removePaintable),
-        op.tap(({payload: childrenIds}) => {
-          const comps = slice.getState().components;
-          for (const id of childrenIds) {
-            const instance = comps[0].get(id);
+        op.tap(({payload: ids}) => {
+          const s = slice.getState();
+          const topSorted: PaintableWithRelations[] = [];
+          const bfs = new DFS<string>(parentId => {
+            const parent = s.components[0].get(parentId);
+            return parent?.children ? parent.children[0] : [];
+          }, (v => {
+            topSorted.push(s.components[0].get(v.data)!);
+          }));
+          bfs.visit(ids);
+
+          const comps = slice.getState().components[0];
+          for (const {id} of topSorted) {
+            const instance = comps.get(id);
             if (instance) {
-              instance.destroy();
+              instance.paintable.destroy();
             }
           }
-          slice.actionDispatcher._removePaintable(childrenIds);
+          slice.actionDispatcher._removePaintable(topSorted);
         })
       ),
       action$.pipe(ofPayloadAction(slice.actions.render),
@@ -208,9 +239,10 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
           const bfs = new DFS<string>(parentId => {
             console.log('render ', parentId);
             ctx.save();
-            s.components[0].get(parentId)?.render(ctx);
+            const pw = s.components[0].get(parentId)!;
+            pw.paintable.render(ctx);
             // ctx.restore();
-            return s.childrenMap[0].get(parentId)!;
+            return pw.children ? pw.children[0] : [];
           }, (v => {
             ctx.restore();
           }));
@@ -219,3 +251,5 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
     ).pipe(op.ignoreElements());
   };
 };
+
+export type ReactiveCanvasSlice = Slice<ReactiveCanvasState, typeof reducers>;

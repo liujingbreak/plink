@@ -13,8 +13,9 @@ import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
 import glob from 'glob';
+import {mergeBaseUrlAndPaths} from './ts-cmd-util';
 // import {PlinkEnv} from './node-path';
-
+export {RequiredCompilerOptions};
 
 const {symlinkDirName} = plinkEnv;
 const log = log4js.getLogger('plink.ts-cmd');
@@ -27,6 +28,8 @@ export interface TscCmdParam {
   sourceMap?: string;
   jsx?: boolean;
   ed?: boolean;
+  /** merge compilerOptions "baseUrl" and "paths" from specified tsconfig file */
+  mergeTsconfig?: string;
   pathsJsons?: string[];
   compileOptions?: {[key in keyof CompilerOptions]?: any};
   overridePackgeDirs?: {[pkgName: string]: PackageTsDirs};
@@ -45,9 +48,7 @@ interface PackageDirInfo extends PackageTsDirs {
  * @return void
  */
 export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => void*/): string[] {
-  // const possibleSrcDirs = ['isom', 'ts'];
   const compGlobs: string[] = [];
-  // var compStream = [];
   const compDirInfo: Map<string, PackageDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
   const baseTsconfigFile = require.resolve('../tsconfig-base.json');
   const baseTsconfig = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'));
@@ -116,7 +117,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     emitDeclarationOnly: argv.ed
     // preserveSymlinks: true
   };
-  setupCompilerOptionsWithPackages(compilerOptions, argv.pathsJsons);
+  setupCompilerOptionsWithPackages(compilerOptions, argv.mergeTsconfig, argv.pathsJsons);
 
   log.info('typescript compilerOptions:', compilerOptions);
   // const tsProject = gulpTs.createProject({...compilerOptions, typescript: require('typescript')});
@@ -133,10 +134,10 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     const symlinkDir = resolve(plinkEnv.workDir, symlinkDirName, name);
     compDirInfo.set(name, {...tscCfg, pkgDir: realPath, symlinkDir});
 
-    if (tscCfg.globs) {
-      compGlobs.push(...tscCfg.globs.map(file => resolve(symlinkDir, file).replace(/\\/g, '/')));
-      return;
-    }
+    // if (tscCfg.globs) {
+    //   compGlobs.push(...tscCfg.globs.map(file => resolve(symlinkDir, file).replace(/\\/g, '/')));
+    //   return;
+    // }
 
     const srcDirs = [tscCfg.srcDir, tscCfg.isomDir].filter(srcDir => {
       if (srcDir == null)
@@ -148,14 +149,22 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
       }
     });
 
+    if (srcDirs.length === 0) {
+      if (!fs.existsSync(symlinkDir)) {
+        log.error(`There is no existing directory ${chalk.red(symlinkDir)},` +
+        ` it is possible that package ${name} is yet not added to current worktree space's package.json file,` +
+        ' current worktree space is not synced yet, try "sync"/"init" command please');
+      } else {
+        log.error(`There is no existing ts source directory found for package ${chalk.red(name)}:` +
+          ` ${[tscCfg.srcDir, tscCfg.isomDir].filter(item => item != null)}`);
+      }
+    }
+
     if (tscCfg.include) {
       tscCfg.include = ([] as string[]).concat(tscCfg.include);
     }
     if (tscCfg.include && tscCfg.include.length > 0) {
-      for (const pattern of tscCfg.include) {
-        const includePath = resolve(symlinkDir, pattern).replace(/\\/g, '/');
-        compGlobs.push(includePath);
-      }
+      compGlobs.push(...(tscCfg.include as string[]).map(pattern => resolve(symlinkDir, pattern).replace(/\\/g, '/')));
     } else {
       srcDirs.forEach(srcDir => {
         const relPath = resolve(symlinkDir, srcDir!).replace(/\\/g, '/');
@@ -166,7 +175,6 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
       });
     }
   }
-
 
   if (argv.watch) {
     log.info('Watch mode');
@@ -306,30 +314,25 @@ function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
   console.info(chalk.cyan(ts.formatDiagnostic(diagnostic, formatHost)));
 }
 
-function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, pathsJsons?: string[]) {
+function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, mergeFromTsconfig?: string, pathsJsons?: string[]) {
   const cwd = plinkEnv.workDir;
   let wsKey: string | null | undefined = workspaceKey(cwd);
   if (!getState().workspaces.has(wsKey))
     wsKey = getState().currWorkspace;
   if (wsKey == null) {
-    throw new Error('Current directory is not a work space');
+    throw new Error(`Current directory "${cwd}" is not a work space`);
   }
 
-  // if (compilerOptions.paths == null)
-  //   compilerOptions.paths = {};
-
-  // for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
-  //   const realDir = relative(cwd, realPath).replace(/\\/g, '/');
-  //   compilerOptions.paths[name] = [realDir];
-  //   compilerOptions.paths[name + '/*'] = [realDir + '/*'];
-  // }
+  if (mergeFromTsconfig) {
+    mergeBaseUrlAndPaths(ts, mergeFromTsconfig, cwd, compilerOptions);
+  }
   setTsCompilerOptForNodePath(cwd, './', compilerOptions, {
     enableTypeRoots: true,
     workspaceDir: resolve(root, wsKey)
   });
 
   if (pathsJsons && pathsJsons.length > 0) {
-    pathsJsons.reduce((pathMap, jsonStr) => {
+    compilerOptions.paths = pathsJsons.reduce((pathMap, jsonStr) => {
       return {...pathMap, ...JSON.parse(jsonStr)};
     }, compilerOptions.paths);
   }

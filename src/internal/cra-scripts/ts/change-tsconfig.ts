@@ -1,8 +1,11 @@
 import {closestCommonParentDir} from '@wfh/plink/wfh/dist/utils/misc';
 import {getState} from '@wfh/plink/wfh/dist/package-mgr';
-import {getRootDir, setTsCompilerOptForNodePath} from '@wfh/plink';
+import {getRootDir, setTsCompilerOptForNodePath, plinkEnv, log4File} from '@wfh/plink';
+import ts from 'typescript';
+import {runTsConfigHandlers} from './utils';
 import Path from 'path';
 import fs from 'fs';
+const log = log4File(__filename);
 
 export function changeTsConfigFile() {
   // const craOptions = getCmdOptions();
@@ -11,11 +14,22 @@ export function changeTsConfigFile() {
     getState().project2Packages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                .keys()
     ).map(prjDir => Path.resolve(plinkRoot, prjDir))).replace(/\\/g, '/');
 
-  const tsconfigJson = JSON.parse(fs.readFileSync(process.env._plink_cra_scripts_tsConfig!, 'utf8'));
+  const tsconfigJson: {compilerOptions: any, include?: string[]} =
+    ts.readConfigFile(process.env._plink_cra_scripts_tsConfig!, (file) => fs.readFileSync(file, 'utf-8')).config;
+    // JSON.parse(fs.readFileSync(process.env._plink_cra_scripts_tsConfig!, 'utf8'));
   const tsconfigDir = Path.dirname(process.env._plink_cra_scripts_tsConfig!);
 
-  const pathMapping: {[key: string]: string[]} = {};
+  // CRA does not allow we configure "compilerOptions.paths" in _plink_cra_scripts_tsConfig
+  // (see create-react-app/packages/react-scripts/scripts/utils/verifyTypeScriptSetup.js)
+  // therefore, initial paths is always empty.
+  const pathMapping: {[key: string]: string[]} = tsconfigJson.compilerOptions.paths = {};
+  // if (tsconfigJson.compilerOptions && tsconfigJson.compilerOptions.paths) {
+  //   Object.assign(pathMapping, tsconfigJson.compilerOptions.paths);
+  // }
 
+  if (tsconfigJson.compilerOptions.baseUrl == null) {
+    tsconfigJson.compilerOptions.baseUrl = './';
+  }
   for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
     const realDir = Path.relative(tsconfigDir, realPath).replace(/\\/g, '/');
     pathMapping[name] = [realDir];
@@ -30,13 +44,16 @@ export function changeTsConfigFile() {
   tsconfigJson.compilerOptions.paths = pathMapping;
 
   setTsCompilerOptForNodePath(tsconfigDir, './', tsconfigJson.compilerOptions, {
-    workspaceDir: process.cwd()
+    workspaceDir: plinkEnv.workDir || process.cwd()
   });
+  runTsConfigHandlers(tsconfigJson.compilerOptions);
 
-  tsconfigJson.include = [Path.relative(process.cwd(), process.env._plink_cra_scripts_indexJs!)];
+  tsconfigJson.include = [Path.relative(plinkEnv.workDir || process.cwd(), process.env._plink_cra_scripts_indexJs!)];
   tsconfigJson.compilerOptions.rootDir = rootDir;
-  // tslint:disable-next-line: no-console
-  // console.log('[change-tsconfig] tsconfigJson:', JSON.stringify(tsconfigJson, null, '  '));
+  const co = ts.parseJsonConfigFileContent(tsconfigJson, ts.sys, plinkEnv.workDir.replace(/\\/g, '/'),
+    undefined, process.env._plink_cra_scripts_tsConfig).options;
+
+  log.info('[change-tsconfig] tsconfigJson:', JSON.stringify(tsconfigJson, null, '  '));
   // fs.writeFileSync(Path.resolve('tsconfig.json'), JSON.stringify(tsconfigJson, null, '  '));
-  return tsconfigJson;
+  return co;
 }

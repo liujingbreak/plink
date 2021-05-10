@@ -6,7 +6,7 @@ import {hookCommonJsRequire} from './loaderHooks';
 import _ from 'lodash';
 import {isMainThread} from 'worker_threads';
 
-let logPrefix = 'node-path - ';
+let logPrefix = '> ';
 if (process.send)
   logPrefix = `[pid: ${process.pid}]` + logPrefix;
 else if (!isMainThread)
@@ -34,9 +34,14 @@ if (!envSetDone) {
     // tslint:disable-next-line: no-console
     console.log(chalk.gray(logPrefix + 'PLINK_DATA_DIR: ' + process.env.PLINK_DATA_DIR));
   }
-  const workDir = process.env.PLINK_WORK_DIR ? Path.resolve(process.env.PLINK_WORK_DIR) : process.cwd();
+  const PLINK_WORK_DIR = process.env.PLINK_WORK_DIR;
+  if (PLINK_WORK_DIR) {
+    // tslint:disable-next-line: no-console
+    console.log(logPrefix + `Environment variable PLINK_WORK_DIR is set, default workspace is: ${PLINK_WORK_DIR}`);
+  }
+  const workDir = PLINK_WORK_DIR ? Path.resolve(PLINK_WORK_DIR) : process.cwd();
   const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR, workDir);
-
+  checkUpLevelNodeModules(rootDir);
   // We can change this path to another directory like '.links',
   // if we don't want node_modules to be polluted by symlinks;
   const symlinkDirName = exitingEnvVar && exitingEnvVar.symlinkDirName ?
@@ -141,6 +146,28 @@ export interface PlinkEnv {
   symlinkDirName: string | 'node_modules';
   nodePath: string[];
   plinkDir: string;
+}
+
+/**
+ * Webpack and TS compiler by default will look up node_modules from up level directries,
+ * this breaks Plink's way of adding extra node path for Node.js, TS or Webpack, it leads
+ * to problematic module loading issue.
+ */
+function checkUpLevelNodeModules(rootDir: string) {
+  const dirs = [] as string[];
+
+  let currDir = rootDir;
+  let parentDir = Path.dirname(currDir);
+  while (parentDir !== currDir) {
+    dirs.push(Path.resolve(parentDir, 'node_modules'));
+    currDir = parentDir;
+    parentDir = Path.dirname(currDir);
+  }
+  const nodeModule = dirs.find(dir => fs.existsSync(dir));
+  if (nodeModule) {
+    throw new Error(chalk.red(`Found "${nodeModule}" in Plink CLI's upper level directory, ` +
+    'this could be problematic for Plink or Webpack to load proper module.'))
+  }
 }
 
 

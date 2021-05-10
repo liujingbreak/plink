@@ -38,6 +38,7 @@ export interface AnalyzeOptions extends GlobalOptions {
     dir?: string[];
     file?: string[];
     j: boolean;
+    tsconfig?: string;
     alias: string[];
 }
 export interface OurCommandMetadata {

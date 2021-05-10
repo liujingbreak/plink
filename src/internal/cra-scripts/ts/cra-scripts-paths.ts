@@ -8,13 +8,25 @@ import pCfg from '@wfh/plink/wfh/dist/config';
 import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
 import {ReactScriptsHandler, CraScriptsPaths} from './types';
 import fsext from 'fs-extra';
-import plink from '__plink';
-const log = plink.logger;
+import {log4File, config} from '@wfh/plink';
+const log = log4File(__filename);
 
-
+export const PKG_LIB_ENTRY_PROP = 'cra-lib-entry';
+export const PKG_LIB_ENTRY_DEFAULT = 'public_api.ts';
+export const PKG_APP_ENTRY_PROP = 'cra-app-entry';
+export const PKG_APP_ENTRY_DEFAULT = 'start.tsx';
 
 let craScriptsPaths: CraScriptsPaths;
-export let configFileInPackage: string | undefined | null;
+let configFileInPackage: string | undefined | null;
+
+export function getConfigFileInPackage() {
+  if (configFileInPackage) {
+    return configFileInPackage;
+  } else {
+    paths();
+    return configFileInPackage;
+  }
+}
 
 export default function paths() {
   if (craScriptsPaths) {
@@ -30,11 +42,12 @@ export default function paths() {
   const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
   const changedPaths = paths;
 
+  const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
   if (cmdOption.buildType === 'lib') {
     changedPaths.appBuild = Path.resolve(dir, 'build');
-    changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-lib-entry', 'public_api.ts'));
+    changedPaths.appIndexJs = Path.resolve(dir, _.get(plinkProps, [PKG_LIB_ENTRY_PROP], PKG_LIB_ENTRY_DEFAULT));
   } else if (cmdOption.buildType === 'app') {
-    changedPaths.appIndexJs = Path.resolve(dir, _.get(packageJson, 'dr.cra-app-entry', 'start.tsx'));
+    changedPaths.appIndexJs = Path.resolve(dir, _.get(plinkProps, [PKG_APP_ENTRY_PROP], PKG_APP_ENTRY_DEFAULT));
     changedPaths.appBuild = pCfg.resolve('staticDir');
   }
   log.debug(changedPaths);
@@ -42,18 +55,18 @@ export default function paths() {
   pCfg.configHandlerMgrChanged(handler => handler.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
     if (handler.changeCraPaths != null) {
       log.info('Execute CRA scripts paths overrides', cfgFile);
-      handler.changeCraPaths(changedPaths, plink.config().cliOptions?.env!, cmdOption);
+      handler.changeCraPaths(changedPaths, config().cliOptions?.env!, cmdOption);
     }
   }));
 
-  configFileInPackage = Path.resolve(dir, _.get(packageJson, ['dr', 'config-overrides-path'], 'config-overrides.ts'));
+  configFileInPackage = Path.resolve(dir, _.get(plinkProps, ['config-overrides-path'], 'config-overrides.ts'));
 
   if (fs.existsSync(configFileInPackage)) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
     cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
       if (handler.changeCraPaths != null) {
         log.info('Execute CRA scripts paths configuration overrides from ', cfgFile);
-        handler.changeCraPaths(changedPaths, plink.config().cliOptions?.env!, cmdOption);
+        handler.changeCraPaths(changedPaths, config().cliOptions?.env!, cmdOption);
       }
     });
   } else {

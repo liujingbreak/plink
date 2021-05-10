@@ -70,7 +70,7 @@
     "redux-observable": "~1.2.0",
     "log4js": "^6.1.2",
     "cfonts": "~2.8.6",
-    "tslib": "^1.9.3",
+    "tslib": "^2.2.0",
     "@types/node": "^14.11.1",
     "serialize-javascript": "~5.0.1",
     "@types/serialize-javascript": "~5.0.0",

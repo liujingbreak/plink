@@ -1,7 +1,7 @@
 // import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';
-import { distinctUntilChanged, map, skip, take, pluck } from 'rxjs/operators';
+import { distinctUntilChanged, map, skip, take } from 'rxjs/operators';
 import { actionDispatcher as pkgActions, getStore } from '../package-mgr';
 import { boxString, getRootDir } from '../utils/misc';
 // import { writeFile } from './utils';
@@ -12,79 +12,83 @@ const rootPath = getRootDir();
  * @param action 
  * @param dirs 
  */
-export default async function(action?: 'add' | 'remove', dirs?: string[]) {
+export default async function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', dirs?: string[]) {
   getStore().pipe(
-    pluck('project2Packages'), distinctUntilChanged(),
-    map(project2Packages => Array.from(project2Packages.keys())),
-    // tap(project2Packages => console.log(project2Packages)),
-    distinctUntilChanged((keys1, keys2) => keys1.length === keys2.length && keys1.join() === keys2.join()),
+    distinctUntilChanged((x, y) => x.srcDir2Packages === y.srcDir2Packages &&
+      x.project2Packages === y.project2Packages),
     skip(1),
-    map(projects => {
+    map(s => {
       // // tslint:disable-next-line: no-console
       // console.log(boxString('Project list is updated, you need to run\n\tdrcp init\n' +
       // ' to install new dependencies from the new project.', 60));
-      printProjects(projects);
+      printProjects(s.project2Packages.keys(), s.srcDir2Packages.keys());
     })
   ).subscribe();
   switch (action) {
     case 'add':
-      if (dirs)
-        addProject(dirs);
+      if (dirs) {
+        if (opts.isSrcDir)
+          pkgActions.addSrcDirs(dirs);
+        else
+          pkgActions.addProject(dirs);
+      }
       break;
     case 'remove':
-      if (dirs)
-        removeProject(dirs);
+      if (dirs) {
+        if (opts.isSrcDir)
+          pkgActions.deleteSrcDirs(dirs);
+        else
+          pkgActions.deleteProject(dirs);
+      }
       break;
     default:
       listProject();
   }
 }
 
-function removeProject(dirs: string[]) {
-  pkgActions.deleteProject(dirs);
-  // const projectListFile = Path.join(rootPath, 'dr.project.list.json');
-  // if (fs.existsSync(projectListFile)) {
-  //   // tslint:disable-next-line: no-console
-  //   console.log('Removing project: %s', dirs.join(', '));
-  //   let prjs: string[] = JSON.parse(fs.readFileSync(projectListFile, 'utf8'));
-  //   prjs = _.differenceBy(prjs, dirs, dir => Path.resolve(dir));
-  //   const str = JSON.stringify(prjs, null, '  ');
-  //   writeFile(projectListFile, str);
-  //   delete require.cache[require.resolve(projectListFile)];
-  //   listProject(prjs);
-  // }
-}
-
 export function listProject(projects?: string[]) {
   getStore().pipe(
-    map(s => s.project2Packages), distinctUntilChanged(),
-    map(projects2pks => {
-      printProjects(Array.from(projects2pks.keys()));
+    distinctUntilChanged((a, b) => a.project2Packages === b.project2Packages &&
+      a.srcDir2Packages === b.srcDir2Packages),
+    map(s => {
+      printProjects(s.project2Packages.keys(), s.srcDir2Packages.keys());
     }),
     take(1)
   ).subscribe();
 }
 
-function printProjects(projects: string[]) {
-  // const projects = Object.keys(projects2pks);
-  if (projects.length === 0) {
+function printProjects(projects: Iterable<string>, srcDirs: Iterable<string>) {
+
+  let list = [...projects];
+  if (list.length === 0) {
     // tslint:disable-next-line: no-console
     console.log(boxString('No project'));
-    return;
   } else {
-    let str = _.pad(' Projects directory ', 40, ' ');
+    let str = 'Project directories'.toUpperCase();
     str += '\n \n';
-    _.each(projects, (dir, i) => {
+    let i = 0;
+    for (let dir of list) {
       dir = Path.resolve(rootPath, dir);
       str += _.padEnd(i + 1 + '. ', 5, ' ') + dir;
       str += '\n';
-    });
+      i++;
+    }
+    // tslint:disable-next-line: no-console
+    console.log(boxString(str));
+  }
+  list = [...srcDirs];
+  if (list.length > 0) {
+    let str = 'Linked directories'.toUpperCase();
+    str += '\n \n';
+    let i = 0;
+
+    for (let dir of list) {
+      dir = Path.resolve(rootPath, dir);
+      str += _.padEnd(i + 1 + '. ', 5, ' ') + dir;
+      str += '\n';
+      i++;
+    }
     // tslint:disable-next-line: no-console
     console.log(boxString(str));
   }
 }
-
-function addProject(dirs: string[]) {
-  pkgActions.addProject(dirs);
-}
-

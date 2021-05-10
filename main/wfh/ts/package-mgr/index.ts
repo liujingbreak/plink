@@ -9,12 +9,12 @@ import fs from 'fs';
 import _ from 'lodash';
 import Path from 'path';
 import { from, merge, Observable, of, defer, throwError} from 'rxjs';
-import { distinctUntilChanged, filter, map, switchMap, debounceTime,
-  take, concatMap, skip, ignoreElements, scan, catchError, tap } from 'rxjs/operators';
+import { distinctUntilChanged, filter, map, debounceTime,
+  take, concatMap, ignoreElements, scan, catchError, tap } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 import { spawn } from '../process-utils';
 import { exe } from '../process-utils';
-import { setProjectList} from '../recipe-manager';
+import { setProjectList, setLinkPatterns} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
 // import { getRootDir } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync } from '../utils/symlinks';
@@ -43,6 +43,7 @@ export interface PackagesState {
   /** key of current "workspaces" */
   currWorkspace?: string | null;
   project2Packages: Map<string, string[]>;
+  srcDir2Packages: Map<string, string[]>;
   /** Drcp is the original name of Plink project */
   linkedDrcp?: PackageInfo | null;
   linkedDrcpProject?: string | null;
@@ -65,6 +66,7 @@ const state: PackagesState = {
   inited: false,
   workspaces: new Map(),
   project2Packages: new Map(),
+  srcDir2Packages: new Map(),
   srcPackages: new Map(),
   gitIgnores: {},
   workspaceUpdateChecksum: 0,
@@ -159,10 +161,34 @@ export const slice = stateFactory.newSlice({
         d.project2Packages.delete(dir);
       }
     },
+    addSrcDirs(d, action: PayloadAction<string[]>) {
+      for (const rawDir of action.payload) {
+        const dir = pathToProjKey(rawDir);
+        if (!d.srcDir2Packages.has(dir)) {
+          d.srcDir2Packages.set(dir, []);
+        }
+      }
+    },
+    deleteSrcDirs(d, action: PayloadAction<string[]>) {
+      for (const rawDir of action.payload) {
+        const dir = pathToProjKey(rawDir);
+        d.srcDir2Packages.delete(dir);
+      }
+    },
     /** payload: workspace keys, happens as debounced workspace change event */
     workspaceBatchChanged(d, action: PayloadAction<string[]>) {},
-    updateGitIgnores(d, {payload}: PayloadAction<{file: string, lines: string[]}>) {
-      d.gitIgnores[payload.file] = payload.lines.map(line => line.startsWith('/') ? line : '/' + line);
+    updateGitIgnores(d, {payload: {file, lines}}: PayloadAction<{file: string, lines: string[]}>) {
+      let rel = file, abs = file;
+      if (Path.isAbsolute(file)) {
+        rel = Path.relative(rootDir, file).replace(/\\/g, '/');
+        abs = file;
+      } else {
+        abs = Path.resolve(rootDir, file);
+      }
+      if (d.gitIgnores[abs]) {
+        delete d.gitIgnores[abs];
+      }
+      d.gitIgnores[rel] = lines.map(line => line.startsWith('/') ? line : '/' + line);
     },
     packagesUpdated(d) {
       d.packagesUpdateChecksum++;
@@ -298,6 +324,10 @@ export const slice = stateFactory.newSlice({
     // _createSymlinksForWorkspace(d, action: PayloadAction<string>) {},
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: {name: string}[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
+    },
+    _associatePackageToLinkPattern(d,
+      {payload: {pattern, pkgs}}: PayloadAction<{pattern: string; pkgs: {name: string}[]}>) {
+      d.srcDir2Packages.set(pathToProjKey(pattern), pkgs.map(pkgs => pkgs.name));
     }
   }
 });
@@ -312,6 +342,13 @@ stateFactory.addEpic((action$, state$) => {
   const updatedWorkspaceSet = new Set<string>();
   const packageAddedList = new Array<string>();
 
+  const gitIgnoreFilesWaiting = new Set<string>();
+
+  if (getState().srcDir2Packages == null) {
+    // Because srcDir2Packages is newly added, to avoid existing project
+    // being broken for missing it in previously stored state file
+    actionDispatcher._change(s => s.srcDir2Packages = new Map());
+  }
   return merge(
     // To override stored state. 
     // Do not put following logic in initialState! It will be overridden by previously saved state
@@ -328,9 +365,16 @@ stateFactory.addEpic((action$, state$) => {
       ignoreElements()
     ),
 
+    getStore().pipe(map(s => s.srcDir2Packages),
+      distinctUntilChanged(),
+      filter(v => v != null),
+      map((linkPatternMap) => {
+        setLinkPatterns(linkPatternMap.keys());
+      })),
+
     getStore().pipe(map(s => s.srcPackages),
       distinctUntilChanged(),
-      scan((prevMap, currMap) => {
+      scan<PackagesState['srcPackages']>((prevMap, currMap) => {
         packageAddedList.splice(0);
         for (const nm of currMap.keys()) {
           if (!prevMap.has(nm)) {
@@ -532,38 +576,36 @@ stateFactory.addEpic((action$, state$) => {
         actionDispatcher.packagesUpdated();
       })
     ),
-    // action$.pipe(ofPayloadAction(slice.actions.workspaceBatchChanged),
-    //   concatMap(({payload: wsKeys}) => {
-    //     return merge(...wsKeys.map(_createSymlinksForWorkspace));
-    //   })
-    // ),
-    getStore().pipe(map(s => s.gitIgnores),
-      distinctUntilChanged(),
-      map(gitIgnores => Object.keys(gitIgnores).join(',')),
-      distinctUntilChanged(),
+    action$.pipe(ofPayloadAction(slice.actions.updateGitIgnores),
+      tap(action => {
+        let rel = action.payload.file;
+        if (Path.isAbsolute(rel)) {
+          rel = Path.relative(rootDir, rel).replace(/\\/g, '/');
+        }
+        gitIgnoreFilesWaiting.add(rel);
+      }),
       debounceTime(500),
-      switchMap(() => {
-        return merge(...Object.keys(getState().gitIgnores).map(file => getStore().pipe(
-          map(s => s.gitIgnores[file]),
-          distinctUntilChanged(),
-          skip(1),
-          map(lines => {
-            fs.readFile(file, 'utf8', (err, data) => {
-              if (err) {
-                console.error('Failed to read gitignore file', file);
-                throw err;
-              }
-              const existingLines = data.split(/\n\r?/).map(line => line.trim());
-              const newLines = _.difference(lines, existingLines);
-              if (newLines.length === 0)
-                return;
-              fs.writeFile(file, data + EOL + newLines.join(EOL), () => {
-                // tslint:disable-next-line: no-console
-                log.info('Modify', file);
-              });
+      map(() => {
+        const changedFiles = [...gitIgnoreFilesWaiting.values()];
+        gitIgnoreFilesWaiting.clear();
+        return changedFiles;
+      }),
+      concatMap((changedFiles) => {
+        return merge(...changedFiles.map(async rel => {
+          const file = Path.resolve(rootDir, rel);
+          const lines = getState().gitIgnores[file];
+          if (fs.existsSync(file)) {
+            const data = await fs.promises.readFile(file, 'utf8');
+            const existingLines = data.split(/\n\r?/).map(line => line.trim());
+            const newLines = _.difference(lines, existingLines);
+            if (newLines.length === 0)
+              return;
+            fs.writeFile(file, data + EOL + newLines.join(EOL), () => {
+              // tslint:disable-next-line: no-console
+              log.info('Modify', file);
             });
-          })
-        )));
+          }
+        }));
       }),
       ignoreElements()
     ),
@@ -809,11 +851,12 @@ async function copyNpmrcToWorkspace(workspaceDir: string) {
 
 async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
   const projPkgMap: Map<string, PackageInfo[]> = new Map();
+  const srcPkgMap: Map<string, PackageInfo[]> = new Map();
   let pkgList: PackageInfo[];
 
   if (includePackageJsonFiles) {
     const prjKeys = Array.from(getState().project2Packages.keys());
-    const prjDirs = Array.from(getState().project2Packages.keys()).map(prjKey => projKeyToPath(prjKey));
+    const prjDirs = prjKeys.map(prjKey => projKeyToPath(prjKey));
     pkgList = includePackageJsonFiles.map(jsonFile => {
       const info = createPackageInfo(jsonFile, false);
       const prjIdx = prjDirs.findIndex(dir => info.realPath.startsWith(dir + Path.sep));
@@ -834,13 +877,21 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
     const rm = (await import('../recipe-manager'));
     pkgList = [];
     await rm.scanPackages().pipe(
-      tap(([proj, jsonFile]) => {
-        if (!projPkgMap.has(proj))
+      tap(([proj, jsonFile, srcDir]) => {
+        if (proj && !projPkgMap.has(proj))
           projPkgMap.set(proj, []);
+        if (proj == null && srcDir && !srcPkgMap.has(srcDir))
+          srcPkgMap.set(srcDir, []);
+
         const info = createPackageInfo(jsonFile, false);
         if (info.json.dr || info.json.plink) {
           pkgList.push(info);
-          projPkgMap.get(proj)!.push(info);
+          if (proj)
+            projPkgMap.get(proj)!.push(info);
+          else if (srcDir)
+            srcPkgMap.get(srcDir)!.push(info);
+          else
+            log.error(`Orphan ${jsonFile}`);
         } else {
           log.debug(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`);
         }
@@ -849,6 +900,10 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
     for (const [prj, pkgs] of projPkgMap.entries()) {
       actionDispatcher._associatePackageToPrj({prj, pkgs});
     }
+    for (const [srcDir, pkgs] of srcPkgMap.entries()) {
+      actionDispatcher._associatePackageToLinkPattern({pattern: srcDir, pkgs});
+    }
+
     actionDispatcher._syncLinkedPackages([pkgList, 'clean']);
   }
 }

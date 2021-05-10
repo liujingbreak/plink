@@ -4,6 +4,7 @@ import {calcNodePaths} from '../node-path';
 import _ from 'lodash';
 import {getLogger} from 'log4js';
 import {plinkEnv} from '../utils/misc';
+import ts from 'typescript';
 
 export type PackageType = '*' | 'build' | 'core';
 const log = getLogger('plink.package-list-helper');
@@ -113,9 +114,10 @@ export interface CompilerOptionSetOpt {
 export interface CompilerOptions {
   baseUrl: string;
   typeRoots: string[];
-  paths?: {[path: string]: string[]};
-  [key: string]: any;
+  paths?: { [path: string]: string[]; };
+  [prop: string]: ts.CompilerOptionsValue;
 }
+
 /**
  * Set "baseUrl", "paths" and "typeRoots" property relative to tsconfigDir, process.cwd()
  * and process.env.NODE_PATHS
@@ -297,8 +299,9 @@ function typeRootsInPackages(onlyIncludeWorkspace?: string) {
   const dirs: string[] = [];
   for (const wsKey of wsKeys) {
     for (const pkg of packages4WorkspaceKey(wsKey)) {
-      if (pkg.json.dr.typeRoot) {
-        const dir = Path.resolve(pkg.realPath, pkg.json.dr.typeRoot);
+      const typeRoot = pkg.json.plink ? pkg.json.plink.typeRoot : pkg.json.dr ? pkg.json.dr.typeRoot : null;
+      if (typeRoot) {
+        const dir = Path.resolve(pkg.realPath, typeRoot);
         dirs.push(dir);
       }
     }

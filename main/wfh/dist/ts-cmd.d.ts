@@ -1,5 +1,7 @@
 import { PackageTsDirs } from './utils/misc';
 import { CompilerOptions } from 'typescript';
+import { CompilerOptions as RequiredCompilerOptions } from './package-mgr/package-list-helper';
+export { RequiredCompilerOptions };
 export interface TscCmdParam {
     package?: string[];
     project?: string[];
@@ -7,6 +9,8 @@ export interface TscCmdParam {
     sourceMap?: string;
     jsx?: boolean;
     ed?: boolean;
+    /** merge compilerOptions "baseUrl" and "paths" from specified tsconfig file */
+    mergeTsconfig?: string;
     pathsJsons?: string[];
     compileOptions?: {
         [key in keyof CompilerOptions]?: any;

@@ -15,9 +15,11 @@ import plink from '__plink';
 
 const cli: CliExtension = (program) => {
   const buildCmd = program.command('cra-build <app|lib> <package-name>')
-  .description('Compile react application or library, <package-name> is the target package name,\n' +
-    'argument "app" for building a complete application like create-react-app,\n' +
-    'argument "lib" for building a library')
+  .description('Compile react application or library (work with create-react-app v4.0.3)',{
+    'app|lib': '"app" stands for building a complete application like create-react-app,\n' +
+      '"lib" stands for building a library',
+    'package-name': 'target package name, the "scope" name part can be omitted'
+  })
   .option('-w, --watch', 'When build a library, watch file changes and compile', false)
   // .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
   .option('-i, --include <module-path-regex>',
@@ -36,7 +38,9 @@ const cli: CliExtension = (program) => {
   withClicOpt(buildCmd);
 
   const StartCmd = program.command('cra-start <package-name>')
-  .description('Run CRA start script for react application or library, <package-name> is the target package name')
+  .description('Run CRA start script for react application or library (work with create-react-app v4.0.3)',{
+    'package-name': 'target package name, the "scope" name part can be omitted'
+  })
   .action(async (pkgName) => {
     await initEverything(StartCmd, 'app', pkgName);
     require('react-scripts/scripts/start');

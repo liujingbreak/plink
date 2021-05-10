@@ -3,9 +3,9 @@ import os from 'os';
 import Path from 'path';
 import glob from 'glob';
 import _ from 'lodash';
-import { PayloadAction } from '@reduxjs/toolkit';
-import { stateFactory, ofPayloadAction } from '../store';
-import { ignoreElements, catchError, map, concatMap} from 'rxjs/operators';
+// import { PayloadAction } from '@reduxjs/toolkit';
+import { stateFactory, ofPayloadAction, createReducers } from '../store';
+import { ignoreElements, catchError, map, mergeMap} from 'rxjs/operators';
 import * as op from 'rxjs/operators';
 import {merge, from} from 'rxjs';
 import {Context} from './cli-analyse-worker';
@@ -21,10 +21,18 @@ const log = log4js.getLogger('plink.analyse');
 const cpus = os.cpus().length;
 
 export default async function(packages: string[], opts: AnalyzeOptions) {
+  const alias: [reg: string, replace: string][] =
+    // tslint:disable-next-line: no-eval
+    opts.alias.map(item => JSON.parse(item));
+
   if (opts.file && opts.file.length > 0) {
-    dispatcher.analyzeFile(opts.file);
+    dispatcher.analyzeFile({files: opts.file, alias, tsconfig: opts.tsconfig});
   } else if (opts.dir && opts.dir.length > 0) {
-    dispatcher.analyzeFile(opts.dir.map(dir => dir.replace(/\\/g, '/') + '/**/*'));
+    dispatcher.analyzeFile({
+      files: opts.dir.map(dir => dir.replace(/\\/g, '/') + '/**/*'),
+      alias,
+      tsconfig: opts.tsconfig
+    });
   } else {
     // log.warn('Sorry, not implemented yet, use with argument "-f" for now.');
     let i = 0;
@@ -38,7 +46,7 @@ export default async function(packages: string[], opts: AnalyzeOptions) {
       if (dirs.isomDir) {
         patterns.push(`${pkg.realPath.replace(/\\/g, '/')}/${dirs.srcDir}/**/*.ts`);
       }
-      dispatcher.analyzeFile(patterns);
+      dispatcher.analyzeFile({files: patterns, alias});
       i++;
     }
   }
@@ -46,69 +54,88 @@ export default async function(packages: string[], opts: AnalyzeOptions) {
     map(s => s.result), op.distinctUntilChanged(),
     op.skip(1),
     op.tap((result) => {
-      if (result!.canNotResolve.length > 0) {
-        const table = createCliTable({horizontalLines: false});
-        table.push([{colSpan: 2, content: chalk.bold('Can not resolve dependecies'), hAlign: 'center'}]);
-        table.push([{hAlign: 'right', content: '--'}, '--------']);
-        let i = 1;
-        for (const msg of result!.canNotResolve) {
-          // tslint:disable-next-line: no-console
-          console.log(`Can not resolve dependecy: ${JSON.stringify(msg, null, '  ')}`);
-          table.push([{hAlign: 'right', content: i++}, JSON.stringify(msg, null, '  ')]);
-        }
-        // tslint:disable-next-line: no-console
-        console.log(table.toString());
-      }
-
-      if (result!.cyclic.length > 0) {
-        let i = 1;
-        const table = createCliTable({horizontalLines: false});
-        table.push([{colSpan: 2, content: chalk.bold('Cyclic dependecies'), hAlign: 'center'}]);
-        table.push([{hAlign: 'right', content: '--'}, '--------']);
-        for (const msg of result!.cyclic) {
-          table.push([{hAlign: 'right', content: i++}, msg]);
-        }
-        // tslint:disable-next-line: no-console
-        console.log(table.toString());
-      }
-
-      if (result!.externalDeps.length > 0) {
-        let i = 1;
-        const table = createCliTable({horizontalLines: false});
-        table.push([{colSpan: 2, content: chalk.bold('External dependecies'), hAlign: 'center'}]);
-        if (!opts.j) {
-          table.push([{hAlign: 'right', content: '--'}, '--------']);
-          for (const msg of result!.externalDeps) {
-            table.push([{hAlign: 'right', content: i++}, msg]);
-          }
-        }
-        // tslint:disable-next-line: no-console
-        console.log(table.toString());
-        if (opts.j) {
-          // tslint:disable-next-line: no-console
-          console.log(JSON.stringify(result!.externalDeps, null, '  '));
-        }
-      }
-
-      if (result!.relativeDepsOutSideDir.length > 0) {
-        let i = 1;
-        const table = createCliTable({horizontalLines: false});
-        table.push([{
-          colSpan: 2,
-          content: chalk.bold(`Dependencies outside of ${result!.commonDir}`),
-          hAlign: 'center'
-        }]);
-        table.push([{hAlign: 'right', content: '--'}, '--------']);
-        for (const msg of result!.relativeDepsOutSideDir) {
-          table.push([{hAlign: 'right', content: i++}, msg]);
-        }
-        // tslint:disable-next-line: no-console
-        console.log(table.toString());
-      }
+      printResult(result!, opts);
     }),
     op.take(1)
   ).subscribe();
 
+}
+
+export function printResult(result: NonNullable<AnalyzeState['result']>, opts: {j: AnalyzeOptions['j']}) {
+  if (result.canNotResolve.length > 0) {
+    const table = createCliTable({horizontalLines: false});
+    table.push([{colSpan: 2, content: chalk.bold('Can not resolve dependecies'), hAlign: 'center'}]);
+    table.push([{hAlign: 'right', content: '--'}, '--------']);
+    let i = 1;
+    for (const msg of result.canNotResolve) {
+      // tslint:disable-next-line: no-console
+      table.push([{hAlign: 'right', content: i++}, JSON.stringify(msg, null, '  ')]);
+    }
+    // tslint:disable-next-line: no-console
+    console.log(table.toString());
+  }
+
+  if (result.cyclic.length > 0) {
+    let i = 1;
+    const table = createCliTable({horizontalLines: false});
+    table.push([{colSpan: 2, content: chalk.bold('Cyclic dependecies'), hAlign: 'center'}]);
+    table.push([{hAlign: 'right', content: '--'}, '--------']);
+    for (const msg of result.cyclic) {
+      table.push([{hAlign: 'right', content: i++}, msg]);
+    }
+    // tslint:disable-next-line: no-console
+    console.log(table.toString());
+  }
+
+  if (result.externalDeps.length > 0) {
+    let i = 1;
+    const table = createCliTable({horizontalLines: false});
+    table.push([{colSpan: 2, content: chalk.bold('External dependecies'), hAlign: 'center'}]);
+    if (!opts.j) {
+      table.push([{hAlign: 'right', content: '--'}, '--------']);
+      for (const msg of result.externalDeps) {
+        table.push([{hAlign: 'right', content: i++}, msg]);
+      }
+    }
+    // tslint:disable-next-line: no-console
+    console.log(table.toString());
+    if (opts.j) {
+      // tslint:disable-next-line: no-console
+      console.log(JSON.stringify(result.externalDeps, null, '  '));
+    }
+  }
+
+  if (result.relativeDepsOutSideDir.length > 0) {
+    let i = 1;
+    const table = createCliTable({horizontalLines: false});
+    table.push([{
+      colSpan: 2,
+      content: chalk.bold(`Dependencies outside of ${result.commonDir}`),
+      hAlign: 'center'
+    }]);
+    table.push([{hAlign: 'right', content: '--'}, '--------']);
+    for (const msg of result.relativeDepsOutSideDir) {
+      table.push([{hAlign: 'right', content: i++}, msg]);
+    }
+    // tslint:disable-next-line: no-console
+    console.log(table.toString());
+  }
+
+  if (result?.matchAlias && result.matchAlias.length > 0) {
+    let i = 1;
+    const table = createCliTable({horizontalLines: false});
+    table.push([{
+      colSpan: 2,
+      content: chalk.bold('Alias resolved'),
+      hAlign: 'center'
+    }]);
+    table.push([{hAlign: 'right', content: '--'}, '--------']);
+    for (const msg of result.matchAlias) {
+      table.push([{hAlign: 'right', content: i++}, msg]);
+    }
+    // tslint:disable-next-line: no-console
+    console.log(table.toString());
+  }
 }
 interface AnalyzeState {
   inputFiles?: string[];
@@ -121,12 +148,14 @@ const initState: AnalyzeState = {
 const slice = stateFactory.newSlice({
   name: 'analyze',
   initialState: initState,
-  reducers: {
+  reducers: createReducers({
     /** payload: glob patterns */
-    analyzeFile(d, {payload}: PayloadAction<string[]>) {
-      d.inputFiles = payload;
+    analyzeFile(d: AnalyzeState, payload: {
+      files: string[], tsconfig?: string, alias: [pattern: string, replace: string][]
+    }) {
+      d.inputFiles = payload.files;
     }
-  }
+  })
 });
 
 export function getStore() {
@@ -138,9 +167,9 @@ export const dispatcher = stateFactory.bindActionCreators(slice);
 stateFactory.addEpic<{analyze: AnalyzeState}>((action$, state$) => {
   return merge(
     action$.pipe(ofPayloadAction(slice.actions.analyzeFile),
-      concatMap((action) => from(analyseFiles(action.payload))),
+      mergeMap(({payload}) => from(analyseFiles(payload.files, payload.tsconfig, payload.alias))),
       map(result => {
-        dispatcher._change(s => s.result = result);
+        dispatcher._change(s => s.result = result); // TODO merge result instead of 'assign' result
       })
     )
   ).pipe(
@@ -153,7 +182,9 @@ stateFactory.addEpic<{analyze: AnalyzeState}>((action$, state$) => {
 });
 
 
-async function analyseFiles(files: string[]) {
+async function analyseFiles(files: string[],
+  tsconfigFile: string | undefined,
+  alias: [pattern: string, replace: string][]) {
   const matchDones = files.map(pattern => new Promise<string[]>((resolve, reject) => {
     glob(pattern, {nodir: true}, (err, matches) => {
       if (err) {
@@ -176,7 +207,7 @@ async function analyseFiles(files: string[]) {
   return await threadPool.submitProcess<ReturnType<Context['toPlainObject']>>({
     file: Path.resolve(__dirname, 'cli-analyse-worker.js'),
     exportFn: 'dfsTraverseFiles',
-    args: [files.map(p => Path.resolve(p))]
+    args: [files.map(p => Path.resolve(p)), tsconfigFile, alias]
   });
 
 }

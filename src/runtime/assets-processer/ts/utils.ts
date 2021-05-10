@@ -67,7 +67,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
 
   proxyPath = _.trimEnd(proxyPath, '/');
   apiUrl = _.trimEnd(apiUrl, '/');
-  const { protocol, host, pathname } = Url.parse(apiUrl, false, true);
+  const { protocol, host, pathname } = new URL(apiUrl);
 
   const patPath = new RegExp('^' + proxyPath + '/');
   const hpmLog = getLogger('HPM.' + proxyPath);
@@ -104,10 +104,10 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         onProxyRes(incoming, req, res) {
           incoming.headers['Access-Control-Allow-Origin'] = '*';
           if (api.config().devMode) {
-            hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode} + '\n`,
+            hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode}\n`,
               JSON.stringify(incoming.headers, null, '  '));
           } else {
-            hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode} + '\n`);
+            hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode}`);
           }
 
           if (opts.onProxyRes) {
