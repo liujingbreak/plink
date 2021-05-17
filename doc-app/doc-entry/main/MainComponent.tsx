@@ -2,12 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import clsddp from 'classnames/dedupe';
 import './Main.module.scss';
-import {BrowserRouter as Router} from 'react-router-dom';
-import {RoutesComp} from './RoutesComp';
+import {BrowserRouter as Router, Switch, Redirect} from 'react-router-dom';
 import {Provider as ReduxProvider} from 'react-redux';
 import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import { useStoreOfStateFactory } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import { AppLayout } from '@wfh/doc-ui-common/client/components/AppLayout';
+import {AnimatableRoutes} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
+import {routes, defaultRedirect} from '../configurable/routes';
 import '@material-icons/font/css/outline.css';
 import './markdown-setup';
 // const cx = classNames.bind(styles);
@@ -26,7 +27,11 @@ const MainComp: React.FC<{}> = function(prop) {
   return <ReduxProvider store={reduxStore}>
       <AppLayout parentDom={rootEl}>
         <Router basename={process.env.REACT_APP_routeBasename}>
-          <RoutesComp/>
+          <AnimatableRoutes routes={routes}>
+            <Switch>
+              <Redirect from='/' exact to={defaultRedirect}/>
+            </Switch>
+          </AnimatableRoutes>
         </Router>
       </AppLayout>
     </ReduxProvider>;

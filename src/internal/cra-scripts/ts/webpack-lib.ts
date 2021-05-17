@@ -1,14 +1,12 @@
 import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
-import {findPackage} from './build-target-helper';
+// import {findPackage} from './build-target-helper';
 // import childProc from 'child_process';
 import Path from 'path';
 import { getCmdOptions } from './utils';
-import {TscCmdParam} from '@wfh/plink/wfh/dist/ts-cmd';
-import {logger as log4js} from '@wfh/plink';
+import {logger as log4js, findPackagesByNames} from '@wfh/plink';
 import chalk from 'chalk';
 import {Worker} from 'worker_threads';
 import _ from 'lodash';
-import {PKG_LIB_ENTRY_DEFAULT, PKG_LIB_ENTRY_PROP} from './cra-scripts-paths';
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 // import {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 // const plinkDir = Path.dirname(require.resolve('@wfh/plink/package.json'));
@@ -16,11 +14,11 @@ const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
 export default function change(buildPackage: string, config: Configuration, nodePath: string[]) {
-  const foundPkg = findPackage(buildPackage);
+  const foundPkg = [...findPackagesByNames([buildPackage])][0];
   if (foundPkg == null) {
     throw new Error(`Can not find package for name like ${buildPackage}`);
   }
-  const {dir: pkDir, packageJson: pkJson} = foundPkg;
+  const {realPath: pkDir, json: pkJson} = foundPkg;
 
   if (Array.isArray(config.entry))
     config.entry = config.entry.filter(item => !/[\\/]react-dev-utils[\\/]webpackHotDevClient/.test(item));
@@ -56,9 +54,11 @@ export default function change(buildPackage: string, config: Configuration, node
 
   findAndChangeRule(config.module!.rules);
 
+  const cmdOpts = getCmdOptions();
   const externalRequestSet = new Set<string>();
-  const includeModuleRe = (getCmdOptions().includes || [])
+  const includeModuleRe = (cmdOpts.includes || [])
     .map(mod => new RegExp(mod));
+  includeModuleRe.push(new RegExp(_.escapeRegExp(cmdOpts.buildTarget)));
 
   if (config.externals == null) {
     config.externals = [];
@@ -80,10 +80,11 @@ export default function change(buildPackage: string, config: Configuration, node
         if ((!request.startsWith('.') && !entrySet.has(request) &&
           !/[?!]/.test(request)) && (!/[\\/]@babel[\\/]runtime[\\/]/.test(request))
           ||
+          // TODO: why hard coe bklib ?
           request.indexOf('/bklib.min') >= 0) {
           // log.info('external request:', request, `(${context})`);
           externalRequestSet.add(request);
-          return callback(null, 'commonjs ' + request);
+          return callback(null, request);
         }
         callback();
       }
@@ -96,7 +97,7 @@ export default function change(buildPackage: string, config: Configuration, node
 
       apply(compiler: Compiler) {
         compiler.hooks.done.tap('cra-scripts', stats => {
-          this.forkDone = this.forkDone.then(() => forkTsc(pkJson.name, nodePath));
+          this.forkDone = this.forkDone.then(() => forkTsc(pkJson));
           log.warn(chalk.red('external request:\n  ' + Array.from(externalRequestSet.values()).join(', ')));
         });
       }
@@ -151,23 +152,8 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
   return;
 }
 
-async function forkTsc(targetPackageJson: any, nodePath: string[]) {
-
-  // const {nodePath} = JSON.parse(process.env.__plink!) as PlinkEnv;
-  const targetPackage = targetPackageJson.name;
-  const workerData: TscCmdParam = {
-    package: [targetPackage], ed: true, jsx: true, watch: getCmdOptions().watch,
-    pathsJsons: [],
-    overridePackgeDirs: {[targetPackage]: {
-      destDir: 'build',
-      srcDir: '',
-      include: _.get(targetPackageJson.plink ? targetPackageJson.plink : targetPackageJson.dr, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT)
-    }}
-  };
-
-  const worker = new Worker(require.resolve('./tsd-generate-thread'), {
-    workerData, env: {NODE_PATH: nodePath.join(Path.delimiter)}
-  } as any);
+async function forkTsc(targetPackageJson: {name: string; plink?: any; dr?: any}) {
+  const worker = new Worker(require.resolve('./tsd-generate-thread'));
   await new Promise<void>((resolve, rej) => {
     worker.on('exit', code => {
       if (code !== 0) {

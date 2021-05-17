@@ -34,8 +34,7 @@ const Palette: React.FC<PaletteProps> = function(props) {
       </>
     : null}
     <ColorTool mixColors={state.mixColors}/>
-    {/* <ColorTool satuations={state.satuations}/> */}
-    <ColorTool hue={state.hue} epicFactory={state.hueToolEpic}/>
+    <ColorTool hue={state.hue} sliceRef={slice.actionDispatcher._onMixColorToolRef}/>
   </>;
 };
 

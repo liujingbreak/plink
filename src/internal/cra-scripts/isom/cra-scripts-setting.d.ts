@@ -14,4 +14,4 @@ export declare function defaultSetting(): CraScriptsSetting;
  * The return setting value is merged with files specified by command line options "--prop" and "-c"
  * @return setting of current package
  */
-export declare function getSetting(): any;
+export declare function getSetting(): CraScriptsSetting;

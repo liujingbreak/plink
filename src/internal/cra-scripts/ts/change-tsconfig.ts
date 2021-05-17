@@ -1,11 +1,11 @@
 import {closestCommonParentDir} from '@wfh/plink/wfh/dist/utils/misc';
 import {getState} from '@wfh/plink/wfh/dist/package-mgr';
-import {getRootDir, setTsCompilerOptForNodePath, plinkEnv, log4File} from '@wfh/plink';
+import {getRootDir, setTsCompilerOptForNodePath, plinkEnv/*, log4File*/} from '@wfh/plink';
 import ts from 'typescript';
-import {runTsConfigHandlers} from './utils';
+import {runTsConfigHandlers, getReportDir} from './utils';
 import Path from 'path';
 import fs from 'fs';
-const log = log4File(__filename);
+// const log = log4File(__filename);
 
 export function changeTsConfigFile() {
   // const craOptions = getCmdOptions();
@@ -53,7 +53,6 @@ export function changeTsConfigFile() {
   const co = ts.parseJsonConfigFileContent(tsconfigJson, ts.sys, plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, process.env._plink_cra_scripts_tsConfig).options;
 
-  log.info('[change-tsconfig] tsconfigJson:', JSON.stringify(tsconfigJson, null, '  '));
-  // fs.writeFileSync(Path.resolve('tsconfig.json'), JSON.stringify(tsconfigJson, null, '  '));
+  fs.promises.writeFile(Path.resolve(getReportDir(), 'tsconfig.json'), JSON.stringify(tsconfigJson, null, '  '));
   return co;
 }

@@ -9,14 +9,12 @@ interface AnalyzeState {
     result?: ReturnType<Context['toPlainObject']>;
 }
 export declare function getStore(): import("rxjs").Observable<AnalyzeState>;
-export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
-    analyzeFile: (s: import("immer/dist/internal").WritableDraft<AnalyzeState>, action: {
-        payload: {
-            files: string[];
-            tsconfig?: string | undefined;
-            alias: [pattern: string, replace: string][];
-        };
-        type: string;
-    }) => void | import("immer/dist/internal").WritableDraft<AnalyzeState>;
-} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<AnalyzeState>>;
+export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<import("../../../redux-toolkit-observable/dist/helper").RegularReducers<AnalyzeState, {
+    /** payload: glob patterns */
+    analyzeFile(d: AnalyzeState, payload: {
+        files: string[];
+        tsconfig?: string;
+        alias: [pattern: string, replace: string][];
+    }): void;
+}> & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<AnalyzeState>>;
 export {};

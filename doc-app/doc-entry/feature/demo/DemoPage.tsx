@@ -87,10 +87,13 @@ const DemoPage: React.FC<DemoPageProps> = function(props) {
       <Button type='outlined' onClick={turnOnLoading}>Try turning on top loading indicator</Button>
       <Button type='outlined' onClick={turnOffLoading}>Try turning off top loading indicator</Button>
     </section>
+
     <section>
       <header>Colors</header>
-      <Palette colorMain='#FCFAE9' colorMix='black'/>
+      <Palette colorMain='#FCFAE9' colorMix='#4323e1'/>
+      <Palette colorMain='#e16223' colorMix='#4323e1'/>
     </section>
+
     <section className={styles.heightPlaceHolder}>
     </section>
   </div>;

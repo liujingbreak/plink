@@ -26,10 +26,12 @@ if (!envSetDone) {
 
   if (!process.env.PLINK_DATA_DIR) {
     process.env.PLINK_DATA_DIR = 'dist';
-    // tslint:disable-next-line: no-console
-    console.log(chalk.gray(logPrefix + 'By default, Plink reads and writes state files in directory "<root-dir>/dist",\n' +
-    'you may change it by' +
-    ' setting environment variable PLINK_DATA_DIR to another relative directory'));
+    if (isMainThread || process.send == null) {
+      // tslint:disable-next-line: no-console
+      console.log(chalk.gray(logPrefix + 'By default, Plink reads and writes state files in directory "<root-dir>/dist",\n' +
+      'you may change it by' +
+      ' setting environment variable PLINK_DATA_DIR to another relative directory'));
+    }
   } else {
     // tslint:disable-next-line: no-console
     console.log(chalk.gray(logPrefix + 'PLINK_DATA_DIR: ' + process.env.PLINK_DATA_DIR));
@@ -138,10 +140,10 @@ import {plinkEnv} from './utils/misc';
  */
 export interface PlinkEnv {
   distDir: string;
-  /** is Plink a symlink, Drcp is old name of Plink */
+  /** whether Plink is a symlink, Drcp is old name of Plink */
   isDrcpSymlink: boolean;
   rootDir: string;
-  /** to allow Plink command line work for any directory other than process.cwd() */
+  /** current worktree space directory */
   workDir: string;
   symlinkDirName: string | 'node_modules';
   nodePath: string[];

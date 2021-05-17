@@ -4,12 +4,12 @@ import Path from 'path';
 import _config from '../config';
 import { createPackageInfo, PackageInfo, PackagesState, getState } from '../package-mgr';
 
-export function completePackageName(guessingNames: string[]):
+export function completePackageName(guessingNames: Iterable<string>):
   Generator<string | null, void, unknown>;
-export function completePackageName(state: PackagesState, guessingNames: string[]):
+export function completePackageName(state: PackagesState, guessingNames: Iterable<string>):
   Generator<string | null, void, unknown>;
-export function* completePackageName(state: PackagesState | string[], guessingNames?: string[]) {
-  for (const pkg of findPackagesByNames(state as PackagesState, guessingNames as string[])) {
+export function* completePackageName(state: PackagesState | Iterable<string>, guessingNames?: Iterable<string>) {
+  for (const pkg of findPackagesByNames(state as PackagesState, guessingNames as Iterable<string>)) {
     if (pkg) {
       yield pkg.name;
     } else {
@@ -19,11 +19,11 @@ export function* completePackageName(state: PackagesState | string[], guessingNa
 }
 
 /** Use package-utils.ts#lookForPackages() */
-export function findPackagesByNames(guessingNames: string[]):
+export function findPackagesByNames(guessingNames: Iterable<string>):
   Generator<PackageInfo | null | undefined>;
-export function findPackagesByNames(state: PackagesState, guessingNames: string[]):
+export function findPackagesByNames(state: PackagesState, guessingNames: Iterable<string>):
   Generator<PackageInfo | null | undefined>;
-export function* findPackagesByNames(state: PackagesState | string[], guessingNames?: string[]):
+export function* findPackagesByNames(state: PackagesState | Iterable<string>, guessingNames?: Iterable<string>):
   Generator<PackageInfo | null | undefined> {
   if (guessingNames === undefined) {
     guessingNames = state as string[];

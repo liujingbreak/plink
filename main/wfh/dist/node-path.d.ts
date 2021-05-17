@@ -7,10 +7,10 @@ import {plinkEnv} from './utils/misc';
  */
 export interface PlinkEnv {
     distDir: string;
-    /** is Plink a symlink, Drcp is old name of Plink */
+    /** whether Plink is a symlink, Drcp is old name of Plink */
     isDrcpSymlink: boolean;
     rootDir: string;
-    /** to allow Plink command line work for any directory other than process.cwd() */
+    /** current worktree space directory */
     workDir: string;
     symlinkDirName: string | 'node_modules';
     nodePath: string[];

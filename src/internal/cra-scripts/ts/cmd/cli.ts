@@ -21,6 +21,7 @@ const cli: CliExtension = (program) => {
     'package-name': 'target package name, the "scope" name part can be omitted'
   })
   .option('-w, --watch', 'When build a library, watch file changes and compile', false)
+  // .option('--tsd-only', 'In "lib" mode (building a library), only build out Typescript tsd file')
   // .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
   .option('-i, --include <module-path-regex>',
   '(multiple value), when argument is "lib", we will set external property of Webpack configuration for all request not begin with "." (except "@babel/runtimer"), ' +
@@ -34,8 +35,23 @@ const cli: CliExtension = (program) => {
       process.env.GENERATE_SOURCEMAP = 'true';
     }
     require('react-scripts/scripts/build');
+    // if (buildCmd.opts().tsdOnly) {
+    //   await (await import('../tsd-generate')).buildTsd();
+    // } else {
+    //   require('react-scripts/scripts/build');
+    // }
   });
   withClicOpt(buildCmd);
+
+  program.command('cra-build-tsd <package-name...>')
+    .description('Compile packages for only generating Typescript definition files. If you are creating a library, ' +
+      'command "cra-build" will also generate tsd file along with client bundle', {
+        'package-name': 'target package name, the "scope" name part can be omitted'
+      })
+    .action(async pkgNames => {
+      // console.log(pkgNames);
+      await (await import('../tsd-generate')).buildTsd(pkgNames);
+    });
 
   const StartCmd = program.command('cra-start <package-name>')
   .description('Run CRA start script for react application or library (work with create-react-app v4.0.3)',{

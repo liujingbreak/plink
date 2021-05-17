@@ -1,9 +1,9 @@
 import { PackageInfo, PackagesState } from '../package-mgr';
-export declare function completePackageName(guessingNames: string[]): Generator<string | null, void, unknown>;
-export declare function completePackageName(state: PackagesState, guessingNames: string[]): Generator<string | null, void, unknown>;
+export declare function completePackageName(guessingNames: Iterable<string>): Generator<string | null, void, unknown>;
+export declare function completePackageName(state: PackagesState, guessingNames: Iterable<string>): Generator<string | null, void, unknown>;
 /** Use package-utils.ts#lookForPackages() */
-export declare function findPackagesByNames(guessingNames: string[]): Generator<PackageInfo | null | undefined>;
-export declare function findPackagesByNames(state: PackagesState, guessingNames: string[]): Generator<PackageInfo | null | undefined>;
+export declare function findPackagesByNames(guessingNames: Iterable<string>): Generator<PackageInfo | null | undefined>;
+export declare function findPackagesByNames(state: PackagesState, guessingNames: Iterable<string>): Generator<PackageInfo | null | undefined>;
 /**
  * Look up package.json file in environment variable NODE_PATH
  * @param moduleName

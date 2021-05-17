@@ -325,7 +325,7 @@ export const slice = stateFactory.newSlice({
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: {name: string}[]}>) {
       d.project2Packages.set(pathToProjKey(prj), pkgs.map(pkgs => pkgs.name));
     },
-    _associatePackageToLinkPattern(d,
+    _associatePackageToSrcDir(d,
       {payload: {pattern, pkgs}}: PayloadAction<{pattern: string; pkgs: {name: string}[]}>) {
       d.srcDir2Packages.set(pathToProjKey(pattern), pkgs.map(pkgs => pkgs.name));
     }
@@ -860,15 +860,29 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
     pkgList = includePackageJsonFiles.map(jsonFile => {
       const info = createPackageInfo(jsonFile, false);
       const prjIdx = prjDirs.findIndex(dir => info.realPath.startsWith(dir + Path.sep));
-      if (prjIdx < 0) {
-        throw new Error(`${jsonFile} is not under any known Project directorys: ${prjDirs.join(', ')}`);
-      }
-      const prjPackageNames = getState().project2Packages.get(prjKeys[prjIdx])!;
-      if (!prjPackageNames.includes(info.name)) {
-        actionDispatcher._associatePackageToPrj({
-          prj: prjKeys[prjIdx],
-          pkgs: [...prjPackageNames.map(name => ({name})), info]
-        });
+      if (prjIdx >= 0) {
+        const prjPackageNames = getState().project2Packages.get(prjKeys[prjIdx])!;
+        if (!prjPackageNames.includes(info.name)) {
+          actionDispatcher._associatePackageToPrj({
+            prj: prjKeys[prjIdx],
+            pkgs: [...prjPackageNames.map(name => ({name})), info]
+          });
+        }
+      } else {
+        const keys = [...getState().srcDir2Packages.keys()];
+        const linkedSrcDirs = keys.map(key => projKeyToPath(key));
+        const idx = linkedSrcDirs.findIndex(dir => info.realPath === dir ||  info.realPath.startsWith(dir + Path.sep));
+        if (idx >= 0) {
+          const pkgs = getState().srcDir2Packages.get(keys[idx])!;
+          if (!pkgs.includes(info.name)) {
+            actionDispatcher._associatePackageToSrcDir({
+              pattern: keys[idx],
+              pkgs: [...pkgs.map(name => ({name})), info]
+            });
+          }
+        } else {
+          throw new Error(`${info.realPath} is not under any known Project directorys: ${prjDirs.concat(linkedSrcDirs).join(', ')}`);
+        }
       }
       return info;
     });
@@ -901,7 +915,7 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
       actionDispatcher._associatePackageToPrj({prj, pkgs});
     }
     for (const [srcDir, pkgs] of srcPkgMap.entries()) {
-      actionDispatcher._associatePackageToLinkPattern({pattern: srcDir, pkgs});
+      actionDispatcher._associatePackageToSrcDir({pattern: srcDir, pkgs});
     }
 
     actionDispatcher._syncLinkedPackages([pkgList, 'clean']);

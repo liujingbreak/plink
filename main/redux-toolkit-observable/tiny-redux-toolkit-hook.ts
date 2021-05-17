@@ -39,6 +39,10 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
     for (const epicFac$ of epic$s) {
       slice.addEpic$(epicFac$);
     }
+    // Let's fun epic factory as earlier as possible, so that it will not missing
+    // any action dispatched from child component, since child component's useEffect()
+    // runs earlier than parent component's
+    epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
     return slice;
   }, []);
 

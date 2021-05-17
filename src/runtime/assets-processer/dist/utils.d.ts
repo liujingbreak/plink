@@ -17,6 +17,7 @@ export declare function createResponseTimestamp(req: Request, res: Response, nex
 export declare function setupHttpProxy(proxyPath: string, apiUrl: string, opts?: {
     /** Bypass CORS restrict on target server */
     deleteOrigin?: boolean;
+    pathRewrite?: ProxyOptions['pathRewrite'];
     onProxyReq?: ProxyOptions['onProxyReq'];
     onProxyRes?: ProxyOptions['onProxyRes'];
     onError?: ProxyOptions['onError'];

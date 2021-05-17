@@ -15,11 +15,11 @@ const workspaceSetting: ConfigHandler & InjectorConfigHandler = {
   },
   /** For Node.js runtime, replace module in "require()" or import syntax */
   setupNodeInjector(factory, setting) {
-    // factory.fromPackage('@wfh/foobar').alias('moduleA', 'moduleB');
+    // factory.fromPlinkPackage('@wfh/foobar').alias('moduleA', 'moduleB');
   },
   /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */
   setupWebInjector(factory, setting) {
-    // factory.fromPackage('@wfh/foobar').alias('moduleA', 'moduleB');
+    // factory.fromPlinkPackage('@wfh/foobar').alias('moduleA', 'moduleB');
   }
 };
 

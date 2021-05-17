@@ -6,8 +6,10 @@ import _ from 'lodash';
 import {gt} from 'semver';
 import commander from 'Commander';
 import * as _craPaths from './cra-scripts-paths';
-import {config, log4File, ConfigHandlerMgr} from '@wfh/plink';
+import {config, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
 import {ReactScriptsHandler} from './types';
+
+export const getReportDir = () => config.resolve('destDir', 'cra-scripts.report');
 
 export function drawPuppy(slogon: string, message?: string) {
   if (!slogon) {
@@ -76,9 +78,10 @@ export function getCmdOptions(): CommandOption {
 
 export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType: 'app' | 'lib'): CommandOption {
   const opts = cmd.opts();
+  const completeName = [...findPackagesByNames([pkgName])][0]!.name;
   const cmdOptions: CommandOption = {
     buildType,
-    buildTarget: pkgName,
+    buildTarget: completeName,
     watch: opts.watch,
     devMode: opts.dev,
     publicUrl: opts.publicUrl,

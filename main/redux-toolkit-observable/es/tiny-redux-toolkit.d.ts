@@ -54,8 +54,8 @@ export interface Slice<S, R extends Reducers<S>> {
     /** Action creators */
     actions: Actions<S, R>;
     destroy: () => void;
-    addEpic(epicFactory: EpicFactory<S, R>): void;
-    addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): void;
+    addEpic(epicFactory: EpicFactory<S, R>): () => void;
+    addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): () => void;
     getStore(): rx.Observable<S>;
     getState(): S;
 }

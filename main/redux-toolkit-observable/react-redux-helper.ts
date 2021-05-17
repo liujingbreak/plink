@@ -3,7 +3,7 @@ import {StateFactory, SliceCaseReducers// , ExtraSliceReducers
 } from './redux-toolkit-observable';
 import React from 'react';
 import {stateFactory, ofPayloadAction} from './state-factory-browser';
-import {createSliceHelper, EpicFactory, SliceHelper, createReducers} from './helper';
+import {createSliceHelper, EpicFactory, SliceHelper, createReducers, RegularReducers} from './helper';
 import {CreateSliceOptions} from '@reduxjs/toolkit';
 import {useEffect, useState} from 'react';
 import * as rx from 'rxjs';
@@ -11,7 +11,7 @@ import * as op from 'rxjs/operators';
 
 let COMPONENT_ID = 0;
 
-export {EpicFactory, SliceHelper, ofPayloadAction, createReducers};
+export {EpicFactory, SliceHelper, ofPayloadAction, createReducers, RegularReducers};
 
 export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
   optsFactory: () => CreateSliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [state: S, slice: SliceHelper<S, R>] {
@@ -39,6 +39,10 @@ export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
     for (const epicFac$ of epic$s) {
       helper.addEpic$(epicFac$);
     }
+    // Let's fun epic factory as earlier as possible, so that it will not missing
+    // any action dispatched from child component, since child component's useEffect()
+    // runs earlier than parent component's
+    epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
     return helper;
   }, []);
 

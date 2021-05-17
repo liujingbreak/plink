@@ -1,15 +1,15 @@
 import {StateFactory, ExtraSliceReducers} from './redux-toolkit-observable';
 import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft} from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
-import {Observable, EMPTY, of} from 'rxjs';
+import {Observable, EMPTY, of, Subject} from 'rxjs';
 import * as op from 'rxjs/operators';
 
 export type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 
 export type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
   actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
-  addEpic(epicFactory: EpicFactory<S, R>): void;
-  addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): void;
+  addEpic(epicFactory: EpicFactory<S, R>): () => void;
+  addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): () => void;
   destroy(): void;
   getStore(): Observable<S>;
   getState(): S;
@@ -20,6 +20,7 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
 
   const slice = stateFactory.newSlice(opts);
   const actionDispatcher = stateFactory.bindActionCreators(slice);
+  const destory$ = new Subject();
 
   function addEpic$(epicFactory$: Observable<EpicFactory<S, R> | null | undefined>) {
     const sub = epicFactory$.pipe(
@@ -35,23 +36,25 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
           }
         }
         return EMPTY;
-      })
+      }),
+      op.takeUntil(destory$)
     ).subscribe();
-    releaseEpic.push(() => sub.unsubscribe());
+    // releaseEpic.push(() => sub.unsubscribe());
+    return () => sub.unsubscribe();
   }
 
-  let releaseEpic: Array<() => void> = [];
+  // let releaseEpic: Array<() => void> = [];
   const helper = {
     ...slice,
     actionDispatcher,
     addEpic(epicFactory: EpicFactory<S, R>) {
-      addEpic$(of(epicFactory));
+      return addEpic$(of(epicFactory));
     },
     addEpic$,
     destroy() {
+      destory$.next();
+      destory$.complete();
       stateFactory.removeSlice(slice);
-      if (releaseEpic)
-        releaseEpic.forEach(cb => cb());
     },
     getStore() {
       return stateFactory.sliceStore(slice);
@@ -67,7 +70,7 @@ interface SimpleReducers<S> {
   [K: string]: (draft: Draft<S>, payload?: any) => S | void | Draft<S>;
 }
 
-type RegularReducers<S, R> = {
+export type RegularReducers<S, R extends SimpleReducers<S>> = {
   [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => S | void | Draft<S> :
     R[K] extends (s: any, payload: infer P) => any ? (s: Draft<S>, action: PayloadAction<P>) => void | Draft<S> :
       (s: Draft<S>, action: PayloadAction<unknown>) => void | Draft<S>;

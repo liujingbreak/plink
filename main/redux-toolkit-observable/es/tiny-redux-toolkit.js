@@ -94,7 +94,7 @@ export function createSlice(opt) {
         sub.unsubscribe();
     }
     function addEpic$(epicFactory$) {
-        epicFactory$.pipe(op.distinctUntilChanged(), op.switchMap(fac => {
+        const sub = epicFactory$.pipe(op.distinctUntilChanged(), op.switchMap(fac => {
             if (fac) {
                 const epic = fac(slice, ofType);
                 if (epic)
@@ -109,6 +109,7 @@ export function createSlice(opt) {
             });
             return caught;
         })).subscribe();
+        return () => sub.unsubscribe();
     }
     const slice = {
         name,
@@ -118,7 +119,7 @@ export function createSlice(opt) {
         actionDispatcher,
         destroy,
         addEpic(epicFactory) {
-            addEpic$(rx.of(epicFactory));
+            return addEpic$(rx.of(epicFactory));
         },
         addEpic$,
         getStore() {

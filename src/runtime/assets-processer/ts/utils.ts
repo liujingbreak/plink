@@ -57,6 +57,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
   opts: {
     /** Bypass CORS restrict on target server */
     deleteOrigin?: boolean;
+    pathRewrite?: ProxyOptions['pathRewrite'];
     onProxyReq?: ProxyOptions['onProxyReq'];
     onProxyRes?: ProxyOptions['onProxyRes'];
     onError?: ProxyOptions['onError'];
@@ -69,7 +70,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
   apiUrl = _.trimEnd(apiUrl, '/');
   const { protocol, host, pathname } = new URL(apiUrl);
 
-  const patPath = new RegExp('^' + proxyPath + '/');
+  const patPath = new RegExp('^' + _.escapeRegExp(proxyPath) + '(/|$)');
   const hpmLog = getLogger('HPM.' + proxyPath);
   api.expressAppSet(app => {
     app.use(proxyPath,
@@ -79,9 +80,10 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         changeOrigin: true,
         ws: false,
         cookieDomainRewrite: { '*': '' },
-        pathRewrite: (path, req) => {
+        pathRewrite: opts.pathRewrite ?  opts.pathRewrite : (path, req) => {
+          // hpmLog.warn('patPath=', patPath, 'path=', path);
           const ret = path && path.replace(patPath, pathname == null ? '/' : pathname + '/');
-          // log.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
+          // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
           return ret;
         },
         logLevel: 'debug',

@@ -5,7 +5,7 @@ import RJ from 'require-injector';
 export interface Options {
   tsConfigFile: string;
   injector: RJ;
-  compileExpContex?: (sourceFile: string) => {[varName: string]: any};
+  compileExpContext?: (sourceFile: string) => {[varName: string]: any};
 }
 
 const loader: wp.loader.Loader = function(source, sourceMap) {
@@ -15,7 +15,7 @@ const loader: wp.loader.Loader = function(source, sourceMap) {
   const cb = this.async();
   try {
     const replaced = replaceAndInject(file, source as string, opts.injector, opts.tsConfigFile,
-      opts.compileExpContex ? opts.compileExpContex(file) : {});
+      opts.compileExpContext ? opts.compileExpContext(file) : {});
     cb!(null, replaced, sourceMap);
   } catch (e) {
     console.error('[webpack-common.ts-loader]processing: ' + file, e);

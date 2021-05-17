@@ -7,20 +7,18 @@ import Path, {resolve, join, relative, sep} from 'path';
 import ts from 'typescript';
 import {getTscConfigOfPkg, PackageTsDirs, plinkEnv} from './utils/misc';
 import {CompilerOptions} from 'typescript';
-import config from './config';
 import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions} from './package-mgr/package-list-helper';
 import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey} from './package-mgr';
 import log4js from 'log4js';
 import glob from 'glob';
 import {mergeBaseUrlAndPaths} from './ts-cmd-util';
+import {webInjector} from './injector-factory';
 // import {PlinkEnv} from './node-path';
 export {RequiredCompilerOptions};
 
-const {symlinkDirName} = plinkEnv;
+const {symlinkDirName, rootDir: root} = plinkEnv;
 const log = log4js.getLogger('plink.ts-cmd');
-const root = config().rootPath;
-
 export interface TscCmdParam {
   package?: string[];
   project?: string[];
@@ -30,8 +28,15 @@ export interface TscCmdParam {
   ed?: boolean;
   /** merge compilerOptions "baseUrl" and "paths" from specified tsconfig file */
   mergeTsconfig?: string;
-  pathsJsons?: string[];
-  compileOptions?: {[key in keyof CompilerOptions]?: any};
+  /** JSON string, to be merged to compilerOptions "paths",
+   * be aware that "paths" should be relative to "baseUrl" which is relative to `PlinkEnv.workDir`
+   * */
+  pathsJsons?: Array<string> | {[path: string]: string[]};
+  /**
+   * Partial compiler options to be merged, except "baseUrl".
+   * "paths" should be relative to `PlinkEnv.workDir`
+   */
+  compilerOptions?: any;
   overridePackgeDirs?: {[pkgName: string]: PackageTsDirs};
 }
 
@@ -89,19 +94,13 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     packageDirTree.putData(treePath, info);
   }
 
-
   if (countPkg === 0) {
     throw new Error('No available source package found in current workspace');
   }
-  // const commonRootDir = closestCommonParentDir(
-  //   Array.from(getState().project2Packages.keys())
-  //   .map(relPath => resolve(root, relPath)));
 
   const destDir = commonRootDir.replace(/\\/g, '/');
   const compilerOptions: RequiredCompilerOptions = {
     ...baseCompilerOptions,
-    // typescript: require('typescript'),
-    // Compiler options
     importHelpers: false,
     declaration: true,
     /**
@@ -117,10 +116,10 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     emitDeclarationOnly: argv.ed
     // preserveSymlinks: true
   };
-  setupCompilerOptionsWithPackages(compilerOptions, argv.mergeTsconfig, argv.pathsJsons);
+
+  setupCompilerOptionsWithPackages(compilerOptions, argv);
 
   log.info('typescript compilerOptions:', compilerOptions);
-  // const tsProject = gulpTs.createProject({...compilerOptions, typescript: require('typescript')});
 
   /** set compGlobs */
   function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, realPath: string) {
@@ -207,17 +206,21 @@ function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: stri
   function _reportDiagnostic(diagnostic: ts.Diagnostic) {
     return reportDiagnostic(diagnostic, commonRootDir, packageDirTree);
   }
-  const programHost = ts.createWatchCompilerHost(rootFiles, compilerOptions, ts.sys, ts.createEmitAndSemanticDiagnosticsBuilderProgram,
-    _reportDiagnostic, reportWatchStatusChanged);
+  const programHost = ts.createWatchCompilerHost(rootFiles, compilerOptions, ts.sys,
+    ts.createEmitAndSemanticDiagnosticsBuilderProgram, _reportDiagnostic, reportWatchStatusChanged);
+  patchWatchCompilerHost(programHost);
 
   const origCreateProgram = programHost.createProgram;
+  // Ts's createWatchProgram will call WatchCompilerHost.createProgram(), this is where we patch "CompilerHost"
   programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
     host?: ts.CompilerHost) {
     if (host && (host as any)._overrided == null) {
-      overrideCompilerHost(host, commonRootDir, packageDirTree, compilerOptions);
+      patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions);
     }
-    return origCreateProgram.apply(this, arguments);
+    const program: ReturnType<typeof origCreateProgram> = origCreateProgram.apply(this, arguments);
+    return program;
   };
+
   ts.createWatchProgram(programHost);
 }
 
@@ -225,12 +228,13 @@ function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: st
   const rootFiles: string[] = _.flatten(
     globPatterns.map(pattern => glob.sync(pattern, {cwd: plinkEnv.workDir}).filter(file => !file.endsWith('.d.ts')))
   );
-  log.debug('rootFiles:\n', rootFiles);
+  // log.info('rootFiles:\n', rootFiles.join('\n'));
   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
     plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
   const host = ts.createCompilerHost(compilerOptions);
-  const emitted = overrideCompilerHost(host, commonRootDir, packageDirTree, compilerOptions);
+  patchWatchCompilerHost(host);
+  const emitted = patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions);
   const program = ts.createProgram(rootFiles, compilerOptions, host);
   const emitResult = program.emit();
   const allDiagnostics = ts.getPreEmitDiagnostics(program)
@@ -248,7 +252,8 @@ function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: st
   return emitted;
 }
 
-function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, co: ts.CompilerOptions): string[] {
+/** Overriding WriteFile() */
+function patchCompilerHost(host: ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, co: ts.CompilerOptions): string[] {
   const emittedList: string[] = [];
   // It seems to not able to write file through symlink in Windows
   // const _writeFile = host.writeFile;
@@ -259,7 +264,7 @@ function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, pack
       return;
     }
     emittedList.push(destFile);
-    log.info('write file', destFile);
+    log.info('write file', Path.relative(process.cwd(), destFile));
     // Typescript's writeFile() function performs weird with symlinks under watch mode in Windows:
     // Every time a ts file is changed, it triggers the symlink being compiled and to be written which is
     // as expected by me,
@@ -273,32 +278,58 @@ function overrideCompilerHost(host: ts.CompilerHost, commonRootDir: string, pack
   };
   host.writeFile = writeFile;
 
-  const _getSourceFile = host.getSourceFile;
-  const getSourceFile: typeof _getSourceFile = function(fileName) {
-    // console.log('getSourceFile', fileName);
-    return _getSourceFile.apply(this, arguments);
-  };
-  host.getSourceFile = getSourceFile;
-
-  // const _resolveModuleNames = host.resolveModuleNames;
-
-  // host.resolveModuleNames = function(moduleNames, containingFile, reusedNames, redirectedRef, opt) {
-  //   let result: ReturnType<NonNullable<typeof _resolveModuleNames>>;
-  //   if (_resolveModuleNames) {
-  //     result = _resolveModuleNames.apply(this, arguments) as ReturnType<typeof _resolveModuleNames>;
-  //   } else {
-  //     result = moduleNames.map(moduleName => {
-  //       const resolved = ts.resolveModuleName(moduleName, containingFile, co, host,  ts.createModuleResolutionCache(
-  //         ts.sys.getCurrentDirectory(), path => path, co
-  //       ));
-  //       return resolved.resolvedModule;
-  //     });
-  //   }
-  //   return result;
+  // const _getSourceFile = host.getSourceFile;
+  // const getSourceFile: typeof _getSourceFile = function(fileName) {
+  //   // console.log('getSourceFile', fileName);
+  //   return _getSourceFile.apply(this, arguments);
   // };
-  // (host as any)._overrided = true;
+  // host.getSourceFile = getSourceFile;
   return emittedList;
 }
+
+function patchWatchCompilerHost(host: ts.WatchCompilerHostOfFilesAndCompilerOptions<ts.EmitAndSemanticDiagnosticsBuilderProgram> | ts.CompilerHost) {
+  const readFile = host.readFile;
+  const cwd = process.cwd();
+  host.readFile = function(path: string, encoding?: string) {
+    const content = readFile.apply(this, arguments);
+    if (!path.endsWith('.d.ts') && !path.endsWith('.json')) {
+      // console.log('WatchCompilerHost.readFile', path);
+      const changed = webInjector.injectToFile(path, content);
+      if (changed !== content) {
+        log.info(Path.relative(cwd, path) + ' is patched');
+        return changed;
+      }
+    }
+    return content;
+  };
+}
+
+// Customer Transformer solution is not feasible: in some case like a WatchCompiler, it throws error like
+// "can not reference '.flags' of undefined" when a customer transformer return a newly created SourceFile
+
+// export function overrideTsProgramEmitFn(emit: ts.Program['emit']): ts.Program['emit'] {
+//   // TODO: allow adding transformer
+//   function hackedEmit(...args: Parameters<ts.Program['emit']>) {
+//     let [,,,,transformers] = args;
+//     // log.info('emit', src?.fileName);
+//     if (transformers == null) {
+//       transformers = {} as ts.CustomTransformers;
+//       args[4] = transformers;
+//     }
+//     if (transformers.before == null)
+//       transformers.before = [];
+//     transformers.before.push(ctx => ({
+//       transformSourceFile(src) {
+//         log.debug('transformSourceFile', src.fileName);
+//         return src;
+//       },
+//       transformBundle(node) {return node;}
+//     }));
+//     // console.log(require('util').inspect(args[4]));
+//     return emit.apply(this, args);
+//   };
+//   return hackedEmit;
+// }
 
 function reportDiagnostic(diagnostic: ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
   let fileInfo = '';
@@ -314,7 +345,9 @@ function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
   console.info(chalk.cyan(ts.formatDiagnostic(diagnostic, formatHost)));
 }
 
-function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, mergeFromTsconfig?: string, pathsJsons?: string[]) {
+const COMPILER_OPTIONS_MERGE_EXCLUDE = new Set(['baseUrl', 'typeRoots', 'paths', 'rootDir']);
+
+function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, opts?: TscCmdParam) {
   const cwd = plinkEnv.workDir;
   let wsKey: string | null | undefined = workspaceKey(cwd);
   if (!getState().workspaces.has(wsKey))
@@ -323,18 +356,46 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
     throw new Error(`Current directory "${cwd}" is not a work space`);
   }
 
-  if (mergeFromTsconfig) {
-    mergeBaseUrlAndPaths(ts, mergeFromTsconfig, cwd, compilerOptions);
+  if (opts?.mergeTsconfig) {
+    const json = mergeBaseUrlAndPaths(ts, opts.mergeTsconfig, cwd, compilerOptions);
+    for (const [key, value] of Object.entries(json.compilerOptions)) {
+      if (!COMPILER_OPTIONS_MERGE_EXCLUDE.has(key)) {
+        compilerOptions[key] = value;
+        log.debug('merge compiler options', key, value);
+      }
+    }
   }
+
   setTsCompilerOptForNodePath(cwd, './', compilerOptions, {
     enableTypeRoots: true,
     workspaceDir: resolve(root, wsKey)
   });
 
-  if (pathsJsons && pathsJsons.length > 0) {
-    compilerOptions.paths = pathsJsons.reduce((pathMap, jsonStr) => {
-      return {...pathMap, ...JSON.parse(jsonStr)};
-    }, compilerOptions.paths);
+  if (opts?.pathsJsons) {
+    if (Array.isArray(opts.pathsJsons)) {
+      compilerOptions.paths = opts.pathsJsons.reduce((pathMap, jsonStr) => {
+        Object.assign(pathMap, JSON.parse(jsonStr));
+        return pathMap;
+      }, compilerOptions.paths);
+    } else {
+      Object.assign(compilerOptions.paths, opts.pathsJsons);
+    }
+  }
+
+  if (opts?.compilerOptions) {
+    for (const [prop, value] of Object.entries(opts.compilerOptions)) {
+      if (prop === 'baseUrl') {
+        continue;
+      }
+      if (prop === 'paths') {
+        if (compilerOptions.paths)
+          Object.assign(compilerOptions.paths, value);
+        else
+          compilerOptions.paths = value as any;
+      } else {
+        compilerOptions[prop] = value as any;
+      }
+    }
   }
 }
 

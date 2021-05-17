@@ -1,5 +1,4 @@
 import { PackageTsDirs } from './utils/misc';
-import { CompilerOptions } from 'typescript';
 import { CompilerOptions as RequiredCompilerOptions } from './package-mgr/package-list-helper';
 export { RequiredCompilerOptions };
 export interface TscCmdParam {
@@ -11,10 +10,17 @@ export interface TscCmdParam {
     ed?: boolean;
     /** merge compilerOptions "baseUrl" and "paths" from specified tsconfig file */
     mergeTsconfig?: string;
-    pathsJsons?: string[];
-    compileOptions?: {
-        [key in keyof CompilerOptions]?: any;
+    /** JSON string, to be merged to compilerOptions "paths",
+     * be aware that "paths" should be relative to "baseUrl" which is relative to `PlinkEnv.workDir`
+     * */
+    pathsJsons?: Array<string> | {
+        [path: string]: string[];
     };
+    /**
+     * Partial compiler options to be merged, except "baseUrl".
+     * "paths" should be relative to `PlinkEnv.workDir`
+     */
+    compilerOptions?: any;
     overridePackgeDirs?: {
         [pkgName: string]: PackageTsDirs;
     };

@@ -11,12 +11,13 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, ofPayloadAction} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, ofPayloadAction, Slice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 
 export type $__MyComponent__$Props = React.PropsWithChildren<{
   // define component properties
+  sliceRef?(slice: $__MyComponent__$Slice): void;
 }>;
 export interface $__MyComponent__$State {
   componentProps?: $__MyComponent__$Props;
@@ -46,6 +47,8 @@ export function sliceOptionFactory() {
   };
 }
 
+export type $__MyComponent__$Slice = Slice<$__MyComponent__$State, typeof reducers>;
+
 export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> = function(slice) {
   return (action$) => {
     return rx.merge(
@@ -56,6 +59,14 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
         op.distinctUntilChanged(), // distinctUntilChanged accept an expression as parameter
         op.tap(() => {
           // slice.actionDispatcher....
+        })
+      ),
+      slice.getStore().pipe(
+        op.map(s => s.componentProps?.sliceRef), op.distinctUntilChanged(),
+        op.tap(sliceRef => {
+          if (sliceRef) {
+            sliceRef(slice);
+          }
         })
       ),
       // Observe incoming action 'onClick' and dispatch new change action

@@ -73,7 +73,7 @@ interface PaintableWithRelations {
 }
 
 const reducers = {
-  create(s: ReactiveCanvasState, payload: HTMLCanvasElement | null) {
+  _create(s: ReactiveCanvasState, payload: HTMLCanvasElement | null) {
     if (payload) {
       s.canvas = payload;
     }

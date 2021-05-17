@@ -1,7 +1,11 @@
 import '../node-path';
 import { GlobalOptions } from '../cmd/types';
 /**
- * Must invoke initProcess() before this function
+ * Must invoke initProcess() or initAsChildProcess() before this function.
+ * If this function is called from a child process or thread worker of Plink,
+ * you may pass `JSON.parse(process.env.PLINK_CLI_OPTS!)` as parameter since
+ * Plink's main process save `GlobalOptions` in environment variable "PLINK_CLI_OPTS",
+ * so that child process gets same GlobalOptions as the main process does.
  * @param options
  */
 export declare function initConfig(options: GlobalOptions): import("..").DrcpConfig;

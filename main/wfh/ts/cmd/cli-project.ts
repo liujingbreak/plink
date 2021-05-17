@@ -13,17 +13,7 @@ const rootPath = getRootDir();
  * @param dirs 
  */
 export default async function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', dirs?: string[]) {
-  getStore().pipe(
-    distinctUntilChanged((x, y) => x.srcDir2Packages === y.srcDir2Packages &&
-      x.project2Packages === y.project2Packages),
-    skip(1),
-    map(s => {
-      // // tslint:disable-next-line: no-console
-      // console.log(boxString('Project list is updated, you need to run\n\tdrcp init\n' +
-      // ' to install new dependencies from the new project.', 60));
-      printProjects(s.project2Packages.keys(), s.srcDir2Packages.keys());
-    })
-  ).subscribe();
+  listProject(undefined, true);
   switch (action) {
     case 'add':
       if (dirs) {
@@ -46,12 +36,20 @@ export default async function(opts: {isSrcDir: boolean}, action?: 'add' | 'remov
   }
 }
 
-export function listProject(projects?: string[]) {
+export function listProject(projects?: string[], afterChange = false) {
   getStore().pipe(
     distinctUntilChanged((a, b) => a.project2Packages === b.project2Packages &&
       a.srcDir2Packages === b.srcDir2Packages),
+    map(s => ({project2Packages: [...s.project2Packages.keys()], srcDir2Packages: [...s.srcDir2Packages.keys()]})),
+    distinctUntilChanged((a, b) => {
+      return _.difference(a.project2Packages, b.project2Packages).length === 0 &&
+      _.difference(b.project2Packages, a.project2Packages).length === 0 &&
+      _.difference(a.srcDir2Packages, b.srcDir2Packages).length === 0 &&
+      _.difference(b.srcDir2Packages, a.srcDir2Packages).length === 0;
+    }),
+    afterChange ? skip(1) : map(s => s),
     map(s => {
-      printProjects(s.project2Packages.keys(), s.srcDir2Packages.keys());
+      printProjects(s.project2Packages, s.srcDir2Packages);
     }),
     take(1)
   ).subscribe();
@@ -59,36 +57,33 @@ export function listProject(projects?: string[]) {
 
 function printProjects(projects: Iterable<string>, srcDirs: Iterable<string>) {
 
-  let list = [...projects];
-  if (list.length === 0) {
-    // tslint:disable-next-line: no-console
-    console.log(boxString('No project'));
-  } else {
-    let str = 'Project directories'.toUpperCase();
-    str += '\n \n';
-    let i = 0;
-    for (let dir of list) {
-      dir = Path.resolve(rootPath, dir);
-      str += _.padEnd(i + 1 + '. ', 5, ' ') + dir;
-      str += '\n';
-      i++;
-    }
-    // tslint:disable-next-line: no-console
-    console.log(boxString(str));
+  let str = 'Project directories'.toUpperCase();
+  str += '\n \n';
+  let i = 0;
+  for (let dir of projects) {
+    dir = Path.resolve(rootPath, dir);
+    str += _.padEnd(i + 1 + '. ', 5, ' ') + dir;
+    str += '\n';
+    i++;
   }
-  list = [...srcDirs];
-  if (list.length > 0) {
-    let str = 'Linked directories'.toUpperCase();
-    str += '\n \n';
-    let i = 0;
+  if (i === 0) {
+    str += 'No projects';
+  }
+  // tslint:disable-next-line: no-console
+  console.log(boxString(str));
+  str = 'Linked source directories'.toUpperCase();
+  str += '\n \n';
+  i = 0;
 
-    for (let dir of list) {
-      dir = Path.resolve(rootPath, dir);
-      str += _.padEnd(i + 1 + '. ', 5, ' ') + dir;
-      str += '\n';
-      i++;
-    }
-    // tslint:disable-next-line: no-console
-    console.log(boxString(str));
+  for (let dir of srcDirs) {
+    dir = Path.resolve(rootPath, dir);
+    str += _.padEnd(i + 1 + '. ', 5, ' ') + dir;
+    str += '\n';
+    i++;
   }
+  if (i === 0) {
+    str = 'No linked source directories';
+  }
+  // tslint:disable-next-line: no-console
+  console.log(boxString(str));
 }

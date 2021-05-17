@@ -5,7 +5,7 @@ import util from 'util';
 import os from 'os';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {getWorkDir} from './misc';
+// import {getWorkDir} from './misc';
 
 export const isWin32 = os.platform().indexOf('win32') >= 0;
 // export const readdirAsync = util.promisify(fs.readdir);
@@ -17,10 +17,10 @@ export const unlinkAsync = util.promisify(fs.unlink);
  * Return all deleted symlinks
  * @param deleteOption 
  */
-export default async function scanNodeModules(deleteOption: 'all' | 'invalid' = 'invalid') {
+export default async function scanNodeModules(dir = process.cwd(), deleteOption: 'all' | 'invalid' = 'invalid') {
   const deleteAll = deleteOption === 'all';
   const deletedList: string[] = [];
-  await listModuleSymlinks(Path.join(getWorkDir(), 'node_modules'),
+  await listModuleSymlinks(Path.join(dir, 'node_modules'),
     link => {
       if (validateLink(link, deleteAll)) {
         deletedList.push(link);

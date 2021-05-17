@@ -9,10 +9,10 @@ import _ from 'lodash';
 import {logger} from '@wfh/plink';
 import Path from 'path';
 import { Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem } from 'webpack';
-import api from '__api';
+import api from '__plink';
 // import { findPackage } from './build-target-helper';
 import { ReactScriptsHandler } from './types';
-import { drawPuppy, getCmdOptions, printConfig } from './utils';
+import { drawPuppy, getCmdOptions, printConfig,getReportDir } from './utils';
 // import {createLazyPackageFileFinder} from '@wfh/plink/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
@@ -57,7 +57,7 @@ export = function(webpackEnv: 'production' | 'development') {
     config.output!.chunkFilename = 'static/js/[name].chunk.js';
   }
 
-  const reportDir = api.config.resolve('destDir', 'cra-scripts.report');
+  const reportDir = getReportDir();
   fs.mkdirpSync(reportDir);
   fs.writeFile(Path.resolve(reportDir, 'webpack.config.cra.js'), printConfig(config), (err) => {
     if (err)
@@ -161,7 +161,7 @@ function appendOurOwnTsLoader(config: Configuration) {
   const myTsLoaderOpts: TsLoaderOpts = {
     tsConfigFile: Path.resolve('tsconfig.json'),
     injector: api.browserInjector,
-    compileExpContex: file => {
+    compileExpContext: file => {
       const pkg = api.findPackageByFile(file);
       if (pkg) {
         return {__api: api.getNodeApiForPackage(pkg)};

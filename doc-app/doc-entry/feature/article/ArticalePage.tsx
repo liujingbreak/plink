@@ -20,9 +20,7 @@ export type ArticalePageProps = React.PropsWithChildren<{
 
 const ArticalePage: React.FC<ArticalePageProps> = function(props) {
   const routeParams = useParams<{mdKey: string}>();
-  // const scrollBodyRef = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState(EMPTY_ARR);
-  // const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
   const onContentLoaded = useCallback<NonNullable<MarkdownViewCompProps['onContent']>>((div) => {
     const renderers = renderByMdKey[routeParams.mdKey];
@@ -45,33 +43,6 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     setPortals(els);
   }, EMPTY_ARR);
 
-  // const onDrawerToggle = useCallback(() => {
-  //   setDrawerOpen(!drawerOpen);
-  // }, [drawerOpen]);
-
-  // const handleScroll = debounce(() => {
-  //   dispatcher.scrollProcess();
-  // }, 20);
-
-  // useEffect(() => {
-  //   if (scrollBodyRef.current) {
-  //     dispatcher.setScrollBodyEl(scrollBodyRef.current);
-  //     scrollBodyRef.current.addEventListener('scroll', handleScroll);
-  //   }
-  //   return () => {
-  //     if (scrollBodyRef.current) {
-  //       scrollBodyRef.current.removeEventListener('scroll', handleScroll);
-  //     }
-  //     dispatcher.clearScrollCallback();
-  //   };
-  // }, [scrollBodyRef.current]);
-
-  // const title = (
-  //   <div className={titleCls}>
-  //     <div className={logoCls}></div>
-  //     简介
-  //   </div>
-  // );
   const layout = useAppLayout();
 
   React.useEffect(() => {

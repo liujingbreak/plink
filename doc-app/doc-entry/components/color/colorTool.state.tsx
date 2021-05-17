@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, createReducers, ofPayloadAction} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, createReducers, ofPayloadAction, SliceHelper, RegularReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
@@ -32,6 +32,7 @@ export interface ColorToolProps {
     originColor: string;
     hueInterval: number;
   };
+  sliceRef?(slice: ColorToolSliceHelper): void;
   onColorSelected?(color: Color): any;
 }
 
@@ -45,8 +46,11 @@ export interface ColorToolState {
   label?: string;
   error?: Error;
 }
+// const reducers = {
+//   onColorSelected(s: ColorToolState, paylaod: PayloadAction<Color>) {}
+// };
 
-const reducers = createReducers({
+const rawReducers = {
   onColorSelected(s: ColorToolState, paylaod: Color) {
   },
   canvasSliceRef(s: ColorToolState, ref: ReactiveCanvasSlice) {},
@@ -90,7 +94,8 @@ const reducers = createReducers({
   },
   createChildEpics(s: ColorToolState, paylod: (s: ColorToolState)=> void) {
   }
-});
+};
+const reducers: RegularReducers<ColorToolState, typeof rawReducers> = createReducers(rawReducers);
 
 export function sliceOptionFactory() {
   const initialState: ColorToolState = {
@@ -128,6 +133,18 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
           });
         })
       ),
+      slice.getStore().pipe(
+        op.map(s => s.componentProps?.sliceRef), op.distinctUntilChanged(),
+        op.tap(sliceRef => {
+          if (sliceRef) {
+            sliceRef(slice);
+          }
+        })
+      ),
+      action$.pipe(ofPayloadAction(slice.actions.canvasSliceRef),
+        op.tap(({payload: canvasSlice}) => {
+          // todo
+        })),
       action$.pipe(ofPayloadAction(slice.actionDispatcher.canvasSliceRef),
         op.tap(({payload: canvasSlice}) => {
           // TODO:
@@ -136,3 +153,5 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
     ).pipe(op.ignoreElements());
   };
 };
+
+export type ColorToolSliceHelper = SliceHelper<ColorToolState, typeof reducers>;

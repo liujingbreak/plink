@@ -165,11 +165,11 @@ function subComands(program: commander.Command) {
    * command clean
    */
   program.command('cs').alias('clear-symlinks')
-    .description('Clear symlinks from node_modules, do this before run "npm install" in root directory, if there is any symlinks in current node_modules')
+    .description('Clear symlinks from node_modules')
     // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
     .action(async () => {
       const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
-      await scanNodeModules('all');
+      await scanNodeModules(undefined, 'all');
     });
 
   /**
@@ -344,12 +344,12 @@ function spaceOnlySubCommands(program: commander.Command) {
       });
     });
 
-  tscCmd.usage(tscCmd.usage() + '\n' + 'Run gulp-typescript to compile Node.js side Typescript files.\n\n' +
-    'It compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
+  tscCmd.usage(tscCmd.usage() +
+    '\nIt compiles \n  "<package-directory>/ts/**/*.ts" to "<package-directory>/dist",\n' +
     '  or\n  "<package-directory>/isom/**/*.ts" to "<package-directory>/isom"\n for all @wfh packages.\n' +
     'I suggest to put Node.js side TS code in directory `ts`, and isomorphic TS code (meaning it runs in ' +
-    'both Node.js and Browser) in directory `isom`.\n' +
-    hlDesc('plink tsc\n') + 'Compile linked packages that are dependencies of current workspace (you shall run this command only in a workspace directory)\n' +
+    'both Node.js and Browser) in directory `isom`.\n\n' +
+    hlDesc('plink tsc\n') + ' Compile linked packages that are dependencies of current workspace (you shall run this command only in a workspace directory)\n' +
     hlDesc('plink tsc <package..>\n') + ' Only compile specific packages by providing package name or short name\n' +
     hlDesc('plink tsc [package...] -w\n') + ' Watch packages change and compile when new typescript file is changed or created\n\n');
 

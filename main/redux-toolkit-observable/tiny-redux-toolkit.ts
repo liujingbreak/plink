@@ -67,8 +67,8 @@ export interface Slice<S, R extends Reducers<S>> {
   /** Action creators */
   actions: Actions<S, R>;
   destroy: () => void;
-  addEpic(epicFactory: EpicFactory<S, R>): void;
-  addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): void;
+  addEpic(epicFactory: EpicFactory<S, R>): () => void;
+  addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): () => void;
   getStore(): rx.Observable<S>;
   getState(): S;
 }
@@ -211,7 +211,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   }
 
   function addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>) {
-    epicFactory$.pipe(
+    const sub = epicFactory$.pipe(
       op.distinctUntilChanged(),
       op.switchMap(fac => {
         if (fac) {
@@ -233,6 +233,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
         return caught;
       })
     ).subscribe();
+    return () => sub.unsubscribe();
   }
 
   const slice: Slice<S, R> = {
@@ -243,7 +244,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     actionDispatcher,
     destroy,
     addEpic(epicFactory: EpicFactory<S, R>) {
-      addEpic$(rx.of(epicFactory));
+      return addEpic$(rx.of(epicFactory));
     },
     addEpic$,
     getStore() {

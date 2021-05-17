@@ -30,3 +30,9 @@ export interface ReactScriptsHandler {
   webpack?(cfg: Configuration, env: string, cmdOpt: CommandOption): void;
 }
 export {default as webpack} from 'webpack';
+
+export const PKG_LIB_ENTRY_PROP = 'cra-lib-entry';
+export const PKG_LIB_ENTRY_DEFAULT = 'public_api.ts';
+export const PKG_APP_ENTRY_PROP = 'cra-app-entry';
+export const PKG_APP_ENTRY_DEFAULT = 'start.tsx';
+

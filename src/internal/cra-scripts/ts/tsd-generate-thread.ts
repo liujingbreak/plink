@@ -1,11 +1,16 @@
-import { workerData, parentPort} from 'worker_threads';
+import { parentPort, isMainThread} from 'worker_threads';
 import * as _tscmd from '@wfh/plink/wfh/dist/ts-cmd';
+import {buildTsd} from './tsd-generate';
 
 import {initConfig, initAsChildProcess} from '@wfh/plink/wfh/dist/utils/bootstrap-process';
-
 (async function() {
-  initAsChildProcess();
-  initConfig({config: [], prop: []});
-  const {tsc} = require('@wfh/plink/wfh/dist/ts-cmd') as typeof _tscmd;
-  await tsc(workerData as _tscmd.TscCmdParam);
-})().catch(err => parentPort!.postMessage(err));
+  // console.log(process.env);
+  if (!isMainThread) {
+    initAsChildProcess();
+    initConfig(JSON.parse(process.env.PLINK_CLI_OPTS!));
+  }
+  await buildTsd();
+})().catch(err => {
+  if (parentPort)
+    parentPort.postMessage(err);
+});

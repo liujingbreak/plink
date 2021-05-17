@@ -1,20 +1,16 @@
 import {getCmdOptions} from './utils';
-import {findPackage} from './build-target-helper';
+// import {findPackage} from './build-target-helper';
 import Path from 'path';
 import _ from 'lodash';
 import fs from 'fs';
 // import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 import pCfg from '@wfh/plink/wfh/dist/config';
 import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
-import {ReactScriptsHandler, CraScriptsPaths} from './types';
+import {ReactScriptsHandler, CraScriptsPaths, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT, PKG_APP_ENTRY_PROP,
+  PKG_APP_ENTRY_DEFAULT} from './types';
 import fsext from 'fs-extra';
-import {log4File, config} from '@wfh/plink';
+import {log4File, config, findPackagesByNames} from '@wfh/plink';
 const log = log4File(__filename);
-
-export const PKG_LIB_ENTRY_PROP = 'cra-lib-entry';
-export const PKG_LIB_ENTRY_DEFAULT = 'public_api.ts';
-export const PKG_APP_ENTRY_PROP = 'cra-app-entry';
-export const PKG_APP_ENTRY_DEFAULT = 'start.tsx';
 
 let craScriptsPaths: CraScriptsPaths;
 let configFileInPackage: string | undefined | null;
@@ -33,11 +29,11 @@ export default function paths() {
     return craScriptsPaths;
   }
   const cmdOption = getCmdOptions();
-  const foundPkg = findPackage(cmdOption.buildTarget);
+  const foundPkg = [...findPackagesByNames([cmdOption.buildTarget])][0];
   if (foundPkg == null) {
     throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
   }
-  const {dir, packageJson} = foundPkg;
+  const {realPath: dir, json: packageJson} = foundPkg;
 
   const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
   const changedPaths = paths;

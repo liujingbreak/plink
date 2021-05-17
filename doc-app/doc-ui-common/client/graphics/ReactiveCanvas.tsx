@@ -18,7 +18,9 @@ const ReactiveCanvas: React.FC<ReactiveCanvasProps> = function(props) {
     setTimeout(() => slice.actionDispatcher.resize(), 20);
   }, []);
   // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div className={styles.host}><canvas className={props.className} ref={slice.actionDispatcher.create}/></div>;
+  return <div className={styles.host}>
+    <canvas className={props.className} ref={slice.actionDispatcher._create}/>
+  </div>;
 };
 
 export {ReactiveCanvas};

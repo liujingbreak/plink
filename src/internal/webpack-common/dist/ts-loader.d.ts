@@ -3,7 +3,7 @@ import RJ from 'require-injector';
 export interface Options {
     tsConfigFile: string;
     injector: RJ;
-    compileExpContex?: (sourceFile: string) => {
+    compileExpContext?: (sourceFile: string) => {
         [varName: string]: any;
     };
 }

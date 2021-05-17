@@ -10,7 +10,7 @@ import * as _plink from '@wfh/plink/wfh/dist';
 
 export function register() {
   process.env.NODE_OPTIONS =  (process.env.NODE_OPTIONS || '') + ' -r ' +
-    Path.resolve(__filename);
+    Path.resolve(__filename); // + ' --inspect-brk';
 }
 
 if (process.send && /[\\\/]fork-ts-checker-webpack-plugin[\\\/]/.test(process.argv[1])) {
@@ -18,8 +18,9 @@ if (process.send && /[\\\/]fork-ts-checker-webpack-plugin[\\\/]/.test(process.ar
   require('@wfh/plink/wfh/dist/node-path');
   const plink: typeof _plink = require('@wfh/plink/wfh/dist');
   plink.initAsChildProcess();
-  const setting = plink.initConfig(JSON.parse(process.env.PLINK_CLI_OPTS!));
-  plink.logConfig(setting());
+  plink.initConfig(JSON.parse(process.env.PLINK_CLI_OPTS!));
+  plink.initInjectorForNodePackages();
+  // plink.logConfig(setting());
   require('./hack-fork-ts-checker-worker');
 }
 

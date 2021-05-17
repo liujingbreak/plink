@@ -133,7 +133,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
-    _associatePackageToLinkPattern(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
+    _associatePackageToSrcDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
         payload: {
             pattern: string;
             pkgs: {
@@ -209,7 +209,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
-    _associatePackageToLinkPattern(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
+    _associatePackageToSrcDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
         payload: {
             pattern: string;
             pkgs: {

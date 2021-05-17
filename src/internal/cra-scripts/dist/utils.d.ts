@@ -1,5 +1,6 @@
 import { CommandOption } from './build-options';
 import commander from 'Commander';
+export declare const getReportDir: () => string;
 export declare function drawPuppy(slogon: string, message?: string): void;
 export declare function printConfig(c: any, level?: number): string;
 export declare function getCmdOptions(): CommandOption;

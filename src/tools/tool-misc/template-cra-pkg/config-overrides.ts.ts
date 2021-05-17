@@ -6,7 +6,8 @@ const handler: ReactScriptsHandler = {
     // change CRA paths:
 
     // output directory will be dist/static/main
-    craPaths.appBuild = craPaths.appBuild + '$__appBuild__$';
+    if (cmdOpt.buildType === 'app')
+      craPaths.appBuild = craPaths.appBuild + '$__appBuild__$';
     // Setting "craPaths.publicUrlOrPath" will override environment variable PUBLIC_URL
     // craPaths.publicUrlOrPath = '$__publicUrlOrPath__$';
   },

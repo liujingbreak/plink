@@ -6,22 +6,10 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../../../bk/financebill-reuse-poc/cra-space/node_modules/@types/*",
-        "../../../../bk/financebill-reuse-poc/cra-space/node_modules/*",
-        "../../../../bk/financebill-reuse-poc/node_modules/@types/*",
-        "../../../../bk/financebill-reuse-poc/node_modules/*"
-      ],
-      "@bk/financebill-module": [
-        "../../../../bk/financebill-reuse-poc/src/financebill-module"
-      ],
-      "@bk/financebill-module/*": [
-        "../../../../bk/financebill-reuse-poc/src/financebill-module/*"
-      ],
-      "@bk/financebill-tool": [
-        "../../../../bk/financebill-reuse-poc/src/financebill-tool"
-      ],
-      "@bk/financebill-tool/*": [
-        "../../../../bk/financebill-reuse-poc/src/financebill-tool/*"
+        "../../react-space/node_modules/@types/*",
+        "../../react-space/node_modules/*",
+        "../../node_modules/@types/*",
+        "../../node_modules/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -137,26 +125,30 @@
       "@wfh/doc-ui-common/*": [
         "../../doc-app/doc-ui-common/*"
       ],
-      "@bk/financebill-source": [
-        "../../../../bk/bs-static-financebill/src"
-      ],
-      "@bk/financebill-source/*": [
-        "../../../../bk/bs-static-financebill/src/*"
-      ],
       "@wfh/plink": [
         ".."
       ],
       "@wfh/plink/*": [
         "../*"
+      ],
+      "@loadable/component": [
+        "../../react-space/node_modules/@types/loadable__component",
+        "../../node_modules/@types/loadable__component",
+        "../node_modules/@types/loadable__component"
+      ],
+      "@loadable/component/*": [
+        "../../react-space/node_modules/@types/loadable__component/*",
+        "../../node_modules/@types/loadable__component/*",
+        "../node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
-      "../../src/runtime/express-app/types",
       "../../src/internal/cra-scripts/types",
-      "../../../../bk/financebill-reuse-poc/cra-space/node_modules/@types",
-      "../../../../bk/financebill-reuse-poc/node_modules/@types",
+      "../../src/runtime/express-app/types",
+      "../../react-space/node_modules/@types",
+      "../../node_modules/@types",
       "../node_modules/@types"
     ]
   }

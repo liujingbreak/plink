@@ -1,17 +1,19 @@
-import {EpicFactory, ofPayloadAction, createReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, ofPayloadAction, createReducers, RegularReducers, SliceHelper} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
 
 export type $__MyComponent__$Props = React.PropsWithChildren<{
   // define component properties
+  sliceRef?(sliceHelper: $__MyComponent__$SliceHelper): void;
 }>;
 export interface $__MyComponent__$State {
   componentProps?: $__MyComponent__$Props;
   yourStateProp?: string;
+  sliceRef?(slice: Parameters<EpicFactory<$__MyComponent__$State, typeof reducers>>[0]): void;
 }
 
-const reducers = createReducers({
+const simpleReducers = {
   onClick(s: $__MyComponent__$State, payload: React.MouseEvent) {},
   clickDone(s: $__MyComponent__$State) {},
 
@@ -19,7 +21,8 @@ const reducers = createReducers({
     s.componentProps = {...payload};
   }
   // define more reducers...
-});
+};
+const reducers: RegularReducers<$__MyComponent__$State, typeof simpleReducers> = createReducers(simpleReducers);
 
 export function sliceOptionFactory() {
   const initialState: $__MyComponent__$State = {};
@@ -29,6 +32,8 @@ export function sliceOptionFactory() {
     reducers
   };
 }
+
+export type $__MyComponent__$SliceHelper = SliceHelper<$__MyComponent__$State, typeof reducers>;
 
 export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> = function(slice) {
   return (action$) => {
@@ -40,6 +45,13 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
         op.distinctUntilChanged(), // distinctUntilChanged accept an expression as parameter
         op.tap(() => {
           // slice.actionDispatcher....
+        })
+      ),
+      slice.getStore().pipe(op.map(s => s.componentProps?.sliceRef),
+        op.tap(sliceRef => {
+          if (sliceRef) {
+            sliceRef(slice);
+          }
         })
       ),
       // Observe incoming action 'onClick' and dispatch new change action

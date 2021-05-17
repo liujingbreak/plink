@@ -5,8 +5,8 @@ import { Observable } from 'rxjs';
 export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
     actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
-    addEpic(epicFactory: EpicFactory<S, R>): void;
-    addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): void;
+    addEpic(epicFactory: EpicFactory<S, R>): () => void;
+    addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): () => void;
     destroy(): void;
     getStore(): Observable<S>;
     getState(): S;
@@ -15,7 +15,7 @@ export declare function createSliceHelper<S, R extends SliceCaseReducers<S>>(sta
 interface SimpleReducers<S> {
     [K: string]: (draft: Draft<S>, payload?: any) => S | void | Draft<S>;
 }
-declare type RegularReducers<S, R> = {
+export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
     [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => S | void | Draft<S> : R[K] extends (s: any, payload: infer P) => any ? (s: Draft<S>, action: PayloadAction<P>) => void | Draft<S> : (s: Draft<S>, action: PayloadAction<unknown>) => void | Draft<S>;
 };
 /**

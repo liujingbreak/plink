@@ -4,8 +4,8 @@
 .app-bar {
   &-header {
     // background: linear-gradient(to right, #EFEEDD 0%,white 100%);
-    background-color: white!important;
-    color: rgba(0,0,0,0.7)!important;
+    background-color: #e5e4d4!important;
+    color: rgba(0,0,0,0.9)!important;
     transition: box-shadow 0.2s linear;
     &.withShadow {
       box-shadow: 0 2px 5px rgba(0,0,0,0.4);
