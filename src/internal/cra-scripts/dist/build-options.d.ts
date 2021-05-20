@@ -3,6 +3,7 @@ export interface BuildOptions {
     progress: boolean;
 }
 export interface CommandOption {
+    cmd: string;
     /** "lib" stands for library build mode, "app" stands for application build mode  */
     buildType: 'lib' | 'app';
     /** package name */

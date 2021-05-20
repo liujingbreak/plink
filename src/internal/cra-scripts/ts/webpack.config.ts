@@ -2,6 +2,7 @@
 import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
 import type { PlinkEnv } from '@wfh/plink/wfh/dist/node-path';
 import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';
+import StatsPlugin from '@wfh/webpack-common/dist/webpack-stats-plugin';
 import { Options as TsLoaderOpts } from '@wfh/webpack-common/dist/ts-loader';
 import fs from 'fs-extra';
 import _ from 'lodash';
@@ -100,9 +101,9 @@ export = function(webpackEnv: 'production' | 'development') {
 
   Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
 
+  if (cmdOption.cmd === 'cra-build')
+    config.plugins!.push(new StatsPlugin());
   // config.plugins!.push(new ProgressPlugin({ profile: true }));
-
-  config.stats = 'normal'; // Not working
 
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
@@ -113,7 +114,7 @@ export = function(webpackEnv: 'production' | 'development') {
       if (file == null)
         return true;
       const pkg = api.findPackageByFile(file);
-      return pkg == null;
+      return pkg == null || pkg.json.dr == null || pkg.json.plink == null;
     });
   }
 
@@ -184,13 +185,6 @@ function runConfigHandlers(config: Configuration, webpackEnv: string) {
   const {getConfigFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
   const configFileInPackage = getConfigFileInPackage();
   const cmdOption = getCmdOptions();
-  api.config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
-    if (handler.webpack != null) {
-      log.info('Execute command line Webpack configuration overrides', cfgFile);
-      handler.webpack(config, webpackEnv, cmdOption);
-    }
-  }, 'create-react-app Webpack config'));
-
   if (configFileInPackage) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
     cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
@@ -200,6 +194,12 @@ function runConfigHandlers(config: Configuration, webpackEnv: string) {
       }
     }, 'create-react-app Webpack config');
   }
+  api.config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+    if (handler.webpack != null) {
+      log.info('Execute command line Webpack configuration overrides', cfgFile);
+      handler.webpack(config, webpackEnv, cmdOption);
+    }
+  }, 'create-react-app Webpack config'));
 }
 
 function insertLessLoaderRule(origRules: RuleSetRule[]): void {
@@ -244,7 +244,8 @@ function insertLessLoaderRule(origRules: RuleSetRule[]): void {
       loader: 'less-loader',
       options: {
         lessOptions: {
-          javascriptEnabled: true
+          javascriptEnabled: true,
+          ...getSetting().lessLoaderOtherOptions
         },
         additionalData: getSetting().lessLoaderAdditionalData
       }

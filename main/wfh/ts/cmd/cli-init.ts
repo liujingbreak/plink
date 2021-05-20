@@ -127,7 +127,7 @@ function convertVersion(pkgJson: {
     return '';
   }
   if (ver.startsWith('.') || ver.startsWith('file:')) {
-    const m = /\-(\d+(?:\.\d+){1,2}(?:\-[^\-])?)\.tgz$/.exec(ver);
+    const m = /\-(\d+(?:\.\d+){1,2}(?:\-[^\-]+)?)\.tgz$/.exec(ver);
     if (m) {
       return m[1];
     }

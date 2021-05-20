@@ -182,7 +182,7 @@ stateFactory.addEpic<{analyze: AnalyzeState}>((action$, state$) => {
 });
 
 
-async function analyseFiles(files: string[],
+export async function analyseFiles(files: string[],
   tsconfigFile: string | undefined,
   alias: [pattern: string, replace: string][]) {
   const matchDones = files.map(pattern => new Promise<string[]>((resolve, reject) => {

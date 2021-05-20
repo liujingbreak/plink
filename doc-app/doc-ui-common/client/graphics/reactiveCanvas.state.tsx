@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, Slice, ofPayloadAction} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, Slice, ofPayloadAction, createSlice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {DFS} from '@wfh/plink/wfh/dist-es5/utils/graph';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -20,64 +20,117 @@ export type ReactiveCanvasProps = React.PropsWithChildren<{
   className?: string;
   /** default 2 */
   scaleRatio?: number;
-  // epicFactory?: EpicFactory<ReactiveCanvasState, typeof reducers>;
-  sliceRef?(slice: ReactiveCanvasSlice): void;
+  onReady?(ctx: PaintableContext): void;
 }>;
 export interface ReactiveCanvasState {
+  ctx?: CanvasRenderingContext2D;
   componentProps: ReactiveCanvasProps;
   canvas: HTMLCanvasElement | null;
   width: number;
   height: number;
   pixelWidth: number;
   pixelHeight: number;
-  rootId: string;
-  /** Since it is too expensive to creat a mutable version of Set, so use an Array to wrap it */
-  animatingPaintables: [Set<string>];
-  /** key is id, mutable!! */
-  components: [Map<string, PaintableWithRelations>];
-  renderStarted: boolean;
+  rootId: number;
+  /** number of animating paintables */
+  // animatings: number;
+  _lastAnimFrameTime?: number;
+  animEscapeTime: number;
+  /** Since it is too expensive to creat a mutable version of Set, so use an Array to wrap it
+   * key is id, mutable!! */
+  components: [Map<number, PaintableWithRelations>];
+  _animatingPaintables: [Set<number>];
+  /** This DFS object is for rendering paintable tree */
+  _dfs?: DFS<number>;
+  // rendering: boolean;
+  // needRenderNextFrame: boolean;
   error?: Error;
 }
 
 export interface PaintableFactory {
   // tslint:disable-next-line: callable-types
-  (ctx: ReactiveCanvasCtx): Paintable;
+  (ctx: PaintableContext): Paintable;
 }
 
-export class ReactiveCanvasCtx {
-  constructor(public id: string, private canvasSlice: Slice<ReactiveCanvasState, typeof reducers>,
-    public getState: Slice<ReactiveCanvasState, typeof reducers>['getState'],
-    public getStore: Slice<ReactiveCanvasState, typeof reducers>['getStore']) {}
+/**
+ * PaintableContext is a tailored version of reactiveCanvasSlice for a child Paintable component
+ */
+export class PaintableContext {
+  action$: Slice<ReactiveCanvasState, typeof reducers>['action$'];
+  actions: Slice<ReactiveCanvasState, typeof reducers>['actions'];
+
+  constructor(public id: number, private canvasSlice: Slice<ReactiveCanvasState, typeof reducers>) {
+    this.action$ = canvasSlice.action$;
+    this.actions = canvasSlice.actions;
+  }
 
   addChild(...children: Paintable[]) {
     this.canvasSlice.actionDispatcher.addPaintable([this.id, children]);
   }
 
-  removeChild(...childIds: string[]) {
+  removeChild(...childIds: number[]) {
     this.canvasSlice.actionDispatcher.removePaintable(childIds);
+  }
+
+  setAnimating(yes: boolean) {
+    this.canvasSlice.actionDispatcher.setAnimating([this.id, yes]);
+  }
+  renderCanvas() {
+    this.canvasSlice.actionDispatcher.render();
+  }
+
+  getState() {
+    return this.canvasSlice.getState();
+  }
+  getStore() {
+    return this.canvasSlice.getStore();
   }
 }
 
+/**
+ * You should not implement this interface directly, instead, you call createPaintableSlice()
+ * and get `.actionDispatcher` of returned slice 
+ */
 export interface Paintable {
-  init(ctx: ReactiveCanvasCtx): void;
+  init(pctx: PaintableContext): void;
   render(canvasCtx: CanvasRenderingContext2D): void;
   destroy(): void;
+}
+export interface BasePaintableState {
+  pctx?: PaintableContext;
+  error?: Error;
+}
+export const basePaintableReducers = {
+  init(s: BasePaintableState, pctx: PaintableContext) {
+    s.pctx = pctx;
+  },
+  render(s: BasePaintableState, canvasCtx: CanvasRenderingContext2D) {},
+  destroy(s: BasePaintableState) {}
+};
+
+export type PaintableSlice<S = {}, R = {}> = Slice<BasePaintableState & S, typeof basePaintableReducers & R>;
+
+export function createPaintableSlice<S = {}, R = {}>(name: string,
+  extendInitialState: S = {} as S,
+  extendReducers: R = {} as R,
+  debug?: boolean): PaintableSlice<S, R> {
+  const slice = createSlice<BasePaintableState & S, typeof basePaintableReducers & R>({
+    name,
+    initialState: Object.assign({}, extendInitialState),
+    reducers: Object.assign(basePaintableReducers, extendReducers),
+    debug
+  });
+  return slice;
 }
 
 interface PaintableWithRelations {
   /** parent id */
-  p?: string;
-  id: string;
-  children?: [Set<string>];
+  p?: number;
+  id: number;
+  children?: [Set<number>];
   paintable: Paintable;
 }
 
 const reducers = {
-  _create(s: ReactiveCanvasState, payload: HTMLCanvasElement | null) {
-    if (payload) {
-      s.canvas = payload;
-    }
-  },
   resize(s: ReactiveCanvasState) {
     if (s.canvas == null)
       return;
@@ -92,9 +145,35 @@ const reducers = {
       s.height = Math.floor(vh * ratio);
     }
   },
-  render() {},
-  addPaintable(s: ReactiveCanvasState, payload: [parentId: string, children: Iterable<Paintable>]) {},
-  _addPaintableDone(s: ReactiveCanvasState, [parentId, children]: [parentId: string, children: Iterable<[id: string, paintable: Paintable]>]) {
+  _afterResize(s: ReactiveCanvasState) {
+  },
+  render(s: ReactiveCanvasState) {
+  },
+  addPaintable(s: ReactiveCanvasState, [parentId, children]: [parentId: number, children: Iterable<Paintable>]) {
+  },
+  setAnimating(s: ReactiveCanvasState, [id, yes]: [paintableId: number, animating: boolean]) {
+    // s.animatings = isIncrement ? s.animatings + 1 : s.animatings - 1;
+    if (yes) {
+      if (!s._animatingPaintables[0].has(id)) {
+        s._animatingPaintables[0].add(id);
+        s._animatingPaintables = [s._animatingPaintables[0]]; // for dirty detection
+      }
+    } else {
+      if (s._animatingPaintables[0].has(id)) {
+        s._animatingPaintables[0].delete(id);
+        s._animatingPaintables = [s._animatingPaintables[0]];
+      }
+    }
+  },
+  _create(s: ReactiveCanvasState, payload: HTMLCanvasElement | null) {
+    if (payload) {
+      s.canvas = payload;
+      s.ctx = payload.getContext('2d')!;
+    }
+  },
+  _onDomMount(s: ReactiveCanvasState) {},
+  _componentTreeReady(s: ReactiveCanvasState) {},
+  _addPaintableDone(s: ReactiveCanvasState, [parentId, children]: [parentId: number, children: Iterable<[id: number, instance: Paintable]>]) {
     const pw = s.components[0].get(parentId)!;
     let existingChildren = pw.children;
     if (existingChildren == null) {
@@ -107,7 +186,7 @@ const reducers = {
     }
     s.components = [...s.components];
   },
-  removePaintable(s: ReactiveCanvasState, ids: string[]) {
+  removePaintable(s: ReactiveCanvasState, ids: number[]) {
     for (const id of ids) {
       const pw = s.components[0].get(id);
       if (pw == null)
@@ -116,13 +195,14 @@ const reducers = {
       if (pw.p) {
         const parentPw = s.components[0].get(pw.p)!;
         parentPw.children![0].delete(id);
-        parentPw.children = [...parentPw.children!];
+        parentPw.children = [parentPw.children![0]];
       }
     }
   },
   _removePaintable(s: ReactiveCanvasState, targets: PaintableWithRelations[]) {
     for (const {id, p} of targets) {
       s.components[0].delete(id);
+      s._animatingPaintables[0].delete(id);
       if (p != null) {
         const parent = s.components[0].get(p)!;
         const children = parent.children;
@@ -132,10 +212,16 @@ const reducers = {
         }
       }
     }
-    s.components = [...s.components];
+    s._animatingPaintables = [s._animatingPaintables[0]];
+    s.components = [s.components[0]];
   },
   _syncComponentProps(s: ReactiveCanvasState, payload: ReactiveCanvasProps) {
     s.componentProps = {...s.componentProps, ...payload};
+  },
+  _calAnimEscapeTime(s: ReactiveCanvasState, time: number) {
+    if (s._lastAnimFrameTime)
+      s.animEscapeTime = time - s._lastAnimFrameTime;
+    s._lastAnimFrameTime = time;
   }
   // define more reducers...
 };
@@ -143,7 +229,7 @@ const reducers = {
 let idSeed = 0;
 
 export function sliceOptionFactory() {
-  const rootId = '' + idSeed++;
+  const rootId = idSeed++;
   const rootPaintable: Paintable = {
     init(api) {},
     render(ctx) {},
@@ -165,8 +251,9 @@ export function sliceOptionFactory() {
     pixelWidth: 0,
     rootId,
     components: [new Map([ [rootId, rootPaintableData] ])],
-    animatingPaintables: [new Set()],
-    renderStarted: false
+    _animatingPaintables: [new Set()],
+    // rendering: false,
+    animEscapeTime: 0
   };
   return {
     name: 'ReactiveCanvas',
@@ -177,8 +264,29 @@ export function sliceOptionFactory() {
 }
 
 export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = function(slice) {
-  return (action$) => {
+  const rootPaintableCtx = new PaintableContext(slice.getState().rootId, slice);
+
+  return (action$, state$) => {
     return rx.merge(
+      rx.combineLatest(
+        action$.pipe(ofPayloadAction(slice.actions._afterResize)),
+        action$.pipe(ofPayloadAction(slice.actions._componentTreeReady))
+      ).pipe(
+        op.map(() => {
+          renderImmediately(slice);
+        }),
+        op.switchMap(() => action$.pipe(ofPayloadAction(slice.actions.render))),
+        op.exhaustMap(() => render(slice))
+      ),
+
+      state$.pipe(op.map(s => s._animatingPaintables[0].size),
+        op.scan((old, val) => {
+          if (val === 1 && old === 0) {
+            slice.actionDispatcher.render();
+          }
+          return val;
+        })
+      ),
       slice.getStore().pipe(op.distinctUntilChanged((x, y) => x.width === y.width && x.height === y.height),
         op.filter(s => s.canvas != null),
         op.tap((s) => {
@@ -189,30 +297,29 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
           can.style.height = s.pixelHeight + 'px';
         })
       ),
-      slice.getStore().pipe(op.map(s => s.componentProps.sliceRef),
+      slice.getStore().pipe(op.map(s => s.componentProps.onReady),
         op.distinctUntilChanged(),
-        op.map(sliceRef => {
-          if (sliceRef) {
-            sliceRef(slice);
+        op.map(factory => {
+          if (factory) {
+            factory(rootPaintableCtx);
+            slice.actionDispatcher._componentTreeReady();
           }
         })),
       action$.pipe(ofPayloadAction(slice.actions.addPaintable),
-        op.tap(({payload: [parentId, children]}) => {
-          const toBeAdded: [id: string, instance: Paintable][] = [];
-          for (const child of children) {
-            const id = '' + idSeed++;
-            child.init(new ReactiveCanvasCtx(id, slice, slice.getState, slice.getStore));
-            toBeAdded.push([id, child]);
+        op.observeOn(rx.queueScheduler), // queue up paintables, to make sure parent is added to components earlier than children
+        op.map(({payload: [pid, children]}) => {
+          const childrenWithId: [id: number, child: Paintable][] = Array.from(children).map(paintable => [idSeed++, paintable]);
+          slice.actionDispatcher._addPaintableDone([pid, childrenWithId]);
+          for (const [id, paintable] of childrenWithId) {
+            paintable.init(new PaintableContext(id, slice));
           }
-
-          slice.actionDispatcher._addPaintableDone([parentId, toBeAdded]);
         })
       ),
       action$.pipe(ofPayloadAction(slice.actions.removePaintable),
         op.tap(({payload: ids}) => {
           const s = slice.getState();
           const topSorted: PaintableWithRelations[] = [];
-          const bfs = new DFS<string>(parentId => {
+          const bfs = new DFS<number>(parentId => {
             const parent = s.components[0].get(parentId);
             return parent?.children ? parent.children[0] : [];
           }, (v => {
@@ -220,7 +327,7 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
           }));
           bfs.visit(ids);
 
-          const comps = slice.getState().components[0];
+          const comps = s.components[0];
           for (const {id} of topSorted) {
             const instance = comps.get(id);
             if (instance) {
@@ -230,26 +337,57 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
           slice.actionDispatcher._removePaintable(topSorted);
         })
       ),
-      action$.pipe(ofPayloadAction(slice.actions.render),
-        op.tap(() => {
-          const s = slice.getState();
-          if (s.canvas == null)
-            return;
-          const ctx = s.canvas.getContext('2d')!;
-          const bfs = new DFS<string>(parentId => {
-            console.log('render ', parentId);
-            ctx.save();
-            const pw = s.components[0].get(parentId)!;
-            pw.paintable.render(ctx);
-            // ctx.restore();
-            return pw.children ? pw.children[0] : [];
-          }, (v => {
-            ctx.restore();
-          }));
-          bfs.visit(s.rootId);
-        }))
+      action$.pipe(ofPayloadAction(slice.actions._onDomMount),
+        op.switchMap(() => rx.timer(50)),
+        op.map(() => {
+          slice.actionDispatcher.resize(); // let other paintable react on "resize" action first
+          slice.actionDispatcher._afterResize(); // trigger re-render
+        }),
+        op.switchMap(() => rx.fromEvent<UIEvent>(window, 'resize')),
+        op.throttleTime(300, rx.asapScheduler, {trailing: true}),
+        op.map(event => {
+          slice.actionDispatcher.resize();
+          slice.actionDispatcher._afterResize();
+        })
+      )
     ).pipe(op.ignoreElements());
   };
 };
+
+function render(slice: Slice<ReactiveCanvasState, typeof reducers>) {
+  return new rx.Observable(sub => {
+    requestAnimationFrame(time => {
+      renderImmediately(slice, time);
+      sub.next();
+      sub.complete();
+    });
+  });
+}
+
+function renderImmediately(slice: Slice<ReactiveCanvasState, typeof reducers>, time?: number) {
+  const s = slice.getState();
+  if (time)
+    slice.actionDispatcher._calAnimEscapeTime(time);
+
+  if (s.canvas == null)
+    return;
+
+  const ctx = s.ctx!;
+  ctx.clearRect(0,0, s.width, s.height);
+
+  const dfs = new DFS<number>(parentId => {
+    ctx.save();
+    const pw = s.components[0].get(parentId)!;
+    pw.paintable.render(ctx);
+    ctx.restore();
+    return pw.children ? pw.children[0] : [];
+  }, (v => {
+    ctx.restore();
+  }));
+  dfs.visit([s.rootId]);
+  if (slice.getState()._animatingPaintables[0].size > 0) {
+    slice.actionDispatcher.render();
+  }
+}
 
 export type ReactiveCanvasSlice = Slice<ReactiveCanvasState, typeof reducers>;

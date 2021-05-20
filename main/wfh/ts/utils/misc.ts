@@ -156,6 +156,7 @@ export interface PackageTsDirs {
   isomDir?: string;
   /** For plink command tsc, "isomDir" will be ignored if "include" is set in package.json */
   include?: string[] | string;
+  files?: string[] | string;
 }
 
 export function getTscConfigOfPkg(json: any): PackageTsDirs {
@@ -163,11 +164,12 @@ export function getTscConfigOfPkg(json: any): PackageTsDirs {
   const srcDir = get(json, 'dr.ts.src', get(json, 'plink.tsc.src', 'ts'));
   const isomDir = get(json, 'dr.ts.isom', get(json, 'plink.tsc.isom', 'isom'));
   const include = get(json, 'dr.ts.include', get(json, 'plink.tsc.include'));
+  const files = get(json, 'plink.tsc.files');
   let destDir = get(json, 'dr.ts.dest', get(json, 'plink.tsc.dest', 'dist'));
 
   destDir = trim(trim(destDir, '\\'), '/');
   return {
-    srcDir, destDir, isomDir, include
+    srcDir, destDir, isomDir, include, files
   };
 }
 

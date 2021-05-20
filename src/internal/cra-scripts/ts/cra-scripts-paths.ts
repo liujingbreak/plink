@@ -48,13 +48,6 @@ export default function paths() {
   }
   log.debug(changedPaths);
 
-  pCfg.configHandlerMgrChanged(handler => handler.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
-    if (handler.changeCraPaths != null) {
-      log.info('Execute CRA scripts paths overrides', cfgFile);
-      handler.changeCraPaths(changedPaths, config().cliOptions?.env!, cmdOption);
-    }
-  }));
-
   configFileInPackage = Path.resolve(dir, _.get(plinkProps, ['config-overrides-path'], 'config-overrides.ts'));
 
   if (fs.existsSync(configFileInPackage)) {
@@ -68,6 +61,12 @@ export default function paths() {
   } else {
     configFileInPackage = null;
   }
+  pCfg.configHandlerMgrChanged(handler => handler.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+    if (handler.changeCraPaths != null) {
+      log.info('Execute CRA scripts paths overrides', cfgFile);
+      handler.changeCraPaths(changedPaths, config().cliOptions?.env!, cmdOption);
+    }
+  }));
   // tslint:disable-next-line: no-console
   // console.log('[cra-scripts-paths] changed react-scripts paths:\n', changedPaths);
   craScriptsPaths = changedPaths;

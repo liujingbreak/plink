@@ -10,8 +10,9 @@
 import * as _ from 'lodash';
 // import * as Path from 'path';
 import { Compiler } from 'webpack';
-import api from '__api';
 import _HtmlWebpackPlugin from 'html-webpack-plugin';
+import {config} from '@wfh/plink';
+import api from '__plink';
 // const { RawSource } = require('webpack-sources');
 // const log = require('log4js').getLogger(api.packageName + '.template-html-plugin');
 
@@ -31,7 +32,7 @@ export default class TemplateHtmlPlugin {
         .getHooks(compilation)
         .afterTemplateExecution.tap('PlinkTemplateHtmlPlugin', data => {
           data.html = _.template(data.html)({
-            _config: api.config(),
+            _config: config(),
             __api: api
           });
           return data;
@@ -44,7 +45,7 @@ export async function transformHtml(this: void, html: string) {
   const compile = _.template(html);
 
   html = compile({
-    _config: api.config(),
+    _config: config(),
     require
   });
 

@@ -85,7 +85,7 @@ export async function genPackage(path: string, compName: string, featureName: st
     `  (Run command: plink add @wfh/${packageName})\n`));
 }
 
-export async function genComponents(dir: string, compNames: string[], opts: {connectedToSlice?: string; dryrun: boolean; useInternalSlice?: boolean}) {
+export async function genComponents(dir: string, compNames: string[], opts: {connectedToSlice?: string; dryrun: boolean;}) {
   dir = Path.resolve(dir);
 
   if (opts.dryrun) {

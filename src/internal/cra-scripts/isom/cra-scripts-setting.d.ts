@@ -4,6 +4,15 @@
 export interface CraScriptsSetting {
     /** Less loader option: additionalData */
     lessLoaderAdditionalData: string;
+    lessLoaderOtherOptions: {
+        [key: string]: any;
+    };
+    /** By default CRA will open browser in "start" script (cra-start command),
+     * - `undefined` denotes default behavior of CRA
+     * - `string` value denotes openning browser for specific address
+     * - `false` value forbidden CRA openning browser
+      */
+    openBrowser?: string | false;
 }
 /**
  * Plink runs this funtion to get package level setting value by merge

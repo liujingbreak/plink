@@ -25,8 +25,12 @@ export interface CraScriptsPaths {
   ownTypeDeclarations: string;
 }
 export interface ReactScriptsHandler {
+  /** Change CRA's paths  */
   changeCraPaths?(craPaths: CraScriptsPaths, env: string, cmdOpt: CommandOption): void;
-  tsCompilerOptions?(compileOptionsJson: {[prop in keyof ts.CompilerOptions]: ts.CompilerOptionsValue}, cmdOpt: CommandOption): void;
+  /** change Typescript compiler options for CRA's fork-ts-checker  */
+  tsCheckCompilerOptions?(compileOptionsJson: {[prop in keyof ts.CompilerOptions]: ts.CompilerOptionsValue}, cmdOpt: CommandOption): void;
+  /** In build "lib" mode, change Typescript compiler options for Plink's TSC command which generates TSD files  */
+  libTsdCompilerOptions?(compileOptionsJson: {[prop in keyof ts.CompilerOptions]: ts.CompilerOptionsValue}, cmdOpt: CommandOption): void;
   webpack?(cfg: Configuration, env: string, cmdOpt: CommandOption): void;
 }
 export {default as webpack} from 'webpack';

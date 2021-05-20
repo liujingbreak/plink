@@ -1,10 +1,15 @@
 import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
-import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft } from '@reduxjs/toolkit';
+import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft, Action } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { Observable, OperatorFunction } from 'rxjs';
 export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
+    /** You don't have to create en Epic for subscribing action stream, you subscribe this property
+     * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
+     */
+    action$: Observable<PayloadAction | Action>;
     actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
+    destroy$: Observable<any>;
     addEpic(epicFactory: EpicFactory<S, R>): () => void;
     addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): () => void;
     destroy(): void;

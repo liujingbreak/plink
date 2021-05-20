@@ -7,13 +7,15 @@ import Path, {resolve, join, relative, sep} from 'path';
 import ts from 'typescript';
 import {getTscConfigOfPkg, PackageTsDirs, plinkEnv} from './utils/misc';
 import {CompilerOptions} from 'typescript';
-import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions} from './package-mgr/package-list-helper';
+import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions, allPackages} from './package-mgr/package-list-helper';
+import {findPackagesByNames} from './cmd/utils';
 import {DirTree} from 'require-injector/dist/dir-tree';
-import {getState, workspaceKey} from './package-mgr';
+import {getState, workspaceKey, PackageInfo} from './package-mgr';
 import log4js from 'log4js';
 import glob from 'glob';
 import {mergeBaseUrlAndPaths} from './ts-cmd-util';
 import {webInjector} from './injector-factory';
+import {analyseFiles} from './cmd/cli-analyze';
 // import {PlinkEnv} from './node-path';
 export {RequiredCompilerOptions};
 
@@ -34,7 +36,7 @@ export interface TscCmdParam {
   pathsJsons?: Array<string> | {[path: string]: string[]};
   /**
    * Partial compiler options to be merged, except "baseUrl".
-   * "paths" should be relative to `PlinkEnv.workDir`
+   * "paths" should be relative to `plinkEnv.workDir`
    */
   compilerOptions?: any;
   overridePackgeDirs?: {[pkgName: string]: PackageTsDirs};
@@ -52,8 +54,11 @@ interface PackageDirInfo extends PackageTsDirs {
  * @param {function} onCompiled () => void
  * @return void
  */
-export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => void*/): string[] {
-  const compGlobs: string[] = [];
+export async function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => void*/): Promise<string[]> {
+  // const compGlobs: string[] = [];
+  // const compFiles: string[] = [];
+  const rootFiles: string[] = [];
+
   const compDirInfo: Map<string, PackageDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
   const baseTsconfigFile = require.resolve('../tsconfig-base.json');
   const baseTsconfig = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'));
@@ -79,15 +84,19 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   const commonRootDir = plinkEnv.workDir;
 
   let countPkg = 0;
+  let pkgInfos: PackageInfo[] | undefined;
   if (argv.package && argv.package.length > 0)
-    packageUtils.findAllPackages(argv.package, onComponent, 'src');
+    pkgInfos = Array.from(findPackagesByNames(argv.package)).filter(pkg => pkg != null) as PackageInfo[];
+    // packageUtils.findAllPackages(argv.package, onComponent, 'src');
   else if (argv.project && argv.project.length > 0) {
-    packageUtils.findAllPackages(onComponent, 'src', argv.project);
+    pkgInfos = Array.from(allPackages('*', 'src', argv.project));
   } else {
-    for (const pkg of packageUtils.packages4Workspace(plinkEnv.workDir, false)) {
-      onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath);
-    }
+    pkgInfos = Array.from(packageUtils.packages4Workspace(plinkEnv.workDir, false));
+    // for (const pkg of packageUtils.packages4Workspace(plinkEnv.workDir, false)) {
+    //   onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath);
+    // }
   }
+  await Promise.all(pkgInfos.map(pkg => onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath)))
   for (const info of compDirInfo.values()) {
     const treePath = relative(commonRootDir, info.symlinkDir);
     log.debug('treePath', treePath);
@@ -122,7 +131,7 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
   log.info('typescript compilerOptions:', compilerOptions);
 
   /** set compGlobs */
-  function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, realPath: string) {
+  async function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, realPath: string) {
     countPkg++;
     const tscCfg: PackageTsDirs = argv.overridePackgeDirs && _.has(argv.overridePackgeDirs, name) ?
       argv.overridePackgeDirs[name] : getTscConfigOfPkg(json);
@@ -132,11 +141,6 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
     // in directory which does not contain "node_modules" as part of absolute path.
     const symlinkDir = resolve(plinkEnv.workDir, symlinkDirName, name);
     compDirInfo.set(name, {...tscCfg, pkgDir: realPath, symlinkDir});
-
-    // if (tscCfg.globs) {
-    //   compGlobs.push(...tscCfg.globs.map(file => resolve(symlinkDir, file).replace(/\\/g, '/')));
-    //   return;
-    // }
 
     const srcDirs = [tscCfg.srcDir, tscCfg.isomDir].filter(srcDir => {
       if (srcDir == null)
@@ -159,29 +163,39 @@ export function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => voi
       }
     }
 
-    if (tscCfg.include) {
-      tscCfg.include = ([] as string[]).concat(tscCfg.include);
+    if (tscCfg.files) {
+      const files = ([] as string[]).concat(tscCfg.files);
+      const aRes = await analyseFiles(files.map(file => resolve(symlinkDir, file)), argv.mergeTsconfig, []);
+      // log.warn('analyzed files:', aRes);
+      rootFiles.push(...(aRes.files.filter(file => file.startsWith(symlinkDir + sep) && !/\.(?:jsx?|d\.ts)$/.test(file))
+        .map(file => file.replace(/\\/g, '/')))
+      );
     }
-    if (tscCfg.include && tscCfg.include.length > 0) {
-      compGlobs.push(...(tscCfg.include as string[]).map(pattern => resolve(symlinkDir, pattern).replace(/\\/g, '/')));
-    } else {
-      srcDirs.forEach(srcDir => {
+    if (tscCfg.include) {
+      let patterns = ([] as string[]).concat(tscCfg.include);
+      for (const pattern of patterns) {
+        const globPattern = resolve(symlinkDir, pattern).replace(/\\/g, '/');
+        glob.sync(globPattern).filter(file => !file.endsWith('.d.ts')).forEach(file => rootFiles.push(file));
+      }
+    }
+    if (tscCfg.files == null && tscCfg.include == null) {
+      for (const srcDir of srcDirs) {
         const relPath = resolve(symlinkDir, srcDir!).replace(/\\/g, '/');
-        compGlobs.push(relPath + '/**/*.ts');
+        glob.sync(relPath + '/**/*.ts').filter(file => !file.endsWith('.d.ts')).forEach(file => rootFiles.push(file));
         if (argv.jsx) {
-          compGlobs.push(relPath + '/**/*.tsx');
+          glob.sync(relPath + '/**/*.tsx').filter(file => !file.endsWith('.d.ts')).forEach(file => rootFiles.push(file));
         }
-      });
+      }
     }
   }
-
+  // log.warn('rootFiles:\n' + rootFiles.join('\n'));
   if (argv.watch) {
     log.info('Watch mode');
-    watch(compGlobs, compilerOptions, commonRootDir, packageDirTree);
+    watch(rootFiles, compilerOptions, commonRootDir, packageDirTree);
     return [];
     // watch(compGlobs, tsProject, commonRootDir, packageDirTree, argv.ed, argv.jsx, onCompiled);
   } else {
-    const emitted = compile(compGlobs, compilerOptions, commonRootDir, packageDirTree);
+    const emitted = compile(rootFiles, compilerOptions, commonRootDir, packageDirTree);
     if (process.send)
       process.send('plink-tsc compiled');
     return emitted;
@@ -195,10 +209,7 @@ const formatHost: ts.FormatDiagnosticsHost = {
   getNewLine: () => ts.sys.newLine
 };
 
-function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
-  const rootFiles: string[] = _.flatten(
-    globPatterns.map(pattern => glob.sync(pattern).filter(file => !file.endsWith('.d.ts')))
-  );
+function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
     plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
@@ -224,11 +235,7 @@ function watch(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: stri
   ts.createWatchProgram(programHost);
 }
 
-function compile(globPatterns: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
-  const rootFiles: string[] = _.flatten(
-    globPatterns.map(pattern => glob.sync(pattern, {cwd: plinkEnv.workDir}).filter(file => !file.endsWith('.d.ts')))
-  );
-  // log.info('rootFiles:\n', rootFiles.join('\n'));
+function compile(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
     plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;

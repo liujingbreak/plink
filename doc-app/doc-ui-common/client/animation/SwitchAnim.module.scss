@@ -13,7 +13,7 @@ $anim-duration: 0.4s;
   &.animate-opacity {
     .enterStart {
       opacity: 0;
-      will-change: opacity;
+      // will-change: opacity;
       transition: opacity linear $anim-duration;
       transform: none;
 
@@ -38,7 +38,7 @@ $transition: opacity linear $anim-duration, transform ease-out $anim-duration;
   opacity: 0;
   transform: translate3d(0, 100px, 0);
   transition: $transition;
-  will-change: opacity, transform;
+  // will-change: opacity, transform;
   &.entering {
     // opacity: 0;
     // display: none;
@@ -50,7 +50,7 @@ $transition: opacity linear $anim-duration, transform ease-out $anim-duration;
 // https://github.com/css-modules/css-modules
 .leaving {
   position: absolute;
-  will-change: opacity, transform;
+  // will-change: opacity, transform;
   transform: translate3d(0, -100px, 0);
   transition: $transition;
   // overflow: hidden;

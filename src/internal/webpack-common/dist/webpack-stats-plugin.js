@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const plink_1 = require("@wfh/plink");
+const log = plink_1.log4File(__filename);
+class StatsPlugin {
+    apply(compiler) {
+        compiler.hooks.done.tap('PlinkWebpackStatsPlugin', (stats) => {
+            log.info(stats.toString('normal'));
+        });
+    }
+}
+exports.default = StatsPlugin;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoid2VicGFjay1zdGF0cy1wbHVnaW4uanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJ3ZWJwYWNrLXN0YXRzLXBsdWdpbi50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUtBLHNDQUFvQztBQUVwQyxNQUFNLEdBQUcsR0FBRyxnQkFBUSxDQUFDLFVBQVUsQ0FBQyxDQUFDO0FBRWpDLE1BQXFCLFdBQVc7SUFDOUIsS0FBSyxDQUFDLFFBQWtCO1FBQ3RCLFFBQVEsQ0FBQyxLQUFLLENBQUMsSUFBSSxDQUFDLEdBQUcsQ0FBQyx5QkFBeUIsRUFBRSxDQUFDLEtBQUssRUFBRSxFQUFFO1lBQzNELEdBQUcsQ0FBQyxJQUFJLENBQUMsS0FBSyxDQUFDLFFBQVEsQ0FBQyxRQUFRLENBQUMsQ0FBQyxDQUFDO1FBQ3JDLENBQUMsQ0FBQyxDQUFDO0lBQ0wsQ0FBQztDQUNGO0FBTkQsOEJBTUMiLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIENyZWF0ZS1yZWFjdC1hcHAgaGlqYWNrZWQgV2VicGFjayBzdGF0cyBmb3JtYXQsIEkgbmVlZCB0aGlzIHBsdWdpbiB0byBwcmludHMgbW9yZSBpbmZvcm1hdGlvblxuICogZm9yIGxpYnJhcnkgY29tcGlsYXRpb25cbiAqL1xuaW1wb3J0IHtDb21waWxlcn0gZnJvbSAnd2VicGFjayc7XG5pbXBvcnQge2xvZzRGaWxlfSBmcm9tICdAd2ZoL3BsaW5rJztcblxuY29uc3QgbG9nID0gbG9nNEZpbGUoX19maWxlbmFtZSk7XG5cbmV4cG9ydCBkZWZhdWx0IGNsYXNzIFN0YXRzUGx1Z2luIHtcbiAgYXBwbHkoY29tcGlsZXI6IENvbXBpbGVyKSB7XG4gICAgY29tcGlsZXIuaG9va3MuZG9uZS50YXAoJ1BsaW5rV2VicGFja1N0YXRzUGx1Z2luJywgKHN0YXRzKSA9PiB7XG4gICAgICBsb2cuaW5mbyhzdGF0cy50b1N0cmluZygnbm9ybWFsJykpO1xuICAgIH0pO1xuICB9XG59XG5cbiJdfQ==

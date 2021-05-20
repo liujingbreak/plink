@@ -1,0 +1,12 @@
+
+.host {
+  min-height: 100%;
+  display: flex;
+  align-items: stretch;
+  .canvas {
+    flex: 1;
+    height: auto;
+  }
+}
+
+// https://github.com/css-modules/css-modules

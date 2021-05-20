@@ -18,7 +18,7 @@ export interface TscCmdParam {
     };
     /**
      * Partial compiler options to be merged, except "baseUrl".
-     * "paths" should be relative to `PlinkEnv.workDir`
+     * "paths" should be relative to `plinkEnv.workDir`
      */
     compilerOptions?: any;
     overridePackgeDirs?: {
@@ -32,4 +32,4 @@ export interface TscCmdParam {
  * @param {function} onCompiled () => void
  * @return void
  */
-export declare function tsc(argv: TscCmdParam): string[];
+export declare function tsc(argv: TscCmdParam): Promise<string[]>;

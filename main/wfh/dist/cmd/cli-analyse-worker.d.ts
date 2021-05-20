@@ -12,6 +12,8 @@ export declare class Context {
     externalDeps: Set<string>;
     matchAlias: string[];
     commonDir: string;
+    /** traversed files */
+    topSortedFiles: string[];
     constructor(commonDir: string, alias: [reg: RegExp, replaceTo: string][], relativeDepsOutSideDir?: Set<string>, cyclic?: string[], canNotResolve?: {
         target: string;
         file: string;
@@ -30,6 +32,7 @@ export declare class Context {
         }[];
         externalDeps: string[];
         matchAlias: string[];
+        files: string[];
     };
 }
 export declare function dfsTraverseFiles(files: string[], tsconfigFile: string | null | undefined, alias: [reg: string, replaceTo: string][]): ReturnType<Context['toPlainObject']>;

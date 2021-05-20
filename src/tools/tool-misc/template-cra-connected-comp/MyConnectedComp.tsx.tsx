@@ -48,7 +48,7 @@ const innerHtml = isConnected ? '' : 'Your component goes here';
 const $__MyComponent__$: React.FC<$__propType__$> = function(props) {
   // Your Component rendering goes here
   /*<% if (withImage) { 
-  %>*/return <div className={styles.$__MyComponent__$}>
+  %>*/return <div className={styles.scope}>
     <img src={imgSrc}></img>
     <h1 /*<% if (isConnected) { %>*/dangerouslySetInnerHTML={props.html}/*<% } %>*/>$__innerHtml__$</h1>
   </div>;/*<%

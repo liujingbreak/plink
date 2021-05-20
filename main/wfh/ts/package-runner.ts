@@ -24,11 +24,12 @@ export interface ServerRunnerEvent {
 }
 
 export function isServerPackage(pkg: PackageState) {
-  return pkg.json.dr && pkg.json.dr.type && (pkg.json.dr.type === 'server' || (pkg.json.dr.type  as string[]).includes('server'));
+  const plinkProp = pkg.json.plink || pkg.json.dr;
+  return plinkProp && (plinkProp.type === 'server' || (plinkProp.type && (plinkProp.type  as string[]).includes('server')));
 }
 
 export function readPriorityProperty(json: any) {
-  return _.get(json, 'dr.serverPriority');
+  return _.get(json, 'plink.serverPriority', _.get(json, 'dr.serverPriority'));
 }
 
 export function runServer(): {started: Promise<unknown>; shutdown(): Promise<void>} {
@@ -146,7 +147,10 @@ export async function runPackages(target: string, includePackages: Iterable<stri
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
 
 
-  await orderPackages(components.map(item => ({name: item.longName, priority: _.get(item.json, 'dr.serverPriority')})),
+  await orderPackages(components.map(item => ({
+    name: item.longName,
+    priority: _.get(item.json, 'plink.serverPriority', _.get(item.json, 'dr.serverPriority'))
+  })),
   pkInstance  => {
     packageNamesInOrder.push(pkInstance.name);
     const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
@@ -239,7 +243,7 @@ export function mapPackagesByType(types: string[], onEachPackage: (nodePackage: 
       json: pkg.json,
       realPath: pkg.realPath
     });
-    const drTypes = ([] as string[]).concat(_.get(pkg, 'json.dr.type'));
+    const drTypes = ([] as string[]).concat(_.get(pkg.json, 'plink.type', _.get(pkg.json, 'dr.type')));
     for (const type of types) {
       if (!_.includes(drTypes, type))
         continue;
@@ -263,8 +267,8 @@ function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeA
   .factory('__api', apiFactory)
   .factory('__plink', apiFactory);
 
-  webInjector.fromDir(pkInstance.realPath)
-  .replaceCode('__api', '__api');
+  // webInjector.fromDir(pkInstance.realPath)
+  // .replaceCode('__api', '__api');
   // .substitute(/^([^{]*)\{locale\}(.*)$/,
   //   (_filePath: string, match: RegExpExecArray) => match[1] + apiPrototype.getBuildLocale() + match[2]);
   const symlinkDir = pkInstance.path !== pkInstance.realPath ? pkInstance.path : null;
@@ -273,8 +277,8 @@ function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeA
     .value('__injector', nodeInjector)
     .factory('__plink', apiFactory);
 
-    webInjector.fromDir(symlinkDir)
-    .replaceCode('__api', '__api');
+    // webInjector.fromDir(symlinkDir)
+    // .replaceCode('__api', '__api');
   }
 }
 

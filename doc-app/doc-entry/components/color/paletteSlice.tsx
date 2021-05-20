@@ -34,7 +34,7 @@ const rawReducers = {
       originColor: color,
       hueInterval: 10
     };
-    s.mixColors.color2 = color;
+    s.mixColors.color1 = color;
     const computed = {
       ...s._computed,
       selectedMixedColor: new Color(s.selectedMixedColor)
@@ -66,7 +66,7 @@ export function sliceOptionFactory() {
     selectedMixedColor: initColor.hex(),
     inputLightness: Math.round(initColor.lightness()),
     inputSaturation: Math.round(initColor.saturationl()),
-    mixColors: {color1: 'black', color2: hex, mixWeightIntervals: 0.07},
+    mixColors: {color1: hex, color2: 'black', mixWeightIntervals: 0.07},
     // mixColors2: {color1: 'red', color2: 'blue', mixWeightIntervals: 0.07},
     satuations: {originColor: hex, satuationInterval: 10},
     hue: {originColor: hex, hueInterval: 10},
@@ -82,21 +82,16 @@ export function sliceOptionFactory() {
 export const epicFactory: EpicFactory<PaletteState, typeof reducers> = function(slice) {
   return (action$) => {
     return rx.merge(
-      action$.pipe(op.filter(action => action.type.indexOf('_onMixColorToolRef') >= 0),
-        op.tap(a => {})
-      ),
       // bind color select event
       action$.pipe(ofPayloadAction(slice.actionDispatcher._onMixColorToolRef),
         sliceRefActionOp((colorToolSlice) => {
           return colorAction$ => {
-            return rx.merge(
-              colorAction$.pipe(ofPayloadAction(colorToolSlice.actions.onColorSelected),
-                  op.tap(action => {
-                    slice.actionDispatcher.changeMixedColor(action.payload.hex());
-                  })
-                )
-              ).pipe(op.ignoreElements());
-            };
+            return colorAction$.pipe(ofPayloadAction(colorToolSlice.actions.onColorSelected),
+              op.tap(action => {
+                slice.actionDispatcher.changeMixedColor(action.payload.hex());
+              })
+            ).pipe(op.ignoreElements());
+          };
         })
       ),
       action$.pipe(ofPayloadAction(slice.actionDispatcher._syncComponentProps),
@@ -105,8 +100,8 @@ export const epicFactory: EpicFactory<PaletteState, typeof reducers> = function(
             slice.actionDispatcher._change(s => {
               const mixColors = {
                 ...s.mixColors,
-                color1: s.componentProps?.colorMix!,
-                color2: s.componentProps?.colorMain!
+                color1: s.componentProps?.colorMain!,
+                color2: s.componentProps?.colorMix!
               };
               Object.freeze(mixColors);
               s.mixColors = mixColors;

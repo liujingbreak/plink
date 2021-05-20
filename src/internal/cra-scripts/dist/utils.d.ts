@@ -7,3 +7,6 @@ export declare function getCmdOptions(): CommandOption;
 export declare function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType: 'app' | 'lib'): CommandOption;
 export declare function craVersionCheck(): void;
 export declare function runTsConfigHandlers(compilerOptions: any): void;
+export declare function runTsConfigHandlers4LibTsd(): {
+    paths: {};
+};

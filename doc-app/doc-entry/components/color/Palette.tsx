@@ -34,7 +34,7 @@ const Palette: React.FC<PaletteProps> = function(props) {
       </>
     : null}
     <ColorTool mixColors={state.mixColors}/>
-    <ColorTool hue={state.hue} sliceRef={slice.actionDispatcher._onMixColorToolRef}/>
+    {/* <ColorTool hue={state.hue} sliceRef={slice.actionDispatcher._onMixColorToolRef}/> */}
   </>;
 };
 

@@ -61,33 +61,34 @@ export type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType:
 export interface Slice<S, R extends Reducers<S>> {
   name: string | number;
   state$: rx.BehaviorSubject<S>;
+  action$: rx.Observable<PayloadAction<any> | Action<S>>;
   dispatch: (action: PayloadAction<S> | Action<S>) => void;
   /** Action creators bound with dispatcher */
   actionDispatcher: Actions<S, R>;
   /** Action creators */
   actions: Actions<S, R>;
   destroy: () => void;
+  destroy$: rx.Observable<any>;
   addEpic(epicFactory: EpicFactory<S, R>): () => void;
   addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): () => void;
   getStore(): rx.Observable<S>;
   getState(): S;
 }
 
-export type Epic<S> = (actions: rx.Observable<PayloadAction<any> | Action<any>>, states: rx.BehaviorSubject<S>) => rx.Observable<Action<any>>;
+export type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
 
-type PayloadTypeOfAction<ActionCreatorType> = ActionCreatorType extends ActionCreatorWithoutPayload<any> ? void :
-  ActionCreatorType extends ActionCreatorWithPayload<any, infer P> ? P : never;
+// type PayloadTypeOfAction<ActionCreatorType> = ActionCreatorType extends ActionCreatorWithoutPayload<any> ? void :
+//   ActionCreatorType extends ActionCreatorWithPayload<any, infer P> ? P : never;
 
 /** filter action stream by type */
-export function ofPayloadAction<S, A extends ActionCreator<S, any>>(actionCreators: A):
-  (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>>>;
-export function ofPayloadAction<S, A extends ActionCreator<S, any>, S1, A1 extends ActionCreator<S1, any>>(actionCreators: A, actionCreators1: A1):
-  (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>> | PayloadAction<S1, PayloadTypeOfAction<A1>>>;
-export function ofPayloadAction<S, A extends ActionCreator<S, any>, S1, A1 extends ActionCreator<S1, any>, S2, A2 extends ActionCreator<S2, any>>(actionCreators: A, actionCreators1: A1, actionCreators2: A2):
-  (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>> | PayloadAction<S1, PayloadTypeOfAction<A1>> | PayloadAction<S2, PayloadTypeOfAction<A2>>>;
-export function ofPayloadAction<A extends ActionCreator<any, any>>(
-  ...actionCreators: A[]):
-  (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<unknown, PayloadTypeOfAction<A>>> {
+export function ofPayloadAction<S, P>(actionCreators: ActionCreator<S, P>): rx.OperatorFunction<any, PayloadAction<S, P>>;
+  // (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>>>;
+export function ofPayloadAction<S, P, S1, P1>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>):
+  rx.OperatorFunction<any , PayloadAction<S, P> | PayloadAction<S1, P1>>;
+export function ofPayloadAction<S, P, S1, P1, S2, P2>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>, actionCreators2: ActionCreator<S2, P2>):
+  rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1> | PayloadAction<S2, P2>>;
+export function ofPayloadAction(
+  ...actionCreators: ActionCreator<any, any>[]): rx.OperatorFunction<unknown, PayloadAction<unknown, unknown>> {
   return function(src: rx.Observable<PayloadAction<any>>) {
     return src.pipe(
       op.filter(action => actionCreators.some(ac => action.type === ac.type))
@@ -239,10 +240,12 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   const slice: Slice<S, R> = {
     name,
     state$,
+    action$,
     actions: actionCreators,
     dispatch,
     actionDispatcher,
     destroy,
+    destroy$: unprocessedAction$.pipe(op.filter(action => action.type === '__OnDestroy'), op.take(1)),
     addEpic(epicFactory: EpicFactory<S, R>) {
       return addEpic$(rx.of(epicFactory));
     },

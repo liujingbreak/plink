@@ -8,9 +8,13 @@ import Path from 'path';
 import {DFS} from '../utils/graph';
 import {jsonToCompilerOptions} from '../ts-compiler';
 // import {setTsCompilerOptForNodePath} from '../package-mgr/package-list-helper';
-import {initAsChildProcess} from '../utils/bootstrap-process';
+import {initAsChildProcess, initConfig} from '../utils/bootstrap-process';
+import {initInjectorForNodePackages} from '../package-runner';
+import {webInjector} from '../injector-factory';
 import {closestCommonParentDir, plinkEnv} from '../utils/misc';
 import {mergeBaseUrlAndPaths, RequiredCompilerOptions} from '../ts-cmd-util';
+import {log4File} from '../logger';
+
 
 let coJson: RequiredCompilerOptions;
 // setTsCompilerOptForNodePath(plinkEnv.workDir, './', coJson, {workspaceDir: plinkEnv.workDir});
@@ -18,8 +22,14 @@ let co: ts.CompilerOptions | undefined;
 let resCache: ts.ModuleResolutionCache;
 let host: ts.CompilerHost;
 initAsChildProcess();
+initConfig(JSON.parse(process.env.PLINK_CLI_OPTS!));
+initInjectorForNodePackages();
+const log = log4File(__filename);
 export class Context {
   commonDir: string;
+  /** traversed files */
+  topSortedFiles: string[] = [];
+
   constructor(
     commonDir: string,
     public alias: [reg: RegExp, replaceTo: string][],
@@ -44,7 +54,8 @@ export class Context {
       cyclic: this.cyclic,
       canNotResolve: this.canNotResolve,
       externalDeps: Array.from(this.externalDeps.values()),
-      matchAlias: this.matchAlias
+      matchAlias: this.matchAlias,
+      files: this.topSortedFiles
     };
   }
 }
@@ -52,20 +63,22 @@ export class Context {
 export function dfsTraverseFiles(files: string[], tsconfigFile: string | null | undefined,
   alias: [reg: string, replaceTo: string][]): ReturnType<Context['toPlainObject']> {
   init(tsconfigFile);
-  const commonParentDir = closestCommonParentDir(files);
+  const commonParentDir = (files.length === 1) ? Path.dirname(files[0]) : closestCommonParentDir(files);
   const context = new Context(commonParentDir, alias.map(item => [new RegExp(item[0]), item[1]]));
 
-  const dfs: DFS<string> = new DFS<string>(data => {
-    const q = new Query(fs.readFileSync(data, 'utf8'), data);
-    return parseFile(q, data, context);
+  const dfs: DFS<string> = new DFS<string>(file => {
+    const content = webInjector.injectToFile(file, fs.readFileSync(file, 'utf8'));
+    const q = new Query(content, file);
+    return parseFile(q, file, context);
+  }, vertex => {
+    context.topSortedFiles.push(vertex.data);
   });
 
   dfs.visit(files);
   const cwd = plinkEnv.workDir;
   if (dfs.backEdges.length > 0) {
     for (const edges of dfs.backEdges) {
-      // // tslint:disable-next-line: no-console
-      // console.log(`Found cyclic file dependency ${dfs.printCyclicBackEdge(edges[0], edges[1])}`);
+      // log.info(`Found cyclic file dependency ${dfs.printCyclicBackEdge(edges[0], edges[1])}`);
       context.cyclic.push(dfs.printCyclicBackEdge(edges[0], edges[1])
         .map(path => Path.relative(cwd, path)).join('\n -> ')
       );
@@ -84,7 +97,6 @@ function init(tsconfigFile?: string | null) {
   const baseTsconfigFile = Path.resolve(__dirname, '../../tsconfig-tsx.json');
   const baseTscfg = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'))
     .config;
-  // console.log(baseTscfg);
 
   coJson = baseTscfg.compilerOptions;
   if (tsconfigFile) {
@@ -99,8 +111,7 @@ function init(tsconfigFile?: string | null) {
 
 function parseFile(q: Query, file: string, ctx: Context) {
   const deps: string[] = [];
-  // tslint:disable-next-line: no-console
-  console.log('[cli-analysie-worker] Lookup file', Path.relative(plinkEnv.workDir, file));
+  log.debug('[cli-analysie-worker] Lookup file', Path.relative(plinkEnv.workDir, file));
   q.walkAst(q.src, [
     {
       query: '.moduleSpecifier:StringLiteral', // Both :ExportDeclaration or :ImportDeclaration
@@ -121,7 +132,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
             if (hashTag > 0) {
               // We found lazy route module
               // tslint:disable-next-line:no-console
-              console.log('lazy route module:', lazyModule);
+              log.info('lazy route module:', lazyModule);
               const dep = resolve(lazyModule.slice(0, hashTag), file, ctx, ast.getStart(), q.src);
               if (dep)
                 deps.push(dep);
@@ -165,9 +176,8 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
       pos: `line:${lineInfo.line + 1}, col:${lineInfo.character + 1}`,
       reasone: 'dynamic value'
     });
-    // tslint:disable-next-line: no-console
     // tslint:disable-next-line: max-line-length
-    // console.log(`[cli-analysie-worker] can not resolve dynamic value ${path} in ${file} @${lineInfo.line + 1}:${lineInfo.character + 1}`);
+    // log.info(`[cli-analysie-worker] can not resolve dynamic value ${path} in ${file} @${lineInfo.line + 1}:${lineInfo.character + 1}`);
     return null;
   }
   if (path.startsWith('"') || path.startsWith('\''))
@@ -176,17 +186,10 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
   for (const [reg, replaceTo] of ctx.alias) {
     const replaced = path.replace(reg, replaceTo);
     if (path !== replaced) {
-      // console.log(replaced);
       ctx.matchAlias.push(path);
-      // console.log(`resolve alias ${path} to `, replaced);
       path = replaced;
       break;
     }
-  }
-
-  const suffix = Path.extname(path);
-  if (suffix && !/^\.[tj]sx?$/.test(path)) {
-    return null;
   }
 
   let resolved = ts.resolveModuleName(path, file, co!, host, resCache).resolvedModule;
@@ -196,6 +199,7 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
       return resolved != null;
     });
   }
+
   // if (path.startsWith('.') || Path.isAbsolute(path)) {
   if (resolved == null) {
     if (!path.startsWith('.') && !Path.isAbsolute(path)) {

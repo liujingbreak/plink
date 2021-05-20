@@ -1,5 +1,5 @@
 import {StateFactory, ExtraSliceReducers} from './redux-toolkit-observable';
-import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft} from '@reduxjs/toolkit';
+import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft, Action} from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import {Observable, EMPTY, of, Subject, OperatorFunction} from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -7,7 +7,12 @@ import * as op from 'rxjs/operators';
 export type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 
 export type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
+  /** You don't have to create en Epic for subscribing action stream, you subscribe this property
+   * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
+   */
+  action$: Observable<PayloadAction | Action>;
   actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
+  destroy$: Observable<any>;
   addEpic(epicFactory: EpicFactory<S, R>): () => void;
   addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): () => void;
   destroy(): void;
@@ -21,6 +26,17 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
   const slice = stateFactory.newSlice(opts);
   const actionDispatcher = stateFactory.bindActionCreators(slice);
   const destory$ = new Subject();
+  let action$ = new Subject<PayloadAction | Action>();
+
+  new Observable(() => {
+    // Release epic
+    return stateFactory.addEpic(_action$ => {
+      return _action$.pipe(
+        op.tap(action => action$.next(action)),
+        op.ignoreElements()
+      );
+    }, opts.name);
+  }).subscribe();
 
   function addEpic$(epicFactory$: Observable<EpicFactory<S, R> | null | undefined>) {
     const sub = epicFactory$.pipe(
@@ -30,8 +46,8 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
           const epic = fac(helper);
           if (epic) {
             return new Observable(() => {
-              const release = stateFactory.addEpic(epic, opts.name);
-              return release;
+              // Release epic
+              return stateFactory.addEpic(epic, opts.name);
             });
           }
         }
@@ -46,11 +62,13 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
   // let releaseEpic: Array<() => void> = [];
   const helper = {
     ...slice,
+    action$: action$.asObservable(),
     actionDispatcher,
     addEpic(epicFactory: EpicFactory<S, R>) {
       return addEpic$(of(epicFactory));
     },
     addEpic$,
+    destroy$: destory$.asObservable(),
     destroy() {
       destory$.next();
       destory$.complete();

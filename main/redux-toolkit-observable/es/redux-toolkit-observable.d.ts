@@ -5,7 +5,7 @@
  */
 import { CaseReducer, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers, Middleware, ActionCreatorWithPayload } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
-import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, OperatorFunction } from 'rxjs';
 export { PayloadAction, SliceCaseReducers, Slice };
 export interface ExtraSliceReducers<SS> {
     _init: CaseReducer<SS, PayloadAction<{
@@ -14,9 +14,9 @@ export interface ExtraSliceReducers<SS> {
     _change: CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 }
 export declare type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
-export declare function ofPayloadAction<P1, T1 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1, T1>>;
-export declare function ofPayloadAction<P1, P2, T1 extends string, T2 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>, actionCreators2: ActionCreatorWithPayload<P2, T2>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2, T1 | T2>>;
-export declare function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string, T3 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>, actionCreators2: ActionCreatorWithPayload<P2, T2>, actionCreators3: ActionCreatorWithPayload<P3, T3>): (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
+export declare function ofPayloadAction<P1, T1 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>): OperatorFunction<any, PayloadAction<P1, T1>>;
+export declare function ofPayloadAction<P1, P2, T1 extends string, T2 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>, actionCreators2: ActionCreatorWithPayload<P2, T2>): OperatorFunction<any, PayloadAction<P1 | P2, T1 | T2>>;
+export declare function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string, T3 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>, actionCreators2: ActionCreatorWithPayload<P2, T2>, actionCreators3: ActionCreatorWithPayload<P3, T3>): OperatorFunction<any, PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
 export interface ErrorState {
     actionError?: Error;
 }

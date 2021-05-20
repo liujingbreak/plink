@@ -319,7 +319,7 @@ function spaceOnlySubCommands(program: commander.Command) {
     }, [] as string[])
     // .option('--ws,--workspace <workspace-dir>', 'only include those linked packages which are dependency of specific workspaces',
     //   arrayOptionFn, [])
-    .option('--jsx', 'includes TSX file', false)
+    .option('--tsx,--jsx', 'includes TSX file', false)
     .option('--ed, --emitDeclarationOnly', 'Typescript compiler option: --emitDeclarationOnly.\nOnly emit ‘.d.ts’ declaration files.', false)
     .option('--source-map <inline|file>', 'Source map style: "inline" or "file"', 'inline')
     .option('--merge,--merge-tsconfig <file>', 'Merge compilerOptions "baseUrl" and "paths" from specified tsconfig file')
@@ -328,6 +328,8 @@ function spaceOnlySubCommands(program: commander.Command) {
       '(e.g. --copath \'{\"@/*":["/Users/worker/ocean-ui/src/*"]}\')', (v, prev) => {
       prev.push(...v.split(',')); return prev;
     }, [] as string[])
+    .option('--co <JSON-string>',
+      `Partial compiler options to be merged (except "baseUrl"), "paths" must be relative to ${Path.relative(process.cwd(), plinkEnv.workDir) || 'current directory'}`)
     .action(async (packages: string[]) => {
       const opt = tscCmd.opts();
       const tsc = await import('../ts-cmd');
@@ -340,7 +342,8 @@ function spaceOnlySubCommands(program: commander.Command) {
         jsx: opt.jsx,
         ed: opt.emitDeclarationOnly,
         pathsJsons: opt.compilerOptionsPaths,
-        mergeTsconfig: opt.mergeTsconfig
+        mergeTsconfig: opt.mergeTsconfig,
+        compilerOptions: opt.co ? JSON.parse(opt.co) : undefined
       });
     });
 
@@ -384,7 +387,7 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
   initInjectorForNodePackages();
   const availables: string[] = [];
   for (const pk of packages4Workspace()) {
-    const dr = pk.json.dr;
+    const dr = pk.json.dr || pk.json.plink;
     if (dr == null || dr.cli == null)
       continue;
     const [pkgFilePath, funcName] = (dr.cli as string).split('#');

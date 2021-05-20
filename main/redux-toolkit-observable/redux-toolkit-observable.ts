@@ -12,7 +12,7 @@ import {
   ValidateSliceCaseReducers, Middleware, ActionCreatorWithPayload
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
-import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, Subject, OperatorFunction } from 'rxjs';
 import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError } from 'rxjs/operators';
 
 export {PayloadAction, SliceCaseReducers, Slice};
@@ -26,14 +26,14 @@ export type ReducerWithDefaultActions<SS,
   ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
 
 export function ofPayloadAction<P1, T1 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>):
-  (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1, T1>>;
+  OperatorFunction<any, PayloadAction<P1, T1>>;
 export function ofPayloadAction<P1, P2, T1 extends string, T2 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>, actionCreators2: ActionCreatorWithPayload<P2, T2>):
-(source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2, T1 | T2>>;
+  OperatorFunction<any, PayloadAction<P1 | P2, T1 | T2>>;
 export function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string, T3 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>,
   actionCreators2: ActionCreatorWithPayload<P2, T2>, actionCreators3: ActionCreatorWithPayload<P3, T3>):
-(source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
+  OperatorFunction<any, PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
 export function ofPayloadAction<P, T extends string>(...actionCreators: ActionCreatorWithPayload<P, T>[]):
-  (source: Observable<PayloadAction<any>>) => Observable<PayloadAction<P, T>> {
+  OperatorFunction<any, PayloadAction<P, T>> {
   return ofType(...actionCreators.map(c => c.type)) as any;
 }
 

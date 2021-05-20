@@ -69,6 +69,9 @@ export function poo() {
           return getCraPaths();
         default:
       }
+      if (target === 'react-dev-utils/openBrowser') {
+        return require('./cra-open-browser').default;
+      }
     } else if (filename.startsWith(craPackagesPathPrefix)) {
       switch (resolve(target)) {
         case craPaths:

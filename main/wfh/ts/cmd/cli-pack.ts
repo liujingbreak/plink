@@ -97,6 +97,7 @@ async function packPackages(packageDirs: string[]) {
       (typeof done extends Promise<(infer T)[]> ? NonNullable<T> : unknown)[];
 
     for (const item of tarInfos) {
+      // log.info(item);
       package2tarball.set(item.name, Path.resolve(tarballDir, item!.filename));
       if (item.name === '@wfh/plink') {
         excludeFromSync.add(item.dir);

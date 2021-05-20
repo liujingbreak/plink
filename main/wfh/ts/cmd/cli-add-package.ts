@@ -11,6 +11,7 @@ import stripAnsi from 'strip-ansi';
 import {plinkEnv} from '../utils/misc';
 import {workspacesOfDependencies} from '../package-mgr/package-list-helper';
 import {actionDispatcher as pkgDispater, isCwdWorkspace, getState, workspaceDir, workspaceKey} from '../package-mgr/index';
+import '../editor-helper';
 const log = getLogger('plink.cli-add-package');
 
 export async function addDependencyTo(packages: string[], to?: string, dev = false) {

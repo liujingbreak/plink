@@ -80,6 +80,7 @@ export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, bui
   const opts = cmd.opts();
   const completeName = [...findPackagesByNames([pkgName])][0]!.name;
   const cmdOptions: CommandOption = {
+    cmd: cmd.name(),
     buildType,
     buildTarget: completeName,
     watch: opts.watch,
@@ -119,19 +120,44 @@ export function runTsConfigHandlers(compilerOptions: any) {
   const cmdOpt = getCmdOptions();
   const log = log4File(__filename);
   config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
-    if (handler.tsCompilerOptions != null) {
+    if (handler.tsCheckCompilerOptions != null) {
       log.info('Execute TS compiler option overrides', cfgFile);
-      handler.tsCompilerOptions(compilerOptions, cmdOpt);
+      handler.tsCheckCompilerOptions(compilerOptions, cmdOpt);
     }
   }, 'create-react-app ts compiler config'));
 
   if (configFileInPackage) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
     cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
-      if (handler.tsCompilerOptions != null) {
-        log.info('Execute TS compiler option overrides from ', cfgFile);
-        handler.tsCompilerOptions(compilerOptions, cmdOpt);
+      if (handler.tsCheckCompilerOptions != null) {
+        log.info('Execute TS checker compiler option overrides from ', cfgFile);
+        handler.tsCheckCompilerOptions(compilerOptions, cmdOpt);
+      }
+    }, 'create-react-app ts checker compiler config');
+  }
+}
+
+export function runTsConfigHandlers4LibTsd() {
+  const compilerOptions = {paths: {}};
+  const {getConfigFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
+  const configFileInPackage = getConfigFileInPackage();
+  const cmdOpt = getCmdOptions();
+  const log = log4File(__filename);
+  config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+    if (handler.libTsdCompilerOptions != null) {
+      log.info('Execute TSD compiler option overrides', cfgFile);
+      handler.libTsdCompilerOptions(compilerOptions, cmdOpt);
+    }
+  }, 'create-react-app ts compiler config'));
+
+  if (configFileInPackage) {
+    const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
+    cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+      if (handler.libTsdCompilerOptions != null) {
+        log.info('Execute TSD compiler option overrides from ', cfgFile);
+        handler.libTsdCompilerOptions(compilerOptions, cmdOpt);
       }
     }, 'create-react-app ts compiler config');
   }
+  return compilerOptions;
 }

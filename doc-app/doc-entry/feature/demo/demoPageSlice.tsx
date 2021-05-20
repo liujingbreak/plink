@@ -1,8 +1,7 @@
-import { ofPayloadAction} from '@wfh/redux-toolkit-observable/es/state-factory-browser';
+// import { ofPayloadAction} from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import {EpicFactory, createReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
-import React from 'react';
 
 export interface DemoPageObservableProps {
   // define component properties
@@ -12,9 +11,6 @@ export interface DemoPageState {
 }
 
 const reducers = createReducers({
-  onClick(s: DemoPageState, payload: React.MouseEvent) {},
-  clickDone(s: DemoPageState) {},
-
   _syncComponentProps(s: DemoPageState, payload: DemoPageObservableProps) {
     s.componentProps = {...payload};
   }
@@ -45,14 +41,6 @@ export const epicFactory: EpicFactory<DemoPageState, typeof reducers> = function
         op.tap(() => {
           // slice.actionDispatcher....
         })
-      ),
-      // Observe incoming action 'onClick' and dispatch new change action
-      action$.pipe(ofPayloadAction(slice.actionDispatcher.onClick),
-        op.switchMap((action) => {
-          // mock async job
-          return Promise.resolve(action.payload.target); // Promise is not cancellable, the better we use observables instead promise here
-        }),
-        op.tap(dom => slice.actionDispatcher.clickDone())
       )
       // ... more action async reactors: action$.pipe(ofType(...))
     ).pipe(op.ignoreElements());

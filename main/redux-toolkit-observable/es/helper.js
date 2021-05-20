@@ -4,14 +4,21 @@ export function createSliceHelper(stateFactory, opts) {
     const slice = stateFactory.newSlice(opts);
     const actionDispatcher = stateFactory.bindActionCreators(slice);
     const destory$ = new Subject();
+    let action$ = new Subject();
+    new Observable(() => {
+        // Release epic
+        return stateFactory.addEpic(_action$ => {
+            return _action$.pipe(op.tap(action => action$.next(action)), op.ignoreElements());
+        }, opts.name);
+    }).subscribe();
     function addEpic$(epicFactory$) {
         const sub = epicFactory$.pipe(op.distinctUntilChanged(), op.switchMap(fac => {
             if (fac) {
                 const epic = fac(helper);
                 if (epic) {
                     return new Observable(() => {
-                        const release = stateFactory.addEpic(epic, opts.name);
-                        return release;
+                        // Release epic
+                        return stateFactory.addEpic(epic, opts.name);
                     });
                 }
             }
@@ -21,10 +28,9 @@ export function createSliceHelper(stateFactory, opts) {
         return () => sub.unsubscribe();
     }
     // let releaseEpic: Array<() => void> = [];
-    const helper = Object.assign(Object.assign({}, slice), { actionDispatcher, addEpic(epicFactory) {
+    const helper = Object.assign(Object.assign({}, slice), { action$: action$.asObservable(), actionDispatcher, addEpic(epicFactory) {
             return addEpic$(of(epicFactory));
-        }, addEpic$,
-        destroy() {
+        }, addEpic$, destroy$: destory$.asObservable(), destroy() {
             destory$.next();
             destory$.complete();
             stateFactory.removeSlice(slice);

@@ -33,7 +33,7 @@ const cliExt: CliExtension = (program) => {
   });
 
   const genCraCmd = program.command('cra-gen-pkg <path>')
-    .description('For create-react-app project, generate a sample package')
+    .description('For create-react-app project, generate a sample package', {path: 'package directory in relative or absolute path'})
     .option('--comp <name>', 'Sample component name', 'sample')
     .option('--feature <name>', 'Sample feature directory and slice name', 'sampleFeature')
     .option('--output <dir-name>', 'This option changes "appBuild" values in config-override.ts,' +
@@ -46,22 +46,25 @@ const cliExt: CliExtension = (program) => {
     });
 
   const genCraCompCmd = program.command('cra-gen-comp <dir> <componentName...>')
-    .description('For create-react-app project, generate sample components')
+    .description('For create-react-app project, generate sample components', {
+      dir: 'directory'
+    })
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .option('--conn <Redux-slice-file>', 'Connect component to Redux store via React-redux')
-    .option('--internal-slice,--is', 'Use a lightweiht Redux-toolkit + redux-observable like tool to manage component internal state,' +
-      ' useful for implementing complex component which might have bigc state and async side effects')
+    // .option('--internal-slice,--is', 'Use a lightweiht Redux-toolkit + redux-observable like tool to manage component internal state,' +
+    //   ' useful for implementing complex component which might have bigc state and async side effects')
     .action(async (dir: string, compNames: string[]) => {
       (await import('./cli-cra-gen')).genComponents(dir, compNames, {
         connectedToSlice: genCraCompCmd.opts().conn,
-        dryrun: genCraCompCmd.opts().dryRun,
-        useInternalSlice: genCraCompCmd.opts().is
+        dryrun: genCraCompCmd.opts().dryRun
       });
     });
   genCraCompCmd.usage(genCraCompCmd.usage() + '\ne.g.\n  plink cra-gen-comp --conn ../packages/foobar/components Toolbar Layout Profile');
 
   const genCraSliceCmd = program.command('cra-gen-slice <dir> <sliceName...>')
-    .description('For create-react-app project, generate a sample Redux-toolkit Slice file (with Redux-observable epic)')
+    .description('For create-react-app project, generate a sample Redux-toolkit Slice file (with Redux-observable epic)', {
+      dir: 'directory'
+    })
     .option('--internal', 'A Redux Slice for managing individual component internal state, useful for complicated component', false)
     .option('--tiny', 'A RxJS based tiny Slice for managing individual component internal state, useful for complicated component', false)
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)

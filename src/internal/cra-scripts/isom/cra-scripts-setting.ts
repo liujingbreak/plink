@@ -6,10 +6,13 @@ import {config} from '@wfh/plink';
 export interface CraScriptsSetting {
   /** Less loader option: additionalData */
   lessLoaderAdditionalData: string;
-  // /** In build library mode, webpack configuration externals */
-  // libExternalRequest: Array<string | RegExp>;
-  // /** In build library mode, by default webpack configuration externals */
-  // libIncludeRequest: Array<string | RegExp>;
+  lessLoaderOtherOptions: {[key: string]: any};
+  /** By default CRA will open browser in "start" script (cra-start command),
+   * - `undefined` denotes default behavior of CRA
+   * - `string` value denotes openning browser for specific address
+   * - `false` value forbidden CRA openning browser
+    */
+  openBrowser?: string | false;
 }
 
 /**
@@ -18,7 +21,8 @@ export interface CraScriptsSetting {
  */
 export function defaultSetting(): CraScriptsSetting {
   return {
-    lessLoaderAdditionalData: ''
+    lessLoaderAdditionalData: '',
+    lessLoaderOtherOptions: {}
     // libExternalRequest: [/[^?!]/, /^/]
   };
 }

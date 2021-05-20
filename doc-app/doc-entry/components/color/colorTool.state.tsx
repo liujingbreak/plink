@@ -15,7 +15,8 @@ import {EpicFactory, createReducers, ofPayloadAction, SliceHelper, RegularReduce
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
-import {ReactiveCanvasSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {create} from './colorToolCanvasPainter';
 export interface ColorToolProps {
   mixColors?: {
     color1: string;
@@ -44,6 +45,7 @@ export interface ColorToolState {
   colors: readonly Color[];
   colorClickCallbacks: {[key: string]: () => any};
   label?: string;
+  gradientStyle: {[style: string]: string};
   error?: Error;
 }
 // const reducers = {
@@ -51,9 +53,10 @@ export interface ColorToolState {
 // };
 
 const rawReducers = {
-  onColorSelected(s: ColorToolState, paylaod: Color) {
+  onColorSelected(s: ColorToolState, payload: Color) {
+    navigator.clipboard.writeText(payload.hex());
   },
-  canvasSliceRef(s: ColorToolState, ref: ReactiveCanvasSlice) {},
+  onRenderCanvas(s: ColorToolState, ref: PaintableContext) {},
   _syncComponentProps(s: ColorToolState, payload: ColorToolProps) {
     s.componentProps = {...payload};
     if (payload.mixColors) {
@@ -68,7 +71,9 @@ const rawReducers = {
         mixed.push(col1.mix(col2, interval * i));
       }
       mixed.push(col2);
+      // console.log(mixed.map(c => c.hex()));
       s.colors = Object.freeze(mixed);
+      s.gradientStyle.background = `radial-gradient(circle at left, ${col1.hex()}, ${col2.hex()})`;
     } else if (payload.satuations) {
       s.label = 'Color in differenct satuations';
       const col = new Color(payload.satuations.originColor);
@@ -92,15 +97,15 @@ const rawReducers = {
       s.colors = Object.freeze(colors);
     }
   },
-  createChildEpics(s: ColorToolState, paylod: (s: ColorToolState)=> void) {
-  }
+  createChildEpics(s: ColorToolState, paylod: (s: ColorToolState)=> void) {}
 };
 const reducers: RegularReducers<ColorToolState, typeof rawReducers> = createReducers(rawReducers);
 
 export function sliceOptionFactory() {
   const initialState: ColorToolState = {
     colors: [] as Color[],
-    colorClickCallbacks: {}
+    colorClickCallbacks: {},
+    gradientStyle: {}
   };
   return {
     name: 'ColorTool',
@@ -113,11 +118,12 @@ export function sliceOptionFactory() {
 export type ColorToolEpicFactory = EpicFactory<ColorToolState, typeof reducers>;
 
 export const epicFactory: ColorToolEpicFactory = function(slice) {
+
   return (action$, state$) => {
     return rx.merge(
       state$.pipe(op.map(() => slice.getState().colors), op.distinctUntilChanged(),
         op.map(colors => {
-          const colorClickCallbacks = {};
+          const colorClickCallbacks: ColorToolState['colorClickCallbacks'] = {};
           for (const color of colors) {
             colorClickCallbacks[color.hex()] = () => {
               slice.actionDispatcher.onColorSelected(color);
@@ -141,14 +147,9 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
           }
         })
       ),
-      action$.pipe(ofPayloadAction(slice.actions.canvasSliceRef),
-        op.tap(({payload: canvasSlice}) => {
-          // todo
-        })),
-      action$.pipe(ofPayloadAction(slice.actionDispatcher.canvasSliceRef),
-        op.tap(({payload: canvasSlice}) => {
-          // TODO:
-          canvasSlice.actionDispatcher.render();
+      action$.pipe(ofPayloadAction(slice.actions.onRenderCanvas),
+        op.tap(({payload}) => {
+          create(payload);
         }))
     ).pipe(op.ignoreElements());
   };

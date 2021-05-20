@@ -1,5 +1,5 @@
 
-.$__MyComponent__$ {
+.scope {
   background: #ee6464;
   text-align: center;/*<%
   if (withImage) {

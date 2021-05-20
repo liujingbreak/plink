@@ -114,10 +114,12 @@ export function createSlice(opt) {
     const slice = {
         name,
         state$,
+        action$,
         actions: actionCreators,
         dispatch,
         actionDispatcher,
         destroy,
+        destroy$: unprocessedAction$.pipe(op.filter(action => action.type === '__OnDestroy'), op.take(1)),
         addEpic(epicFactory) {
             return addEpic$(rx.of(epicFactory));
         },

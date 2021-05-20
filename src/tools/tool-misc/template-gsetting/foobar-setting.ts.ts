@@ -31,7 +31,7 @@ export const defaultSetting: PackageSettingInterf<$__Foobar__$Setting> = functio
   }
 
   return defaultValue;
-}
+};
 
 /** For Node.js runtime, replace module in "require()" or import syntax */
 defaultSetting.setupNodeInjector = function(factory, allSetting) {

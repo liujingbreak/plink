@@ -34,6 +34,7 @@ export interface PackageTsDirs {
     isomDir?: string;
     /** For plink command tsc, "isomDir" will be ignored if "include" is set in package.json */
     include?: string[] | string;
+    files?: string[] | string;
 }
 export declare function getTscConfigOfPkg(json: any): PackageTsDirs;
 export declare const getRootDir: () => string;

@@ -11,9 +11,9 @@ import {Palette} from '../../components/color/Palette';
 import * as op from 'rxjs/operators';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {sliceOptionFactory, epicFactory} from './demoPageSlice';
-const cx = cls.bind(styles);
+// const cx = cls.bind(styles);
 // const cls = cx('DemoPage');
-const rippleContentCls = cx('rippleContent');
+// const rippleContentCls = cx('rippleContent');
 
 export type DemoPageProps = React.PropsWithChildren<{
   // Define your component properties
@@ -60,6 +60,8 @@ const DemoPage: React.FC<DemoPageProps> = function(props) {
       <header>Animation effect of switching routes</header>
       <rr.NavLink to='/doc/intro'><Button>Go Document</Button></rr.NavLink>
       <rr.NavLink to='/test'><Button>Go Test</Button></rr.NavLink>
+      <rr.NavLink to='/demo/background'><Button>Background</Button></rr.NavLink>
+      <rr.NavLink to='/demo/background-blur'><Button>Background 2 (blur style)</Button></rr.NavLink>
     </section>
     <section className={styles.buttonSection}>
       <header>Buttons</header>
@@ -90,8 +92,8 @@ const DemoPage: React.FC<DemoPageProps> = function(props) {
 
     <section>
       <header>Colors</header>
-      <Palette colorMain='#FCFAE9' colorMix='#4323e1'/>
-      <Palette colorMain='#e16223' colorMix='#4323e1'/>
+      {/* <Palette colorMain='#FCFAE9' colorMix='#4323e1'/> */}
+      <Palette colorMain='#FCFAE9' colorMix='#1916a5'/>
     </section>
 
     <section className={styles.heightPlaceHolder}>

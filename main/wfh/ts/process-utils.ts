@@ -92,10 +92,10 @@ export function fork(jsFile: string, ...args: Array<string|ForkOptions>): Result
   };
 }
 
-function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptions, desc: string) {
-  return new Promise<string>((resolve, reject) => {
-    let output: ReturnType<typeof createStringWriter> | undefined;
-    let errOutput: typeof output;
+async function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptions, desc: string) {
+  let output: ReturnType<typeof createStringWriter> | undefined;
+  let errOutput: typeof output | undefined;
+  const cpExit = new Promise<{code: number | null, signal: string | null}>((resolve, reject) => {
     if (opts && opts.silent) {
       output = createStringWriter();
       errOutput = createStringWriter();
@@ -108,25 +108,20 @@ function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptions, de
       reject(err);
     });
     res.on('exit', function(code, signal) {
-      if (code !== 0 && signal !== 'SIGINT') {
-        const errMsg = `Child process "${desc}" exit with code ${code}, signal ` + signal;
-        if (opts == null || opts.silent !== true) {
-          console.log(errMsg);
-          if (output)
-            output.done.then(data => console.log(data));
-          if (errOutput)
-            errOutput.done.then(data => console.error(data));
-        }
-        return reject(new Error(errMsg + '\n' + (output ? output : '')));
-      } else {
-        if (output && errOutput)
-          Promise.all([output.done, errOutput.done])
-            .then(datas => resolve(datas.join('')));
-        else
-          resolve('');
-      }
+      resolve({code, signal});
     });
   });
+  const {code, signal} = await cpExit;
+  let resText = '';
+  if (opts && opts.silent) {
+    const outTexts = await Promise.all([output!.done, errOutput!.done]);
+    resText = outTexts.join('\n');
+  }
+  if (code !== 0 && signal !== 'SIGINT') {
+    const errMsg = `Child process "${desc}" exit with code ${code}, signal ` + signal;
+    throw new Error(errMsg + '\n' + (resText ? resText : ''));
+  }
+  return resText;
 }
 
 function checkTimeout<T>(origPromise: Promise<T>, timeBox = 600000): Promise<T> {
@@ -195,15 +190,18 @@ export function createStringWriter(): {writer: Writable, done: Promise<string>} 
     resolve = res;
   });
   const writer = new Writable({
-    writev(cks, cb) {
-      for (const data of cks) {
-        strs.push(data.chunk as string);
-      }
+    write(chunk, encoding, cb) {
+      // for (const data of cks) {
+      //   strs.push(data.chunk as string);
+      // }
+      strs.push(chunk);
       cb();
     },
     final(cb) {
-      resolve(strs.join(''));
       cb();
+      setImmediate(() => {
+        resolve(strs.join(''));
+      });
     }
   });
 

@@ -3,7 +3,7 @@ import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
 // import childProc from 'child_process';
 import Path from 'path';
 import { getCmdOptions } from './utils';
-import {logger as log4js, findPackagesByNames} from '@wfh/plink';
+import {logger as log4js, findPackagesByNames, plinkEnv} from '@wfh/plink';
 import chalk from 'chalk';
 import {Worker} from 'worker_threads';
 import _ from 'lodash';
@@ -76,9 +76,8 @@ export default function change(buildPackage: string, config: Configuration, node
           entrySet = await createEntrySet(config.entry);
 
         // TODO: Should be configurable
-
         if ((!request.startsWith('.') && !entrySet.has(request) &&
-          !/[?!]/.test(request)) && (!/[\\/]@babel[\\/]runtime[\\/]/.test(request))
+          !/[?!]/.test(request)) // && (!/(?:^|[\\/])@babel[\\/]runtime[\\/]/.test(request))
           ||
           // TODO: why hard coe bklib ?
           request.indexOf('/bklib.min') >= 0) {
@@ -98,7 +97,17 @@ export default function change(buildPackage: string, config: Configuration, node
       apply(compiler: Compiler) {
         compiler.hooks.done.tap('cra-scripts', stats => {
           this.forkDone = this.forkDone.then(() => forkTsc(pkJson));
-          log.warn(chalk.red('external request:\n  ' + Array.from(externalRequestSet.values()).join(', ')));
+          const externalDeps: Set<string> = new Set<string>();
+          const workspaceNodeDir = plinkEnv.workDir + Path.sep + 'node_modules' + Path.sep;
+          for (const req of externalRequestSet.values()) {
+            if (Path.isAbsolute(req) && Path.resolve(req).startsWith(workspaceNodeDir)) {
+              const m = /^((?:@[^\\\/]+[\\\/])?[^\\\/]+)/.exec(req.slice(workspaceNodeDir.length));
+              externalDeps.add(m ? m[1] : req.slice(workspaceNodeDir.length));
+            } else {
+              externalDeps.add(req);
+            }
+          }
+          log.warn(chalk.red('external dependencies:\n  ' + [...externalDeps.values()].join(', ')));
         });
       }
     })()
@@ -165,46 +174,4 @@ async function forkTsc(targetPackageJson: {name: string; plink?: any; dr?: any})
     worker.on('message', rej);
     worker.on('error', rej);
   });
-
-  // const forkArgs = ['tsc', '--ed', '--jsx', targetPackage];
-  // if (getCmdOptions().watch)
-  //   forkArgs.push('-w');
-
-  // // console.log('webpack-lib: ', Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs);
-  // const cp = childProc.fork(Path.resolve(plinkDir, 'wfh/dist/cmd-bootstrap.js'), forkArgs,
-  //   {
-  //     // env: {
-  //     //   NODE_OPTIONS: '-r @wfh/plink/register',
-  //     //   NODE_PATH: nodePath.join(Path.delimiter)
-  //     // },
-  //     cwd: process.cwd()
-  //     // execArgv: [], // Not working, don't know why
-  //     // stdio: [0, 1, 2, 'ipc']
-  //   });
-  // // cp.unref();
-  // return new Promise<void>((resolve, rej) => {
-  //   cp.on('message', msg => {
-  //     if (msg === 'plink-tsc compiled')
-  //       cp.kill('SIGINT');
-  //   });
-  //   if (cp.stdout) {
-  //     cp.stdout.setEncoding('utf8');
-  //     // tslint:disable-next-line: no-console
-  //     cp.stdout.on('data', (data: string) => console.log(data));
-  //     cp.stdout.resume();
-  //   }
-  //   if (cp.stderr)
-  //     cp.stderr.resume();
-  //   cp.on('exit', (code, signal) => {
-  //     if (code != null && code !== 0) {
-  //       rej(new Error(`Failed to generate tsd files, due to process exit with code: ${code} ${signal}`));
-  //     } else {
-  //       resolve();
-  //     }
-  //   });
-  //   cp.on('error', err => {
-  //     console.error(err);
-  //     resolve();
-  //   });
-  // });
 }

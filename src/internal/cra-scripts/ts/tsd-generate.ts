@@ -2,7 +2,7 @@ import { getCmdOptions } from './utils';
 import {TscCmdParam} from '@wfh/plink/wfh/dist/ts-cmd';
 import {findPackagesByNames} from '@wfh/plink';
 import {PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT} from './types';
-import {runTsConfigHandlers} from './utils';
+import {runTsConfigHandlers4LibTsd} from './utils';
 import * as _tscmd from '@wfh/plink/wfh/dist/ts-cmd';
 import _ from 'lodash';
 
@@ -26,7 +26,7 @@ export async function buildTsd(packages?: string[], overridePackgeDirs: TscCmdPa
       _overridePackgeDirs[pkg.name] = {
         destDir: 'build',
         srcDir: '',
-        include: _.get(pkg.json.plink ? pkg.json.plink : pkg.json.dr, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT)
+        files: [_.get(pkg.json.plink ? pkg.json.plink : pkg.json.dr, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT)]
       };
     }
   }
@@ -37,9 +37,6 @@ export async function buildTsd(packages?: string[], overridePackgeDirs: TscCmdPa
     overridePackgeDirs: _overridePackgeDirs
   };
   const {tsc} = require('@wfh/plink/wfh/dist/ts-cmd') as typeof _tscmd;
-  const compilerOptionsDraft = {paths: {}};
-
-  runTsConfigHandlers(compilerOptionsDraft);
-  workerData.compilerOptions = compilerOptionsDraft;
+  workerData.compilerOptions = runTsConfigHandlers4LibTsd();
   await tsc(workerData);
 }

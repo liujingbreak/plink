@@ -16,7 +16,7 @@ export const defaultSetting: PackageSettingInterf<DocEntrySetting> = (cliOption)
   (process.env as any).PUBLIC_URL = defaultValue.basename + '/';
   process.env.REACT_APP_routeBasename = defaultValue.basename;
   return defaultValue;
-}
+};
 
 defaultSetting.setupWebInjector = (factory, setting) => {
 

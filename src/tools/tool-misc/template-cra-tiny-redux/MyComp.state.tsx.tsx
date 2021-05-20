@@ -57,13 +57,13 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
         op.map(s => s.componentProps), // watch component property changes
         op.filter(props => props != null),
         op.distinctUntilChanged(), // distinctUntilChanged accept an expression as parameter
-        op.tap(() => {
+        op.map(() => {
           // slice.actionDispatcher....
         })
       ),
       slice.getStore().pipe(
         op.map(s => s.componentProps?.sliceRef), op.distinctUntilChanged(),
-        op.tap(sliceRef => {
+        op.map(sliceRef => {
           if (sliceRef) {
             sliceRef(slice);
           }
@@ -75,14 +75,14 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
           // mock async job
           return Promise.resolve(action.payload.target); // Promise is not cancellable, the better we use observables instead promise here
         }),
-        op.tap(dom => slice.actionDispatcher.changeYourStateProp(dom))
+        op.map(dom => slice.actionDispatcher.changeYourStateProp(dom))
       )
       // ... more action async reactors: action$.pipe(ofType(...))
     ).pipe(op.ignoreElements());
   };
 };
 
-/**
+/*
  * Below is how you use slice inside your component:
 
 import React from 'react';

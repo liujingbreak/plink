@@ -1,3 +1,4 @@
+///<reference path="react-app-env.d.ts" />
 import 'react-app-polyfill/ie11';
 import './index.scss';
 import {renderDom} from './main/MainComponent';
