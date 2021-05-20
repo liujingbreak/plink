@@ -1,4 +1,4 @@
-import {EpicFactory, ofPayloadAction, createReducers, RegularReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, ofPayloadAction, createReducers, RegularReducers, sliceRefActionOp} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {ColorToolProps} from './ColorTool';
@@ -87,21 +87,18 @@ export const epicFactory: EpicFactory<PaletteState, typeof reducers> = function(
       ),
       // bind color select event
       action$.pipe(ofPayloadAction(slice.actionDispatcher._onMixColorToolRef),
-        op.switchMap(({payload: colorToolSlice}) => {
-          const release = colorToolSlice.addEpic(() => {
-            return colorAction$ => {
-              return rx.merge(
-                colorAction$.pipe(ofPayloadAction(colorToolSlice.actions.onColorSelected),
-                    op.tap(action => {
-                      slice.actionDispatcher.changeMixedColor(action.payload.hex());
-                    })
-                  )
-                ).pipe(op.ignoreElements());
-              };
-          });
-
-          return new rx.Observable(sub => release);
-        })),
+        sliceRefActionOp((colorToolSlice) => {
+          return colorAction$ => {
+            return rx.merge(
+              colorAction$.pipe(ofPayloadAction(colorToolSlice.actions.onColorSelected),
+                  op.tap(action => {
+                    slice.actionDispatcher.changeMixedColor(action.payload.hex());
+                  })
+                )
+              ).pipe(op.ignoreElements());
+            };
+        })
+      ),
       action$.pipe(ofPayloadAction(slice.actionDispatcher._syncComponentProps),
         op.tap(doneAction => {
           if (doneAction.payload.colorMain) {

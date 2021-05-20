@@ -134,6 +134,27 @@ export function createSlice(opt) {
     };
     return slice;
 }
+/**
+ * Add an epicFactory to another component's sliceHelper
+ * e.g.
+ * ```
+ * action$.pipe(ofPayloadAction(slice.actionDispatcher._onChildSliceRef),
+ *  childSliceOp((childSlice) => {
+ *    return childAction$ => {
+ *      return childAction$.pipe(...);
+ *    };
+ *  })
+ * ```
+ * @param epicFactory
+ */
+export function sliceRefActionOp(epicFactory) {
+    return function (in$) {
+        return in$.pipe(op.switchMap(({ payload }) => {
+            const release = payload.addEpic(epicFactory);
+            return new rx.Observable(sub => release);
+        }));
+    };
+}
 const demoSlice = createSlice({
     name: 'demo',
     initialState: {},

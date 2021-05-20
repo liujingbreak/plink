@@ -1,11 +1,13 @@
+import { ofPayloadAction } from './redux-toolkit-observable';
 import React from 'react';
-import { stateFactory, ofPayloadAction } from './state-factory-browser';
-import { createSliceHelper, createReducers } from './helper';
+import { stateFactory } from './state-factory-browser';
+import { createSliceHelper } from './helper';
 import { useEffect, useState } from 'react';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+export { ofPayloadAction };
 let COMPONENT_ID = 0;
-export { ofPayloadAction, createReducers };
+export * from './helper';
 export function useReduxTookit(optsFactory, ...epicFactories) {
     const willUnmountSub = React.useMemo(() => new rx.ReplaySubject(1), []);
     const sliceOptions = React.useMemo(optsFactory, []);

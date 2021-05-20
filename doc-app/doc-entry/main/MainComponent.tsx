@@ -10,13 +10,14 @@ import { AppLayout } from '@wfh/doc-ui-common/client/components/AppLayout';
 import {AnimatableRoutes} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
 import {routes, defaultRedirect} from '../configurable/routes';
 import '@material-icons/font/css/outline.css';
-import './markdown-setup';
-// const cx = classNames.bind(styles);
-// const bannerImgCls = cx('assets');
+import registerMarkdownFiles from '../configurable/markdown-setup';
+
+
 const rootEl = document.getElementById('root');
 if (/\WWindows\W/.test(navigator.userAgent)) {
   document.body.className = clsddp(document.body.className, 'is-windows');
 }
+registerMarkdownFiles();
 
 const MainComp: React.FC<{}> = function(prop) {
   const reduxStore = useStoreOfStateFactory(stateFactory);

@@ -260,6 +260,31 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   return slice;
 }
 
+/**
+ * Add an epicFactory to another component's sliceHelper
+ * e.g.
+ * ```
+ * action$.pipe(ofPayloadAction(slice.actionDispatcher._onChildSliceRef),
+ *  childSliceOp((childSlice) => {
+ *    return childAction$ => {
+ *      return childAction$.pipe(...);
+ *    };
+ *  })
+ * ```
+ * @param epicFactory 
+ */
+ export function sliceRefActionOp<S, R extends Reducers<S>>(epicFactory: EpicFactory<S, R>):
+  rx.OperatorFunction<PayloadAction<any, Slice<S, R>>, PayloadAction<any, any>> {
+  return function(in$: rx.Observable<PayloadAction<any, Slice<S, R>>>) {
+    return in$.pipe(
+      op.switchMap(({payload}) => {
+        const release = payload.addEpic(epicFactory);
+        return new rx.Observable<PayloadAction<never>>(sub => release);
+      })
+    );
+  };
+}
+
 const demoSlice = createSlice({
   name: 'demo',
   initialState: {} as {ok?: boolean; error?: Error;},

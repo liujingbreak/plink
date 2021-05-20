@@ -1,7 +1,7 @@
 import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
 import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
-import { Observable } from 'rxjs';
+import { Observable, OperatorFunction } from 'rxjs';
 export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
     actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
@@ -41,4 +41,18 @@ export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
  * @returns SliceCaseReducers which can be part of parameter of createSliceHelper
  */
 export declare function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R): RegularReducers<S, R>;
+/**
+ * Add an epicFactory to another component's sliceHelper
+ * e.g.
+ * ```
+ * action$.pipe(ofPayloadAction(slice.actionDispatcher._onChildSliceRef),
+ *  childSliceOp((childSlice) => {
+ *    return childAction$ => {
+ *      return childAction$.pipe(...);
+ *    };
+ *  })
+ * ```
+ * @param epicFactory
+ */
+export declare function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory: EpicFactory<S, R>): OperatorFunction<PayloadAction<SliceHelper<S, R>>, PayloadAction<any>>;
 export {};

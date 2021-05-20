@@ -84,4 +84,18 @@ export interface SliceOptions<S, R extends Reducers<S>> {
 export declare function createSlice<S extends {
     error?: Error;
 }, R extends Reducers<S>>(opt: SliceOptions<S, R>): Slice<S, R>;
+/**
+ * Add an epicFactory to another component's sliceHelper
+ * e.g.
+ * ```
+ * action$.pipe(ofPayloadAction(slice.actionDispatcher._onChildSliceRef),
+ *  childSliceOp((childSlice) => {
+ *    return childAction$ => {
+ *      return childAction$.pipe(...);
+ *    };
+ *  })
+ * ```
+ * @param epicFactory
+ */
+export declare function sliceRefActionOp<S, R extends Reducers<S>>(epicFactory: EpicFactory<S, R>): rx.OperatorFunction<PayloadAction<any, Slice<S, R>>, PayloadAction<any, any>>;
 export {};

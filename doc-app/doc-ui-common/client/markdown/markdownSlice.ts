@@ -12,18 +12,12 @@ export interface MarkdownState {
   computed: {
     reactHtml: {[key: string]: {__html: string}}
   };
-  // scrollBodyEl: HTMLDivElement | null;
-  // scrollCallbacks: (() => any)[];
-  // indexOpen: boolean;
 }
 
 const initialState: MarkdownState = {
   markdowns: {},
   contents: {},
   computed: {reactHtml: {}}
-  // scrollBodyEl: null,
-  // scrollCallbacks: [],
-  // indexOpen: true
 };
 
 const markdownSlice = stateFactory.newSlice({
@@ -34,26 +28,6 @@ const markdownSlice = stateFactory.newSlice({
       Object.assign(s.markdowns, payload);
     },
     getHtml(s, action: PayloadAction<string>) {}
-    // setScrollBodyEl(s, {payload}: PayloadAction<HTMLDivElement | null>) {
-    //   s.scrollBodyEl = payload as any;
-    //   Object.freeze(payload);
-    // },
-    // openIndex(s, action: PayloadAction<boolean>) {
-    //   s.indexOpen = action.payload;
-    // },
-    // clearScrollCallback(s) {
-    //   s.scrollCallbacks = [];
-    // },
-    // addScrollCallback(s, action: PayloadAction<() => any>) {
-    //   s.scrollCallbacks.push(action.payload);
-    // },
-    // scrollProcess(s) {
-    //   if (s.scrollCallbacks.length > 0) {
-    //     s.scrollCallbacks.forEach(element => {
-    //       element();
-    //     });
-    //   }
-    // }
   }
 });
 

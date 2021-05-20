@@ -74,18 +74,15 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
     props.onContent
   ]);
 
-  // if (props.mdKey) {
-    return (
-      <div ref={contentRef}>
-        {/* {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : <>...</>} */}
-        <SwitchAnim contentHash={props.mdKey}>
-          <div ref={containerRefCb}
-            className='markdown-body'></div>
-        </SwitchAnim>
-      </div>
-    );
-  // }
-  // return <></>;
+  return (
+    <div ref={contentRef}>
+      {/* {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : <>...</>} */}
+      <SwitchAnim contentHash={props.mdKey}>
+        <div ref={containerRefCb}
+          className='markdown-body'></div>
+      </SwitchAnim>
+    </div>
+  );
 };
 
 function mapToPropsFactory(rootState: unknown, ownProps: MarkdownViewCompProps) {

@@ -1,17 +1,17 @@
 import {InferableComponentEnhancerWithProps} from 'react-redux';
-import {StateFactory, SliceCaseReducers// , ExtraSliceReducers
+import {StateFactory, SliceCaseReducers, ofPayloadAction
 } from './redux-toolkit-observable';
 import React from 'react';
-import {stateFactory, ofPayloadAction} from './state-factory-browser';
-import {createSliceHelper, EpicFactory, SliceHelper, createReducers, RegularReducers} from './helper';
+import {stateFactory} from './state-factory-browser';
+import {createSliceHelper, EpicFactory, SliceHelper} from './helper';
 import {CreateSliceOptions} from '@reduxjs/toolkit';
 import {useEffect, useState} from 'react';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-
+export {ofPayloadAction};
 let COMPONENT_ID = 0;
 
-export {EpicFactory, SliceHelper, ofPayloadAction, createReducers, RegularReducers};
+export * from './helper';
 
 export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
   optsFactory: () => CreateSliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [state: S, slice: SliceHelper<S, R>] {

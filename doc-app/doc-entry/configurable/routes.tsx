@@ -2,9 +2,6 @@ import React from 'react';
 import loadable from '@loadable/component';
 import {ShowTopLoading} from '@wfh/doc-ui-common/client/components/ShowTopLoading';
 
-export type RoutesCompProps = React.PropsWithChildren<{
-}>;
-
 const LazyDocComponent = loadable(async () => {
   return (await import('../feature/article/ArticalePage')).ArticalePage;
 }, {fallback: <ShowTopLoading/>});

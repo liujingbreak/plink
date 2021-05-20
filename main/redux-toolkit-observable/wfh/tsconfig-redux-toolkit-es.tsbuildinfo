@@ -1092,8 +1092,8 @@
         "affectsGlobalScope": false
       },
       "../helper.ts": {
-        "version": "e1eab6b2a33271c39d15260bc4d60e31f4750482267627a8d3399f3ff10cf9d1",
-        "signature": "86fe0f9926637de33da6cd126ae43035581ef35a4cb195e141f5e800db08f97c",
+        "version": "ce6e0d08dd72e137be0890deb15053990f60737e55d48a62697825b5ff9d3d6a",
+        "signature": "548b7a0772edec97c5c43a87d0690ba8317845a0558afb5896f4c85bde69d09b",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/react/global.d.ts": {
@@ -1142,13 +1142,13 @@
         "affectsGlobalScope": false
       },
       "../react-redux-helper.ts": {
-        "version": "18756c77502234d332d6c41a78b33f2899fffe078748e26c7cf6347b09456a6a",
-        "signature": "e933f8dfbc85782f5facc1a59964d970a2f96ebcb9b08c046fe7a511b5402e96",
+        "version": "219f9b03cc68d0b3893a2f60ba61ed0568ad6dd0d82161d581cc432ef6ce7280",
+        "signature": "c65898814a50444e5dc66169a6d2293b72846f4b4683dfb5e516c6ca7dca5ecc",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
-        "version": "4376478d5c01d0b606ce732d51016ed1f69e5d8817ab71c73af0b836191ef319",
-        "signature": "7372b64de79f065c75832b52c2822806e9ee913b14de0b04ca4661651e236b78",
+        "version": "58cd3320fdde17104ed3d211971109709b58d0bbcfa35a215a856b5beaeb2ff7",
+        "signature": "90749c04005df131f59002759dcd0474c2387779a9582f3287f9a81cbd2c76a9",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit-hook.ts": {
@@ -1883,6 +1883,7 @@
       "rootDir": "..",
       "composite": true,
       "sourceMap": false,
+      "watch": true,
       "project": "../../wfh/tsconfig-redux-toolkit-es.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit-es.json"
     },
@@ -4979,8 +4980,7 @@
         "../../node_modules/@types/react-redux/index.d.ts",
         "../../node_modules/redux/index.d.ts",
         "../helper.ts",
-        "../redux-toolkit-observable.ts",
-        "../state-factory-browser.ts"
+        "../redux-toolkit-observable.ts"
       ],
       "../redux-toolkit-observable.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
