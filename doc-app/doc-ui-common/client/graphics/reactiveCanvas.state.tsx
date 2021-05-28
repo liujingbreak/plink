@@ -77,6 +77,10 @@ export class PaintableContext {
   renderCanvas() {
     this.canvasSlice.actionDispatcher.render();
   }
+  /** So that children will be rendered to a different canvas */
+  changeCanvasContext(ctx: CanvasRenderingContext2D) {
+    this.canvasSlice.actionDispatcher.changeContext(ctx);
+  }
 
   getState() {
     return this.canvasSlice.getState();
@@ -93,6 +97,8 @@ export class PaintableContext {
 export interface Paintable {
   init(pctx: PaintableContext): void;
   render(canvasCtx: CanvasRenderingContext2D): void;
+  /** children is rendered */
+  afterRender(canvasCtx: CanvasRenderingContext2D): void;
   destroy(): void;
 }
 export interface BasePaintableState {
@@ -104,6 +110,7 @@ export const basePaintableReducers = {
     s.pctx = pctx;
   },
   render(s: BasePaintableState, canvasCtx: CanvasRenderingContext2D) {},
+  afterRender(s: BasePaintableState, canvasCtx: CanvasRenderingContext2D) {},
   destroy(s: BasePaintableState) {}
 };
 
@@ -164,6 +171,9 @@ const reducers = {
         s._animatingPaintables = [s._animatingPaintables[0]];
       }
     }
+  },
+  changeContext(s: ReactiveCanvasState, newCtx: CanvasRenderingContext2D) {
+    s.ctx = newCtx;
   },
   _create(s: ReactiveCanvasState, payload: HTMLCanvasElement | null) {
     if (payload) {
@@ -233,6 +243,7 @@ export function sliceOptionFactory() {
   const rootPaintable: Paintable = {
     init(api) {},
     render(ctx) {},
+    afterRender() {},
     destroy() {}
   };
   const rootPaintableData: PaintableWithRelations = {
@@ -369,19 +380,22 @@ function renderImmediately(slice: Slice<ReactiveCanvasState, typeof reducers>, t
   if (time)
     slice.actionDispatcher._calAnimEscapeTime(time);
 
-  if (s.canvas == null)
+  const ctx = s.ctx;
+  if (ctx == null)
     return;
-
-  const ctx = s.ctx!;
   ctx.clearRect(0,0, s.width, s.height);
 
   const dfs = new DFS<number>(parentId => {
+    const ctx = slice.getState().ctx!; // get latest context, paintables may change it during rendering
     ctx.save();
     const pw = s.components[0].get(parentId)!;
     pw.paintable.render(ctx);
     ctx.restore();
     return pw.children ? pw.children[0] : [];
   }, (v => {
+    const ctx = slice.getState().ctx!;
+    const pw = s.components[0].get(v.data)!;
+    pw.paintable.afterRender(ctx);
     ctx.restore();
   }));
   dfs.visit([s.rootId]);

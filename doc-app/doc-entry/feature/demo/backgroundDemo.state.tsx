@@ -55,7 +55,7 @@ const reducers = {
 export function sliceOptionFactory() {
   const initialState: BackgroundDemoState = {
     mainColor: new Color('#1916A5').saturationl(50),
-    topColor: new Color('#FCFAE9').lightness(70).alpha(0.4),
+    topColor: new Color('#FCFAE9').saturationl(90).lightness(80).alpha(1),
     leftColor: new Color('#7470d9').alpha(0.8),
     rightColor: new Color('#1916A5').saturationl(90).lightness(50).alpha(0.5)
   };
@@ -115,8 +115,7 @@ function createGradient(color: string, left: number, top: number) {
     }
   }, true);
   gradientPaintableSlice.addEpic((slice) => action$ => {
-    return action$.pipe(
-      ofPayloadAction(slice.actions.render),
+    return action$.pipe(ofPayloadAction(slice.actions.render),
       op.map(({payload: ctx}) => {
         const s = gradientPaintableSlice.getState();
         const pctx = s.pctx!;
@@ -124,7 +123,7 @@ function createGradient(color: string, left: number, top: number) {
         const color = s.color;
         const gradient = ctx.createRadialGradient(s.position[0], s.position[1], 0, s.position[0], s.position[1],
           // Math.floor(Math.pow(canvasState.width * canvasState.width + canvasState.height * canvasState.height, 0.5)));
-          Math.max(Math.floor((canvasState.width << 1) / 3), Math.floor((canvasState.height << 1) / 3)));
+          Math.max(canvasState.width, canvasState.height));
         gradient.addColorStop(0, color);
         gradient.addColorStop(1, new Color(color).alpha(0).toString());
         ctx.fillStyle = gradient;
@@ -137,9 +136,9 @@ function createGradient(color: string, left: number, top: number) {
 }
 
 function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlice) {
-  const top = createGradient(bgDemoSlice.getState().topColor!.toString(), pctx.getState().width, 0);
+  const top = createGradient(bgDemoSlice.getState().topColor!.toString(), pctx.getState().width >> 1, 0);
   const left = createGradient(bgDemoSlice.getState().leftColor!.toString(), 0, pctx.getState().height >> 1);
-  const right = createGradient(bgDemoSlice.getState().rightColor!.toString(), pctx.getState().width, pctx.getState().height);
+  const right = createGradient(bgDemoSlice.getState().rightColor!.toString(), pctx.getState().width, pctx.getState().height >> 1);
   const bgSlice = createPaintableSlice('p-background', {}, {}, true);
   bgSlice.addEpic(slice => action$ => {
     return rx.merge(
@@ -160,9 +159,9 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
       // observe canvas's resize action
       pctx.action$.pipe(ofPayloadAction(pctx.actions.resize),
         op.map(() => {
-          top.actionDispatcher.setPosition([Math.floor((pctx.getState().width << 1) / 3), 0]);
+          top.actionDispatcher.setPosition([pctx.getState().width >> 1, 0]);
           left.actionDispatcher.setPosition([0, pctx.getState().height >> 1]);
-          right.actionDispatcher.setPosition([pctx.getState().width, pctx.getState().height]);
+          right.actionDispatcher.setPosition([pctx.getState().width, pctx.getState().height >> 1]);
         }))
     ).pipe(
       op.ignoreElements()

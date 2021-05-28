@@ -11,7 +11,7 @@ export const stateFactory = module.hot && module.hot.data && module.hot.data.sta
   new StateFactory({});
 
 let sub: ReturnType<typeof stateFactory.log$['subscribe']>;
-if (process.env.REACT_APP_env !== 'prod') {
+if (process.env.NODE_ENV === 'development' || (process.env.REACT_APP_env && process.env.REACT_APP_env !== 'prod')) {
   sub = stateFactory.log$.pipe(
     tap(params => {
       if (params[0] === 'state')

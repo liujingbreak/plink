@@ -13,8 +13,14 @@ let COMPONENT_ID = 0;
 
 export * from './helper';
 
-export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
-  optsFactory: () => CreateSliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [state: S, slice: SliceHelper<S, R>] {
+/**
+ * Use a dedicated Redux slice store for single component instance
+ * @param optsFactory 
+ * @param epicFactories 
+ */
+export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory,
+  optsFactory: () => CreateSliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [S, SliceHelper<S, R>] {
+
   const willUnmountSub = React.useMemo(() => new rx.ReplaySubject<void>(1), []);
   const sliceOptions = React.useMemo(optsFactory, []);
   const epic$s = React.useMemo<rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>[]>(() => {
@@ -59,6 +65,17 @@ export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
   }, []);
 
   return [state, helper];
+}
+
+
+/**
+ * Use a dedicated Redux slice store for single component instance
+ * @param optsFactory 
+ * @param epicFactories 
+ */
+export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
+  optsFactory: () => CreateSliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [S, SliceHelper<S, R>] {
+  return useReduxTookitWith(stateFactory, optsFactory, ...epicFactories);
 }
 
 export type InjectedCompPropsType<ConnectHOC> =

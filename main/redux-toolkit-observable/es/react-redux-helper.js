@@ -8,7 +8,12 @@ import * as op from 'rxjs/operators';
 export { ofPayloadAction };
 let COMPONENT_ID = 0;
 export * from './helper';
-export function useReduxTookit(optsFactory, ...epicFactories) {
+/**
+ * Use a dedicated Redux slice store for single component instance
+ * @param optsFactory
+ * @param epicFactories
+ */
+export function useReduxTookitWith(stateFactory, optsFactory, ...epicFactories) {
     const willUnmountSub = React.useMemo(() => new rx.ReplaySubject(1), []);
     const sliceOptions = React.useMemo(optsFactory, []);
     const epic$s = React.useMemo(() => {
@@ -43,6 +48,14 @@ export function useReduxTookit(optsFactory, ...epicFactories) {
         };
     }, []);
     return [state, helper];
+}
+/**
+ * Use a dedicated Redux slice store for single component instance
+ * @param optsFactory
+ * @param epicFactories
+ */
+export function useReduxTookit(optsFactory, ...epicFactories) {
+    return useReduxTookitWith(stateFactory, optsFactory, ...epicFactories);
 }
 export function useStoreOfStateFactory(stateFactory) {
     const [reduxStore, setReduxStore] = useState(undefined);

@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, ofPayloadAction, Slice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, ofPayloadAction as ofa, Slice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 
@@ -70,7 +70,7 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
         })
       ),
       // Observe incoming action 'onClick' and dispatch new change action
-      action$.pipe(ofPayloadAction(slice.actions.onClick),
+      action$.pipe(ofa(slice.actions.onClick),
         op.switchMap((action) => {
           // mock async job
           return Promise.resolve(action.payload.target); // Promise is not cancellable, the better we use observables instead promise here

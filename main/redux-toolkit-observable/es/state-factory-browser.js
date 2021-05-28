@@ -8,7 +8,7 @@ enableMapSet();
 export const stateFactory = module.hot && module.hot.data && module.hot.data.stateFactory ? module.hot.data.stateFactory :
     new StateFactory({});
 let sub;
-if (process.env.REACT_APP_env !== 'prod') {
+if (process.env.NODE_ENV === 'development' || (process.env.REACT_APP_env && process.env.REACT_APP_env !== 'prod')) {
     sub = stateFactory.log$.pipe(tap(params => {
         if (params[0] === 'state')
             console.log('%c redux:state ', 'font-weight: bold; color: black; background: #44c2fd;', ...params.slice(1));

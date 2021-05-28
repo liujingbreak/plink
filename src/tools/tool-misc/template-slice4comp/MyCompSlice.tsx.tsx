@@ -1,4 +1,4 @@
-import {EpicFactory, ofPayloadAction, createReducers, RegularReducers, SliceHelper} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, ofPayloadAction as ofa, createReducers, RegularReducers, SliceHelper} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
@@ -10,7 +10,6 @@ export type $__MyComponent__$Props = React.PropsWithChildren<{
 export interface $__MyComponent__$State {
   componentProps?: $__MyComponent__$Props;
   yourStateProp?: string;
-  sliceRef?(slice: Parameters<EpicFactory<$__MyComponent__$State, typeof reducers>>[0]): void;
 }
 
 const simpleReducers = {
@@ -48,6 +47,7 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
         })
       ),
       slice.getStore().pipe(op.map(s => s.componentProps?.sliceRef),
+        op.distinctUntilChanged(),
         op.map(sliceRef => {
           if (sliceRef) {
             sliceRef(slice);
@@ -55,7 +55,7 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
         })
       ),
       // Observe incoming action 'onClick' and dispatch new change action
-      action$.pipe(ofPayloadAction(slice.actions.onClick),
+      action$.pipe(ofa(slice.actions.onClick),
         op.switchMap((action) => {
           // mock async job
           return Promise.resolve(action.payload.target); // Promise is not cancellable, the better we use observables instead promise here

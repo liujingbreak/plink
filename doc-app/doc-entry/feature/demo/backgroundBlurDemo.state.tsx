@@ -11,10 +11,13 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, ofPayloadAction, Slice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, ofPayloadAction as ofa, Slice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {PaintableContext, createPaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {createCanvas, gBlur} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {canvasRGBA} from 'stackblur-canvas';
+import Color from 'color';
 
 export type BackgroundBlurDemoProps = React.PropsWithChildren<{
   // define component properties
@@ -51,7 +54,7 @@ export type BackgroundBlurDemoSlice = Slice<BackgroundBlurDemoState, typeof redu
 export const epicFactory: EpicFactory<BackgroundBlurDemoState, typeof reducers> = function(slice) {
   return (action$) => {
     return rx.merge(
-      action$.pipe(ofPayloadAction(slice.actions._paint),
+      action$.pipe(ofa(slice.actions._paint),
         op.map(action => {
           createPaintable(action.payload, slice);
         })),
@@ -75,40 +78,81 @@ export const epicFactory: EpicFactory<BackgroundBlurDemoState, typeof reducers> 
     ).pipe(op.ignoreElements());
   };
 };
+
+interface BlurCanvasState {
+  bluredCanvasCtx?: CanvasRenderingContext2D;
+}
+
 function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemoSlice) {
-  const mainPaintable = createPaintableSlice('main');
+  const initialState: BlurCanvasState = {};
+
+  const mainPaintable = createPaintableSlice('blurLayer', initialState, {
+    setCacheCtx(s: BlurCanvasState, ctx: CanvasRenderingContext2D) {
+      s.bluredCanvasCtx = ctx;
+    }
+  }, true);
+
   mainPaintable.addEpic(slice => {
+    let originalCtx: CanvasRenderingContext2D;
+
     return action$ => {
       return rx.merge(
-        action$.pipe(ofPayloadAction(slice.actions.render),
-          op.map(({payload: ctx}) => {
+        action$.pipe(ofa(slice.actions.init),
+          op.map(({payload}) => {
+            payload.addChild(circle1.actionDispatcher);
+          })
+        ),
+        pctx.action$.pipe(ofa(pctx.actions.resize),
+          op.map(() => {
+            const state = pctx.getState();
+            const cache = createCanvas(state.width >> 1, state.height >> 1);
+            slice.actionDispatcher.setCacheCtx(cache.getContext('2d')!);
+          })),
 
-          }))
+        action$.pipe(ofa(slice.actions.render),
+          op.map(({payload: ctx}) => {
+            const cache = slice.getState().bluredCanvasCtx;
+            if (cache != null) {
+              originalCtx = ctx;
+              cache.clearRect(0,0, cache.canvas.width, cache.canvas.height);
+              pctx.changeCanvasContext(cache);
+            }
+          })),
+
+        action$.pipe(ofa(slice.actions.afterRender),
+          op.map((ctx) => {
+            const cache = slice.getState().bluredCanvasCtx;
+            if (pctx)
+              pctx.changeCanvasContext(originalCtx);
+            if (cache) {
+              const {canvas} = cache;
+              canvasRGBA(canvas, 0, 0, canvas.width, canvas.height, 150);
+              // gBlur(cache, 10);
+              const rootState = slice.getState().pctx!.getState();
+              originalCtx.drawImage(canvas, 0, 0, rootState.width, rootState.height);
+            }
+          })
+        )
       ).pipe(op.ignoreElements());
     };
   });
+
+  const circle1 = createPaintableSlice('circle1', {}, {}, true);
+  circle1.addEpic(slice => {
+    return action$ => rx.merge(
+      action$.pipe(ofa(slice.actions.render),
+        op.map(({payload: ctx}) => {
+          ctx.save();
+          // ctx = circle1.getState().pctx?.getState().ctx!;
+          ctx.fillStyle = new Color('green').rotate(130).saturationl(100).lightness(60).hex();
+          const c = ctx.canvas;
+          ctx.beginPath();
+          ctx.arc(c.width >> 1, c.height >> 1, Math.min(c.height, c.width) >> 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.closePath();
+        }))
+    ).pipe(op.ignoreElements());
+  });
+
   pctx.addChild(mainPaintable.actionDispatcher);
 }
-/**
- * Below is how you use slice inside your component:
-
-import React from 'react';
-import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import {sliceOptionFactory, epicFactory, BackgroundBlurDemoProps as Props} from './backgroundBlurDemo.state';
-
-// CRA's babel plugin will remove statement "export {BackgroundBlurDemoProps}" in case there is only type definition, have to reassign and export it.
-export type BackgroundBlurDemoProps = Props;
-
-const BackgroundBlurDemo: React.FC<BackgroundBlurDemoProps> = function(props) {
-  const [state, slice] = useTinyReduxTookit(sliceOptionFactory, epicFactory);
-
-  React.useEffect(() => {
-    slice.actionDispatcher._syncComponentProps(props);
-  }, Object.values(props));
-  // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div onClick={slice.actionDispatcher.onClick}>{state}</div>;
-};
-
-export {BackgroundBlurDemo};
-
- */

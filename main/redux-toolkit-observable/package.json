@@ -1,6 +1,6 @@
 {
   "name": "@wfh/redux-toolkit-observable",
-  "version": "1.0.12-6",
+  "version": "1.0.12-9",
   "description": "A convenient Redux-toolkit + Redux-observable encapsulation",
   "main": "dist/redux-toolkit-observable.js",
   "types": "dist/redux-toolkit-observable.d.ts",

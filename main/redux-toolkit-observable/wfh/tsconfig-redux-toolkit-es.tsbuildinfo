@@ -1137,13 +1137,13 @@
         "affectsGlobalScope": false
       },
       "../state-factory-browser.ts": {
-        "version": "d292ff66ff2c86a07781780d6f1fa70d3fc8b170941df9d5e28a6cf01b055b1e",
+        "version": "d534e777f7517927fd9ada5817e88fbe09089707c510138119d1d890c89d1092",
         "signature": "e8751189fda2bc9787ff2e56062f25b8746a3465b9fee7eaeb5adf3e36f55c79",
         "affectsGlobalScope": false
       },
       "../react-redux-helper.ts": {
-        "version": "219f9b03cc68d0b3893a2f60ba61ed0568ad6dd0d82161d581cc432ef6ce7280",
-        "signature": "c65898814a50444e5dc66169a6d2293b72846f4b4683dfb5e516c6ca7dca5ecc",
+        "version": "23168450f18f2f5ec4403246303f391477f9820375bad8ee1c4af2ee8ce86e01",
+        "signature": "5721bd45f4be285f8dfdc74650bc11179bd98e1c6aa5fcc95c8ca201907881a9",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
@@ -1883,7 +1883,6 @@
       "rootDir": "..",
       "composite": true,
       "sourceMap": false,
-      "watch": true,
       "project": "../../wfh/tsconfig-redux-toolkit-es.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit-es.json"
     },
