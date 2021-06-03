@@ -53,11 +53,12 @@ const reducers = {
 };
 
 export function sliceOptionFactory() {
+  const startColor = new Color('#1916A5').lightness(60);
   const initialState: BackgroundDemoState = {
-    mainColor: new Color('#1916A5').saturationl(50),
-    topColor: new Color('#FCFAE9').saturationl(90).lightness(80).alpha(1),
-    leftColor: new Color('#7470d9').alpha(0.8),
-    rightColor: new Color('#1916A5').saturationl(90).lightness(50).alpha(0.5)
+    mainColor: new Color('#ffffff'),
+    topColor: startColor, // .saturationl(90).lightness(80).alpha(1),
+    leftColor: startColor.hue(startColor.hue() + 30).alpha(0.8),
+    rightColor: startColor.hue(startColor.hue() + 60).alpha(0)
   };
   return {
     name: 'BackgroundDemo',
@@ -125,6 +126,8 @@ function createGradient(color: string, left: number, top: number) {
           // Math.floor(Math.pow(canvasState.width * canvasState.width + canvasState.height * canvasState.height, 0.5)));
           Math.max(canvasState.width, canvasState.height));
         gradient.addColorStop(0, color);
+        gradient.addColorStop(0.3, new Color(color).alpha(0.5).toString());
+        gradient.addColorStop(0.5, new Color(color).alpha(0.3).toString());
         gradient.addColorStop(1, new Color(color).alpha(0).toString());
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, pctx.getState().width, pctx.getState().height);
@@ -154,7 +157,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
       ),
       action$.pipe(ofPayloadAction(slice.actions.init),
         op.map(({payload: pctx}) => {
-          pctx.addChild(top.actionDispatcher, left.actionDispatcher, right.actionDispatcher);
+          pctx.addChild(left.actionDispatcher, top.actionDispatcher, right.actionDispatcher);
         })),
       // observe canvas's resize action
       pctx.action$.pipe(ofPayloadAction(pctx.actions.resize),

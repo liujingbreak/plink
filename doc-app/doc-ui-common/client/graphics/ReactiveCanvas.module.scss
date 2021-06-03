@@ -9,6 +9,7 @@
   // size of the outer DIV
   overflow: hidden;
   canvas {
+    display: block;
     margin: auto;
   }
 }

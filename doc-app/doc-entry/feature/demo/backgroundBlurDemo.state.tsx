@@ -16,7 +16,7 @@ import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {PaintableContext, createPaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
 import {createCanvas, gBlur} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
-import {canvasRGBA} from 'stackblur-canvas';
+import {canvasRGBA as blur} from 'stackblur-canvas';
 import Color from 'color';
 
 export type BackgroundBlurDemoProps = React.PropsWithChildren<{
@@ -97,11 +97,6 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
 
     return action$ => {
       return rx.merge(
-        action$.pipe(ofa(slice.actions.init),
-          op.map(({payload}) => {
-            payload.addChild(circle1.actionDispatcher);
-          })
-        ),
         pctx.action$.pipe(ofa(pctx.actions.resize),
           op.map(() => {
             const state = pctx.getState();
@@ -126,9 +121,10 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
               pctx.changeCanvasContext(originalCtx);
             if (cache) {
               const {canvas} = cache;
-              canvasRGBA(canvas, 0, 0, canvas.width, canvas.height, 150);
+              blur(canvas, 0, 0, canvas.width, canvas.height, 20);
               // gBlur(cache, 10);
               const rootState = slice.getState().pctx!.getState();
+              // gBlur(originalCtx, 10, canvas, rootState.width, rootState.height);
               originalCtx.drawImage(canvas, 0, 0, rootState.width, rootState.height);
             }
           })
@@ -137,6 +133,15 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
     };
   });
 
+  mainPaintable.action$.pipe(
+    ofa(mainPaintable.actions.init),
+    op.map(({payload}) => {
+      payload.addChild(circle1.actionDispatcher);
+    })
+  ).subscribe();
+
+  const circleColor = new Color('green').saturationl(100).lightness(60).hex();
+  const fontColor = 'blue';
   const circle1 = createPaintableSlice('circle1', {}, {}, true);
   circle1.addEpic(slice => {
     return action$ => rx.merge(
@@ -144,12 +149,16 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
         op.map(({payload: ctx}) => {
           ctx.save();
           // ctx = circle1.getState().pctx?.getState().ctx!;
-          ctx.fillStyle = new Color('green').rotate(130).saturationl(100).lightness(60).hex();
+          ctx.fillStyle = circleColor;
           const c = ctx.canvas;
           ctx.beginPath();
           ctx.arc(c.width >> 1, c.height >> 1, Math.min(c.height, c.width) >> 2, 0, Math.PI * 2);
           ctx.fill();
           ctx.closePath();
+          ctx.font = `bold ${Math.floor(ctx.canvas.height / 5)}px Roboto`;
+          ctx.fillStyle = fontColor;
+          ctx.fillText('PLINK', Math.floor(ctx.canvas.width * 0.1), ctx.canvas.height >> 1);
+          ctx.restore();
         }))
     ).pipe(op.ignoreElements());
   });

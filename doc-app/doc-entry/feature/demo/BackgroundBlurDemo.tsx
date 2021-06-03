@@ -17,6 +17,7 @@ const BackgroundBlurDemo: React.FC<BackgroundBlurDemoProps> = function(props) {
 
   return <div className={styles.host}>
     <ReactiveCanvas className={styles.canvas} onReady={slice.actionDispatcher._paint}/>
+    {/* <div className={styles.backdrop}></div> */}
   </div>;
 };
 

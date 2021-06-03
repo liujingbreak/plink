@@ -41,6 +41,7 @@
     "@material/layout-grid": "11.0.0",
     "@material-icons/font": "1.0.8",
     "@material/slider": "11.0.0",
-    "stackblur-canvas": "2.5.0"
+    "stackblur-canvas": "2.5.0",
+    "bezier-easing": "^2.1.0"
   }
 }

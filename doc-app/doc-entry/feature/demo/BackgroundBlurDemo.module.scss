@@ -1,5 +1,6 @@
 
 .host {
+  position: relative;
   min-height: 100%;
   display: flex;
   align-items: stretch;
@@ -7,6 +8,15 @@
     flex: 1;
     height: auto;
   }
+}
+.backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  // background-color: rgba()
+  backdrop-filter: blur(110px);
 }
 
 // https://github.com/css-modules/css-modules
