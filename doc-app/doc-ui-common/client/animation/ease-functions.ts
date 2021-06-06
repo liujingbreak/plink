@@ -10,3 +10,7 @@ export const easeIn = bezierEasing(0.42, 0, 1.0, 1);
 export const easeOut = bezierEasing(0, 0, 0.58, 1);
 
 export const easeInOut = bezierEasing(0.42, 0, 0.58, 1);
+
+export function linear(input: number) {
+  return input;
+}

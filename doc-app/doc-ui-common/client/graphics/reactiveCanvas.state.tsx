@@ -15,6 +15,7 @@ import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction} from '@
 // import {DFS} from '@wfh/plink/wfh/dist-es5/utils/graph';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
+import * as easeFn from '../animation/ease-functions';
 
 export type ReactiveCanvasProps = React.PropsWithChildren<{
   className?: string;
@@ -180,6 +181,54 @@ export class PaintableContext {
       };
     });
     return slice as PaintableSlice<S, R>;
+  }
+
+  animate(startValue: number, endValue: number, durationSec: number,
+    timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease')
+    :rx.Observable<number> {
+
+    let timingFn: (input: number) => number;
+    switch (timingFuntion) {
+      case 'ease':
+        timingFn = easeFn.ease;
+        break;
+      case 'ease-in':
+        timingFn = easeFn.easeIn;
+        break;
+      case 'ease-out':
+        timingFn = easeFn.easeOut;
+        break;
+      case 'ease-in-out':
+        timingFn = easeFn.easeInOut;
+        break;
+      default:
+        timingFn = easeFn.linear;
+        break;
+    }
+
+    return this.getStore().pipe(
+      op.map(s => s._lastAnimFrameTime),
+      op.distinctUntilChanged(),
+      op.filter(time => time != null),
+      op.take<number>(1),
+      op.switchMap(initTime => {
+        const deltaValue = endValue - startValue;
+        return rx.concat(
+          this.getStore().pipe(
+            op.map(s => s._lastAnimFrameTime!),
+            op.distinctUntilChanged(),
+            op.filter(time => time > initTime),
+            op.map(time => {
+              let progress = (time - initTime) / durationSec;
+              let currValue = startValue + deltaValue * timingFn(progress);
+              return currValue;
+            }),
+            op.takeWhile(currValue => currValue < endValue)
+          ),
+          rx.of(endValue)
+        );
+      })
+    );
   }
 
   getState() {
@@ -386,10 +435,12 @@ function renderImmediately(slice: Slice<ReactiveCanvasState, typeof reducers>, t
   if (ctx == null)
     return;
   ctx.clearRect(0,0, s.width, s.height);
-  s.rootPaintable.actionDispatcher.renderAll({
-    escapeTime: s.animEscapeTime,
-    canvasCtx: ctx
-  });
+  if (s.rootPaintable) {
+    s.rootPaintable.actionDispatcher.renderAll({
+      escapeTime: s.animEscapeTime,
+      canvasCtx: ctx
+    });
+  }
   if (slice.getState()._animatingPaintables[0].size > 0) {
     slice.actionDispatcher.render();
   }
