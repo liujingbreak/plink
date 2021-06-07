@@ -14,7 +14,7 @@ import Color from 'color';
 export function create(ctx: PaintableContext) {
   let cachedCanvas: HTMLCanvasElement | undefined;
 
-  const baseSlice = ctx.createPaintableSlice('Circle', {}, {}, undefined, true);
+  const baseSlice = ctx.createPaintableSlice({name: 'Circle', debug: true});
   rx.merge(
     baseSlice.action$.pipe(
       ofPayloadAction(baseSlice.actions.render),

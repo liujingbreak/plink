@@ -21,7 +21,7 @@ export type ReactiveCanvasProps = React.PropsWithChildren<{
   className?: string;
   /** default 2 */
   scaleRatio?: number;
-  onReady?(paintCtx: PaintableContext): Iterable<PaintableSlice<any, any>>;
+  onReady?(paintCtx: PaintableContext): Iterable<PaintableSlice<any, any>> | void;
 }>;
 export interface ReactiveCanvasState {
   ctx?: CanvasRenderingContext2D;
@@ -33,9 +33,11 @@ export interface ReactiveCanvasState {
   pixelHeight: number;
   rootPaintable?: PaintableSlice;
   // _lastAnimFrameTime?: number;
-  animFrameTime$: rx.BehaviorSubject<number>;
+  // We want a separate observable store to perform well in animation frames
+  animFrameTime$: rx.BehaviorSubject<number | undefined | null>;
   // animEscapeTime: number;
-  _animatingPaintables: [Set<PaintableSlice>];
+  _countAnimatings:  number;
+  // _needRender?: boolean;
   error?: Error;
 }
 
@@ -56,20 +58,16 @@ const reducers = {
   },
   _afterResize(s: ReactiveCanvasState) {
   },
-  render(s: ReactiveCanvasState) {},
-  setAnimating(s: ReactiveCanvasState, [paintable, yes]: [paintable: PaintableSlice<any, any>, animating: boolean]) {
-    // s.animatings = isIncrement ? s.animatings + 1 : s.animatings - 1;
-    if (yes) {
-      if (!s._animatingPaintables[0].has(paintable)) {
-        s._animatingPaintables[0].add(paintable);
-        s._animatingPaintables = [s._animatingPaintables[0]]; // for dirty detection
-      }
-    } else {
-      if (s._animatingPaintables[0].has(paintable)) {
-        s._animatingPaintables[0].delete(paintable);
-        s._animatingPaintables = [s._animatingPaintables[0]];
-      }
-    }
+  /** Bunch rendering in next frame */
+  // renderLater(s: ReactiveCanvasState) {
+  //   s._needRender = true;
+  // },
+  // renderImmediately() {},
+  startAnimating(s: ReactiveCanvasState) {
+    s._countAnimatings++;
+  },
+  stopAnimating(s: ReactiveCanvasState) {
+    s._countAnimatings--;
   },
   changeContext(s: ReactiveCanvasState, newCtx: CanvasRenderingContext2D) {
     s.ctx = newCtx;
@@ -84,12 +82,6 @@ const reducers = {
   _componentTreeReady(s: ReactiveCanvasState) {},
   _syncComponentProps(s: ReactiveCanvasState, payload: ReactiveCanvasProps) {
     s.componentProps = {...s.componentProps, ...payload};
-  },
-  _calAnimEscapeTime(s: ReactiveCanvasState, time: number) {
-    // if (s._lastAnimFrameTime)
-    //   s.animEscapeTime = time - s._lastAnimFrameTime;
-    // s._lastAnimFrameTime = time;
-    s.animFrameTime$.next(time);
   }
 };
 
@@ -106,8 +98,8 @@ export function sliceOptionFactory() {
     // rootId,
     // rootPaintable: createPaintableSlice('root'),
     // components: [new Map([ [rootId, rootPaintableData] ])],
-    _animatingPaintables: [new Set()],
-    animFrameTime$: new rx.BehaviorSubject<number>(-1)
+    _countAnimatings: 0,
+    animFrameTime$: new rx.BehaviorSubject<number | null | undefined>(null)
     // rendering: false,
     // animEscapeTime: 0
   };
@@ -121,10 +113,35 @@ export function sliceOptionFactory() {
 
 export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = function(slice) {
   const pCtx = new PaintableContext(slice);
-  const rootPaintable = pCtx.createPaintableSlice('root');
+  const rootPaintable = pCtx.createPaintableSlice({name: 'root'});
+  rootPaintable.actionDispatcher._setAsRoot();
   slice.dispatch({type: 'set rootPaintable', reducer(s: ReactiveCanvasState) {
     s.rootPaintable = rootPaintable;
   }});
+
+  function animationFrames() {
+    requestAnimationFrame(time => {
+      slice.getState().animFrameTime$.next(time);
+      if (pCtx.needRender) {
+        renderImmediately();
+        slice.dispatch({type: 'render done', reducer(s: ReactiveCanvasState) {
+          pCtx.needRender = false;
+        }});
+      }
+      if (slice.getState()._countAnimatings > 0) {
+        animationFrames();
+      }
+    });
+  }
+
+  function renderImmediately() {
+    const s = slice.getState();
+    const ctx = s.ctx!;
+    ctx.clearRect(0,0, s.width, s.height);
+    if (s.rootPaintable) {
+      s.rootPaintable.actionDispatcher.renderAll(ctx);
+    }
+  }
 
   return (action$, state$) => {
     return rx.merge(
@@ -133,16 +150,15 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
         action$.pipe(ofPayloadAction(slice.actions._componentTreeReady))
       ).pipe(
         op.map(() => {
-          renderImmediately(slice);
-        }),
-        op.switchMap(() => action$.pipe(ofPayloadAction(slice.actions.render))),
-        op.exhaustMap(() => render(slice))
+          renderImmediately();
+        })
       ),
-
-      state$.pipe(op.map(s => s._animatingPaintables[0].size),
+      state$.pipe(op.map(s => s._countAnimatings),
+        op.distinctUntilChanged(),
         op.scan((old, val) => {
           if (val === 1 && old === 0) {
-            slice.actionDispatcher.render();
+            // slice.actionDispatcher.render();
+            animationFrames();
           }
           return val;
         })
@@ -163,7 +179,8 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
           if (factory) {
             const children = factory(pCtx);
             rootPaintable.actionDispatcher.clearChildren();
-            rootPaintable.actionDispatcher.addChildren(children);
+            if (children)
+              rootPaintable.actionDispatcher.addChildren(children);
             slice.actionDispatcher._componentTreeReady();
           }
         })),
@@ -184,33 +201,6 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
   };
 };
 
-function render(slice: Slice<ReactiveCanvasState, typeof reducers>) {
-  return new rx.Observable(sub => {
-    requestAnimationFrame(time => {
-      renderImmediately(slice, time);
-      sub.next();
-      sub.complete();
-    });
-  });
-}
-
-function renderImmediately(slice: Slice<ReactiveCanvasState, typeof reducers>, time?: number) {
-  const s = slice.getState();
-  if (time)
-    slice.actionDispatcher._calAnimEscapeTime(time);
-
-  const ctx = s.ctx;
-  if (ctx == null)
-    return;
-  ctx.clearRect(0,0, s.width, s.height);
-  if (s.rootPaintable) {
-    s.rootPaintable.actionDispatcher.renderAll(ctx);
-  }
-  if (slice.getState()._animatingPaintables[0].size > 0) {
-    slice.actionDispatcher.render();
-  }
-}
-
 export type ReactiveCanvasSlice = Slice<ReactiveCanvasState, typeof reducers>;
 
 /**
@@ -219,26 +209,40 @@ export type ReactiveCanvasSlice = Slice<ReactiveCanvasState, typeof reducers>;
 export class PaintableContext {
   action$: Slice<ReactiveCanvasState, typeof reducers>['action$'];
   actions: Slice<ReactiveCanvasState, typeof reducers>['actions'];
+  needRender = false;
 
   constructor(private canvasSlice: Slice<ReactiveCanvasState, typeof reducers>) {
     this.action$ = canvasSlice.action$;
     this.actions = canvasSlice.actions;
   }
 
+  /** reqest to render canvas later in animation frame, the actual rendering will be batched */
   renderCanvas() {
-    this.canvasSlice.actionDispatcher.render();
+    // this.canvasSlice.actionDispatcher.renderLater();
+    if (this.getState()._countAnimatings === 0) {
+      throw new Error('renderCanvas() must be called after createAnimation() is subscribed and before its completion');
+    }
+    this.needRender = true;
   }
   // /** So that children will be rendered to a different canvas */
   // changeCanvasContext(ctx: CanvasRenderingContext2D) {
   //   this.canvasSlice.actionDispatcher.changeContext(ctx);
   // }
 
-  createPaintableSlice<S = {}, R = {}>(name: string,
-    extendInitialState: S = {} as S,
-    extendReducers: R = {} as R,
-    actionInterceptor?: rx.OperatorFunction<PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>, PayloadAction<BasePaintableState & S>>,
-    debug?: boolean): PaintableSlice<S, R> {
+  createPaintableSlice<S = {}, R = {}>({name, extendInitialState, extendReducers, actionInterceptor, debug}: {
+    name: string;
+    extendInitialState?: S;
+    extendReducers?: R;
+    actionInterceptor?: rx.OperatorFunction<PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>, PayloadAction<BasePaintableState & S>> | null;
+    debug?: boolean;
+  }): PaintableSlice<S, R> {
 
+    if (extendInitialState == null) {
+      extendInitialState = {} as S;
+    }
+    if (extendReducers == null) {
+      extendReducers = {} as R;
+    }
     const initState: BasePaintableState = {
       pctx: this,
       attached: false
@@ -272,16 +276,16 @@ export class PaintableContext {
               }
           })),
           action$.pipe(ofPayloadAction(slice.actions.setAnimating),
-            op.switchMap(animating => {
+            op.switchMap(({payload: animating}) => {
               if (animating) {
                 return slice.getStore().pipe(op.map(s => s.attached),
                   op.distinctUntilChanged(), op.filter(attached => attached), op.take(1),
                   op.map(() => {
-                    this.canvasSlice.actionDispatcher.setAnimating([slice, true]);
+                    this.canvasSlice.actionDispatcher.startAnimating();
                   })
                 );
               } else {
-                this.canvasSlice.actionDispatcher.setAnimating([slice, false]);
+                this.canvasSlice.actionDispatcher.stopAnimating();
                 return rx.EMPTY;
               }
             })
@@ -363,47 +367,21 @@ export class PaintableContext {
     return slice as PaintableSlice<S, R>;
   }
 
-  animate(startValue: number, endValue: number, durationSec: number,
+  createAnimation(startValue: number, endValue: number, durationMSec: number,
     timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease')
     :rx.Observable<number> {
-
-    let timingFn: (input: number) => number;
-    switch (timingFuntion) {
-      case 'ease':
-        timingFn = easeFn.ease;
-        break;
-      case 'ease-in':
-        timingFn = easeFn.easeIn;
-        break;
-      case 'ease-out':
-        timingFn = easeFn.easeOut;
-        break;
-      case 'ease-in-out':
-        timingFn = easeFn.easeInOut;
-        break;
-      default:
-        timingFn = easeFn.linear;
-        break;
-    }
-
-    const animFrameTime$ = this.getState().animFrameTime$;
-    return animFrameTime$.pipe(
-      op.filter(time => time >= 0),
-      op.take<number>(1),
-      op.switchMap(initTime => {
-        const deltaValue = endValue - startValue;
-        return rx.concat(
-          animFrameTime$.pipe(
-            op.filter(time => time > initTime),
-            op.map(time => {
-              let progress = (time - initTime) / durationSec;
-              let currValue = startValue + deltaValue * timingFn(progress);
-              return currValue;
-            }),
-            op.takeWhile(currValue => currValue < endValue)
-          ),
-          rx.of(endValue)
-        );
+    return rx.defer(() => {
+      this.canvasSlice.actionDispatcher.startAnimating();
+      return easeFn.animate(
+        this.getState().animFrameTime$
+          .pipe(
+            op.filter(time => time != null)
+          ) as rx.Observable<number>,
+        startValue, endValue, durationMSec, timingFuntion
+      );
+    }).pipe(
+      op.finalize(() => {
+        this.canvasSlice.actionDispatcher.stopAnimating();
       })
     );
   }
@@ -444,7 +422,10 @@ export const basePaintableReducers = {
   renderAll(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
   render(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
   _renderChildren(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
-  afterRender(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {}
+  afterRender(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
+  _setAsRoot(s: BasePaintableState) {
+    s.attached = true;
+  }
   // destroy(s: BasePaintableState) {}
 };
 

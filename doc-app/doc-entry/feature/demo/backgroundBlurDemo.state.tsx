@@ -87,11 +87,13 @@ interface BlurCanvasState {
 function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemoSlice) {
   const initialState: BlurCanvasState = {};
 
-  const mainPaintable = pctx.createPaintableSlice('blurLayer', initialState, {
-    setCacheCtx(s: BlurCanvasState, ctx: CanvasRenderingContext2D) {
-      s.bluredCanvasCtx = ctx;
+  const mainPaintable = pctx.createPaintableSlice({name: 'blurLayer', extendInitialState: initialState,
+    extendReducers: {
+      setCacheCtx(s: BlurCanvasState, ctx: CanvasRenderingContext2D) {
+        s.bluredCanvasCtx = ctx;
+      }
     }
-  }, undefined, true);
+  });
 
   mainPaintable.addEpic(slice => {
     let originalCtx: CanvasRenderingContext2D;
@@ -136,7 +138,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
 
   const circleColor = new Color('green').saturationl(100).lightness(60).hex();
   const fontColor = 'blue';
-  const circle1 = pctx.createPaintableSlice('circle1', {}, {}, undefined, true);
+  const circle1 = pctx.createPaintableSlice({name: 'circle1', debug: true});
   circle1.addEpic(slice => {
     return action$ => rx.merge(
       action$.pipe(ofa(slice.actions.render),

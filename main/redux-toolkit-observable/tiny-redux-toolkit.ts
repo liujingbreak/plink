@@ -160,9 +160,13 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
 
   let actionCount = 0;
   let executingReducer = false;
+  // To warn developer that no action dispatching shoud be called inside a reducer, this is side-effects and 
+  // will leads to recursive reducer
+  let inReducer = false;
 
   const sub = rx.merge(
     unprocessedAction$.pipe(
+      // op.observeOn(rx.queueScheduler), // Avoid recursively dispatching action inside an reducer, but normally recursively dispatching should be warned and forbidden
       op.tap(action => {
         if (opt.debug) {
           // tslint:disable-next-line: no-console
@@ -174,7 +178,12 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
           const currState = state$.getValue();
           const shallowCopied = {...currState, __ac: ++actionCount};
           executingReducer = true;
+          if (inReducer) {
+            throw new Error(`Do not dispatch action inside a reducer! (action: ${action.type})`);
+          }
+          inReducer = true;
           const newState = action.reducer(shallowCopied, (action as PayloadAction<S>).payload);
+          inReducer = false;
           executingReducer = false;
           const changed = newState ? newState : shallowCopied;
           state$.next(changed);

@@ -58,7 +58,12 @@ export function createSlice(opt) {
     }
     let actionCount = 0;
     let executingReducer = false;
-    const sub = rx.merge(unprocessedAction$.pipe(op.tap(action => {
+    // To warn developer that no action dispatching shoud be called inside a reducer, this is side-effects and 
+    // will leads to recursive reducer
+    let inReducer = false;
+    const sub = rx.merge(unprocessedAction$.pipe(
+    // op.observeOn(rx.queueScheduler), // Avoid recursively dispatching action inside an reducer, but normally recursively dispatching should be warned and forbidden
+    op.tap(action => {
         if (opt.debug) {
             // tslint:disable-next-line: no-console
             console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
@@ -68,7 +73,12 @@ export function createSlice(opt) {
             const currState = state$.getValue();
             const shallowCopied = Object.assign(Object.assign({}, currState), { __ac: ++actionCount });
             executingReducer = true;
+            if (inReducer) {
+                throw new Error(`Do not dispatch action inside a reducer! (action: ${action.type})`);
+            }
+            inReducer = true;
             const newState = action.reducer(shallowCopied, action.payload);
+            inReducer = false;
             executingReducer = false;
             const changed = newState ? newState : shallowCopied;
             state$.next(changed);
