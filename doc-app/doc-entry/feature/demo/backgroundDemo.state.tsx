@@ -12,7 +12,7 @@
  * e.g. DOM object, React Component, functions
  */
 import {EpicFactory, ofPayloadAction, Slice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import {PaintableContext, createPaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
 
 import Color from 'color';
 import * as op from 'rxjs/operators';
@@ -35,6 +35,7 @@ export interface BackgroundDemoState {
   canvasPaintCtx?: PaintableContext;
   style?: object;
   error?: Error;
+  createPaintables?(p: PaintableContext): Iterable<PaintableSlice<any, any>>;
 }
 interface GradientState {
   position: [left: number, top: number];
@@ -45,9 +46,6 @@ interface GradientState {
 const reducers = {
   _syncComponentProps(s: BackgroundDemoState, payload: BackgroundDemoProps) {
     s.componentProps = {...payload};
-  },
-  _paint(s: BackgroundDemoState, pctx: PaintableContext) {
-    s.canvasPaintCtx = pctx;
   }
   // define more reducers...
 };
@@ -57,8 +55,8 @@ export function sliceOptionFactory() {
   const initialState: BackgroundDemoState = {
     mainColor: new Color('#ffffff'),
     topColor: startColor, // .saturationl(90).lightness(80).alpha(1),
-    leftColor: startColor.hue(startColor.hue() + 30).alpha(0.8),
-    rightColor: startColor.hue(startColor.hue() + 60).alpha(0)
+    leftColor: startColor.hue(startColor.hue() + 20).alpha(0.8),
+    rightColor: startColor.hue(startColor.hue() - 30).alpha(0.9)
   };
   return {
     name: 'BackgroundDemo',
@@ -71,12 +69,16 @@ export function sliceOptionFactory() {
 export type BackgroundDemoSlice = Slice<BackgroundDemoState, typeof reducers>;
 
 export const epicFactory: EpicFactory<BackgroundDemoState, typeof reducers> = function(slice) {
+  slice.dispatch({
+    type: 'init-createPaintables',
+    reducer(s: BackgroundDemoState) {
+      s.createPaintables = (pctx) => {
+        return createPaintable(pctx, slice);
+      };
+    }
+  });
   return (action$) => {
     return rx.merge(
-      action$.pipe(ofPayloadAction(slice.actions._paint),
-        op.map(action => {
-          createPaintable(action.payload, slice);
-        })),
       slice.getStore().pipe(
         op.map(s => s.componentProps), // watch component property changes
         op.filter(props => props != null),
@@ -104,17 +106,17 @@ export const epicFactory: EpicFactory<BackgroundDemoState, typeof reducers> = fu
   };
 };
 
-function createGradient(color: string, left: number, top: number) {
+function createGradient(pctx: PaintableContext, color: string, left: number, top: number) {
   const initialState: GradientState = {
     color,
     position: [left, top]
   };
 
-  const gradientPaintableSlice = createPaintableSlice('bg-gradient', initialState, {
+  const gradientPaintableSlice = pctx.createPaintableSlice('bg-gradient', initialState, {
     setPosition(s: GradientState, pos: [left: number, top: number]) {
       s.position = pos;
     }
-  }, true);
+  }, undefined, true);
   gradientPaintableSlice.addEpic((slice) => action$ => {
     return action$.pipe(ofPayloadAction(slice.actions.render),
       op.map(({payload: ctx}) => {
@@ -139,10 +141,10 @@ function createGradient(color: string, left: number, top: number) {
 }
 
 function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlice) {
-  const top = createGradient(bgDemoSlice.getState().topColor!.toString(), pctx.getState().width >> 1, 0);
-  const left = createGradient(bgDemoSlice.getState().leftColor!.toString(), 0, pctx.getState().height >> 1);
-  const right = createGradient(bgDemoSlice.getState().rightColor!.toString(), pctx.getState().width, pctx.getState().height >> 1);
-  const bgSlice = createPaintableSlice('p-background', {}, {}, true);
+  const top = createGradient(pctx, bgDemoSlice.getState().topColor!.toString(), pctx.getState().width >> 1, 0);
+  const left = createGradient(pctx, bgDemoSlice.getState().leftColor!.toString(), 0, pctx.getState().height >> 1);
+  const right = createGradient(pctx, bgDemoSlice.getState().rightColor!.toString(), pctx.getState().width, pctx.getState().height >> 1);
+  const bgSlice = pctx.createPaintableSlice('p-background', {}, {}, undefined, true);
   bgSlice.addEpic(slice => action$ => {
     return rx.merge(
       action$.pipe(ofPayloadAction(slice.actions.render),
@@ -155,10 +157,6 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
           ctx.fillRect(0, 0, pctx.getState().width, pctx.getState().height);
         })
       ),
-      action$.pipe(ofPayloadAction(slice.actions.init),
-        op.map(({payload: pctx}) => {
-          pctx.addChild(left.actionDispatcher, top.actionDispatcher, right.actionDispatcher);
-        })),
       // observe canvas's resize action
       pctx.action$.pipe(ofPayloadAction(pctx.actions.resize),
         op.map(() => {
@@ -170,5 +168,6 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
       op.ignoreElements()
     );
   });
-  pctx.addChild(bgSlice.actionDispatcher);
+  bgSlice.actionDispatcher.addChildren([left, top, right]);
+  return [bgSlice];
 }

@@ -1,4 +1,4 @@
-import {PaintableContext, createPaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
 import {createCanvas} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
 import {ofPayloadAction} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit';
 import * as rx from 'rxjs';
@@ -14,7 +14,7 @@ import Color from 'color';
 export function create(ctx: PaintableContext) {
   let cachedCanvas: HTMLCanvasElement | undefined;
 
-  const baseSlice = createPaintableSlice('Circle', true);
+  const baseSlice = ctx.createPaintableSlice('Circle', {}, {}, undefined, true);
   rx.merge(
     baseSlice.action$.pipe(
       ofPayloadAction(baseSlice.actions.render),
@@ -50,8 +50,8 @@ export function create(ctx: PaintableContext) {
       })
     )
   ).pipe(
-    op.takeUntil(baseSlice.action$.pipe(ofPayloadAction(baseSlice.actions.destroy)))
+    op.takeUntil(baseSlice.destroy$)
   ).subscribe();
 
-  ctx.addChild(baseSlice.actionDispatcher);
+  return [baseSlice];
 }

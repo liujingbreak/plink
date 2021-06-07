@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction, Action} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 // import {DFS} from '@wfh/plink/wfh/dist-es5/utils/graph';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -32,246 +32,12 @@ export interface ReactiveCanvasState {
   pixelWidth: number;
   pixelHeight: number;
   rootPaintable?: PaintableSlice;
-  _lastAnimFrameTime?: number;
-  animEscapeTime: number;
+  // _lastAnimFrameTime?: number;
+  animFrameTime$: rx.BehaviorSubject<number>;
+  // animEscapeTime: number;
   _animatingPaintables: [Set<PaintableSlice>];
   error?: Error;
 }
-
-/**
- * PaintableContext is a tailored version of reactiveCanvasSlice for a child Paintable component
- */
-export class PaintableContext {
-  action$: Slice<ReactiveCanvasState, typeof reducers>['action$'];
-  actions: Slice<ReactiveCanvasState, typeof reducers>['actions'];
-
-  constructor(private canvasSlice: Slice<ReactiveCanvasState, typeof reducers>) {
-    this.action$ = canvasSlice.action$;
-    this.actions = canvasSlice.actions;
-  }
-
-  setAnimating(paintable: PaintableSlice<any, any>, yes: boolean) {
-    this.canvasSlice.actionDispatcher.setAnimating([paintable, yes]);
-  }
-  renderCanvas() {
-    this.canvasSlice.actionDispatcher.render();
-  }
-  // /** So that children will be rendered to a different canvas */
-  // changeCanvasContext(ctx: CanvasRenderingContext2D) {
-  //   this.canvasSlice.actionDispatcher.changeContext(ctx);
-  // }
-
-  createPaintableSlice<S = {}, R = {}>(name: string,
-    extendInitialState: S = {} as S,
-    extendReducers: R = {} as R,
-    actionInterceptor?: rx.OperatorFunction<PayloadAction<BasePaintableState & S>, PayloadAction<BasePaintableState & S>>,
-    debug?: boolean): PaintableSlice<S, R> {
-    const slice = createSlice<BasePaintableState & S, typeof basePaintableReducers>({
-      name,
-      initialState: Object.assign({attached: false}, extendInitialState),
-      reducers: Object.assign(basePaintableReducers, extendReducers),
-      debug
-    });
-    slice.addEpic(slice => {
-      return inputAction$ => {
-        const action$ = actionInterceptor ? inputAction$.pipe(actionInterceptor) : inputAction$;
-        const dispatcher = slice.actionDispatcher;
-        return rx.merge(
-          action$.pipe(ofPayloadAction(slice.actions.renderAll),
-            op.map(({payload}) => {
-              payload.canvasCtx.save();
-              dispatcher.render(payload);
-              if (slice.getState().children)
-                dispatcher._renderChildren(payload);
-              dispatcher.afterRender(payload);
-              payload.canvasCtx.restore();
-            })
-          ),
-
-          action$.pipe(ofPayloadAction(slice.actions._renderChildren),
-            op.map(({payload}) => {
-              for (const chr of slice.getState().children![0].values()) {
-                chr.actionDispatcher.renderAll(payload);
-              }
-          })),
-          action$.pipe(ofPayloadAction(slice.actions.setAnimating),
-            op.switchMap(animating => {
-              if (animating) {
-                return slice.getStore().pipe(op.map(s => s.attached),
-                  op.distinctUntilChanged(), op.filter(attached => attached), op.take(1),
-                  op.map(() => {
-                    this.setAnimating(slice, true);
-                  })
-                );
-              } else {
-                this.setAnimating(slice, false);
-                return rx.EMPTY;
-              }
-            })
-          ),
-          action$.pipe(ofPayloadAction(slice.actions.addChildren),
-            op.map(({payload: children}) => {
-              // const state = slice.getState();
-              slice.dispatch({
-                type: 'set parent',
-                reducer(s: BasePaintableState) {
-                  if (s.children == null)
-                    s.children = [new Set()];
-
-                  let chrSet: Set<PaintableSlice> = s.children ? s.children[0] : new Set();
-
-                  for (const chr of children) {
-                    chrSet.add(chr);
-                    chr.actionDispatcher._setParent(slice);
-                  }
-                  s.children = [chrSet];
-                }
-              });
-            })
-          ),
-          action$.pipe(ofPayloadAction(slice.actions.removeChildren),
-            op.map(({payload: children}) => {
-              slice.dispatch({
-                type: 'detach children',
-                reducer(s: BasePaintableState) {
-                  for (const chr of children) {
-                    chr.actionDispatcher._setParent(undefined);
-                  }
-                }
-              });
-            })
-          ),
-          action$.pipe(ofPayloadAction(slice.actions.clearChildren),
-            op.map(action => {
-              const childrenState = slice.getState().children;
-              if (childrenState == null)
-                return;
-              slice.actionDispatcher.removeChildren(childrenState[0].values());
-            })
-          ),
-          slice.getStore().pipe(op.map(s => s.parent),
-            op.distinctUntilChanged(),
-            op.switchMap(parent => {
-              if (parent == null) {
-                dispatcher._setAttached(false);
-                return rx.EMPTY;
-              }
-              return rx.merge(
-                // parent.action$.pipe(ofPayloadAction(parent.actions._renderChildren),
-                //   op.map(({payload}) => {
-                //     payload.canvasCtx.save();
-                //     dispatcher.render(payload);
-                //     dispatcher._renderChildren(payload);
-                //     dispatcher.afterRender(payload);
-                //     payload.canvasCtx.restore();
-                //   })
-                // ),
-                parent.getStore().pipe(
-                  op.map(s => s.attached), op.distinctUntilChanged(),
-                  op.map(attached => {
-                    dispatcher._setAttached(attached);
-                  })
-                )
-              );
-            })
-          )
-        ).pipe(
-          op.ignoreElements()
-        );
-      };
-    });
-    return slice as PaintableSlice<S, R>;
-  }
-
-  animate(startValue: number, endValue: number, durationSec: number,
-    timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease')
-    :rx.Observable<number> {
-
-    let timingFn: (input: number) => number;
-    switch (timingFuntion) {
-      case 'ease':
-        timingFn = easeFn.ease;
-        break;
-      case 'ease-in':
-        timingFn = easeFn.easeIn;
-        break;
-      case 'ease-out':
-        timingFn = easeFn.easeOut;
-        break;
-      case 'ease-in-out':
-        timingFn = easeFn.easeInOut;
-        break;
-      default:
-        timingFn = easeFn.linear;
-        break;
-    }
-
-    return this.getStore().pipe(
-      op.map(s => s._lastAnimFrameTime),
-      op.distinctUntilChanged(),
-      op.filter(time => time != null),
-      op.take<number>(1),
-      op.switchMap(initTime => {
-        const deltaValue = endValue - startValue;
-        return rx.concat(
-          this.getStore().pipe(
-            op.map(s => s._lastAnimFrameTime!),
-            op.distinctUntilChanged(),
-            op.filter(time => time > initTime),
-            op.map(time => {
-              let progress = (time - initTime) / durationSec;
-              let currValue = startValue + deltaValue * timingFn(progress);
-              return currValue;
-            }),
-            op.takeWhile(currValue => currValue < endValue)
-          ),
-          rx.of(endValue)
-        );
-      })
-    );
-  }
-
-  getState() {
-    return this.canvasSlice.getState();
-  }
-  getStore() {
-    return this.canvasSlice.getStore();
-  }
-}
-export interface BasePaintableState {
-  pctx?: PaintableContext;
-  children?: [Set<PaintableSlice>];
-  parent?: PaintableSlice;
-  attached: boolean;
-  error?: Error;
-}
-export const basePaintableReducers = {
-  init(s: BasePaintableState, pctx: PaintableContext) {
-    s.pctx = pctx;
-  },
-  addChildren(s: BasePaintableState, children: Iterable<PaintableSlice>) {},
-  removeChildren(s: BasePaintableState, children: Iterable<PaintableSlice>) {
-    for (const chr of children) {
-      s.children![0].delete(chr);
-    }
-    s.children = [s.children![0]];
-  },
-  clearChildren(s: BasePaintableState) {},
-  setAnimating(s: BasePaintableState, yes: boolean) {},
-  _setAttached(s: BasePaintableState, attached: boolean) {
-    s.attached = attached;
-  },
-  _setParent(s: BasePaintableState, parent: PaintableSlice<any, any> | undefined) {
-    s.parent = parent;
-  },
-  renderAll(s: BasePaintableState, _payload: {escapeTime: number; canvasCtx: CanvasRenderingContext2D}) {},
-  render(s: BasePaintableState, _payload: {escapeTime: number; canvasCtx: CanvasRenderingContext2D}) {},
-  _renderChildren(s: BasePaintableState, _payload: {escapeTime: number; canvasCtx: CanvasRenderingContext2D}) {},
-  afterRender(s: BasePaintableState, _payload: {escapeTime: number; canvasCtx: CanvasRenderingContext2D}) {}
-  // destroy(s: BasePaintableState) {}
-};
-
-export type PaintableSlice<S = {}, R = {}> = Slice<BasePaintableState & S, typeof basePaintableReducers & R>;
 
 const reducers = {
   resize(s: ReactiveCanvasState) {
@@ -291,7 +57,7 @@ const reducers = {
   _afterResize(s: ReactiveCanvasState) {
   },
   render(s: ReactiveCanvasState) {},
-  setAnimating(s: ReactiveCanvasState, [paintable, yes]: [paintable: PaintableSlice, animating: boolean]) {
+  setAnimating(s: ReactiveCanvasState, [paintable, yes]: [paintable: PaintableSlice<any, any>, animating: boolean]) {
     // s.animatings = isIncrement ? s.animatings + 1 : s.animatings - 1;
     if (yes) {
       if (!s._animatingPaintables[0].has(paintable)) {
@@ -320,9 +86,10 @@ const reducers = {
     s.componentProps = {...s.componentProps, ...payload};
   },
   _calAnimEscapeTime(s: ReactiveCanvasState, time: number) {
-    if (s._lastAnimFrameTime)
-      s.animEscapeTime = time - s._lastAnimFrameTime;
-    s._lastAnimFrameTime = time;
+    // if (s._lastAnimFrameTime)
+    //   s.animEscapeTime = time - s._lastAnimFrameTime;
+    // s._lastAnimFrameTime = time;
+    s.animFrameTime$.next(time);
   }
 };
 
@@ -340,8 +107,9 @@ export function sliceOptionFactory() {
     // rootPaintable: createPaintableSlice('root'),
     // components: [new Map([ [rootId, rootPaintableData] ])],
     _animatingPaintables: [new Set()],
+    animFrameTime$: new rx.BehaviorSubject<number>(-1)
     // rendering: false,
-    animEscapeTime: 0
+    // animEscapeTime: 0
   };
   return {
     name: 'ReactiveCanvas',
@@ -436,10 +204,7 @@ function renderImmediately(slice: Slice<ReactiveCanvasState, typeof reducers>, t
     return;
   ctx.clearRect(0,0, s.width, s.height);
   if (s.rootPaintable) {
-    s.rootPaintable.actionDispatcher.renderAll({
-      escapeTime: s.animEscapeTime,
-      canvasCtx: ctx
-    });
+    s.rootPaintable.actionDispatcher.renderAll(ctx);
   }
   if (slice.getState()._animatingPaintables[0].size > 0) {
     slice.actionDispatcher.render();
@@ -447,3 +212,241 @@ function renderImmediately(slice: Slice<ReactiveCanvasState, typeof reducers>, t
 }
 
 export type ReactiveCanvasSlice = Slice<ReactiveCanvasState, typeof reducers>;
+
+/**
+ * PaintableContext is a tailored version of reactiveCanvasSlice for a child Paintable component
+ */
+export class PaintableContext {
+  action$: Slice<ReactiveCanvasState, typeof reducers>['action$'];
+  actions: Slice<ReactiveCanvasState, typeof reducers>['actions'];
+
+  constructor(private canvasSlice: Slice<ReactiveCanvasState, typeof reducers>) {
+    this.action$ = canvasSlice.action$;
+    this.actions = canvasSlice.actions;
+  }
+
+  renderCanvas() {
+    this.canvasSlice.actionDispatcher.render();
+  }
+  // /** So that children will be rendered to a different canvas */
+  // changeCanvasContext(ctx: CanvasRenderingContext2D) {
+  //   this.canvasSlice.actionDispatcher.changeContext(ctx);
+  // }
+
+  createPaintableSlice<S = {}, R = {}>(name: string,
+    extendInitialState: S = {} as S,
+    extendReducers: R = {} as R,
+    actionInterceptor?: rx.OperatorFunction<PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>, PayloadAction<BasePaintableState & S>>,
+    debug?: boolean): PaintableSlice<S, R> {
+
+    const initState: BasePaintableState = {
+      pctx: this,
+      attached: false
+    };
+    const slice = createSlice<BasePaintableState & S, typeof basePaintableReducers>({
+      name,
+      initialState: Object.assign(initState, extendInitialState),
+      reducers: Object.assign(basePaintableReducers, extendReducers),
+      debug
+    });
+    slice.addEpic(slice => {
+      return inputAction$ => {
+        const action$ = actionInterceptor ? inputAction$.pipe(actionInterceptor) : inputAction$;
+        const dispatcher = slice.actionDispatcher;
+        return rx.merge(
+          action$.pipe(ofPayloadAction(slice.actions.renderAll),
+            op.map(({payload}) => {
+              payload.save();
+              dispatcher.render(payload);
+              if (slice.getState().children)
+                dispatcher._renderChildren(payload);
+              dispatcher.afterRender(payload);
+              payload.restore();
+            })
+          ),
+
+          action$.pipe(ofPayloadAction(slice.actions._renderChildren),
+            op.map(({payload}) => {
+              for (const chr of slice.getState().children![0].values()) {
+                chr.actionDispatcher.renderAll(payload);
+              }
+          })),
+          action$.pipe(ofPayloadAction(slice.actions.setAnimating),
+            op.switchMap(animating => {
+              if (animating) {
+                return slice.getStore().pipe(op.map(s => s.attached),
+                  op.distinctUntilChanged(), op.filter(attached => attached), op.take(1),
+                  op.map(() => {
+                    this.canvasSlice.actionDispatcher.setAnimating([slice, true]);
+                  })
+                );
+              } else {
+                this.canvasSlice.actionDispatcher.setAnimating([slice, false]);
+                return rx.EMPTY;
+              }
+            })
+          ),
+          action$.pipe(ofPayloadAction(slice.actions.addChildren),
+            op.map(({payload: children}) => {
+              // const state = slice.getState();
+              slice.dispatch({
+                type: 'set parent',
+                reducer(s: BasePaintableState) {
+                  if (s.children == null)
+                    s.children = [new Set()];
+
+                  let chrSet: Set<PaintableSlice> = s.children ? s.children[0] : new Set();
+
+                  for (const chr of children) {
+                    chrSet.add(chr);
+                    chr.actionDispatcher._setParent(slice);
+                  }
+                  s.children = [chrSet];
+                }
+              });
+            })
+          ),
+          action$.pipe(ofPayloadAction(slice.actions.removeChildren),
+            op.map(({payload: children}) => {
+              slice.dispatch({
+                type: 'detach children',
+                reducer(s: BasePaintableState) {
+                  for (const chr of children) {
+                    chr.actionDispatcher._setParent(undefined);
+                  }
+                }
+              });
+            })
+          ),
+          action$.pipe(ofPayloadAction(slice.actions.clearChildren),
+            op.map(action => {
+              const childrenState = slice.getState().children;
+              if (childrenState == null)
+                return;
+              slice.actionDispatcher.removeChildren(childrenState[0].values());
+            })
+          ),
+          slice.getStore().pipe(op.map(s => s.parent),
+            op.distinctUntilChanged(),
+            op.switchMap(parent => {
+              if (parent == null) {
+                dispatcher._setAttached(false);
+                return rx.EMPTY;
+              }
+              return rx.merge(
+                // parent.action$.pipe(ofPayloadAction(parent.actions._renderChildren),
+                //   op.map(({payload}) => {
+                //     payload.canvasCtx.save();
+                //     dispatcher.render(payload);
+                //     dispatcher._renderChildren(payload);
+                //     dispatcher.afterRender(payload);
+                //     payload.canvasCtx.restore();
+                //   })
+                // ),
+                parent.getStore().pipe(
+                  op.map(s => s.attached), op.distinctUntilChanged(),
+                  op.map(attached => {
+                    dispatcher._setAttached(attached);
+                  })
+                )
+              );
+            })
+          )
+        ).pipe(
+          op.ignoreElements()
+        );
+      };
+    });
+    this.canvasSlice.destroy$.subscribe({next() {
+      slice.destroy();
+    }});
+    return slice as PaintableSlice<S, R>;
+  }
+
+  animate(startValue: number, endValue: number, durationSec: number,
+    timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease')
+    :rx.Observable<number> {
+
+    let timingFn: (input: number) => number;
+    switch (timingFuntion) {
+      case 'ease':
+        timingFn = easeFn.ease;
+        break;
+      case 'ease-in':
+        timingFn = easeFn.easeIn;
+        break;
+      case 'ease-out':
+        timingFn = easeFn.easeOut;
+        break;
+      case 'ease-in-out':
+        timingFn = easeFn.easeInOut;
+        break;
+      default:
+        timingFn = easeFn.linear;
+        break;
+    }
+
+    const animFrameTime$ = this.getState().animFrameTime$;
+    return animFrameTime$.pipe(
+      op.filter(time => time >= 0),
+      op.take<number>(1),
+      op.switchMap(initTime => {
+        const deltaValue = endValue - startValue;
+        return rx.concat(
+          animFrameTime$.pipe(
+            op.filter(time => time > initTime),
+            op.map(time => {
+              let progress = (time - initTime) / durationSec;
+              let currValue = startValue + deltaValue * timingFn(progress);
+              return currValue;
+            }),
+            op.takeWhile(currValue => currValue < endValue)
+          ),
+          rx.of(endValue)
+        );
+      })
+    );
+  }
+
+  getState() {
+    return this.canvasSlice.getState();
+  }
+  getStore() {
+    return this.canvasSlice.getStore();
+  }
+}
+export interface BasePaintableState {
+  pctx?: PaintableContext;
+  children?: [Set<PaintableSlice>];
+  parent?: PaintableSlice;
+  attached: boolean;
+  error?: Error;
+}
+export const basePaintableReducers = {
+  init(s: BasePaintableState, pctx: PaintableContext) {
+    s.pctx = pctx;
+  },
+  addChildren(s: BasePaintableState, children: Iterable<PaintableSlice<any, any>>) {},
+  removeChildren(s: BasePaintableState, children: Iterable<PaintableSlice<any, any>>) {
+    for (const chr of children) {
+      s.children![0].delete(chr);
+    }
+    s.children = [s.children![0]];
+  },
+  clearChildren(s: BasePaintableState) {},
+  setAnimating(s: BasePaintableState, yes: boolean) {},
+  _setAttached(s: BasePaintableState, attached: boolean) {
+    s.attached = attached;
+  },
+  _setParent(s: BasePaintableState, parent: PaintableSlice<any, any> | undefined) {
+    s.parent = parent;
+  },
+  renderAll(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
+  render(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
+  _renderChildren(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
+  afterRender(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {}
+  // destroy(s: BasePaintableState) {}
+};
+
+export type PaintableSlice<S = {}, R = {}> = Slice<BasePaintableState & S, typeof basePaintableReducers & R>;
+

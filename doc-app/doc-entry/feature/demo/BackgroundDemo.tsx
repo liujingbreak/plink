@@ -16,7 +16,7 @@ const BackgroundDemo: React.FC<BackgroundDemoProps> = function(props) {
   }, Object.values(props));
 
   return <div className={styles.host} style={state.style}>
-    <ReactiveCanvas className={styles.canvas} onReady={slice.actionDispatcher._paint}/>
+    <ReactiveCanvas className={styles.canvas} onReady={state.createPaintables}/>
     <div className={styles.demoLayer}></div>
   </div>;
 };

@@ -9,14 +9,14 @@ import styles from './BackgroundBlurDemo.module.scss';
 export type BackgroundBlurDemoProps = Props;
 
 const BackgroundBlurDemo: React.FC<BackgroundBlurDemoProps> = function(props) {
-  const [, slice] = useTinyReduxTookit(sliceOptionFactory, epicFactory);
+  const [state, slice] = useTinyReduxTookit(sliceOptionFactory, epicFactory);
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
   }, Object.values(props));
 
   return <div className={styles.host}>
-    <ReactiveCanvas className={styles.canvas} onReady={slice.actionDispatcher._paint}/>
+    <ReactiveCanvas className={styles.canvas} onReady={state.createPaintables}/>
     {/* <div className={styles.backdrop}></div> */}
   </div>;
 };
