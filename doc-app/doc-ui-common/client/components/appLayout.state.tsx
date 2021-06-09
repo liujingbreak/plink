@@ -69,7 +69,7 @@ export const reducers = {
   },
   _onScroll(s: AppLayoutState, event: React.UIEvent<HTMLDivElement, UIEvent>) {
     s.lastScrollEvent = event;
-    if (s.frontLayer && s. topAppBarDomRef && s.frontLayer.scrollTop + s.topAppBarDomRef.getBoundingClientRect().top > 0) {
+    if (s.frontLayer && s.topAppBarDomRef && s.frontLayer.scrollTop + s.topAppBarDomRef.getBoundingClientRect().top > 1) {
       s.frontLayerClassName = 'withShadow';
     } else {
       s.frontLayerClassName = '';

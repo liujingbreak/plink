@@ -15,9 +15,10 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<i
         files: string[];
         tsconfig?: string;
         alias: [pattern: string, replace: string][];
+        ignore?: string;
     }): void;
 }> & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<AnalyzeState>>;
-export declare function analyseFiles(files: string[], tsconfigFile: string | undefined, alias: [pattern: string, replace: string][]): Promise<{
+export declare function analyseFiles(files: string[], tsconfigFile: string | undefined, alias: [pattern: string, replace: string][], ignore?: string): Promise<{
     commonDir: string;
     relativeDepsOutSideDir: string[];
     cyclic: string[];

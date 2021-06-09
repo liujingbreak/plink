@@ -44,6 +44,8 @@ export interface AnalyzeOptions extends GlobalOptions {
   dir?: string[];
   file?: string[];
   j: boolean;
+  /** Ignore modules that matches regular expression pattern */
+  x?: string;
   tsconfig?: string;
   alias: string[];
 }

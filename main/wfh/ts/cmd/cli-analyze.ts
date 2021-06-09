@@ -7,7 +7,7 @@ import _ from 'lodash';
 import { stateFactory, ofPayloadAction, createReducers } from '../store';
 import { ignoreElements, catchError, map, mergeMap} from 'rxjs/operators';
 import * as op from 'rxjs/operators';
-import {merge, from} from 'rxjs';
+import {merge} from 'rxjs';
 import {Context} from './cli-analyse-worker';
 import {createCliTable} from '../utils/misc';
 import log4js from 'log4js';
@@ -26,12 +26,18 @@ export default async function(packages: string[], opts: AnalyzeOptions) {
     opts.alias.map(item => JSON.parse(item));
 
   if (opts.file && opts.file.length > 0) {
-    dispatcher.analyzeFile({files: opts.file, alias, tsconfig: opts.tsconfig});
+    dispatcher.analyzeFile({
+      files: opts.file,
+      alias,
+      tsconfig: opts.tsconfig,
+      ignore: opts.x
+    });
   } else if (opts.dir && opts.dir.length > 0) {
     dispatcher.analyzeFile({
       files: opts.dir.map(dir => dir.replace(/\\/g, '/') + '/**/*'),
       alias,
-      tsconfig: opts.tsconfig
+      tsconfig: opts.tsconfig,
+      ignore: opts.x
     });
   } else {
     // log.warn('Sorry, not implemented yet, use with argument "-f" for now.');
@@ -46,7 +52,7 @@ export default async function(packages: string[], opts: AnalyzeOptions) {
       if (dirs.isomDir) {
         patterns.push(`${pkg.realPath.replace(/\\/g, '/')}/${dirs.srcDir}/**/*.ts`);
       }
-      dispatcher.analyzeFile({files: patterns, alias});
+      dispatcher.analyzeFile({files: patterns, alias, ignore: opts.x});
       i++;
     }
   }
@@ -151,7 +157,7 @@ const slice = stateFactory.newSlice({
   reducers: createReducers({
     /** payload: glob patterns */
     analyzeFile(d: AnalyzeState, payload: {
-      files: string[], tsconfig?: string, alias: [pattern: string, replace: string][]
+      files: string[], tsconfig?: string, alias: [pattern: string, replace: string][], ignore?: string
     }) {
       d.inputFiles = payload.files;
     }
@@ -167,7 +173,7 @@ export const dispatcher = stateFactory.bindActionCreators(slice);
 stateFactory.addEpic<{analyze: AnalyzeState}>((action$, state$) => {
   return merge(
     action$.pipe(ofPayloadAction(slice.actions.analyzeFile),
-      mergeMap(({payload}) => from(analyseFiles(payload.files, payload.tsconfig, payload.alias))),
+      mergeMap(({payload}) => analyseFiles(payload.files, payload.tsconfig, payload.alias, payload.ignore)),
       map(result => {
         dispatcher._change(s => s.result = result); // TODO merge result instead of 'assign' result
       })
@@ -184,7 +190,8 @@ stateFactory.addEpic<{analyze: AnalyzeState}>((action$, state$) => {
 
 export async function analyseFiles(files: string[],
   tsconfigFile: string | undefined,
-  alias: [pattern: string, replace: string][]) {
+  alias: [pattern: string, replace: string][],
+  ignore?: string) {
   const matchDones = files.map(pattern => new Promise<string[]>((resolve, reject) => {
     glob(pattern, {nodir: true}, (err, matches) => {
       if (err) {
@@ -207,7 +214,7 @@ export async function analyseFiles(files: string[],
   return await threadPool.submitProcess<ReturnType<Context['toPlainObject']>>({
     file: Path.resolve(__dirname, 'cli-analyse-worker.js'),
     exportFn: 'dfsTraverseFiles',
-    args: [files.map(p => Path.resolve(p)), tsconfigFile, alias]
+    args: [files.map(p => Path.resolve(p)), tsconfigFile, alias, ignore]
   });
 
 }

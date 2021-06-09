@@ -279,10 +279,12 @@ function subComands(program: commander.Command) {
 
   const analysisCmd = program.command('analyze [pkg-name...]')
     .alias('analyse')
-    .description('Use Typescript compiler to parse source code, list dependences by DFS algarithm', {
+    .description('Use Typescript compiler to parse source code, list dependences by DFS algarithm, result information includes' +
+      ': cyclic dependecies, unresolvable dependencies, external dependencies, dependencies are not under target directory.', {
       'pkg-name': 'the name of target source package, the package must be Plink compliant package, this command will only ' +
         'scan special source code directory like "ts/" and "isom/" of target package'
       })
+    .option('-x <regexp>', 'Ingore "module name" that matches specific Regular Experssion', '\.(less|scss|css)$')
     .option('-d, --dir <directory>',
       '(multiple) determine target directory, scan JS/JSX/TS/TSX files under target directory', arrayOptionFn, [])
     .option('-f, --file <file>',

@@ -81,10 +81,11 @@ if (!envSetDone) {
 }
 
 function findRootDir(distDir: string, currDir: string) {
-  let dir = currDir;
+  let dir = Path.resolve(currDir);
+  const {root} = Path.parse(dir);
   while (!fs.existsSync(Path.resolve(dir, distDir, 'plink-state.json'))) {
     const parentDir = Path.dirname(dir);
-    if (parentDir === dir) {
+    if (parentDir === root) {
       dir = currDir;
       break;
     }
@@ -159,8 +160,9 @@ function checkUpLevelNodeModules(rootDir: string) {
   const dirs = [] as string[];
 
   let currDir = rootDir;
+  const {root} = Path.parse(rootDir);
   let parentDir = Path.dirname(currDir);
-  while (parentDir !== currDir) {
+  while (parentDir !== root) {
     dirs.push(Path.resolve(parentDir, 'node_modules'));
     currDir = parentDir;
     parentDir = Path.dirname(currDir);

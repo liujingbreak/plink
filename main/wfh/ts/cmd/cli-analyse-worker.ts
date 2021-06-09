@@ -33,6 +33,7 @@ export class Context {
   constructor(
     commonDir: string,
     public alias: [reg: RegExp, replaceTo: string][],
+    public ignorePattern?: RegExp,
     public relativeDepsOutSideDir: Set<string> = new Set(),
     public cyclic: string[] = [],
     public canNotResolve: {
@@ -61,10 +62,11 @@ export class Context {
 }
 
 export function dfsTraverseFiles(files: string[], tsconfigFile: string | null | undefined,
-  alias: [reg: string, replaceTo: string][]): ReturnType<Context['toPlainObject']> {
+  alias: [reg: string, replaceTo: string][], ignore?: string): ReturnType<Context['toPlainObject']> {
   init(tsconfigFile);
   const commonParentDir = (files.length === 1) ? Path.dirname(files[0]) : closestCommonParentDir(files);
-  const context = new Context(commonParentDir, alias.map(item => [new RegExp(item[0]), item[1]]));
+  const context = new Context(commonParentDir, alias.map(item => [new RegExp(item[0]), item[1]]),
+    ignore ? new RegExp(ignore) : undefined);
 
   const dfs: DFS<string> = new DFS<string>(file => {
     const content = webInjector.injectToFile(file, fs.readFileSync(file, 'utf8'));
@@ -167,7 +169,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
   return deps;
 }
 
-function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.SourceFile) {
+function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.SourceFile): string | null {
   if (path.startsWith('`')) {
     const lineInfo = ts.getLineAndCharacterOfPosition(src, pos);
     ctx.canNotResolve.push({
@@ -182,6 +184,10 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
   }
   if (path.startsWith('"') || path.startsWith('\''))
     path = path.slice(1, -1);
+
+  if (ctx.ignorePattern && ctx.ignorePattern.test(path)) {
+    return null;
+  }
 
   for (const [reg, replaceTo] of ctx.alias) {
     const replaced = path.replace(reg, replaceTo);
@@ -232,6 +238,7 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
     }
     return absPath;
   }
+  return null;
 }
 
 
