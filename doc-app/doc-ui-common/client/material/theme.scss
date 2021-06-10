@@ -1,15 +1,15 @@
 @use "@material/theme" with (
-  $primary: #3b3a3a,
+  $primary: #2e2b10,
   $secondary: #ce93d8,
   $on-primary: #e0e0e0,
-  $on-secondary: #101010,
+  $on-secondary: #2e2b10,
 
   // All configurable colors, https://github.com/material-components/material-components-web/blob/master/packages/mdc-theme/_theme-color.scss
 
   // $accent: ,
   $surface: #ffffff,
   $background: #FCFAE9,
-  $on-surface: #303030
+  $on-surface: #2e2b10
   // $error: ,
   // $on-error: ,
 );

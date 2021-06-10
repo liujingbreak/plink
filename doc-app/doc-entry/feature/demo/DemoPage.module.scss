@@ -37,7 +37,7 @@
   line-height: 3rem;
   text-align: center;
   &.dark {
-    background-color: #303030;
+    background-color: theme.$primary;
     color: #dddddd;
   }
 }
