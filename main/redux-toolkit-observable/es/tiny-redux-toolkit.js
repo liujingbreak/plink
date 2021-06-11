@@ -14,6 +14,51 @@ export function ofPayloadAction(...actionCreators) {
         return src.pipe(op.filter(action => actionCreators.some(ac => action.type === ac.type)));
     };
 }
+/**
+ * Map action stream to multiple action streams by theire action type.
+ * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
+ * Usage:
+```
+slice.addEpic(slice => action$ => {
+  const actionsByType = castByActionType(slice.actions, action$);
+  return merge(
+    actionsByType.REDUCER_NAME_A.pipe(
+      ...
+    ),
+    actionsByType.REDUCER_NAME_B.pipe(
+      ...
+    ),
+  )
+})
+```
+ * @param actionCreators
+ * @param action$
+ */
+export function castByActionType(actionCreators, action$) {
+    let sourceSub;
+    const multicaseActionMap = {};
+    const splitActions = {};
+    for (const reducerName of Object.keys(actionCreators)) {
+        const subject = multicaseActionMap[actionCreators[reducerName].type] = new rx.Subject();
+        splitActions[reducerName] = rx.defer(() => {
+            if (sourceSub == null)
+                sourceSub = source.subscribe();
+            return subject.asObservable();
+        }).pipe(op.finalize(() => {
+            if (sourceSub) {
+                sourceSub.unsubscribe();
+                sourceSub = undefined;
+            }
+        }));
+    }
+    const source = action$.pipe(op.share(), op.map(action => {
+        const match = multicaseActionMap[action.type];
+        if (match) {
+            match.next(action);
+        }
+    }));
+    return splitActions;
+}
 const sliceCount4Name = {};
 /**
  * Reducers and initialState are reused cross multiple component

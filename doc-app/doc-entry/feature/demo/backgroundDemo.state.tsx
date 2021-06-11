@@ -131,7 +131,7 @@ function createGradient(pctx: PaintableContext, color: string, left: number, top
     return action$.pipe(ofPayloadAction(slice.actions.render),
       op.map(({payload: ctx}) => {
         const s = gradientPaintableSlice.getState();
-        const pctx = s.pctx!;
+        // const pctx = s.pctx!;
         const canvasState = pctx.getState();
         const color = s.color;
         const gradient = ctx.createRadialGradient(s.position[0], s.position[1], 0, s.position[0], s.position[1],
@@ -200,24 +200,24 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
   });
   bgSlice.actionDispatcher.addChildren([left, top, right]);
 
-  setTimeout(() => {
-    pctx.createAnimation(0, 360, 5000, 'linear').pipe(
-      op.map((value, idx) => {
-        // console.log('frame ', idx, value);
-        return Math.floor(value);
-      }),
-      op.distinctUntilChanged(),
-      op.map((value, idx) => {
-        // tslint:disable-next-line: no-console
-        console.log('frame', idx, value);
-        const col = bgDemoSlice.getState().topColor;
-        if (col) {
-          bgDemoSlice.actionDispatcher.changeColor(col.hue(value));
-          pctx.renderCanvas();
-        }
-      })
-    ).subscribe();
-  }, 1000);
+  // setTimeout(() => {
+  //   pctx.createAnimation(0, 360, 5000, 'linear').pipe(
+  //     op.map((value, idx) => {
+  //       // console.log('frame ', idx, value);
+  //       return Math.floor(value);
+  //     }),
+  //     op.distinctUntilChanged(),
+  //     op.map((value, idx) => {
+  //       // tslint:disable-next-line: no-console
+  //       console.log('frame', idx, value);
+  //       const col = bgDemoSlice.getState().topColor;
+  //       if (col) {
+  //         bgDemoSlice.actionDispatcher.changeColor(col.hue(value));
+  //         pctx.renderCanvas();
+  //       }
+  //     })
+  //   ).subscribe();
+  // }, 1000);
 
   return [bgSlice];
 }

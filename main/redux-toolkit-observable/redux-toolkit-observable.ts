@@ -13,7 +13,7 @@ import {
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject, OperatorFunction } from 'rxjs';
-import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError } from 'rxjs/operators';
+import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError} from 'rxjs/operators';
 
 export {PayloadAction, SliceCaseReducers, Slice};
 
@@ -36,22 +36,6 @@ export function ofPayloadAction<P, T extends string>(...actionCreators: ActionCr
   OperatorFunction<any, PayloadAction<P, T>> {
   return ofType(...actionCreators.map(c => c.type)) as any;
 }
-
-// type ActionType<ACR extends SliceCaseReducers<any>, T extends keyof ACR> = ACR[T] extends (state: any, action: infer Action) => any ? Action : void;
-// /**
-//  * Unlink Redux-observable official's ofType() function, it offers better type interence on
-//  * payload type
-//  */
-// export interface OfTypeFn<ACR extends SliceCaseReducers<any>> {
-//   <T1 extends keyof ReducerWithDefaultActions<any, ACR>>(actionType: T1):
-//     (src: Observable<PayloadAction<any>>) => Observable<ActionType<ACR, T1>>;
-//   <T1 extends keyof ReducerWithDefaultActions<any, ACR>, T2 extends keyof ReducerWithDefaultActions<any, ACR>>(
-//     actionType: T1, actionType2: T2):
-//   (src: Observable<PayloadAction<any>>) => Observable<ActionType<ACR, T1 | T2>>;
-//   <T1 extends keyof ReducerWithDefaultActions<any, ACR>, T2 extends keyof ReducerWithDefaultActions<any, ACR>, T3 extends keyof ReducerWithDefaultActions<any, ACR>>(actionType: T1, actionType2: T2, actionType3: T3):
-//   (src: Observable<PayloadAction<any>>) => Observable<ActionType<ACR, T1 | T2 | T3>>;
-//   <T extends keyof ReducerWithDefaultActions<any, ACR>>(...actionTypes: T[]): Observable<ActionType<ACR, T>>;
-// }
 
 export interface ErrorState {
   actionError?: Error;

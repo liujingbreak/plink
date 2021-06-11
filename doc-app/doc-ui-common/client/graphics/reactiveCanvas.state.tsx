@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction, Action} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction, Action, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 // import {DFS} from '@wfh/plink/wfh/dist-es5/utils/graph';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -233,7 +233,9 @@ export class PaintableContext {
     name: string;
     extendInitialState?: S;
     extendReducers?: R;
-    actionInterceptor?: rx.OperatorFunction<PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>, PayloadAction<BasePaintableState & S>> | null;
+    actionInterceptor?: ((slice: PaintableSlice<S, R>) => rx.OperatorFunction<
+      PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>,
+      PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>>) | null;
     debug?: boolean;
   }): PaintableSlice<S, R> {
 
@@ -244,7 +246,7 @@ export class PaintableContext {
       extendReducers = {} as R;
     }
     const initState: BasePaintableState = {
-      pctx: this,
+      // pctx: this,
       attached: false
     };
     const slice = createSlice<BasePaintableState & S, typeof basePaintableReducers>({
@@ -253,12 +255,19 @@ export class PaintableContext {
       reducers: Object.assign(basePaintableReducers, extendReducers),
       debug
     });
+    const actionInterceptorOpt = actionInterceptor ? actionInterceptor(slice as PaintableSlice<S, R>) : null;
+
     slice.addEpic(slice => {
       return inputAction$ => {
-        const action$ = actionInterceptor ? inputAction$.pipe(actionInterceptor) : inputAction$;
+        const action$ = actionInterceptorOpt ? inputAction$.pipe(
+          actionInterceptorOpt,
+          op.share() // share() is important, it prevents actionInterceptorOpt being executed on same action for multiple times, when there are multiple 
+          // action$ subscribers
+        ) : inputAction$;
         const dispatcher = slice.actionDispatcher;
+        const actionsByType = castByActionType(slice.actions, action$);
         return rx.merge(
-          action$.pipe(ofPayloadAction(slice.actions.renderAll),
+          actionsByType.renderAll.pipe(
             op.map(({payload}) => {
               payload.save();
               dispatcher.render(payload);
@@ -269,13 +278,15 @@ export class PaintableContext {
             })
           ),
 
-          action$.pipe(ofPayloadAction(slice.actions._renderChildren),
+          // action$.pipe(ofPayloadAction(slice.actions._renderChildren),
+          actionsByType._renderChildren.pipe(
             op.map(({payload}) => {
               for (const chr of slice.getState().children![0].values()) {
                 chr.actionDispatcher.renderAll(payload);
               }
           })),
-          action$.pipe(ofPayloadAction(slice.actions.setAnimating),
+          // action$.pipe(ofPayloadAction(slice.actions.setAnimating),
+          actionsByType.setAnimating.pipe(
             op.switchMap(({payload: animating}) => {
               if (animating) {
                 return slice.getStore().pipe(op.map(s => s.attached),
@@ -290,7 +301,8 @@ export class PaintableContext {
               }
             })
           ),
-          action$.pipe(ofPayloadAction(slice.actions.addChildren),
+          actionsByType.addChildren.pipe(
+          // action$.pipe(ofPayloadAction(slice.actions.addChildren),
             op.map(({payload: children}) => {
               // const state = slice.getState();
               slice.dispatch({
@@ -310,7 +322,8 @@ export class PaintableContext {
               });
             })
           ),
-          action$.pipe(ofPayloadAction(slice.actions.removeChildren),
+          actionsByType.removeChildren.pipe(
+          // action$.pipe(ofPayloadAction(slice.actions.removeChildren),
             op.map(({payload: children}) => {
               slice.dispatch({
                 type: 'detach children',
@@ -322,7 +335,8 @@ export class PaintableContext {
               });
             })
           ),
-          action$.pipe(ofPayloadAction(slice.actions.clearChildren),
+          actionsByType.clearChildren.pipe(
+          // action$.pipe(ofPayloadAction(slice.actions.clearChildren),
             op.map(action => {
               const childrenState = slice.getState().children;
               if (childrenState == null)
@@ -361,6 +375,7 @@ export class PaintableContext {
         );
       };
     });
+
     this.canvasSlice.destroy$.subscribe({next() {
       slice.destroy();
     }});
@@ -394,16 +409,16 @@ export class PaintableContext {
   }
 }
 export interface BasePaintableState {
-  pctx?: PaintableContext;
+  // pctx?: PaintableContext;
   children?: [Set<PaintableSlice>];
   parent?: PaintableSlice;
   attached: boolean;
   error?: Error;
 }
 export const basePaintableReducers = {
-  init(s: BasePaintableState, pctx: PaintableContext) {
-    s.pctx = pctx;
-  },
+  // init(s: BasePaintableState, pctx: PaintableContext) {
+  //   s.pctx = pctx;
+  // },
   addChildren(s: BasePaintableState, children: Iterable<PaintableSlice<any, any>>) {},
   removeChildren(s: BasePaintableState, children: Iterable<PaintableSlice<any, any>>) {
     for (const chr of children) {

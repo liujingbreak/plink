@@ -1,7 +1,7 @@
 import {StateFactory, ExtraSliceReducers} from './redux-toolkit-observable';
-import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft, Action} from '@reduxjs/toolkit';
+import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Draft, Action} from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
-import {Observable, EMPTY, of, Subject, OperatorFunction} from 'rxjs';
+import {Observable, EMPTY, of, Subject, OperatorFunction, defer, Subscription} from 'rxjs';
 import * as op from 'rxjs/operators';
 
 export type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
@@ -124,6 +124,70 @@ export function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R
     };
   }
   return rReducers;
+}
+
+
+/**
+ * Map action stream to multiple action streams by theire action type.
+ * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
+ * Usage:
+```
+slice.addEpic(slice => action$ => {
+  const actionsByType = castByActionType(slice.actions, action$);
+  return merge(
+    actionsByType.REDUCER_NAME_A.pipe(
+      ...
+    ),
+    actionsByType.REDUCER_NAME_B.pipe(
+      ...
+    ),
+  )
+})
+```
+ * @param actionCreators 
+ * @param action$ 
+ */
+export function castByActionType<S, R extends SliceCaseReducers<S>>(actionCreators: CaseReducerActions<R>,
+  action$: Observable<PayloadAction | Action>):
+  {
+    [K in keyof R]:
+      Observable<
+        CaseReducerActions<R>[K] extends PayloadActionCreator<infer P> ?
+          PayloadAction<P> : PayloadAction<unknown>
+      >
+  } {
+
+    let sourceSub: Subscription | undefined;
+    const multicaseActionMap: {[K: string]: Subject<PayloadAction | Action> | undefined} = {};
+    const splitActions: {[K in keyof R]?: Observable<PayloadAction>} = {};
+    for (const reducerName of Object.keys(actionCreators)) {
+      const subject = multicaseActionMap[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<S, any>>();
+      splitActions[reducerName as keyof R] = defer(() => {
+        if (sourceSub == null)
+          sourceSub = source.subscribe();
+        return subject.asObservable() as Observable<any>;
+      }).pipe(
+        op.finalize(() => {
+          if (sourceSub) {
+            sourceSub.unsubscribe();
+            sourceSub = undefined;
+          }
+        })
+      );
+    }
+    const source = action$.pipe(
+      op.share(),
+      op.map(action => {
+        const match = multicaseActionMap[action.type];
+        if (match) {
+          match.next(action);
+        }
+      })
+    );
+    return splitActions as {
+      [K in keyof R]: Observable<CaseReducerActions<R>[K] extends PayloadActionCreator<infer P> ?
+        PayloadAction<P> : PayloadAction<unknown>>
+    };
 }
 
 /**

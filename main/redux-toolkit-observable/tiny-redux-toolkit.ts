@@ -96,6 +96,60 @@ export function ofPayloadAction(
   };
 }
 
+/**
+ * Map action stream to multiple action streams by theire action type.
+ * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
+ * Usage:
+```
+slice.addEpic(slice => action$ => {
+  const actionsByType = castByActionType(slice.actions, action$);
+  return merge(
+    actionsByType.REDUCER_NAME_A.pipe(
+      ...
+    ),
+    actionsByType.REDUCER_NAME_B.pipe(
+      ...
+    ),
+  )
+})
+```
+ * @param actionCreators 
+ * @param action$ 
+ */
+export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>,
+  action$: rx.Observable<PayloadAction<any> | Action<S>>):
+  {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>} {
+
+    let sourceSub: rx.Subscription | undefined;
+    const multicaseActionMap: {[K: string]: rx.Subject<PayloadAction<S, any> | Action<S>> | undefined} = {};
+    const splitActions: {[K in keyof R]?: rx.Observable<ReturnType<Actions<S, R>[K]>>} = {};
+    for (const reducerName of Object.keys(actionCreators)) {
+      const subject = multicaseActionMap[actionCreators[reducerName].type] = new rx.Subject<PayloadAction<S, any>>();
+      splitActions[reducerName as keyof R] = rx.defer(() => {
+        if (sourceSub == null)
+          sourceSub = source.subscribe();
+        return subject.asObservable() as rx.Observable<any>;
+      }).pipe(
+        op.finalize(() => {
+          if (sourceSub) {
+            sourceSub.unsubscribe();
+            sourceSub = undefined;
+          }
+        })
+      );
+    }
+    const source = action$.pipe(
+      op.share(),
+      op.map(action => {
+        const match = multicaseActionMap[action.type];
+        if (match) {
+          match.next(action);
+        }
+      })
+    );
+    return splitActions as {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>};
+}
+
 const sliceCount4Name: {[name: string]: number} = {};
 
 export interface SliceOptions<S, R extends Reducers<S>> {

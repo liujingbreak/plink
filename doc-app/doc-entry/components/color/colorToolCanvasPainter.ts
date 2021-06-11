@@ -11,10 +11,10 @@ import Color from 'color';
 //   error?: Error;
 // }
 
-export function create(ctx: PaintableContext) {
+export function create(pctx: PaintableContext) {
   let cachedCanvas: HTMLCanvasElement | undefined;
 
-  const baseSlice = ctx.createPaintableSlice({name: 'Circle', debug: true});
+  const baseSlice = pctx.createPaintableSlice({name: 'Circle', debug: true});
   rx.merge(
     baseSlice.action$.pipe(
       ofPayloadAction(baseSlice.actions.render),
@@ -26,9 +26,9 @@ export function create(ctx: PaintableContext) {
       })
     ),
     baseSlice.getStore().pipe(
-      op.map(s => s.pctx), op.distinctUntilChanged(), op.filter(p => p != null),
-      op.switchMap(pctx => {
-        return pctx!.action$.pipe(ofPayloadAction(pctx!.actions.resize),
+      // op.map(s => s.pctx), op.distinctUntilChanged(), op.filter(p => p != null),
+      op.switchMap(() => {
+        return pctx.action$.pipe(ofPayloadAction(pctx.actions.resize),
           op.tap(() => {
             const w = pctx!.getState().width >> 1;
             const h = pctx!.getState().height >> 1;

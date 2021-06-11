@@ -66,6 +66,9 @@ export declare type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>
 export declare function ofPayloadAction<S, P>(actionCreators: ActionCreator<S, P>): rx.OperatorFunction<any, PayloadAction<S, P>>;
 export declare function ofPayloadAction<S, P, S1, P1>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>): rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1>>;
 export declare function ofPayloadAction<S, P, S1, P1, S2, P2>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>, actionCreators2: ActionCreator<S2, P2>): rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1> | PayloadAction<S2, P2>>;
+export declare function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>, action$: rx.Observable<PayloadAction<any> | Action<S>>, byReducerNames: (keyof R)[]): {
+    [K in keyof R]?: rx.Observable<ReturnType<Actions<S, R>[K]>>;
+};
 export interface SliceOptions<S, R extends Reducers<S>> {
     name: string;
     initialState: S;

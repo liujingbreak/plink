@@ -11,12 +11,12 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, createReducers, ofPayloadAction, SliceHelper, RegularReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, createReducers, SliceHelper, RegularReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
 import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {create} from './colorToolCanvasPainter';
+// import {create} from './colorToolCanvasPainter';
 export interface ColorToolProps {
   mixColors?: {
     color1: string;
@@ -146,11 +146,7 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
             sliceRef(slice);
           }
         })
-      ),
-      action$.pipe(ofPayloadAction(slice.actions.onRenderCanvas),
-        op.tap(({payload}) => {
-          create(payload);
-        }))
+      )
     ).pipe(op.ignoreElements());
   };
 };

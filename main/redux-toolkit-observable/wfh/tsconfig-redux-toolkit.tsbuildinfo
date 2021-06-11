@@ -1147,8 +1147,8 @@
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
-        "version": "5a781645454bc7169713c20f21ed2725eed68c86cb990a89bbf8bac788ad4db7",
-        "signature": "a8b1a5a1ca93e06b3d25774907dba7bae54017464e853fbf438ee16b22320fc4",
+        "version": "910c5a1ebde9542ec27dae25ac09cea2ffae665b24e68451b4d57f74fe792d1f",
+        "signature": "d66927a4485646b31376480416e9adb87f9069b58e10de34f775cd036cb3548c",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit-hook.ts": {

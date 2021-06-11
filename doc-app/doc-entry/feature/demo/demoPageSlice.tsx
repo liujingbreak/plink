@@ -1,5 +1,5 @@
 // import { ofPayloadAction} from '@wfh/redux-toolkit-observable/es/state-factory-browser';
-import {EpicFactory, createReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, createReducers, castByActionType} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 
@@ -37,9 +37,6 @@ export const epicFactory: EpicFactory<DemoPageState, typeof reducers> = function
         op.filter(props => props != null),
         op.switchMap(props => { // Consider other ooperators like, concatMap(), mergeMap(), tap(), exhaustMap()
           return rx.from('some cancellable async reactions on component property changes and');
-        }),
-        op.tap(() => {
-          // slice.actionDispatcher....
         })
       )
       // ... more action async reactors: action$.pipe(ofType(...))
