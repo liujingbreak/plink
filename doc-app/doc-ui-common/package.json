@@ -41,7 +41,8 @@
     "@material/layout-grid": "11.0.0",
     "@material-icons/font": "1.0.8",
     "@material/slider": "11.0.0",
-    "stackblur-canvas": "2.5.0",
-    "bezier-easing": "^2.1.0"
+    "bezier-easing": "^2.1.0",
+    "glur": "^1.1.2",
+    "@types/glur": "^1.1.1"
   }
 }

@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, ofPayloadAction, Slice} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, ofPayloadAction, Slice, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
 
 import Color from 'color';
@@ -157,8 +157,10 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
   const bgSlice = pctx.createPaintableSlice({name: 'main-background', debug: false});
 
   bgSlice.addEpic(slice => action$ => {
+    const actionStreams = castByActionType(slice.actions, action$);
+    const pctxActionStreams = castByActionType(pctx.actions, pctx.action$);
     return rx.merge(
-      action$.pipe(ofPayloadAction(slice.actions.render),
+      actionStreams.render.pipe(
         op.map(({payload: ctx}) => {
           const mainColor = bgDemoSlice.getState().mainColor;
           if (mainColor == null)
@@ -168,7 +170,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
           ctx.fillRect(0, 0, pctx.getState().width, pctx.getState().height);
         })
       ),
-      action$.pipe(ofPayloadAction(slice.actions.afterRender),
+      actionStreams.afterRender.pipe(
         op.map(({payload: ctx}) => {
           const text = bgDemoSlice.getState().topColor?.toString();
           ctx.fillStyle = 'black';
@@ -178,12 +180,34 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
             ctx.fillText(text, 0, 0);
         })),
       // observe canvas's resize action
-      pctx.action$.pipe(ofPayloadAction(pctx.actions.resize),
+      pctxActionStreams.resize.pipe(
         op.map(() => {
           top.actionDispatcher.setPosition([pctx.getState().width >> 1, 0]);
           left.actionDispatcher.setPosition([0, pctx.getState().height >> 1]);
           right.actionDispatcher.setPosition([pctx.getState().width, pctx.getState().height >> 1]);
         })),
+      pctxActionStreams._onDomMount.pipe(
+        op.map(() => {
+          setTimeout(() => {
+            pctx.createAnimation(0, 360, 5000, 'linear').pipe(
+              op.map((value, idx) => {
+                // console.log('frame ', idx, value);
+                return Math.floor(value);
+              }),
+              op.distinctUntilChanged(),
+              op.map((value, idx) => {
+                // tslint:disable-next-line: no-console
+                console.log('frame', idx, value);
+                const col = bgDemoSlice.getState().topColor;
+                if (col) {
+                  bgDemoSlice.actionDispatcher.changeColor(col.hue(value));
+                  pctx.renderCanvas();
+                }
+              })
+            ).subscribe();
+          }, 20);
+        })
+      ),
       bgDemoSlice.getStore().pipe(
         op.map(s => s.topColor), op.distinctUntilChanged(),
         op.map((topColor) => {
@@ -199,25 +223,6 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
     );
   });
   bgSlice.actionDispatcher.addChildren([left, top, right]);
-
-  // setTimeout(() => {
-  //   pctx.createAnimation(0, 360, 5000, 'linear').pipe(
-  //     op.map((value, idx) => {
-  //       // console.log('frame ', idx, value);
-  //       return Math.floor(value);
-  //     }),
-  //     op.distinctUntilChanged(),
-  //     op.map((value, idx) => {
-  //       // tslint:disable-next-line: no-console
-  //       console.log('frame', idx, value);
-  //       const col = bgDemoSlice.getState().topColor;
-  //       if (col) {
-  //         bgDemoSlice.actionDispatcher.changeColor(col.hue(value));
-  //         pctx.renderCanvas();
-  //       }
-  //     })
-  //   ).subscribe();
-  // }, 1000);
 
   return [bgSlice];
 }

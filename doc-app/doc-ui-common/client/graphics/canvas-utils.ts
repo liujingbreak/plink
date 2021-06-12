@@ -1,39 +1,10 @@
+// import glur from 'glur';
 
-/**
- * 
- * @param blur the smaller value it is, the better performance it will have
- */
-export function gBlur(ctx: CanvasRenderingContext2D, blur: number, target?: CanvasImageSource, width?: number, height?: number) {
-  ctx.save();
-  if (target != null) {
-    if (width != null && height != null) {
-      ctx.drawImage(target,0,0, width, height);
-    } else {
-      ctx.drawImage(target,0,0);
-    }
-  }
-  let sum = 0;
-  const delta = 5;
-  const alpha_left = 1 / (2 * Math.PI * delta * delta);
-  const step = blur < 3 ? 1 : 2;
-  for (let y = -blur; y <= blur; y += step) {
-    for (let x = -blur; x <= blur; x += step) {
-      const weight = alpha_left * Math.exp(-(x * x + y * y) / (2 * delta * delta));
-      sum += weight;
-    }
-  }
-  for (let y = -blur; y <= blur; y += step) {
-    for (let x = -blur; x <= blur; x += step) {
-      ctx.globalAlpha = alpha_left * Math.exp(-(x * x + y * y) / (2 * delta * delta)) / sum * blur;
-      if (width != null && height != null) {
-        ctx.drawImage(ctx.canvas,x,y, width, height);
-      } else {
-        ctx.drawImage(ctx.canvas,x,y);
-      }
-    }
-  }
-  ctx.restore();
-}
+// export class GaussianBlurHelper {
+//   canvas: HTMLCanvasElement;
+
+
+// }
 
 /**
  * Create a offscreen canvas to cache/prerender stuff, performance is affected by size of canvas,

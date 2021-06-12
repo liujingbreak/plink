@@ -15,9 +15,9 @@ import {EpicFactory, ofPayloadAction as ofa, Slice} from '@wfh/redux-toolkit-obs
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {createCanvas, gBlur} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
-import {canvasRGBA as blur} from 'stackblur-canvas';
+// import {createCanvas} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
 import Color from 'color';
+import glur from 'glur';
 // import { ofPayloadAction } from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
 
 export type BackgroundBlurDemoProps = React.PropsWithChildren<{
@@ -88,68 +88,51 @@ export const epicFactory: EpicFactory<BackgroundBlurDemoState, typeof reducers> 
 };
 
 interface BlurCanvasState {
-  bluredCanvasCtx?: CanvasRenderingContext2D;
+  // bluredCanvasCtx?: CanvasRenderingContext2D;
 }
 
 function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemoSlice) {
   const initialState: BlurCanvasState = {};
   const extendReducers = {
-    setCacheCtx(s: BlurCanvasState, ctx: CanvasRenderingContext2D) {
-      s.bluredCanvasCtx = ctx;
-    }
+    // setCacheCtx(s: BlurCanvasState, ctx: CanvasRenderingContext2D) {
+    //   s.bluredCanvasCtx = ctx;
+    // }
   };
 
-  const mainPaintable = pctx.createPaintableSlice({name: 'blurPaintable', extendInitialState: initialState,
+  const mainPaintable = pctx.createPaintableSlice({name: 'mainPaintable', extendInitialState: initialState,
     extendReducers,
-    actionInterceptor: slice => (action$) => {
-      return action$.pipe(
-        op.map(action => {
-          if (action.type === slice.actions._renderChildren.type) {
-            const ac = action as ReturnType<typeof slice.actions._renderChildren>;
-            const canvasCtx = slice.getState().bluredCanvasCtx;
-            if (canvasCtx) {
-              canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height);
-              ac.payload = canvasCtx;
-            }
-            console.log('action interceptor', action.type);
-          }
-          return action;
-        }),
-        op.share()
-      );
-    },
     debug: true
   });
 
   mainPaintable.addEpic(slice => {
     return action$ => {
       return rx.merge(
-        pctx.action$.pipe(ofa(pctx.actions.resize),
-          op.map(() => {
-            const state = pctx.getState();
-            const cache = createCanvas(state.width >> 1, state.height >> 1);
-            slice.actionDispatcher.setCacheCtx(cache.getContext('2d')!);
-          })),
+        action$.pipe(ofa(slice.actions.render),
+          op.map(({payload: ctx}) => {
+            ctx.fillStyle = '#FCFAE9';
+            const {canvas} = ctx;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          })
+        ),
 
         action$.pipe(ofa(slice.actions.afterRender),
           op.map(({payload: ctx}) => {
-            const cache = slice.getState().bluredCanvasCtx;
-            if (cache) {
-              const {canvas} = cache;
-              // blur(canvas, 0, 0, canvas.width, canvas.height, 20);
-              // gBlur(cache, 10);
-              const rootState = pctx.getState();
-              // gBlur(originalCtx, 10, canvas, rootState.width, rootState.height);
-              // ctx.drawImage(canvas, 0, 0, rootState.width, rootState.height);
-              ctx.fillText('hellow', rootState.width >> 1, rootState.height >> 1);
-            }
+            // const cache = slice.getState().bluredCanvasCtx;
+            // if (cache) {
+              const {canvas} = ctx;
+              const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const {data} = imgData;
+              glur(// data.data as any,
+                new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+                imgData.width, imgData.height, 55);
+              ctx.putImageData(imgData, 0, 0);
           })
         )
       ).pipe(op.ignoreElements());
     };
   });
 
-  const circleColor = new Color('green').saturationl(100).lightness(60).hex();
+  const circleColor = new Color('green').hue(95).saturationl(80).lightness(60).hex();
   const fontColor = 'blue';
   const circle1 = pctx.createPaintableSlice({name: 'circle1', debug: true});
   circle1.addEpic(slice => {
@@ -157,16 +140,15 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
       action$.pipe(ofa(slice.actions.render),
         op.map(({payload: ctx}) => {
           ctx.save();
-          // ctx = circle1.getState().pctx?.getState().ctx!;
           ctx.fillStyle = circleColor;
           const c = ctx.canvas;
           ctx.beginPath();
-          ctx.arc(c.width >> 1, c.height >> 1, Math.min(c.height, c.width) >> 2, 0, Math.PI * 2);
+          ctx.arc(c.width >> 1, c.height, Math.min(c.height, c.width) >> 1, 0, Math.PI * 2);
           ctx.fill();
           ctx.closePath();
-          ctx.font = `bold ${Math.floor(ctx.canvas.height / 5)}px Roboto`;
+          ctx.font = `${Math.floor(ctx.canvas.height / 5)}px Roboto`;
           ctx.fillStyle = fontColor;
-          ctx.fillText('PLINK', Math.floor(ctx.canvas.width * 0.1), ctx.canvas.height >> 1);
+          ctx.fillText('PLink', Math.floor(ctx.canvas.width * 0.1), ctx.canvas.height >> 1);
           ctx.restore();
         }))
     ).pipe(op.ignoreElements());
