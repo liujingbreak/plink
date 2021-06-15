@@ -1,5 +1,5 @@
 import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
-import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, Draft, Action } from '@reduxjs/toolkit';
+import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Draft, Action } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { Observable, OperatorFunction } from 'rxjs';
 export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
@@ -46,6 +46,29 @@ export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
  * @returns SliceCaseReducers which can be part of parameter of createSliceHelper
  */
 export declare function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R): RegularReducers<S, R>;
+/**
+ * Map action stream to multiple action streams by theire action type.
+ * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
+ * Usage:
+```
+slice.addEpic(slice => action$ => {
+  const actionsByType = castByActionType(slice.actions, action$);
+  return merge(
+    actionsByType.REDUCER_NAME_A.pipe(
+      ...
+    ),
+    actionsByType.REDUCER_NAME_B.pipe(
+      ...
+    ),
+  )
+})
+```
+ * @param actionCreators
+ * @param action$
+ */
+export declare function castByActionType<S, R extends SliceCaseReducers<S>>(actionCreators: CaseReducerActions<R>, action$: Observable<PayloadAction | Action>): {
+    [K in keyof R]: Observable<CaseReducerActions<R>[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
+};
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.

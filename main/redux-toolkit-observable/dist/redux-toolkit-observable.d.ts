@@ -3,7 +3,7 @@
 /**
  * A combo set for using Redux-toolkit along with redux-observable
  */
-import { CaseReducer, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers, Middleware, ActionCreatorWithPayload } from '@reduxjs/toolkit';
+import { CaseReducer, CaseReducerActions, ConfigureStoreOptions, CreateSliceOptions, Draft, EnhancedStore, PayloadAction, Slice, SliceCaseReducers, ValidateSliceCaseReducers, Middleware, ActionCreatorWithPayload } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, OperatorFunction } from 'rxjs';
 export { PayloadAction, SliceCaseReducers, Slice };
@@ -84,9 +84,9 @@ export declare class StateFactory {
      * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
      * Parameter is a Slice instead of action map
      */
-    bindActionCreators<A, Slice extends {
-        actions: A;
-    }>(slice: Slice): Slice['actions'];
+    bindActionCreators<CaseReducers extends SliceCaseReducers<any>>(slice: {
+        actions: CaseReducerActions<CaseReducers>;
+    }): CaseReducerActions<CaseReducers>;
     stopAllEpics(): void;
     getRootStore(): EnhancedStore<any, {
         payload: any;

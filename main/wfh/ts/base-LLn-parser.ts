@@ -169,7 +169,7 @@ export abstract class BaseLexer<T> extends LookAhead<string> implements Iterable
   /**
 	 * @return zero-based [line, column] value
 	 * */
-  getLineColumn(pos: number): [line: number, col: number] {
+  getLineColumn(pos: number): [number, number] {
     const lineIndex = sortedIndex(this.lineBeginPositions, pos) - 1;
     const linePos = this.lineBeginPositions[lineIndex];
     return [lineIndex, pos - (linePos + 1)];

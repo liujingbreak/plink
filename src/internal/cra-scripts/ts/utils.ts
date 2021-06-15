@@ -86,6 +86,7 @@ export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, bui
     watch: opts.watch,
     devMode: opts.dev,
     publicUrl: opts.publicUrl,
+    // external: opts.external,
     includes: opts.include,
     webpackEnv: opts.dev ? 'development' : 'production'
   };

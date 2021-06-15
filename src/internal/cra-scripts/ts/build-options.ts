@@ -13,6 +13,7 @@ export interface CommandOption {
   devMode: boolean;
   /** Be aware that process.env.PUBLIC_URL could be the actual setting approach, do not rely on this property */
   publicUrl?: string;
+  // external: string[];
   includes?: string[];
   webpackEnv: 'development' | 'production';
   // argv: Map<string, string|boolean>;

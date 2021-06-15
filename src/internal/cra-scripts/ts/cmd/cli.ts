@@ -20,13 +20,20 @@ const cli: CliExtension = (program) => {
       '"lib" stands for building a library',
     'package-name': 'target package name, the "scope" name part can be omitted'
   })
-  .option('-w, --watch', 'When build a library, watch file changes and compile', false)
+  .option('-w, --watch', 'when argument is "lib", watch file changes and compile', false)
   // .option('--tsd-only', 'In "lib" mode (building a library), only build out Typescript tsd file')
   // .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
+  // .option('-e, --external <module-path-regex>',
+  // '(multiple value), when argument is "lib", by default we will set "external" property of Webpack configuration for ' +
+  //   'all request that does not begin with "." (not relative path) or contains "?!" character,' +
+  //   ' meaning all non-relative modules will not be included in the output bundle file. ' +
+  //   'To change this behavior, you can explicitly provide a list of "external" module name with this option, in form of regular expression, ' +
+  //   '(e.g. -e "^react(/|$)" -e "^react-dom(/|$)"),  to make nothing "external": -e "^$" (any RegExp that never matches)', (value, prev) => { prev.push(value); return prev;}, [] as string[])
   .option('-i, --include <module-path-regex>',
-  '(multiple value), when argument is "lib", we will set external property of Webpack configuration for all request not begin with "." (except "@babel/runtimer"), ' +
-  'meaning all external modules will not be included in the output bundle file, you need to explicitly provide a list in' +
-  ' Regular expression (e.g. -i "^someLib/?" -i "^someLib2/?" -i ...) to make them be included in bundle file', arrayOptionFn, [])
+  '(multiple value), when argument is "lib", we will set "external" property of Webpack configuration for all request not begin with "." (not relative path), ' +
+  'meaning all non-relative modules will not be included in the output bundle file, you need to explicitly provide a list in' +
+  ' Regular expression (e.g. -i \'^someLib(/|$)\' -i \'^someLib2(/|$)\' -i ...) ' +
+  ' to make them be included in bundle file. To make specific module (React) external: -i \'^(?!react(-dom)?($|\/))\'', arrayOptionFn, [])
   .option('--source-map', 'set environment variable GENERATE_SOURCEMAP to "true" (see https://create-react-app.dev/docs/advanced-configuration', false)
   .action(async (type, pkgName) => {
     await initEverything(buildCmd, type, pkgName);

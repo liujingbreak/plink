@@ -92,6 +92,7 @@ export default function change(buildPackage: string, config: Configuration, node
   config.plugins!.push(
     // new EsmWebpackPlugin(),
     new (class {
+      private moduleNamePat = /^((?:@[^\\\/]+[\\\/])?[^\\\/]+)/;
       forkDone: Promise<any> = Promise.resolve();
 
       apply(compiler: Compiler) {
@@ -101,10 +102,11 @@ export default function change(buildPackage: string, config: Configuration, node
           const workspaceNodeDir = plinkEnv.workDir + Path.sep + 'node_modules' + Path.sep;
           for (const req of externalRequestSet.values()) {
             if (Path.isAbsolute(req) && Path.resolve(req).startsWith(workspaceNodeDir)) {
-              const m = /^((?:@[^\\\/]+[\\\/])?[^\\\/]+)/.exec(req.slice(workspaceNodeDir.length));
+              const m = this.moduleNamePat.exec(req.slice(workspaceNodeDir.length));
               externalDeps.add(m ? m[1] : req.slice(workspaceNodeDir.length));
             } else {
-              externalDeps.add(req);
+              const m = this.moduleNamePat.exec(req);
+              externalDeps.add(m ? m[1] : req);
             }
           }
           log.warn(chalk.red('external dependencies:\n  ' + [...externalDeps.values()].join(', ')));

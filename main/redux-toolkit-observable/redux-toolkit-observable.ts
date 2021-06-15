@@ -5,10 +5,10 @@
  * A combo set for using Redux-toolkit along with redux-observable
  */
 import {
-  CaseReducer, combineReducers, configureStore,
+  CaseReducer, combineReducers, configureStore, CaseReducerActions,
   ConfigureStoreOptions, createSlice as reduxCreateSlice, CreateSliceOptions,
   Draft, EnhancedStore, PayloadAction, ReducersMapObject,
-  Slice, SliceCaseReducers, Reducer,
+  Slice, SliceCaseReducers, Reducer, PayloadActionCreator,
   ValidateSliceCaseReducers, Middleware, ActionCreatorWithPayload
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
@@ -282,19 +282,20 @@ export class StateFactory {
    * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
    * Parameter is a Slice instead of action map
    */
-  bindActionCreators<A, Slice extends {actions: A}>(slice: Slice): Slice['actions'] {
+  bindActionCreators<CaseReducers extends SliceCaseReducers<any>>(slice: {actions: CaseReducerActions<CaseReducers>})
+    : CaseReducerActions<CaseReducers> {
 
-    const actionMap = {} as typeof slice.actions;
+    const actionMap = {} as CaseReducerActions<CaseReducers>;
     for (const [name, actionCreator] of Object.entries(slice.actions)) {
       const doAction = (...param: any[]) => {
         const action = (actionCreator as any)(...param);
         this.dispatch(action);
         return action;
       };
-      doAction.type = actionCreator.type;
-      actionMap[name] = doAction;
+      (doAction as any).type = (actionCreator as PayloadActionCreator).type;
+      actionMap[name as keyof CaseReducers] = doAction as any;
     }
-    return actionMap as Slice['actions'];
+    return actionMap;
   }
 
   stopAllEpics() {
