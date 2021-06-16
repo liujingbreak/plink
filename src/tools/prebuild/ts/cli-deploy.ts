@@ -19,6 +19,7 @@ export default async function(isStatic: boolean, env: string, app: string, pushB
     if (scriptsFile.endsWith('.sh')) {
       const ev = {...process.env};
       delete ev.__plink;
+      delete ev.PLINK_CLI_OPTS;
       await spawn('bash', scriptsFile, env, app, isStatic ? 'true' : 'false', {
         env: ev
       }).promise;
