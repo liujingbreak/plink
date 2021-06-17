@@ -13,6 +13,7 @@
  */
 import {EpicFactory, ofPayloadAction, Slice, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {drawSegmentPath, createSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
 
 import Color from 'color';
 import * as op from 'rxjs/operators';
@@ -168,6 +169,20 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
           ctx.fillStyle = mainColor.hex();
           // console.log(pctx.getState().width, pctx.getState().height);
           ctx.fillRect(0, 0, pctx.getState().width, pctx.getState().height);
+
+          ctx.strokeStyle = 'white';
+          const triaHeight = pctx.getState().height >> 1;
+          const halfTriaEdgeLen = Math.tan(Math.PI / 6) * triaHeight;
+
+          const triangleVertices: [number, number][] = [
+            [pctx.getState().width >> 1, pctx.getState().height >> 2],
+            [Math.round(pctx.getState().width >> 1 - halfTriaEdgeLen), triaHeight],
+            [Math.round(pctx.getState().width >> 1 + halfTriaEdgeLen), triaHeight]
+          ];
+          const segs = createSegments(triangleVertices);
+
+          drawSegmentPath(segs, ctx);
+          ctx.stroke();
         })
       ),
       actionStreams.afterRender.pipe(

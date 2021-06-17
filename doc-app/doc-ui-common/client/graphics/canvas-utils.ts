@@ -46,3 +46,38 @@ export function gradientFadeOut(width: number, height: number,
   // gctx.drawImage(target, 0,0);
   return gradCv;
 }
+
+/**
+ * A paper.js segement like structure (http://paperjs.org/reference/segment/)
+ * Each segment consists of an anchor point (segment.point) and optionaly an incoming and an outgoing handle (segment.handleIn and segment.handleOut), describing the tangents of the two Curve objects that are connected by this segment.
+ */
+export class Segment {
+  handleIn?: {x: number; y: number;};
+  handleOut?: {x: number; y: number;};
+
+  constructor(public point: {x: number, y: number}) {}
+}
+
+export function *createSegments(vertices: Iterable<[x: number, y: number]>): Iterable<Segment> {
+  for (const p of vertices) {
+    yield new Segment({x: p[0], y: p[1]});
+  }
+}
+
+export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , mode: 'line' | 'curve' = 'line') {
+  ctx.beginPath();
+  if (mode === 'line') {
+    let i = 0;
+    for (const seg of segs) {
+      const p = seg.point;
+      if (i === 0) {
+        ctx.moveTo(p.x, p.y);
+      } else {
+        ctx.lineTo(p.x, p.y);
+      }
+      i++;
+    }
+  }
+  ctx.closePath();
+}
+
