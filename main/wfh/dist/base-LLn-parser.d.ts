@@ -62,7 +62,7 @@ export declare abstract class BaseLexer<T> extends LookAhead<string> implements 
     /**
        * @return zero-based [line, column] value
        * */
-    getLineColumn(pos: number): [line: number, col: number];
+    getLineColumn(pos: number): [number, number];
 }
 export declare class TokenFilter<T> extends LookAhead<Token<T>> implements Iterable<Token<T>> {
     skipType: T;

@@ -65,19 +65,22 @@ export function *createSegments(vertices: Iterable<[x: number, y: number]>): Ite
 }
 
 export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , mode: 'line' | 'curve' = 'line') {
-  ctx.beginPath();
+  // ctx.beginPath();
   if (mode === 'line') {
     let i = 0;
+    let origPoint: Segment['point'];
     for (const seg of segs) {
       const p = seg.point;
       if (i === 0) {
+        origPoint = p;
         ctx.moveTo(p.x, p.y);
       } else {
         ctx.lineTo(p.x, p.y);
       }
       i++;
     }
+    ctx.lineTo(origPoint!.x, origPoint!.y);
   }
-  ctx.closePath();
+  // ctx.closePath();
 }
 

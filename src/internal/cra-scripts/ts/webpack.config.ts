@@ -8,8 +8,9 @@ import fs from 'fs-extra';
 import _ from 'lodash';
 // import walkPackagesAndSetupInjector from './injector-setup';
 import {logger} from '@wfh/plink';
+import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import Path from 'path';
-import { Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem } from 'webpack';
+import { Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem, Compiler } from 'webpack';
 import api from '__plink';
 // import { findPackage } from './build-target-helper';
 import { ReactScriptsHandler } from './types';
@@ -17,7 +18,7 @@ import { drawPuppy, getCmdOptions, printConfig,getReportDir } from './utils';
 // import {createLazyPackageFileFinder} from '@wfh/plink/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
-import TemplatePlugin from '@wfh/webpack-common/dist/template-html-plugin';
+import TemplateHtmlPlugin from '@wfh/webpack-common/dist/template-html-plugin';
 import nodeResolve from 'resolve';
 // import {PlinkWebpackResolvePlugin} from '@wfh/webpack-common/dist/webpack-resolve-plugin';
 import {getSetting} from '../isom/cra-scripts-setting';
@@ -108,7 +109,19 @@ export = function(webpackEnv: 'production' | 'development') {
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
   } else {
-    config.plugins!.unshift(new TemplatePlugin());
+    config.plugins!.unshift(new TemplateHtmlPlugin());
+
+    config.plugins!.push(new (class {
+      apply(compiler: Compiler) {
+        compiler.hooks.done.tap('cra-scripts', stats => {
+          // if (/(^|\s)--expose-gc(\s|$)/.test(process.env.NODE_OPTIONS!) ||
+          //   )
+          if (global.gc)
+            global.gc();
+          memStats();
+        });
+      }
+    })());
     setupSplitChunks(config, (mod) => {
       const file = mod.nameForCondition ? mod.nameForCondition() : null;
       if (file == null)

@@ -31,7 +31,7 @@ export interface ReactiveCanvasState {
   height: number;
   pixelWidth: number;
   pixelHeight: number;
-  rootPaintable?: PaintableSlice;
+  rootPaintable?: PositionalPaintableSlice;
   // _lastAnimFrameTime?: number;
   // We want a separate observable store to perform well in animation frames
   animFrameTime$: rx.BehaviorSubject<number | undefined | null>;
@@ -78,7 +78,7 @@ const reducers = {
       s.ctx = payload.getContext('2d')!;
     }
   },
-  _onDomMount(s: ReactiveCanvasState) {},
+  onDomMount(s: ReactiveCanvasState) {},
   _componentTreeReady(s: ReactiveCanvasState) {},
   _syncComponentProps(s: ReactiveCanvasState, payload: ReactiveCanvasProps) {
     s.componentProps = {...s.componentProps, ...payload};
@@ -113,7 +113,28 @@ export function sliceOptionFactory() {
 
 export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = function(slice) {
   const pCtx = new PaintableContext(slice);
-  const rootPaintable = pCtx.createPaintableSlice({name: 'root'});
+  const rootPaintableInitialState: PositionalState = {
+    x: 0, y: 0, w: 400, h: 300
+  };
+  const rootPaintable = pCtx.createPaintableSlice({
+    name: 'root',
+    extendInitialState: rootPaintableInitialState,
+    extendReducers: positionalReducers
+    ,debug: true
+  });
+  rootPaintable.addEpic(rootPaintableSlice => {
+    return action$ => {
+      return rx.merge(
+        slice.getStore().pipe(
+          op.distinctUntilChanged((a, b) => a.width === b.width && a.height === b.height),
+          op.map(s => {
+            rootPaintable.actionDispatcher.changeSize([s.width, s.height]);
+          })
+        )
+      ).pipe(op.ignoreElements());
+    };
+  });
+
   rootPaintable.actionDispatcher._setAsRoot();
   slice.dispatch({type: 'set rootPaintable', reducer(s: ReactiveCanvasState) {
     s.rootPaintable = rootPaintable;
@@ -184,7 +205,7 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
             slice.actionDispatcher._componentTreeReady();
           }
         })),
-      action$.pipe(ofPayloadAction(slice.actions._onDomMount),
+      action$.pipe(ofPayloadAction(slice.actions.onDomMount),
         op.switchMap(() => rx.timer(150)),
         op.map(() => {
           slice.actionDispatcher.resize(); // let other paintable react on "resize" action first
@@ -229,15 +250,8 @@ export class PaintableContext {
   //   this.canvasSlice.actionDispatcher.changeContext(ctx);
   // }
 
-  createPaintableSlice<S = {}, R = {}>({name, extendInitialState, extendReducers, actionInterceptor, debug}: {
-    name: string;
-    extendInitialState?: S;
-    extendReducers?: R;
-    actionInterceptor?: ((slice: PaintableSlice<S, R>) => rx.OperatorFunction<
-      PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>,
-      PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>>) | null;
-    debug?: boolean;
-  }): PaintableSlice<S, R> {
+  createPaintableSlice<S = {}, R = {}>({name, extendInitialState, extendReducers, actionInterceptor, debug}:
+    PaintableCreateOption<S, R>): PaintableSlice<S, R> {
 
     if (extendInitialState == null) {
       extendInitialState = {} as S;
@@ -382,6 +396,25 @@ export class PaintableContext {
     return slice as PaintableSlice<S, R>;
   }
 
+  createPosPaintable<S = {}, R = {}>(opt: PaintableCreateOption<S, R>) {
+    const initialPosState: PositionalState = {
+      x: 0, y: 0, w: 400, h: 300,
+      relativeHeight: 1,
+      relativeWidth: 1
+    };
+
+    (opt as any).extendInitialState = opt.extendInitialState ?
+      {...initialPosState, ...opt.extendInitialState} : initialPosState;
+    (opt as any).extendReducers = opt.extendReducers ?
+      {...positionalReducers, ...opt.extendReducers} : positionalReducers;
+
+    const positionalPaintable = this.createPaintableSlice(opt as unknown as
+      PaintableCreateOption<PositionalState, (typeof positionalReducers)>);
+    positionalPaintable.addEpic(positionalEpicFactory);
+
+    return positionalPaintable as unknown as PositionalPaintableSlice<S, R>;
+  }
+
   createAnimation(startValue: number, endValue: number, durationMSec: number,
     timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease')
     :rx.Observable<number> {
@@ -445,4 +478,97 @@ export const basePaintableReducers = {
 };
 
 export type PaintableSlice<S = {}, R = {}> = Slice<BasePaintableState & S, typeof basePaintableReducers & R>;
+
+export interface PaintableCreateOption<S, R> {
+  name: string;
+  extendInitialState?: S;
+  extendReducers?: R;
+  actionInterceptor?: ((slice: PaintableSlice<S, R>) => rx.OperatorFunction<
+    PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>,
+    PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>>) | null;
+  debug?: boolean;
+}
+
+export type PositionalPaintableSlice<S = {}, R = {}> = PaintableSlice<PositionalState & S, typeof positionalReducers & R>;
+
+export interface PositionalState {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** relative size of parent, if parent is not a positional paintable, size is relative to reactive canvas, value is between 0 ~ 1 */
+  relativeWidth?: number;
+  relativeHeight?: number;
+  /** relative left position to parent width */
+  relativeX?: number;
+  /** relative right position to parent height */
+  relativeY?: number;
+}
+
+export const positionalReducers = {
+  changePosition(s: PositionalState, pos: [number, number]) {
+    s.x = pos[0];
+    s.y = pos[1];
+  },
+  changeSize(s: PositionalState, size: [number, number]) {
+    s.w = size[0];
+    s.h = size[1];
+  },
+  changeRelativeWidth(s: PositionalState, size: number) {
+    s.relativeWidth = size;
+  },
+  changeRelativeHeight(s: PositionalState, size: number) {
+    s.relativeHeight = size;
+  },
+  changeRelativeX(s: PositionalState, value: number) {
+    s.relativeX = value;
+  },
+  changeRelativeY(s: PositionalState, value: number) {
+    s.relativeY = value;
+  }
+};
+
+export const positionalEpicFactory: EpicFactory<
+  PositionalState & BasePaintableState,
+  typeof positionalReducers & typeof basePaintableReducers
+> = slice => {
+  return action$ => {
+    // const actionsByType = castByActionType(slice.actions, action$);
+
+    return rx.merge(
+      rx.combineLatest(
+        slice.getStore().pipe(
+          op.map(state => state.parent), op.distinctUntilChanged(),
+          op.switchMap(parent => parent != null ? parent.getStore() : rx.EMPTY),
+          op.map(pState => (pState as unknown as Partial<PositionalState>)),
+          op.distinctUntilChanged((a,b) => a.w === b.w && a.h === b.h)
+        ),
+        slice.getStore().pipe(
+          op.distinctUntilChanged((a, b) => a.relativeHeight === b.relativeHeight && a.relativeWidth === b.relativeWidth &&
+            a.relativeX === a.relativeX && a.relativeY === b.relativeY)
+        )
+      ).pipe(
+        op.map(([p, child]) => {
+          slice.dispatch({
+            type: 'sync child position',
+            reducer(d: PositionalState & BasePaintableState) {
+              if (child.relativeX != null && p.w != null) {
+                d.x = p.w * child.relativeX;
+              }
+              if (child.relativeY != null && p.h != null) {
+                d.y = p.h * child.relativeY;
+              }
+              if (child.relativeWidth != null && p.w != null) {
+                d.w = p.w * child.relativeWidth;
+              }
+              if (child.relativeHeight != null && p.h != null) {
+                d.h = p.h * child.relativeHeight;
+              }
+            }
+          });
+        })
+      )
+    ).pipe(op.ignoreElements());
+  };
+};
 

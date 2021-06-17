@@ -13,6 +13,10 @@ export interface ForkOptions extends SysForkOptions {
 export interface Result {
     childProcess: ChildProcess;
     promise: Promise<string>;
+    done: Promise<{
+        stdout: string;
+        errout: string;
+    }>;
 }
 /**
  * Spawn process

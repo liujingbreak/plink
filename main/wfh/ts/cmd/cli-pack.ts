@@ -4,7 +4,7 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import fsext from 'fs-extra';
 import * as Path from 'path';
-import {promisifyExe} from '../process-utils';
+import {exe} from '../process-utils';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 // import {boxString} from './utils';
@@ -42,7 +42,6 @@ export async function pack(opts: PackOptions) {
     const dirs = Array.from(findPackagesByNames(getState(), opts.packages))
     .filter(pkg => pkg && (pkg.json.dr != null || pkg.json.plink != null))
     .map(pkg => pkg!.realPath);
-
     await packPackages(dirs);
   } else {
     await packPackages(Array.from(linkedPackagesOfWorkspace(plinkEnv.workDir)));
@@ -136,7 +135,7 @@ async function publishPackages(packageDirs: string[], npmCliOpts: string[]) {
       try {
         log.info(`publishing ${packageDir}`);
         const params = ['publish', ...npmCliOpts, {silent: true, cwd: packageDir}];
-        const output = await promisifyExe('npm', ...params);
+        const output = await exe('npm', ...params).promise;
         log.info(output);
       } catch (e) {
         log.error(e);
@@ -154,18 +153,21 @@ async function publishProject(projectDirs: string[], npmCliOpts: string[]) {
 }
 
 async function npmPack(packagePath: string):
-  Promise<{name: string; filename: string; dir: string;} | null> {
+  Promise<{name: string; filename: string; version: string; dir: string;} | null> {
   try {
-    const output = await promisifyExe('npm', 'pack', Path.resolve(packagePath),
-      {silent: true, cwd: tarballDir});
-    const resultInfo = parseNpmPackOutput(output);
+    const output = await (exe('npm', 'pack', Path.resolve(packagePath),
+      {silent: true, cwd: tarballDir}).done);
+
+    const resultInfo = parseNpmPackOutput(output.errout);
 
     const packageName = resultInfo.get('name')!;
     // cb(packageName, resultInfo.get('filename')!);
-    log.info(output);
+    log.info(output.errout);
+    log.info(output.stdout);
     return {
       name: packageName,
-      filename: resultInfo.get('filename')!,
+      filename: output.stdout.trim(),
+      version: resultInfo.get('version')!,
       dir: packagePath
     };
   } catch (e) {
@@ -301,8 +303,9 @@ function parseNpmPackOutput(output: string) {
   const tarballInfo = new Map<string, string>();
   lines.slice(linesOffset).forEach(line => {
     const match = /npm notice\s+([^:]+)[:]\s*(.+?)\s*$/.exec(line);
-    if (!match)
+    if (!match) {
       return null;
+    }
     return tarballInfo.set(match[1], match[2]);
   });
   return tarballInfo;

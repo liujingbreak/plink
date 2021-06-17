@@ -155,7 +155,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
   const top = createGradient(pctx, bgDemoSlice.getState().topColor!.toString(), pctx.getState().width >> 1, 0);
   const left = createGradient(pctx, bgDemoSlice.getState().leftColor!.toString(), 0, pctx.getState().height >> 1);
   const right = createGradient(pctx, bgDemoSlice.getState().rightColor!.toString(), pctx.getState().width, pctx.getState().height >> 1);
-  const bgSlice = pctx.createPaintableSlice({name: 'main-background', debug: false});
+  const bgSlice = pctx.createPosPaintable({name: 'main-background', debug: true});
 
   bgSlice.addEpic(slice => action$ => {
     const actionStreams = castByActionType(slice.actions, action$);
@@ -169,24 +169,27 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
           ctx.fillStyle = mainColor.hex();
           // console.log(pctx.getState().width, pctx.getState().height);
           ctx.fillRect(0, 0, pctx.getState().width, pctx.getState().height);
-
-          ctx.strokeStyle = 'white';
-          const triaHeight = pctx.getState().height >> 1;
-          const halfTriaEdgeLen = Math.tan(Math.PI / 6) * triaHeight;
-
-          const triangleVertices: [number, number][] = [
-            [pctx.getState().width >> 1, pctx.getState().height >> 2],
-            [Math.round(pctx.getState().width >> 1 - halfTriaEdgeLen), triaHeight],
-            [Math.round(pctx.getState().width >> 1 + halfTriaEdgeLen), triaHeight]
-          ];
-          const segs = createSegments(triangleVertices);
-
-          drawSegmentPath(segs, ctx);
-          ctx.stroke();
         })
       ),
       actionStreams.afterRender.pipe(
         op.map(({payload: ctx}) => {
+          ctx.strokeStyle = 'white';
+          const state = pctx.getState();
+          const triaHeight = Math.min(state.height, state.width) >> 1;
+          const halfTriaEdgeLen = Math.tan(Math.PI / 6) * triaHeight;
+          const centerX = state.width >> 1;
+          const triangleVertices: [number, number][] = [
+            [centerX, pctx.getState().height >> 2],
+            [Math.round(centerX - halfTriaEdgeLen), triaHeight + (pctx.getState().height >> 2)],
+            [Math.round(centerX + halfTriaEdgeLen), triaHeight + (pctx.getState().height >> 2)]
+          ];
+          const segs = createSegments(triangleVertices);
+          // console.log([...segs])
+          ctx.beginPath();
+          drawSegmentPath(segs, ctx);
+          ctx.closePath();
+          ctx.stroke();
+
           const text = bgDemoSlice.getState().topColor?.toString();
           ctx.fillStyle = 'black';
           ctx.translate(pctx.getState().width >> 1, pctx.getState().height >> 1);
@@ -201,28 +204,28 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
           left.actionDispatcher.setPosition([0, pctx.getState().height >> 1]);
           right.actionDispatcher.setPosition([pctx.getState().width, pctx.getState().height >> 1]);
         })),
-      pctxActionStreams._onDomMount.pipe(
-        op.map(() => {
-          setTimeout(() => {
-            pctx.createAnimation(0, 360, 5000, 'linear').pipe(
-              op.map((value, idx) => {
-                // console.log('frame ', idx, value);
-                return Math.floor(value);
-              }),
-              op.distinctUntilChanged(),
-              op.map((value, idx) => {
-                // tslint:disable-next-line: no-console
-                console.log('frame', idx, value);
-                const col = bgDemoSlice.getState().topColor;
-                if (col) {
-                  bgDemoSlice.actionDispatcher.changeColor(col.hue(value));
-                  pctx.renderCanvas();
-                }
-              })
-            ).subscribe();
-          }, 20);
-        })
-      ),
+      // pctxActionStreams._onDomMount.pipe(
+      //   op.map(() => {
+      //     setTimeout(() => {
+      //       pctx.createAnimation(0, 360, 5000, 'linear').pipe(
+      //         op.map((value, idx) => {
+      //           // console.log('frame ', idx, value);
+      //           return Math.floor(value);
+      //         }),
+      //         op.distinctUntilChanged(),
+      //         op.map((value, idx) => {
+      //           // tslint:disable-next-line: no-console
+      //           console.log('frame', idx, value);
+      //           const col = bgDemoSlice.getState().topColor;
+      //           if (col) {
+      //             bgDemoSlice.actionDispatcher.changeColor(col.hue(value));
+      //             pctx.renderCanvas();
+      //           }
+      //         })
+      //       ).subscribe();
+      //     }, 20);
+      //   })
+      // ),
       bgDemoSlice.getStore().pipe(
         op.map(s => s.topColor), op.distinctUntilChanged(),
         op.map((topColor) => {
@@ -241,3 +244,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
 
   return [bgSlice];
 }
+
+// function createTriangle(pctx: PaintableContext) {
+
+// }

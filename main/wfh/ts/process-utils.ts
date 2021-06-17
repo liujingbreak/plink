@@ -16,6 +16,7 @@ export interface ForkOptions extends SysForkOptions {
 export interface Result {
   childProcess: ChildProcess;
   promise: Promise<string>;
+  done: Promise<{stdout: string; errout: string;}>;
 }
 /**
  * Spawn process
@@ -51,7 +52,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
   }
   console.log(opts.cwd || process.cwd(), '> spawn process:', command, ...args);
   const res = sysSpawn(command, args as string[], opts);
-  const promise = checkTimeout(promisifyChildProcess(res, opts, `${command} ${args.join(' ')}`), opts.timeout)
+  const done = checkTimeout(promisifyChildProcess(res, opts, `${command} ${args.join(' ')}`), opts.timeout)
   .catch(e => {
     if (e.message === 'Timeout' && res) {
       console.log('Kill the child process');
@@ -61,7 +62,8 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
   });
   return {
     childProcess: res!,
-    promise
+    promise: done.then(strs => strs.stdout + '\n' + strs.errout),
+    done
   };
 }
 
@@ -78,7 +80,7 @@ export function fork(jsFile: string, ...args: Array<string|ForkOptions>): Result
   }
 
   const res = sysFork(jsFile, args as string[], opts);
-  const promise = checkTimeout(promisifyChildProcess(res, opts, `Fork of ${jsFile}`), opts.timeout)
+  const done = checkTimeout(promisifyChildProcess(res, opts, `Fork of ${jsFile}`), opts.timeout)
   .catch(e => {
     if (e.message === 'Timeout' && res) {
       console.log('Kill the child process');
@@ -88,7 +90,8 @@ export function fork(jsFile: string, ...args: Array<string|ForkOptions>): Result
   });
   return {
     childProcess: res!,
-    promise
+    done,
+    promise: done.then(out => out.stdout + '\n' + out.errout)
   };
 }
 
@@ -112,16 +115,19 @@ async function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptio
     });
   });
   const {code, signal} = await cpExit;
-  let resText = '';
+  let joinText = '';
+  let outs: {stdout: string; errout: string;} = {} as any;
   if (opts && opts.silent) {
     const outTexts = await Promise.all([output!.done, errOutput!.done]);
-    resText = outTexts.join('\n');
+    joinText = outTexts.join('\n');
+    outs.stdout = outTexts[0];
+    outs.errout = outTexts[1];
   }
   if (code !== 0 && signal !== 'SIGINT') {
     const errMsg = `Child process "${desc}" exit with code ${code}, signal ` + signal;
-    throw new Error(errMsg + '\n' + (resText ? resText : ''));
+    throw new Error(errMsg + '\n' + (joinText ? joinText : ''));
   }
-  return resText;
+  return outs;
 }
 
 function checkTimeout<T>(origPromise: Promise<T>, timeBox = 600000): Promise<T> {

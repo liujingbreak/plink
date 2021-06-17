@@ -808,7 +808,11 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
     // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
     // why, I have to add a setImmediate() between them to workaround
     await new Promise(resolve => setImmediate(resolve));
-    await exe('npm', 'ddp', {cwd: dir, env}).promise;
+    try {
+      await exe('npm', 'ddp', {cwd: dir, env}).promise;
+    } catch (ddpErr) {
+      log.warn('Failed to dedupe dependencies, but it is OK', ddpErr);
+    }
   } catch (e) {
     // tslint:disable-next-line: no-console
     log.error('Failed to install dependencies', e.stack);

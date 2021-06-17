@@ -15,7 +15,7 @@ const ReactiveCanvas: React.FC<ReactiveCanvasProps> = function(props) {
   }, [...Object.values(props)]);
 
   React.useEffect(() => {
-    slice.actionDispatcher._onDomMount();
+    slice.actionDispatcher.onDomMount();
   }, []);
   // dispatch action: slice.actionDispatcher.onClick(evt)
   return <div className={cls(styles.host, props.className)}>
