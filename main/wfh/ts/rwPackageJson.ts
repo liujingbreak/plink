@@ -6,12 +6,13 @@ import * as _ from 'lodash';
 import {map} from 'rxjs/operators';
 import {Observable} from 'rxjs';
 // import config from './config';
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
 
 // type Callback = (...args: any[]) => void;
 
 export function symbolicLinkPackages(destDir: string) {
-  return function(src: Observable<{name: string, realPath: string}>) {
+  return function(src: Observable<{name: string; realPath: string}>) {
     return src.pipe(
       map(({name, realPath}) => {
         let newPath: string;
@@ -22,6 +23,7 @@ export function symbolicLinkPackages(destDir: string) {
             stat = fs.lstatSync(newPath);
             exists = true;
           } catch (e) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             if (e.code === 'ENOENT') {
               exists = false;
             } else

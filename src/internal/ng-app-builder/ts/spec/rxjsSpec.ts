@@ -1,4 +1,4 @@
-/* tslint:disable */
+/* eslint-disable */
 import {Observable} from 'rxjs';
 
 describe('rxjs', () => {

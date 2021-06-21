@@ -28,7 +28,7 @@ export function linkDrcp() {
     fs.symlinkSync(Path.relative(Path.resolve('node_modules', '@wfh'), sourceDir),
        Path.resolve('node_modules', '@wfh', 'plink'), isWin32 ? 'junction' : 'dir');
   }
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log(Path.resolve('node_modules', '@wfh/plink') + ' is created');
 
    // // 2. create symlink <parent directory of "main">/node_modules --> node_modules
@@ -38,13 +38,13 @@ export function linkDrcp() {
    //     fs.unlinkSync(topModuleDir);
    //     fs.symlinkSync(Path.relative(Path.dirname(topModuleDir), Path.resolve('node_modules')),
    //     topModuleDir, isWin32 ? 'junction' : 'dir');
-   //     // tslint:disable-next-line: no-console
+   // eslint-disable-next-line , no-console
    //     console.log(topModuleDir + ' is created');
    //   }
    // } else {
    //   fs.symlinkSync(Path.relative(Path.dirname(topModuleDir), Path.resolve('node_modules')),
    //     topModuleDir, isWin32 ? 'junction' : 'dir');
-   //   // tslint:disable-next-line: no-console
+   // eslint-disable-next-line , no-console
    //   console.log(topModuleDir + ' is created');
    // }
 }

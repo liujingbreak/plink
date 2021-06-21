@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 import Selector, {Query, typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import * as fs from 'fs';
 import {resolve} from 'path';
@@ -41,7 +41,7 @@ describe('ts-ast-query', () => {
       )).toBe(false);
 
     expect(q.matches(
-      // tslint:disable-next-line:max-line-length
+      // eslint-disable-next-line max-len
       '.statements[0]:VariableStatement>.importClause:ImportClause>.namedBindings:NamedImports>.elements[0]:ImportSpecifier>.name:Identifier'
       .split('>'))).toBe(true);
     q = new Query(':ImportDeclaration :Identifier');

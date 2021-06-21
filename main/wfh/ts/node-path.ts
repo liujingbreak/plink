@@ -27,18 +27,18 @@ if (!envSetDone) {
   if (!process.env.PLINK_DATA_DIR) {
     process.env.PLINK_DATA_DIR = 'dist';
     if (isMainThread || process.send == null) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(chalk.gray(logPrefix + 'By default, Plink reads and writes state files in directory "<root-dir>/dist",\n' +
       'you may change it by' +
       ' setting environment variable PLINK_DATA_DIR to another relative directory'));
     }
   } else {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(chalk.gray(logPrefix + 'PLINK_DATA_DIR: ' + process.env.PLINK_DATA_DIR));
   }
   const PLINK_WORK_DIR = process.env.PLINK_WORK_DIR;
   if (PLINK_WORK_DIR) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(logPrefix + `Environment variable PLINK_WORK_DIR is set, default workspace is: ${PLINK_WORK_DIR}`);
   }
   const workDir = PLINK_WORK_DIR ? Path.resolve(PLINK_WORK_DIR) : process.cwd();
@@ -103,7 +103,7 @@ function findRootDir(distDir: string, currDir: string) {
 function setupNodePath(currDir: string, rootDir: string, symlinksDir: string | null, plinkDir: string) {
   const pathArray = calcNodePaths(rootDir, symlinksDir, currDir, plinkDir);
   process.env.NODE_PATH = pathArray.join(Path.delimiter);
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log(chalk.gray(logPrefix + 'NODE_PATH', process.env.NODE_PATH));
   require('module').Module._initPaths();
   return pathArray;

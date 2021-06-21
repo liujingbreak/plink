@@ -12,7 +12,7 @@ const rootPath = getRootDir();
  * @param action 
  * @param dirs 
  */
-export default async function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', dirs?: string[]) {
+export default function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', dirs?: string[]) {
   listProject(undefined, true);
   switch (action) {
     case 'add':
@@ -69,7 +69,7 @@ function printProjects(projects: Iterable<string>, srcDirs: Iterable<string>) {
   if (i === 0) {
     str += 'No projects';
   }
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log(boxString(str));
   str = 'Linked source directories'.toUpperCase();
   str += '\n \n';
@@ -84,6 +84,6 @@ function printProjects(projects: Iterable<string>, srcDirs: Iterable<string>) {
   if (i === 0) {
     str = 'No linked source directories';
   }
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log(boxString(str));
 }

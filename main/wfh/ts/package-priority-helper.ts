@@ -9,7 +9,7 @@ export interface PackageInfo {
 }
 
 export type PackageInfoWithPriority = {[key in keyof PackageInfo]-?: PackageInfo[key]};
-// tslint:disable max-line-length
+// eslint-disable  max-len
 export function orderPackages(packages: PackageInfo[], run: (pk: PackageInfoWithPriority) => Promise<any> | any) {
   const numberTypePrio: PackageInfoWithPriority[] = [];
   const beforePackages: {[key: string]: PackageInfoWithPriority[]} = {};

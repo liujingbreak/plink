@@ -1,4 +1,5 @@
-/* tslint:disable max-line-length */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable  max-len */
 import * as _ from 'lodash';
 import {PackageInfo, packageOfFileFactory, walkPackages} from './package-mgr/package-info-gathering';
 import { nodeInjector, webInjector } from './injector-factory';
@@ -7,7 +8,6 @@ import PackageInstance from './packageNodeInstance';
 import { orderPackages } from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
 import Path from 'path';
-import Events from 'events';
 import {createLazyPackageFileFinder, packages4Workspace} from './package-utils';
 import log4js from 'log4js';
 import config from './config';
@@ -64,7 +64,7 @@ export function runServer(): {started: Promise<unknown>; shutdown(): Promise<voi
         }
       }
     }
-  }
+  };
 }
 
 const apiCache: {[name: string]: any} = {};
@@ -74,7 +74,7 @@ const apiCache: {[name: string]: any} = {};
  * Lazily init injector for packages and run specific package only,
  * no fully scanning or ordering on all packages
  */
-export async function runSinglePackage({target, args}: {target: string, args: string[]}) {
+export async function runSinglePackage({target, args}: {target: string; args: string[]}) {
   if (!isCwdWorkspace()) {
     return Promise.reject(new Error('Current directory is not a workspace directory'));
   }
@@ -98,7 +98,7 @@ export async function runSinglePackage({target, args}: {target: string, args: st
   const guessingFile: string[] = [
     file,
     Path.resolve(file),
-    ...(config().packageScopes as string[]).map(scope => `@${scope}/${file}`)
+    ...config().packageScopes.map(scope => `@${scope}/${file}`)
   ];
   const foundModule = guessingFile.find(target => {
     try {
@@ -125,7 +125,7 @@ export async function runPackages(target: string, includePackages: Iterable<stri
   const includeNameSet = new Set<string>(includePackages);
   const pkgExportsInReverOrder: {name: string; exp: any}[] = [];
 
-  const [fileToRun, funcToRun] = (target as string).split('#');
+  const [fileToRun, funcToRun] = target.split('#');
   const [packageInfo, proto] = initInjectorForNodePackages();
   const components = packageInfo.allModules.filter(pk => {
     // setupRequireInjects(pk, NodeApi); // All component package should be able to access '__api', even they are not included
@@ -162,7 +162,7 @@ export async function runPackages(target: string, includePackages: Iterable<stri
       return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
     }
   });
-  (proto.eventBus as Events.EventEmitter).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
+  (proto.eventBus ).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
   NodeApi.prototype.eventBus.emit('packagesActivated', includeNameSet);
   return pkgExportsInReverOrder;
 }
@@ -258,7 +258,7 @@ export function mapPackagesByType(types: string[], onEachPackage: (nodePackage: 
 
 function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeApi ) {
   function apiFactory() {
-    return getApiForPackage(pkInstance, NodeApi);
+    return getApiForPackage(pkInstance, NodeApi) as unknown;
   }
   nodeInjector.addPackage(pkInstance.longName, pkInstance.realPath,
     pkInstance.path === pkInstance.realPath ? undefined : pkInstance.path);
@@ -284,6 +284,7 @@ function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeA
 
 function getApiForPackage(pkInstance: NodePackage, NodeApi: typeof _NodeApi) {
   if (_.has(apiCache, pkInstance.longName)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return apiCache[pkInstance.longName];
   }
 

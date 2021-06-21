@@ -72,6 +72,12 @@ const cliExt: CliExtension = (program) => {
       (await import('./cli-cra-gen')).genSlice(dir, sliceName, genCraSliceCmd.opts() as any);
     });
 
+  program.command('install-eslint')
+  .description('Install eslint to current project')
+  .action(async () => {
+
+  });
+
 };
 
 export default cliExt;

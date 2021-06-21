@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
 import type { PlinkEnv } from '@wfh/plink/wfh/dist/node-path';
 import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';

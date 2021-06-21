@@ -1,5 +1,5 @@
 /// <reference path="./cfont.d.ts" />
-// tslint:disable: max-line-length
+/* eslint-disable max-len */
 import commander from 'commander';
 import chalk from 'chalk';
 // import * as store from '../store';
@@ -9,7 +9,7 @@ import * as pkgMgr from '../package-mgr';
 import {packages4Workspace} from '../package-mgr/package-list-helper';
 import * as _ from 'lodash';
 import { isDrcpSymlink, sexyFont, getRootDir, boxString, plinkEnv } from '../utils/misc';
-import _scanNodeModules from '../utils/symlinks';
+import * as _symlinks from '../utils/symlinks';
 import fs from 'fs';
 import Path from 'path';
 import semver from 'semver';
@@ -18,7 +18,7 @@ import {initInjectorForNodePackages} from '../package-runner';
 import {hl, hlDesc, arrayOptionFn} from './utils';
 import {getLogger} from 'log4js';
 import {CliOptions as TsconfigCliOptions} from './cli-tsconfig-hook';
-const pk = require('../../../package.json');
+const pk = require('../../../package.json') as {version: string};
 // const WIDTH = 130;
 const log = getLogger('plink.cli');
 
@@ -36,18 +36,18 @@ export async function createCommands(startTime: number) {
   const program = new commander.Command('plink')
   .description(chalk.cyan('A pluggable monorepo and multi-repo management tool'))
   .action((args: string[]) => {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(sexyFont('PLink').string);
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(program.helpInformation());
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(`\nversion: ${pk.version} ${isDrcpSymlink ? chalk.yellow('(symlinked)') : ''} `);
     if (cliExtensions && cliExtensions.length > 0) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(`Found ${cliExtensions.length} command line extension` +
       `${cliExtensions.length > 1 ? 's' : ''}: ${cliExtensions.map(pkg => chalk.blue(pkg)).join(', ')}`);
     }
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log('\n', chalk.bgRed('Please determine a sub command listed above'));
     checkPlinkVersion();
     process.nextTick(() => process.exit(1));
@@ -81,7 +81,7 @@ export async function createCommands(startTime: number) {
     cliExtensions = loadExtensionCommand(program, wsState, overrider);
     overrider.nameStyler = undefined;
   } else {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log('Value of environment varaible "PLINK_SAFE" is true, skip loading extension');
   }
 
@@ -89,7 +89,7 @@ export async function createCommands(startTime: number) {
   try {
     await program.parseAsync(process.argv, {from: 'node'});
   } catch (e) {
-    log.error('Failed to execute command due to:' + chalk.redBright(e.message), e);
+    log.error('Failed to execute command due to:' + chalk.redBright((e as Error).message), e);
     process.exit(1);
   }
 }
@@ -109,9 +109,9 @@ function subComands(program: commander.Command) {
     .option('-f, --force', 'Force run "npm install" in specific workspace directory, this is not same as npm install option "-f" ', false)
     .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
     .action(async (workspace?: string) => {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(sexyFont('PLink').string);
-      await (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions & tp.NpmCliOption, workspace);
+      (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions & tp.NpmCliOption, workspace);
     });
   addNpmInstallOption(initCmd);
 
@@ -126,7 +126,7 @@ function subComands(program: commander.Command) {
           ', specify multiple project by seperating them with space character'
       })
     .action(async (action: 'add'|'remove'|undefined, projectDir: string[]) => {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(sexyFont('PLink').string);
       (await import('./cli-project')).default({isSrcDir: false}, action, projectDir);
     });
@@ -138,7 +138,7 @@ function subComands(program: commander.Command) {
         dir: 'specify multiple directories by seperating them with space character'
       })
       .action(async (action: 'add'|'remove'|undefined, dirs: string[]) => {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log(sexyFont('PLink').string);
         (await import('./cli-project')).default({isSrcDir: true}, action, dirs);
       });
@@ -167,7 +167,7 @@ function subComands(program: commander.Command) {
     .description('Clear symlinks from node_modules')
     // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
     .action(async () => {
-      const scanNodeModules: typeof _scanNodeModules = require('../utils/symlinks').default;
+      const scanNodeModules = (require('../utils/symlinks') as typeof _symlinks).default;
       await scanNodeModules(undefined, 'all');
     });
 
@@ -229,12 +229,13 @@ function subComands(program: commander.Command) {
       {package: cliPackageArgDesc})
     .option<string[]>('--pj, --project <project-dir,...>', 'only bump component packages from specific project directory',
       (value, prev) => {
-        prev.push(...value.split(',')); return prev;
+        prev.push(...value.split(','));
+        return prev;
       }, [])
     .option('-i, --incre-version <value>',
       'version increment, valid values are: major, minor, patch, prerelease', 'patch')
     .action(async (packages: string[]) => {
-      (await import('./cli-bump')).default({...bumpCmd.opts() as tp.BumpOptions, packages});
+      await (await import('./cli-bump')).default({...bumpCmd.opts() as tp.BumpOptions, packages});
     });
   // withGlobalOptions(bumpCmd);
   // bumpCmd.usage(bumpCmd.usage() + '\n' + hl('plink bump <package> ...') + ' to recursively bump package.json from multiple directories\n' +
@@ -267,7 +268,7 @@ function subComands(program: commander.Command) {
     'project directories to be looked up for all packages which need to be packed to tarball files',
       (value, prev) => {
         prev.push(...value.split(',')); return prev;
-      }, [])
+      }, [] as string[])
     .option('-w,--workspace <workspace-dir>', 'publish packages which are linked as dependency of specific workspaces',
       arrayOptionFn, [])
     .option('--public', 'same as "npm publish" command option "--access public"', false)
@@ -398,8 +399,8 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
     try {
       overrider.forPackage(pk, pkgFilePath, funcName);
     } catch (e) {
-      // tslint:disable-next-line: no-console
-      log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
+      // eslint-disable-next-line no-console
+      log.warn(`Failed to load command line extension in package ${pk.name}: "${(e as Error).message}"`, e);
     }
   }
   return availables;
@@ -408,7 +409,7 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
 function addNpmInstallOption(cmd: commander.Command) {
   cmd.option('--cache <npm-cache>', 'same as npm install option "--cache"')
   .option('--ci, --use-ci', 'Use "npm ci" instead of "npm install" to install dependencies', false)
-  .option('--offline', 'same as npm option "--prefer-offline" during executing npm install/ci ', false)
+  .option('--offline', 'same as npm option "--offline" during executing npm install/ci ', false)
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
   .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false);
 }
@@ -429,7 +430,7 @@ function checkPlinkVersion() {
     let depVer: string = json.dependencies && json.dependencies['@wfh/plink'] ||
       json.devDependencies && json.devDependencies['@wfh/plink'];
     if (depVer == null) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(boxString('Don\'t forget to add @wfh/plink in package.json as dependencies'));
       return;
     }
@@ -440,7 +441,7 @@ function checkPlinkVersion() {
       depVer = matched[1];
     }
     if (depVer && !semver.satisfies(pk.version, depVer)) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(boxString(`Local installed Plink version ${chalk.cyan(pk.version)} does not match dependency version ${chalk.green(depVer)} in package.json, ` +
         `run command "${chalk.green('plink upgrade')}" to upgrade or downgrade to expected version`));
     }

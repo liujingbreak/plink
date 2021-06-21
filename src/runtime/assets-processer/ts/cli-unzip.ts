@@ -20,7 +20,7 @@ export async function listZip(fileName: string) {
   zip.on('entry', (entry: yauzl.Entry) => {
     list.push(entry.fileName);
 
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(entry.fileName + chalk.green(` (size: ${entry.uncompressedSize >> 10} Kb)`));
     zip.readEntry();
   });
@@ -49,7 +49,7 @@ export async function unZip(fileName: string, toDir = process.cwd()) {
       zip.readEntry();
       return;
     }
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(entry.fileName + chalk.gray(` (size: ${entry.uncompressedSize >> 10} Kb)`));
 
     zip.openReadStream(entry, (err, readStream) => {
@@ -60,7 +60,7 @@ export async function unZip(fileName: string, toDir = process.cwd()) {
       }
       readStream!.on('end', () => {zip.readEntry();});
       const target = Path.resolve(toDir, entry.fileName);
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(`write ${target} ` + chalk.gray(` (size: ${entry.uncompressedSize >> 10} Kb)`));
       const dir = Path.dirname(target);
       if (!existsSync(dir))

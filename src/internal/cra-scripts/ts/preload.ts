@@ -1,4 +1,4 @@
-// tslint:disable: no-console
+/* eslint-disable no-console */
 /**
  * Do not actually import entity other than "type" from here
  * Because we have not set node path yet.

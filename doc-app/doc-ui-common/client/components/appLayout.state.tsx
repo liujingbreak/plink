@@ -18,8 +18,6 @@ import * as rx from 'rxjs';
 import React from 'react';
 import {Size} from './layout/MediaMatch';
 import {TopAppBarProps} from '../material/TopAppBar';
-// import styles from './AppLayout.module.scss';
-// import { ofPayloadAction } from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit';
 
 export const Ctx = React.createContext<Slice<AppLayoutState, typeof reducers> | null | undefined>(null);
 export function useAppLayout() {
@@ -134,27 +132,3 @@ export const epicFactory: EpicFactory<AppLayoutState, typeof reducers> = functio
     ).pipe(op.ignoreElements());
   };
 };
-
-/**
- * Below is how you use slice inside your component:
-
-import React from 'react';
-import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import {reducers, AppLayoutState} from './AppLayout.state';
-
-const AppLayout: React.FC<AppLayoutProps> = function(props) {
-  const [state, slice] = useTinyReduxTookit({
-    name: 'AppLayout',
-    initialState: {} as AppLayoutState,
-    reducers,
-    debug: process.env.NODE_ENV !== 'production',
-    epicFactory
-  });
-  // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div onClick={slice.actionDispatcher.onClick}>{state}</div>;
-};
- */
-
-
-
-

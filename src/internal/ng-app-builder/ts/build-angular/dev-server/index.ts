@@ -1,4 +1,4 @@
-// tslint:disable no-console
+// eslint-disable  no-console
 import '../../ng/node-inject';
 import _ from 'lodash';
 import {executeDevServerBuilder, DevServerBuilderOptions, DevServerBuilderOutput} from '@angular-devkit/build-angular';

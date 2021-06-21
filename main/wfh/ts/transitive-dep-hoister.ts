@@ -1,4 +1,4 @@
-/* tslint:disable max-line-length */
+/* eslint-disable  max-len */
 // import {mkdirpSync} from 'fs-extra';
 import * as _ from 'lodash';
 import {SimpleLinkedList, SimpleLinkedListNode} from './utils/misc';

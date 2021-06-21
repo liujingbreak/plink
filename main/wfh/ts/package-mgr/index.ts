@@ -27,12 +27,21 @@ export interface PackageInfo {
   name: string;
   scope: string;
   shortName: string;
-  json: any;
+  json: {
+    plink?: PlinkJsonType;
+    dr?: PlinkJsonType;
+    [p: string]: any;
+  };
   /** Be aware: If this property is not same as "realPath",
    * then it is a symlink whose path is relative to workspace directory */
   path: string;
   realPath: string;
   isInstalled: boolean;
+}
+
+interface PlinkJsonType {
+  typeRoot?: string;
+  [p: string]: any;
 }
 
 export interface PackagesState {
@@ -417,7 +426,7 @@ stateFactory.addEpic((action$, state$) => {
               ws.installJsonStr = '';
               ws.installJson.dependencies = {};
               ws.installJson.devDependencies = {};
-              // tslint:disable-next-line: no-console
+              // eslint-disable-next-line no-console
               log.debug('force npm install in', wsKey);
             });
           }
@@ -510,7 +519,7 @@ stateFactory.addEpic((action$, state$) => {
       scan<string[]>((prev, curr) => {
         if (prev.length < curr.length) {
           const newAdded = _.difference(curr, prev);
-          // tslint:disable-next-line: no-console
+          // eslint-disable-next-line no-console
           log.info('New workspace: ', newAdded);
           for (const ws of newAdded) {
             actionDispatcher._installWorkspace({workspaceKey: ws});
@@ -528,7 +537,7 @@ stateFactory.addEpic((action$, state$) => {
         map(s => s.workspaces.get(key)!),
         distinctUntilChanged((s1, s2) => s1.installJson === s2.installJson),
         scan<WorkspaceState>((old, newWs) => {
-          // tslint:disable: max-line-length
+          /* eslint-disable max-len */
           const newDeps = Object.entries(newWs.installJson.dependencies || [])
             .concat(Object.entries(newWs.installJson.devDependencies || []))
             .map(entry => entry.join(': '));
@@ -615,7 +624,7 @@ stateFactory.addEpic((action$, state$) => {
             if (newLines.length === 0)
               return;
             fs.writeFile(file, data + EOL + newLines.join(EOL), () => {
-              // tslint:disable-next-line: no-console
+              // eslint-disable-next-line no-console
               log.info('Modify', file);
             });
           }
@@ -716,7 +725,7 @@ function checkAllWorkspaces() {
   for (const key of getState().workspaces.keys()) {
     const dir = Path.resolve(rootDir, key);
     if (!fs.existsSync(dir)) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       log.info(`Workspace ${key} does not exist anymore.`);
       actionDispatcher._change(d => d.workspaces.delete(key));
     }
@@ -748,7 +757,7 @@ async function initRootDirectory(createHook = false) {
 
 // async function writeConfigFiles() {
 //   return (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
-//     // tslint:disable-next-line: no-console
+// eslint-disable-next-line , no-console
 //     log.info('write config file:', file);
 //     writeFile(Path.join(distDir, file),
 //       '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
@@ -767,7 +776,7 @@ async function installWorkspace(ws: WorkspaceState, npmOpt: NpmOptions) {
       wsd.installJson.devDependencies = {};
       const lockFile = Path.resolve(dir, 'package-lock.json');
       if (fs.existsSync(lockFile)) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         log.info(`Problematic ${lockFile} is deleted, please try again`);
         fs.unlinkSync(lockFile);
       }
@@ -777,7 +786,7 @@ async function installWorkspace(ws: WorkspaceState, npmOpt: NpmOptions) {
 }
 
 export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJsonStr: string, toInstallPkgJsonStr: string) {
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   log.info('Install dependencies in ' + dir);
   try {
     await copyNpmrcToWorkspace(dir);
@@ -801,7 +810,7 @@ export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJso
   });
   // 2. Run `npm install`
   const installJsonFile = Path.resolve(dir, 'package.json');
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   log.info('write', installJsonFile);
   fs.writeFileSync(installJsonFile, toInstallPkgJsonStr, 'utf8');
   // save a lock file to indicate in-process of installing, once installation is completed without interruption, delete it.
@@ -836,11 +845,11 @@ export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJso
       log.warn('Failed to dedupe dependencies, but it is OK', ddpErr);
     }
   } catch (e) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.error('Failed to install dependencies', e.stack);
     throw e;
   } finally {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info('Recover ' + installJsonFile);
     // 3. Recover package.json and symlinks deleted in Step.1.
     fs.writeFileSync(installJsonFile, originPkgJsonStr, 'utf8');
@@ -870,7 +879,7 @@ async function copyNpmrcToWorkspace(workspaceDir: string) {
     ).toPromise();
 
   if (isChina) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info('create .npmrc to', target);
     fs.copyFileSync(Path.resolve(__dirname, '../../templates/npmrc-for-cn.txt'), target);
   }
@@ -990,7 +999,7 @@ async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) 
   const done1 = listModuleSymlinks(checkDir, async link => {
     const pkgName = Path.relative(checkDir, link).replace(/\\/g, '/');
     if ( drcpName !== pkgName && !excludeSet.has(pkgName)) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       log.info(`Delete extraneous symlink: ${link}`);
       dones.push(fs.promises.unlink(link));
     }
@@ -1070,7 +1079,7 @@ function cp(from: string, to: string) {
     to = Path.basename(from); // to is a folder
   else
     to = Path.relative(plinkEnv.workDir, to);
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   log.info('Copy to %s', chalk.cyan(to));
 }
 
@@ -1096,7 +1105,7 @@ function _writeGitHook(project: string) {
     if (fs.existsSync(gitPath + '/pre-commit'))
       fs.unlinkSync(gitPath + '/pre-commit');
     fs.writeFileSync(gitPath + '/pre-push', hookStr);
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info('Write ' + gitPath + '/pre-push');
     if (!isWin32) {
       spawn('chmod', '-R', '+x', project + '/.git/hooks/pre-push');
@@ -1113,7 +1122,7 @@ function deleteDuplicatedInstalledPkg(workspaceKey: string) {
     return fs.promises.lstat(dir)
     .then((stat) => {
       if (!stat.isSymbolicLink()) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         log.info(`Previous installed ${Path.relative(rootDir,dir)} is deleted, due to linked package ${pkgName}`);
         return fs.promises.unlink(dir);
       }

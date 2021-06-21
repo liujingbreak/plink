@@ -24,13 +24,13 @@ import '../editor-helper';
 let tarballDir: string;
 const log = log4js.getLogger('plink.cli-pack');
 
-async function init(opts: PublishOptions | PackOptions) {
+function init(opts: PublishOptions | PackOptions) {
   tarballDir = Path.resolve(config().rootPath, 'tarballs');
   fsext.mkdirpSync(tarballDir);
 }
 
 export async function pack(opts: PackOptions) {
-  await init(opts);
+  init(opts);
 
   if (opts.workspace && opts.workspace.length > 0) {
     await Promise.all(opts.workspace.map(ws => packPackages(Array.from(linkedPackagesOfWorkspace(ws)))));
@@ -49,7 +49,7 @@ export async function pack(opts: PackOptions) {
 }
 
 export async function publish(opts: PublishOptions) {
-  await init(opts);
+  init(opts);
 
   if (opts.project && opts.project.length > 0)
     return publishProject(opts.project, opts.public ? ['--access', 'public'] : []);
@@ -83,7 +83,6 @@ async function packPackages(packageDirs: string[]) {
 
 
   if (packageDirs && packageDirs.length > 0) {
-    // const pgPaths: string[] = packageDirs;
     const done = rx.from(packageDirs).pipe(
       op.mergeMap(packageDir => rx.defer(() => npmPack(packageDir)), 4),
       op.reduce<ReturnType<typeof npmPack> extends Promise<infer T> ? T : unknown>((all, item) => {
@@ -91,26 +90,24 @@ async function packPackages(packageDirs: string[]) {
         return all;
       }, [])
     ).toPromise();
-    // const done = queueUp(4, packageDirs.map(packageDir => () => npmPack(packageDir)));
+
     const tarInfos = (await done).filter(item => typeof item != null) as
       (typeof done extends Promise<(infer T)[]> ? NonNullable<T> : unknown)[];
 
     for (const item of tarInfos) {
       // log.info(item);
-      package2tarball.set(item.name, Path.resolve(tarballDir, item!.filename));
+      package2tarball.set(item.name, Path.resolve(tarballDir, item.filename));
       if (item.name === '@wfh/plink') {
         excludeFromSync.add(item.dir);
       }
     }
-    // log.info(Array.from(package2tarball.entries())
-    //   .map(([pkName, ver]) => `"${pkName}": "${ver}",`)
-    //   .join('\n'));
+
     await deleteOldTar(tarInfos.map(item => new RegExp('^' +
       _.escapeRegExp(item.name.replace('@', '').replace(/[/\\]/g, '-'))
         + '\\-\\d+(?:\\.\\d+){1,2}(?:\\-[^]+?)?\\.tgz$', 'i'
       )),
       tarInfos.map(item => item.filename));
-    await changePackageJson(package2tarball);
+    changePackageJson(package2tarball);
     await new Promise(resolve => setImmediate(resolve));
     actionDispatcher.scanAndSyncPackages({
       packageJsonFiles: packageDirs.filter(dir => !excludeFromSync.has(dir))
@@ -153,7 +150,7 @@ async function publishProject(projectDirs: string[], npmCliOpts: string[]) {
 }
 
 async function npmPack(packagePath: string):
-  Promise<{name: string; filename: string; version: string; dir: string;} | null> {
+  Promise<{name: string; filename: string; version: string; dir: string} | null> {
   try {
     const output = await (exe('npm', 'pack', Path.resolve(packagePath),
       {silent: true, cwd: tarballDir}).done);
@@ -246,7 +243,7 @@ function changePackageJson(packageTarballMap: Map<string, string>) {
 
     if (replacements.length > 0) {
       const replaced = replaceCode(pkj, replacements);
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       log.info(`Updated ${jsonFile}\n`, replaced);
       fs.writeFileSync(jsonFile, replaced);
     }
@@ -257,7 +254,7 @@ function changePackageJson(packageTarballMap: Map<string, string>) {
     const foundDeps = deps.properties.filter(({name}) => package2tarball.has(JSON.parse(name.text)));
     for (const foundDep of foundDeps) {
       const verToken = foundDep.value as Token;
-      const pkName = JSON.parse(foundDep.name.text);
+      const pkName = JSON.parse(foundDep.name.text) as string;
       const tarFile = package2tarball.get(pkName);
       let newVersion = Path.relative(wsDir, tarFile!).replace(/\\/g, '/');
       if (!newVersion.startsWith('.')) {
@@ -266,7 +263,7 @@ function changePackageJson(packageTarballMap: Map<string, string>) {
       log.info(`Update ${jsonFile}: ${verToken.text} => ${newVersion}`);
       replacements.push({
         start: verToken.pos,
-        end: verToken.end!,
+        end: verToken.end,
         text: JSON.stringify(newVersion)
       });
       // package2tarball.delete(pkName);

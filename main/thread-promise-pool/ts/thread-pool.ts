@@ -144,13 +144,14 @@ export class Pool {
     const promisedTask = new PromisedTask<T>(task, this.workerOptions?.verbose);
 
     if (this.workerOptions?.verbose) {
+      // eslint-disable-next-line no-console
       console.log(`[thread-pool] submit task, idle workers: ${this.idleWorkers.length}, running workers: ${this.runningWorkers.size}`);
     }
     this.tasks.push(promisedTask);
     if (this.idleWorkers.length > 0) {
       // 2. Look for availabe idle worker
       const worker = this.idleWorkers.pop()!;
-      this.runWorker(worker);
+      void this.runWorker(worker);
     } else if (this.runningWorkers.size < this.maxParalle) {
       // 3. Create new worker if number of them is less than maxParalle
       this.createWorker(promisedTask);
@@ -163,6 +164,7 @@ export class Pool {
     const promisedTask = new PromisedProcessTask<T>(task);
 
     if (this.workerOptions?.verbose) {
+      // eslint-disable-next-line no-console
       console.log(`[thread-pool] submit child process, idle process: ${this.idleWorkers.length}, ` +
       `running process or workers: ${this.runningWorkers.size}`);
     }
@@ -170,10 +172,10 @@ export class Pool {
     if (this.idleWorkers.length > 0) {
       // 2. Look for availabe idle worker
       const worker = this.idleWorkers.pop()!;
-      this.runWorker(worker);
+      void this.runWorker(worker);
     } else if (this.runningWorkers.size < this.maxParalle) {
       // 3. Create new worker if number of them is less than maxParalle
-      this.createChildProcess();
+      void this.createChildProcess();
     }
     return promisedTask.promise;
   }
@@ -199,10 +201,12 @@ export class Pool {
       if (worker instanceof Worker) {
         worker.postMessage(cmd);
         if (this.workerOptions?.verbose)
+          // eslint-disable-next-line no-console
           console.log('[thread-pool] Remove expired worker thread:', worker.threadId);
       } else {
         worker.send(cmd);
         if (this.workerOptions?.verbose)
+          // eslint-disable-next-line no-console
           console.log('[thread-pool] Remove expired child process:', worker.pid);
       }
       this.idleTimers.delete(worker);
@@ -217,6 +221,7 @@ export class Pool {
     // if (this.workerOptions && (this.workerOptions.verbose || this.workerOptions.initializer)) {
     const verbose = !!this.workerOptions?.verbose;
     if (verbose)
+      // eslint-disable-next-line no-console
       console.log('[thread-pool] createChildProcess');
 
     if (this.workerOptions?.initializer) {
@@ -228,7 +233,7 @@ export class Pool {
       await initTask.promise;
     }
     // }
-    this.runWorker(worker);
+    void this.runWorker(worker);
 
     const onWorkerExit = () => {
       if (this.runningWorkers.has(worker)) {
@@ -248,10 +253,12 @@ export class Pool {
   private createWorker(task: PromisedTask<any>) {
     let worker: Worker;
     if (this.workerOptions?.verbose) {
+        // eslint-disable-next-line no-console
         console.log('[thread-pool] createWorker');
     }
     worker = new Worker(require.resolve('./worker'), {
       ...this.workerOptions,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       workerData: {
         id: ++this.totalCreatedWorkers + '',
         verbose: !!this.workerOptions?.verbose,
@@ -259,7 +266,7 @@ export class Pool {
         ...this.workerOptions?.workerData || {}
       }
     });
-    this.runWorker(worker);
+    void this.runWorker(worker);
 
     const onWorkerExit = () => {
       if (this.runningWorkers.has(worker)) {

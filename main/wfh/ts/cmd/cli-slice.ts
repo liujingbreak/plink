@@ -100,7 +100,7 @@ stateFactory.addEpic((action$, state$) => {
     )
   ).pipe(
     op.catchError(ex => {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.error(ex);
       return of<PayloadAction>();
     }),

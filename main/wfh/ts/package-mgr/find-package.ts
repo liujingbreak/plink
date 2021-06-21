@@ -41,7 +41,7 @@ class FolderScanner {
         if (name === 'node_modules') {
           const testDir = Path.resolve(parentDir, 'node_modules');
           if (fs.lstatSync(testDir).isSymbolicLink()) {
-            // tslint:disable-next-line: no-console
+            // eslint-disable-next-line no-console
             log.info('Found a symlink node_modules:', testDir);
           }
           continue;

@@ -22,7 +22,7 @@ const {
   drcpBuilderOptions
 } = workerData as Data;
 
-// tslint:disable: no-console
+/* eslint-disable no-console */
 // console.log(workerData);
 memstats();
 initCli(drcpBuilderOptions)

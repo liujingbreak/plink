@@ -1,4 +1,4 @@
-// tslint:disable: prefer-const max-line-length
+/* eslint-disable prefer-const, max-len */
 require('yamlify/register');
 import _ from 'lodash';
 import fs from 'fs';
@@ -132,11 +132,11 @@ function load(cliOption: CliOptions) {
 
 function mergeFromYamlJsonFile(localConfigPath: string) {
   if (!fs.existsSync(localConfigPath)) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info(chalk.yellow(' File does not exist: %s', localConfigPath));
     return;
   }
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   log.info(` Read ${localConfigPath}`);
   var configObj: {[key: string]: any};
 
@@ -176,7 +176,7 @@ function mergeFromCliArgs(cliOpt: CliOptions) {
       value = propSet[1] === 'undefined' ? undefined : propSet[1];
     }
     dispatcher._change(s => _.set(s, propPath, value));
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info(`[config] set ${propPath} = ${value}`);
   }
 }

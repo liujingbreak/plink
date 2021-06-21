@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 /**
  * @deprecated
  */
@@ -11,19 +11,19 @@ import Path from 'path';
 const pify = require('pify');
 
 process.on('uncaughtException', (err) => {
-  // tslint:disable-next-line
+  // eslint-disable-next-line
   console.log(err);
   process.send && process.send({error: err});
 });
 
 process.on('unhandledRejection', (err) => {
-  // tslint:disable-next-line
+  // eslint-disable-next-line
   console.log(err);
   process.send && process.send({error: err});
 });
 
 if (!process.send) {
-  // tslint:disable-next-line
+  // eslint-disable-next-line
 	process.send = console.log.bind(console);
 }
 
@@ -54,7 +54,7 @@ async function start() {
       try {
         await prom();
       } catch (e) {
-        // tslint:disable-next-line
+        // eslint-disable-next-line
 				console.log(e);
         process.send && process.send({error: e});
       }
@@ -73,7 +73,7 @@ async function tryExtract(file: string) {
       if (err) {
         process.send && process.send({error: util.inspect(err)});
         if ((err as any).code === 'ENOMEM' || err.toString().indexOf('not enough memory') >= 0) {
-          // tslint:disable-next-line
+          // eslint-disable-next-line
 					process.send && process.send({log: `[pid:${process.pid}]${os.hostname()} ${os.userInfo().username} [Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`});
         }
         reject(err);

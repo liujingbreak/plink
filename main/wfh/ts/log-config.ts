@@ -1,4 +1,4 @@
-// tslint:disable no-console
+// eslint-disable  no-console
 import fs from 'fs-extra';
 import Path from 'path';
 import {DrcpSettings} from './config-handler';

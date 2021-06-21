@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 import * as fs from 'fs';
 import {resolve} from 'path';
 // const log = require('log4js').getLogger('ts-ast-querySpec');

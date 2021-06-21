@@ -77,7 +77,7 @@ const savedStore = fs.existsSync(stateFile) ? fs.readFileSync(stateFile, 'utf8')
 if (savedStore && savedStore.length === 0) {
   throw new Error('Emptry store file ' + stateFile + ', delete it and initial new workspaces');
 }
-// tslint:disable-next-line: no-eval
+// eslint-disable-next-line no-eval
 export const lastSavedState = savedStore ? eval('(' + savedStore + ')') : {};
 for (const ignoreSliceName of IGNORE_SLICE) {
   delete lastSavedState[ignoreSliceName];
@@ -97,7 +97,7 @@ stateFactory.actionsToDispatch.pipe(
   })
 ).subscribe();
 
-export async function startLogging() {
+export function startLogging() {
 
   // const logState = log4js.getLogger('plink.store.state');
   const logAction = log4js.getLogger('plink.store.action');
@@ -121,12 +121,12 @@ let saved = false;
  * The 'beforeExit' event is not emitted for conditions causing explicit termination,
  * such as calling process.exit() or uncaught exceptions.
  */
-process.on('beforeExit', async (code) => {
+process.on('beforeExit', (code) => {
   if (saved)
     return;
   stateFactory.dispatch({type: 'BEFORE_SAVE_STATE', payload: null});
   process.nextTick(() => saveState());
-  // // tslint:disable-next-line: no-console
+  // eslint-disable-next-line , no-console
   // console.log(chalk.green(`Done in ${new Date().getTime() - process.uptime()} s`));
 });
 
@@ -138,33 +138,34 @@ export async function saveState() {
   const log = log4js.getLogger('plink.store');
   saved = true;
   if (stateChangeCount === 0) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info(chalk.gray('state is not changed'));
     return;
   }
   if (!isMainThread) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info(chalk.gray('not in main thread, skip saving state'));
     return;
   }
   if (process.send) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info(chalk.gray('in a forked process, skip saving state'));
     return;
   }
   const store = await stateFactory.rootStoreReady;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const mergedState = Object.assign(lastSavedState, store.getState());
 
   const jsonStr = serialize(mergedState, {space: '  '});
-  fse.mkdirpSync(Path.dirname(stateFile!));
+  fse.mkdirpSync(Path.dirname(stateFile));
   try {
-    await fs.promises.writeFile(stateFile!, jsonStr);
-    // tslint:disable-next-line: no-console
+    await fs.promises.writeFile(stateFile, jsonStr);
+    // eslint-disable-next-line no-console
     log.info(chalk.gray(
-      `state file ${Path.relative(process.cwd(), stateFile!)} saved (${stateChangeCount})`));
+      `state file ${Path.relative(process.cwd(), stateFile)} saved (${stateChangeCount})`));
   } catch (err) {
-    // tslint:disable-next-line: no-console
-    log.error(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile!)}`), err);
+    // eslint-disable-next-line no-console
+    log.error(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile)}`), err);
   }
 }
 

@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 // import {ZipResourceMiddleware} from 'serve-static-zip';
 import request from 'request';
 import fs from 'fs';
@@ -10,19 +10,19 @@ const fileName = argv[3];
 const retryTimes = parseInt(argv[4], 10);
 
 process.on('uncaughtException', (err) => {
-  // tslint:disable-next-line
+  // eslint-disable-next-line
 	console.log(err);
   process.send && process.send({error: err});
 });
 
 process.on('unhandledRejection', (err) => {
-  // tslint:disable-next-line
+  // eslint-disable-next-line
   console.log(err);
   process.send && process.send({error: err});
 });
 
 async function downloadZip(fetchUrl: string) {
-  // tslint:disable-next-line
+  // eslint-disable-next-line
 	// log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
   const resource = fetchUrl + '?' + Math.random();
   // const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);

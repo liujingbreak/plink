@@ -16,14 +16,14 @@ import chalk from 'chalk';
 import {findPackagesByNames} from './utils';
 import {getState} from '../package-mgr';
 import {getTscConfigOfPkg} from '../utils/misc';
+// import config from '../config';
 
 const log = log4js.getLogger('plink.analyse');
 const cpus = os.cpus().length;
 
-export default async function(packages: string[], opts: AnalyzeOptions) {
+export default function(packages: string[], opts: AnalyzeOptions) {
   const alias: [reg: string, replace: string][] =
-    // tslint:disable-next-line: no-eval
-    opts.alias.map(item => JSON.parse(item));
+    opts.alias.map(item => JSON.parse(item) as [reg: string, replace: string]);
 
   if (opts.file && opts.file.length > 0) {
     dispatcher.analyzeFile({
@@ -74,10 +74,10 @@ export function printResult(result: NonNullable<AnalyzeState['result']>, opts: {
     table.push([{hAlign: 'right', content: '--'}, '--------']);
     let i = 1;
     for (const msg of result.canNotResolve) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       table.push([{hAlign: 'right', content: i++}, JSON.stringify(msg, null, '  ')]);
     }
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(table.toString());
   }
 
@@ -89,7 +89,7 @@ export function printResult(result: NonNullable<AnalyzeState['result']>, opts: {
     for (const msg of result.cyclic) {
       table.push([{hAlign: 'right', content: i++}, msg]);
     }
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(table.toString());
   }
 
@@ -102,11 +102,14 @@ export function printResult(result: NonNullable<AnalyzeState['result']>, opts: {
       for (const msg of result.externalDeps) {
         table.push([{hAlign: 'right', content: i++}, msg]);
       }
+      for (const msg of result.nodeModuleDeps) {
+        table.push([{hAlign: 'right', content: i++}, msg + ' (Node.js)']);
+      }
     }
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(table.toString());
     if (opts.j) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(JSON.stringify(result.externalDeps, null, '  '));
     }
   }
@@ -123,7 +126,7 @@ export function printResult(result: NonNullable<AnalyzeState['result']>, opts: {
     for (const msg of result.relativeDepsOutSideDir) {
       table.push([{hAlign: 'right', content: i++}, msg]);
     }
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(table.toString());
   }
 
@@ -139,7 +142,7 @@ export function printResult(result: NonNullable<AnalyzeState['result']>, opts: {
     for (const msg of result.matchAlias) {
       table.push([{hAlign: 'right', content: i++}, msg]);
     }
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(table.toString());
   }
 }
@@ -157,7 +160,7 @@ const slice = stateFactory.newSlice({
   reducers: createReducers({
     /** payload: glob patterns */
     analyzeFile(d: AnalyzeState, payload: {
-      files: string[], tsconfig?: string, alias: [pattern: string, replace: string][], ignore?: string
+      files: string[]; tsconfig?: string; alias: [pattern: string, replace: string][]; ignore?: string;
     }) {
       d.inputFiles = payload.files;
     }
@@ -211,6 +214,7 @@ export async function analyseFiles(files: string[],
     verbose: false
   });
 
+  // process.env.NODE_OPTIONS = '--inspect-brk';
   return await threadPool.submitProcess<ReturnType<Context['toPlainObject']>>({
     file: Path.resolve(__dirname, 'cli-analyse-worker.js'),
     exportFn: 'dfsTraverseFiles',

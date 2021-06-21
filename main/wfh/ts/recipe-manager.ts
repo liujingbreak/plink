@@ -1,4 +1,4 @@
-// tslint:disable:max-line-length
+/* eslint-disable max-len */
 /**
  * To avoid cyclic referecing, This file should not depends on package-mgr/index !!!
  */

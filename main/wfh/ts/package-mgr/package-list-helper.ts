@@ -114,7 +114,7 @@ export interface CompilerOptionSetOpt {
 export interface CompilerOptions {
   baseUrl: string;
   typeRoots: string[];
-  paths?: { [path: string]: string[]; };
+  paths?: { [path: string]: string[]};
   [prop: string]: ts.CompilerOptionsValue;
 }
 

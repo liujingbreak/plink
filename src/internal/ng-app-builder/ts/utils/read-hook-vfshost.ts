@@ -1,4 +1,4 @@
-/* tslint:disable no-console */
+/* eslint-disable  no-console */
 /**
  * TODO: So far Angular TS compiler reads file not in async mode, even return type is an Observable,
  * we probably can pre-read files and cache them to make hooks work in async-like mode.

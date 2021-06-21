@@ -7,7 +7,7 @@ describe('ViewChild transformer', () => {
     const content = fs.readFileSync(Path.resolve(
       __dirname, '../../ts/spec/upgrade-viewchild-ng8-sample.txt'), 'utf8');
     const newContent = transform(content, 'test view child upgrade');
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(newContent);
     // expect(newContent)
     // TODO

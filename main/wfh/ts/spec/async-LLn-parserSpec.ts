@@ -1,4 +1,5 @@
-// tslint:disable no-console
+/* eslint-disable no-console */
+// eslint-disable  no-console
 // import {LLStateMachine, StateHandler, Chunk} from '../LLn-state-machine';
 import parseJson from '../utils/json-parser';
 import parseJsonSync from '../utils/json-sync-parser';

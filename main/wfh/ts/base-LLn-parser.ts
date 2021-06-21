@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
  * @deprecated use LLn-parser instead
  */
@@ -143,6 +146,7 @@ export abstract class BaseLexer<T> extends LookAhead<string> implements Iterable
     const it = this.sourceIterator;
     // - Monkey patch iterator's next() method to track beginning position of each line
     let nextCount = 0;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     this.sourceIterator.next = function() {
       const nextRes = originNext.call(it);
@@ -162,7 +166,7 @@ export abstract class BaseLexer<T> extends LookAhead<string> implements Iterable
 
   getCurrentPosInfo(): string {
     const [line, col] = this.getLineColumn(this.currPos);
-    // tslint:disable-next-line:max-line-length
+    // eslint-disable-next-line max-len
     return `get ${JSON.stringify(this.la())}, at line ${line + 1}, column ${col + 1}, after ${JSON.stringify(this.lb())}`;
   }
 

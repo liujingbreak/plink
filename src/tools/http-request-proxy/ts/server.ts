@@ -5,12 +5,14 @@ import doProxy from './proxy-handler';
 import {ProxyInstanceForBrowser} from '../isom/proxy-instance';
 import {getSetting} from '../isom/http-request-proxy-setting';
 export * from '../isom/proxy-instance';
+import {npmRegistryProxy} from './hpm-setup';
 
 const log = api.logger;
 
 export function activate() {
   // api.router().use('/', api.cors());
   testRouter();
+  npmRegistryProxy();
   var multiProxies = api.config.get([api.packageName, 'proxies']);
   if (multiProxies) {
     _.each(multiProxies, (target, name) => useProxy(api.router(), target, name));

@@ -1,4 +1,4 @@
-/* tslint:disable max-line-length */
+/* eslint-disable  max-len */
 import * as _fs from 'fs-extra';
 import * as _ from 'lodash';
 import * as log4js from 'log4js';

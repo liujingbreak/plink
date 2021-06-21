@@ -17,11 +17,11 @@ interface Pm2Pocket {
 }
 
 export async function start() {
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log('start pm2-intercom');
   await connect();
   const apps: pm2.ProcessDescription[] = await list();
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log(apps.map(pc => pc.name + ': ' + pc.pm_id));
   const bus = await launchBus();
 
@@ -33,7 +33,7 @@ export async function start() {
     const name: string = _.get(packet, 'process.name');
     if (topic === 'log4js:master') {
       targets.set(name, packet.process.pm_id);
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log('--- App master process start ---\n', targets);
     }
     if (topic !== 'log4js:message') {

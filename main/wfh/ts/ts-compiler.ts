@@ -1,9 +1,13 @@
-// tslint:disable no-console
 import * as ts from 'typescript';
 import {readFileSync} from 'fs';
 import {plinkEnv} from './utils/misc';
+import * as Path from 'path';
+import chalk from 'chalk';
+import {getLogger} from 'log4js';
+const log = getLogger('plink.ts-compiler');
 
 export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const tsconfig = ts.readConfigFile(tsconfigFile, (file) => readFileSync(file, 'utf-8')).config;
   return ts.parseJsonConfigFileContent(tsconfig, ts.sys, plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, tsconfigFile).options;
@@ -18,6 +22,7 @@ export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
  */
 export function jsonToCompilerOptions(jsonCompilerOpt: any, file = 'tsconfig.json',
   basePath = plinkEnv.workDir): ts.CompilerOptions {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   return ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, basePath.replace(/\\/g, '/'),
   undefined, file).options;
 }
@@ -37,9 +42,8 @@ export function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOp
 }
 
 // import * as fs from 'fs';
-import * as Path from 'path';
+
 // import {inspect} from 'util';
-const chalk = require('chalk');
 const {red, yellow} = chalk;
 class TsCompiler {
   fileNames: string[] = [];
@@ -49,6 +53,7 @@ class TsCompiler {
   // currentFile: string;
 
   constructor(public compilerOptions: ts.CompilerOptions) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     const compilerHost = ts.createCompilerHost(compilerOptions);
 
@@ -121,10 +126,10 @@ class TsCompiler {
       const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
       if (diagnostic.file) {
         const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-        console.log((isError ? red : yellow)(`[wfh.ts-compiler] ${(isError ? 'Error' : 'Warning')} ` +
+        log.info((isError ? red : yellow)(`[wfh.ts-compiler] ${(isError ? 'Error' : 'Warning')} ` +
           `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`));
       } else {
-        console.log((isError ? red : yellow)(`[wfh.ts-compiler] ${(isError ? 'Error' : 'Warning')}: ${message}`));
+        log.info((isError ? red : yellow)(`[wfh.ts-compiler] ${(isError ? 'Error' : 'Warning')}: ${message}`));
       }
     });
   }
@@ -155,9 +160,7 @@ export function registerExtension(ext: string, compilerOpt: ts.CompilerOptions) 
   compilerOpt.inlineSourceMap = false;
   compilerOpt.inlineSources = false;
   require.extensions[ext] = function(m: any, filename) {
-    //   if (shouldIgnore(filename, ignore)) {
-    // 	return old(m, filename);
-    //   }
+
     const _compile = m._compile;
     m._compile = function(code: string, fileName: string) {
       const jscode = transpileAndCheck(code, fileName, compilerOpt);

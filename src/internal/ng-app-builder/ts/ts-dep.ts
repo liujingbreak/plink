@@ -173,7 +173,7 @@ export default class TsDependencyGraph {
                 const hashTag = lazyModule.indexOf('#');
                 if (hashTag > 0) {
                   // We found lazy route module
-                  // tslint:disable-next-line:no-console
+                  // eslint-disable-next-line no-console
                   console.log('lazy route module:', lazyModule);
                   resolve(lazyModule.slice(0, hashTag), file, resolved => {
                     self.loadChildren.add(resolved);

@@ -1,4 +1,4 @@
-/* tslint:disable no-console */
+/* eslint-disable  no-console */
 import ApiAotCompiler from '../utils/ts-before-aot';
 import * as fs from 'fs';
 import * as Path from 'path';

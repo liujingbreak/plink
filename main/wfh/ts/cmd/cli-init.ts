@@ -1,4 +1,4 @@
-// tslint:disable: no-console max-line-length
+/* eslint-disable no-console, max-len */
 import chalk from 'chalk';
 import Path from 'path';
 import {merge} from 'rxjs';
@@ -12,7 +12,7 @@ import _ from 'lodash';
 import * as options from './types';
 import {createCliTable, plinkEnv} from '../utils/misc';
 
-export default async function(opt: options.InitCmdOptions & options.NpmCliOption, workspace?: string) {
+export default function(opt: options.InitCmdOptions & options.NpmCliOption, workspace?: string) {
   const cwd = plinkEnv.workDir;
   getStore().pipe(
     distinctUntilChanged((s1, s2) => s1.packagesUpdateChecksum === s2.packagesUpdateChecksum),
@@ -29,7 +29,7 @@ export default async function(opt: options.InitCmdOptions & options.NpmCliOption
       table.push(['Package name', 'Version', 'Path'],
                  ['------------', '-------', '----']);
       for (const pk of paks) {
-        table.push([pk.name, pk.json.version, chalk.gray(Path.relative(cwd, pk.realPath))]);
+        table.push([pk.name, (pk.json as {version: string}).version, chalk.gray(Path.relative(cwd, pk.realPath))]);
       }
       console.log(table.toString());
       printWorkspaces();
@@ -116,8 +116,8 @@ export function printWorkspaces() {
 }
 
 function convertVersion(pkgJson: {
-  dependencies?: {[k: string]: string},
-  devDependencies?: {[k: string]: string}
+  dependencies?: {[k: string]: string};
+  devDependencies?: {[k: string]: string};
 }, depName: string) {
   let ver = pkgJson.dependencies ? pkgJson.dependencies[depName] : null;
   if (ver == null && pkgJson.devDependencies) {
@@ -140,7 +140,7 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
   const table = createTable();
   table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
     ['---', '---'].map(item => chalk.gray(item)));
-  for (const [dep, dependents] of workspace.hoistInfo!.entries()) {
+  for (const [dep, dependents] of workspace.hoistInfo.entries()) {
     table.push(renderHoistDepInfo(dep, dependents));
   }
   console.log(table.toString());
@@ -149,7 +149,7 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
     table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
     ['---', '---'].map(item => chalk.gray(item)));
     console.log(chalk.bold(`\nHoisted Transitive (dev) Dependency & Dependents (${workspace.id || '<root directory>'})`));
-    for (const [dep, dependents] of workspace.hoistDevInfo!.entries()) {
+    for (const [dep, dependents] of workspace.hoistDevInfo.entries()) {
       table.push(renderHoistDepInfo(dep, dependents));
     }
     console.log(table.toString());
@@ -159,7 +159,7 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
     const table = createTable();
     table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
     ['---', '---'].map(item => chalk.gray(item)));
-    for (const [dep, dependents] of workspace.hoistPeerDepInfo!.entries()) {
+    for (const [dep, dependents] of workspace.hoistPeerDepInfo.entries()) {
       table.push(renderHoistPeerDepInfo(dep, dependents));
     }
     console.log(table.toString());
@@ -169,7 +169,7 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
     const table = createTable();
     table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
     ['---', '---'].map(item => chalk.gray(item)));
-    for (const [dep, dependents] of workspace.hoistDevPeerDepInfo!.entries()) {
+    for (const [dep, dependents] of workspace.hoistDevPeerDepInfo.entries()) {
       table.push(renderHoistPeerDepInfo(dep, dependents));
     }
     console.log(table.toString());

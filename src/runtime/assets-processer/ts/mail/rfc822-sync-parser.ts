@@ -74,7 +74,7 @@ class RfcParserContext {
     try {
       return ps.getResult();
     } catch (err) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       log.error('Failed to parse:\n' + Buffer.from(this.origBuffer).toString('utf8'));
       throw err;
     }

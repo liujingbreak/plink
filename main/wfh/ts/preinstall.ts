@@ -19,22 +19,22 @@ if (fs.existsSync('node_modules')) {
           try {
             if (fs.lstatSync(scopedPkg).isSymbolicLink()) {
               fs.unlinkSync(scopedPkg);
-              // tslint:disable-next-line: no-console
+              // eslint-disable-next-line no-console
               console.log('[preinstall] delete symlink', scopedPkg);
             }
           } catch (err) {
-            // tslint:disable-next-line: no-console
+            // eslint-disable-next-line no-console
             console.log('[preinstall] delete symlink', scopedPkg);
             fs.unlinkSync(scopedPkg);
           }
         }
       } else if (stat.isSymbolicLink()) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log('[preinstall] delete symlink', target);
         fs.unlinkSync(target);
       }
     } catch (ex) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log('[preinstall] delete symlink', target);
       fs.unlinkSync(target);
     }

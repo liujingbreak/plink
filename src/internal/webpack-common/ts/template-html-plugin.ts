@@ -1,4 +1,4 @@
-/* tslint:disable max-classes-per-file */
+/* eslint-disable  max-classes-per-file */
 /**
  * For create-react-app, allow lodash template to be used in any "index.html" file before it goes to html-webpack-plugin.
  * 

@@ -1,4 +1,4 @@
-/* tslint:disable no-console */
+/* eslint-disable  no-console */
 import parse, {HtmlTokenType, lexer, TagKind, OpenTagAst} from '../utils/ng-html-parser';
 import {listTokens} from '@wfh/plink/wfh/dist/LLn-parser';
 import chalk from 'chalk';

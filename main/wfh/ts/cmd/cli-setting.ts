@@ -1,4 +1,4 @@
-// tslint:disable max-line-length no-console
+// eslint-disable  max-len, no-console
 import config from '../config/index';
 import {dispatcher, getStore, getState} from '../config/config-view-slice';
 import {workspaceKey, PackageInfo} from '../package-mgr';
@@ -12,7 +12,7 @@ import {getLogger} from 'log4js';
 
 const log = getLogger('plink.cli-setting');
 
-export default async function(pkgName?: string) {
+export default function(pkgName?: string) {
   const wskey = workspaceKey(plinkEnv.workDir);
   if (pkgName) {
     const foundPkgName = Array.from(completePackageName([pkgName]))[0];
@@ -52,9 +52,9 @@ export default async function(pkgName?: string) {
       }
       const tbl = createCliTable();
       tbl.push(['Complete setting values:']);
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(tbl.toString());
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(util.inspect(setting, false, 5));
     })
   ).subscribe();
@@ -65,13 +65,13 @@ export default async function(pkgName?: string) {
 //   const state = getState();
 //   const meta = state.packageMetaByName.get(pkgName);
 //   if (meta == null) {
-//     // tslint:disable-next-line: no-console
+// eslint-disable-next-line , no-console
 //     console.log('No setting found for package ' + pkgName);
 //     return;
 //   }
 //   const table = createCliTable({horizontalLines: false, colWidths: [null, null], colAligns: ['right', 'left']});
 //   table.push(
-//     // tslint:disable-next-line: max-line-length
+// eslint-disable-next-line max-len
 //     [{colSpan: 2, content: `Package ${chalk.green(pkgName)} setting ${chalk.gray('| ' + meta.typeFile)}`, hAlign: 'center'}],
 //     ['PROPERTY', 'TYPE AND DESCIPTION'].map(item => chalk.gray(item)),
 //     ['------', '-------'].map(item => chalk.gray(item))
@@ -86,7 +86,7 @@ export default async function(pkgName?: string) {
 //       // JSON.stringify(valuesForPkg[propMeta.property], null, '  ')
 //     ]);
 //   }
-//   // tslint:disable: no-console
+/* eslint-disable no-console */
 //   console.log(table.toString());
 // }
 
@@ -94,7 +94,7 @@ function printPackage({name: pkgName, realPath}: PackageInfo) {
   const state = getState();
   const meta = state.packageMetaByName.get(pkgName);
   if (meta == null) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log('No setting found for package ' + pkgName);
     return;
   }

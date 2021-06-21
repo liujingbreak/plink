@@ -30,7 +30,7 @@ export function queue(maxParallel: number) {
   async function performAction() {
     parallel++;
     while (actions.length > 0) {
-      await actions.shift();
+      await (actions.shift())!();
     }
     parallel--;
   }
@@ -40,7 +40,8 @@ export function queue(maxParallel: number) {
       return new Promise<T>((resolve, rej) => {
         actions.push(() => action().then(resolve).catch(rej));
         if (parallel < maxParallel) {
-          performAction();
+          // TODO: handle promise rejection
+          void performAction();
         }
       });
     }

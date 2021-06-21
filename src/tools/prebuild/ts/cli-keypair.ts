@@ -9,7 +9,7 @@ export default async function genKeyPair(fileName: string | undefined, options: 
     publicKeyEncoding: {type: 'spki', format: 'pem'},
     privateKeyEncoding: {type: 'pkcs8', format: 'pem'}
   });
-    // tslint:disable: no-console
+    /* eslint-disable no-console */
   console.log(keypairs.publicKey);
   console.log(keypairs.privateKey);
 }

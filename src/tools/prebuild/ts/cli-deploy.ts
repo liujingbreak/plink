@@ -24,14 +24,14 @@ export default async function(isStatic: boolean, env: string, app: string, pushB
         env: ev
       }).promise;
     } else if (scriptsFile.indexOf('#') < 0) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       log.error(chalk.redBright(`Wrong format of ${scriptsFile}, in which no "#" is found`));
       return;
     } else {
       const scriptAndFunc = scriptsFile.split('#');
       const file = scriptAndFunc[0];
       const func = scriptAndFunc[1];
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       log.info(`executing file: ${file}, function name: ${func}`);
       await Promise.resolve(require(Path.resolve(file))[func](env, app, isStatic));
     }

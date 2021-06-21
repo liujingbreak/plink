@@ -1,4 +1,4 @@
-/* tslint:disable max-line-length */
+/* eslint-disable  max-len */
 import { readTsConfig, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';
 import * as fs from 'fs';
 import * as _ from 'lodash';

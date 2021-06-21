@@ -243,20 +243,6 @@ export class PlinkCommand extends commander.Command {
   action(fn: (...args: any[]) => void | Promise<void>) {
     function actionCallback() {
       const {initConfig} = require('../utils/bootstrap-process') as typeof _bootstrap;
-      if ((this.opts() as GlobalOptions).verbose) {
-        log4js.configure({
-          appenders: {
-            out: {
-              type: 'stdout',
-              layout: {type: 'pattern', pattern: (process.send ? '%z' : '') + '%[[%p] %c%] - %m'}
-            }
-          },
-          categories: {
-            default: {appenders: ['out'], level: 'debug'},
-            plink: {appenders: ['out'], level: 'debug'}
-          }
-        });
-      }
       initConfig(this.opts() as GlobalOptions);
       return fn.apply(this, arguments);
     }
@@ -330,7 +316,7 @@ export class CommandOverrider {
         subCmdFactory(this.program as PlinkCommand);
         this.pkgMetasMap.set(pk.name, commandMetaInfos);
       } catch (e) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
       } finally {
         filePath = null;

@@ -9,6 +9,7 @@ export interface HttpRequestProxySetting {
     };
     timeout: number;
     proxyTo?: string;
+    npmRegistry: string;
 }
 /**
  * Plink runs this funtion to get package level setting value,

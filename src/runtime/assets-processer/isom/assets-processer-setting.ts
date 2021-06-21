@@ -107,6 +107,6 @@ export function defaultSetting(): AssetsProcesserSetting {
  * @return setting of current package
  */
 export function getSetting(): AssetsProcesserSetting {
-  // tslint:disable:no-string-literal
+  /* eslint-disable dot-notation,@typescript-eslint/dot-notation */
   return config()['@wfh/assets-processer']!;
 }

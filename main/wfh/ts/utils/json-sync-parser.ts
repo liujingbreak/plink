@@ -1,7 +1,7 @@
 
 import { Chunk, Grammar, Lexer, parser } from '../LLn-parser';
 
-export type Token = Chunk<string, string> & {/** string literal contains "" or '' */text: string;};
+export type Token = Chunk<string, string> & {/** string literal contains "" or '' */text: string};
 
 const lexer: Lexer<string, string, Token> = function(
   strLookAhead, emitter) {
@@ -63,7 +63,7 @@ export interface Ast {
 }
 
 export interface ObjectAst extends Ast {
-  properties: {name: Token, value: Ast|Token}[];
+  properties: {name: Token; value: Ast|Token}[];
 }
 
 export interface ArrayAst extends Ast {
@@ -133,7 +133,7 @@ function doArray(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ArrayAst {
     ast.end = lexer.advance().end; // ]
 
   } else if (next == null)
-    throw new Error('Unexpect EOF after ' + lexer.lastConsumed!.text);
+    throw new Error('Unexpect EOF after ' + lexer.lastConsumed.text);
   else
     throw new Error(`Unexpect ${next.text} at ${next.line}:${next.col}`);
   return ast as ArrayAst;

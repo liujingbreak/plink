@@ -251,7 +251,7 @@ export async function activate(app: Application, imap: ImapManager) {
 export function generateToken() {
   const date = new Date();
   const token = date.getDate() + '' + date.getHours();
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log(token);
   return token;
 }

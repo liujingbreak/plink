@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 import Graph from '../ts-dep';
 import {readTsConfig} from '@wfh/plink/wfh/dist/ts-compiler';
 import Path from 'path';

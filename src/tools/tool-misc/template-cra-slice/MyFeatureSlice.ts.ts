@@ -60,7 +60,7 @@ const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}
     )
   ).pipe(
     op.catchError((ex, src) => {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.error(ex);
       // To recover from async action errors, always return "src" stream when error is encountered.
       return src;

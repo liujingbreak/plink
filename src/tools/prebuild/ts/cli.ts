@@ -43,10 +43,10 @@ const cliExt: CliExtension = (program) => {
     .action(async () => {
       const Artifacts: typeof _Artifacts = require('./artifacts');
       if (githashCmd.opts().env) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log(await Artifacts.stringifyListVersions(githashCmd.opts().env));
       } else {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log(await Artifacts.stringifyListAllVersions());
       }
     });
@@ -82,7 +82,7 @@ const cliExt: CliExtension = (program) => {
 
       await Artifacts.writeMockZip(file, fileContent);
       const log = log4js.getLogger('prebuild');
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       log.info('Mock zip:', file);
     });
   // withGlobalOptions(mockzipCmd);

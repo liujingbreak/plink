@@ -1,4 +1,4 @@
-/* tslint:disable no-console max-line-length */
+/* eslint-disable  no-console, max-len */
 const log = require('log4js').getLogger('ChunkInfoPlugin');
 const logFd = log;
 const logD = log;

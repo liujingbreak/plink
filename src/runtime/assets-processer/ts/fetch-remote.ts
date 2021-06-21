@@ -30,7 +30,7 @@ export const zipDownloadDir = Path.resolve(Path.dirname(currChecksumFile), 'depl
 let imap: ImapManager;
 
 export async function start(imap: ImapManager) {
-  // tslint:disable-next-line
+  // eslint-disable-next-line
 	log.info(`[memory status] total ${Math.floor(os.totalmem() / 1048576)}Mb, free ${Math.floor(os.freemem() / 1048576)}Mb\n` +
     `[num of CPU] ${os.cpus().length}`);
 
@@ -211,7 +211,7 @@ async function checkAndDownload(checksumObj: Checksum, imap: ImapManager) {
 // let downloadCount = 0;
 
 // async function downloadZip(path: string) {
-//   // tslint:disable-next-line
+// eslint-disable-next-line
 // 	// log.info(`${os.hostname()} ${os.userInfo().username} download zip[Free mem]: ${Math.round(os.freemem() / 1048576)}M, [total mem]: ${Math.round(os.totalmem() / 1048576)}M`);
 //   const resource = Url.resolve( setting.fetchUrl, path + '?' + Math.random());
 //   // const downloadTo = api.config.resolve('destDir', `remote-${Math.random()}-${path.split('/').pop()}`);

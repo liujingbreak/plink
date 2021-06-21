@@ -1,4 +1,4 @@
-/* tslint:disable max-classes-per-file */
+/* eslint-disable  max-classes-per-file */
 /**
  * Same function as react-dev-utils/InlineChunkHtmlPlugin, but does not rely on HtmlWebpackPlugin
  */

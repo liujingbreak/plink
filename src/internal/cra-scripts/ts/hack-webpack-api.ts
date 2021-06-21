@@ -48,7 +48,7 @@ export function hackWebpack4Compiler() {
           }
           console.error(chalk.red(messages.errors.join('\n\n')));
           if (messages.warnings.length) {
-            // tslint:disable-next-line: no-console
+            // eslint-disable-next-line no-console
             console.log(
               chalk.yellow(
                 '\nTreating warnings as errors because process.env.CI = true.\n' +

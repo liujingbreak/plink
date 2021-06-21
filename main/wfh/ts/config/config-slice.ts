@@ -5,6 +5,7 @@ import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
 import {PayloadAction} from '@reduxjs/toolkit';
+import log4js from 'log4js';
 import {PackagesConfig} from '_package-settings';
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 export interface BasePlinkSettings {
@@ -91,6 +92,24 @@ stateFactory.addEpic<{config: BasePlinkSettings}>((action$, state$) => {
         process.env.NODE_ENV = devMode ? 'development' : 'production';
       })
     ),
+    getStore().pipe(op.map(s => s.cliOptions?.verbose), op.distinctUntilChanged(),
+      op.filter(verbose => !!verbose),
+      op.map(() => {
+        log4js.configure({
+          appenders: {
+            out: {
+              type: 'stdout',
+              layout: {type: 'pattern', pattern: (process.send ? '%z' : '') + '%[[%p] %c%] - %m'}
+            }
+          },
+          categories: {
+            default: {appenders: ['out'], level: 'debug'},
+            plink: {appenders: ['out'], level: 'debug'}
+          }
+        });
+      }),
+      op.take(1)
+    ),
     action$.pipe(op.filter(action => action.type === 'BEFORE_SAVE_STATE'),
       op.tap(() => dispatcher._change(s => {
         s.cliOptions = undefined;
@@ -99,7 +118,7 @@ stateFactory.addEpic<{config: BasePlinkSettings}>((action$, state$) => {
     )
   ).pipe(
     op.catchError((ex, src) => {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.error(ex);
       return src;
     }),

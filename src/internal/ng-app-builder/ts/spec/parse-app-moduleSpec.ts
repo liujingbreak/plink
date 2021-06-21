@@ -1,4 +1,4 @@
-/* tslint:disable max-line-length no-console */
+/* eslint-disable  max-len, no-console */
 import AppModuleParser, {findAppModuleFileFromMain} from '../utils/parse-app-module';
 import {readFileSync} from 'fs';
 import {resolve} from 'path';

@@ -27,16 +27,16 @@ export function doTsconfig(opts: CliOptions) {
       if (datas.size > 0) {
         return true;
       }
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log('No hooked files found, hook file by command options "--hook <file>"');
       return false;
     }),
     op.debounceTime(0), // There will be two change events happening, let's get the last change result only
     op.tap((datas) => {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log('Hooked tsconfig files:');
       for (const data of datas.values()) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log('  ' + Path.resolve(getRootDir(), data.relPath));
       }
     })

@@ -38,7 +38,7 @@ export function removeProjectSymlink(isDrcpDevMode: boolean) {
   }
 }
 
-/* tslint:disable:no-console */
+/* eslint-disable no-console */
 export function createProjectSymlink() {
   const isWin32 = require('os').platform().indexOf('win32') >= 0;
   const nodePath = fs.realpathSync(Path.resolve(getWorkDir(), 'node_modules'));

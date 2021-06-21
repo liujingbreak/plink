@@ -157,7 +157,7 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
   serverResHandler.output.pipe(
     tap(msg => {
       if (msg != null)
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log('  <- ' + msg.map(token => token.text).join(' '));
     })
   ).subscribe();

@@ -17,7 +17,7 @@ export async function listZip(fileName: string) {
   zip.on('entry', (entry: yauzl.Entry) => {
     list.push(entry.fileName);
 
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(entry.fileName + chalk.green(` (size: ${entry.uncompressedSize >> 10} Kb)`));
     zip.readEntry();
   });

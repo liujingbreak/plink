@@ -1,6 +1,6 @@
 import { AnalyzeOptions } from './types';
 import { Context } from './cli-analyse-worker';
-export default function (packages: string[], opts: AnalyzeOptions): Promise<void>;
+export default function (packages: string[], opts: AnalyzeOptions): void;
 export declare function printResult(result: NonNullable<AnalyzeState['result']>, opts: {
     j: AnalyzeOptions['j'];
 }): void;
@@ -29,6 +29,7 @@ export declare function analyseFiles(files: string[], tsconfigFile: string | und
         reasone: string;
     }[];
     externalDeps: string[];
+    nodeModuleDeps: string[];
     matchAlias: string[];
     files: string[];
 }>;

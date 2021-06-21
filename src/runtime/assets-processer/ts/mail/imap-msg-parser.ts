@@ -242,7 +242,7 @@ export async function connectImap(address: string) {
       } as ConnectionOptions);
 
       socket.on('secureConnect', () => {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log('connected', socket.authorized ? 'authorized' : 'unauthorized');
         resolve(socket);
       })

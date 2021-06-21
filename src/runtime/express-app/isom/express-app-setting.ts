@@ -22,6 +22,6 @@ export function defaultSetting(): ExpressAppSetting {
  * @return setting of current package
  */
 export function getSetting(): ExpressAppSetting {
-  // tslint:disable:no-string-literal
+  /* eslint-disable dot-notation,@typescript-eslint/dot-notation */
   return config()['@wfh/express-app']!;
 }

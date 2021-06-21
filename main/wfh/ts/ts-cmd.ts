@@ -1,10 +1,10 @@
-// tslint:disable: max-line-length
+/* eslint-disable max-len */
 import chalk from 'chalk';
 import * as packageUtils from './package-utils';
 import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import Path, {resolve, join, relative, sep} from 'path';
-import ts from 'typescript';
+import _ts from 'typescript';
 import {getTscConfigOfPkg, PackageTsDirs, plinkEnv} from './utils/misc';
 import {CompilerOptions} from 'typescript';
 import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions, allPackages} from './package-mgr/package-list-helper';
@@ -13,7 +13,7 @@ import {DirTree} from 'require-injector/dist/dir-tree';
 import {getState, workspaceKey, PackageInfo} from './package-mgr';
 import log4js from 'log4js';
 import glob from 'glob';
-import {mergeBaseUrlAndPaths} from './ts-cmd-util';
+import {mergeBaseUrlAndPaths, parseConfigFileToJson} from './ts-cmd-util';
 import {webInjector} from './injector-factory';
 import {analyseFiles} from './cmd/cli-analyze';
 // import {PlinkEnv} from './node-path';
@@ -54,29 +54,26 @@ interface PackageDirInfo extends PackageTsDirs {
  * @param {function} onCompiled () => void
  * @return void
  */
-export async function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) => void*/): Promise<string[]> {
+export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<string[]> {
   // const compGlobs: string[] = [];
   // const compFiles: string[] = [];
   const rootFiles: string[] = [];
 
   const compDirInfo: Map<string, PackageDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
-  const baseTsconfigFile = require.resolve('../tsconfig-base.json');
-  const baseTsconfig = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'));
-  if (baseTsconfig.error) {
-    console.error(baseTsconfig.error);
-    throw new Error('Incorrect tsconfig file: ' + baseTsconfigFile);
-  }
 
-  let baseCompilerOptions = baseTsconfig.config.compilerOptions;
+  let baseCompilerOptions: RequiredCompilerOptions;
 
   if (argv.jsx) {
     const baseTsconfigFile2 = require.resolve('../tsconfig-tsx.json');
-    const tsxTsconfig = ts.parseConfigFileTextToJson(baseTsconfigFile2, fs.readFileSync(baseTsconfigFile2, 'utf8'));
-    if (tsxTsconfig.error) {
-      console.error(tsxTsconfig.error);
-      throw new Error('Incorrect tsconfig file: ' + baseTsconfigFile2);
-    }
-    baseCompilerOptions = {...baseCompilerOptions, ...tsxTsconfig.config.compilerOptions};
+    log.info('Use tsconfig file:', baseTsconfigFile2);
+    const tsxTsconfig = parseConfigFileToJson(ts, baseTsconfigFile2);
+    baseCompilerOptions = tsxTsconfig.compilerOptions;
+    // baseCompilerOptions = {...baseCompilerOptions, ...tsxTsconfig.config.compilerOptions};
+  } else {
+    const baseTsconfigFile = require.resolve('../tsconfig-base.json');
+    const baseTsconfig = parseConfigFileToJson(ts, baseTsconfigFile);
+    log.info('Use tsconfig file:', baseTsconfig);
+    baseCompilerOptions = baseTsconfig.compilerOptions;
   }
 
   // const promCompile = Promise.resolve( [] as EmitList);
@@ -126,7 +123,7 @@ export async function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) 
     // preserveSymlinks: true
   };
 
-  setupCompilerOptionsWithPackages(compilerOptions, argv);
+  setupCompilerOptionsWithPackages(compilerOptions, argv, ts);
 
   log.info('typescript compilerOptions:', compilerOptions);
 
@@ -159,7 +156,7 @@ export async function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) 
         ' current worktree space is not synced yet, try "sync"/"init" command please');
       } else {
         log.error(`There is no existing ts source directory found for package ${chalk.red(name)}:` +
-          ` ${[tscCfg.srcDir, tscCfg.isomDir].filter(item => item != null)}`);
+          ` ${[tscCfg.srcDir, tscCfg.isomDir].filter(item => item != null).join(', ')}`);
       }
     }
 
@@ -191,11 +188,11 @@ export async function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) 
   // log.warn('rootFiles:\n' + rootFiles.join('\n'));
   if (argv.watch) {
     log.info('Watch mode');
-    watch(rootFiles, compilerOptions, commonRootDir, packageDirTree);
+    watch(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
     return [];
     // watch(compGlobs, tsProject, commonRootDir, packageDirTree, argv.ed, argv.jsx, onCompiled);
   } else {
-    const emitted = compile(rootFiles, compilerOptions, commonRootDir, packageDirTree);
+    const emitted = compile(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
     if (process.send)
       process.send('plink-tsc compiled');
     return emitted;
@@ -203,30 +200,30 @@ export async function tsc(argv: TscCmdParam/*, onCompiled?: (emitted: EmitList) 
   }
 }
 
-const formatHost: ts.FormatDiagnosticsHost = {
+const formatHost: _ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
-  getCurrentDirectory: ts.sys.getCurrentDirectory,
-  getNewLine: () => ts.sys.newLine
+  getCurrentDirectory: _ts.sys.getCurrentDirectory,
+  getNewLine: () => _ts.sys.newLine
 };
 
-function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
+function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
     plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
 
-  function _reportDiagnostic(diagnostic: ts.Diagnostic) {
-    return reportDiagnostic(diagnostic, commonRootDir, packageDirTree);
+  function _reportDiagnostic(diagnostic: _ts.Diagnostic) {
+    return reportDiagnostic(diagnostic, commonRootDir, packageDirTree, ts);
   }
   const programHost = ts.createWatchCompilerHost(rootFiles, compilerOptions, ts.sys,
-    ts.createEmitAndSemanticDiagnosticsBuilderProgram, _reportDiagnostic, reportWatchStatusChanged);
+    ts.createEmitAndSemanticDiagnosticsBuilderProgram, _reportDiagnostic, d => reportWatchStatusChanged(d, ts));
   patchWatchCompilerHost(programHost);
 
   const origCreateProgram = programHost.createProgram;
   // Ts's createWatchProgram will call WatchCompilerHost.createProgram(), this is where we patch "CompilerHost"
   programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
-    host?: ts.CompilerHost) {
+    host?: _ts.CompilerHost) {
     if (host && (host as any)._overrided == null) {
-      patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions);
+      patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
     }
     const program: ReturnType<typeof origCreateProgram> = origCreateProgram.apply(this, arguments);
     return program;
@@ -235,20 +232,21 @@ function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string,
   ts.createWatchProgram(programHost);
 }
 
-function compile(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
+function compile(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>,
+  ts: typeof _ts = _ts) {
   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
     plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
   const host = ts.createCompilerHost(compilerOptions);
   patchWatchCompilerHost(host);
-  const emitted = patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions);
+  const emitted = patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
   const program = ts.createProgram(rootFiles, compilerOptions, host);
   const emitResult = program.emit();
   const allDiagnostics = ts.getPreEmitDiagnostics(program)
     .concat(emitResult.diagnostics);
 
-  function _reportDiagnostic(diagnostic: ts.Diagnostic) {
-    return reportDiagnostic(diagnostic, commonRootDir, packageDirTree);
+  function _reportDiagnostic(diagnostic: _ts.Diagnostic) {
+    return reportDiagnostic(diagnostic, commonRootDir, packageDirTree, ts);
   }
   allDiagnostics.forEach(diagnostic => {
     _reportDiagnostic(diagnostic);
@@ -260,11 +258,12 @@ function compile(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: strin
 }
 
 /** Overriding WriteFile() */
-function patchCompilerHost(host: ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, co: ts.CompilerOptions): string[] {
+function patchCompilerHost(host: _ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>,
+  co: _ts.CompilerOptions, ts: typeof _ts = _ts): string[] {
   const emittedList: string[] = [];
   // It seems to not able to write file through symlink in Windows
   // const _writeFile = host.writeFile;
-  const writeFile: ts.WriteFileCallback = function(fileName, data, writeByteOrderMark, onError, sourceFiles) {
+  const writeFile: _ts.WriteFileCallback = function(fileName, data, writeByteOrderMark, onError, sourceFiles) {
     const destFile = realPathOf(fileName, commonRootDir, packageDirTree);
     if (destFile == null) {
       log.debug('skip', fileName);
@@ -294,7 +293,7 @@ function patchCompilerHost(host: ts.CompilerHost, commonRootDir: string, package
   return emittedList;
 }
 
-function patchWatchCompilerHost(host: ts.WatchCompilerHostOfFilesAndCompilerOptions<ts.EmitAndSemanticDiagnosticsBuilderProgram> | ts.CompilerHost) {
+function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOptions<_ts.EmitAndSemanticDiagnosticsBuilderProgram> | _ts.CompilerHost) {
   const readFile = host.readFile;
   const cwd = process.cwd();
   host.readFile = function(path: string, encoding?: string) {
@@ -338,7 +337,7 @@ function patchWatchCompilerHost(host: ts.WatchCompilerHostOfFilesAndCompilerOpti
 //   return hackedEmit;
 // }
 
-function reportDiagnostic(diagnostic: ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>) {
+function reportDiagnostic(diagnostic: _ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
   let fileInfo = '';
   if (diagnostic.file) {
     const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
@@ -348,13 +347,13 @@ function reportDiagnostic(diagnostic: ts.Diagnostic, commonRootDir: string, pack
   console.error(chalk.red(`Error ${diagnostic.code} ${fileInfo} :`), ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
 }
 
-function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
+function reportWatchStatusChanged(diagnostic: _ts.Diagnostic, ts: typeof _ts = _ts) {
   console.info(chalk.cyan(ts.formatDiagnostic(diagnostic, formatHost)));
 }
 
 const COMPILER_OPTIONS_MERGE_EXCLUDE = new Set(['baseUrl', 'typeRoots', 'paths', 'rootDir']);
 
-function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, opts?: TscCmdParam) {
+function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, opts?: TscCmdParam, ts: typeof _ts = _ts) {
   const cwd = plinkEnv.workDir;
   let wsKey: string | null | undefined = workspaceKey(cwd);
   if (!getState().workspaces.has(wsKey))

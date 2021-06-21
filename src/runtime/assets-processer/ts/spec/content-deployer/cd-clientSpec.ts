@@ -11,7 +11,7 @@ describe('cd-client', () => {
     await of(Buffer.from('\nabcd'), Buffer.from('efg\n123'), Buffer.from('4\n'), asyncScheduler)
     .pipe(
       toLines,
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       tap(line => console.log(JSON.stringify(line))),
       reduce<string>((acc, value) => {
         acc.push(value);
@@ -29,7 +29,7 @@ describe('cd-client', () => {
       numOfConc: 2,
       numOfNode: 1
     }, '/Users/liujing/bk/webui-static.zip');
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log('-----------');
   });
 });

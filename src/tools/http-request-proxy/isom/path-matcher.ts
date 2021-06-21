@@ -47,7 +47,7 @@ export function addToHandlerTree<H extends (BodyHandler | HeaderHandler)>(
         return escapeRegExp(el);
       }
     }).join('\\/') + '$');
-    // tslint:disable-next-line:no-console
+    // eslint-disable-next-line no-console
     console.log(`[path-matcher] path ${path}'s regexp:`, restingRegex);
   }
 

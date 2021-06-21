@@ -30,6 +30,6 @@ export function defaultSetting(): NgAppBuilderSetting {
  * @return setting of current package
  */
 export function getSetting(): NgAppBuilderSetting {
-  // tslint:disable:no-string-literal
+  /* eslint-disable dot-notation,@typescript-eslint/dot-notation */
   return config()['@wfh/ng-app-builder']!;
 }

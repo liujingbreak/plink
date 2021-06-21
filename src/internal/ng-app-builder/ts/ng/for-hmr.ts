@@ -32,7 +32,7 @@ export function _createMainHmrFile(mainTs: string, mainFile: string): string {
 
   // let bootCallAst: ts.Node;
   // const statement = query.src.statements.find(statement => {
-  //   // tslint:disable-next-line max-line-length
+  // eslint-disable-next-line  max-len
   //   const bootCall = query.findMapTo(statement, ':PropertyAccessExpression > .expression:CallExpression > .expression:Identifier',
   //     (ast: ts.Identifier, path, parents) => {
   //       if (ast.text === 'platformBrowserDynamic' &&

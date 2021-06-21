@@ -12,9 +12,11 @@ import {initAsChildProcess, initConfig} from '../utils/bootstrap-process';
 import {initInjectorForNodePackages} from '../package-runner';
 import {webInjector} from '../injector-factory';
 import {closestCommonParentDir, plinkEnv} from '../utils/misc';
-import {mergeBaseUrlAndPaths, RequiredCompilerOptions} from '../ts-cmd-util';
+import {mergeBaseUrlAndPaths, RequiredCompilerOptions, parseConfigFileToJson} from '../ts-cmd-util';
 import {log4File} from '../logger';
 
+const NODE_MODULE_SET = new Set('child_process cluster http https http2 crypto fs path os net v8 util url tty trace_events tls stream vm domain'
+  .split(/\s+/));
 
 let coJson: RequiredCompilerOptions;
 // setTsCompilerOptForNodePath(plinkEnv.workDir, './', coJson, {workspaceDir: plinkEnv.workDir});
@@ -43,6 +45,7 @@ export class Context {
       reasone: string;
     }[] = [],
     public externalDeps: Set<string> = new Set(),
+    public nodeModuleDeps: Set<string> = new Set(),
     public matchAlias: string[] = []
   ) {
     this.commonDir = commonDir.endsWith(Path.sep) ? commonDir : commonDir + Path.sep;
@@ -55,6 +58,7 @@ export class Context {
       cyclic: this.cyclic,
       canNotResolve: this.canNotResolve,
       externalDeps: Array.from(this.externalDeps.values()),
+      nodeModuleDeps: Array.from(this.nodeModuleDeps.values()),
       matchAlias: this.matchAlias,
       files: this.topSortedFiles
     };
@@ -71,11 +75,12 @@ export function dfsTraverseFiles(files: string[], tsconfigFile: string | null | 
   const dfs: DFS<string> = new DFS<string>(file => {
     const content = webInjector.injectToFile(file, fs.readFileSync(file, 'utf8'));
     const q = new Query(content, file);
+    log.debug('Lookup file', Path.relative(plinkEnv.workDir, file));
     return parseFile(q, file, context);
   }, vertex => {
     context.topSortedFiles.push(vertex.data);
   });
-
+  log.debug('scan files\n', files);
   dfs.visit(files);
   const cwd = plinkEnv.workDir;
   if (dfs.backEdges.length > 0) {
@@ -96,9 +101,10 @@ export function dfsTraverseFiles(files: string[], tsconfigFile: string | null | 
 function init(tsconfigFile?: string | null) {
   if (coJson != null)
     return;
+
   const baseTsconfigFile = Path.resolve(__dirname, '../../tsconfig-tsx.json');
-  const baseTscfg = ts.parseConfigFileTextToJson(baseTsconfigFile, fs.readFileSync(baseTsconfigFile, 'utf8'))
-    .config;
+
+  const baseTscfg = parseConfigFileToJson(ts, baseTsconfigFile);
 
   coJson = baseTscfg.compilerOptions;
   if (tsconfigFile) {
@@ -106,6 +112,7 @@ function init(tsconfigFile?: string | null) {
   }
   coJson.allowJs = true;
   coJson.resolveJsonModule = true;
+  log.debug('tsconfig', baseTscfg);
   co = jsonToCompilerOptions(coJson, baseTsconfigFile, plinkEnv.workDir);
   resCache = ts.createModuleResolutionCache(plinkEnv.workDir, fileName => fileName, co);
   host = ts.createCompilerHost(co);
@@ -113,7 +120,7 @@ function init(tsconfigFile?: string | null) {
 
 function parseFile(q: Query, file: string, ctx: Context) {
   const deps: string[] = [];
-  log.debug('[cli-analysie-worker] Lookup file', Path.relative(plinkEnv.workDir, file));
+
   q.walkAst(q.src, [
     {
       query: '.moduleSpecifier:StringLiteral', // Both :ExportDeclaration or :ImportDeclaration
@@ -133,8 +140,8 @@ function parseFile(q: Query, file: string, ctx: Context) {
             const hashTag = lazyModule.indexOf('#');
             if (hashTag > 0) {
               // We found lazy route module
-              // tslint:disable-next-line:no-console
-              log.info('lazy route module:', lazyModule);
+              // eslint-disable-next-line no-console
+              log.debug('lazy route module:', lazyModule);
               const dep = resolve(lazyModule.slice(0, hashTag), file, ctx, ast.getStart(), q.src);
               if (dep)
                 deps.push(dep);
@@ -169,6 +176,8 @@ function parseFile(q: Query, file: string, ctx: Context) {
   return deps;
 }
 
+const PKG_NAME_PAT = /^(?:@[^/]+\/)?[^/]+/;
+
 function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.SourceFile): string | null {
   if (path.startsWith('`')) {
     const lineInfo = ts.getLineAndCharacterOfPosition(src, pos);
@@ -178,7 +187,7 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
       pos: `line:${lineInfo.line + 1}, col:${lineInfo.character + 1}`,
       reasone: 'dynamic value'
     });
-    // tslint:disable-next-line: max-line-length
+    // eslint-disable-next-line max-len
     // log.info(`[cli-analysie-worker] can not resolve dynamic value ${path} in ${file} @${lineInfo.line + 1}:${lineInfo.character + 1}`);
     return null;
   }
@@ -198,9 +207,16 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
     }
   }
 
+  if (NODE_MODULE_SET.has(path)) {
+    ctx.nodeModuleDeps.add(path);
+    return null;
+  }
+
   let resolved = ts.resolveModuleName(path, file, co!, host, resCache).resolvedModule;
   if (resolved == null) {
-    [path + '/index', path + '.js', path + '.jsx', path + '/index.js', path + '/index.jsx'].some(tryPath => {
+    [path + '/index', path + '.js', path + '.jsx', path + '/index.js', path + '/index.jsx']
+    .some(tryPath => {
+      log.debug(`For path "${path}", try path:`, tryPath);
       resolved = ts.resolveModuleName(tryPath, file, co!, host, resCache).resolvedModule;
       return resolved != null;
     });
@@ -209,8 +225,12 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
   // if (path.startsWith('.') || Path.isAbsolute(path)) {
   if (resolved == null) {
     if (!path.startsWith('.') && !Path.isAbsolute(path)) {
-      const m = /^(?:@[^/]+\/)?[^/]+/.exec(path);
-      ctx.externalDeps.add(m ? m[0] : path);
+      const m = PKG_NAME_PAT.exec(path);
+      const pkgName = m ? m[0] : path;
+      if (NODE_MODULE_SET.has(pkgName))
+        ctx.nodeModuleDeps.add(pkgName);
+      else
+        ctx.externalDeps.add(pkgName);
       return null;
     }
     const lineInfo = ts.getLineAndCharacterOfPosition(src, pos);
@@ -225,17 +245,19 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
   if (resolved?.packageId) {
     // resolved.packageId.name always return @type/xxxx instead of real package
     // ctx.externalDeps.add(resolved.packageId.name);
-    const m = /^(?:@[^/]+\/)?[^/]+/.exec(path);
-    if (m) {
-      ctx.externalDeps.add(m[0]);
-    } else {
-      ctx.externalDeps.add(resolved.packageId.name);
-    }
+    const m = PKG_NAME_PAT.exec(path);
+    const pkgName = m ? m[0] : resolved.packageId.name;
+    if (NODE_MODULE_SET.has(pkgName))
+      ctx.nodeModuleDeps.add(pkgName);
+    else
+      ctx.externalDeps.add(pkgName);
+    return null;
   } else if (resolved) {
     const absPath = Path.resolve(resolved.resolvedFileName);
     if (!absPath.startsWith(ctx.commonDir)) {
       ctx.relativeDepsOutSideDir.add(Path.relative(plinkEnv.workDir, absPath));
     }
+    log.debug('resolved to', absPath);
     return absPath;
   }
   return null;

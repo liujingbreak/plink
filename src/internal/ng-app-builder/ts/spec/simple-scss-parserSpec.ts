@@ -1,4 +1,4 @@
-// tslint:disable no-console
+// eslint-disable  no-console
 import {ScssLexer, ScssParser, TokenType} from '../utils/simple-scss-parser';
 import {TokenFilter} from '@wfh/plink/wfh/dist/base-LLn-parser';
 import * as fs from 'fs';

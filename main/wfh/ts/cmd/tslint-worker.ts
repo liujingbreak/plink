@@ -12,7 +12,7 @@ const tslint = require('gulp-tslint');
 export default function tsLintPackageAsync(fullName: string, json: any, packagePath: string, fix: boolean) {
   let dir;
   // packagePath = fs.realpathSync(packagePath);
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log('TSlint Scan', packagePath);
 
   if (fullName === '@wfh/plink')
@@ -23,7 +23,7 @@ export default function tsLintPackageAsync(fullName: string, json: any, packageP
       break;
   }
   const rcfile = Path.resolve(dir, 'tslint.json');
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log('Use', rcfile);
   const packagePath0 = packagePath.replace(/\\/g, '/');
 

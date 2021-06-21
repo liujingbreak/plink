@@ -97,7 +97,7 @@ function _recurseDir(templDir: string, targetDir: string, replacement: TemplRepl
                 if (!dryrun) {
                   if (!replacement.includeTextType!.test(newFile)) {
                     await promises.copyFile(absSub, newFile);
-                    // tslint:disable-next-line: no-console
+                    // eslint-disable-next-line no-console
                     log.info(`${chalk.cyan(Path.relative(Path.resolve(), newFile))} is copied`);
                   } else {
                     let content = await promises.readFile(absSub, 'utf-8');
@@ -108,15 +108,15 @@ function _recurseDir(templDir: string, targetDir: string, replacement: TemplRepl
                       console.error(e);
                     }
                     await promises.writeFile(newFile, content);
-                    // tslint:disable-next-line: no-console
+                    // eslint-disable-next-line no-console
                     log.info(`${chalk.cyan(Path.relative(Path.resolve(), newFile))} is written`);
                   }
                 } else {
-                  // tslint:disable-next-line: no-console
+                  // eslint-disable-next-line no-console
                   log.info(`${chalk.cyan(Path.relative(Path.resolve(), newFile))} is created`);
                 }
               } else {
-                // tslint:disable-next-line: no-console
+                // eslint-disable-next-line no-console
                 log.info('target file already exists:', Path.relative(Path.resolve(), newFile));
               }
             })();

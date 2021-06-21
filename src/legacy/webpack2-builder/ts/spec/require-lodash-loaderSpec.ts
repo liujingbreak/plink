@@ -1,4 +1,4 @@
-/* tslint:disable:quotemark */
+/* eslint-disable quotes, @typescript-eslint/quotes */
 import loader = require('../lib/require-lodash-loader');
 import * as log4js from 'log4js';
 const {doEs, TSParser} = loader;

@@ -1,4 +1,4 @@
-/* tslint:disable no-console */
+/* eslint-disable  no-console */
 const gulp = require('gulp');
 const zip = require('gulp-zip');
 

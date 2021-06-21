@@ -75,7 +75,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
   api.expressAppSet(app => {
     app.use(proxyPath,
       proxy({
-        // tslint:disable-next-line: max-line-length
+        // eslint-disable-next-line max-len
         target: protocol + '//' + host,
         changeOrigin: true,
         ws: false,
@@ -106,10 +106,10 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         onProxyRes(incoming, req, res) {
           incoming.headers['Access-Control-Allow-Origin'] = '*';
           if (api.config().devMode) {
-            hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode}\n`,
+            hpmLog.info(`Proxy recieve ${req.originalUrl}, status: ${incoming.statusCode}\n`,
               JSON.stringify(incoming.headers, null, '  '));
           } else {
-            hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode}`);
+            hpmLog.info(`Proxy recieve ${req.originalUrl}, status: ${incoming.statusCode}`);
           }
 
           if (opts.onProxyRes) {

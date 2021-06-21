@@ -1,4 +1,4 @@
-// tslint:disable: no-console
+/* eslint-disable no-console */
 import util, { isRegExp } from 'util';
 import {CommandOption} from './build-options';
 import Path from 'path';

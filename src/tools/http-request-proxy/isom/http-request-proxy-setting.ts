@@ -8,6 +8,8 @@ export interface HttpRequestProxySetting {
   proxies: {[path: string]: string};
   timeout: number;
   proxyTo? : string;
+
+  npmRegistry: string;
 }
 
 /**
@@ -18,7 +20,8 @@ export function defaultSetting(): HttpRequestProxySetting {
   const defaultValue: HttpRequestProxySetting = {
     trackRequestStream: false,
     proxies: {},
-    timeout: 60000
+    timeout: 60000,
+    npmRegistry: 'https://registry.npmjs.org/'
   };
 
   return defaultValue;
@@ -29,7 +32,7 @@ export function defaultSetting(): HttpRequestProxySetting {
  * @return setting of current package
  */
 export function getSetting() {
-  // tslint:disable:no-string-literal
+  /* eslint-disable dot-notation,@typescript-eslint/dot-notation */
   return config()['@wfh/http-request-proxy']!;
 }
 

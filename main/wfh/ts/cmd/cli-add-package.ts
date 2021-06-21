@@ -102,7 +102,7 @@ async function add(packages: string[], toDir: string, dev = false) {
         return;
       }
       log.info(`Add package ${chalk.cyan(pkg.name)} ${version || ''}`);
-      newLines += `    "${pkg.name}": "${version || pkg.json.version}",\n`;
+      newLines += `    "${pkg.name}": "${version || pkg.json.version as string}",\n`;
     }
   }));
   if (newLines.length > 0)
@@ -142,5 +142,5 @@ async function fetchRemoteVersion(pkgName: string) {
   if (m) {
     return m[1];
   }
-  throw new Error(`Failed to fetch dependency latest version (pattern: ${pattern}) from message:\n ${text}`);
+  throw new Error(`Failed to fetch dependency latest version (pattern: ${rPattern}) from message:\n ${text}`);
 }

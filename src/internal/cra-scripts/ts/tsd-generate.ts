@@ -5,6 +5,7 @@ import {PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT} from './types';
 import {runTsConfigHandlers4LibTsd} from './utils';
 import * as _tscmd from '@wfh/plink/wfh/dist/ts-cmd';
 import _ from 'lodash';
+import ts from 'typescript';
 
 export async function buildTsd(packages?: string[], overridePackgeDirs: TscCmdParam['overridePackgeDirs'] = {}) {
 
@@ -38,5 +39,5 @@ export async function buildTsd(packages?: string[], overridePackgeDirs: TscCmdPa
   };
   const {tsc} = require('@wfh/plink/wfh/dist/ts-cmd') as typeof _tscmd;
   workerData.compilerOptions = runTsConfigHandlers4LibTsd();
-  await tsc(workerData);
+  await tsc(workerData, ts);
 }

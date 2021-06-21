@@ -46,19 +46,19 @@ export function initConfig(options: GlobalOptions) {
  */
 export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
   process.on('SIGINT', function() {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     log.info('pid ' + process.pid + ': bye');
-    onShut();
+    void onShut();
   });
   process.on('message', function(msg) {
     if (msg === 'shutdown') {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       log.info('Recieve shutdown message from PM2, bye.');
-      onShut();
+      void onShut();
     }
   });
 
-  const {saveState, stateFactory, startLogging}: typeof store = require('../store');
+  const {saveState, stateFactory, startLogging} = require('../store') as typeof store;
   startLogging();
   stateFactory.configureStore({
     devTools: false
@@ -83,7 +83,7 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
  *  sends a signal to exit
  */
 export function initAsChildProcess() {
-  const {stateFactory, startLogging}: typeof store = require('../store');
+  const {stateFactory, startLogging} = require('../store') as typeof store;
   startLogging();
   stateFactory.configureStore();
 }

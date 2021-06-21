@@ -1,4 +1,4 @@
-/* tslint:disable no-console */
+/* eslint-disable  no-console */
 import { BuilderContext, Target, targetFromTargetString } from '@angular-devkit/architect';
 import { DevServerBuilderOptions } from '@angular-devkit/build-angular';
 import { Schema as BrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';

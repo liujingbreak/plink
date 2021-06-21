@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import Path from 'path';
 import {getRootDir} from '../utils/misc';
 import fs from 'fs';
@@ -12,7 +13,7 @@ export async function reinstallWithLinkedPlink(opt: NpmCliOption) {
 
   const pkjsonFile = Path.resolve(rootDir, 'package.json');
   const origPkJsonStr = fs.readFileSync(pkjsonFile, 'utf8');
-  const pkJson = JSON.parse(origPkJsonStr);
+  const pkJson = JSON.parse(origPkJsonStr) as {dependencies: any; devDependencies: any};
   const isPlinkLinked = getState().linkedDrcp != null;
 
   const linkedPkgs = getState().srcPackages;
@@ -33,10 +34,10 @@ export async function reinstallWithLinkedPlink(opt: NpmCliOption) {
       }
     }
     if (isPlinkLinked)
-      delete pkJson.dependencies['@wfh/plink'];
+      delete pkJson.devDependencies['@wfh/plink'];
   }
   const str = JSON.stringify(pkJson, null, '  ');
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log('Install with package.json:', str);
   await installInDir(rootDir, {isForce: false, cache: opt.cache, useNpmCi: opt.useCi, offline: opt.offline}, origPkJsonStr, str);
 }

@@ -1,4 +1,4 @@
-// tslint:disable: curly
+/* eslint-disable curly */
 import {spawn} from '@wfh/plink/wfh/dist/process-utils';
 import {getRootDir} from '@wfh/plink/wfh/dist';
 import {resolve, basename} from 'path';
@@ -24,7 +24,7 @@ export async function prepare() {
   const currBranch = await getCurrBranchName();
 
   if (currBranch === releaseBranch) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log('Current branch is release-server which should not be your build targeting branch,\nplease checkout another branch to procede!');
     throw new Error('please checkout another branch to procede!');
   }

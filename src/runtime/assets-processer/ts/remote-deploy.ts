@@ -1,4 +1,4 @@
-// tslint:disable: no-console
+/* eslint-disable no-console */
 import fs from 'fs-extra';
 import _gulp from 'gulp';
 import {ZipFile} from 'yazl';
@@ -36,7 +36,7 @@ async function mailDeployStaticRes() {
   }
 
   if (env == null) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log('missing command arguments,', api.argv);
     process.exit(1);
     return;

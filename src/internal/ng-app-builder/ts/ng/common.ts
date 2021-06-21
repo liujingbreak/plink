@@ -1,4 +1,4 @@
-/* tslint:disable no-console max-line-length */
+/* eslint-disable  no-console, max-len */
 import { DevServerBuilderOptions  } from '@angular-devkit/build-angular';
 import { Schema as NormalizedBrowserBuilderSchema } from '@angular-devkit/build-angular/src/browser/schema';
 import { Schema as NormalizedServerBuilderServerSchema } from '@angular-devkit/build-angular/src/server/schema';

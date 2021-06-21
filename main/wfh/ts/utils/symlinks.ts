@@ -21,8 +21,8 @@ export default async function scanNodeModules(dir = process.cwd(), deleteOption:
   const deleteAll = deleteOption === 'all';
   const deletedList: string[] = [];
   await listModuleSymlinks(Path.join(dir, 'node_modules'),
-    link => {
-      if (validateLink(link, deleteAll)) {
+    async link => {
+      if (await validateLink(link, deleteAll)) {
         deletedList.push(link);
       }
     });
@@ -81,14 +81,14 @@ export async function symlinkAsync(linkTarget: string, link: string) {
       // console.log('exits', link);
       return;
     }
-     // tslint:disable-next-line: no-console
+     // eslint-disable-next-line no-console
     console.log(`remove ${link}`);
     fs.unlinkSync(link);
   } catch (ex) {
     // link does not exist
     // console.log(ex);
   }
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   console.log(`create symlink ${link} --> ${linkTarget}`);
   return fs.promises.symlink(
     Path.relative(Path.dirname(link), linkTarget),
@@ -101,7 +101,7 @@ export async function validateLink(link: string, deleteAll = false): Promise<boo
     if ((await lstatAsync(link)).isSymbolicLink() &&
       (deleteAll || !fs.existsSync(Path.resolve(Path.dirname(link), fs.readlinkSync(link))))
       ) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(`[symlink check] Remove ${deleteAll ? '' : 'invalid'} symlink ${Path.relative('.', link)}`);
       await unlinkAsync(link);
       return false;

@@ -1,4 +1,4 @@
-/* tslint:disable max-classes-per-file max-line-length no-console jsdoc-format */
+/* eslint-disable  max-classes-per-file, max-len, no-console, jsdoc/check-alignment, jsdoc/check-indentation, jsdoc/newline-after-description */
 /**
  * TODO: Support parsing file with <script></script> tag contains special JS character like "<" and ">"
  */

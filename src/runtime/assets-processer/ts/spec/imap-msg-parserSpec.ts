@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 
 import {createServerDataHandler, parseLinesOfTokens, ImapTokenType} from '../mail/imap-msg-parser';
 import {parse} from '../mail/rfc822-parser';

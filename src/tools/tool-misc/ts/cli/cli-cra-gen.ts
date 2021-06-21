@@ -1,4 +1,4 @@
-// tslint:disable no-console
+// eslint-disable  no-console
 import fs from 'fs-extra';
 import Path from 'path';
 import _ from 'lodash';
@@ -19,7 +19,7 @@ export async function genPackage(path: string, compName: string, featureName: st
   }
   const dir = Path.resolve(path);
   if (dryrun) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     plink.logger.info('dryrun mode');
   } else {
     fs.mkdirpSync(dir);
@@ -89,7 +89,7 @@ export async function genComponents(dir: string, compNames: string[], opts: {con
   dir = Path.resolve(dir);
 
   if (opts.dryrun) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     plink.logger.info('dryrun mode');
   } else {
     fs.mkdirpSync(dir);
@@ -124,7 +124,7 @@ export async function genSlice(dir: string, targetNames: string[], opt: {dryRun?
   dir = Path.resolve(dir);
 
   if (opt.dryRun) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     plink.logger.info('dryrun mode');
   } else {
     fs.mkdirpSync(dir);

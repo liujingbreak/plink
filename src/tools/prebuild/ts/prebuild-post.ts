@@ -1,4 +1,4 @@
-// tslint:disable: no-console
+/* eslint-disable no-console */
 import { spawn } from '@wfh/plink/wfh/dist/process-utils';
 import Path from 'path';
 import fs from 'fs-extra';
@@ -120,7 +120,7 @@ async function pushTagAndReleaseBranch(rootDir: string, pushBranch: boolean, com
 //   const json = Obbject.assign({}, pkJson);
 //   delete json.devDependencies;
 //   const newJson = JSON.stringify(json, null, '\t');
-//   // tslint:disable-next-line:no-console
+// eslint-disable-next-line
 //   log.info('change package.json to:\n', newJson);
 //   fs.writeFileSync('package.json', newJson);
 // }

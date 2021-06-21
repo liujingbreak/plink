@@ -1,4 +1,4 @@
-// tslint:disable no-console
+// eslint-disable  no-console
 /**
  * drcp test -f ../web-fun-house/src/runtime/assets-processer/ts/spec/fetch-remote-imapSpec.ts -c dist/config.local.yaml conf/remote-deploy-test.yaml
  */

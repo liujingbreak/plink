@@ -1,4 +1,4 @@
-/* tslint:disable no-console max-line-length max-classes-per-file */
+/* eslint-disable  no-console, max-len, max-classes-per-file */
 import { AngularCompilerPlugin } from '@ngtools/webpack';
 // import ts from 'typescript';
 import * as fs from 'fs';

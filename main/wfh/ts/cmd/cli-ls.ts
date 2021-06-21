@@ -1,4 +1,4 @@
-// tslint:disable: no-console
+/* eslint-disable no-console */
 import config from '../config';
 import {GlobalOptions} from './types';
 import * as pkMgr from '../package-mgr';
@@ -41,7 +41,7 @@ export default async function list(opt: GlobalOptions & {json: boolean, hoist: b
   printWorkspaces();
 }
 
-export async function checkDir(opt: GlobalOptions) {
+export function checkDir(opt: GlobalOptions) {
   pkMgr.getStore().pipe(
     map(s => s.packagesUpdateChecksum), distinctUntilChanged(),
     skip(1), take(1),

@@ -1,3 +1,4 @@
+import _ts from 'typescript';
 import { PackageTsDirs } from './utils/misc';
 import { CompilerOptions as RequiredCompilerOptions } from './package-mgr/package-list-helper';
 export { RequiredCompilerOptions };
@@ -32,4 +33,4 @@ export interface TscCmdParam {
  * @param {function} onCompiled () => void
  * @return void
  */
-export declare function tsc(argv: TscCmdParam): Promise<string[]>;
+export declare function tsc(argv: TscCmdParam, ts?: typeof _ts): Promise<string[]>;

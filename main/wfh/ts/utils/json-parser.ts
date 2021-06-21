@@ -76,7 +76,7 @@ export interface Ast {
 }
 
 export interface ObjectAst extends Ast {
-  properties: {name: Token<string>, value: Ast|Token<string>}[];
+  properties: {name: Token<string>; value: Ast|Token<string>}[];
 }
 
 export interface ArrayAst extends Ast {

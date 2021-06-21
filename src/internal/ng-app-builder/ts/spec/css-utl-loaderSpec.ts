@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 import loader = require('../loaders/css-url-loader');
 import * as wb from 'webpack';
 import {resolve} from 'url';

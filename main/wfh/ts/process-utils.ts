@@ -1,4 +1,4 @@
-/* tslint:disable:no-console indent */
+/* eslint-disable no-console, indent, @typescript-eslint/indent */
 import {spawn as sysSpawn, ChildProcess, SpawnOptions, fork as sysFork, ForkOptions as SysForkOptions} from 'child_process';
 import {Writable} from 'stream';
 export const isWindows = process.platform === 'win32';
@@ -61,7 +61,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
     throw e;
   });
   return {
-    childProcess: res!,
+    childProcess: res,
     promise: done.then(strs => strs.stdout + '\n' + strs.errout),
     done
   };
@@ -89,7 +89,7 @@ export function fork(jsFile: string, ...args: Array<string|ForkOptions>): Result
     throw e;
   });
   return {
-    childProcess: res!,
+    childProcess: res,
     done,
     promise: done.then(out => out.stdout + '\n' + out.errout)
   };
@@ -116,7 +116,7 @@ async function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptio
   });
   const {code, signal} = await cpExit;
   let joinText = '';
-  let outs: {stdout: string; errout: string;} = {} as any;
+  let outs = {} as {stdout: string; errout: string};
   if (opts && opts.silent) {
     const outTexts = await Promise.all([output!.done, errOutput!.done]);
     joinText = outTexts.join('\n');
@@ -124,7 +124,7 @@ async function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptio
     outs.errout = outTexts[1];
   }
   if (code !== 0 && signal !== 'SIGINT') {
-    const errMsg = `Child process "${desc}" exit with code ${code}, signal ` + signal;
+    const errMsg = `Child process "${desc}" exit with code ${'' + code}, signal ` + signal;
     throw new Error(errMsg + '\n' + (joinText ? joinText : ''));
   }
   return outs;
@@ -189,7 +189,7 @@ export function exe(command: string, ...argsAndOption: Array<string|Option>): Re
   return spawn(command, ...argsAndOption);
 }
 
-export function createStringWriter(): {writer: Writable, done: Promise<string>} {
+export function createStringWriter(): {writer: Writable; done: Promise<string>} {
   let strs: string[] = [];
   let resolve: (str: string) => void;
   const done = new Promise<string>(res => {
@@ -214,6 +214,6 @@ export function createStringWriter(): {writer: Writable, done: Promise<string>} 
   return {
     writer,
     done
-  }
+  };
 }
 

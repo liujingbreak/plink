@@ -26,7 +26,7 @@ export async function send(env: string, appName: string, zipFile: string,
 
   const sendAppZip: typeof _sendAppZip = require('@wfh/assets-processer/dist/content-deployer/cd-client').sendAppZip;
 
-  // tslint:disable-next-line:no-console
+  // eslint-disable-next-line no-console
   log.info('Pushing App "%s" to remote %s', appName, url);
   try {
     await sendAppZip({
@@ -37,7 +37,7 @@ export async function send(env: string, appName: string, zipFile: string,
       secret
     }, zipFile);
   } catch (ex) {
-    // tslint:disable:no-console
+    /* eslint-disable no-console */
     log.error(ex);
     throw ex;
   }

@@ -67,7 +67,7 @@ export default function paths() {
       handler.changeCraPaths(changedPaths, config().cliOptions?.env!, cmdOption);
     }
   }));
-  // tslint:disable-next-line: no-console
+  // eslint-disable-next-line no-console
   // console.log('[cra-scripts-paths] changed react-scripts paths:\n', changedPaths);
   craScriptsPaths = changedPaths;
   fsext.mkdirpSync(changedPaths.appBuild);

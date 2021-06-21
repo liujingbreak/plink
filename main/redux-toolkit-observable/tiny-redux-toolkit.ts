@@ -223,7 +223,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
       // op.observeOn(rx.queueScheduler), // Avoid recursively dispatching action inside an reducer, but normally recursively dispatching should be warned and forbidden
       op.tap(action => {
         if (opt.debug) {
-          // tslint:disable-next-line: no-console
+          // eslint-disable-next-line no-console
           console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
         }
       }),
@@ -257,7 +257,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     state$.pipe(
       op.tap(state => {
         if (opt.debug) {
-          // tslint:disable-next-line: no-console
+          // eslint-disable-next-line no-console
           console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', state);
         }
       })

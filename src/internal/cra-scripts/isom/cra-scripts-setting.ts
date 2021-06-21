@@ -32,6 +32,6 @@ export function defaultSetting(): CraScriptsSetting {
  * @return setting of current package
  */
 export function getSetting() {
-  // tslint:disable:no-string-literal
+  /* eslint-disable dot-notation, @typescript-eslint/dot-notation */
   return config()['@wfh/cra-scripts']!;
 }

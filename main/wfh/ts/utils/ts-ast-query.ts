@@ -11,11 +11,11 @@ export let astSchemaCache: {[kind: string]: string[]} = {};
 // let fileCounting = 0;
 // let lastFile: string;
 
-export function saveAstPropertyCache(file: string) {
+export function saveAstPropertyCache(file: string): void {
   fs.writeFileSync(file, JSON.stringify(astSchemaCache, null, '  '));
 }
 
-export function setAstPropertyCache(cache: typeof astSchemaCache) {
+export function setAstPropertyCache(cache: typeof astSchemaCache): void {
   astSchemaCache = cache;
 }
 
@@ -24,14 +24,14 @@ export type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], i
 /**
  * @returns true - make iteration stops, `SKIP` - to skip interating child nodes (move on to next sibling node) 
  */
-// tslint:disable-next-line: max-line-length
+// eslint-disable-next-line max-len
 export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | boolean | void;
 
-export function printFile(file: string, query?: string | null, withType = true) {
+export function printFile(file: string, query?: string | null, withType = true): void {
   if (query) {
     const selector = new Selector(fs.readFileSync(file, 'utf8'), file);
     selector.findMapTo(query, (ast, path, parents) => {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(chalk.cyan(
         withType ? path.join(' > ') : path.map(el => el.slice(0, el.indexOf(':'))).join(' > ')
       ));
@@ -48,7 +48,7 @@ export function printFile(file: string, query?: string | null, withType = true) 
 function createPrintNodeCb(withType: boolean) {
   const printNode: traverseCbType = (child, path, parents, isLeaf, comment) => {
     if (comment) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(
         (withType ? path.join(' > ') : path.map(pathExp).join('')) +
           ` ${chalk.yellow(comment)}`
@@ -56,7 +56,7 @@ function createPrintNodeCb(withType: boolean) {
     }
     if (!isLeaf)
       return;
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(
       (withType ? path.join(' > ') : path.map(pathExp).join('')) +
         ` ${chalk.greenBright(child.getText())}`
@@ -133,7 +133,7 @@ export default class Selector {
 
     this.traverse(ast, (ast, path, parents) => {
       const skip = false;
-      handlers!.some(h => {
+      handlers?.some(h => {
         if (queryMap[h.query].matches(path)) {
           h.callback(ast, path, parents);
           return true;
@@ -160,7 +160,7 @@ export default class Selector {
 	 */
   findMapTo<T>(query: string, callback: AstHandler<T>): T | null;
   findMapTo<T>(ast: ts.Node, query: string, callback: AstHandler<T>): T | null;
-  // tslint:disable-next-line: max-line-length
+  // eslint-disable-next-line max-len
   findMapTo<T>(...arg: [queryOrAst: string | ts.Node, callBackOrQuery: AstHandler<T>|string, callback?: AstHandler<T>]): T | null {
     let query: string;
     let ast: ts.Node;
@@ -265,11 +265,11 @@ export default class Selector {
     return out;
   }
 
-  printAll(ast: ts.Node = this.src) {
+  printAll(ast: ts.Node = this.src): void {
     this.traverse(ast, createPrintNodeCb(true));
   }
 
-  printAllNoType(ast: ts.Node = this.src) {
+  printAllNoType(ast: ts.Node = this.src): void {
     this.traverse(ast, createPrintNodeCb(false));
   }
   /**
@@ -304,10 +304,6 @@ export default class Selector {
       parents.push(ast);
       const _value2key = new Map<any, string>();
 
-      // tslint:disable-next-line:forin
-      // for (const key in ast) {
-      const self = this;
-
       createValue2KeyMap(ast, _value2key);
 
       /**
@@ -323,7 +319,7 @@ export default class Selector {
           createValue2KeyMap(ast, _value2key, true);
           propName = _value2key.get(child);
         }
-        const isStop = self.traverse(child, cb, propName, parents, pathEls);
+        const isStop = this.traverse(child, cb, propName, parents, pathEls);
         return isStop;
           // return undefined;
       },
@@ -333,7 +329,7 @@ export default class Selector {
             createValue2KeyMap(ast, _value2key, true);
             propName = _value2key.get(subArray);
           }
-          return self.traverseArray(subArray, cb, propName, parents, pathEls);
+          return this.traverseArray(subArray, cb, propName, parents, pathEls);
         }
       );
       parents.pop();
@@ -369,11 +365,11 @@ export default class Selector {
     }
 
     for (const prop of properties) {
-      const value = (p as any)[prop];
+      const value = p[prop] as unknown;
       if (['parent', 'kind', '_children', 'pos', 'end'].includes(prop))
         continue;
       if (Array.isArray(value)) {
-        const idx = (value as any[]).indexOf(ast);
+        const idx = (value as ts.Node[]).indexOf(ast);
         if (idx >= 0) {
           return prop + `[${idx}]`;
         }
@@ -419,7 +415,7 @@ function createValue2KeyMap(ast: ts.Node, value2KeyMap: Map<any, string>, rebuil
     props = cached;
   }
   for (const key of props!) {
-    value2KeyMap.set((ast as any)[key], key);
+    value2KeyMap.set(ast[key], key);
   }
   return props!;
 }
@@ -474,7 +470,7 @@ export class Query {
 
   protected _parseDesc(singleAstDesc: string): AstQuery {
     const astChar: AstQuery = {};
-      // tslint:disable-next-line
+      // eslint-disable-next-line
 			let m = /^(?:\.([a-zA-Z0-9_$]+)(?:\[([0-9]*)\])?)?(?:\:([a-zA-Z0-9_$]+))?$|^\*$/.exec(singleAstDesc);
     if (m == null) {
       throw new Error(`Invalid query string "${chalk.yellow(singleAstDesc)}"`);
@@ -491,11 +487,11 @@ export class Query {
 
   private matchesAst(query: AstQuery, target: AstCharacter): boolean {
     for (const key of Object.keys(query)) {
-      const value = (query as any)[key];
+      const value = query[key] as unknown;
       if (isRegExp(value)) {
-        if (!(value as RegExp).test((target as any)[key]))
+        if (!value.test(target[key]))
           return false;
-      } else if ((target as any)[key] !== value)
+      } else if (target[key] !== value)
         return false;
     }
     return true;

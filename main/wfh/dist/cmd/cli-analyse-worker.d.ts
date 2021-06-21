@@ -11,6 +11,7 @@ export declare class Context {
         reasone: string;
     }[];
     externalDeps: Set<string>;
+    nodeModuleDeps: Set<string>;
     matchAlias: string[];
     commonDir: string;
     /** traversed files */
@@ -20,7 +21,7 @@ export declare class Context {
         file: string;
         pos: string;
         reasone: string;
-    }[], externalDeps?: Set<string>, matchAlias?: string[]);
+    }[], externalDeps?: Set<string>, nodeModuleDeps?: Set<string>, matchAlias?: string[]);
     toPlainObject(): {
         commonDir: string;
         relativeDepsOutSideDir: string[];
@@ -32,6 +33,7 @@ export declare class Context {
             reasone: string;
         }[];
         externalDeps: string[];
+        nodeModuleDeps: string[];
         matchAlias: string[];
         files: string[];
     };

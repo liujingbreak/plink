@@ -1,4 +1,4 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 import {DrPackageInjector} from './injector-factory';
 import * as _ from 'lodash';
 import config from './config';

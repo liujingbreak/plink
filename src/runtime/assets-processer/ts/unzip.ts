@@ -1,5 +1,5 @@
 
-/* tslint:disable no-console */
+/* eslint-disable  no-console */
 var unzip = require('gulp-unzip');
 import * as fs from 'fs-extra';
 var gulp = require('gulp');

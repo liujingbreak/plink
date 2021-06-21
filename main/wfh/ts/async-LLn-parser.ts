@@ -106,7 +106,8 @@ export function mapChunks<I, T>(
         return chunk;
       };
       parse(la$, sub)
-      .then(() => sub.complete());
+      .then(() => sub.complete())
+      .catch(err => sub.error(err));
     });
   };
 }
@@ -251,7 +252,7 @@ export class LookAhead<T, TT = any> {
   }
 
   throwError(unexpected = 'End-of-stream', stack?: any, expect?: string) {
-    // tslint:disable-next-line: max-line-length
+    // eslint-disable-next-line max-len
     throw new Error(`In ${this.name} unexpected ${JSON.stringify(unexpected)}`+
     (expect ? `(expecting "${expect}")` : '') +
     `at ${this.getCurrentPosInfo()}, ${stack ? 'previous stack:' + stack : ''}`);

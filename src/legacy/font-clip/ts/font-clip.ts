@@ -45,7 +45,7 @@ export async function clipToWoff2(source: string, destDir: string, toFormats: Cr
   fs.mkdirpSync(destDir);
   return Promise.all(toFormats.map(format => {
     const file = Path.resolve(destDir, Path.basename(source, Path.extname(source)) + '.' + format);
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log('[font-clip] write', file);
     return writeFileAsync(file,
       font.write({

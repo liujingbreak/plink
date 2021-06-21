@@ -1,4 +1,4 @@
-/* tslint:disable no-console */
+/* eslint-disable  no-console */
 import * as _ from 'lodash';
 import * as Path from 'path';
 

@@ -5,9 +5,10 @@ const fs = require('fs');
 // nodePath();
 try {
 	let dir = process.cwd();
+	const {root} = Path.parse(dir);
 	while (!fs.existsSync(Path.resolve(dir, 'node_modules/@wfh/plink/package.json'))) {
 		const parent = Path.dirname(dir);
-		if (parent === dir) {
+		if (parent === root) {
 			console.error('Can not find @wfh/plink');
 			process.exit(1);
 			break;

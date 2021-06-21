@@ -11,7 +11,7 @@ function getLogger(name: string) {
 }
 
 function log(...args: any[]) {
-  // tslint:disable-next-line
+  // eslint-disable-next-line
 	console.log.apply(console, arguments);
 }
 

@@ -79,7 +79,7 @@ function findFileByExportNames(file: string, ...importName: string[]): Map<strin
   }
   return res;
 }
-// tslint:disable max-classes-per-file
+// eslint-disable  max-classes-per-file
 export default class AppModuleParser {
 
   file: string;
@@ -242,7 +242,7 @@ export default class AppModuleParser {
     }
     i = 0;
     for (const fromModule of esImportMap.entries()) {
-      // tslint:disable max-line-length
+      // eslint-disable  max-len
       newEsImport += `import {${Array.from(fromModule[1].values()).map((name) => `${name} as ${name}_${i++}`).join(', ')}} from '${fromModule[0]}';\n`;
     }
     this.replacements.push({start: this.lastEsImportEndPos, end: this.lastEsImportEndPos, text: newEsImport});

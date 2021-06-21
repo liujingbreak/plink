@@ -67,9 +67,9 @@ localTs.createProgram = function(rootNames: readonly string[], options: Compiler
     // options.paths = co.paths;
     // options.typeRoots = co.typeRoots;
 
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     // console.log(chalk.cyan('[hack-for-ts-checker]') + ' ts program "rootNames":', (arguments[0] as CreateProgramOptions).rootNames);
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     // console.log(chalk.cyan('[hack-for-ts-checker]') + ' ts compilerOptions:\n', options);
 
     const program: ts.Program = _createPrm.apply(localTs, arguments);

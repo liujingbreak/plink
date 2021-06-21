@@ -1,4 +1,4 @@
-// tslint:disable no-console
+// eslint-disable  no-console
 import {Token, BaseParser, BaseLexer} from '@wfh/plink/wfh/dist/base-LLn-parser';
 
 export enum TokenType {

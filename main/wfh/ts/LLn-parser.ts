@@ -80,7 +80,7 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
   {
     write: LookAhead<V, T>['_write'];
     end: LookAhead<V, T>['_final'];
-    getResult: () => A
+    getResult: () => A;
   } {
 
   let isString: boolean;
@@ -104,8 +104,8 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
     lexer(lexerLa, tokenEmitter);
   });
   return {
-    write: lexerLa._write.bind(lexerLa),
-    end: lexerLa._final.bind(lexerLa),
+    write: lexerLa._write.bind(lexerLa) as LookAhead<V, T>['_write'],
+    end: lexerLa._final.bind(lexerLa) as LookAhead<V, T>['_final'],
     getResult() {
       return grammar(tokenLa);
     }
@@ -230,7 +230,7 @@ export class LookAhead<V, T = void> {
   }
 
   throwError(unexpected = 'End-of-stream', stack?: any, expect?: string) {
-    // tslint:disable-next-line: max-line-length
+    // eslint-disable-next-line max-len
     throw new Error(`In ${this.name} unexpected ${JSON.stringify(unexpected)}`+
     (expect ? `(expecting "${expect}")` : '') +
     `at ${this.getCurrentPosInfo()}, ${stack ? 'previous stack:' + stack : ''}`);

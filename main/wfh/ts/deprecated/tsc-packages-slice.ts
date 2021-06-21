@@ -65,7 +65,7 @@ const releaseEpic = stateFactory.addEpic((action$) => {
     )
   ).pipe(
     catchError(ex => {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.error(ex);
       return of<PayloadAction>();
     }),

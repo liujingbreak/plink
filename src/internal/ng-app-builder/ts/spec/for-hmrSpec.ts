@@ -16,7 +16,7 @@ describe('for-hmr', () => {
       .catch(err => console.log(err));
     });
     `, 'test main.ts');
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(mainHmr);
   });
 
