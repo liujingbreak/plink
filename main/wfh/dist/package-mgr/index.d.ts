@@ -16,6 +16,7 @@ export interface PackageInfo {
     isInstalled: boolean;
 }
 export interface PackagesState {
+    npmInstallOpt: NpmOptions;
     inited: boolean;
     srcPackages: Map<string, PackageInfo>;
     /** Key is relative path to root workspace */
@@ -67,12 +68,17 @@ export interface WorkspaceState {
         conflictDeps: string[];
     };
 }
+export interface NpmOptions {
+    cache?: string;
+    isForce: boolean;
+    useNpmCi?: boolean;
+    offline?: boolean;
+}
 export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
-        isForce: boolean;
+    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         createHook: boolean;
-    }>): void;
+    } & NpmOptions>): void;
     /**
      * - Create initial files in root directory
      * - Scan linked packages and install transitive dependency
@@ -81,12 +87,11 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
      * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
      * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
      */
-    updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
+    updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         dir: string;
-        isForce: boolean;
         createHook: boolean;
         packageJsonFiles?: string[];
-    }>): void;
+    } & NpmOptions>): void;
     scanAndSyncPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
         packageJsonFiles?: string[];
     }>): void;
@@ -145,10 +150,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
-        isForce: boolean;
+    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         createHook: boolean;
-    }>): void;
+    } & NpmOptions>): void;
     /**
      * - Create initial files in root directory
      * - Scan linked packages and install transitive dependency
@@ -157,12 +161,11 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
      * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
      * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
      */
-    updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
+    updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         dir: string;
-        isForce: boolean;
         createHook: boolean;
         packageJsonFiles?: string[];
-    }>): void;
+    } & NpmOptions>): void;
     scanAndSyncPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
         packageJsonFiles?: string[];
     }>): void;
@@ -238,7 +241,7 @@ export declare function isCwdWorkspace(): boolean;
  * @param dir
  */
 export declare function switchCurrentWorkspace(dir: string): void;
-export declare function installInDir(dir: string, originPkgJsonStr: string, toInstallPkgJsonStr: string): Promise<void>;
+export declare function installInDir(dir: string, npmOpt: NpmOptions, originPkgJsonStr: string, toInstallPkgJsonStr: string): Promise<void>;
 /**
  *
  * @param pkJsonFile package.json file path

@@ -2,12 +2,12 @@ import Path from 'path';
 import {getRootDir} from '../utils/misc';
 import fs from 'fs';
 import {getState, installInDir} from '../package-mgr';
-
+import {NpmCliOption} from './types';
 /**
  * 
  * @return a function to write the original package.json file back
  */
-export async function reinstallWithLinkedPlink() {
+export async function reinstallWithLinkedPlink(opt: NpmCliOption) {
   const rootDir = getRootDir();
 
   const pkjsonFile = Path.resolve(rootDir, 'package.json');
@@ -38,5 +38,5 @@ export async function reinstallWithLinkedPlink() {
   const str = JSON.stringify(pkJson, null, '  ');
   // tslint:disable-next-line: no-console
   console.log('Install with package.json:', str);
-  await installInDir(rootDir, origPkJsonStr, str);
+  await installInDir(rootDir, {isForce: false, cache: opt.cache, useNpmCi: opt.useCi, offline: opt.offline}, origPkJsonStr, str);
 }

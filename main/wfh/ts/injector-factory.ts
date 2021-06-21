@@ -1,4 +1,4 @@
-import RJ, {InjectorOption} from 'require-injector';
+import RJ from 'require-injector';
 import _config from './config';
 import {DrcpSettings} from './config/config-slice';
 import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
@@ -19,10 +19,9 @@ const emptyFactoryMap = {
 };
 
 export class DrPackageInjector extends RJ {
-  constructor(resolve: InjectorOption['resolve'], protected noNode = false) {
+  constructor(protected noNode = false) {
     super({
       basedir: getRootDir(),
-      resolve,
       // debug: config.devMode,
       noNode
     });
@@ -102,9 +101,9 @@ export class DrPackageInjector extends RJ {
   }
 }
 
-export let nodeInjector = new DrPackageInjector(require.resolve, false);
+export let nodeInjector = new DrPackageInjector(false);
 
-export let webInjector = new DrPackageInjector(undefined, true);
+export let webInjector = new DrPackageInjector(true);
 
 export interface InjectorConfigHandler {
   /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */

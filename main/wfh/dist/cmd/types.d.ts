@@ -14,8 +14,13 @@ export interface GlobalOptions {
 }
 export interface InitCmdOptions extends GlobalOptions {
     force: boolean;
-    production: boolean;
     lintHook: boolean;
+}
+export interface NpmCliOption {
+    cache?: string;
+    production: boolean;
+    useCi: boolean;
+    offline: boolean;
 }
 export interface LintOptions extends GlobalOptions {
     pj: string[];

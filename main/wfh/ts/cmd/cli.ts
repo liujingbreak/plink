@@ -106,15 +106,14 @@ function subComands(program: commander.Command) {
           '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
           ' directory.'
       })
-    .option('-f, --force', 'Force run "npm install" in specific workspace directory', false)
+    .option('-f, --force', 'Force run "npm install" in specific workspace directory, this is not same as npm install option "-f" ', false)
     .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
-    // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
-    .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false)
     .action(async (workspace?: string) => {
       // tslint:disable-next-line: no-console
       console.log(sexyFont('PLink').string);
-      await (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions, workspace);
+      await (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions & tp.NpmCliOption, workspace);
     });
+  addNpmInstallOption(initCmd);
 
   /**
    * command project
@@ -175,15 +174,15 @@ function subComands(program: commander.Command) {
   /**
    * command upgrade
    */
-  program.command('upgrade')
+  const upgradeCmd = program.command('upgrade')
     .alias('install')
     .description('Reinstall local Plink along with other dependencies.' +
       ' (Unlike "npm install" which does not work with node_modules that might contain symlinks)')
     .action(async () => {
       skipVersionCheck = true;
-      await (await import('./cli-link-plink')).reinstallWithLinkedPlink();
+      await (await import('./cli-link-plink')).reinstallWithLinkedPlink(upgradeCmd.opts() as tp.NpmCliOption);
     });
-
+  addNpmInstallOption(upgradeCmd);
   // program.command('dockerize <workspace-dir>')
   // .description(chalk.gray('[TBI] Generate Dockerfile for specific workspace directory, and generate docker image'));
 
@@ -404,6 +403,14 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
     }
   }
   return availables;
+}
+
+function addNpmInstallOption(cmd: commander.Command) {
+  cmd.option('--cache <npm-cache>', 'same as npm install option "--cache"')
+  .option('--ci, --use-ci', 'Use "npm ci" instead of "npm install" to install dependencies', false)
+  .option('--offline', 'same as npm option "--prefer-offline" during executing npm install/ci ', false)
+  // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
+  .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false);
 }
 
 

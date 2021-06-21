@@ -9,7 +9,7 @@ import fs from 'fs';
 import _ from 'lodash';
 import Path from 'path';
 import { from, merge, Observable, of, defer, throwError} from 'rxjs';
-import { distinctUntilChanged, filter, map, debounceTime,
+import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
   take, concatMap, ignoreElements, scan, catchError, tap } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 import { spawn } from '../process-utils';
@@ -36,6 +36,7 @@ export interface PackageInfo {
 }
 
 export interface PackagesState {
+  npmInstallOpt: NpmOptions;
   inited: boolean;
   srcPackages: Map<string, PackageInfo>;
   /** Key is relative path to root workspace */
@@ -70,7 +71,8 @@ const state: PackagesState = {
   srcPackages: new Map(),
   gitIgnores: {},
   workspaceUpdateChecksum: 0,
-  packagesUpdateChecksum: 0
+  packagesUpdateChecksum: 0,
+  npmInstallOpt: {isForce: false}
 };
 
 export interface WorkspaceState {
@@ -103,12 +105,22 @@ export interface WorkspaceState {
   };
 }
 
+export interface NpmOptions {
+  cache?: string;
+  isForce: boolean;
+  useNpmCi?: boolean;
+  offline?: boolean;
+}
+
 export const slice = stateFactory.newSlice({
   name: NS,
   initialState: state,
   reducers: {
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d, action: PayloadAction<{isForce: boolean, createHook: boolean}>) {},
+    initRootDir(d, {payload}: PayloadAction<{createHook: boolean} & NpmOptions>) {
+      d.npmInstallOpt.cache = payload.cache;
+      d.npmInstallOpt.useNpmCi = payload.useNpmCi;
+    },
 
     /** 
      * - Create initial files in root directory
@@ -118,8 +130,10 @@ export const slice = stateFactory.newSlice({
      * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
      * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
      */
-    updateWorkspace(d, action: PayloadAction<{dir: string,
-      isForce: boolean, createHook: boolean, packageJsonFiles?: string[]}>) {
+    updateWorkspace(d, {payload}: PayloadAction<{dir: string,
+      createHook: boolean, packageJsonFiles?: string[]} & NpmOptions>) {
+      d.npmInstallOpt.cache = payload.cache;
+      d.npmInstallOpt.useNpmCi = payload.useNpmCi;
     },
     scanAndSyncPackages(d, action: PayloadAction<{packageJsonFiles?: string[]}>) {},
 
@@ -388,12 +402,12 @@ stateFactory.addEpic((action$, state$) => {
     ),
     //  updateWorkspace
     action$.pipe(ofPayloadAction(slice.actions.updateWorkspace),
-      concatMap(({payload: {dir, isForce, createHook, packageJsonFiles}}) => {
+      concatMap(({payload: {dir, isForce, createHook, useNpmCi, packageJsonFiles}}) => {
         dir = Path.resolve(dir);
         actionDispatcher._setCurrentWorkspace(dir);
         maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), Path.resolve(dir, 'app.js'));
         checkAllWorkspaces();
-        if (isForce) {
+        if (isForce || useNpmCi) {
           // Chaning installJsonStr to force action _installWorkspace being dispatched later
           const wsKey = workspaceKey(dir);
           if (getState().workspaces.has(wsKey)) {
@@ -451,14 +465,13 @@ stateFactory.addEpic((action$, state$) => {
         checkAllWorkspaces();
         if (getState().workspaces.has(workspaceKey(plinkEnv.workDir))) {
           actionDispatcher.updateWorkspace({dir: plinkEnv.workDir,
-            isForce: payload.isForce,
-            createHook: payload.createHook});
+            ...payload});
         } else {
           const curr = getState().currWorkspace;
           if (curr != null) {
             if (getState().workspaces.has(curr)) {
               const path = Path.resolve(rootDir, curr);
-              actionDispatcher.updateWorkspace({dir: path, isForce: payload.isForce, createHook: payload.createHook});
+              actionDispatcher.updateWorkspace({dir: path, ...payload});
             } else {
               actionDispatcher._setCurrentWorkspace(null);
             }
@@ -510,7 +523,8 @@ stateFactory.addEpic((action$, state$) => {
     // observe all existing Workspaces for dependency hoisting result 
     ...Array.from(getState().workspaces.keys()).map(key => {
       return getStore().pipe(
-        filter(s => s.workspaces.has(key)),
+        // filter(s => s.workspaces.has(key)),
+        takeWhile(s => s.workspaces.has(key)),
         map(s => s.workspaces.get(key)!),
         distinctUntilChanged((s1, s2) => s1.installJson === s2.installJson),
         scan<WorkspaceState>((old, newWs) => {
@@ -552,7 +566,7 @@ stateFactory.addEpic((action$, state$) => {
             distinctUntilChanged(),
             filter(ws => ws != null),
             take(1),
-            concatMap(ws => installWorkspace(ws!)),
+            concatMap(ws => installWorkspace(ws!, getState().npmInstallOpt)),
             map(() => {
               updateInstalledPackageForWorkspace(wsKey);
             })
@@ -741,10 +755,10 @@ async function initRootDirectory(createHook = false) {
 //   });
 // }
 
-async function installWorkspace(ws: WorkspaceState) {
+async function installWorkspace(ws: WorkspaceState, npmOpt: NpmOptions) {
   const dir = Path.resolve(rootDir, ws.id);
   try {
-    await installInDir(dir, ws.originInstallJsonStr, ws.installJsonStr);
+    await installInDir(dir, npmOpt, ws.originInstallJsonStr, ws.installJsonStr);
   } catch (ex) {
     actionDispatcher._change(d => {
       const wsd = d.workspaces.get(ws.id)!;
@@ -762,7 +776,7 @@ async function installWorkspace(ws: WorkspaceState) {
   }
 }
 
-export async function installInDir(dir: string, originPkgJsonStr: string, toInstallPkgJsonStr: string) {
+export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJsonStr: string, toInstallPkgJsonStr: string) {
   // tslint:disable-next-line: no-console
   log.info('Install dependencies in ' + dir);
   try {
@@ -798,13 +812,21 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
   await new Promise(resolve => setImmediate(resolve));
   // await new Promise(resolve => setTimeout(resolve, 5000));
   try {
-    const env = {...process.env, NODE_ENV: 'development'} as NodeJS.ProcessEnv;
-    await exe('npm', 'install', {
-      cwd: dir,
-      env // Force development mode, otherwise "devDependencies" will not be installed
-    }).promise;
+    const env = {
+      ...process.env,
+      NODE_ENV: 'development'
+    } as NodeJS.ProcessEnv;
+
+    if (npmOpt.cache)
+      env.npm_config_cache = npmOpt.cache;
+    if (npmOpt.offline)
+      env.npm_config_offline = 'true';
+
+    const cmdArgs = [npmOpt.useNpmCi ? 'ci' : 'install'];
+
+    await exe('npm', ...cmdArgs, {cwd: dir, env}).done;
     await new Promise(resolve => setImmediate(resolve));
-    await exe('npm', 'prune', {cwd: dir, env}).promise;
+    await exe('npm', 'prune', {cwd: dir, env}).done;
     // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
     // why, I have to add a setImmediate() between them to workaround
     await new Promise(resolve => setImmediate(resolve));
@@ -829,6 +851,7 @@ export async function installInDir(dir: string, originPkgJsonStr: string, toInst
   function recoverSymlinks() {
     return Promise.all(symlinksInModuleDir.map(({content, link}) => {
       if (!fs.existsSync(link)) {
+        fsext.mkdirpSync(Path.dirname(link));
         return fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
       }
       return Promise.resolve();

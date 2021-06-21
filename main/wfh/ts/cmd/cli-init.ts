@@ -12,7 +12,7 @@ import _ from 'lodash';
 import * as options from './types';
 import {createCliTable, plinkEnv} from '../utils/misc';
 
-export default async function(opt: options.InitCmdOptions, workspace?: string) {
+export default async function(opt: options.InitCmdOptions & options.NpmCliOption, workspace?: string) {
   const cwd = plinkEnv.workDir;
   getStore().pipe(
     distinctUntilChanged((s1, s2) => s1.packagesUpdateChecksum === s2.packagesUpdateChecksum),
@@ -63,9 +63,9 @@ export default async function(opt: options.InitCmdOptions, workspace?: string) {
   ))).subscribe();
 
   if (workspace) {
-    actions.updateWorkspace({dir: workspace, isForce: opt.force, createHook: opt.lintHook});
+    actions.updateWorkspace({dir: workspace, isForce: opt.force, cache: opt.cache, useNpmCi: opt.useCi, createHook: opt.lintHook});
   } else {
-    actions.initRootDir({isForce: opt.force, createHook: opt.lintHook});
+    actions.initRootDir({isForce: opt.force, cache: opt.cache, useNpmCi: opt.useCi, createHook: opt.lintHook});
     setImmediate(() => listProject());
   }
   // setImmediate(() => printWorkspaces());
