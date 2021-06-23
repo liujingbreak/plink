@@ -78,11 +78,11 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
 
 export {AnimatableRoutes};
 
-export function useParams<Params extends { [K in keyof Params]?: string } = {}>(): Params {
+export function useParams<Params extends { [K in keyof Params]?: string } = Record<string, any>>(): Params {
   const match = React.useContext(RouteMatchCtx);
   return (match?.params || {}) as Params;
 }
 
-export function useMatch<Params extends { [K in keyof Params]?: string } = {}>()  {
+export function useMatch<Params extends { [K in keyof Params]?: string } = Record<string, any>>()  {
   return React.useContext(RouteMatchCtx) as match<Params>;
 }

@@ -19,7 +19,7 @@ if (/\WWindows\W/.test(navigator.userAgent)) {
 }
 registerMarkdownFiles();
 
-const MainComp: React.FC<{}> = function(prop) {
+const MainComp: React.FC<{[p: string]: never}> = function(prop) {
   const reduxStore = useStoreOfStateFactory(stateFactory);
 
   if (reduxStore == null) {

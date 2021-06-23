@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, Slice, ofPayloadAction} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, Slice, ofPayloadAction, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import { MDCTopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -54,6 +54,7 @@ export const reducers = {
     else if (!visible && s.showTopLoadingReqsCount > 0)
       s.showTopLoadingReqsCount--;
   },
+  scrollTo(s: AppLayoutState, pos: [left: number, top: number]) {},
   _setLoadingVisible(s: AppLayoutState, visible: boolean) {
     s.showTopLoading = visible;
   },
@@ -106,11 +107,17 @@ export function sliceOptionFactory() {
 
 export const epicFactory: EpicFactory<AppLayoutState, typeof reducers> = function(slice, ofType) {
   return (action$, state$) => {
+    const actionStreams = castByActionType(slice.actions, action$);
     return rx.merge(
-      action$.pipe(ofPayloadAction(slice.actionDispatcher._setDeviceSize),
+      actionStreams._setDeviceSize.pipe(
         op.tap(({payload: size}) => {
           slice.actionDispatcher._setTopbarType(size === 'desktop' ? 'standard' : 'dense');
         })),
+      actionStreams.scrollTo.pipe(
+        op.tap(({payload}) => {
+          slice.getState().frontLayer?.scrollTo(payload[0], payload[1]);
+        })
+      ),
       state$.pipe(
         op.map(s => s.showTopLoadingReqsCount), op.distinctUntilChanged(),
         op.tap(showTopLoadingReqsCount => {
