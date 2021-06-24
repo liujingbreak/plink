@@ -107,7 +107,7 @@ function subComands(program: commander.Command) {
           ' directory.'
       })
     .option('-f, --force', 'Force run "npm install" in specific workspace directory, this is not same as npm install option "-f" ', false)
-    .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
+    // .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
     .action(async (workspace?: string) => {
       // eslint-disable-next-line no-console
       console.log(sexyFont('PLink').string);
@@ -304,7 +304,7 @@ function subComands(program: commander.Command) {
     .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
     'Because we store absolute path info of each package in internal state, and it will become invalid after you rename or move directory')
     .action(async (workspace: string) => {
-      await (await import('./cli-ls')).checkDir(updateDirCmd.opts() as any);
+      (await import('./cli-ls')).checkDir(updateDirCmd.opts() as tp.GlobalOptions);
     });
 }
 
@@ -361,7 +361,7 @@ function spaceOnlySubCommands(program: commander.Command) {
   program.command('setting [package]')
     .description('List packages setting and values', {package: 'package name, only list setting for specific package'})
     .action(async (pkgName: string) => {
-      await (await import('./cli-setting')).default(pkgName);
+      (await import('./cli-setting')).default(pkgName);
     });
     /** command run*/
   const runCmd = program.command('run <target> [arguments...]')
@@ -426,8 +426,8 @@ process.on('beforeExit', () => {
 function checkPlinkVersion() {
   const pkjson = Path.resolve(getRootDir(), 'package.json');
   if (fs.existsSync(pkjson)) {
-    const json = JSON.parse(fs.readFileSync(pkjson, 'utf8'));
-    let depVer: string = json.dependencies && json.dependencies['@wfh/plink'] ||
+    const json = JSON.parse(fs.readFileSync(pkjson, 'utf8')) as {dependencies?: {[p: string]: string | undefined}; devDependencies?: {[p: string]: string | undefined}};
+    let depVer = json.dependencies && json.dependencies['@wfh/plink'] ||
       json.devDependencies && json.devDependencies['@wfh/plink'];
     if (depVer == null) {
       // eslint-disable-next-line no-console

@@ -34,7 +34,7 @@ export interface BackgroundDemoState {
   rightColor?: Color;
   topColor?: Color;
   canvasPaintCtx?: PaintableContext;
-  style?: object;
+  style?: Record<string, unknown>;
   error?: Error;
   createPaintables?(p: PaintableContext): Iterable<PaintableSlice<any, any>>;
 }
@@ -117,16 +117,17 @@ function createGradient(pctx: PaintableContext, color: string, left: number, top
     position: [left, top]
   };
 
+  const extendReducers = {
+    changeColor(s: GradientState, col: string) {
+      s.color = col;
+    },
+    setPosition(s: GradientState, pos: [left: number, top: number]) {
+      s.position = pos;
+    }
+  };
   const gradientPaintableSlice = pctx.createPaintableSlice({name: 'bg-gradient',
     extendInitialState: initialState,
-    extendReducers: {
-      changeColor(s: GradientState, col: string) {
-        s.color = col;
-      },
-      setPosition(s: GradientState, pos: [left: number, top: number]) {
-        s.position = pos;
-      }
-    }
+    extendReducers
   });
   gradientPaintableSlice.addEpic((slice) => action$ => {
     return action$.pipe(ofPayloadAction(slice.actions.render),

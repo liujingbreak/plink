@@ -3,6 +3,12 @@ import {CliExtension, cliPackageArgDesc} from '@wfh/plink';
 import {CBOptions, generate} from './cli-gcmd';
 
 const cliExt: CliExtension = (program) => {
+  // program.command('eslint <dir>')
+  // .description('Run eslint on ts and tsx files (except .d.ts file)', {dir: 'target source code directory'})
+  // .action(async dir => {
+  //   await (await import('../eslint')).eslint(dir);
+  // });
+
   const cmd = program.command('gcmd <package-name> <command-name>')
   .alias('gen-command')
   .description('Bootstrap a Plink command line implementation in specific package')
@@ -41,7 +47,7 @@ const cliExt: CliExtension = (program) => {
       ' you may also use environment variable "BUILD_PATH" for create-react-app version above 4.0.3)')
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .action(async (dir: string) => {
-      (await import('./cli-cra-gen')).genPackage(dir, genCraCmd.opts().comp,
+      await (await import('./cli-cra-gen')).genPackage(dir, genCraCmd.opts().comp,
         genCraCmd.opts().feature, genCraCmd.opts().output, genCraCmd.opts().dryRun);
     });
 
@@ -54,9 +60,9 @@ const cliExt: CliExtension = (program) => {
     // .option('--internal-slice,--is', 'Use a lightweiht Redux-toolkit + redux-observable like tool to manage component internal state,' +
     //   ' useful for implementing complex component which might have bigc state and async side effects')
     .action(async (dir: string, compNames: string[]) => {
-      (await import('./cli-cra-gen')).genComponents(dir, compNames, {
-        connectedToSlice: genCraCompCmd.opts().conn,
-        dryrun: genCraCompCmd.opts().dryRun
+      await (await import('./cli-cra-gen')).genComponents(dir, compNames, {
+        connectedToSlice: genCraCompCmd.opts().conn as string,
+        dryrun: genCraCompCmd.opts().dryRun as boolean
       });
     });
   genCraCompCmd.usage(genCraCompCmd.usage() + '\ne.g.\n  plink cra-gen-comp --conn ../packages/foobar/components Toolbar Layout Profile');
@@ -69,14 +75,14 @@ const cliExt: CliExtension = (program) => {
     .option('--tiny', 'A RxJS based tiny Slice for managing individual component internal state, useful for complicated component', false)
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .action(async (dir: string, sliceName: string[]) => {
-      (await import('./cli-cra-gen')).genSlice(dir, sliceName, genCraSliceCmd.opts() as any);
+      await (await import('./cli-cra-gen')).genSlice(dir, sliceName, genCraSliceCmd.opts() as any);
     });
 
-  program.command('install-eslint')
-  .description('Install eslint to current project')
-  .action(async () => {
+  // program.command('install-eslint')
+  // .description('Install eslint to current project')
+  // .action(async () => {
 
-  });
+  // });
 
 };
 

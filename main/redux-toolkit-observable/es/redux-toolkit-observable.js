@@ -1,6 +1,6 @@
 /// <reference lib="es2017" />
 /// <reference path="./hmr-module.d.ts" />
-// tslint:disable: max-line-length member-ordering
+// eslint-disable  max-line-length member-ordering
 /**
  * A combo set for using Redux-toolkit along with redux-observable
  */
@@ -113,7 +113,7 @@ export class StateFactory {
             }), mergeMap(([epic, epicId, unsub]) => (epic(action$, state$, dependencies))
                 .pipe(
             // tap(action => console.log('action: ', action.type)),
-            takeUntil(unsub.pipe(take(1), tap(epicId => {
+            takeUntil(unsub.pipe(take(1), map(epicId => {
                 this.debugLog.next(['[redux-toolkit-obs]', `unsubscribe from ${epicId}`]);
                 // console.log(`[redux-toolkit-obs] unsubscribe ${epicId}`);
             }))), catchError((err, src) => {
@@ -197,6 +197,7 @@ export class StateFactory {
         const actionMap = {};
         for (const [name, actionCreator] of Object.entries(slice.actions)) {
             const doAction = (...param) => {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                 const action = actionCreator(...param);
                 this.dispatch(action);
                 return action;
@@ -257,7 +258,9 @@ export class StateFactory {
 export function fromPaylodReducer(payloadReducers) {
     const reducers = {};
     for (const [caseName, simpleReducer] of Object.entries(payloadReducers)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         reducers[caseName] = function (s, action) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             return simpleReducer(s, action.payload);
         };
     }

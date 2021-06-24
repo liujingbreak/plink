@@ -170,7 +170,7 @@ function checkUpLevelNodeModules(rootDir: string) {
   const nodeModule = dirs.find(dir => fs.existsSync(dir));
   if (nodeModule) {
     throw new Error(chalk.red(`Found "${nodeModule}" in Plink CLI's upper level directory, ` +
-    'this could be problematic for Plink or Webpack to load proper module.'))
+      'this could be problematic for Plink or Webpack to load proper module.'));
   }
 }
 

@@ -56,6 +56,7 @@ const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}
         dispatcher._change(s => {
           s._computed.reactHtml.__html = changedFoo + ' goes here';
         });
+        return null;
       })
     )
   ).pipe(

@@ -72,13 +72,16 @@ if (workerData) {
 }
 
 if (!isMainThread) {
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   parentPort!.on('message', executeOnEvent);
 }
 
 async function executeOnEvent(data: Task | Command) {
   if ((data as Command).exit) {
-    if (verbose)
+    if (verbose) {
+      // eslint-disable-next-line no-console
       console.log(`[thread-pool] worker ${workerData?.id} exit`);
+    }
     parentPort!.off('message', executeOnEvent);
     // Don't call process.exit(0), there might be some unfinished output stream still on-going at this moment.
     return;

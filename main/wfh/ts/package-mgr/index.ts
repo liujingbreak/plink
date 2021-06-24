@@ -12,7 +12,6 @@ import { from, merge, Observable, of, defer, throwError} from 'rxjs';
 import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
   take, concatMap, ignoreElements, scan, catchError, tap } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
-import { spawn } from '../process-utils';
 import { exe } from '../process-utils';
 import { setProjectList, setLinkPatterns} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
@@ -31,7 +30,7 @@ export interface PackageInfo {
     plink?: PlinkJsonType;
     dr?: PlinkJsonType;
     [p: string]: any;
-  };
+  } & PackageJsonInterf;
   /** Be aware: If this property is not same as "realPath",
    * then it is a symlink whose path is relative to workspace directory */
   path: string;
@@ -39,8 +38,14 @@ export interface PackageInfo {
   isInstalled: boolean;
 }
 
-interface PlinkJsonType {
+export interface PlinkJsonType {
   typeRoot?: string;
+  setting?: {
+    /** In form of "<path>#<export-name>" */
+    type: string;
+    /** In form of "<module-path>#<export-name>" */
+    value: string;
+  };
   [p: string]: any;
 }
 
@@ -126,7 +131,7 @@ export const slice = stateFactory.newSlice({
   initialState: state,
   reducers: {
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d, {payload}: PayloadAction<{createHook: boolean} & NpmOptions>) {
+    initRootDir(d, {payload}: PayloadAction<NpmOptions>) {
       d.npmInstallOpt.cache = payload.cache;
       d.npmInstallOpt.useNpmCi = payload.useNpmCi;
     },
@@ -139,8 +144,11 @@ export const slice = stateFactory.newSlice({
      * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
      * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
      */
-    updateWorkspace(d, {payload}: PayloadAction<{dir: string,
-      createHook: boolean, packageJsonFiles?: string[]} & NpmOptions>) {
+    updateWorkspace(d, {payload}: PayloadAction<{
+      dir: string;
+      // createHook: boolean;
+      packageJsonFiles?: string[];
+    } & NpmOptions>) {
       d.npmInstallOpt.cache = payload.cache;
       d.npmInstallOpt.useNpmCi = payload.useNpmCi;
     },
@@ -152,7 +160,7 @@ export const slice = stateFactory.newSlice({
       if (isDrcpSymlink) {
         d.linkedDrcp = plinkPkg;
         d.installedDrcp = null;
-        d.linkedDrcpProject = pathToProjKey(Path.dirname(d.linkedDrcp!.realPath));
+        d.linkedDrcpProject = pathToProjKey(Path.dirname(d.linkedDrcp.realPath));
       } else {
         d.linkedDrcp = null;
         d.installedDrcp = plinkPkg;
@@ -163,7 +171,7 @@ export const slice = stateFactory.newSlice({
       d.inited = true;
       let map = d.srcPackages;
       if (payload[1] === 'clean') {
-        map = d.srcPackages = new Map();
+        map = d.srcPackages = new Map<string, PackageInfo>();
       }
       for (const pkInfo of payload[0]) {
         map.set(pkInfo.name, pkInfo);
@@ -273,7 +281,7 @@ export const slice = stateFactory.newSlice({
         hoistedDev: hoistedDevDeps, hoistedDevPeers: devHoistPeerDepInfo
       } =
         listCompDependency(
-        state.srcPackages, wsKey, pkjson.dependencies || {}, pkjson.devDependencies
+          state.srcPackages, wsKey, pkjson.dependencies || {}, pkjson.devDependencies
       );
 
 
@@ -411,7 +419,7 @@ stateFactory.addEpic((action$, state$) => {
     ),
     //  updateWorkspace
     action$.pipe(ofPayloadAction(slice.actions.updateWorkspace),
-      concatMap(({payload: {dir, isForce, createHook, useNpmCi, packageJsonFiles}}) => {
+      concatMap(({payload: {dir, isForce, useNpmCi, packageJsonFiles}}) => {
         dir = Path.resolve(dir);
         actionDispatcher._setCurrentWorkspace(dir);
         maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), Path.resolve(dir, 'app.js'));
@@ -435,7 +443,7 @@ stateFactory.addEpic((action$, state$) => {
         // then call _hoistWorkspaceDeps
         return merge(
           packageJsonFiles != null ? scanAndSyncPackages(packageJsonFiles):
-            defer(() => of(initRootDirectory(createHook))),
+            defer(() => of(initRootDirectory())),
           action$.pipe(
             ofPayloadAction(slice.actions._syncLinkedPackages),
             take(1),
@@ -582,7 +590,7 @@ stateFactory.addEpic((action$, state$) => {
           );
         } else {
           const wsKeys = action.payload as Parameters<typeof slice.actions.workspaceBatchChanged>[0];
-          return merge(...wsKeys.map(_createSymlinksForWorkspace)); 
+          return merge(...wsKeys.map(_createSymlinksForWorkspace));
         }
       }),
       ignoreElements()
@@ -595,7 +603,7 @@ stateFactory.addEpic((action$, state$) => {
         updatedWorkspaceSet.clear();
         // return from(writeConfigFiles());
       }),
-      map(async () => {
+      map(() => {
         actionDispatcher.packagesUpdated();
       })
     ),
@@ -732,7 +740,7 @@ function checkAllWorkspaces() {
   }
 }
 
-async function initRootDirectory(createHook = false) {
+async function initRootDirectory() {
   log.debug('initRootDirectory');
   const rootPath = rootDir;
   fsext.mkdirpSync(distDir);
@@ -741,16 +749,6 @@ async function initRootDirectory(createHook = false) {
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates',
       'gitignore.txt'), rootDir + '/.gitignore');
   await cleanInvalidSymlinks();
-
-  const projectDirs = getProjectList();
-
-  if (createHook) {
-    projectDirs.forEach(prjdir => {
-      _writeGitHook(prjdir);
-      maybeCopyTemplate(Path.resolve(__dirname, '../../tslint.json'), prjdir + '/tslint.json');
-    });
-  }
-
   await scanAndSyncPackages();
   // await _deleteUselessSymlink(Path.resolve(rootDir, 'node_modules'), new Set<string>());
 }
@@ -816,7 +814,7 @@ export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJso
   // save a lock file to indicate in-process of installing, once installation is completed without interruption, delete it.
   // check if there is existing lock file, meaning a previous installation is interrupted.
   const lockFile = Path.resolve(dir, 'plink.install.lock');
-  fs.promises.writeFile(lockFile, originPkgJsonStr);
+  void fs.promises.writeFile(lockFile, originPkgJsonStr);
 
   await new Promise(resolve => setImmediate(resolve));
   // await new Promise(resolve => setTimeout(resolve, 5000));
@@ -846,15 +844,16 @@ export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJso
     }
   } catch (e) {
     // eslint-disable-next-line no-console
-    log.error('Failed to install dependencies', e.stack);
+    log.error('Failed to install dependencies', (e as Error).stack);
     throw e;
   } finally {
     // eslint-disable-next-line no-console
     log.info('Recover ' + installJsonFile);
     // 3. Recover package.json and symlinks deleted in Step.1.
     fs.writeFileSync(installJsonFile, originPkgJsonStr, 'utf8');
-    fs.promises.unlink(lockFile);
     await recoverSymlinks();
+    if (fs.existsSync(lockFile))
+      await fs.promises.unlink(lockFile);
   }
 
   function recoverSymlinks() {
@@ -996,7 +995,7 @@ function _createSymlinksForWorkspace(wsKey: string) {
 async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) {
   const dones: Promise<void>[] = [];
   const drcpName = getState().linkedDrcp ? getState().linkedDrcp!.name : null;
-  const done1 = listModuleSymlinks(checkDir, async link => {
+  const done1 = listModuleSymlinks(checkDir, link => {
     const pkgName = Path.relative(checkDir, link).replace(/\\/g, '/');
     if ( drcpName !== pkgName && !excludeSet.has(pkgName)) {
       // eslint-disable-next-line no-console
@@ -1093,26 +1092,25 @@ function maybeCopyTemplate(from: string, to: string) {
     cp(Path.resolve(__dirname, from), to);
 }
 
-function _writeGitHook(project: string) {
-  // if (!isWin32) {
-  const gitPath = Path.resolve(project, '.git/hooks');
-  if (fs.existsSync(gitPath)) {
-    const hookStr = '#!/bin/sh\n' +
-      `cd "${rootDir}"\n` +
-      // 'drcp init\n' +
-      // 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
-      `plink lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
-    if (fs.existsSync(gitPath + '/pre-commit'))
-      fs.unlinkSync(gitPath + '/pre-commit');
-    fs.writeFileSync(gitPath + '/pre-push', hookStr);
-    // eslint-disable-next-line no-console
-    log.info('Write ' + gitPath + '/pre-push');
-    if (!isWin32) {
-      spawn('chmod', '-R', '+x', project + '/.git/hooks/pre-push');
-    }
-  }
-  // }
-}
+// function _writeGitHook(project: string) {
+//   // if (!isWin32) {
+//   const gitPath = Path.resolve(project, '.git/hooks');
+//   if (fs.existsSync(gitPath)) {
+//     const hookStr = '#!/bin/sh\n' +
+//       `cd "${rootDir}"\n` +
+//       // 'drcp init\n' +
+//       // 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
+//       `plink lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
+//     if (fs.existsSync(gitPath + '/pre-commit'))
+//       fs.unlinkSync(gitPath + '/pre-commit');
+//     fs.writeFileSync(gitPath + '/pre-push', hookStr);
+//     // eslint-disable-next-line no-console
+//     log.info('Write ' + gitPath + '/pre-push');
+//     if (!isWin32) {
+//       spawn('chmod', '-R', '+x', project + '/.git/hooks/pre-push');
+//     }
+//   }
+// }
 
 function deleteDuplicatedInstalledPkg(workspaceKey: string) {
   const wsState = getState().workspaces.get(workspaceKey)!;

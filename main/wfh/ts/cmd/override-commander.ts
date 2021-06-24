@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment,  @typescript-eslint/no-unsafe-return */
 import commander from 'commander';
 import {WorkspaceState, PackageInfo} from '../package-mgr';
 import chalk from 'chalk';
@@ -172,7 +173,7 @@ export class PlinkCommand extends commander.Command {
     if (cmdName && cmdName !== 'help') {
       if (this.loadedCmdMap.has(cmdName)) {
         if (filePath)
-          throw new Error(`Conflict command name "${cmdName}" from extensions "${filePath}" and "${this.loadedCmdMap.get(cmdName)}"`);
+          throw new Error(`Conflict command name "${cmdName}" from extensions "${filePath}" and "${this.loadedCmdMap.get(cmdName)!}"`);
         else
           throw new Error(`Conflict with existing Plink command name ${cmdName}`);
       }
@@ -317,7 +318,7 @@ export class CommandOverrider {
         this.pkgMetasMap.set(pk.name, commandMetaInfos);
       } catch (e) {
         // eslint-disable-next-line no-console
-        log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message}"`, e);
+        log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message as string}"`, e);
       } finally {
         filePath = null;
       }

@@ -177,7 +177,7 @@ function mergeFromCliArgs(cliOpt: CliOptions) {
     }
     dispatcher._change(s => _.set(s, propPath, value));
     // eslint-disable-next-line no-console
-    log.info(`[config] set ${propPath} = ${value}`);
+    log.info(`[config] set ${propPath} = ${value as string}`);
   }
 }
 
@@ -211,14 +211,6 @@ function normalizePort(val: string | number) {
 
 type PackageInfo = ReturnType<(typeof _pkgList)['packages4Workspace']> extends Generator<infer T> ? T : unknown;
 
-export interface WithPackageSettingProp {
-  setting: {
-    /** In form of "<path>#<export-name>" */
-    type: string;
-    /** In form of "<module-path>#<export-name>" */
-    value: string;
-  };
-}
 /**
  * @returns [defaultValueFile, exportName, dtsFile]
  */
@@ -237,7 +229,7 @@ export function* getPackageSettingFiles(workspaceKey: string, includePkg?: Set<s
       continue;
 
     try {
-      const dr: WithPackageSettingProp = pkg.json.dr || pkg.json.plink;
+      const dr = pkg.json.dr || pkg.json.plink!;
       if (dr == null || typeof dr.setting !== 'object') {
         continue;
       }

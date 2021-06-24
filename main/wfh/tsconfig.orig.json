@@ -13,5 +13,10 @@
       "../node_modules/@types/*",
       "types"
     ]
-  }
+  },
+  "include": [
+    "ts/**/*.ts",
+    "../redux-toolkit-observable/**/*.ts",
+    "../thread-promise-pool/ts/**/*.ts"
+  ]
 }

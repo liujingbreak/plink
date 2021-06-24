@@ -1,8 +1,7 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 import { ofPayloadAction, StateFactory } from './redux-toolkit-observable';
 import { enableES5, enableMapSet } from 'immer';
 import { tap } from 'rxjs/operators';
-export * from './resource-map';
 
 enableES5();
 enableMapSet();
@@ -28,6 +27,7 @@ export { ofPayloadAction };
 
 if (module.hot) {
   module.hot.dispose(data => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     data.stateFactory = stateFactory;
     sub.unsubscribe();
   });

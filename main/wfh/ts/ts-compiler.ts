@@ -103,6 +103,7 @@ class TsCompiler {
     const output = this.langService.getEmitOutput(fileName);
     this.logErrors(fileName);
     if (output.emitSkipped) {
+      // eslint-disable-next-line no-console
       console.log(red(`ts-compiler - compile ${fileName} failed`));
       this.logErrors(fileName, true);
       throw new Error('Failed to compile Typescript ' + fileName);

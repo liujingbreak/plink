@@ -67,6 +67,7 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
           if (sliceRef) {
             sliceRef(slice);
           }
+          return null;
         })
       ),
       // Observe incoming action 'onClick' and dispatch new change action

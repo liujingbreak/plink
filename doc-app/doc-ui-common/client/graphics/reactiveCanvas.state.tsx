@@ -1,3 +1,4 @@
+/* eslint-disable array-callback-return */
 /**
  * For those components which has complicated "state" or a lot async "actions",
  * leverage a Redux (Redux-toolkit, Redux-observable) like internal store to manage
@@ -116,7 +117,7 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
   const rootPaintableInitialState: PositionalState = {
     x: 0, y: 0, w: 400, h: 300
   };
-  const rootPaintable = pCtx.createPaintableSlice({
+  const rootPaintable = pCtx.createPosPaintable({
     name: 'root',
     extendInitialState: rootPaintableInitialState,
     extendReducers: positionalReducers
@@ -250,7 +251,7 @@ export class PaintableContext {
   //   this.canvasSlice.actionDispatcher.changeContext(ctx);
   // }
 
-  createPaintableSlice<S = {}, R = {}>({name, extendInitialState, extendReducers, actionInterceptor, debug}:
+  createPaintableSlice<S = undefined, R = undefined>({name, extendInitialState, extendReducers, actionInterceptor, debug}:
     PaintableCreateOption<S, R>): PaintableSlice<S, R> {
 
     if (extendInitialState == null) {
@@ -263,18 +264,17 @@ export class PaintableContext {
       // pctx: this,
       attached: false
     };
-    const slice = createSlice<BasePaintableState & S, typeof basePaintableReducers>({
+    const slice = createSlice({
       name,
       initialState: Object.assign(initState, extendInitialState),
       reducers: Object.assign(basePaintableReducers, extendReducers),
       debug
-    });
-    const actionInterceptorOpt = actionInterceptor ? actionInterceptor(slice as PaintableSlice<S, R>) : null;
+    }) as unknown as Slice<BasePaintableState, typeof basePaintableReducers>;
 
     slice.addEpic(slice => {
       return inputAction$ => {
-        const action$ = actionInterceptorOpt ? inputAction$.pipe(
-          actionInterceptorOpt,
+        const action$ = actionInterceptor ? inputAction$.pipe(
+          actionInterceptor(slice as unknown as PaintableSlice<S, R>),
           op.share() // share() is important, it prevents actionInterceptorOpt being executed on same action for multiple times, when there are multiple 
           // action$ subscribers
         ) : inputAction$;
@@ -393,10 +393,10 @@ export class PaintableContext {
     this.canvasSlice.destroy$.subscribe({next() {
       slice.destroy();
     }});
-    return slice as PaintableSlice<S, R>;
+    return slice as unknown as PaintableSlice<S, R>;
   }
 
-  createPosPaintable<S = {}, R = {}>(opt: PaintableCreateOption<S, R>) {
+  createPosPaintable<S = undefined, R = undefined>(opt: PaintableCreateOption<S, R>) {
     const initialPosState: PositionalState = {
       x: 0, y: 0, w: 400, h: 300,
       relativeHeight: 1,
@@ -404,9 +404,10 @@ export class PaintableContext {
     };
 
     (opt as any).extendInitialState = opt.extendInitialState ?
-      {...initialPosState, ...opt.extendInitialState} : initialPosState;
+      Object.assign(initialPosState, opt.extendInitialState) : initialPosState;
     (opt as any).extendReducers = opt.extendReducers ?
-      {...positionalReducers, ...opt.extendReducers} : positionalReducers;
+      Object.assign(positionalReducers, opt.extendReducers) :
+      positionalReducers;
 
     const positionalPaintable = this.createPaintableSlice(opt as unknown as
       PaintableCreateOption<PositionalState, (typeof positionalReducers)>);
@@ -477,19 +478,27 @@ export const basePaintableReducers = {
   // destroy(s: BasePaintableState) {}
 };
 
-export type PaintableSlice<S = {}, R = {}> = Slice<BasePaintableState & S, typeof basePaintableReducers & R>;
+export type PaintableSlice<S = undefined, R = undefined> = Slice<
+  S extends undefined ? BasePaintableState : BasePaintableState & S,
+  R extends undefined ? typeof basePaintableReducers : typeof basePaintableReducers & R
+>;
 
-export interface PaintableCreateOption<S, R> {
+export interface PaintableCreateOption<S = undefined, R = undefined,
+  SliceType = PaintableSlice<S, R>,
+  SliceState = BasePaintableState & S
+  > {
   name: string;
   extendInitialState?: S;
   extendReducers?: R;
-  actionInterceptor?: ((slice: PaintableSlice<S, R>) => rx.OperatorFunction<
-    PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>,
-    PayloadAction<BasePaintableState & S> | Action<BasePaintableState & S>>) | null;
+  actionInterceptor?: ((slice: SliceType) => rx.OperatorFunction<
+    PayloadAction<SliceState> | Action<SliceState>,
+    PayloadAction<SliceState> | Action<SliceState>>) | null;
   debug?: boolean;
 }
 
-export type PositionalPaintableSlice<S = {}, R = {}> = PaintableSlice<PositionalState & S, typeof positionalReducers & R>;
+export type PositionalPaintableSlice<S = undefined, R = undefined> =
+  PaintableSlice<S extends undefined ? PositionalState : PositionalState & S,
+    R extends undefined ? typeof positionalReducers : typeof positionalReducers & R>;
 
 export interface PositionalState {
   x: number;
@@ -545,7 +554,7 @@ export const positionalEpicFactory: EpicFactory<
         ),
         slice.getStore().pipe(
           op.distinctUntilChanged((a, b) => a.relativeHeight === b.relativeHeight && a.relativeWidth === b.relativeWidth &&
-            a.relativeX === a.relativeX && a.relativeY === b.relativeY)
+            a.relativeX === b.relativeX && a.relativeY === b.relativeY)
         )
       ).pipe(
         op.map(([p, child]) => {

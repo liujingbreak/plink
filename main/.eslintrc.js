@@ -21,13 +21,12 @@ module.exports = {
     "extends": [
         "plugin:@typescript-eslint/recommended",
         "plugin:@typescript-eslint/recommended-requiring-type-checking",
-        "prettier",
-        "react-app"
+        "prettier"
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "debugLevel": true,
-        "project": path.resolve(__dirname, "tsconfig.json"),
+        // "debugLevel": true,
+        "project": path.resolve(__dirname, "wfh/tsconfig.json"),
         "sourceType": "module"
     },
     "plugins": [
@@ -37,8 +36,7 @@ module.exports = {
         "@typescript-eslint"
     ],
     "ignorePatterns": [
-        "**/dist/**/*",
-        "**/*.d.ts"
+        "wfh/dist/**/*"
     ],
     "rules": {
         "@typescript-eslint/adjacent-overload-signatures": "error",
@@ -287,7 +285,6 @@ module.exports = {
             }
         ],
         "use-isnan": "error",
-        "valid-typeof": "off",
-        'import/no-anonymous-default-export': 'off' // override rules from eslint-config-react-app
+        "valid-typeof": "off"
     }
 };

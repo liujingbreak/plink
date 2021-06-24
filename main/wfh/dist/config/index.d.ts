@@ -3,14 +3,6 @@ import * as rx from 'rxjs';
 import * as _pkgList from '../package-mgr/package-list-helper';
 export declare const configHandlerMgr$: rx.BehaviorSubject<ConfigHandlerMgr | undefined>;
 declare type PackageInfo = ReturnType<(typeof _pkgList)['packages4Workspace']> extends Generator<infer T> ? T : unknown;
-export interface WithPackageSettingProp {
-    setting: {
-        /** In form of "<path>#<export-name>" */
-        type: string;
-        /** In form of "<module-path>#<export-name>" */
-        value: string;
-    };
-}
 /**
  * @returns [defaultValueFile, exportName, dtsFile]
  */

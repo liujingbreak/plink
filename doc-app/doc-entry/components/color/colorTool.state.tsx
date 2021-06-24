@@ -54,7 +54,7 @@ export interface ColorToolState {
 
 const rawReducers = {
   onColorSelected(s: ColorToolState, payload: Color) {
-    navigator.clipboard.writeText(payload.hex());
+    void navigator.clipboard.writeText(payload.hex());
   },
   onRenderCanvas(s: ColorToolState, ref: PaintableContext) {},
   _syncComponentProps(s: ColorToolState, payload: ColorToolProps) {
@@ -137,6 +137,7 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
           slice.actionDispatcher._change(s => {
             s.colorClickCallbacks = colorClickCallbacks;
           });
+          return null;
         })
       ),
       slice.getStore().pipe(

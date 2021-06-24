@@ -8,12 +8,26 @@ export interface PackageInfo {
     name: string;
     scope: string;
     shortName: string;
-    json: any;
+    json: {
+        plink?: PlinkJsonType;
+        dr?: PlinkJsonType;
+        [p: string]: any;
+    } & PackageJsonInterf;
     /** Be aware: If this property is not same as "realPath",
      * then it is a symlink whose path is relative to workspace directory */
     path: string;
     realPath: string;
     isInstalled: boolean;
+}
+export interface PlinkJsonType {
+    typeRoot?: string;
+    setting?: {
+        /** In form of "<path>#<export-name>" */
+        type: string;
+        /** In form of "<module-path>#<export-name>" */
+        value: string;
+    };
+    [p: string]: any;
 }
 export interface PackagesState {
     npmInstallOpt: NpmOptions;
@@ -76,9 +90,7 @@ export interface NpmOptions {
 }
 export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
-        createHook: boolean;
-    } & NpmOptions>): void;
+    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<NpmOptions>): void;
     /**
      * - Create initial files in root directory
      * - Scan linked packages and install transitive dependency
@@ -89,7 +101,6 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
      */
     updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         dir: string;
-        createHook: boolean;
         packageJsonFiles?: string[];
     } & NpmOptions>): void;
     scanAndSyncPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
@@ -150,9 +161,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
 } & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
-        createHook: boolean;
-    } & NpmOptions>): void;
+    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<NpmOptions>): void;
     /**
      * - Create initial files in root directory
      * - Scan linked packages and install transitive dependency
@@ -163,7 +172,6 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
      */
     updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         dir: string;
-        createHook: boolean;
         packageJsonFiles?: string[];
     } & NpmOptions>): void;
     scanAndSyncPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{

@@ -1,1 +1,1 @@
-export default function (pkgName?: string): Promise<void>;
+export default function (pkgName?: string): void;

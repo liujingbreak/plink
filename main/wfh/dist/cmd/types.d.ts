@@ -14,7 +14,6 @@ export interface GlobalOptions {
 }
 export interface InitCmdOptions extends GlobalOptions {
     force: boolean;
-    lintHook: boolean;
 }
 export interface NpmCliOption {
     cache?: string;

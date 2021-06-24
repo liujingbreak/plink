@@ -63,9 +63,9 @@ export default function(opt: options.InitCmdOptions & options.NpmCliOption, work
   ))).subscribe();
 
   if (workspace) {
-    actions.updateWorkspace({dir: workspace, isForce: opt.force, cache: opt.cache, useNpmCi: opt.useCi, createHook: opt.lintHook});
+    actions.updateWorkspace({dir: workspace, isForce: opt.force, cache: opt.cache, useNpmCi: opt.useCi});
   } else {
-    actions.initRootDir({isForce: opt.force, cache: opt.cache, useNpmCi: opt.useCi, createHook: opt.lintHook});
+    actions.initRootDir({isForce: opt.force, cache: opt.cache, useNpmCi: opt.useCi});
     setImmediate(() => listProject());
   }
   // setImmediate(() => printWorkspaces());

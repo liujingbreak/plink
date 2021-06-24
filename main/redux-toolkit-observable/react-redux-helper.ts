@@ -79,9 +79,9 @@ export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
 }
 
 export type InjectedCompPropsType<ConnectHOC> =
-  (ConnectHOC extends InferableComponentEnhancerWithProps<infer TInjectedProps, any> ? TInjectedProps : {})
+  (ConnectHOC extends InferableComponentEnhancerWithProps<infer TInjectedProps, any> ? TInjectedProps : {[p: string]: unknown})
   &
-  (ConnectHOC extends InferableComponentEnhancerWithProps<any, infer TOwnProps> ? TOwnProps : {});
+  (ConnectHOC extends InferableComponentEnhancerWithProps<any, infer TOwnProps> ? TOwnProps : {[p: string]: unknown});
 
 
 export function useStoreOfStateFactory(stateFactory: StateFactory) {

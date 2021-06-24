@@ -142,22 +142,22 @@
         "affectsGlobalScope": true
       },
       "../thread-promise-pool/ts/worker.ts": {
-        "version": "304265cc6d7fe64eeb2d3c917ea20e543de5c6c8d5f8fa33f65ea16ebfaa1599",
+        "version": "54ffe06c4b6e2962e3447fc4c52e46de6d8013fff070ce4ff576ede1b21399c5",
         "signature": "1fcdba9967b5ef8ad69e71a046a96ab5b193c681294dd16ea3b64acab13b9500",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/worker-process.ts": {
-        "version": "ab5e38d32a4c4465500883e7c76365d060625c6b0aba8684e60955a1c09ad51f",
+        "version": "066c85d6b7b5384056321e82a36d66c517b7594418351f0691e3204cef2746c3",
         "signature": "b690bde83c0a69c2ff94b457e53bb72bf418ae9b5adcc7e441325ba0d3cfb027",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/thread-pool.ts": {
-        "version": "800ceb643b7696c6f1c26d917eeafbd80d8c1194c3bed07de90d08a6a9329895",
+        "version": "0a56c0b8725a46d43661def91389d7a0be77c40564c863c0eb415e82c26905ff",
         "signature": "a2373753d77e8f1461fa1dbc62471c0626da55e2cf336117d84c86bd29f29326",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/promise-queque.ts": {
-        "version": "7f37758e34106d71904493e951bdc8bc6d7b9bfe2a5dcef3f3b3365abefd91d5",
+        "version": "6db970998c77e8ebc5602f65cee1af7db524f671a6b1c9446b0f6fad12e80008",
         "signature": "f5fe4213a2faeae47dae6aba98b40e09ddf8b7688e17cccc5bc59b078b1dd1f1",
         "affectsGlobalScope": false
       },
@@ -167,17 +167,17 @@
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/spec/promise-quequespec.ts": {
-        "version": "65554c9cbe443f9c9236223713e270798e8c1dbe3f2f55aed97c05f530de6d28",
+        "version": "5bb4c21c871e297565151db8cad53e2c81029f1662056886b927587b16ac7c11",
         "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/spec/thread-job.ts": {
-        "version": "f52e22ada0ac8771b43ba79c19d7f071705846685112f8bbc9716ac8a22f86f2",
+        "version": "b7f0a2fc28d6f2f96baa21fc3a984b41804cb6db6045c3054001a7bc6d90f9ab",
         "signature": "162eb58ea8bdf1f2cbbbcb874d6fe7393cc3667a69ce091937829ba472ce762b",
         "affectsGlobalScope": false
       },
       "../thread-promise-pool/ts/spec/thread-poolspec.ts": {
-        "version": "480644322b111be084cb35d214634780d431c507ba310aca84ea3fc0141aa7d0",
+        "version": "6fe9a69cc9f63a6af69be61d198a7383c7e6ee62c1049b85907276942e74a4a9",
         "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
         "affectsGlobalScope": false
       },
@@ -920,6 +920,16 @@
         "version": "bbe2107a96f15b2cfebcfebfc8933619cb285c43bf1ef6946f78fd92b2de6893",
         "signature": "bbe2107a96f15b2cfebcfebfc8933619cb285c43bf1ef6946f78fd92b2de6893",
         "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/json-schema/index.d.ts": {
+        "version": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
+        "signature": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/json5/index.d.ts": {
+        "version": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
+        "signature": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
+        "affectsGlobalScope": false
       }
     },
     "options": {
@@ -952,7 +962,6 @@
       "pretty": true,
       "rootDir": "../thread-promise-pool/ts",
       "composite": true,
-      "watch": true,
       "configFilePath": "./tsconfig-thread-promise.json"
     },
     "referencedMap": {
@@ -2561,7 +2570,9 @@
       "../thread-promise-pool/ts/spec/thread-poolspec.ts",
       "../thread-promise-pool/ts/thread-pool.ts",
       "../thread-promise-pool/ts/worker-process.ts",
-      "../thread-promise-pool/ts/worker.ts"
+      "../thread-promise-pool/ts/worker.ts",
+      "../../node_modules/@types/json-schema/index.d.ts",
+      "../../node_modules/@types/json5/index.d.ts"
     ]
   },
   "version": "4.1.2"

@@ -1,6 +1,6 @@
 /// <reference lib="es2017" />
 /// <reference path="./hmr-module.d.ts" />
-// tslint:disable: max-line-length member-ordering
+// eslint-disable  max-line-length member-ordering
 /**
  * A combo set for using Redux-toolkit along with redux-observable
  */
@@ -34,7 +34,7 @@ export function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string
   OperatorFunction<any, PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
 export function ofPayloadAction<P, T extends string>(...actionCreators: ActionCreatorWithPayload<P, T>[]):
   OperatorFunction<any, PayloadAction<P, T>> {
-  return ofType(...actionCreators.map(c => c.type)) as any;
+  return ofType(...actionCreators.map(c => c.type)) as OperatorFunction<any, PayloadAction<P, T>>;
 }
 
 export interface ErrorState {
@@ -168,7 +168,7 @@ export class StateFactory {
             // tap(action => console.log('action: ', action.type)),
             takeUntil(unsub.pipe(
               take(1),
-              tap(epicId => {
+              map(epicId => {
                 this.debugLog.next(['[redux-toolkit-obs]', `unsubscribe from ${epicId}`]);
                 // console.log(`[redux-toolkit-obs] unsubscribe ${epicId}`);
               }))
@@ -287,14 +287,15 @@ export class StateFactory {
     const actionMap = {} as A;
     for (const [name, actionCreator] of Object.entries(slice.actions)) {
       const doAction = (...param: any[]) => {
-        const action = (actionCreator as any)(...param);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+        const action = actionCreator(...param);
         this.dispatch(action);
-        return action;
+        return action as unknown;
       };
-      (doAction as any).type = (actionCreator as PayloadActionCreator).type;
-      actionMap[name] = doAction as any;
+      (doAction as unknown as {type: string}).type = (actionCreator as PayloadActionCreator).type;
+      actionMap[name] = doAction as unknown;
     }
-    return actionMap as A;
+    return actionMap;
   }
 
   stopAllEpics() {
@@ -329,7 +330,7 @@ export class StateFactory {
         }
       };
     };
-  }
+  };
 
   private addSliceMaybeReplaceReducer<State,
     Name extends string = string>(
@@ -385,8 +386,10 @@ export function fromPaylodReducer<S, R extends SliceCaseReducers<S>>(payloadRedu
   CreateSliceOptions<S, R>['reducers'] {
   const reducers = {} as CreateSliceOptions<S, R>['reducers'];
   for (const [caseName, simpleReducer] of Object.entries(payloadReducers)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     reducers[caseName as keyof CreateSliceOptions<S, R>['reducers']] = function(s: Draft<S>, action: PayloadAction<any>) {
-      return simpleReducer(s, action.payload);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      return simpleReducer(s, action.payload) as unknown;
     } as any;
   }
   return reducers;

@@ -50,7 +50,7 @@ export async function addDependencyTo(packages: string[], to?: string, dev = fal
   await add(packages, to, dev);
   setImmediate(() => {
     for (const wsDir of wsDirs) {
-      pkgDispater.updateWorkspace({dir: wsDir, isForce: false, createHook: false});
+      pkgDispater.updateWorkspace({dir: wsDir, isForce: false});
     }
   });
 }
@@ -102,7 +102,7 @@ async function add(packages: string[], toDir: string, dev = false) {
         return;
       }
       log.info(`Add package ${chalk.cyan(pkg.name)} ${version || ''}`);
-      newLines += `    "${pkg.name}": "${version || pkg.json.version as string}",\n`;
+      newLines += `    "${pkg.name}": "${version || pkg.json.version }",\n`;
     }
   }));
   if (newLines.length > 0)

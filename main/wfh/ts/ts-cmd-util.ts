@@ -23,7 +23,7 @@ export function mergeBaseUrlAndPaths(ts: typeof _ts, fromTsconfigFile: string,
       mergeTo.baseUrl = './';
     mergeTo.paths = {};
   }
-  
+
   if (mergingTsCo.paths) {
     const absBaseUrl = mergingTsCo.baseUrl ?
       Path.resolve(Path.dirname(fromTsconfigFile), mergingTsCo.baseUrl) :
@@ -52,7 +52,7 @@ export function parseConfigFileToJson(ts: typeof _ts, file: string) {
     console.error(error);
     throw new Error('Incorrect tsconfig file: ' + file);
   }
-  const json: {compilerOptions: RequiredCompilerOptions, extends?: string} = config; 
+  const json: {compilerOptions: RequiredCompilerOptions, extends?: string} = config;
   if (json.extends) {
     const extendsFile = Path.resolve(Path.dirname(file), json.extends);
     const pJson = parseConfigFileToJson(ts, extendsFile);

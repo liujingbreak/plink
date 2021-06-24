@@ -1,4 +1,4 @@
-// tslint:disable no-console
+/* eslint-disable no-console */
 
 let verbose = false;
 
@@ -53,6 +53,7 @@ export interface Command {
 }
 
 if (process.send) {
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   process.on('message', executeOnEvent);
 }
 
@@ -60,6 +61,7 @@ async function executeOnEvent(data: Task | Command) {
   if ((data as Command).exit) {
     if (verbose)
       console.log(`[thread-pool] child process ${process.pid} exit`);
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     process.off('message', executeOnEvent);
     // process.off('uncaughtException', onUncaughtException);
     // process.off('unhandledRejection', onUnhandledRejection);
@@ -80,6 +82,7 @@ async function executeOnEvent(data: Task | Command) {
       }
       const exportFn = initData.initializer.exportFn;
       if (exportFn) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
         await Promise.resolve(require(initData.initializer.file)[exportFn]());
       } else {
         require(initData.initializer.file);
@@ -91,6 +94,7 @@ async function executeOnEvent(data: Task | Command) {
       const exportFn = (data as Task).exportFn;
 
       if (exportFn) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
         result =  await Promise.resolve(require((data as Task).file)[exportFn](
           ...((data as Task).args || [])
           ));
@@ -102,6 +106,7 @@ async function executeOnEvent(data: Task | Command) {
     if (verbose) {
       console.log(`[thread-pool] child process ${process.pid} wait`);
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     sendMsg({ type: 'wait', data: result });
 
   } catch (ex) {
@@ -109,12 +114,12 @@ async function executeOnEvent(data: Task | Command) {
     try {
       sendMsg({
         type: 'error',
-        data: ex.toString()
+        data: (ex as Error).toString()
       });
     } catch (err) {
       sendMsg({
         type: 'error',
-        data: err.toString()
+        data: (ex as Error).toString()
       });
     }
   }

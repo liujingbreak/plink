@@ -2,8 +2,10 @@
 // import {mkdirpSync} from 'fs-extra';
 import * as _ from 'lodash';
 import {SimpleLinkedList, SimpleLinkedListNode} from './utils/misc';
-const semver = require('semver');
-const log = require('log4js').getLogger('plink.transitive-dep-hoister');
+import {getLogger} from 'log4js';
+import semver from 'semver';
+
+const log = getLogger('plink.transitive-dep-hoister');
 
 export interface PackageJsonInterf {
   version: string;
@@ -20,7 +22,7 @@ export interface PackageJsonInterf {
  * @param workspaceDevDeps 
  */
 export function listCompDependency(
-  pkJsonFiles: Map<string, {json: PackageJsonInterf;}>,
+  pkJsonFiles: Map<string, {json: PackageJsonInterf}>,
   workspace: string,
   workspaceDeps: {[name: string]: string},
   workspaceDevDeps?: {[name: string]: string}
@@ -286,6 +288,7 @@ function sortByVersion(verInfoList: DepInfo[], name: string) {
             return res;
         } catch (e) {
           log.warn(info1, info2);
+          return 0;
         }
       } else if (info1.verNum != null && info2.verNum == null)
         return -1;

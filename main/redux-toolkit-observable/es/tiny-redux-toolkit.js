@@ -110,7 +110,7 @@ export function createSlice(opt) {
     // op.observeOn(rx.queueScheduler), // Avoid recursively dispatching action inside an reducer, but normally recursively dispatching should be warned and forbidden
     op.tap(action => {
         if (opt.debug) {
-            // tslint:disable-next-line: no-console
+            // eslint-disable-next-line no-console
             console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
         }
     }), op.tap(action => {
@@ -138,7 +138,7 @@ export function createSlice(opt) {
         return caught;
     })), state$.pipe(op.tap(state => {
         if (opt.debug) {
-            // tslint:disable-next-line: no-console
+            // eslint-disable-next-line no-console
             console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', state);
         }
     })), opt.rootStore ? state$.pipe(op.tap(state => { var _a; return opt.rootStore.next(Object.assign(Object.assign({}, (_a = opt.rootStore) === null || _a === void 0 ? void 0 : _a.getValue()), { [opt.name]: state })); })) : rx.EMPTY).subscribe();

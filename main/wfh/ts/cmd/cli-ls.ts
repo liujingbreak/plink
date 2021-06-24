@@ -13,7 +13,7 @@ import {createCliTable, plinkEnv} from '../utils/misc';
 import * as priorityHelper from '../package-priority-helper';
 import {isServerPackage, readPriorityProperty} from '../package-runner';
 
-export default async function list(opt: GlobalOptions & {json: boolean, hoist: boolean}) {
+export default async function list(opt: GlobalOptions & {json: boolean; hoist: boolean}) {
   if (opt.hoist) {
     for (const wsState of pkMgr.getState().workspaces.values()) {
       printWorkspaceHoistedDeps(wsState);
@@ -101,7 +101,9 @@ function jsonOfLinkedPackageForProjects() {
   for (const [prj, pkgNames] of pkMgr.getState().project2Packages.entries()) {
     const dep: {[key: string]: string} = all[prj] = {};
     for (const pkName of pkgNames) {
-      dep[pkName] = linkedPkgs.get(pkName)?.json.version;
+      const pkg = linkedPkgs.get(pkName);
+      if (pkg)
+        dep[pkName] = pkg.json.version;
     }
   }
   return all;

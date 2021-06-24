@@ -93,7 +93,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     //   onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath);
     // }
   }
-  await Promise.all(pkgInfos.map(pkg => onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath)))
+  await Promise.all(pkgInfos.map(pkg => onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath)));
   for (const info of compDirInfo.values()) {
     const treePath = relative(commonRootDir, info.symlinkDir);
     log.debug('treePath', treePath);
@@ -225,7 +225,7 @@ function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string,
     if (host && (host as any)._overrided == null) {
       patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
     }
-    const program: ReturnType<typeof origCreateProgram> = origCreateProgram.apply(this, arguments);
+    const program = origCreateProgram.apply(this, arguments) as ReturnType<typeof origCreateProgram>;
     return program;
   };
 
@@ -297,8 +297,8 @@ function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOpt
   const readFile = host.readFile;
   const cwd = process.cwd();
   host.readFile = function(path: string, encoding?: string) {
-    const content = readFile.apply(this, arguments);
-    if (!path.endsWith('.d.ts') && !path.endsWith('.json')) {
+    const content = readFile.apply(this, arguments) as string | undefined;
+    if (content && !path.endsWith('.d.ts') && !path.endsWith('.json')) {
       // console.log('WatchCompilerHost.readFile', path);
       const changed = webInjector.injectToFile(path, content);
       if (changed !== content) {

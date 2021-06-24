@@ -100,12 +100,12 @@ export const epicFactory: EpicFactory<PaletteState, typeof reducers> = function(
             slice.actionDispatcher._change(s => {
               const mixColors = {
                 ...s.mixColors,
-                color1: s.componentProps?.colorMain!,
-                color2: s.componentProps?.colorMix!
+                color1: s.componentProps!.colorMain,
+                color2: s.componentProps!.colorMix
               };
               Object.freeze(mixColors);
               s.mixColors = mixColors;
-              const color = new Color(s.componentProps?.colorMain!);
+              const color = new Color(s.componentProps!.colorMain);
               s.inputLightness = Math.round(color.lightness());
               s.inputSaturation = Math.round(color.saturationl());
             });

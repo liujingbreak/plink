@@ -12,11 +12,12 @@ const ReactiveCanvas: React.FC<ReactiveCanvasProps> = function(props) {
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
-  }, [...Object.values(props)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slice.actionDispatcher, ...Object.values(props)]);
 
   React.useEffect(() => {
     slice.actionDispatcher.onDomMount();
-  }, []);
+  }, [slice.actionDispatcher]);
   // dispatch action: slice.actionDispatcher.onClick(evt)
   return <div className={cls(styles.host, props.className)}>
     <canvas className={props.className} ref={slice.actionDispatcher._create}/>

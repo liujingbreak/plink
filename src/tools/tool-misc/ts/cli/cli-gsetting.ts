@@ -1,5 +1,4 @@
 import { findPackagesByNames } from '@wfh/plink';
-import { WithPackageSettingProp } from '@wfh/plink/wfh/dist/config';
 import generateStructure from '@wfh/plink/wfh/dist/template-gen';
 import {actionDispatcher, PackageInfo} from '@wfh/plink/wfh/dist/package-mgr';
 import {tsc} from '@wfh/plink/wfh/dist/ts-cmd';
@@ -25,7 +24,7 @@ export async function generateSetting(pkgs: string[], opt: {dryRun: boolean}) {
       const upperCaseFirstName = camelCased.charAt(0).toUpperCase() + camelCased.slice(1) + 'Setting';
 
       const json = _.cloneDeep(pkgInfo.json);
-      const pkgjsonProp: WithPackageSettingProp = json.dr || json.plink;
+      const pkgjsonProp = json.dr || json.plink!;
       if (pkgjsonProp.setting) {
         plink.logger.warn(`There has been an existing "${pkgInfo.json.dr ? 'dr' : 'plink'}.setting" in ${pkgInfo.realPath}/package.json file`);
         return null;
@@ -67,7 +66,7 @@ export async function generateSetting(pkgs: string[], opt: {dryRun: boolean}) {
     const meta = pkgInfoWithJsonFiles.filter(item => item != null);
     if (meta.length === 0)
       return;
-    tsc({
+    await tsc({
       package: meta.map(item => item![0].name)
     });
     await new Promise(resolve => setImmediate(resolve));

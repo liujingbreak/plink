@@ -151,5 +151,10 @@
       "../../node_modules/@types",
       "../node_modules/@types"
     ]
-  }
+  },
+  "include": [
+    "ts/**/*.ts",
+    "../redux-toolkit-observable/**/*.ts",
+    "../thread-promise-pool/ts/**/*.ts"
+  ]
 }
