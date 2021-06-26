@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import clsDdp from 'classnames/dedupe';
 import styles from './AnimatableRoutes.module.scss';
 import {SwitchAnim, SwitchAnimProps} from './SwitchAnim';
 import {useLocation, matchPath, RouteProps, match} from 'react-router-dom';
 import {PayloadAction} from '@reduxjs/toolkit';
+import {useAppLayout} from '../components/appLayout.state';
+// import * as rx from 'rxjs';
+// import * as op from 'rxjs/operators';
 
 export type AnimatableRoutesProps = React.PropsWithChildren<{
   parentDom?: {className: string} | null;
@@ -30,8 +33,16 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
   // const [matchedIdx, setMatchedIdx] = React.useState<number>();
   const [state, dispatcher] = React.useReducer(reducer, {matchedIdx: undefined, routeMatch: null} as AnimatableRoutesState);
   const location = useLocation();
+  // useEffect(() => {
+  //   const actions = new rx.Subject<PayloadAction<any>>();
+  //   const sub = actions.pipe(
+  //   ).subscribe();
+  //   return () => sub.unsubscribe();
+  // }, []);
 
   const rootRef = React.useRef<HTMLDivElement>(null);
+  const layout = useAppLayout();
+
   React.useEffect(() => {
     // console.log('location path:', location.pathname);
     let i = 0;
@@ -39,8 +50,9 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
     for (const route of prop.routes) {
       const match = matchPath<{[p: string]: string}>(location.pathname, route);
       if (match) {
+        const matchedIdx = i;
         dispatcher({type: 'setMatched', payload: (s) => {
-          return {...s, matchedIdx: i, routeMatch: match};
+          return {...s, matchedIdx, routeMatch: match};
         }});
         matched = true;
         break;
@@ -53,17 +65,25 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
         return {...s, matchedIdx: undefined, routeMatch: null};
       }});
     }
-  }, [location.pathname]);
+  }, [location.pathname, prop.routes]);
+
+  // When route is switched, scroll to top
+  React.useEffect(() => {
+    if (state.matchedIdx != null && layout) {
+      layout.actionDispatcher.scrollTo([0, 0]);
+    }
+  }, [layout, state.matchedIdx]);
 
   React.useEffect(() => {
     if (prop.parentDom) {
       prop.parentDom.className = clsDdp(prop.parentDom.className, styles.scope, prop.className);
     }
-  }, [prop.parentDom]);
+  }, [prop.className, prop.parentDom]);
 
   const content = <RouteMatchCtx.Provider value={state.routeMatch}>
   { state.matchedIdx != null ? // prop.routes[state.matchedIdx].children :
-      <SwitchAnim debug={false} size='full' parentDom={prop.parentDom == null ? rootRef.current : prop.parentDom} contentHash={state.matchedIdx}>{prop.routes[state.matchedIdx].children}</SwitchAnim> :
+      <SwitchAnim debug={false} size='full' parentDom={prop.parentDom == null ? rootRef.current : prop.parentDom}
+      contentHash={state.matchedIdx}>{prop.routes[state.matchedIdx].children}</SwitchAnim> :
       prop.children ? prop.children : <></>
   }
   </RouteMatchCtx.Provider>;

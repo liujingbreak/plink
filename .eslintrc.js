@@ -26,7 +26,7 @@ module.exports = {
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "debugLevel": true,
+        // "debugLevel": true,
         "project": path.resolve(__dirname, "tsconfig.json"),
         "sourceType": "module"
     },
@@ -288,6 +288,7 @@ module.exports = {
         ],
         "use-isnan": "error",
         "valid-typeof": "off",
+        'no-loop-func': 'warn',
         'import/no-anonymous-default-export': 'off' // override rules from eslint-config-react-app
     }
 };

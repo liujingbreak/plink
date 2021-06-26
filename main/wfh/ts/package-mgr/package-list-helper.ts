@@ -51,7 +51,9 @@ export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true): 
 
   const linked = getState().srcPackages;
   const installed = ws.installedComponents;
+  const avoidDuplicateSet = new Set<string>();
   for (const [pkName] of ws.linkedDependencies) {
+    avoidDuplicateSet.add(pkName);
     const pk = linked.get(pkName);
     if (pk == null)
       log.error(`Missing package ${pkName} in workspace ${wsKey}`);
@@ -59,6 +61,9 @@ export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true): 
       yield pk;
   }
   for (const [pkName] of ws.linkedDevDependencies) {
+    if (avoidDuplicateSet.has(pkName)) {
+      continue;
+    }
     const pk = linked.get(pkName);
     if (pk == null)
       log.error(`Missing package ${pkName} in workspace ${wsKey}`);
@@ -67,6 +72,9 @@ export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true): 
   }
   if (includeInstalled && installed) {
     for (const comp of installed.values()) {
+      if (avoidDuplicateSet.has(comp.name)) {
+        continue;
+      }
       yield comp;
     }
   }

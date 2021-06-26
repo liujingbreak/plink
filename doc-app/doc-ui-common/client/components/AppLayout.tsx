@@ -30,13 +30,14 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
     if (props.parentDom) {
       props.parentDom.className = clsDdp(props.className || undefined, cx('container'), props.parentDom.className);
     }
-  }, [props.parentDom]);
+  }, [props.parentDom, props.className]);
 
   React.useEffect(() => {
     if (containerRef.current) {
       containerRef.current.className = clsDdp(props.className || undefined, cx('container'), containerRef.current.className);
     }
-  }, [containerRef.current]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [containerRef.current, props.className]);
 
   // const progressBarRef = React.useCallback((dom: HTMLDivElement | null) => {
   //   slice.dispatch({type: 'topLoadingBarReady', reducer(s: AppLayoutState) {
@@ -47,7 +48,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
 
   const onScrollRaw = React.useCallback((event: React.UIEvent<HTMLDivElement, UIEvent>) => {
     scrollEvent$.next(event);
-  }, []);
+  }, [scrollEvent$]);
 
   // const renderBelowHeader: TopAppBarProps['renderBelowHeader'] = (type) => {
   //   return <div className={styles.progressBarContainer} ref={slice.actionDispatcher._setLoadingBarRef}>
@@ -61,7 +62,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
       op.tap(event => slice.actionDispatcher._onScroll(event))
     ).subscribe();
     return () => sub.unsubscribe();
-  }, []);
+  }, [scrollEvent$, slice.actionDispatcher]);
 
   function renderMain(mainClasName: string) {
     return <>

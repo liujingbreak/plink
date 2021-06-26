@@ -85,7 +85,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
         // }
         updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
         for (const data of getState().tsconfigByRelPath.values()) {
-          updateHookedTsconfig(data, wsDir);
+          void updateHookedTsconfig(data, wsDir);
         }
       })
     ),
@@ -216,7 +216,7 @@ function writePackageSettingType() {
     let header = '';
     let body = 'export interface PackagesConfig {\n';
     for (const [typeFile, typeExport, _defaultFile, _defaultExport, pkg] of getPackageSettingFiles(wsKey)) {
-      const varName = pkg.shortName.replace(/-([^])/g, (match, g1) => g1.toUpperCase());
+      const varName = pkg.shortName.replace(/-([^])/g, (match, g1: string) => g1.toUpperCase());
       const typeName = varName.charAt(0).toUpperCase() + varName.slice(1);
       header += `import {${typeExport} as ${typeName}} from '${pkg.name}/${typeFile}';\n`;
       body += `  '${pkg.name}': ${typeName};\n`;

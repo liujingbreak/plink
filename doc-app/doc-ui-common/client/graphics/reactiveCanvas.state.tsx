@@ -274,7 +274,8 @@ export class PaintableContext {
     slice.addEpic(slice => {
       return inputAction$ => {
         const action$ = actionInterceptor ? inputAction$.pipe(
-          actionInterceptor(slice as unknown as PaintableSlice<S, R>),
+          actionInterceptor(slice as unknown as PaintableSlice<S, R>) as
+            rx.OperatorFunction<any, PayloadAction<BasePaintableState, any> | Action<BasePaintableState>>,
           op.share() // share() is important, it prevents actionInterceptorOpt being executed on same action for multiple times, when there are multiple 
           // action$ subscribers
         ) : inputAction$;
@@ -402,15 +403,14 @@ export class PaintableContext {
       relativeHeight: 1,
       relativeWidth: 1
     };
-
-    (opt as any).extendInitialState = opt.extendInitialState ?
+    const paintableOpt = opt as unknown as PaintableCreateOption<PositionalState, typeof positionalReducers>;
+    paintableOpt.extendInitialState = opt.extendInitialState ?
       Object.assign(initialPosState, opt.extendInitialState) : initialPosState;
-    (opt as any).extendReducers = opt.extendReducers ?
+    paintableOpt.extendReducers = opt.extendReducers ?
       Object.assign(positionalReducers, opt.extendReducers) :
       positionalReducers;
 
-    const positionalPaintable = this.createPaintableSlice(opt as unknown as
-      PaintableCreateOption<PositionalState, (typeof positionalReducers)>);
+    const positionalPaintable = this.createPaintableSlice(paintableOpt);
     positionalPaintable.addEpic(positionalEpicFactory);
 
     return positionalPaintable as unknown as PositionalPaintableSlice<S, R>;
@@ -485,7 +485,7 @@ export type PaintableSlice<S = undefined, R = undefined> = Slice<
 
 export interface PaintableCreateOption<S = undefined, R = undefined,
   SliceType = PaintableSlice<S, R>,
-  SliceState = BasePaintableState & S
+  SliceState = S extends undefined ? BasePaintableState : BasePaintableState & S
   > {
   name: string;
   extendInitialState?: S;

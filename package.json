@@ -14,7 +14,8 @@
     "lint-wfh": "eslint -c main/.eslintrc.js --ext .ts main/wfh/ts",
     "lint-redux": "eslint -c main/.eslintrc.js --ext .ts main/redux-toolkit-observable",
     "lint-thread": "eslint -c main/.eslintrc.js --ext .ts main/thread-promise-pool",
-    "lint-file": "eslint -c main/.eslintrc.js"
+    "lint-main-file": "eslint -c main/.eslintrc.js",
+    "lint-other": "eslint -c .eslintrc.js"
   },
   "devDependencies": {
     "eslint-config-react-app": "^6.0.0",

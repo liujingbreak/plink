@@ -1,6 +1,6 @@
 import {Application, Request} from 'express';
 import os from 'os';
-import {Checksum, WithMailServerConfig} from '../fetch-types';
+import {Checksum} from '../fetch-types';
 import * as util from 'util';
 import {getPm2Info, zipDownloadDir, forkExtractExstingZip, retry} from '../fetch-remote';
 import Path from 'path';
@@ -10,9 +10,11 @@ import _ from 'lodash';
 import memstat from '@wfh/plink/wfh/dist/utils/mem-stats';
 import crypto, {Hash} from 'crypto';
 import api from '__api';
+import {log4File, config} from '@wfh/plink';
+const log = log4File(__filename);
 // import {stringifyListAllVersions} from '@wfh/prebuild/dist/artifacts';
 
-const log = require('log4js').getLogger(api.packageName + '.cd-server');
+// const log = require('log4js').getLogger(api.packageName + '.cd-server');
 
 interface Pm2Packet {
   type: 'process:msg';
@@ -34,23 +36,23 @@ interface RecievedData {
   hash?: string; content: Buffer; length: number;
 }
 
-const requireToken = api.config.get([api.packageName, 'requireToken'], false);
-const mailSetting = (api.config.get(api.packageName) as WithMailServerConfig).fetchMailServer;
+const requireToken = config()['@wfh/assets-processer'].requireToken;
+const mailSetting = config()['@wfh/assets-processer'].fetchMailServer;
 
 
-export async function activate(app: Application, imap: ImapManager) {
+export function activate(app: Application, imap: ImapManager) {
   let writingFile: string | undefined;
 
   let filesHash = readChecksumFile();
 
   const {isPm2, isMainProcess} = getPm2Info();
   if (isPm2) {
-    initPm2();
+    void initPm2();
   }
 
-  imap.appendMail(`server ${os.hostname} ${process.pid} activates`, new Date() + '');
+  void imap.appendMail(`server ${os.hostname()} ${process.pid} activates`, new Date() + '');
 
-  app.use('/_stat', async (req, res, next) => {
+  app.use('/_stat', (req, res, next) => {
     if (requireToken && req.query.whisper !== generateToken()) {
       res.header('Connection', 'close');
       res.status(401).send(`REJECT from ${os.hostname()} pid: ${process.pid}: Not allowed to push artifact in this environment.`);
@@ -95,7 +97,7 @@ export async function activate(app: Application, imap: ImapManager) {
         }
       });
     } else {
-      imap.checkMailForUpdate();
+      void imap.checkMailForUpdate();
     }
   });
 
@@ -110,13 +112,14 @@ export async function activate(app: Application, imap: ImapManager) {
   //   res.send(await stringifyListAllVersions());
   // });
 
-  router.put<{file: string, hash: string}>('/_install_force/:file/:hash', async (req, res, next) => {
-    (req as any)._installForce = true;
+  router.put<{file: string; hash: string}>('/_install_force/:file/:hash', (req, res, next) => {
+    (req as unknown as {_installForce: boolean})._installForce = true;
     next();
   });
 
-  router.put<{file: string, hash: string}>('/_install/:file/:hash', async (req, res, next) => {
-    const isForce = (req as any)._installForce === true;
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+  router.put<{file: string; hash: string}>('/_install/:file/:hash', async (req, res) => {
+    const isForce = (req as unknown as {_installForce: boolean})._installForce === true;
 
     if (requireToken && req.query.whisper !== generateToken()) {
       res.header('Connection', 'close');
@@ -127,7 +130,7 @@ export async function activate(app: Application, imap: ImapManager) {
       return;
     }
     const existing = filesHash.get(req.params.file);
-    log.info(`${req.method} [${os.hostname}]file: ${req.params.file}, hash: ${req.params.hash},\nexisting file: ${existing ? existing.file + ' / ' + existing.sha256 : '<NO>'}` +
+    log.info(`${req.method} [${os.hostname()}]file: ${req.params.file}, hash: ${req.params.hash},\nexisting file: ${existing ? existing.file + ' / ' + existing.sha256 : '<NO>'}` +
       `\n${util.inspect(req.headers)}`);
 
     if (requireToken && req.query.whisper !== generateToken()) {
@@ -172,7 +175,7 @@ export async function activate(app: Application, imap: ImapManager) {
     } catch (e) {
       if (e.message === 'sha256 not match') {
         res.send(`[WARN] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}\n` +
-          `Recieved file is corrupted with hash ${e.sha256},\nwhile expecting file hash is ${newChecksumItem.sha256}`);
+          `Recieved file is corrupted with hash ${(e as {sha256?: string}).sha256 || '<unknown>'},\nwhile expecting file hash is ${newChecksumItem.sha256}`);
       } else {
         res.status(500);
         res.send(e.stack);
@@ -212,7 +215,8 @@ export async function activate(app: Application, imap: ImapManager) {
       };
       process.send!(msg);
     } else
-      retry(2, forkExtractExstingZip).then(() => api.eventBus.emit(api.packageName + '.downloaded'));
+      retry(2, forkExtractExstingZip).then(() => api.eventBus.emit(api.packageName + '.downloaded'))
+        .catch(e => {log.error(e);});
   }
 
   async function initPm2() {
@@ -242,7 +246,9 @@ export async function activate(app: Application, imap: ImapManager) {
 
       if (packet.data.extractZip && packet.data.pid !== process.pid) {
         log.info('Other process triggers "extractZip" from id:', _.get(packet, 'process.pm_id'));
-        retry(2, forkExtractExstingZip).then(() => api.eventBus.emit(api.packageName + '.downloaded'));
+        retry(2, forkExtractExstingZip)
+          .then(() => api.eventBus.emit(api.packageName + '.downloaded'))
+          .catch(e => {log.error(e);});
       }
     });
   }
@@ -256,7 +262,7 @@ export function generateToken() {
   return token;
 }
 
-function readResponseToBuffer(req: Request<{file: string, hash: string}>, expectSha256: string, length: number)
+function readResponseToBuffer(req: Request<{file: string; hash: string}>, expectSha256: string, length: number)
   : Promise<RecievedData> {
   // let countBytes = 0;
 
@@ -273,7 +279,7 @@ function readResponseToBuffer(req: Request<{file: string, hash: string}>, expect
       hash = crypto.createHash('sha256');
       hashDone = new Promise(resolve => {
         hash.on('readable', () => {
-          const data = hash.read();
+          const data = hash.read() as Buffer;
           if (data) {
             resolve(data.toString('hex'));
           }
@@ -294,6 +300,7 @@ function readResponseToBuffer(req: Request<{file: string, hash: string}>, expect
     // fwriter.write(data);
   });
   return new Promise((resolve, rej) => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     req.on('end', async () => {
       log.info(`Total recieved ${bufOffset} bytes`);
       if (bufOffset > length) {
@@ -347,7 +354,7 @@ function readChecksumFile(): Map<string, ChecksumItem> {
   let checksum: Checksum;
   if (fs.existsSync(checksumFile)) {
     try {
-      checksum = JSON.parse(fs.readFileSync(checksumFile, 'utf8'));
+      checksum = JSON.parse(fs.readFileSync(checksumFile, 'utf8')) as Checksum;
     } catch (e) {
       log.warn(e);
       checksum = [];

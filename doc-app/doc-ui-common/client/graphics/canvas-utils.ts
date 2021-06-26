@@ -52,10 +52,10 @@ export function gradientFadeOut(width: number, height: number,
  * Each segment consists of an anchor point (segment.point) and optionaly an incoming and an outgoing handle (segment.handleIn and segment.handleOut), describing the tangents of the two Curve objects that are connected by this segment.
  */
 export class Segment {
-  handleIn?: {x: number; y: number;};
-  handleOut?: {x: number; y: number;};
+  handleIn?: {x: number; y: number};
+  handleOut?: {x: number; y: number};
 
-  constructor(public point: {x: number, y: number}) {}
+  constructor(public point: {x: number; y: number}) {}
 }
 
 export function *createSegments(vertices: Iterable<[x: number, y: number]>): Iterable<Segment> {
@@ -84,3 +84,8 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
   // ctx.closePath();
 }
 
+// export function smoothSegments(segs: Segment[], opts: {from?: number; to?: number; closed?: boolean}) {
+//   const loop = opts.closed && opts.from === undefined && opts.to === undefined;
+//   const from = getIndex(opts.from, 0);
+//   const to = getIndex(opts.to, length - 1);
+// }

@@ -35,16 +35,19 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 export function castByActionType(actionCreators, action$) {
-    let sourceSub;
     const multicaseActionMap = {};
     const splitActions = {};
+    let sourceSub;
     for (const reducerName of Object.keys(actionCreators)) {
         const subject = multicaseActionMap[actionCreators[reducerName].type] = new rx.Subject();
+        // eslint-disable-next-line no-loop-func
         splitActions[reducerName] = rx.defer(() => {
             if (sourceSub == null)
                 sourceSub = source.subscribe();
             return subject.asObservable();
-        }).pipe(op.finalize(() => {
+        }).pipe(
+        // eslint-disable-next-line no-loop-func
+        op.finalize(() => {
             if (sourceSub) {
                 sourceSub.unsubscribe();
                 sourceSub = undefined;
@@ -82,7 +85,9 @@ export function createSlice(opt) {
             return action;
         });
         creator.type = type;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         actionCreators[key] = creator;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         actionDispatcher[key] = ((payload) => {
             const action = creator(payload);
             dispatch(action);

@@ -120,16 +120,21 @@ export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actio
   action$: rx.Observable<PayloadAction<any> | Action<S>>):
   {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>} {
 
-    let sourceSub: rx.Subscription | undefined;
+
     const multicaseActionMap: {[K: string]: rx.Subject<PayloadAction<S, any> | Action<S>> | undefined} = {};
     const splitActions: {[K in keyof R]?: rx.Observable<ReturnType<Actions<S, R>[K]>>} = {};
+
+    let sourceSub: rx.Subscription | undefined;
     for (const reducerName of Object.keys(actionCreators)) {
       const subject = multicaseActionMap[actionCreators[reducerName].type] = new rx.Subject<PayloadAction<S, any>>();
+
+      // eslint-disable-next-line no-loop-func
       splitActions[reducerName as keyof R] = rx.defer(() => {
         if (sourceSub == null)
           sourceSub = source.subscribe();
         return subject.asObservable() as rx.Observable<any>;
       }).pipe(
+        // eslint-disable-next-line no-loop-func
         op.finalize(() => {
           if (sourceSub) {
             sourceSub.unsubscribe();
@@ -180,18 +185,21 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
 
   for (const [key, reducer] of Object.entries(opt.reducers)) {
     const type = name + '/' + key;
-    const creator = ((payload: any) => {
+    const creator = ((payload: unknown) => {
       const action = {type, payload, reducer};
       return action;
-    }) as any;
+    }) as ActionCreatorWithPayload<S, any>;
     creator.type = type;
-    actionCreators[key as keyof R] = creator;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    actionCreators[key as keyof R] = creator as any;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     actionDispatcher[key as keyof R] = ((payload?: any) => {
-      const action = (creator as ActionCreatorWithPayload<S, any>)(payload);
+      const action = creator(payload);
       dispatch(action);
       return action;
     }) as any;
+
     actionDispatcher[key as keyof R].type = creator.type;
   }
 
@@ -248,7 +256,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
         console.error(err);
         dispatch({type: 'reducer error',
           reducer(s: S) {
-            return {...s, error: err};
+            return {...s, error: err as unknown};
           }
         });
         return caught;
@@ -291,7 +299,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
         console.error(err);
         dispatch({type: 'epic error',
           reducer(s: S) {
-            return {...s, error: err};
+            return {...s, error: err as unknown};
           }
         });
         return caught;

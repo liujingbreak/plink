@@ -32,6 +32,7 @@ export interface AssetsProcesserSetting {
     smtp: string;
     user: string;
     loginSecret: string;
+    env?: string;
   } | null;
   /** Setting this value to true will enable serving Index HTML page for static resource under:
    *  <root dir>/dist/static.

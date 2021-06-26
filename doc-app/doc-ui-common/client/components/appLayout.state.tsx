@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, Slice, ofPayloadAction, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, Slice, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import { MDCTopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -37,7 +37,7 @@ export interface AppLayoutState {
   topAppBarRef?: Promise<MDCTopAppBar> | null;
   /** actually show loadin when showTopLoadingCount > 0, turning off loading when showTopLoadingCount <= 0 */
   showTopLoadingReqsCount: number;
-  lastScrollEvent?: React.UIEvent<HTMLDivElement, UIEvent>;
+  // lastScrollEvent?: React.UIEvent<HTMLDivElement, UIEvent>;
   topLoadingBarRef?: HTMLDivElement;
   topAppBarDomRef?: HTMLHeadElement;
   error?: Error;
@@ -66,8 +66,8 @@ export const reducers = {
   _setTopBarRef(s: AppLayoutState, mdc: Promise<MDCTopAppBar> | null) {
     s.topAppBarRef = mdc;
   },
-  _onScroll(s: AppLayoutState, event: React.UIEvent<HTMLDivElement, UIEvent>) {
-    s.lastScrollEvent = event;
+  _onScroll(s: AppLayoutState, _event: React.UIEvent<HTMLDivElement, UIEvent> | null) {
+    // s.lastScrollEvent = event;
     if (s.frontLayer && s.topAppBarDomRef && s.frontLayer.scrollTop + s.topAppBarDomRef.getBoundingClientRect().top > 1) {
       s.frontLayerClassName = 'withShadow';
     } else {
@@ -114,8 +114,13 @@ export const epicFactory: EpicFactory<AppLayoutState, typeof reducers> = functio
           slice.actionDispatcher._setTopbarType(size === 'desktop' ? 'standard' : 'dense');
         })),
       actionStreams.scrollTo.pipe(
-        op.tap(({payload}) => {
+        op.switchMap(({payload}) => {
           slice.getState().frontLayer?.scrollTo(payload[0], payload[1]);
+          return rx.timer(0);
+        }),
+        // eslint-disable-next-line array-callback-return
+        op.map(() => {
+          slice.actionDispatcher._onScroll(null);
         })
       ),
       state$.pipe(

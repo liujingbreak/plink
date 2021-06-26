@@ -70,7 +70,7 @@ export class BaseDrawable implements Drawable {
     if (!this.cache) {
       this.cache = window.document.createElement('canvas');
       if (typeof first === 'object') {
-        const origCanvas = (first as CanvasRenderingContext2D).canvas;
+        const origCanvas = first.canvas;
         this.cache.height = origCanvas.height;
         this.cache.width = origCanvas.width;
       } else {

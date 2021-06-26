@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import * as packageUtils from '@wfh/plink/wfh/dist/package-utils';
 import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';
@@ -13,11 +12,10 @@ import { fallbackIndexHtml, proxyToDevServer } from './index-html-route';
 import { createStaticRoute } from './static-middleware';
 import { setupHttpProxy } from './utils';
 import {getSetting} from '../isom/assets-processer-setting';
-const log = require('log4js').getLogger(api.packageName);
+import {log4File, config, DrcpSettings, findPackagesByNames} from '@wfh/plink';
+const log = log4File(__filename);
+// const log = require('log4js').getLogger(api.packageName);
 const serverFavicon = require('serve-favicon');
-
-const config = api.config;
-
 
 export function deactivate() {
   fetchRemote.stop();
@@ -59,7 +57,7 @@ export function activate() {
     api.use('/', serveIndex(staticFolder, {icons: true, stylesheet}));
   } else {
     log.info(chalk.blueBright(`If you want to serve directory index page for resource directory other than ${staticFolder}\n` +
-      ` start command with "-c none --prop ${api.packageName}.serveIndex=true --prop staticDir=<resource directory>`));
+      ` start command with "--prop ${api.packageName}.serveIndex=true --prop staticDir=<resource directory>`));
   }
   api.expressAppSet(app => activateCd(app, imap));
   fallbackIndexHtml();
@@ -70,7 +68,7 @@ export function activate() {
 
   api.eventBus.on('appCreated', () => {
     // appCreated event is emitted by express-app
-    fetchRemote.start(imap);
+    void fetchRemote.start(imap);
   });
 
   if (!api.config().devMode) {
@@ -83,25 +81,27 @@ function findFavicon() {
   return _findFaviconInConfig('packageContextPathMapping') || _findFaviconInConfig('outputPathMap');
 }
 
-function _findFaviconInConfig(property: string) {
-  if (!api.config()[property]) {
+function _findFaviconInConfig(property: keyof DrcpSettings) {
+  if (!config()[property]) {
     return null;
   }
   let faviconFile: string | undefined;
   let faviconPackage: string;
   _.each(config()[property] as any, (path, pkName) => {
     if (path === '/') {
-      packageUtils.lookForPackages(pkName, (fullName: string, entryPath: string, parsedName: {}, json: any, packagePath: string) => {
-        var assetsFolder = json.dr ? (json.dr.assetsDir ? json.dr.assetsDir : 'assets') : 'assets';
-        var favicon = Path.join(packagePath, assetsFolder, 'favicon.ico');
+      const pkg = [...findPackagesByNames([pkName])][0];
+      if (pkg) {
+        const assetsFolder = pkg.json.plink?.assetsDir || pkg.json.dr?.assetsDir || 'assets';
+        var favicon = Path.join(pkg.realPath, assetsFolder, 'favicon.ico');
         if (fs.existsSync(favicon)) {
           if (faviconFile) {
-            log.warn('Found duplicate favicon file in', fullName, 'existing', faviconPackage);
+            log.warn('Found duplicate favicon file in', pkg.name, 'existing', faviconPackage);
           }
           faviconFile = Path.resolve(favicon);
-          faviconPackage = fullName;
+          faviconPackage = pkg.name;
         }
-      });
+      }
+
     }
   });
   return faviconFile;
