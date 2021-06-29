@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-console */
 import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
 import type { PlinkEnv } from '@wfh/plink/wfh/dist/node-path';
@@ -7,7 +9,7 @@ import { Options as TsLoaderOpts } from '@wfh/webpack-common/dist/ts-loader';
 import fs from 'fs-extra';
 import _ from 'lodash';
 // import walkPackagesAndSetupInjector from './injector-setup';
-import {logger} from '@wfh/plink';
+import {logger, packageOfFileFactory} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import Path from 'path';
 import { Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem, Compiler } from 'webpack';
@@ -88,6 +90,7 @@ export = function(webpackEnv: 'production' | 'development') {
   }
 
   // config.resolve!.symlinks = false;
+  const {getPkgOfFile} = packageOfFileFactory();
 
   const resolveModules = ['node_modules', ...nodePath];
   config.resolve!.modules = resolveModules;
@@ -113,7 +116,7 @@ export = function(webpackEnv: 'production' | 'development') {
 
     config.plugins!.push(new (class {
       apply(compiler: Compiler) {
-        compiler.hooks.done.tap('cra-scripts', stats => {
+        compiler.hooks.done.tap('cra-scripts', _stats => {
           // if (/(^|\s)--expose-gc(\s|$)/.test(process.env.NODE_OPTIONS!) ||
           //   )
           if (global.gc)
@@ -126,8 +129,8 @@ export = function(webpackEnv: 'production' | 'development') {
       const file = mod.nameForCondition ? mod.nameForCondition() : null;
       if (file == null)
         return true;
-      const pkg = api.findPackageByFile(file);
-      return pkg == null || pkg.json.dr == null || pkg.json.plink == null;
+      const pkg = getPkgOfFile(file);
+      return pkg == null || (pkg.json.dr == null && pkg.json.plink == null);
     });
   }
 
@@ -200,14 +203,14 @@ function runConfigHandlers(config: Configuration, webpackEnv: string) {
   const cmdOption = getCmdOptions();
   if (configFileInPackage) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
-    cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+    cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, _result, handler) => {
       if (handler.webpack != null) {
         log.info('Execute Webpack configuration overrides from ', cfgFile);
         handler.webpack(config, webpackEnv, cmdOption);
       }
     }, 'create-react-app Webpack config');
   }
-  api.config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+  api.config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, _result, handler) => {
     if (handler.webpack != null) {
       log.info('Execute command line Webpack configuration overrides', cfgFile);
       handler.webpack(config, webpackEnv, cmdOption);
@@ -268,7 +271,7 @@ function insertLessLoaderRule(origRules: RuleSetRule[]): void {
 
 const fileLoaderOptions = {
   // esModule: false,
-  outputPath(url: string, resourcePath: string, context: string) {
+  outputPath(url: string, resourcePath: string, _context: string) {
     const pk = api.findPackageByFile(resourcePath);
     return `${(pk ? pk.shortName : 'external')}/${url}`;
   }

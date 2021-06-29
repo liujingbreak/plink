@@ -49,9 +49,8 @@ export function packageOfFileFactory() {
     }
     return found;
   }
-  const res = {packageInfo, getPkgOfFile};
-  existingFileToPkgHelper = res;
-  return res;
+  existingFileToPkgHelper = {packageInfo, getPkgOfFile};
+  return existingFileToPkgHelper;
 }
 
 export function walkPackages() {

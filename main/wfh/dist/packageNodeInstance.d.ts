@@ -1,3 +1,4 @@
+import { PackageInfo } from './package-mgr/index';
 export default class Package implements NodePackageAttr {
     moduleName: string;
     shortName: string;
@@ -17,6 +18,6 @@ export interface NodePackageAttr {
     longName: string;
     scope: string;
     path: string;
-    json: any;
+    json: PackageInfo['json'];
     realPath: string;
 }

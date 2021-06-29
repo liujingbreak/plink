@@ -105,13 +105,14 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
   // ctx.closePath();
 }
 
-export function smoothSegments(segments: Segment[], opts: {from?: number; to?: number; closed?: boolean; style?: 'asymmetric'}) {
-  const asymmetric = opts.style === 'asymmetric';
+export function smoothSegments(segments: Segment[], opts: {
+  from?: number; to?: number; closed?: boolean; type?: 'asymmetric' | 'continuous';
+}) {
+  const asymmetric = opts.type === 'asymmetric';
 
   const loop = opts.closed && opts.from === undefined && opts.to === undefined;
   const from = opts.from == null ? 0 : opts.from;
   const to = opts.to == null ? segments.length - 1 : opts.to;
-  console.log(from, to);
 
   // const min = Math.min;
   const amount = to - from + 1;

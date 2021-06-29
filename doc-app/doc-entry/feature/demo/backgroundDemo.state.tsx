@@ -187,8 +187,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
           ];
           const segs = createSegments(triangleVertices);
           const segments = Array.from(segs);
-          smoothSegments(segments, {closed: true});
-          console.log(segments);
+          smoothSegments(segments, {closed: true, type: 'asymmetric'});
           ctx.beginPath();
           drawSegmentPath(segments, ctx, true);
           ctx.closePath();
@@ -200,8 +199,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
             const newP = applyToPoint(matrix, point as [number, number]);
             return newP;
           })));
-          smoothSegments(rectangle, {closed: true});
-          console.log(rectangle);
+          smoothSegments(rectangle, {closed: true, type: 'asymmetric'});
           ctx.beginPath();
           drawSegmentPath(rectangle, ctx, true);
           ctx.closePath();
