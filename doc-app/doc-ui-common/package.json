@@ -43,6 +43,7 @@
     "@material/slider": "11.0.0",
     "bezier-easing": "^2.1.0",
     "glur": "^1.1.2",
-    "@types/glur": "^1.1.1"
+    "@types/glur": "^1.1.1",
+    "transformation-matrix": "2.8.0"
   }
 }

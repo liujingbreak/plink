@@ -13,7 +13,8 @@
  */
 import {EpicFactory, ofPayloadAction, Slice, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {drawSegmentPath, createSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {drawSegmentPath, createSegments, smoothSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {compose, applyToPoint, scale, translate} from 'transformation-matrix';
 
 import Color from 'color';
 import * as op from 'rxjs/operators';
@@ -185,9 +186,24 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
             [Math.round(centerX + halfTriaEdgeLen), triaHeight + (pctx.getState().height >> 2)]
           ];
           const segs = createSegments(triangleVertices);
-          // console.log([...segs])
+          const segments = Array.from(segs);
+          smoothSegments(segments, {closed: true});
+          console.log(segments);
           ctx.beginPath();
-          drawSegmentPath(segs, ctx);
+          drawSegmentPath(segments, ctx, true);
+          ctx.closePath();
+          ctx.stroke();
+
+
+          const matrix = compose(scale(state.width >> 1, state.height >> 1), translate(1, 1));
+          const rectangle = Array.from(createSegments([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]].map(point => {
+            const newP = applyToPoint(matrix, point as [number, number]);
+            return newP;
+          })));
+          smoothSegments(rectangle, {closed: true});
+          console.log(rectangle);
+          ctx.beginPath();
+          drawSegmentPath(rectangle, ctx, true);
           ctx.closePath();
           ctx.stroke();
 

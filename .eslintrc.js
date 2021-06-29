@@ -289,6 +289,7 @@ module.exports = {
         "use-isnan": "error",
         "valid-typeof": "off",
         'no-loop-func': 'warn',
-        'import/no-anonymous-default-export': 'off' // override rules from eslint-config-react-app
+        'import/no-anonymous-default-export': 'off', // override rules from eslint-config-react-app
+        'array-callback-return': 'off'
     }
 };
