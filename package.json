@@ -8,7 +8,8 @@
     "main/redux-toolkit-observable",
     "main/thread-promise-pool",
     "doc-app",
-    "server-tool-space/conf"
+    "server-tool-space/conf",
+    "conf"
   ],
   "scripts": {
     "lint-wfh": "eslint -c main/.eslintrc.js --ext .ts main/wfh/ts",

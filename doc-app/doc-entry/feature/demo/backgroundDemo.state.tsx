@@ -187,7 +187,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
           ];
           const segs = createSegments(triangleVertices);
           const segments = Array.from(segs);
-          smoothSegments(segments, {closed: true, type: 'asymmetric'});
+          smoothSegments(segments, {closed: true});
           ctx.beginPath();
           drawSegmentPath(segments, ctx, true);
           ctx.closePath();
@@ -199,16 +199,17 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
             const newP = applyToPoint(matrix, point as [number, number]);
             return newP;
           })));
-          smoothSegments(rectangle, {closed: true, type: 'asymmetric'});
+          smoothSegments(rectangle, {from: 0, to: 2, closed: false, type: 'asymmetric'});
           ctx.beginPath();
           drawSegmentPath(rectangle, ctx, true);
           ctx.closePath();
           ctx.stroke();
 
           const text = bgDemoSlice.getState().topColor?.toString();
-          ctx.fillStyle = 'black';
+          ctx.fillStyle = '#303030';
           ctx.translate(pctx.getState().width >> 1, pctx.getState().height >> 1);
           ctx.scale(4, 4);
+          ctx.font = '10px Hatton-Regular,Arial,Helvetica,sans-serif';
           if (text)
             ctx.fillText(text, 0, 0);
         })),

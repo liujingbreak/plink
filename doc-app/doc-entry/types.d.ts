@@ -1,1 +1,4 @@
-declare module '*.md';
+declare module '*.md' {
+  const html: string;
+  export default html;
+}

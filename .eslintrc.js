@@ -290,6 +290,7 @@ module.exports = {
         "valid-typeof": "off",
         'no-loop-func': 'warn',
         'import/no-anonymous-default-export': 'off', // override rules from eslint-config-react-app
-        'array-callback-return': 'off'
+        'array-callback-return': 'off',
+        'import/no-webpack-loader-syntax': 'off', // override rules from eslint-config-react-app
     }
 };

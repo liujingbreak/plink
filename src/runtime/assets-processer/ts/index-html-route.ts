@@ -4,8 +4,8 @@ import api from '__api';
 import _ from 'lodash';
 // import Url from 'url';
 import log4js from 'log4js';
-const log = log4js.getLogger(api.packageName);
 import {getSetting} from '../isom/assets-processer-setting';
+const log = log4js.getLogger(api.packageName);
 interface ReqWithNextCb extends Request {
   __goNext: NextFunction;
 }
@@ -41,12 +41,12 @@ export function proxyToDevServer() {
 export function fallbackIndexHtml() {
   const ruleObj: {[key: string]: string} = getSetting().fallbackIndexHtml;
 
-  const rules: Array<{reg: RegExp, tmpl: _.TemplateExecutor}> = [];
+  const rules: Array<{reg: RegExp; tmpl: _.TemplateExecutor}> = [];
 
   Object.keys(ruleObj).forEach(key => {
     rules.push({
       reg: new RegExp(key),
-      tmpl: _.template(ruleObj[key] as string)
+      tmpl: _.template(ruleObj[key] )
     });
   });
 

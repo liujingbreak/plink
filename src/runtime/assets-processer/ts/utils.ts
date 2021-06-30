@@ -1,8 +1,10 @@
 import {Request, Response, NextFunction} from 'express';
+import stream from 'stream';
 import {getLogger} from 'log4js';
 import api from '__api';
 import * as Url from 'url';
 import _ from 'lodash';
+import {config} from '@wfh/plink';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
 const logTime = getLogger(api.packageName + '.timestamp');
@@ -22,7 +24,7 @@ export function createResponseTimestamp(req: Request, res: Response, next: NextF
   function print() {
     const now = new Date().getTime();
     logTime.info(`request: ${req.method} ${req.originalUrl} | status: ${res.statusCode}, [response duration: ${now - startTime}ms` +
-      `] (since ${date.toLocaleTimeString()} ${startTime}) [${req.header('user-agent')}]`);
+      `] (since ${date.toLocaleTimeString()} ${startTime}) [${req.header('user-agent')!}]`);
   }
 
   res.end = function(chunk?: any, encoding?: string | (() => void), cb?: () => void) {
@@ -106,14 +108,36 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         onProxyRes(incoming, req, res) {
           incoming.headers['Access-Control-Allow-Origin'] = '*';
           if (api.config().devMode) {
-            hpmLog.info(`Proxy recieve ${req.originalUrl}, status: ${incoming.statusCode}\n`,
+            hpmLog.info(`Proxy recieve ${req.originalUrl}, status: ${incoming.statusCode!}\n`,
               JSON.stringify(incoming.headers, null, '  '));
           } else {
-            hpmLog.info(`Proxy recieve ${req.originalUrl}, status: ${incoming.statusCode}`);
+            hpmLog.info(`Proxy recieve ${req.originalUrl}, status: ${incoming.statusCode!}`);
           }
+          if (api.config().devMode || config().cliOptions?.verbose) {
 
+            const ct = incoming.headers['content-type'];
+            const isText = (ct && /\b(json|text)\b/i.test(ct));
+            if (isText) {
+              const bufs = [] as string[];
+              incoming.pipe(new stream.Writable({
+                write(chunk: Buffer, enc, cb) {
+                  bufs.push((chunk.toString()));
+                  cb();
+                },
+                final(cb) {
+                  hpmLog.info(`Response ${req.originalUrl} text body:\n`, bufs.join(''));
+                }
+              }));
+            }
+          }
           if (opts.onProxyRes) {
             opts.onProxyRes(incoming, req, res);
+          }
+        },
+        onError(err, req, res) {
+          hpmLog.warn(err);
+          if (opts.onError) {
+            opts.onError(err, req, res);
           }
         }
       })
