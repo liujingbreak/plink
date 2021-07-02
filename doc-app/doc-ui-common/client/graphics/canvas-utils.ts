@@ -56,6 +56,23 @@ export class Segment {
   handleOut?: {x: number; y: number};
 
   constructor(public point: {x: number; y: number}) {}
+
+  round() {
+    const newSeg = new Segment({x: Math.round(this.point.x), y: Math.round(this.point.y)});
+    if (this.handleIn) {
+      newSeg.handleIn = {
+        x: Math.round(this.handleIn.x),
+        y: Math.round(this.handleIn.y)
+      };
+    }
+    if (this.handleOut) {
+      newSeg.handleOut = {
+        x: Math.round(this.handleOut.x),
+        y: Math.round(this.handleOut.y)
+      };
+    }
+    return newSeg;
+  }
 }
 
 export function *createSegments(vertices: Iterable<[x: number, y: number]>): Iterable<Segment> {
@@ -68,7 +85,7 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
   // ctx.beginPath();
   let i = 0;
   let origPoint: Segment['point'];
-  const segements = Array.from(segs);
+  const segements = Array.from(segs).map(seg => seg.round());
   for (const seg of segements) {
     const p = seg.point;
     if (i === 0) {
@@ -80,9 +97,9 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
       if (c1 && c2) {
         c1.x += segements[i - 1].point.x;
         c1.y += segements[i - 1].point.y;
-        c2.x += seg.point.x;
-        c2.y += seg.point.y;
-        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, seg.point.x, seg.point.y);
+        c2.x += p.x;
+        c2.y += p.y;
+        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);
       } else
         ctx.lineTo(p.x, p.y);
     }
@@ -103,6 +120,63 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
     }
   }
   // ctx.closePath();
+}
+
+export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , closed = false, size = 5) {
+  let i = 0;
+  const segements = Array.from(segs).map(seg => seg.round());
+  for (const seg of segements) {
+    const p = seg.point;
+    if (i === 0) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, size >> 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.closePath();
+    } else {
+      const c1 = segements[i - 1].handleOut;
+      const c2 = seg.handleIn;
+      if (c1 && c2) {
+        c1.x += segements[i - 1].point.x;
+        c1.y += segements[i - 1].point.y;
+        c2.x += p.x;
+        c2.y += p.y;
+        ctx.beginPath();
+        ctx.arc(c1.x, c1.y, size >> 1, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.closePath();
+
+        ctx.beginPath();
+        ctx.arc(c2.x, c2.y, size >> 1, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.closePath();
+      }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, size >> 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.closePath();
+    }
+    i++;
+  }
+  if (closed) {
+    const lastSeg = segements[segements.length - 1];
+    if (segements[0].handleIn && lastSeg.handleOut) {
+      const c1 = lastSeg.handleOut;
+      const c2 = segements[0].handleIn;
+      c1.x += lastSeg.point.x;
+      c1.y += lastSeg.point.y;
+      c2.x += segements[0].point.x;
+      c2.y += segements[0].point.y;
+      ctx.beginPath();
+      ctx.arc(c1.x, c1.y, size >> 1, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.closePath();
+
+      ctx.beginPath();
+      ctx.arc(c2.x, c2.y, size >> 1, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.closePath();
+    }
+  }
 }
 
 export function smoothSegments(segments: Segment[], opts: {

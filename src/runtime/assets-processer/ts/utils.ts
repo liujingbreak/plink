@@ -2,7 +2,6 @@ import {Request, Response, NextFunction} from 'express';
 import stream from 'stream';
 import {getLogger} from 'log4js';
 import api from '__api';
-import * as Url from 'url';
 import _ from 'lodash';
 import {config} from '@wfh/plink';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
@@ -81,6 +80,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         target: protocol + '//' + host,
         changeOrigin: true,
         ws: false,
+        secure: false,
         cookieDomainRewrite: { '*': '' },
         pathRewrite: opts.pathRewrite ?  opts.pathRewrite : (path, req) => {
           // hpmLog.warn('patPath=', patPath, 'path=', path);
@@ -96,7 +96,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
             proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
           const referer = proxyReq.getHeader('referer');
           if (referer) {
-            proxyReq.setHeader('referer', `${protocol}//${host}${Url.parse(referer as string).pathname}`);
+            proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer as string).pathname}`);
           }
           if (opts.onProxyReq) {
             opts.onProxyReq(proxyReq, req, res);

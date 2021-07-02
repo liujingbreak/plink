@@ -1,8 +1,8 @@
 import React from 'react';
 import {createSlice, Reducers, Slice, SliceOptions, EpicFactory} from './tiny-redux-toolkit';
 import * as op from 'rxjs/operators';
-export * from './tiny-redux-toolkit';
 import * as rx from 'rxjs';
+export * from './tiny-redux-toolkit';
 
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
