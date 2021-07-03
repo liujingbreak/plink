@@ -17,6 +17,7 @@ export function linear(input: number) {
   return input;
 }
 
+export {bezierEasing};
 /**
  * 
  * @param animFrameTime$ typically should be the "time" parameter of callback parameter of requestAnimationFrame()

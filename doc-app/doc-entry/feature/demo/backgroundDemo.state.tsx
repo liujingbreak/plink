@@ -13,13 +13,19 @@
  */
 import {EpicFactory, ofPayloadAction, Slice, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {drawSegmentPath, createSegments, smoothSegments, drawSegmentCtl} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
-import {compose, applyToPoint, scale, translate} from 'transformation-matrix';
-import {bend} from '@wfh/doc-ui-common/client/graphics/randomCurves';
+import {drawSegmentPath, createSegments, smoothSegments, drawSegmentCtl, transSegments, boundsOf, Segment
+} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {transform, applyToPoint, rotate, scale, translate, Matrix} from 'transformation-matrix';
+import {bend, randomNumbers, randomePointInsideCircle} from '@wfh/doc-ui-common/client/graphics/randomCurves';
+// import {easeInOut} from '@wfh/doc-ui-common/client/animation/ease-functions';
+import bezierEasing from 'bezier-easing';
 
 import Color from 'color';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
+
+const gradientCurveFn = bezierEasing(0.9, 0, 0.2, 1);
+const gradientLevels = [0, 0.2, 0.4, 0.6, 0.8, 1].map(level => ({level, value: 1 - gradientCurveFn(level)}));
 
 export type BackgroundDemoProps = React.PropsWithChildren<{
   // define component properties
@@ -141,10 +147,11 @@ function createGradient(pctx: PaintableContext, color: string, left: number, top
         const gradient = ctx.createRadialGradient(s.position[0], s.position[1], 0, s.position[0], s.position[1],
           // Math.floor(Math.pow(canvasState.width * canvasState.width + canvasState.height * canvasState.height, 0.5)));
           Math.max(canvasState.width, canvasState.height));
-        gradient.addColorStop(0, color);
-        gradient.addColorStop(0.3, new Color(color).alpha(0.5).toString());
-        gradient.addColorStop(0.5, new Color(color).alpha(0.3).toString());
-        gradient.addColorStop(1, new Color(color).alpha(0).toString());
+
+        gradientLevels.forEach(({level, value}) => {
+          gradient.addColorStop(level, new Color(color).alpha(value).toString());
+        });
+
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, pctx.getState().width, pctx.getState().height);
       }),
@@ -159,6 +166,30 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
   const left = createGradient(pctx, bgDemoSlice.getState().leftColor!.toString(), 0, pctx.getState().height >> 1);
   const right = createGradient(pctx, bgDemoSlice.getState().rightColor!.toString(), pctx.getState().width, pctx.getState().height >> 1);
   const bgSlice = pctx.createPosPaintable({name: 'main-background', debug: true});
+  // const curveBg = createCurveBg(pctx, 4);
+
+  const halfTriaEdgeLen = Math.tan(Math.PI / 6) * 100;
+
+  let triangleVertices: [number, number][] = [
+    randomePointInsideCircle([0, 0], [0, 10]),
+    randomePointInsideCircle([halfTriaEdgeLen, 100], [0, 10]),
+    randomePointInsideCircle([-halfTriaEdgeLen, 100], [0, 10])
+  ];
+  const segs = createSegments(triangleVertices);
+  const segments = Array.from(segs);
+  smoothSegments(segments, {closed: true, type: 'asymmetric'});
+  // drawSegmentCtl(segments, ctx, true);
+
+  const bounds = boundsOf(segments, true);
+  const center: [number, number] = [bounds.x + (bounds.w / 2), bounds.y + (bounds.h / 2)];
+
+  const triangleShapes = [segments];
+  for (let i = 1; i <= 4; i++) {
+    const segs2 = Array.from(transSegments(segments,
+      transform(translate(10 * i, 0), rotate(Math.PI * i / 8, center[0], center[1]))
+    ));
+    triangleShapes.push(segs2);
+  }
 
   bgSlice.addEpic(slice => action$ => {
     const actionStreams = castByActionType(slice.actions, action$);
@@ -176,42 +207,33 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
       ),
       actionStreams.afterRender.pipe(
         op.map(({payload: ctx}) => {
-          ctx.strokeStyle = 'white';
+          ctx.strokeStyle = 'rgba(255,255,255, 0.3)';
+          ctx.fillStyle ='rgba(255,255,255, 0.1)';
           const state = pctx.getState();
-          // const triaHeight = Math.min(state.height, state.width) >> 1;
-          // const halfTriaEdgeLen = Math.tan(Math.PI / 6) * triaHeight;
-          // const centerX = state.width >> 1;
-          // let triangleVertices: [number, number][] = [
-          //   [centerX, pctx.getState().height >> 2],
-          //   [Math.round(centerX - halfTriaEdgeLen), triaHeight + (pctx.getState().height >> 2)],
-          //   [Math.round(centerX + halfTriaEdgeLen), triaHeight + (pctx.getState().height >> 2)]
-          // ];
-          // triangleVertices = bend(triangleVertices, {closed: true, vertexPosRange: [0.3, 0.7]});
-          // // console.log(triangleVertices);
-          // const segs = createSegments(triangleVertices);
-          // const segments = Array.from(segs);
-          // smoothSegments(segments, {closed: true, type: 'asymmetric'});
-          // ctx.beginPath();
-          // drawSegmentPath(segments, ctx, true);
-          // ctx.closePath();
-          // ctx.stroke();
+          const triaHeight = Math.min(state.height, state.width)* 2 / 3;
+          const centerX = state.width >> 1;
 
+          // triangleVertices = bend(triangleVertices, {closed: true, vertexNormalRange: [-0.2, 0]});
 
-          const matrix = compose(scale(state.width >> 1, state.height >> 1), translate(1, 1));
+          const transformAsChild = transform(translate(centerX, (state.height - triaHeight) >> 1), scale(triaHeight / 100, triaHeight / 100));
 
-          const rectangleVer = bend([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]], {closed: true, vertexNormalRange: [-0.25, 0]});
-          const rectangle = Array.from(createSegments(rectangleVer.map(point => {
-            const newP = applyToPoint(matrix, point as [number, number]);
-            return newP;
-          })));
-
-          smoothSegments(rectangle, {closed: true, type: 'continuous'});
           ctx.beginPath();
-          drawSegmentPath(rectangle, ctx, true);
+          drawSegmentPath(transSegments(triangleShapes[0], transformAsChild), ctx, {closed: true, round: true});
           ctx.closePath();
-          ctx.stroke();
+          ctx.fill();
 
-          drawSegmentCtl(rectangle, ctx, true, 20);
+
+          for (let i = 1; i < triangleShapes.length; i++) {
+            const segs2 = triangleShapes[i];
+
+            ctx.beginPath();
+            drawSegmentPath(transSegments(segs2, transformAsChild), ctx, {closed: true, round: true});
+            ctx.closePath();
+            ctx.fill();
+            // ctx.fillStyle = 'red';
+            // ctx.strokeStyle = 'red';
+            // drawSegmentCtl(segs2, ctx, true);
+          }
 
           const text = bgDemoSlice.getState().topColor?.toString();
           ctx.fillStyle = '#303030';
@@ -267,6 +289,69 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
   bgSlice.actionDispatcher.addChildren([left, top, right]);
 
   return [bgSlice];
+}
+
+interface MatrixState {
+  matrix?: Matrix;
+}
+
+function createCurveBg(pctx: PaintableContext, numOfCurves: number) {
+  const extendInitialState: MatrixState = {
+  };
+
+  const extendReducers = {
+    scale(s: MatrixState, size: [number, number]) {
+      s.matrix = scale(size[0], size[1]);
+    }
+  };
+
+
+  const slice = pctx.createPosPaintable({
+    name: 'curveBg',
+    extendInitialState,
+    extendReducers,
+    debug: true
+  });
+  slice.addEpic(slice => action$ => {
+    const topPointsX = randomNumbers(0.4, 1, numOfCurves);
+    const bottomPointX = randomNumbers(0, 0.5, numOfCurves);
+
+    const lines = topPointsX.map((topX, idx) => {
+      const segs = Array.from(
+        createSegments(bend([[topX, 0], [bottomPointX[idx], 1]] as [number, number][], {
+          vertexNormalRange: [-0.15, -0.05]
+        }))
+      );
+      smoothSegments(segs, {closed: false});
+      return segs;
+    });
+
+    const actions = castByActionType(slice.actions, action$);
+    return rx.merge(
+      actions.render.pipe(
+        op.map(({payload: ctx}) => {
+          for (let line of lines) {
+            const m = slice.getState().matrix;
+            if (m) {
+              line = [...transSegments(line, m)];
+            }
+            ctx.strokeStyle = 'white';
+            ctx.beginPath();
+            drawSegmentPath(line, ctx);
+            // ctx.closePath();
+            ctx.stroke();
+          }
+        })
+      ),
+      pctx.actionByType.resize.pipe(
+        op.tap(action => {
+          const canvasState = pctx.getState();
+          slice.actionDispatcher.scale([canvasState.width, canvasState.height]);
+        })
+      )
+    ).pipe(op.ignoreElements());
+  });
+  return slice;
 }
 
 // function createTriangle(pctx: PaintableContext) {

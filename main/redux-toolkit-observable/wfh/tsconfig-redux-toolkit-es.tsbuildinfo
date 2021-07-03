@@ -1147,7 +1147,7 @@
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit-hook.ts": {
-        "version": "47918150e83cc774d7c45a3fde110199028d748e551a5deaa68aa45048999952",
+        "version": "00526ce30c06cb51b6109c787c8a21dcb8ef171b4842f37f31bc8f4897e61fb6",
         "signature": "ec5fa1e392ca36afbe6795f46867bbd625110e6abcf7f20193bfcf1dbc5928fd",
         "affectsGlobalScope": false
       },
@@ -1888,7 +1888,6 @@
       "rootDir": "..",
       "composite": true,
       "sourceMap": false,
-      "project": "../../wfh/tsconfig-redux-toolkit-es.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit-es.json"
     },
     "referencedMap": {

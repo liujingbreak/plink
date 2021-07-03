@@ -212,13 +212,18 @@
         "affectsGlobalScope": false
       },
       "./ts/base-lln-parser.ts": {
-        "version": "fc2d9cef8d725f59b082362ae6365e1e3e0c14fdb9e2a4c8be334a7f831353cd",
+        "version": "bfa73a6f222be6914e13d64db79d88bf713e60ab5992adcf8e6a521aac2d8845",
         "signature": "5cb5fd3b1377d5b339bb5406d345e44d6152029c92e1100b97b329d7d351e22e",
         "affectsGlobalScope": false
       },
       "./ts/utils/graph.ts": {
         "version": "1a9dc3a331d485b1c95fbe7ad21b944e8745978ff34d2960d040a3593dc2100c",
         "signature": "dbeab0a9a2c462efd856ad9f90b60d36f87cd84d892e3fc8f4d477035e29452f",
+        "affectsGlobalScope": false
+      },
+      "./ts/utils/algorithms.ts": {
+        "version": "b98780b14625abff26867dee5a1827506f709a96c682a0122aa3d17b8b83a134",
+        "signature": "2e2acf12d0d36d855ada272fdc62f7c3f5fdb09101767ed5b66bb2cef1111282",
         "affectsGlobalScope": false
       },
       "../node_modules/@types/anymatch/index.d.ts": {
@@ -894,6 +899,16 @@
       "../node_modules/@types/yamljs/index.d.ts": {
         "version": "bbe2107a96f15b2cfebcfebfc8933619cb285c43bf1ef6946f78fd92b2de6893",
         "signature": "bbe2107a96f15b2cfebcfebfc8933619cb285c43bf1ef6946f78fd92b2de6893",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/json-schema/index.d.ts": {
+        "version": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
+        "signature": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
+        "affectsGlobalScope": false
+      },
+      "../../node_modules/@types/json5/index.d.ts": {
+        "version": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
+        "signature": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
         "affectsGlobalScope": false
       }
     },
@@ -2505,7 +2520,10 @@
       "../node_modules/typescript/lib/lib.es5.d.ts",
       "../node_modules/typescript/lib/lib.esnext.intl.d.ts",
       "./ts/base-lln-parser.ts",
-      "./ts/utils/graph.ts"
+      "./ts/utils/algorithms.ts",
+      "./ts/utils/graph.ts",
+      "../../node_modules/@types/json-schema/index.d.ts",
+      "../../node_modules/@types/json5/index.d.ts"
     ]
   },
   "version": "4.1.2"

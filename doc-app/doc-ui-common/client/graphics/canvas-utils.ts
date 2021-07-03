@@ -1,10 +1,7 @@
-// import glur from 'glur';
-
-// export class GaussianBlurHelper {
-//   canvas: HTMLCanvasElement;
-
-
-// }
+/// <reference path="bezier-js.d.ts" />
+import {applyToPoint, Matrix, transform, translate} from 'transformation-matrix';
+import {Bezier} from 'bezier-js/dist/bezier';
+// import {getMinAndMax} from '@wfh/plink/wfh/dist-es5/utils/algorithms';
 
 /**
  * Create a offscreen canvas to cache/prerender stuff, performance is affected by size of canvas,
@@ -47,6 +44,8 @@ export function gradientFadeOut(width: number, height: number,
   return gradCv;
 }
 
+const round = Math.round;
+
 /**
  * A paper.js segement like structure (http://paperjs.org/reference/segment/)
  * Each segment consists of an anchor point (segment.point) and optionaly an incoming and an outgoing handle (segment.handleIn and segment.handleOut), describing the tangents of the two Curve objects that are connected by this segment.
@@ -73,6 +72,57 @@ export class Segment {
     }
     return newSeg;
   }
+
+  transform(matrix: Matrix) {
+    const newSeg = this.clone();
+    newSeg.point = applyToPoint(matrix, newSeg.point);
+    const matrix1 = transform(
+      translate(-newSeg.point.x, -newSeg.point.y),
+      matrix
+    );
+    if (newSeg.handleIn) {
+      newSeg.handleIn = applyToPoint(transform(
+        matrix1,
+        translate(newSeg.handleIn.x, newSeg.handleIn.y)
+      ), this.point);
+    }
+    if (newSeg.handleOut) {
+      newSeg.handleOut = applyToPoint(transform(
+        matrix1,
+        translate(newSeg.handleOut.x, newSeg.handleOut.y)
+      ), this.point);
+    }
+    return newSeg;
+  }
+
+  absHandleInPoint() {
+    return this.handleIn ?
+      {x: this.handleIn.x + this.point.x, y: this.handleIn.y + this.point.y}
+      : null;
+  }
+
+  absHandleOutPoint() {
+    return this.handleOut ?
+      {x: this.handleOut.x + this.point.x, y: this.handleOut.y + this.point.y}
+      : null;
+  }
+
+  clone() {
+    const newSeg = new Segment({x: Math.round(this.point.x), y: Math.round(this.point.y)});
+    if (this.handleIn) {
+      newSeg.handleIn = {...this.handleIn};
+    }
+    if (this.handleOut) {
+      newSeg.handleOut = {...this.handleOut};
+    }
+    return newSeg;
+  }
+}
+
+export function *transSegments(segs: Iterable<Segment>, matrix: Matrix) {
+  for (const seg of segs) {
+    yield seg.transform(matrix);
+  }
 }
 
 export function *createSegments(vertices: Iterable<[x: number, y: number]>): Iterable<Segment> {
@@ -81,48 +131,44 @@ export function *createSegments(vertices: Iterable<[x: number, y: number]>): Ite
   }
 }
 
-export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , closed = false) {
-  // ctx.beginPath();
+export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts?: {closed?: boolean; round?: boolean}): Segment[] {
   let i = 0;
   let origPoint: Segment['point'];
-  const segements = Array.from(segs).map(seg => seg.round());
+
+  let segements = Array.isArray(segs) ? segs as Segment[] : Array.from(segs);
+
+  if (opts && opts.round)
+    segements = segements.map(seg => seg.round());
+
   for (const seg of segements) {
     const p = seg.point;
     if (i === 0) {
       origPoint = p;
       ctx.moveTo(p.x, p.y);
     } else {
-      const c1 = segements[i - 1].handleOut;
-      const c2 = seg.handleIn;
+      const c1 = segements[i - 1].absHandleOutPoint();
+      const c2 = seg.absHandleInPoint();
       if (c1 && c2) {
-        c1.x += segements[i - 1].point.x;
-        c1.y += segements[i - 1].point.y;
-        c2.x += p.x;
-        c2.y += p.y;
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);
       } else
         ctx.lineTo(p.x, p.y);
     }
     i++;
   }
-  if (closed) {
+  if (opts != null && opts.closed) {
     const lastSeg = segements[segements.length - 1];
     if (segements[0].handleIn && lastSeg.handleOut) {
-      const c1 = lastSeg.handleOut;
-      const c2 = segements[0].handleIn;
-      c1.x += lastSeg.point.x;
-      c1.y += lastSeg.point.y;
-      c2.x += segements[0].point.x;
-      c2.y += segements[0].point.y;
+      const c1 = lastSeg.absHandleOutPoint()!;
+      const c2 = segements[0].absHandleInPoint()!;
       ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, segements[0].point.x, segements[0].point.y);
     } else {
       ctx.lineTo(origPoint!.x, origPoint!.y);
     }
   }
-  // ctx.closePath();
+  return segements;
 }
 
-export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , closed = false, size = 5) {
+export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , closed = false, size = 10) {
   let i = 0;
   const segements = Array.from(segs).map(seg => seg.round());
   for (const seg of segements) {
@@ -133,13 +179,9 @@ export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingCont
       ctx.fill();
       ctx.closePath();
     } else {
-      const c1 = segements[i - 1].handleOut;
-      const c2 = seg.handleIn;
+      const c1 = segements[i - 1].absHandleOutPoint();
+      const c2 = seg.absHandleInPoint();
       if (c1 && c2) {
-        c1.x += segements[i - 1].point.x;
-        c1.y += segements[i - 1].point.y;
-        c2.x += p.x;
-        c2.y += p.y;
         ctx.beginPath();
         ctx.arc(c1.x, c1.y, size >> 1, 0, Math.PI * 2);
         ctx.stroke();
@@ -160,12 +202,8 @@ export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingCont
   if (closed) {
     const lastSeg = segements[segements.length - 1];
     if (segements[0].handleIn && lastSeg.handleOut) {
-      const c1 = lastSeg.handleOut;
-      const c2 = segements[0].handleIn;
-      c1.x += lastSeg.point.x;
-      c1.y += lastSeg.point.y;
-      c2.x += segements[0].point.x;
-      c2.y += segements[0].point.y;
+      const c1 = lastSeg.absHandleOutPoint()!;
+      const c2 = segements[0].absHandleInPoint()!;
       ctx.beginPath();
       ctx.arc(c1.x, c1.y, size >> 1, 0, Math.PI * 2);
       ctx.stroke();
@@ -179,9 +217,14 @@ export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingCont
   }
 }
 
+export function drawBounds(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D) {
+  const rect = boundsOf(segs);
+  ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+}
+
 export function smoothSegments(segments: Segment[], opts: {
   from?: number; to?: number; closed?: boolean; type?: 'asymmetric' | 'continuous';
-}) {
+}): void {
   const asymmetric = opts.type === 'asymmetric';
 
   const loop = opts.closed && opts.from === undefined && opts.to === undefined;
@@ -257,3 +300,78 @@ export function smoothSegments(segments: Segment[], opts: {
           segment.handleIn = {x: -hx, y: -hy};
   }
 }
+
+export function boundsOf(segs: Iterable<Segment>, roundResult = false): {x: number; y: number; w: number; h: number} {
+  let lastSeg: Segment | undefined;
+  let firstSeg: Segment | undefined;
+  const bounds: {x: {min: number; max: number}[]; y: {min: number; max: number}[]} = {x: [], y: []};
+  // console.log([...segs].map(seg => seg.point));
+  for (const seg of segs) {
+    if (firstSeg == null)
+      firstSeg = seg;
+    if (lastSeg ) {
+      if (seg.handleIn && lastSeg.handleOut) {
+        const bei = new Bezier(lastSeg.point, lastSeg.absHandleOutPoint()!,
+          seg.absHandleInPoint()!, seg.point);
+        const box = bei.bbox();
+        bounds.x.push(box.x);
+        bounds.y.push(box.y);
+      } else {
+        let coord = {min: 0, max: 0};
+        if (lastSeg.point.x < seg.point.x) {
+          coord.min = lastSeg.point.x;
+          coord.max = seg.point.x;
+        } else {
+          coord.max = lastSeg.point.x;
+          coord.min = seg.point.x;
+        }
+        bounds.x.push(coord);
+        coord = {min: 0, max: 0};
+        if (lastSeg.point.y < seg.point.y) {
+          coord.min = lastSeg.point.y;
+          coord.max = seg.point.y;
+        } else {
+          coord.max = lastSeg.point.y;
+          coord.min = seg.point.y;
+        }
+        bounds.y.push(coord);
+      }
+    }
+    lastSeg = seg;
+  }
+  if (firstSeg && firstSeg.handleIn && lastSeg?.handleOut && firstSeg !== lastSeg) {
+    const bei = new Bezier(lastSeg.point, lastSeg.absHandleOutPoint()!, firstSeg.absHandleInPoint()!, firstSeg.point);
+    const box = bei.bbox();
+    // console.log(box);
+    bounds.x.push(box.x);
+    bounds.y.push(box.y);
+  }
+  // console.log(bounds);
+  const minOfXMins = bounds.x.reduce((prev, curr) => {
+    return prev.min < curr.min ? prev : curr;
+  }).min;
+
+  const maxOfXMaxs = bounds.x.reduce((prev, curr) => {
+    return prev.max > curr.max ? prev : curr;
+  }).max;
+
+  const minOfYMins = bounds.y.reduce((prev, curr) => {
+    return prev.min < curr.min ? prev : curr;
+  }).min;
+
+  const maxOfYMaxs = bounds.y.reduce((prev, curr) => {
+    return prev.max > curr.max ? prev : curr;
+  }).max;
+
+  return roundResult ? {
+    x: round(minOfXMins), y: round(minOfYMins),
+    w: round(maxOfXMaxs - minOfXMins),
+    h: round(maxOfYMaxs - minOfYMins)
+  }: {
+    x: minOfXMins, y: minOfYMins,
+    w: maxOfXMaxs - minOfXMins,
+    h: maxOfYMaxs - minOfYMins
+  };
+}
+
+

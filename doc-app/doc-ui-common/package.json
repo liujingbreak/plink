@@ -44,6 +44,7 @@
     "bezier-easing": "^2.1.0",
     "glur": "^1.1.2",
     "@types/glur": "^1.1.1",
-    "transformation-matrix": "2.8.0"
+    "transformation-matrix": "2.8.0",
+    "bezier-js": "^4.1.1"
   }
 }

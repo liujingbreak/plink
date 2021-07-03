@@ -109,7 +109,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
       return rx.merge(
         action$.pipe(ofa(slice.actions.render),
           op.map(({payload: ctx}) => {
-            ctx.fillStyle = '#FCFAE9';
+            ctx.fillStyle = new Color('#FCFAE9').hex();
             const {canvas} = ctx;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
           })
@@ -132,8 +132,8 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
     };
   });
 
-  const circleColor = new Color('green').hue(95).saturationl(80).lightness(60).hex();
-  const fontColor = 'blue';
+  const circleColor = new Color('green').hue(95).saturationl(50).lightness(60).hex();
+  const fontColor = new Color('blue').saturationl(50).lightness(60).hex();
   const circle1 = pctx.createPaintableSlice({name: 'circle1', debug: true});
   circle1.addEpic(slice => {
     return action$ => rx.merge(

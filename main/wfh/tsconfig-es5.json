@@ -12,7 +12,8 @@
 	],
 	"files": [
 		"ts/base-LLn-parser.ts",
-		"ts/utils/graph.ts"
+		"ts/utils/graph.ts",
+		"ts/utils/algorithms.ts"
 	],
 	"include": []
 }

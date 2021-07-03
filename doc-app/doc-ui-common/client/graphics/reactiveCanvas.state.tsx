@@ -12,7 +12,8 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction, Action, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction, Action,
+  castByActionType, Actions} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 // import {DFS} from '@wfh/plink/wfh/dist-es5/utils/graph';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -231,11 +232,14 @@ export type ReactiveCanvasSlice = Slice<ReactiveCanvasState, typeof reducers>;
 export class PaintableContext {
   action$: Slice<ReactiveCanvasState, typeof reducers>['action$'];
   actions: Slice<ReactiveCanvasState, typeof reducers>['actions'];
+  actionByType: {[K in keyof typeof reducers]:
+    rx.Observable<ReturnType<Actions<ReactiveCanvasState, typeof reducers>[K]>>};
   needRender = false;
 
   constructor(private canvasSlice: Slice<ReactiveCanvasState, typeof reducers>) {
     this.action$ = canvasSlice.action$;
     this.actions = canvasSlice.actions;
+    this.actionByType = castByActionType(canvasSlice.actions, canvasSlice.action$);
   }
 
   /** reqest to render canvas later in animation frame, the actual rendering will be batched */
@@ -397,7 +401,7 @@ export class PaintableContext {
     return slice as unknown as PaintableSlice<S, R>;
   }
 
-  createPosPaintable<S = undefined, R = undefined>(opt: PaintableCreateOption<S, R>) {
+  createPosPaintable<S = undefined, R = undefined>(opt: PaintableCreateOption<S, R>): PositionalPaintableSlice<S, R> {
     const initialPosState: PositionalState = {
       x: 0, y: 0, w: 400, h: 300,
       relativeHeight: 1,
