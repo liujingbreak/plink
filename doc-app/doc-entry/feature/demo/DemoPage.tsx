@@ -60,7 +60,8 @@ const DemoPage: React.FC<DemoPageProps> = function(props) {
       <header>Animation effect of switching routes</header>
       <rr.NavLink to='/doc/intro'><Button>Go Document</Button></rr.NavLink>
       <rr.NavLink to='/test'><Button>Go Test</Button></rr.NavLink>
-      <rr.NavLink to='/demo/background'><Button>Background</Button></rr.NavLink>
+      <rr.NavLink to='/demo/surface'><Button>Surface background effect</Button></rr.NavLink>
+      <rr.NavLink to='/demo/background'><Button>Background effect</Button></rr.NavLink>
       <rr.NavLink to='/demo/background-blur'><Button>Background 2 (blur style)</Button></rr.NavLink>
     </section>
     <section className={styles.buttonSection}>

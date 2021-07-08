@@ -1,8 +1,9 @@
 import {StateFactory, ExtraSliceReducers} from './redux-toolkit-observable';
-import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Draft, Action} from '@reduxjs/toolkit';
+import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft} from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import {Observable, EMPTY, of, Subject, OperatorFunction, defer, Subscription} from 'rxjs';
 import * as op from 'rxjs/operators';
+import { immerable } from 'immer';
 
 export type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 
@@ -117,13 +118,13 @@ export type RegularReducers<S, R extends SimpleReducers<S>> = {
  * @returns SliceCaseReducers which can be part of parameter of createSliceHelper
  */
 export function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R): RegularReducers<S, R> {
-  const rReducers = {} as any;
+  const rReducers = {} as {[key: string]: any};
   for (const [key, sReducer] of Object.entries(simpleReducers)) {
     rReducers[key] = (s: Draft<S>, {payload}: PayloadAction<any>) => {
       return sReducer(s, payload);
     };
   }
-  return rReducers;
+  return rReducers as RegularReducers<S, R>;
 }
 
 
@@ -162,11 +163,13 @@ export function castByActionType<S, R extends SliceCaseReducers<S>>(actionCreato
     const splitActions: {[K in keyof R]?: Observable<PayloadAction>} = {};
     for (const reducerName of Object.keys(actionCreators)) {
       const subject = multicaseActionMap[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<S, any>>();
+      // eslint-disable-next-line no-loop-func
       splitActions[reducerName as keyof R] = defer(() => {
         if (sourceSub == null)
           sourceSub = source.subscribe();
         return subject.asObservable() as Observable<any>;
       }).pipe(
+        // eslint-disable-next-line no-loop-func
         op.finalize(() => {
           if (sourceSub) {
             sourceSub.unsubscribe();
@@ -178,7 +181,7 @@ export function castByActionType<S, R extends SliceCaseReducers<S>>(actionCreato
     const source = action$.pipe(
       op.share(),
       op.map(action => {
-        const match = multicaseActionMap[action.type];
+        const match = multicaseActionMap[action.type as string];
         if (match) {
           match.next(action);
         }
@@ -214,3 +217,20 @@ export function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory:
     );
   };
 }
+
+/**
+ * ImmerJS does not work with some large object (like HTMLElement), meaning you can not directly defined a
+ * Redux-toolkit state to contain such a large object, this class provides a wrapper to those
+ * "large object", and avoid ImmerJs to recursively freeze it by pre-freeze itself. 
+ */
+export class AutoFrozen<T> {
+  ref: unknown;
+  constructor(originRef: T) {
+    this.ref = originRef;
+    Object.freeze(this);
+  }
+  getRef(): T {
+    return this.ref as T;
+  }
+}
+AutoFrozen[immerable] = false;

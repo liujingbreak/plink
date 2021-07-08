@@ -1,4 +1,4 @@
-import {EpicFactory, ofPayloadAction as ofa, createReducers, RegularReducers, SliceHelper} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, ofPayloadAction as ofa, createReducers, SliceHelper} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
@@ -21,7 +21,7 @@ const simpleReducers = {
   }
   // define more reducers...
 };
-const reducers: RegularReducers<$__MyComponent__$State, typeof simpleReducers> = createReducers(simpleReducers);
+const reducers = createReducers<$__MyComponent__$State, typeof simpleReducers>(simpleReducers);
 
 export function sliceOptionFactory() {
   const initialState: $__MyComponent__$State = {};
@@ -83,9 +83,10 @@ const $__MyComponent__$: React.FC<$__MyComponent__$Props> = function(props) {
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, Object.values(props));
   // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div onClick={slice.actionDispatcher.onClick}>{state}</div>;
+  return <div onClick={slice.actionDispatcher.onClick}>{state.yourStateProp}</div>;
 };
 
 export {$__MyComponent__$};

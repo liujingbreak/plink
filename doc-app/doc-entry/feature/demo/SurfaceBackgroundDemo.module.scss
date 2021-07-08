@@ -1,0 +1,13 @@
+@use '@wfh/doc-ui-common/client/material/theme';
+
+.host {
+  display: flex;
+  min-height: 100%;
+  padding: 0 1rem;
+}
+
+.surface {
+  display: block;
+  width: 30%;
+  background-color: theme.$surface;
+}

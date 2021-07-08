@@ -98,9 +98,10 @@ const $__MyComponent__$: React.FC<$__MyComponent__$Props> = function(props) {
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, Object.values(props));
   // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div onClick={slice.actionDispatcher.onClick}>{state}</div>;
+  return <div onClick={slice.actionDispatcher.onClick}>{state.yourStateProp}</div>;
 };
 
 export {$__MyComponent__$};

@@ -1,5 +1,5 @@
 import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
-import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Draft, Action } from '@reduxjs/toolkit';
+import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { Observable, OperatorFunction } from 'rxjs';
 export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;

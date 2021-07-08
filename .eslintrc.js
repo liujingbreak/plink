@@ -24,6 +24,11 @@ module.exports = {
         "prettier",
         "react-app"
     ],
+    settings: {
+        react: {
+            version: '17.0.2', // To override "detect" setting in CRA's eslint-config-react-app/base.js
+        },
+    },
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         // "debugLevel": true,
@@ -34,13 +39,31 @@ module.exports = {
         "eslint-plugin-jsdoc",
         "eslint-plugin-import",
         "eslint-plugin-prefer-arrow",
-        "@typescript-eslint"
+        "@typescript-eslint",
+        "@typescript-eslint/tslint"
     ],
     "ignorePatterns": [
         "**/dist/**/*",
         "**/*.d.ts"
     ],
     "rules": {
+        "@typescript-eslint/tslint/config": ["warn", {
+            "rules": {
+                "whitespace": [true,
+                    "check-branch",
+                    "check-decl",
+                    "check-operator",
+                    // "check-module",
+                    "check-separator",
+                    "check-rest-spread",
+                    "check-type",
+                    "check-typecast",
+                    "check-type-operator",
+                    // "check-preblock",
+                    // "check-postbrace"
+                ]
+            }
+        }],
         "@typescript-eslint/adjacent-overload-signatures": "error",
         "@typescript-eslint/array-type": "off",
         "@typescript-eslint/await-thenable": "error",

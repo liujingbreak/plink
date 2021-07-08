@@ -19,11 +19,15 @@ const BgDemo = loadable(async () => {
   return (await import('../feature/demo/BackgroundDemo')).BackgroundDemo;
 }, {fallback: <ShowTopLoading/>});
 
+const SurfaceDemo = loadable(async () => {
+  return (await import('../feature/demo/SurfaceBackgroundDemo')).SurfaceBackgroundDemo;
+});
 
 export const routes: AnimatableRoutesProps['routes'] = [
   {path: '/test', children: 'test ok'},
   {path: '/demo/background', children: <BgDemo/>},
   {path: '/demo/background-blur', children: <BgBlurDemo/>},
+  {path: '/demo/surface', children: <SurfaceDemo/>},
   {path: '/demo', children: <LazyDemoComponent/>},
   {path: '/doc/:mdKey', children: <LazyDocComponent/>}
 ];

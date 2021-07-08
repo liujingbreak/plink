@@ -100,11 +100,14 @@ export function castByActionType(actionCreators, action$) {
     const splitActions = {};
     for (const reducerName of Object.keys(actionCreators)) {
         const subject = multicaseActionMap[actionCreators[reducerName].type] = new Subject();
+        // eslint-disable-next-line no-loop-func
         splitActions[reducerName] = defer(() => {
             if (sourceSub == null)
                 sourceSub = source.subscribe();
             return subject.asObservable();
-        }).pipe(op.finalize(() => {
+        }).pipe(
+        // eslint-disable-next-line no-loop-func
+        op.finalize(() => {
             if (sourceSub) {
                 sourceSub.unsubscribe();
                 sourceSub = undefined;

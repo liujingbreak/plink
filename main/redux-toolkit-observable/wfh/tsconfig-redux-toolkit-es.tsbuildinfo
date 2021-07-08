@@ -1092,8 +1092,8 @@
         "affectsGlobalScope": false
       },
       "../helper.ts": {
-        "version": "2918c3d6274e08e824b6d5b09a6587c31f7b0c7a357872da1ae5fe0c27b03f68",
-        "signature": "91b10e001cc39ff39cf147d5068f8e23a8bd8f8aecf316dc0723c6252852f71a",
+        "version": "45c9d9aa4501e004a762e2d163d8310663afb52f966bed3e592ff5c344270f85",
+        "signature": "c97a6677a22ba31bd3f44f0608c5a1b59f1dc265b09cbdbdf5eb0ad42b187d61",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/react/global.d.ts": {
@@ -1888,6 +1888,7 @@
       "rootDir": "..",
       "composite": true,
       "sourceMap": false,
+      "project": "../../wfh/tsconfig-redux-toolkit-es.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit-es.json"
     },
     "referencedMap": {
