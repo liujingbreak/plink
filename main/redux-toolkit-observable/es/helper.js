@@ -1,5 +1,6 @@
 import { Observable, EMPTY, of, Subject, defer } from 'rxjs';
 import * as op from 'rxjs/operators';
+import { immerable } from 'immer';
 export function createSliceHelper(stateFactory, opts) {
     const slice = stateFactory.newSlice(opts);
     const actionDispatcher = stateFactory.bindActionCreators(slice);
@@ -143,3 +144,18 @@ export function sliceRefActionOp(epicFactory) {
         }));
     };
 }
+/**
+ * ImmerJS does not work with some large object (like HTMLElement), meaning you can not directly defined a
+ * Redux-toolkit state to contain such a large object, this class provides a wrapper to those
+ * "large object", and avoid ImmerJs to recursively freeze it by pre-freeze itself.
+ */
+export class Refrigerator {
+    constructor(originRef) {
+        this.ref = originRef;
+        Object.freeze(this);
+    }
+    getRef() {
+        return this.ref;
+    }
+}
+Refrigerator[immerable] = false;

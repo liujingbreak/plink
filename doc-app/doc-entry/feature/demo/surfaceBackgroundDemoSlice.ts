@@ -1,20 +1,8 @@
-import { EpicFactory, ofPayloadAction as ofa, createReducers, SliceHelper } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import { EpicFactory, ofPayloadAction as ofa, createReducers, SliceHelper, Refrigerator } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
-import { immerable } from 'immer';
 
-class AutoFrozen<T> {
-  ref: unknown;
-  constructor(originRef: T) {
-    this.ref = originRef;
-    Object.freeze(this);
-  }
-  getRef(): T {
-    return this.ref as T;
-  }
-}
-AutoFrozen[immerable] = false;
 
 export type SurfaceBackgroundDemoProps = React.PropsWithChildren<{
   // define component properties
@@ -22,7 +10,7 @@ export type SurfaceBackgroundDemoProps = React.PropsWithChildren<{
 }>;
 export interface SurfaceBackgroundDemoState {
   componentProps?: SurfaceBackgroundDemoProps;
-  surfaceDom?: AutoFrozen<HTMLElement>;
+  surfaceDom?: Refrigerator<HTMLElement>;
 }
 
 const simpleReducers = {
@@ -35,7 +23,7 @@ const simpleReducers = {
 
   onSurfaceDomRef(s: SurfaceBackgroundDemoState, payload: HTMLElement | null) {
     if (payload) {
-      s.surfaceDom = new AutoFrozen(payload);
+      s.surfaceDom = new Refrigerator(payload);
     } else {
       s.surfaceDom = undefined;
     }

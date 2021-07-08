@@ -223,8 +223,10 @@ export function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory:
  * Redux-toolkit state to contain such a large object, this class provides a wrapper to those
  * "large object", and avoid ImmerJs to recursively freeze it by pre-freeze itself. 
  */
-export class AutoFrozen<T> {
-  ref: unknown;
+export class Refrigerator<T> {
+  private ref: unknown;
+  [immerable]: false;
+
   constructor(originRef: T) {
     this.ref = originRef;
     Object.freeze(this);
@@ -233,4 +235,4 @@ export class AutoFrozen<T> {
     return this.ref as T;
   }
 }
-AutoFrozen[immerable] = false;
+Refrigerator[immerable] = false;

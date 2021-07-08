@@ -22,7 +22,7 @@ export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFacto
   optsFactory: () => CreateSliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [S, SliceHelper<S, R>] {
 
   const willUnmountSub = React.useMemo(() => new rx.ReplaySubject<void>(1), []);
-  const sliceOptions = React.useMemo(optsFactory, []);
+  const sliceOptions = React.useMemo(optsFactory, [optsFactory]);
   const epic$s = React.useMemo<rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>[]>(() => {
     return epicFactories.map(() => new rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>(null));
   }, []);
@@ -93,7 +93,7 @@ export function useStoreOfStateFactory(stateFactory: StateFactory) {
       }
     });
 
-  }, [stateFactory.getRootStore()]);
+  }, [stateFactory.store$]);
 
   return reduxStore;
 }

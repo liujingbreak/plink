@@ -15,7 +15,7 @@ export * from './helper';
  */
 export function useReduxTookitWith(stateFactory, optsFactory, ...epicFactories) {
     const willUnmountSub = React.useMemo(() => new rx.ReplaySubject(1), []);
-    const sliceOptions = React.useMemo(optsFactory, []);
+    const sliceOptions = React.useMemo(optsFactory, [optsFactory]);
     const epic$s = React.useMemo(() => {
         return epicFactories.map(() => new rx.BehaviorSubject(null));
     }, []);
@@ -65,6 +65,6 @@ export function useStoreOfStateFactory(stateFactory) {
                 setReduxStore(store);
             }
         });
-    }, [stateFactory.getRootStore()]);
+    }, [stateFactory.store$]);
     return reduxStore;
 }

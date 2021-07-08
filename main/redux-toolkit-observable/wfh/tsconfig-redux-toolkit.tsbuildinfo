@@ -1092,8 +1092,8 @@
         "affectsGlobalScope": false
       },
       "../helper.ts": {
-        "version": "45c9d9aa4501e004a762e2d163d8310663afb52f966bed3e592ff5c344270f85",
-        "signature": "c97a6677a22ba31bd3f44f0608c5a1b59f1dc265b09cbdbdf5eb0ad42b187d61",
+        "version": "cbf0af58eb592f873cedb6e749c3696509214f8813a9e98d903009c3247f16c6",
+        "signature": "8bcbdbeb90a4fbae3989360008ec64b41ef940209efed4653041ef68ed92f059",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/react/global.d.ts": {
@@ -1137,7 +1137,7 @@
         "affectsGlobalScope": false
       },
       "../react-redux-helper.ts": {
-        "version": "0dc98d3e117a12c7f4a6f3e439f815c21359b227532dbc570784a2c4855819db",
+        "version": "e2c8c24032874ab15f80749209066f49a505c7cf0a7399ecaed0b1d027500d90",
         "signature": "b4f362a7aa0dbefe2ab7f836193d08baacb8a1a474ed5c035ff130cd55334b3b",
         "affectsGlobalScope": false
       },
@@ -3411,6 +3411,7 @@
       ],
       "../helper.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
+        "../../node_modules/immer/dist/immer.d.ts",
         "../../node_modules/redux-observable/index.d.ts",
         "../../node_modules/rxjs/index.d.ts",
         "../../node_modules/rxjs/operators/index.d.ts",
@@ -4970,6 +4971,7 @@
       ],
       "../helper.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
+        "../../node_modules/immer/dist/immer.d.ts",
         "../../node_modules/redux-observable/index.d.ts",
         "../../node_modules/rxjs/index.d.ts",
         "../redux-toolkit-observable.ts"

@@ -2,6 +2,7 @@ import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
 import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { Observable, OperatorFunction } from 'rxjs';
+import { immerable } from 'immer';
 export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
     /** You don't have to create en Epic for subscribing action stream, you subscribe this property
@@ -83,4 +84,15 @@ export declare function castByActionType<S, R extends SliceCaseReducers<S>>(acti
  * @param epicFactory
  */
 export declare function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory: EpicFactory<S, R>): OperatorFunction<PayloadAction<SliceHelper<S, R>>, PayloadAction<any>>;
+/**
+ * ImmerJS does not work with some large object (like HTMLElement), meaning you can not directly defined a
+ * Redux-toolkit state to contain such a large object, this class provides a wrapper to those
+ * "large object", and avoid ImmerJs to recursively freeze it by pre-freeze itself.
+ */
+export declare class Refrigerator<T> {
+    private ref;
+    [immerable]: false;
+    constructor(originRef: T);
+    getRef(): T;
+}
 export {};
