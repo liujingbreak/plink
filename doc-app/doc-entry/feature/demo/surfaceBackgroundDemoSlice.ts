@@ -1,8 +1,8 @@
-import { EpicFactory, ofPayloadAction as ofa, createReducers, SliceHelper, Refrigerator } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import { EpicFactory, createReducers, SliceHelper, Refrigerator } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
-
+import {Immutable} from 'immer';
 
 export type SurfaceBackgroundDemoProps = React.PropsWithChildren<{
   // define component properties
@@ -10,13 +10,10 @@ export type SurfaceBackgroundDemoProps = React.PropsWithChildren<{
 }>;
 export interface SurfaceBackgroundDemoState {
   componentProps?: SurfaceBackgroundDemoProps;
-  surfaceDom?: Refrigerator<HTMLElement>;
+  surfaceDom?: Immutable<Refrigerator<HTMLElement>>;
 }
 
 const simpleReducers = {
-  onClick(s: SurfaceBackgroundDemoState, payload: React.MouseEvent) {},
-  clickDone(s: SurfaceBackgroundDemoState) {},
-
   _syncComponentProps(s: SurfaceBackgroundDemoState, payload: SurfaceBackgroundDemoProps) {
     s.componentProps = {...payload};
   },
@@ -63,14 +60,6 @@ export const epicFactory: EpicFactory<SurfaceBackgroundDemoState, typeof reducer
           }
           return null;
         })
-      ),
-      // Observe incoming action 'onClick' and dispatch new change action
-      action$.pipe(ofa(slice.actions.onClick),
-        op.switchMap((action) => {
-          // mock async job
-          return Promise.resolve(action.payload.target); // Promise is not cancellable, the better we use observables instead promise here
-        }),
-        op.map(dom => slice.actionDispatcher.clickDone())
       )
       // ... more action async reactors: action$.pipe(ofType(...))
     ).pipe(op.ignoreElements());

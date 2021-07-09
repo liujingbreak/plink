@@ -19,7 +19,7 @@ export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R>
 };
 export declare function createSliceHelper<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, opts: CreateSliceOptions<S, R>): SliceHelper<S, R>;
 interface SimpleReducers<S> {
-    [K: string]: (draft: Draft<S>, payload?: any) => S | void | Draft<S>;
+    [K: string]: (draft: S | Draft<S>, payload?: any) => S | void | Draft<S>;
 }
 export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
     [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => S | void | Draft<S> : R[K] extends (s: any, payload: infer P) => any ? (s: Draft<S>, action: PayloadAction<P>) => void | Draft<S> : (s: Draft<S>, action: PayloadAction<unknown>) => void | Draft<S>;

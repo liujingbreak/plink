@@ -25,7 +25,7 @@ export class Token<T> extends Chunk<string, T> {
 /**
  * You can define a lexer as a function
  */
-export type ParseLex<I, T> = (la: LookAheadObservable<I,T>, sub: Subscriber<Chunk<I, T>>) => Promise<any>;
+export type ParseLex<I, T> = (la: LookAheadObservable<I, T>, sub: Subscriber<Chunk<I, T>>) => Promise<any>;
 export type ParseGrammar<A, T> = (la: LookAhead<Token<T>, T>) => Promise<A>;
 /**
  * Parser
@@ -66,7 +66,7 @@ export function parser<I, A, T>(
 }
 
 export function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => Observable<O>):
-(input: Observable<Iterable<I>>)=> Observable<O> {
+(input: Observable<Iterable<I>>) => Observable<O> {
 
   return function(input: Observable<Iterable<I>>) {
     return new Observable<O>(sub => {
@@ -87,7 +87,7 @@ export function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => Ob
 export function mapChunks<I, T>(
   name: string,
   parse: ParseLex<I, T>
-): (input: Observable<Iterable<I>>)=> Observable<Chunk<I, T>> {
+): (input: Observable<Iterable<I>>) => Observable<Chunk<I, T>> {
 
   return function(input: Observable<Iterable<I>>) {
     return new Observable<Chunk<I, T>>(sub => {
@@ -113,8 +113,8 @@ export function mapChunks<I, T>(
 }
 
 export class LookAhead<T, TT = any> {
-  cached: Array<T|null>;
-  lastConsumed: T|undefined|null;
+  cached: Array<T | null>;
+  lastConsumed: T | undefined | null;
   // isString: boolean;
   line = 1;
   column = 1;
@@ -133,7 +133,7 @@ export class LookAhead<T, TT = any> {
   //   this.cached = this.cached.concat(Array.from(buf));
   // }
 
-  _write(values: Iterable<T|null>) {
+  _write(values: Iterable<T | null>) {
     for (const v of values)
       this.cached.push(v);
     // console.log('_writeAndResolve resolve ', this.cached.length);
@@ -210,7 +210,7 @@ export class LookAhead<T, TT = any> {
 	 * @param values lookahead string or tokens
 	 */
   async isNextWith<C>(values: C[], isEqual = (a: T, b: C) => a as any === b): Promise<boolean> {
-    let compareTo: C[]| string;
+    let compareTo: C[] | string;
     let compareFn: (...arg: any[]) => boolean;
     compareTo = values;
     compareFn = isEqual;
@@ -233,7 +233,7 @@ export class LookAhead<T, TT = any> {
   }
 
   async assertAdvanceWith<C>(values: C[], isEqual = (a: T, b: C) => a as any === b) {
-    let compareTo: C[]| string;
+    let compareTo: C[] | string;
     let compareFn: (...arg: any[]) => boolean;
     compareTo = values;
     compareFn = isEqual;
@@ -253,7 +253,7 @@ export class LookAhead<T, TT = any> {
 
   throwError(unexpected = 'End-of-stream', stack?: any, expect?: string) {
     // eslint-disable-next-line max-len
-    throw new Error(`In ${this.name} unexpected ${JSON.stringify(unexpected)}`+
+    throw new Error(`In ${this.name} unexpected ${JSON.stringify(unexpected)}` +
     (expect ? `(expecting "${expect}")` : '') +
     `at ${this.getCurrentPosInfo()}, ${stack ? 'previous stack:' + stack : ''}`);
   }

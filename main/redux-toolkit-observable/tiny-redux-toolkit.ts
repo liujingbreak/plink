@@ -88,7 +88,7 @@ export function ofPayloadAction<S, P, S1, P1>(actionCreators: ActionCreator<S, P
 export function ofPayloadAction<S, P, S1, P1, S2, P2>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>, actionCreators2: ActionCreator<S2, P2>):
   rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1> | PayloadAction<S2, P2>>;
 export function ofPayloadAction(
-  ...actionCreators: ActionCreator<any, any>[]): rx.OperatorFunction<unknown, PayloadAction<unknown, unknown>> {
+  ...actionCreators: ActionCreator<any, any>[]): rx.OperatorFunction<any, PayloadAction<any, any>> {
   return function(src: rx.Observable<PayloadAction<any>>) {
     return src.pipe(
       op.filter(action => actionCreators.some(ac => action.type === ac.type))
@@ -126,7 +126,7 @@ export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actio
 
     let sourceSub: rx.Subscription | undefined;
     for (const reducerName of Object.keys(actionCreators)) {
-      const subject = multicaseActionMap[actionCreators[reducerName].type] = new rx.Subject<PayloadAction<S, any>>();
+      const subject = multicaseActionMap[actionCreators[reducerName].type] = new rx.Subject<PayloadAction<S, any> | Action<S>>();
 
       // eslint-disable-next-line no-loop-func
       splitActions[reducerName as keyof R] = rx.defer(() => {

@@ -271,6 +271,7 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
     jsx: 'preserve',
     target: 'es2015',
     module: 'commonjs',
+    strict: true,
     declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
     paths: extraPathMapping
   };

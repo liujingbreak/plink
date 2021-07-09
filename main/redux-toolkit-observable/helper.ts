@@ -3,7 +3,7 @@ import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducer
 import { Epic } from 'redux-observable';
 import {Observable, EMPTY, of, Subject, OperatorFunction, defer, Subscription} from 'rxjs';
 import * as op from 'rxjs/operators';
-import { immerable } from 'immer';
+import { immerable, Immutable } from 'immer';
 
 export type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
 
@@ -86,7 +86,7 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
 }
 
 interface SimpleReducers<S> {
-  [K: string]: (draft: Draft<S>, payload?: any) => S | void | Draft<S>;
+  [K: string]: (draft: S | Draft<S>, payload?: any) => S | void | Draft<S>;
 }
 
 export type RegularReducers<S, R extends SimpleReducers<S>> = {
@@ -159,10 +159,10 @@ export function castByActionType<S, R extends SliceCaseReducers<S>>(actionCreato
   } {
 
     let sourceSub: Subscription | undefined;
-    const multicaseActionMap: {[K: string]: Subject<PayloadAction | Action> | undefined} = {};
-    const splitActions: {[K in keyof R]?: Observable<PayloadAction>} = {};
+    const multicaseActionMap: {[K: string]: Subject<PayloadAction<S, any> | Action> | undefined} = {};
+    const splitActions: {[K in keyof R]?: Observable<PayloadAction<S, any>>} = {};
     for (const reducerName of Object.keys(actionCreators)) {
-      const subject = multicaseActionMap[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<S, any>>();
+      const subject = multicaseActionMap[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<S, any>  | Action>();
       // eslint-disable-next-line no-loop-func
       splitActions[reducerName as keyof R] = defer(() => {
         if (sourceSub == null)
@@ -224,11 +224,11 @@ export function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory:
  * "large object", and avoid ImmerJs to recursively freeze it by pre-freeze itself. 
  */
 export class Refrigerator<T> {
-  private ref: unknown;
+  private ref: Immutable<T>;
   [immerable]: false;
 
   constructor(originRef: T) {
-    this.ref = originRef;
+    this.ref = originRef as Immutable<T>;
     Object.freeze(this);
   }
   getRef(): T {

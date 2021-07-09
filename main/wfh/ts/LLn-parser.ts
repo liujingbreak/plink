@@ -64,8 +64,8 @@ export class Token<T> extends Chunk<string, T> {
  *  T is Token Type, e.g. string or a enum
  *  C could be omit
  */
-export type Lexer<V,T, C extends Chunk<V, T> = Chunk<V, T>> =
-  (la: LookAhead<V,T>, emitter: TokenEmitter<V, T, C>) => void;
+export type Lexer<V, T, C extends Chunk<V, T> = Chunk<V, T>> =
+  (la: LookAhead<V, T>, emitter: TokenEmitter<V, T, C>) => void;
 export type Grammar<C, A> = (tokenLa: LookAhead<C>) => A;
 
 interface TokenEmitter<V, T, C> {
@@ -84,7 +84,7 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
   } {
 
   let isString: boolean;
-  const lexerLa = new LookAhead<V, T>(parserName+ ' lexer');
+  const lexerLa = new LookAhead<V, T>(parserName + ' lexer');
   const tokenEmitter: TokenEmitter<V, T, C> = {
     emit() {
       if (isString === undefined && lexerLa.currChunk.values != null)
@@ -115,7 +115,7 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
 
 export class LookAhead<V, T = void> {
   static WAIT_ERROR: 'WAIT_ERROR';
-  cached: Array<V|null>;
+  cached: Array<V | null>;
   line = 1;
   column = 1;
   lastConsumed: V;
@@ -128,7 +128,7 @@ export class LookAhead<V, T = void> {
     this.cached = [];
   }
 
-  _write(values: Iterable<V|null>) {
+  _write(values: Iterable<V | null>) {
     for (const v of values)
       this.cached.push(v);
   }
@@ -188,7 +188,7 @@ export class LookAhead<V, T = void> {
 	 * @param values lookahead string or tokens
 	 */
   isNextWith<C>(values: C[], isEqual = (a: V, b: C) => a as any === b): boolean {
-    let compareTo: C[]| string;
+    let compareTo: C[] | string;
     let compareFn: (...arg: any[]) => boolean;
     compareTo = values;
     compareFn = isEqual;
@@ -211,7 +211,7 @@ export class LookAhead<V, T = void> {
   }
 
   assertAdvanceWith<C>(values: C[], isEqual = (a: V, b: C) => a as any === b) {
-    let compareTo: C[]| string;
+    let compareTo: C[] | string;
     let compareFn: (...arg: any[]) => boolean;
     compareTo = values;
     compareFn = isEqual;
@@ -231,7 +231,7 @@ export class LookAhead<V, T = void> {
 
   throwError(unexpected = 'End-of-stream', stack?: any, expect?: string) {
     // eslint-disable-next-line max-len
-    throw new Error(`In ${this.name} unexpected ${JSON.stringify(unexpected)}`+
+    throw new Error(`In ${this.name} unexpected ${JSON.stringify(unexpected)}` +
     (expect ? `(expecting "${expect}")` : '') +
     `at ${this.getCurrentPosInfo()}, ${stack ? 'previous stack:' + stack : ''}`);
   }

@@ -6,6 +6,7 @@
     "module": "ES2020",
     "outDir": "../redux-toolkit-observable/es",
     "declaration": true,
+    "strict": true,
     "composite": true,
     "sourceMap": false,
 		"inlineSourceMap": false,

@@ -14,7 +14,7 @@ const SurfaceBackgroundDemo: React.FC<SurfaceBackgroundDemoProps> = function(pro
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, Object.values(props));
   // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div className={styles.host} onClick={slice.actionDispatcher.onClick}>
+  return <div className={styles.host}>
     <section className={styles.surface} ref={slice.actionDispatcher.onSurfaceDomRef}>
     </section>
   </div>;

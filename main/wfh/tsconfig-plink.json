@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig-base.json",
   "compilerOptions": {
-    "declaration": true
+    "declaration": true,
   },
   "references": [
     {"path": "tsconfig-share.json"},

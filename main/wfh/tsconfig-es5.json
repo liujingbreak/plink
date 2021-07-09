@@ -5,7 +5,8 @@
 		"outDir": "dist-es5",
 		"downlevelIteration": true,
 		"declaration": true,
-		"composite": true
+		"composite": true,
+		"strict": true
 	},
 	"references": [
 		{"path": "tsconfig-redux-toolkit-es.json"}
