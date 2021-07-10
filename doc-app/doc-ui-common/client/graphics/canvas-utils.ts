@@ -1,6 +1,8 @@
 /// <reference path="bezier-js.d.ts" />
 import {applyToPoint, Matrix, transform, translate} from 'transformation-matrix';
 import {Bezier} from 'bezier-js/dist/bezier';
+import glur from 'glur';
+
 // import {getMinAndMax} from '@wfh/plink/wfh/dist-es5/utils/algorithms';
 
 /**
@@ -32,16 +34,25 @@ export function gradientFadeOut(width: number, height: number,
     throw new Error('Can not create Canvas 2D');
   }
   if (grad == null) {
-    grad = gctx.createLinearGradient(0,0, 0, gradCv.height);
+    grad = gctx.createLinearGradient(0, 0, 0, gradCv.height);
   }
   grad.addColorStop(0, 'rgba(255,255,255,1)');
   grad.addColorStop(1, 'rgba(255,255,255,0)');
   gctx.fillStyle = grad;
-  gctx.fillRect(0,0,width, height);
+  gctx.fillRect(0, 0, width, height);
   gctx.globalCompositeOperation = 'source-in';
   drawFn(gctx);
   // gctx.drawImage(target, 0,0);
   return gradCv;
+}
+
+export function blur(ctx: CanvasRenderingContext2D, x = 0, y = 0, width = ctx.canvas.width, height = ctx.canvas.height) {
+  const imgData = ctx.getImageData(x, y, width, height);
+  const {data} = imgData;
+  glur(// data.data as any,
+    new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+    imgData.width, imgData.height, 55);
+  ctx.putImageData(imgData, x, y);
 }
 
 const round = Math.round;
@@ -367,7 +378,7 @@ export function boundsOf(segs: Iterable<Segment>, roundResult = false): {x: numb
     x: round(minOfXMins), y: round(minOfYMins),
     w: round(maxOfXMaxs - minOfXMins),
     h: round(maxOfYMaxs - minOfYMins)
-  }: {
+  } : {
     x: minOfXMins, y: minOfYMins,
     w: maxOfXMaxs - minOfXMins,
     h: maxOfYMaxs - minOfYMins
