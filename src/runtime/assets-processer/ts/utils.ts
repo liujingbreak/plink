@@ -116,6 +116,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
           if (api.config().devMode || config().cliOptions?.verbose) {
 
             const ct = incoming.headers['content-type'];
+            hpmLog.info(`Response ${req.originalUrl} headers:\n`, incoming.rawHeaders);
             const isText = (ct && /\b(json|text)\b/i.test(ct));
             if (isText) {
               const bufs = [] as string[];
