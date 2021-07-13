@@ -57,15 +57,28 @@ export function blur(ctx: CanvasRenderingContext2D, x = 0, y = 0, width = ctx.ca
 
 const round = Math.round;
 
+export type Point = {x: number; y: number};
 /**
  * A paper.js segement like structure (http://paperjs.org/reference/segment/)
  * Each segment consists of an anchor point (segment.point) and optionaly an incoming and an outgoing handle (segment.handleIn and segment.handleOut), describing the tangents of the two Curve objects that are connected by this segment.
  */
 export class Segment {
+  static from(pointX: number, pointY: number, handleInX: number, handleInY: number, handleOutX: number, handleOutY: number) {
+    return new Segment({x: pointX, y: pointY}, {x: handleInX, y: handleInY}, {x: handleOutX, y: handleOutY});
+  }
+  // point: Point;
   handleIn?: {x: number; y: number};
   handleOut?: {x: number; y: number};
 
-  constructor(public point: {x: number; y: number}) {}
+  constructor(public point: Point, handleIn?: Point | null, handleOut?: Point ) {
+    // this.point = {...point};
+    if (handleIn) {
+      this.handleIn = {x: handleIn.x - point.x, y: handleIn.y - point.y};
+    }
+    if (handleOut) {
+      this.handleOut = {x: handleOut.x - point.x, y: handleOut.y - point.y};
+    }
+  }
 
   round() {
     const newSeg = new Segment({x: Math.round(this.point.x), y: Math.round(this.point.y)});
@@ -86,7 +99,9 @@ export class Segment {
 
   transform(matrix: Matrix) {
     const newSeg = this.clone();
+    // console.log('transform', matrix, newSeg.point);
     newSeg.point = applyToPoint(matrix, newSeg.point);
+    // console.log('transform', this.point, newSeg.point);
     const matrix1 = transform(
       translate(-newSeg.point.x, -newSeg.point.y),
       matrix
@@ -119,7 +134,7 @@ export class Segment {
   }
 
   clone() {
-    const newSeg = new Segment({x: Math.round(this.point.x), y: Math.round(this.point.y)});
+    const newSeg = new Segment({x: this.point.x, y: this.point.y});
     if (this.handleIn) {
       newSeg.handleIn = {...this.handleIn};
     }
@@ -128,6 +143,23 @@ export class Segment {
     }
     return newSeg;
   }
+}
+
+export const CIRCLE_BEZIER_CONST = 0.551915024494;
+
+export const quarterCircleCurve = [Segment.from(0, 1, -CIRCLE_BEZIER_CONST, 1, CIRCLE_BEZIER_CONST, 1),
+  Segment.from(1, 0, 1, CIRCLE_BEZIER_CONST, 1, -CIRCLE_BEZIER_CONST)];
+
+/**
+ * 
+ * @param startT 0 ~ 1, t value of a qaurter circle bezier curve
+ * @param endT 0 ~ 1
+ */
+export function createBezierArch(startT: number, endT: number): Segment[] {
+  const bez = new Bezier(quarterCircleCurve[0].point, quarterCircleCurve[0].absHandleOutPoint()!, quarterCircleCurve[1].absHandleInPoint()!, quarterCircleCurve[1].point);
+  const points = bez.split(startT, endT).points;
+  console.log(points);
+  return [new Segment(points[0], null, points[1]), new Segment(points[3], points[2])];
 }
 
 export function *transSegments(segs: Iterable<Segment>, matrix: Matrix) {
@@ -142,7 +174,7 @@ export function *createSegments(vertices: Iterable<[x: number, y: number]>): Ite
   }
 }
 
-export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts?: {closed?: boolean; round?: boolean}): Segment[] {
+export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts?: {closed?: boolean; round?: boolean; debug?: boolean}): Segment[] {
   let i = 0;
   let origPoint: Segment['point'];
 
@@ -156,13 +188,24 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
     if (i === 0) {
       origPoint = p;
       ctx.moveTo(p.x, p.y);
+      if (opts && opts.debug)
+          // eslint-disable-next-line no-console
+          console.log('moveTo', p);
     } else {
       const c1 = segements[i - 1].absHandleOutPoint();
       const c2 = seg.absHandleInPoint();
+
       if (c1 && c2) {
+        if (opts && opts.debug)
+          // eslint-disable-next-line no-console
+          console.log('bezierCurveTo', c1, c2, p);
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);
-      } else
+      } else {
+        if (opts && opts.debug)
+          // eslint-disable-next-line no-console
+          console.log('lineTo', p);
         ctx.lineTo(p.x, p.y);
+      }
     }
     i++;
   }
@@ -179,14 +222,21 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
   return segements;
 }
 
-export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , closed = false, size = 10) {
+export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts: {closed?: boolean; round?: boolean; size?: number} = {}) {
   let i = 0;
-  const segements = Array.from(segs).map(seg => seg.round());
+  let segements = Array.from(segs).map(seg => seg.round());
+
+  if (opts && opts.round)
+    segements = segements.map(seg => seg.round());
+
+  if (opts.size == null)
+    opts.size = 10;
+
   for (const seg of segements) {
     const p = seg.point;
     if (i === 0) {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, size >> 1, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, opts.size >> 1, 0, Math.PI * 2);
       ctx.fill();
       ctx.closePath();
     } else {
@@ -194,34 +244,34 @@ export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingCont
       const c2 = seg.absHandleInPoint();
       if (c1 && c2) {
         ctx.beginPath();
-        ctx.arc(c1.x, c1.y, size >> 1, 0, Math.PI * 2);
+        ctx.arc(c1.x, c1.y, opts.size >> 1, 0, Math.PI * 2);
         ctx.stroke();
         ctx.closePath();
 
         ctx.beginPath();
-        ctx.arc(c2.x, c2.y, size >> 1, 0, Math.PI * 2);
+        ctx.arc(c2.x, c2.y, opts.size >> 1, 0, Math.PI * 2);
         ctx.stroke();
         ctx.closePath();
       }
       ctx.beginPath();
-      ctx.arc(p.x, p.y, size >> 1, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, opts.size >> 1, 0, Math.PI * 2);
       ctx.fill();
       ctx.closePath();
     }
     i++;
   }
-  if (closed) {
+  if (opts.closed) {
     const lastSeg = segements[segements.length - 1];
     if (segements[0].handleIn && lastSeg.handleOut) {
       const c1 = lastSeg.absHandleOutPoint()!;
       const c2 = segements[0].absHandleInPoint()!;
       ctx.beginPath();
-      ctx.arc(c1.x, c1.y, size >> 1, 0, Math.PI * 2);
+      ctx.arc(c1.x, c1.y, opts.size >> 1, 0, Math.PI * 2);
       ctx.stroke();
       ctx.closePath();
 
       ctx.beginPath();
-      ctx.arc(c2.x, c2.y, size >> 1, 0, Math.PI * 2);
+      ctx.arc(c2.x, c2.y, opts.size >> 1, 0, Math.PI * 2);
       ctx.stroke();
       ctx.closePath();
     }
@@ -385,4 +435,8 @@ export function boundsOf(segs: Iterable<Segment>, roundResult = false): {x: numb
   };
 }
 
+export function centerOf(segs: Iterable<Segment>, roundResult = false): {x: number; y: number} {
+  const bounds = boundsOf(segs);
 
+  return {x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2};
+}

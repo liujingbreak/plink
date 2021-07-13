@@ -1,9 +1,9 @@
 import {InferableComponentEnhancerWithProps} from 'react-redux';
-import {StateFactory, SliceCaseReducers, ofPayloadAction
+import {StateFactory, SliceCaseReducers, ofPayloadAction, PayloadAction
 } from './redux-toolkit-observable';
 import React from 'react';
 import {stateFactory} from './state-factory-browser';
-import {createSliceHelper, EpicFactory, SliceHelper} from './helper';
+import {createSliceHelper, EpicFactory, SliceHelper, castByActionType} from './helper';
 import {CreateSliceOptions} from '@reduxjs/toolkit';
 import {useEffect, useState} from 'react';
 import * as rx from 'rxjs';
@@ -25,7 +25,7 @@ export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFacto
   const sliceOptions = React.useMemo(optsFactory, [optsFactory]);
   const epic$s = React.useMemo<rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>[]>(() => {
     return epicFactories.map(() => new rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>(null));
-  }, []);
+  }, [epicFactories]);
 
   const [state, setState] = React.useState<S>(sliceOptions.initialState);
 
@@ -50,10 +50,12 @@ export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFacto
     // runs earlier than parent component's
     epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
     return helper;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
     epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, epicFactories);
 
   React.useEffect(() => {
@@ -62,6 +64,7 @@ export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFacto
       willUnmountSub.complete();
       helper.destroy();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return [state, helper];
@@ -97,3 +100,27 @@ export function useStoreOfStateFactory(stateFactory: StateFactory) {
 
   return reduxStore;
 }
+
+
+interface DemoState {
+  ok?: boolean;
+}
+
+const demoState: DemoState = {};
+
+const demoReducer = {
+  hellow(s: DemoState, payload: PayloadAction<{data: string}>) {}
+};
+
+const demoSlice = createSliceHelper(stateFactory, {
+  name: '_internal_',
+  initialState: demoState,
+  reducers: demoReducer
+});
+
+demoSlice.addEpic(slice => {
+  return action$ => {
+    const actionStreams = castByActionType(slice.actions, action$);
+    return actionStreams.hellow;
+  };
+});

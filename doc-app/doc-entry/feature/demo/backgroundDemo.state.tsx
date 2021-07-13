@@ -208,7 +208,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
       actionStreams.afterRender.pipe(
         op.map(({payload: ctx}) => {
           ctx.strokeStyle = 'rgba(255,255,255, 0.3)';
-          ctx.fillStyle ='rgba(255,255,255, 0.1)';
+          ctx.fillStyle = 'rgba(255,255,255, 0.1)';
           const state = pctx.getState();
           const triaHeight = Math.min(state.height, state.width) * 1.3;
           const triaCurveShapeHeight = bounds.h / 100 * triaHeight;

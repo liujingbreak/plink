@@ -361,7 +361,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
 
 const demoSlice = createSlice({
   name: 'demo',
-  initialState: {} as {ok?: boolean; error?: Error;},
+  initialState: {} as {ok?: boolean; error?: Error},
   reducers: {
     hellow(s, greeting: {data: string}) {},
     world(s) {}
@@ -369,7 +369,10 @@ const demoSlice = createSlice({
 });
 demoSlice.addEpic((slice, ofType) => {
   return (action$, state$) => {
+    const actionStreams = castByActionType(slice.actions, action$);
+
     return rx.merge(
+      actionStreams.hellow.pipe(),
       action$.pipe(
         ofType('hellow', 'hellow'),
         op.map(action => slice.actions.world())

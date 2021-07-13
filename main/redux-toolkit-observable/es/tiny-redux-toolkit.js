@@ -227,6 +227,7 @@ const demoSlice = createSlice({
 });
 demoSlice.addEpic((slice, ofType) => {
     return (action$, state$) => {
-        return rx.merge(action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(ofPayloadAction(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload))).pipe(op.ignoreElements());
+        const actionStreams = castByActionType(slice.actions, action$);
+        return rx.merge(actionStreams.hellow.pipe(), action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(ofPayloadAction(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload))).pipe(op.ignoreElements());
     };
 });

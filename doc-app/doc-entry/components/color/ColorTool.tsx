@@ -7,7 +7,7 @@ import styles from './ColorTool.module.scss';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {sliceOptionFactory, epicFactory, ColorToolProps as Props, ColorToolEpicFactory} from './colorTool.state';
 import {ColorInfo} from './ColorInfo';
-// import {ReactiveCanvas} from '@wfh/doc-ui-common/client/graphics/ReactiveCanvas';
+import {ReactiveCanvas} from '@wfh/doc-ui-common/client/graphics/ReactiveCanvas';
 
 // export type ColorToolProps = ColorToolObservableProps;
 export interface ColorToolProps extends Props {
@@ -20,6 +20,7 @@ const ColorTool: React.FC<ColorToolProps> = function(props) {
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, Object.values(props));
 
   // dispatch action: slice.actionDispatcher.onClick(evt)
@@ -32,7 +33,7 @@ const ColorTool: React.FC<ColorToolProps> = function(props) {
       })}
     </div>
     <div style={state.gradientStyle} className={styles.gradient}></div>
-    {/* <ReactiveCanvas onReady={slice.actionDispatcher.onRenderCanvas} /> */}
+    <ReactiveCanvas className={styles.canvas} onReady={state.createPaintables} />
   </div>
   ;
 };

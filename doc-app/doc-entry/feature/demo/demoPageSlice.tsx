@@ -1,5 +1,5 @@
 // import { ofPayloadAction} from '@wfh/redux-toolkit-observable/es/state-factory-browser';
-import {EpicFactory, createReducers, castByActionType} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, createReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 

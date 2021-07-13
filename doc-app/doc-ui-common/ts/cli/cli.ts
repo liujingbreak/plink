@@ -5,7 +5,7 @@ const cliExt: CliExtension = (program) => {
   .description('Show color information', {'color-string': 'In form of CSS color string'})
   .action(async function(colors: string[]) {
     for (const info of (await import('../color')).colorInfo(colors)) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(info);
     }
   });
@@ -26,7 +26,7 @@ const cliExt: CliExtension = (program) => {
     if (weightInterval == null) {
       weightInterval = '0.1';
     }
-    await (await import('../color')).mixColor(color1, color2, Number(weightInterval));
+    (await import('../color')).mixColor(color1, color2, Number(weightInterval));
   });
 
   // TODO: Add more sub command here

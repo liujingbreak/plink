@@ -4,17 +4,17 @@
 // import Color from 'color';
 
 type ThemeColors = {[theme: string]: {
-  primary?: string;
-  'on-primary'?: string;
-  accent?: string;
-  secondary?: string;
-  'on-secondary'?: string;
-  background?: string;
-  surface?: string;
-  'on-surface'?: string;
-  error?: string;
-  'on-error'?: string;
-};
+    primary?: string;
+    'on-primary'?: string;
+    accent?: string;
+    secondary?: string;
+    'on-secondary'?: string;
+    background?: string;
+    surface?: string;
+    'on-surface'?: string;
+    error?: string;
+    'on-error'?: string;
+  };
 };
 
 const colors: ThemeColors = {

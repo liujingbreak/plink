@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* tslint:disable no-console */
 import Color from 'color';
 import util from 'util';

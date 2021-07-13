@@ -9,8 +9,8 @@ import {Button} from '@wfh/doc-ui-common/client/material/Button';
 import {IconButton} from '@wfh/doc-ui-common/client/material/IconButton';
 import {Palette} from '../../components/color/Palette';
 import * as op from 'rxjs/operators';
-import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
-import {sliceOptionFactory, epicFactory} from './demoPageSlice';
+// import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+// import {sliceOptionFactory, epicFactory} from './demoPageSlice';
 // const cx = cls.bind(styles);
 // const cls = cx('DemoPage');
 // const rippleContentCls = cx('rippleContent');
@@ -24,15 +24,15 @@ const DemoPage: React.FC<DemoPageProps> = function(props) {
   const layout = useAppLayout();
   const [layoutState, setLayoutState] = React.useState(layout?.state$.getValue());
 
-  const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
+  // const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
 
   const turnOnLoading = React.useCallback(() => {
     layout?.actionDispatcher.setLoadingVisible(true);
-  }, []);
+  }, [ layout?.actionDispatcher]);
 
   const turnOffLoading = React.useCallback(() => {
     layout?.actionDispatcher.setLoadingVisible(false);
-  }, []);
+  }, [ layout?.actionDispatcher]);
   React.useEffect(() => {
     let destroy: undefined  | (() => void);
     if (layout) {
@@ -61,8 +61,8 @@ const DemoPage: React.FC<DemoPageProps> = function(props) {
       <rr.NavLink to='/doc/intro'><Button>Go Document</Button></rr.NavLink>
       <rr.NavLink to='/test'><Button>Go Test</Button></rr.NavLink>
       <rr.NavLink to='/demo/surface'><Button>Surface background effect</Button></rr.NavLink>
-      <rr.NavLink to='/demo/background'><Button>Background effect</Button></rr.NavLink>
-      <rr.NavLink to='/demo/background-blur'><Button>Background 2 (blur style)</Button></rr.NavLink>
+      <rr.NavLink to='/demo/background'><Button>Background Canvas</Button></rr.NavLink>
+      <rr.NavLink to='/demo/background-blur'><Button>Blur background</Button></rr.NavLink>
     </section>
     <section className={styles.buttonSection}>
       <header>Buttons</header>

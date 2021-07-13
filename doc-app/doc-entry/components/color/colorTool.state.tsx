@@ -15,7 +15,8 @@ import {EpicFactory, createReducers, SliceHelper, RegularReducers} from '@wfh/re
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
-import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {createPaintables} from './huePalette';
 // import {create} from './colorToolCanvasPainter';
 export interface ColorToolProps {
   mixColors?: {
@@ -46,6 +47,7 @@ export interface ColorToolState {
   colorClickCallbacks: {[key: string]: () => any};
   label?: string;
   gradientStyle: {[style: string]: string};
+  createPaintables(p: PaintableContext): Iterable<PaintableSlice<any, any>>;
   error?: Error;
 }
 // const reducers = {
@@ -105,7 +107,8 @@ export function sliceOptionFactory() {
   const initialState: ColorToolState = {
     colors: [] as Color[],
     colorClickCallbacks: {},
-    gradientStyle: {}
+    gradientStyle: {},
+    createPaintables
   };
   return {
     name: 'ColorTool',
@@ -121,6 +124,8 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
 
   return (action$, state$) => {
     return rx.merge(
+      new rx.Observable(sub => {
+      }),
       state$.pipe(op.map(() => slice.getState().colors), op.distinctUntilChanged(),
         op.map(colors => {
           const colorClickCallbacks: ColorToolState['colorClickCallbacks'] = {};
@@ -151,5 +156,6 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
     ).pipe(op.ignoreElements());
   };
 };
+
 
 export type ColorToolSliceHelper = SliceHelper<ColorToolState, typeof reducers>;

@@ -1,8 +1,12 @@
-import { EpicFactory, createReducers, SliceHelper, Refrigerator } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import { EpicFactory, createReducers, SliceHelper, Refrigerator, castByActionType } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
 import {Immutable} from 'immer';
+import bezierEasing from 'bezier-easing';
+
+const gradientCurveFn = bezierEasing(0.35, 0, 0.6, 1);
+const gradientLevels = [0, 0.2, 0.4, 0.6, 0.8, 1].map(level => ({level, value: (1 - gradientCurveFn(level)) * 0.3}));
 
 export type SurfaceBackgroundDemoProps = React.PropsWithChildren<{
   // define component properties
@@ -21,10 +25,15 @@ const simpleReducers = {
   onSurfaceDomRef(s: SurfaceBackgroundDemoState, payload: HTMLElement | null) {
     if (payload) {
       s.surfaceDom = new Refrigerator(payload);
+      const backgroundImage =
+        `radial-gradient(circle farthest-corner at 50% 35%, ${gradientLevels.map(item => `rgba(66, 141, 233, ${item.value}) ${Math.round(item.level * 100)}%`).join(', ')})`;
+      payload.style.backgroundImage = backgroundImage;
     } else {
       s.surfaceDom = undefined;
     }
-  }
+  },
+
+  onFirstRender(s: SurfaceBackgroundDemoState) {}
   // define more reducers...
 };
 const reducers = createReducers<SurfaceBackgroundDemoState, typeof simpleReducers>(simpleReducers);
@@ -42,6 +51,7 @@ export type SurfaceBackgroundDemoSliceHelper = SliceHelper<SurfaceBackgroundDemo
 
 export const epicFactory: EpicFactory<SurfaceBackgroundDemoState, typeof reducers> = function(slice) {
   return (action$) => {
+    const actionStreams = castByActionType(slice.actions, action$);
     return rx.merge(
       // Observe state (state$) change event, exactly like React.useEffect(), but more powerful for async time based reactions
       slice.getStore().pipe(
@@ -60,7 +70,8 @@ export const epicFactory: EpicFactory<SurfaceBackgroundDemoState, typeof reducer
           }
           return null;
         })
-      )
+      ),
+      actionStreams.onFirstRender.pipe()
       // ... more action async reactors: action$.pipe(ofType(...))
     ).pipe(op.ignoreElements());
   };

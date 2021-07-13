@@ -89,10 +89,10 @@ export default function change(buildPackage: string, config: Configuration, node
       }
     );
 
-  config.plugins!.push(
+  config.plugins.push(
     // new EsmWebpackPlugin(),
     new (class {
-      private moduleNamePat = /^((?:@[^\\\/]+[\\\/])?[^\\\/]+)/;
+      private moduleNamePat = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
       forkDone: Promise<any> = Promise.resolve();
 
       apply(compiler: Compiler) {

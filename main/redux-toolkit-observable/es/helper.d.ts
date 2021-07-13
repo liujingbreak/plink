@@ -48,7 +48,7 @@ export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
  */
 export declare function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R): RegularReducers<S, R>;
 /**
- * Map action stream to multiple action streams by theire action type.
+ * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
  * Usage:
 ```
@@ -67,7 +67,7 @@ slice.addEpic(slice => action$ => {
  * @param actionCreators
  * @param action$
  */
-export declare function castByActionType<S, R extends SliceCaseReducers<S>>(actionCreators: CaseReducerActions<R>, action$: Observable<PayloadAction | Action>): {
+export declare function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R, action$: Observable<PayloadAction | Action>): {
     [K in keyof R]: Observable<CaseReducerActions<R>[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
 };
 /**

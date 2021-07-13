@@ -129,7 +129,7 @@ export function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R
 
 
 /**
- * Map action stream to multiple action streams by theire action type.
+ * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
  * Usage:
 ```
@@ -148,7 +148,7 @@ slice.addEpic(slice => action$ => {
  * @param actionCreators 
  * @param action$ 
  */
-export function castByActionType<S, R extends SliceCaseReducers<S>>(actionCreators: CaseReducerActions<R>,
+export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R,
   action$: Observable<PayloadAction | Action>):
   {
     [K in keyof R]:
@@ -159,10 +159,10 @@ export function castByActionType<S, R extends SliceCaseReducers<S>>(actionCreato
   } {
 
     let sourceSub: Subscription | undefined;
-    const multicaseActionMap: {[K: string]: Subject<PayloadAction<S, any> | Action> | undefined} = {};
-    const splitActions: {[K in keyof R]?: Observable<PayloadAction<S, any>>} = {};
+    const multicaseActionMap: {[K: string]: Subject<PayloadAction<any, any> | Action> | undefined} = {};
+    const splitActions: {[K in keyof R]?: Observable<PayloadAction<any, any>>} = {};
     for (const reducerName of Object.keys(actionCreators)) {
-      const subject = multicaseActionMap[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<S, any>  | Action>();
+      const subject = multicaseActionMap[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<any, any>  | Action>();
       // eslint-disable-next-line no-loop-func
       splitActions[reducerName as keyof R] = defer(() => {
         if (sourceSub == null)

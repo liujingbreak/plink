@@ -7,7 +7,7 @@ const log = log4File(__filename);
 
 let themeName: string;
 
-const loader: loader.Loader = function(source, sourceMap) {
+const theLoader: loader.Loader = function(source, sourceMap) {
   const cb = this.async()!;
   // log.info(source);
   const file = this.resourcePath;
@@ -22,11 +22,8 @@ const loader: loader.Loader = function(source, sourceMap) {
   } else if (pkg) {
     // log.info(file);
     source = (source as string).replace(/@use\s+['"']@wfh\/doc-ui-common\/client\/material\/theme['"']\s*;/m, `@use "@wfh/doc-ui-common/client/material/theme${themeName}" as theme;`);
-    // if (file.indexOf('Main.module') >=0 ) {
-    //   // log.warn(file, source);
-    // }
   }
   cb(null, source, sourceMap);
 };
 
-export default loader;
+export default theLoader;
