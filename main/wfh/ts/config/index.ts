@@ -1,5 +1,4 @@
 /* eslint-disable prefer-const, max-len */
-require('yamlify/register');
 import _ from 'lodash';
 import fs from 'fs';
 import Path from 'path';
@@ -17,10 +16,11 @@ import * as _pkgList from '../package-mgr/package-list-helper';
 import * as _pkgMgr from '../package-mgr';
 import {plinkEnv} from '../utils/misc';
 import {PackageSettingInterf} from './config.types';
-
-const log = log4js.getLogger('plink.config');
 // const yamljs = require('yamljs');
 import yamljs from 'yamljs';
+require('yamlify/register');
+
+const log = log4js.getLogger('plink.config');
 const {rootDir} = plinkEnv;
 
 let rootPath = rootDir;
@@ -72,7 +72,7 @@ config.get = function(propPath: string, defaultValue: any) {
  * @param  {string} property name or property path, like "name", "name.childProp[1]"
  * @return {string}     absolute path
  */
-config.resolve = function(pathPropName: 'rootPath' | 'destDir'|'staticDir'|'serverDir', ...paths: string[]) {
+config.resolve = function(pathPropName: 'rootPath' | 'destDir' | 'staticDir' | 'serverDir', ...paths: string[]) {
   const args: string[] = [rootPath, getState()[pathPropName], ...paths];
   return Path.resolve(...args);
 };
@@ -91,7 +91,7 @@ config.configHandlerMgrChanged = function(cb: (handler: ConfigHandlerMgr) => voi
 
 config.change = function(reducer: (setting: DrcpSettings) => void ) {
   return dispatcher._change(reducer);
-}
+};
 
 // config.configHandlerMgrCreated = function(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void> {
 //   return configHandlerMgr$.pipe(

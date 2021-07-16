@@ -29,7 +29,7 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
 
   // const containerRef = React.createRef<HTMLDivElement>();
   const contentRef = React.useRef<HTMLDivElement>(null);
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [, setLoaded] = React.useState<boolean>(false);
   const [containerDom, setContainerDom] = React.useState<HTMLElement>();
 
   const containerRefCb = React.useCallback((dom: HTMLDivElement | null) => {
@@ -51,6 +51,7 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
       containerDom.innerHTML = props.contents[props.mdKey].__html;
 
       setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         containerDom.querySelectorAll('.language-mermaid').forEach(async el => {
           el.id = 'mermaid-diagram-' + mermaidIdSeed++;
           const container = document.createElement('div');
@@ -58,7 +59,6 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
           // TODO: can been moved to a Worker !!
           const svgStr = await drawMermaidDiagram(el.id, unescape(el.innerHTML));
           container.innerHTML = svgStr;
-          // el.innerHTML = svgStr;
         });
 
         setLoaded(true);
@@ -68,8 +68,10 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
       }, 20);
 
     }
-  }, [
-    containerDom,
+  },    // eslint-disable-next-line react-hooks/exhaustive-deps
+  [
+    containerDom, props.mdKey,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     props.mdKey != null ? props.contents[props.mdKey] : null,
     props.onContent
   ]);

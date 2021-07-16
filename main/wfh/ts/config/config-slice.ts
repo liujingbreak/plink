@@ -6,6 +6,7 @@ import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
 import {PayloadAction} from '@reduxjs/toolkit';
 import log4js from 'log4js';
+import {isMainThread} from 'worker_threads';
 import {PackagesConfig} from '_package-settings';
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 export interface BasePlinkSettings {
@@ -95,11 +96,17 @@ stateFactory.addEpic<{config: BasePlinkSettings}>((action$, state$) => {
     getStore().pipe(op.map(s => s.cliOptions?.verbose), op.distinctUntilChanged(),
       op.filter(verbose => !!verbose),
       op.map(() => {
+        // initial log configure is in store.ts
+        let logPatternPrefix = '';
+        if (process.send)
+          logPatternPrefix = 'pid:%z ';
+        else if (!isMainThread)
+          logPatternPrefix = '[thread]';
         log4js.configure({
           appenders: {
             out: {
               type: 'stdout',
-              layout: {type: 'pattern', pattern: (process.send ? '%z' : '') + '%[[%p] %c%] - %m'}
+              layout: {type: 'pattern', pattern: logPatternPrefix + '%[[%p] %c%] - %m'}
             }
           },
           categories: {

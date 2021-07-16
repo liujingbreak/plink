@@ -24,14 +24,14 @@ export default function(configObj: DrcpSettings) {
   // if (reloadSec !== undefined)
   //   opt.reloadSecs = reloadSec;
   try {
-    var localSetting = require(log4jsConfig);
+    let localSetting = require(log4jsConfig);
     if (localSetting.setup instanceof Function) {
       localSetting = localSetting.setup(configObj);
     }
 
     log4js.configure(localSetting);
     log4js.getLogger('logConfig').info(`\n\n-------------- Log ${new Date().toLocaleString()} ----------------\n`);
-    import('./store').then(store => store.startLogging());
+    void import('./store').then(store => store.startLogging());
   } catch (e) {
     log.error(e);
     // log.info('\nIt seems current log4js configure file is outdated, please delete\n\t' + log4jsConfig +

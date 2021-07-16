@@ -31,6 +31,7 @@ export class Context {
   commonDir: string;
   /** traversed files */
   topSortedFiles: string[] = [];
+  ignorePkgName: string | undefined;
 
   constructor(
     commonDir: string,
@@ -72,15 +73,20 @@ export function dfsTraverseFiles(files: string[], tsconfigFile: string | null | 
   const context = new Context(commonParentDir, alias.map(item => [new RegExp(item[0]), item[1]]),
     ignore ? new RegExp(ignore) : undefined);
 
+  // in case the file is in under directory node_modules, all relative path will be resolved to packageId,
+  let resolved = ts.resolveModuleName('./' + Path.parse(files[0]).name, files[0], co!, host, resCache).resolvedModule;
+  context.ignorePkgName = resolved?.packageId?.name;
+
   const dfs: DFS<string> = new DFS<string>(file => {
     const content = webInjector.injectToFile(file, fs.readFileSync(file, 'utf8'));
     const q = new Query(content, file);
     log.debug('Lookup file', Path.relative(plinkEnv.workDir, file));
     return parseFile(q, file, context);
   }, vertex => {
+    log.debug('Finished file', Path.relative(plinkEnv.workDir, vertex.data));
     context.topSortedFiles.push(vertex.data);
   });
-  log.debug('scan files\n', files);
+  log.info('scan files\n', files);
   dfs.visit(files);
   const cwd = plinkEnv.workDir;
   if (dfs.backEdges.length > 0) {
@@ -176,7 +182,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
   return deps;
 }
 
-const PKG_NAME_PAT = /^(?:@[^/]+\/)?[^/]+/;
+const PKG_NAME_PAT = /^(?:@[^/]+\/)?[^/.]+/;
 
 function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.SourceFile): string | null {
   if (path.startsWith('`')) {
@@ -241,18 +247,15 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
       reasone: 'Typescript failed to resolve'
     });
     return null;
-  }
-  if (resolved?.packageId) {
-    // resolved.packageId.name always return @type/xxxx instead of real package
-    // ctx.externalDeps.add(resolved.packageId.name);
-    const m = PKG_NAME_PAT.exec(path);
-    const pkgName = m ? m[0] : resolved.packageId.name;
-    if (NODE_MODULE_SET.has(pkgName))
-      ctx.nodeModuleDeps.add(pkgName);
-    else
-      ctx.externalDeps.add(pkgName);
-    return null;
-  } else if (resolved) {
+  } else {
+    if (resolved.isExternalLibraryImport && resolved.packageId && resolved.packageId.name !== ctx.ignorePkgName) {
+      const pkgName = resolved.packageId.name;
+      if (NODE_MODULE_SET.has(pkgName))
+        ctx.nodeModuleDeps.add(pkgName);
+      else
+        ctx.externalDeps.add(pkgName);
+      return null;
+    }
     const absPath = Path.resolve(resolved.resolvedFileName);
     if (!absPath.startsWith(ctx.commonDir)) {
       ctx.relativeDepsOutSideDir.add(Path.relative(plinkEnv.workDir, absPath));
@@ -260,7 +263,6 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
     log.debug('resolved to', absPath);
     return absPath;
   }
-  return null;
 }
 
 

@@ -8,10 +8,11 @@ import chalk from 'chalk';
 import {Worker} from 'worker_threads';
 import _ from 'lodash';
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
-// import {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
-// const plinkDir = Path.dirname(require.resolve('@wfh/plink/package.json'));
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
+
+const MODULE_NAME_PAT = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
 
 export default function change(buildPackage: string, config: Configuration, nodePath: string[]) {
   const foundPkg = [...findPackagesByNames([buildPackage])][0];
@@ -68,20 +69,19 @@ export default function change(buildPackage: string, config: Configuration, node
 
   (config.externals as Extract<Configuration['externals'], Array<any>>)
     .push(
-      async (context: any, request: any, callback: (error?: any, result?: any) => void ) => {
+      async (context: string, request: string, callback: (error?: any, result?: any) => void ) => {
         if (includeModuleRe.some(rg => rg.test(request))) {
           return callback();
         }
         if (entrySet == null && config.entry)
           entrySet = await createEntrySet(config.entry);
 
-        // TODO: Should be configurable
         if ((!request.startsWith('.') && !entrySet.has(request) &&
           !/[?!]/.test(request)) // && (!/(?:^|[\\/])@babel[\\/]runtime[\\/]/.test(request))
           ||
           // TODO: why hard coe bklib ?
           request.indexOf('/bklib.min') >= 0) {
-          // log.info('external request:', request, `(${context})`);
+          log.debug('external request:', request, `(${context})`);
           externalRequestSet.add(request);
           return callback(null, request);
         }
@@ -92,7 +92,6 @@ export default function change(buildPackage: string, config: Configuration, node
   config.plugins.push(
     // new EsmWebpackPlugin(),
     new (class {
-      private moduleNamePat = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
       forkDone: Promise<any> = Promise.resolve();
 
       apply(compiler: Compiler) {
@@ -102,10 +101,10 @@ export default function change(buildPackage: string, config: Configuration, node
           const workspaceNodeDir = plinkEnv.workDir + Path.sep + 'node_modules' + Path.sep;
           for (const req of externalRequestSet.values()) {
             if (Path.isAbsolute(req) && Path.resolve(req).startsWith(workspaceNodeDir)) {
-              const m = this.moduleNamePat.exec(req.slice(workspaceNodeDir.length));
+              const m = MODULE_NAME_PAT.exec(req.slice(workspaceNodeDir.length));
               externalDeps.add(m ? m[1] : req.slice(workspaceNodeDir.length));
             } else {
-              const m = this.moduleNamePat.exec(req);
+              const m = MODULE_NAME_PAT.exec(req);
               externalDeps.add(m ? m[1] : req);
             }
           }
@@ -129,9 +128,9 @@ async function createEntrySet(configEntry: NonNullable<Configuration['entry']>, 
   } else if (typeof configEntry === 'function') {
     await Promise.resolve(configEntry()).then(entries => createEntrySet(entries));
   } else if (typeof configEntry === 'object') {
-    for (const [_key, value] of Object.entries(configEntry)) {
-      createEntrySet(value);
-    }
+    await Promise.all(Object.entries(configEntry).map(([_key, value]) => {
+      return createEntrySet(value);
+    }));
   }
   return entrySet;
 }
@@ -153,6 +152,7 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
 
   function checkSet(set: (RuleSetRule | RuleSetUseItem)[]) {
     const found = set.findIndex(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
       use => (use as any).loader && (use as any).loader.indexOf(MiniCssExtractPlugin.loader) >= 0);
     // const found = rule.use.findIndex(use => (use as any).loader && (use as any).loader.indexOf('mini-css-extract-plugin') >= 0);
     if (found >= 0) {

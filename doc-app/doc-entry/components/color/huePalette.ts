@@ -3,7 +3,7 @@ import * as rx from 'rxjs';
 // import Color from 'color';
 import {castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit';
 import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {quarterCircleCurve, Segment, transSegments, drawSegmentPath, centerOf, createBezierArch} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {Segment, transSegments, drawSegmentPath, centerOf, createBezierArch} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
 import {transform, scale, translate, applyToPoint} from 'transformation-matrix';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

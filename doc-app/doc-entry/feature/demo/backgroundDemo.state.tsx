@@ -13,10 +13,9 @@
  */
 import {EpicFactory, ofPayloadAction, Slice, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {drawSegmentPath, createSegments, smoothSegments, drawSegmentCtl, transSegments, boundsOf, Segment
-} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
-import {transform, applyToPoint, rotate, scale, translate, Matrix} from 'transformation-matrix';
-import {bend, randomNumbers, randomePointInsideCircle} from '@wfh/doc-ui-common/client/graphics/randomCurves';
+import {drawSegmentPath, createSegments, smoothSegments, transSegments, boundsOf} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {transform, rotate, scale, translate} from 'transformation-matrix';
+import {randomePointInsideCircle} from '@wfh/doc-ui-common/client/graphics/randomCurves';
 // import {easeInOut} from '@wfh/doc-ui-common/client/animation/ease-functions';
 import bezierEasing from 'bezier-easing';
 
@@ -289,69 +288,65 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
   return [bgSlice];
 }
 
-interface MatrixState {
-  matrix?: Matrix;
-}
+// interface MatrixState {
+//   matrix?: Matrix;
+// }
 
-function createCurveBg(pctx: PaintableContext, numOfCurves: number) {
-  const extendInitialState: MatrixState = {
-  };
+// function createCurveBg(pctx: PaintableContext, numOfCurves: number) {
+//   const extendInitialState: MatrixState = {
+//   };
 
-  const extendReducers = {
-    scale(s: MatrixState, size: [number, number]) {
-      s.matrix = scale(size[0], size[1]);
-    }
-  };
+//   const extendReducers = {
+//     scale(s: MatrixState, size: [number, number]) {
+//       s.matrix = scale(size[0], size[1]);
+//     }
+//   };
 
 
-  const slice = pctx.createPosPaintable({
-    name: 'curveBg',
-    extendInitialState,
-    extendReducers,
-    debug: true
-  });
-  slice.addEpic(slice => action$ => {
-    const topPointsX = randomNumbers(0.4, 1, numOfCurves);
-    const bottomPointX = randomNumbers(0, 0.5, numOfCurves);
+//   const slice = pctx.createPosPaintable({
+//     name: 'curveBg',
+//     extendInitialState,
+//     extendReducers,
+//     debug: true
+//   });
+//   slice.addEpic(slice => action$ => {
+//     const topPointsX = randomNumbers(0.4, 1, numOfCurves);
+//     const bottomPointX = randomNumbers(0, 0.5, numOfCurves);
 
-    const lines = topPointsX.map((topX, idx) => {
-      const segs = Array.from(
-        createSegments(bend([[topX, 0], [bottomPointX[idx], 1]] as [number, number][], {
-          vertexNormalRange: [-0.15, -0.05]
-        }))
-      );
-      smoothSegments(segs, {closed: false});
-      return segs;
-    });
+//     const lines = topPointsX.map((topX, idx) => {
+//       const segs = Array.from(
+//         createSegments(bend([[topX, 0], [bottomPointX[idx], 1]] as [number, number][], {
+//           vertexNormalRange: [-0.15, -0.05]
+//         }))
+//       );
+//       smoothSegments(segs, {closed: false});
+//       return segs;
+//     });
 
-    const actions = castByActionType(slice.actions, action$);
-    return rx.merge(
-      actions.render.pipe(
-        op.map(({payload: ctx}) => {
-          for (let line of lines) {
-            const m = slice.getState().matrix;
-            if (m) {
-              line = [...transSegments(line, m)];
-            }
-            ctx.strokeStyle = 'white';
-            ctx.beginPath();
-            drawSegmentPath(line, ctx);
-            // ctx.closePath();
-            ctx.stroke();
-          }
-        })
-      ),
-      pctx.actionByType.resize.pipe(
-        op.tap(action => {
-          const canvasState = pctx.getState();
-          slice.actionDispatcher.scale([canvasState.width, canvasState.height]);
-        })
-      )
-    ).pipe(op.ignoreElements());
-  });
-  return slice;
-}
-
-// function createTriangle(pctx: PaintableContext) {
-
+//     const actions = castByActionType(slice.actions, action$);
+//     return rx.merge(
+//       actions.render.pipe(
+//         op.map(({payload: ctx}) => {
+//           for (let line of lines) {
+//             const m = slice.getState().matrix;
+//             if (m) {
+//               line = [...transSegments(line, m)];
+//             }
+//             ctx.strokeStyle = 'white';
+//             ctx.beginPath();
+//             drawSegmentPath(line, ctx);
+//             // ctx.closePath();
+//             ctx.stroke();
+//           }
+//         })
+//       ),
+//       pctx.actionByType.resize.pipe(
+//         op.tap(action => {
+//           const canvasState = pctx.getState();
+//           slice.actionDispatcher.scale([canvasState.width, canvasState.height]);
+//         })
+//       )
+//     ).pipe(op.ignoreElements());
+//   });
+//   return slice;
 // }

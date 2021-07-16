@@ -41,7 +41,7 @@ const MediaMatch: React.FC<MediaMatchProps> = function(props) {
       window.removeEventListener('resize', onResize);
       sub.unsubscribe();
     };
-  }, []);
+  }, [props]);
   return <div ref={detectorRef} className={styles.MediaMatch}></div>;
   // return <></>;
 };

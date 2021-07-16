@@ -109,14 +109,15 @@ export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, bui
 
 
 export function craVersionCheck() {
-  const craPackage = require(Path.resolve('node_modules/react-scripts/package.json'));
+  const craPackage = require(Path.resolve('node_modules/react-scripts/package.json')) as {version: string};
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (!gt(craPackage.version, '3.4.0')) {
     throw new Error(`react-scripts version must be greater than 3.4.0, current installed version is ${craPackage.version}`);
   }
 }
 
 export function runTsConfigHandlers(compilerOptions: any) {
-  const {getConfigFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
+  const {getConfigFileInPackage} = require('./cra-scripts-paths') as typeof _craPaths;
   const configFileInPackage = getConfigFileInPackage();
   const cmdOpt = getCmdOptions();
   const log = log4File(__filename);
@@ -140,11 +141,12 @@ export function runTsConfigHandlers(compilerOptions: any) {
 
 export function runTsConfigHandlers4LibTsd() {
   const compilerOptions = {paths: {}};
-  const {getConfigFileInPackage}: typeof _craPaths = require('./cra-scripts-paths');
+  const {getConfigFileInPackage} = require('./cra-scripts-paths') as typeof _craPaths;
   const configFileInPackage = getConfigFileInPackage();
   const cmdOpt = getCmdOptions();
   const log = log4File(__filename);
-  config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, _result, handler) => {
     if (handler.libTsdCompilerOptions != null) {
       log.info('Execute TSD compiler option overrides', cfgFile);
       handler.libTsdCompilerOptions(compilerOptions, cmdOpt);

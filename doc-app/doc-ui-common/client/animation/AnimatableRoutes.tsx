@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import clsDdp from 'classnames/dedupe';
 import styles from './AnimatableRoutes.module.scss';
 import {SwitchAnim, SwitchAnimProps} from './SwitchAnim';

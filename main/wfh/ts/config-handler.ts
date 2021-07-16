@@ -2,8 +2,6 @@
 import * as Path from 'path';
 import chalk from 'chalk';
 import _ from 'lodash';
-const {parse} = require('comment-json');
-const {cyan} = chalk;
 import {register as registerTsNode} from 'ts-node';
 import {GlobalOptions as CliOptions} from './cmd/types';
 import {getRootDir, getWorkDir} from './utils/misc';
@@ -14,6 +12,8 @@ import {BehaviorSubject} from 'rxjs';
 import {Draft} from '@reduxjs/toolkit';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
+const {parse} = require('comment-json');
+const {cyan} = chalk;
 const log = getLogger('plink.config-handler');
 
 export {DrcpSettings};
@@ -26,9 +26,9 @@ export interface DrcpConfig {
    * @return 
    */
   get<K extends keyof DrcpSettings>(path: K, defaultValue?: DrcpSettings[K]): DrcpSettings[K];
-  get(path: string|string[], defaultValue?: any): any;
+  get(path: string | string[], defaultValue?: any): any;
   set<K extends keyof DrcpSettings>(path: K, value: DrcpSettings[K] | any): void;
-  set(path: string|string[], value: any): void;
+  set(path: string | string[], value: any): void;
   change(reducer: (setting: Draft<DrcpSettings>) => void): void;
   /**
    * Resolve a path based on `rootPath`
@@ -37,7 +37,7 @@ export interface DrcpConfig {
    * @param  {string} property name or property path, like "name", "name.childProp[1]"
    * @return {string}     absolute path
    */
-  resolve(dir: 'rootPath' | 'destDir'|'staticDir'|'serverDir', ...path: string[]): string;
+  resolve(dir: 'rootPath' | 'destDir' | 'staticDir' | 'serverDir', ...path: string[]): string;
   resolve(...path: string[]): string;
   /** @return all settings in a big JSON object */
   (): DrcpSettings;
@@ -67,8 +67,8 @@ export class ConfigHandlerMgr {
   private static _tsNodeRegistered = false;
 
   private static initConfigHandlers(fileAndExports: Iterable<[file: string, exportName: string]>, rootPath: string):
-  Array<{file: string, handler: ConfigHandler}> {
-    const exporteds: Array<{file: string, handler: ConfigHandler}> = [];
+  Array<{file: string; handler: ConfigHandler}> {
+    const exporteds: Array<{file: string; handler: ConfigHandler}> = [];
 
     if (!ConfigHandlerMgr._tsNodeRegistered) {
       ConfigHandlerMgr._tsNodeRegistered = true;
@@ -99,7 +99,7 @@ export class ConfigHandlerMgr {
          * Important!! prevent ts-node looking for tsconfig.json from current working directory
          */
         skipProject: true
-        ,transformers: {
+        , transformers: {
           after: [
             context => (src) => {
               log.debug('ts-node compiles:', src.fileName);
@@ -116,7 +116,7 @@ export class ConfigHandlerMgr {
     }
     return exporteds;
   }
-  protected configHandlers: Array<{file: string, handler: ConfigHandler}>;
+  protected configHandlers: Array<{file: string; handler: ConfigHandler}>;
 
   /**
    * 

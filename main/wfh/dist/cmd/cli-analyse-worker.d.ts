@@ -16,6 +16,7 @@ export declare class Context {
     commonDir: string;
     /** traversed files */
     topSortedFiles: string[];
+    ignorePkgName: string | undefined;
     constructor(commonDir: string, alias: [reg: RegExp, replaceTo: string][], ignorePattern?: RegExp | undefined, relativeDepsOutSideDir?: Set<string>, cyclic?: string[], canNotResolve?: {
         target: string;
         file: string;

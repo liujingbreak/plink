@@ -163,7 +163,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     if (tscCfg.files) {
       const files = ([] as string[]).concat(tscCfg.files);
       const aRes = await analyseFiles(files.map(file => resolve(symlinkDir, file)), argv.mergeTsconfig, []);
-      // log.warn('analyzed files:', aRes);
+      log.debug('analyzed files:', aRes);
       rootFiles.push(...(aRes.files.filter(file => file.startsWith(symlinkDir + sep) && !/\.(?:jsx?|d\.ts)$/.test(file))
         .map(file => file.replace(/\\/g, '/')))
       );
@@ -297,7 +297,7 @@ function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOpt
   const readFile = host.readFile;
   const cwd = process.cwd();
   host.readFile = function(path: string, encoding?: string) {
-    const content = readFile.apply(this, arguments) as string | undefined;
+    const content = readFile.apply(this, arguments as any) as string | undefined;
     if (content && !path.endsWith('.d.ts') && !path.endsWith('.json')) {
       // console.log('WatchCompilerHost.readFile', path);
       const changed = webInjector.injectToFile(path, content);
