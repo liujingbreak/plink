@@ -122,7 +122,7 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
     name: 'root',
     extendInitialState: rootPaintableInitialState,
     extendReducers: positionalReducers
-    ,debug: true
+    , debug: true
   });
   rootPaintable.addEpic(rootPaintableSlice => {
     return action$ => {
@@ -160,7 +160,7 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
   function renderImmediately() {
     const s = slice.getState();
     const ctx = s.ctx!;
-    ctx.clearRect(0,0, s.width, s.height);
+    ctx.clearRect(0, 0, s.width, s.height);
     if (s.rootPaintable) {
       s.rootPaintable.actionDispatcher.renderAll(ctx);
     }
@@ -422,15 +422,14 @@ export class PaintableContext {
 
   createAnimation(startValue: number, endValue: number, durationMSec: number,
     timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease')
-    :rx.Observable<number> {
+    : rx.Observable<number> {
     return rx.defer(() => {
       this.canvasSlice.actionDispatcher.startAnimating();
-      return easeFn.animate(
+      return easeFn.animate(startValue, endValue, durationMSec, timingFuntion,
         this.getState().animFrameTime$
           .pipe(
             op.filter(time => time != null)
-          ) as rx.Observable<number>,
-        startValue, endValue, durationMSec, timingFuntion
+          ) as rx.Observable<number>
       );
     }).pipe(
       op.finalize(() => {
@@ -554,7 +553,7 @@ export const positionalEpicFactory: EpicFactory<
           op.map(state => state.parent), op.distinctUntilChanged(),
           op.switchMap(parent => parent != null ? parent.getStore() : rx.EMPTY),
           op.map(pState => (pState as unknown as Partial<PositionalState>)),
-          op.distinctUntilChanged((a,b) => a.w === b.w && a.h === b.h)
+          op.distinctUntilChanged((a, b) => a.w === b.w && a.h === b.h)
         ),
         slice.getStore().pipe(
           op.distinctUntilChanged((a, b) => a.relativeHeight === b.relativeHeight && a.relativeWidth === b.relativeWidth &&

@@ -153,7 +153,7 @@ export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<
   {
     [K in keyof R]:
       Observable<
-        CaseReducerActions<R>[K] extends PayloadActionCreator<infer P> ?
+        R[K] extends PayloadActionCreator<infer P> ?
           PayloadAction<P> : PayloadAction<unknown>
       >
   } {
@@ -188,7 +188,7 @@ export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<
       })
     );
     return splitActions as {
-      [K in keyof R]: Observable<CaseReducerActions<R>[K] extends PayloadActionCreator<infer P> ?
+      [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ?
         PayloadAction<P> : PayloadAction<unknown>>
     };
 }

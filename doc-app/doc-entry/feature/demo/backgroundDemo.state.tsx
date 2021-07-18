@@ -183,9 +183,9 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
   const center: [number, number] = [bounds.x + (bounds.w / 2), bounds.y + (bounds.h / 2)];
 
   const triangleShapes = [segments];
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 20; i++) {
     const segs2 = Array.from(transSegments(segments,
-      transform(translate(25 * i, 0), rotate(Math.PI * i / 12, center[0], center[1]))
+      transform(translate(10 * i, 0), rotate(Math.PI * i / 20, center[0], center[1]))
     ));
     triangleShapes.push(segs2);
   }
@@ -207,15 +207,16 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
       actionStreams.afterRender.pipe(
         op.map(({payload: ctx}) => {
           ctx.strokeStyle = 'rgba(255,255,255, 0.3)';
-          ctx.fillStyle = 'rgba(255,255,255, 0.1)';
+          ctx.fillStyle = 'rgba(255,255,255, 0.05)';
           const state = pctx.getState();
-          const triaHeight = Math.min(state.height, state.width) * 1.3;
+          const triaHeight = Math.min(state.height, state.width) * 3 / 2;
           const triaCurveShapeHeight = bounds.h / 100 * triaHeight;
           const centerX = state.width >> 1;
 
           // triangleVertices = bend(triangleVertices, {closed: true, vertexNormalRange: [-0.2, 0]});
 
-          const transformAsChild = transform(translate(centerX, (state.height - triaCurveShapeHeight) / 2), scale(triaHeight / 100, triaHeight / 100));
+          const transformAsChild = transform(translate(centerX, (state.height - triaCurveShapeHeight) / 2),
+            scale(triaHeight / 100, triaHeight / 100));
 
           ctx.beginPath();
           drawSegmentPath(transSegments(triangleShapes[0], transformAsChild), ctx, {closed: true, round: true});

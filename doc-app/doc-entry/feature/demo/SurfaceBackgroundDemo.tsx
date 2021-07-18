@@ -2,6 +2,7 @@ import React from 'react';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {sliceOptionFactory, epicFactory, SurfaceBackgroundDemoProps as Props} from './surfaceBackgroundDemoSlice';
 import styles from './SurfaceBackgroundDemo.module.scss';
+import {Surface} from '@wfh/doc-ui-common/client/components';
 
 // import cls from 'classnames';
 // CRA's babel plugin will remove statement "export {SurfaceBackgroundDemoProps}" in case there is only type definition, have to reassign and export it.
@@ -20,11 +21,11 @@ const SurfaceBackgroundDemo: React.FC<SurfaceBackgroundDemoProps> = function(pro
   }, [slice.actionDispatcher]);
   // dispatch action: slice.actionDispatcher.onClick(evt)
   return <div className={styles.host}>
-    <section className={styles.surface} ref={slice.actionDispatcher.onSurfaceDomRef}>
+    <Surface className={styles.surface}>
       I am surface component
       <br/><br/>
       (Design style: colors on white surface)
-    </section>
+    </Surface>
   </div>;
 };
 

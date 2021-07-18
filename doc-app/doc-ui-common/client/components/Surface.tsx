@@ -1,7 +1,7 @@
 import React from 'react';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {sliceOptionFactory, epicFactory, SurfaceProps as Props} from './surfaceSlice';
-// import cls from 'classnames';
+import cls from 'classnames';
 // import clsddp from 'classnames/dedupe';
 import styles from './Surface.module.scss';
 
@@ -9,14 +9,19 @@ import styles from './Surface.module.scss';
 export type SurfaceProps = Props;
 
 const Surface: React.FC<SurfaceProps> = function(props) {
-  const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
+  const [, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
 
   React.useEffect(() => {
     slice.actionDispatcher._syncComponentProps(props);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, Object.values(props));
-  // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div onClick={slice.actionDispatcher.onClick}>{state.yourStateProp}</div>;
+
+  React.useEffect(() => {
+    setTimeout(() => slice.actionDispatcher.onFirstRender(), 50);
+  }, [slice.actionDispatcher]);
+
+  return <section className={cls(props.className, styles.scope)}
+    ref={slice.actionDispatcher.onSurfaceDomRef}>{props.children}</section>;
 };
 
 export {Surface};

@@ -68,7 +68,7 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 export declare function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R, action$: Observable<PayloadAction | Action>): {
-    [K in keyof R]: Observable<CaseReducerActions<R>[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
+    [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
 };
 /**
  * Add an epicFactory to another component's sliceHelper

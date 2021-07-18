@@ -68,7 +68,7 @@ const reducers = {
   switchContent(s: SwitchState, payload: React.ReactNode) {
     // console.log('switch content:', (payload as any)?._source?.fileName);
   },
-  enterStart(s: SwitchState, payload: {node: React.ReactNode, anim: boolean}) {
+  enterStart(s: SwitchState, payload: {node: React.ReactNode; anim: boolean}) {
     // s.entering = true;
     const key = '' + CONTENT_KEY_SEED++;
     s.keyOfEntering = key;
@@ -192,6 +192,7 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
     if (props.children && slice) {
       slice.actionDispatcher.switchContent(props.children);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.contentHash, slice]);
 
   React.useEffect(() => {
@@ -203,6 +204,7 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
   React.useEffect(() => {
     if (slice)
       slice.actionDispatcher.setBaseOptions(props);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.animFirstContent, props.size, slice, props.type, props.className]);
 
   React.useEffect(() => {

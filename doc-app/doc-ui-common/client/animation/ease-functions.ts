@@ -18,6 +18,7 @@ export function linear(input: number) {
 }
 
 export {bezierEasing};
+
 /**
  * 
  * @param animFrameTime$ typically should be the "time" parameter of callback parameter of requestAnimationFrame()
@@ -27,9 +28,9 @@ export {bezierEasing};
  * @param timingFuntion 
  * @returns Observable of changing value
  */
-export function animate(animFrameTime$: rx.Observable<number>, startValue: number, endValue: number, durationMSec: number,
-  timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease')
-  :rx.Observable<number> {
+export function animate(startValue: number, endValue: number, durationMSec: number,
+  timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease', animFrameTime$: rx.Observable<number> = createAnimFrameTimer())
+  : rx.Observable<number> {
 
   let timingFn: (input: number) => number;
   switch (timingFuntion) {
@@ -54,19 +55,38 @@ export function animate(animFrameTime$: rx.Observable<number>, startValue: numbe
   return animFrameTime$.pipe(
     op.take<number>(1),
     op.switchMap(initTime => {
+      let progress = 0;
+
       return rx.concat(
         animFrameTime$.pipe(
           op.filter(time => time > initTime),
           op.map(time => {
-            let progress = (time - initTime) / durationMSec;
+            progress = (time - initTime) / durationMSec;
             // console.log(time - initTime, progress);
             let currValue = progress > 1 ? endValue : startValue + deltaValue * timingFn(progress);
             return currValue;
           }),
-          op.takeWhile(currValue => currValue < endValue)
+          op.takeWhile(() => progress <= 1)
         ),
         rx.of(endValue)
       );
     })
   );
+}
+
+export function createAnimFrameTimer() {
+  return new rx.Observable<number>(sub => {
+    let stop = false;
+    function run() {
+      requestAnimationFrame(time => {
+        sub.next(time);
+        if (!stop) {
+          run();
+        }
+      });
+    }
+
+    run();
+    return () => {stop = true; };
+  });
 }

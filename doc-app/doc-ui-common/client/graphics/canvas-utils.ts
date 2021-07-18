@@ -80,18 +80,18 @@ export class Segment {
     }
   }
 
-  round() {
-    const newSeg = new Segment({x: Math.round(this.point.x), y: Math.round(this.point.y)});
+  round(method = Math.round) {
+    const newSeg = new Segment({x: Math.round(this.point.x), y: method(this.point.y)});
     if (this.handleIn) {
       newSeg.handleIn = {
-        x: Math.round(this.handleIn.x),
-        y: Math.round(this.handleIn.y)
+        x: method(this.handleIn.x),
+        y: method(this.handleIn.y)
       };
     }
     if (this.handleOut) {
       newSeg.handleOut = {
-        x: Math.round(this.handleOut.x),
-        y: Math.round(this.handleOut.y)
+        x: method(this.handleOut.x),
+        y: method(this.handleOut.y)
       };
     }
     return newSeg;
@@ -158,7 +158,6 @@ export const quarterCircleCurve = [Segment.from(0, 1, -CIRCLE_BEZIER_CONST, 1, C
 export function createBezierArch(startT: number, endT: number): Segment[] {
   const bez = new Bezier(quarterCircleCurve[0].point, quarterCircleCurve[0].absHandleOutPoint()!, quarterCircleCurve[1].absHandleInPoint()!, quarterCircleCurve[1].point);
   const points = bez.split(startT, endT).points;
-  console.log(points);
   return [new Segment(points[0], null, points[1]), new Segment(points[3], points[2])];
 }
 
@@ -174,14 +173,20 @@ export function *createSegments(vertices: Iterable<[x: number, y: number]>): Ite
   }
 }
 
-export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts?: {closed?: boolean; round?: boolean; debug?: boolean}): Segment[] {
+export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts?: {
+  closed?: boolean;
+  round?: boolean | ((x: number) => number);
+  debug?: boolean;
+}): Segment[] {
   let i = 0;
   let origPoint: Segment['point'];
 
   let segements = Array.isArray(segs) ? segs as Segment[] : Array.from(segs);
 
-  if (opts && opts.round)
-    segements = segements.map(seg => seg.round());
+  if (opts && opts.round) {
+    const round = typeof opts.round === 'function' ? opts.round : Math.round;
+    segements = segements.map(seg => seg.round(round));
+  }
 
   for (const seg of segements) {
     const p = seg.point;
