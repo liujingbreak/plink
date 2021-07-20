@@ -15,7 +15,7 @@ import plink from '__plink';
 
 const cli: CliExtension = (program) => {
   const buildCmd = program.command('cra-build <app|lib> <package-name>')
-  .description('Compile react application or library (work with create-react-app v4.0.3)',{
+  .description('Compile react application or library (work with create-react-app v4.0.3)', {
     'app|lib': '"app" stands for building a complete application like create-react-app,\n' +
       '"lib" stands for building a library',
     'package-name': 'target package name, the "scope" name part can be omitted'
@@ -33,10 +33,10 @@ const cli: CliExtension = (program) => {
   '(multiple value), when argument is "lib", we will set "external" property of Webpack configuration for all request not begin with "." (not relative path), ' +
   'meaning all non-relative modules will not be included in the output bundle file, you need to explicitly provide a list in' +
   ' Regular expression (e.g. -i \'^someLib(/|$)\' -i \'^someLib2(/|$)\' -i ...) ' +
-  ' to make them be included in bundle file. To make specific module (React) external: -i \'^(?!react(-dom)?($|\/))\'', arrayOptionFn, [])
+  ' to make them be included in bundle file. To make specific module (React) external: -i \'^(?!react(-dom)?($|/))\'', arrayOptionFn, [])
   .option('--source-map', 'set environment variable GENERATE_SOURCEMAP to "true" (see https://create-react-app.dev/docs/advanced-configuration', false)
-  .action(async (type, pkgName) => {
-    await initEverything(buildCmd, type, pkgName);
+  .action((type, pkgName) => {
+    initEverything(buildCmd, type, pkgName);
     if (buildCmd.opts().sourceMap) {
       plink.logger.info('source map is enabled');
       process.env.GENERATE_SOURCEMAP = 'true';
@@ -51,17 +51,17 @@ const cli: CliExtension = (program) => {
         'package-name': 'target package name, the "scope" name part can be omitted'
       })
     .action(async pkgName => {
-      await initEverything(StartCmd, 'lib', pkgName);
+      initEverything(StartCmd, 'lib', pkgName);
       await (await import('../tsd-generate')).buildTsd([pkgName]);
     });
 
 
   const StartCmd = program.command('cra-start <package-name>')
-  .description('Run CRA start script for react application or library (work with create-react-app v4.0.3)',{
+  .description('Run CRA start script for react application or library (work with create-react-app v4.0.3)', {
     'package-name': 'target package name, the "scope" name part can be omitted'
   })
   .action(async (pkgName) => {
-    await initEverything(StartCmd, 'app', pkgName);
+    initEverything(StartCmd, 'app', pkgName);
     require('react-scripts/scripts/start');
   });
   withClicOpt(StartCmd);
@@ -99,7 +99,7 @@ const cli: CliExtension = (program) => {
         console.error(err);
         rej(err);
       });
-      cp.on('exit', (sign, code) => {resolve(code);});
+      cp.on('exit', (sign, code) => {resolve(code); });
     });
   });
   // smeCmd.usage(smeCmd.usage() + '\n  app-base-path: ')
@@ -115,7 +115,7 @@ function arrayOptionFn(curr: string, prev: string[] | undefined) {
   return prev;
 }
 
-async function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', pkgName: string) {
+function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', pkgName: string) {
   // const cfg = await initConfigAsync(buildCmd.opts() as GlobalOptions);
   const cfg = config;
   // await initTsconfig();
@@ -125,10 +125,10 @@ async function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', 
   // await walkPackagesAndSetupInjector(process.env.PUBLIC_URL || '/');
   if (!['app', 'lib'].includes(type)) {
 
-    plink.logger.error(`type argument must be one of "${['app', 'lib']}"`);
+    plink.logger.error('type argument must be one of \'app\', \'lib\'');
     return;
   }
-  const preload: typeof _preload = require('../preload');
+  const preload = require('../preload') as typeof _preload;
   preload.poo();
 }
 

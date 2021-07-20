@@ -81,9 +81,15 @@ export default function change(buildPackage: string, config: Configuration, node
           ||
           // TODO: why hard coe bklib ?
           request.indexOf('/bklib.min') >= 0) {
-          log.debug('external request:', request, `(${context})`);
-          externalRequestSet.add(request);
-          return callback(null, request);
+
+          if (Path.isAbsolute(request)) {
+            log.info('request absolute path:', request);
+            return callback();
+          } else {
+            log.debug('external request:', request, `(${context})`);
+            externalRequestSet.add(request);
+            return callback(null, request);
+          }
         }
         callback();
       }

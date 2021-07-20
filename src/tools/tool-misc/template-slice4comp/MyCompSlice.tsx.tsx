@@ -1,4 +1,4 @@
-import {EpicFactory, ofPayloadAction as ofa, createReducers, SliceHelper} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory, castByActionType, createReducers, SliceHelper} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
@@ -36,6 +36,7 @@ export type $__MyComponent__$SliceHelper = SliceHelper<$__MyComponent__$State, t
 
 export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> = function(slice) {
   return (action$) => {
+    const actionStreams = castByActionType(slice.actions, action$);
     return rx.merge(
       // Observe state (state$) change event, exactly like React.useEffect(), but more powerful for async time based reactions
       slice.getStore().pipe(
@@ -56,7 +57,7 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
         })
       ),
       // Observe incoming action 'onClick' and dispatch new change action
-      action$.pipe(ofa(slice.actions.onClick),
+      actionStreams.onClick.pipe(
         op.switchMap((action) => {
           // mock async job
           return Promise.resolve(action.payload.target); // Promise is not cancellable, the better we use observables instead promise here

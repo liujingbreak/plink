@@ -15,13 +15,13 @@ import ChunkInfoPlugin from './plugins/chunk-info';
 import gzipSize from './plugins/gzip-size';
 import { transformHtml } from './plugins/index-html-plugin';
 import ReadHookHost from './utils/read-hook-vfshost';
-const smUrl = require('source-map-url');
-const log = require('log4js').getLogger('config-webpack');
 import configDevServer from '@wfh/webpack-common/dist/devServer';
 import chalk from 'chalk';
 import memstats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {WepackConfigHandler} from './configurable';
 import * as op from 'rxjs/operators';
+const smUrl = require('source-map-url');
+const log = require('log4js').getLogger('config-webpack');
 // import setupAssets from '@wfh/assets-processer/dist/dev-serve-assets';
 
 
@@ -41,7 +41,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
   }
 
   if (_.get(param, 'builderConfig.options.drcpArgs.report') ||
-  param.browserOptions.drcpArgs.report ||(param.browserOptions.drcpArgs.openReport)) {
+  param.browserOptions.drcpArgs.report || (param.browserOptions.drcpArgs.openReport)) {
     webpackConfig.plugins.push(
       new ChunkInfoPlugin()
     );
@@ -49,7 +49,7 @@ export default async function changeWebpackConfig(context: BuilderContext, param
 
   const resolveModules = process.env.NODE_PATH!.split(Path.delimiter);
   if (webpackConfig.resolve == null)
-    webpackConfig.resolve= {modules: resolveModules};
+    webpackConfig.resolve = {modules: resolveModules};
   else if (webpackConfig.resolve.modules == null)
     webpackConfig.resolve.modules = resolveModules;
   else
@@ -113,7 +113,8 @@ export default async function changeWebpackConfig(context: BuilderContext, param
                 log.info(`Webpack compilation stats is written to ${reportFile}`);
             });
           });
-      }})()
+      }
+})()
     );
   }
   if (webpackConfig.target !== 'node') {
@@ -219,7 +220,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
   if (!webpackConfig.module) {
     webpackConfig.module = {rules: []};
   }
-  const rules = webpackConfig.module.rules as webpack.Rule[];
+  const rules = webpackConfig.module.rules ;
   let hasUrlLoader = false;
   let hasHtmlLoader = false;
   let fileLoaderRuleIdx: number | undefined;
@@ -270,7 +271,7 @@ function changeLoaders(param: AngularCliParam, webpackConfig: webpack.Configurat
       Object.keys(rule).forEach((key: string) => delete (rule as any)[key]);
       Object.assign(rule, urlLoaderRule);
     } else if (test instanceof RegExp && test.toString().indexOf('\\.scss') >= 0 && rule.use) {
-      const use = (rule.use as Array<{[key: string]: any, loader: string}>);
+      const use = (rule.use as Array<{[key: string]: any; loader: string}>);
       const insertIdx = use.findIndex(item => item.loader === 'sass-loader');
       if (insertIdx < 0) {
         throw new Error('sass-loader is not found');
@@ -406,7 +407,7 @@ function printConfigValue(value: any, level: number): string {
     out += JSON.stringify(value) + '';
   } else if (Array.isArray(value)) {
     out += '[\n';
-    (value as any[]).forEach((row: any) => {
+    (value ).forEach((row: any) => {
       out += indent + '    ' + printConfigValue(row, level + 1);
       out += ',\n';
     });

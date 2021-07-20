@@ -5,34 +5,39 @@ import * as rx from 'rxjs';
 import React from 'react';
 import bezierEasing from 'bezier-easing';
 import {animate} from '@wfh/doc-ui-common/client/animation/ease-functions';
+import Color from 'color';
 
 const gradientCurveFn = bezierEasing(0.35, 0, 0.6, 1);
-const gradientLevels = [0, 0.2, 0.4, 0.6, 0.8, 1].map(level => ({level, value: (1 - gradientCurveFn(level)) * 0.4}));
+const gradientLevels = [0, 0.2, 0.4, 0.6, 0.8, 1].map(level => ({level: Math.round(level * 100) + '%', opacity: (1 - gradientCurveFn(level))}));
 
 export type SurfaceProps = React.PropsWithChildren<{
   className?: string;
+  color?: string;
+  /** 0 - 1 */
+  minAlpha?: number;
   sliceRef?(sliceHelper: SurfaceSliceHelper): void;
 }>;
 export interface SurfaceState {
   componentProps?: SurfaceProps;
   surfaceDom?: Immutable<Refrigerator<HTMLElement>>;
+  rgbColor: string;
+  colorAlpha: number;
 }
 
 const simpleReducers = {
   onSurfaceDomRef(s: SurfaceState, payload: HTMLElement | null) {
     if (payload) {
       s.surfaceDom = new Refrigerator(payload);
-      const backgroundImage =
-        `radial-gradient(circle farthest-corner at 50% 120%, ${gradientLevels.map(item => `rgba(66, 141, 233, ${item.value}) ${Math.round(item.level * 100)}%`).join(', ')})`;
-      payload.style.backgroundImage = backgroundImage;
     } else {
       s.surfaceDom = undefined;
     }
   },
-  transitBackground(s: SurfaceState, top: number) {
-    const backgroundImage =
-        `radial-gradient(circle farthest-corner at 50% ${top}%, ${gradientLevels.map(item => `rgba(66, 141, 233, ${item.value}) ${Math.round(item.level * 100)}%`).join(', ')})`;
+  changeBgPosition(s: SurfaceState, top: number) {
+    const backgroundImage = genBackgroundStr(top, s.rgbColor, s.colorAlpha, s.componentProps?.minAlpha);
     s.surfaceDom!.getRef().style.backgroundImage = backgroundImage;
+  },
+
+  changeBgColor(s: SurfaceState, color: string) {
   },
 
   onFirstRender(s: SurfaceState) {},
@@ -45,7 +50,10 @@ const simpleReducers = {
 const reducers = createReducers<SurfaceState, typeof simpleReducers>(simpleReducers);
 
 export function sliceOptionFactory() {
-  const initialState: SurfaceState = {};
+  const initialState: SurfaceState = {
+    rgbColor: '66, 141, 233',
+    colorAlpha: 0.45
+  };
   return {
     name: 'Surface',
     initialState,
@@ -59,22 +67,14 @@ export const epicFactory: EpicFactory<SurfaceState, typeof reducers> = function(
   return (action$) => {
     const actionStreams = castByActionType(slice.actions, action$);
     return rx.merge(
-      // Observe state (state$) change event, exactly like React.useEffect(), but more powerful for async time based reactions
-      slice.getStore().pipe(
-        op.map(s => s.componentProps), // watch component property changes
-        op.filter(props => props != null),
-        op.distinctUntilChanged(), // distinctUntilChanged accept an expression as parameter
-        op.map(() => {
-          // slice.actionDispatcher....
-        })
-      ),
-      slice.getStore().pipe(op.map(s => s.componentProps?.sliceRef),
+      slice.getStore().pipe(op.map(s => s.componentProps?.color),
         op.distinctUntilChanged(),
-        op.map(sliceRef => {
-          if (sliceRef) {
-            sliceRef(slice);
-          }
-          return null;
+        op.map(color => {
+          const rawColor = new Color(color || 'rgba(66, 141, 233, 0.45)');
+          slice.actionDispatcher._change(s => {
+            s.rgbColor = [rawColor.red(), rawColor.green(), rawColor.blue()].join(',');
+            s.colorAlpha = rawColor.alpha();
+          });
         })
       ),
       rx.combineLatest(
@@ -86,13 +86,26 @@ export const epicFactory: EpicFactory<SurfaceState, typeof reducers> = function(
         )
       ).pipe(
         op.switchMap(actions => {
-          return animate(120, 35, 1000);
+          return animate(150, 35, 1000);
         }),
         op.map(value => {
-          slice.actionDispatcher.transitBackground(value);
+          slice.actionDispatcher.changeBgPosition(value);
+        })
+      ),
+      slice.getStore().pipe(op.map(s => s.componentProps?.sliceRef),
+        op.distinctUntilChanged(),
+        op.map(sliceRef => {
+          if (sliceRef) {
+            sliceRef(slice);
+          }
+          return null;
         })
       )
       // ... more action async reactors: action$.pipe(ofType(...))
     ).pipe(op.ignoreElements());
   };
 };
+
+function genBackgroundStr(top: number, colorRgb: string, alpha: number, minAlpha?: number) {
+  return `radial-gradient(circle farthest-corner at 50% ${top}%, ${gradientLevels.map(item => `rgba(${colorRgb}, ${item.opacity * alpha}) ${item.level}`).join(', ')})`;
+}

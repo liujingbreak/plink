@@ -12,7 +12,7 @@ export default async function(isStatic: boolean, env: string, app: string, pushB
   isForce: boolean,
   secret: string | undefined | null, scriptsFile?: string, commitComment?: string) {
 
-  log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile}`);
+  log.info(`post build, env: ${env}, App: ${app}, is static: ${isStatic}, build script: ${scriptsFile || '<unknown>'}`);
   await (require('./merge-artifacts') as typeof _ma).prepare();
 
   if (scriptsFile) {

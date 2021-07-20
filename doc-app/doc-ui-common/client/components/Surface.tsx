@@ -17,7 +17,7 @@ const Surface: React.FC<SurfaceProps> = function(props) {
   }, Object.values(props));
 
   React.useEffect(() => {
-    setTimeout(() => slice.actionDispatcher.onFirstRender(), 50);
+    slice.actionDispatcher.onFirstRender();
   }, [slice.actionDispatcher]);
 
   return <section className={cls(props.className, styles.scope)}

@@ -41,7 +41,7 @@ const cliExt: CliExtension = (program) => {
   const githashCmd = program.command('githash')
     .description('List git hash information of each static resource zip file in directory "install-<env>"')
     .action(async () => {
-      const Artifacts: typeof _Artifacts = require('./artifacts');
+      const Artifacts = require('./artifacts') as typeof _Artifacts;
       if (githashCmd.opts().env) {
         // eslint-disable-next-line no-console
         console.log(await Artifacts.stringifyListVersions(githashCmd.opts().env));
@@ -73,7 +73,7 @@ const cliExt: CliExtension = (program) => {
   const mockzipCmd = program.command('mockzip')
     .option('-d,--dir <dir>', 'create a mock zip file in specific directory')
     .action(async () => {
-      const Artifacts: typeof _Artifacts = require('./artifacts');
+      const Artifacts = require('./artifacts') as typeof _Artifacts;
 
       const fileContent = '' + new Date().toUTCString();
 
@@ -91,6 +91,7 @@ const cliExt: CliExtension = (program) => {
   const keypairCmd = program.command('keypair [file-name]')
     .description('Generate a new asymmetric key pair')
     .action(async (fileName) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const genKeypair = require('./cli-keypair').default as typeof _genKeypair;
       await genKeypair(fileName, keypairCmd.opts());
     });

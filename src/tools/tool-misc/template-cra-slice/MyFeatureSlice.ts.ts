@@ -1,5 +1,5 @@
-import { ofPayloadAction as ofa, stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
-import {createReducers, RegularReducers} from '@wfh/redux-toolkit-observable/es/helper';
+import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
+import {createReducers, RegularReducers, castByActionType} from '@wfh/redux-toolkit-observable/es/helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 // We suggest to use axios-observable instead of axios or fetch,
@@ -39,8 +39,9 @@ export const dispatcher = stateFactory.bindActionCreators($__sliceName__$Slice);
 
 const releaseEpic = stateFactory.addEpic<{$__SliceName__$: $__SliceName__$State}>((action$, state$) => {
 
+  const actionStreams = castByActionType($__sliceName__$Slice.actions, action$);
   return rx.merge(
-    action$.pipe(ofa($__sliceName__$Slice.actions.exampleAction),
+    actionStreams.exampleAction.pipe(
       // switchMap will cancel (unsubscribe) previous unfinished action.
       // Choose one of switchMap, concatMap, mergeMap, exhaustMap from async reaction to certain Actions
       op.switchMap(({payload}) => {

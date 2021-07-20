@@ -51,27 +51,9 @@ export function createTsConfig(file: string, browserOptions: ParialBrowserOption
   const tsConfigFileDir = Path.dirname(file);
 
   const tsjson: {compilerOptions: any, [key: string]: any, files?: string[], include?: string[]} = {
-    // extends: require.resolve('@wfh/webpack2-builder/configs/tsconfig.json'),
-    // include: config
-    //   .tsconfigInclude
-    //   .map(preserveSymlinks ? p => p : globRealPath)
-    //   .map(
-    //     pattern => Path.relative(tsConfigFileDir, pattern).replace(/\\/g, '/')
-    //   ).concat(
-    //     Path.resolve(__dirname, '..', '..').replace(/\\/g, '/') + '/src/**/*.ts'
-    //   ),
-    // include: [Path.resolve(__dirname, '..', '..').replace(/\\/g, '/') + '/src/**/*.ts'],
-    // exclude: [], // tsExclude,
     compilerOptions: {
       ...appTsconfig.compilerOptions,
       baseUrl: cwd,
-      // typeRoots: [
-      //   Path.resolve(root, 'node_modules/@types'),
-      //   Path.resolve(root, 'node_modules/@dr-types'),
-      //   // Below is NodeJS only, which will break Angular Ivy engine
-      //   Path.resolve(root, 'node_modules/@wfh/plink/wfh/types')
-      // ],
-      // module: 'esnext',
       preserveSymlinks,
       ...oldJson.compilerOptions,
       paths: {...appTsconfig.compilerOptions.paths, ...pathMapping}
@@ -103,7 +85,7 @@ export function createTsConfig(file: string, browserOptions: ParialBrowserOption
     tsjson.files = oldJson.files;
 
   // console.log(tsjson.compilerOptions);
-  const addSourceFiles: typeof _addSourceFiles = require('./add-tsconfig-file').addSourceFiles;
+  const addSourceFiles = (require('./add-tsconfig-file') as {addSourceFiles: typeof _addSourceFiles}).addSourceFiles;
 
   if (!tsjson.files)
     tsjson.files = [];
@@ -118,7 +100,9 @@ export function createTsConfig(file: string, browserOptions: ParialBrowserOption
       } else {
         return p;
       }
-    })));
+    })),
+    Path.relative(tsConfigFileDir, Path.resolve(__dirname, '../../src/hmr.ts')).replace(/\\/g, '/')
+  );
 
   return JSON.stringify(tsjson, null, '  ');
 }

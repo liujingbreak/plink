@@ -7,6 +7,11 @@
   position:relative;
 }
 
+:global(.mdc-layout-size-phone) {
+  .surface {
+    width: 100%;
+  }
+}
 .surface {
   display: flex;
   width: 30%;

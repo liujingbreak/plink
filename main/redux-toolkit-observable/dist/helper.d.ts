@@ -88,6 +88,16 @@ export declare function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epic
  * ImmerJS does not work with some large object (like HTMLElement), meaning you can not directly defined a
  * Redux-toolkit state to contain such a large object, this class provides a wrapper to those
  * "large object", and avoid ImmerJs to recursively freeze it by pre-freeze itself.
+ *
+ * Use it with `Immutable` to inform Redux-toolkit and ImmerJS that this type should be ignored from `drafting`
+ * Usage:
+ * ```
+    import {Immutable} from 'immer';
+
+    interface YourState {
+      someDom: Immutable<Refrigerator<HTMLElement>>;
+    }
+ * ```
  */
 export declare class Refrigerator<T> {
     private ref;

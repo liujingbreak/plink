@@ -9,7 +9,12 @@ import { send } from './_send-patch';
 import {stringifyListAllVersions} from './artifacts';
 import api from '__plink';
 import {getSetting} from '../isom/prebuild-setting';
-const log = api.logger;
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
+import glob from 'glob';
+import {log4File, plinkEnv} from '@wfh/plink';
+
+const log = log4File(__filename);
 
 let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
 
@@ -17,7 +22,7 @@ export async function main(env: string, appName: 'node-server' | string, buildSt
   pushBranch = true, isForce = false, secret?: string, commitComment?: string) {
 
   const setting = getSetting();
-  const rootDir = api.config().rootPath;
+  const {rootDir} = plinkEnv;
   const deployBranch: string = setting.prebuildDeployBranch;
 
   // if (pushBranch)
@@ -85,6 +90,8 @@ async function pushDeployBranch(releaseBranch: string, rootDir: string, env: str
   await spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir, silent: true }).promise;
   // removeDevDeps();
   changeGitIgnore();
+  log.info('commitComment', commitComment);
+  await splitCommit4bigFiles(env, appName);
   await spawn('git', 'add', '.', { cwd: rootDir, silent: true }).promise;
   const hookFiles = [Path.resolve(rootDir, '.git/hooks/pre-push'),
     Path.resolve(rootDir, '.git/hooks/pre-commit')];
@@ -93,7 +100,6 @@ async function pushDeployBranch(releaseBranch: string, rootDir: string, env: str
       fs.removeSync(gitHooks);
     }
   }
-  log.info('commitComment', commitComment);
   await spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`, { cwd: rootDir, silent: true }).promise;
   await spawn('git', 'push', '-f', deployRemote, releaseBranch, { cwd: rootDir}).promise;
 }
@@ -131,4 +137,33 @@ function changeGitIgnore() {
   gitignore = gitignore.replace(/^\/install\-(?:test|stage|dev|prod)$/gm, '');
   gitignore = gitignore.replace(/^\/checksum\.(?:test|stage|dev|prod)\.json$/gm, '');
   fs.writeFileSync(gitignoreFile, gitignore);
+}
+
+/**
+ * Some git vendor has commit size limitation, let's try split to multiple commits for those non-source files
+ */
+function splitCommit4bigFiles(env: string, appName: string, commitComment?: string) {
+  const gitAddTargets = new rx.Subject<string>();
+  const res$ = gitAddTargets.pipe(
+    op.concatMap(async file => {
+      await spawn('git', 'add', file, { cwd: plinkEnv.rootDir, silent: true }).promise;
+      await spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`,
+        { cwd: plinkEnv.rootDir, silent: true })
+        .promise;
+      await new Promise(resolve => setImmediate(resolve));
+    })
+  );
+
+  for (const env of Object.keys(getSetting().byEnv)) {
+    for (const artifactDirPrefix of ['install-', 'server-content-'] ) {
+      const dir = Path.resolve(plinkEnv.rootDir, artifactDirPrefix + env);
+      if (fs.existsSync(dir)) {
+        glob(dir.replace(/\\/g, '/') + '/**/*', (err, matches) => {
+          for (const file of matches)
+            gitAddTargets.next(Path.relative(plinkEnv.rootDir, file).replace(/\\/g, '/'));
+        });
+      }
+    }
+  }
+  return res$.toPromise();
 }

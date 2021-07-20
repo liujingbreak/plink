@@ -7,10 +7,10 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../react-space/node_modules/@types/*",
-        "../../react-space/node_modules/*",
-        "../../node_modules/@types/*",
-        "../../node_modules/*"
+        "../../../credit-appl/ng-space/node_modules/@types/*",
+        "../../../credit-appl/ng-space/node_modules/*",
+        "../../../credit-appl/node_modules/@types/*",
+        "../../../credit-appl/node_modules/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -126,30 +126,278 @@
       "@wfh/doc-ui-common/*": [
         "../../doc-app/doc-ui-common/*"
       ],
+      "@bk/credit-appl-conf": [
+        "../../../credit-appl/conf"
+      ],
+      "@bk/credit-appl-conf/*": [
+        "../../../credit-appl/conf/*"
+      ],
+      "@bk/bk-components": [
+        "../../../credit-appl/admin/src/BK-Component"
+      ],
+      "@bk/bk-components/*": [
+        "../../../credit-appl/admin/src/BK-Component/*"
+      ],
+      "@bk/admin-common": [
+        "../../../credit-appl/admin/src/admin-common"
+      ],
+      "@bk/admin-common/*": [
+        "../../../credit-appl/admin/src/admin-common/*"
+      ],
+      "@bk/admin-server": [
+        "../../../credit-appl/admin/src/admin-server"
+      ],
+      "@bk/admin-server/*": [
+        "../../../credit-appl/admin/src/admin-server/*"
+      ],
+      "@bk/admin-bcl": [
+        "../../../credit-appl/admin/src/bcl"
+      ],
+      "@bk/admin-bcl/*": [
+        "../../../credit-appl/admin/src/bcl/*"
+      ],
+      "@bk/admin-byj": [
+        "../../../credit-appl/admin/src/byj"
+      ],
+      "@bk/admin-byj/*": [
+        "../../../credit-appl/admin/src/byj/*"
+      ],
+      "@bk/admin-szb": [
+        "../../../credit-appl/admin/src/szb"
+      ],
+      "@bk/admin-szb/*": [
+        "../../../credit-appl/admin/src/szb/*"
+      ],
+      "@bk/bcl": [
+        "../../../credit-appl/projects/bcl"
+      ],
+      "@bk/bcl/*": [
+        "../../../credit-appl/projects/bcl/*"
+      ],
+      "@bk/bigc": [
+        "../../../credit-appl/projects/bigc"
+      ],
+      "@bk/bigc/*": [
+        "../../../credit-appl/projects/bigc/*"
+      ],
+      "@bk/bigc-agent": [
+        "../../../credit-appl/projects/bigc-agent"
+      ],
+      "@bk/bigc-agent/*": [
+        "../../../credit-appl/projects/bigc-agent/*"
+      ],
+      "@bk/byj-loan": [
+        "../../../credit-appl/projects/byj"
+      ],
+      "@bk/byj-loan/*": [
+        "../../../credit-appl/projects/byj/*"
+      ],
+      "@bk/cash-loan-all": [
+        "../../../credit-appl/projects/cash-loan"
+      ],
+      "@bk/cash-loan-all/*": [
+        "../../../credit-appl/projects/cash-loan/*"
+      ],
+      "@bk/credit-appl-cmd-tool": [
+        "../../../credit-appl/projects/cmd-tool"
+      ],
+      "@bk/credit-appl-cmd-tool/*": [
+        "../../../credit-appl/projects/cmd-tool/*"
+      ],
+      "@bk/js-sdk-ocr-adapter": [
+        "../../../credit-appl/projects/cra-lib/js-sdk-ocr-adapter"
+      ],
+      "@bk/js-sdk-ocr-adapter/*": [
+        "../../../credit-appl/projects/cra-lib/js-sdk-ocr-adapter/*"
+      ],
+      "@bk/credit-appl": [
+        "../../../credit-appl/projects/credit-appl"
+      ],
+      "@bk/credit-appl/*": [
+        "../../../credit-appl/projects/credit-appl/*"
+      ],
+      "@bk/employee-loan": [
+        "../../../credit-appl/projects/employee-loan"
+      ],
+      "@bk/employee-loan/*": [
+        "../../../credit-appl/projects/employee-loan/*"
+      ],
+      "@bk/jiajiapay": [
+        "../../../credit-appl/projects/jiajiapay"
+      ],
+      "@bk/jiajiapay/*": [
+        "../../../credit-appl/projects/jiajiapay/*"
+      ],
+      "@bk/credit-landing": [
+        "../../../credit-appl/projects/landing"
+      ],
+      "@bk/credit-landing/*": [
+        "../../../credit-appl/projects/landing/*"
+      ],
+      "@bk/mf-share": [
+        "../../../credit-appl/projects/mf-share"
+      ],
+      "@bk/mf-share/*": [
+        "../../../credit-appl/projects/mf-share/*"
+      ],
+      "@bk/module-advise": [
+        "../../../credit-appl/projects/modules/app/advise"
+      ],
+      "@bk/module-advise/*": [
+        "../../../credit-appl/projects/modules/app/advise/*"
+      ],
+      "@bk/module-afterupload": [
+        "../../../credit-appl/projects/modules/app/afterupload"
+      ],
+      "@bk/module-afterupload/*": [
+        "../../../credit-appl/projects/modules/app/afterupload/*"
+      ],
+      "@bk/module-agreement": [
+        "../../../credit-appl/projects/modules/app/agreement"
+      ],
+      "@bk/module-agreement/*": [
+        "../../../credit-appl/projects/modules/app/agreement/*"
+      ],
+      "@bk/animation": [
+        "../../../credit-appl/projects/modules/app/animation"
+      ],
+      "@bk/animation/*": [
+        "../../../credit-appl/projects/modules/app/animation/*"
+      ],
+      "@bk/module-apply": [
+        "../../../credit-appl/projects/modules/app/apply"
+      ],
+      "@bk/module-apply/*": [
+        "../../../credit-appl/projects/modules/app/apply/*"
+      ],
+      "@bk/module-constid": [
+        "../../../credit-appl/projects/modules/app/constid"
+      ],
+      "@bk/module-constid/*": [
+        "../../../credit-appl/projects/modules/app/constid/*"
+      ],
+      "@bk/module-core": [
+        "../../../credit-appl/projects/modules/app/core"
+      ],
+      "@bk/module-core/*": [
+        "../../../credit-appl/projects/modules/app/core/*"
+      ],
+      "@bk/module-coupon": [
+        "../../../credit-appl/projects/modules/app/coupon"
+      ],
+      "@bk/module-coupon/*": [
+        "../../../credit-appl/projects/modules/app/coupon/*"
+      ],
+      "@bk/fancy": [
+        "../../../credit-appl/projects/modules/app/fancy"
+      ],
+      "@bk/fancy/*": [
+        "../../../credit-appl/projects/modules/app/fancy/*"
+      ],
+      "@bk/module-gesture": [
+        "../../../credit-appl/projects/modules/app/gesture"
+      ],
+      "@bk/module-gesture/*": [
+        "../../../credit-appl/projects/modules/app/gesture/*"
+      ],
+      "@bk/module-help": [
+        "../../../credit-appl/projects/modules/app/help"
+      ],
+      "@bk/module-help/*": [
+        "../../../credit-appl/projects/modules/app/help/*"
+      ],
+      "@bk/module-helper": [
+        "../../../credit-appl/projects/modules/app/helper"
+      ],
+      "@bk/module-helper/*": [
+        "../../../credit-appl/projects/modules/app/helper/*"
+      ],
+      "@bk/landing-page": [
+        "../../../credit-appl/projects/modules/app/landing-page"
+      ],
+      "@bk/landing-page/*": [
+        "../../../credit-appl/projects/modules/app/landing-page/*"
+      ],
+      "@bk/module-maintain": [
+        "../../../credit-appl/projects/modules/app/maintain"
+      ],
+      "@bk/module-maintain/*": [
+        "../../../credit-appl/projects/modules/app/maintain/*"
+      ],
+      "@bk/module-real-name": [
+        "../../../credit-appl/projects/modules/app/real-name"
+      ],
+      "@bk/module-real-name/*": [
+        "../../../credit-appl/projects/modules/app/real-name/*"
+      ],
+      "@bk/module-shared": [
+        "../../../credit-appl/projects/modules/app/shared"
+      ],
+      "@bk/module-shared/*": [
+        "../../../credit-appl/projects/modules/app/shared/*"
+      ],
+      "@bk/module-sms-send": [
+        "../../../credit-appl/projects/modules/app/sms-send"
+      ],
+      "@bk/module-sms-send/*": [
+        "../../../credit-appl/projects/modules/app/sms-send/*"
+      ],
+      "@bk/module-snowplow": [
+        "../../../credit-appl/projects/modules/app/snowplow"
+      ],
+      "@bk/module-snowplow/*": [
+        "../../../credit-appl/projects/modules/app/snowplow/*"
+      ],
+      "@bk/module-user": [
+        "../../../credit-appl/projects/modules/app/user"
+      ],
+      "@bk/module-user/*": [
+        "../../../credit-appl/projects/modules/app/user/*"
+      ],
+      "@bk/poster-landing": [
+        "../../../credit-appl/projects/poster-landing"
+      ],
+      "@bk/poster-landing/*": [
+        "../../../credit-appl/projects/poster-landing/*"
+      ],
+      "@bk/env": [
+        "../../../credit-appl/projects/project-environments"
+      ],
+      "@bk/env/*": [
+        "../../../credit-appl/projects/project-environments/*"
+      ],
+      "@bk/credit-appl-root": [
+        "../../../credit-appl/projects/root"
+      ],
+      "@bk/credit-appl-root/*": [
+        "../../../credit-appl/projects/root/*"
+      ],
+      "@bk/credit-theming": [
+        "../../../credit-appl/projects/theming"
+      ],
+      "@bk/credit-theming/*": [
+        "../../../credit-appl/projects/theming/*"
+      ],
+      "@bk/credit-appl-docs": [
+        "../../../credit-appl/docs/design"
+      ],
+      "@bk/credit-appl-docs/*": [
+        "../../../credit-appl/docs/design/*"
+      ],
       "@wfh/plink": [
         ".."
       ],
       "@wfh/plink/*": [
         "../*"
-      ],
-      "@loadable/component": [
-        "../../react-space/node_modules/@types/loadable__component",
-        "../../node_modules/@types/loadable__component",
-        "../node_modules/@types/loadable__component"
-      ],
-      "@loadable/component/*": [
-        "../../react-space/node_modules/@types/loadable__component/*",
-        "../../node_modules/@types/loadable__component/*",
-        "../node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
-      "../../src/internal/cra-scripts/types",
+      "../../src/internal/ng-app-builder/types",
       "../../src/runtime/express-app/types",
-      "../../react-space/node_modules/@types",
-      "../../node_modules/@types",
+      "../../../credit-appl/ng-space/node_modules/@types",
+      "../../../credit-appl/node_modules/@types",
       "../node_modules/@types"
     ]
   },

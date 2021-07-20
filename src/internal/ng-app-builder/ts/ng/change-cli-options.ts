@@ -63,7 +63,7 @@ export async function changeAngularCliOptions(config: DrcpConfig,
   context: BuilderContext,
   builderConfig: DevServerBuilderOptions) {
 
-  const browserTarget = targetFromTargetString(builderConfig!.browserTarget);
+  const browserTarget = targetFromTargetString(builderConfig.browserTarget);
   const rawBrowserOptions = await context.getTargetOptions(browserTarget) as any as BrowserBuilderSchema;
   if (!rawBrowserOptions.deployUrl)
     rawBrowserOptions.deployUrl = '/';
@@ -180,7 +180,7 @@ async function processBrowserBuiliderOptions(
     if (!input.startsWith('.')) {
       input = './' + input;
     }
-    browserOptions.assets!.push({
+    browserOptions.assets.push({
       input,
       glob: '**/*',
       output: outputDir.endsWith('/') ? outputDir : outputDir + '/'

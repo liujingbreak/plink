@@ -15,7 +15,7 @@ export interface PrebuildSetting {
     installEndpoint: string;
     sendConcurrency: number;
     sendNodes: number;
-  }};
+  }; };
 }
 
 /**
