@@ -66,8 +66,9 @@ export class Segment {
   static from(pointX: number, pointY: number, handleInX: number, handleInY: number, handleOutX: number, handleOutY: number) {
     return new Segment({x: pointX, y: pointY}, {x: handleInX, y: handleInY}, {x: handleOutX, y: handleOutY});
   }
-  // point: Point;
+  /** Relative to this.point */
   handleIn?: {x: number; y: number};
+  /** Relative to this.point */
   handleOut?: {x: number; y: number};
 
   constructor(public point: Point, handleIn?: Point | null, handleOut?: Point ) {
@@ -155,7 +156,7 @@ export const quarterCircleCurve = [Segment.from(0, 1, -CIRCLE_BEZIER_CONST, 1, C
  * @param startT 0 ~ 1, t value of a qaurter circle bezier curve
  * @param endT 0 ~ 1
  */
-export function createBezierArch(startT: number, endT: number): Segment[] {
+export function createBezierArch(startT: number, endT: number): [Segment, Segment] {
   const bez = new Bezier(quarterCircleCurve[0].point, quarterCircleCurve[0].absHandleOutPoint()!, quarterCircleCurve[1].absHandleInPoint()!, quarterCircleCurve[1].point);
   const points = bez.split(startT, endT).points;
   return [new Segment(points[0], null, points[1]), new Segment(points[3], points[2])];
@@ -171,6 +172,16 @@ export function *createSegments(vertices: Iterable<[x: number, y: number]>): Ite
   for (const p of vertices) {
     yield new Segment({x: p[0], y: p[1]});
   }
+}
+
+export function reverseSegments(segs: Iterable<Segment>) {
+  return Array.from(segs).reverse().map(seg => {
+    const newSeg = seg.clone();
+    const handleIn = newSeg.handleIn;
+    newSeg.handleIn = newSeg.handleOut;
+    newSeg.handleOut = handleIn;
+    return newSeg;
+  });
 }
 
 export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts?: {

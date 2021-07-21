@@ -8,7 +8,11 @@ import {animate} from '@wfh/doc-ui-common/client/animation/ease-functions';
 import Color from 'color';
 
 const gradientCurveFn = bezierEasing(0.35, 0, 0.6, 1);
-const gradientLevels = [0, 0.2, 0.4, 0.6, 0.8, 1].map(level => ({level: Math.round(level * 100) + '%', opacity: (1 - gradientCurveFn(level))}));
+const gradientLevels = [0, 0.20, 0.40, 0.60, 0.80, 1].map(
+  level => ({
+    level: level * 100 + '%',
+    opacity: (1 - gradientCurveFn(level))
+  }));
 
 export type SurfaceProps = React.PropsWithChildren<{
   className?: string;
@@ -106,6 +110,8 @@ export const epicFactory: EpicFactory<SurfaceState, typeof reducers> = function(
   };
 };
 
-function genBackgroundStr(top: number, colorRgb: string, alpha: number, minAlpha?: number) {
-  return `radial-gradient(circle farthest-corner at 50% ${top}%, ${gradientLevels.map(item => `rgba(${colorRgb}, ${item.opacity * alpha}) ${item.level}`).join(', ')})`;
+function genBackgroundStr(top: number, colorRgb: string, alpha: number, minAlpha = 0) {
+  const deltaAlpha = alpha - minAlpha;
+  return `radial-gradient(circle farthest-corner at 65% ${top}%, ` +
+    `${gradientLevels.map(item => `rgba(${colorRgb}, ${minAlpha + (item.opacity * deltaAlpha)}) ${item.level}`).join(', ')})`;
 }

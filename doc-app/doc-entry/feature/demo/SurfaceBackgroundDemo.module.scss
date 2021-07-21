@@ -5,19 +5,21 @@
   min-height: 100%;
   padding: 0 1rem;
   position:relative;
-}
 
-:global(.mdc-layout-size-phone) {
   .surface {
-    width: 100%;
+    display: flex;
+    width: 30%;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    // background-color: theme.$surface;
+    // background: radial-gradient(circle farthest-corner at bottom right, );
+  }
+
+  :global(.mdc-layout-size-phone) {
+    .surface {
+      width: 100%;
+    }
   }
 }
-.surface {
-  display: flex;
-  width: 30%;
-  // align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  // background-color: theme.$surface;
-  // background: radial-gradient(circle farthest-corner at bottom right, );
-}
+

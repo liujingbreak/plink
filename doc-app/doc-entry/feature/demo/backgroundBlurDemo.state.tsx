@@ -124,7 +124,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
               const {data} = imgData;
               glur(// data.data as any,
                 new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
-                imgData.width, imgData.height, 55);
+                imgData.width, imgData.height, 75);
               ctx.putImageData(imgData, 0, 0);
           })
         )
@@ -132,7 +132,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundBlurDemo
     };
   });
 
-  const circleColor = new Color('green').hue(95).saturationl(50).lightness(60).hex();
+  const circleColor = new Color('#1916A5').saturationl(50).lightness(70).hex();
   const fontColor = new Color('blue').saturationl(50).lightness(60).hex();
   const circle1 = pctx.createPaintableSlice({name: 'circle1', debug: true});
   circle1.addEpic(slice => {
