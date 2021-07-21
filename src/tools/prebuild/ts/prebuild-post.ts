@@ -17,6 +17,10 @@ import {log4File, plinkEnv} from '@wfh/plink';
 const log = log4File(__filename);
 
 let pkJson: {name: string; version: string; devDependencies: any} = require(Path.resolve('package.json'));
+const setting = getSetting();
+const releaseRemote = setting.tagPushRemote;
+const current = dayjs();
+const remoteBranchName = `${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
 
 export async function main(env: string, appName: 'node-server' | string, buildStaticOnly = false,
   pushBranch = true, isForce = false, secret?: string, commitComment?: string) {
@@ -78,20 +82,20 @@ export async function main(env: string, appName: 'node-server' | string, buildSt
   }
 
   log.info('------- push to deployment remote -------');
-  await pushDeployBranch(deployBranch, rootDir, env, appName, commitComment);
+  await pushDeployBranch(deployBranch, rootDir, env, appName, pushBranch, commitComment);
   log.info('------- create tag and new release branch -------');
-  await pushTagAndReleaseBranch(rootDir, pushBranch, commitComment);
+  // await pushTagAndReleaseBranch(rootDir, pushBranch, commitComment);
   await spawn('git', 'checkout', currBranch, { cwd: rootDir }).promise;
 }
 
-async function pushDeployBranch(releaseBranch: string, rootDir: string, env: string, appName: string, commitComment?: string) {
+async function pushDeployBranch(releaseBranch: string, rootDir: string, env: string, appName: string, pushBranch: boolean, commitComment?: string) {
   const deployRemote = api.config()['@wfh/prebuild'].prebuildDeployRemote;
 
   await spawn('git', 'checkout', '-b', releaseBranch, { cwd: rootDir, silent: true }).promise;
   // removeDevDeps();
   changeGitIgnore();
   log.info('commitComment', commitComment);
-  await splitCommit4bigFiles(env, appName);
+  await splitCommit4bigFiles(env, appName, pushBranch, commitComment);
   await spawn('git', 'add', '.', { cwd: rootDir, silent: true }).promise;
   const hookFiles = [Path.resolve(rootDir, '.git/hooks/pre-push'),
     Path.resolve(rootDir, '.git/hooks/pre-commit')];
@@ -102,34 +106,22 @@ async function pushDeployBranch(releaseBranch: string, rootDir: string, env: str
   }
   await spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`, { cwd: rootDir, silent: true }).promise;
   await spawn('git', 'push', '-f', deployRemote, releaseBranch, { cwd: rootDir}).promise;
+  await pushTagAndReleaseBranch(pushBranch, commitComment);
 }
 
-async function pushTagAndReleaseBranch(rootDir: string, pushBranch: boolean, commitComment?: string) {
-  const setting = getSetting();
-  const releaseRemote = setting.tagPushRemote;
-  const current = dayjs();
-  const tagName = `${pkJson.version}-${current.format('HHmmss')}-${current.format('YYMMDD')}`;
-  await spawn('git', 'tag', '-a', 'v' + tagName, '-m',
-    commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`,
-    { cwd: rootDir}).promise;
-  await spawn('git', 'push', setting.prebuildDeployRemote, 'v' + tagName, { cwd: rootDir}).promise;
+async function pushTagAndReleaseBranch(pushBranch: boolean, commitComment?: string) {
+  // await spawn('git', 'tag', '-a', 'v' + remoteBranchName, '-m',
+  //   commitComment ? commitComment : `Prebuild on ${current.format('YYYY/MM/DD HH:mm:ss')}`,
+  //   { cwd: rootDir}).promise;
+  // await spawn('git', 'push', setting.prebuildDeployRemote, 'v' + remoteBranchName, { cwd: rootDir}).promise;
 
   if (pushBranch && releaseRemote && releaseRemote !== setting.prebuildDeployRemote) {
-    await spawn('git', 'push', releaseRemote, 'HEAD:release/' + tagName, { cwd: rootDir }).promise;
-    await spawn('git', 'push', releaseRemote, 'v' + tagName, { cwd: rootDir }).promise;
+    await spawn('git', 'push', releaseRemote, 'HEAD:release/' + remoteBranchName, { cwd: plinkEnv.rootDir }).promise;
+    // await spawn('git', 'push', releaseRemote, 'v' + remoteBranchName, { cwd: rootDir }).promise;
   } else {
     log.info('Skip pushing ' + pushBranch);
   }
 }
-
-// function removeDevDeps() {
-//   const json = Obbject.assign({}, pkJson);
-//   delete json.devDependencies;
-//   const newJson = JSON.stringify(json, null, '\t');
-// eslint-disable-next-line
-//   log.info('change package.json to:\n', newJson);
-//   fs.writeFileSync('package.json', newJson);
-// }
 
 function changeGitIgnore() {
   const gitignoreFile = api.config.resolve('rootPath', '.gitignore');
@@ -142,28 +134,40 @@ function changeGitIgnore() {
 /**
  * Some git vendor has commit size limitation, let's try split to multiple commits for those non-source files
  */
-function splitCommit4bigFiles(env: string, appName: string, commitComment?: string) {
-  const gitAddTargets = new rx.Subject<string>();
-  const res$ = gitAddTargets.pipe(
-    op.concatMap(async file => {
-      await spawn('git', 'add', file, { cwd: plinkEnv.rootDir, silent: true }).promise;
-      await spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}`,
-        { cwd: plinkEnv.rootDir, silent: true })
-        .promise;
-      await new Promise(resolve => setImmediate(resolve));
-    })
-  );
-
-  for (const env of Object.keys(getSetting().byEnv)) {
-    for (const artifactDirPrefix of ['install-', 'server-content-'] ) {
-      const dir = Path.resolve(plinkEnv.rootDir, artifactDirPrefix + env);
+function splitCommit4bigFiles(env: string, appName: string, pushBranch: boolean, commitComment?: string) {
+  const envs = Object.keys(getSetting().byEnv)
+  const res$ = rx.of('install-', 'server-content-').pipe(
+    op.mergeMap(artifactDirPrefix => {
+      return envs.map(envName => Path.resolve(plinkEnv.rootDir, artifactDirPrefix + envName));
+    }),
+    op.mergeMap(dir => {
       if (fs.existsSync(dir)) {
-        glob(dir.replace(/\\/g, '/') + '/**/*', (err, matches) => {
-          for (const file of matches)
-            gitAddTargets.next(Path.relative(plinkEnv.rootDir, file).replace(/\\/g, '/'));
+        return new rx.Observable<string>(sub => {
+          glob(dir.replace(/\\/g, '/') + '/**/*', (err, matches) => {
+            for (const file of matches) {
+              sub.next(Path.relative(plinkEnv.rootDir, file).replace(/\\/g, '/'));
+            }
+            sub.complete();
+          });
         });
       }
-    }
-  }
+      return rx.EMPTY;
+    }),
+    op.concatMap(async file => {
+      await spawn('git', 'add', file, { cwd: plinkEnv.rootDir, silent: false }).promise;
+      await spawn('git', 'commit', '-m', commitComment ? commitComment : `Prebuild node server ${env} - ${appName}:\n${file}`,
+        { cwd: plinkEnv.rootDir, silent: false })
+        .promise;
+      await new Promise(resolve => setImmediate(resolve));
+      await pushTagAndReleaseBranch(pushBranch, commitComment);
+    }),
+    op.catchError(err => {
+      log.error(err);
+      throw err;
+    }),
+    op.count(),
+    op.tap(count => log.info(`${count} files are split into ${count} commits.`))
+  );
+
   return res$.toPromise();
 }

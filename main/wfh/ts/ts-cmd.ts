@@ -72,7 +72,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   } else {
     const baseTsconfigFile = require.resolve('../tsconfig-base.json');
     const baseTsconfig = parseConfigFileToJson(ts, baseTsconfigFile);
-    log.info('Use tsconfig file:', baseTsconfig);
+    log.info('Use tsconfig file:', baseTsconfigFile);
     baseCompilerOptions = baseTsconfig.compilerOptions;
   }
 
