@@ -79,7 +79,7 @@ stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
             return pool.submit<[metas: PropertyMeta[], dtsFile: string]>({
               file: Path.resolve(__dirname, 'config-view-slice-worker.js'),
               exportFn: 'default',
-              args: [dtsFileBase, typeExport/*, ConfigHandlerMgr.compilerOptions*/]
+              args: [dtsFileBase, typeExport/* , ConfigHandlerMgr.compilerOptions*/]
             })
             .then(([propMetas, dtsFile]) => {
               log.debug(propMetas);

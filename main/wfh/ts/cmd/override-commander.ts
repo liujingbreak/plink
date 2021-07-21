@@ -153,7 +153,7 @@ export class PlinkCommand extends commander.Command {
   subCmds: PlinkCommand[] = [];
   /** value is file path for pkg name */
   loadedCmdMap = new Map<string, string>();
-  pkgName: string;
+  pkgName = '';
 
   constructor(public ctx: CommandContext, name?: string) {
     super(name);
@@ -242,7 +242,7 @@ export class PlinkCommand extends commander.Command {
     return (super.requiredOption as any)(...args);
   }
   action(fn: (...args: any[]) => void | Promise<void>) {
-    function actionCallback() {
+    function actionCallback(this: commander.Command) {
       const {initConfig} = require('../utils/bootstrap-process') as typeof _bootstrap;
       initConfig(this.opts() as GlobalOptions);
       return fn.apply(this, arguments);
