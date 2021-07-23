@@ -84,14 +84,10 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   let pkgInfos: PackageInfo[] | undefined;
   if (argv.package && argv.package.length > 0)
     pkgInfos = Array.from(findPackagesByNames(argv.package)).filter(pkg => pkg != null) as PackageInfo[];
-    // packageUtils.findAllPackages(argv.package, onComponent, 'src');
   else if (argv.project && argv.project.length > 0) {
     pkgInfos = Array.from(allPackages('*', 'src', argv.project));
   } else {
     pkgInfos = Array.from(packageUtils.packages4Workspace(plinkEnv.workDir, false));
-    // for (const pkg of packageUtils.packages4Workspace(plinkEnv.workDir, false)) {
-    //   onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath);
-    // }
   }
   await Promise.all(pkgInfos.map(pkg => onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath)));
   for (const info of compDirInfo.values()) {
@@ -222,10 +218,11 @@ function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string,
   // Ts's createWatchProgram will call WatchCompilerHost.createProgram(), this is where we patch "CompilerHost"
   programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
     host?: _ts.CompilerHost) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (host && (host as any)._overrided == null) {
       patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
     }
-    const program = origCreateProgram.apply(this, arguments) as ReturnType<typeof origCreateProgram>;
+    const program = origCreateProgram.apply(this, arguments as any) ;
     return program;
   };
 

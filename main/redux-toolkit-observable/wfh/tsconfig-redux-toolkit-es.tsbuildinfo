@@ -1142,7 +1142,7 @@
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
-        "version": "97aa52d68827b5884787c9ff4afbdc6033864de763350aaa1650c397ea9f5de8",
+        "version": "0069c7658570d005a249f97221034c4f1a26ae47462751e30486f7637f4c09cf",
         "signature": "21fa0309b01317538c6485f97391b688018e08a890dd6543a3c8b2347d61d61a",
         "affectsGlobalScope": false
       },
@@ -1847,13 +1847,8 @@
         "affectsGlobalScope": false
       },
       "../../../node_modules/@types/json-schema/index.d.ts": {
-        "version": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
-        "signature": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
-        "affectsGlobalScope": false
-      },
-      "../../../node_modules/@types/json5/index.d.ts": {
-        "version": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
-        "signature": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
+        "version": "a185ebc69c9f6798ebd67bfdfd72a37457dc67c23459784783c7128ae9bd5250",
+        "signature": "a185ebc69c9f6798ebd67bfdfd72a37457dc67c23459784783c7128ae9bd5250",
         "affectsGlobalScope": false
       }
     },
@@ -5371,8 +5366,7 @@
       "../state-factory-browser.ts",
       "../tiny-redux-toolkit-hook.ts",
       "../tiny-redux-toolkit.ts",
-      "../../../node_modules/@types/json-schema/index.d.ts",
-      "../../../node_modules/@types/json5/index.d.ts"
+      "../../../node_modules/@types/json-schema/index.d.ts"
     ]
   },
   "version": "4.1.2"

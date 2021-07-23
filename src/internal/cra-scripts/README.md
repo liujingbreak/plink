@@ -24,7 +24,9 @@ create-react-app, Redux toolkit, Redux-observable.
 
 2. Suppose you are about to create a space directory named "react-space"
 ```bash
-create-react-app react-space --template cra-template-typescript --use-npm
+export npm_config_legacy_peer_deps=true # if your npm version is above 7.x (included)
+export npm_config_registry=https://registry.npm.taobao.org/ # if you are in China
+create-react-app react-space --template cra-template-typescript --use-npm --verbose
 ```
 
 3. Add extra dependencies to `react-space/package.json` file.
@@ -45,7 +47,7 @@ Add dependencies, packages with `@wfh` are required by Plink, others should be y
 ```
 > You may also use Plink "add" command to add dependencies
 ```bash
-plink add --dev @wfh/cra-scripts @wfh/webpack-common @wfh/redux-toolkit-observable react-app-polyfill
+plink add --dev sass @wfh/cra-scripts @wfh/webpack-common @wfh/redux-toolkit-observable react-app-polyfill
 ```
 ### Build and watch
 ```bash

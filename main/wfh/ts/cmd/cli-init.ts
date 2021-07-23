@@ -109,6 +109,9 @@ export function printWorkspaces() {
       ]);
       i++;
     }
+    if (i === 0) {
+      table.push([workspaceLabel]);
+    }
     wsIdx++;
   }
 

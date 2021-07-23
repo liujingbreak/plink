@@ -244,9 +244,15 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
             throw new Error(`Do not dispatch action inside a reducer! (action: ${action.type})`);
           }
           inReducer = true;
-          const newState = action.reducer(shallowCopied, (action as PayloadAction<S>).payload);
-          inReducer = false;
-          executingReducer = false;
+          let newState: S | void;
+          try {
+            newState = action.reducer(shallowCopied, (action as PayloadAction<S>).payload);
+          } finally {
+            inReducer = false;
+            executingReducer = false;
+          }
+          // inReducer = false;
+          // executingReducer = false;
           const changed = newState ? newState : shallowCopied;
           state$.next(changed);
         }

@@ -54,16 +54,14 @@ export const epicFactory: EpicFactory<$__MyComponent__$State, typeof reducers> =
     const actionStreams = castByActionType(slice.actions, action$);
     return rx.merge(
       // Observe state (state$) change event, exactly like React.useEffect(), but more powerful for async time based reactions
-      slice.getStore().pipe(
-        op.map(s => s.componentProps), // watch component property changes
+      slice.getStore().pipe(op.map(s => s.componentProps), // watch component property changes
         op.filter(props => props != null),
         op.distinctUntilChanged(), // distinctUntilChanged accept an expression as parameter
         op.map(() => {
           // slice.actionDispatcher....
         })
       ),
-      slice.getStore().pipe(
-        op.map(s => s.componentProps?.sliceRef), op.distinctUntilChanged(),
+      slice.getStore().pipe(op.map(s => s.componentProps?.sliceRef), op.distinctUntilChanged(),
         op.map(sliceRef => {
           if (sliceRef) {
             sliceRef(slice);

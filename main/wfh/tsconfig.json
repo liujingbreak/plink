@@ -126,6 +126,12 @@
       "@wfh/doc-ui-common/*": [
         "../../doc-app/doc-ui-common/*"
       ],
+      "@wfh/resumes": [
+        "../../../cvs/resumes"
+      ],
+      "@wfh/resumes/*": [
+        "../../../cvs/resumes/*"
+      ],
       "@wfh/plink": [
         ".."
       ],

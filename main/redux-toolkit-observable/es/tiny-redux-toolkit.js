@@ -127,9 +127,16 @@ export function createSlice(opt) {
                 throw new Error(`Do not dispatch action inside a reducer! (action: ${action.type})`);
             }
             inReducer = true;
-            const newState = action.reducer(shallowCopied, action.payload);
-            inReducer = false;
-            executingReducer = false;
+            let newState;
+            try {
+                newState = action.reducer(shallowCopied, action.payload);
+            }
+            finally {
+                inReducer = false;
+                executingReducer = false;
+            }
+            // inReducer = false;
+            // executingReducer = false;
             const changed = newState ? newState : shallowCopied;
             state$.next(changed);
         }
