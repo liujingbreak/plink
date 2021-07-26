@@ -33,32 +33,33 @@ export class RedBlackTree<T> {
    */
   insert(key: T): RedBlackTreeNode<T> | null {
     let y: RedBlackTreeNode<T> | undefined;
-    let node = this.root;
+    let x = this.root;
     let cmp: number;
-    while (node != null) {
-      y = node;
-      cmp = this.comparator!(key, node.key);
+    while (x != null) {
+      y = x;
+      cmp = this.comparator!(key, x.key);
       if (cmp < 0) {
-        node = node.left;
+        x = x.left;
       } else if (cmp > 0) {
-        node = node.right;
+        x = x.right;
       } else {
         return null; // duplicate key found
       }
     }
-    const newNode: RedBlackTreeNode<T> = {
+    const z: RedBlackTreeNode<T> = {
       isRed: true,
       key,
       p: y
     };
     if (y == null) {
-      this.root = y;
+      this.root = z;
     } else if (cmp! < 0 ) {
-      y.left = newNode;
+      y.left = z;
     } else if (cmp! > 0 ) {
-      y.right = newNode;
+      y.right = z;
     }
-    return newNode;
+    this.redBlackInsertFixUp(z);
+    return z;
   }
 
   delete(key: T) {
@@ -68,10 +69,37 @@ export class RedBlackTree<T> {
     }
     if (node.left == null) {
       this.transplant(node, node.right);
+    } else if (node.right == null) {
+      this.transplant(node, node.left);
+    } else {
+      // both left and right child are not empty
+      const rightMin = this.minimumOf(node.right);
+      if (rightMin.p !== node) {
+        this.transplant(rightMin, rightMin.right);
+        rightMin.right = node.right;
+        rightMin.right.p = rightMin;
+      } else {
+        this.transplant(node, rightMin);
+      }
+      rightMin.left = node.left;
+      rightMin.left.p = rightMin;
     }
   }
 
-  private transplant(replaceNode: RedBlackTreeNode<T>, withNode: RedBlackTreeNode<T>) {
+  minimumOf(node: RedBlackTreeNode<T> = this.root!) {
+    while (node.left) {
+      node = node.left;
+    }
+    return node;
+  }
+
+  maximumOf(node: RedBlackTreeNode<T> = this.root!) {
+    while (node.right)
+      node = node.right;
+    return node;
+  }
+
+  private transplant(replaceNode: RedBlackTreeNode<T>, withNode?: RedBlackTreeNode<T>) {
     if (replaceNode.p == null) {
       this.root = withNode;
     } else if (replaceNode === replaceNode.p.left) {
@@ -79,7 +107,8 @@ export class RedBlackTree<T> {
     } else {
       replaceNode.p.right = withNode;
     }
-    withNode.p = replaceNode.p;
+    if (withNode)
+      withNode.p = replaceNode.p;
   }
 
   search(key: T): RedBlackTreeNode<T> | null {
@@ -95,5 +124,31 @@ export class RedBlackTree<T> {
       }
     }
     return null;
+  }
+
+  private redBlackInsertFixUp(z: RedBlackTreeNode<T>) {
+    while (z.p && z.p.isRed) {
+      if (z.p === z.p.p?.left) {
+        y = z.p.p.right;
+      }
+
+    }
+  }
+
+  private leftRotate(x: RedBlackTreeNode<T>) {
+    const y = x.right!;
+    x.right = y.left;
+    if (y.left) {
+      y.left.p = x;
+    }
+    y.p = x.p;
+    if (x.p == null)
+      this.root = y;
+    else if (x === x.p.left)
+      x.p.left = y;
+    else
+      x.p.right = y;
+    y.left = x;
+    x.p = y;
   }
 }
