@@ -7,10 +7,22 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../react-space/node_modules/@types/*",
-        "../../react-space/node_modules/*",
-        "../../node_modules/@types/*",
-        "../../node_modules/*"
+        "../../../NTS/nts-plink/cra-space/node_modules/@types/*",
+        "../../../NTS/nts-plink/cra-space/node_modules/*",
+        "../../../NTS/nts-plink/node_modules/@types/*",
+        "../../../NTS/nts-plink/node_modules/*"
+      ],
+      "@bk/nts-notary": [
+        "../../../NTS/nts-plink/packages/nts-notary"
+      ],
+      "@bk/nts-notary/*": [
+        "../../../NTS/nts-plink/packages/nts-notary/*"
+      ],
+      "@bk/nts-notary-server": [
+        "../../../NTS/nts-plink/packages/nts-notary-server"
+      ],
+      "@bk/nts-notary-server/*": [
+        "../../../NTS/nts-plink/packages/nts-notary-server/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -126,36 +138,20 @@
       "@wfh/doc-ui-common/*": [
         "../../doc-app/doc-ui-common/*"
       ],
-      "@wfh/resumes": [
-        "../../../cvs/resumes"
-      ],
-      "@wfh/resumes/*": [
-        "../../../cvs/resumes/*"
-      ],
       "@wfh/plink": [
         ".."
       ],
       "@wfh/plink/*": [
         "../*"
-      ],
-      "@loadable/component": [
-        "../../react-space/node_modules/@types/loadable__component",
-        "../../node_modules/@types/loadable__component",
-        "../node_modules/@types/loadable__component"
-      ],
-      "@loadable/component/*": [
-        "../../react-space/node_modules/@types/loadable__component/*",
-        "../../node_modules/@types/loadable__component/*",
-        "../node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
-      "../../src/internal/cra-scripts/types",
       "../../src/runtime/express-app/types",
-      "../../react-space/node_modules/@types",
-      "../../node_modules/@types",
+      "../../src/internal/cra-scripts/types",
+      "../../../NTS/nts-plink/cra-space/node_modules/@types",
+      "../../../NTS/nts-plink/node_modules/@types",
       "../node_modules/@types"
     ]
   },

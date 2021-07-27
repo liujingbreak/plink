@@ -1137,7 +1137,7 @@
         "affectsGlobalScope": false
       },
       "../react-redux-helper.ts": {
-        "version": "6e515bf96c0e67216e7f377a42c82d5d08baadc308d1e9c8cbfd3731048e9450",
+        "version": "b20f0030c99487fd87c6046a90133b3be2b33bbaaf79a72222277dcc9e32b8a8",
         "signature": "b4f362a7aa0dbefe2ab7f836193d08baacb8a1a474ed5c035ff130cd55334b3b",
         "affectsGlobalScope": false
       },
@@ -1147,7 +1147,7 @@
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit-hook.ts": {
-        "version": "00526ce30c06cb51b6109c787c8a21dcb8ef171b4842f37f31bc8f4897e61fb6",
+        "version": "851364c34e1355a5055ca0be9ebd9eb3524d5f7b90c7446b079efdf2b33b4337",
         "signature": "ec5fa1e392ca36afbe6795f46867bbd625110e6abcf7f20193bfcf1dbc5928fd",
         "affectsGlobalScope": false
       },

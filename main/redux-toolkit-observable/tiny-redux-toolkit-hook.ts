@@ -4,6 +4,7 @@ import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 export * from './tiny-redux-toolkit';
 
+const EMPTY_ARR = [] as any[];
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
  * @param opts 
@@ -16,10 +17,10 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
   // To avoid a mutatable version is passed in
   // const clonedState = clone(opts.initialState);
   const willUnmountSub = React.useMemo(() => new rx.ReplaySubject<void>(1), []);
-  const sliceOptions = React.useMemo(optsFactory, []);
+  const sliceOptions = React.useMemo(optsFactory, EMPTY_ARR);
   const epic$s = React.useMemo<rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>[]>(() => {
     return epicFactories.map(() => new rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>(null));
-  }, []);
+  }, EMPTY_ARR);
 
   const [state, setState] = React.useState<S>(sliceOptions.initialState);
   // const [slice, setSlice] = React.useState<Slice<S, R>>();
@@ -27,6 +28,7 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
     const slice = createSlice(sliceOptions);
     slice.state$.pipe(
       op.distinctUntilChanged(),
+      op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
       op.tap(changed => setState(changed)),
       op.takeUntil(willUnmountSub)
     ).subscribe();
@@ -44,7 +46,7 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
     // runs earlier than parent component's
     epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
     return slice;
-  }, []);
+  }, EMPTY_ARR);
 
   React.useEffect(() => {
     epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
@@ -65,6 +67,6 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
       // sub.unsubscribe();
       slice.destroy();
     };
-  }, []);
+  }, EMPTY_ARR);
   return [state, slice];
 }

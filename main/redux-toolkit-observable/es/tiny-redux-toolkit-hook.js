@@ -3,6 +3,7 @@ import { createSlice } from './tiny-redux-toolkit';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 export * from './tiny-redux-toolkit';
+const EMPTY_ARR = [];
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
  * @param opts
@@ -12,15 +13,16 @@ export function useTinyReduxTookit(optsFactory, ...epicFactories) {
     // To avoid a mutatable version is passed in
     // const clonedState = clone(opts.initialState);
     const willUnmountSub = React.useMemo(() => new rx.ReplaySubject(1), []);
-    const sliceOptions = React.useMemo(optsFactory, []);
+    const sliceOptions = React.useMemo(optsFactory, EMPTY_ARR);
     const epic$s = React.useMemo(() => {
         return epicFactories.map(() => new rx.BehaviorSubject(null));
-    }, []);
+    }, EMPTY_ARR);
     const [state, setState] = React.useState(sliceOptions.initialState);
     // const [slice, setSlice] = React.useState<Slice<S, R>>();
     const slice = React.useMemo(() => {
         const slice = createSlice(sliceOptions);
-        slice.state$.pipe(op.distinctUntilChanged(), op.tap(changed => setState(changed)), op.takeUntil(willUnmountSub)).subscribe();
+        slice.state$.pipe(op.distinctUntilChanged(), op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
+        op.tap(changed => setState(changed)), op.takeUntil(willUnmountSub)).subscribe();
         // Important!!
         // Epic might contain recurive state changing logic, like subscribing on state$ stream and 
         // change state, it turns out any subscriber that subscribe state$ later than
@@ -34,7 +36,7 @@ export function useTinyReduxTookit(optsFactory, ...epicFactories) {
         // runs earlier than parent component's
         epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
         return slice;
-    }, []);
+    }, EMPTY_ARR);
     React.useEffect(() => {
         epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
     }, epicFactories);
@@ -53,6 +55,6 @@ export function useTinyReduxTookit(optsFactory, ...epicFactories) {
             // sub.unsubscribe();
             slice.destroy();
         };
-    }, []);
+    }, EMPTY_ARR);
     return [state, slice];
 }
