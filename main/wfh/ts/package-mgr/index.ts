@@ -152,7 +152,8 @@ export const slice = stateFactory.newSlice({
       d.npmInstallOpt.cache = payload.cache;
       d.npmInstallOpt.useNpmCi = payload.useNpmCi;
     },
-    scanAndSyncPackages(d, action: PayloadAction<{packageJsonFiles?: string[]}>) {},
+    scanAndSyncPackages(d: PackagesState, action: PayloadAction<{packageJsonFiles?: string[]}>) {
+    },
 
     updateDir() {},
     _updatePlinkPackageInfo(d) {
@@ -442,7 +443,7 @@ stateFactory.addEpic((action$, state$) => {
         // call initRootDirectory() and wait for it finished by observing action '_syncLinkedPackages',
         // then call _hoistWorkspaceDeps
         return merge(
-          packageJsonFiles != null ? scanAndSyncPackages(packageJsonFiles):
+          packageJsonFiles != null ? scanAndSyncPackages(packageJsonFiles) :
             defer(() => of(initRootDirectory())),
           action$.pipe(
             ofPayloadAction(slice.actions._syncLinkedPackages),
@@ -450,8 +451,7 @@ stateFactory.addEpic((action$, state$) => {
             map(() => actionDispatcher._hoistWorkspaceDeps({dir}))
           )
         );
-      }),
-      ignoreElements()
+      })
     ),
     action$.pipe(ofPayloadAction(slice.actions.scanAndSyncPackages),
       concatMap(({payload}) => {
@@ -494,8 +494,7 @@ stateFactory.addEpic((action$, state$) => {
             }
           }
         }
-      }),
-      ignoreElements()
+      })
     ),
 
     action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
@@ -504,8 +503,7 @@ stateFactory.addEpic((action$, state$) => {
         // actionDispatcher.onWorkspacePackageUpdated(wsKey);
         deleteDuplicatedInstalledPkg(wsKey);
         setImmediate(() => actionDispatcher.workspaceStateUpdated(wsKey));
-      }),
-      ignoreElements()
+      })
     ),
 
     action$.pipe(ofPayloadAction(slice.actions.updateDir),
@@ -1121,7 +1119,7 @@ function deleteDuplicatedInstalledPkg(workspaceKey: string) {
     .then((stat) => {
       if (!stat.isSymbolicLink()) {
         // eslint-disable-next-line no-console
-        log.info(`Previous installed ${Path.relative(rootDir,dir)} is deleted, due to linked package ${pkgName}`);
+        log.info(`Previous installed ${Path.relative(rootDir, dir)} is deleted, due to linked package ${pkgName}`);
         return fs.promises.unlink(dir);
       }
     })

@@ -73,4 +73,6 @@ export interface OurCommandOption<T = string> {
   isRequired: boolean;
 }
 
-
+export interface WatchOption {
+  copy?: string;
+}

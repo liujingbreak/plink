@@ -103,7 +103,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         dir: string;
         packageJsonFiles?: string[];
     } & NpmOptions>): void;
-    scanAndSyncPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
+    scanAndSyncPackages(d: PackagesState, action: PayloadAction<{
         packageJsonFiles?: string[];
     }>): void;
     updateDir(): void;
@@ -174,7 +174,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         dir: string;
         packageJsonFiles?: string[];
     } & NpmOptions>): void;
-    scanAndSyncPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<{
+    scanAndSyncPackages(d: PackagesState, action: PayloadAction<{
         packageJsonFiles?: string[];
     }>): void;
     updateDir(): void;

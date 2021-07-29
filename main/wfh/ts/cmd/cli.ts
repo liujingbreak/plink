@@ -15,9 +15,10 @@ import Path from 'path';
 import semver from 'semver';
 import {CommandOverrider} from './override-commander';
 import {initInjectorForNodePackages} from '../package-runner';
-import {hl, hlDesc, arrayOptionFn} from './utils';
+import {hlDesc, arrayOptionFn} from './utils';
 import {getLogger} from 'log4js';
 import {CliOptions as TsconfigCliOptions} from './cli-tsconfig-hook';
+import * as _cliWatch from './cli-watch';
 const pk = require('../../../package.json') as {version: string};
 // const WIDTH = 130;
 const log = getLogger('plink.cli');
@@ -146,19 +147,19 @@ function subComands(program: commander.Command) {
   /**
    * command lint
    */
-  const lintCmd = program.command('lint [package...]')
-    .description('source code style check', {
-      package: cliPackageArgDesc
-    })
-    .option('--pj <project1,project2...>', 'lint only TS code from specific project', arrayOptionFn, [])
-    .option('--fix', 'Run eslint/tslint fix, this could cause your source code being changed unexpectedly', false)
-    .action(async packages => {
-      await (await import('./cli-lint')).default(packages, lintCmd.opts() as any);
-    });
+  // const lintCmd = program.command('lint [package...]')
+  //   .description('source code style check', {
+  //     package: cliPackageArgDesc
+  //   })
+  //   .option('--pj <project1,project2...>', 'lint only TS code from specific project', arrayOptionFn, [])
+  //   .option('--fix', 'Run eslint/tslint fix, this could cause your source code being changed unexpectedly', false)
+  //   .action(async packages => {
+  //     await (await import('./cli-lint')).default(packages, lintCmd.opts() as any);
+  //   });
 
-  lintCmd.usage(lintCmd.usage() +
-    hl('\ndrcp lint --pj <project-dir..> [--fix]') + ' Lint TS files from specific project directory\n' +
-    hl('\ndrcp lint <component-package..> [--fix]') + ' Lint TS files from specific component packages');
+  // lintCmd.usage(lintCmd.usage() +
+  //   hl('\ndrcp lint --pj <project-dir..> [--fix]') + ' Lint TS files from specific project directory\n' +
+  //   hl('\ndrcp lint <component-package..> [--fix]') + ' Lint TS files from specific component packages');
 
   /**
    * command clean
@@ -299,6 +300,16 @@ function subComands(program: commander.Command) {
   analysisCmd.usage(analysisCmd.usage() + '\n' +
     'e.g.\n  ' + chalk.blue('plink analyze -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts\n  ' +
     'plink analyze -d packages/foobar1/src -d packages/foobar2/ts'));
+
+  const watchCmd = program.command('watch [package...]')
+  .description('Watch package source code file changes (files referenced in .npmignore will be ignored) and update Plink state, ' +
+  'automatically install transitive dependency', {
+    package: cliPackageArgDesc})
+  .option('--copy, --cp <directory>', 'copy or delete package files to/from specific directory, mimic behavior of "npm install <pkg>", but this won\'t install dependencies')
+  .action((pkgs: string[]) => {
+    const {cliWatch} = require('./cli-watch') as typeof _cliWatch;
+    cliWatch(pkgs, watchCmd.opts());
+  });
 
   const updateDirCmd = program.command('update-dir')
     .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +

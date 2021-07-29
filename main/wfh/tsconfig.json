@@ -7,22 +7,8 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../../NTS/nts-plink/cra-space/node_modules/@types/*",
-        "../../../NTS/nts-plink/cra-space/node_modules/*",
-        "../../../NTS/nts-plink/node_modules/@types/*",
-        "../../../NTS/nts-plink/node_modules/*"
-      ],
-      "@bk/nts-notary": [
-        "../../../NTS/nts-plink/packages/nts-notary"
-      ],
-      "@bk/nts-notary/*": [
-        "../../../NTS/nts-plink/packages/nts-notary/*"
-      ],
-      "@bk/nts-notary-server": [
-        "../../../NTS/nts-plink/packages/nts-notary-server"
-      ],
-      "@bk/nts-notary-server/*": [
-        "../../../NTS/nts-plink/packages/nts-notary-server/*"
+        "../../../pmo-helper/node_modules/@types/*",
+        "../../../pmo-helper/node_modules/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -138,6 +124,18 @@
       "@wfh/doc-ui-common/*": [
         "../../doc-app/doc-ui-common/*"
       ],
+      "@dr/jira-helper": [
+        "../../../pmo-helper/packages/jira-helper"
+      ],
+      "@dr/jira-helper/*": [
+        "../../../pmo-helper/packages/jira-helper/*"
+      ],
+      "@dr/pmo-scheduler": [
+        "../../../pmo-helper/packages/pmo-scheduler"
+      ],
+      "@dr/pmo-scheduler/*": [
+        "../../../pmo-helper/packages/pmo-scheduler/*"
+      ],
       "@wfh/plink": [
         ".."
       ],
@@ -148,10 +146,7 @@
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
-      "../../src/runtime/express-app/types",
-      "../../src/internal/cra-scripts/types",
-      "../../../NTS/nts-plink/cra-space/node_modules/@types",
-      "../../../NTS/nts-plink/node_modules/@types",
+      "../../../pmo-helper/node_modules/@types",
       "../node_modules/@types"
     ]
   },

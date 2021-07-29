@@ -64,3 +64,6 @@ export interface OurCommandOption<T = string> {
     defaultValue: string | boolean | T[] | T;
     isRequired: boolean;
 }
+export interface WatchOption {
+    copy?: string;
+}
