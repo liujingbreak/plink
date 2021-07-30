@@ -9,7 +9,7 @@ import {resolve} from 'path';
  * @deprecated
  */
 export default class LazyPackageFactory {
-  packagePathMap: DirTree<PackageInstance>;
+  packagePathMap: DirTree<PackageInstance> | undefined;
 
   constructor(private packagesIterable: Iterable<PackageInfo>) {
   }

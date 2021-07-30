@@ -461,7 +461,7 @@
         "signature": "0ba006a3c3dc26030785c89bc00bdd11542072029cdbc8c835560221c79eb223",
         "affectsGlobalScope": true
       },
-      "../node_modules/chokidar/types/index.d.ts": {
+      "../node_modules/@types/gulp/node_modules/chokidar/types/index.d.ts": {
         "version": "e780502490d80e1c8aa67358175bde94ab164d44a30801215a919f557bc5430c",
         "signature": "e780502490d80e1c8aa67358175bde94ab164d44a30801215a919f557bc5430c",
         "affectsGlobalScope": false
@@ -841,6 +841,11 @@
         "signature": "bee79f5862fe1278d2ba275298862bce3f7abf1e59d9c669c4b9a4b2bba96956",
         "affectsGlobalScope": false
       },
+      "../node_modules/anymatch/index.d.ts": {
+        "version": "4fb0b7d532aa6fb850b6cd2f1ee4f00802d877b5c66a51903bc1fb0624126349",
+        "signature": "4fb0b7d532aa6fb850b6cd2f1ee4f00802d877b5c66a51903bc1fb0624126349",
+        "affectsGlobalScope": false
+      },
       "../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts": {
         "version": "2887592574fcdfd087647c539dcb0fbe5af2521270dad4a37f9d17c16190d579",
         "signature": "2887592574fcdfd087647c539dcb0fbe5af2521270dad4a37f9d17c16190d579",
@@ -962,6 +967,7 @@
       "pretty": true,
       "rootDir": "../thread-promise-pool/ts",
       "composite": true,
+      "watch": true,
       "configFilePath": "./tsconfig-thread-promise.json"
     },
     "referencedMap": {
@@ -979,11 +985,16 @@
         "../node_modules/@types/node/index.d.ts"
       ],
       "../node_modules/@types/gulp/index.d.ts": [
+        "../node_modules/@types/gulp/node_modules/chokidar/types/index.d.ts",
         "../node_modules/@types/node/fs.d.ts",
         "../node_modules/@types/node/stream.d.ts",
         "../node_modules/@types/undertaker/index.d.ts",
-        "../node_modules/@types/vinyl-fs/index.d.ts",
-        "../node_modules/chokidar/types/index.d.ts"
+        "../node_modules/@types/vinyl-fs/index.d.ts"
+      ],
+      "../node_modules/@types/gulp/node_modules/chokidar/types/index.d.ts": [
+        "../node_modules/@types/node/events.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/index.d.ts"
       ],
       "../node_modules/@types/hoist-non-react-statics/index.d.ts": [
         "../node_modules/@types/react/index.d.ts"
@@ -1641,18 +1652,13 @@
         "../node_modules/@types/webpack-sources/node_modules/source-map/source-map.d.ts"
       ],
       "../node_modules/@types/webpack/index.d.ts": [
-        "../node_modules/@types/anymatch/index.d.ts",
         "../node_modules/@types/node/crypto.d.ts",
         "../node_modules/@types/node/index.d.ts",
         "../node_modules/@types/tapable/index.d.ts",
         "../node_modules/@types/uglify-js/index.d.ts",
         "../node_modules/@types/uglify-js/node_modules/source-map/source-map.d.ts",
-        "../node_modules/@types/webpack-sources/index.d.ts"
-      ],
-      "../node_modules/chokidar/types/index.d.ts": [
-        "../node_modules/@types/node/events.d.ts",
-        "../node_modules/@types/node/fs.d.ts",
-        "../node_modules/@types/node/index.d.ts"
+        "../node_modules/@types/webpack-sources/index.d.ts",
+        "../node_modules/anymatch/index.d.ts"
       ],
       "../node_modules/redux/index.d.ts": [
         "../node_modules/symbol-observable/index.d.ts"
@@ -1700,6 +1706,11 @@
         "../node_modules/@types/vinyl-fs/index.d.ts",
         "../node_modules/chokidar/types/index.d.ts"
       ],
+      "../node_modules/@types/gulp/node_modules/chokidar/types/index.d.ts": [
+        "../node_modules/@types/node/events.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/index.d.ts"
+      ],
       "../node_modules/@types/hoist-non-react-statics/index.d.ts": [
         "../node_modules/@types/react/index.d.ts"
       ],
@@ -2364,11 +2375,6 @@
         "../node_modules/@types/uglify-js/node_modules/source-map/source-map.d.ts",
         "../node_modules/@types/webpack-sources/index.d.ts"
       ],
-      "../node_modules/chokidar/types/index.d.ts": [
-        "../node_modules/@types/node/events.d.ts",
-        "../node_modules/@types/node/fs.d.ts",
-        "../node_modules/@types/node/index.d.ts"
-      ],
       "../node_modules/redux/index.d.ts": [
         "../node_modules/symbol-observable/index.d.ts"
       ],
@@ -2394,6 +2400,7 @@
       "../node_modules/@types/glob-stream/index.d.ts",
       "../node_modules/@types/glob/index.d.ts",
       "../node_modules/@types/gulp/index.d.ts",
+      "../node_modules/@types/gulp/node_modules/chokidar/types/index.d.ts",
       "../node_modules/@types/hoist-non-react-statics/index.d.ts",
       "../node_modules/@types/jasmine/index.d.ts",
       "../node_modules/@types/js-yaml/index.d.ts",
@@ -2531,7 +2538,7 @@
       "../node_modules/@types/webpack/index.d.ts",
       "../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts",
       "../node_modules/@types/yamljs/index.d.ts",
-      "../node_modules/chokidar/types/index.d.ts",
+      "../node_modules/anymatch/index.d.ts",
       "../node_modules/csstype/index.d.ts",
       "../node_modules/redux/index.d.ts",
       "../node_modules/symbol-observable/index.d.ts",

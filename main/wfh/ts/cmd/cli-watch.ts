@@ -32,6 +32,7 @@ export function cliWatch(packages: string[], opt: WatchOption) {
         // log.info(pkg.realPath);
         const pkgJsonFile = Path.resolve(pkg!.realPath, 'package.json');
         const watcher = chokidar.watch(pkgJsonFile);
+        log.info('watching', pkgJsonFile);
 
         watcher.on('change', path => {
           log.info(path, 'changed');
@@ -77,7 +78,7 @@ export function cliWatch(packages: string[], opt: WatchOption) {
           rx.from(fs.promises.readFile(npmIgnore, 'utf-8')) :
           rx.of('')
         ).pipe(
-          op.switchMap(content => new rx.Observable<string>((sub) => {
+          op.switchMap(content => new rx.Observable<[string, string]>((sub) => {
             function matchNpmIgnore(relativePath: string) {
               let matched = false;
               for (const line of content.split(/\n\r?/)) {
@@ -99,13 +100,13 @@ export function cliWatch(packages: string[], opt: WatchOption) {
             watcher.on('add', path => {
               const relPath = Path.relative(pkg!.realPath, path).replace(/\\/g, '/');
               if ( !matchNpmIgnore('/' + relPath) && !matchNpmIgnore(relPath)) {
-                sub.next(path);
+                sub.next([path, Path.join(pkg!.name, relPath)]);
               }
             });
             watcher.on('change', path => {
               const relPath = Path.relative(pkg!.realPath, path).replace(/\\/g, '/');
               if ( !matchNpmIgnore('/' + relPath) && !matchNpmIgnore(relPath)) {
-                sub.next(path);
+                sub.next([path, Path.join(pkg!.name, relPath)]);
               }
             });
             return () => watcher.close();
@@ -113,9 +114,11 @@ export function cliWatch(packages: string[], opt: WatchOption) {
           op.takeUntil(deletePkgMsg.pipe(op.filter(pkgName => pkgName === pkg!.name)))
         );
       }),
-      op.mergeMap(file => {
-        log.info('copy', file);
-        return fs.promises.copyFile(file, opt.copy!);
+      op.mergeMap(([srcFile, relPath]) => {
+        const target = Path.resolve(opt.copy!, relPath);
+        log.info('copy', srcFile, 'to\n ', target);
+        mkdirpSync(Path.dirname(target));
+        return fs.promises.copyFile(srcFile, target);
       })
     ).subscribe();
   }

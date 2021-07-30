@@ -54,7 +54,7 @@ export class DFS<T> extends BaseGraph<T> {
   private time = 0;
   // private vertexMap = new Map<T, Vertex<T>>();
 
-  constructor(private adjacencyOf: (u: T) => Iterable<T>, private onFinish?: (vertex: Vertex<T>) => any) {
+  constructor(private adjacencyOf: (u: T, vertex: Vertex<T>) => Iterable<T>, private onFinish?: (vertex: Vertex<T>) => any) {
     super();
   }
 
@@ -83,7 +83,7 @@ export class DFS<T> extends BaseGraph<T> {
   protected visitVertex(u: Vertex<T>) {
     u.d = ++this.time;
     u.color = Color.gray;
-    for (const vData of this.adjacencyOf(u.data)) {
+    for (const vData of this.adjacencyOf(u.data, u)) {
       const v = this.vertexOf(vData);
       if (v.color === Color.white) {
         v.p = [u];
@@ -104,7 +104,7 @@ export class DFS<T> extends BaseGraph<T> {
 }
 
 export class BFS<T> extends BaseGraph<T> {
-  constructor(private adjacencyOf: (u: T) => Iterable<T>) {
+  constructor(private adjacencyOf: (u: T, vertex: Vertex<T>) => Iterable<T>) {
     super();
   }
 
@@ -114,7 +114,7 @@ export class BFS<T> extends BaseGraph<T> {
     const q: Vertex<T>[] = [s];
     while (q.length > 0) {
       const u = q.shift()!;
-      for (const vData of this.adjacencyOf(u.data)) {
+      for (const vData of this.adjacencyOf(u.data, u)) {
         const v = this.vertexOf(vData);
         if (v.color === Color.white) {
           v.color = Color.gray;

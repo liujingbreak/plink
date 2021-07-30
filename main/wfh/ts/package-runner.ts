@@ -10,11 +10,11 @@ import NodePackage from './packageNodeInstance';
 import Path from 'path';
 import {createLazyPackageFileFinder, packages4Workspace} from './package-utils';
 import log4js from 'log4js';
-import config from './config';
 import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} from './package-mgr';
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
 import chalk from 'chalk';
 import {getWorkDir} from './utils/misc';
+// import {findPackagesByNames} from './cmd/utils';
 
 const log = log4js.getLogger('plink.package-runner');
 
@@ -78,41 +78,15 @@ export async function runSinglePackage({target, args}: {target: string; args: st
   if (!isCwdWorkspace()) {
     return Promise.reject(new Error('Current directory is not a workspace directory'));
   }
-  const passinArgv = {};
-  // console.log(args);
-  // throw new Error('stop');
-  for (let i = 0, l = args.length; i < l; i++) {
-    const key = args[i];
-    if (key.startsWith('-')) {
-      if (i === args.length - 1 || args[i + 1].startsWith('-')) {
-        passinArgv[_.trimStart(key, '-')] = true;
-      } else {
-        passinArgv[key] = args[i + 1];
-        i++;
-      }
-    }
-  }
-  initInjectorForNodePackages();
+  const [pkgInfo] = initInjectorForNodePackages();
+
   const [file, func] = target.split('#');
-
-  const guessingFile: string[] = [
-    file,
-    Path.resolve(file),
-    ...config().packageScopes.map(scope => `@${scope}/${file}`)
-  ];
-  const foundModule = guessingFile.find(target => {
-    try {
-      require.resolve(target);
-      return true;
-    } catch (ex) {
-      return false;
-    }
-  });
-
-  if (!foundModule) {
-    throw new Error(`Could not find target module from paths like:\n${guessingFile.join('\n')}`);
+  const pkgNameMatch = /((?:@[^/]+\/)?[a-zA-Z0-9_-]+)\/$/.exec(file);
+  let moduleName = Path.resolve(file);
+  if (pkgNameMatch && pkgNameMatch[1] && _.has(pkgInfo.moduleMap, pkgNameMatch[1])) {
+    moduleName = file;
   }
-  const _exports = require(foundModule);
+  const _exports = require(moduleName);
   if (!_.has(_exports, func)) {
     log.error(`There is no export function: ${func}, existing export members are:\n` +
     `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
@@ -198,6 +172,7 @@ export function initInjectorForNodePackages():
  * @param argv 
  */
 export function prepareLazyNodeInjector(argv?: {[key: string]: any}) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
   const proto = NodeApi.prototype;
   proto.argv = argv || {};

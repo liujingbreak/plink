@@ -7,8 +7,34 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../../pmo-helper/node_modules/@types/*",
-        "../../../pmo-helper/node_modules/*"
+        "../../../financebill-reuse-poc/cra-space/node_modules/@types/*",
+        "../../../financebill-reuse-poc/cra-space/node_modules/*",
+        "../../../financebill-reuse-poc/node_modules/@types/*",
+        "../../../financebill-reuse-poc/node_modules/*"
+      ],
+      "@bk/financebill-tool": [
+        "../../../financebill-reuse-poc/packages/financebill-tool"
+      ],
+      "@bk/financebill-tool/*": [
+        "../../../financebill-reuse-poc/packages/financebill-tool/*"
+      ],
+      "@bk/nts-notary": [
+        "../../../financebill-reuse-poc/packages/nts-notary"
+      ],
+      "@bk/nts-notary/*": [
+        "../../../financebill-reuse-poc/packages/nts-notary/*"
+      ],
+      "@bk/nts-notary-server": [
+        "../../../financebill-reuse-poc/packages/nts-notary-server"
+      ],
+      "@bk/nts-notary-server/*": [
+        "../../../financebill-reuse-poc/packages/nts-notary-server/*"
+      ],
+      "@bk/sso-captcha": [
+        "../../../financebill-reuse-poc/packages/sso-captcha"
+      ],
+      "@bk/sso-captcha/*": [
+        "../../../financebill-reuse-poc/packages/sso-captcha/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -124,29 +150,37 @@
       "@wfh/doc-ui-common/*": [
         "../../doc-app/doc-ui-common/*"
       ],
-      "@dr/jira-helper": [
-        "../../../pmo-helper/packages/jira-helper"
+      "@bk/financebill-source": [
+        "../../../bs-static-financebill/src"
       ],
-      "@dr/jira-helper/*": [
-        "../../../pmo-helper/packages/jira-helper/*"
-      ],
-      "@dr/pmo-scheduler": [
-        "../../../pmo-helper/packages/pmo-scheduler"
-      ],
-      "@dr/pmo-scheduler/*": [
-        "../../../pmo-helper/packages/pmo-scheduler/*"
+      "@bk/financebill-source/*": [
+        "../../../bs-static-financebill/src/*"
       ],
       "@wfh/plink": [
         ".."
       ],
       "@wfh/plink/*": [
         "../*"
+      ],
+      "@loadable/component": [
+        "../../../financebill-reuse-poc/cra-space/node_modules/@types/loadable__component",
+        "../../../financebill-reuse-poc/node_modules/@types/loadable__component",
+        "../node_modules/@types/loadable__component"
+      ],
+      "@loadable/component/*": [
+        "../../../financebill-reuse-poc/cra-space/node_modules/@types/loadable__component/*",
+        "../../../financebill-reuse-poc/node_modules/@types/loadable__component/*",
+        "../node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
       "../node_modules/@types/*",
       "types",
-      "../../../pmo-helper/node_modules/@types",
+      "../../../bs-static-financebill/src/typeRoot",
+      "../../src/runtime/express-app/types",
+      "../../src/internal/cra-scripts/types",
+      "../../../financebill-reuse-poc/cra-space/node_modules/@types",
+      "../../../financebill-reuse-poc/node_modules/@types",
       "../node_modules/@types"
     ]
   },

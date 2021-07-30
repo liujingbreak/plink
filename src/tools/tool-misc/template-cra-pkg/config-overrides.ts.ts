@@ -1,5 +1,5 @@
 import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
-// import plinkConfig from '@wfh/plink/wfh/dist/config';
+// import {config} from '@wfh/plink';
 
 const handler: ReactScriptsHandler = {
   changeCraPaths(craPaths, env, cmdOpt) {

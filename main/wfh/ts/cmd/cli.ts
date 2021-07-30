@@ -305,7 +305,7 @@ function subComands(program: commander.Command) {
   .description('Watch package source code file changes (files referenced in .npmignore will be ignored) and update Plink state, ' +
   'automatically install transitive dependency', {
     package: cliPackageArgDesc})
-  .option('--copy, --cp <directory>', 'copy or delete package files to/from specific directory, mimic behavior of "npm install <pkg>", but this won\'t install dependencies')
+  .option('--cp, --copy <directory>', 'copy package files to specific directory, mimic behavior of "npm install <pkg>", but this won\'t install dependencies')
   .action((pkgs: string[]) => {
     const {cliWatch} = require('./cli-watch') as typeof _cliWatch;
     cliWatch(pkgs, watchCmd.opts());
@@ -382,14 +382,14 @@ function spaceOnlySubCommands(program: commander.Command) {
     });
 
   runCmd.usage(runCmd.usage() + '\n' + chalk.green('plink run <target> [arguments...]\n') +
-    `e.g.\n  ${chalk.green('plink run forbar-package/dist/file#function argument1 argument2...')}\n` +
+    `e.g.\n  ${chalk.green('plink run ../packages/forbar-package/dist/file.js#function argument1 argument2...')}\n` +
     'execute exported function of TS/JS file from specific package or path\n\n' +
-    '<target> - JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n' +
-    'e.g. \n' +
-    chalk.green('package-name/dist/foobar.js#myFunction') +
-    ', function can be async which returns Promise\n' +
-    chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
-    ', relative or absolute path\n');
+    '<target> - JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n');
+    // 'e.g. \n' +
+    // chalk.green('package-name/dist/foobar.js#myFunction') +
+    // ', function can be async which returns Promise\n' +
+    // chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
+    // ', relative or absolute path\n');
 
 
 }

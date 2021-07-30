@@ -6,7 +6,7 @@ import { PackageInfo } from '.';
  */
 export default class LazyPackageFactory {
     private packagesIterable;
-    packagePathMap: DirTree<PackageInstance>;
+    packagePathMap: DirTree<PackageInstance> | undefined;
     constructor(packagesIterable: Iterable<PackageInfo>);
     getPackageByPath(file: string): PackageInstance | null;
 }

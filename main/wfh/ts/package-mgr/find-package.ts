@@ -17,7 +17,7 @@ export default function findPackageJson(_fromDirs: string[] | string, startFromS
 
 class FolderScanner {
   fromDir: string;
-  private out: Subscriber<string>;
+  private out: Subscriber<string> | undefined;
 
   constructor(fromDir: string) {
     this.fromDir = Path.resolve(fromDir);
@@ -55,13 +55,12 @@ class FolderScanner {
   }
 
   private checkFolder(dir: string) {
-    const self = this;
     if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
       const pkJsonPath = Path.join(dir, 'package.json');
       if (fs.existsSync(pkJsonPath)) {
-        this.out.next(pkJsonPath);
+        this.out!.next(pkJsonPath);
       } else {
-        self.checkSubFolders(dir);
+        this.checkSubFolders(dir);
       }
     }
   }
