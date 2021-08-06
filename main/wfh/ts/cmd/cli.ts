@@ -253,6 +253,9 @@ function subComands(program: commander.Command) {
     .option('--pj, --project <project-dir>',
       'project directories to be looked up for all packages which need to be packed to tarball files',
       arrayOptionFn, [])
+    .option('--tar-dir <dir>', 'directory to save tar files', Path.join(getRootDir(), 'tarballs'))
+    .option('--jf, --json-file <pkg-json-file>', 'the package.json file in which "devDependencies", "dependencies" should to be changed according to packed file, ' + 
+      'by default package.json files in all work spaces will be checked and changed')
     .action(async (packages: string[]) => {
       await (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packages});
     });

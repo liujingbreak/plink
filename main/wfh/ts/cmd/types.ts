@@ -39,6 +39,9 @@ export interface PackOptions extends GlobalOptions {
   project: string[];
   packages: string[];
   workspace: string[];
+  tarDir?: string;
+  /** target package.json file, default package.json files of all available workspace */
+  jsonFile?: string;
 }
 
 export interface PublishOptions extends PackOptions {

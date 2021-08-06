@@ -21,30 +21,34 @@ import {findPackagesByNames} from './utils';
 import {plinkEnv} from '../utils/misc';
 import '../editor-helper';
 
-let tarballDir: string;
+// let tarballDir: string;
 const log = log4js.getLogger('plink.cli-pack');
 
 function init(opts: PublishOptions | PackOptions) {
-  tarballDir = Path.resolve(config().rootPath, 'tarballs');
+  const tarballDir = opts.tarDir || Path.resolve(config().rootPath, 'tarballs');
   fsext.mkdirpSync(tarballDir);
+  return tarballDir;
 }
 
 export async function pack(opts: PackOptions) {
-  init(opts);
+  const tarballDir = init(opts);
+  const targetJsonFile = opts.jsonFile;
 
   if (opts.workspace && opts.workspace.length > 0) {
-    await Promise.all(opts.workspace.map(ws => packPackages(Array.from(linkedPackagesOfWorkspace(ws)))));
+    await Promise.all(opts.workspace.map(ws => packPackages(
+      Array.from(linkedPackagesOfWorkspace(ws)), tarballDir, targetJsonFile))
+    );
   } else if (opts.project && opts.project.length > 0) {
-    return packProject(opts.project);
+    return packProject(opts.project, tarballDir, targetJsonFile);
   } else if (opts.dir && opts.dir.length > 0) {
-    await packPackages(opts.dir);
+    await packPackages(opts.dir, tarballDir, targetJsonFile);
   } else if (opts.packages && opts.packages.length > 0) {
     const dirs = Array.from(findPackagesByNames(getState(), opts.packages))
     .filter(pkg => pkg && (pkg.json.dr != null || pkg.json.plink != null))
     .map(pkg => pkg!.realPath);
-    await packPackages(dirs);
+    await packPackages(dirs, tarballDir, targetJsonFile);
   } else {
-    await packPackages(Array.from(linkedPackagesOfWorkspace(plinkEnv.workDir)));
+    await packPackages(Array.from(linkedPackagesOfWorkspace(plinkEnv.workDir)), tarballDir, targetJsonFile);
   }
 }
 
@@ -77,14 +81,14 @@ function *linkedPackagesOfWorkspace(workspaceDir: string) {
   }
 }
 
-async function packPackages(packageDirs: string[]) {
+async function packPackages(packageDirs: string[], tarballDir: string, targetJsonFile?: string) {
   const excludeFromSync = new Set<string>();
   const package2tarball = new Map<string, string>();
 
 
   if (packageDirs && packageDirs.length > 0) {
     const done = rx.from(packageDirs).pipe(
-      op.mergeMap(packageDir => rx.defer(() => npmPack(packageDir)), 4),
+      op.mergeMap(packageDir => rx.defer(() => npmPack(packageDir, tarballDir)), 4),
       op.reduce<ReturnType<typeof npmPack> extends Promise<infer T> ? T : unknown>((all, item) => {
         all.push(item);
         return all;
@@ -106,8 +110,9 @@ async function packPackages(packageDirs: string[]) {
       _.escapeRegExp(item.name.replace('@', '').replace(/[/\\]/g, '-'))
         + '\\-\\d+(?:\\.\\d+){1,2}(?:\\-[^]+?)?\\.tgz$', 'i'
       )),
-      tarInfos.map(item => item.filename));
-    changePackageJson(package2tarball);
+      tarInfos.map(item => item.filename),
+      tarballDir);
+    changePackageJson(package2tarball, targetJsonFile);
     await new Promise(resolve => setImmediate(resolve));
     actionDispatcher.scanAndSyncPackages({
       packageJsonFiles: packageDirs.filter(dir => !excludeFromSync.has(dir))
@@ -116,12 +121,12 @@ async function packPackages(packageDirs: string[]) {
   }
 }
 
-async function packProject(projectDirs: string[]) {
+async function packProject(projectDirs: string[], tarballDir: string, targetJsonFile: string | undefined) {
   const dirs = [] as string[];
   for (const pkg of getPackagesOfProjects(projectDirs)) {
     dirs.push(pkg.realPath);
   }
-  await packPackages(dirs);
+  await packPackages(dirs, tarballDir, targetJsonFile);
 }
 
 async function publishPackages(packageDirs: string[], npmCliOpts: string[]) {
@@ -149,7 +154,7 @@ async function publishProject(projectDirs: string[], npmCliOpts: string[]) {
   await publishPackages(dirs, npmCliOpts);
 }
 
-async function npmPack(packagePath: string):
+async function npmPack(packagePath: string, tarballDir: string):
   Promise<{name: string; filename: string; version: string; dir: string} | null> {
   try {
     const output = await (exe('npm', 'pack', Path.resolve(packagePath),
@@ -176,98 +181,61 @@ async function npmPack(packagePath: string):
 /**
  * @param package2tarball 
  */
-function changePackageJson(packageTarballMap: Map<string, string>) {
+function changePackageJson(packageTarballMap: Map<string, string>, targetJsonFile?: string) {
   const package2tarball = new Map(packageTarballMap);
-  // include Root dir
+  if (targetJsonFile) {
+    changeSinglePackageJson(Path.dirname(targetJsonFile), package2tarball);
+    return;
+  }
   for (const workspace of _.uniq([
     ...getState().workspaces.keys(), '']).map(dir => Path.resolve(config().rootPath, dir))
   ) {
     const wsDir = Path.resolve(config().rootPath, workspace);
-    const jsonFile = Path.resolve(wsDir, 'package.json');
-    const pkj = fs.readFileSync(jsonFile, 'utf8');
-    const ast = jsonParser(pkj);
-    const depsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'dependencies');
-    const devDepsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'devDependencies');
-    const replacements: ReplacementInf[] = [];
-    if (depsAst) {
-      changeDependencies(depsAst.value as ObjectAst, wsDir, jsonFile, replacements);
-    }
-    if (devDepsAst) {
-      changeDependencies(devDepsAst.value as ObjectAst, wsDir, jsonFile, replacements);
-    }
-
-    // if (package2tarball.size > 0) {
-    //   const appendToAst = depsAst ? depsAst : devDepsAst;
-    //   if (appendToAst == null) {
-    //     // There is no dependencies or DevDependencies
-    //     replacements.push({replacement: ',\n  dependencies: {\n    ', start: pkj.length - 2, end: pkj.length - 2});
-    //     appendRemainderPkgs(pkj.length - 2);
-    //     replacements.push({replacement: '\n  }\n', start: pkj.length - 2, end: pkj.length - 2});
-    //   } else {
-    //     let appendPos = (appendToAst.value).end - 1;
-    //     const existingEntries = (appendToAst.value as ObjectAst).properties;
-    //     if (existingEntries.length > 0) {
-    //       appendPos = existingEntries[existingEntries.length - 1].value.end;
-    //     }
-    //     replacements.push({
-    //       replacement: ',\n    ', start: appendPos, end: appendPos
-    //     });
-    //     appendRemainderPkgs(appendPos);
-    //     replacements.push({
-    //       replacement: '\n', start: appendPos, end: appendPos
-    //     });
-    //   }
-    // }
-
-    // function appendRemainderPkgs(appendPos: number) {
-    //   let i = 1;
-    //   for (const [pkName, tarFile] of package2tarball) {
-    //     let newVersion = Path.relative(wsDir, tarFile).replace(/\\/g, '/');
-    //     log.info(`Append ${jsonFile}: "${pkName}": ${newVersion}`);
-
-    //     if (!newVersion.startsWith('.')) {
-    //       newVersion = './' + newVersion;
-    //     }
-    //     replacements.push({
-    //       replacement: `"${pkName}": ${newVersion}`, start: appendPos, end: appendPos
-    //     });
-    //     if (i !== package2tarball.size) {
-    //       replacements.push({
-    //         replacement: ',\n    ', start: appendPos, end: appendPos
-    //       });
-    //     }
-    //     i++;
-    //   }
-    // }
-
-
-    if (replacements.length > 0) {
-      const replaced = replaceCode(pkj, replacements);
-      // eslint-disable-next-line no-console
-      log.info(`Updated ${jsonFile}\n`, replaced);
-      fs.writeFileSync(jsonFile, replaced);
-    }
+    changeSinglePackageJson(wsDir, package2tarball);
   }
-  function changeDependencies(deps: ObjectAst, wsDir: string, jsonFile: string, replacements: ReplacementInf[]) {
-    // console.log(deps.properties.map(prop => prop.name.text + ':' + (prop.value as Token).text));
-    // console.log(Array.from(package2tarball.entries()));
-    const foundDeps = deps.properties.filter(({name}) => package2tarball.has(JSON.parse(name.text)));
-    for (const foundDep of foundDeps) {
-      const verToken = foundDep.value as Token;
-      const pkName = JSON.parse(foundDep.name.text) as string;
-      const tarFile = package2tarball.get(pkName);
-      let newVersion = Path.relative(wsDir, tarFile!).replace(/\\/g, '/');
-      if (!newVersion.startsWith('.')) {
-        newVersion = './' + newVersion;
-      }
-      log.info(`Update ${jsonFile}: ${verToken.text} => ${newVersion}`);
-      replacements.push({
-        start: verToken.pos,
-        end: verToken.end,
-        text: JSON.stringify(newVersion)
-      });
-      // package2tarball.delete(pkName);
+}
+
+function changeSinglePackageJson(wsDir: string, package2tarball: Map<string, string>) {
+  const jsonFile = Path.resolve(wsDir, 'package.json');
+  const pkj = fs.readFileSync(jsonFile, 'utf8');
+  const ast = jsonParser(pkj);
+  const depsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'dependencies');
+  const devDepsAst = ast.properties.find(({name}) => JSON.parse(name.text) === 'devDependencies');
+  const replacements: ReplacementInf[] = [];
+  if (depsAst) {
+    changeDependencies(package2tarball, depsAst.value as ObjectAst, wsDir, jsonFile, replacements);
+  }
+  if (devDepsAst) {
+    changeDependencies(package2tarball, devDepsAst.value as ObjectAst, wsDir, jsonFile, replacements);
+  }
+
+  if (replacements.length > 0) {
+    const replaced = replaceCode(pkj, replacements);
+    // eslint-disable-next-line no-console
+    log.info(`Updated ${jsonFile}\n`, replaced);
+    fs.writeFileSync(jsonFile, replaced);
+  }
+}
+
+function changeDependencies(package2tarball: Map<string, string>, deps: ObjectAst, wsDir: string, jsonFile: string, replacements: ReplacementInf[]) {
+  // console.log(deps.properties.map(prop => prop.name.text + ':' + (prop.value as Token).text));
+  // console.log(Array.from(package2tarball.entries()));
+  const foundDeps = deps.properties.filter(({name}) => package2tarball.has(JSON.parse(name.text)));
+  for (const foundDep of foundDeps) {
+    const verToken = foundDep.value as Token;
+    const pkName = JSON.parse(foundDep.name.text) as string;
+    const tarFile = package2tarball.get(pkName);
+    let newVersion = Path.relative(wsDir, tarFile!).replace(/\\/g, '/');
+    if (!newVersion.startsWith('.')) {
+      newVersion = './' + newVersion;
     }
+    log.info(`Update ${jsonFile}: ${verToken.text} => ${newVersion}`);
+    replacements.push({
+      start: verToken.pos,
+      end: verToken.end,
+      text: JSON.stringify(newVersion)
+    });
+    // package2tarball.delete(pkName);
   }
 }
 
@@ -310,7 +278,7 @@ function parseNpmPackOutput(output: string) {
 
 export const testable = {parseNpmPackOutput};
 
-function deleteOldTar(deleteFileReg: RegExp[], keepfiles: string[]) {
+function deleteOldTar(deleteFileReg: RegExp[], keepfiles: string[], tarballDir: string) {
   // log.warn(deleteFileReg, keepfiles);
   const tarSet = new Set(keepfiles);
   const deleteDone: Promise<any>[] = [];

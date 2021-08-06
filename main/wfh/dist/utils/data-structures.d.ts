@@ -15,6 +15,10 @@ export interface RedBlackTreeNode<T> {
  */
 export declare class RedBlackTree<T> {
     private comparator?;
+    static nil: {
+        isRed: boolean;
+        size: number;
+    };
     root: RedBlackTreeNode<T> | undefined;
     constructor(comparator?: ((a: T, b: T) => -1 | 0 | 1) | undefined);
     /**
@@ -23,7 +27,9 @@ export declare class RedBlackTree<T> {
      * @returns null if key duplicates with existing tree node
      */
     insert(key: T): RedBlackTreeNode<T> | null;
-    delete(key: T): false | undefined;
+    delete(key: T): boolean;
+    protected deleteNode(node: RedBlackTreeNode<T>): void;
+    private deleteFixup;
     minimumOf(node?: RedBlackTreeNode<T>): RedBlackTreeNode<T>;
     maximumOf(node?: RedBlackTreeNode<T>): RedBlackTreeNode<T>;
     private transplant;

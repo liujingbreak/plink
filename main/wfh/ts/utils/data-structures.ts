@@ -4,18 +4,34 @@
 export interface RedBlackTreeNode<T> {
   isRed: boolean;
   key: T;
-  p?: RedBlackTreeNode<T>;
-  left?: RedBlackTreeNode<T>;
-  right?: RedBlackTreeNode<T>;
+  p: RedBlackTreeNode<T> | Nil;
+  left: RedBlackTreeNode<T> | Nil;
+  right: RedBlackTreeNode<T> | Nil;
+  size: number;
+}
+export interface Nil {
+  isRed: boolean;
   size: number;
 }
 
+export const nil: Nil = {
+  isRed: false,
+  size: 0
+};
 /**
  * According to the book << Introduction to Algorithms, Third Edition >>
  * include features: Dynamic order statistics, range tree
  */
 export class RedBlackTree<T> {
-  root: RedBlackTreeNode<T> | undefined;
+
+  static isNil<T>(node: RedBlackTreeNode<T> | Nil): node is Nil  {
+    return node === nil;
+  }
+
+  static isNotNil<T>(node: RedBlackTreeNode<T> | Nil): node is RedBlackTreeNode<T>  {
+    return node !== nil;
+  }
+  root: RedBlackTreeNode<T> | Nil = nil;
 
   constructor(private comparator?: (a: T, b: T) => -1 | 0 | 1) {
     if (comparator == null) {
@@ -32,11 +48,11 @@ export class RedBlackTree<T> {
    * @returns null if key duplicates with existing tree node
    */
   insert(key: T): RedBlackTreeNode<T> | null {
-    let y: RedBlackTreeNode<T> | undefined;
+    let y: RedBlackTreeNode<T> | Nil = nil;
     let x = this.root;
     let cmp: number;
-    while (x != null) {
-      y = x;
+    while (RedBlackTree.isNotNil(x)) {
+      y = x ;
       cmp = this.comparator!(key, x.key);
       if (cmp < 0) {
         x = x.left;
@@ -50,11 +66,13 @@ export class RedBlackTree<T> {
       isRed: true,
       key,
       p: y,
+      left: nil,
+      right: nil,
       size: 0
     };
-    if (y == null) {
+    if (!RedBlackTree.isNotNil(y)) {
       this.root = z;
-      z.isRed = false;
+      // z.isRed = false;
     } else if (cmp! < 0 ) {
       y.left = z;
     } else if (cmp! > 0 ) {
@@ -64,28 +82,32 @@ export class RedBlackTree<T> {
     return z;
   }
 
-  delete(key: T) {
-    const node = this.search(key);
-    if (node == null) {
-      return false;
-    }
-    this.deleteNode(node);
-  }
+  // delete(key: T) {
+  //   const node = this.search(key);
+  //   if (node == null) {
+  //     return false;
+  //   }
+  //   this.deleteNode(node);
+  //   return true;
+  // }
 
   protected deleteNode(node: RedBlackTreeNode<T>) {
     let origIsRed = node.isRed;
-    let x: RedBlackTreeNode<T> | undefined;
-    if (node.left == null) {
+    let x: RedBlackTreeNode<T> | Nil = nil;
+    if (RedBlackTree.isNil(node.left)) {
       x = node.right;
       this.transplant(node, node.right);
-    } else if (node.right == null) {
+    } else if (RedBlackTree.isNil(node.right)) {
       x = node.left;
       this.transplant(node, node.left);
     } else {
       // both left and right child are not empty
       const rightMin = this.minimumOf(node.right);
+      if (!RedBlackTree.isNotNil(rightMin))
+        return false;
       origIsRed = rightMin.isRed;
-      if (rightMin.p !== node) {
+      x = rightMin.right;
+      if (rightMin.p === node) {
         this.transplant(rightMin, rightMin.right);
         rightMin.right = node.right;
         rightMin.right.p = rightMin;
@@ -94,37 +116,103 @@ export class RedBlackTree<T> {
       }
       rightMin.left = node.left;
       rightMin.left.p = rightMin;
+      rightMin.isRed = node.isRed;
     }
+    if (!origIsRed && x) {
+      console.log('fixup', x.key);
+      this.deleteFixup(x);
+    }
+    return true;
   }
 
-  minimumOf(node: RedBlackTreeNode<T> = this.root!) {
-    while (node.left) {
+  private deleteFixup(x: RedBlackTreeNode<T>) {
+    while (x.p && x !== this.root && !x.isRed) {
+      if (x === x.p.left && x.p.right) {
+        let w = x.p.right; // w is x's sibling
+        if (w.isRed) {
+          w.isRed = false;
+          x.p.isRed = true;
+          this.leftRotate(x.p);
+          w = x.p.right;
+        }
+        if (w.left && !w.left.isRed && w.right && !w.right.isRed) {
+          w.isRed = true;
+          x = x.p;
+        } else {
+          if (w.right && !w.right.isRed && w.left) {
+            w.left.isRed = false;
+            w.isRed = true;
+            this.rightRotate(w);
+            w = x.p.right;
+          }
+          w.isRed = x.p.isRed;
+          x.p.isRed = false;
+          if (w.right)
+            w.right.isRed = false;
+          this.leftRotate(x.p);
+          x = this.root!;
+        }
+      } else if (x === x.p.right && x.p.left) {
+        let w = x.p.left; // w is x's sibling
+        if (w.isRed) {
+          w.isRed = false;
+          x.p.isRed = true;
+          this.rightRotate(x.p);
+          w = x.p.left;
+        }
+        if (w.right && !w.right.isRed && w.left && !w.left.isRed) {
+          w.isRed = true;
+          x = x.p;
+        } else {
+          if (w.left && !w.left.isRed && w.right) {
+            w.right.isRed = false;
+            w.isRed = true;
+            this.leftRotate(w);
+            w = x.p.left;
+          }
+          w.isRed = x.p.isRed;
+          x.p.isRed = false;
+          if (w.left)
+            w.left.isRed = false;
+          this.rightRotate(x.p);
+          x = this.root!;
+        }
+      }
+    }
+    x.isRed = false;
+  }
+
+  minimumOf(node: Nil | RedBlackTreeNode<T> = this.root) {
+    let min: RedBlackTreeNode<T> | Nil = node;
+    while (RedBlackTree.isNotNil(node)) {
+      min = node;
       node = node.left;
     }
-    return node;
+    return min;
   }
 
-  maximumOf(node: RedBlackTreeNode<T> = this.root!) {
-    while (node.right)
-      node = node.right;
-    return node;
-  }
+  // maximumOf(node: RedBlackTreeNode<T> | Nil = this.root) {
 
-  private transplant(replaceNode: RedBlackTreeNode<T>, withNode?: RedBlackTreeNode<T>) {
-    if (replaceNode.p == null) {
+  //   while (RedBlackTree.isNotNil(node))
+  //     node = node.right;
+  //   return node;
+  // }
+
+  private transplant(replaceNode: RedBlackTreeNode<T>, withNode: RedBlackTreeNode<T> | Nil = nil) {
+    if (!RedBlackTree.isNotNil(replaceNode.p)) {
       this.root = withNode;
     } else if (replaceNode === replaceNode.p.left) {
       replaceNode.p.left = withNode;
     } else {
       replaceNode.p.right = withNode;
     }
-    if (withNode)
+    if (RedBlackTree.isNotNil(withNode))
       withNode.p = replaceNode.p;
   }
 
   search(key: T): RedBlackTreeNode<T> | null {
     let node = this.root;
-    while (node != null) {
+    while (RedBlackTree.isNotNil(node)) {
       const cmp = this.comparator!(key, node.key);
       if (cmp === 0)
         return node;
@@ -138,61 +226,57 @@ export class RedBlackTree<T> {
   }
 
   redBlackInsertFixUp(z: RedBlackTreeNode<T>) {
-    while (z.p && z.p.isRed) {
-      if (z.p === z.p.p?.left) {
-        const uncle = z.p.p.right;
-        if (uncle?.isRed) {
+    while (z.p.isRed) {
+      if (z.p === ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).left) {
+        const uncle = ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).right;
+        if (uncle.isRed) {
           // mark parent and uncle to black, grandpa to red, continue to go up to grandpa level
           z.p.isRed = false;
           uncle.isRed = false;
-          z.p.p.isRed = true;
-          z = z.p.p;
+          ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).isRed = true;
+          z = ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>);
         } else {
           // uncle is black
-          if (z === z.p.right) {
+          if (z === (z.p as RedBlackTreeNode<T>).right) {
             // if is right child tree
-            z = z.p;
+            z = z.p as RedBlackTreeNode<T>;
             this.leftRotate(z);
           }
-          if (z.p?.p) {
-            z.p.isRed = false;
-            z.p.p.isRed = true;
-            this.rightRotate(z.p.p);
-          }
+          z.p.isRed = false;
+          ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).isRed = true;
+          this.rightRotate(((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>));
         }
-      } else if (z.p === z.p.p?.right) {
-        const uncle = z.p.p.left;
-        if (uncle?.isRed) {
+      } else if (z.p === ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).right) {
+        const uncle = ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).left;
+        if (uncle.isRed) {
           // mark parent and uncle to black, grandpa to red, continue to go up to grandpa level
           z.p.isRed = false;
           uncle.isRed = false;
-          z.p.p.isRed = true;
-          z = z.p.p;
+          ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).isRed = true;
+          z = ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>);
         } else {
-          if (z === z.p.left) {
-            // if is right child tree
-            z = z.p;
+          // uncle is black
+          if (z === (z.p as RedBlackTreeNode<T>).left) {
+            z = z.p as RedBlackTreeNode<T>;
             this.rightRotate(z);
           }
-          if (z.p?.p) {
-            z.p.isRed = false;
-            z.p.p.isRed = true;
-            this.leftRotate(z.p.p);
-          }
+          z.p.isRed = false;
+          ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).isRed = true;
+          this.leftRotate(((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>));
         }
       }
     }
-    this.root!.isRed = false;
+    this.root.isRed = false;
   }
 
   private leftRotate(x: RedBlackTreeNode<T>) {
-    const y = x.right!;
+    const y = x.right as RedBlackTreeNode<T>;
     x.right = y.left;
-    if (y.left) {
+    if (RedBlackTree.isNotNil(y.left)) {
       y.left.p = x;
     }
     y.p = x.p;
-    if (x.p == null)
+    if (!RedBlackTree.isNotNil(x.p))
       this.root = y;
     else if (x === x.p.left)
       x.p.left = y;
@@ -203,13 +287,13 @@ export class RedBlackTree<T> {
   }
 
   private rightRotate(x: RedBlackTreeNode<T>) {
-    const y = x.left!;
+    const y = x.left as RedBlackTreeNode<T>;
     x.left = y.right;
-    if (y.right) {
+    if (RedBlackTree.isNotNil(y.right)) {
       y.right.p = x;
     }
     y.p = x.p;
-    if (x.p == null)
+    if (!RedBlackTree.isNotNil(x.p))
       this.root = y;
     else if (x === x.p.right)
       x.p.right = y;
