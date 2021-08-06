@@ -3,9 +3,9 @@ import {NextFunction, Request} from 'express';
 import api from '__api';
 import _ from 'lodash';
 // import Url from 'url';
-import log4js from 'log4js';
+import {log4File, config as plinkConfig} from '@wfh/plink';
 import {getSetting} from '../isom/assets-processer-setting';
-const log = log4js.getLogger(api.packageName);
+const log = log4File(__filename);
 interface ReqWithNextCb extends Request {
   __goNext: NextFunction;
 }
@@ -14,11 +14,13 @@ export function proxyToDevServer() {
   let setting: Options | undefined = getSetting().proxyToDevServer;
   if (setting == null)
     return;
+
   const config: Options = _.cloneDeep(setting);
   config.changeOrigin = true;
   config.ws = true;
-  // config.logProvider = () => hpmLog;
-  config.logLevel = 'info';
+  config.logProvider = () => log;
+  const plinkSetting = plinkConfig();
+  config.logLevel = plinkSetting.devMode || plinkSetting.cliOptions?.verbose ? 'debug' : 'info';
   config.onError = (err, req, res) => {
     if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
       log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
@@ -31,7 +33,7 @@ export function proxyToDevServer() {
       (req as ReqWithNextCb).__goNext(err);
   };
 
-  const proxyHandler = proxy(config);
+  const proxyHandler = proxy('/', config);
   api.use((req, res, next) => {
     (req as ReqWithNextCb).__goNext = next;
     proxyHandler(req, res, next);
