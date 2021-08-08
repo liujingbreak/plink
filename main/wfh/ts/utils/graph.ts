@@ -52,9 +52,10 @@ export class DFS<T> extends BaseGraph<T> {
   backEdges: [Vertex<T>, Vertex<T>][] = [];
 
   private time = 0;
+  private level = -1;
   // private vertexMap = new Map<T, Vertex<T>>();
 
-  constructor(private adjacencyOf: (u: T, vertex: Vertex<T>) => Iterable<T>, private onFinish?: (vertex: Vertex<T>) => any) {
+  constructor(private adjacencyOf: (u: T, vertex: Vertex<T>, level: number) => Iterable<T>, private onFinish?: (vertex: Vertex<T>) => any) {
     super();
   }
 
@@ -64,7 +65,7 @@ export class DFS<T> extends BaseGraph<T> {
   }
 
   printCyclicBackEdge(edge: Vertex<T>, edgeTo: Vertex<T>): string[] {
-    return [...this._printParentUntil(edge, edgeTo), edgeTo.data +''];
+    return [...this._printParentUntil(edge, edgeTo), edgeTo.data + ''];
   }
 
   _printParentUntil(edge: Vertex<T>, edgeAncestor: Vertex<T>): string[] {
@@ -83,7 +84,8 @@ export class DFS<T> extends BaseGraph<T> {
   protected visitVertex(u: Vertex<T>) {
     u.d = ++this.time;
     u.color = Color.gray;
-    for (const vData of this.adjacencyOf(u.data, u)) {
+    this.level++;
+    for (const vData of this.adjacencyOf(u.data, u, this.level)) {
       const v = this.vertexOf(vData);
       if (v.color === Color.white) {
         v.p = [u];
@@ -98,6 +100,7 @@ export class DFS<T> extends BaseGraph<T> {
     }
     u.color = Color.black;
     u.f = ++this.time;
+    this.level--;
     if (this.onFinish)
       this.onFinish(u);
   }

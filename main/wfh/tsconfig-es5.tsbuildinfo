@@ -217,8 +217,8 @@
         "affectsGlobalScope": false
       },
       "./ts/utils/graph.ts": {
-        "version": "1a9dc3a331d485b1c95fbe7ad21b944e8745978ff34d2960d040a3593dc2100c",
-        "signature": "dbeab0a9a2c462efd856ad9f90b60d36f87cd84d892e3fc8f4d477035e29452f",
+        "version": "d3575203bc915f1d886ac9559b15b81a19ab82ddd0cac35205a71f93625b66d4",
+        "signature": "ca394690e05e1eb6ab5703b7f2c783e155fc42950e6e74b6ce17ae85bb8d7b9f",
         "affectsGlobalScope": false
       },
       "./ts/utils/algorithms.ts": {
@@ -227,8 +227,8 @@
         "affectsGlobalScope": false
       },
       "./ts/utils/data-structures.ts": {
-        "version": "6a1980405ac9879fc2e7bf1b9667d99e9eb6dcf09f8a720e5d773b1aea7d1564",
-        "signature": "20ce8a69c11f73c6b9d046ac334acaf180904538d4d3ee0f1eba58e9eb66502a",
+        "version": "90051150b8c72ec40b2b09264be59faf1d9763c4b65036e1e998a7d41c8db7f2",
+        "signature": "139065cf2139a81355f58c0b203451b92684be8dddd7d25e2c904be10dc47262",
         "affectsGlobalScope": false
       },
       "../node_modules/@types/anymatch/index.d.ts": {
@@ -826,11 +826,6 @@
         "signature": "bee79f5862fe1278d2ba275298862bce3f7abf1e59d9c669c4b9a4b2bba96956",
         "affectsGlobalScope": false
       },
-      "../node_modules/anymatch/index.d.ts": {
-        "version": "4fb0b7d532aa6fb850b6cd2f1ee4f00802d877b5c66a51903bc1fb0624126349",
-        "signature": "4fb0b7d532aa6fb850b6cd2f1ee4f00802d877b5c66a51903bc1fb0624126349",
-        "affectsGlobalScope": false
-      },
       "../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts": {
         "version": "2887592574fcdfd087647c539dcb0fbe5af2521270dad4a37f9d17c16190d579",
         "signature": "2887592574fcdfd087647c539dcb0fbe5af2521270dad4a37f9d17c16190d579",
@@ -912,13 +907,8 @@
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/json-schema/index.d.ts": {
-        "version": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
-        "signature": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/json5/index.d.ts": {
-        "version": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
-        "signature": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
+        "version": "a185ebc69c9f6798ebd67bfdfd72a37457dc67c23459784783c7128ae9bd5250",
+        "signature": "a185ebc69c9f6798ebd67bfdfd72a37457dc67c23459784783c7128ae9bd5250",
         "affectsGlobalScope": false
       }
     },
@@ -1640,13 +1630,13 @@
         "../node_modules/@types/webpack-sources/node_modules/source-map/source-map.d.ts"
       ],
       "../node_modules/@types/webpack/index.d.ts": [
+        "../node_modules/@types/anymatch/index.d.ts",
         "../node_modules/@types/node/crypto.d.ts",
         "../node_modules/@types/node/index.d.ts",
         "../node_modules/@types/tapable/index.d.ts",
         "../node_modules/@types/uglify-js/index.d.ts",
         "../node_modules/@types/uglify-js/node_modules/source-map/source-map.d.ts",
-        "../node_modules/@types/webpack-sources/index.d.ts",
-        "../node_modules/anymatch/index.d.ts"
+        "../node_modules/@types/webpack-sources/index.d.ts"
       ],
       "../node_modules/redux/index.d.ts": [
         "../node_modules/symbol-observable/index.d.ts"
@@ -2499,7 +2489,6 @@
       "../node_modules/@types/webpack/index.d.ts",
       "../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts",
       "../node_modules/@types/yamljs/index.d.ts",
-      "../node_modules/anymatch/index.d.ts",
       "../node_modules/csstype/index.d.ts",
       "../node_modules/redux/index.d.ts",
       "../node_modules/symbol-observable/index.d.ts",
@@ -2535,8 +2524,7 @@
       "./ts/utils/algorithms.ts",
       "./ts/utils/data-structures.ts",
       "./ts/utils/graph.ts",
-      "../../node_modules/@types/json-schema/index.d.ts",
-      "../../node_modules/@types/json5/index.d.ts"
+      "../../node_modules/@types/json-schema/index.d.ts"
     ]
   },
   "version": "4.1.2"

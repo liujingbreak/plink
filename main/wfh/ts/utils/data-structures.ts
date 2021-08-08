@@ -1,37 +1,21 @@
 /**
  * Unfinished, TODO: deletion
  */
-export interface RedBlackTreeNode<T> {
-  isRed: boolean;
+export interface RbTreeNode<T> {
   key: T;
-  p: RedBlackTreeNode<T> | Nil;
-  left: RedBlackTreeNode<T> | Nil;
-  right: RedBlackTreeNode<T> | Nil;
-  size: number;
-}
-export interface Nil {
+  p: RbTreeNode<T> | null;
+  left: RbTreeNode<T> | null;
+  right: RbTreeNode<T> | null;
   isRed: boolean;
   size: number;
 }
 
-export const nil: Nil = {
-  isRed: false,
-  size: 0
-};
 /**
  * According to the book << Introduction to Algorithms, Third Edition >>
  * include features: Dynamic order statistics, range tree
  */
 export class RedBlackTree<T> {
-
-  static isNil<T>(node: RedBlackTreeNode<T> | Nil): node is Nil  {
-    return node === nil;
-  }
-
-  static isNotNil<T>(node: RedBlackTreeNode<T> | Nil): node is RedBlackTreeNode<T>  {
-    return node !== nil;
-  }
-  root: RedBlackTreeNode<T> | Nil = nil;
+  root: RbTreeNode<T> | null | undefined = null;
 
   constructor(private comparator?: (a: T, b: T) => -1 | 0 | 1) {
     if (comparator == null) {
@@ -47,11 +31,11 @@ export class RedBlackTree<T> {
    * @param key
    * @returns null if key duplicates with existing tree node
    */
-  insert(key: T): RedBlackTreeNode<T> | null {
-    let y: RedBlackTreeNode<T> | Nil = nil;
+  insert(key: T): RbTreeNode<T> | null {
+    let y: RbTreeNode<T> | null = null;
     let x = this.root;
     let cmp: number;
-    while (RedBlackTree.isNotNil(x)) {
+    while (x) {
       y = x ;
       cmp = this.comparator!(key, x.key);
       if (cmp < 0) {
@@ -62,15 +46,15 @@ export class RedBlackTree<T> {
         return null; // duplicate key found
       }
     }
-    const z: RedBlackTreeNode<T> = {
+    const z: RbTreeNode<T> = {
       isRed: true,
       key,
       p: y,
-      left: nil,
-      right: nil,
+      left: null,
+      right: null,
       size: 0
     };
-    if (!RedBlackTree.isNotNil(y)) {
+    if (y == null) {
       this.root = z;
       // z.isRed = false;
     } else if (cmp! < 0 ) {
@@ -82,137 +66,151 @@ export class RedBlackTree<T> {
     return z;
   }
 
-  // delete(key: T) {
-  //   const node = this.search(key);
-  //   if (node == null) {
-  //     return false;
-  //   }
-  //   this.deleteNode(node);
-  //   return true;
-  // }
+  delete(key: T) {
+    const node = this.search(key);
+    if (node == null) {
+      return false;
+    }
+    this.deleteNode(node);
+    return true;
+  }
 
-  protected deleteNode(node: RedBlackTreeNode<T>) {
-    let origIsRed = node.isRed;
-    let x: RedBlackTreeNode<T> | Nil = nil;
-    if (RedBlackTree.isNil(node.left)) {
-      x = node.right;
-      this.transplant(node, node.right);
-    } else if (RedBlackTree.isNil(node.right)) {
-      x = node.left;
-      this.transplant(node, node.left);
+  isRed(node: RbTreeNode<T> | null | undefined) {
+    return node != null && node.isRed;
+  }
+
+  isBlack(node: RbTreeNode<T> | null | undefined) {
+    return node == null || !node.isRed;
+  }
+
+  protected deleteNode(z: RbTreeNode<T>) {
+    let y: RbTreeNode<T> | null  = z;
+    let origIsRed = this.isRed(y);
+    let x: RbTreeNode<T> | null = null;
+    if (z.left == null) {
+      x = z.right;
+      this.transplant(z, z.right);
+    } else if (z.right == null) {
+      x = z.left;
+      this.transplant(z, z.left);
     } else {
       // both left and right child are not empty
-      const rightMin = this.minimumOf(node.right);
-      if (!RedBlackTree.isNotNil(rightMin))
+      y = this.minimumOf(z.right);
+      if (y == null)
         return false;
-      origIsRed = rightMin.isRed;
-      x = rightMin.right;
-      if (rightMin.p === node) {
-        this.transplant(rightMin, rightMin.right);
-        rightMin.right = node.right;
-        rightMin.right.p = rightMin;
+      origIsRed = this.isRed(y);
+      x = y.right;
+      if (y.p === z) {
+        if (x) x.p = y;
       } else {
-        this.transplant(node, rightMin);
+        this.transplant(y, y.right);
+        y.right = z.right;
+        y.right.p = y;
       }
-      rightMin.left = node.left;
-      rightMin.left.p = rightMin;
-      rightMin.isRed = node.isRed;
+      this.transplant(z, y);
+      y.left = z.left;
+      y.left.p = y;
+      y.isRed = this.isRed(z);
     }
     if (!origIsRed && x) {
-      console.log('fixup', x.key);
+      // console.log('delete fixup', x.key);
       this.deleteFixup(x);
     }
     return true;
   }
 
-  private deleteFixup(x: RedBlackTreeNode<T>) {
-    while (x.p && x !== this.root && !x.isRed) {
-      if (x === x.p.left && x.p.right) {
+  private deleteFixup(x: RbTreeNode<T>) {
+    while (x !== this.root && this.isBlack(x)) {
+      if (x.p && x === x.p.left) {
         let w = x.p.right; // w is x's sibling
-        if (w.isRed) {
-          w.isRed = false;
+        if (this.isRed(w)) {
+          w!.isRed = false;
           x.p.isRed = true;
-          this.leftRotate(x.p);
+          this.leftRotate(x.p );
           w = x.p.right;
         }
-        if (w.left && !w.left.isRed && w.right && !w.right.isRed) {
-          w.isRed = true;
-          x = x.p;
-        } else {
-          if (w.right && !w.right.isRed && w.left) {
-            w.left.isRed = false;
+        if (w) {
+          if (this.isBlack(w.left) && this.isBlack(w.right)) {
             w.isRed = true;
-            this.rightRotate(w);
-            w = x.p.right;
+            x = x.p ;
+          } else {
+            if (this.isBlack(w.right)) {
+              if (w.left)
+                w.left.isRed = false;
+              w.isRed = true;
+              this.rightRotate(w);
+              w = x.p.right;
+            }
+            if (w) w.isRed = this.isRed(x.p);
+            x.p.isRed = false;
+            if (w?.right) w.right.isRed = false;
+            this.leftRotate(x.p );
+            x = this.root!;
           }
-          w.isRed = x.p.isRed;
-          x.p.isRed = false;
-          if (w.right)
-            w.right.isRed = false;
-          this.leftRotate(x.p);
-          x = this.root!;
         }
-      } else if (x === x.p.right && x.p.left) {
+      } else if (x.p && x === x.p.right) {
         let w = x.p.left; // w is x's sibling
-        if (w.isRed) {
-          w.isRed = false;
+        if (this.isRed(w)) {
+          w!.isRed = false;
           x.p.isRed = true;
-          this.rightRotate(x.p);
+          this.rightRotate(x.p );
           w = x.p.left;
         }
-        if (w.right && !w.right.isRed && w.left && !w.left.isRed) {
-          w.isRed = true;
-          x = x.p;
-        } else {
-          if (w.left && !w.left.isRed && w.right) {
-            w.right.isRed = false;
+        if (w) {
+          if (this.isBlack(w.right) && this.isBlack(w.left)) {
             w.isRed = true;
-            this.leftRotate(w);
-            w = x.p.left;
+            x = x.p ;
+          } else {
+            if (this.isBlack(w.left)) {
+              if (w.right)
+                w.right.isRed = false;
+              w.isRed = true;
+              this.leftRotate(w);
+              w = x.p.left;
+            }
+            if (w) w.isRed = this.isRed(x.p);
+            x.p.isRed = false;
+            if (w?.left) w.left.isRed = false;
+            this.rightRotate(x.p );
+            x = this.root!;
           }
-          w.isRed = x.p.isRed;
-          x.p.isRed = false;
-          if (w.left)
-            w.left.isRed = false;
-          this.rightRotate(x.p);
-          x = this.root!;
         }
       }
     }
     x.isRed = false;
   }
 
-  minimumOf(node: Nil | RedBlackTreeNode<T> = this.root) {
-    let min: RedBlackTreeNode<T> | Nil = node;
-    while (RedBlackTree.isNotNil(node)) {
-      min = node;
+  minimumOf(node: RbTreeNode<T> | null | undefined = this.root) {
+    // let min: RbTreeNode<T> | null = null;
+    while (node?.left) {
+      // min = node;
       node = node.left;
     }
-    return min;
+    return node ? node : null;
   }
 
-  // maximumOf(node: RedBlackTreeNode<T> | Nil = this.root) {
+  // maximumOf(node: RbTreeNode<T> = this.root) {
 
-  //   while (RedBlackTree.isNotNil(node))
+  //   while (this.isNotNil(node))
   //     node = node.right;
   //   return node;
   // }
 
-  private transplant(replaceNode: RedBlackTreeNode<T>, withNode: RedBlackTreeNode<T> | Nil = nil) {
-    if (!RedBlackTree.isNotNil(replaceNode.p)) {
+  private transplant(replaceNode: RbTreeNode<T>, withNode: RbTreeNode<T> | null = null) {
+    if (replaceNode.p == null) {
       this.root = withNode;
     } else if (replaceNode === replaceNode.p.left) {
       replaceNode.p.left = withNode;
     } else {
       replaceNode.p.right = withNode;
     }
-    if (RedBlackTree.isNotNil(withNode))
+    if (withNode)
       withNode.p = replaceNode.p;
   }
 
-  search(key: T): RedBlackTreeNode<T> | null {
+  search(key: T): RbTreeNode<T> | null {
     let node = this.root;
-    while (RedBlackTree.isNotNil(node)) {
+    while (node) {
       const cmp = this.comparator!(key, node.key);
       if (cmp === 0)
         return node;
@@ -225,58 +223,71 @@ export class RedBlackTree<T> {
     return null;
   }
 
-  redBlackInsertFixUp(z: RedBlackTreeNode<T>) {
-    while (z.p.isRed) {
-      if (z.p === ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).left) {
-        const uncle = ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).right;
-        if (uncle.isRed) {
+  protected redBlackInsertFixUp(z: RbTreeNode<T>) {
+    while (this.isRed(z.p)) {
+      if (z.p?.p && z.p === z.p.p.left) {
+        const uncle = z.p.p.right;
+        if (this.isRed(uncle)) {
           // mark parent and uncle to black, grandpa to red, continue to go up to grandpa level
           z.p.isRed = false;
-          uncle.isRed = false;
-          ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).isRed = true;
-          z = ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>);
+          if (uncle) uncle.isRed = false;
+          z.p.p.isRed = true;
+          z = z.p.p;
         } else {
           // uncle is black
-          if (z === (z.p as RedBlackTreeNode<T>).right) {
+          if (z === z.p.right) {
             // if is right child tree
-            z = z.p as RedBlackTreeNode<T>;
+            z = z.p;
             this.leftRotate(z);
           }
-          z.p.isRed = false;
-          ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).isRed = true;
-          this.rightRotate(((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>));
+          if (z.p) {
+            z.p.isRed = false;
+            if (z.p.p) {
+              z.p.p.isRed = true;
+              this.rightRotate(z.p.p);
+            }
+          }
         }
-      } else if (z.p === ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).right) {
-        const uncle = ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).left;
-        if (uncle.isRed) {
+      } else if (z.p?.p && z.p === z.p.p.right) {
+        const uncle = z.p.p.left;
+        if (this.isRed(uncle)) {
           // mark parent and uncle to black, grandpa to red, continue to go up to grandpa level
           z.p.isRed = false;
-          uncle.isRed = false;
-          ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).isRed = true;
-          z = ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>);
+          if (uncle) uncle.isRed = false;
+          z.p.p.isRed = true;
+          z = z.p.p;
         } else {
           // uncle is black
-          if (z === (z.p as RedBlackTreeNode<T>).left) {
-            z = z.p as RedBlackTreeNode<T>;
+          if (z === z.p.left) {
+            // if is right child tree
+            z = z.p;
             this.rightRotate(z);
           }
-          z.p.isRed = false;
-          ((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>).isRed = true;
-          this.leftRotate(((z.p as RedBlackTreeNode<T>).p as RedBlackTreeNode<T>));
+          if (z.p) {
+            z.p.isRed = false;
+            if (z.p.p) {
+              z.p.p.isRed = true;
+              this.leftRotate(z.p.p);
+            }
+          }
         }
       }
     }
-    this.root.isRed = false;
+    if (this.root)
+      this.root.isRed = false;
   }
 
-  private leftRotate(x: RedBlackTreeNode<T>) {
-    const y = x.right as RedBlackTreeNode<T>;
+  private leftRotate(x: RbTreeNode<T>) {
+    // console.log('leftRotate', x.key);
+    const y = x.right;
+    if (y == null)
+      return;
     x.right = y.left;
-    if (RedBlackTree.isNotNil(y.left)) {
+    if (y.left) {
       y.left.p = x;
     }
     y.p = x.p;
-    if (!RedBlackTree.isNotNil(x.p))
+    if (x.p == null)
       this.root = y;
     else if (x === x.p.left)
       x.p.left = y;
@@ -286,14 +297,16 @@ export class RedBlackTree<T> {
     x.p = y;
   }
 
-  private rightRotate(x: RedBlackTreeNode<T>) {
-    const y = x.left as RedBlackTreeNode<T>;
+  private rightRotate(x: RbTreeNode<T>) {
+    const y = x.left;
+    if (y == null)
+      return;
     x.left = y.right;
-    if (RedBlackTree.isNotNil(y.right)) {
+    if (y.right) {
       y.right.p = x;
     }
     y.p = x.p;
-    if (!RedBlackTree.isNotNil(x.p))
+    if (x.p == null)
       this.root = y;
     else if (x === x.p.right)
       x.p.right = y;
@@ -303,3 +316,4 @@ export class RedBlackTree<T> {
     x.p = y;
   }
 }
+
