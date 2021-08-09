@@ -1,6 +1,11 @@
 /**
- * Unfinished, TODO: deletion
+ * According to the book << Introduction to Algorithms, Third Edition >>
+ * 
+ * features in progress: Dynamic order statistics, range tree
+ * 
+ * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
+
 export interface RbTreeNode<T> {
   key: T;
   p: RbTreeNode<T> | null;
@@ -9,11 +14,6 @@ export interface RbTreeNode<T> {
   isRed: boolean;
   size: number;
 }
-
-/**
- * According to the book << Introduction to Algorithms, Third Edition >>
- * include features: Dynamic order statistics, range tree
- */
 export class RedBlackTree<T> {
   root: RbTreeNode<T> | null | undefined = null;
 
@@ -317,3 +317,7 @@ export class RedBlackTree<T> {
   }
 }
 
+/** Allow inserting multiple items with same key in a red-black tree */
+export class DuplicateKeyTree<T> extends RedBlackTree<T> {
+
+}

@@ -5,7 +5,7 @@ import vm from 'vm';
 import { jsonToCompilerOptions, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';
 import {markdownToHtml} from './markdown-util';
 
-const loader: loader.Loader = function(source, sourceMap) {
+const markdownLoader: loader.Loader = function(source, sourceMap) {
 
   const cb = this.async();
 
@@ -21,7 +21,7 @@ const loader: loader.Loader = function(source, sourceMap) {
   }
 };
 
-export default loader;
+export default markdownLoader;
 
 const co = jsonToCompilerOptions({
     baseUrl: '.',
@@ -57,7 +57,7 @@ const co = jsonToCompilerOptions({
 function loadModuleInWebpack(request: string, ctx: loader.LoaderContext) {
   return new rx.Observable<string>(subscriber => {
     // Unlike extract-loader, we does not support embedded require statement in source code 
-    ctx.loadModule(request, (err: Error, source) => {
+    ctx.loadModule(request, (err: Error | null, source) => {
       const __webpack_public_path__ = ctx._compiler.options.output?.publicPath;
       if (err)
         return subscriber.error(err);
