@@ -4,8 +4,9 @@ import _ from 'lodash';
 import log4js from 'log4js';
 import Path from 'path';
 import { setTsCompilerOptForNodePath, packages4WorkspaceKey, CompilerOptions } from './package-mgr/package-list-helper';
+import {castByActionType} from '../../redux-toolkit-observable/dist/helper';
 import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
-  isCwdWorkspace } from './package-mgr';
+  isCwdWorkspace, workspaceDir } from './package-mgr';
 import { stateFactory, ofPayloadAction } from './store';
 import * as _recp from './recipe-manager';
 import { closestCommonParentDir, getRootDir } from './utils/misc';
@@ -58,6 +59,7 @@ const slice = stateFactory.newSlice({
 export const dispatcher = stateFactory.bindActionCreators(slice);
 
 stateFactory.addEpic<EditorHelperState>((action$, state$) => {
+  const actionByTypes = castByActionType(pkgSlice.actions, action$);
   return rx.merge(
     new rx.Observable(sub => {
       if (getPkgState().linkedDrcp) {
@@ -69,20 +71,21 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
       }
       sub.complete();
     }),
+    actionByTypes._beforeInstallWorkspace.pipe(
+      op.map(({payload}) => {
+        // NPM v7.20.x will report EINVALIDPACKAGENAME "Invalid package name "_package-settings.d.ts": name cannot start with an underscore"
+        // I must clear this file before installation start
+        const settingFile = packageSettingDtsFileOf(workspaceDir(payload.workspaceKey));
+        log.warn('clear', settingFile, 'before installation');
+        fs.unlinkSync(settingFile);
+      })
+    ),
     action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceBatchChanged),
       op.tap(({payload: wsKeys}) => {
         const wsDir = isCwdWorkspace() ? workDir :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
         writePackageSettingType();
-        // if (getPkgState().linkedDrcp) {
-        //   const plinkTsconfig = Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json');
-        //   updateHookedTsconfig({
-        //     relPath: Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json'),
-        //     baseUrl: '.',
-        //     originJson: JSON.parse(fs.readFileSync(plinkTsconfig, 'utf8'))
-        //   }, wsDir);
-        // }
         updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
         for (const data of getState().tsconfigByRelPath.values()) {
           void updateHookedTsconfig(data, wsDir);

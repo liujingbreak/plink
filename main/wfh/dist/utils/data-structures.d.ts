@@ -1,40 +1,40 @@
 /**
- * Unfinished, TODO: deletion
+ * According to the book << Introduction to Algorithms, Third Edition >>
+ *
+ * features in progress: Dynamic order statistics, range tree
+ *
+ * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
-export interface RedBlackTreeNode<T> {
-    isRed: boolean;
+export interface RbTreeNode<T> {
     key: T;
-    p?: RedBlackTreeNode<T>;
-    left?: RedBlackTreeNode<T>;
-    right?: RedBlackTreeNode<T>;
+    p: RbTreeNode<T> | null;
+    left: RbTreeNode<T> | null;
+    right: RbTreeNode<T> | null;
+    isRed: boolean;
     size: number;
 }
-/**
- * According to the book << Introduction to Algorithms, Third Edition >>
- * include features: Dynamic order statistics, range tree
- */
 export declare class RedBlackTree<T> {
     private comparator?;
-    static nil: {
-        isRed: boolean;
-        size: number;
-    };
-    root: RedBlackTreeNode<T> | undefined;
+    root: RbTreeNode<T> | null | undefined;
     constructor(comparator?: ((a: T, b: T) => -1 | 0 | 1) | undefined);
     /**
      *
      * @param key
      * @returns null if key duplicates with existing tree node
      */
-    insert(key: T): RedBlackTreeNode<T> | null;
+    insert(key: T): RbTreeNode<T> | null;
     delete(key: T): boolean;
-    protected deleteNode(node: RedBlackTreeNode<T>): void;
+    isRed(node: RbTreeNode<T> | null | undefined): boolean;
+    isBlack(node: RbTreeNode<T> | null | undefined): boolean;
+    protected deleteNode(z: RbTreeNode<T>): boolean;
     private deleteFixup;
-    minimumOf(node?: RedBlackTreeNode<T>): RedBlackTreeNode<T>;
-    maximumOf(node?: RedBlackTreeNode<T>): RedBlackTreeNode<T>;
+    minimumOf(node?: RbTreeNode<T> | null | undefined): RbTreeNode<T> | null;
     private transplant;
-    search(key: T): RedBlackTreeNode<T> | null;
-    redBlackInsertFixUp(z: RedBlackTreeNode<T>): void;
+    search(key: T): RbTreeNode<T> | null;
+    protected redBlackInsertFixUp(z: RbTreeNode<T>): void;
     private leftRotate;
     private rightRotate;
+}
+/** Allow inserting multiple items with same key in a red-black tree */
+export declare class DuplicateKeyTree<T> extends RedBlackTree<T> {
 }

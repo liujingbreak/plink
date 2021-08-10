@@ -352,6 +352,7 @@ export const slice = stateFactory.newSlice({
       state.lastCreatedWorkspace = wsKey;
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
     },
+    _beforeInstallWorkspace(d: PackagesState, action: PayloadAction<{workspaceKey: string}>) {},
     _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {},
     // _createSymlinksForWorkspace(d, action: PayloadAction<string>) {},
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: {name: string}[]}>) {
@@ -568,30 +569,34 @@ stateFactory.addEpic((action$, state$) => {
             }
           }
           return newWs;
-        }),
-        ignoreElements()
+        })
       );
     }),
-    action$.pipe(ofPayloadAction(slice.actions._installWorkspace, slice.actions.workspaceBatchChanged),
+    action$.pipe(ofPayloadAction(slice.actions._installWorkspace),
       concatMap(action => {
-        if (action.type === slice.actions._installWorkspace.type) {
-          const wsKey = (action.payload as Parameters<typeof slice.actions._installWorkspace>[0]).workspaceKey;
-          return getStore().pipe(
-            map(s => s.workspaces.get(wsKey)),
-            distinctUntilChanged(),
-            filter(ws => ws != null),
-            take(1),
-            concatMap(ws => installWorkspace(ws!, getState().npmInstallOpt)),
-            map(() => {
-              updateInstalledPackageForWorkspace(wsKey);
-            })
-          );
-        } else {
-          const wsKeys = action.payload as Parameters<typeof slice.actions.workspaceBatchChanged>[0];
-          return merge(...wsKeys.map(_createSymlinksForWorkspace));
-        }
-      }),
-      ignoreElements()
+        const wsKey = action.payload.workspaceKey;
+        return getStore().pipe(
+          map(s => s.workspaces.get(wsKey)),
+          distinctUntilChanged(),
+          filter(ws => ws != null),
+          take(1),
+          concatMap(async ws => {
+            actionDispatcher._beforeInstallWorkspace(action.payload);
+            await new Promise(resolve => setImmediate(resolve));
+            // await new Promise(resolve => setTimeout(resolve, 3000));
+            return installWorkspace(ws!, getState().npmInstallOpt);
+          }),
+          map(() => {
+            updateInstalledPackageForWorkspace(wsKey);
+          })
+        );
+      })
+    ),
+    action$.pipe(ofPayloadAction(slice.actions.workspaceBatchChanged),
+      concatMap(action => {
+        const wsKeys = action.payload;
+        return merge(...wsKeys.map(_createSymlinksForWorkspace));
+      })
     ),
     action$.pipe(ofPayloadAction(slice.actions.workspaceStateUpdated),
       map(action => updatedWorkspaceSet.add(action.payload)),

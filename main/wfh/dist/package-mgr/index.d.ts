@@ -134,6 +134,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
+    _beforeInstallWorkspace(d: PackagesState, action: PayloadAction<{
+        workspaceKey: string;
+    }>): void;
     _installWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { workspaceKey } }: {
         payload: {
             workspaceKey: string;
@@ -205,6 +208,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
+    _beforeInstallWorkspace(d: PackagesState, action: PayloadAction<{
+        workspaceKey: string;
+    }>): void;
     _installWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { workspaceKey } }: {
         payload: {
             workspaceKey: string;

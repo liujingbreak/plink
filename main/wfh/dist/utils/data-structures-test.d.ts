@@ -1,1 +1,1 @@
-export declare function printTestTree(): void;
+export declare function test(): void;

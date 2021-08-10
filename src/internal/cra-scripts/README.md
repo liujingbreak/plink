@@ -47,7 +47,7 @@ Add dependencies, packages with `@wfh` are required by Plink, others should be y
 ```
 > You may also use Plink "add" command to add dependencies
 ```bash
-plink add --dev sass @wfh/cra-scripts @wfh/webpack-common @wfh/redux-toolkit-observable react-app-polyfill
+plink add --to react-space --dev sass @wfh/cra-scripts @wfh/webpack-common @wfh/redux-toolkit-observable react-app-polyfill react-redux@^7.2.2 @types/react-redux@^7.1.16
 ```
 ### Build and watch
 ```bash
@@ -56,7 +56,7 @@ cd react-space
 
 # To see command line help
 # plink cra-build -h
-plink build app <package name>
+plink cra-build app <package name>
 ```
 
 checkout helper 

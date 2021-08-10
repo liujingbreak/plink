@@ -26,7 +26,8 @@ export declare class DFS<T> extends BaseGraph<T> {
     private onFinish?;
     backEdges: [Vertex<T>, Vertex<T>][];
     private time;
-    constructor(adjacencyOf: (u: T, vertex: Vertex<T>) => Iterable<T>, onFinish?: ((vertex: Vertex<T>) => any) | undefined);
+    private level;
+    constructor(adjacencyOf: (u: T, vertex: Vertex<T>, level: number) => Iterable<T>, onFinish?: ((vertex: Vertex<T>) => any) | undefined);
     visit(g: Iterable<T>): void;
     printCyclicBackEdge(edge: Vertex<T>, edgeTo: Vertex<T>): string[];
     _printParentUntil(edge: Vertex<T>, edgeAncestor: Vertex<T>): string[];

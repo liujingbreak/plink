@@ -1766,11 +1766,6 @@
         "signature": "bee79f5862fe1278d2ba275298862bce3f7abf1e59d9c669c4b9a4b2bba96956",
         "affectsGlobalScope": false
       },
-      "../../node_modules/anymatch/index.d.ts": {
-        "version": "4fb0b7d532aa6fb850b6cd2f1ee4f00802d877b5c66a51903bc1fb0624126349",
-        "signature": "4fb0b7d532aa6fb850b6cd2f1ee4f00802d877b5c66a51903bc1fb0624126349",
-        "affectsGlobalScope": false
-      },
       "../../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts": {
         "version": "2887592574fcdfd087647c539dcb0fbe5af2521270dad4a37f9d17c16190d579",
         "signature": "2887592574fcdfd087647c539dcb0fbe5af2521270dad4a37f9d17c16190d579",
@@ -1852,13 +1847,8 @@
         "affectsGlobalScope": false
       },
       "../../../node_modules/@types/json-schema/index.d.ts": {
-        "version": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
-        "signature": "3a1e165b22a1cb8df82c44c9a09502fd2b33f160cd277de2cd3a055d8e5c6b27",
-        "affectsGlobalScope": false
-      },
-      "../../../node_modules/@types/json5/index.d.ts": {
-        "version": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
-        "signature": "96d14f21b7652903852eef49379d04dbda28c16ed36468f8c9fa08f7c14c9538",
+        "version": "a185ebc69c9f6798ebd67bfdfd72a37457dc67c23459784783c7128ae9bd5250",
+        "signature": "a185ebc69c9f6798ebd67bfdfd72a37457dc67c23459784783c7128ae9bd5250",
         "affectsGlobalScope": false
       }
     },
@@ -2583,13 +2573,13 @@
         "../../node_modules/@types/webpack-sources/node_modules/source-map/source-map.d.ts"
       ],
       "../../node_modules/@types/webpack/index.d.ts": [
+        "../../node_modules/@types/anymatch/index.d.ts",
         "../../node_modules/@types/node/crypto.d.ts",
         "../../node_modules/@types/node/index.d.ts",
         "../../node_modules/@types/tapable/index.d.ts",
         "../../node_modules/@types/uglify-js/index.d.ts",
         "../../node_modules/@types/uglify-js/node_modules/source-map/source-map.d.ts",
-        "../../node_modules/@types/webpack-sources/index.d.ts",
-        "../../node_modules/anymatch/index.d.ts"
+        "../../node_modules/@types/webpack-sources/index.d.ts"
       ],
       "../../node_modules/immer/dist/core/finalize.d.ts": [
         "../../node_modules/immer/dist/internal.d.ts"
@@ -5151,7 +5141,6 @@
       "../../node_modules/@types/webpack/index.d.ts",
       "../../node_modules/@types/webpack/node_modules/source-map/source-map.d.ts",
       "../../node_modules/@types/yamljs/index.d.ts",
-      "../../node_modules/anymatch/index.d.ts",
       "../../node_modules/csstype/index.d.ts",
       "../../node_modules/immer/dist/core/current.d.ts",
       "../../node_modules/immer/dist/core/finalize.d.ts",
@@ -5375,8 +5364,7 @@
       "../state-factory-browser.ts",
       "../tiny-redux-toolkit-hook.ts",
       "../tiny-redux-toolkit.ts",
-      "../../../node_modules/@types/json-schema/index.d.ts",
-      "../../../node_modules/@types/json5/index.d.ts"
+      "../../../node_modules/@types/json-schema/index.d.ts"
     ]
   },
   "version": "4.1.2"
