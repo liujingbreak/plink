@@ -14,7 +14,7 @@ import '@wfh/plink/wfh/dist/editor-helper';
 
 
 // TODO: support file type other than "ts"
-export async function generateConfig(file: string, opt: {dryRun: boolean, type: 'ts' | 'yaml' | 'json'}) {
+export async function generateConfig(file: string, opt: {dryRun: boolean; type: 'ts' | 'yaml' | 'json'}) {
   file = Path.resolve(file);
   if (opt.dryRun) {
     plink.logger.info('Dryrun mode');
@@ -86,7 +86,7 @@ export async function generateConfig(file: string, opt: {dryRun: boolean, type: 
     }
   }
 
-  generateStructure(Path.resolve(__dirname, '../../template-gcfg'), Path.dirname(file), {
+  await generateStructure(Path.resolve(__dirname, '../../template-gcfg'), Path.dirname(file), {
     fileMapping: [ [/foobar\.ts/, Path.basename(file)] ],
     textMapping: {
       settingValue: inspect(plink.config(), false, 5).replace(/(\r?\n)([^])/mg, (match, p1, p2) => p1 + '    // ' + p2)

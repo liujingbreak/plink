@@ -7,46 +7,10 @@
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*",
-        "../../../financebill-reuse-poc/cra-space-uc/node_modules/@types/*",
-        "../../../financebill-reuse-poc/cra-space-uc/node_modules/*",
-        "../../../financebill-reuse-poc/node_modules/@types/*",
-        "../../../financebill-reuse-poc/node_modules/*"
-      ],
-      "@bk/financebill-tool": [
-        "../../../financebill-reuse-poc/packages/financebill-tool"
-      ],
-      "@bk/financebill-tool/*": [
-        "../../../financebill-reuse-poc/packages/financebill-tool/*"
-      ],
-      "@bk/nts-notary": [
-        "../../../financebill-reuse-poc/packages/nts-notary"
-      ],
-      "@bk/nts-notary/*": [
-        "../../../financebill-reuse-poc/packages/nts-notary/*"
-      ],
-      "@bk/nts-notary-server": [
-        "../../../financebill-reuse-poc/packages/nts-notary-server"
-      ],
-      "@bk/nts-notary-server/*": [
-        "../../../financebill-reuse-poc/packages/nts-notary-server/*"
-      ],
-      "@bk/sso-captcha": [
-        "../../../financebill-reuse-poc/packages/sso-captcha"
-      ],
-      "@bk/sso-captcha/*": [
-        "../../../financebill-reuse-poc/packages/sso-captcha/*"
-      ],
-      "@bk/uc-apply": [
-        "../../../financebill-reuse-poc/packages/uc-apply"
-      ],
-      "@bk/uc-apply/*": [
-        "../../../financebill-reuse-poc/packages/uc-apply/*"
-      ],
-      "@bk/uc-server": [
-        "../../../financebill-reuse-poc/packages/uc-server"
-      ],
-      "@bk/uc-server/*": [
-        "../../../financebill-reuse-poc/packages/uc-server/*"
+        "../../react-space/node_modules/@types/*",
+        "../../react-space/node_modules/*",
+        "../../node_modules/@types/*",
+        "../../node_modules/*"
       ],
       "@wfh/cra-scripts": [
         "../../src/internal/cra-scripts"
@@ -167,6 +131,19 @@
       ],
       "@wfh/plink/*": [
         "../*"
+      ],
+      "package-settings": [
+        "../../dist/react-space.package-settings"
+      ],
+      "@loadable/component": [
+        "../../react-space/node_modules/@types/loadable__component",
+        "../../node_modules/@types/loadable__component",
+        "../node_modules/@types/loadable__component"
+      ],
+      "@loadable/component/*": [
+        "../../react-space/node_modules/@types/loadable__component/*",
+        "../../node_modules/@types/loadable__component/*",
+        "../node_modules/@types/loadable__component/*"
       ]
     },
     "typeRoots": [
@@ -174,8 +151,8 @@
       "types",
       "../../src/internal/cra-scripts/types",
       "../../src/runtime/express-app/types",
-      "../../../financebill-reuse-poc/cra-space-uc/node_modules/@types",
-      "../../../financebill-reuse-poc/node_modules/@types",
+      "../../react-space/node_modules/@types",
+      "../../node_modules/@types",
       "../node_modules/@types"
     ]
   },

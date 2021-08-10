@@ -1,3 +1,3 @@
 import { loader } from 'webpack';
-declare const loader: loader.Loader;
-export default loader;
+declare const theLoader: loader.Loader;
+export default theLoader;

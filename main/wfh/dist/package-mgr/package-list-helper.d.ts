@@ -9,7 +9,7 @@ export declare function packages4Workspace(workspaceDir?: string, includeInstall
  */
 export declare function workspacesOfDependencies(...depPkgNames: string[]): Set<string>;
 export interface CompilerOptionSetOpt {
-    /** Will add typeRoots property for specific workspace, and add paths of file "_package-settings.d.ts" */
+    /** Will add typeRoots property for specific workspace, and add paths of file "package-settings.d.ts" */
     workspaceDir?: string;
     /** Add real path of all link package to "paths" property */
     realPackagePaths?: boolean;

@@ -7,7 +7,7 @@ import { GlobalOptions } from '../cmd/types';
 import {PayloadAction} from '@reduxjs/toolkit';
 import log4js from 'log4js';
 import {isMainThread} from 'worker_threads';
-import {PackagesConfig} from '_package-settings';
+import {PackagesConfig} from 'package-settings';
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 export interface BasePlinkSettings {
   /** Node.js server port number */

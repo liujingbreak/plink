@@ -107,7 +107,7 @@ export function workspacesOfDependencies(...depPkgNames: string[]) {
 }
 
 export interface CompilerOptionSetOpt {
-  /** Will add typeRoots property for specific workspace, and add paths of file "_package-settings.d.ts" */
+  /** Will add typeRoots property for specific workspace, and add paths of file "package-settings.d.ts" */
   workspaceDir?: string;
   /** Add real path of all link package to "paths" property */
   realPackagePaths?: boolean;
@@ -156,13 +156,15 @@ export function setTsCompilerOptForNodePath(
   }
 
   let wsState: WorkspaceState | undefined;
+  let wsKey: string | undefined;
   if (opts.workspaceDir != null) {
     symlinksDir = Path.resolve(opts.workspaceDir, plinkEnv.symlinkDirName);
     // pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
     pathsDirs.push(...calcNodePaths(plinkEnv.rootDir, symlinksDir,
       opts.workspaceDir || plinkEnv.workDir, plinkEnv.plinkDir));
 
-    wsState = getState().workspaces.get(workspaceKey(opts.workspaceDir));
+    wsKey = workspaceKey(opts.workspaceDir);
+    wsState = getState().workspaces.get(wsKey);
   }
 
   if (opts.extraNodePath && opts.extraNodePath.length > 0) {
@@ -188,6 +190,12 @@ export function setTsCompilerOptForNodePath(
   if (assigneeOptions.paths == null)
     assigneeOptions.paths = {};
 
+  if (opts.workspaceDir) {
+    assigneeOptions.paths['package-settings'] = [
+      Path.relative(baseUrlAbsPath, Path.join(plinkEnv.distDir, wsKey + '.package-settings'))
+        .replace(/\\/g, '/')
+    ];
+  }
   if (wsState) {
     assignSpecialPaths(wsState.installJson.dependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
     assignSpecialPaths(wsState.installJson.devDependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
@@ -226,14 +234,14 @@ function assignSpecialPaths(dependencies: {[dep: string]: string} | undefined,
   if (dependencies == null)
     return;
 
-  if (assigneeOptions.paths == null)
-    assigneeOptions.paths = {};
+  // if (assigneeOptions.paths == null)
+  //   assigneeOptions.paths = {};
   for (const item of Object.keys(dependencies)) {
     const m = /^@types\/(.*?)__(.*?)$/.exec(item);
     if (m) {
       const originPkgName = `@${m[1]}/${m[2]}`;
-      const exactOne: string[] = assigneeOptions.paths[originPkgName] = [];
-      const wildOne: string[] = assigneeOptions.paths[originPkgName + '/*'] = [];
+      const exactOne: string[] = assigneeOptions.paths![originPkgName] = [];
+      const wildOne: string[] = assigneeOptions.paths![originPkgName + '/*'] = [];
       for (const dir of nodePaths) {
         const relativeDir = Path.relative(absBaseUrlPath, dir + '/' + item).replace(/\\/g, '/');
         exactOne.push(relativeDir);

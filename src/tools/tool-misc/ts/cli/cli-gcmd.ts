@@ -62,7 +62,7 @@ export async function generate(packageName: string, cmdName: string, opts: CBOpt
       plink.logger.info(chalk.cyan(pkJsonFile) + 'is changed.');
 
       if (isCwdWorkspace()) {
-        actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: false, createHook: false, packageJsonFiles: [pkJsonFile]});
+        actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: false, packageJsonFiles: [pkJsonFile]});
         await getStore().pipe(
           op.map(s => s.workspaceUpdateChecksum),
           op.distinctUntilChanged(),
@@ -70,7 +70,7 @@ export async function generate(packageName: string, cmdName: string, opts: CBOpt
           op.take(1)
         ).toPromise();
         const {tsc} = require('@wfh/plink/wfh/dist/ts-cmd') as typeof _tscmd;
-        tsc({package: [packageName], pathsJsons: []});
+        await tsc({package: [packageName], pathsJsons: []});
       }
 
     } else {

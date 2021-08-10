@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
 import { PayloadAction } from '@reduxjs/toolkit';
-import { PackagesConfig } from '_package-settings';
+import { PackagesConfig } from 'package-settings';
 export interface BasePlinkSettings {
     /** Node.js server port number */
     port: number | string;

@@ -6,7 +6,7 @@ import Path from 'path';
 import { setTsCompilerOptForNodePath, packages4WorkspaceKey, CompilerOptions } from './package-mgr/package-list-helper';
 import {castByActionType} from '../../redux-toolkit-observable/dist/helper';
 import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
-  isCwdWorkspace, workspaceDir } from './package-mgr';
+  isCwdWorkspace } from './package-mgr';
 import { stateFactory, ofPayloadAction } from './store';
 import * as _recp from './recipe-manager';
 import { closestCommonParentDir, getRootDir } from './utils/misc';
@@ -14,9 +14,9 @@ import {getPackageSettingFiles} from './config';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import { PayloadAction } from '@reduxjs/toolkit';
-import {PlinkEnv} from './node-path';
+import {plinkEnv} from './utils/misc';
 
-const {symlinkDirName, workDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
+const {workDir, distDir} = plinkEnv;
 
 
 // import Selector from './utils/ts-ast-query';
@@ -59,7 +59,7 @@ const slice = stateFactory.newSlice({
 export const dispatcher = stateFactory.bindActionCreators(slice);
 
 stateFactory.addEpic<EditorHelperState>((action$, state$) => {
-  const actionByTypes = castByActionType(pkgSlice.actions, action$);
+  const pkgActionByTypes = castByActionType(pkgSlice.actions, action$);
   return rx.merge(
     new rx.Observable(sub => {
       if (getPkgState().linkedDrcp) {
@@ -71,21 +71,12 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
       }
       sub.complete();
     }),
-    actionByTypes._beforeInstallWorkspace.pipe(
-      op.map(({payload}) => {
-        // NPM v7.20.x will report EINVALIDPACKAGENAME "Invalid package name "_package-settings.d.ts": name cannot start with an underscore"
-        // I must clear this file before installation start
-        const settingFile = packageSettingDtsFileOf(workspaceDir(payload.workspaceKey));
-        log.warn('clear', settingFile, 'before installation');
-        fs.unlinkSync(settingFile);
-      })
-    ),
-    action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceBatchChanged),
-      op.tap(({payload: wsKeys}) => {
+    pkgActionByTypes.workspaceBatchChanged.pipe(
+      op.concatMap(async ({payload: wsKeys}) => {
         const wsDir = isCwdWorkspace() ? workDir :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
-        writePackageSettingType();
+        await writePackageSettingType();
         updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
         for (const data of getState().tsconfigByRelPath.values()) {
           void updateHookedTsconfig(data, wsDir);
@@ -166,7 +157,7 @@ function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
   const projectDirs = getProjectList();
   const workspaceDir = Path.resolve(getRootDir(), wsKey);
 
-  const recipeManager: typeof _recp = require('./recipe-manager');
+  const recipeManager = require('./recipe-manager') as typeof _recp;
 
   const srcRootDir = closestCommonParentDir(projectDirs);
 
@@ -213,7 +204,7 @@ function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
 }
 
 function writePackageSettingType() {
-  const done = new Array(getPkgState().workspaces.size);
+  const done = new Array<Promise<unknown>>(getPkgState().workspaces.size);
   let i = 0;
   for (const wsKey of getPkgState().workspaces.keys()) {
     let header = '';
@@ -226,7 +217,7 @@ function writePackageSettingType() {
     }
     body += '}\n';
     const workspaceDir = Path.resolve(getRootDir(), wsKey);
-    const file = packageSettingDtsFileOf(workspaceDir);
+    const file = Path.join(distDir, wsKey + '.package-settings.d.ts');
     log.info(`write file: ${file}`);
     done[i++] = fs.promises.writeFile(file, header + body);
     const dir = Path.dirname(file);
@@ -236,10 +227,7 @@ function writePackageSettingType() {
     ]);
     createTsConfig(dir, srcRootDir, workspaceDir, {}, ['*.ts']);
   }
-}
-
-function packageSettingDtsFileOf(workspaceDir: string) {
-  return Path.resolve(workspaceDir, symlinkDirName, '_package-settings.d.ts');
+  return Promise.all(done);
 }
 
 /**
@@ -251,7 +239,7 @@ function packageSettingDtsFileOf(workspaceDir: string) {
  * @param include 
  * @return tsconfig file path
  */
-function createTsConfig(proj: string, srcRootDir: string, workspace: string | null,
+function createTsConfig(proj: string, srcRootDir: string, workspace: string,
   extraPathMapping: {[path: string]: string[]},
   include = ['**/*.ts']) {
   const tsjson: any = {
@@ -279,7 +267,7 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string | nu
     paths: extraPathMapping
   };
   setTsCompilerOptForNodePath(proj, proj, tsjson.compilerOptions, {
-    workspaceDir: workspace != null ? workspace : undefined,
+    workspaceDir: workspace,
     enableTypeRoots: true,
     realPackagePaths: true
   });

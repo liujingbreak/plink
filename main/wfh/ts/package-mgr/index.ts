@@ -352,7 +352,6 @@ export const slice = stateFactory.newSlice({
       state.lastCreatedWorkspace = wsKey;
       state.workspaces.set(wsKey, existing ? Object.assign(existing, wp) : wp);
     },
-    _beforeInstallWorkspace(d: PackagesState, action: PayloadAction<{workspaceKey: string}>) {},
     _installWorkspace(d, {payload: {workspaceKey}}: PayloadAction<{workspaceKey: string}>) {},
     // _createSymlinksForWorkspace(d, action: PayloadAction<string>) {},
     _associatePackageToPrj(d, {payload: {prj, pkgs}}: PayloadAction<{prj: string; pkgs: {name: string}[]}>) {
@@ -580,10 +579,7 @@ stateFactory.addEpic((action$, state$) => {
           distinctUntilChanged(),
           filter(ws => ws != null),
           take(1),
-          concatMap(async ws => {
-            actionDispatcher._beforeInstallWorkspace(action.payload);
-            await new Promise(resolve => setImmediate(resolve));
-            // await new Promise(resolve => setTimeout(resolve, 3000));
+          concatMap(ws => {
             return installWorkspace(ws!, getState().npmInstallOpt);
           }),
           map(() => {
