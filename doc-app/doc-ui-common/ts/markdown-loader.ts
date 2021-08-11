@@ -1,5 +1,6 @@
 import {loader} from 'webpack';
 import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import vm from 'vm';
 import { jsonToCompilerOptions, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';
@@ -12,12 +13,17 @@ const markdownLoader: loader.Loader = function(source, sourceMap) {
   if (cb) {
     markdownToHtml(source as string,
       imgSrc => loadModuleInWebpack(imgSrc.startsWith('.') ? imgSrc : './' + imgSrc, this))
-    .then(result => {
-      cb(null, JSON.stringify(result), sourceMap);
-    })
-    .catch(err => {
-      cb(err, JSON.stringify(err), sourceMap);
-    });
+      .pipe(
+        op.take(1),
+        op.map(result => {
+          cb(null, JSON.stringify(result), sourceMap);
+        }),
+        op.catchError(err => {
+          cb(err, JSON.stringify(err), sourceMap);
+          return rx.EMPTY;
+        })
+      )
+    .subscribe();
   }
 };
 

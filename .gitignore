@@ -19,3 +19,5 @@ prettier.config.js
 /typess
 /.links
 /react-space/types
+**/package-lock.json
+/main/wfh/tsconfig.json

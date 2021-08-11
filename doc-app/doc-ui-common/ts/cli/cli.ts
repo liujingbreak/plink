@@ -1,6 +1,27 @@
 import {CliExtension} from '@wfh/plink/wfh/dist';
+import * as markdownUtil from '../markdown-util';
+import fs from 'fs';
+import {mkdirpSync} from 'fs-extra';
+import Path from 'path';
 
 const cliExt: CliExtension = (program) => {
+  const mdCli = program.command('markdown <file>')
+  .description('Show markdown topics', {file: 'source markdown file'})
+  .option('-o,--out <output html>', 'Output to html file')
+  .action(async (file) => {
+    const {markdownToHtml} = require('../markdown-util') as typeof markdownUtil;
+    const {toc, content} = await markdownToHtml(fs.readFileSync(Path.resolve(file), 'utf8')).toPromise();
+    // eslint-disable-next-line no-console
+    console.log('Table of content:', toc);
+    if (mdCli.opts().out) {
+      const target = Path.resolve(mdCli.opts().out);
+      mkdirpSync(Path.dirname(target));
+      fs.writeFileSync(target, content);
+      // eslint-disable-next-line no-console
+      console.log('Output HTML to file:', target);
+    }
+  });
+
   program.command('color-info <color-string...>')
   .description('Show color information', {'color-string': 'In form of CSS color string'})
   .action(async function(colors: string[]) {

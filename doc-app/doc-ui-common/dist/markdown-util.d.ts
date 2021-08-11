@@ -5,7 +5,7 @@ import { TOC } from '../isom/md-types';
  * @param source
  * @param resolveImage
  */
-export declare function markdownToHtml(source: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>): Promise<{
+export declare function markdownToHtml(source: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>): rx.Observable<{
     toc: TOC[];
     content: string;
 }>;
