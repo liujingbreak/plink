@@ -6,7 +6,7 @@ import _ from 'lodash';
 import {gt} from 'semver';
 import commander from 'Commander';
 import * as _craPaths from './cra-scripts-paths';
-import {config, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
+import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
 import {ReactScriptsHandler} from './types';
 
 export const getReportDir = () => config.resolve('destDir', 'cra-scripts.report');
@@ -44,19 +44,19 @@ function printConfigValue(value: any, level: number): string {
     out += JSON.stringify(value) + '';
   } else if (Array.isArray(value)) {
     out += '[\n';
-    (value as any[]).forEach((row: any) => {
+    value.forEach((row: any) => {
       out += indent + '    ' + printConfigValue(row, level + 1);
       out += ',\n';
     });
     out += indent + '  ]';
-  } else if (util.isFunction(value)) {
+  } else if (typeof value === 'function') {
     out += value.name + '()';
   } else if (isRegExp(value)) {
     out += `${value.toString()}`;
   } else if (util.isObject(value)) {
     const proto = Object.getPrototypeOf(value);
     if (proto && proto.constructor !== Object) {
-      out += `new ${proto.constructor.name}()`;
+      out += `new ${proto.constructor.name as string}()`;
     } else {
       out += printConfig(value, level + 1);
     }
@@ -77,14 +77,14 @@ export function getCmdOptions(): CommandOption {
 }
 
 export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType: 'app' | 'lib'): CommandOption {
-  const opts = cmd.opts();
+  const opts = cmd.opts() as NonNullable<PlinkSettings['cliOptions']> & {watch: boolean; include?: string[]; publicUrl?: string};
   const completeName = [...findPackagesByNames([pkgName])][0]!.name;
   const cmdOptions: CommandOption = {
     cmd: cmd.name(),
     buildType,
     buildTarget: completeName,
     watch: opts.watch,
-    devMode: opts.dev,
+    devMode: !!opts.dev,
     publicUrl: opts.publicUrl,
     // external: opts.external,
     includes: opts.include,

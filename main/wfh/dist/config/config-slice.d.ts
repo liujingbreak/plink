@@ -6,7 +6,7 @@ export interface BasePlinkSettings {
     /** Node.js server port number */
     port: number | string;
     publicPath: string;
-    localIP?: string;
+    localIP: string;
     /**
      * process.env.NODE_ENV will be automatically
      * updated to 'developement' or 'production corresponding to this property

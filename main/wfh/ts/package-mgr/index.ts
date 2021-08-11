@@ -797,6 +797,12 @@ export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJso
     fsext.mkdirpSync(target);
   }
 
+  // NPM v7.20.x can not install dependencies if there is any file with name prefix '_' exists in directory node_modules
+  const legacyPkgSettingFile = Path.resolve(dir, 'node_modules', '_package-settings.d.ts');
+  if (fs.existsSync(legacyPkgSettingFile)) {
+    fs.unlinkSync(legacyPkgSettingFile);
+  }
+
   // 1. Temoprarily remove all symlinks under `node_modules/` and `node_modules/@*/`
   // backup them for late recovery
   await listModuleSymlinks(target, link => {

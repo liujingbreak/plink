@@ -76,7 +76,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
         const wsDir = isCwdWorkspace() ? workDir :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
-        await writePackageSettingType();
+        void writePackageSettingType();
         updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
         for (const data of getState().tsconfigByRelPath.values()) {
           void updateHookedTsconfig(data, wsDir);

@@ -67,7 +67,7 @@ export {$__MyComponent__$};
 /*<% if (isEntry) {
   if (isConnected) {
 %>*/stateFactory.configureStore();
-export const $__MyComponent__$WithStore: React.FC<React.PropsWithChildren<{}>> = function() {
+export const $__MyComponent__$WithStore: React.FC<React.PropsWithChildren<Record<string, unknown>>> = function() {
   const reduxStore = useStoreOfStateFactory(stateFactory);
   if (reduxStore == null)
     return <></>;

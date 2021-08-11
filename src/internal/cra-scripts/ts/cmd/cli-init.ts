@@ -12,7 +12,7 @@ const log = log4js.getLogger('cra');
 // const DEFAULT_DEPS = ['react-app-polyfill', '@wfh/cra-scripts', '@wfh/webpack-common', '@wfh/redux-toolkit-observable',
 //   'axios-observable'];
 
-export async function initTsconfig() {
+export function initTsconfig() {
   // const {default: parse} = await import('@wfh/plink/wfh/dist/utils/json-sync-parser');
   overrideTsConfig();
 }
@@ -35,7 +35,7 @@ function overrideTsConfig() {
 
   for (const [key, value] of Object.entries(baseCompileOptions)) {
     if (!currCoMap.has(key)) {
-      log.info(`Add compiler option: ${key}:${value}`);
+      log.info(`Add compiler option: ${key}:${JSON.stringify(value)}`);
       replacements.push({
         start: lastPropEndPos, end: lastPropEndPos,
         replacement: `,\n    "${key}": ${JSON.stringify(value)}`

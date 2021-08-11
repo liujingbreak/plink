@@ -5,8 +5,6 @@ import Path from 'path';
 import chalk from 'chalk';
 import {ConfigHandlerMgr, DrcpConfig, ConfigHandler} from '../config-handler';
 import {GlobalOptions as CliOptions} from '../cmd/types';
-import {getLanIPv4} from '../utils/network-util';
-// import {PlinkEnv} from '../node-path';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import log4js from 'log4js';
@@ -103,9 +101,6 @@ config.change = function(reducer: (setting: DrcpSettings) => void ) {
 // };
 
 function load(cliOption: CliOptions) {
-  dispatcher._change(s => {
-    s.localIP = getLanIPv4();
-  });
   const pkgSettingFiles = loadPackageSettings();
   const configFileList = cliOption.config || [];
   configFileList.forEach(localConfigPath => mergeFromYamlJsonFile(localConfigPath));

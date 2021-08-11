@@ -7,13 +7,14 @@ import { GlobalOptions } from '../cmd/types';
 import {PayloadAction} from '@reduxjs/toolkit';
 import log4js from 'log4js';
 import {isMainThread} from 'worker_threads';
+import {getLanIPv4} from '../utils/network-util';
 import {PackagesConfig} from 'package-settings';
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 export interface BasePlinkSettings {
   /** Node.js server port number */
   port: number | string;
   publicPath: string;
-  localIP?: string;
+  localIP: string;
   /**
    * process.env.NODE_ENV will be automatically
    * updated to 'developement' or 'production corresponding to this property
@@ -57,6 +58,7 @@ export type DrcpSettings = BasePlinkSettings & PackagesConfig;
 
 const initialState: BasePlinkSettings = {
   port: 14333,
+  localIP: getLanIPv4(),
   publicPath: '/',
   devMode: false,
   destDir: distDir,
