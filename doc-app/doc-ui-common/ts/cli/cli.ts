@@ -3,16 +3,17 @@ import * as markdownUtil from '../markdown-util';
 import fs from 'fs';
 import {mkdirpSync} from 'fs-extra';
 import Path from 'path';
+// import util from 'util';
 
 const cliExt: CliExtension = (program) => {
   const mdCli = program.command('markdown <file>')
   .description('Show markdown topics', {file: 'source markdown file'})
   .option('-o,--out <output html>', 'Output to html file')
   .action(async (file) => {
-    const {markdownToHtml} = require('../markdown-util') as typeof markdownUtil;
+    const {markdownToHtml, tocToString} = require('../markdown-util') as typeof markdownUtil;
     const {toc, content} = await markdownToHtml(fs.readFileSync(Path.resolve(file), 'utf8')).toPromise();
     // eslint-disable-next-line no-console
-    console.log('Table of content:', toc);
+    console.log('Table of content:\n' + tocToString(toc));
     if (mdCli.opts().out) {
       const target = Path.resolve(mdCli.opts().out);
       mkdirpSync(Path.dirname(target));
