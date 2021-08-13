@@ -174,7 +174,7 @@ class LexerMemebers {
   }
   consumeComment() {
     this.la.advance(4);
-    while(!this.la.isNext('-', '-', '>')) {
+    while (!this.la.isNext('-', '-', '>')) {
       if (this.la.la() == null)
         throw new Error('Comment is not closed, ' + this.la.getCurrentPosInfo());
       this.la.advance();
@@ -215,7 +215,7 @@ export interface BaseTagAst {
 }
 
 export interface OpenTagAst extends BaseTagAst {
-  attrs?: {[key: string]: {isNg: boolean, value?: AttributeValueAst}};
+  attrs?: {[key: string]: {isNg: boolean; value?: AttributeValueAst}};
   selfClosed: boolean;
   [key: string]: any;
 }
@@ -229,7 +229,7 @@ const grammar: Grammar<Token<HtmlTokenType>, ParseHtmlResult> = (tokenLa) => {
   const ast: OpenTagAst[] = [];
   const allTags: BaseTagAst[] = [];
   const comments: Token<HtmlTokenType>[] = [];
-  while(tokenLa.la() != null) {
+  while (tokenLa.la() != null) {
     if (tokenLa.la()!.type === HtmlTokenType['<']) {
       const tagAst = tag(tokenLa);
       ast.push(tagAst);
@@ -254,11 +254,11 @@ function tag(tokenLa: LookAhead<Token<HtmlTokenType>>): OpenTagAst {
   const first = tokenLa.advance();
   const name = first.text.substring(1);
   const attrs = attributes(tokenLa);
-  if (tokenLa.la() ==null) {
-    this.throwError('EOF');
+  if (tokenLa.la() == null) {
+    tokenLa.throwError('EOF');
   }
   const last = tokenLa.advance(); // >
-  return {kind: TagKind.open, name, attrs, start: first.pos, end: last!.end, selfClosed: last.type === HtmlTokenType['/>']};
+  return {kind: TagKind.open, name, attrs, start: first.pos, end: last.end, selfClosed: last.type === HtmlTokenType['/>']};
 }
 
 function closingTag(tokenLa: LookAhead<Token<HtmlTokenType>>): BaseTagAst {
@@ -272,8 +272,8 @@ function isSameType(token: Token<HtmlTokenType>, type: HtmlTokenType): boolean {
   return token.type === type;
 }
 
-function attributes(this: void, tokenLa: LookAhead<Token<HtmlTokenType>>): {[key: string]: {isNg: boolean, value: AttributeValueAst | undefined}} {
-  const attrs: {[key: string]: {isNg: boolean, value: AttributeValueAst | undefined}} = {};
+function attributes(this: void, tokenLa: LookAhead<Token<HtmlTokenType>>): {[key: string]: {isNg: boolean; value: AttributeValueAst | undefined}} {
+  const attrs: {[key: string]: {isNg: boolean; value: AttributeValueAst | undefined}} = {};
   while (tokenLa.la() && !tokenLa.isNextWith([HtmlTokenType['>']], isSameType) &&
     !tokenLa.isNextWith([HtmlTokenType['/>']], isSameType)) {
     if (isNgAttrName(tokenLa)) {

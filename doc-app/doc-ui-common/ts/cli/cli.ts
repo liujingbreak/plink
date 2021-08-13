@@ -8,18 +8,34 @@ import Path from 'path';
 const cliExt: CliExtension = (program) => {
   const mdCli = program.command('markdown <file>')
   .description('Show markdown topics', {file: 'source markdown file'})
+  .option('-i, --insert', 'Insert or update table of content in markdown file')
   .option('-o,--out <output html>', 'Output to html file')
   .action(async (file) => {
-    const {markdownToHtml, tocToString} = require('../markdown-util') as typeof markdownUtil;
-    const {toc, content} = await markdownToHtml(fs.readFileSync(Path.resolve(file), 'utf8')).toPromise();
-    // eslint-disable-next-line no-console
-    console.log('Table of content:\n' + tocToString(toc));
-    if (mdCli.opts().out) {
-      const target = Path.resolve(mdCli.opts().out);
-      mkdirpSync(Path.dirname(target));
-      fs.writeFileSync(target, content);
+    const {markdownToHtml, tocToString, insertOrUpdateMarkdownToc} = require('../markdown-util') as typeof markdownUtil;
+    const input = fs.readFileSync(Path.resolve(file), 'utf8');
+    if (mdCli.opts().insert) {
+      const {changedMd, toc, html} = await insertOrUpdateMarkdownToc(input);
       // eslint-disable-next-line no-console
-      console.log('Output HTML to file:', target);
+      console.log('Table of content:\n' + toc);
+      fs.writeFileSync(file, changedMd);
+      if (mdCli.opts().out) {
+        const target = Path.resolve(mdCli.opts().out);
+        mkdirpSync(Path.dirname(target));
+        fs.writeFileSync(target, html);
+        // eslint-disable-next-line no-console
+        console.log('Output HTML to file:', target);
+      }
+    } else {
+      const {toc, content} = await markdownToHtml(input).toPromise();
+      // eslint-disable-next-line no-console
+      console.log('Table of content:\n' + tocToString(toc));
+      if (mdCli.opts().out) {
+        const target = Path.resolve(mdCli.opts().out);
+        mkdirpSync(Path.dirname(target));
+        fs.writeFileSync(target, content);
+        // eslint-disable-next-line no-console
+        console.log('Output HTML to file:', target);
+      }
     }
   });
 

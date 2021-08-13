@@ -243,9 +243,13 @@ export class PlinkCommand extends commander.Command {
   }
   action(fn: (...args: any[]) => void | Promise<void>) {
     function actionCallback(this: commander.Command) {
-      const {initConfig} = require('../utils/bootstrap-process') as typeof _bootstrap;
-      initConfig(this.opts() as GlobalOptions);
-      return fn.apply(this, arguments);
+      try {
+        const {initConfig} = require('../utils/bootstrap-process') as typeof _bootstrap;
+        initConfig(this.opts() as GlobalOptions);
+        return fn.apply(this, arguments);
+      } catch (e) {
+        log.error(e);
+      }
     }
     return super.action(actionCallback);
   }

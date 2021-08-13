@@ -2,7 +2,7 @@ import {Observable, Subscriber, from, OperatorFunction, queueScheduler} from 'rx
 import {map, observeOn} from 'rxjs/operators';
 import util from 'util';
 export class Chunk<V, T> {
-  type: T;
+  type: T | undefined;
   values?: V[] = [];
   end?: number;
   isClosed = false;
@@ -20,7 +20,7 @@ export class Chunk<V, T> {
 }
 
 export class Token<T> extends Chunk<string, T> {
-  text: string;
+  text: string | undefined;
 }
 /**
  * You can define a lexer as a function
@@ -122,7 +122,7 @@ export class LookAhead<T, TT = any> {
   private cacheStartPos = 0; // Currently is always same as currPos
   private readResolve: ((value: T | null) => void) | undefined;
   private waitForPos: number | undefined;
-  private currChunk: Chunk<T, TT>;
+  private currChunk: Chunk<T, TT> | undefined;
 
   constructor(protected name: string) {
     this.cached = [];
@@ -272,7 +272,7 @@ export class LookAhead<T, TT = any> {
   }
 
   closeChunk() {
-    return this.currChunk.close(this.currPos);
+    return this.currChunk!.close(this.currPos);
   }
 
   /**

@@ -90,7 +90,10 @@ export async function createCommands(startTime: number) {
   try {
     await program.parseAsync(process.argv, {from: 'node'});
   } catch (e) {
-    log.error('Failed to execute command due to:' + chalk.redBright((e as Error).message), e);
+    log.error('Failed to execute command due to: ' + chalk.redBright((e as Error).message), e);
+    if ((e as Error).stack) {
+      log.error((e as Error).stack);
+    }
     process.exit(1);
   }
 }

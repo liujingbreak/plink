@@ -41,7 +41,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
         });
     }
     setPortals(els);
-  }, EMPTY_ARR);
+  }, [routeParams.mdKey]);
 
   const layout = useAppLayout();
 
@@ -58,7 +58,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
       })
     ).subscribe();
     return () => sub.unsubscribe();
-  }, [routeParams.mdKey]);
+  }, [layout, routeParams.mdKey]);
   return (
     <div className={cls(styles['articale-page'], 'mdc-layout-grid')}>
       <MarkdownViewComp mdKey={routeParams.mdKey} onContent={onContentLoaded} />
