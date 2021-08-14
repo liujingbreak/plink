@@ -121,37 +121,41 @@ export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actio
   {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>} {
 
 
-    const multicaseActionMap: {[K: string]: rx.Subject<PayloadAction<S, any> | Action<S>> | undefined} = {};
+    const dispatcherByType: {[K: string]: rx.Subject<PayloadAction<S, any> | Action<S>> | undefined} = {};
     const splitActions: {[K in keyof R]?: rx.Observable<ReturnType<Actions<S, R>[K]>>} = {};
 
     let sourceSub: rx.Subscription | undefined;
+    let subscriberCnt = 0;
+
+    const source = action$.pipe(
+      // op.share(), we don't need share(), we have implemented same logic
+      op.map(action => {
+        const match = dispatcherByType[action.type];
+        if (match) {
+          match.next(action);
+        }
+      })
+    );
+
     for (const reducerName of Object.keys(actionCreators)) {
-      const subject = multicaseActionMap[actionCreators[reducerName].type] = new rx.Subject<PayloadAction<S, any> | Action<S>>();
+      const subject = dispatcherByType[actionCreators[reducerName].type] = new rx.Subject<PayloadAction<S, any> | Action<S>>();
 
       // eslint-disable-next-line no-loop-func
       splitActions[reducerName as keyof R] = rx.defer(() => {
-        if (sourceSub == null)
+        if (subscriberCnt++ === 0)
           sourceSub = source.subscribe();
         return subject.asObservable() as rx.Observable<any>;
       }).pipe(
         // eslint-disable-next-line no-loop-func
         op.finalize(() => {
-          if (sourceSub) {
+          if (--subscriberCnt === 0 && sourceSub) {
             sourceSub.unsubscribe();
             sourceSub = undefined;
           }
         })
       );
     }
-    const source = action$.pipe(
-      op.share(),
-      op.map(action => {
-        const match = multicaseActionMap[action.type];
-        if (match) {
-          match.next(action);
-        }
-      })
-    );
+
     return splitActions as {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>};
 }
 
@@ -365,41 +369,41 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   };
 }
 
-const demoSlice = createSlice({
-  name: 'demo',
-  initialState: {} as {ok?: boolean; error?: Error},
-  reducers: {
-    hellow(s, greeting: {data: string}) {},
-    world(s) {}
-  }
-});
-demoSlice.addEpic((slice, ofType) => {
-  return (action$, state$) => {
-    const actionStreams = castByActionType(slice.actions, action$);
+// const demoSlice = createSlice({
+//   name: 'demo',
+//   initialState: {} as {ok?: boolean; error?: Error},
+//   reducers: {
+//     hellow(s, greeting: {data: string}) {},
+//     world(s) {}
+//   }
+// });
+// demoSlice.addEpic((slice, ofType) => {
+//   return (action$, state$) => {
+//     const actionStreams = castByActionType(slice.actions, action$);
 
-    return rx.merge(
-      actionStreams.hellow.pipe(),
-      action$.pipe(
-        ofType('hellow', 'hellow'),
-        op.map(action => slice.actions.world())
-      ),
-      action$.pipe(
-        ofType('world'),
-        op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
-      ),
-      action$.pipe(
-        ofPayloadAction(slice.actions.hellow),
-        op.tap(action => typeof action.payload.data === 'string')
-      ),
-      action$.pipe(
-        ofPayloadAction(slice.actions.world),
-        op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
-      ),
-      action$.pipe(
-        ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world),
-        op.tap(action => action.payload)
-      )
-    ).pipe(op.ignoreElements());
-  };
-});
+//     return rx.merge(
+//       actionStreams.hellow.pipe(),
+//       action$.pipe(
+//         ofType('hellow', 'hellow'),
+//         op.map(action => slice.actions.world())
+//       ),
+//       action$.pipe(
+//         ofType('world'),
+//         op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
+//       ),
+//       action$.pipe(
+//         ofPayloadAction(slice.actions.hellow),
+//         op.tap(action => typeof action.payload.data === 'string')
+//       ),
+//       action$.pipe(
+//         ofPayloadAction(slice.actions.world),
+//         op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
+//       ),
+//       action$.pipe(
+//         ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world),
+//         op.tap(action => action.payload)
+//       )
+//     ).pipe(op.ignoreElements());
+//   };
+// });
 

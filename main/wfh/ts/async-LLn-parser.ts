@@ -20,7 +20,7 @@ export class Chunk<V, T> {
 }
 
 export class Token<T> extends Chunk<string, T> {
-  text: string | undefined;
+  text!: string;
 }
 /**
  * You can define a lexer as a function
@@ -127,11 +127,6 @@ export class LookAhead<T, TT = any> {
   constructor(protected name: string) {
     this.cached = [];
   }
-
-
-  // _writeBuf(buf: Uint8Array) {
-  //   this.cached = this.cached.concat(Array.from(buf));
-  // }
 
   _write(values: Iterable<T | null>) {
     for (const v of values)

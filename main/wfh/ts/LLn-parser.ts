@@ -4,7 +4,7 @@ import util from 'util';
  * T - Token Types
  * AST - type of returned AST object
  */
-export function createStringParser<T, AST>(parserName: string, lexer: Lexer<string, T>,
+export function createStringParser<T, AST>(parserName: string, lexer: Lexer<string, T, Token<T>>,
   grammar: Grammar<Token<T>, AST>) {
 
   return function(input: string) {
@@ -28,6 +28,8 @@ export function listTokens<T>(debugName: string, input: string, lexer: Lexer<str
   const tokens = [] as Token<T>[];
   lexer(lexerLa, {
     emit() {
+      if (lexerLa.currChunk == null)
+        return;
       const token = strChunk2Token(lexerLa.currChunk);
       token.close(lexerLa.position);
       tokens.push(token);
@@ -38,9 +40,9 @@ export function listTokens<T>(debugName: string, input: string, lexer: Lexer<str
   return tokens;
 }
 export class Chunk<V, T> {
-  type: T;
+  type: T | undefined;
   values?: V[] = [];
-  end: number;
+  end!: number;
   isClosed = false;
   trackValue = true;
 
@@ -56,7 +58,7 @@ export class Chunk<V, T> {
 }
 
 export class Token<T> extends Chunk<string, T> {
-  text: string;
+  text!: string;
 }
 
 /**
@@ -66,7 +68,7 @@ export class Token<T> extends Chunk<string, T> {
  */
 export type Lexer<V, T, C extends Chunk<V, T> = Chunk<V, T>> =
   (la: LookAhead<V, T>, emitter: TokenEmitter<V, T, C>) => void;
-export type Grammar<C, A> = (tokenLa: LookAhead<C>) => A;
+export type Grammar<C, A> = (tokenLa: LookAhead<C, string>) => A;
 
 interface TokenEmitter<V, T, C> {
   emit(): void;
@@ -87,6 +89,8 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
   const lexerLa = new LookAhead<V, T>(parserName + ' lexer');
   const tokenEmitter: TokenEmitter<V, T, C> = {
     emit() {
+      if (lexerLa.currChunk == null)
+        return;
       if (isString === undefined && lexerLa.currChunk.values != null)
         isString = typeof lexerLa.currChunk.values[0] === 'string';
       const token: C = chunkConverter ? chunkConverter(lexerLa.currChunk) :
@@ -100,12 +104,12 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
       tokenLa._final();
     }
   };
-  const tokenLa = new LookAhead<C>(parserName + ' grammar', function() {
+  const tokenLa = new LookAhead<C, string>(parserName + ' grammar', function() {
     lexer(lexerLa, tokenEmitter);
   });
   return {
-    write: lexerLa._write.bind(lexerLa) as LookAhead<V, T>['_write'],
-    end: lexerLa._final.bind(lexerLa) as LookAhead<V, T>['_final'],
+    write: lexerLa._write.bind(lexerLa) ,
+    end: lexerLa._final.bind(lexerLa) ,
     getResult() {
       return grammar(tokenLa);
     }
@@ -113,13 +117,13 @@ export function parser<V, T, C extends Chunk<V, T>, A>(parserName: string,
 }
 
 
-export class LookAhead<V, T = void> {
+export class LookAhead<V, T> {
   static WAIT_ERROR: 'WAIT_ERROR';
   cached: Array<V | null>;
   line = 1;
   column = 1;
-  lastConsumed: V;
-  currChunk: Chunk<V, T>;
+  lastConsumed: V | undefined;
+  currChunk: Chunk<V, T> | undefined;
 
   private currPos = 0;
   private cacheStartPos = 0;
@@ -250,7 +254,7 @@ export class LookAhead<V, T = void> {
   }
 
   protected closeChunk() {
-    return this.currChunk.close(this.currPos);
+    return this.currChunk!.close(this.currPos);
   }
 
   /**

@@ -2,7 +2,7 @@
  * T - Token Types
  * AST - type of returned AST object
  */
-export declare function createStringParser<T, AST>(parserName: string, lexer: Lexer<string, T>, grammar: Grammar<Token<T>, AST>): (input: string) => AST;
+export declare function createStringParser<T, AST>(parserName: string, lexer: Lexer<string, T, Token<T>>, grammar: Grammar<Token<T>, AST>): (input: string) => AST;
 /**
  * Help for testing result of lexer function
  * @param lexer
@@ -12,7 +12,7 @@ export declare class Chunk<V, T> {
     pos: number;
     line: number;
     col: number;
-    type: T;
+    type: T | undefined;
     values?: V[];
     end: number;
     isClosed: boolean;
@@ -29,7 +29,7 @@ export declare class Token<T> extends Chunk<string, T> {
  *  C could be omit
  */
 export declare type Lexer<V, T, C extends Chunk<V, T> = Chunk<V, T>> = (la: LookAhead<V, T>, emitter: TokenEmitter<V, T, C>) => void;
-export declare type Grammar<C, A> = (tokenLa: LookAhead<C>) => A;
+export declare type Grammar<C, A> = (tokenLa: LookAhead<C, string>) => A;
 interface TokenEmitter<V, T, C> {
     emit(): void;
     end(): void;
@@ -39,15 +39,15 @@ export declare function parser<V, T, C extends Chunk<V, T>, A>(parserName: strin
     end: LookAhead<V, T>['_final'];
     getResult: () => A;
 };
-export declare class LookAhead<V, T = void> {
+export declare class LookAhead<V, T> {
     protected name: string;
     private onDrain?;
     static WAIT_ERROR: 'WAIT_ERROR';
     cached: Array<V | null>;
     line: number;
     column: number;
-    lastConsumed: V;
-    currChunk: Chunk<V, T>;
+    lastConsumed: V | undefined;
+    currChunk: Chunk<V, T> | undefined;
     private currPos;
     private cacheStartPos;
     constructor(name: string, onDrain?: ((this: LookAhead<V, T>) => void) | undefined);

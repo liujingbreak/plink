@@ -97,25 +97,28 @@ slice.addEpic(slice => action$ => {
  */
 export function castByActionType(actionCreators, action$) {
     let sourceSub;
+    let subscriberCnt = 0;
     const multicaseActionMap = {};
     const splitActions = {};
     for (const reducerName of Object.keys(actionCreators)) {
         const subject = multicaseActionMap[actionCreators[reducerName].type] = new Subject();
         // eslint-disable-next-line no-loop-func
         splitActions[reducerName] = defer(() => {
-            if (sourceSub == null)
+            if (subscriberCnt++ === 0)
                 sourceSub = source.subscribe();
             return subject.asObservable();
         }).pipe(
         // eslint-disable-next-line no-loop-func
         op.finalize(() => {
-            if (sourceSub) {
+            if (--subscriberCnt === 0 && sourceSub) {
                 sourceSub.unsubscribe();
                 sourceSub = undefined;
             }
         }));
     }
-    const source = action$.pipe(op.share(), op.map(action => {
+    const source = action$.pipe(
+    // op.share(), we don't need share(), we have implemented same logic
+    op.map(action => {
         const match = multicaseActionMap[action.type];
         if (match) {
             match.next(action);

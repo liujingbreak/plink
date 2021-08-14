@@ -133,7 +133,7 @@ function doArray(lexer: Parameters<Grammar<Token, ObjectAst>>[0]): ArrayAst {
     ast.end = lexer.advance().end; // ]
 
   } else if (next == null)
-    throw new Error('Unexpect EOF after ' + lexer.lastConsumed.text);
+    throw new Error('Unexpect EOF after ' + lexer.lastConsumed?.text);
   else
     throw new Error(`Unexpect ${next.text} at ${next.line}:${next.col}`);
   return ast as ArrayAst;

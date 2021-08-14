@@ -1092,7 +1092,7 @@
         "affectsGlobalScope": false
       },
       "../helper.ts": {
-        "version": "c8d4f4e98dbdeb943c9cb6161ebf67202fef826ad3fe1565f35e36a0d912e6cc",
+        "version": "9a5283d28cb704ad23ad281c7e749e7c2bbd8f2e476e6a1a5333e7c1005deb9f",
         "signature": "982ab86bb8695b73f14dd7b91338054be892444bb03d82bcc4e1136278fa0de8",
         "affectsGlobalScope": false
       },
@@ -1142,7 +1142,7 @@
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
-        "version": "0069c7658570d005a249f97221034c4f1a26ae47462751e30486f7637f4c09cf",
+        "version": "d15ceb5ee0fb1f8d25d6a40ede1d57ff9720487dbec0daefa3503e2155db29a9",
         "signature": "21fa0309b01317538c6485f97391b688018e08a890dd6543a3c8b2347d61d61a",
         "affectsGlobalScope": false
       },
@@ -1884,6 +1884,7 @@
       "strict": true,
       "composite": true,
       "sourceMap": false,
+      "project": "../../wfh/tsconfig-redux-toolkit-es.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit-es.json"
     },
     "referencedMap": {

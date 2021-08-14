@@ -3,7 +3,7 @@ export declare class Chunk<V, T> {
     pos: number;
     line: number;
     col: number;
-    type: T;
+    type: T | undefined;
     values?: V[];
     end?: number;
     isClosed: boolean;

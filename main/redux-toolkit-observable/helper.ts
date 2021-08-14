@@ -159,19 +159,20 @@ export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<
   } {
 
     let sourceSub: Subscription | undefined;
-    const multicaseActionMap: {[K: string]: Subject<PayloadAction<any, any> | Action> | undefined} = {};
+    let subscriberCnt = 0;
+    const dispatcherByType: {[K: string]: Subject<PayloadAction<any, any> | Action> | undefined} = {};
     const splitActions: {[K in keyof R]?: Observable<PayloadAction<any, any>>} = {};
     for (const reducerName of Object.keys(actionCreators)) {
-      const subject = multicaseActionMap[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<any, any>  | Action>();
+      const subject = dispatcherByType[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<any, any>  | Action>();
       // eslint-disable-next-line no-loop-func
       splitActions[reducerName as keyof R] = defer(() => {
-        if (sourceSub == null)
+        if (subscriberCnt++ === 0)
           sourceSub = source.subscribe();
         return subject.asObservable() as Observable<any>;
       }).pipe(
         // eslint-disable-next-line no-loop-func
         op.finalize(() => {
-          if (sourceSub) {
+          if (--subscriberCnt === 0 && sourceSub) {
             sourceSub.unsubscribe();
             sourceSub = undefined;
           }
@@ -179,9 +180,9 @@ export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<
       );
     }
     const source = action$.pipe(
-      op.share(),
+      // op.share(), we don't need share(), we have implemented same logic
       op.map(action => {
-        const match = multicaseActionMap[action.type as string];
+        const match = dispatcherByType[action.type as string];
         if (match) {
           match.next(action);
         }
