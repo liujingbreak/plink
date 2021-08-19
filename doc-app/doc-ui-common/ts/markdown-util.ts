@@ -6,11 +6,12 @@ import path from 'path';
 import {log4File} from '@wfh/plink';
 import util from 'util';
 import _ from 'lodash';
-import parse5, {ChildNode, Element} from 'parse5';
+import parse5, {ChildNode, Element, TextNode} from 'parse5';
 import os from 'os';
 const log = log4File(__filename);
 
 let threadPool: Pool;
+const headerSet = new Set<string>('h1 h2 h3 h4 h5'.split(' '));
 
 /**
  * Use Thread pool to parse Markdown file simultaneously
@@ -29,67 +30,8 @@ export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) =
     op.mergeMap(html => {
       let toc: TOC[] = [];
       const doc = parse5.parse(html, {sourceCodeLocationInfo: true});
-      const toVisit: ChildNode[] = [...doc.childNodes];
-      const done: (rx.Observable<string> | Promise<string>)[] = [];
-      while (toVisit.length > 0) {
-        const el = toVisit.shift()! as Element;
-        // console.log(el.nodeName, Object.keys(el));
-        const nodeName = el.nodeName.toLowerCase();
-        if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
-          continue;
+      const done = dfsAccessElement(doc, resolveImage, toc);
 
-        if (nodeName === 'img') {
-          const imgSrc = el.attrs.find(item => item.name === 'src');
-          if (resolveImage && imgSrc) {
-            log.info('found img src=' + imgSrc.value);
-            done.push(rx.from(resolveImage(imgSrc.value))
-              .pipe(
-                op.tap(resolved => {
-                  // el.sourceCodeLocation
-                  // imgQ.attr('src', resolved);
-                  log.info(`resolve ${imgSrc.value} to ${util.inspect(resolved)}`);
-                })
-              ));
-          }
-        } else if (nodeName === 'script') {
-
-        }
-
-        if ((el ).childNodes)
-          toVisit.push(...(el ).childNodes);
-      }
-
-      // const $ = cheerio.load(html);
-      // // log.debug(html);
-      // const done: (rx.Observable<string> | Promise<string>)[] = [];
-      // if (resolveImage) {
-      //   const imgs = $('img');
-      //   imgs.each((idx, img) => {
-      //     const imgQ = $(img);
-      //     const imgSrc = imgQ.attr('src');
-      //     log.info('found img src=' + imgQ.attr('src'));
-      //     if (imgSrc) {
-      //       done.push(rx.from(resolveImage(imgSrc))
-      //         .pipe(
-      //           op.tap(resolved => {
-      //             imgQ.attr('src', resolved);
-      //             log.info(`resolve ${imgSrc} to ${util.inspect(resolved)}`);
-      //           })
-      //         ));
-      //     }
-      //   });
-      // }
-      // const headings = $('h1, h2, h3, h4, h5, h6');
-      // headings.each((idx, heading) => {
-      //     const headingQ = $(heading);
-      //     if (headingQ) {
-      //         const headingText = headingQ.text();
-      //         const id = Buffer.from(idx + headingText).toString('base64');
-      //         // log.info(`set heading <${heading.name}> id=${id}`);
-      //         headingQ.attr('id', id);
-      //         toc.push({level: 0, tag: heading.tagName.toLowerCase(), text: headingText, id });
-      //     }
-      // });
       toc = createTocTree(toc);
       return rx.merge(...done).pipe(
         op.count(),
@@ -104,12 +46,70 @@ export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) =
   );
 }
 
+function dfsAccessElement(root: parse5.Document, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
+toc: TOC[] = []) {
+  const chr = new rx.BehaviorSubject<ChildNode[]>(root.childNodes || []);
+  const done: (rx.Observable<string> | Promise<string>)[] = [];
+
+  chr.pipe(
+    op.mergeMap(children => rx.from(children))
+  ).pipe(
+    op.map(node => {
+      const nodeName = node.nodeName.toLowerCase();
+      if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
+        return;
+      const el = node as Element;
+      if (nodeName === 'img') {
+        const imgSrc = el.attrs.find(item => item.name === 'src');
+        if (resolveImage && imgSrc) {
+          log.info('found img src=' + imgSrc.value);
+          done.push(rx.from(resolveImage(imgSrc.value))
+          .pipe(
+            op.tap(resolved => {
+              // el.sourceCodeLocation
+              // imgQ.attr('src', resolved);
+              log.info(`resolve ${imgSrc.value} to ${util.inspect(resolved)}`);
+            })
+          ));
+        }
+      } else if (headerSet.has(nodeName)) {
+        toc.push({level: 0, tag: nodeName,
+          text: lookupTextNodeIn(el),
+          id: ''
+        });
+      }
+
+      if (el.childNodes)
+        chr.next(el.childNodes);
+    })
+  ).subscribe();
+  return done;
+}
+
+function lookupTextNodeIn(el: Element) {
+  const chr = new rx.BehaviorSubject<ChildNode[]>(el.childNodes || []);
+  let text = '';
+  chr.pipe(
+    op.mergeMap(children => rx.from(children))
+  ).pipe(
+    op.map(node => {
+      if (node.nodeName === '#text') {
+        text += (node as TextNode).value;
+      } else if ((node as Element).childNodes) {
+        chr.next((node as Element).childNodes);
+      }
+    })
+  ).subscribe();
+  return text;
+}
+
 function createTocTree(input: TOC[]) {
   const root: TOC = {level: -1, tag: 'h0', text: '', id: '', children: []};
   let byLevel: TOC[] = [root]; // a stack of previous TOC items ordered by level
   let prevHeaderSize = Number(root.tag.charAt(1));
   for (const item of input) {
     const headerSize = Number(item.tag.charAt(1));
+    // console.log(`${headerSize} ${prevHeaderSize}, ${item.text}`);
     if (headerSize < prevHeaderSize) {
       const pIdx = _.findLastIndex(byLevel, toc => Number(toc.tag.charAt(1)) < headerSize);
       byLevel.splice(pIdx + 1);

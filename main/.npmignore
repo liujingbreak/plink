@@ -6,3 +6,4 @@ package-lock.json
 /redux-toolkit-observable/*.ts
 /thread-promise-pool/ts
 /wfh/doc
+/wfh/tsconfig.json

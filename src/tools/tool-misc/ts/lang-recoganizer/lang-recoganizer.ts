@@ -2,355 +2,401 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {cacheAndReplay} from './lang-reactive-ops';
 
-enum StepAction {
-  mark,
-  replay,
-  unmark,
-
-  matched,
-  unmatched,
-  matchedAndReplay,
-  unmatchedAndReplay,
-  debug,
+interface PositionInfo {
+  start: number;
+  end: number;
 }
 
-const stepActions = {
-  mark() {},
-  replay() {},
-  unmark() {},
+const childStepActions = {
+  mark(laNum: number) {},
+  replay(position: number) {},
+  // unmark() {},
   process(payload: {d: any; i: number}) {},
-  sucess() {},
+  sucess<R extends PositionInfo>(result: R) {},
   failed(reason: string[]) {}
 };
 
-type Action = {type: keyof typeof stepActions, payload: Parameters<(typeof stepActions)[keyof typeof stepActions]>};
-type ActionByType = {[K in keyof typeof stepActions]: rx.Observable<(typeof stepActions)[K] extends (payload: infer P) => void ? P : unknown>};
+type Action = {type: keyof typeof childStepActions; payload: Parameters<(typeof childStepActions)[keyof typeof childStepActions]>};
+type ActionByType = {[K in keyof typeof childStepActions]: rx.Observable<(typeof childStepActions)[K] extends (payload: infer P) => void ? {payload: P; type: K} : unknown>};
 
 function createDispatcher(action$: rx.Subject<Action>) {
-  const dispatcher = {} as {[K in keyof typeof stepActions]: (typeof stepActions)[K]};
-  for (const key of Object.keys(stepActions)) {
-    dispatcher[key] = (arg1: any) => {
-      action$.next(arg1)
+  const dispatcher = {} as {[K in keyof typeof childStepActions]: (typeof childStepActions)[K]};
+  for (const type of Object.keys(childStepActions)) {
+    dispatcher[type] = (arg1: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      action$.next({type: type as keyof typeof childStepActions, payload: arg1});
     };
   }
   return dispatcher;
 }
 
-function splitActionByType(action$: rx.Subject<Action>) {
+export function splitActionByType(action$: rx.Observable<Action>) {
   let sourceSub: rx.Subscription | undefined;
   let subscriberCnt = 0;
 
   const split$ = action$.pipe(
+    // op.tap(action => console.log(action)),
     op.map(action => dispatchByType[action.type]!.next(action))
   );
 
-  const dispatchByType: {[K in keyof typeof stepActions]?: rx.Subject<any>} = {};
+  const dispatchByType: {[K in keyof typeof childStepActions]?: rx.Subject<any>} = {};
   const actionByType: Partial<ActionByType> = {};
 
-  for (const type of Object.keys(stepActions)) {
+  for (const type of Object.keys(childStepActions)) {
     const dispatcher = dispatchByType[type] = new rx.Subject();
+    // eslint-disable-next-line no-loop-func
     actionByType[type] = rx.defer(() => {
       if (subscriberCnt++ === 0) {
         sourceSub = split$.subscribe();
       }
       return dispatcher;
     }).pipe(
+      // eslint-disable-next-line no-loop-func
       op.finalize(() => {
         if (--subscriberCnt === 0) {
           sourceSub?.unsubscribe();
         }
       })
-    )
+    );
   }
   return actionByType as ActionByType;
 }
 
-class Step<T> {
-  dispatcher = createDispatcher(new rx.Subject());
-
-  process(input: T, offset: number) {
-    this.dispatcher.process({d: input, i: offset});
-  }
+function createStep<T>(interceptor?: () => rx.OperatorFunction<Action, Action>) {
+  const source = new rx.Subject<Action>();
+  const dispatcher = createDispatcher(source);
+  const actions = interceptor ? source.pipe(op.observeOn(rx.queueScheduler), interceptor()) :
+      source.pipe(op.observeOn(rx.queueScheduler));
+  return {dispatcher, actions};
 }
 
-export class ComparisonStep<T> extends Step<T> {
-  constructor(public expect: T) {
-    super();
-  }
-  process(input: T, offset: number) {
-    if (input === this.expect)
-      this.actions.next(StepAction.matched);
-    else {
-      this.reason = [`at offset ${offset}, expect: ${this.expect + ''}, got: ${input + ''}`];
-      this.actions.next(StepAction.unmatched);
+type StepFactory = () => ReturnType<typeof createStep>;
+
+/**
+ * simplest comparison step
+ * @param expectStr 
+ * @returns 
+ */
+export function cmp<T>(...expectStr: T[]) {
+  return () => {
+    const {dispatcher, actions} = createStep();
+    const actionByType = splitActionByType(actions);
+    let index = 0;
+    let startPosition = -1;
+    if (expectStr.length === 1 && typeof expectStr[0] === 'string' && (expectStr[0] as unknown as string).length > 1 ) {
+      // console.log('here');
+      expectStr = (expectStr[0] as unknown as string).split('') as unknown as T[];
     }
-  }
-}
 
-export class ScopeStep<T> extends Step<T> {
-  currStep: Step<T>;
-  steps: Step<T>[];
-
-  constructor(public name: string, ...stepFactories: (() => Step<T>)[]) {
-    super();
-    this.steps = stepFactories.map((fac, idx) => fac());
-    rx.merge(...this.steps.map((s, idx) => s.actions.pipe(
-      op.map(action => {
-        if (action === StepAction.matched || action === StepAction.matchedAndReplay) {
-          if (idx < this.steps.length - 1) {
-            this.currStep = this.steps[idx + 1];
-            if (action === StepAction.matchedAndReplay)
-              this.actions.next(StepAction.replay);
+    let last = expectStr.length - 1;
+    actionByType.process.pipe(
+      op.tap(({payload: {d: input, i: offset}}) => {
+        if (startPosition === -1)
+          startPosition = offset;
+        let expect = expectStr[index];
+        // console.log('compare @' + offset, input, 'with', this.expect);
+        if (input === expect) {
+          if (index < last) {
+            index++;
           } else {
-            this.actions.next(action);
-            return null;
+            index = 0;
+            dispatcher.sucess({start: startPosition, end: offset + 1});
           }
-        } else if (action === StepAction.unmatched || action === StepAction.unmatchedAndReplay) {
-          this.reason = [this.name, ...s.reason!];
-          this.actions.next(action);
-          return null;
+        } else {
+          dispatcher.failed([`at offset ${offset}, expect: ${expect + ''}, got: ${input + ''}`]);
         }
-        return action;
-      }),
-      op.takeWhile(action => action != null)
-    ))).pipe(
-      op.tap(action => {
-        if (action != null)
-          this.actions.next(action);
       })
     ).subscribe();
-    this.currStep = this.steps[0];
-  }
-
-  process(input: T, offset: number) {
-    if (this.currStep)
-      this.currStep.process(input, offset);
-  }
+    return {dispatcher, actions};
+  };
 }
 
-export class ChoiceStep<T> extends Step<T> {
-  currStep?: Step<T>;
-  choices: Step<T>[];
-  private began = false;
+type ScopeResult = PositionInfo & {name: string; children: PositionInfo[]};
+/** scope step */
+export function scope<T>(name: string, stepFactories: (StepFactory)[],
+  opts?: {onSuccess(children: PositionInfo[]): any}): StepFactory {
+  return () => {
+    let onSuccessResultTransformer: undefined | ((children: PositionInfo[]) => any);
+    if (opts)
+      onSuccessResultTransformer = opts.onSuccess;
+    const {dispatcher, actions} = createStep();
+    const actionByType = splitActionByType(actions);
+    const steps = stepFactories.map((fac) => fac());
+    let currStepIdx = 0;
+    const last = steps.length - 1;
+    let startPosition = -1;
+    let currPosition = -1;
+    const stepResults = [] as PositionInfo[];
 
-  constructor(...choiceFactories: (() => Step<T>)[]) {
-    super();
+    const subscribeStep = () => {
+      const step = steps[currStepIdx];
+      const childStepActions = splitActionByType(step.actions);
+      rx.merge(
+        rx.merge(
+          childStepActions.sucess.pipe(
+            op.map(({payload}) => {
+              stepResults.push(payload);
+              if (currStepIdx < last) {
+                currStepIdx++;
+                subscribeStep();
+              } else {
+                const result: ScopeResult = {
+                  name,
+                  start: startPosition,
+                  end: currPosition + 1,
+                  children: stepResults
+                };
+                dispatcher.sucess(onSuccessResultTransformer ? onSuccessResultTransformer(result.children) : result);
+                return null;
+              }
+            })
+          ),
+          childStepActions.failed.pipe(
+            op.map(({payload: reason}) => {dispatcher.failed([name, ...reason]); })
+          )
+        ).pipe(op.take(1)),
+        childStepActions.mark.pipe(op.tap(act => dispatcher.mark(act.payload))),
+        childStepActions.replay.pipe(op.tap(act => dispatcher.replay(act.payload)))
+        // childStepActions.unmark.pipe(op.tap(act => this.dispatcher.unmark()))
+      ).pipe(
+        op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
+      ).subscribe();
+    };
+
+    subscribeStep();
+
+    actionByType.process.pipe(
+      op.map(({payload}) => {
+        if (startPosition === -1)
+          startPosition = payload.i;
+        currPosition = payload.i;
+        steps[currStepIdx].dispatcher.process(payload);
+      })
+    ).pipe(
+      op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
+    ).subscribe();
+
+    return {dispatcher, actions};
+  };
+}
+
+
+/** Choice */
+export function choice(laNum = 2, ...choiceFactories: (StepFactory)[]) {
+  return () => {
+    const {dispatcher, actions} = createStep();
     const failedChoiceResult = [] as string[][];
-    this.choices = choiceFactories.map((fac, idx) => fac());
-    rx.merge(...this.choices.map((choice, idx) => choice.actions.pipe(
-      op.map(action => {
-        if (action === StepAction.matched || action === StepAction.matchedAndReplay) {
-          if (action === StepAction.matchedAndReplay)
-              this.actions.next(StepAction.replay);
-          this.actions.next(StepAction.unmark);
-          this.actions.next(action);
-          
-        } else if (action === StepAction.unmatched || action === StepAction.unmatchedAndReplay) {
-          this.reason = choice.reason;
-          if (idx < this.choices.length - 1) {
-            this.currStep = this.choices[idx + 1];
-            this.actions.next(StepAction.replay);
-            
-          } else {
-            this.actions.next(action);
-            return null;
-          }
+    const choices = choiceFactories.map((fac, idx) => fac());
+    const actionByType = splitActionByType(actions);
+    let currChoiceIdx = 0;
+    let replayPos: number;
+
+    actionByType.process.pipe(
+      op.map(({payload}) => {
+        if (replayPos == null) {
+          replayPos = payload.i;
         }
-          
-        } else if (action === StepAction.unmatched || action === StepAction.unmatchedAndReplay) {
-          this.reason = [this.name, ...s.reason!];
-          this.actions.next(action);
-          return null;
+        if (currChoiceIdx === 0) {
+          dispatcher.mark(laNum);
         }
-        return action;
-      }),
-      op.takeWhile(action => action != null)
-    ))).pipe().subscribe();
-      const choice = fac();
-      choice.matched.pipe(
-        op.map(result => {
-          if (result === true) {
-            this.dispatcher.next(StepAction.unmark);
-            this.matched.next(true);
+        choices[currChoiceIdx].dispatcher.process(payload);
+      })
+    ).pipe(
+      op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
+    ).subscribe();
+
+    const subscribeCurrentChoice = () => {
+      const choiceActions = splitActionByType(choices[currChoiceIdx].actions);
+
+      rx.merge(
+        choiceActions.mark.pipe(op.tap(act => dispatcher.mark(act.payload))),
+        choiceActions.replay.pipe(op.tap(act => dispatcher.replay(act.payload)))
+        // choiceActions.unmark.pipe(op.tap(act => this.dispatcher.unmark()))
+      ).pipe(
+        op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
+      ).subscribe();
+
+      choiceActions.sucess.pipe(
+        op.tap(({payload}) => {
+          // this.dispatcher.unmark();
+          dispatcher.sucess(payload);
+        }),
+        op.take(1),
+        op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
+      ).subscribe();
+
+      const last = choices.length - 1;
+      choiceActions.failed.pipe(
+        op.tap(({payload}) => {
+          failedChoiceResult.push(payload);
+          if (currChoiceIdx < last) {
+            currChoiceIdx++;
+            subscribeCurrentChoice();
+            dispatcher.replay(replayPos);
           } else {
-            failedChoiceResult.push(result);
-            if (idx < this.choices.length - 1) {
-              this.currStep = this.choices[idx + 1];
-              this.dispatcher.next(StepAction.replay);
-            } else {
-              this.dispatcher.next(StepAction.unmark);
-              this.matched.next(['None is matched: ' + failedChoiceResult.join(', ')]);
-            }
+            dispatcher.failed(['None is matched: ' + failedChoiceResult.map(str => str.join(' - ')).join('; ')]);
           }
         }),
-        op.take(1)
+        op.take(1),
+        op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
       ).subscribe();
-      return choice;
-    });
-    this.currStep = this.choices[0];
-  }
+    };
 
-  process(input: T, offset: number) {
-    if (!this.began) {
-      this.began = true;
-      this.dispatcher.next(StepAction.mark);
-    }
-    if (this.currStep) {
-      this.currStep.process(input, offset);
-    }
-  }
+    subscribeCurrentChoice();
+    return {dispatcher, actions};
+  };
 }
 
-export class LoopStep<T> extends Step<T> {
-  private loopable: Step<T>;
-  private dispatcher = new rx.Subject<StepAction>();
-  private needMark = true;
+interface LoopOptions {
+  // greedy?: boolean;
+  laNum?: number;
+  minTimes?: number;
+  maxTimes?: number;
+}
 
-  constructor(factory: () => Step<T>, minTimes = 0, maxTimes = Number.MAX_VALUE) {
-    super();
-    this.actions = this.dispatcher.asObservable();
-    this.loopable = factory();
+const defaultLoopOptions = {greedy: true, laNum: 2, minTimes: 0, maxTimes: Number.MAX_VALUE};
+
+/** Loop */
+export function loop(factory: StepFactory, opts?: LoopOptions) {
+  return () => {
+    const {dispatcher, actions} = createStep();
+    let options: Required<LoopOptions>;
+    if (opts == null) {
+      options = defaultLoopOptions;
+    } else {
+      options = {...defaultLoopOptions, ...opts};
+    }
+    const actionByType = splitActionByType(actions);
     let loopCount = 0;
-    // this.prepareLoopable(loopCount, factory, minTimes, maxTimes);
-    const loopable$ = new rx.Subject<Step<T>>();
-    loopable$.pipe(
-      op.concatMap(loopable => {
-        return rx.merge(
-          this.loopable.actions ? this.loopable.actions.pipe(
-            op.tap(action => {
-              this.dispatcher.next(action);
-            })
-          ) : rx.EMPTY,
-          this.loopable.matched.pipe(
-            op.map(result => {
-              if (result === true) {
-                this.dispatcher.next(StepAction.unmark);
-                loopCount++;
-                if (loopCount < maxTimes) {
-                  this.prepareLoopable(loopCount, factory, minTimes, maxTimes);
-                } else {
-                  this.matched.next(true);
-                }
+    let currentLoopable: ReturnType<typeof createStep>;
+    let markedPos: number;
+    let startPosition = -1;
+    let currPostion = -1;
+    let loopResults = [] as PositionInfo[];
+
+    const markAtLoopableBegin = () => {
+      actionByType.process.pipe(
+        op.take(1),
+        op.map(({payload}) => {
+          markedPos = payload.i;
+          dispatcher.mark(options.laNum);
+        })
+      ).subscribe();
+    };
+
+    markAtLoopableBegin();
+
+    const createNewLoopable = () => {
+      currentLoopable = factory();
+      const childStepActions = splitActionByType(currentLoopable.actions);
+      rx.merge(
+        rx.merge(
+          childStepActions.sucess.pipe(
+            op.map(loopResult => {
+              loopResults.push(loopResult.payload);
+              loopCount++;
+              if (loopCount < options.maxTimes) {
+                markAtLoopableBegin();
+                createNewLoopable();
               } else {
-                if (loopCount >= minTimes) {
-                  this.matched.next(true);
-                  this.dispatcher.next(StepAction.replay);
-                } else {
-                  this.dispatcher.next(StepAction.unmark);
-                  this.matched.next(result);
-                }
+                const result: PositionInfo = {
+                  start: startPosition,
+                  end: currPostion + 1,
+                  children: loopResults
+                } as PositionInfo;
+                dispatcher.sucess(result);
+              }
+            })
+          ),
+          childStepActions.failed.pipe(
+            op.map(({payload: reason}) => {
+              if (loopCount > options.minTimes) {
+                dispatcher.replay(markedPos);
+                const result: PositionInfo = {
+                  start: startPosition,
+                  end: markedPos,
+                  children: loopResults
+                } as PositionInfo;
+                dispatcher.sucess(result);
+              } else {
+                dispatcher.failed(reason);
               }
             })
           )
-        );
-      }),
-      op.takeUntil(this.matched)
-    ).subscribe();
-  }
-
-  process(input: T, offset: number) {
-    if (this.needMark) {
-      this.dispatcher.next(StepAction.mark);
-      this.needMark = false;
-    }
-    this.loopable.process(input, offset);
-  }
-
-  private prepareLoopable(loopCount: number, factory: () => Step<T>, minTimes: number, maxTimes: number) {
-    this.needMark = true;
-    this.loopable = factory();
-    if (this.loopable.actions) {
-      this.loopable.actions.pipe(
-        op.tap(action => {
-          this.dispatcher.next(action);
-        }),
-        op.takeUntil(this.matched)
-        // replay action is emitted after step.matched, so we have to keep listerning to actions
-        // op.takeUntil(step.matched)
+        ).pipe(op.take(1)),
+        childStepActions.mark.pipe(op.tap(act => dispatcher.mark(act.payload))),
+        childStepActions.replay.pipe(op.tap(act => dispatcher.replay(act.payload)))
+      ).pipe(
+        op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
       ).subscribe();
-    }
-    this.loopable.matched.pipe(
-      op.take(1),
-      op.tap(result => {
-        if (result === true) {
-          this.dispatcher.next(StepAction.unmark);
-          loopCount++;
-          if (loopCount < maxTimes) {
-            this.prepareLoopable(loopCount, factory, minTimes, maxTimes);
-          } else {
-            this.matched.next(true);
-          }
-        } else {
-          if (loopCount >= minTimes) {
-            this.matched.next(true);
-            this.dispatcher.next(StepAction.replay);
-          } else {
-            this.dispatcher.next(StepAction.unmark);
-            this.matched.next(result);
-          }
+    };
+
+    createNewLoopable();
+
+    actionByType.process.pipe(
+      op.map(({payload}) => {
+        if (startPosition === -1) {
+          startPosition = payload.i;
         }
+        currPostion = payload.i;
+        currentLoopable.dispatcher.process(payload);
       })
+    ).pipe(
+      op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
     ).subscribe();
-  }
+    return {dispatcher, actions};
+  };
 }
 
-export function parse<T>(stateMachine: () => Step<T>) {
+export function parse<T>(stateMachine: StepFactory, debug = false) {
   return (input$: rx.Observable<T>) => {
-    const rootStep = stateMachine();
-    return new rx.Observable(sub => {
+    return rx.defer(() => {
+      const rootStep = stateMachine();
+      const actionByType = splitActionByType(rootStep.actions);
 
-      const sup = rx.merge(
-        rootStep.actions ? rootStep.actions.pipe(
-          op.tap(action => console.log('::' + StepAction[action]))
-        ) : rx.EMPTY,
-        rootStep.matched.pipe(
-          op.map(result => {
-            sub.next(result);
-            sub.complete();
-          }),
-          op.take(1)
+      return rx.merge(
+        rx.merge(actionByType.sucess, actionByType.failed)
+          .pipe(
+            op.take(1)
         ),
+
+        debug ? rootStep.actions.pipe(
+          // eslint-disable-next-line no-console
+          op.tap(action => console.log('::', action)),
+          op.ignoreElements()
+        ) : rx.EMPTY,
+
         // input$ must be the last one being subscribed in merge list, otherwise other subscription night don't have change to 
         // observe emitted result after input$.pipe() has completed
         input$.pipe(
-          cacheAndReplay(rootStep.actions ? rootStep.actions.pipe(
-              op.filter(action => action === StepAction.mark)
-            ) : rx.EMPTY,
-            rootStep.actions ? rootStep.actions.pipe(
-              op.filter(action => action === StepAction.replay)
-            ) : rx.EMPTY,
-            rootStep.actions ? rootStep.actions.pipe(
-              op.filter(action => action === StepAction.unmark)
-            ) : rx.EMPTY
+          cacheAndReplay(actionByType.mark.pipe(op.map(act => act.payload)),
+            actionByType.replay.pipe(op.map(act => act.payload))
           ),
           op.map(({value, idx}, totalIndex) => {
-            // eslint-disable-next-line no-console
-            console.log(`[${totalIndex}] offset:${idx}, value: ${'' + value}`);
-            rootStep.process(value, idx);
+            if (debug) {
+              // eslint-disable-next-line no-console
+              console.log(`[${totalIndex}] offset:${idx}, value: ${'' + value}`);
+            }
+            rootStep.dispatcher.process({d: value, i: idx});
           }),
-          op.takeUntil(rootStep.matched)
+          op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed)),
+          op.ignoreElements()
         )
-      ).subscribe();
-      // return rootStep.matched;
-      return () => sup.unsubscribe();
+      );
     });
   };
 }
 
 export function test() {
-  rx.from('abcxdedef'.split('')).pipe(
-    parse(() => new ScopeStep('hellow',
-        () => new ComparisonStep('a'),
-        () => new ComparisonStep('b'),
-        () => new ChoiceStep(() => new ComparisonStep('1'), () => new ComparisonStep('c')),
-        () => new ComparisonStep('x'),
-        () => new LoopStep(() => new ScopeStep('loop de',
-          () => new ComparisonStep('d'),
-          () => new ComparisonStep('e')
-         )),
-        () => new ComparisonStep('1')
-      )
+  rx.from('abcxdefdef1'.split('')).pipe(
+    parse(scope('hellow', [
+        cmp('ab'),
+        choice(2, cmp('1x'), cmp('cx')),
+        loop(scope('loop de', [cmp('def')])),
+        cmp('1')
+      ]), true
     ),
-    op.tap(r => console.log('---> ', r))
+    // eslint-disable-next-line no-console
+    op.tap(r => console.log('---> ', JSON.stringify(r, null, '  ')))
   ).subscribe();
 }

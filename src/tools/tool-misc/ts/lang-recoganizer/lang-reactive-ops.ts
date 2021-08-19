@@ -4,17 +4,57 @@ import * as op from 'rxjs/operators';
 interface CacheAndReplayState<T> {
   cacheData: T[];
   cacheStartPos: number;
-  markIdices: number[];
+  // markIdices: LinkedList<{offset: number; laNum: number}>;
+  unmarkPositions: Set<number>;
   inputValue?: T;
   inputIdx: number;
 }
 
-export function cacheAndReplay<T>(markAction: rx.Observable<unknown>, replayAction: rx.Observable<unknown>,
-  unmarkAction: rx.Observable<unknown>) {
+// interface LinkedItem<T> {
+//   prev?: LinkedItem<T>;
+//   next?: LinkedItem<T>;
+//   data: T;
+// }
+// class LinkedList<T> {
+//   length = 0;
+//   head?: LinkedItem<T>;
+//   tail?: LinkedItem<T>;
+
+//   add(data: T) {
+//     if (this.length === 0) {
+//       this.head = this.tail = {data};
+//     } else {
+//       this.tail!.next = {data, prev: this.tail};
+//       this.tail = this.tail!.next;
+//     }
+//     this.length++;
+//   }
+
+//   remove(item: LinkedItem<T>) {
+//     const {prev, next} = item;
+//     if (prev && next) {
+//       prev.next = next;
+//       next.prev = prev;
+//     } else if (prev) {
+//       prev.next = undefined;
+//       this.tail = prev;
+//     } else if (next) {
+//       this.head = next;
+//       next.prev = undefined;
+//     }
+//     this.length--;
+//   }
+// }
+
+export function cacheAndReplay<T>(
+  markAction: rx.Observable<number>, // with offset of look ahead
+  replayAction: rx.Observable<number> // with target marked position
+) {
   const store = new rx.BehaviorSubject<CacheAndReplayState<T>>({
     cacheData: [],
     cacheStartPos: -1,
-    markIdices: [],
+    // markIdices: new LinkedList<{offset: number; laNum: number}>(),
+    unmarkPositions: new Set<number>(),
     inputIdx: -1
   });
 
@@ -24,62 +64,69 @@ export function cacheAndReplay<T>(markAction: rx.Observable<unknown>, replayActi
     const unsubscribeSubj = new rx.Subject();
     // handle mark action
     markAction.pipe(
-      op.mergeMap(() => store.pipe(
+      op.mergeMap(laNumber => store.pipe(
         op.distinctUntilChanged((a, b) => a.inputValue === b.inputValue),
         op.filter(state => state.inputValue != null),
-        op.take(1)
+        op.take(1),
+        op.map(s => {
+          if (s.unmarkPositions.size === 0) {
+            s.cacheStartPos = s.inputIdx;
+            s.cacheData.push(s.inputValue!);
+          }
+          // s.markIdices.add({offset: s.inputIdx, laNum: laNumber});
+          s.unmarkPositions.add(laNumber + s.inputIdx);
+          store.next({
+            ...s
+          });
+        })
       )),
-      op.map(s => {
-        if (s.markIdices.length === 0) {
-          s.cacheStartPos = s.inputIdx;
-          s.cacheData.push(s.inputValue!);
-        }
-        store.next({
-          ...s,
-          markIdices: s.markIdices.concat(s.inputIdx)
-        });
-      }),
       op.takeUntil(unsubscribeSubj)
     ).subscribe();
 
     // handle replay action
     replayAction.pipe(
-      op.mergeMap(() => store.pipe(
-        op.distinctUntilChanged((a, b) => a.markIdices === b.markIdices),
-        op.filter(state => state.markIdices.length > 0),
-        op.take(1)
+      op.mergeMap((position) => store.pipe(
+        op.distinctUntilChanged((a, b) => a.cacheStartPos === b.cacheStartPos),
+        op.filter(state => state.cacheStartPos >= 0),
+        op.take(1),
+        op.map(state => {
+          for (let i = position - state.cacheStartPos, l = state.cacheData.length; i < l; i++) {
+            const value = state.cacheData[i];
+            replayer.next({value, idx: state.cacheStartPos + i});
+          }
+          store.next({...state});
+        })
       )),
-      op.map(state => {
-        const marker = state.markIdices[state.markIdices.length - 1];
-        for (let i = marker - state.cacheStartPos, l = state.cacheData.length; i < l; i++) {
-          const value = state.cacheData[i];
-          replayer.next({value, idx: state.cacheStartPos + i});
-        }
-        store.next({...state});
-      }),
       op.takeUntil(unsubscribeSubj)
     ).subscribe();
 
-    unmarkAction.pipe(
-      op.map(() => {
-        const s = store.getValue();
-        if (s.markIdices.length > 0) {
-          s.markIdices.pop();
-        }
-        if (s.markIdices.length === 0) {
-          s.cacheData.splice(0);
-        }
-        store.next({...s});
-      }),
-      op.takeUntil(unsubscribeSubj)
-    ).subscribe();
+    // unmarkAction.pipe(
+    //   op.map(() => {
+    //     const s = store.getValue();
+    //     if (s.markIdices.length > 0) {
+    //       s.markIdices.pop();
+    //     }
+    //     if (s.markIdices.length === 0) {
+    //       s.cacheData.splice(0);
+    //     }
+    //     store.next({...s});
+    //   }),
+    //   op.takeUntil(unsubscribeSubj)
+    // ).subscribe();
 
     return rx.merge(
       replayer.pipe(op.observeOn(rx.queueScheduler)),
       input.pipe(
         op.map((item, idx) => {
           const state = store.getValue();
-          if (state.markIdices.length > 0) {
+          if (state.unmarkPositions.has(idx)) {
+            // console.log('unmark', state.unmarkPositions.size);
+            state.unmarkPositions.delete(idx);
+            if (state.unmarkPositions.size === 0) {
+              state.cacheData.splice(0);
+            }
+          }
+          if (state.unmarkPositions.size > 0) {
             state.cacheData.push(item);
           }
           store.next({...state});
@@ -103,27 +150,26 @@ export function cacheAndReplay<T>(markAction: rx.Observable<unknown>, replayActi
 }
 
 export function test() {
-  const marker = new rx.Subject();
-  const replay = new rx.Subject();
-  const unmarker = new rx.Subject();
+  const marker = new rx.Subject<number>();
+  const replay = new rx.Subject<number>();
 
-  rx.range(1, 20).pipe(
+  rx.range(0, 20).pipe(
     // op.take(20),
-    cacheAndReplay(marker, replay, unmarker),
+    cacheAndReplay(marker, replay),
     op.map(({value, idx}, totalIndex) => {
       // eslint-disable-next-line no-console
       console.log(`(${totalIndex}) offset:${idx}, value: ${value}`);
       if (totalIndex === 5) {
-        marker.next();
+        marker.next(4);
       }
       if (totalIndex === 8) {
-        marker.next();
+        marker.next(2);
       }
       if (totalIndex === 10) {
-        replay.next();
+        replay.next(8);
       }
       if (totalIndex === 15) {
-        replay.next();
+        replay.next(5);
       }
 
     }),

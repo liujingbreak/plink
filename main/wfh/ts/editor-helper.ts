@@ -62,13 +62,14 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
   const pkgActionByTypes = castByActionType(pkgSlice.actions, action$);
   return rx.merge(
     new rx.Observable(sub => {
-      if (getPkgState().linkedDrcp) {
-        const file = Path.resolve(getPkgState().linkedDrcp!.realPath, 'wfh/tsconfig.json');
-        const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
-        if (!getState().tsconfigByRelPath.has(relPath)) {
-          process.nextTick(() => dispatcher.hookTsconfig([file]));
-        }
+      // if (getPkgState().linkedDrcp) {
+      const plinkDir = getPkgState().linkedDrcp || getPkgState().installedDrcp!;
+      const file = Path.resolve(plinkDir.realPath, 'wfh/tsconfig.json');
+      const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
+      if (!getState().tsconfigByRelPath.has(relPath)) {
+        process.nextTick(() => dispatcher.hookTsconfig([file]));
       }
+      // }
       sub.complete();
     }),
     pkgActionByTypes.workspaceBatchChanged.pipe(

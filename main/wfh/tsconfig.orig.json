@@ -4,7 +4,7 @@
     "baseUrl": ".",
     "strict": true,
     "paths": {
-      "_package-settings": ["_package-settings"],
+      "package-settings": ["package-settings"],
       "*": [
         "../node_modules/@types/*",
         "../node_modules/*"
@@ -17,6 +17,7 @@
   },
   "include": [
     "ts/**/*.ts",
+    "dist/**/*.d.ts",
     "../redux-toolkit-observable/**/*.ts",
     "../thread-promise-pool/ts/**/*.ts"
   ]
