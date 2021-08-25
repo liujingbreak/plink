@@ -28,6 +28,7 @@ export function useAppLayout() {
 export interface AppLayoutState {
   barTitle?: string | null;
   deviceSize: Size;
+  footer?: React.ReactNode;
   /** top progress bar */
   showTopLoading: boolean;
   /** scrollable area */
@@ -46,6 +47,9 @@ export interface AppLayoutState {
 export const reducers = {
   updateBarTitle(s: AppLayoutState, title: string | null) {
     s.barTitle = title ? title.toUpperCase() : '';
+  },
+  updateFooter(s: AppLayoutState, content: React.ReactNode) {
+    s.footer = content;
   },
   setLoadingVisible(s: AppLayoutState, visible: boolean) {
     // s.showTopLoading = visible;

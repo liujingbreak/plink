@@ -69,7 +69,7 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
         sub$.getValue()!.destroy();
       }
     };
-  }, []);
+  }, [sub$]);
 
   let headerStyle = props.type ? typeStyleMap[props.type].header : typeStyleMap.standard.header;
   let mainStyle = props.type ? typeStyleMap[props.type].main : typeStyleMap.standard.main;

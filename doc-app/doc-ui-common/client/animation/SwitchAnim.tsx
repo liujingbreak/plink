@@ -211,14 +211,14 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
     if (props.parentDom) {
       props.parentDom.className = clsddp(props.parentDom.className, styles.scope, props.size == null ? 'fit' : styles[props.size]);
     }
-  }, [props.parentDom]);
+  }, [props.parentDom, props.size]);
 
   const content = state.contentKeys.map((key, idx) => {
     const item = state.contentByKey[key];
     return <div key={key} className={cls(styles.movingBox, item.clsName)} ref={item.onContainerReady}>{item.renderable}</div>;
   });
   const rootCls = cls(props.className || '', (cx(props.size == null ? 'fit' : props.size, 'scope',
-    props.type === 'opacity' ? 'animate-opacity': '')));
+    props.type === 'opacity' ? 'animate-opacity' : '')));
   // Your Component rendering goes here
   return props.parentDom != null ? <>{content}</> :
     <div className={rootCls}>{ content }</div>;
