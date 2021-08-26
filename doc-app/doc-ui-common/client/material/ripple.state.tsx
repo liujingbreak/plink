@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory/*, ofPayloadAction*/} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {MDCRipple} from '@material/ripple/index';
@@ -22,7 +22,7 @@ export type RippleObservableProps = React.PropsWithChildren<{
   // define component properties
   color?: 'dark' | 'light';
   className?: string;
-  getMdcRef?: (ref: MDCRipple) => any;
+  getMdcRef?: (ref: MDCRipple) => void;
   // renderTo?: HTMLElement;
   // renderToWhen?: rx.Observable<HTMLElement>;
 }>;

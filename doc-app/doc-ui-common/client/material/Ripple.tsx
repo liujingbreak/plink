@@ -32,8 +32,8 @@ const Ripple: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleProps> = 
   ).toPromise() as Promise<MDCRipple>, [store]);
 
   React.useEffect(() => {
-    return () => {slice.actionDispatcher.destory();};
-  }, []);
+    return () => {slice.actionDispatcher.destory(); };
+  }, [slice.actionDispatcher]);
   // const Content = props.renderTo ? props.renderTo() : null;
 
   return state.mode === 'wrapper' ?

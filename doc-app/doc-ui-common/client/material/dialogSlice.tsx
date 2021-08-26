@@ -8,11 +8,13 @@ import {MDCDialog} from '@material/dialog';
 export type DialogProps = React.PropsWithChildren<{
   // define component properties
   sliceRef?(sliceHelper: DialogSliceHelper): void;
+  getMdcRef?: (ref: MDCDialog) => void;
 }>;
 export interface DialogState {
   componentProps?: DialogProps;
   domRef?: Immutable<Refrigerator<HTMLDivElement>> | null;
   dialog?: Immutable<Refrigerator<MDCDialog>>;
+  isOpened: boolean;
 }
 
 const simpleReducers = {
@@ -23,8 +25,8 @@ const simpleReducers = {
     else if (s.dialog)
       s.dialog.getRef().destroy();
   },
-  clickDone(s: DialogState) {},
-
+  open(s: DialogState) {},
+  close(s: DialogState) {},
   _syncComponentProps(s: DialogState, payload: DialogProps) {
     s.componentProps = {...payload};
   }
@@ -33,7 +35,9 @@ const simpleReducers = {
 const reducers = createReducers<DialogState, typeof simpleReducers>(simpleReducers);
 
 export function sliceOptionFactory() {
-  const initialState: DialogState = {};
+  const initialState: DialogState = {
+    isOpened: false
+  };
   return {
     name: 'Dialog',
     initialState,
@@ -47,14 +51,6 @@ export const epicFactory: EpicFactory<DialogState, typeof reducers> = function(s
   return (action$) => {
     const actionStreams = castByActionType(slice.actions, action$);
     return rx.merge(
-      // Observe state (state$) change event, exactly like React.useEffect(), but more powerful for async time based reactions
-      slice.getStore().pipe(op.map(s => s.componentProps), // watch component property changes
-        op.filter(props => props != null),
-        op.distinctUntilChanged(), // distinctUntilChanged accept an expression as parameter
-        op.map(() => {
-          // slice.actionDispatcher....
-        })
-      ),
       slice.getStore().pipe(op.map(s => s.componentProps?.sliceRef),
         op.distinctUntilChanged(),
         op.map(sliceRef => {
@@ -63,15 +59,56 @@ export const epicFactory: EpicFactory<DialogState, typeof reducers> = function(s
           }
           return null;
         })
-      )
+      ),
+      slice.getStore().pipe(
+        op.distinctUntilChanged((a, b) => a.componentProps?.getMdcRef === b.componentProps?.getMdcRef && a.dialog === b.dialog),
+        op.map(s => {
+          if (s.componentProps?.getMdcRef && s.dialog) {
+            s.componentProps.getMdcRef(s.dialog.getRef());
+          }
+        })
+      ),
+      slice.getStore().pipe(op.map(s => s.dialog),
+        op.distinctUntilChanged(),
+        op.map(dialog => {
+          if (dialog) {
+            dialog.getRef().listen('MDCDialog:opened', () => {
+              slice.actionDispatcher._change(s => s.isOpened = true);
+            });
+            dialog.getRef().listen('MDCDialog:closing', () => {
+              slice.actionDispatcher._change(s => s.isOpened = false);
+            });
+          }
+        })
+      ),
       // Observe incoming action 'onClick' and dispatch new change action
-      // actionStreams.onDomRef.pipe(
-      //   op.switchMap((action) => {
-      //     // mock async job
-      //     return Promise.resolve(action.payload.target); // Promise is not cancellable, the better we use observables instead promise here
-      //   }),
-      //   op.map(dom => slice.actionDispatcher.clickDone())
-      // )
+      rx.merge(actionStreams.open, actionStreams.close).pipe(
+        op.mergeMap(action => slice.getStore().pipe(
+          op.map(s => s.dialog), op.distinctUntilChanged(),
+          op.filter(dialog => dialog != null),
+          op.take(1),
+          op.map(dialog => ({action, dialog: dialog!.getRef()}))
+          )),
+        op.concatMap(({action, dialog}) => {
+          if (action.type === 'open') {
+            dialog.open();
+            return slice.getStore().pipe(
+              op.map(s => s.isOpened),
+              op.distinctUntilChanged(),
+              op.filter(isOpened => isOpened),
+              op.take(1)
+            );
+          } else {
+            dialog.close();
+            return slice.getStore().pipe(
+              op.map(s => s.isOpened),
+              op.distinctUntilChanged(),
+              op.filter(isOpened => !isOpened),
+              op.take(1)
+            );
+          }
+        })
+      )
       // ... more action async reactors: action$.pipe(ofType(...))
     ).pipe(op.ignoreElements());
   };

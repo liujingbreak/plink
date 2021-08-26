@@ -46,7 +46,9 @@ const Dialog: React.FC<DialogProps> = function(props) {
   </div>;
 };
 
-
+/**
+ * https://material-components.github.io/material-components-web-catalog/#/component/dialog
+ */
 export {Dialog};
 
 
