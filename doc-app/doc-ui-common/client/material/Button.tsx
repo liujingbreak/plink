@@ -11,7 +11,7 @@ const cx = classnames.bind(styles);
 
 export type ButtonProps = React.PropsWithChildren<{
   onClick?(evt: any): void;
-  type?: 'raised' | 'outlined' | 'text'
+  type?: 'raised' | 'outlined' | 'text';
   disabled?: boolean;
   // materialIcon?: string;
   className?: string;
@@ -48,7 +48,7 @@ const Button: React.FC<ButtonProps> = function(props) {
     if (props.onClick) {
       props.onClick(event);
     }
-  }, []);
+  }, [props]);
 
   const className = cx('mdc-button',
     'mdc-button--' + (props.type == null || props.type === 'text' ? '' : props.type),
