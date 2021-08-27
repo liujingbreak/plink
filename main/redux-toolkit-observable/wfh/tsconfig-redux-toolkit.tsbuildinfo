@@ -1092,8 +1092,8 @@
         "affectsGlobalScope": false
       },
       "../helper.ts": {
-        "version": "3d031d37b80bf611265a89640ef1bf4e3f3a36ce556e030748364fc1f01bc0a7",
-        "signature": "982ab86bb8695b73f14dd7b91338054be892444bb03d82bcc4e1136278fa0de8",
+        "version": "d5fd539f74f27103f56a2115c66585b3d7eed8b78cd3f3384c9fcc0fc30676d2",
+        "signature": "35f84dfb704d145e34ca4f2b4da5fe433b61ae70ee90c18aa6064f61528a7397",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/react/global.d.ts": {
@@ -1142,8 +1142,8 @@
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
-        "version": "3b238d54c13b145a9ea27976be793fa163e0b20751c5c714e05242f0a0e83c9c",
-        "signature": "21fa0309b01317538c6485f97391b688018e08a890dd6543a3c8b2347d61d61a",
+        "version": "ea61938bf6154f99b95dfb7fbf667eb49ec0a3c218251404bfaa1203057767b9",
+        "signature": "fcd3e48796db242715bbfb32483a11ead3ef6822f45d7e93c449452649861616",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit-hook.ts": {
@@ -1892,6 +1892,7 @@
       "pretty": true,
       "rootDir": "..",
       "composite": true,
+      "watch": true,
       "configFilePath": "../../wfh/tsconfig-redux-toolkit.json"
     },
     "referencedMap": {

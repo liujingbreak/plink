@@ -8,13 +8,14 @@ import fsext from 'fs-extra';
 import fs from 'fs';
 import _ from 'lodash';
 import Path from 'path';
-import { from, merge, Observable, of, defer, throwError} from 'rxjs';
+import { from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
 import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
   take, concatMap, ignoreElements, scan, catchError, tap } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 import { exe } from '../process-utils';
 import { setProjectList, setLinkPatterns} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
+import {isActionOfCreator} from '../../../redux-toolkit-observable/dist/helper';
 // import { getRootDir } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync } from '../utils/symlinks';
 import {symbolicLinkPackages} from '../rwPackageJson';
@@ -425,7 +426,8 @@ stateFactory.addEpic((action$, state$) => {
         actionDispatcher._setCurrentWorkspace(dir);
         maybeCopyTemplate(Path.resolve(__dirname, '../../templates/app-template.js'), Path.resolve(dir, 'app.js'));
         checkAllWorkspaces();
-        if (isForce || useNpmCi) {
+        const lockFile = Path.resolve(dir, 'plink.install.lock');
+        if (fs.existsSync(lockFile) || isForce || useNpmCi) {
           // Chaning installJsonStr to force action _installWorkspace being dispatched later
           const wsKey = workspaceKey(dir);
           if (getState().workspaces.has(wsKey)) {
@@ -571,29 +573,33 @@ stateFactory.addEpic((action$, state$) => {
         })
       );
     }),
-    action$.pipe(ofPayloadAction(slice.actions._installWorkspace),
+    // workspaceBatchChanged will trigger creating symlinks, but meanwhile _installWorkspace will delete symlinks
+    // I don't want to seem them running simultaneously.
+    action$.pipe(ofPayloadAction(slice.actions._installWorkspace, slice.actions.workspaceBatchChanged),
       concatMap(action => {
-        const wsKey = action.payload.workspaceKey;
-        return getStore().pipe(
-          map(s => s.workspaces.get(wsKey)),
-          distinctUntilChanged(),
-          filter(ws => ws != null),
-          take(1),
-          concatMap(ws => {
-            return installWorkspace(ws!, getState().npmInstallOpt);
-          }),
-          map(() => {
-            updateInstalledPackageForWorkspace(wsKey);
-          })
-        );
+        if (isActionOfCreator(action, slice.actions._installWorkspace)) {
+          const wsKey = action.payload.workspaceKey;
+          return getStore().pipe(
+            map(s => s.workspaces.get(wsKey)),
+            distinctUntilChanged(),
+            filter(ws => ws != null),
+            take(1),
+            concatMap(ws => {
+              return installWorkspace(ws!, getState().npmInstallOpt);
+            }),
+            map(() => {
+              updateInstalledPackageForWorkspace(wsKey);
+            })
+          );
+        } else if (isActionOfCreator(action, slice.actions.workspaceBatchChanged)) {
+          const wsKeys = action.payload;
+          return merge(...wsKeys.map(_createSymlinksForWorkspace));
+        } else {
+          return EMPTY;
+        }
       })
     ),
-    action$.pipe(ofPayloadAction(slice.actions.workspaceBatchChanged),
-      concatMap(action => {
-        const wsKeys = action.payload;
-        return merge(...wsKeys.map(_createSymlinksForWorkspace));
-      })
-    ),
+
     action$.pipe(ofPayloadAction(slice.actions.workspaceStateUpdated),
       map(action => updatedWorkspaceSet.add(action.payload)),
       debounceTime(800),

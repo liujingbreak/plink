@@ -1,10 +1,10 @@
 import * as fs from 'fs-extra';
 import * as Path from 'path';
 import {getLogger} from 'log4js';
-const log = getLogger('plink.rwPackageJson');
 import * as _ from 'lodash';
 import {map} from 'rxjs/operators';
 import {Observable} from 'rxjs';
+const log = getLogger('plink.rwPackageJson');
 // import config from './config';
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 const isWin32 = require('os').platform().indexOf('win32') >= 0;
@@ -43,7 +43,7 @@ export function symbolicLinkPackages(destDir: string) {
           } else {
             _symbolicLink(realPath, newPath);
           }
-        } catch(err) {
+        } catch (err) {
           log.error(err);
         }
       })

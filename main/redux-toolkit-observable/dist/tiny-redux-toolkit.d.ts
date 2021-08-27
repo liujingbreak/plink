@@ -89,6 +89,7 @@ slice.addEpic(slice => action$ => {
 export declare function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>, action$: rx.Observable<PayloadAction<any> | Action<S>>): {
     [K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>;
 };
+export declare function isActionOfCreator<P, S>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<S, P>): action is PayloadAction<S, P>;
 export interface SliceOptions<S, R extends Reducers<S>> {
     name: string;
     initialState: S;

@@ -1,5 +1,6 @@
 import {StateFactory, ExtraSliceReducers} from './redux-toolkit-observable';
-import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft} from '@reduxjs/toolkit';
+import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft,
+  ActionCreatorWithPayload} from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import {Observable, EMPTY, of, Subject, OperatorFunction, defer, Subscription} from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -192,6 +193,11 @@ export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<
       [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ?
         PayloadAction<P> : PayloadAction<unknown>>
     };
+}
+
+export function isActionOfCreator<P, T extends string>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<P, T>):
+  action is PayloadAction<P, T> {
+  return action.type === actionCreator.type;
 }
 
 /**

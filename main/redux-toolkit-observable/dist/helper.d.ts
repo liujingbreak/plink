@@ -1,5 +1,5 @@
 import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
-import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft } from '@reduxjs/toolkit';
+import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft, ActionCreatorWithPayload } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { Observable, OperatorFunction } from 'rxjs';
 import { immerable } from 'immer';
@@ -70,6 +70,7 @@ slice.addEpic(slice => action$ => {
 export declare function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R, action$: Observable<PayloadAction | Action>): {
     [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
 };
+export declare function isActionOfCreator<P, T extends string>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<P, T>): action is PayloadAction<P, T>;
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.

@@ -159,6 +159,11 @@ export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actio
     return splitActions as {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>};
 }
 
+export function isActionOfCreator<P, S>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<S, P>):
+  action is PayloadAction<S, P> {
+  return action.type === actionCreator.type;
+}
+
 const sliceCount4Name: {[name: string]: number} = {};
 
 export interface SliceOptions<S, R extends Reducers<S>> {
