@@ -18,9 +18,9 @@ export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R>
     getState(): S;
 };
 export declare function createSliceHelper<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, opts: CreateSliceOptions<S, R>): SliceHelper<S, R>;
-interface SimpleReducers<S> {
+declare type SimpleReducers<S> = {
     [K: string]: (draft: S | Draft<S>, payload?: any) => S | void | Draft<S>;
-}
+};
 export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
     [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => S | void | Draft<S> : R[K] extends (s: any, payload: infer P) => any ? (s: Draft<S>, action: PayloadAction<P>) => void | Draft<S> : (s: Draft<S>, action: PayloadAction<unknown>) => void | Draft<S>;
 };
@@ -104,6 +104,7 @@ export declare class Refrigerator<T> {
     private ref;
     [immerable]: false;
     constructor(originRef: T);
+    creatNewIfNoEqual(ref: T): Refrigerator<T>;
     getRef(): T;
 }
 export {};

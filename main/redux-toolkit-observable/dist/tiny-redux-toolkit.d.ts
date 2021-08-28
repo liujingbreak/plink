@@ -17,14 +17,11 @@ export interface PayloadAction<S, P = any> {
     payload: P;
     reducer?(old: S, payload: P): S | void;
 }
-export interface Reducers<S> {
-    /** Returning `undefined / void` has same effect of returning old state reference,
-     * Returning a brand new state object for immutability in normal case.
-     */
-    [type: string]: (state: S, payload?: any) => S | void;
-}
-export declare type Actions<S, R extends Reducers<S>> = {
-    [K in keyof R]: R[K] extends (s: any) => any ? ActionCreatorWithoutPayload<S> : R[K] extends (s: any, payload: infer P) => any ? ActionCreatorWithPayload<S, P> : ActionCreatorWithPayload<S, unknown>;
+export declare type Reducers<S, R = any> = {
+    [K in keyof R]: (state: S, payload?: any) => S | void;
+};
+export declare type Actions<S, R> = {
+    [K in keyof R]: R[K] extends (s: S) => any ? ActionCreatorWithoutPayload<S> : R[K] extends (s: S, payload: infer P) => any ? ActionCreatorWithPayload<S, P> : ActionCreatorWithPayload<S, unknown>;
 };
 export declare type ActionCreator<S, P> = ActionCreatorWithoutPayload<S> | ActionCreatorWithPayload<S, P>;
 interface ActionCreatorWithoutPayload<S> {

@@ -3,7 +3,39 @@ import { createSlice } from './tiny-redux-toolkit';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 export * from './tiny-redux-toolkit';
-const EMPTY_ARR = [];
+function withBaseReducers(origReducers) {
+    const reducers = Object.assign({ _syncComponentProps(s, payload) {
+            s.componentProps = Object.assign({}, payload);
+        },
+        _willUnmount(s) { } }, origReducers);
+    return reducers;
+}
+/**
+ * Unlike useTinyReduxTookit, useTinyRtk() accepts a State which extends BaseComponentState,
+ *  useTinyRtk() will automatically create an extra reducer "_syncComponentProps" for shallow coping
+ * React component's properties to this internal RTK store
+ * @param optsFactory
+ * @param props
+ * @param epicFactories
+ * @returns
+ */
+export function useTinyRtk(optsFactory, props, ...epicFactories) {
+    const extendOptsFactory = React.useCallback(() => {
+        const opts = optsFactory();
+        return Object.assign(Object.assign({}, opts), { reducers: withBaseReducers(opts.reducers) });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    React.useEffect(() => () => {
+        stateAndSlice[1].actionDispatcher._willUnmount();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    const stateAndSlice = useTinyReduxTookit(extendOptsFactory, ...epicFactories);
+    React.useEffect(() => {
+        stateAndSlice[1].actionDispatcher._syncComponentProps(props);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, Object.values(props));
+    return stateAndSlice;
+}
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
  * @param opts
@@ -13,10 +45,11 @@ export function useTinyReduxTookit(optsFactory, ...epicFactories) {
     // To avoid a mutatable version is passed in
     // const clonedState = clone(opts.initialState);
     const willUnmountSub = React.useMemo(() => new rx.ReplaySubject(1), []);
-    const sliceOptions = React.useMemo(optsFactory, EMPTY_ARR);
+    const sliceOptions = React.useMemo(optsFactory, [optsFactory]);
     const epic$s = React.useMemo(() => {
         return epicFactories.map(() => new rx.BehaviorSubject(null));
-    }, EMPTY_ARR);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const [state, setState] = React.useState(sliceOptions.initialState);
     // const [slice, setSlice] = React.useState<Slice<S, R>>();
     const slice = React.useMemo(() => {
@@ -36,10 +69,11 @@ export function useTinyReduxTookit(optsFactory, ...epicFactories) {
         // runs earlier than parent component's
         epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
         return slice;
-    }, EMPTY_ARR);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     React.useEffect(() => {
         epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
-    }, epicFactories);
+    }, [epic$s, epicFactories]);
     React.useEffect(() => {
         // const sub = slice.state$.pipe(
         //   op.distinctUntilChanged(),
@@ -55,6 +89,7 @@ export function useTinyReduxTookit(optsFactory, ...epicFactories) {
             // sub.unsubscribe();
             slice.destroy();
         };
-    }, EMPTY_ARR);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     return [state, slice];
 }

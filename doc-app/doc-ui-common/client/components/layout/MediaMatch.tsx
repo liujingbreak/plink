@@ -21,7 +21,7 @@ const MediaMatch: React.FC<MediaMatchProps> = function(props) {
     const resizeEvent$ = new rx.Subject();
     const sub = resizeEvent$.pipe(
       op.throttleTime(500),
-      op.concatMap(() => rx.timer(20)),
+      op.concatMap(() => rx.timer(20).pipe(op.take(1))),
       op.tap(() => {
         if (detectorRef.current) {
           const content = window.getComputedStyle(detectorRef.current, '::before').content;
@@ -41,7 +41,8 @@ const MediaMatch: React.FC<MediaMatchProps> = function(props) {
       window.removeEventListener('resize', onResize);
       sub.unsubscribe();
     };
-  }, [props]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.onChange]);
   return <div ref={detectorRef} className={styles.MediaMatch}></div>;
   // return <></>;
 };

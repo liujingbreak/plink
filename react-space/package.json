@@ -36,7 +36,7 @@
     "@wfh/express-app": "1.1.8",
     "@wfh/json-schema-gen": "1.0.18-0",
     "@wfh/tool-misc": "~1.1.1",
-    "sass": "^1.29.0",
+    "sass": "^1.38.1",
     "rxjs": "~6.4.0"
   },
   "scripts": {

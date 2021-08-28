@@ -15,7 +15,7 @@
     "axios": "0.21.1",
     "@reduxjs/toolkit": "~1.5.0",
     "redux-observable": "~1.2.0",
-    "sass": "^1.29.0",
+    "sass": "^1.38.1",
     "rxjs": "~6.4.0"
   },
   "scripts": {

@@ -229,3 +229,36 @@ install their dependencies in their own `node_modules`, instead we install all d
 packages in current space's node_modules directory as being shared.
 
 Unlike Maven, to resolve the conflict of transitive dependency, we only use "the highest version" of conflict dependencies, not the first version. https://dzone.com/articles/solving-dependency-conflicts-in-maven
+
+## Using Plink command line
+Through npm run scripts:
+change project's package.json to add:
+```json
+{
+  scripts: {
+    "plink": "plink"
+  },
+  ...
+}
+```
+
+```bash
+npm run plink -- <sub-command> [options...] [arguments...]
+```
+Or install globally by `npm i -g @wfh/plink-cli`
+
+Plink provides help command in form of:
+```bash
+plink -h
+plink <sub-command> -h
+# or
+plink help <sub-command>
+```
+
+Easy source code generating (@wfh/tool-misc must installed to worktree space),
+```bash
+# Plink's more pluggable sub-commands are available under each worktree space directory, as long as they are installed.
+cd cra-space
+# Generate "internal" Redux slice for a component
+plink cra-gen-slice --internal ../packages/aw-main/containers landing
+```

@@ -11,7 +11,7 @@
  * immutabilities of state, but also as perks, you can use any ImmerJS unfriendly object in state,
  * e.g. DOM object, React Component, functions
  */
-import {EpicFactory} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {EpicFactory4Comp, BaseComponentState} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {MDCRipple} from '@material/ripple/index';
@@ -26,7 +26,7 @@ export type RippleObservableProps = React.PropsWithChildren<{
   // renderTo?: HTMLElement;
   // renderToWhen?: rx.Observable<HTMLElement>;
 }>;
-export interface RippleState {
+export interface RippleState extends BaseComponentState<RippleObservableProps> {
   componentProps?: RippleObservableProps;
   mdcRef?: MDCRipple;
   domRef?: HTMLDivElement | HTMLElement;
@@ -52,9 +52,6 @@ const reducers = {
     }
   },
 
-  _syncComponentProps(s: RippleState, payload: RippleObservableProps) {
-    s.componentProps = {...payload};
-  },
   _changeMode(s: RippleState, payload: RippleState['mode']) {
     s.mode = payload;
   }
@@ -76,7 +73,7 @@ export function sliceOptionFactory() {
   };
 }
 
-export const epicFactory: EpicFactory<RippleState, typeof reducers> = function(slice) {
+export const epicFactory: EpicFactory4Comp<RippleObservableProps, RippleState, typeof reducers> = function(slice) {
   return (action$) => {
     return rx.merge(
       slice.getStore().pipe(

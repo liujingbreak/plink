@@ -1,7 +1,7 @@
 import { ofPayloadAction } from './redux-toolkit-observable';
 import React from 'react';
 import { stateFactory } from './state-factory-browser';
-import { createSliceHelper, castByActionType } from './helper';
+import { createSliceHelper, castByActionType, createReducers } from './helper';
 import { useEffect, useState } from 'react';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -61,6 +61,39 @@ export function useReduxTookitWith(stateFactory, optsFactory, ...epicFactories) 
 export function useReduxTookit(optsFactory, ...epicFactories) {
     return useReduxTookitWith(stateFactory, optsFactory, ...epicFactories);
 }
+/**
+ * Use a dedicated Redux slice store for single component instance.
+ * Unlike useReduxTookit, useRtk() accepts a State which extends BaseComponentState,
+ *  useRtk() will automatically create an extra reducer "_syncComponentProps" for shallow coping
+ * React component's properties to this internal RTK store
+ * @param optsFactory
+ * @param epicFactories
+ * @returns [state, sliceHelper]
+ */
+export function useRtk(optsFactory, props, ...epicFactories) {
+    const extendOptsFactory = React.useCallback(() => {
+        const opts = optsFactory();
+        return Object.assign(Object.assign({}, opts), { reducers: withBaseReducers(opts.reducers) });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    useEffect(() => {
+        stateAndSlice[1].actionDispatcher._syncComponentProps(props);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, Object.values(props));
+    useEffect(() => {
+        return () => { stateAndSlice[1].actionDispatcher._willUnmount(); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    const stateAndSlice = useReduxTookitWith(stateFactory, extendOptsFactory, ...epicFactories);
+    return stateAndSlice;
+}
+function withBaseReducers(origReducers) {
+    const reducers = Object.assign({ _syncComponentProps(s, { payload }) {
+            s.componentProps = Object.assign({}, payload);
+        },
+        _willUnmount(s) { } }, origReducers);
+    return reducers;
+}
 export function useStoreOfStateFactory(stateFactory) {
     const [reduxStore, setReduxStore] = useState(undefined);
     useEffect(() => {
@@ -73,17 +106,19 @@ export function useStoreOfStateFactory(stateFactory) {
     return reduxStore;
 }
 const demoState = {};
-const demoReducer = {
+const simpleDemoReducers = {
     hellow(s, payload) { }
 };
+const demoReducers = createReducers(simpleDemoReducers);
 const demoSlice = createSliceHelper(stateFactory, {
     name: '_internal_',
     initialState: demoState,
-    reducers: demoReducer
+    reducers: withBaseReducers(demoReducers)
 });
 demoSlice.addEpic(slice => {
     return action$ => {
+        slice.actionDispatcher._willUnmount();
         const actionStreams = castByActionType(slice.actions, action$);
-        return actionStreams.hellow;
+        return rx.merge(actionStreams.hellow, actionStreams._syncComponentProps);
     };
 });

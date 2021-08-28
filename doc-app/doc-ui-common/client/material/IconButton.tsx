@@ -7,7 +7,9 @@ import './IconButton.scss';
 
 export type IconButtonProps = React.PropsWithChildren<{
   onClick?(evt: any): void;
+  className?: string;
   disabled?: boolean;
+  dialogAction?: string;
   // isToggleOn?: boolean;
   materialIcon?: string;
   // materialIconOff?: string;
@@ -28,7 +30,8 @@ const IconButton: React.FC<IconButtonProps> = function(props) {
     if (props.onClick) {
       props.onClick(event);
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.onClick]);
 
   const [state, setState] = React.useState<IconButtonState>({});
   const btnRef = React.useCallback((btn: HTMLButtonElement | null) => {
@@ -38,11 +41,21 @@ const IconButton: React.FC<IconButtonProps> = function(props) {
     });
   }, []);
 
+  React.useEffect(() => {
+    if (state.btnRef) {
+      if (props.dialogAction) {
+        state.btnRef.setAttribute('data-mdc-dialog-action', props.dialogAction);
+      } else {
+        state.btnRef.removeAttribute('data-mdc-dialog-action');
+      }
+    }
+  }, [props.dialogAction, state.btnRef]);
+
   const onRippleRef = React.useCallback((mdcRipple: MDCRipple) => {
     mdcRipple.unbounded = true;
   }, []);
   const iconCls = 'material-icons'; // + (props.materialIconStyle != null ? '-' + props.materialIconStyle : '');
-  return <button ref={btnRef} className={cls('mdc-icon-button')}
+  return <button ref={btnRef} className={cls('mdc-icon-button', props.className)}
     disabled={!!props.disabled}
     onClick={clickCb}>
     { props.materialIcon ? <>

@@ -1,10 +1,71 @@
 import React from 'react';
-import {createSlice, Reducers, Slice, SliceOptions, EpicFactory} from './tiny-redux-toolkit';
+import {createSlice, Reducers, Slice, SliceOptions, EpicFactory, OfTypeFn, Epic} from './tiny-redux-toolkit';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 export * from './tiny-redux-toolkit';
 
-const EMPTY_ARR = [] as any[];
+export interface BaseComponentState<Props> {
+  componentProps?: Props;
+  error?: Error;
+}
+
+type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
+  _syncComponentProps(s: S, payload: Props): void;
+  _willUnmount(s: S): void;
+};
+
+function withBaseReducers<Props, S extends BaseComponentState<Props>, R extends Reducers<S>>(origReducers: R):
+CompPropsSyncReducer<Props, S> & R {
+  const reducers = {
+    _syncComponentProps(s: S, payload: Props) {
+      s.componentProps = {...payload};
+    },
+    _willUnmount(s: S) {},
+    ...origReducers
+  };
+  return reducers;
+}
+
+export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends Reducers<S>> =
+  (slice: Slice<S, R & CompPropsSyncReducer<Props, S>>, ofType: OfTypeFn<S, R & CompPropsSyncReducer<Props, S>>) => Epic<S> | void;
+
+/**
+ * Unlike useTinyReduxTookit, useTinyRtk() accepts a State which extends BaseComponentState, 
+ *  useTinyRtk() will automatically create an extra reducer "_syncComponentProps" for shallow coping
+ * React component's properties to this internal RTK store
+ * @param optsFactory 
+ * @param props 
+ * @param epicFactories 
+ * @returns 
+ */
+export function useTinyRtk<Props, S extends BaseComponentState<Props>, R extends Reducers<S>>(
+    optsFactory: () => SliceOptions<S, R>, props: Props, ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>
+  ): [state: S, slice: Slice<S, R & CompPropsSyncReducer<Props, S>>] {
+
+    const extendOptsFactory = React.useCallback(() => {
+      const opts = optsFactory();
+
+      return {
+        ...opts,
+        reducers: withBaseReducers<Props, S, typeof opts.reducers>(opts.reducers)
+      };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    React.useEffect(() => () => {
+      (stateAndSlice[1] as Slice<S, CompPropsSyncReducer<Props, S>>).actionDispatcher._willUnmount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const stateAndSlice = useTinyReduxTookit(extendOptsFactory, ...epicFactories);
+
+    React.useEffect(() => {
+      stateAndSlice[1].actionDispatcher._syncComponentProps(props);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, Object.values(props));
+
+    return stateAndSlice;
+}
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
  * @param opts 
@@ -17,10 +78,11 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
   // To avoid a mutatable version is passed in
   // const clonedState = clone(opts.initialState);
   const willUnmountSub = React.useMemo(() => new rx.ReplaySubject<void>(1), []);
-  const sliceOptions = React.useMemo(optsFactory, EMPTY_ARR);
+  const sliceOptions = React.useMemo(optsFactory, [optsFactory]);
   const epic$s = React.useMemo<rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>[]>(() => {
     return epicFactories.map(() => new rx.BehaviorSubject<EpicFactory<S, R> | null | undefined>(null));
-  }, EMPTY_ARR);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [state, setState] = React.useState<S>(sliceOptions.initialState);
   // const [slice, setSlice] = React.useState<Slice<S, R>>();
@@ -46,11 +108,12 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
     // runs earlier than parent component's
     epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
     return slice;
-  }, EMPTY_ARR);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   React.useEffect(() => {
     epicFactories.forEach((fac, idx) => epic$s[idx].next(fac));
-  }, epicFactories);
+  }, [epic$s, epicFactories]);
 
   React.useEffect(() => {
     // const sub = slice.state$.pipe(
@@ -67,6 +130,7 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
       // sub.unsubscribe();
       slice.destroy();
     };
-  }, EMPTY_ARR);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return [state, slice];
 }

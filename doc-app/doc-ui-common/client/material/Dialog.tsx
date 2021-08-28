@@ -1,48 +1,46 @@
 import React from 'react';
-// import {MDCDialog} from '@material/dialog';
-// import cls from 'classnames';
+
+import cls from 'classnames';
 // import clsddp from 'classnames/dedupe';
+import styles from './Dialog.module.scss';
 import './Dialog.scss';
-import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
-import {sliceOptionFactory, epicFactory, DialogProps as Props} from './dialogSlice';
+import {useRtk} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {sliceOptionFactory, epicFactory, DialogProps as Props, DialogSliceHelper as _DialogSliceHelper} from './dialogSlice';
+import {IconButton} from '@wfh/doc-ui-common/client/material/IconButton';
 
 export type DialogProps = Props;
+export type DialogSliceHelper = _DialogSliceHelper;
 
 const Dialog: React.FC<DialogProps> = function(props) {
-  const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
+  const [state, slice] = useRtk(sliceOptionFactory, props, epicFactory);
 
-  React.useEffect(() => {
-    slice.actionDispatcher._syncComponentProps(props);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, Object.values(props));
-
-  return <div ref={slice.actionDispatcher.onDomRef} className={'mdc-dialog'}>
-    <div className={'mdc-dialog__container'}>
-      <div className={'mdc-dialog__surface'}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="my-dialog-title"
-        aria-describedby="my-dialog-content">
+  return <div ref={slice.actionDispatcher.onDomRef} className={cls('mdc-dialog', styles.scope, state.fullscreen ? 'mdc-dialog--fullscreen' : '')}>
+    <div className='mdc-dialog__container'>
+      <div className='mdc-dialog__surface'
+        role='alertdialog'
+        aria-modal='true'
+        aria-labelledby='my-dialog-title'
+        aria-describedby='my-dialog-content'>
         {// Title cannot contain leading whitespace due to mdc-typography-baseline-top() 
         }
-        <h2 className={'mdc-dialog__title'} id="my-dialog-title">
-        </h2>
-        <div className={'mdc-dialog__content'} id="my-dialog-content">
-          hellow
+        <div className='mdc-dialog__header'>
+          <h2 className='mdc-dialog__title' id='my-dialog-title'>
+            {state.componentProps?.title}
+          </h2>
+          {/* A bug of Dialog, uncaught animationFrame error if removing Icon button dom */}
+          <IconButton materialIcon='close' className={cls('mdc-dialog__close', state.fullscreen ? styles.show : styles.hide)} dialogAction='close'/>
         </div>
-        {/* <div className={styles['mdc-dialog__actions']}>
-          <button type="button" className={cls(styles['mdc-button'], styles['mdc-dialog__button'])} data-mdc-dialog-action="close">
-            <div className={styles['mdc-button__ripple']}></div>
-            <span className={styles['mdc-button__label']}>Cancel</span>
-          </button>
-          <button type="button" className={cls(styles['mdc-button'], styles['mdc-dialog__button'])} data-mdc-dialog-action="accept">
-            <div className={styles['mdc-button__ripple']}></div>
-            <span className={styles['mdc-button__label']}>OK</span>
-          </button>
-        </div> */}
+        <div className='mdc-dialog__content' id='my-dialog-content'>
+          {props.contentRenderer ? props.contentRenderer() : ''}
+        </div>
+        <div className='mdc-dialog__actions'>
+          {
+            state.buttonsRenderer()
+          }
+        </div>
       </div>
     </div>
-    <div className={'mdc-dialog__scrim'}></div>
+    <div className='mdc-dialog__scrim'></div>
   </div>;
 };
 

@@ -3,9 +3,10 @@ import {StateFactory, SliceCaseReducers, ofPayloadAction, PayloadAction
 } from './redux-toolkit-observable';
 import React from 'react';
 import {stateFactory} from './state-factory-browser';
-import {createSliceHelper, EpicFactory, SliceHelper, castByActionType} from './helper';
-import {CreateSliceOptions} from '@reduxjs/toolkit';
+import {createSliceHelper, EpicFactory, SliceHelper, castByActionType, createReducers} from './helper';
+import {CreateSliceOptions, Draft} from '@reduxjs/toolkit';
 import {useEffect, useState} from 'react';
+import { Epic } from 'redux-observable';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 export {ofPayloadAction};
@@ -71,15 +72,80 @@ export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFacto
   return [state, helper];
 }
 
-
 /**
  * Use a dedicated Redux slice store for single component instance
  * @param optsFactory 
  * @param epicFactories 
  */
 export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
-  optsFactory: () => CreateSliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [S, SliceHelper<S, R>] {
+  optsFactory: () => CreateSliceOptions<S, R>,
+  ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [S, SliceHelper<S, R>] {
+
   return useReduxTookitWith(stateFactory, optsFactory, ...epicFactories);
+}
+
+/**
+ * Use a dedicated Redux slice store for single component instance.
+ * Unlike useReduxTookit, useRtk() accepts a State which extends BaseComponentState, 
+ *  useRtk() will automatically create an extra reducer "_syncComponentProps" for shallow coping
+ * React component's properties to this internal RTK store
+ * @param optsFactory 
+ * @param epicFactories 
+ * @returns [state, sliceHelper]
+ */
+export function useRtk<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>>(
+  optsFactory: () => CreateSliceOptions<S, R>,
+  props: Props,
+  ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>):
+  [S, SliceHelper<S, R & CompPropsSyncReducer<Props, S>>] {
+
+  const extendOptsFactory = React.useCallback(() => {
+    const opts = optsFactory();
+
+    return {
+      ...opts,
+      reducers: withBaseReducers<Props, S, typeof opts.reducers>(opts.reducers)
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    (stateAndSlice[1] as SliceHelper<S, CompPropsSyncReducer<Props, S>>).actionDispatcher._syncComponentProps(props);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, Object.values(props));
+
+  useEffect(() => {
+    return () => {(stateAndSlice[1] as SliceHelper<S, CompPropsSyncReducer<Props, S>>).actionDispatcher._willUnmount(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const stateAndSlice = useReduxTookitWith(stateFactory, extendOptsFactory, ...epicFactories);
+  return stateAndSlice;
+}
+
+export interface BaseComponentState<Props> {
+  componentProps?: Props;
+}
+
+export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>> =
+  (slice: SliceHelper<S, R & CompPropsSyncReducer<Props, S>>)
+  => Epic<PayloadAction<any>, any, unknown> | void;
+
+type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
+  _syncComponentProps(s: S | Draft<S>, action: PayloadAction<Props>): void;
+  _willUnmount(s: S | Draft<S>): void;
+};
+
+function withBaseReducers<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>>(origReducers: R):
+CompPropsSyncReducer<Props, S> & R {
+  const reducers = {
+    _syncComponentProps(s: S, {payload}: PayloadAction<Props>) {
+      s.componentProps = {...payload};
+    },
+    _willUnmount(s: S) {},
+    ...origReducers
+  };
+  return reducers;
 }
 
 export type InjectedCompPropsType<ConnectHOC> =
@@ -102,26 +168,31 @@ export function useStoreOfStateFactory(stateFactory: StateFactory) {
   return reduxStore;
 }
 
-
-interface DemoState {
+interface DemoCompProps {
+  className: string;
+}
+interface DemoState extends BaseComponentState<DemoCompProps> {
   ok?: boolean;
 }
 
 const demoState: DemoState = {};
 
-const demoReducer = {
-  hellow(s: DemoState, payload: PayloadAction<{data: string}>) {}
+const simpleDemoReducers = {
+  hellow(s: DemoState, payload: {data: string}) {}
 };
+
+const demoReducers = createReducers<DemoState, typeof simpleDemoReducers>(simpleDemoReducers);
 
 const demoSlice = createSliceHelper(stateFactory, {
   name: '_internal_',
   initialState: demoState,
-  reducers: demoReducer
+  reducers: withBaseReducers<DemoCompProps, DemoState, typeof demoReducers>(demoReducers)
 });
 
 demoSlice.addEpic(slice => {
   return action$ => {
+    slice.actionDispatcher._willUnmount();
     const actionStreams = castByActionType(slice.actions, action$);
-    return actionStreams.hellow;
+    return rx.merge(actionStreams.hellow, actionStreams._syncComponentProps);
   };
 });

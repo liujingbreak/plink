@@ -1,6 +1,6 @@
 import React from 'react';
 import cls from 'classnames';
-import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {useTinyRtk} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {sliceOptionFactory, epicFactory, RippleObservableProps} from './ripple.state';
 
 import './Ripple.scss';
@@ -18,13 +18,10 @@ export {MDCRipple};
 export type RippleProps = RippleObservableProps;
 
 const Ripple: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleProps> = function(props, ref) {
-  const [state, slice] = useTinyReduxTookit(sliceOptionFactory, epicFactory);
 
-  React.useEffect(() => {
-    slice.actionDispatcher._syncComponentProps(props);
-  }, [...Object.values(props)]);
-
+  const [state, slice] = useTinyRtk(sliceOptionFactory, props, epicFactory);
   const store = slice.getStore();
+
   React.useImperativeHandle(ref, () => store.pipe(
     op.map(s => s.mdcRef), op.filter(value => value != null),
     op.distinctUntilChanged(),

@@ -1,19 +1,16 @@
 // import { ofPayloadAction} from '@wfh/redux-toolkit-observable/es/state-factory-browser';
-import {EpicFactory, createReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory4Comp, createReducers, BaseComponentState} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 
 export interface DemoPageObservableProps {
   // define component properties
 }
-export interface DemoPageState {
+export interface DemoPageState extends BaseComponentState<DemoPageObservableProps> {
   componentProps?: DemoPageObservableProps;
 }
 
 const reducers = createReducers({
-  _syncComponentProps(s: DemoPageState, payload: DemoPageObservableProps) {
-    s.componentProps = {...payload};
-  }
   // define more reducers...
 });
 
@@ -27,7 +24,7 @@ export function sliceOptionFactory() {
   };
 }
 
-export const epicFactory: EpicFactory<DemoPageState, typeof reducers> = function(slice) {
+export const epicFactory: EpicFactory4Comp<DemoPageObservableProps, DemoPageState, typeof reducers> = function(slice) {
   return (action$) => {
     return rx.merge(
       // Observe state (state$) change event, exactly like React.useEffect(), but more powerful for async time based reactions

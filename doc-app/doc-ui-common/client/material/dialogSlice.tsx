@@ -1,42 +1,47 @@
-import {EpicFactory, castByActionType, createReducers, SliceHelper, Refrigerator} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory4Comp, BaseComponentState, castByActionType, createReducers, SliceHelper, Refrigerator,
+  isActionOfCreator} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {Immutable} from 'immer';
 import React from 'react';
 import {MDCDialog} from '@material/dialog';
+import {Button, ButtonProps} from './Button';
 
 export type DialogProps = React.PropsWithChildren<{
-  // define component properties
-  sliceRef?(sliceHelper: DialogSliceHelper): void;
+  title: string;
+  buttonsRenderer?: (btnClassName: string) => React.ReactElement<ButtonProps, typeof Button>[];
+  contentRenderer?: () => React.ReactNode;
+  sliceRef?(sliceHelper: DialogSliceHelper | null): void;
+  modal?: boolean;
   getMdcRef?: (ref: MDCDialog) => void;
 }>;
-export interface DialogState {
-  componentProps?: DialogProps;
+export interface DialogState extends BaseComponentState<DialogProps> {
   domRef?: Immutable<Refrigerator<HTMLDivElement>> | null;
   dialog?: Immutable<Refrigerator<MDCDialog>>;
+  buttonsRenderer: () => React.ReactElement<ButtonProps, typeof Button>[];
   isOpened: boolean;
+  fullscreen: boolean;
 }
 
 const simpleReducers = {
   onDomRef(s: DialogState, payload: HTMLDivElement | null) {
-    s.domRef = payload ? new Refrigerator(payload) : null;
-    if (s.domRef)
-      s.dialog = new Refrigerator(new MDCDialog(s.domRef.getRef()));
-    else if (s.dialog)
-      s.dialog.getRef().destroy();
+    s.domRef = payload ? s.domRef ? s.domRef.creatNewIfNoEqual(payload) : new Refrigerator(payload) : null;
   },
   open(s: DialogState) {},
   close(s: DialogState) {},
-  _syncComponentProps(s: DialogState, payload: DialogProps) {
-    s.componentProps = {...payload};
-  }
+  switchFullScreen(s: DialogState, fullscreen: boolean) {
+    s.fullscreen = fullscreen;
+  },
+  _layout(s: DialogState) {}
   // define more reducers...
 };
 const reducers = createReducers<DialogState, typeof simpleReducers>(simpleReducers);
 
 export function sliceOptionFactory() {
   const initialState: DialogState = {
-    isOpened: false
+    isOpened: false,
+    buttonsRenderer: () => [<Button className='mdc-dialog__button' key='ok'>OK</Button>],
+    fullscreen: false
   };
   return {
     name: 'Dialog',
@@ -47,17 +52,53 @@ export function sliceOptionFactory() {
 
 export type DialogSliceHelper = SliceHelper<DialogState, typeof reducers>;
 
-export const epicFactory: EpicFactory<DialogState, typeof reducers> = function(slice) {
+export const epicFactory: EpicFactory4Comp<DialogProps, DialogState, typeof reducers> = function(slice) {
   return (action$) => {
     const actionStreams = castByActionType(slice.actions, action$);
+    let defaultScrimAction: string;
+    function waitForDialog() {
+      return slice.getStore().pipe(
+        op.map(s => s.dialog), op.distinctUntilChanged(),
+        op.filter(dialog => dialog != null),
+        op.take(1)
+      );
+    }
     return rx.merge(
+      slice.getStore().pipe(op.map(s => s.domRef),
+        op.distinctUntilChanged(),
+        op.map(domRef => {
+          slice.actionDispatcher._change(s => {
+            if (s.dialog)
+              s.dialog.getRef().destroy();
+            if (domRef)
+              s.dialog = new Refrigerator(new MDCDialog(domRef.getRef()));
+          });
+        })
+      ),
+      slice.getStore().pipe(op.map(s => s.componentProps?.buttonsRenderer),
+        op.distinctUntilChanged(),
+        op.map(renderer => {
+          if (renderer) {
+            slice.actionDispatcher._change(s => {
+              s.buttonsRenderer = () => renderer('mdc-dialog__button');
+            });
+          }
+        })
+      ),
       slice.getStore().pipe(op.map(s => s.componentProps?.sliceRef),
         op.distinctUntilChanged(),
         op.map(sliceRef => {
           if (sliceRef) {
             sliceRef(slice);
           }
-          return null;
+        })
+      ),
+      actionStreams._willUnmount.pipe(
+        op.map(() => {
+          const cb = slice.getState().componentProps?.sliceRef;
+          if (cb) {
+            cb(null);
+          }
         })
       ),
       slice.getStore().pipe(
@@ -68,29 +109,68 @@ export const epicFactory: EpicFactory<DialogState, typeof reducers> = function(s
           }
         })
       ),
+
       slice.getStore().pipe(op.map(s => s.dialog),
         op.distinctUntilChanged(),
-        op.map(dialog => {
-          if (dialog) {
-            dialog.getRef().listen('MDCDialog:opened', () => {
-              slice.actionDispatcher._change(s => s.isOpened = true);
-            });
-            dialog.getRef().listen('MDCDialog:closing', () => {
-              slice.actionDispatcher._change(s => s.isOpened = false);
-            });
+        op.filter(dialog => dialog != null),
+        op.tap(dialog => {
+          defaultScrimAction = dialog!.getRef().scrimClickAction;
+          dialog!.getRef().listen('MDCDialog:opened', () => {
+            slice.actionDispatcher._change(s => s.isOpened = true);
+          });
+          dialog!.getRef().listen('MDCDialog:closed', () => {
+            slice.actionDispatcher._change(s => s.isOpened = false);
+          });
+        }),
+        // when dialog is available, watch buttonsRenderer
+        op.switchMap(dialog => rx.merge(
+          // slice.getStore().pipe(
+          //   op.map(s => s.componentProps?.buttonsRenderer),
+          //   op.distinctUntilChanged(),
+          //   op.tap(() => {
+          //     slice.actionDispatcher._layout();
+          //   })
+          // ),
+          slice.getStore().pipe(op.map(s => s.fullscreen),
+            op.distinctUntilChanged(),
+            op.map(() => slice.actionDispatcher._layout())
+          )
+        ))
+      ),
+      slice.getStore().pipe(op.distinctUntilChanged((a, b) => a.componentProps?.modal === b.componentProps?.modal &&
+        a.dialog === b.dialog),
+        op.filter(s => s.dialog != null),
+        op.map(s => {
+          if (s.componentProps?.modal) {
+            s.dialog!.getRef().scrimClickAction = '';
+          } else if (defaultScrimAction) {
+            s.dialog!.getRef().scrimClickAction = defaultScrimAction;
           }
         })
       ),
-      // Observe incoming action 'onClick' and dispatch new change action
+      actionStreams._layout.pipe(
+        op.debounceTime(300),
+        op.map(() => {
+          const dialog = slice.getState().dialog;
+          if (dialog) {
+            dialog.getRef().layout();
+            return slice.getState().isOpened;
+          }
+          return false;
+        }),
+        op.filter(needReopen => needReopen),
+        // dialog will close itsself after layout()
+        op.map(() => {
+          slice.actionDispatcher._change(s => s.isOpened = false);
+          slice.actionDispatcher.open();
+        })
+      ),
       rx.merge(actionStreams.open, actionStreams.close).pipe(
-        op.mergeMap(action => slice.getStore().pipe(
-          op.map(s => s.dialog), op.distinctUntilChanged(),
-          op.filter(dialog => dialog != null),
-          op.take(1),
+        op.mergeMap(action => waitForDialog().pipe(
           op.map(dialog => ({action, dialog: dialog!.getRef()}))
           )),
         op.concatMap(({action, dialog}) => {
-          if (action.type === 'open') {
+          if (isActionOfCreator(action, slice.actions.open)) {
             dialog.open();
             return slice.getStore().pipe(
               op.map(s => s.isOpened),
@@ -113,29 +193,3 @@ export const epicFactory: EpicFactory<DialogState, typeof reducers> = function(s
     ).pipe(op.ignoreElements());
   };
 };
-
-/*
- * Below is how you use slice inside your component:
-
-import React from 'react';
-import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
-import {sliceOptionFactory, epicFactory, DialogProps as Props} from './dialogSlice';
-
-// CRA's babel plugin will remove statement "export {DialogProps}" in case there is only type definition, have to reassign and export it.
-export type DialogProps = Props;
-
-const Dialog: React.FC<DialogProps> = function(props) {
-  const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
-
-  React.useEffect(() => {
-    slice.actionDispatcher._syncComponentProps(props);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, Object.values(props));
-  // dispatch action: slice.actionDispatcher.onClick(evt)
-  return <div onClick={slice.actionDispatcher.onClick}>{state.yourStateProp}</div>;
-};
-
-export {Dialog};
-
- */
-

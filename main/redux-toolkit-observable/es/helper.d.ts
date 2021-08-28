@@ -1,5 +1,5 @@
 import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
-import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft } from '@reduxjs/toolkit';
+import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft, ActionCreatorWithPayload } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { Observable, OperatorFunction } from 'rxjs';
 import { immerable } from 'immer';
@@ -18,9 +18,9 @@ export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R>
     getState(): S;
 };
 export declare function createSliceHelper<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, opts: CreateSliceOptions<S, R>): SliceHelper<S, R>;
-interface SimpleReducers<S> {
+declare type SimpleReducers<S> = {
     [K: string]: (draft: S | Draft<S>, payload?: any) => S | void | Draft<S>;
-}
+};
 export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
     [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => S | void | Draft<S> : R[K] extends (s: any, payload: infer P) => any ? (s: Draft<S>, action: PayloadAction<P>) => void | Draft<S> : (s: Draft<S>, action: PayloadAction<unknown>) => void | Draft<S>;
 };
@@ -70,6 +70,7 @@ slice.addEpic(slice => action$ => {
 export declare function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R, action$: Observable<PayloadAction | Action>): {
     [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
 };
+export declare function isActionOfCreator<P, T extends string>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<P, T>): action is PayloadAction<P, T>;
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.
@@ -103,6 +104,7 @@ export declare class Refrigerator<T> {
     private ref;
     [immerable]: false;
     constructor(originRef: T);
+    creatNewIfNoEqual(ref: T): Refrigerator<T>;
     getRef(): T;
 }
 export {};

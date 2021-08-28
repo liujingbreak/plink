@@ -86,9 +86,9 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
   return helper;
 }
 
-interface SimpleReducers<S> {
+type SimpleReducers<S> = {
   [K: string]: (draft: S | Draft<S>, payload?: any) => S | void | Draft<S>;
-}
+};
 
 export type RegularReducers<S, R extends SimpleReducers<S>> = {
   [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => S | void | Draft<S> :
@@ -247,6 +247,14 @@ export class Refrigerator<T> {
   constructor(originRef: T) {
     this.ref = originRef as Immutable<T>;
     Object.freeze(this);
+  }
+
+  creatNewIfNoEqual(ref: T) {
+    if (this.ref !== ref) {
+      return new Refrigerator(ref);
+    } else {
+      return this;
+    }
   }
   getRef(): T {
     return this.ref as T;

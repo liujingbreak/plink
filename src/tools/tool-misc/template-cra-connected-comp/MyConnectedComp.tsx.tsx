@@ -52,7 +52,7 @@ const $__MyComponent__$: React.FC<$__propType__$> = function(props) {
     <img src={imgSrc}></img>
     <h1 /*<% if (isConnected) { %>*/dangerouslySetInnerHTML={props.html}/*<% } %>*/>$__innerHtml__$</h1>
   </div>;/*<%
-   } else {%>*/return <div className={styles.$__MyComponent__$} /*<% if (isConnected) { %>*/dangerouslySetInnerHTML={props.html}/*<% }
+   } else {%>*/return <div className={styles.scope} /*<% if (isConnected) { %>*/dangerouslySetInnerHTML={props.html}/*<% }
      %>*/>$__innerHtml__$</div>;/*<% }
    %>*/
 };

@@ -35,12 +35,20 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 export function castByActionType(actionCreators, action$) {
-    const multicaseActionMap = {};
+    const dispatcherByType = {};
     const splitActions = {};
     let sourceSub;
     let subscriberCnt = 0;
+    const source = action$.pipe(
+    // op.share(), we don't need share(), we have implemented same logic
+    op.map(action => {
+        const match = dispatcherByType[action.type];
+        if (match) {
+            match.next(action);
+        }
+    }));
     for (const reducerName of Object.keys(actionCreators)) {
-        const subject = multicaseActionMap[actionCreators[reducerName].type] = new rx.Subject();
+        const subject = dispatcherByType[actionCreators[reducerName].type] = new rx.Subject();
         // eslint-disable-next-line no-loop-func
         splitActions[reducerName] = rx.defer(() => {
             if (subscriberCnt++ === 0)
@@ -55,15 +63,10 @@ export function castByActionType(actionCreators, action$) {
             }
         }));
     }
-    const source = action$.pipe(
-    // op.share(), we don't need share(), we have implemented same logic
-    op.map(action => {
-        const match = multicaseActionMap[action.type];
-        if (match) {
-            match.next(action);
-        }
-    }));
     return splitActions;
+}
+export function isActionOfCreator(action, actionCreator) {
+    return action.type === actionCreator.type;
 }
 const sliceCount4Name = {};
 /**
@@ -227,39 +230,18 @@ export function sliceRefActionOp(epicFactory) {
         }));
     };
 }
-// const demoSlice = createSlice({
-//   name: 'demo',
-//   initialState: {} as {ok?: boolean; error?: Error},
-//   reducers: {
-//     hellow(s, greeting: {data: string}) {},
-//     world(s) {}
-//   }
-// });
-// demoSlice.addEpic((slice, ofType) => {
-//   return (action$, state$) => {
-//     const actionStreams = castByActionType(slice.actions, action$);
-//     return rx.merge(
-//       actionStreams.hellow.pipe(),
-//       action$.pipe(
-//         ofType('hellow', 'hellow'),
-//         op.map(action => slice.actions.world())
-//       ),
-//       action$.pipe(
-//         ofType('world'),
-//         op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
-//       ),
-//       action$.pipe(
-//         ofPayloadAction(slice.actions.hellow),
-//         op.tap(action => typeof action.payload.data === 'string')
-//       ),
-//       action$.pipe(
-//         ofPayloadAction(slice.actions.world),
-//         op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
-//       ),
-//       action$.pipe(
-//         ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world),
-//         op.tap(action => action.payload)
-//       )
-//     ).pipe(op.ignoreElements());
-//   };
-// });
+const demoSlice = createSlice({
+    name: 'demo',
+    initialState: {},
+    reducers: {
+        hellow(s, greeting) { },
+        world(s) { }
+    }
+});
+demoSlice.addEpic((slice, ofType) => {
+    return (action$, state$) => {
+        const actionStreams = castByActionType(slice.actions, action$);
+        // slice.actionDispatcher.abc();
+        return rx.merge(actionStreams.hellow.pipe(), action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(ofPayloadAction(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload))).pipe(op.ignoreElements());
+    };
+});

@@ -98,10 +98,10 @@ slice.addEpic(slice => action$ => {
 export function castByActionType(actionCreators, action$) {
     let sourceSub;
     let subscriberCnt = 0;
-    const multicaseActionMap = {};
+    const dispatcherByType = {};
     const splitActions = {};
     for (const reducerName of Object.keys(actionCreators)) {
-        const subject = multicaseActionMap[actionCreators[reducerName].type] = new Subject();
+        const subject = dispatcherByType[actionCreators[reducerName].type] = new Subject();
         // eslint-disable-next-line no-loop-func
         splitActions[reducerName] = defer(() => {
             if (subscriberCnt++ === 0)
@@ -119,12 +119,15 @@ export function castByActionType(actionCreators, action$) {
     const source = action$.pipe(
     // op.share(), we don't need share(), we have implemented same logic
     op.map(action => {
-        const match = multicaseActionMap[action.type];
+        const match = dispatcherByType[action.type];
         if (match) {
             match.next(action);
         }
     }));
     return splitActions;
+}
+export function isActionOfCreator(action, actionCreator) {
+    return action.type === actionCreator.type;
 }
 /**
  * Add an epicFactory to another component's sliceHelper
@@ -166,6 +169,14 @@ export class Refrigerator {
     constructor(originRef) {
         this.ref = originRef;
         Object.freeze(this);
+    }
+    creatNewIfNoEqual(ref) {
+        if (this.ref !== ref) {
+            return new Refrigerator(ref);
+        }
+        else {
+            return this;
+        }
     }
     getRef() {
         return this.ref;

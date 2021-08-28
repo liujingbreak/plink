@@ -1092,8 +1092,8 @@
         "affectsGlobalScope": false
       },
       "../helper.ts": {
-        "version": "d5fd539f74f27103f56a2115c66585b3d7eed8b78cd3f3384c9fcc0fc30676d2",
-        "signature": "35f84dfb704d145e34ca4f2b4da5fe433b61ae70ee90c18aa6064f61528a7397",
+        "version": "223999c7de34a0bc3c6e85114bd8c407cf1f12427f867478bd971e27f5cd6b91",
+        "signature": "44f4d8878d8128c8793a72e28da727d2b639383bb343acd258a06f4642f9da75",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/react/global.d.ts": {
@@ -1137,18 +1137,18 @@
         "affectsGlobalScope": false
       },
       "../react-redux-helper.ts": {
-        "version": "b20f0030c99487fd87c6046a90133b3be2b33bbaaf79a72222277dcc9e32b8a8",
-        "signature": "b4f362a7aa0dbefe2ab7f836193d08baacb8a1a474ed5c035ff130cd55334b3b",
+        "version": "c741cfee09c291e16492b4d18c9f98c681fadfca1eab43370904ee8fc338d46b",
+        "signature": "5ea079f79789c62ba2629c9d917ea57e640de665ce46936a0407815395804136",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit.ts": {
-        "version": "ea61938bf6154f99b95dfb7fbf667eb49ec0a3c218251404bfaa1203057767b9",
-        "signature": "fcd3e48796db242715bbfb32483a11ead3ef6822f45d7e93c449452649861616",
+        "version": "c533796ac6c0ee7de039fc9ff240324bf5959a0bd2df8b0f022599b4a6be5705",
+        "signature": "b429a02cf9c39f248d587b24fa7dcf389945a46bc53f5722386e7610f96b955c",
         "affectsGlobalScope": false
       },
       "../tiny-redux-toolkit-hook.ts": {
-        "version": "851364c34e1355a5055ca0be9ebd9eb3524d5f7b90c7446b079efdf2b33b4337",
-        "signature": "ec5fa1e392ca36afbe6795f46867bbd625110e6abcf7f20193bfcf1dbc5928fd",
+        "version": "96d9c1fd8411d24ac6210306955de5c1d5a3cf4f93beef69e1e1073966d330e0",
+        "signature": "207a95e802449c4db1227074a976a308920999d23214b9e60fac3000296bb70b",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/anymatch/index.d.ts": {
@@ -1892,7 +1892,7 @@
       "pretty": true,
       "rootDir": "..",
       "composite": true,
-      "watch": true,
+      "project": "../../wfh/tsconfig-redux-toolkit.json",
       "configFilePath": "../../wfh/tsconfig-redux-toolkit.json"
     },
     "referencedMap": {
@@ -3426,6 +3426,7 @@
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
         "../../node_modules/@types/react-redux/index.d.ts",
         "../../node_modules/@types/react/index.d.ts",
+        "../../node_modules/redux-observable/index.d.ts",
         "../../node_modules/rxjs/index.d.ts",
         "../../node_modules/rxjs/operators/index.d.ts",
         "../helper.ts",
@@ -4984,6 +4985,7 @@
       "../react-redux-helper.ts": [
         "../../node_modules/@reduxjs/toolkit/dist/typings.d.ts",
         "../../node_modules/@types/react-redux/index.d.ts",
+        "../../node_modules/redux-observable/index.d.ts",
         "../../node_modules/redux/index.d.ts",
         "../helper.ts",
         "../redux-toolkit-observable.ts"

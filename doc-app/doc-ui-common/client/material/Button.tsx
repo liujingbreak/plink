@@ -12,6 +12,8 @@ const cx = classnames.bind(styles);
 export type ButtonProps = React.PropsWithChildren<{
   onClick?(evt: any): void;
   type?: 'raised' | 'outlined' | 'text';
+  /** Not working ! */
+  isDialogDefaultAction?: boolean;
   disabled?: boolean;
   // materialIcon?: string;
   className?: string;
@@ -22,6 +24,7 @@ export type ButtonProps = React.PropsWithChildren<{
 
 interface ButtonState {
   btnDom?: HTMLButtonElement;
+  outerDom?: HTMLDivElement;
 }
 
 
@@ -31,6 +34,12 @@ const Button: React.FC<ButtonProps> = function(props) {
   const onRef = React.useCallback((btn: HTMLButtonElement | null) => {
     if (btn) {
       setState(s => ({...s, btnDom: btn}));
+    }
+  }, []);
+
+  const onOuterRef = React.useCallback((btn: HTMLDivElement | null) => {
+    if (btn) {
+      setState(s => ({...s, outerDom: btn}));
     }
   }, []);
 
@@ -44,6 +53,16 @@ const Button: React.FC<ButtonProps> = function(props) {
     }
   }, [props.disabled, state.btnDom]);
 
+  React.useEffect(() => {
+    if (state.outerDom) {
+      if (props.isDialogDefaultAction) {
+        state.outerDom.setAttribute('data-mdc-dialog-button-default', 'true');
+      } else {
+        state.outerDom.removeAttribute('data-mdc-dialog-button-default');
+      }
+    }
+  }, [props.isDialogDefaultAction, state.outerDom]);
+
   const clickCb = React.useCallback<React.MouseEventHandler<HTMLDivElement>>((event) => {
     if (props.onClick) {
       props.onClick(event);
@@ -56,8 +75,8 @@ const Button: React.FC<ButtonProps> = function(props) {
 
 
   return (
-    <div onClick={clickCb}
-      className={classnames(props.className, cx('mdc-touch-target-wrapper', 'matButton', {'mdc-button--icon-leading': !!props.materialIcon}))}>
+    <div onClick={clickCb} ref={onOuterRef}
+      className={cls(props.className, cx('mdc-touch-target-wrapper', 'matButton', {'mdc-button--icon-leading': !!props.materialIcon}))}>
       <button ref={onRef} className={className}>
         {props.materialIcon ? (
           <i className={classnames('material-icons', styles['mdc-button__icon'], 'md-' + props.materialIcon)} aria-hidden='true'></i>

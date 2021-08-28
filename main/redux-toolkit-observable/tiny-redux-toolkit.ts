@@ -20,16 +20,17 @@ export interface PayloadAction<S, P = any> {
   reducer?(old: S, payload: P): S | void;
 }
 
-export interface Reducers<S> {
+export type Reducers<S, R = any> = {
   /** Returning `undefined / void` has same effect of returning old state reference,
    * Returning a brand new state object for immutability in normal case.
    */
-  [type: string]: (state: S, payload?: any) => S | void;
-}
+  [K in keyof R]: (state: S, payload?: any) => S | void;
+};
 
-export type Actions<S, R extends Reducers<S>> = {
-  [K in keyof R]: R[K] extends (s: any) => any ? ActionCreatorWithoutPayload<S> :
-    R[K] extends (s: any, payload: infer P) => any ? ActionCreatorWithPayload<S, P> : ActionCreatorWithPayload<S, unknown>;
+export type Actions<S, R> = {
+  [K in keyof R]:
+    R[K] extends (s: S) => any ? ActionCreatorWithoutPayload<S> :
+    R[K] extends (s: S, payload: infer P) => any ? ActionCreatorWithPayload<S, P> : ActionCreatorWithPayload<S, unknown>;
 };
 
 export type ActionCreator<S, P> = ActionCreatorWithoutPayload<S> | ActionCreatorWithPayload<S, P>;
@@ -374,41 +375,41 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   };
 }
 
-// const demoSlice = createSlice({
-//   name: 'demo',
-//   initialState: {} as {ok?: boolean; error?: Error},
-//   reducers: {
-//     hellow(s, greeting: {data: string}) {},
-//     world(s) {}
-//   }
-// });
-// demoSlice.addEpic((slice, ofType) => {
-//   return (action$, state$) => {
-//     const actionStreams = castByActionType(slice.actions, action$);
-
-//     return rx.merge(
-//       actionStreams.hellow.pipe(),
-//       action$.pipe(
-//         ofType('hellow', 'hellow'),
-//         op.map(action => slice.actions.world())
-//       ),
-//       action$.pipe(
-//         ofType('world'),
-//         op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
-//       ),
-//       action$.pipe(
-//         ofPayloadAction(slice.actions.hellow),
-//         op.tap(action => typeof action.payload.data === 'string')
-//       ),
-//       action$.pipe(
-//         ofPayloadAction(slice.actions.world),
-//         op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
-//       ),
-//       action$.pipe(
-//         ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world),
-//         op.tap(action => action.payload)
-//       )
-//     ).pipe(op.ignoreElements());
-//   };
-// });
+const demoSlice = createSlice({
+  name: 'demo',
+  initialState: {} as {ok?: boolean; error?: Error},
+  reducers: {
+    hellow(s, greeting: {data: string}) {},
+    world(s) {}
+  }
+});
+demoSlice.addEpic((slice, ofType) => {
+  return (action$, state$) => {
+    const actionStreams = castByActionType(slice.actions, action$);
+    // slice.actionDispatcher.abc();
+    return rx.merge(
+      actionStreams.hellow.pipe(),
+      action$.pipe(
+        ofType('hellow', 'hellow'),
+        op.map(action => slice.actions.world())
+      ),
+      action$.pipe(
+        ofType('world'),
+        op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
+      ),
+      action$.pipe(
+        ofPayloadAction(slice.actions.hellow),
+        op.tap(action => typeof action.payload.data === 'string')
+      ),
+      action$.pipe(
+        ofPayloadAction(slice.actions.world),
+        op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
+      ),
+      action$.pipe(
+        ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world),
+        op.tap(action => action.payload)
+      )
+    ).pipe(op.ignoreElements());
+  };
+});
 
