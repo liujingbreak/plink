@@ -5,6 +5,7 @@ import * as _ from 'lodash';
 import * as log4js from 'log4js';
 import { Observable, of, throwError } from 'rxjs';
 import {map} from 'rxjs/operators';
+import {config} from '@wfh/plink';
 import api, {DrcpApi} from '__api';
 import { replaceHtml } from './ng-aot-assets';
 import { HookReadFunc } from './utils/read-hook-vfshost';
@@ -14,7 +15,7 @@ import LRU from 'lru-cache';
 const chalk = require('chalk');
 
 const log = log4js.getLogger(api.packageName + '.ng-ts-replace');
-const needLogFile = api.config()['@wfh/ng-app-builder'].logChangedTsFile;
+const needLogFile = config()['@wfh/ng-app-builder'].logChangedTsFile;
 // const apiTmplTs = _.template('import __DrApi from \'@wfh/ng-app-builder/src/app/api\';\
 // var __api = __DrApi.getCachedApi(\'<%=packageName%>\') || new __DrApi(\'<%=packageName%>\');\
 // __api.default = __api;');

@@ -250,7 +250,7 @@ const grammar: Grammar<Token<HtmlTokenType>, ParseHtmlResult> = (tokenLa) => {
   };
 };
 
-function tag(tokenLa: LookAhead<Token<HtmlTokenType>>): OpenTagAst {
+function tag(tokenLa: LookAhead<Token<HtmlTokenType>, string>): OpenTagAst {
   const first = tokenLa.advance();
   const name = first.text.substring(1);
   const attrs = attributes(tokenLa);
@@ -261,7 +261,7 @@ function tag(tokenLa: LookAhead<Token<HtmlTokenType>>): OpenTagAst {
   return {kind: TagKind.open, name, attrs, start: first.pos, end: last.end, selfClosed: last.type === HtmlTokenType['/>']};
 }
 
-function closingTag(tokenLa: LookAhead<Token<HtmlTokenType>>): BaseTagAst {
+function closingTag(tokenLa: LookAhead<Token<HtmlTokenType>, string>): BaseTagAst {
   const first = tokenLa.advance();
   const name = first.text.slice(2);
   const rightAngular = tokenLa.advance();
@@ -272,7 +272,7 @@ function isSameType(token: Token<HtmlTokenType>, type: HtmlTokenType): boolean {
   return token.type === type;
 }
 
-function attributes(this: void, tokenLa: LookAhead<Token<HtmlTokenType>>): {[key: string]: {isNg: boolean; value: AttributeValueAst | undefined}} {
+function attributes(this: void, tokenLa: LookAhead<Token<HtmlTokenType>, string>): {[key: string]: {isNg: boolean; value: AttributeValueAst | undefined}} {
   const attrs: {[key: string]: {isNg: boolean; value: AttributeValueAst | undefined}} = {};
   while (tokenLa.la() && !tokenLa.isNextWith([HtmlTokenType['>']], isSameType) &&
     !tokenLa.isNextWith([HtmlTokenType['/>']], isSameType)) {
@@ -286,18 +286,18 @@ function attributes(this: void, tokenLa: LookAhead<Token<HtmlTokenType>>): {[key
       tokenLa.advance();
     } else {
       const token = tokenLa.advance();
-      throw new Error(`Unexpect token type: ${HtmlTokenType[token.type]}, text: ${token.text} at line: ${token.line}, column: ${token.col}`);
+      throw new Error(`Unexpect token type: ${token.type ? HtmlTokenType[token.type] : 'Undefined'}, text: ${token.text} at line: ${token.line}, column: ${token.col}`);
     }
   }
   return attrs;
 }
-function isNgAttrName(this: void, tokenLa: LookAhead<Token<HtmlTokenType>>) {
+function isNgAttrName(this: void, tokenLa: LookAhead<Token<HtmlTokenType>, string>) {
   if (tokenLa.la() == null)
     tokenLa.throwError('End of file');
   const type = tokenLa.la()!.type;
   return type === HtmlTokenType['['] || type === HtmlTokenType['('];
 }
-function ngAttrName(this: void, tokenLa: LookAhead<Token<HtmlTokenType>>) {
+function ngAttrName(this: void, tokenLa: LookAhead<Token<HtmlTokenType>, string>) {
   if (tokenLa.la() == null)
     tokenLa.throwError('End of file');
   const kind = tokenLa.la()!.type === HtmlTokenType['['] ? HtmlTokenType[']'] : HtmlTokenType[')'];
@@ -312,10 +312,10 @@ function ngAttrName(this: void, tokenLa: LookAhead<Token<HtmlTokenType>>) {
   tokenLa.advance();
   return name;
 }
-function attrName(tokenLa: LookAhead<Token<HtmlTokenType>>) {
+function attrName(tokenLa: LookAhead<Token<HtmlTokenType>, string>) {
   return tokenLa.advance().text;
 }
-function attrValue(this: void, tokenLa: LookAhead<Token<HtmlTokenType>>): AttributeValueAst | undefined {
+function attrValue(this: void, tokenLa: LookAhead<Token<HtmlTokenType>, string>): AttributeValueAst | undefined {
   if (tokenLa.la() && tokenLa.la()!.type === HtmlTokenType['=']) {
     // let {text, start, end} = this.advance(2);
     // return {text, start, end};

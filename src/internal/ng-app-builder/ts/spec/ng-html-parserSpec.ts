@@ -11,7 +11,7 @@ describe('ng-html-parser', () => {
   it('parser should work for test html file', () => {
     const ngHtml = fs.readFileSync(__dirname + '/../../ts/spec/test-parser.html', 'utf8');
     listTokens('debug', ngHtml, lexer).forEach(token => {
-      console.log(chalk.cyan(HtmlTokenType[token.type]), token.text);
+      console.log(chalk.cyan(HtmlTokenType[token.type!]), token.text);
     });
     const {allTags: ast} = parse(ngHtml);
     console.log(JSON.stringify(ast, null, '  '));

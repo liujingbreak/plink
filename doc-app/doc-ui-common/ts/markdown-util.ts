@@ -180,7 +180,7 @@ function tocMarkdown(tocs: TOC[]) {
   let str = '';
   for (const item of traverseTocTree(tocs)) {
     str += '  '.repeat(item.level);
-    str += `${item.level > 0 ? '-' : ''} ${item.text}`;
+    str += `${item.level > 0 ? '-' : ''} ${item.text}${item.level > 0 ? '' : os.EOL}`;
     str += '\n';
   }
   return str.slice(0, -1);
