@@ -1,5 +1,5 @@
 import React from 'react';
-import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {useRtk} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {sliceOptionFactory, epicFactory, SurfaceProps as Props} from './surfaceSlice';
 import cls from 'classnames';
 // import clsddp from 'classnames/dedupe';
@@ -9,12 +9,7 @@ import styles from './Surface.module.scss';
 export type SurfaceProps = Props;
 
 const Surface: React.FC<SurfaceProps> = function(props) {
-  const [, slice] = useReduxTookit(sliceOptionFactory, epicFactory);
-
-  React.useEffect(() => {
-    slice.actionDispatcher._syncComponentProps(props);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, Object.values(props));
+  const [, slice] = useRtk(sliceOptionFactory, props, epicFactory);
 
   React.useEffect(() => {
     slice.actionDispatcher.onFirstRender();

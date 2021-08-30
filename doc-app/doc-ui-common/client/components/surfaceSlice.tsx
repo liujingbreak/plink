@@ -1,4 +1,4 @@
-import {EpicFactory, castByActionType, createReducers, SliceHelper, Refrigerator} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {EpicFactory4Comp, BaseComponentState, castByActionType, createReducers, SliceHelper, Refrigerator} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {Immutable} from 'immer';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -17,12 +17,12 @@ const gradientLevels = [0, 0.20, 0.40, 0.60, 0.80, 1].map(
 export type SurfaceProps = React.PropsWithChildren<{
   className?: string;
   color?: string;
+  animateDelay?: number;
   /** 0 - 1 */
   minAlpha?: number;
   sliceRef?(sliceHelper: SurfaceSliceHelper): void;
 }>;
-export interface SurfaceState {
-  componentProps?: SurfaceProps;
+export interface SurfaceState extends BaseComponentState<SurfaceProps> {
   surfaceDom?: Immutable<Refrigerator<HTMLElement>>;
   rgbColor: string;
   colorAlpha: number;
@@ -44,12 +44,7 @@ const simpleReducers = {
   changeBgColor(s: SurfaceState, color: string) {
   },
 
-  onFirstRender(s: SurfaceState) {},
-
-  _syncComponentProps(s: SurfaceState, payload: SurfaceProps) {
-    s.componentProps = {...payload};
-  }
-  // define more reducers...
+  onFirstRender(s: SurfaceState) {}
 };
 const reducers = createReducers<SurfaceState, typeof simpleReducers>(simpleReducers);
 
@@ -67,7 +62,7 @@ export function sliceOptionFactory() {
 
 export type SurfaceSliceHelper = SliceHelper<SurfaceState, typeof reducers>;
 
-export const epicFactory: EpicFactory<SurfaceState, typeof reducers> = function(slice) {
+export const epicFactory: EpicFactory4Comp<SurfaceProps, SurfaceState, typeof reducers> = function(slice) {
   return (action$) => {
     const actionStreams = castByActionType(slice.actions, action$);
     return rx.merge(
@@ -81,16 +76,33 @@ export const epicFactory: EpicFactory<SurfaceState, typeof reducers> = function(
           });
         })
       ),
-      rx.combineLatest(
-        actionStreams.onFirstRender.pipe(
-          op.concatMap(action => rx.timer(500))
-        ),
+
+      rx.combineLatest([
+        actionStreams.onFirstRender,
         actionStreams.onSurfaceDomRef.pipe(
           op.filter(({payload}) => payload != null)
+        ),
+        slice.getStore().pipe(
+          op.map(s => s.componentProps),
+          op.distinctUntilChanged(),
+          op.filter(props => props != null),
+          op.map(props => {
+            return props!.animateDelay != null ?
+            props!.animateDelay : 666;
+          })
         )
-      ).pipe(
+      ]).pipe(
+        op.take(1),
+        op.tap(value => {
+          slice.actionDispatcher.changeBgPosition(35);
+        }),
+        op.concatMap(([, , delay]) => rx.timer(delay)),
         op.switchMap(actions => {
-          return animate(150, 35, 1000);
+          return rx.concat(
+            animate(35, 110, 1000),
+            rx.timer(50).pipe(op.ignoreElements()),
+            animate(110, 35, 1000)
+          );
         }),
         op.map(value => {
           slice.actionDispatcher.changeBgPosition(value);
