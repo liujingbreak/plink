@@ -39,7 +39,8 @@ const IconButton: React.FC<IconButtonProps> = function(props) {
       ...state,
       btnRef: btn || undefined
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, Object.values(state));
 
   React.useEffect(() => {
     if (state.btnRef) {

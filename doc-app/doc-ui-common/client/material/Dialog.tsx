@@ -19,19 +19,19 @@ const Dialog: React.FC<DialogProps> = function(props) {
       <div className='mdc-dialog__surface'
         role='alertdialog'
         aria-modal='true'
-        aria-labelledby='my-dialog-title'
-        aria-describedby='my-dialog-content'>
+        aria-labelledby={state.componentProps?.title || ''}
+        aria-describedby={state.componentProps?.title || ''} >
         {// Title cannot contain leading whitespace due to mdc-typography-baseline-top() 
         }
         <div className='mdc-dialog__header'>
-          <h2 className='mdc-dialog__title' id='my-dialog-title'>
+          <h2 className='mdc-dialog__title'>
             {state.componentProps?.title}
           </h2>
           {/* A bug of Dialog, uncaught animationFrame error if removing Icon button dom */}
           <IconButton materialIcon='close' className={cls('mdc-dialog__close', state.fullscreen ? styles.show : styles.hide)} dialogAction='close'/>
         </div>
-        <div className='mdc-dialog__content' id='my-dialog-content'>
-          {props.contentRenderer ? props.contentRenderer() : ''}
+        <div className='mdc-dialog__content'>
+          {props.children}
         </div>
         <div className='mdc-dialog__actions'>
           {

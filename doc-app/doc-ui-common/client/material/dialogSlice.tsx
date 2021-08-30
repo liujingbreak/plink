@@ -6,6 +6,8 @@ import {Immutable} from 'immer';
 import React from 'react';
 import {MDCDialog} from '@material/dialog';
 import {Button, ButtonProps} from './Button';
+import styles from './Dialog.module.scss';
+import cls from 'classnames';
 
 export type DialogProps = React.PropsWithChildren<{
   title: string;
@@ -32,6 +34,7 @@ const simpleReducers = {
   switchFullScreen(s: DialogState, fullscreen: boolean) {
     s.fullscreen = fullscreen;
   },
+  // _onDefaulBtnRef(s: DialogState, ref: )
   _layout(s: DialogState) {}
   // define more reducers...
 };
@@ -40,7 +43,7 @@ const reducers = createReducers<DialogState, typeof simpleReducers>(simpleReduce
 export function sliceOptionFactory() {
   const initialState: DialogState = {
     isOpened: false,
-    buttonsRenderer: () => [<Button className='mdc-dialog__button' key='ok'>OK</Button>],
+    buttonsRenderer: () => [<Button dialogAction='close' className={cls('mdc-dialog__button', styles.defaultBtn)} key='ok'>OK</Button>],
     fullscreen: false
   };
   return {

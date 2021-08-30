@@ -19,6 +19,7 @@ export type ButtonProps = React.PropsWithChildren<{
   className?: string;
   rippleColor?: RippleProps['color'];
   materialIcon?: string;
+  dialogAction?: string;
   // materialIconStyle?: 'regular' | 'outlined' | 'towtone'
 }>;
 
@@ -62,6 +63,16 @@ const Button: React.FC<ButtonProps> = function(props) {
       }
     }
   }, [props.isDialogDefaultAction, state.outerDom]);
+
+  React.useEffect(() => {
+    if (state.btnDom) {
+      if (props.dialogAction) {
+        state.btnDom.setAttribute('data-mdc-dialog-action', props.dialogAction);
+      } else {
+        state.btnDom.removeAttribute('data-mdc-dialog-action');
+      }
+    }
+  }, [props.dialogAction, state.btnDom]);
 
   const clickCb = React.useCallback<React.MouseEventHandler<HTMLDivElement>>((event) => {
     if (props.onClick) {
