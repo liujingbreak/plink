@@ -26,21 +26,22 @@ interface IconButtonState {
  * @param props 
  */
 const IconButton: React.FC<IconButtonProps> = function(props) {
+  const {onClick} = props;
   const clickCb = React.useCallback<React.MouseEventHandler<HTMLButtonElement>>((event) => {
-    if (props.onClick) {
-      props.onClick(event);
+    if (onClick) {
+      onClick(event);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.onClick]);
+  }, [onClick]);
 
   const [state, setState] = React.useState<IconButtonState>({});
   const btnRef = React.useCallback((btn: HTMLButtonElement | null) => {
-    setState({
-      ...state,
-      btnRef: btn || undefined
+    setState(state => {
+      return {
+        ...state,
+        btnRef: btn || undefined
+      };
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, Object.values(state));
+  }, []);
 
   React.useEffect(() => {
     if (state.btnRef) {
