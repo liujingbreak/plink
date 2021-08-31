@@ -161,21 +161,21 @@ function checkUpLevelNodeModules(rootDir: string) {
 
   let currDir = rootDir;
   const {root} = Path.parse(rootDir);
-  let parentDir = Path.dirname(currDir);
-  while (parentDir !== root) {
-    dirs.push(Path.resolve(parentDir, 'node_modules'));
-    currDir = parentDir;
-    parentDir = Path.dirname(currDir);
-  }
+  do {
+    currDir = Path.dirname(currDir);
+    dirs.push(Path.resolve(currDir, 'node_modules'));
+  } while (currDir !== root);
+
   const nodeModule = dirs.find(dir => fs.existsSync(dir));
   if (nodeModule) {
     // eslint-disable-next-line no-console
-    console.log(`Please install in another directory, or remove ${chalk.red(nodeModule)},` +
-      'which is getting the higher priority than loading Plink dependency for monorepo environment' );
+    console.log(`Please install in another directory, or remove ${chalk.red(nodeModule)}.\n` +
+      chalk.yellow('It could be problematic for Plink to manage monorepo dependency (through environmet variable "NODE_PATH" in runtime).\n' +
+      '(Alternatively, you may consider install whatever "global" dependency with `npm i -g` instead of having directory like ' +
+      chalk.red(nodeModule) + ')' ) );
 
-    throw new Error(chalk.red(`Found "${nodeModule}" in Plink CLI's upper level directory, ` +
-      'this could be problematic for Plink or Webpack to load proper dependencies.' +
-      `Please install in another directory, or remove directory ${nodeModule}`));
+    throw new Error(chalk.red('Found "node_modules" in upper level directories, ' +
+      'Installation is cancelled, sorry for inconvienience.'));
   }
 }
 
