@@ -23,6 +23,9 @@ export type FormTextFieldProps = React.PropsWithChildren<{
   hintText?: string;
   isRequired?: boolean;
   inputType?: 'text' | 'email' | 'number' | 'date';
+  minLength?: number;
+  maxLength?: number;
+  helperTextContent?: string;
   value?: string;
   onChange?: (v: string) => void;
   onValidated?: () => void;
@@ -94,8 +97,14 @@ export function sliceOptionFactory() {
 export type FormTextFieldSlice = Slice<FormTextFieldState, typeof reducers>;
 
 export const epicFactory: EpicFactory4Comp<FormTextFieldProps, FormTextFieldState, typeof reducers> = function(slice) {
+  const propKeys: ('maxLength' | 'minLength' | 'helperTextContent')[] = ['maxLength', 'minLength', 'helperTextContent'];
   return (action$) => {
     const actionStreams = castByActionType(slice.actions, action$);
+    const mdcTextField$ = slice.getStore().pipe(
+      op.map(s => s.mdcTextField), op.distinctUntilChanged(),
+      op.filter(v => v != null)
+    ) as rx.Observable<MDCTextField>;
+
     const syncValueToDom = rx.combineLatest([
         slice.getStore().pipe(
           op.map(s => s.value),
@@ -112,6 +121,25 @@ export const epicFactory: EpicFactory4Comp<FormTextFieldProps, FormTextFieldStat
           }
         })
       );
+
+    const syncValidationPropToMdc = rx.merge(...propKeys.map(prop => {
+      return rx.combineLatest([
+        mdcTextField$,
+        slice.getStore().pipe(
+          op.map(s => {
+            return s.componentProps ? s.componentProps[prop] : null;
+          }),
+          op.distinctUntilChanged(),
+          op.filter(v => v != null)
+        )
+      ]).pipe(
+        op.tap(([mdc, value]) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (mdc as any)[prop] = value ;
+        })
+      );
+    }));
+
     return rx.merge(
       slice.getStore().pipe(op.map(s => s.dom),
         op.distinctUntilChanged(),
@@ -130,6 +158,7 @@ export const epicFactory: EpicFactory4Comp<FormTextFieldProps, FormTextFieldStat
         }))
       ),
       syncValueToDom,
+      syncValidationPropToMdc,
       actionStreams.setValid.pipe(
         op.switchMap(action => slice.getStore().pipe(
           op.map(s => s.mdcTextField), op.distinctUntilChanged(),
@@ -140,6 +169,7 @@ export const epicFactory: EpicFactory4Comp<FormTextFieldProps, FormTextFieldStat
           mdc!.valid = valid;
         })
       ),
+
       // dispatch onValidated() when focus changes
       slice.getStore().pipe(op.map(s => s.mdcTextField),
         op.distinctUntilChanged(),
