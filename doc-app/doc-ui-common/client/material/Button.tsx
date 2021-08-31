@@ -74,7 +74,7 @@ const Button: React.FC<ButtonProps> = function(props) {
     }
   }, [props.dialogAction, state.btnDom]);
 
-  const clickCb = React.useCallback<React.MouseEventHandler<HTMLDivElement>>((event) => {
+  const clickCb = React.useCallback<React.MouseEventHandler<HTMLButtonElement>>((event) => {
     if (props.onClick) {
       props.onClick(event);
     }
@@ -86,9 +86,9 @@ const Button: React.FC<ButtonProps> = function(props) {
 
 
   return (
-    <div onClick={clickCb} ref={onOuterRef}
+    <div ref={onOuterRef}
       className={cls(props.className, cx('mdc-touch-target-wrapper', 'matButton', {'mdc-button--icon-leading': !!props.materialIcon}))}>
-      <button ref={onRef} className={className}>
+      <button ref={onRef} className={className} onClick={clickCb}>
         {props.materialIcon ? (
           <i className={classnames('material-icons', styles['mdc-button__icon'], 'md-' + props.materialIcon)} aria-hidden='true'></i>
         ) : null}

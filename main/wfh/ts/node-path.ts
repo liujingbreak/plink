@@ -169,8 +169,13 @@ function checkUpLevelNodeModules(rootDir: string) {
   }
   const nodeModule = dirs.find(dir => fs.existsSync(dir));
   if (nodeModule) {
+    // eslint-disable-next-line no-console
+    console.log(`Please install in another directory, or remove ${chalk.red(nodeModule)},` +
+      'which is getting the higher priority than loading Plink dependency for monorepo environment' );
+
     throw new Error(chalk.red(`Found "${nodeModule}" in Plink CLI's upper level directory, ` +
-      'this could be problematic for Plink or Webpack to load proper module.'));
+      'this could be problematic for Plink or Webpack to load proper dependencies.' +
+      `Please install in another directory, or remove directory ${nodeModule}`));
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@wfh/doc-ui-common",
-  "version": "1.0.1-5",
+  "version": "1.0.1-6",
   "description": "Common UI functions for Plink doc site",
   "main": "index.js",
   "scripts": {
