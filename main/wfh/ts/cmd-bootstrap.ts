@@ -3,7 +3,7 @@
 import './node-path';
 // import checkNode from './utils/node-version-check';
 import chalk from 'chalk';
-import {initProcess} from './utils/bootstrap-process';
+import {initProcess, initAsChildProcess} from './utils/bootstrap-process';
 import * as _cli from './cmd/cli';
 
 const startTime = new Date().getTime();
@@ -14,7 +14,12 @@ process.on('exit', () => {
 });
 
 (async function run() {
-  initProcess();
+  if (process.send) {
+    // current process is forked
+    initAsChildProcess();
+  } else {
+    initProcess();
+  }
   await new Promise(resolve => process.nextTick(resolve));
   return (require('./cmd/cli') as typeof _cli).createCommands(startTime);
 })().catch(err => {

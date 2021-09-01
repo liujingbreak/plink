@@ -42,6 +42,8 @@ export function initConfig(options: GlobalOptions) {
 /**
  * - Register process event handler for SIGINT and shutdown command
  * - Initialize redux-store for Plink
+ * 
+ * DO NOT fork a child process on this function
  * @param onShutdownSignal 
  */
 export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
@@ -50,6 +52,7 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
     log.info('pid ' + process.pid + ': bye');
     void onShut();
   });
+  // Be aware this is why "initProcess" can not be "fork"ed in a child process, it will keep alive for parent process's 'message' event
   process.on('message', function(msg) {
     if (msg === 'shutdown') {
       // eslint-disable-next-line no-console
@@ -60,9 +63,7 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
 
   const {saveState, stateFactory, startLogging} = require('../store') as typeof store;
   startLogging();
-  stateFactory.configureStore({
-    devTools: false
-  });
+  stateFactory.configureStore();
 
   async function onShut() {
     if (onShutdownSignal) {

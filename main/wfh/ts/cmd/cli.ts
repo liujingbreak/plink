@@ -437,7 +437,10 @@ process.on('beforeExit', () => {
   if (skipVersionCheck)
     return;
   skipVersionCheck = true;
-  checkPlinkVersion();
+  if (process.send == null) {
+    // process is not a forked child process
+    checkPlinkVersion();
+  }
 });
 
 function checkPlinkVersion() {

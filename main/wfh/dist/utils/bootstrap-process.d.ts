@@ -12,6 +12,8 @@ export declare function initConfig(options: GlobalOptions): import("..").DrcpCon
 /**
  * - Register process event handler for SIGINT and shutdown command
  * - Initialize redux-store for Plink
+ *
+ * DO NOT fork a child process on this function
  * @param onShutdownSignal
  */
 export declare function initProcess(onShutdownSignal?: () => void | Promise<any>): void;

@@ -16,7 +16,7 @@ export interface ForkOptions extends SysForkOptions {
 export interface Result {
   childProcess: ChildProcess;
   promise: Promise<string>;
-  done: Promise<{stdout: string; errout: string;}>;
+  done: Promise<{stdout: string; errout: string}>;
 }
 /**
  * Spawn process
@@ -30,12 +30,12 @@ export interface Result {
  *
  * @return {Promise} rejected if child process exits with non-zero code
  */
-export function promisifySpawn(command: string, ...args: Array<string|Option>):
+export function promisifySpawn(command: string, ...args: Array<string | Option>):
   Promise<string> {
   return spawn(command, ...args).promise;
 }
 
-export function spawn(command: string, ...args: Array<string|Option>): Result {
+export function spawn(command: string, ...args: Array<string | Option>): Result {
   let opts: Option = args[args.length - 1] as Option;
   if (typeof opts === 'string') {
     opts = {};
@@ -67,7 +67,7 @@ export function spawn(command: string, ...args: Array<string|Option>): Result {
   };
 }
 
-export function fork(jsFile: string, ...args: Array<string|ForkOptions>): Result {
+export function fork(jsFile: string, ...args: Array<string | ForkOptions>): Result {
   let opts: ForkOptions = args[args.length - 1] as ForkOptions;
   if (typeof opts === 'string') {
     opts = {};
@@ -98,7 +98,7 @@ export function fork(jsFile: string, ...args: Array<string|ForkOptions>): Result
 async function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptions, desc: string) {
   let output: ReturnType<typeof createStringWriter> | undefined;
   let errOutput: typeof output | undefined;
-  const cpExit = new Promise<{code: number | null, signal: string | null}>((resolve, reject) => {
+  const cpExit = new Promise<{code: number | null; signal: string | null}>((resolve, reject) => {
     if (opts && opts.silent) {
       output = createStringWriter();
       errOutput = createStringWriter();
@@ -162,7 +162,7 @@ function checkTimeout<T>(origPromise: Promise<T>, timeBox = 600000): Promise<T> 
  *
  * @return {Promise}        rejected if child process exits with non-zero code
  */
-export function promisifyExe(command: string, ...argsAndOption: Array<string|Option>): Promise<string> {
+export function promisifyExe(command: string, ...argsAndOption: Array<string | Option>): Promise<string> {
   return exe(command, ...argsAndOption).promise;
 }
 
@@ -171,7 +171,7 @@ export function promisifyExe(command: string, ...argsAndOption: Array<string|Opt
  * @param {*} argsAndOption
  * @return {object} {promise: Promise, childProcess: child_process}
  */
-export function exe(command: string, ...argsAndOption: Array<string|Option>): Result {
+export function exe(command: string, ...argsAndOption: Array<string | Option>): Result {
   // var args = [].slice.call(arguments);
   if (isWindows) {
     switch (command) {
