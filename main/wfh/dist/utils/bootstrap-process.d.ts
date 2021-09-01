@@ -1,5 +1,7 @@
+/// <reference types="node" />
 import '../node-path';
 import { GlobalOptions } from '../cmd/types';
+import { ForkOptions } from 'child_process';
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
  * If this function is called from a child process or thread worker of Plink,
@@ -25,5 +27,7 @@ export declare function initProcess(onShutdownSignal?: () => void | Promise<any>
  * Unlink initProcess() which registers process event handler for SIGINT and shutdown command,
  * in case this is running as a forked child process, it will stand by until parent process explicitly
  *  sends a signal to exit
+ * @param syncState send changed state back to main process
  */
-export declare function initAsChildProcess(): void;
+export declare function initAsChildProcess(syncState?: boolean): void;
+export declare function forkCli(cliArgs: string[], opts?: ForkOptions): import("child_process").ChildProcess;

@@ -4,7 +4,10 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
+import {fork, ForkOptions} from 'child_process';
+
 const log = log4js.getLogger('plink.bootstrap-process');
+
 process.on('uncaughtException', function(err) {
   // log.error('Uncaught exception', err, err.stack);
   log.error('Uncaught exception: ', err);
@@ -82,12 +85,27 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
  * Unlink initProcess() which registers process event handler for SIGINT and shutdown command,
  * in case this is running as a forked child process, it will stand by until parent process explicitly
  *  sends a signal to exit
+ * @param syncState send changed state back to main process
  */
-export function initAsChildProcess() {
-  const {stateFactory, startLogging} = require('../store') as typeof store;
+export function initAsChildProcess(syncState = false) {
+  const {stateFactory, startLogging, setSyncStateToMainProcess} = require('../store') as typeof store;
   startLogging();
+  if (syncState) {
+    setSyncStateToMainProcess(true);
+  }
   stateFactory.configureStore();
 }
 
-
+export function forkCli(cliArgs: string[], opts: ForkOptions = {}) {
+  const cp = fork(require.resolve('../cmd-bootstrap'), cliArgs, {...opts, stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
+  cp.on('message', (msg) => {
+    if (store.isStateSyncMsg(msg)) {
+      log.info('Recieve state sync message from forked process');
+      store.stateFactory.actionsToDispatch.next({type: '::syncState', payload(state: any) {
+        return eval('(' + msg.data + ')');
+      }});
+    }
+  });
+  return cp;
+}
 

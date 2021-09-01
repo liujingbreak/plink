@@ -1,4 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit';
+import {createReducers} from '../../../redux-toolkit-observable/dist/helper';
 import { from, merge, of } from 'rxjs';
 // import {cliActionDispatcher, getStore, cliSlice, CliExtension} from './cli-slice';
 import * as op from 'rxjs/operators';
@@ -29,31 +30,27 @@ const initialState: CliState = {
   // loadedExtensionCmds: new Map()
 };
 
+const simpleReduces = {
+  plinkUpgraded(d: CliState, newVersion: string) {
+    d.version = newVersion;
+  },
+  updateLocale(d: CliState, [lang, country]: [string, string]) {
+    d.osLang = lang;
+    d.osCountry = country;
+  },
+  addCommandMeta(d: CliState, {pkg, metas}: {pkg: string; metas: OurCommandMetadata[]}) {
+    const names = metas.map(meta => /^\s*?(\S+)/.exec(meta.name)![1]);
+    d.commandByPackage.set(pkg, names);
+    for (let i = 0, l = names.length; i < l; i++) {
+      d.commandInfoByName.set(names[i], metas[i]);
+    }
+  }
+};
+
 export const cliSlice = stateFactory.newSlice({
   name: 'cli',
   initialState,
-  reducers: {
-    plinkUpgraded(d, {payload: newVersion}: PayloadAction<string>) {
-      d.version = newVersion;
-    },
-    updateLocale(d, {payload: [lang, country]}: PayloadAction<[string, string]>) {
-      d.osLang = lang;
-      d.osCountry = country;
-    },
-    addCommandMeta(d, {payload: {pkg, metas}}: PayloadAction<{pkg: string; metas: OurCommandMetadata[]}>) {
-      const names = metas.map(meta => /^\s*?(\S+)/.exec(meta.name)![1]);
-      // const existingMetas = d.commandByPackage.get(pkg);
-      d.commandByPackage.set(pkg, names);
-      // if (existingMetas) {
-      //   existingMetas.push(...names);
-      // } else {
-      //   d.commandByPackage.set(pkg, names);
-      // }
-      for (let i = 0, l = names.length; i < l; i++) {
-        d.commandInfoByName.set(names[i], metas[i]);
-      }
-    }
-  }
+  reducers: createReducers<CliState, typeof simpleReduces>(simpleReduces)
 });
 
 export const cliActionDispatcher = stateFactory.bindActionCreators(cliSlice);
@@ -69,11 +66,11 @@ export function getStore() {
 }
 
 const getLocale: () => Promise<string> = require('os-locale');
-const drcpPkJson = require('../../../package.json');
+const drcpPkJson = require('../../../package.json') as {version: string};
 
 
 stateFactory.addEpic((action$, state$) => {
-
+  // const actionStreams = castByActionType(cliSlice.actions, action$);
   return merge(
     getStore().pipe(op.map(s => s.version), op.distinctUntilChanged(),
       op.map(version => {

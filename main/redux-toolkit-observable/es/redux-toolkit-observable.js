@@ -229,7 +229,18 @@ export class StateFactory {
         return slice;
     }
     createRootReducer() {
-        return combineReducers(this.reducerMap);
+        const combined = combineReducers(this.reducerMap);
+        const rootReducer = (state, action) => {
+            if (action.type === '::syncState') {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-call
+                return action.payload(state);
+            }
+            else {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                return combined(state, action);
+            }
+        };
+        return rootReducer;
     }
 }
 /**

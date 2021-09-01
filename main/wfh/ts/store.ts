@@ -18,6 +18,21 @@ enableMapSet();
 
 configDefaultLog();
 
+let syncStateToMainProcess = false;
+
+export function setSyncStateToMainProcess(enabled: boolean) {
+  syncStateToMainProcess = enabled;
+}
+
+const PROCESS_MSG_TYPE = 'rtk-observable:state';
+export type ProcessStateSyncMsg = {
+  type: typeof PROCESS_MSG_TYPE;
+  data: string;
+};
+export function isStateSyncMsg(msg: unknown): msg is ProcessStateSyncMsg {
+  return (msg as ProcessStateSyncMsg).type === PROCESS_MSG_TYPE;
+}
+
 function configDefaultLog() {
   let logPatternPrefix = '';
   if (process.send)
@@ -126,8 +141,6 @@ process.on('beforeExit', (code) => {
     return;
   stateFactory.dispatch({type: 'BEFORE_SAVE_STATE', payload: null});
   process.nextTick(() => saveState());
-  // eslint-disable-next-line , no-console
-  // console.log(chalk.green(`Done in ${new Date().getTime() - process.uptime()} s`));
 });
 
 /**
@@ -148,10 +161,19 @@ export async function saveState() {
     return;
   }
   if (process.send) {
+    if (syncStateToMainProcess) {
+      const store = await stateFactory.rootStoreReady;
+      log.info('send state sync message');
+      process.send({
+        type: 'rtk-observable:state',
+        data: serialize(store.getState(), {space: ''})
+      } as ProcessStateSyncMsg);
+    }
     // eslint-disable-next-line no-console
     log.info(chalk.gray('in a forked process, skip saving state'));
     return;
   }
+
   const store = await stateFactory.rootStoreReady;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const mergedState = Object.assign(lastSavedState, store.getState());

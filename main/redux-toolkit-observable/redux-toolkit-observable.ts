@@ -143,7 +143,6 @@ export class StateFactory {
     }
 
     const store = configureStore(cfgOpt);
-
     this.store$.next(store);
 
     store.subscribe(() => {
@@ -332,8 +331,7 @@ export class StateFactory {
     };
   };
 
-  private addSliceMaybeReplaceReducer<State,
-    Name extends string = string>(
+  private addSliceMaybeReplaceReducer<State, Name extends string = string>(
     slice: Slice<State, SliceCaseReducers<State> & ExtraSliceReducers<State>, Name>
     ) {
     this.reducerMap[slice.name] = slice.reducer;
@@ -348,7 +346,17 @@ export class StateFactory {
   }
 
   private createRootReducer(): Reducer<any, PayloadAction> {
-    return combineReducers(this.reducerMap);
+    const combined = combineReducers(this.reducerMap);
+    const rootReducer: Reducer<any, PayloadAction<any>> = (state, action) => {
+      if (action.type === '::syncState') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-call
+        return action.payload(state);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return combined(state, action);
+      }
+    };
+    return rootReducer;
   }
 }
 

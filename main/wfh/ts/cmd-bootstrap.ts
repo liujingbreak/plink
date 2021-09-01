@@ -16,7 +16,7 @@ process.on('exit', () => {
 (async function run() {
   if (process.send) {
     // current process is forked
-    initAsChildProcess();
+    initAsChildProcess(true);
   } else {
     initProcess();
   }
