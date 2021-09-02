@@ -758,15 +758,6 @@ async function initRootDirectory() {
   // await _deleteUselessSymlink(Path.resolve(rootDir, 'node_modules'), new Set<string>());
 }
 
-// async function writeConfigFiles() {
-//   return (await import('../cmd/config-setup')).addupConfigs((file, configContent) => {
-// eslint-disable-next-line , no-console
-//     log.info('write config file:', file);
-//     writeFile(Path.join(distDir, file),
-//       '\n# DO NOT MODIFIY THIS FILE!\n' + configContent);
-//   });
-// }
-
 async function installWorkspace(ws: WorkspaceState, npmOpt: NpmOptions) {
   const dir = Path.resolve(rootDir, ws.id);
   try {
@@ -1103,26 +1094,6 @@ function maybeCopyTemplate(from: string, to: string) {
     cp(Path.resolve(__dirname, from), to);
 }
 
-// function _writeGitHook(project: string) {
-//   // if (!isWin32) {
-//   const gitPath = Path.resolve(project, '.git/hooks');
-//   if (fs.existsSync(gitPath)) {
-//     const hookStr = '#!/bin/sh\n' +
-//       `cd "${rootDir}"\n` +
-//       // 'drcp init\n' +
-//       // 'npx pretty-quick --staged\n' + // Use `tslint --fix` instead.
-//       `plink lint --pj "${project.replace(/[/\\]$/, '')}" --fix\n`;
-//     if (fs.existsSync(gitPath + '/pre-commit'))
-//       fs.unlinkSync(gitPath + '/pre-commit');
-//     fs.writeFileSync(gitPath + '/pre-push', hookStr);
-//     // eslint-disable-next-line no-console
-//     log.info('Write ' + gitPath + '/pre-push');
-//     if (!isWin32) {
-//       spawn('chmod', '-R', '+x', project + '/.git/hooks/pre-push');
-//     }
-//   }
-// }
-
 function deleteDuplicatedInstalledPkg(workspaceKey: string) {
   const wsState = getState().workspaces.get(workspaceKey)!;
   const doNothing = () => {};
@@ -1140,25 +1111,3 @@ function deleteDuplicatedInstalledPkg(workspaceKey: string) {
   });
 }
 
-// /**
-//    * If a source code package uses Plink's __plink API ( like `.logger`) or extends Plink's command line,
-//    * they need ensure some Plink's dependencies are installed as 1st level dependency in their workspace,
-//    * otherwise Visual Code Editor can not find correct type definitions while referencing Plink's logger or
-//    * Command interface.
-//    * 
-//    * So I need to make sure these dependencies are installed in each workspace
-//    */
-
-// function plinkApiRequiredDeps(): PackageJsonInterf {
-//   const plinkJson: PackageJsonInterf = require('@wfh/plink/package.json');
-//   const fakeJson: PackageJsonInterf = {
-//     version: plinkJson.version,
-//     name: plinkJson.name,
-//     dependencies: {}
-//   };
-//   for (const dep of ['commander', 'log4js']) {
-//     const version = plinkJson.dependencies![dep];
-//     fakeJson.dependencies![dep] = version;
-//   }
-//   return fakeJson;
-// }

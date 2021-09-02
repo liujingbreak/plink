@@ -10,42 +10,6 @@ interface CacheAndReplayState<T> {
   inputIdx: number;
 }
 
-// interface LinkedItem<T> {
-//   prev?: LinkedItem<T>;
-//   next?: LinkedItem<T>;
-//   data: T;
-// }
-// class LinkedList<T> {
-//   length = 0;
-//   head?: LinkedItem<T>;
-//   tail?: LinkedItem<T>;
-
-//   add(data: T) {
-//     if (this.length === 0) {
-//       this.head = this.tail = {data};
-//     } else {
-//       this.tail!.next = {data, prev: this.tail};
-//       this.tail = this.tail!.next;
-//     }
-//     this.length++;
-//   }
-
-//   remove(item: LinkedItem<T>) {
-//     const {prev, next} = item;
-//     if (prev && next) {
-//       prev.next = next;
-//       next.prev = prev;
-//     } else if (prev) {
-//       prev.next = undefined;
-//       this.tail = prev;
-//     } else if (next) {
-//       this.head = next;
-//       next.prev = undefined;
-//     }
-//     this.length--;
-//   }
-// }
-
 export function cacheAndReplay<T>(
   markAction: rx.Observable<number>, // with offset of look ahead
   replayAction: rx.Observable<number> // with target marked position

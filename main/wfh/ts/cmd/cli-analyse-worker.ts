@@ -14,9 +14,9 @@ import {webInjector} from '../injector-factory';
 import {closestCommonParentDir, plinkEnv} from '../utils/misc';
 import {mergeBaseUrlAndPaths, RequiredCompilerOptions, parseConfigFileToJson} from '../ts-cmd-util';
 import {log4File} from '../logger';
+import Module from 'module';
 
-const NODE_MODULE_SET = new Set('child_process cluster http https http2 crypto fs path os net v8 util url tty trace_events tls stream vm domain'
-  .split(/\s+/));
+const NODE_MODULE_SET = new Set(Module.builtinModules);
 
 let coJson: RequiredCompilerOptions;
 // setTsCompilerOptForNodePath(plinkEnv.workDir, './', coJson, {workspaceDir: plinkEnv.workDir});

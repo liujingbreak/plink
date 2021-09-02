@@ -24,6 +24,7 @@ process.on('exit', () => {
     initProcess();
   }
   await new Promise(resolve => process.nextTick(resolve));
+
   const argv = process.argv.slice(2);
   const foundCmdOptIdx = argv.findIndex(arg => arg === '--cwd');
   if (foundCmdOptIdx >= 0) {
