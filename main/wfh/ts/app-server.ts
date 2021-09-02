@@ -1,5 +1,5 @@
 import commander from 'commander';
-import {GlobalOptions, initConfig, initProcess} from './index';
+import {GlobalOptions, initConfig, initProcess, initAsChildProcess} from './index';
 import * as _runner from './package-runner';
 import logConfig from './log-config';
 import {withGlobalOptions} from './cmd/override-commander';
@@ -8,21 +8,28 @@ const {version} = require('../../package.json') as {version: string};
 
 process.title = 'Plink - server';
 
+let shutdown: () => Promise<any>;
+
 const program = new commander.Command()
 .arguments('[args...]')
 .action((args: string[]) => {
   // eslint-disable-next-line no-console
   console.log('\nPlink version:', version);
-
-  initProcess(() => {
-    return shutdown();
-  });
   const setting = initConfig(program.opts() as GlobalOptions);
   logConfig(setting());
   const {runServer} = require('./package-runner') as typeof _runner;
-  const {shutdown} = runServer();
+  shutdown = runServer().shutdown;
   // await started;
 });
+
+if (process.send) {
+  // current process is forked
+  initAsChildProcess(true, () => shutdown());
+} else {
+  initProcess(() => {
+    return shutdown();
+  });
+}
 
 withGlobalOptions(program);
 

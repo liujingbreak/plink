@@ -55,5 +55,6 @@ export declare class CommandOverrider {
     forPackage(pk: null, commandCreation: (program: commander.Command) => void): void;
     appendGlobalOptions(saveToStore: boolean): void;
 }
+export declare function withCwdOption(cmd: commander.Command): commander.Command;
 export declare function withGlobalOptions(cmd: commander.Command | PlinkCommand): commander.Command;
 export {};

@@ -3,6 +3,7 @@ export interface GlobalOptions {
   prop: string[];
   /** set log level to "debug" */
   verbose?: boolean;
+  cwd?: string;
   /** 
    * By turning on this option, Plink setting property "devMode" will automatcially set to `true`,
    * and process.env.NODE_ENV will also

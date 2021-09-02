@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,  @typescript-eslint/no-unsafe-return */
 import commander from 'commander';
-import {WorkspaceState, PackageInfo} from '../package-mgr';
+import {WorkspaceState, PackageInfo, getState} from '../package-mgr';
 import chalk from 'chalk';
 import {arrayOptionFn} from './utils';
 import * as _bootstrap from '../utils/bootstrap-process';
@@ -345,7 +345,16 @@ export class CommandOverrider {
   }
 }
 
+export function withCwdOption(cmd: commander.Command): commander.Command {
+  return cmd.option('--cwd <working dir>', 'Run command in a different worktree directory: [' +
+    [...getState().workspaces.keys()].join(', ') + ']');
+}
+
 export function withGlobalOptions(cmd: commander.Command | PlinkCommand): commander.Command {
+  if (getState().workspaces == null)
+    console.log(getState());
+  withCwdOption(cmd);
+
   if (cmd instanceof PlinkCommand)
     cmd.optionStyler = str => chalk.gray(str);
   (cmd.option as commander.Command['option'])('-c, --config <config-file>',

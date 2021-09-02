@@ -27,9 +27,9 @@ const ColorTool: React.FC<ColorToolProps> = function(props) {
   return <div className={cls(styles.scope, {[styles.mix]: state.componentProps?.mixColors != null})}>
     <div className={styles.label}>{state.label || ''}</div>
     <div className={styles.cells}>
-      {state.colors.map(col => {
+      {state.colors.map((col, idx) => {
         const hex = col.hex();
-        return <ColorInfo key={hex} color={col} onClick={state.colorClickCallbacks[hex]}></ColorInfo>;
+        return <ColorInfo key={idx} color={col} onClick={state.colorClickCallbacks[hex]}></ColorInfo>;
       })}
     </div>
     <div style={state.gradientStyle} className={styles.gradient}></div>

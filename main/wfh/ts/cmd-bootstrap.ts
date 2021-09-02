@@ -5,6 +5,9 @@ import './node-path';
 import chalk from 'chalk';
 import {initProcess, initAsChildProcess} from './utils/bootstrap-process';
 import * as _cli from './cmd/cli';
+import {fork} from 'child_process';
+import {plinkEnv} from './utils/misc';
+import Path from 'path';
 
 const startTime = new Date().getTime();
 
@@ -21,6 +24,21 @@ process.on('exit', () => {
     initProcess();
   }
   await new Promise(resolve => process.nextTick(resolve));
+  const argv = process.argv.slice(2);
+  const foundCmdOptIdx = argv.findIndex(arg => arg === '--cwd');
+  if (foundCmdOptIdx >= 0) {
+    const workdir = Path.resolve(plinkEnv.rootDir, argv[foundCmdOptIdx + 1]);
+    if (workdir) {
+      const pkgMgr = (await import('./package-mgr/index'));
+      if (pkgMgr.getState().workspaces.has(pkgMgr.workspaceKey(workdir))) {
+        const newArgv = argv.concat();
+        newArgv.splice(foundCmdOptIdx, 2);
+        fork(__filename, newArgv, {cwd: workdir});
+        return;
+      }
+    }
+    console.log(chalk.yellow(workdir + ' is not an existing worktree space'));
+  }
   return (require('./cmd/cli') as typeof _cli).createCommands(startTime);
 })().catch(err => {
   console.log(err);

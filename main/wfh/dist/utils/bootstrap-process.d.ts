@@ -29,5 +29,5 @@ export declare function initProcess(onShutdownSignal?: () => void | Promise<any>
  *  sends a signal to exit
  * @param syncState send changed state back to main process
  */
-export declare function initAsChildProcess(syncState?: boolean): void;
+export declare function initAsChildProcess(syncState?: boolean, onShutdownSignal?: () => void | Promise<any>): void;
 export declare function forkCli(cliArgs: string[], opts?: ForkOptions): import("child_process").ChildProcess;

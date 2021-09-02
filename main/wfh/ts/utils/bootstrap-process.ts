@@ -87,8 +87,20 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
  *  sends a signal to exit
  * @param syncState send changed state back to main process
  */
-export function initAsChildProcess(syncState = false) {
-  const {stateFactory, startLogging, setSyncStateToMainProcess} = require('../store') as typeof store;
+export function initAsChildProcess(syncState = false, onShutdownSignal?: () => void | Promise<any>) {
+  const {saveState, stateFactory, startLogging, setSyncStateToMainProcess} = require('../store') as typeof store;
+  process.on('SIGINT', function() {
+    // eslint-disable-next-line no-console
+    log.info('pid ' + process.pid + ': bye');
+    if (onShutdownSignal) {
+      void Promise.resolve(onShutdownSignal)
+      .then(() => saveState())
+      .then(() => {
+        setImmediate(() => process.exit(0));
+      });
+    }
+  });
+
   startLogging();
   if (syncState) {
     setSyncStateToMainProcess(true);

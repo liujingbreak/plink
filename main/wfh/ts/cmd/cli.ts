@@ -13,7 +13,7 @@ import * as _symlinks from '../utils/symlinks';
 import fs from 'fs';
 import Path from 'path';
 import semver from 'semver';
-import {CommandOverrider} from './override-commander';
+import {CommandOverrider, withCwdOption} from './override-commander';
 import {initInjectorForNodePackages} from '../package-runner';
 import {hlDesc, arrayOptionFn} from './utils';
 import {getLogger} from 'log4js';
@@ -41,6 +41,15 @@ export async function createCommands(startTime: number) {
     console.log(sexyFont('PLink').string);
     // eslint-disable-next-line no-console
     console.log(program.helpInformation());
+
+    if (wsState == null) {
+      const wsDirs = [...pkgMgr.getState().workspaces.keys()];
+      if (wsDirs.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log(`More commands are available in worktree space directories: [${wsDirs.map(item => chalk.cyan(item)).join(', ')}]\n` +
+          `Try commands:\n${wsDirs.map(dir => '  plink --cwd ' + dir).join('\n')}`);
+      }
+    }
     // eslint-disable-next-line no-console
     console.log(`\nversion: ${pk.version} ${isDrcpSymlink ? chalk.yellow('(symlinked)') : ''} `);
     if (cliExtensions && cliExtensions.length > 0) {
@@ -54,12 +63,14 @@ export async function createCommands(startTime: number) {
     process.nextTick(() => process.exit(1));
   });
   program.addHelpText('before', sexyFont('PLink').string);
+  withCwdOption(program);
 
   program.version(pk.version, '-v, --vers', 'output the current version');
   program.addHelpCommand('help [command]', 'show help information, same as "-h". ');
 
   const overrider = new CommandOverrider(program);
   let wsState: pkgMgr.WorkspaceState | undefined;
+
   if (process.env.PLINK_SAFE !== 'true') {
     const {getState: getPkgState, workspaceKey} = require('../package-mgr') as typeof pkgMgr;
     wsState = getPkgState().workspaces.get(workspaceKey(plinkEnv.workDir));
