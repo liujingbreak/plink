@@ -1,2 +1,2 @@
-export declare function initTsconfig(): Promise<void>;
+export declare function initTsconfig(): void;
 export default function initRedux(): void;

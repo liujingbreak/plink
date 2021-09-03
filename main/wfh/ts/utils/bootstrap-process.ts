@@ -4,7 +4,6 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
-import {fork, ForkOptions} from 'child_process';
 
 const log = log4js.getLogger('plink.bootstrap-process');
 
@@ -101,23 +100,28 @@ export function initAsChildProcess(syncState = false, onShutdownSignal?: () => v
     }
   });
 
+  let needSaveState = process.env.__plink_save_state === '1';
+  if (needSaveState) {
+    process.env.__plink_save_state = '0';
+  }
+
   startLogging();
-  if (syncState) {
+  if (syncState && !needSaveState) {
     setSyncStateToMainProcess(true);
   }
   stateFactory.configureStore();
 }
 
-export function forkCli(cliArgs: string[], opts: ForkOptions = {}) {
-  const cp = fork(require.resolve('../cmd-bootstrap'), cliArgs, {...opts, stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
-  cp.on('message', (msg) => {
-    if (store.isStateSyncMsg(msg)) {
-      log.info('Recieve state sync message from forked process');
-      store.stateFactory.actionsToDispatch.next({type: '::syncState', payload(state: any) {
-        return eval('(' + msg.data + ')');
-      }});
-    }
-  });
-  return cp;
-}
+// export function forkCli(cliArgs: string[], opts: ForkOptions = {}) {
+//   const cp = fork(require.resolve('../cmd-bootstrap'), cliArgs, {...opts, stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
+//   cp.on('message', (msg) => {
+//     if (store.isStateSyncMsg(msg)) {
+//       log.info('Recieve state sync message from forked process');
+//       store.stateFactory.actionsToDispatch.next({type: '::syncState', payload(state: any) {
+//         return eval('(' + msg.data + ')');
+//       }});
+//     }
+//   });
+//   return cp;
+// }
 

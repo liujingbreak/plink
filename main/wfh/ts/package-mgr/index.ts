@@ -8,7 +8,7 @@ import fsext from 'fs-extra';
 import fs from 'fs';
 import _ from 'lodash';
 import Path from 'path';
-import { from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
+import { concat, from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
 import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
   take, concatMap, ignoreElements, scan, catchError, tap } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
@@ -972,22 +972,27 @@ function _createSymlinksForWorkspace(wsKey: string) {
   .concat(ws.linkedDevDependencies.map(item => item[0]));
 
   const pkgNameSet = new Set(pkgNames);
+
   if (symlinkDirName !== 'node_modules') {
     if (ws.installedComponents) {
       for (const pname of ws.installedComponents.keys())
         pkgNameSet.add(pname);
     }
-  }
-
-  if (symlinkDirName !== 'node_modules') {
     actionDispatcher.updateGitIgnores({
       file: Path.resolve(rootDir, '.gitignore'),
       lines: [Path.relative(rootDir, symlinkDir).replace(/\\/g, '/')]});
   }
 
+  let symlinksToCreate = from(pkgNameSet.values())
+  .pipe(
+    map(name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!)
+  );
+  if (workspaceDir(wsKey) !== plinkEnv.rootDir) {
+    symlinksToCreate = concat(symlinksToCreate, of(getState().linkedDrcp! || getState().installedDrcp));
+  }
+
   return merge(
-    from(pkgNameSet.values()).pipe(
-      map(name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!),
+    symlinksToCreate.pipe(
       symbolicLinkPackages(symlinkDir)
     ),
     _deleteUselessSymlink(symlinkDir, pkgNameSet)

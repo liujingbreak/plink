@@ -20,6 +20,12 @@ configDefaultLog();
 
 let syncStateToMainProcess = false;
 
+// process.on('message', msg => {
+//   if (msg && msg.type === '__plink_save_state') {
+
+//   }
+// });
+
 export function setSyncStateToMainProcess(enabled: boolean) {
   syncStateToMainProcess = enabled;
 }
@@ -160,17 +166,15 @@ export async function saveState() {
     log.info(chalk.gray('not in main thread, skip saving state'));
     return;
   }
-  if (process.send) {
-    if (syncStateToMainProcess) {
-      const store = await stateFactory.rootStoreReady;
-      log.info('send state sync message');
-      process.send({
-        type: 'rtk-observable:state',
-        data: serialize(store.getState(), {space: ''})
-      } as ProcessStateSyncMsg);
-    }
+  if (process.send && syncStateToMainProcess) {
+    const store = await stateFactory.rootStoreReady;
+    log.info('send state sync message');
+    process.send({
+      type: PROCESS_MSG_TYPE,
+      data: serialize(store.getState(), {space: ''})
+    } as ProcessStateSyncMsg);
     // eslint-disable-next-line no-console
-    log.info(chalk.gray('in a forked process, skip saving state'));
+    log.info(chalk.gray('in a forked child process, skip saving state'));
     return;
   }
 

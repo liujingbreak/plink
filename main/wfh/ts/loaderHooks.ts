@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call */
 /**
  * Hack Node.js common module resolve process
  */
@@ -15,7 +16,7 @@ export function hookCommonJsRequire(hook: (
   filename: string,
   target: string,
   originRequire: () => any,
-  resolve: (id: string, options?: { paths?: string[]; })=> string
+  resolve: (id: string, options?: { paths?: string[] }) => string
 ) => any
 ) {
   const superReq = Module.prototype.require;

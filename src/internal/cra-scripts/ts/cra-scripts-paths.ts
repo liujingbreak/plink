@@ -33,7 +33,7 @@ export default function paths() {
   if (foundPkg == null) {
     throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
   }
-  const {realPath: dir, json: packageJson} = foundPkg;
+  const {realPath: dir, json: packageJson, path: pkgDir} = foundPkg;
 
   const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
   const changedPaths = paths;
@@ -48,14 +48,14 @@ export default function paths() {
   }
   log.debug(changedPaths);
 
-  configFileInPackage = Path.resolve(dir, _.get(plinkProps, ['config-overrides-path'], 'config-overrides.ts'));
+  configFileInPackage = Path.resolve(pkgDir, _.get(plinkProps, ['config-overrides-path'], 'config-overrides.ts'));
 
   if (fs.existsSync(configFileInPackage)) {
     const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
     cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
       if (handler.changeCraPaths != null) {
         log.info('Execute CRA scripts paths configuration overrides from ', cfgFile);
-        handler.changeCraPaths(changedPaths, config().cliOptions?.env!, cmdOption);
+        handler.changeCraPaths(changedPaths, config().cliOptions!.env!, cmdOption);
       }
     });
   } else {

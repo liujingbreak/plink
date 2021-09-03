@@ -85,7 +85,7 @@ export interface DependentInfo {
 const versionReg = /^(\D*)(\d.*?)(?:\.tgz)?$/;
 
 export class TransitiveDepScanner {
-  verbosMessage: string;
+  verbosMessage: string | undefined;
   /** key is dependency module name */
   private directDeps: Map<string, SimpleLinkedListNode<[string, DepInfo]>> = new Map();
   private srcDeps: Map<string, DepInfo[]> = new Map();

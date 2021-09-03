@@ -94,15 +94,23 @@ export class ConfigHandlerMgr {
       registerTsNode({
         typeCheck: true,
         compilerOptions,
+        skipIgnore: true, // important, by "true" will skip files are under node_modules
         compiler: require.resolve('typescript'),
         /**
          * Important!! prevent ts-node looking for tsconfig.json from current working directory
          */
         skipProject: true
         , transformers: {
+          before: [
+            context => (src) => {
+              log.info('before ts-node compiles:', src.fileName);
+              // console.log(src.text);
+              return src;
+            }
+          ],
           after: [
             context => (src) => {
-              log.debug('ts-node compiles:', src.fileName);
+              log.info('ts-node compiles:', src.fileName);
               // console.log(src.text);
               return src;
             }

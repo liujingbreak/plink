@@ -50,11 +50,11 @@ export interface BasePlinkSettings {
     enableSourceMaps: boolean;
 }
 export declare type DrcpSettings = BasePlinkSettings & PackagesConfig;
-export declare const configSlice: import("@reduxjs/toolkit").Slice<BasePlinkSettings, {
-    saveCliOption(s: import("immer/dist/internal").WritableDraft<BasePlinkSettings>, { payload }: PayloadAction<GlobalOptions>): void;
-} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<BasePlinkSettings>, "config">;
+export declare const configSlice: import("@reduxjs/toolkit").Slice<DrcpSettings, {
+    saveCliOption(s: import("immer/dist/internal").WritableDraft<DrcpSettings>, { payload }: PayloadAction<GlobalOptions>): void;
+} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<DrcpSettings>, "config">;
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
-    saveCliOption(s: import("immer/dist/internal").WritableDraft<BasePlinkSettings>, { payload }: PayloadAction<GlobalOptions>): void;
-} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<BasePlinkSettings>>;
-export declare function getState(): BasePlinkSettings;
-export declare function getStore(): rx.Observable<BasePlinkSettings>;
+    saveCliOption(s: import("immer/dist/internal").WritableDraft<DrcpSettings>, { payload }: PayloadAction<GlobalOptions>): void;
+} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<DrcpSettings>>;
+export declare function getState(): DrcpSettings;
+export declare function getStore(): rx.Observable<DrcpSettings>;

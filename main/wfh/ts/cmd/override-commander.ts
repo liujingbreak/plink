@@ -314,6 +314,7 @@ export class CommandOverrider {
       this.pkgMetasMap.set('@wfh/plink', commandMetaInfos);
     } else if (pk) {
       try {
+        debugger;
         filePath = require.resolve(pk.name + '/' + pkgFilePath);
         this.ctx.currClieCreatorFile = filePath;
         const subCmdFactory: CliExtension = funcName ? require(filePath)[funcName] :

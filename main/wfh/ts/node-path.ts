@@ -102,9 +102,10 @@ function findRootDir(distDir: string, currDir: string) {
  */
 function setupNodePath(currDir: string, rootDir: string, symlinksDir: string | null, plinkDir: string) {
   const pathArray = calcNodePaths(rootDir, symlinksDir, currDir, plinkDir);
-  process.env.NODE_PATH = pathArray.join(Path.delimiter);
+  // process.env.NODE_PATH = pathArray.join(Path.delimiter);
+  // process.env.NODE_PRESERVE_SYMLINKS = '1';
   // eslint-disable-next-line no-console
-  console.log(chalk.gray(logPrefix + 'NODE_PATH', process.env.NODE_PATH));
+  // console.log(chalk.gray(logPrefix + 'NODE_PATH', process.env.NODE_PATH));
   require('module').Module._initPaths();
   return pathArray;
 }
@@ -157,26 +158,27 @@ export interface PlinkEnv {
  * to problematic module loading issue.
  */
 function checkUpLevelNodeModules(rootDir: string) {
-  const dirs = [] as string[];
+  // Go with preserve
+  // const dirs = [] as string[];
 
-  let currDir = rootDir;
-  const {root} = Path.parse(rootDir);
-  do {
-    currDir = Path.dirname(currDir);
-    dirs.push(Path.resolve(currDir, 'node_modules'));
-  } while (currDir !== root);
+  // let currDir = rootDir;
+  // const {root} = Path.parse(rootDir);
+  // do {
+  //   currDir = Path.dirname(currDir);
+  //   dirs.push(Path.resolve(currDir, 'node_modules'));
+  // } while (currDir !== root);
 
-  const nodeModule = dirs.find(dir => fs.existsSync(dir));
-  if (nodeModule) {
-    // eslint-disable-next-line no-console
-    console.log(`Please install in another directory, or remove ${chalk.red(nodeModule)}.\n` +
-      chalk.yellow('It could be problematic for Plink to manage monorepo dependency (through environmet variable "NODE_PATH" in runtime).\n' +
-      '(Alternatively, you may consider install whatever "global" dependency with `npm i -g` instead of having directory like ' +
-      chalk.red(nodeModule) + ')' ) );
+  // const nodeModule = dirs.find(dir => fs.existsSync(dir));
+  // if (nodeModule) {
+  //   // eslint-disable-next-line no-console
+  //   console.log(`Please install in another directory, or remove ${chalk.red(nodeModule)}.\n` +
+  //     chalk.yellow('It could be problematic for Plink to manage monorepo dependency (through environmet variable "NODE_PATH" in runtime).\n' +
+  //     '(Alternatively, you may consider install whatever "global" dependency with `npm i -g` instead of having directory like ' +
+  //     chalk.red(nodeModule) + ')' ) );
 
-    throw new Error(chalk.red('Found "node_modules" in upper level directories, ' +
-      'Installation is cancelled, sorry for inconvienience.'));
-  }
+  //   throw new Error(chalk.red('Found "node_modules" in upper level directories, ' +
+  //     'Installation is cancelled, sorry for inconvienience.'));
+  // }
 }
 
 

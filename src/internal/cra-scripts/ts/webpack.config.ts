@@ -97,6 +97,7 @@ export = function(webpackEnv: 'production' | 'development') {
   if (config.resolveLoader == null)
     config.resolveLoader = {};
   config.resolveLoader.modules = resolveModules;
+  config.resolveLoader.symlinks = false;
 
   if (config.resolve!.plugins == null) {
     config.resolve!.plugins = [];

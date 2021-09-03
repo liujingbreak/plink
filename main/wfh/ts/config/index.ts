@@ -280,7 +280,7 @@ function loadPackageSettings(): [file: string, exportName: string][] {
   const jsFiles: [file: string, exportName: string][] = [];
   for (const [_typeFile, _typeExport, jsFile, defaultSettingExport, pkg] of getPackageSettingFiles(workspaceKey(plinkEnv.workDir))) {
     try {
-      const absFile = Path.resolve(pkg.realPath, jsFile);
+      const absFile = Path.resolve(pkg.path, jsFile);
       const exps = require(absFile);
       const defaultSettingFactory: PackageSettingInterf<any> = exps[defaultSettingExport];
 

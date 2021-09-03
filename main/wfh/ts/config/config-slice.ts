@@ -76,7 +76,7 @@ const initialState: BasePlinkSettings = {
 
 export const configSlice = stateFactory.newSlice({
   name: 'config',
-  initialState,
+  initialState: initialState as DrcpSettings,
   reducers: {
     saveCliOption(s, {payload}: PayloadAction<GlobalOptions>) {
       s.cliOptions = payload;
