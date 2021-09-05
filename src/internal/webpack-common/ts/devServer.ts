@@ -1,8 +1,7 @@
 import * as wp from 'webpack';
 import {Application} from 'express';
-import log4js from 'log4js';
-// import {getLanIPv4} from '@wfh/plink/wfh/dist/utils/network-util';
-const log = log4js.getLogger('config-webpack');
+import {log4File} from '@wfh/plink';
+const log = log4File(__filename);
 
 /**
  * Avoid process exit when encountering Error like ERR_HTTP_HEADERS_SENT

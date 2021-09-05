@@ -7,7 +7,7 @@ export interface ServerRunnerEvent {
     file: string;
     functionName: string;
 }
-export declare function isServerPackage(pkg: PackageState): any;
+export declare function isServerPackage(pkg: PackageState): boolean | undefined;
 export declare function readPriorityProperty(json: any): any;
 export declare function runServer(): {
     started: Promise<unknown>;

@@ -1,5 +1,6 @@
 import { BaseLexer, Token } from '../base-LLn-parser';
-import { PlinkEnv } from '../node-path';
+import '../node-path';
+import type { PlinkEnv } from '../node-path';
 import * as cfonts from 'cfonts';
 import Table from 'cli-table3';
 declare const isDrcpSymlink: boolean;

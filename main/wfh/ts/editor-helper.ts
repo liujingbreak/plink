@@ -3,8 +3,8 @@ import * as fs from 'fs-extra';
 import _ from 'lodash';
 import log4js from 'log4js';
 import Path from 'path';
+import chalk from 'chalk';
 import { setTsCompilerOptForNodePath, packages4WorkspaceKey, CompilerOptions } from './package-mgr/package-list-helper';
-import {castByActionType} from '../../redux-toolkit-observable/dist/helper';
 import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
   isCwdWorkspace } from './package-mgr';
 import { stateFactory, ofPayloadAction } from './store';
@@ -59,7 +59,6 @@ const slice = stateFactory.newSlice({
 export const dispatcher = stateFactory.bindActionCreators(slice);
 
 stateFactory.addEpic<EditorHelperState>((action$, state$) => {
-  const pkgActionByTypes = castByActionType(pkgSlice.actions, action$);
   return rx.merge(
     new rx.Observable(sub => {
       // if (getPkgState().linkedDrcp) {
@@ -72,16 +71,15 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
       // }
       sub.complete();
     }),
-    pkgActionByTypes.workspaceBatchChanged.pipe(
+    action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceChanged),
       op.concatMap(async ({payload: wsKeys}) => {
         const wsDir = isCwdWorkspace() ? workDir :
           getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
           : undefined;
-        void writePackageSettingType();
+        await writePackageSettingType();
         updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
-        for (const data of getState().tsconfigByRelPath.values()) {
-          void updateHookedTsconfig(data, wsDir);
-        }
+        await Promise.all(Array.from(getState().tsconfigByRelPath.values())
+          .map(data => updateHookedTsconfig(data, wsDir)));
       })
     ),
     action$.pipe(ofPayloadAction(slice.actions.hookTsconfig),
@@ -219,7 +217,7 @@ function writePackageSettingType() {
     body += '}\n';
     const workspaceDir = Path.resolve(getRootDir(), wsKey);
     const file = Path.join(distDir, wsKey + '.package-settings.d.ts');
-    log.info(`write file: ${file}`);
+    log.info(`write setting file: ${chalk.blue(file)}`);
     done[i++] = fs.promises.writeFile(file, header + body);
     const dir = Path.dirname(file);
     const srcRootDir = closestCommonParentDir([
@@ -302,7 +300,7 @@ async function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string)
       workspaceDir, enableTypeRoots: true, realPackagePaths: true
     });
   json.compilerOptions = newCo;
-  log.info(file, 'is updated');
+  log.info('update:', chalk.blue(file));
   return fs.promises.writeFile(file, JSON.stringify(json, null, '  '));
 }
 
@@ -324,13 +322,13 @@ function writeTsConfigFile(tsconfigFile: string, tsconfigOverrideSrc: any) {
     overrideTsConfig(tsconfigOverrideSrc, existingJson);
     const newJsonStr = JSON.stringify(existingJson, null, '  ');
     if (newJsonStr !== existing) {
-      log.info('Write ' + tsconfigFile);
+      log.info('Write tsconfig: ' + chalk.blue(tsconfigFile));
       fs.writeFileSync(tsconfigFile, JSON.stringify(existingJson, null, '  '));
     } else {
       log.debug(`${tsconfigFile} is not changed.`);
     }
   } else {
-    log.info('Create ' + tsconfigFile);
+    log.info('Create tsconfig: ' + chalk.blue(tsconfigFile));
     fs.writeFileSync(tsconfigFile, JSON.stringify(tsconfigOverrideSrc, null, '  '));
   }
 }

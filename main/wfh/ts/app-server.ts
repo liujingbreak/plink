@@ -5,8 +5,8 @@ import logConfig from './log-config';
 import {withGlobalOptions} from './cmd/override-commander';
 import {forkFile} from './fork-for-preserve-symlink';
 
-if (process.env.NODE_PRESERVE_SYMLINKS !== '1') {
-  forkFile('@wfh/plink/wfh/dist/app-server.js', process.cwd());
+if (process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0) {
+  forkFile('@wfh/plink/wfh/dist/app-server.js');
 } else {
   const {version} = require('../../package.json') as {version: string};
 

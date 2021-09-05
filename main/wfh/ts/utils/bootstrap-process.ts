@@ -90,13 +90,16 @@ export function initAsChildProcess(syncState = false, onShutdownSignal?: () => v
   const {saveState, stateFactory, startLogging, setSyncStateToMainProcess} = require('../store') as typeof store;
   process.on('SIGINT', function() {
     // eslint-disable-next-line no-console
-    log.info('pid ' + process.pid + ': bye');
     if (onShutdownSignal) {
       void Promise.resolve(onShutdownSignal)
       .then(() => saveState())
-      .then(() => {
+      .finally(() => {
+        log.info('bye');
         setImmediate(() => process.exit(0));
       });
+    } else {
+      log.info('bye');
+      process.exit(0);
     }
   });
 

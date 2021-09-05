@@ -5,29 +5,28 @@ import './node-path';
 import chalk from 'chalk';
 import {initProcess, initAsChildProcess} from './utils/bootstrap-process';
 import * as _cli from './cmd/cli';
-import {plinkEnv} from './utils/misc';
-import Path from 'path';
 import {forkFile} from './fork-for-preserve-symlink';
+import {isMainThread, threadId} from 'worker_threads';
 
 const startTime = new Date().getTime();
 
-process.on('exit', () => {
-  // eslint-disable-next-line no-console
-  console.log(chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
-});
-
 (async function run() {
-  let argv = process.argv.slice(2);
 
-  const foundCmdOptIdx = argv.findIndex(arg => arg === '--cwd');
-  const workdir = foundCmdOptIdx >= 0 ? Path.resolve(plinkEnv.rootDir, argv[foundCmdOptIdx + 1]) : null;
-  if (workdir) {
-    process.argv.splice(foundCmdOptIdx, 2);
-  }
-  if (process.env.NODE_PRESERVE_SYMLINKS !== '1' || workdir) {
-    forkFile('@wfh/plink/wfh/dist/cmd-bootstrap', workdir || process.cwd());
+  // const foundCmdOptIdx =  process.argv.findIndex(arg => arg === '--cwd');
+  // const workdir = foundCmdOptIdx >= 0 ? Path.resolve(plinkEnv.rootDir,  process.argv[foundCmdOptIdx + 1]) : null;
+  // if (workdir) {
+  //   process.argv.splice(foundCmdOptIdx, 2);
+  //   process.env.PLINK_WORK_DIR = workdir;
+  // }
+  if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
+    forkFile('@wfh/plink/wfh/dist/cmd-bootstrap');
     return;
   }
+  process.on('exit', () => {
+    // eslint-disable-next-line no-console
+    console.log((process.send || !isMainThread ? `[${process.pid}:${threadId}] ` : '') +
+      chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
+  });
 
   if (process.send) {
     // current process is forked

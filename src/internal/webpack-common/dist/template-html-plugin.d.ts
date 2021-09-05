@@ -4,7 +4,6 @@ export interface TemplateHtmlPluginOptions {
 }
 export default class TemplateHtmlPlugin {
     private htmlWebpackPlugin;
-    constructor();
     apply(compiler: Compiler): void;
 }
-export declare function transformHtml(this: void, html: string): Promise<string>;
+export declare function transformHtml(this: void, html: string): string;

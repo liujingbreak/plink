@@ -8,7 +8,7 @@ export default class Package implements NodePackageAttr {
   scope = '';
   /** If this property is not same as "realPath", then it is a symlink */
   path = '';
-  json: any;
+  json = {version: '', name: ''} as PackageInfo['json'];
   realPath = '';
 
   constructor(attrs: Partial<NodePackageAttr>) {

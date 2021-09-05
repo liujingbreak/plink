@@ -19,7 +19,7 @@ export default function change(buildPackage: string, config: Configuration, node
   if (foundPkg == null) {
     throw new Error(`Can not find package for name like ${buildPackage}`);
   }
-  const {realPath: pkDir, json: pkJson} = foundPkg;
+  const {realPath: pkDir} = foundPkg;
 
   if (Array.isArray(config.entry))
     config.entry = config.entry.filter(item => !/[\\/]react-dev-utils[\\/]webpackHotDevClient/.test(item));
@@ -102,7 +102,7 @@ export default function change(buildPackage: string, config: Configuration, node
 
       apply(compiler: Compiler) {
         compiler.hooks.done.tap('cra-scripts', stats => {
-          this.forkDone = this.forkDone.then(() => forkTsc(pkJson));
+          this.forkDone = this.forkDone.then(() => forkTsc());
           const externalDeps: Set<string> = new Set<string>();
           const workspaceNodeDir = plinkEnv.workDir + Path.sep + 'node_modules' + Path.sep;
           for (const req of externalRequestSet.values()) {
@@ -169,8 +169,9 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
   return;
 }
 
-async function forkTsc(targetPackageJson: {name: string; plink?: any; dr?: any}) {
-  const worker = new Worker(require.resolve('./tsd-generate-thread'));
+async function forkTsc() {
+  const worker = new Worker(require.resolve('./tsd-generate-thread'), {execArgv: ['--preserve-symlinks-main', '--preserve-symlinks']});
+  log.warn('forkTsc, threadId:', worker.threadId);
   await new Promise<void>((resolve, rej) => {
     worker.on('exit', code => {
       if (code !== 0) {
@@ -178,6 +179,8 @@ async function forkTsc(targetPackageJson: {name: string; plink?: any; dr?: any})
       } else {
         resolve();
       }
+      worker.off('message', rej);
+      worker.off('error', rej);
     });
     worker.on('message', rej);
     worker.on('error', rej);

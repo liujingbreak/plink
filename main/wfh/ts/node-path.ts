@@ -3,21 +3,26 @@ import * as fs from 'fs';
 import chalk from 'chalk';
 import log4js from 'log4js';
 import {hookCommonJsRequire} from './loaderHooks';
+import {calcNodePaths} from './node-path-calc';
 import _ from 'lodash';
-import {isMainThread} from 'worker_threads';
+import {isMainThread, threadId} from 'worker_threads';
 
-let logPrefix = '> ';
+let logPrefix = '';
 if (process.send)
-  logPrefix = `[pid: ${process.pid}]` + logPrefix;
-else if (!isMainThread)
-  logPrefix = '[thread]' + logPrefix;
+  logPrefix = `[pid: ${process.pid}]`;
+if (!isMainThread)
+  logPrefix += `[p${process.pid}-t${threadId}]`;
 
 let envSetDone = false;
 
 if (!envSetDone) {
   envSetDone = true;
   require('source-map-support/register');
-
+  hookCommonJsRequire((file, target, req, resolve) => {
+    if (target === 'log4js') {
+      return log4js;
+    }
+  });
   /** environment varaible __plink is used for share basic Plink information between:
    * - Node.js "-r" preload module and normal modules, especially setting NODE_PATH in "-r" module
    * - Main process and forked process or thread worker
@@ -104,34 +109,8 @@ function setupNodePath(currDir: string, rootDir: string, symlinksDir: string | n
   const pathArray = calcNodePaths(rootDir, symlinksDir, currDir, plinkDir);
   // process.env.NODE_PATH = pathArray.join(Path.delimiter);
   // process.env.NODE_PRESERVE_SYMLINKS = '1';
-  // eslint-disable-next-line no-console
-  // console.log(chalk.gray(logPrefix + 'NODE_PATH', process.env.NODE_PATH));
-  require('module').Module._initPaths();
+  // require('module').Module._initPaths();
   return pathArray;
-}
-
-export function calcNodePaths(rootDir: string, symlinksDir: string | null, cwd: string, plinkDir: string) {
-  const nodePaths: string[] = [Path.resolve(rootDir, 'node_modules')];
-  if (symlinksDir) {
-    nodePaths.unshift(symlinksDir);
-  }
-  if (rootDir !== cwd) {
-    nodePaths.unshift(Path.resolve(cwd, 'node_modules'));
-  }
-
-  /**
-   * Somehow when I install @wfh/plink in an new directory, npm does not dedupe dependencies from 
-   * @wfh/plink/node_modules directory up to current node_modules directory, results in MODULE_NOT_FOUND
-   * from @wfh/plink/redux-toolkit-abservable for rxjs
-   */
-  nodePaths.push(plinkDir + Path.sep + 'node_modules');
-  if (process.env.NODE_PATH) {
-    for (const path of process.env.NODE_PATH.split(Path.delimiter)) {
-      nodePaths.push(path);
-    }
-  }
-
-  return _.uniq(nodePaths);
 }
 
 /**
@@ -182,8 +161,4 @@ function checkUpLevelNodeModules(rootDir: string) {
 }
 
 
-hookCommonJsRequire((file, target, req, resolve) => {
-  if (target === 'log4js') {
-    return log4js;
-  }
-});
+

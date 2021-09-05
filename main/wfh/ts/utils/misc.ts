@@ -4,12 +4,14 @@ import get from 'lodash/get';
 import _ from 'lodash';
 import * as Path from 'path';
 // import * as fs from 'fs';
-import {PlinkEnv} from '../node-path';
+import '../node-path';
+import type {PlinkEnv} from '../node-path';
 import * as cfonts from 'cfonts';
 import Table from 'cli-table3';
 
 const {isDrcpSymlink, workDir, rootDir, symlinkDirName, distDir, nodePath, plinkDir} =
   JSON.parse(process.env.__plink!) as PlinkEnv;
+
 export const plinkEnv: PlinkEnv = {isDrcpSymlink, workDir, rootDir, symlinkDirName, distDir, nodePath, plinkDir};
 export {isDrcpSymlink};
 

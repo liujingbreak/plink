@@ -1,3 +1,4 @@
+import { PackageSettingInterf } from '@wfh/plink';
 import { Options } from 'http-proxy-middleware';
 /**
  * Package setting type
@@ -64,7 +65,7 @@ export interface AssetsProcesserSetting {
 /**
  * Plink run this funtion to get package level setting value
  */
-export declare function defaultSetting(): AssetsProcesserSetting;
+export declare const defaultSetting: PackageSettingInterf<AssetsProcesserSetting>;
 /**
  * The return setting value is merged with files specified by command line options --prop and -c
  * @return setting of current package

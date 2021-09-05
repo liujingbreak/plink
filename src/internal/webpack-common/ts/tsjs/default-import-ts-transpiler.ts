@@ -9,14 +9,13 @@ import {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
  * This module helps to replace `lodash` import statement with `require` statement.
  */
 import * as _ from 'lodash';
-import api from '__api';
-import log4js from 'log4js';
-const log = log4js.getLogger(api.packageName + '.transpiler');
+import {log4File} from '@wfh/plink';
+const log = log4File(__filename);
 
 export interface ImportClauseTranspileOptions {
   // defaultImport2require?: boolean;
   // file: string;
-  modules: Array<RegExp|string>;
+  modules: Array<RegExp | string>;
 }
 
 export default class ImportClauseTranspile {

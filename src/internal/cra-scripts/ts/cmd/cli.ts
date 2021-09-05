@@ -9,9 +9,8 @@ import {fork} from 'child_process';
 // import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
 // import {initTsconfig} from './cli-init';
 import * as _preload from '../preload';
-import {config} from '@wfh/plink';
-import plink from '__plink';
-// import {ObjectAst} from '@wfh/plink/wfh/di st/utils/json-sync-parser';
+import {config, log4File} from '@wfh/plink';
+const log = log4File(__filename);
 
 const cli: CliExtension = (program) => {
   const buildCmd = program.command('cra-build <app|lib> <package-name>')
@@ -30,7 +29,7 @@ const cli: CliExtension = (program) => {
     .action((type, pkgName) => {
       initEverything(buildCmd, type, pkgName);
       if (buildCmd.opts().sourceMap) {
-        plink.logger.info('source map is enabled');
+        log.info('source map is enabled');
         process.env.GENERATE_SOURCEMAP = 'true';
       }
       require('react-scripts/scripts/build');
@@ -80,7 +79,7 @@ const cli: CliExtension = (program) => {
   })
   .action(async (outputPath: string) => {
     const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
-    const smeBin: string = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'];
+    const smeBin = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'] as string;
 
     await new Promise<any>((resolve, rej) => {
       const cp = fork(Path.resolve(smePkgDir, smeBin), [
@@ -94,6 +93,10 @@ const cli: CliExtension = (program) => {
       cp.on('exit', (sign, code) => {resolve(code); });
     });
   });
+
+  // program.command('cra-debug').action(async () => {
+  //   (await import('./cli-debug')).default();
+  // });
   // smeCmd.usage(smeCmd.usage() + '\n  app-base-path: ')
 };
 
@@ -115,7 +118,7 @@ function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', pkgNam
 
   if (!['app', 'lib'].includes(type)) {
 
-    plink.logger.error('type argument must be one of \'app\', \'lib\'');
+    log.error('type argument must be one of \'app\', \'lib\'');
     return;
   }
   const preload = require('../preload') as typeof _preload;

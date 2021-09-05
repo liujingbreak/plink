@@ -19,8 +19,11 @@ export interface PackageInfo {
     realPath: string;
     isInstalled: boolean;
 }
-export interface PlinkJsonType {
+export declare type PlinkJsonType = {
     typeRoot?: string;
+    type?: 'server' | string[] | string;
+    serverPriority?: string | number;
+    serverEntry?: string;
     setting?: {
         /** In form of "<path>#<export-name>" */
         type: string;
@@ -28,7 +31,7 @@ export interface PlinkJsonType {
         value: string;
     };
     [p: string]: any;
-}
+};
 export interface PackagesState {
     npmInstallOpt: NpmOptions;
     inited: boolean;
@@ -115,7 +118,9 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     addSrcDirs(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteSrcDirs(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     /** payload: workspace keys, happens as debounced workspace change event */
-    workspaceBatchChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    _workspaceBatchChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    /** workspaceChanged is safe for external module to watch, it serialize actions like "_installWorkspace" and "_workspaceBatchChanged" */
+    workspaceChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { file, lines } }: {
         payload: {
             file: string;
@@ -158,7 +163,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
-} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
+} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
     initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<NpmOptions>): void;
@@ -186,7 +191,9 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     addSrcDirs(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteSrcDirs(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     /** payload: workspace keys, happens as debounced workspace change event */
-    workspaceBatchChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    _workspaceBatchChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    /** workspaceChanged is safe for external module to watch, it serialize actions like "_installWorkspace" and "_workspaceBatchChanged" */
+    workspaceChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { file, lines } }: {
         payload: {
             file: string;
@@ -229,7 +236,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
-} & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
+} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
     file: string;
     lines: string[];

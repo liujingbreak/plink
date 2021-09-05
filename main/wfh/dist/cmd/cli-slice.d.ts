@@ -19,7 +19,7 @@ export declare const cliSlice: import("@reduxjs/toolkit").Slice<CliState, import
         pkg: string;
         metas: OurCommandMetadata[];
     }): void;
-}> & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>, "cli">;
+}> & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>, "cli">;
 export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<import("../../../redux-toolkit-observable/dist/helper").RegularReducers<CliState, {
     plinkUpgraded(d: CliState, newVersion: string): void;
     updateLocale(d: CliState, [lang, country]: [string, string]): void;
@@ -27,7 +27,7 @@ export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducer
         pkg: string;
         metas: OurCommandMetadata[];
     }): void;
-}> & import("../../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>>;
+}> & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>>;
 export declare function getState(): CliState;
 export declare function getStore(): import("rxjs").Observable<CliState>;
 export declare function availabeCliExtension(): void;

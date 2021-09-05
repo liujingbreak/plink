@@ -39,7 +39,7 @@ export class DrPackageInjector extends RJ {
       let i = 0;
       if (names.length !== dirs.length)
         throw new Error('fromComponent(name, dir)\'s be called with 2 Array of same length');
-      for (const nm of names as string[]) {
+      for (const nm of names ) {
         this.addPackage(nm, dirs[i++]);
       }
     }
@@ -115,7 +115,7 @@ export interface InjectorConfigHandler {
 export function doInjectorConfigSync(factory: DrPackageInjector, isNode = false) {
   const config: typeof _config = require('./config').default;
   config.configHandlerMgrChanged(handler => {
-    handler.runEachSync<InjectorConfigHandler>((file: string, lastResult: any, handler) => {
+    handler.runEachSync<InjectorConfigHandler>((_file: string, _lastResult: any, handler) => {
       if (isNode && handler.setupNodeInjector)
         handler.setupNodeInjector(factory, config());
       else if (!isNode && handler.setupWebInjector)
@@ -132,7 +132,7 @@ function emptryChainableFunction() {
 export function doInjectorConfig(factory: DrPackageInjector, isNode = false) {
   const config: typeof _config = require('./config').default;
   config.configHandlerMgrChanged(handler => {
-    handler.runEach<InjectorConfigHandler>((file: string, lastResult: any, handler) => {
+    void handler.runEach<InjectorConfigHandler>((_file: string, _lastResult: any, handler) => {
       if (isNode && handler.setupNodeInjector)
         handler.setupNodeInjector(factory, config());
       else if (!isNode && handler.setupWebInjector)

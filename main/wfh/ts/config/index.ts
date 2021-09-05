@@ -31,7 +31,7 @@ export const configHandlerMgr$ = new rx.BehaviorSubject<ConfigHandlerMgr | undef
  * @return {object} setting
  */
 const config = (): DrcpSettings => {
-  return getState() as DrcpSettings;
+  return getState();
 };
 
 config.initSync = (argv: CliOptions) => {
@@ -41,14 +41,14 @@ config.initSync = (argv: CliOptions) => {
     process.env.PLINK_CLI_OPTS = JSON.stringify(argv);
   }
   load(argv);
-  return getState() as DrcpSettings;
+  return getState();
 };
 
 
 config.reload = function reload() {
   const argv = getState().cliOptions!;
   load(argv);
-  return getState() as DrcpSettings;
+  return getState();
 };
 
 config.set = function(path: string, value: any) {
@@ -113,7 +113,7 @@ function load(cliOption: CliOptions) {
   dispatcher._change(draft => {
     handlers.runEachSync<ConfigHandler>((_file, obj, handler) => {
       if (handler.onConfig) {
-        return handler.onConfig(draft as DrcpSettings, draft.cliOptions!);
+        return handler.onConfig(draft , draft.cliOptions!);
       }
     });
   });
@@ -278,9 +278,10 @@ function loadPackageSettings(): [file: string, exportName: string][] {
     return [];
   }
   const jsFiles: [file: string, exportName: string][] = [];
+
   for (const [_typeFile, _typeExport, jsFile, defaultSettingExport, pkg] of getPackageSettingFiles(workspaceKey(plinkEnv.workDir))) {
     try {
-      const absFile = Path.resolve(pkg.path, jsFile);
+      const absFile = Path.resolve(plinkEnv.workDir, pkg.path, jsFile);
       const exps = require(absFile);
       const defaultSettingFactory: PackageSettingInterf<any> = exps[defaultSettingExport];
 

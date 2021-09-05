@@ -24,7 +24,7 @@ class PromisedTask<T> {
 
   runByWorker(worker: Worker) {
 
-    const onMessage = (msg: {type: 'error' | 'wait', data: T}) => {
+    const onMessage = (msg: {type: 'error' | 'wait'; data: T}) => {
       if (msg.type === 'wait') {
         unsubscribeWorker();
         this.resolve(msg.data);
@@ -81,7 +81,7 @@ class PromisedProcessTask<T> {
   }
   runByProcess(worker: ChildProcess, verbose: boolean) {
 
-    const onMessage = (msg: {type: 'error' | 'wait', data: T}) => {
+    const onMessage = (msg: {type: 'error' | 'wait'; data: T}) => {
       if (msg.type === 'wait') {
         this.resolve(msg.data);
         unsubscribeWorker();
@@ -122,9 +122,9 @@ class PromisedProcessTask<T> {
 }
 
 export class Pool {
-  private runningWorkers = new Set<Worker|ChildProcess>();
+  private runningWorkers = new Set<Worker | ChildProcess>();
   /** Last in first run, always run the latest created worker, give chance for old ones to be removed after timeout */
-  private idleWorkers: (Worker|ChildProcess)[] = [];
+  private idleWorkers: (Worker | ChildProcess)[] = [];
 
   private idleTimers = new WeakMap<Worker | ChildProcess, ReturnType<typeof setTimeout>>();
 

@@ -6,7 +6,7 @@ import {StateFactory, ofPayloadAction} from '../../redux-toolkit-observable/dist
 import log4js from 'log4js';
 import serialize from 'serialize-javascript';
 import {enableMapSet} from 'immer';
-import {isMainThread} from 'worker_threads';
+import {isMainThread, threadId} from 'worker_threads';
 import {PlinkEnv} from './node-path';
 import chalk from 'chalk';
 export {createReducers} from '../../redux-toolkit-observable/dist/helper';
@@ -41,10 +41,8 @@ export function isStateSyncMsg(msg: unknown): msg is ProcessStateSyncMsg {
 
 function configDefaultLog() {
   let logPatternPrefix = '';
-  if (process.send)
-    logPatternPrefix = 'pid:%z ';
-  else if (!isMainThread)
-    logPatternPrefix = '[thread]';
+  if (process.send || !isMainThread)
+    logPatternPrefix = `[${process.pid}:${threadId}] `;
   log4js.configure({
     appenders: {
       out: {

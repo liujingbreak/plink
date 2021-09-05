@@ -2,6 +2,7 @@
  * To develop Plink, we need to symlink Plink repo to a workspace directory
  */
 import * as fs from 'fs';
+import * as fsExt from 'fs-extra';
 import Path from 'path';
 import os from 'os';
 export const isWin32 = os.platform().indexOf('win32') >= 0;
@@ -22,8 +23,8 @@ export function linkDrcp() {
       fs.mkdirSync('node_modules/@wfh');
 
     if (target != null) {
-      fs.unlinkSync(Path.resolve('node_modules/@wfh/plink'));
-       // fs.unlinkSync(Path.resolve('node_modules/@wfh/plink'));
+      fsExt.removeSync(Path.resolve('node_modules/@wfh/plink'));
+      // fs.unlinkSync(Path.resolve('node_modules/@wfh/plink'));
     }
     fs.symlinkSync(Path.relative(Path.resolve('node_modules', '@wfh'), sourceDir),
        Path.resolve('node_modules', '@wfh', 'plink'), isWin32 ? 'junction' : 'dir');

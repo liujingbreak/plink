@@ -14,7 +14,6 @@ import _HtmlWebpackPlugin from 'html-webpack-plugin';
 import {config} from '@wfh/plink';
 import api from '__plink';
 // const { RawSource } = require('webpack-sources');
-// const log = require('log4js').getLogger(api.packageName + '.template-html-plugin');
 
 export interface TemplateHtmlPluginOptions {
   htmlFile: string;
@@ -22,9 +21,6 @@ export interface TemplateHtmlPluginOptions {
 
 export default class TemplateHtmlPlugin {
   private htmlWebpackPlugin: typeof _HtmlWebpackPlugin = _HtmlWebpackPlugin;
-
-  constructor() {
-  }
 
   apply(compiler: Compiler) {
     compiler.hooks.compilation.tap('PlinkTemplateHtmlPlugin', compilation => {
@@ -41,7 +37,7 @@ export default class TemplateHtmlPlugin {
   }
 }
 
-export async function transformHtml(this: void, html: string) {
+export function transformHtml(this: void, html: string) {
   const compile = _.template(html);
 
   html = compile({

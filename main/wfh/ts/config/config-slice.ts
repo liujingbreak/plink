@@ -6,11 +6,11 @@ import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
 import {PayloadAction} from '@reduxjs/toolkit';
 import log4js from 'log4js';
-import {isMainThread} from 'worker_threads';
+import {isMainThread, threadId} from 'worker_threads';
 import {getLanIPv4} from '../utils/network-util';
 import {PackagesConfig} from 'package-settings';
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-export interface BasePlinkSettings {
+export type BasePlinkSettings = {
   /** Node.js server port number */
   port: number | string;
   publicPath: string;
@@ -52,7 +52,7 @@ export interface BasePlinkSettings {
   browserSideConfigProp: string[];
   /** @deprecated */
   enableSourceMaps: boolean;
-}
+};
 
 export type DrcpSettings = BasePlinkSettings & PackagesConfig;
 
@@ -71,7 +71,8 @@ const initialState: BasePlinkSettings = {
   packageContextPathMapping: {},
   browserSideConfigProp: [],
   enableSourceMaps: true,
-  outputPathMap: {}
+  outputPathMap: {},
+  __filename
 };
 
 export const configSlice = stateFactory.newSlice({
@@ -100,10 +101,8 @@ stateFactory.addEpic<{config: BasePlinkSettings}>((action$, state$) => {
       op.map(() => {
         // initial log configure is in store.ts
         let logPatternPrefix = '';
-        if (process.send)
-          logPatternPrefix = 'pid:%z ';
-        else if (!isMainThread)
-          logPatternPrefix = '[thread]';
+        if (process.send || !isMainThread)
+          logPatternPrefix += `[${process.pid}:${threadId}] `;
         log4js.configure({
           appenders: {
             out: {

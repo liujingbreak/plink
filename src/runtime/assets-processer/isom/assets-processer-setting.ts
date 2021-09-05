@@ -1,4 +1,4 @@
-import {config} from '@wfh/plink';
+import {config, PackageSettingInterf} from '@wfh/plink';
 import {Options} from 'http-proxy-middleware';
 /**
  * Package setting type
@@ -60,7 +60,7 @@ export interface AssetsProcesserSetting {
 /**
  * Plink run this funtion to get package level setting value
  */
-export function defaultSetting(): AssetsProcesserSetting {
+export const defaultSetting: PackageSettingInterf<AssetsProcesserSetting> = (cliOptions) => {
   const defaultValue: AssetsProcesserSetting = {
     fetchUrl: null,
     fetchRetry: 5,
@@ -89,7 +89,7 @@ export function defaultSetting(): AssetsProcesserSetting {
     requireToken: false
   };
 
-  if (config().devMode || config().cliOptions!.env === 'local') {
+  if (config().devMode || cliOptions.env === 'local') {
     const devValue: Partial<AssetsProcesserSetting> = {
       fetchRetry: 0,
       fetchLogErrPerTimes: 1,
@@ -101,7 +101,7 @@ export function defaultSetting(): AssetsProcesserSetting {
     return Object.assign(defaultValue, devValue);
   }
   return defaultValue;
-}
+};
 
 /**
  * The return setting value is merged with files specified by command line options --prop and -c

@@ -1,7 +1,7 @@
 import {promisifySpawn as spawn} from '../process-utils';
 
 export default async function ensureNodeVersion(): Promise<void> {
-  const output = await spawn('node', '-v', {cwd: process.cwd(), silent: true});
+  const output = await spawn('node', '-v', {silent: true});
   const match = /^v?([^]+)$/.exec(output.trim());
   if (match) {
     if (parseInt(match[1].split('.')[0], 10) < 12) {

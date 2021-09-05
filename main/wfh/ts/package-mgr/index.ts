@@ -8,14 +8,14 @@ import fsext from 'fs-extra';
 import fs from 'fs';
 import _ from 'lodash';
 import Path from 'path';
-import { concat, from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
+import {from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
 import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
-  take, concatMap, ignoreElements, scan, catchError, tap } from 'rxjs/operators';
+  take, concatMap, ignoreElements, scan, catchError, tap, finalize } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 import { exe } from '../process-utils';
 import { setProjectList, setLinkPatterns} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
-import {isActionOfCreator} from '../../../redux-toolkit-observable/dist/helper';
+import {isActionOfCreator, castByActionType} from '../../../redux-toolkit-observable/dist/helper';
 // import { getRootDir } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync } from '../utils/symlinks';
 import {symbolicLinkPackages} from '../rwPackageJson';
@@ -39,8 +39,11 @@ export interface PackageInfo {
   isInstalled: boolean;
 }
 
-export interface PlinkJsonType {
+export type PlinkJsonType = {
   typeRoot?: string;
+  type?: 'server' | string[] | string;
+  serverPriority?: string | number;
+  serverEntry?: string;
   setting?: {
     /** In form of "<path>#<export-name>" */
     type: string;
@@ -48,7 +51,7 @@ export interface PlinkJsonType {
     value: string;
   };
   [p: string]: any;
-}
+};
 
 export interface PackagesState {
   npmInstallOpt: NpmOptions;
@@ -209,8 +212,10 @@ export const slice = stateFactory.newSlice({
       }
     },
     /** payload: workspace keys, happens as debounced workspace change event */
-    workspaceBatchChanged(d, action: PayloadAction<string[]>) {},
-    updateGitIgnores(d, {payload: {file, lines}}: PayloadAction<{file: string, lines: string[]}>) {
+    _workspaceBatchChanged(d, action: PayloadAction<string[]>) {},
+    /** workspaceChanged is safe for external module to watch, it serialize actions like "_installWorkspace" and "_workspaceBatchChanged" */
+    workspaceChanged(d, action: PayloadAction<string[]>) {},
+    updateGitIgnores(d, {payload: {file, lines}}: PayloadAction<{file: string; lines: string[]}>) {
       let rel = file, abs = file;
       if (Path.isAbsolute(file)) {
         rel = Path.relative(rootDir, file).replace(/\\/g, '/');
@@ -382,13 +387,15 @@ stateFactory.addEpic((action$, state$) => {
     // being broken for missing it in previously stored state file
     actionDispatcher._change(s => s.srcDir2Packages = new Map());
   }
+  const actionByTypes = castByActionType(slice.actions, action$);
   return merge(
     // To override stored state. 
     // Do not put following logic in initialState! It will be overridden by previously saved state
 
-    of(1).pipe(tap(() => process.nextTick(() => actionDispatcher._updatePlinkPackageInfo())),
-      ignoreElements()
-    ),
+    defer(() => {
+      process.nextTick(() => actionDispatcher._updatePlinkPackageInfo());
+      return EMPTY;
+    }),
     getStore().pipe(map(s => s.project2Packages),
       distinctUntilChanged(),
       map(pks => {
@@ -420,7 +427,7 @@ stateFactory.addEpic((action$, state$) => {
       })
     ),
     //  updateWorkspace
-    action$.pipe(ofPayloadAction(slice.actions.updateWorkspace),
+    actionByTypes.updateWorkspace.pipe(
       concatMap(({payload: {dir, isForce, useNpmCi, packageJsonFiles}}) => {
         dir = Path.resolve(dir);
         actionDispatcher._setCurrentWorkspace(dir);
@@ -455,7 +462,7 @@ stateFactory.addEpic((action$, state$) => {
         );
       })
     ),
-    action$.pipe(ofPayloadAction(slice.actions.scanAndSyncPackages),
+    actionByTypes.scanAndSyncPackages.pipe(
       concatMap(({payload}) => {
         return merge(
           scanAndSyncPackages(payload.packageJsonFiles),
@@ -479,7 +486,7 @@ stateFactory.addEpic((action$, state$) => {
     ),
 
     // initRootDir
-    action$.pipe(ofPayloadAction(slice.actions.initRootDir),
+    actionByTypes.initRootDir.pipe(
       map(({payload}) => {
         checkAllWorkspaces();
         if (getState().workspaces.has(workspaceKey(plinkEnv.workDir))) {
@@ -499,7 +506,7 @@ stateFactory.addEpic((action$, state$) => {
       })
     ),
 
-    action$.pipe(ofPayloadAction(slice.actions._hoistWorkspaceDeps),
+    actionByTypes._hoistWorkspaceDeps.pipe(
       map(({payload}) => {
         const wsKey = workspaceKey(payload.dir);
         // actionDispatcher.onWorkspacePackageUpdated(wsKey);
@@ -508,7 +515,7 @@ stateFactory.addEpic((action$, state$) => {
       })
     ),
 
-    action$.pipe(ofPayloadAction(slice.actions.updateDir),
+    actionByTypes.updateDir.pipe(
       tap(() => actionDispatcher._updatePlinkPackageInfo()),
       concatMap(() => scanAndSyncPackages()),
       tap(() => {
@@ -573,9 +580,9 @@ stateFactory.addEpic((action$, state$) => {
         })
       );
     }),
-    // workspaceBatchChanged will trigger creating symlinks, but meanwhile _installWorkspace will delete symlinks
+    // _workspaceBatchChanged will trigger creating symlinks, but meanwhile _installWorkspace will delete symlinks
     // I don't want to seem them running simultaneously.
-    action$.pipe(ofPayloadAction(slice.actions._installWorkspace, slice.actions.workspaceBatchChanged),
+    merge(actionByTypes._workspaceBatchChanged, actionByTypes._installWorkspace).pipe(
       concatMap(action => {
         if (isActionOfCreator(action, slice.actions._installWorkspace)) {
           const wsKey = action.payload.workspaceKey;
@@ -589,22 +596,26 @@ stateFactory.addEpic((action$, state$) => {
             }),
             map(() => {
               updateInstalledPackageForWorkspace(wsKey);
-            })
+              log.warn('installed');
+            }),
+            ignoreElements()
           );
-        } else if (isActionOfCreator(action, slice.actions.workspaceBatchChanged)) {
+        } else if (isActionOfCreator(action, slice.actions._workspaceBatchChanged)) {
           const wsKeys = action.payload;
-          return merge(...wsKeys.map(_createSymlinksForWorkspace));
+          return merge(...wsKeys.map(_createSymlinksForWorkspace)).pipe(
+            finalize(() => actionDispatcher.workspaceChanged(wsKeys))
+          );
         } else {
           return EMPTY;
         }
       })
     ),
 
-    action$.pipe(ofPayloadAction(slice.actions.workspaceStateUpdated),
+    actionByTypes.workspaceStateUpdated.pipe(
       map(action => updatedWorkspaceSet.add(action.payload)),
       debounceTime(800),
       tap(() => {
-        actionDispatcher.workspaceBatchChanged(Array.from(updatedWorkspaceSet.values()));
+        actionDispatcher._workspaceBatchChanged(Array.from(updatedWorkspaceSet.values()));
         updatedWorkspaceSet.clear();
         // return from(writeConfigFiles());
       }),
@@ -612,7 +623,7 @@ stateFactory.addEpic((action$, state$) => {
         actionDispatcher.packagesUpdated();
       })
     ),
-    action$.pipe(ofPayloadAction(slice.actions.updateGitIgnores),
+    actionByTypes.updateGitIgnores.pipe(
       tap(action => {
         let rel = action.payload.file;
         if (Path.isAbsolute(rel)) {
@@ -716,7 +727,7 @@ export function isCwdWorkspace() {
  */
 export function switchCurrentWorkspace(dir: string) {
   actionDispatcher._setCurrentWorkspace(dir);
-  actionDispatcher.workspaceBatchChanged([workspaceKey(dir)]);
+  actionDispatcher._workspaceBatchChanged([workspaceKey(dir)]);
 }
 
 function updateInstalledPackageForWorkspace(wsKey: string) {
@@ -787,7 +798,7 @@ export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJso
   } catch (e) {
     console.error(e);
   }
-  const symlinksInModuleDir = [] as {content: string, link: string}[];
+  const symlinksInModuleDir = [] as {content: string; link: string}[];
 
   const target = Path.resolve(dir, 'node_modules');
   if (!fs.existsSync(target)) {
@@ -987,9 +998,9 @@ function _createSymlinksForWorkspace(wsKey: string) {
   .pipe(
     map(name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!)
   );
-  if (workspaceDir(wsKey) !== plinkEnv.rootDir) {
-    symlinksToCreate = concat(symlinksToCreate, of(getState().linkedDrcp! || getState().installedDrcp));
-  }
+  // if (workspaceDir(wsKey) !== plinkEnv.rootDir) {
+  //   symlinksToCreate = concat(symlinksToCreate, of(getState().linkedDrcp! || getState().installedDrcp));
+  // }
 
   return merge(
     symlinksToCreate.pipe(
@@ -1001,10 +1012,11 @@ function _createSymlinksForWorkspace(wsKey: string) {
 
 async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) {
   const dones: Promise<void>[] = [];
-  const drcpName = getState().linkedDrcp ? getState().linkedDrcp!.name : null;
+  const plinkPkg = getState().linkedDrcp || getState().installedDrcp;
+  const drcpName = plinkPkg?.name;
   const done1 = listModuleSymlinks(checkDir, link => {
     const pkgName = Path.relative(checkDir, link).replace(/\\/g, '/');
-    if ( drcpName !== pkgName && !excludeSet.has(pkgName)) {
+    if ( (drcpName == null || drcpName !== pkgName) && !excludeSet.has(pkgName)) {
       // eslint-disable-next-line no-console
       log.info(`Delete extraneous symlink: ${link}`);
       dones.push(fs.promises.unlink(link));

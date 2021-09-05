@@ -13,8 +13,8 @@ import log4js from 'log4js';
 import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} from './package-mgr';
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
 import chalk from 'chalk';
+
 import {getWorkDir} from './utils/misc';
-// import {findPackagesByNames} from './cmd/utils';
 
 const log = log4js.getLogger('plink.package-runner');
 
@@ -25,7 +25,7 @@ export interface ServerRunnerEvent {
 
 export function isServerPackage(pkg: PackageState) {
   const plinkProp = pkg.json.plink || pkg.json.dr;
-  return plinkProp && (plinkProp.type === 'server' || (plinkProp.type && (plinkProp.type  as string[]).includes('server')));
+  return plinkProp && (plinkProp.type === 'server' || (Array.isArray(plinkProp.type) && plinkProp.type.includes('server')));
 }
 
 export function readPriorityProperty(json: any) {
@@ -39,10 +39,24 @@ export function runServer(): {started: Promise<unknown>; shutdown(): Promise<voi
     throw new Error('Current directory is not a workspace directory');
   }
   const pkgs = Array.from(packages4WorkspaceKey(wsKey, true))
-  .filter(isServerPackage)
-  .map(item => item.name);
+  .filter(isServerPackage);
 
-  const started = runPackages('#activate', pkgs)
+  const pkgNames = pkgs.map(item => item.name);
+  const pkgEntryMap = new Map<string, [file: string | undefined, func: string]>(pkgs.map(item => {
+    const info = item.json.plink || item.json.dr!;
+    let mainFile = info.serverEntry || item.json.main as string | undefined;
+    let funcName = 'activate';
+    if (mainFile) {
+      const tmp = mainFile.split('#');
+      mainFile = tmp[0];
+      if (tmp[1])
+        funcName = tmp[1];
+    }
+
+    return [item.name, [mainFile, funcName]];
+  }));
+
+  const started = _runPackages(pkgNames, pkgName => pkgEntryMap.get(pkgName))
   .then(reverseOrderPkgExports => {
     return new Promise<typeof reverseOrderPkgExports>(resolve => setTimeout(() => {
       resolve(reverseOrderPkgExports);
@@ -86,7 +100,7 @@ export async function runSinglePackage({target, args}: {target: string; args: st
   if (pkgNameMatch && pkgNameMatch[1] && _.has(pkgInfo.moduleMap, pkgNameMatch[1])) {
     moduleName = file;
   }
-  const _exports = require(moduleName);
+  const _exports = require(Path.resolve(getWorkDir(), 'node_modules', moduleName));
   if (!_.has(_exports, func)) {
     log.error(`There is no export function: ${func}, existing export members are:\n` +
     `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
@@ -95,20 +109,30 @@ export async function runSinglePackage({target, args}: {target: string; args: st
   await Promise.resolve(_exports[func].apply(global, args || []));
 }
 
-export async function runPackages(target: string, includePackages: Iterable<string>): Promise<{name: string; exp: any}[]> {
+export function runPackages(target: string, includePackages: Iterable<string>): Promise<{name: string; exp: any}[]> {
+
+  return _runPackages(includePackages, () => target.split('#') as [string, string]);
+}
+
+async function _runPackages(includePackages: Iterable<string>,
+  targetOfPkg: (pkg: string) => [fileToRun: string | undefined, funcToRun: string] | undefined | null
+): Promise<{name: string; exp: any}[]> {
   const includeNameSet = new Set<string>(includePackages);
   const pkgExportsInReverOrder: {name: string; exp: any}[] = [];
 
-  const [fileToRun, funcToRun] = target.split('#');
   const [packageInfo, proto] = initInjectorForNodePackages();
   const components = packageInfo.allModules.filter(pk => {
+    const target = targetOfPkg(pk.name);
+    if (target == null)
+      return false;
+    const [fileToRun] = target;
     // setupRequireInjects(pk, NodeApi); // All component package should be able to access '__api', even they are not included
     if ((includeNameSet.size === 0 || includeNameSet.has(pk.longName) || includeNameSet.has(pk.shortName))) {
       try {
         if (fileToRun)
-          require.resolve(pk.longName + '/' + fileToRun);
+          require.resolve(Path.resolve(getWorkDir(), 'node_modules', pk.longName, fileToRun));
         else
-          require.resolve(pk.longName);
+          require.resolve(Path.resolve(getWorkDir(), 'node_modules', pk.longName));
         return true;
       } catch (err) {
         return false;
@@ -125,18 +149,19 @@ export async function runPackages(target: string, includePackages: Iterable<stri
     name: item.longName,
     priority: _.get(item.json, 'plink.serverPriority', _.get(item.json, 'dr.serverPriority'))
   })),
-  pkInstance  => {
-    packageNamesInOrder.push(pkInstance.name);
-    const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
-    log.debug('require(%s)', JSON.stringify(mod));
-    const fileExports = require(mod);
-    pkgExportsInReverOrder.unshift({name: pkInstance.name, exp: fileExports});
-    if (_.isFunction(fileExports[funcToRun])) {
-      log.info(funcToRun + ` ${chalk.cyan(mod)}`);
-      return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
-    }
+    pkInstance  => {
+      const [fileToRun, funcToRun] = targetOfPkg(pkInstance.name)!;
+      packageNamesInOrder.push(pkInstance.name);
+      const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
+      log.debug('require(%sf)', JSON.stringify(mod));
+      const fileExports = require(Path.resolve(getWorkDir(), 'node_modules', mod));
+      pkgExportsInReverOrder.unshift({name: pkInstance.name, exp: fileExports});
+      if (_.isFunction(fileExports[funcToRun])) {
+        log.info(funcToRun + ` ${chalk.cyan(mod)}`);
+        return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
+      }
   });
-  (proto.eventBus ).emit('done', {file: fileToRun, functionName: funcToRun} as ServerRunnerEvent);
+  (proto.eventBus ).emit('done', {});
   NodeApi.prototype.eventBus.emit('packagesActivated', includeNameSet);
   return pkgExportsInReverOrder;
 }

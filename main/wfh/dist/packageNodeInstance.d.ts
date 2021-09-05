@@ -7,7 +7,11 @@ export default class Package implements NodePackageAttr {
     scope: string;
     /** If this property is not same as "realPath", then it is a symlink */
     path: string;
-    json: any;
+    json: {
+        [p: string]: any;
+        plink?: import("./package-mgr/index").PlinkJsonType | undefined;
+        dr?: import("./package-mgr/index").PlinkJsonType | undefined;
+    } & import("./transitive-dep-hoister").PackageJsonInterf;
     realPath: string;
     constructor(attrs: Partial<NodePackageAttr>);
 }

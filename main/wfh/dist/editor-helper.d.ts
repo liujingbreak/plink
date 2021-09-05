@@ -16,7 +16,7 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     hookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookAll(): void;
-} & import("../../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>>;
+} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>>;
 export declare function getState(): EditorHelperState;
 export declare function getStore(): rx.Observable<EditorHelperState>;
 export {};

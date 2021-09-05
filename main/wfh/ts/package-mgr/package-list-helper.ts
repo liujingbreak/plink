@@ -1,6 +1,6 @@
 import {getState, pathToProjKey, workspaceKey, PackageInfo, WorkspaceState} from './index';
 import Path from 'path';
-import {calcNodePaths} from '../node-path';
+import {calcNodePaths} from '../node-path-calc';
 import _ from 'lodash';
 import {getLogger} from 'log4js';
 import {plinkEnv} from '../utils/misc';

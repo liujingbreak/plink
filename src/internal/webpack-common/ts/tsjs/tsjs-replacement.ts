@@ -4,23 +4,22 @@ import vm from 'vm';
 import * as ts from 'typescript';
 import {SyntaxKind as sk, CompilerOptions} from 'typescript';
 import ImportClauseTranspile from './default-import-ts-transpiler';
-import api from '__api';
 import BrowserPackage from '@wfh/plink/wfh/dist/packageNodeInstance';
 import {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
 import * as textPatcher from '@wfh/plink/wfh/dist/utils/patch-text';
 import { readTsConfig, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler';
-import log4js from 'log4js';
-const log = log4js.getLogger(api.packageName + '.tsjs-replacement');
+import {log4File} from '@wfh/plink';
 import chalk from 'chalk';
 import {has} from 'lodash';
 
+const log = log4File(__filename);
 export {ReplacementInf};
 export type TsHandler = (ast: ts.SourceFile) => ReplacementInf[];
 export default class TsPreCompiler {
   tsCo: CompilerOptions;
 
 
-  importTranspiler: ImportClauseTranspile;
+  importTranspiler: ImportClauseTranspile | undefined;
 
   constructor(tsConfigFile: string, isServerSide: boolean,
     private findPackageByFile: (file: string) => BrowserPackage | null | undefined) {

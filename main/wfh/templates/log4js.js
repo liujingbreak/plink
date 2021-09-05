@@ -2,6 +2,7 @@
 const cluster = require('cluster');
 const os = require('os');
 const Path = require('path');
+const {isMainThread} = require('worker_threads');
 const pm2InstanceId = process.env.NODE_APP_INSTANCE;
 var isPm2 = cluster.isWorker && pm2InstanceId != null;
 const SLACK_API_TOKEN = '<paste your token>';
@@ -22,7 +23,7 @@ if (isPm2) {
 		// Refer to https://github.com/liujingbreak/log4js-pm2-intercom
 		process.send({topic: 'log4js:master'});
 	}
-} else if (process.send) { // this is a forked process, should use a different file name
+} else if (process.send || !isMainThread) { // this is a forked process, should use a different file name
 	fileName = `plink.(${process.pid}).log`;
 	patterns.colorfulOutput = 'pid:%z %[[%p]%c%] - %m'
 }

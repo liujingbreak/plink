@@ -6,17 +6,18 @@
  */
 
 import Path from 'path';
-import * as _plink from '@wfh/plink/wfh/dist';
+import * as _plink from '@wfh/plink';
 
 export function register() {
   process.env.NODE_OPTIONS =  (process.env.NODE_OPTIONS || '') + ' -r ' +
     Path.resolve(__filename); // + ' --inspect-brk';
 }
 
-if (process.send && /[\\\/]fork-ts-checker-webpack-plugin[\\\/]/.test(process.argv[1])) {
+if (process.send && /[\\/]fork-ts-checker-webpack-plugin[\\/]/.test(process.argv[1])) {
   // Current process is a child process forked by fork-ts-checker-webpack-plugin
   require('@wfh/plink/wfh/dist/node-path');
-  const plink: typeof _plink = require('@wfh/plink/wfh/dist');
+  const plink = require('@wfh/plink') as typeof _plink;
+
   plink.initAsChildProcess();
   plink.initConfig(JSON.parse(process.env.PLINK_CLI_OPTS!));
   plink.initInjectorForNodePackages();

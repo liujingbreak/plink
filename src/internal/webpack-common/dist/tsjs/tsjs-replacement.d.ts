@@ -8,7 +8,7 @@ export declare type TsHandler = (ast: ts.SourceFile) => ReplacementInf[];
 export default class TsPreCompiler {
     private findPackageByFile;
     tsCo: CompilerOptions;
-    importTranspiler: ImportClauseTranspile;
+    importTranspiler: ImportClauseTranspile | undefined;
     constructor(tsConfigFile: string, isServerSide: boolean, findPackageByFile: (file: string) => BrowserPackage | null | undefined);
     /**
      * replaceContext can put any Javascript object which contains properties or memember functions

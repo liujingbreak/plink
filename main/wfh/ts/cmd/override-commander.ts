@@ -8,6 +8,8 @@ import { GlobalOptions, OurCommandMetadata } from './types';
 import {cliActionDispatcher} from './cli-slice';
 import log4js from 'log4js';
 import stripAnsi from 'strip-ansi';
+import Path from 'path';
+import {plinkEnv} from '../utils/misc';
 
 const log = log4js.getLogger('plink.override-commander');
 
@@ -314,8 +316,7 @@ export class CommandOverrider {
       this.pkgMetasMap.set('@wfh/plink', commandMetaInfos);
     } else if (pk) {
       try {
-        debugger;
-        filePath = require.resolve(pk.name + '/' + pkgFilePath);
+        filePath = Path.resolve(plinkEnv.workDir, 'node_modules', pk.name + '/' + pkgFilePath);
         this.ctx.currClieCreatorFile = filePath;
         const subCmdFactory: CliExtension = funcName ? require(filePath)[funcName] :
           require(filePath);
@@ -347,7 +348,7 @@ export class CommandOverrider {
 }
 
 export function withCwdOption(cmd: commander.Command): commander.Command {
-  return cmd.option('--cwd <working dir>', 'Run command in a different worktree directory: [' +
+  return cmd.option('--space,--cwd <working dir>', 'Run command in a different worktree directory: [' +
     [...getState().workspaces.keys()].join(', ') + ']');
 }
 
