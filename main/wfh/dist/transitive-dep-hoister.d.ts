@@ -59,7 +59,8 @@ export interface DependentInfo {
 }
 export declare class TransitiveDepScanner {
     private excludeLinkedDeps;
-    verbosMessage: string;
+    verbosMessage: string | undefined;
+    devDeps: Map<string, DepInfo[]>;
     /** key is dependency module name */
     private directDeps;
     private srcDeps;
@@ -74,12 +75,13 @@ export declare class TransitiveDepScanner {
     constructor(workspaceDeps: {
         [name: string]: string;
     }, workspaceName: string, excludeLinkedDeps: Map<string, any> | Set<string>);
-    scanFor(pkJsons: Iterable<PackageJsonInterf>): void;
+    scanFor(pkJsons: Iterable<PackageJsonInterf>, combineDevDeps?: boolean): void;
+    initExistingDeps(deps: Map<string, DepInfo[]>): void;
     /**
      * The base algorithm: "new dependencies" = "direct dependencies of workspace" + "transive dependencies"
-     * @param extraDependentInfo extra dependent information to check if they are duplicate.
+     * @param duplicateDepsToCheck extra dependent information to check if they are duplicate.
      */
-    hoistDeps(extraDependentInfo?: Map<string, DependentInfo>): Map<string, DependentInfo>[];
+    hoistDeps(duplicateDepsToCheck?: Map<string, DependentInfo>): Map<string, DependentInfo>[];
     /**
      * - If there is a direct dependency of workspace, move its version to the top of the version list,
      * - If it is peer dependency and it is not a direct dependency of workspace,
@@ -89,6 +91,8 @@ export declare class TransitiveDepScanner {
      */
     protected collectDependencyInfo(trackedRaw: Map<string, DepInfo[]>, isPeerDeps?: boolean): Map<string, DependentInfo>;
     protected _trackSrcDependency(name: string, version: string, byWhom: string): void;
+    protected _trackDevDependency(name: string, version: string, byWhom: string): void;
+    private _trackDependency;
     protected _trackPeerDependency(name: string, version: string, byWhom: string): void;
 }
 export {};

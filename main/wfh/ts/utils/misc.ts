@@ -237,8 +237,8 @@ export class SimpleLinkedListNode<T> {
 }
 
 export class SimpleLinkedList<T> {
-  first: SimpleLinkedListNode<T> | null;
-  last: SimpleLinkedListNode<T> | null;
+  first: SimpleLinkedListNode<T> | null = null;
+  last: SimpleLinkedListNode<T> | null = null;
 
   removeNode(node: SimpleLinkedListNode<T>) {
     if (node.prev)

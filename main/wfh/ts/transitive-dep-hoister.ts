@@ -32,11 +32,13 @@ export function listCompDependency(
   let scanner = new TransitiveDepScanner(allDeps, workspace, pkJsonFiles);
   scanner.scanFor(jsons.filter(item => _.has(workspaceDeps, item.name)));
   const [HoistedDepInfo, HoistedPeerDepInfo] = scanner.hoistDeps();
+  const devDeps = scanner.devDeps;
   let hoistedDev: Map<string, DependentInfo>;
   let hoistedDevPeers: Map<string, DependentInfo>;
   if (workspaceDevDeps) {
     scanner = new TransitiveDepScanner(allDeps, workspace, pkJsonFiles);
-    scanner.scanFor(jsons.filter(item => _.has(workspaceDevDeps, item.name)));
+    scanner.initExistingDeps(devDeps);
+    scanner.scanFor(jsons.filter(item => _.has(workspaceDevDeps, item.name)), true);
     [hoistedDev, hoistedDevPeers] = scanner.hoistDeps(HoistedDepInfo);
   } else {
     hoistedDev = new Map();
@@ -86,9 +88,11 @@ const versionReg = /^(\D*)(\d.*?)(?:\.tgz)?$/;
 
 export class TransitiveDepScanner {
   verbosMessage: string | undefined;
+  devDeps: Map<string, DepInfo[]> = new Map();
   /** key is dependency module name */
   private directDeps: Map<string, SimpleLinkedListNode<[string, DepInfo]>> = new Map();
   private srcDeps: Map<string, DepInfo[]> = new Map();
+
   private peerDeps: Map<string, DepInfo[]> = new Map();
   private directDepsList: SimpleLinkedList<[string, DepInfo]> = new SimpleLinkedList<[string, DepInfo]>();
 
@@ -113,22 +117,24 @@ export class TransitiveDepScanner {
     }
   }
 
-  scanFor(pkJsons: Iterable<PackageJsonInterf>) {
-    // this.srcDeps.clear();
-    // this.peerDeps.clear();
-
+  scanFor(pkJsons: Iterable<PackageJsonInterf>, combineDevDeps = false) {
     for (const json of pkJsons) {
-      const deps = json.dependencies;
+      let deps = json.dependencies;
       if (deps) {
         for (const name of Object.keys(deps)) {
           const version = deps[name];
-          // log.debug('scanSrcDepsAsync() dep ' + name);
           this._trackSrcDependency(name, version, json.name);
         }
       }
-      if (json.devDependencies) {
-        log.warn(`A linked package "${json.name}" contains "devDepenendies", if they are necessary for running in worktree space, ` +
-          'you should move them to "dependencies" or "peerDependencies" of that package');
+      deps = json.devDependencies;
+      if (deps) {
+        for (const name of Object.keys(deps)) {
+          const version = deps[name];
+          if (combineDevDeps)
+            this._trackSrcDependency(name, version, json.name);
+          else
+            this._trackDevDependency(name, version, json.name);
+        }
       }
       if (json.peerDependencies) {
         for (const name of Object.keys(json.peerDependencies)) {
@@ -139,15 +145,17 @@ export class TransitiveDepScanner {
     }
   }
 
-  // scanSrcDeps(jsonFiles: string[]) {
-  //   return this.scanFor(jsonFiles.map(packageJson => JSON.parse(fs.readFileSync(packageJson, 'utf8'))));
-  // }
+  initExistingDeps(deps: Map<string, DepInfo[]>) {
+    for (const [key, info] of deps) {
+      this.srcDeps.set(key, info);
+    }
+  }
 
   /**
    * The base algorithm: "new dependencies" = "direct dependencies of workspace" + "transive dependencies"
-   * @param extraDependentInfo extra dependent information to check if they are duplicate.
+   * @param duplicateDepsToCheck extra dependent information to check if they are duplicate.
    */
-  hoistDeps(extraDependentInfo?: Map<string, DependentInfo>) {
+  hoistDeps(duplicateDepsToCheck?: Map<string, DependentInfo>) {
     const dependentInfo = this.collectDependencyInfo(this.srcDeps);
     const peerDependentInfo = this.collectDependencyInfo(this.peerDeps, true);
     // In case peer dependency duplicates to existing transitive dependency, set "missing" to `false`
@@ -162,8 +170,8 @@ export class TransitiveDepScanner {
         peerInfo.missing = false;
         peerInfo.by.unshift(normInfo.by[0]);
       }
-      if (extraDependentInfo) {
-        normInfo = extraDependentInfo.get(peerDep);
+      if (duplicateDepsToCheck) {
+        normInfo = duplicateDepsToCheck.get(peerDep);
         if (normInfo) {
           peerInfo.duplicatePeer = true;
           peerInfo.missing = false;
@@ -225,13 +233,21 @@ export class TransitiveDepScanner {
   }
 
   protected _trackSrcDependency(name: string, version: string, byWhom: string) {
+    this._trackDependency(this.srcDeps, name, version, byWhom);
+  }
+
+  protected _trackDevDependency(name: string, version: string, byWhom: string) {
+    this._trackDependency(this.devDeps, name, version, byWhom);
+  }
+
+  private _trackDependency(deps: Map<string, DepInfo[]>, name: string, version: string, byWhom: string) {
     if (this.excludeLinkedDeps.has(name))
       return;
-    if (!this.srcDeps.has(name)) {
-      this.srcDeps.set(name, []);
+    if (!deps.has(name)) {
+      deps.set(name, []);
     }
     const m = versionReg.exec(version);
-    this.srcDeps.get(name)!.push({
+    deps.get(name)!.push({
       ver: version === '*' ? '' : version,
       verNum: m ? m[2] : undefined,
       pre: m ? m[1] : '',
