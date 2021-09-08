@@ -24,7 +24,7 @@ const startTime = new Date().getTime();
   }
   process.on('exit', () => {
     // eslint-disable-next-line no-console
-    console.log((process.send || !isMainThread ? `[${process.pid}:${threadId}] ` : '') +
+    console.log((process.send || !isMainThread ? `[P${process.pid}.T${threadId}] ` : '') +
       chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
   });
 

@@ -9,7 +9,7 @@ import {fork} from 'child_process';
 // import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
 // import {initTsconfig} from './cli-init';
 import * as _preload from '../preload';
-import {config, log4File} from '@wfh/plink';
+import {config, log4File, plinkEnv} from '@wfh/plink';
 const log = log4File(__filename);
 
 const cli: CliExtension = (program) => {
@@ -27,6 +27,11 @@ const cli: CliExtension = (program) => {
     ' to make them be included in bundle file. To make specific module (React) external: -i \'^(?!react(-dom)?($|/))\'', arrayOptionFn, [])
     .option('--source-map', 'set environment variable GENERATE_SOURCEMAP to "true" (see https://create-react-app.dev/docs/advanced-configuration', false)
     .action((type, pkgName) => {
+      if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
+        const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'), process.argv.slice(2), {cwd: plinkEnv.workDir});
+        log.info('Current directory is not CRA project directory, fork new process...pid:', cp.pid);
+        return;
+      }
       initEverything(buildCmd, type, pkgName);
       if (buildCmd.opts().sourceMap) {
         log.info('source map is enabled');
@@ -52,6 +57,11 @@ const cli: CliExtension = (program) => {
       'package-name': 'target package name, the "scope" name part can be omitted'
     })
     .action((pkgName) => {
+      if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
+        const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'), process.argv.slice(2), {cwd: plinkEnv.workDir});
+        log.info('Current directory is not CRA project directory, fork new process...pid:', cp.pid);
+        return;
+      }
       initEverything(StartCmd, 'app', pkgName);
       require('react-scripts/scripts/start');
     });
@@ -79,6 +89,7 @@ const cli: CliExtension = (program) => {
   })
   .action(async (outputPath: string) => {
     const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const smeBin = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'] as string;
 
     await new Promise<any>((resolve, rej) => {

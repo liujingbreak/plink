@@ -8,10 +8,8 @@ import _ from 'lodash';
 import {isMainThread, threadId} from 'worker_threads';
 
 let logPrefix = '';
-if (process.send)
-  logPrefix = `[pid: ${process.pid}]`;
-if (!isMainThread)
-  logPrefix += `[p${process.pid}-t${threadId}]`;
+if (process.send || !isMainThread)
+  logPrefix += `[P${process.pid}.T${threadId}]`;
 
 let envSetDone = false;
 
@@ -44,7 +42,7 @@ if (!envSetDone) {
   const PLINK_WORK_DIR = process.env.PLINK_WORK_DIR;
   if (PLINK_WORK_DIR) {
     // eslint-disable-next-line no-console
-    console.log(logPrefix + `Environment variable PLINK_WORK_DIR is set, default workspace is: ${PLINK_WORK_DIR}`);
+    console.log(chalk.gray(logPrefix + `Environment variable PLINK_WORK_DIR is set, default workspace is: ${PLINK_WORK_DIR}`));
   }
   const workDir = PLINK_WORK_DIR ? Path.resolve(PLINK_WORK_DIR) : process.cwd();
   const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR, workDir);

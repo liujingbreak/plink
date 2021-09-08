@@ -53,6 +53,6 @@ export function changeTsConfigFile() {
   const co = ts.parseJsonConfigFileContent(tsconfigJson, ts.sys, plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, process.env._plink_cra_scripts_tsConfig).options;
 
-  fs.promises.writeFile(Path.resolve(getReportDir(), 'tsconfig.json'), JSON.stringify(tsconfigJson, null, '  '));
+  void fs.promises.writeFile(Path.resolve(getReportDir(), 'tsconfig.json'), JSON.stringify(tsconfigJson, null, '  '));
   return co;
 }

@@ -102,7 +102,7 @@ stateFactory.addEpic<{config: BasePlinkSettings}>((action$, state$) => {
         // initial log configure is in store.ts
         let logPatternPrefix = '';
         if (process.send || !isMainThread)
-          logPatternPrefix += `[${process.pid}:${threadId}] `;
+          logPatternPrefix += `[P${process.pid}.T${threadId}] `;
         log4js.configure({
           appenders: {
             out: {

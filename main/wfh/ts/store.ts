@@ -42,7 +42,7 @@ export function isStateSyncMsg(msg: unknown): msg is ProcessStateSyncMsg {
 function configDefaultLog() {
   let logPatternPrefix = '';
   if (process.send || !isMainThread)
-    logPatternPrefix = `[${process.pid}:${threadId}] `;
+    logPatternPrefix = `[P${process.pid}.T${threadId}] `;
   log4js.configure({
     appenders: {
       out: {
