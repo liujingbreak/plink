@@ -8,7 +8,7 @@ import {GlobalOptions as CliOptions} from '../cmd/types';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import log4js from 'log4js';
-import {dispatcher, getState, DrcpSettings} from './config-slice';
+import {dispatcher, getState, DrcpSettings, getStore} from './config-slice';
 // Refactor: circular reference
 import * as _pkgList from '../package-mgr/package-list-helper';
 import * as _pkgMgr from '../package-mgr';
@@ -90,6 +90,8 @@ config.configHandlerMgrChanged = function(cb: (handler: ConfigHandlerMgr) => voi
 config.change = function(reducer: (setting: DrcpSettings) => void ) {
   return dispatcher._change(reducer);
 };
+
+config.getStore = getStore;
 
 // config.configHandlerMgrCreated = function(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void> {
 //   return configHandlerMgr$.pipe(

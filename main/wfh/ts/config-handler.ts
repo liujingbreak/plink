@@ -8,10 +8,11 @@ import {getRootDir, getWorkDir} from './utils/misc';
 import {getLogger} from 'log4js';
 import {DrcpSettings} from './config/config-slice';
 import {setTsCompilerOptForNodePath} from './package-mgr/package-list-helper';
-import {BehaviorSubject} from 'rxjs';
+import {BehaviorSubject, Observable} from 'rxjs';
 import {Draft} from '@reduxjs/toolkit';
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const {parse} = require('comment-json');
 const {cyan} = chalk;
 const log = getLogger('plink.config-handler');
@@ -44,6 +45,7 @@ export interface DrcpConfig {
   reload(): DrcpSettings;
   // init(argv: CliOptions): Promise<DrcpSettings>;
   initSync(argv: CliOptions): DrcpSettings;
+  getStore(): Observable<DrcpSettings>;
   /**
    * ConfigHandlerMgr changes everytime Plink settings are initialized or reloaded.
    * ConfigHandlerMgr is used to run command line option "-c" specified TS/JS files one by one.
@@ -74,6 +76,7 @@ export class ConfigHandlerMgr {
       ConfigHandlerMgr._tsNodeRegistered = true;
 
       const internalTscfgFile = Path.resolve(__dirname, '../tsconfig-base.json');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const {compilerOptions} = parse(
         fs.readFileSync(internalTscfgFile, 'utf8')
       );

@@ -16,8 +16,18 @@ const childStepActions = {
   failed(reason: string[]) {}
 };
 
-type Action = {type: keyof typeof childStepActions; payload: Parameters<(typeof childStepActions)[keyof typeof childStepActions]>};
-type ActionByType = {[K in keyof typeof childStepActions]: rx.Observable<(typeof childStepActions)[K] extends (payload: infer P) => void ? {payload: P; type: K} : unknown>};
+type Action = {
+  type: keyof typeof childStepActions;
+  payload: Parameters<(typeof childStepActions)[keyof typeof childStepActions]>;
+};
+
+type ActionByType = {
+  [K in keyof typeof childStepActions]: rx.Observable<
+    (typeof childStepActions)[K] extends (payload: infer P) => void ?
+      {payload: P; type: K} :
+      unknown
+    >
+};
 
 function createDispatcher(action$: rx.Subject<Action>) {
   const dispatcher = {} as {[K in keyof typeof childStepActions]: (typeof childStepActions)[K]};

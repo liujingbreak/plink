@@ -1,6 +1,6 @@
 import { GlobalOptions as CliOptions } from './cmd/types';
 import { DrcpSettings } from './config/config-slice';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { Draft } from '@reduxjs/toolkit';
 export { DrcpSettings };
 export interface DrcpConfig {
@@ -29,6 +29,7 @@ export interface DrcpConfig {
     (): DrcpSettings;
     reload(): DrcpSettings;
     initSync(argv: CliOptions): DrcpSettings;
+    getStore(): Observable<DrcpSettings>;
     /**
      * ConfigHandlerMgr changes everytime Plink settings are initialized or reloaded.
      * ConfigHandlerMgr is used to run command line option "-c" specified TS/JS files one by one.

@@ -3,7 +3,7 @@ import { PackageSettingInterf } from '@wfh/plink';
  * Package setting type
  */
 export interface DocEntrySetting {
-    /** Router basename */
+    /** Router basename, change it will affect process.env.REACT_APP_routeBasename, see config-overrides.ts */
     basename: string;
 }
 export declare const defaultSetting: PackageSettingInterf<DocEntrySetting>;

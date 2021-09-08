@@ -149,7 +149,8 @@ export function createSlice(opt) {
         action$.next(action);
     }), op.catchError((err, caught) => {
         console.error(err);
-        dispatch({ type: 'reducer error', reducer(s) {
+        dispatch({ type: 'reducer error',
+            reducer(s) {
                 return Object.assign(Object.assign({}, s), { error: err });
             }
         });
@@ -176,7 +177,8 @@ export function createSlice(opt) {
             return rx.EMPTY;
         }), op.takeUntil(unprocessedAction$.pipe(op.filter(action => action.type === '__OnDestroy'), op.take(1))), op.tap(action => dispatch(action)), op.catchError((err, caught) => {
             console.error(err);
-            dispatch({ type: 'epic error', reducer(s) {
+            dispatch({ type: 'epic error',
+                reducer(s) {
                     return Object.assign(Object.assign({}, s), { error: err });
                 }
             });

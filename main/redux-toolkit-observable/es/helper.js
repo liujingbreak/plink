@@ -29,9 +29,11 @@ export function createSliceHelper(stateFactory, opts) {
         return () => sub.unsubscribe();
     }
     // let releaseEpic: Array<() => void> = [];
-    const helper = Object.assign(Object.assign({}, slice), { action$: action$.asObservable(), actionDispatcher, addEpic(epicFactory) {
+    const helper = Object.assign(Object.assign({}, slice), { action$: action$.asObservable(), actionDispatcher,
+        addEpic(epicFactory) {
             return addEpic$(of(epicFactory));
-        }, addEpic$, destroy$: destory$.asObservable(), destroy() {
+        },
+        addEpic$, destroy$: destory$.asObservable(), destroy() {
             destory$.next();
             destory$.complete();
             stateFactory.removeSlice(slice);

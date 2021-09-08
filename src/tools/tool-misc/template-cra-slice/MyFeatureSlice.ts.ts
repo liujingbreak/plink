@@ -6,12 +6,12 @@ import * as rx from 'rxjs';
 // since axios-observable gives a easier way to CANCEL request (which is simply `unsubscribe()` from it)
 import axiosObs from 'axios-observable';
 
-export interface $__SliceName__$State {
+export type $__SliceName__$State = {
   foobar: string;
   _computed: {
     reactHtml: {__html: string};
   };
-}
+};
 
 const initialState: $__SliceName__$State = {
   foobar: 'You component',

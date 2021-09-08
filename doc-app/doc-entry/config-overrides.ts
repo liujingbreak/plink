@@ -1,5 +1,7 @@
 import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
 import {default as docUiCommon} from '@wfh/doc-ui-common/dist/webpack-config';
+import {config} from '@wfh/plink';
+import * as op from 'rxjs/operators';
 
 const handler: ReactScriptsHandler = {
   changeCraPaths(craPaths, env, cmdOpt) {
@@ -16,5 +18,14 @@ const handler: ReactScriptsHandler = {
       docUiCommon.webpack(cfg, env, cmdOpt);
   }
 };
+
+config.getStore().pipe(
+  op.share(),
+  op.map(setting => setting['@wfh/doc-entry'].basename),
+  op.distinctUntilChanged(),
+  op.map(basename => {
+    process.env.REACT_APP_routeBasename = basename;
+  })
+).subscribe();
 
 export default handler;
