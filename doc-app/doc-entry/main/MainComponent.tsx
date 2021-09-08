@@ -8,9 +8,9 @@ import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-bro
 import { useStoreOfStateFactory } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import { AppLayout } from '@wfh/doc-ui-common/client/components/AppLayout';
 import {AnimatableRoutes} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
-import {routes, defaultRedirect} from '../configurable/routes';
+import {routes, defaultRedirect} from '@wfh/doc-entry/configurable/routes';
 import '@material-icons/font/css/outline.css';
-import registerMarkdownFiles from '../configurable/markdown-setup';
+import registerMarkdownFiles from '@wfh/doc-entry/configurable/markdown-setup';
 
 
 const rootEl = document.getElementById('root');

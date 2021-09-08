@@ -33,12 +33,7 @@
 }
 .articale-page {
   display: flex;
-  height: 100vh;
-}
-.main-content {
-  overflow: auto;
-  height: 100%;
-  background-color: #fffde7;
+  min-height: 100%;
 }
 
 // https://github.com/css-modules/css-modules

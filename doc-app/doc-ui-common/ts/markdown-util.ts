@@ -61,7 +61,7 @@ toc: TOC[] = []) {
       const el = node as Element;
       if (nodeName === 'img') {
         const imgSrc = el.attrs.find(item => item.name === 'src');
-        if (resolveImage && imgSrc) {
+        if (resolveImage && imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
           log.info('found img src=' + imgSrc.value);
           done.push(rx.from(resolveImage(imgSrc.value))
           .pipe(

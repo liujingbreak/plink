@@ -74,9 +74,9 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
       <div ref={slice.actionDispatcher._setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
         onScroll={onScrollRaw}>
         {props.children}
-        <footer className={styles.footer}>
+        {state.footer ? <footer className={styles.footer}>
           {state.footer}
-        </footer>
+        </footer> : null}
       </div>
     </div></>;
   }
