@@ -103,14 +103,14 @@ export class ConfigHandlerMgr {
         , transformers: {
           before: [
             context => (src) => {
-              log.info('before ts-node compiles:', src.fileName);
+              // log.info('before ts-node compiles:', src.fileName);
               // console.log(src.text);
               return src;
             }
           ],
           after: [
             context => (src) => {
-              log.info('ts-node compiles:', src.fileName);
+              // log.info('ts-node compiles:', src.fileName);
               // console.log(src.text);
               return src;
             }

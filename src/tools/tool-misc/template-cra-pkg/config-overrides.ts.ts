@@ -8,7 +8,8 @@ const handler: ReactScriptsHandler = {
     // output directory will be dist/static/main
     if (cmdOpt.buildType === 'app')
       craPaths.appBuild = craPaths.appBuild + '$__appBuild__$';
-    // Setting "craPaths.publicUrlOrPath" will override environment variable PUBLIC_URL
+    // Setting "craPaths.publicUrlOrPath" will override environment variable PUBLIC_URL,
+    // can not contain "host:port", otherwise react-dev-utils/WebpackDevServerUtils won't work correctly.
     // craPaths.publicUrlOrPath = '$__publicUrlOrPath__$';
   },
 
