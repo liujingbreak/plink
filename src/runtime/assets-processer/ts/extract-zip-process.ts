@@ -84,4 +84,4 @@ async function tryExtract(file: string) {
   });
 }
 
-start();
+void start();

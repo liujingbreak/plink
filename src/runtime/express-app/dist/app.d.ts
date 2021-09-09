@@ -1,5 +1,5 @@
-import express = require('express');
 import * as rx from 'rxjs';
+import express from 'express';
 import { ExtensionContext } from '@wfh/plink';
 declare const _default: {
     activate(api: ExtensionContext): void;

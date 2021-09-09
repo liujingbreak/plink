@@ -73,7 +73,7 @@ export async function generateConfig(file: string, opt: {dryRun: boolean; type: 
       if (!opt.dryRun) {
         fs.writeFileSync(projJsonFile, output);
         await new Promise(resolve => setImmediate(resolve));
-          // updateTsconfigFileForProjects(workspaceKey(process.cwd()), projDir);
+        // updateTsconfigFileForProjects(workspaceKey(process.cwd()), projDir);
         pkgMgrDispatcher.scanAndSyncPackages({});
         plink.logger.info(projJsonFile + ' is updated.');
       }

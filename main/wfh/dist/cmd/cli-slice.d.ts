@@ -12,22 +12,22 @@ export interface CliExtension {
     pkgFilePath: string;
     funcName?: string;
 }
-export declare const cliSlice: import("@reduxjs/toolkit").Slice<CliState, import("../../../redux-toolkit-observable/dist/helper").RegularReducers<CliState, {
+export declare const cliSlice: import("@reduxjs/toolkit").Slice<CliState, import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<CliState, {
     plinkUpgraded(d: CliState, newVersion: string): void;
     updateLocale(d: CliState, [lang, country]: [string, string]): void;
     addCommandMeta(d: CliState, { pkg, metas }: {
         pkg: string;
         metas: OurCommandMetadata[];
     }): void;
-}> & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>, "cli">;
-export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<import("../../../redux-toolkit-observable/dist/helper").RegularReducers<CliState, {
+}> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>, "cli">;
+export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<CliState, {
     plinkUpgraded(d: CliState, newVersion: string): void;
     updateLocale(d: CliState, [lang, country]: [string, string]): void;
     addCommandMeta(d: CliState, { pkg, metas }: {
         pkg: string;
         metas: OurCommandMetadata[];
     }): void;
-}> & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>>;
+}> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>>;
 export declare function getState(): CliState;
 export declare function getStore(): import("rxjs").Observable<CliState>;
 export declare function availabeCliExtension(): void;

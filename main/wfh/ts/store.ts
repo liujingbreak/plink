@@ -1,34 +1,23 @@
 import Path from 'path';
 import fs from 'fs';
 import fse from 'fs-extra';
-import {tap, filter, takeWhile} from 'rxjs/operators';
-import {StateFactory, ofPayloadAction} from '../../redux-toolkit-observable/dist/redux-toolkit-observable';
+import {tap, filter} from 'rxjs/operators';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
+import {StateFactory, ofPayloadAction} from '../../packages/redux-toolkit-observable/dist/redux-toolkit-observable';
 import log4js from 'log4js';
 import serialize from 'serialize-javascript';
 import {enableMapSet} from 'immer';
 import {isMainThread, threadId} from 'worker_threads';
 import {PlinkEnv} from './node-path';
 import chalk from 'chalk';
-export {createReducers} from '../../redux-toolkit-observable/dist/helper';
+
+import {createReducers, action$Of} from '../../packages/redux-toolkit-observable/dist/helper';
 // import chalk from 'chalk';
 
-export {ofPayloadAction};
-
+export {ofPayloadAction, createReducers, action$Of};
 enableMapSet();
-
 configDefaultLog();
-
-let syncStateToMainProcess = false;
-
-// process.on('message', msg => {
-//   if (msg && msg.type === '__plink_save_state') {
-
-//   }
-// });
-
-export function setSyncStateToMainProcess(enabled: boolean) {
-  syncStateToMainProcess = enabled;
-}
 
 const PROCESS_MSG_TYPE = 'rtk-observable:state';
 export type ProcessStateSyncMsg = {
@@ -78,12 +67,11 @@ function configDefaultLog() {
 
 
 export const BEFORE_SAVE_STATE = 'BEFORE_SAVE_STATE';
-const IGNORE_SLICE = ['config', 'configView', 'cli'];
+const IGNORE_SLICE = ['config', 'configView', 'cli', 'analyze', 'storeSetting'];
 const IGNORE_ACTION = new Set(['packages/setInChina', 'packages/updatePlinkPackageInfo']);
 const ignoreSliceSet = new Set(IGNORE_SLICE);
 
 const stateFile = Path.resolve((JSON.parse(process.env.__plink!) as PlinkEnv).distDir, 'plink-state.json');
-let stateChangeCount = 0;
 /**
  * Since Redux-toolkit does not read initial state with any lazy slice that has not defined in root reducer,
  * e.g. 
@@ -105,16 +93,99 @@ for (const ignoreSliceName of IGNORE_SLICE) {
 export const stateFactory = new StateFactory(lastSavedState);
 const defaultLog = log4js.getLogger('plink.store');
 
-stateFactory.actionsToDispatch.pipe(
-  filter(action => !action.type.endsWith('/_init') &&
-    !IGNORE_ACTION.has(action.type) &&
-    !ignoreSliceSet.has(action.type.slice(0, action.type.indexOf('/')))
+type StoreSetting = {
+  actionOnExit: 'save' | 'send' | 'none';
+  stateChangeCount: number;
+};
+
+const initialState: StoreSetting = {
+  actionOnExit: process.env.__plink_save_state === '1' ? 'save' : process.send && isMainThread ? 'send' : 'none',
+  stateChangeCount: 0
+};
+process.env.__plink_save_state = '0';
+
+const simpleReducers = {
+  changeActionOnExit(s: StoreSetting, mode: StoreSetting['actionOnExit']) {
+    s.actionOnExit = mode;
+  },
+  /**
+   * Dispatch this action before you explicitly run process.exit(0) to quit, because "beforeExit"
+   * won't be triggered prior to process.exit(0)
+   */
+  processExit(s: StoreSetting) {},
+  storeSaved(s: StoreSetting) {}
+};
+
+const storeSettingSlice = stateFactory.newSlice({
+  name: 'storeSetting',
+  initialState,
+  reducers: createReducers<StoreSetting, typeof simpleReducers>(simpleReducers)
+});
+
+function getState() {
+  return stateFactory.sliceState(storeSettingSlice);
+}
+
+export const dispatcher = stateFactory.bindActionCreators(storeSettingSlice);
+
+stateFactory.addEpic<typeof storeSettingSlice>((action$, store$) => rx.merge(
+  stateFactory.sliceStore(storeSettingSlice).pipe(
+    op.map((s) => s.stateChangeCount), op.distinctUntilChanged(),
+    op.filter(count => count === 0),
+    op.tap(() => {
+      dispatcher.changeActionOnExit('none');
+    })
   ),
-  takeWhile(action => action.type !== BEFORE_SAVE_STATE),
-  tap((action) => {
-    stateChangeCount++;
-  })
-).subscribe();
+  action$.pipe(ofPayloadAction(storeSettingSlice.actions.processExit),
+    op.take(1),
+    op.switchMap(async action => {
+      const log = log4js.getLogger('plink.store');
+      const {actionOnExit} = getState();
+
+      if (actionOnExit === 'save') {
+        const store = await stateFactory.rootStoreReady;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const mergedState = Object.assign(lastSavedState, store.getState());
+
+        const jsonStr = serialize(mergedState, {space: '  '});
+        fse.mkdirpSync(Path.dirname(stateFile));
+        try {
+          await fs.promises.writeFile(stateFile, jsonStr);
+          log.info(chalk.gray(
+            `state file ${Path.relative(process.cwd(), stateFile)} saved (${getState().stateChangeCount})`));
+        } catch (err) {
+          log.error(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile)}`), err);
+        }
+      } else if (actionOnExit === 'send' && process.send) {
+        const store = await stateFactory.rootStoreReady;
+        log.info('send state sync message');
+
+        process.send({
+          type: PROCESS_MSG_TYPE,
+          data: serialize(store.getState(), {space: ''})
+        } as ProcessStateSyncMsg);
+
+        log.info(chalk.gray('in a forked child process, skip saving state'));
+      }
+    }),
+    op.tap(() => dispatcher.storeSaved())
+  ),
+  stateFactory.actionsToDispatch.pipe(
+    filter(action => !action.type.endsWith('/_init') &&
+      !IGNORE_ACTION.has(action.type) &&
+      !ignoreSliceSet.has(action.type.slice(0, action.type.indexOf('/')))
+    ),
+    op.takeUntil(action$.pipe(ofPayloadAction(storeSettingSlice.actions.processExit))),
+    tap((action) => {
+      dispatcher._change(s => s.stateChangeCount = s.stateChangeCount + 1);
+    })
+  )
+).pipe(
+  op.ignoreElements()
+));
+
+export const processExitAction$ = action$Of(stateFactory, storeSettingSlice.actions.processExit);
+export const storeSavedAction$ = action$Of(stateFactory, storeSettingSlice.actions.storeSaved);
 
 export function startLogging() {
 
@@ -133,7 +204,7 @@ export function startLogging() {
   ).subscribe();
 }
 
-let saved = false;
+let signaled = false;
 /**
  * a listener registered on the 'beforeExit' event can make asynchronous calls, 
  * and thereby cause the Node.js process to continue.
@@ -141,57 +212,11 @@ let saved = false;
  * such as calling process.exit() or uncaught exceptions.
  */
 process.on('beforeExit', (code) => {
-  if (saved)
+  if (signaled)
     return;
-  stateFactory.dispatch({type: 'BEFORE_SAVE_STATE', payload: null});
-  process.nextTick(() => saveState());
+  signaled = true;
+  dispatcher.processExit();
 });
-
-/**
- * Call this function before you explicitly run process.exit(0) to quit, because "beforeExit"
- * won't be triggered prior to process.exit(0)
- */
-export async function saveState() {
-  const log = log4js.getLogger('plink.store');
-  saved = true;
-  if (stateChangeCount === 0) {
-    // eslint-disable-next-line no-console
-    log.info(chalk.gray('state is not changed'));
-    return;
-  }
-  if (!isMainThread) {
-    // eslint-disable-next-line no-console
-    log.info(chalk.gray('not in main thread, skip saving state'));
-    return;
-  }
-  if (process.send && syncStateToMainProcess) {
-    const store = await stateFactory.rootStoreReady;
-    log.info('send state sync message');
-    process.send({
-      type: PROCESS_MSG_TYPE,
-      data: serialize(store.getState(), {space: ''})
-    } as ProcessStateSyncMsg);
-    // eslint-disable-next-line no-console
-    log.info(chalk.gray('in a forked child process, skip saving state'));
-    return;
-  }
-
-  const store = await stateFactory.rootStoreReady;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const mergedState = Object.assign(lastSavedState, store.getState());
-
-  const jsonStr = serialize(mergedState, {space: '  '});
-  fse.mkdirpSync(Path.dirname(stateFile));
-  try {
-    await fs.promises.writeFile(stateFile, jsonStr);
-    // eslint-disable-next-line no-console
-    log.info(chalk.gray(
-      `state file ${Path.relative(process.cwd(), stateFile)} saved (${stateChangeCount})`));
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    log.error(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile)}`), err);
-  }
-}
 
 // TEST async action for Thunk middleware
 // stateFactory.store$.subscribe(store => {

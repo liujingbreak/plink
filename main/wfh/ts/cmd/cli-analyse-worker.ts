@@ -182,7 +182,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
   return deps;
 }
 
-const PKG_NAME_PAT = /^(?:@[^/]+\/)?[^/.]+/;
+const PKG_NAME_PAT = /^(?:@[^/]+\/)?[^/]+/;
 
 function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.SourceFile): string | null {
   if (path.startsWith('`')) {

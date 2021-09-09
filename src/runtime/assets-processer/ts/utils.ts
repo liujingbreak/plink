@@ -1,12 +1,11 @@
 import {Request, Response, NextFunction} from 'express';
 import stream from 'stream';
-import {getLogger} from 'log4js';
 import api from '__api';
 import _ from 'lodash';
-import {config} from '@wfh/plink';
+import {config, logger} from '@wfh/plink';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
-const logTime = getLogger(api.packageName + '.timestamp');
+const logTime = logger.getLogger(api.packageName + '.timestamp');
 
 /**
  * Middleware for printing each response process duration time to log
@@ -72,7 +71,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
   const { protocol, host, pathname } = new URL(apiUrl);
 
   const patPath = new RegExp('^' + _.escapeRegExp(proxyPath) + '(/|$)');
-  const hpmLog = getLogger('HPM.' + proxyPath);
+  const hpmLog = logger.getLogger('HPM.' + proxyPath);
   api.expressAppSet(app => {
     app.use(proxyPath,
       proxy({

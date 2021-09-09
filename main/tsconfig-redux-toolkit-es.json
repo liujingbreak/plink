@@ -1,0 +1,24 @@
+{
+	"extends": "./wfh/tsconfig-base.json",
+	"compilerOptions": {
+    "rootDir": "packages/redux-toolkit-observable",
+    "target": "ES6",
+    "module": "ES2020",
+    "outDir": "packages/redux-toolkit-observable/es",
+    "declaration": true,
+    "strict": true,
+    "composite": true,
+    "sourceMap": false,
+		"inlineSourceMap": false,
+		"inlineSources": false,
+  },
+  "include": [
+    "packages/redux-toolkit-observable/*.ts"
+  ],
+  "exclude": [
+    "packages/redux-toolkit-observable/es/**/*",
+    "packages/redux-toolkit-observable/dist/**/*",
+    "packages/redux-toolkit-observable/example/**/*.ts",
+    "packages/redux-toolkit-observable/template/**/*.ts"
+  ]
+}

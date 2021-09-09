@@ -4,7 +4,7 @@
  */
 import Path from 'path';
 
-let dir = process.cwd();
+let dir = process.env.PLINK_WORK_DIR ? process.env.PLINK_WORK_DIR : process.cwd();
 const root = Path.parse(dir).root;
 let target: string;
 while (true) {

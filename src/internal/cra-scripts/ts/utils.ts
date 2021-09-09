@@ -4,9 +4,8 @@ import {CommandOption} from './build-options';
 import Path from 'path';
 import _ from 'lodash';
 import {gt} from 'semver';
-import commander from 'Commander';
 import * as _craPaths from './cra-scripts-paths';
-import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
+import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames, commander} from '@wfh/plink';
 import {ReactScriptsHandler} from './types';
 
 export const getReportDir = () => config.resolve('destDir', 'cra-scripts.report');

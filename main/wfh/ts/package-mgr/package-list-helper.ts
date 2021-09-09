@@ -1,10 +1,11 @@
-import {getState, pathToProjKey, workspaceKey, PackageInfo, WorkspaceState} from './index';
+import {getState, pathToProjKey, workspaceKey, PackageInfo} from './index';
 import Path from 'path';
 import {calcNodePaths} from '../node-path-calc';
 import _ from 'lodash';
 import {getLogger} from 'log4js';
 import {plinkEnv} from '../utils/misc';
 import ts from 'typescript';
+import fs from 'fs';
 
 export type PackageType = '*' | 'build' | 'core';
 const log = getLogger('plink.package-list-helper');
@@ -155,16 +156,15 @@ export function setTsCompilerOptForNodePath(
     Object.assign(assigneeOptions.paths, pathMappingForLinkedPkgs(baseUrlAbsPath));
   }
 
-  let wsState: WorkspaceState | undefined;
+  // let wsState: WorkspaceState | undefined;
   let wsKey: string | undefined;
   if (opts.workspaceDir != null) {
     symlinksDir = Path.resolve(opts.workspaceDir, plinkEnv.symlinkDirName);
-    // pathsDirs.push(Path.resolve(opts.workspaceDir, 'node_modules'));
     pathsDirs.push(...calcNodePaths(plinkEnv.rootDir, symlinksDir,
       opts.workspaceDir || plinkEnv.workDir, plinkEnv.plinkDir));
 
     wsKey = workspaceKey(opts.workspaceDir);
-    wsState = getState().workspaces.get(wsKey);
+    // wsState = getState().workspaces.get(wsKey);
   }
 
   if (opts.extraNodePath && opts.extraNodePath.length > 0) {
@@ -196,29 +196,25 @@ export function setTsCompilerOptForNodePath(
         .replace(/\\/g, '/')
     ];
   }
-  if (wsState) {
-    assignSpecialPaths(wsState.installJson.dependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
-    assignSpecialPaths(wsState.installJson.devDependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
-    assignSpecialPaths(wsState.installJson.peerDependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
-  }
-  // if (opts.workspaceDir != null) {
-  //   assigneeOptions.paths['_package-settings'] = [
-  //     Path.relative(baseUrlAbsPath, opts.workspaceDir).replace(/\\/g, '/') + '/_package-settings'];
+  // if (wsState) {
+  //   assignSpecialPaths(wsState.installJson.dependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
+  //   assignSpecialPaths(wsState.installJson.devDependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
+  //   assignSpecialPaths(wsState.installJson.peerDependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
   // }
 
   assigneeOptions.baseUrl = baseUrl.replace(/\\/g, '/');
 
-  if (assigneeOptions.paths['*'] == null)
-    assigneeOptions.paths['*'] = [] as string[];
-  const wildcardPaths: string[] = assigneeOptions.paths['*'];
+  // if (assigneeOptions.paths['*'] == null)
+  //   assigneeOptions.paths['*'] = [] as string[];
+  // const wildcardPaths: string[] = assigneeOptions.paths['*'];
 
-  for (const dir of pathsDirs) {
-    const relativeDir = Path.relative(baseUrlAbsPath, dir).replace(/\\/g, '/');
-    // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
-    wildcardPaths.push(Path.join(relativeDir, '@types/*').replace(/\\/g, '/'));
-    wildcardPaths.push(Path.join(relativeDir, '*').replace(/\\/g, '/'));
-  }
-  assigneeOptions.paths['*'] = _.uniq(wildcardPaths);
+  // for (const dir of pathsDirs) {
+  //   const relativeDir = Path.relative(baseUrlAbsPath, dir).replace(/\\/g, '/');
+  //   // IMPORTANT: `@type/*` must be prio to `/*`, for those packages have no type definintion
+  //   wildcardPaths.push(Path.join(relativeDir, '@types/*').replace(/\\/g, '/'));
+  //   wildcardPaths.push(Path.join(relativeDir, '*').replace(/\\/g, '/'));
+  // }
+  // assigneeOptions.paths['*'] = _.uniq(wildcardPaths);
   appendTypeRoots(pathsDirs, tsconfigDir, assigneeOptions, opts);
 
   return assigneeOptions as CompilerOptions;
@@ -228,28 +224,28 @@ export function setTsCompilerOptForNodePath(
  * For those special scoped package which is like @loadable/component, its type definition package is
  * @types/loadable__component
  */
-function assignSpecialPaths(dependencies: {[dep: string]: string} | undefined,
-  nodePaths: Iterable<string>,
-  assigneeOptions: Partial<CompilerOptions>, absBaseUrlPath: string) {
-  if (dependencies == null)
-    return;
+// function assignSpecialPaths(dependencies: {[dep: string]: string} | undefined,
+//   nodePaths: Iterable<string>,
+//   assigneeOptions: Partial<CompilerOptions>, absBaseUrlPath: string) {
+//   if (dependencies == null)
+//     return;
 
-  // if (assigneeOptions.paths == null)
-  //   assigneeOptions.paths = {};
-  for (const item of Object.keys(dependencies)) {
-    const m = /^@types\/(.*?)__(.*?)$/.exec(item);
-    if (m) {
-      const originPkgName = `@${m[1]}/${m[2]}`;
-      const exactOne: string[] = assigneeOptions.paths![originPkgName] = [];
-      const wildOne: string[] = assigneeOptions.paths![originPkgName + '/*'] = [];
-      for (const dir of nodePaths) {
-        const relativeDir = Path.relative(absBaseUrlPath, dir + '/' + item).replace(/\\/g, '/');
-        exactOne.push(relativeDir);
-        wildOne.push(relativeDir + '/*');
-      }
-    }
-  }
-}
+//   // if (assigneeOptions.paths == null)
+//   //   assigneeOptions.paths = {};
+//   for (const item of Object.keys(dependencies)) {
+//     const m = /^@types\/(.*?)__(.*?)$/.exec(item);
+//     if (m) {
+//       const originPkgName = `@${m[1]}/${m[2]}`;
+//       const exactOne: string[] = assigneeOptions.paths![originPkgName] = [];
+//       const wildOne: string[] = assigneeOptions.paths![originPkgName + '/*'] = [];
+//       for (const dir of nodePaths) {
+//         const relativeDir = Path.relative(absBaseUrlPath, dir + '/' + item).replace(/\\/g, '/');
+//         exactOne.push(relativeDir);
+//         wildOne.push(relativeDir + '/*');
+//       }
+//     }
+//   }
+// }
 
 function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {
   let drcpDir = (getState().linkedDrcp || getState().installedDrcp)!.realPath;
@@ -276,14 +272,14 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {
  * @param assigneeOptions 
  * @param opts 
  */
-function appendTypeRoots(pathsDirs: string[], tsconfigDir: string, assigneeOptions: Partial<CompilerOptions>,
+export function appendTypeRoots(pathsDirs: string[], tsconfigDir: string, assigneeOptions: Partial<CompilerOptions>,
   opts: CompilerOptionSetOpt) {
-
-  if (!opts.noTypeRootsInPackages) {
+  if (opts.noTypeRootsInPackages == null || !opts.noTypeRootsInPackages) {
     if (assigneeOptions.typeRoots == null)
       assigneeOptions.typeRoots = [];
     assigneeOptions.typeRoots.push(
-      Path.relative(tsconfigDir, Path.resolve(__dirname, '../../types')).replace(/\\/g, '/'),
+      // plink directory: wfh/types, it is a symlink at runtime, due to Plink uses preserve-symlinks to run commands
+      Path.relative(tsconfigDir, fs.realpathSync(Path.resolve(__dirname, '../../types'))).replace(/\\/g, '/'),
       ...typeRootsInPackages(opts.workspaceDir).map(dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/'))
     );
   }

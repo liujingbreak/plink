@@ -7,7 +7,7 @@ import {LintOptions} from './types';
 import _ from 'lodash';
 import {getState, getPackagesOfProjects} from '../package-mgr';
 import {completePackageName} from './utils';
-import {Pool} from '../../../thread-promise-pool/dist';
+import {Pool} from '../../../packages/thread-promise-pool/dist';
 import os from 'os';
 
 const log = log4js.getLogger('plink.cli-lint');

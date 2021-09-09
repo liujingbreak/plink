@@ -8,14 +8,14 @@ import fsext from 'fs-extra';
 import fs from 'fs';
 import _ from 'lodash';
 import Path from 'path';
-import {from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
+import {from, merge, Observable, of, defer, throwError, EMPTY, concat} from 'rxjs';
 import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
   take, concatMap, ignoreElements, scan, catchError, tap, finalize } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 import { exe } from '../process-utils';
 import { setProjectList, setLinkPatterns} from '../recipe-manager';
 import { stateFactory, ofPayloadAction } from '../store';
-import {isActionOfCreator, castByActionType} from '../../../redux-toolkit-observable/dist/helper';
+import {isActionOfCreator, castByActionType} from '../../../packages/redux-toolkit-observable/dist/helper';
 // import { getRootDir } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync } from '../utils/symlinks';
 import {symbolicLinkPackages} from '../rwPackageJson';
@@ -541,8 +541,7 @@ stateFactory.addEpic((action$, state$) => {
           }
         }
         return curr;
-      }),
-      ignoreElements()
+      })
     ),
     // observe all existing Workspaces for dependency hoisting result 
     ...Array.from(getState().workspaces.keys()).map(key => {
@@ -565,6 +564,7 @@ stateFactory.addEpic((action$, state$) => {
             .map(entry => entry.join(': '));
 
           if (newDeps.length !== oldDeps.length) {
+            log.info('newDeps.length', newDeps.length, ' !== oldDeps.length', oldDeps.length);
             actionDispatcher._installWorkspace({workspaceKey: key});
             return newWs;
           }
@@ -596,7 +596,6 @@ stateFactory.addEpic((action$, state$) => {
             }),
             map(() => {
               updateInstalledPackageForWorkspace(wsKey);
-              log.warn('installed');
             }),
             ignoreElements()
           );
@@ -998,9 +997,10 @@ function _createSymlinksForWorkspace(wsKey: string) {
   .pipe(
     map(name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!)
   );
-  // if (workspaceDir(wsKey) !== plinkEnv.rootDir) {
-  //   symlinksToCreate = concat(symlinksToCreate, of(getState().linkedDrcp! || getState().installedDrcp));
-  // }
+  const workDir = workspaceDir(wsKey);
+  if (workDir !== plinkEnv.rootDir) {
+    symlinksToCreate = concat(symlinksToCreate, of(getState().linkedDrcp! || getState().installedDrcp));
+  }
 
   return merge(
     symlinksToCreate.pipe(

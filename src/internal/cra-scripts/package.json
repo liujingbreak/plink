@@ -1,6 +1,6 @@
 {
   "name": "@wfh/cra-scripts",
-  "version": "1.2.0-3",
+  "version": "1.3.0-0",
   "description": "Something like create-react-rewired",
   "main": "dist/preload.js",
   "dr": {
@@ -21,7 +21,18 @@
     "@types/classnames": "^2.2.11",
     "source-map-explorer": "^2.5.1",
     "resolve": "~1.19.0",
-    "@types/resolve": "^1.17.1"
+    "@types/resolve": "^1.17.1",
+    "rxjs": "~6.4.0",
+    "semver": "^7.3.2",
+    "lodash": "^4.17.21",
+    "@types/lodash": "^4.14.92"
+  },
+  "devDependencies": {
+    "@types/semver": "^7.3.8",
+    "@types/webpack": "^4.41.25"
+  },
+  "peerDependencies": {
+    "sass": "^1.38.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

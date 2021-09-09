@@ -12,27 +12,23 @@ const startTime = new Date().getTime();
 
 (async function run() {
 
-  // const foundCmdOptIdx =  process.argv.findIndex(arg => arg === '--cwd');
-  // const workdir = foundCmdOptIdx >= 0 ? Path.resolve(plinkEnv.rootDir,  process.argv[foundCmdOptIdx + 1]) : null;
-  // if (workdir) {
-  //   process.argv.splice(foundCmdOptIdx, 2);
-  //   process.env.PLINK_WORK_DIR = workdir;
-  // }
-  if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
-    forkFile('@wfh/plink/wfh/dist/cmd-bootstrap');
-    return;
-  }
   process.on('exit', () => {
     // eslint-disable-next-line no-console
     console.log((process.send || !isMainThread ? `[P${process.pid}.T${threadId}] ` : '') +
       chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
   });
-
+  let storeSettingDispatcher: ReturnType<typeof initProcess> | undefined;
   if (process.send) {
     // current process is forked
     initAsChildProcess(true);
   } else {
-    initProcess();
+    storeSettingDispatcher = initProcess();
+  }
+  if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
+    if (storeSettingDispatcher)
+      storeSettingDispatcher.changeActionOnExit('none');
+    void forkFile('@wfh/plink/wfh/dist/cmd-bootstrap');
+    return;
   }
   await new Promise(resolve => process.nextTick(resolve));
 

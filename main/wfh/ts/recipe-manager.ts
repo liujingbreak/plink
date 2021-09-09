@@ -4,11 +4,11 @@
  */
 import * as _ from 'lodash';
 import * as Path from 'path';
-import {Observable, merge} from 'rxjs';
+import {from, Observable} from 'rxjs';
 import * as fs from 'fs-extra';
 import findPackageJson from './package-mgr/find-package';
 // import * as rwPackageJson from './rwPackageJson';
-import {map} from 'rxjs/operators';
+import {map, mergeMap} from 'rxjs/operators';
 
 let projectList: string[] = [];
 let linkPatterns: Iterable<string> | undefined;
@@ -128,13 +128,10 @@ export type EachRecipeCallback = (recipeDir: string,
 /**
  * @returns Observable of tuple [project, package.json file]
  */
-export function scanPackages() {
-  const obs: Observable<[string | undefined, string, string]>[] = [];
-  for (const {srcDir, projDir} of allSrcDirs()) {
-    obs.push(findPackageJson(srcDir, false)
-    .pipe(
-      map(jsonFile => [projDir, jsonFile, srcDir])
-    ));
-  }
-  return merge(...obs);
+export function scanPackages(): Observable<[string | undefined, string, string]> {
+  return from(allSrcDirs()).pipe(
+    mergeMap(({srcDir, projDir}) => findPackageJson(srcDir, false).pipe(
+      map(jsonFile => [projDir, jsonFile, srcDir] as [string | undefined, string, string])
+    ))
+  );
 }

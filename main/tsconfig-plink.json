@@ -1,0 +1,15 @@
+{
+  "extends": "./wfh/tsconfig-base.json",
+  "compilerOptions": {
+    "rootDir": "wfh/ts",
+    "declaration": true,
+  },
+  "references": [
+    {"path": "tsconfig-share.json"},
+    {"path": "tsconfig-redux-toolkit.json"},
+    {"path": "tsconfig-thread-promise.json"},
+  ],
+  "include": [
+		"wfh/ts/**/*.ts"
+	]
+}

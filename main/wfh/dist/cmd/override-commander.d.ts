@@ -1,6 +1,7 @@
 import commander from 'commander';
 import { WorkspaceState, PackageInfo } from '../package-mgr';
 import { OurCommandMetadata } from './types';
+export { commander };
 interface CommandContext {
     currClieCreatorFile: string;
     currCliCreatorPkg: PackageInfo | null;
@@ -41,7 +42,7 @@ export declare class PlinkCommand extends commander.Command {
     createHelp(): PlinkCommandHelp & Partial<commander.Help>;
     _saveOptions(isRequired: boolean, flags: string, desc: string, ...remaining: any[]): void;
 }
-export declare type CliExtension = (program: commander.Command) => void;
+export declare type CliExtension = (program: PlinkCommand) => void;
 declare class PlinkCmdOption extends commander.Option {
     optionStyler?: (cmdName: string) => string;
 }
@@ -57,4 +58,3 @@ export declare class CommandOverrider {
 }
 export declare function withCwdOption(cmd: commander.Command): commander.Command;
 export declare function withGlobalOptions(cmd: commander.Command | PlinkCommand): commander.Command;
-export {};

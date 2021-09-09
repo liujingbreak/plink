@@ -4,28 +4,34 @@ import _ from 'lodash';
 import log4js from 'log4js';
 import Path from 'path';
 import chalk from 'chalk';
-import { setTsCompilerOptForNodePath, packages4WorkspaceKey, CompilerOptions } from './package-mgr/package-list-helper';
-import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
-  isCwdWorkspace } from './package-mgr';
-import { stateFactory, ofPayloadAction } from './store';
+import { setTsCompilerOptForNodePath, CompilerOptions } from './package-mgr/package-list-helper';
+import {filterEffect} from '../../packages/redux-toolkit-observable/dist/rx-utils';
+import { getProjectList, pathToProjKey, getState as getPkgState, getStore as pkgStore, updateGitIgnores, slice as pkgSlice,
+  isCwdWorkspace, workspaceDir } from './package-mgr';
+import { stateFactory, ofPayloadAction, action$Of } from './store';
 import * as _recp from './recipe-manager';
-import { closestCommonParentDir, getRootDir } from './utils/misc';
+import {symbolicLinkPackages} from './rwPackageJson';
 import {getPackageSettingFiles} from './config';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import { PayloadAction } from '@reduxjs/toolkit';
-import {plinkEnv} from './utils/misc';
+import { ActionCreatorWithPayload, PayloadAction } from '@reduxjs/toolkit';
+import {plinkEnv, closestCommonParentDir} from './utils/misc';
 
-const {workDir, distDir} = plinkEnv;
+const {workDir, distDir, rootDir: rootPath} = plinkEnv;
 
 
 // import Selector from './utils/ts-ast-query';
 const log = log4js.getLogger('plink.editor-helper');
 const {parse} = require('comment-json');
-const rootPath = getRootDir();
 interface EditorHelperState {
   /** tsconfig files should be changed according to linked packages state */
   tsconfigByRelPath: Map<string, HookedTsconfig>;
+  /** problematic symlinks which must be removed before running
+   * node_modules symlink is under source package directory, it will not work with "--preserve-symlinks",
+   * in which case, Node.js will regard a workspace node_module and its symlink inside source package as
+   * twe different directory, and causes problem
+   */
+  nodeModuleSymlinks?: Set<string>;
 }
 
 interface HookedTsconfig {
@@ -45,6 +51,7 @@ const slice = stateFactory.newSlice({
   name: 'editor-helper',
   initialState,
   reducers: {
+    clearSymlinks(s) {},
     hookTsconfig(s, {payload}: PayloadAction<string[]>) {},
     unHookTsconfig(s, {payload}: PayloadAction<string[]>) {
       for (const file of payload) {
@@ -52,29 +59,87 @@ const slice = stateFactory.newSlice({
         s.tsconfigByRelPath.delete(relPath);
       }
     },
-    unHookAll() {}
+    unHookAll() {},
+    clearSymlinksDone(S) {}
   }
 });
 
 export const dispatcher = stateFactory.bindActionCreators(slice);
 
 stateFactory.addEpic<EditorHelperState>((action$, state$) => {
+  let noModuleSymlink: Set<string>;
+
   return rx.merge(
-    new rx.Observable(sub => {
-      // if (getPkgState().linkedDrcp) {
-      const plinkDir = getPkgState().linkedDrcp || getPkgState().installedDrcp!;
-      const file = Path.resolve(plinkDir.realPath, 'wfh/tsconfig.json');
-      const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
-      if (!getState().tsconfigByRelPath.has(relPath)) {
-        process.nextTick(() => dispatcher.hookTsconfig([file]));
-      }
-      // }
-      sub.complete();
-    }),
+    pkgStore().pipe(
+      filterEffect(s => [s.linkedDrcp, s.installedDrcp]),
+      op.filter(([linkedDrcp, installedDrcp]) => linkedDrcp != null || installedDrcp != null),
+      op.map(([linkedDrcp, installedDrcp]) => {
+        // if (getPkgState().linkedDrcp) {
+        const plinkDir = linkedDrcp || installedDrcp!;
+        const file = Path.resolve(plinkDir.realPath, 'wfh/tsconfig.json');
+        const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
+        if (!getState().tsconfigByRelPath.has(relPath)) {
+          process.nextTick(() => dispatcher.hookTsconfig([file]));
+        }
+        return rx.EMPTY;
+      })
+    ),
+    action$.pipe(ofPayloadAction(pkgSlice.actions._setCurrentWorkspace),
+      op.concatMap(({payload: wsKey}) => {
+        if (wsKey == null)
+          return rx.EMPTY;
+        if (noModuleSymlink == null) {
+          noModuleSymlink = new Set();
+          for (const projDir of getPkgState().project2Packages.keys()) {
+            const rootPkgJson = require(Path.resolve(plinkEnv.rootDir, projDir, 'package.json')) as {plink?: {noModuleSymlink?: string[]}};
+            for (const dir of (rootPkgJson.plink?.noModuleSymlink || []).map(item => Path.resolve(plinkEnv.rootDir, projDir, item))) {
+              noModuleSymlink.add(dir);
+            }
+          }
+        }
+
+        const currWorkspaceDir = workspaceDir(wsKey);
+        return rx.from(_recp.allSrcDirs()).pipe(
+          op.map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir) : item.srcDir),
+          op.filter(dir => !noModuleSymlink.has(dir)),
+          op.mergeMap(destDir => {
+            if (fs.existsSync(Path.join(destDir, 'package.json'))) {
+              dispatcher._change(s => {
+                if (s.nodeModuleSymlinks == null)
+                  s.nodeModuleSymlinks = new Set([Path.join(destDir, 'node_modules')]);
+                else
+                  s.nodeModuleSymlinks.add(Path.join(destDir, 'node_modules'));
+              });
+            }
+            return rx.of({name: 'node_modules', realPath: Path.join(currWorkspaceDir, 'node_modules')}).pipe(
+              symbolicLinkPackages(destDir)
+            );
+          })
+        );
+      })
+    ),
+    action$.pipe(ofPayloadAction(slice.actions.clearSymlinks),
+      op.concatMap(() => {
+        return rx.from(_recp.allSrcDirs()).pipe(
+          op.map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir, 'node_modules') :
+            Path.resolve(item.srcDir, 'node_modules')),
+          op.mergeMap(dir => {
+            return rx.from(fs.promises.lstat(dir)).pipe(
+              op.filter(stat => stat.isSymbolicLink()),
+              op.mergeMap(stat => {
+                log.info('remove symlink ' + dir);
+                return fs.promises.unlink(dir);
+              })
+            );
+          }),
+          op.finalize(() => dispatcher.clearSymlinksDone())
+        );
+      })
+    ),
     action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceChanged),
       op.concatMap(async ({payload: wsKeys}) => {
         const wsDir = isCwdWorkspace() ? workDir :
-          getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
+          getPkgState().currWorkspace ? Path.resolve(rootPath, getPkgState().currWorkspace!)
           : undefined;
         await writePackageSettingType();
         updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
@@ -91,7 +156,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
         const backupFile = backupTsConfigOf(file);
         const isBackupExists = fs.existsSync(backupFile);
         const fileContent = isBackupExists ? fs.readFileSync(backupFile, 'utf8') : fs.readFileSync(file, 'utf8');
-        const json: {compilerOptions: CompilerOptions} = JSON.parse(fileContent);
+        const json = JSON.parse(fileContent) as {compilerOptions: CompilerOptions};
         const data: HookedTsconfig = {
           relPath,
           baseUrl: json.compilerOptions.baseUrl,
@@ -105,7 +170,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
           fs.writeFileSync(backupFile, fileContent);
         }
         const wsDir = isCwdWorkspace() ? workDir :
-          getPkgState().currWorkspace ? Path.resolve(getRootDir(), getPkgState().currWorkspace!)
+          getPkgState().currWorkspace ? Path.resolve(rootPath, getPkgState().currWorkspace!)
           : undefined;
         return updateHookedTsconfig(data, wsDir);
       })
@@ -136,6 +201,10 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
   );
 });
 
+export function getAction$(type: keyof (typeof slice)['caseReducers']) {
+  return action$Of(stateFactory, slice.actions[type] as ActionCreatorWithPayload<any, any>);
+}
+
 export function getState() {
   return stateFactory.sliceState(slice);
 }
@@ -154,7 +223,7 @@ function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
     return;
 
   const projectDirs = getProjectList();
-  const workspaceDir = Path.resolve(getRootDir(), wsKey);
+  const workspaceDir = Path.resolve(rootPath, wsKey);
 
   const recipeManager = require('./recipe-manager') as typeof _recp;
 
@@ -181,7 +250,7 @@ function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
     if (pathToProjKey(proj) === getPkgState().linkedDrcpProject) {
       include.push('main/wfh/**/*.ts');
     }
-    include.push('dist/*.d.ts');
+    include.push('dist/*.package-settings.d.ts');
     const tsconfigFile = createTsConfig(proj, srcRootDir, workspaceDir, {},
       // {'_package-settings': [Path.relative(proj, packageSettingDtsFileOf(workspaceDir))
       //   .replace(/\\/g, '/')
@@ -196,8 +265,8 @@ function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
       ]
     });
     updateGitIgnores({
-      file: Path.resolve(getRootDir(), '.gitignore'),
-      lines: [Path.relative(getRootDir(), Path.resolve(workspaceDir, 'types')).replace(/\\/g, '/')]
+      file: Path.resolve(rootPath, '.gitignore'),
+      lines: [Path.relative(rootPath, Path.resolve(workspaceDir, 'types')).replace(/\\/g, '/')]
     });
   }
 }
@@ -215,16 +284,16 @@ function writePackageSettingType() {
       body += `  '${pkg.name}': ${typeName};\n`;
     }
     body += '}\n';
-    const workspaceDir = Path.resolve(getRootDir(), wsKey);
+    // const workspaceDir = Path.resolve(rootPath, wsKey);
     const file = Path.join(distDir, wsKey + '.package-settings.d.ts');
     log.info(`write setting file: ${chalk.blue(file)}`);
     done[i++] = fs.promises.writeFile(file, header + body);
-    const dir = Path.dirname(file);
-    const srcRootDir = closestCommonParentDir([
-      dir,
-      closestCommonParentDir(Array.from(packages4WorkspaceKey(wsKey)).map(pkg => pkg.realPath))
-    ]);
-    createTsConfig(dir, srcRootDir, workspaceDir, {}, ['*.ts']);
+    // const dir = Path.dirname(file);
+    // const srcRootDir = closestCommonParentDir([
+    //   dir,
+    //   closestCommonParentDir(Array.from(packages4WorkspaceKey(wsKey)).map(pkg => pkg.realPath))
+    // ]);
+    // createTsConfig(dir, srcRootDir, workspaceDir, {}, ['*.ts']);
   }
   return Promise.all(done);
 }
@@ -241,9 +310,10 @@ function writePackageSettingType() {
 function createTsConfig(proj: string, srcRootDir: string, workspace: string,
   extraPathMapping: {[path: string]: string[]},
   include = ['**/*.ts']) {
-  const tsjson: any = {
-    extends: null,
-    include
+  const tsjson: {extends?: string; include: string[]; exclude: string[]; compilerOptions?: Partial<CompilerOptions>} = {
+    extends: undefined,
+    include,
+    exclude: ['**/node_modules', '**/node_modules.*']
   };
   const drcpDir = (getPkgState().linkedDrcp || getPkgState().installedDrcp)!.realPath;
   // tsjson.include = [];
@@ -285,7 +355,7 @@ function backupTsConfigOf(file: string) {
 
 async function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string) {
   const file = Path.isAbsolute(data.relPath) ? data.relPath :
-    Path.resolve(getRootDir(), data.relPath);
+    Path.resolve(rootPath, data.relPath);
   const tsconfigDir = Path.dirname(file);
   const backup = backupTsConfigOf(file);
 

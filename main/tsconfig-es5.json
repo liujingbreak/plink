@@ -1,0 +1,21 @@
+{
+	"extends": "./wfh/tsconfig-base.json",
+	"compilerOptions": {
+		"target": "es5",
+		"outDir": "wfh/dist-es5",
+		"downlevelIteration": true,
+		"declaration": true,
+		"composite": true,
+		"strict": true
+	},
+	"references": [
+		{"path": "tsconfig-redux-toolkit-es.json"}
+	],
+	"files": [
+		"wfh/ts/base-LLn-parser.ts",
+		"wfh/ts/utils/graph.ts",
+		"wfh/ts/utils/algorithms.ts",
+		"wfh/ts/utils/data-structures.ts"
+	],
+	"include": []
+}

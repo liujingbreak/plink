@@ -1,7 +1,7 @@
 import { createTransport } from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import {Observable, BehaviorSubject } from 'rxjs';
-import { map, /*concatMap, takeWhile, takeLast, mapTo,*/ tap, distinctUntilChanged
+import { map, /* concatMap, takeWhile, takeLast, mapTo,*/ tap, distinctUntilChanged
   // skip, filter, take
 } from 'rxjs/operators';
 import { connect as tslConnect, ConnectionOptions, TLSSocket } from 'tls';
@@ -9,15 +9,16 @@ import fs from 'fs-extra';
 import * as _ from 'lodash';
 import Path from 'path';
 import {Checksum, WithMailServerConfig} from './fetch-types';
+import {log4File, config} from '@wfh/plink';
+import __plink from '__plink';
 import {createServerDataHandler, parseLinesOfTokens, ImapTokenType, StringLit} from './mail/imap-msg-parser';
-import api from '__api';
 import { LookAhead, Token } from '@wfh/plink/wfh/dist/async-LLn-parser';
 import {parse as parseRfc822, RCF822ParseResult} from './mail/rfc822-sync-parser';
 
 // import {Socket} from 'net';
-const log = require('log4js').getLogger(api.packageName + '.fetch-remote-imap');
+const log = log4File(__filename);
 
-const setting = api.config.get(api.packageName) as WithMailServerConfig;
+const setting = config()['@wfh/assets-processer'];
 const env = setting.fetchMailServer ? setting.fetchMailServer.env : 'local';
 
 
@@ -98,7 +99,7 @@ export interface ImapCommandContext {
   findMail(fromIndx: number, subject: string): Promise<number | undefined>;
   waitForFetch(mailIdx: string | number, headerOnly?: boolean, overrideFileName?: string): Promise<ImapFetchData>;
   waitForFetchText(index: number): Promise<string | undefined>;
-  appendMail(subject: string, content: string): Promise<void|null>;
+  appendMail(subject: string, content: string): Promise<void | null>;
 }
 
 /**
@@ -162,7 +163,7 @@ export async function connectImap(callback: (context: ImapCommandContext) => Pro
     })
   ).subscribe();
 
-  let socket: TLSSocket|undefined;
+  let socket: TLSSocket | undefined;
   try {
     socket = await new Promise<ReturnType<typeof tslConnect>>((resolve, reject) => {
       const socket = tslConnect({
@@ -403,7 +404,7 @@ export class ImapManager {
       this.fileWritingState = ctx.fileWritingState;
 
       const cs = await this._fetchChecksum(ctx);
-      this.checksumState.next(cs!);
+      this.checksumState.next(cs);
 
       const toFetchApps = this.toFetchAppsState.getValue();
       if (toFetchApps.length > 0) {
@@ -444,7 +445,7 @@ export class ImapManager {
     if (idx == null) {
       return [];
     }
-    const jsonStr = await ctx.waitForFetchText(idx!);
+    const jsonStr = await ctx.waitForFetchText(idx);
     if (jsonStr == null) {
       throw new Error('Empty JSON text');
     }
@@ -456,7 +457,7 @@ export class ImapManager {
 export async function testMail(imap: string, user: string, loginSecret: string) {
   log.debug = log.info;
   if (imap)
-    api.config.set([api.packageName, 'fetchMailServer'], {
+    config.set([__plink.packageName, 'fetchMailServer'], {
       imap, user, loginSecret
     } as WithMailServerConfig['fetchMailServer']);
   await connectImap(async ctx => {

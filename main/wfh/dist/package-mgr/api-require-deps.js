@@ -1,9 +1,0 @@
-/**
- * If a source code package uses Plink's __plink API ( like `.logger`) or extends Plink's command line,
- * they need ensure some Plink's dependencies are installed as 1st level dependency in their workspace,
- * otherwise Visual Code Editor can not find correct type definitions while referencing Plink's logger or
- * Command interface.
- *
- * So I need to make sure these dependencies are installed in each workspace
- */
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiYXBpLXJlcXVpcmUtZGVwcy5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3RzL3BhY2thZ2UtbWdyL2FwaS1yZXF1aXJlLWRlcHMudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUE7Ozs7Ozs7R0FPRyIsInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogSWYgYSBzb3VyY2UgY29kZSBwYWNrYWdlIHVzZXMgUGxpbmsncyBfX3BsaW5rIEFQSSAoIGxpa2UgYC5sb2dnZXJgKSBvciBleHRlbmRzIFBsaW5rJ3MgY29tbWFuZCBsaW5lLFxuICogdGhleSBuZWVkIGVuc3VyZSBzb21lIFBsaW5rJ3MgZGVwZW5kZW5jaWVzIGFyZSBpbnN0YWxsZWQgYXMgMXN0IGxldmVsIGRlcGVuZGVuY3kgaW4gdGhlaXIgd29ya3NwYWNlLFxuICogb3RoZXJ3aXNlIFZpc3VhbCBDb2RlIEVkaXRvciBjYW4gbm90IGZpbmQgY29ycmVjdCB0eXBlIGRlZmluaXRpb25zIHdoaWxlIHJlZmVyZW5jaW5nIFBsaW5rJ3MgbG9nZ2VyIG9yXG4gKiBDb21tYW5kIGludGVyZmFjZS5cbiAqIFxuICogU28gSSBuZWVkIHRvIG1ha2Ugc3VyZSB0aGVzZSBkZXBlbmRlbmNpZXMgYXJlIGluc3RhbGxlZCBpbiBlYWNoIHdvcmtzcGFjZVxuICovXG5cbiJdfQ==

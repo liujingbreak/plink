@@ -16,7 +16,26 @@ export declare function initConfig(options: GlobalOptions): import("..").DrcpCon
  * DO NOT fork a child process on this function
  * @param onShutdownSignal
  */
-export declare function initProcess(onShutdownSignal?: () => void | Promise<any>): void;
+export declare function initProcess(saveState?: boolean, onShutdownSignal?: () => void | Promise<any>): import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<{
+    actionOnExit: "none" | "save" | "send";
+    stateChangeCount: number;
+}, {
+    changeActionOnExit(s: {
+        actionOnExit: "none" | "save" | "send";
+        stateChangeCount: number;
+    }, mode: "none" | "save" | "send"): void;
+    processExit(s: {
+        actionOnExit: "none" | "save" | "send";
+        stateChangeCount: number;
+    }): void;
+    storeSaved(s: {
+        actionOnExit: "none" | "save" | "send";
+        stateChangeCount: number;
+    }): void;
+}> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<{
+    actionOnExit: "none" | "save" | "send";
+    stateChangeCount: number;
+}>>;
 /**
  * Initialize redux-store for Plink.
  *
@@ -27,4 +46,4 @@ export declare function initProcess(onShutdownSignal?: () => void | Promise<any>
  *  sends a signal to exit
  * @param syncState send changed state back to main process
  */
-export declare function initAsChildProcess(syncState?: boolean, onShutdownSignal?: () => void | Promise<any>): void;
+export declare function initAsChildProcess(saveState?: boolean, onShutdownSignal?: () => void | Promise<any>): void;

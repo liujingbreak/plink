@@ -1,16 +1,14 @@
-import express = require('express');
 import * as rx from 'rxjs';
-import {Request, Response, NextFunction, Application} from 'express';
+import express, {Request, Response, NextFunction, Application} from 'express';
 import * as Path from 'path';
 import * as fs from 'fs';
 // var favicon = require('serve-favicon');
-import * as log4js from 'log4js';
 import {logger, ExtensionContext} from '@wfh/plink';
-const cookieParser = require('cookie-parser');
 import bodyParser from 'body-parser';
-const engines = require('consolidate');
 import {setupApi, applyPackageDefinedAppSetting, createPackageDefinedRouters} from './routes';
 import api from '__api';
+const cookieParser = require('cookie-parser');
+const engines = require('consolidate');
 const log = logger.getLogger('@wfh/express-app');
 const compression = require('compression');
 // var swigInjectLoader = require('swig-package-tmpl-loader');
@@ -22,7 +20,6 @@ var app: express.Express;
 const expressAppReady$ = new rx.ReplaySubject<Application>(1);
 
 export = {
-
   activate(api: ExtensionContext) {
     app = express();
     setupApi(api, app);
@@ -74,7 +71,7 @@ function create(app: express.Express, setting: any) {
   // uncomment after placing your favicon in /public
   // app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
   // app.use(logger('dev'));
-  app.use(log4js.connectLogger(log, {
+  app.use(logger.connectLogger(log, {
     level: 'DEBUG'
   }));
   app.use(bodyParser.json({
@@ -121,7 +118,7 @@ function create(app: express.Express, setting: any) {
     // const err = new Error('Not Found');
     res.status(404);
     // next(err);
-    log.info(`Not found: ${req.originalUrl}, UA: "${req.header('user-agent')}"`);
+    log.info(`Not found: ${req.originalUrl}, UA: "${req.header('user-agent') as string}"`);
     res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
       message: 'Sorry, page is not found',
       error: null
@@ -132,7 +129,7 @@ function create(app: express.Express, setting: any) {
   // will print stacktrace
   if (setting.devMode || app.get('env') === 'development') {
     app.use(function(err: any, req: Request, res: Response, next: NextFunction) {
-      res.status((err as any).status || 500);
+      res.status((err ).status || 500);
       log.error(req.originalUrl, err.inspect ? err.inspect() : err);
       res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
         message: err.message,

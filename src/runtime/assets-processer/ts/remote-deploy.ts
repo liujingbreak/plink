@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import fs from 'fs-extra';
-import _gulp from 'gulp';
 import {ZipFile} from 'yazl';
 import glob from 'glob';
 import { resolve } from 'path';

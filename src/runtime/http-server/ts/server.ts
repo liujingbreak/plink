@@ -2,40 +2,36 @@ import * as http from 'http';
 import * as https from 'https';
 import * as fs from 'fs';
 import * as Path from 'path';
-// var Promise = require('bluebird');
-import * as log4js from 'log4js';
 import api from '__api';
 import {getLanIPv4} from '@wfh/plink/wfh/dist/utils/network-util';
+import {log4File} from '@wfh/plink';
 
-const log = log4js.getLogger(api.packageName);
+const log = log4File(__filename);
 var server: https.Server | http.Server;
 
-let healthCheckServer: any;
+let healthCheckServer: {startServer(): void; endServer(): void} | undefined;
 try {
   healthCheckServer = api.config.get(api.packageName + '.noHealthCheck', false) ?
     false : require('@bk/bkjk-node-health-server');
-} catch(e) {
-  if(e.code === 'MODULE_NOT_FOUND') {
+} catch (e) {
+  if (e.code === 'MODULE_NOT_FOUND') {
     log.info('@bk/bkjk-node-health-server is not found, skip it.');
   }
 }
 
-if(healthCheckServer) {
-  initHealthServer();
-}
-
-function initHealthServer() {
+if (healthCheckServer) {
   const startHealthServer = () => {
     log.info('start Health-check Server');
-    healthCheckServer.startServer();
+    healthCheckServer!.startServer();
   };
   const endHealthServer = () => {
     log.info('Health-check Server is shut');
-    healthCheckServer.endServer();
+    healthCheckServer!.endServer();
   };
   api.eventBus.on('serverStarted', startHealthServer);
   api.eventBus.on('serverStopped', endHealthServer);
 }
+
 
 export function activate() {
   const config = api.config;
@@ -94,7 +90,7 @@ export function activate() {
     let port: number | string = sslSetting.port ? sslSetting.port : 433;
     let httpPort = config().port ? config().port : 80;
 
-    port = typeof(port) === 'number' ? port : normalizePort(port as string);
+    port = typeof(port) === 'number' ? port : normalizePort(port );
     server = https.createServer({
       key: fs.readFileSync(Path.resolve(rootPath, sslSetting.key)),
       cert: fs.readFileSync(Path.resolve(rootPath, sslSetting.cert))
@@ -133,7 +129,7 @@ export function activate() {
       }));
     }
 
-    Promise.all(startPromises)
+    void Promise.all(startPromises)
     .then((servers: any[]) => {
       onListening(servers[0], 'HTTPS server', port);
       if (servers.length > 1)
@@ -143,7 +139,7 @@ export function activate() {
   }
 
   function normalizePort(val: string): number | string {
-    const port = parseInt(val as string, 10);
+    const port = parseInt(val , 10);
     if (isNaN(port)) {
       // named pipe
       return val;

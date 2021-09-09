@@ -1,0 +1,19 @@
+{
+	"extends": "./wfh/tsconfig-base.json",
+	"compilerOptions": {
+    "rootDir": "packages/redux-toolkit-observable",
+		"target": "es5",
+    "outDir": "packages/redux-toolkit-observable/dist",
+    "declaration": true,
+    "composite": true
+  },
+  "include": [
+    "packages/redux-toolkit-observable/*.ts"
+  ],
+  "exclude": [
+    "packages/redux-toolkit-observable/es/**/*.ts",
+    "packages/redux-toolkit-observable/dist/**/*.ts",
+    "packages/redux-toolkit-observable/example/**/*.ts",
+    "packages/redux-toolkit-observable/template/**/*.ts"
+  ]
+}

@@ -1,6 +1,6 @@
 import {PlinkEnv} from '../node-path';
 import Path from 'path';
-import {stateFactory} from '../store';
+import {stateFactory, processExitAction$} from '../store';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
@@ -9,6 +9,7 @@ import log4js from 'log4js';
 import {isMainThread, threadId} from 'worker_threads';
 import {getLanIPv4} from '../utils/network-util';
 import {PackagesConfig} from 'package-settings';
+
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 export type BasePlinkSettings = {
   /** Node.js server port number */
@@ -118,7 +119,7 @@ stateFactory.addEpic<{config: BasePlinkSettings}>((action$, state$) => {
       }),
       op.take(1)
     ),
-    action$.pipe(op.filter(action => action.type === 'BEFORE_SAVE_STATE'),
+    processExitAction$.pipe(
       op.tap(() => dispatcher._change(s => {
         s.cliOptions = undefined;
         s.view = undefined;

@@ -2,7 +2,7 @@
 /* eslint-disable max-len */
 import commander from 'commander';
 import chalk from 'chalk';
-// import * as store from '../store';
+import * as op from 'rxjs/operators';
 import * as tp from './types';
 import * as pkgMgr from '../package-mgr';
 // import '../tsc-packages-slice';
@@ -183,6 +183,9 @@ function subComands(program: commander.Command) {
     // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
     .action(async () => {
       const scanNodeModules = (require('../utils/symlinks') as typeof _symlinks).default;
+      const editor = await import('../editor-helper');
+      editor.dispatcher.clearSymlinks();
+      await editor.getAction$('clearSymlinksDone').pipe(op.take(1)).toPromise();
       await scanNodeModules(undefined, 'all');
     });
 

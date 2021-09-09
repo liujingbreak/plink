@@ -10,6 +10,7 @@ import log4js from 'log4js';
 import stripAnsi from 'strip-ansi';
 import Path from 'path';
 import {plinkEnv} from '../utils/misc';
+export {commander};
 
 const log = log4js.getLogger('plink.override-commander');
 
@@ -270,7 +271,7 @@ export class PlinkCommand extends commander.Command {
   }
 }
 
-export type CliExtension = (program: commander.Command) => void;
+export type CliExtension = (program: PlinkCommand) => void;
 
 class PlinkCmdOption extends commander.Option {
   optionStyler?: (cmdName: string) => string;

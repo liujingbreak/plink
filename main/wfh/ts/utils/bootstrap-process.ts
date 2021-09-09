@@ -4,29 +4,18 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
+import * as op from 'rxjs/operators';
 
 const log = log4js.getLogger('plink.bootstrap-process');
 
 process.on('uncaughtException', function(err) {
-  // log.error('Uncaught exception', err, err.stack);
   log.error('Uncaught exception: ', err);
   throw err; // let PM2 handle exception
 });
 
 process.on('unhandledRejection', err => {
-  // log.warn('unhandledRejection', err);
   log.error('unhandledRejection', err);
 });
-
-// const log = log4js.getLogger('bootstrap-process');
-
-// export async function initConfigAsync(options: GlobalOptions) {
-//   // initProcess(onShutdownSignal);
-//   await config.init(options);
-//   // logConfig(config());
-//   return config;
-// }
-
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
  * If this function is called from a child process or thread worker of Plink,
@@ -48,7 +37,7 @@ export function initConfig(options: GlobalOptions) {
  * DO NOT fork a child process on this function
  * @param onShutdownSignal 
  */
-export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
+export function initProcess(saveState = true, onShutdownSignal?: () => void | Promise<any>) {
   process.on('SIGINT', function() {
     // eslint-disable-next-line no-console
     log.info('pid ' + process.pid + ': bye');
@@ -63,17 +52,25 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
     }
   });
 
-  const {saveState, stateFactory, startLogging} = require('../store') as typeof store;
+  const {dispatcher, storeSavedAction$, stateFactory, startLogging} = require('../store') as typeof store;
+
   startLogging();
   stateFactory.configureStore();
+
+  if (!saveState) {
+    dispatcher.changeActionOnExit('none');
+  }
 
   async function onShut() {
     if (onShutdownSignal) {
       await Promise.resolve(onShutdownSignal);
     }
-    await saveState();
+    const saved = storeSavedAction$.pipe(op.take(1)).toPromise();
+    dispatcher.processExit();
+    await saved;
     setImmediate(() => process.exit(0));
   }
+  return dispatcher;
 }
 
 /**
@@ -86,13 +83,13 @@ export function initProcess(onShutdownSignal?: () => void | Promise<any>) {
  *  sends a signal to exit
  * @param syncState send changed state back to main process
  */
-export function initAsChildProcess(syncState = false, onShutdownSignal?: () => void | Promise<any>) {
-  const {saveState, stateFactory, startLogging, setSyncStateToMainProcess} = require('../store') as typeof store;
+export function initAsChildProcess(saveState = false, onShutdownSignal?: () => void | Promise<any>) {
+  const {stateFactory, startLogging, dispatcher} = require('../store') as typeof store;
   process.on('SIGINT', function() {
     // eslint-disable-next-line no-console
     if (onShutdownSignal) {
       void Promise.resolve(onShutdownSignal)
-      .then(() => saveState())
+      .then(() => dispatcher.processExit())
       .finally(() => {
         log.info('bye');
         setImmediate(() => process.exit(0));
@@ -103,28 +100,8 @@ export function initAsChildProcess(syncState = false, onShutdownSignal?: () => v
     }
   });
 
-  let needSaveState = process.env.__plink_save_state === '1';
-  if (needSaveState) {
-    process.env.__plink_save_state = '0';
-  }
-
   startLogging();
-  if (syncState && !needSaveState) {
-    setSyncStateToMainProcess(true);
-  }
   stateFactory.configureStore();
+  if (saveState)
+    dispatcher.changeActionOnExit('save');
 }
-
-// export function forkCli(cliArgs: string[], opts: ForkOptions = {}) {
-//   const cp = fork(require.resolve('../cmd-bootstrap'), cliArgs, {...opts, stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
-//   cp.on('message', (msg) => {
-//     if (store.isStateSyncMsg(msg)) {
-//       log.info('Recieve state sync message from forked process');
-//       store.stateFactory.actionsToDispatch.next({type: '::syncState', payload(state: any) {
-//         return eval('(' + msg.data + ')');
-//       }});
-//     }
-//   });
-//   return cp;
-// }
-

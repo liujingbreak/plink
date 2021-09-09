@@ -16,12 +16,12 @@ export declare const tscSlice: import("@reduxjs/toolkit").Slice<TscState, {
         pkg: string;
         items: PackageJsonTscPropertyItem[];
     }[]>): void;
-} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<TscState>, "tsc">;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<TscState>, "tsc">;
 export declare const tscActionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     putConfig(draft: import("immer/dist/internal").WritableDraft<TscState>, { payload }: PayloadAction<{
         pkg: string;
         items: PackageJsonTscPropertyItem[];
     }[]>): void;
-} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<TscState>>;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<TscState>>;
 export declare function getState(): TscState;
 export declare function getStore(): Observable<TscState>;

@@ -1,4 +1,4 @@
-import {stateFactory, ofPayloadAction} from '../store';
+import {stateFactory, ofPayloadAction, processExitAction$} from '../store';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {getPackageSettingFiles} from './index';
@@ -6,7 +6,7 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import Path from 'path';
 import {PropertyMeta} from './config.types';
 // import Selector from '../utils/ts-ast-query';
-import {Pool} from '../../../thread-promise-pool/dist';
+import {Pool} from '../../../packages/thread-promise-pool/dist';
 import {getState as getPkgMgrState, PackageInfo} from '../package-mgr';
 import os from 'os';
 import {getLogger} from 'log4js';
@@ -91,7 +91,7 @@ stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
         dispatcher.packageSettingsMetaLoaded();
       })
     ),
-    action$.pipe(op.filter(action => action.type === 'BEFORE_SAVE_STATE'),
+    processExitAction$.pipe(
       op.tap(() => dispatcher._change(s => {
         s.packageMetaByName.clear();
         s.propertyByName.clear();

@@ -1,10 +1,10 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import {createReducers} from '../../../redux-toolkit-observable/dist/helper';
+import {createReducers} from '../../../packages/redux-toolkit-observable/dist/helper';
 import { from, merge, of } from 'rxjs';
 // import {cliActionDispatcher, getStore, cliSlice, CliExtension} from './cli-slice';
 import * as op from 'rxjs/operators';
 import * as pkgMgr from '../package-mgr';
-import { stateFactory } from '../store';
+import { stateFactory, processExitAction$ } from '../store';
 import {OurCommandMetadata} from './types';
 export interface CliState {
   /** key is package name, value is Command name and args */
@@ -89,7 +89,7 @@ stateFactory.addEpic((action$, state$) => {
         }
       })
     ),
-    action$.pipe(op.filter(action => action.type === 'BEFORE_SAVE_STATE'),
+    processExitAction$.pipe(
       op.tap(() => cliActionDispatcher._change(s => {
         s.commandByPackage.clear();
         s.commandInfoByName.clear();

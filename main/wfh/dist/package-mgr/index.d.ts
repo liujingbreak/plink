@@ -163,7 +163,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
-} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
     initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<NpmOptions>): void;
@@ -236,7 +236,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
-} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
     file: string;
     lines: string[];

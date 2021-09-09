@@ -5,16 +5,18 @@
   "private": true,
   "packages": [
     "src",
-    "main/redux-toolkit-observable",
-    "main/thread-promise-pool",
+    "main/packages",
     "doc-app",
     "server-tool-space/conf",
     "conf"
   ],
+  "plink": {
+    "noModuleSymlink": ["main/packages"]
+  },
   "scripts": {
     "lint-wfh": "eslint -c main/.eslintrc.js --ext .ts main/wfh/ts",
-    "lint-redux": "eslint -c main/.eslintrc.js --ext .ts main/redux-toolkit-observable",
-    "lint-thread": "eslint -c main/.eslintrc.js --ext .ts main/thread-promise-pool",
+    "lint-redux": "eslint -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",
+    "lint-thread": "eslint -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
     "lint-main-file": "eslint -c main/.eslintrc.js",
     "lint-other": "eslint -c .eslintrc.js"
   },

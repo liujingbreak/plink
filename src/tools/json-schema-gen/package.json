@@ -1,6 +1,6 @@
 {
   "name": "@wfh/json-schema-gen",
-  "version": "1.0.20",
+  "version": "1.1.0-0",
   "description": "Generate json-schemas from your Typescript source inside each package",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "typescript-json-schema": "~0.42.0"
+    "typescript-json-schema": "~0.42.0",
+    "glob": "^7.1.2"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.1"
   },
   "author": "LJ",
   "license": "MIT"

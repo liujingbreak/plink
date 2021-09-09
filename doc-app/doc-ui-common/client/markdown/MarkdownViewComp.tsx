@@ -1,7 +1,7 @@
 import React from 'react';
 // import classnames from 'classnames/bind';
 import 'github-markdown-css/github-markdown.css';
-import './MarkdownViewComp.module.scss';
+import styles from './MarkdownViewComp.module.scss';
 import {getState, dispatcher} from './markdownSlice';
 import {connect} from 'react-redux';
 import unescape from 'lodash/unescape';
@@ -55,6 +55,7 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
         containerDom.querySelectorAll('.language-mermaid').forEach(async el => {
           el.id = 'mermaid-diagram-' + mermaidIdSeed++;
           const container = document.createElement('div');
+          container.className = styles.mermaidDiagram;
           el.parentElement!.insertBefore(container, el);
           // TODO: can been moved to a Worker !!
           const svgStr = await drawMermaidDiagram(el.id, unescape(el.innerHTML));
@@ -105,7 +106,7 @@ async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promis
   if (!mermaidInited) {
     mermaid.initialize({
       securityLevel: 'loose',
-      startOnLoad:false
+      startOnLoad: false
     });
   }
 

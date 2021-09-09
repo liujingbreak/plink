@@ -4,6 +4,7 @@ import {Pool} from '@wfh/thread-promise-pool';
 import {TOC} from '../isom/md-types';
 import path from 'path';
 import {log4File} from '@wfh/plink';
+import replaceCode, {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
 import util from 'util';
 import _ from 'lodash';
 import parse5, {ChildNode, Element, TextNode} from 'parse5';
@@ -34,8 +35,15 @@ export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) =
 
       toc = createTocTree(toc);
       return rx.merge(...done).pipe(
-        op.count(),
-        op.mapTo({ toc, content: html }),
+        op.reduce<ReplacementInf, ReplacementInf[]>((acc, item) => {
+          acc.push(item);
+          return acc;
+        }, [] as ReplacementInf[]),
+        op.map(all => {
+          const content = replaceCode(html, all);
+          // log.warn(html, '\n=>\n', content);
+          return { toc, content };
+        }),
         op.catchError(err => {
           log.error(err);
           // cb(err, JSON.stringify({ toc, content: source }), sourceMap);
@@ -49,7 +57,7 @@ export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) =
 function dfsAccessElement(root: parse5.Document, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
 toc: TOC[] = []) {
   const chr = new rx.BehaviorSubject<ChildNode[]>(root.childNodes || []);
-  const done: (rx.Observable<string> | Promise<string>)[] = [];
+  const done: (rx.Observable<ReplacementInf>)[] = [];
 
   chr.pipe(
     op.mergeMap(children => rx.from(children))
@@ -65,10 +73,10 @@ toc: TOC[] = []) {
           log.info('found img src=' + imgSrc.value);
           done.push(rx.from(resolveImage(imgSrc.value))
           .pipe(
-            op.tap(resolved => {
-              // el.sourceCodeLocation
-              // imgQ.attr('src', resolved);
+            op.map(resolved => {
+              const srcPos = el.sourceCodeLocation!.attrs.src;
               log.info(`resolve ${imgSrc.value} to ${util.inspect(resolved)}`);
+              return {start: srcPos.startOffset + 'src'.length + 1, end: srcPos.endOffset, text: resolved};
             })
           ));
         }

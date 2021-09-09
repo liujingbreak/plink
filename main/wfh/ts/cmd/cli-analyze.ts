@@ -11,7 +11,7 @@ import {merge} from 'rxjs';
 import {Context} from './cli-analyse-worker';
 import {createCliTable} from '../utils/misc';
 import log4js from 'log4js';
-import {Pool} from '../../../thread-promise-pool/dist';
+import {Pool} from '../../../packages/thread-promise-pool/dist';
 import chalk from 'chalk';
 import {findPackagesByNames} from './utils';
 import {getState} from '../package-mgr';

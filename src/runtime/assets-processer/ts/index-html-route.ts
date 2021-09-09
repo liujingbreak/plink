@@ -1,13 +1,13 @@
 import {createProxyMiddleware as proxy, Options} from 'http-proxy-middleware';
-import {NextFunction, Request} from 'express';
+import express from '@wfh/express-app/dist/express';
 import api from '__api';
 import _ from 'lodash';
 // import Url from 'url';
 import {log4File, config as plinkConfig} from '@wfh/plink';
 import {getSetting} from '../isom/assets-processer-setting';
 const log = log4File(__filename);
-interface ReqWithNextCb extends Request {
-  __goNext: NextFunction;
+interface ReqWithNextCb extends express.Request {
+  __goNext: express.NextFunction;
 }
 export function proxyToDevServer() {
   // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');

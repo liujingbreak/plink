@@ -3,7 +3,6 @@ import fs from 'fs-extra';
 import _ from 'lodash';
 import Path from 'path';
 import serveIndex from 'serve-index';
-import api from '__api';
 import { activate as activateCd } from './content-deployer/cd-server';
 import * as fetchRemote from './fetch-remote';
 import { ImapManager } from './fetch-remote-imap';
@@ -12,7 +11,7 @@ import { fallbackIndexHtml, proxyToDevServer } from './index-html-route';
 import { createStaticRoute } from './static-middleware';
 import { setupHttpProxy } from './utils';
 import {getSetting} from '../isom/assets-processer-setting';
-import {log4File, config, DrcpSettings, findPackagesByNames} from '@wfh/plink';
+import {log4File, config, DrcpSettings, findPackagesByNames, ExtensionContext} from '@wfh/plink';
 const log = log4File(__filename);
 // const log = require('log4js').getLogger(api.packageName);
 const serverFavicon = require('serve-favicon');
@@ -20,7 +19,7 @@ const serverFavicon = require('serve-favicon');
 export function deactivate() {
   fetchRemote.stop();
 }
-export function activate() {
+export function activate(api: ExtensionContext) {
   var staticFolder = api.config.resolve('staticDir');
   log.debug('express static path: ' + staticFolder);
 
@@ -43,7 +42,6 @@ export function activate() {
       setupHttpProxy(proxyPath, httpProxySet[proxyPath]);
     }
   }
-
   // const zss = createZipRoute(maxAgeMap);
 
   // api.use('/', zss.handler);

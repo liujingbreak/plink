@@ -19,7 +19,7 @@ import {analyseFiles} from './cmd/cli-analyze';
 // import {PlinkEnv} from './node-path';
 export {RequiredCompilerOptions};
 
-const {symlinkDirName, rootDir: root} = plinkEnv;
+const {symlinkDirName , rootDir: root} = plinkEnv;
 const log = log4js.getLogger('plink.ts-cmd');
 export interface TscCmdParam {
   package?: string[];
@@ -294,7 +294,7 @@ function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOpt
   const readFile = host.readFile;
   const cwd = process.cwd();
   host.readFile = function(path: string, encoding?: string) {
-    const content = readFile.apply(this, arguments as any) as string | undefined;
+    const content = readFile.apply(this, arguments as any) ;
     if (content && !path.endsWith('.d.ts') && !path.endsWith('.json')) {
       // console.log('WatchCompilerHost.readFile', path);
       const changed = webInjector.injectToFile(path, content);
@@ -369,9 +369,11 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
     }
   }
 
+  // appendTypeRoots([], cwd, compilerOptions, {});
   setTsCompilerOptForNodePath(cwd, './', compilerOptions, {
     enableTypeRoots: true,
-    workspaceDir: resolve(root, wsKey)
+    workspaceDir: resolve(root, wsKey),
+    realPackagePaths: false
   });
 
   if (opts?.pathsJsons) {

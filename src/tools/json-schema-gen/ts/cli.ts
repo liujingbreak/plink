@@ -1,19 +1,16 @@
 #!/usr/bin/env node
-// import {program} from 'commander';
-import pk from '../package.json';
 import Path from 'path';
 import * as fs from 'fs-extra';
 import {getTscConfigOfPkg} from '@wfh/plink/wfh/dist/utils/misc';
-import log4js from 'log4js';
+import {log4File} from '@wfh/plink';
 import * as TJS from 'typescript-json-schema';
 import Selector, {printFile, typescript as ts} from '@wfh/plink/wfh/dist/utils/ts-ast-query';
 import glob from 'glob';
 import {CliExtension, setTsCompilerOptForNodePath, findPackagesByNames, PackageInfo, cliPackageArgDesc} from '@wfh/plink';
-import plink from '__plink';
 
 const baseTsconfigFile = require.resolve('@wfh/plink/wfh/tsconfig-base.json');
 
-const log = log4js.getLogger(pk.name);
+const log = log4File(__filename);
 
 const cliExt: CliExtension = (program) => {
   program.command('json-schema-gen <package...>').alias('jsg')
@@ -30,7 +27,7 @@ const cliExt: CliExtension = (program) => {
       dones = Array.from(findPackagesByNames(packages))
       .filter((pkg, i) => {
         if (pkg == null) {
-          plink.logger.error(`Can not find package for name like: "${packages[i]}"`);
+          log.error(`Can not find package for name like: "${packages[i]}"`);
           return false;
         }
         return true;

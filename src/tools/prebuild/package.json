@@ -16,14 +16,21 @@
   },
   "scripts": {},
   "dependencies": {
-    "boxen": "~4.2.0",
     "adm-zip": "^0.4.14",
     "@types/adm-zip": "^0.4.33",
     "yazl": "2.5.1",
     "@types/yazl": "2.4.2",
     "yauzl": "~2.10.0",
     "@types/yauzl": "~2.9.1",
-    "dayjs": "~1.9.4"
+    "dayjs": "~1.9.4",
+    "fs-extra": "^5.0.0",
+    "lodash": "^4.17.21",
+    "glob": "^7.1.2",
+    "chalk": "^2.4.1"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "5.0.4",
+    "@types/glob": "^7.1.1"
   },
   "author": "LJ",
   "license": "MIT"

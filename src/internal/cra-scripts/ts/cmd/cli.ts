@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 // import fs from 'fs';
 import {CliExtension} from '@wfh/plink';
-// import replacePatches, { ReplacementInf } from '@wfh/plink/wfh/dist/utils/patch-text';
 import Path from 'path';
-import commander from 'Commander';
+// import commander from 'Commander';
 import {saveCmdOptionsToEnv} from '../utils';
 import {fork} from 'child_process';
-// import walkPackagesAndSetupInjector from '@wfh/webpack-common/dist/initInjectors';
-// import {initTsconfig} from './cli-init';
 import * as _preload from '../preload';
-import {config, log4File, plinkEnv} from '@wfh/plink';
+import {config, log4File, plinkEnv, commander} from '@wfh/plink';
 const log = log4File(__filename);
 
 const cli: CliExtension = (program) => {
@@ -28,7 +25,14 @@ const cli: CliExtension = (program) => {
     .option('--source-map', 'set environment variable GENERATE_SOURCEMAP to "true" (see https://create-react-app.dev/docs/advanced-configuration', false)
     .action((type, pkgName) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
-        const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'), process.argv.slice(2), {cwd: plinkEnv.workDir});
+        const argv = process.argv.slice(2);
+        const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'),
+        argv.map((arg, i) => {
+          if (i > 0 && (argv[i - 1] === '-c' || argv[i - 1] === '--config') && !Path.isAbsolute(arg)) {
+            return Path.resolve(arg);
+          }
+          return arg;
+        }), {cwd: plinkEnv.workDir});
         log.info('Current directory is not CRA project directory, fork new process...pid:', cp.pid);
         return;
       }
@@ -46,7 +50,7 @@ const cli: CliExtension = (program) => {
       'command "cra-build" will also generate tsd file along with client bundle', {
         'package-name': 'target package name, the "scope" name part can be omitted'
       })
-    .action(async pkgName => {
+    .action(async (pkgName): Promise<void> => {
       initEverything(StartCmd, 'lib', pkgName);
       await (await import('../tsd-generate')).buildTsd([pkgName]);
     });
@@ -58,7 +62,14 @@ const cli: CliExtension = (program) => {
     })
     .action((pkgName) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
-        const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'), process.argv.slice(2), {cwd: plinkEnv.workDir});
+        const argv = process.argv.slice(2);
+        const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'),
+          argv.map((arg, i) => {
+            if (i > 0 && (argv[i - 1] === '-c' || argv[i - 1] === '--config') && !Path.isAbsolute(arg)) {
+              return Path.resolve(arg);
+            }
+            return arg;
+          }), {cwd: plinkEnv.workDir});
         log.info('Current directory is not CRA project directory, fork new process...pid:', cp.pid);
         return;
       }
@@ -101,7 +112,7 @@ const cli: CliExtension = (program) => {
         console.error(err);
         rej(err);
       });
-      cp.on('exit', (sign, code) => {resolve(code); });
+      cp.on('exit', (_sign, code) => {resolve(code); });
     });
   });
 

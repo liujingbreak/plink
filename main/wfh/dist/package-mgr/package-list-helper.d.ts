@@ -38,3 +38,11 @@ export interface CompilerOptions {
  * @param opts CompilerOptionSetOpt
  */
 export declare function setTsCompilerOptForNodePath(tsconfigDir: string, baseUrl: string | undefined, assigneeOptions: Partial<CompilerOptions>, opts?: CompilerOptionSetOpt): CompilerOptions;
+/**
+ *
+ * @param pathsDirs Node path like path information
+ * @param tsconfigDir
+ * @param assigneeOptions
+ * @param opts
+ */
+export declare function appendTypeRoots(pathsDirs: string[], tsconfigDir: string, assigneeOptions: Partial<CompilerOptions>, opts: CompilerOptionSetOpt): void;

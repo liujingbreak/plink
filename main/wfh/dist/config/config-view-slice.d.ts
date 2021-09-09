@@ -20,7 +20,7 @@ export declare const configViewSlice: import("@reduxjs/toolkit").Slice<ConfigVie
     }>): void;
     _packageSettingMetaLoaded(s: import("immer/dist/internal").WritableDraft<ConfigViewState>, { payload: [propMetas, dtsFile, pkg] }: PayloadAction<[PropertyMeta[], string, PackageInfo]>): void;
     packageSettingsMetaLoaded(s: import("immer/dist/internal").WritableDraft<ConfigViewState>): void;
-} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<ConfigViewState>, "configView">;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<ConfigViewState>, "configView">;
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     loadPackageSettingMeta(d: import("immer/dist/internal").WritableDraft<ConfigViewState>, action: PayloadAction<{
         workspaceKey: string;
@@ -28,6 +28,6 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     }>): void;
     _packageSettingMetaLoaded(s: import("immer/dist/internal").WritableDraft<ConfigViewState>, { payload: [propMetas, dtsFile, pkg] }: PayloadAction<[PropertyMeta[], string, PackageInfo]>): void;
     packageSettingsMetaLoaded(s: import("immer/dist/internal").WritableDraft<ConfigViewState>): void;
-} & import("../redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<ConfigViewState>>;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<ConfigViewState>>;
 export declare function getState(): ConfigViewState;
 export declare function getStore(): rx.Observable<ConfigViewState>;
