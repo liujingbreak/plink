@@ -157,13 +157,13 @@ export function setTsCompilerOptForNodePath(
   }
 
   // let wsState: WorkspaceState | undefined;
-  let wsKey: string | undefined;
+  // let wsKey: string | undefined;
   if (opts.workspaceDir != null) {
     symlinksDir = Path.resolve(opts.workspaceDir, plinkEnv.symlinkDirName);
     pathsDirs.push(...calcNodePaths(plinkEnv.rootDir, symlinksDir,
       opts.workspaceDir || plinkEnv.workDir, plinkEnv.plinkDir));
 
-    wsKey = workspaceKey(opts.workspaceDir);
+    // wsKey = workspaceKey(opts.workspaceDir);
     // wsState = getState().workspaces.get(wsKey);
   }
 
@@ -190,12 +190,12 @@ export function setTsCompilerOptForNodePath(
   if (assigneeOptions.paths == null)
     assigneeOptions.paths = {};
 
-  if (opts.workspaceDir) {
-    assigneeOptions.paths['package-settings'] = [
-      Path.relative(baseUrlAbsPath, Path.join(plinkEnv.distDir, wsKey + '.package-settings'))
-        .replace(/\\/g, '/')
-    ];
-  }
+  // if (opts.workspaceDir) {
+  //   assigneeOptions.paths['package-settings'] = [
+  //     Path.relative(baseUrlAbsPath, Path.join(plinkEnv.distDir, wsKey + '.package-settings'))
+  //       .replace(/\\/g, '/')
+  //   ];
+  // }
   // if (wsState) {
   //   assignSpecialPaths(wsState.installJson.dependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);
   //   assignSpecialPaths(wsState.installJson.devDependencies, pathsDirs, assigneeOptions, baseUrlAbsPath);

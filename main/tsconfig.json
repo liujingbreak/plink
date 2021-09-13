@@ -1,0 +1,15 @@
+{
+	"extends": "./wfh/tsconfig-base.json",
+  "compilerOptions": {
+    "strict": true,
+    "typeRoots": [
+      "node_modules/@types/*",
+      "wfh/types"
+    ]
+  },
+  "include": [
+    "wfh/ts/**/*.ts",
+    "pacakges/redux-toolkit-observable/**/*.ts",
+    "pacakges/thread-promise-pool/ts/**/*.ts"
+  ]
+}

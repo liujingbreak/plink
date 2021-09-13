@@ -10,10 +10,11 @@ import {PlinkSettings} from './config/config-slice';
 import {setTsCompilerOptForNodePath} from './package-mgr/package-list-helper';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {Draft} from '@reduxjs/toolkit';
+import ts from 'typescript';
+
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 import fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const {parse} = require('comment-json');
 const {cyan} = chalk;
 const log = getLogger('plink.config-handler');
 
@@ -76,10 +77,11 @@ export class ConfigHandlerMgr {
       ConfigHandlerMgr._tsNodeRegistered = true;
 
       const internalTscfgFile = Path.resolve(__dirname, '../tsconfig-base.json');
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const {compilerOptions} = parse(
-        fs.readFileSync(internalTscfgFile, 'utf8')
-      );
+      const {compilerOptions} = ts.readConfigFile(internalTscfgFile,
+        file => fs.readFileSync(file, 'utf8')
+      ).config;
       ConfigHandlerMgr.compilerOptions = compilerOptions;
 
       setTsCompilerOptForNodePath(getWorkDir(), './', compilerOptions, {

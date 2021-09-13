@@ -5,8 +5,8 @@ import log4js from 'log4js';
 import Path from 'path';
 import chalk from 'chalk';
 import { setTsCompilerOptForNodePath, CompilerOptions } from './package-mgr/package-list-helper';
-import {filterEffect} from '../../packages/redux-toolkit-observable/dist/rx-utils';
-import { getProjectList, pathToProjKey, getState as getPkgState, getStore as pkgStore, updateGitIgnores, slice as pkgSlice,
+// import {filterEffect} from '../../packages/redux-toolkit-observable/dist/rx-utils';
+import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
   isCwdWorkspace, workspaceDir } from './package-mgr';
 import { stateFactory, ofPayloadAction, action$Of } from './store';
 import * as _recp from './recipe-manager';
@@ -16,13 +16,14 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import { ActionCreatorWithPayload, PayloadAction } from '@reduxjs/toolkit';
 import {plinkEnv, closestCommonParentDir} from './utils/misc';
-
-const {workDir, distDir, rootDir: rootPath} = plinkEnv;
+import ts from 'typescript';
+const {workDir, rootDir: rootPath} = plinkEnv;
 
 
 // import Selector from './utils/ts-ast-query';
 const log = log4js.getLogger('plink.editor-helper');
-const {parse} = require('comment-json');
+// const {parse} = require('comment-json');
+
 interface EditorHelperState {
   /** tsconfig files should be changed according to linked packages state */
   tsconfigByRelPath: Map<string, HookedTsconfig>;
@@ -70,20 +71,20 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
   let noModuleSymlink: Set<string>;
 
   return rx.merge(
-    pkgStore().pipe(
-      filterEffect(s => [s.linkedDrcp, s.installedDrcp]),
-      op.filter(([linkedDrcp, installedDrcp]) => linkedDrcp != null || installedDrcp != null),
-      op.map(([linkedDrcp, installedDrcp]) => {
-        // if (getPkgState().linkedDrcp) {
-        const plinkDir = linkedDrcp || installedDrcp!;
-        const file = Path.resolve(plinkDir.realPath, 'wfh/tsconfig.json');
-        const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
-        if (!getState().tsconfigByRelPath.has(relPath)) {
-          process.nextTick(() => dispatcher.hookTsconfig([file]));
-        }
-        return rx.EMPTY;
-      })
-    ),
+    // pkgStore().pipe(
+    //   filterEffect(s => [s.linkedDrcp, s.installedDrcp]),
+    //   op.filter(([linkedDrcp, installedDrcp]) => linkedDrcp != null || installedDrcp != null),
+    //   op.map(([linkedDrcp, installedDrcp]) => {
+    //     // if (getPkgState().linkedDrcp) {
+    //     const plinkDir = linkedDrcp || installedDrcp!;
+    //     const file = Path.resolve(plinkDir.realPath, 'wfh/tsconfig.json');
+    //     const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
+    //     if (!getState().tsconfigByRelPath.has(relPath)) {
+    //       process.nextTick(() => dispatcher.hookTsconfig([file]));
+    //     }
+    //     return rx.EMPTY;
+    //   })
+    // ),
     action$.pipe(ofPayloadAction(pkgSlice.actions._setCurrentWorkspace),
       op.concatMap(({payload: wsKey}) => {
         if (wsKey == null)
@@ -250,7 +251,7 @@ function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
     if (pathToProjKey(proj) === getPkgState().linkedDrcpProject) {
       include.push('main/wfh/**/*.ts');
     }
-    include.push('dist/*.package-settings.d.ts');
+    // include.push('dist/*.package-settings.d.ts');
     const tsconfigFile = createTsConfig(proj, srcRootDir, workspaceDir, {},
       // {'_package-settings': [Path.relative(proj, packageSettingDtsFileOf(workspaceDir))
       //   .replace(/\\/g, '/')
@@ -276,24 +277,29 @@ function writePackageSettingType() {
   let i = 0;
   for (const wsKey of getPkgState().workspaces.keys()) {
     let header = '';
-    let body = 'export interface PackagesConfig {\n';
+    // let body = 'export interface PackagesConfig {\n';
+    let interfaceBody = 'declare module \'@wfh/plink\' {\n';
+    interfaceBody += '  interface PlinkSettings {\n';
     for (const [typeFile, typeExport, _defaultFile, _defaultExport, pkg] of getPackageSettingFiles(wsKey)) {
       const varName = pkg.shortName.replace(/-([^])/g, (match, g1: string) => g1.toUpperCase());
       const typeName = varName.charAt(0).toUpperCase() + varName.slice(1);
       header += `import {${typeExport} as ${typeName}} from '${pkg.name}/${typeFile}';\n`;
-      body += `  '${pkg.name}': ${typeName};\n`;
+      // body += `  '${pkg.name}': ${typeName};\n`;
+      interfaceBody += `    '${pkg.name}': ${typeName};\n`;
     }
-    body += '}\n';
-    // const workspaceDir = Path.resolve(rootPath, wsKey);
-    const file = Path.join(distDir, wsKey + '.package-settings.d.ts');
-    log.info(`write setting file: ${chalk.blue(file)}`);
-    done[i++] = fs.promises.writeFile(file, header + body);
-    // const dir = Path.dirname(file);
-    // const srcRootDir = closestCommonParentDir([
-    //   dir,
-    //   closestCommonParentDir(Array.from(packages4WorkspaceKey(wsKey)).map(pkg => pkg.realPath))
-    // ]);
-    // createTsConfig(dir, srcRootDir, workspaceDir, {}, ['*.ts']);
+    // body += '}\n';
+    interfaceBody += '  }\n}\n';
+    const typeFile = Path.resolve(rootPath, wsKey, 'node_modules/@types/plink-settings/index.d.ts');
+    const typeFileContent = header + interfaceBody;
+    fs.mkdirpSync(Path.dirname(typeFile));
+    if (!fs.existsSync(typeFile) || fs.readFileSync(typeFile, 'utf8') !== typeFileContent) {
+      done[i++] = fs.promises.writeFile(typeFile, typeFileContent);
+      log.info('write package setting definition file', chalk.blue(typeFile));
+    }
+
+    // const file = Path.join(distDir, wsKey + '.package-settings.d.ts');
+    // log.info(`write setting file: ${chalk.blue(file)}`);
+    // done[i++] = fs.promises.writeFile(file, header + body);
   }
   return Promise.all(done);
 }
@@ -362,9 +368,9 @@ async function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string)
   const json = (fs.existsSync(backup) ?
     JSON.parse(await fs.promises.readFile(backup, 'utf8')) : _.cloneDeep(data.originJson) ) as  {compilerOptions?: CompilerOptions};
 
-  if (json.compilerOptions?.paths && json.compilerOptions.paths['_package-settings'] != null) {
-    delete json.compilerOptions.paths['_package-settings'];
-  }
+  // if (json.compilerOptions?.paths && json.compilerOptions.paths['_package-settings'] != null) {
+  //   delete json.compilerOptions.paths['_package-settings'];
+  // }
   const newCo = setTsCompilerOptForNodePath(tsconfigDir, data.baseUrl,
     json.compilerOptions as any, {
       workspaceDir, enableTypeRoots: true, realPackagePaths: true
@@ -388,7 +394,14 @@ function overrideTsConfig(src: any, target: any) {
 function writeTsConfigFile(tsconfigFile: string, tsconfigOverrideSrc: any) {
   if (fs.existsSync(tsconfigFile)) {
     const existing = fs.readFileSync(tsconfigFile, 'utf8');
-    const existingJson = parse(existing);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const existingJson = ts.readConfigFile(tsconfigFile,
+      (file) => {
+        if (Path.resolve(file) === tsconfigFile)
+          return existing;
+        else
+          return fs.readFileSync(file, 'utf-8');
+      }).config;
     overrideTsConfig(tsconfigOverrideSrc, existingJson);
     const newJsonStr = JSON.stringify(existingJson, null, '  ');
     if (newJsonStr !== existing) {

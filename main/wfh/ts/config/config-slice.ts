@@ -8,10 +8,9 @@ import {PayloadAction} from '@reduxjs/toolkit';
 import log4js from 'log4js';
 import {isMainThread, threadId} from 'worker_threads';
 import {getLanIPv4} from '../utils/network-util';
-import {PackagesConfig} from 'package-settings';
 
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-export interface PlinkSettings extends PackagesConfig {
+export interface PlinkSettings {
   /** Node.js server port number */
   port: number | string;
   publicPath: string;

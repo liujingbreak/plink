@@ -1,8 +1,7 @@
 import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
 import { PayloadAction } from '@reduxjs/toolkit';
-import { PackagesConfig } from 'package-settings';
-export interface PlinkSettings extends PackagesConfig {
+export interface PlinkSettings {
     /** Node.js server port number */
     port: number | string;
     publicPath: string;

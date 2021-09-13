@@ -1,5 +1,5 @@
 export * from './config-handler';
-export { PlinkSettings } from './config/config-slice';
+export { PlinkSettings, PlinkSettings as DrcpSettings } from './config/config-slice';
 export { PackageSettingInterf } from './config/config.types';
 export { default as config } from './config/index';
 export * from './require-injectors';
