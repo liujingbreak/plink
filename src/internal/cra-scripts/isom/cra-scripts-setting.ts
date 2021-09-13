@@ -33,5 +33,5 @@ export function defaultSetting(): CraScriptsSetting {
  */
 export function getSetting() {
   /* eslint-disable dot-notation, @typescript-eslint/dot-notation */
-  return config()['@wfh/cra-scripts']!;
+  return config()['@wfh/cra-scripts'];
 }

@@ -11,7 +11,7 @@ import {getLanIPv4} from '../utils/network-util';
 import {PackagesConfig} from 'package-settings';
 
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
-export type BasePlinkSettings = {
+export interface PlinkSettings extends PackagesConfig {
   /** Node.js server port number */
   port: number | string;
   publicPath: string;
@@ -53,11 +53,9 @@ export type BasePlinkSettings = {
   browserSideConfigProp: string[];
   /** @deprecated */
   enableSourceMaps: boolean;
-};
+}
 
-export type DrcpSettings = BasePlinkSettings & PackagesConfig;
-
-const initialState: BasePlinkSettings = {
+const initialState: Partial<PlinkSettings> = {
   port: 14333,
   localIP: getLanIPv4(),
   publicPath: '/',
@@ -78,7 +76,7 @@ const initialState: BasePlinkSettings = {
 
 export const configSlice = stateFactory.newSlice({
   name: 'config',
-  initialState: initialState as DrcpSettings,
+  initialState: initialState as PlinkSettings,
   reducers: {
     saveCliOption(s, {payload}: PayloadAction<GlobalOptions>) {
       s.cliOptions = payload;
@@ -89,7 +87,7 @@ export const configSlice = stateFactory.newSlice({
 
 export const dispatcher = stateFactory.bindActionCreators(configSlice);
 
-stateFactory.addEpic<{config: BasePlinkSettings}>((action$, state$) => {
+stateFactory.addEpic<{config: PlinkSettings}>((action$, state$) => {
   return rx.merge(
     getStore().pipe(
       op.map(s => s.devMode), op.distinctUntilChanged(),

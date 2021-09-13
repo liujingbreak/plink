@@ -8,7 +8,7 @@ import {GlobalOptions as CliOptions} from '../cmd/types';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import log4js from 'log4js';
-import {dispatcher, getState, DrcpSettings, getStore} from './config-slice';
+import {dispatcher, getState, PlinkSettings, getStore} from './config-slice';
 // Refactor: circular reference
 import * as _pkgList from '../package-mgr/package-list-helper';
 import * as _pkgMgr from '../package-mgr';
@@ -30,7 +30,7 @@ export const configHandlerMgr$ = new rx.BehaviorSubject<ConfigHandlerMgr | undef
  * @name config
  * @return {object} setting
  */
-const config = (): DrcpSettings => {
+const config = (): PlinkSettings => {
   return getState();
 };
 
@@ -87,7 +87,7 @@ config.configHandlerMgrChanged = function(cb: (handler: ConfigHandlerMgr) => voi
   ).subscribe();
 };
 
-config.change = function(reducer: (setting: DrcpSettings) => void ) {
+config.change = function(reducer: (setting: PlinkSettings) => void ) {
   return dispatcher._change(reducer);
 };
 

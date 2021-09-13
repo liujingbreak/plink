@@ -1,6 +1,6 @@
 import RJ from 'require-injector';
 import _config from './config';
-import {DrcpSettings} from './config/config-slice';
+import {PlinkSettings} from './config/config-slice';
 import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
 import * as _ from 'lodash';
 import * as fs from 'fs';
@@ -107,9 +107,9 @@ export let webInjector = new DrPackageInjector(true);
 
 export interface InjectorConfigHandler {
   /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */
-  setupWebInjector?(factory: DrPackageInjector, allSetting: DrcpSettings): void;
+  setupWebInjector?(factory: DrPackageInjector, allSetting: PlinkSettings): void;
   /** For Node.js runtime, replace module in "require()" or import syntax */
-  setupNodeInjector?(factory: DrPackageInjector, allSetting: DrcpSettings): void;
+  setupNodeInjector?(factory: DrPackageInjector, allSetting: PlinkSettings): void;
 }
 
 export function doInjectorConfigSync(factory: DrPackageInjector, isNode = false) {

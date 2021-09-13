@@ -1,2 +1,2 @@
-import { DrcpSettings } from './config-handler';
-export default function (configObj: DrcpSettings): void;
+import { PlinkSettings } from './config-handler';
+export default function (configObj: PlinkSettings): void;

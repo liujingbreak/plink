@@ -1,12 +1,12 @@
 // eslint-disable  no-console
 import fs from 'fs-extra';
 import Path from 'path';
-import {DrcpSettings} from './config-handler';
+import {PlinkSettings} from './config-handler';
 // import config from './config';
 import log4js from 'log4js';
 const log = log4js.getLogger('plink.log-config');
 
-export default function(configObj: DrcpSettings) {
+export default function(configObj: PlinkSettings) {
   const {rootPath} = configObj;
   log.info('[log-config] log4js at', require.resolve('log4js'));
   const log4jsConfig = Path.join(rootPath, 'log4js.js');

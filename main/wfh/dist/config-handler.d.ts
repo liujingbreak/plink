@@ -1,8 +1,8 @@
 import { GlobalOptions as CliOptions } from './cmd/types';
-import { DrcpSettings } from './config/config-slice';
+import { PlinkSettings } from './config/config-slice';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Draft } from '@reduxjs/toolkit';
-export { DrcpSettings };
+export { PlinkSettings };
 export interface DrcpConfig {
     /**
      * Used to run command line option "-c" specified TS/JS files one by one
@@ -11,11 +11,11 @@ export interface DrcpConfig {
     /** lodash like get function, return specific setting property value
      * @return
      */
-    get<K extends keyof DrcpSettings>(path: K, defaultValue?: DrcpSettings[K]): DrcpSettings[K];
+    get<K extends keyof PlinkSettings>(path: K, defaultValue?: PlinkSettings[K]): PlinkSettings[K];
     get(path: string | string[], defaultValue?: any): any;
-    set<K extends keyof DrcpSettings>(path: K, value: DrcpSettings[K] | any): void;
+    set<K extends keyof PlinkSettings>(path: K, value: PlinkSettings[K] | any): void;
     set(path: string | string[], value: any): void;
-    change(reducer: (setting: Draft<DrcpSettings>) => void): void;
+    change(reducer: (setting: Draft<PlinkSettings>) => void): void;
     /**
      * Resolve a path based on `rootPath`
      * @name resolve
@@ -26,10 +26,10 @@ export interface DrcpConfig {
     resolve(dir: 'rootPath' | 'destDir' | 'staticDir' | 'serverDir', ...path: string[]): string;
     resolve(...path: string[]): string;
     /** @return all settings in a big JSON object */
-    (): DrcpSettings;
-    reload(): DrcpSettings;
-    initSync(argv: CliOptions): DrcpSettings;
-    getStore(): Observable<DrcpSettings>;
+    (): PlinkSettings;
+    reload(): PlinkSettings;
+    initSync(argv: CliOptions): PlinkSettings;
+    getStore(): Observable<PlinkSettings>;
     /**
      * ConfigHandlerMgr changes everytime Plink settings are initialized or reloaded.
      * ConfigHandlerMgr is used to run command line option "-c" specified TS/JS files one by one.
@@ -43,7 +43,7 @@ export interface ConfigHandler {
        * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
        * @param drcpCliArgv (deprecated) Override command line argumemnt for DRCP
        */
-    onConfig(configSetting: DrcpSettings, cliOpt: CliOptions): void;
+    onConfig(configSetting: PlinkSettings, cliOpt: CliOptions): void;
 }
 export declare class ConfigHandlerMgr {
     static compilerOptions: any;

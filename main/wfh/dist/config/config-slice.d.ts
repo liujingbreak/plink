@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { PackagesConfig } from 'package-settings';
-export declare type BasePlinkSettings = {
+export interface PlinkSettings extends PackagesConfig {
     /** Node.js server port number */
     port: number | string;
     publicPath: string;
@@ -48,13 +48,12 @@ export declare type BasePlinkSettings = {
     browserSideConfigProp: string[];
     /** @deprecated */
     enableSourceMaps: boolean;
-};
-export declare type DrcpSettings = BasePlinkSettings & PackagesConfig;
-export declare const configSlice: import("@reduxjs/toolkit").Slice<DrcpSettings, {
-    saveCliOption(s: import("immer/dist/internal").WritableDraft<DrcpSettings>, { payload }: PayloadAction<GlobalOptions>): void;
-} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<DrcpSettings>, "config">;
+}
+export declare const configSlice: import("@reduxjs/toolkit").Slice<PlinkSettings, {
+    saveCliOption(s: import("immer/dist/internal").WritableDraft<PlinkSettings>, { payload }: PayloadAction<GlobalOptions>): void;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PlinkSettings>, "config">;
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
-    saveCliOption(s: import("immer/dist/internal").WritableDraft<DrcpSettings>, { payload }: PayloadAction<GlobalOptions>): void;
-} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<DrcpSettings>>;
-export declare function getState(): DrcpSettings;
-export declare function getStore(): rx.Observable<DrcpSettings>;
+    saveCliOption(s: import("immer/dist/internal").WritableDraft<PlinkSettings>, { payload }: PayloadAction<GlobalOptions>): void;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PlinkSettings>>;
+export declare function getState(): PlinkSettings;
+export declare function getStore(): rx.Observable<PlinkSettings>;
