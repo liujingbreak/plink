@@ -19,7 +19,7 @@ import {analyseFiles} from './cmd/cli-analyze';
 // import {PlinkEnv} from './node-path';
 export {RequiredCompilerOptions};
 
-const {symlinkDirName , rootDir: root} = plinkEnv;
+const {symlinkDirName} = plinkEnv;
 const log = log4js.getLogger('plink.ts-cmd');
 export interface TscCmdParam {
   package?: string[];
@@ -100,7 +100,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     throw new Error('No available source package found in current workspace');
   }
 
-  const destDir = commonRootDir.replace(/\\/g, '/');
+  const destDir = Path.relative(process.cwd(), commonRootDir).replace(/\\/g, '/');
   const compilerOptions: RequiredCompilerOptions = {
     ...baseCompilerOptions,
     importHelpers: false,
@@ -204,7 +204,7 @@ const formatHost: _ts.FormatDiagnosticsHost = {
 
 function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
-    plinkEnv.workDir.replace(/\\/g, '/'),
+    process.cwd().replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
 
   function _reportDiagnostic(diagnostic: _ts.Diagnostic) {
@@ -232,7 +232,7 @@ function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string,
 function compile(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>,
   ts: typeof _ts = _ts) {
   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
-    plinkEnv.workDir.replace(/\\/g, '/'),
+    process.cwd().replace(/\\/g, '/'),
     undefined, 'tsconfig.json').options;
   const host = ts.createCompilerHost(compilerOptions);
   patchWatchCompilerHost(host);
@@ -351,16 +351,15 @@ function reportWatchStatusChanged(diagnostic: _ts.Diagnostic, ts: typeof _ts = _
 const COMPILER_OPTIONS_MERGE_EXCLUDE = new Set(['baseUrl', 'typeRoots', 'paths', 'rootDir']);
 
 function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, opts?: TscCmdParam, ts: typeof _ts = _ts) {
-  const cwd = plinkEnv.workDir;
-  let wsKey: string | null | undefined = workspaceKey(cwd);
+  let wsKey: string | null | undefined = workspaceKey(plinkEnv.workDir);
   if (!getState().workspaces.has(wsKey))
     wsKey = getState().currWorkspace;
   if (wsKey == null) {
-    throw new Error(`Current directory "${cwd}" is not a work space`);
+    throw new Error(`Current directory "${plinkEnv.workDir}" is not a work space`);
   }
 
   if (opts?.mergeTsconfig) {
-    const json = mergeBaseUrlAndPaths(ts, opts.mergeTsconfig, cwd, compilerOptions);
+    const json = mergeBaseUrlAndPaths(ts, opts.mergeTsconfig, process.cwd(), compilerOptions);
     for (const [key, value] of Object.entries(json.compilerOptions)) {
       if (!COMPILER_OPTIONS_MERGE_EXCLUDE.has(key)) {
         compilerOptions[key] = value;
@@ -370,9 +369,9 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
   }
 
   // appendTypeRoots([], cwd, compilerOptions, {});
-  setTsCompilerOptForNodePath(cwd, './', compilerOptions, {
+  setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions, {
     enableTypeRoots: true,
-    workspaceDir: resolve(root, wsKey),
+    workspaceDir: plinkEnv.workDir,
     realPackagePaths: false
   });
 

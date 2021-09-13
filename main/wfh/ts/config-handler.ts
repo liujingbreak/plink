@@ -84,7 +84,7 @@ export class ConfigHandlerMgr {
       ).config;
       ConfigHandlerMgr.compilerOptions = compilerOptions;
 
-      setTsCompilerOptForNodePath(getWorkDir(), './', compilerOptions, {
+      setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions, {
         enableTypeRoots: true,
         workspaceDir: getWorkDir()
       });

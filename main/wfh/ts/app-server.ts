@@ -6,12 +6,15 @@ import {withGlobalOptions} from './cmd/override-commander';
 import {forkFile} from './fork-for-preserve-symlink';
 
 if (process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0) {
+  let storeSettingDispatcher: ReturnType<typeof initProcess> | undefined;
   if (process.send) {
     // current process is forked
     initAsChildProcess(true);
   } else {
-    initProcess();
+    storeSettingDispatcher = initProcess();
   }
+  if (storeSettingDispatcher)
+    storeSettingDispatcher.changeActionOnExit('none');
   void forkFile('@wfh/plink/wfh/dist/app-server.js');
 } else {
   const {version} = require('../../package.json') as {version: string};

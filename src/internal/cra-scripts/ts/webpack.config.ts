@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable no-console */
+/* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
 import type { PlinkEnv } from '@wfh/plink/wfh/dist/node-path';
 import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';
