@@ -49,5 +49,5 @@ defaultSetting.setupWebInjector = function(factory, allSetting) {
  */
 export function getSetting() {
   /* eslint-disable dot-notation,@typescript-eslint/dot-notation */
-  return config()['$__foobarPackage__$']!;
+  return config()['$__foobarPackage__$'];
 }
