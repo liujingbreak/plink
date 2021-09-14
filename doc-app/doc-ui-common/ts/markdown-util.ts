@@ -186,12 +186,14 @@ export function insertOrUpdateMarkdownToc(input: string) {
 
 function tocMarkdown(tocs: TOC[]) {
   let str = '';
+  let i = 0;
   for (const item of traverseTocTree(tocs)) {
     if (item.level > 2)
-      continue;
+      continue; // only show title of level 0 - 2
     str += '  '.repeat(item.level);
-    str += `${item.level > 0 ? '-' : ''} ${item.text}${item.level > 0 ? '' : os.EOL}`;
-    str += '\n';
+    str += `${item.level > 0 ? '-' : i > 0 ? os.EOL : ''} ${item.text}`;
+    str += os.EOL;
+    i++;
   }
   return str.slice(0, -1);
 }

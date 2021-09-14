@@ -8,7 +8,7 @@ const log = log4File(__filename);
 const md = new MarkdownIt({
   html: true,
   highlight(str, lang, attrs) {
-    if (lang !== 'mermaid') {
+    if (lang && lang !== 'mermaid') {
       try {
         return highlight.highlight(lang, str, true).value;
       } catch (e) {

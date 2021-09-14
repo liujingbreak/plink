@@ -17,23 +17,23 @@ export declare function initConfig(options: GlobalOptions): import("..").DrcpCon
  * @param onShutdownSignal
  */
 export declare function initProcess(saveState?: boolean, onShutdownSignal?: () => void | Promise<any>): import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<{
-    actionOnExit: "save" | "send" | "none";
+    actionOnExit: "none" | "save" | "send";
     stateChangeCount: number;
 }, {
     changeActionOnExit(s: {
-        actionOnExit: "save" | "send" | "none";
+        actionOnExit: "none" | "save" | "send";
         stateChangeCount: number;
-    }, mode: "save" | "send" | "none"): void;
+    }, mode: "none" | "save" | "send"): void;
     processExit(s: {
-        actionOnExit: "save" | "send" | "none";
+        actionOnExit: "none" | "save" | "send";
         stateChangeCount: number;
     }): void;
     storeSaved(s: {
-        actionOnExit: "save" | "send" | "none";
+        actionOnExit: "none" | "save" | "send";
         stateChangeCount: number;
     }): void;
 }> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<{
-    actionOnExit: "save" | "send" | "none";
+    actionOnExit: "none" | "save" | "send";
     stateChangeCount: number;
 }>>;
 /**

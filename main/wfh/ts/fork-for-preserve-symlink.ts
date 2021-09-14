@@ -62,9 +62,15 @@ export async function forkFile(moduleName: string) {
   if (workdir)
     env.PLINK_WORK_DIR = workdir;
 
-  fork(Path.resolve(__dirname, 'fork-preserve-symlink-main.js'), argv, {
+  const cp = fork(Path.resolve(__dirname, 'fork-preserve-symlink-main.js'), argv, {
     env,
     stdio: 'inherit'
+  });
+
+  cp.on('exit', code => {
+    if (code != null && code !== 0) {
+      process.exit(code);
+    }
   });
 
   // const {isStateSyncMsg} = require('./store') as typeof _store;

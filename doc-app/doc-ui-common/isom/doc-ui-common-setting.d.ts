@@ -15,4 +15,4 @@ export declare function defaultSetting(cliOptions: NonNullable<PlinkSettings['cl
  * The return setting value is merged with files specified by command line options "--prop" and "-c"
  * @return setting of current package
  */
-export declare function getSetting(): any;
+export declare function getSetting(): import("@wfh/doc-ui-common/isom/doc-ui-common-setting").DocUiCommonSetting;

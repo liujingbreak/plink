@@ -12,16 +12,16 @@ const startTime = new Date().getTime();
 
 (async function run() {
 
-  process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log((process.send || !isMainThread ? `[P${process.pid}.T${threadId}] ` : '') +
-      chalk.green(`Done in ${new Date().getTime() - startTime} ms`));
-  });
   let storeSettingDispatcher: ReturnType<typeof initProcess> | undefined;
   if (process.send) {
     // current process is forked
     initAsChildProcess(true);
   } else {
+    process.on('exit', (code) => {
+      // eslint-disable-next-line no-console
+      console.log((process.send || !isMainThread ? `[P${process.pid}.T${threadId}] ` : '') +
+        chalk.green(`${code !== 0 ? 'Failed' : 'Done'} in ${new Date().getTime() - startTime} ms`));
+    });
     storeSettingDispatcher = initProcess();
   }
   if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
