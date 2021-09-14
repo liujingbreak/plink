@@ -63,6 +63,9 @@ export declare type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>
 export declare function ofPayloadAction<S, P>(actionCreators: ActionCreator<S, P>): rx.OperatorFunction<any, PayloadAction<S, P>>;
 export declare function ofPayloadAction<S, P, S1, P1>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>): rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1>>;
 export declare function ofPayloadAction<S, P, S1, P1, S2, P2>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>, actionCreators2: ActionCreator<S2, P2>): rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1> | PayloadAction<S2, P2>>;
+declare type ActionByType<S, R> = {
+    [K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>;
+};
 /**
  * Map action stream to multiple action streams by theire action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
@@ -83,9 +86,7 @@ slice.addEpic(slice => action$ => {
  * @param actionCreators
  * @param action$
  */
-export declare function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>, action$: rx.Observable<PayloadAction<any> | Action<S>>): {
-    [K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>;
-};
+export declare function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>, action$: rx.Observable<PayloadAction<any> | Action<S>>): ActionByType<S, R>;
 export declare function isActionOfCreator<P, S>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<S, P>): action is PayloadAction<S, P>;
 export interface SliceOptions<S, R extends Reducers<S>> {
     name: string;
@@ -106,6 +107,12 @@ export interface SliceOptions<S, R extends Reducers<S>> {
 export declare function createSlice<S extends {
     error?: Error;
 }, R extends Reducers<S>>(opt: SliceOptions<S, R>): Slice<S, R>;
+export declare function action$OfSlice<S, R extends Reducers<S>, T extends keyof R>(sliceHelper: Slice<S, R>, actionType: T): rx.Observable<R[T] extends (s: any) => any ? {
+    type: T;
+} : R[T] extends (s: any, p: infer P) => any ? {
+    payload: P;
+    type: T;
+} : never>;
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.

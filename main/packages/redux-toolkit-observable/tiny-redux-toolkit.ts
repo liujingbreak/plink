@@ -97,6 +97,7 @@ export function ofPayloadAction(
   };
 }
 
+type ActionByType<S, R> = {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>};
 /**
  * Map action stream to multiple action streams by theire action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
@@ -118,46 +119,20 @@ slice.addEpic(slice => action$ => {
  * @param action$ 
  */
 export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>,
-  action$: rx.Observable<PayloadAction<any> | Action<S>>):
-  {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>} {
+  action$: rx.Observable<PayloadAction<any> | Action<S>>): ActionByType<S, R> {
 
-
-    const dispatcherByType: {[K: string]: rx.Subject<PayloadAction<S, any> | Action<S>> | undefined} = {};
-    const splitActions: {[K in keyof R]?: rx.Observable<ReturnType<Actions<S, R>[K]>>} = {};
-
-    let sourceSub: rx.Subscription | undefined;
-    let subscriberCnt = 0;
-
-    const source = action$.pipe(
-      // op.share(), we don't need share(), we have implemented same logic
-      op.map(action => {
-        const match = dispatcherByType[action.type];
-        if (match) {
-          match.next(action);
-        }
-      })
-    );
+    const source = action$.pipe(op.share());
+    const splitActions = {} as ActionByType<S, R>;
 
     for (const reducerName of Object.keys(actionCreators)) {
-      const subject = dispatcherByType[actionCreators[reducerName].type] = new rx.Subject<PayloadAction<S, any> | Action<S>>();
-
-      // eslint-disable-next-line no-loop-func
-      splitActions[reducerName as keyof R] = rx.defer(() => {
-        if (subscriberCnt++ === 0)
-          sourceSub = source.subscribe();
-        return subject.asObservable() as rx.Observable<any>;
-      }).pipe(
-        // eslint-disable-next-line no-loop-func
-        op.finalize(() => {
-          if (--subscriberCnt === 0 && sourceSub) {
-            sourceSub.unsubscribe();
-            sourceSub = undefined;
-          }
-        })
-      );
+      Object.defineProperty(splitActions, reducerName, {
+        get() {
+          return source.pipe(ofPayloadAction(actionCreators[reducerName]));
+        }
+      });
     }
 
-    return splitActions as {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>};
+    return splitActions;
 }
 
 export function isActionOfCreator<P, S>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<S, P>):

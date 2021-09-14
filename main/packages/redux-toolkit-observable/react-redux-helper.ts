@@ -127,9 +127,9 @@ export interface BaseComponentState<Props> {
   componentProps?: Props;
 }
 
-export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>> =
+export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>, Name extends string = string> =
   (slice: SliceHelper<S, R & CompPropsSyncReducer<Props, S>>)
-  => Epic<PayloadAction<any>, any, unknown> | void;
+  => Epic<PayloadAction<any>, any, {[Sn in Name]: S}> | void;
 
 type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
   _syncComponentProps(s: S | Draft<S>, action: PayloadAction<Props>): void;

@@ -33,7 +33,9 @@ export declare function useRtk<Props, S extends BaseComponentState<Props>, R ext
 export interface BaseComponentState<Props> {
     componentProps?: Props;
 }
-export declare type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R & CompPropsSyncReducer<Props, S>>) => Epic<PayloadAction<any>, any, unknown> | void;
+export declare type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R & CompPropsSyncReducer<Props, S>>) => Epic<PayloadAction<any>, any, {
+    [Sn in Name]: S;
+}> | void;
 declare type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
     _syncComponentProps(s: S | Draft<S>, action: PayloadAction<Props>): void;
     _willUnmount(s: S | Draft<S>): void;

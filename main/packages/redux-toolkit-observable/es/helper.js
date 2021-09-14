@@ -1,4 +1,5 @@
-import { Observable, EMPTY, of, Subject, defer } from 'rxjs';
+import { ofPayloadAction } from './redux-toolkit-observable';
+import { Observable, EMPTY, of, Subject } from 'rxjs';
 import * as op from 'rxjs/operators';
 import { immerable } from 'immer';
 export function createSliceHelper(stateFactory, opts) {
@@ -98,34 +99,15 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 export function castByActionType(actionCreators, action$) {
-    let sourceSub;
-    let subscriberCnt = 0;
-    const dispatcherByType = {};
+    const source = action$.pipe(op.share());
     const splitActions = {};
     for (const reducerName of Object.keys(actionCreators)) {
-        const subject = dispatcherByType[actionCreators[reducerName].type] = new Subject();
-        // eslint-disable-next-line no-loop-func
-        splitActions[reducerName] = defer(() => {
-            if (subscriberCnt++ === 0)
-                sourceSub = source.subscribe();
-            return subject.asObservable();
-        }).pipe(
-        // eslint-disable-next-line no-loop-func
-        op.finalize(() => {
-            if (--subscriberCnt === 0 && sourceSub) {
-                sourceSub.unsubscribe();
-                sourceSub = undefined;
+        Object.defineProperty(splitActions, reducerName, {
+            get() {
+                return source.pipe(ofPayloadAction(actionCreators[reducerName]));
             }
-        }));
+        });
     }
-    const source = action$.pipe(
-    // op.share(), we don't need share(), we have implemented same logic
-    op.map(action => {
-        const match = dispatcherByType[action.type];
-        if (match) {
-            match.next(action);
-        }
-    }));
     return splitActions;
 }
 export function isActionOfCreator(action, actionCreator) {
@@ -151,6 +133,20 @@ export function sliceRefActionOp(epicFactory) {
             return new Observable(sub => release);
         }));
     };
+}
+export function action$Of(stateFactory, actionCreator) {
+    return new Observable(sub => {
+        stateFactory.addEpic((action$) => {
+            return action$.pipe(ofPayloadAction(actionCreator), op.map(action => sub.next(action)), op.ignoreElements());
+        });
+    });
+}
+export function action$OfSlice(sliceHelper, actionType) {
+    return new Observable(sub => {
+        sliceHelper.addEpic(slice => (action$) => {
+            return action$.pipe(ofPayloadAction(slice.actions[actionType]), op.map(action => sub.next(action)), op.ignoreElements());
+        });
+    });
 }
 /**
  * ImmerJS does not work with some large object (like HTMLElement), meaning you can not directly defined a

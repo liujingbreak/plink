@@ -7,7 +7,7 @@ const cliExt: CliExtension = (program) => {
   })
   .option('-f, --file <spec>', 'sample option')
   .action(async (argument1: string[]) => {
-    await (await import('./cli-$__foobar__$')).$__foobarId__$(argument1, cmd.opts() as any);
+    await (await import('./cli-$__foobarFile__$')).$__foobarId__$(argument1, cmd.opts() as any);
   });
 
   // TODO: Add more sub command here

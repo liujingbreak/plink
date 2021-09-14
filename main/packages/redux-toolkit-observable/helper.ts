@@ -2,13 +2,14 @@ import {StateFactory, ExtraSliceReducers, ofPayloadAction} from './redux-toolkit
 import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft,
   ActionCreatorWithPayload} from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
-import {Observable, EMPTY, of, Subject, OperatorFunction, defer, Subscription} from 'rxjs';
+import {Observable, EMPTY, of, Subject, OperatorFunction} from 'rxjs';
 import * as op from 'rxjs/operators';
 import { immerable, Immutable } from 'immer';
 
-export type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
+export type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends string = string> =
+  (slice: SliceHelper<S, R, Name>) => Epic<PayloadAction<any>, any, {[sliceName in Name]: S}> | void;
 
-export type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
+export type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string = string> = Slice<S, R, Name> & {
   /** You don't have to create en Epic for subscribing action stream, you subscribe this property
    * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
    */
@@ -128,6 +129,13 @@ export function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R
   return rReducers as RegularReducers<S, R>;
 }
 
+type ActionByType<R> = {
+  [K in keyof R]:
+    Observable<
+      R[K] extends PayloadActionCreator<infer P> ?
+        PayloadAction<P> : PayloadAction<unknown>
+    >
+};
 
 /**
  * Map action stream to multiple action streams by their action type.
@@ -150,49 +158,18 @@ slice.addEpic(slice => action$ => {
  * @param action$ 
  */
 export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R,
-  action$: Observable<PayloadAction | Action>):
-  {
-    [K in keyof R]:
-      Observable<
-        R[K] extends PayloadActionCreator<infer P> ?
-          PayloadAction<P> : PayloadAction<unknown>
-      >
-  } {
+  action$: Observable<PayloadAction | Action>): ActionByType<R> {
+    const source = action$.pipe(op.share());
+    const splitActions = {} as ActionByType<R>;
 
-    let sourceSub: Subscription | undefined;
-    let subscriberCnt = 0;
-    const dispatcherByType: {[K: string]: Subject<PayloadAction<any, any> | Action> | undefined} = {};
-    const splitActions: {[K in keyof R]?: Observable<PayloadAction<any, any>>} = {};
     for (const reducerName of Object.keys(actionCreators)) {
-      const subject = dispatcherByType[(actionCreators[reducerName] as PayloadActionCreator).type] = new Subject<PayloadAction<any, any>  | Action>();
-      // eslint-disable-next-line no-loop-func
-      splitActions[reducerName as keyof R] = defer(() => {
-        if (subscriberCnt++ === 0)
-          sourceSub = source.subscribe();
-        return subject.asObservable() as Observable<any>;
-      }).pipe(
-        // eslint-disable-next-line no-loop-func
-        op.finalize(() => {
-          if (--subscriberCnt === 0 && sourceSub) {
-            sourceSub.unsubscribe();
-            sourceSub = undefined;
-          }
-        })
-      );
-    }
-    const source = action$.pipe(
-      // op.share(), we don't need share(), we have implemented same logic
-      op.map(action => {
-        const match = dispatcherByType[action.type as string];
-        if (match) {
-          match.next(action);
+      Object.defineProperty(splitActions, reducerName, {
+        get() {
+          return source.pipe(ofPayloadAction(actionCreators[reducerName]));
         }
-      })
-    );
-    return splitActions as {
-      [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ?
-        PayloadAction<P> : PayloadAction<unknown>>
-    };
+      });
+    }
+    return splitActions;
 }
 
 export function isActionOfCreator<P, T extends string>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<P, T>):

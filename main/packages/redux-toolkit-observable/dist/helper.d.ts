@@ -3,8 +3,10 @@ import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReduce
 import { Epic } from 'redux-observable';
 import { Observable, OperatorFunction } from 'rxjs';
 import { immerable } from 'immer';
-export declare type EpicFactory<S, R extends SliceCaseReducers<S>> = (slice: SliceHelper<S, R>) => Epic<PayloadAction<any>, any, unknown> | void;
-export declare type SliceHelper<S, R extends SliceCaseReducers<S>> = Slice<S, R> & {
+export declare type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R, Name>) => Epic<PayloadAction<any>, any, {
+    [sliceName in Name]: S;
+}> | void;
+export declare type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string = string> = Slice<S, R, Name> & {
     /** You don't have to create en Epic for subscribing action stream, you subscribe this property
      * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
      */
@@ -47,6 +49,9 @@ export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
  * @returns SliceCaseReducers which can be part of parameter of createSliceHelper
  */
 export declare function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R): RegularReducers<S, R>;
+declare type ActionByType<R> = {
+    [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
+};
 /**
  * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
@@ -67,9 +72,7 @@ slice.addEpic(slice => action$ => {
  * @param actionCreators
  * @param action$
  */
-export declare function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R, action$: Observable<PayloadAction | Action>): {
-    [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
-};
+export declare function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R, action$: Observable<PayloadAction | Action>): ActionByType<R>;
 export declare function isActionOfCreator<P, T extends string>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<P, T>): action is PayloadAction<P, T>;
 /**
  * Add an epicFactory to another component's sliceHelper

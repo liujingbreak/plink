@@ -14,7 +14,9 @@ export interface ExtraSliceReducers<SS> {
     _change: CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 }
 export declare type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
-export declare function ofPayloadAction<P1, T1 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>): OperatorFunction<any, PayloadAction<P1, T1>>;
+export declare function ofPayloadAction<P1, T1 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>): OperatorFunction<any, P1 extends undefined ? {
+    type: T1;
+} : PayloadAction<P1, T1>>;
 export declare function ofPayloadAction<P1, P2, T1 extends string, T2 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>, actionCreators2: ActionCreatorWithPayload<P2, T2>): OperatorFunction<any, PayloadAction<P1 | P2, T1 | T2>>;
 export declare function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string, T3 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>, actionCreators2: ActionCreatorWithPayload<P2, T2>, actionCreators3: ActionCreatorWithPayload<P3, T3>): OperatorFunction<any, PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
 export interface ErrorState {
@@ -74,7 +76,9 @@ export declare class StateFactory {
      * @param epic
      * @param epicName a name for debug and logging purpose
      */
-    addEpic<S = any>(epic: Epic<PayloadAction<any>, any, S>, epicName?: string): () => void;
+    addEpic<SL = Slice<any, any, string>>(epic: Epic<PayloadAction<any>, any, {
+        [key in SL extends Slice<any, any, infer Name> ? Name : string]: SL extends Slice<infer S, any, any> ? S : any;
+    }>, epicName?: string): () => void;
     sliceState<SS, CaseReducers extends SliceCaseReducers<SS> = SliceCaseReducers<SS>, Name extends string = string>(slice: Slice<SS, CaseReducers, Name>): SS;
     sliceStore<SS>(slice: Slice<SS>): Observable<SS>;
     getErrorState(): ErrorState;

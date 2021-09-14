@@ -1,7 +1,7 @@
 import { ofPayloadAction } from './redux-toolkit-observable';
 import React from 'react';
 import { stateFactory } from './state-factory-browser';
-import { createSliceHelper, castByActionType, createReducers } from './helper';
+import { createSliceHelper, castByActionType, createReducers, action$OfSlice } from './helper';
 import { useEffect, useState } from 'react';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -107,7 +107,8 @@ export function useStoreOfStateFactory(stateFactory) {
 }
 const demoState = {};
 const simpleDemoReducers = {
-    hellow(s, payload) { }
+    hellow(s, payload) { },
+    world(s) { }
 };
 const demoReducers = createReducers(simpleDemoReducers);
 const demoSlice = createSliceHelper(stateFactory, {
@@ -119,6 +120,8 @@ demoSlice.addEpic(slice => {
     return action$ => {
         slice.actionDispatcher._willUnmount();
         const actionStreams = castByActionType(slice.actions, action$);
-        return rx.merge(actionStreams.hellow, actionStreams._syncComponentProps);
+        return rx.merge(actionStreams.hellow, actionStreams._syncComponentProps, action$.pipe(ofPayloadAction(slice.actions.world), op.map(action => action)), action$.pipe(ofPayloadAction(slice.actions.hellow), op.map(action => action)));
     };
 });
+action$OfSlice(demoSlice, 'hellow').pipe(op.tap(action => console.log(action)));
+action$OfSlice(demoSlice, 'world').pipe(op.tap(action => console.log(action)));

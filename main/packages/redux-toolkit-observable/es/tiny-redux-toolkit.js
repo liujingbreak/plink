@@ -35,33 +35,14 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 export function castByActionType(actionCreators, action$) {
-    const dispatcherByType = {};
+    const source = action$.pipe(op.share());
     const splitActions = {};
-    let sourceSub;
-    let subscriberCnt = 0;
-    const source = action$.pipe(
-    // op.share(), we don't need share(), we have implemented same logic
-    op.map(action => {
-        const match = dispatcherByType[action.type];
-        if (match) {
-            match.next(action);
-        }
-    }));
     for (const reducerName of Object.keys(actionCreators)) {
-        const subject = dispatcherByType[actionCreators[reducerName].type] = new rx.Subject();
-        // eslint-disable-next-line no-loop-func
-        splitActions[reducerName] = rx.defer(() => {
-            if (subscriberCnt++ === 0)
-                sourceSub = source.subscribe();
-            return subject.asObservable();
-        }).pipe(
-        // eslint-disable-next-line no-loop-func
-        op.finalize(() => {
-            if (--subscriberCnt === 0 && sourceSub) {
-                sourceSub.unsubscribe();
-                sourceSub = undefined;
+        Object.defineProperty(splitActions, reducerName, {
+            get() {
+                return source.pipe(ofPayloadAction(actionCreators[reducerName]));
             }
-        }));
+        });
     }
     return splitActions;
 }
@@ -211,6 +192,13 @@ export function createSlice(opt) {
     };
     return slice;
 }
+export function action$OfSlice(sliceHelper, actionType) {
+    return new rx.Observable(sub => {
+        sliceHelper.addEpic(slice => (action$) => {
+            return action$.pipe(ofPayloadAction(slice.actions[actionType]), op.map(action => sub.next(action)), op.ignoreElements());
+        });
+    });
+}
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.
@@ -247,3 +235,5 @@ demoSlice.addEpic((slice, ofType) => {
         return rx.merge(actionStreams.hellow.pipe(), action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(ofPayloadAction(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload))).pipe(op.ignoreElements());
     };
 });
+action$OfSlice(demoSlice, 'hellow').pipe(op.tap(action => action));
+action$OfSlice(demoSlice, 'world').pipe(op.tap(action => action));

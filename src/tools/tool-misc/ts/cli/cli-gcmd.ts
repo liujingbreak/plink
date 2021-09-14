@@ -4,13 +4,14 @@ import {findPackagesByNames} from '@wfh/plink/wfh/dist/cmd/utils';
 import {getState, getStore, actionDispatcher, isCwdWorkspace} from '@wfh/plink/wfh/dist/package-mgr';
 import parse, {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 import Path from 'path';
-import plink from '__plink';
 import fs from 'fs';
 import chalk from 'chalk';
 import * as op from 'rxjs/operators';
-import {GlobalOptions} from '@wfh/plink';
+import {GlobalOptions, log4File} from '@wfh/plink';
+import {getTscConfigOfPkg} from '@wfh/plink/wfh/dist/utils/misc';
 import * as _tscmd from '@wfh/plink/wfh/dist/ts-cmd';
 
+const log = log4File(__filename);
 export interface CBOptions extends GlobalOptions {
   forTemplate: boolean;
   dryRun: boolean;
@@ -23,26 +24,29 @@ export async function generate(packageName: string, cmdName: string, opts: CBOpt
     throw new Error(`Can not find package ${packageName}`);
   }
   const targetPkg = targetPkgs[0]!;
+  const pkgTsDirInfo = getTscConfigOfPkg(targetPkg.json);
 
   const lowerCaseCmdName = cmdName.toLowerCase();
-  const camelCaseCmd = lowerCaseCmdName.replace(/-([a-zA-Z])/g, (match, $1: string) => $1.toUpperCase());
+  const cmdFileName = lowerCaseCmdName.replace(/:/g, '-');
+  const camelCaseCmd = lowerCaseCmdName.replace(/[-:]([a-zA-Z])/g, (match, $1: string) => $1.toUpperCase());
   if (opts.dryRun) {
-    plink.logger.warn('Dryrun mode...');
+    log.warn('Dryrun mode...');
   }
   await generateStructure(Path.resolve(__dirname, '../../template-cligen'),
-    Path.resolve(targetPkg.realPath, 'ts'),
+    Path.resolve(targetPkg.realPath, pkgTsDirInfo.srcDir),
     {
-      fileMapping: [ [/foobar/g, lowerCaseCmdName] ],
+      fileMapping: [ [/foobar/g, cmdFileName] ],
       textMapping: {
         foobar: lowerCaseCmdName,
-        foobarId: camelCaseCmd
+        foobarId: camelCaseCmd,
+        foobarFile: cmdFileName
       }
     }, {dryrun: opts.dryRun});
 
   const pkJsonFile = Path.resolve(targetPkg.realPath, 'package.json');
 
   if (opts.dryRun) {
-    plink.logger.info(chalk.cyan(pkJsonFile) + ' will be changed.');
+    log.info(chalk.cyan(pkJsonFile) + ' will be changed.');
   } else {
     let text = fs.readFileSync(pkJsonFile, 'utf8');
     const objAst = parse(text);
@@ -59,7 +63,7 @@ export async function generate(packageName: string, cmdName: string, opts: CBOpt
         end: drProp.start + 1
       }]);
       fs.writeFileSync(pkJsonFile, pkjsonText);
-      plink.logger.info(chalk.cyan(pkJsonFile) + 'is changed.');
+      log.info(chalk.cyan(pkJsonFile) + 'is changed.');
 
       if (isCwdWorkspace()) {
         actionDispatcher.updateWorkspace({dir: process.cwd(), isForce: false, packageJsonFiles: [pkJsonFile]});

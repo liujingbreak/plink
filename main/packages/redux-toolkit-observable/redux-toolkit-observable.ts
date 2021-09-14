@@ -239,7 +239,14 @@ export class StateFactory {
    * @param epicName a name for debug and logging purpose
    */
   addEpic<SL = Slice<any, any, string>>(
-    epic: Epic<PayloadAction<any>, any, {[key in SL extends Slice<any, any, infer Name> ? Name : string]: SL extends Slice<infer S, any, any> ? S : any}>, epicName?: string) {
+    epic: Epic<
+      PayloadAction<any>, any,
+      {
+        [key in SL extends Slice<any, any, infer Name> ? Name : string]:
+        SL extends Slice<infer S, any, any> ? S : any
+      }
+      >,
+    epicName?: string) {
     const epicId = 'Epic-' + (epicName || ++this.epicSeq);
     const unsubscribeEpic = new Subject<string>();
     this.debugLog.next([`[redux-toolkit-obs] ${epicId} is added`]);

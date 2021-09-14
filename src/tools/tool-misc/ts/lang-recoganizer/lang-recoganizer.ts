@@ -40,36 +40,17 @@ function createDispatcher(action$: rx.Subject<Action>) {
   return dispatcher;
 }
 
-export function splitActionByType(action$: rx.Observable<Action>) {
-  let sourceSub: rx.Subscription | undefined;
-  let subscriberCnt = 0;
-
-  const split$ = action$.pipe(
-    // op.tap(action => console.log(action)),
-    op.map(action => dispatchByType[action.type]!.next(action))
-  );
-
-  const dispatchByType: {[K in keyof typeof childStepActions]?: rx.Subject<any>} = {};
-  const actionByType: Partial<ActionByType> = {};
-
+export function splitActionByType(action$: rx.Observable<Action>): ActionByType {
+  const source = action$.pipe(op.share());
+  const actionByType = {} as ActionByType;
   for (const type of Object.keys(childStepActions)) {
-    const dispatcher = dispatchByType[type] = new rx.Subject();
-    // eslint-disable-next-line no-loop-func
-    actionByType[type] = rx.defer(() => {
-      if (subscriberCnt++ === 0) {
-        sourceSub = split$.subscribe();
+    Object.defineProperty(actionByType, type, {
+      get() {
+        return source.pipe(op.filter(action => action.type === type));
       }
-      return dispatcher;
-    }).pipe(
-      // eslint-disable-next-line no-loop-func
-      op.finalize(() => {
-        if (--subscriberCnt === 0) {
-          sourceSub?.unsubscribe();
-        }
-      })
-    );
+    });
   }
-  return actionByType as ActionByType;
+  return actionByType;
 }
 
 function createStep<T>(interceptor?: () => rx.OperatorFunction<Action, Action>) {
@@ -258,8 +239,9 @@ export function choice(laNum = 2, ...choiceFactories: (StepFactory)[]) {
 }
 
 interface LoopOptions {
-  // greedy?: boolean;
   laNum?: number;
+  /** default is true */
+  greedy?: boolean;
   minTimes?: number;
   maxTimes?: number;
 }
