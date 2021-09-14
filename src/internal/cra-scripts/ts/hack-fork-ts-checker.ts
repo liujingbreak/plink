@@ -7,6 +7,7 @@
 
 import Path from 'path';
 import * as _plink from '@wfh/plink';
+// import inspector from 'inspector';
 
 export function register() {
   process.env.NODE_OPTIONS =  (process.env.NODE_OPTIONS || '') + ' -r ' +
@@ -18,6 +19,7 @@ if (process.send && /[\\/]fork-ts-checker-webpack-plugin[\\/]/.test(process.argv
   require('@wfh/plink/wfh/dist/node-path');
   const plink = require('@wfh/plink') as typeof _plink;
 
+  // inspector.open(9222, 'localhost', true);
   plink.initAsChildProcess();
   plink.initConfig(JSON.parse(process.env.PLINK_CLI_OPTS!));
   plink.initInjectorForNodePackages();

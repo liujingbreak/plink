@@ -27,12 +27,12 @@ const cli: CliExtension = (program) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         const argv = process.argv.slice(2);
         const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'),
-        argv.map((arg, i) => {
-          if (i > 0 && (argv[i - 1] === '-c' || argv[i - 1] === '--config') && !Path.isAbsolute(arg)) {
-            return Path.resolve(arg);
-          }
-          return arg;
-        }), {cwd: plinkEnv.workDir});
+          argv.map((arg, i) => {
+            if (i > 0 && (argv[i - 1] === '-c' || argv[i - 1] === '--config') && !Path.isAbsolute(arg)) {
+              return Path.resolve(arg);
+            }
+            return arg;
+          }), {cwd: plinkEnv.workDir});
         log.info('Current directory is not CRA project directory, fork new process...pid:', cp.pid);
         return;
       }

@@ -264,7 +264,6 @@ export const slice = stateFactory.newSlice({
       // for (const deps of [pkjson.dependencies, pkjson.devDependencies] as {[name: string]: string}[] ) {
       //   Object.entries(deps);
       // }
-
       const deps = Object.entries<string>(pkjson.dependencies || {});
 
       // const updatingDeps = {...pkjson.dependencies || {}};
@@ -291,7 +290,6 @@ export const slice = stateFactory.newSlice({
           state.srcPackages, wsKey, pkjson.dependencies || {}, pkjson.devDependencies
       );
 
-
       const installJson: PackageJsonInterf = {
         ...pkjson,
         dependencies: Array.from(hoistedDeps.entries())
@@ -311,7 +309,7 @@ export const slice = stateFactory.newSlice({
         }, {} as {[key: string]: string})
       };
 
-      // log.info(installJson)
+      // log.warn(installJson);
       // const installedComp = scanInstalledPackage4Workspace(state.workspaces, state.srcPackages, wsKey);
 
       const existing = state.workspaces.get(wsKey);
@@ -564,7 +562,7 @@ stateFactory.addEpic((action$, state$) => {
             .map(entry => entry.join(': '));
 
           if (newDeps.length !== oldDeps.length) {
-            log.info('newDeps.length', newDeps.length, ' !== oldDeps.length', oldDeps.length);
+            log.debug('newDeps.length', newDeps.length, ' !== oldDeps.length', oldDeps.length);
             actionDispatcher._installWorkspace({workspaceKey: key});
             return newWs;
           }
@@ -656,6 +654,9 @@ stateFactory.addEpic((action$, state$) => {
       ignoreElements()
     ),
     action$.pipe(ofPayloadAction(slice.actions.addProject, slice.actions.deleteProject),
+      concatMap(() => scanAndSyncPackages())
+    ),
+    action$.pipe(ofPayloadAction(slice.actions.addSrcDirs, slice.actions.deleteSrcDirs),
       concatMap(() => scanAndSyncPackages())
     )
   ).pipe(
@@ -944,6 +945,7 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
         if (proj == null && srcDir && !srcPkgMap.has(srcDir))
           srcPkgMap.set(srcDir, []);
 
+        log.debug('scan package.json', jsonFile);
         const info = createPackageInfo(jsonFile, false);
         if (info.json.dr || info.json.plink) {
           pkgList.push(info);
@@ -954,7 +956,7 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
           else
             log.error(`Orphan ${jsonFile}`);
         } else {
-          log.debug(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`);
+          log.debug(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`, info.json);
         }
       })
     ).toPromise();

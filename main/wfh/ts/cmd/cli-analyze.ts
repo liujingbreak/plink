@@ -23,7 +23,18 @@ const cpus = os.cpus().length;
 
 export default function(packages: string[], opts: AnalyzeOptions) {
   const alias: [reg: string, replace: string][] =
-    opts.alias.map(item => JSON.parse(item) as [reg: string, replace: string]);
+    opts.alias.map(item => {
+      if (!item.startsWith('['))
+        item = '[' + item;
+      if (!item.endsWith(']'))
+        item = item + ']';
+      try {
+        return JSON.parse(item) as [reg: string, replace: string];
+      } catch (e) {
+        log.error('Can not parse JSON: ' + item);
+        throw e;
+      }
+    });
 
   if (opts.file && opts.file.length > 0) {
     dispatcher.analyzeFile({
@@ -148,7 +159,7 @@ export function printResult(result: NonNullable<AnalyzeState['result']>, opts: {
 }
 interface AnalyzeState {
   inputFiles?: string[];
-  result?: ReturnType<Context['toPlainObject']>;
+  result?: ReturnType<Context['toPlainObject']> | null;
 }
 
 const initState: AnalyzeState = {
@@ -204,14 +215,17 @@ export async function analyseFiles(files: string[],
     });
   }));
   files = _.flatten((await Promise.all(matchDones)))
-
   .filter(f => /\.[jt]sx?$/.test(f));
+
+  if (files.length === 0) {
+    log.warn('No source files are found');
+    return null;
+  }
   const threadPool = new Pool(cpus - 1, 0, {
     // initializer: {file: 'source-map-support/register'},
     verbose: false
   });
 
-  // process.env.NODE_OPTIONS = '--inspect-brk';
   return await threadPool.submitProcess<ReturnType<Context['toPlainObject']>>({
     file: Path.resolve(__dirname, 'cli-analyse-worker.js'),
     exportFn: 'dfsTraverseFiles',

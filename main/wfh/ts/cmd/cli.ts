@@ -312,7 +312,7 @@ function subComands(program: commander.Command) {
       '(multiple) determine target TS/JS(X) files (multiple file with more options "-f <file> -f <glob>")', arrayOptionFn, [])
     .option('-j', 'Show result in JSON', false)
     .option('--tsconfig <file>', 'Use "compilerOptions.paths" property to resolve ts/js file module')
-    .option('--alias <alias-express>', 'a JSON express, e.g. --alias \'["^@/(.+)$","src/$1"]\'', arrayOptionFn, [])
+    .option('--alias <alias-express>', 'multiple JSON express, e.g. --alias \'"^@/(.+)$","src/$1"\'', arrayOptionFn, [])
     .action(async (packages: string[]) => {
       return (await import('./cli-analyze')).default(packages, analysisCmd.opts() as tp.AnalyzeOptions);
     });

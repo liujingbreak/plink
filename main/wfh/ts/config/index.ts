@@ -36,10 +36,8 @@ const config = (): PlinkSettings => {
 
 config.initSync = (argv: CliOptions) => {
   dispatcher.saveCliOption(argv);
-  if (process.env.PLINK_CLI_OPTS == null) {
-    // For child process, worker thread to access cli options
-    process.env.PLINK_CLI_OPTS = JSON.stringify(argv);
-  }
+  // For child process, worker thread to access cli options
+  process.env.PLINK_CLI_OPTS = JSON.stringify(argv);
   load(argv);
   return getState();
 };

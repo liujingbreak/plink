@@ -52,7 +52,7 @@ export function parseConfigFileToJson(ts: typeof _ts, file: string) {
     console.error(error);
     throw new Error('Incorrect tsconfig file: ' + file);
   }
-  const json: {compilerOptions: RequiredCompilerOptions, extends?: string} = config;
+  const json = config as {compilerOptions: RequiredCompilerOptions; extends?: string};
   if (json.extends) {
     const extendsFile = Path.resolve(Path.dirname(file), json.extends);
     const pJson = parseConfigFileToJson(ts, extendsFile);

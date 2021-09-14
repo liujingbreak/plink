@@ -160,9 +160,11 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       const files = ([] as string[]).concat(tscCfg.files);
       const aRes = await analyseFiles(files.map(file => resolve(symlinkDir, file)), argv.mergeTsconfig, []);
       log.debug('analyzed files:', aRes);
-      rootFiles.push(...(aRes.files.filter(file => file.startsWith(symlinkDir + sep) && !/\.(?:jsx?|d\.ts)$/.test(file))
-        .map(file => file.replace(/\\/g, '/')))
-      );
+      if (aRes) {
+        rootFiles.push(...(aRes.files.filter(file => file.startsWith(symlinkDir + sep) && !/\.(?:jsx?|d\.ts)$/.test(file))
+          .map(file => file.replace(/\\/g, '/')))
+        );
+      }
     }
     if (tscCfg.include) {
       let patterns = ([] as string[]).concat(tscCfg.include);

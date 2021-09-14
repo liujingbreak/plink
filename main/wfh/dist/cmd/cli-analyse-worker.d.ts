@@ -12,7 +12,7 @@ export declare class Context {
     }[];
     externalDeps: Set<string>;
     nodeModuleDeps: Set<string>;
-    matchAlias: string[];
+    matchAlias: Set<string>;
     commonDir: string;
     /** traversed files */
     topSortedFiles: string[];
@@ -22,7 +22,7 @@ export declare class Context {
         file: string;
         pos: string;
         reasone: string;
-    }[], externalDeps?: Set<string>, nodeModuleDeps?: Set<string>, matchAlias?: string[]);
+    }[], externalDeps?: Set<string>, nodeModuleDeps?: Set<string>, matchAlias?: Set<string>);
     toPlainObject(): {
         commonDir: string;
         relativeDepsOutSideDir: string[];

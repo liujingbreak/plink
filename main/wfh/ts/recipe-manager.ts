@@ -11,14 +11,14 @@ import findPackageJson from './package-mgr/find-package';
 import {map, mergeMap} from 'rxjs/operators';
 
 let projectList: string[] = [];
-let linkPatterns: Iterable<string> | undefined;
+let linkPatterns: string[] = [];
 
 export function setProjectList(list: string[]) {
   projectList = list;
 }
 
 export function setLinkPatterns(list: Iterable<string>) {
-  linkPatterns = list;
+  linkPatterns = Array.from(list);
 }
 
 export type EachRecipeSrcCallback = (srcDir: string, projectDir: string) => void;
@@ -62,15 +62,13 @@ export function* allSrcDirs() {
       yield {srcDir, projDir};
     }
   }
-  if (linkPatterns) {
-    for (let pat of linkPatterns) {
-      if (pat.endsWith('/**'))
-        pat = pat.slice(0, -3);
-      else if (pat.endsWith('/*'))
-        pat = pat.slice(0, -2);
-      pat = _.trimStart(pat, '.');
-      yield {srcDir: pat};
-    }
+  for (let pat of linkPatterns) {
+    if (pat.endsWith('/**'))
+      pat = pat.slice(0, -3);
+    else if (pat.endsWith('/*'))
+      pat = pat.slice(0, -2);
+    pat = _.trimStart(pat, '.');
+    yield {srcDir: pat};
   }
 }
 

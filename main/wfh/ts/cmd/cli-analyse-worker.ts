@@ -47,7 +47,7 @@ export class Context {
     }[] = [],
     public externalDeps: Set<string> = new Set(),
     public nodeModuleDeps: Set<string> = new Set(),
-    public matchAlias: string[] = []
+    public matchAlias: Set<string> = new Set()
   ) {
     this.commonDir = commonDir.endsWith(Path.sep) ? commonDir : commonDir + Path.sep;
   }
@@ -60,7 +60,7 @@ export class Context {
       canNotResolve: this.canNotResolve,
       externalDeps: Array.from(this.externalDeps.values()),
       nodeModuleDeps: Array.from(this.nodeModuleDeps.values()),
-      matchAlias: this.matchAlias,
+      matchAlias: Array.from(this.matchAlias.values()),
       files: this.topSortedFiles
     };
   }
@@ -207,7 +207,7 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
   for (const [reg, replaceTo] of ctx.alias) {
     const replaced = path.replace(reg, replaceTo);
     if (path !== replaced) {
-      ctx.matchAlias.push(path);
+      ctx.matchAlias.add(path);
       path = replaced;
       break;
     }

@@ -6,7 +6,7 @@ export declare function printResult(result: NonNullable<AnalyzeState['result']>,
 }): void;
 interface AnalyzeState {
     inputFiles?: string[];
-    result?: ReturnType<Context['toPlainObject']>;
+    result?: ReturnType<Context['toPlainObject']> | null;
 }
 export declare function getStore(): import("rxjs").Observable<AnalyzeState>;
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<AnalyzeState, {
@@ -32,5 +32,5 @@ export declare function analyseFiles(files: string[], tsconfigFile: string | und
     nodeModuleDeps: string[];
     matchAlias: string[];
     files: string[];
-}>;
+} | null>;
 export {};
