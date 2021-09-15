@@ -103,6 +103,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   const destDir = Path.relative(process.cwd(), commonRootDir).replace(/\\/g, '/');
   const compilerOptions: RequiredCompilerOptions = {
     ...baseCompilerOptions,
+    target: 'es2017',
     importHelpers: false,
     declaration: true,
     /**

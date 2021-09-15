@@ -1,6 +1,7 @@
 {
   "extends": "./wfh/tsconfig-base.json",
   "compilerOptions": {
+    "target": "es2017",
     "rootDir": "wfh/ts",
     "declaration": true,
   },

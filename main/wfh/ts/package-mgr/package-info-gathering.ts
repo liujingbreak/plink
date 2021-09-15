@@ -8,6 +8,7 @@ import {parseName} from './lazy-package-factory';
 import {plinkEnv} from '../utils/misc';
 import LRU from 'lru-cache';
 import Path from 'path';
+// import inspector from 'inspector';
 
 const log = getLogger('plink.package-info-gathering');
 const {workDir, symlinkDirName} = plinkEnv;
@@ -68,6 +69,7 @@ export function walkPackages() {
   for (const pk of packages4Workspace()) {
     addPackageToInfo(packageInfo.moduleMap, pk);
   }
+
   createPackageDirTree(packageInfo);
   return packageInfo;
 }
@@ -117,6 +119,10 @@ function createPackageDirTree(packageInfo: PackageInfo) {
     tree.putData(Path.resolve(workDir, symlinkDirName, pkg.name), pkg);
     // if (pkg.path !== pkg.realPath) {
     //   tree.putData(Path.resolve(workDir, symlinkDirName, pkg.name), pkg);
+    // }
+    // if (pkg.name === '@bk/trade-aggr') {
+    //   inspector.open(9222, 'localhost', true);
+    //   debugger;
     // }
     count++;
   });

@@ -108,6 +108,13 @@ export = function(webpackEnv: 'production' | 'development') {
     config.plugins!.push(new StatsPlugin());
   // config.plugins!.push(new ProgressPlugin({ profile: true }));
 
+  // const TargePlugin = require('case-sensitive-paths-webpack-plugin');
+
+  // Remove problematic plugin for Mac OS
+  // const found = config.plugins!.findIndex(plugin => plugin instanceof TargePlugin);
+  // if (found >= 0)
+  //   config.plugins?.splice(found, 1);
+
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
   } else {
@@ -340,12 +347,11 @@ function changeFileLoader(rules: RuleSetRule[]): void {
 function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) {
   return function testOurSourceFile(file: string)  {
     const pk = api.findPackageByFile(file);
-    if (pk == null && file.indexOf('.links') > 0)
-      log.warn('createRuleTestFunc4Src', file, pk);
+
     const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
       (origTest instanceof RegExp) ? origTest.test(file) :
         (origTest instanceof Function ? origTest(file) : origTest === file);
-    // log.info(`[webpack.config] babel-loader: ${file}`, yes);
+    // log.warn(`[webpack.config] babel-loader: ${file}`, yes);
     return yes;
   };
 }

@@ -4,7 +4,7 @@ import _ from 'lodash';
 import log4js from 'log4js';
 import Path from 'path';
 import chalk from 'chalk';
-import { setTsCompilerOptForNodePath, CompilerOptions } from './package-mgr/package-list-helper';
+import { setTsCompilerOptForNodePath, CompilerOptions, packages4Workspace } from './package-mgr/package-list-helper';
 // import {filterEffect} from '../../packages/redux-toolkit-observable/dist/rx-utils';
 import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
   isCwdWorkspace, workspaceDir } from './package-mgr';
@@ -70,6 +70,46 @@ export const dispatcher = stateFactory.bindActionCreators(slice);
 stateFactory.addEpic<EditorHelperState>((action$, state$) => {
   let noModuleSymlink: Set<string>;
 
+  function updateNodeModuleSymlinks(wsKey: string) {
+    if (noModuleSymlink == null) {
+      noModuleSymlink = new Set();
+      for (const projDir of getPkgState().project2Packages.keys()) {
+        const rootPkgJson = require(Path.resolve(plinkEnv.rootDir, projDir, 'package.json')) as {plink?: {noModuleSymlink?: string[]}};
+        for (const dir of (rootPkgJson.plink?.noModuleSymlink || []).map(item => Path.resolve(plinkEnv.rootDir, projDir, item))) {
+          noModuleSymlink.add(dir);
+        }
+      }
+    }
+
+    const currWorkspaceDir = workspaceDir(wsKey);
+    const srcPkgs = packages4Workspace(wsKey, false);
+    const srcDirSet = new Set(Array.from(_recp.allSrcDirs())
+      .map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir) : item.srcDir));
+
+    return rx.from(srcPkgs).pipe(
+      op.map(pkg => pkg.realPath),
+      op.filter(dir => srcDirSet.has(dir) && !noModuleSymlink.has(dir)),
+      op.reduce<string, string[]>((acc, item) => {
+        acc.push(item);
+        return acc;
+      }, []),
+      op.mergeMap(dirs => {
+        dispatcher._change(s => {
+          s.nodeModuleSymlinks = new Set();
+          for (const destDir of dirs) {
+            s.nodeModuleSymlinks.add(Path.join(destDir, 'node_modules'));
+          }
+        });
+        return dirs;
+      }),
+      op.mergeMap(destDir => {
+        return rx.of({name: 'node_modules', realPath: Path.join(currWorkspaceDir, 'node_modules')}).pipe(
+          symbolicLinkPackages(destDir)
+        );
+      })
+    );
+  }
+
   return rx.merge(
     // pkgStore().pipe(
     //   filterEffect(s => [s.linkedDrcp, s.installedDrcp]),
@@ -85,40 +125,6 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     //     return rx.EMPTY;
     //   })
     // ),
-    action$.pipe(ofPayloadAction(pkgSlice.actions._setCurrentWorkspace),
-      op.concatMap(({payload: wsKey}) => {
-        if (wsKey == null)
-          return rx.EMPTY;
-        if (noModuleSymlink == null) {
-          noModuleSymlink = new Set();
-          for (const projDir of getPkgState().project2Packages.keys()) {
-            const rootPkgJson = require(Path.resolve(plinkEnv.rootDir, projDir, 'package.json')) as {plink?: {noModuleSymlink?: string[]}};
-            for (const dir of (rootPkgJson.plink?.noModuleSymlink || []).map(item => Path.resolve(plinkEnv.rootDir, projDir, item))) {
-              noModuleSymlink.add(dir);
-            }
-          }
-        }
-
-        const currWorkspaceDir = workspaceDir(wsKey);
-        return rx.from(_recp.allSrcDirs()).pipe(
-          op.map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir) : item.srcDir),
-          op.filter(dir => !noModuleSymlink.has(dir)),
-          op.mergeMap(destDir => {
-            if (fs.existsSync(Path.join(destDir, 'package.json'))) {
-              dispatcher._change(s => {
-                if (s.nodeModuleSymlinks == null)
-                  s.nodeModuleSymlinks = new Set([Path.join(destDir, 'node_modules')]);
-                else
-                  s.nodeModuleSymlinks.add(Path.join(destDir, 'node_modules'));
-              });
-            }
-            return rx.of({name: 'node_modules', realPath: Path.join(currWorkspaceDir, 'node_modules')}).pipe(
-              symbolicLinkPackages(destDir)
-            );
-          })
-        );
-      })
-    ),
     action$.pipe(ofPayloadAction(slice.actions.clearSymlinks),
       op.concatMap(() => {
         return rx.from(_recp.allSrcDirs()).pipe(
@@ -143,9 +149,11 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
           getPkgState().currWorkspace ? Path.resolve(rootPath, getPkgState().currWorkspace!)
           : undefined;
         await writePackageSettingType();
-        updateTsconfigFileForProjects(wsKeys[wsKeys.length - 1]);
+        const lastWsKey = wsKeys[wsKeys.length - 1];
+        updateTsconfigFileForProjects(lastWsKey);
         await Promise.all(Array.from(getState().tsconfigByRelPath.values())
           .map(data => updateHookedTsconfig(data, wsDir)));
+        await updateNodeModuleSymlinks(lastWsKey).toPromise();
       })
     ),
     action$.pipe(ofPayloadAction(slice.actions.hookTsconfig),

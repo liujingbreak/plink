@@ -14,6 +14,7 @@ export async function forkFile(moduleName: string) {
   process.on('SIGINT', () => {
     // eslint-disable-next-line no-console
     console.log('bye');
+    recoverNodeModuleSymlink();
     process.exit(0);
   });
 
@@ -21,16 +22,7 @@ export async function forkFile(moduleName: string) {
   const removed = await removeNodeModuleSymlink();
 
   process.on('beforeExit', () => {
-    if (recovered)
-      return;
-    recovered = true;
-
-    for (const {link, content} of removed) {
-      if (!fs.existsSync(link)) {
-        void fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
-        log.info('recover ' + link);
-      }
-    }
+    recoverNodeModuleSymlink();
   });
 
 
@@ -73,14 +65,18 @@ export async function forkFile(moduleName: string) {
     }
   });
 
-  // const {isStateSyncMsg} = require('./store') as typeof _store;
-  // cp.on('message', (msg) => {
-  //   if (isStateSyncMsg(msg)) {
-  //     // const stat = eval('(' + msg.data + ')');
-  //   }
-  // });
+  function recoverNodeModuleSymlink() {
+    if (recovered)
+      return;
+    recovered = true;
 
-  return;
+    for (const {link, content} of removed) {
+      if (!fs.existsSync(link)) {
+        void fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
+        log.info('recover ' + link);
+      }
+    }
+  }
 }
 
 /**
@@ -103,6 +99,7 @@ async function removeNodeModuleSymlink() {
     } catch (ex) {
       return null;
     }
+
     const content = fs.readlinkSync(link);
     log.info('backup symlink: ' + link);
     await fs.promises.unlink(link);
@@ -111,3 +108,4 @@ async function removeNodeModuleSymlink() {
   const res = await Promise.all(dones);
   return res.filter(item => item != null) as {link: string; content: string}[];
 }
+
