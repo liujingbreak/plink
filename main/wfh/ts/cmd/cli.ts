@@ -114,7 +114,8 @@ function subComands(program: commander.Command) {
    */
   const initCmd = program.command('init [work-directory]').alias('sync')
     .description('Initialize and update work directory, generate basic configuration files for project and component packages,' +
-      ' calculate hoisted transitive dependencies, and run "npm install" in current directory.',
+      ' calculate hoisted transitive dependencies, and run "npm install" in current directory.' +
+      ' (All NPM config environment variables will affect dependency installation, see https://docs.npmjs.com/cli/v7/using-npm/config#environment-variables)',
       {
         'work-directory': 'A relative or abosolute directory path, use "." to determine current directory,\n  ommitting this argument meaning:\n' +
           '  - If current directory is already a "work directory", update it.\n' +
@@ -195,7 +196,8 @@ function subComands(program: commander.Command) {
   const upgradeCmd = program.command('upgrade')
     .alias('install')
     .description('Reinstall local Plink along with other dependencies.' +
-      ' (Unlike "npm install" which does not work with node_modules that might contain symlinks)')
+      ' Unlike "npm install" which does not work with node_modules that might contain symlinks.' +
+      ' (All NPM config environment variables will affect dependency installation, see https://docs.npmjs.com/cli/v7/using-npm/config#environment-variables)')
     .action(async () => {
       skipVersionCheck = true;
       await (await import('./cli-link-plink')).reinstallWithLinkedPlink(upgradeCmd.opts() as tp.NpmCliOption);
@@ -440,7 +442,7 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
 function addNpmInstallOption(cmd: commander.Command) {
   cmd.option('--cache <npm-cache>', 'same as npm install option "--cache"')
   .option('--ci, --use-ci', 'Use "npm ci" instead of "npm install" to install dependencies', false)
-  .option('--offline', 'same as npm option "--offline" during executing npm install/ci ', false)
+  // .option('--offline', 'same as npm option "--offline" during executing npm install/ci ', false)
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
   .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false);
 }
