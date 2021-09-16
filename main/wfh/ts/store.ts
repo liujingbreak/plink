@@ -186,7 +186,7 @@ stateFactory.addEpic<typeof storeSettingSlice>((action$, store$) => rx.merge(
   op.ignoreElements()
 ));
 
-export const processExitAction$ = action$Of(stateFactory, storeSettingSlice.actions.processExit);
+export const processExitAction$ = action$Of(stateFactory, storeSettingSlice.actions.processExit).pipe(op.take(1));
 export const storeSavedAction$ = action$Of(stateFactory, storeSettingSlice.actions.storeSaved);
 
 export function startLogging() {

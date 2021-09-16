@@ -21,7 +21,6 @@ export type $__MyComponent__$Props = React.PropsWithChildren<{
 }>;
 export interface $__MyComponent__$State extends BaseComponentState<$__MyComponent__$Props> {
   yourStateProp?: React.MouseEvent['target'];
-  error?: Error;
 }
 
 const reducers = {

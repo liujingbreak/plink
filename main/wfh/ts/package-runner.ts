@@ -70,13 +70,14 @@ export function runServer(): {started: Promise<unknown>; shutdown(): Promise<voi
     started,
     async shutdown() {
       const reverseOrderPkgExports = await started;
-      log.info('shutting down');
+      log.info('Shutting down');
       for (const {name, exp} of reverseOrderPkgExports) {
         if (_.isFunction(exp.deactivate)) {
           log.info('deactivate', name);
           await Promise.resolve(exp.deactivate());
         }
       }
+      log.info('Shutdown completed');
     }
   };
 }

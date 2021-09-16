@@ -37,33 +37,37 @@ export function initConfig(options: GlobalOptions) {
  * DO NOT fork a child process on this function
  * @param onShutdownSignal 
  */
-export function initProcess(saveState = true, onShutdownSignal?: () => void | Promise<any>) {
+export function initProcess(saveState = true, onShutdownSignal?: () => void | Promise<any>, isChildProcess = false) {
   process.on('SIGINT', function() {
     // eslint-disable-next-line no-console
     log.info('pid ' + process.pid + ': bye');
     void onShut();
   });
-  // Be aware this is why "initProcess" can not be "fork"ed in a child process, it will keep alive for parent process's 'message' event
-  process.on('message', function(msg) {
-    if (msg === 'shutdown') {
-      // eslint-disable-next-line no-console
-      log.info('Recieve shutdown message from PM2, bye.');
-      void onShut();
-    }
-  });
+  if (!isChildProcess) {
+    // Be aware this is why "initProcess" can not be "fork"ed in a child process, it will keep alive for parent process's 'message' event
+    process.on('message', function(msg) {
+      if (msg === 'shutdown') {
+        // eslint-disable-next-line no-console
+        log.info('Recieve shutdown message from PM2, bye.');
+        void onShut();
+      }
+    });
+  }
 
   const {dispatcher, storeSavedAction$, stateFactory, startLogging} = require('../store') as typeof store;
 
   startLogging();
   stateFactory.configureStore();
 
-  if (!saveState) {
+  if (isChildProcess && saveState)
+    dispatcher.changeActionOnExit('save');
+  else if (!isChildProcess && !saveState) {
     dispatcher.changeActionOnExit('none');
   }
 
   async function onShut() {
     if (onShutdownSignal) {
-      await Promise.resolve(onShutdownSignal);
+      await Promise.resolve(onShutdownSignal());
     }
     const saved = storeSavedAction$.pipe(op.take(1)).toPromise();
     dispatcher.processExit();
@@ -84,24 +88,5 @@ export function initProcess(saveState = true, onShutdownSignal?: () => void | Pr
  * @param syncState send changed state back to main process
  */
 export function initAsChildProcess(saveState = false, onShutdownSignal?: () => void | Promise<any>) {
-  const {stateFactory, startLogging, dispatcher} = require('../store') as typeof store;
-  process.on('SIGINT', function() {
-    // eslint-disable-next-line no-console
-    if (onShutdownSignal) {
-      void Promise.resolve(onShutdownSignal)
-      .then(() => dispatcher.processExit())
-      .finally(() => {
-        log.info('bye');
-        setImmediate(() => process.exit(0));
-      });
-    } else {
-      log.info('bye');
-      process.exit(0);
-    }
-  });
-
-  startLogging();
-  stateFactory.configureStore();
-  if (saveState)
-    dispatcher.changeActionOnExit('save');
+  return initProcess(saveState, onShutdownSignal, true);
 }

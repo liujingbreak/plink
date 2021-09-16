@@ -142,7 +142,7 @@ export = function(webpackEnv: 'production' | 'development') {
   }
 
   runConfigHandlers(config, webpackEnv);
-  log.debug(`output.publicPath: ${config.output!.publicPath}`);
+  log.debug(`output.publicPath: ${config.output!.publicPath!}`);
   fs.writeFileSync(Path.resolve(reportDir, 'webpack.config.plink.js'), printConfig(config));
 
   // changeTsConfigFile();
