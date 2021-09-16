@@ -82,13 +82,18 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     }
 
     const currWorkspaceDir = workspaceDir(wsKey);
-    const srcPkgs = packages4Workspace(wsKey, false);
-    const srcDirSet = new Set(Array.from(_recp.allSrcDirs())
-      .map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir) : item.srcDir));
+    const srcPkgSet = new Set(Array.from(packages4Workspace(wsKey, false)).map(pkg => pkg.realPath));
+    const srcDirs = Array.from(_recp.allSrcDirs())
+      .map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir) : item.srcDir);
 
-    return rx.from(srcPkgs).pipe(
-      op.map(pkg => pkg.realPath),
-      op.filter(dir => srcDirSet.has(dir) && !noModuleSymlink.has(dir)),
+    return rx.from(srcDirs).pipe(
+      op.filter(dir => !noModuleSymlink.has(dir)),
+      op.tap(destDir => {
+        rx.of({name: 'node_modules', realPath: Path.join(currWorkspaceDir, 'node_modules')}).pipe(
+          symbolicLinkPackages(destDir)
+        ).subscribe();
+      }),
+      op.filter(dir => srcPkgSet.has(dir)),
       op.reduce<string, string[]>((acc, item) => {
         acc.push(item);
         return acc;
@@ -101,11 +106,6 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
           }
         });
         return dirs;
-      }),
-      op.mergeMap(destDir => {
-        return rx.of({name: 'node_modules', realPath: Path.join(currWorkspaceDir, 'node_modules')}).pipe(
-          symbolicLinkPackages(destDir)
-        );
       })
     );
   }

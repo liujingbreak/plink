@@ -27,7 +27,7 @@ export function symbolicLinkPackages(destDir: string) {
 
           if (stat) {
             if (stat.isFile() ||
-              (stat.isSymbolicLink() && isSymlinkTo(newPath, realPath))) {
+              (stat.isSymbolicLink() && !isSymlinkTo(newPath, realPath))) {
               fs.unlinkSync(newPath);
               _symbolicLink(realPath, newPath);
             } else if (stat.isDirectory()) {
