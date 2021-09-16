@@ -91,6 +91,7 @@ export = function(webpackEnv: 'production' | 'development') {
   const {getPkgOfFile} = packageOfFileFactory();
 
   const resolveModules = ['node_modules', ...nodePath];
+  config.resolve!.symlinks = false;
   config.resolve!.modules = resolveModules;
   if (config.resolveLoader == null)
     config.resolveLoader = {};

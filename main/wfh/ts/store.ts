@@ -150,9 +150,11 @@ stateFactory.addEpic<typeof storeSettingSlice>((action$, store$) => rx.merge(
         const jsonStr = serialize(mergedState, {space: '  '});
         fse.mkdirpSync(Path.dirname(stateFile));
         try {
+          const relFile = Path.relative(process.cwd(), stateFile);
+          log.info(chalk.gray(`saving state file ${relFile}`));
           await fs.promises.writeFile(stateFile, jsonStr);
           log.info(chalk.gray(
-            `state file ${Path.relative(process.cwd(), stateFile)} saved (${getState().stateChangeCount})`));
+            `state file ${relFile} saved (${getState().stateChangeCount})`));
         } catch (err) {
           log.error(chalk.gray(`Failed to write state file ${Path.relative(process.cwd(), stateFile)}`), err);
         }

@@ -33,17 +33,17 @@ export default function paths() {
   if (foundPkg == null) {
     throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
   }
-  const {realPath: dir, json: packageJson, path: pkgDir} = foundPkg;
+  const {json: packageJson, path: pkgDir} = foundPkg;
 
   const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
   const changedPaths = paths;
 
   const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
   if (cmdOption.buildType === 'lib') {
-    changedPaths.appBuild = Path.resolve(dir, 'build');
-    changedPaths.appIndexJs = Path.resolve(dir, _.get(plinkProps, [PKG_LIB_ENTRY_PROP], PKG_LIB_ENTRY_DEFAULT));
+    changedPaths.appBuild = Path.resolve(pkgDir, 'build');
+    changedPaths.appIndexJs = Path.resolve(pkgDir, _.get(plinkProps, [PKG_LIB_ENTRY_PROP], PKG_LIB_ENTRY_DEFAULT));
   } else if (cmdOption.buildType === 'app') {
-    changedPaths.appIndexJs = Path.resolve(dir, _.get(plinkProps, [PKG_APP_ENTRY_PROP], PKG_APP_ENTRY_DEFAULT));
+    changedPaths.appIndexJs = Path.resolve(pkgDir, _.get(plinkProps, [PKG_APP_ENTRY_PROP], PKG_APP_ENTRY_DEFAULT));
     changedPaths.appBuild = pCfg.resolve('staticDir');
   }
   log.debug(changedPaths);
