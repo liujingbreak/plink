@@ -141,7 +141,7 @@ function subComands(program: commander.Command) {
         dir: 'Specify target project repo directory (absolute path or relative path to current directory)' +
           ', specify multiple project by seperating them with space character'
       })
-    .action(async (action: 'add'|'remove'|undefined, projectDir: string[]) => {
+    .action(async (action: 'add' | 'remove' | undefined, projectDir: string[]) => {
       // eslint-disable-next-line no-console
       console.log(sexyFont('PLink').string);
       (await import('./cli-project')).default({isSrcDir: false}, action, projectDir);
@@ -153,7 +153,7 @@ function subComands(program: commander.Command) {
         'add|remove': 'Specify whether associate to a directory or disassociate from a directory',
         dir: 'specify multiple directories by seperating them with space character'
       })
-      .action(async (action: 'add'|'remove'|undefined, dirs: string[]) => {
+      .action(async (action: 'add' | 'remove' | undefined, dirs: string[]) => {
         // eslint-disable-next-line no-console
         console.log(sexyFont('PLink').string);
         (await import('./cli-project')).default({isSrcDir: true}, action, dirs);
@@ -273,7 +273,7 @@ function subComands(program: commander.Command) {
       'project directories to be looked up for all packages which need to be packed to tarball files',
       arrayOptionFn, [])
     .option('--tar-dir <dir>', 'directory to save tar files', Path.join(getRootDir(), 'tarballs'))
-    .option('--jf, --json-file <pkg-json-file>', 'the package.json file in which "devDependencies", "dependencies" should to be changed according to packed file, ' + 
+    .option('--jf, --json-file <pkg-json-file>', 'the package.json file in which "devDependencies", "dependencies" should to be changed according to packed file, ' +
       'by default package.json files in all work spaces will be checked and changed')
     .action(async (packages: string[]) => {
       await (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packages});

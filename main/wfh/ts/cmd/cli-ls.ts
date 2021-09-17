@@ -12,6 +12,7 @@ import {take, map, distinctUntilChanged, skip} from 'rxjs/operators';
 import {createCliTable, plinkEnv} from '../utils/misc';
 import * as priorityHelper from '../package-priority-helper';
 import {isServerPackage, readPriorityProperty} from '../package-runner';
+import {dispatcher as storeSettingDispatcher} from '../store';
 
 export default async function list(opt: GlobalOptions & {json: boolean; hoist: boolean}) {
   if (opt.hoist) {
@@ -42,6 +43,7 @@ export default async function list(opt: GlobalOptions & {json: boolean; hoist: b
 }
 
 export function checkDir(opt: GlobalOptions) {
+  storeSettingDispatcher.changeActionOnExit('save');
   pkMgr.getStore().pipe(
     map(s => s.packagesUpdateChecksum), distinctUntilChanged(),
     skip(1), take(1),

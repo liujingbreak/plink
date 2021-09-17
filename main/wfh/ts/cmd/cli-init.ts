@@ -11,8 +11,10 @@ import { listProject } from './cli-project';
 import _ from 'lodash';
 import * as options from './types';
 import {createCliTable, plinkEnv} from '../utils/misc';
+import {dispatcher as storeSettingDispatcher} from '../store';
 
 export default function(opt: options.InitCmdOptions & options.NpmCliOption, workspace?: string) {
+  storeSettingDispatcher.changeActionOnExit('save');
   const cwd = plinkEnv.workDir;
   getStore().pipe(
     distinctUntilChanged((s1, s2) => s1.packagesUpdateChecksum === s2.packagesUpdateChecksum),

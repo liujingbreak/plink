@@ -58,12 +58,12 @@ export function initProcess(saveState = true, onShutdownSignal?: () => void | Pr
 
   startLogging();
   stateFactory.configureStore();
-
-  if (isChildProcess && saveState)
-    dispatcher.changeActionOnExit('save');
-  else if (!isChildProcess && !saveState) {
-    dispatcher.changeActionOnExit('none');
-  }
+  dispatcher.changeActionOnExit('none');
+  // if (isChildProcess && saveState)
+  //   dispatcher.changeActionOnExit('save');
+  // else if (!isChildProcess && !saveState) {
+  //   dispatcher.changeActionOnExit('none');
+  // }
 
   async function onShut() {
     if (onShutdownSignal) {

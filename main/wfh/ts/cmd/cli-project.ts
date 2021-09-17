@@ -4,6 +4,7 @@ import Path from 'path';
 import { distinctUntilChanged, map, skip, take } from 'rxjs/operators';
 import { actionDispatcher as pkgActions, getStore } from '../package-mgr';
 import { boxString, getRootDir } from '../utils/misc';
+import {dispatcher as storeSettingDispatcher} from '../store';
 // import { writeFile } from './utils';
 // import config from '../config';
 const rootPath = getRootDir();
@@ -16,6 +17,7 @@ export default function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', di
   listProject(undefined, true);
   switch (action) {
     case 'add':
+      storeSettingDispatcher.changeActionOnExit('save');
       if (dirs) {
         if (opts.isSrcDir)
           pkgActions.addSrcDirs(dirs);
@@ -24,6 +26,7 @@ export default function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', di
       }
       break;
     case 'remove':
+      storeSettingDispatcher.changeActionOnExit('save');
       if (dirs) {
         if (opts.isSrcDir)
           pkgActions.deleteSrcDirs(dirs);

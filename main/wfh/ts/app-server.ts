@@ -31,11 +31,12 @@ if (process.send) {
     exit$.next('start');
     return done;
   });
+  storeSettingDispatcher.changeActionOnExit('none');
 }
 
+
+
 if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
-  if (storeSettingDispatcher)
-    storeSettingDispatcher.changeActionOnExit('none');
   void forkFile('@wfh/plink/wfh/dist/app-server.js');
 } else {
   const {version} = require('../../package.json') as {version: string};

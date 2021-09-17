@@ -3,6 +3,7 @@ import * as op from 'rxjs/operators';
 // import {getLogger} from 'log4js';
 import Path from 'path';
 import {getRootDir} from '../utils/misc';
+import {dispatcher as storeSettingDispatcher} from '../store';
 
 export interface CliOptions {
   hook: string[];
@@ -12,12 +13,15 @@ export interface CliOptions {
 
 export function doTsconfig(opts: CliOptions) {
   if (opts.hook && opts.hook.length > 0) {
+    storeSettingDispatcher.changeActionOnExit('save');
     dispatcher.hookTsconfig(opts.hook);
   }
   if (opts.unhook && opts.unhook.length > 0) {
+    storeSettingDispatcher.changeActionOnExit('save');
     dispatcher.unHookTsconfig(opts.unhook);
   }
   if (opts.unhookAll) {
+    storeSettingDispatcher.changeActionOnExit('save');
     dispatcher.unHookAll();
   }
   getStore().pipe(

@@ -20,6 +20,7 @@ import stripAnsi from 'strip-ansi';
 import {findPackagesByNames} from './utils';
 import {plinkEnv} from '../utils/misc';
 import '../editor-helper';
+import {dispatcher as storeSettingDispatcher} from '../store';
 
 // let tarballDir: string;
 const log = log4js.getLogger('plink.cli-pack');
@@ -33,7 +34,7 @@ function init(opts: PublishOptions | PackOptions) {
 export async function pack(opts: PackOptions) {
   const tarballDir = init(opts);
   const targetJsonFile = opts.jsonFile;
-
+  storeSettingDispatcher.changeActionOnExit('save');
   if (opts.workspace && opts.workspace.length > 0) {
     await Promise.all(opts.workspace.map(ws => packPackages(
       Array.from(linkedPackagesOfWorkspace(ws)), tarballDir, targetJsonFile))

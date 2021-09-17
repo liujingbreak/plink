@@ -12,12 +12,15 @@ import {plinkEnv} from '../utils/misc';
 import {workspacesOfDependencies} from '../package-mgr/package-list-helper';
 import {actionDispatcher as pkgDispater, isCwdWorkspace, getState, workspaceDir, workspaceKey} from '../package-mgr/index';
 import '../editor-helper';
+import {dispatcher as storeSettingDispatcher} from '../store';
+
 const log = getLogger('plink.cli-add-package');
 
 export async function addDependencyTo(packages: string[], to?: string, dev = false) {
   if (packages.length === 0) {
     throw new Error('At least specify one dependency argument');
   }
+  storeSettingDispatcher.changeActionOnExit('save');
   let wsDirs: string[] = [];
   if (to == null) {
     if (isCwdWorkspace()) {
