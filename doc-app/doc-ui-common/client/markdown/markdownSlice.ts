@@ -10,7 +10,7 @@ export interface MarkdownState {
   markdowns: {[key: string]: string};
   contents: {[key: string]: LoaderRecivedData};
   computed: {
-    reactHtml: {[key: string]: {__html: string}}
+    reactHtml: {[key: string]: {__html: string}};
   };
 }
 

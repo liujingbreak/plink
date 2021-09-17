@@ -55,7 +55,7 @@ export function fallbackIndexHtml() {
   api.use('/', (req, res, next) => {
     if (req.method !== 'GET')
       return next();
-
+    log.debug(req.url);
     rules.some(({reg, tmpl}) => {
       const orig = req.url;
       const match = reg.exec(req.url);
@@ -63,7 +63,7 @@ export function fallbackIndexHtml() {
         return false;
       // Reference to https://github.com/kapouer/express-urlrewrite/blob/master/index.js#L45
       req.url = req.originalUrl = tmpl({match});
-      log.debug('rewrite url %s to %s', orig, req.url);
+      log.info('rewrite url %s to %s', orig, req.url);
       // const qpSetting: string | undefined = api.expressApp.get('query parser');
 
       return true;

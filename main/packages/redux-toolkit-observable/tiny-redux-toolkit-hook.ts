@@ -90,7 +90,7 @@ export function useTinyReduxTookit<S extends {error?: Error}, R extends Reducers
     const slice = createSlice(sliceOptions);
     slice.state$.pipe(
       op.distinctUntilChanged(),
-      op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
+      // op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
       op.tap(changed => setState(changed)),
       op.takeUntil(willUnmountSub)
     ).subscribe();

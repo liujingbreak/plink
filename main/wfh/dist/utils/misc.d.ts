@@ -37,7 +37,13 @@ export interface PackageTsDirs {
     include?: string[] | string;
     files?: string[] | string;
 }
-export declare function getTscConfigOfPkg(json: any): PackageTsDirs;
+export declare function getTscConfigOfPkg(json: any): {
+    srcDir: string;
+    destDir: string;
+    isomDir: string;
+    include: string[] | undefined;
+    files: string[] | undefined;
+};
 export declare const getRootDir: () => string;
 /** get Plink work directory or process.cwd() */
 export declare const getWorkDir: () => string;

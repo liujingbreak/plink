@@ -21,9 +21,9 @@
 		"resolveJsonModule": true,
 		"diagnostics": false,
 		"newLine": "lf",
-		"lib": ["es2016",
-			"es2015",
-			"dom"
+		"lib": [
+			"ES2017",
+			"DOM"
 		],
 		"pretty": true,
 		"rootDir": "ts"

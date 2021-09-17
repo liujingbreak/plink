@@ -161,13 +161,13 @@ export interface PackageTsDirs {
   files?: string[] | string;
 }
 
-export function getTscConfigOfPkg(json: any): PackageTsDirs {
+export function getTscConfigOfPkg(json: any) {
   // const globs: string[] | undefined = get(json, 'dr.ts.globs');
-  const srcDir = get(json, 'dr.ts.src', get(json, 'plink.tsc.src', 'ts'));
-  const isomDir = get(json, 'dr.ts.isom', get(json, 'plink.tsc.isom', 'isom'));
-  const include = get(json, 'dr.ts.include', get(json, 'plink.tsc.include'));
-  const files = get(json, 'plink.tsc.files');
-  let destDir = get(json, 'dr.ts.dest', get(json, 'plink.tsc.dest', 'dist'));
+  const srcDir = get(json, 'dr.ts.src', get(json, 'plink.tsc.src', 'ts')) as string;
+  const isomDir = get(json, 'dr.ts.isom', get(json, 'plink.tsc.isom', 'isom')) as string;
+  const include = get(json, 'dr.ts.include', get(json, 'plink.tsc.include')) as string[] | undefined;
+  const files = get(json, 'plink.tsc.files') as string[] | undefined;
+  let destDir = get(json, 'dr.ts.dest', get(json, 'plink.tsc.dest', 'dist')) as string;
 
   destDir = trim(trim(destDir, '\\'), '/');
   return {

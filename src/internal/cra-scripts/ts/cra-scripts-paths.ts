@@ -35,7 +35,7 @@ export default function paths() {
   }
   const {json: packageJson, path: pkgDir} = foundPkg;
 
-  const paths: CraScriptsPaths = require(Path.resolve('node_modules/react-scripts/config/paths'));
+  const paths = require(Path.resolve('node_modules/react-scripts/config/paths')) as CraScriptsPaths;
   const changedPaths = paths;
 
   const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
@@ -61,10 +61,11 @@ export default function paths() {
   } else {
     configFileInPackage = null;
   }
-  pCfg.configHandlerMgrChanged(handler => handler.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  pCfg.configHandlerMgrChanged(handler => handler.runEachSync<ReactScriptsHandler>((cfgFile, _result, handler) => {
     if (handler.changeCraPaths != null) {
       log.info('Execute CRA scripts paths overrides', cfgFile);
-      handler.changeCraPaths(changedPaths, config().cliOptions?.env!, cmdOption);
+      handler.changeCraPaths(changedPaths, config().cliOptions!.env!, cmdOption);
     }
   }));
   // eslint-disable-next-line no-console

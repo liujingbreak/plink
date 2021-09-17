@@ -103,7 +103,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   const destDir = Path.relative(process.cwd(), commonRootDir).replace(/\\/g, '/');
   const compilerOptions: RequiredCompilerOptions = {
     ...baseCompilerOptions,
-    target: 'es2017',
+    target: 'ES2017',
     importHelpers: false,
     declaration: true,
     /**
@@ -127,7 +127,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   /** set compGlobs */
   async function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, realPath: string) {
     countPkg++;
-    const tscCfg: PackageTsDirs = argv.overridePackgeDirs && _.has(argv.overridePackgeDirs, name) ?
+    const tscCfg = argv.overridePackgeDirs && _.has(argv.overridePackgeDirs, name) ?
       argv.overridePackgeDirs[name] : getTscConfigOfPkg(json);
     // For workaround https://github.com/microsoft/TypeScript/issues/37960
     // Use a symlink path instead of a real path, so that Typescript compiler will not

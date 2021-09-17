@@ -34,7 +34,7 @@ export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFacto
     const helper = createSliceHelper(stateFactory, {...sliceOptions, name: sliceOptions.name + '.' + COMPONENT_ID++});
     stateFactory.sliceStore(helper).pipe(
       op.distinctUntilChanged(),
-      op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
+      // op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
       op.tap(changed => setState(changed)),
       op.takeUntil(willUnmountSub)
     ).subscribe();

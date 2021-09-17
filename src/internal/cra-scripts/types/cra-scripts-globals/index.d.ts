@@ -1,5 +1,6 @@
-import {DrcpApi} from '@wfh/plink/wfh/globals';
+import {ExtensionContext} from '@wfh/plink/wfh/globals';
 
 declare global {
-	var __api: DrcpApi; // & ExpressAppApi;
+	var __api: ExtensionContext; // & ExpressAppApi;
+	const __plink: ExtensionContext;
 }

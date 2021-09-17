@@ -3,7 +3,7 @@ import Path from 'path';
 import {calcNodePaths} from '../node-path-calc';
 import _ from 'lodash';
 import {getLogger} from 'log4js';
-import {plinkEnv} from '../utils/misc';
+import {plinkEnv, getTscConfigOfPkg} from '../utils/misc';
 import ts from 'typescript';
 import fs from 'fs';
 
@@ -252,16 +252,20 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {
 
   const pathMapping: {[key: string]: string[]} = {};
 
-  for (const [name, {realPath}] of getState().srcPackages.entries() || []) {
+  for (const [name, {realPath, json}] of getState().srcPackages.entries() || []) {
+    const tsDirs = getTscConfigOfPkg(json);
     const realDir = Path.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
     pathMapping[name] = [realDir];
-    pathMapping[name + '/*'] = [realDir + '/*'];
+
+    pathMapping[`${name}/${tsDirs.destDir}/*`] = [`${realDir}/${tsDirs.srcDir}/*`];
+    // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
+    pathMapping[name + '/*'] = [`${realDir}/*`];
   }
 
   // if (pkgName !== '@wfh/plink') {
   drcpDir = Path.relative(baseUrlAbsPath, drcpDir).replace(/\\/g, '/');
   pathMapping['@wfh/plink'] = [drcpDir];
-  pathMapping['@wfh/plink/*'] = [drcpDir + '/*'];
+  pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/ts/*'];
   return pathMapping;
 }
 

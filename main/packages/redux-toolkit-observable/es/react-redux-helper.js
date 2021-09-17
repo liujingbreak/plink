@@ -22,7 +22,8 @@ export function useReduxTookitWith(stateFactory, optsFactory, ...epicFactories) 
     const [state, setState] = React.useState(sliceOptions.initialState);
     const helper = React.useMemo(() => {
         const helper = createSliceHelper(stateFactory, Object.assign(Object.assign({}, sliceOptions), { name: sliceOptions.name + '.' + COMPONENT_ID++ }));
-        stateFactory.sliceStore(helper).pipe(op.distinctUntilChanged(), op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
+        stateFactory.sliceStore(helper).pipe(op.distinctUntilChanged(), 
+        // op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
         op.tap(changed => setState(changed)), op.takeUntil(willUnmountSub)).subscribe();
         // Important!!
         // Epic might contain recurive state changing logic, like subscribing on state$ stream and 

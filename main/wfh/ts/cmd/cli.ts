@@ -109,7 +109,18 @@ export async function createCommands(startTime: number) {
   }
 }
 
+let skipVersionCheck = false;
+
 function subComands(program: commander.Command) {
+  process.on('beforeExit', () => {
+    if (skipVersionCheck)
+      return;
+    skipVersionCheck = true;
+    if (process.send == null) {
+      // process is not a forked child process
+      checkPlinkVersion();
+    }
+  });
   /** command init
    */
   const initCmd = program.command('init [work-directory]').alias('sync')
@@ -446,18 +457,6 @@ function addNpmInstallOption(cmd: commander.Command) {
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
   .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false);
 }
-
-
-let skipVersionCheck = false;
-process.on('beforeExit', () => {
-  if (skipVersionCheck)
-    return;
-  skipVersionCheck = true;
-  if (process.send == null) {
-    // process is not a forked child process
-    checkPlinkVersion();
-  }
-});
 
 function checkPlinkVersion() {
   const pkjson = Path.resolve(getRootDir(), 'package.json');

@@ -90,7 +90,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
         logLevel: 'debug',
         logProvider: provider => hpmLog,
         proxyTimeout: opts.proxyTimeout != null ? opts.proxyTimeout : 10000,
-        onProxyReq(proxyReq, req, res) {
+        onProxyReq(proxyReq, req, res, opt) {
           if (opts.deleteOrigin)
             proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
           const referer = proxyReq.getHeader('referer');
@@ -98,24 +98,24 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
             proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer as string).pathname}`);
           }
           if (opts.onProxyReq) {
-            opts.onProxyReq(proxyReq, req, res);
+            opts.onProxyReq(proxyReq, req, res, opt);
           }
-          hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
+          hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method!}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
           // if (api.config().devMode)
           //   hpmLog.info('on proxy request headers: ', JSON.stringify(proxyReq.getHeaders(), null, '  '));
         },
         onProxyRes(incoming, req, res) {
           incoming.headers['Access-Control-Allow-Origin'] = '*';
           if (api.config().devMode) {
-            hpmLog.info(`Proxy recieve ${req.originalUrl}, status: ${incoming.statusCode!}\n`,
+            hpmLog.info(`Proxy recieve ${req.url!}, status: ${incoming.statusCode!}\n`,
               JSON.stringify(incoming.headers, null, '  '));
           } else {
-            hpmLog.info(`Proxy recieve ${req.originalUrl}, status: ${incoming.statusCode!}`);
+            hpmLog.info(`Proxy recieve ${req.url!}, status: ${incoming.statusCode!}`);
           }
           if (api.config().devMode || config().cliOptions?.verbose) {
 
             const ct = incoming.headers['content-type'];
-            hpmLog.info(`Response ${req.originalUrl} headers:\n`, incoming.rawHeaders);
+            hpmLog.info(`Response ${req.url!} headers:\n`, incoming.rawHeaders);
             const isText = (ct && /\b(json|text)\b/i.test(ct));
             if (isText) {
               const bufs = [] as string[];
@@ -125,7 +125,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
                   cb();
                 },
                 final(cb) {
-                  hpmLog.info(`Response ${req.originalUrl} text body:\n`, bufs.join(''));
+                  hpmLog.info(`Response ${req.url!} text body:\n`, bufs.join(''));
                 }
               }));
             }

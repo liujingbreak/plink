@@ -36,10 +36,10 @@ export interface BumpOptions extends GlobalOptions {
 }
 
 export interface PackOptions extends GlobalOptions {
-  dir: string[];
-  project: string[];
-  packages: string[];
-  workspace: string[];
+  dir?: string[];
+  project?: string[];
+  packages?: string[];
+  workspace?: string[];
   tarDir?: string;
   /** target package.json file, default package.json files of all available workspace */
   jsonFile?: string;

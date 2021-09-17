@@ -54,7 +54,8 @@ export function useTinyReduxTookit(optsFactory, ...epicFactories) {
     // const [slice, setSlice] = React.useState<Slice<S, R>>();
     const slice = React.useMemo(() => {
         const slice = createSlice(sliceOptions);
-        slice.state$.pipe(op.distinctUntilChanged(), op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
+        slice.state$.pipe(op.distinctUntilChanged(), 
+        // op.observeOn(rx.animationFrameScheduler), // To avoid changes being batched by React setState()
         op.tap(changed => setState(changed)), op.takeUntil(willUnmountSub)).subscribe();
         // Important!!
         // Epic might contain recurive state changing logic, like subscribing on state$ stream and 
