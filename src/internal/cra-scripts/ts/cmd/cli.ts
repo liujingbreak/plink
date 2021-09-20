@@ -3,7 +3,7 @@
 import {CliExtension} from '@wfh/plink';
 import Path from 'path';
 // import commander from 'Commander';
-import {saveCmdOptionsToEnv} from '../utils';
+import {saveCmdOptionsToEnv, BuildCliOpts} from '../utils';
 import {fork} from 'child_process';
 import * as _preload from '../preload';
 import {config, log4File, plinkEnv, commander} from '@wfh/plink';
@@ -26,22 +26,9 @@ const cli: CliExtension = (program) => {
     .action((type, pkgName) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
-        // const argv = process.argv.slice(2);
-        // const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'),
-        //   argv.map((arg, i) => {
-        //     if (i > 0 && (argv[i - 1] === '-c' || argv[i - 1] === '--config') && !Path.isAbsolute(arg)) {
-        //       return Path.resolve(arg);
-        //     }
-        //     return arg;
-        //   }), {cwd: plinkEnv.workDir});
-        // log.info('Current directory is not CRA project directory, fork new process...pid:', cp.pid);
-        // return;
       }
-      initEverything(buildCmd, type, pkgName);
-      if (buildCmd.opts().sourceMap) {
-        log.info('source map is enabled');
-        process.env.GENERATE_SOURCEMAP = 'true';
-      }
+      runReactScripts(buildCmd.name(), buildCmd.opts() as BuildCliOpts, type, pkgName);
+
       require('react-scripts/scripts/build');
     });
   withClicOpt(buildCmd);
@@ -52,7 +39,7 @@ const cli: CliExtension = (program) => {
         'package-name': 'target package name, the "scope" name part can be omitted'
       })
     .action(async (pkgName): Promise<void> => {
-      initEverything(StartCmd, 'lib', pkgName);
+      runReactScripts(StartCmd.name(), StartCmd.opts() as BuildCliOpts, 'lib', pkgName);
       await (await import('../tsd-generate')).buildTsd([pkgName]);
     });
 
@@ -64,18 +51,8 @@ const cli: CliExtension = (program) => {
     .action((pkgName) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
-        // const argv = process.argv.slice(2);
-        // const cp = fork(require.resolve('@wfh/plink/wfh/dist/cmd-bootstrap'),
-        //   argv.map((arg, i) => {
-        //     if (i > 0 && (argv[i - 1] === '-c' || argv[i - 1] === '--config') && !Path.isAbsolute(arg)) {
-        //       return Path.resolve(arg);
-        //     }
-        //     return arg;
-        //   }), {cwd: plinkEnv.workDir});
-        // log.info('Current directory is not CRA project directory, fork new process...pid:', cp.pid);
-        // return;
       }
-      initEverything(StartCmd, 'app', pkgName);
+      runReactScripts(StartCmd.name(), StartCmd.opts() as BuildCliOpts, 'app', pkgName);
       require('react-scripts/scripts/start');
     });
   withClicOpt(StartCmd);
@@ -120,14 +97,13 @@ function arrayOptionFn(curr: string, prev: string[] | undefined) {
   return prev;
 }
 
-function initEverything(buildCmd: commander.Command, type: 'app' | 'lib', pkgName: string) {
+function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib', pkgName: string) {
   const cfg = config;
-  saveCmdOptionsToEnv(pkgName, buildCmd, type);
+  saveCmdOptionsToEnv(pkgName, cmdName, opts, type);
   if (process.env.PORT == null && cfg().port)
     process.env.PORT = cfg().port + '';
 
   if (!['app', 'lib'].includes(type)) {
-
     log.error('type argument must be one of \'app\', \'lib\'');
     return;
   }

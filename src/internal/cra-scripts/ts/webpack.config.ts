@@ -10,7 +10,7 @@ import _ from 'lodash';
 import {logger, packageOfFileFactory} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import Path from 'path';
-import { Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem, Compiler } from 'webpack';
+import { Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem, Compiler, ProgressPlugin } from 'webpack';
 import api from '__plink';
 // import { findPackage } from './build-target-helper';
 import { ReactScriptsHandler } from './types';
@@ -75,7 +75,14 @@ export = function(webpackEnv: 'production' | 'development') {
 
   if (cmdOption.buildType === 'app') {
     config.output!.path = craPaths().appBuild;
-    // config.devtool = 'source-map';
+    config.plugins!.push(new ProgressPlugin({
+      activeModules: true,
+      modules: true,
+      modulesCount: 30,
+      handler(percentage, msg, ...args) {
+        log.info(percentage, '%', msg, ...args);
+      }
+    }));
   }
 
   // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory

@@ -5,8 +5,9 @@ import Path from 'path';
 import _ from 'lodash';
 import {gt} from 'semver';
 import * as _craPaths from './cra-scripts-paths';
-import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames, commander} from '@wfh/plink';
+import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
 import {ReactScriptsHandler} from './types';
+const log = log4File(__filename);
 
 export const getReportDir = () => config.resolve('destDir', 'cra-scripts.report');
 
@@ -75,11 +76,18 @@ export function getCmdOptions(): CommandOption {
   return cmdOption;
 }
 
-export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, buildType: 'app' | 'lib'): CommandOption {
-  const opts = cmd.opts() as NonNullable<PlinkSettings['cliOptions']> & {watch: boolean; include?: string[]; publicUrl?: string};
+export type BuildCliOpts = {
+  watch: boolean;
+  include?: string[];
+  publicUrl?: string;
+  sourceMap?: boolean;
+} & NonNullable<PlinkSettings['cliOptions']>;
+
+export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib'): CommandOption {
+
   const completeName = [...findPackagesByNames([pkgName])][0]!.name;
   const cmdOptions: CommandOption = {
-    cmd: cmd.name(),
+    cmd: cmdName,
     buildType,
     buildTarget: completeName,
     watch: opts.watch,
@@ -89,8 +97,12 @@ export function saveCmdOptionsToEnv(pkgName: string, cmd: commander.Command, bui
     includes: opts.include,
     webpackEnv: opts.dev ? 'development' : 'production'
   };
-  if (cmd.opts().publicUrl) {
-    (process.env as any).PUBLIC_URL = cmd.opts().publicUrl;
+  if (opts.publicUrl) {
+    (process.env as any).PUBLIC_URL = opts.publicUrl;
+  }
+  if (opts.sourceMap) {
+    log.info('source map is enabled');
+    process.env.GENERATE_SOURCEMAP = 'true';
   }
   process.env.REACT_APP_cra_build = JSON.stringify(cmdOptions);
 
@@ -119,7 +131,7 @@ export function runTsConfigHandlers(compilerOptions: any) {
   const {getConfigFileInPackage} = require('./cra-scripts-paths') as typeof _craPaths;
   const configFileInPackage = getConfigFileInPackage();
   const cmdOpt = getCmdOptions();
-  const log = log4File(__filename);
+
   config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
     if (handler.tsCheckCompilerOptions != null) {
       log.info('Execute TS compiler option overrides', cfgFile);
