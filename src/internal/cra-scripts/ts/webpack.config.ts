@@ -78,9 +78,9 @@ export = function(webpackEnv: 'production' | 'development') {
     config.plugins!.push(new ProgressPlugin({
       activeModules: true,
       modules: true,
-      modulesCount: 30,
+      modulesCount: 100,
       handler(percentage, msg, ...args) {
-        log.info(percentage, '%', msg, ...args);
+        log.info(Math.round(percentage * 100), '%', msg, ...args);
       }
     }));
   }

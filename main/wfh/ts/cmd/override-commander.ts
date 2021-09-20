@@ -35,13 +35,13 @@ export class PlinkCommandHelp extends commander.Help {
     return option.optionStyler ? option.optionStyler(option.flags) : option.flags;
   }
 
-  longestSubcommandTermLengthForReal(cmd: commander.Command, helper: PlinkCommandHelp) {
+  private longestSubcommandTermLengthForReal(cmd: commander.Command, helper: PlinkCommandHelp) {
     return helper.visibleCommands(cmd).reduce((max, command) => {
       return Math.max(max, stripAnsi(helper.subcommandTerm(command)).length);
     }, 0);
   }
 
-  longestOptionTermLengthForReal(cmd: commander.Command, helper: PlinkCommandHelp) {
+  private longestOptionTermLengthForReal(cmd: commander.Command, helper: PlinkCommandHelp) {
     return helper.visibleOptions(cmd).reduce((max, option) => {
       return Math.max(max, stripAnsi(helper.optionTerm(option)).length);
     }, 0);
@@ -51,7 +51,7 @@ export class PlinkCommandHelp extends commander.Help {
   //   return stripAnsi(super.subcommandDescription(cmd));
   // }
 
-  realPadWidth(cmd: commander.Command, helper: PlinkCommandHelp) {
+  private realPadWidth(cmd: commander.Command, helper: PlinkCommandHelp) {
     return Math.max(
       helper.longestOptionTermLengthForReal(cmd, helper),
       helper.longestSubcommandTermLengthForReal(cmd, helper),
@@ -68,9 +68,14 @@ export class PlinkCommandHelp extends commander.Help {
     const itemSeparatorWidth = 2; // between term and description
     function formatItem(term: string, description: string, styler?: PlinkCommand['nameStyler']) {
       if (description) {
+        if (description) {
+          const fullText = `${term}${' '.repeat(realTermWidth + itemIndentWidth - stripAnsi(term).length)}${description}`;
+          return helper.wrap(fullText, helpWidth - itemIndentWidth, realTermWidth + itemSeparatorWidth);
+        }
+        return term;
         // Support colorful characters
-        const fullText = `${term}${' '.repeat(realTermWidth + itemIndentWidth - stripAnsi(term).length)}${description}`;
-        return helper.wrap(fullText, helpWidth - itemIndentWidth, realTermWidth + itemSeparatorWidth);
+        // const fullText = `${term}${' '.repeat(realTermWidth + itemIndentWidth - stripAnsi(term).length)}${description}`;
+        // return helper.wrap(fullText, helpWidth - itemIndentWidth, realTermWidth + itemSeparatorWidth);
       }
       return term;
     }
@@ -79,29 +84,28 @@ export class PlinkCommandHelp extends commander.Help {
     }
 
     // Usage
-    const output = [`Usage: ${helper.commandUsage(cmd)}`, ''];
+    let output = [`Usage: ${helper.commandUsage(cmd)}`, ''];
 
     // Description
     const commandDescription = helper.commandDescription(cmd);
     if (commandDescription.length > 0) {
-      output.push(commandDescription, '');
+      output = output.concat([commandDescription, '']);
     }
 
     // Arguments
     const argumentList = helper.visibleArguments(cmd).map((argument) => {
-      return formatItem(argument.term, argument.description);
+      return formatItem(helper.argumentTerm(argument), helper.argumentDescription(argument));
     });
     if (argumentList.length > 0) {
-      output.push('Arguments:', formatList(argumentList), '');
+      output = output.concat(['Arguments:', formatList(argumentList), '']);
     }
 
     // Options
     const optionList = helper.visibleOptions(cmd).map((option) => {
-      return formatItem(helper.optionTerm(option), helper.optionDescription(option),
-        (option as PlinkCmdOption).optionStyler);
+      return formatItem(helper.optionTerm(option), helper.optionDescription(option), (option as PlinkCmdOption).optionStyler);
     });
     if (optionList.length > 0) {
-      output.push('Options:', formatList(optionList), '');
+      output = output.concat(['Options:', formatList(optionList), '']);
     }
 
     // Commands
@@ -114,38 +118,14 @@ export class PlinkCommandHelp extends commander.Help {
           '\n';
       }
       pkgName = (cmd as PlinkCommand).pkgName;
-      return header + formatItem(helper.subcommandTerm(cmd), helper.subcommandDescription(cmd),
-        (cmd as PlinkCommand).nameStyler);
+      return header + formatItem(helper.subcommandTerm(cmd), helper.subcommandDescription(cmd), (cmd as PlinkCommand).nameStyler);
     });
     if (commandList.length > 0) {
-      output.push('Commands:', formatList(commandList), '');
+      output = output.concat(['Commands:', formatList(commandList), '']);
     }
 
     return output.join('\n');
   }
-
-  // wrap(str: string, width: number, indent: number, minColumnWidth = 40) {
-  //   // Detect manually wrapped and indented strings by searching for line breaks
-  //   // followed by multiple spaces/tabs.
-  //   if (str.match(/[\n]\s+/)) return str;
-  //   // Do not wrap if not enough room for a wrapped column of text (as could end up with a word per line).
-  //   const columnWidth = width - indent;
-  //   if (columnWidth < minColumnWidth) return str;
-
-  //   const leadingStr = str.substr(0, indent);
-  //   const columnText = str.substr(indent);
-
-  //   const indentString = ' '.repeat(indent);
-  //   const regex = new RegExp('.{1,' + (columnWidth - 1) + '}([\\s\u200B]|$)|[^\\s\u200B]+?([\\s\u200B]|$)', 'g');
-
-  //   const lines = columnText.match(regex) || [];
-  //   return leadingStr + lines.map((line, i) => {
-  //     if (line.slice(-1) === '\n') {
-  //       line = line.slice(0, line.length - 1);
-  //     }
-  //     return ((i > 0) ? indentString : '') + line.trimRight();
-  //   }).join('\n');
-  // }
 }
 /**
  * Extend commander, check commander API at https://www.npmjs.com/package/commander
@@ -203,14 +183,14 @@ export class PlinkCommand extends commander.Command {
   }
 
   description(str?: string,
-    argsDescription?: { [argName: string]: string; }) {
+    argsDescription?: { [argName: string]: string }) {
     if (str !== undefined) {
       const plinkMeta = this.ctx.metaMap.get(this)!;
       plinkMeta.desc = str;
       if (argsDescription) {
         plinkMeta.argDesc = argsDescription;
       }
-      return super.description(str, argsDescription);
+      return argsDescription ? super.description(str, argsDescription) : super.description(str);
     }
     return super.description() as any;
   }
@@ -355,6 +335,7 @@ export function withCwdOption(cmd: commander.Command): commander.Command {
 
 export function withGlobalOptions(cmd: commander.Command | PlinkCommand): commander.Command {
   if (getState().workspaces == null)
+    // eslint-disable-next-line no-console
     console.log(getState());
   withCwdOption(cmd);
 

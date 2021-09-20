@@ -38,7 +38,7 @@ config.initSync = (argv: CliOptions) => {
   dispatcher.saveCliOption(argv);
   // For child process, worker thread to access cli options
   process.env.PLINK_CLI_OPTS = JSON.stringify(argv);
-  load(argv);
+  load(getState().cliOptions!);
   return getState();
 };
 

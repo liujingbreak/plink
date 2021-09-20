@@ -56,7 +56,7 @@
     "yamlify": "^0.2.0",
     "yamljs": "^0.3.0",
     "@types/yamljs": "^0.2.31",
-    "commander": "~7.1.0",
+    "commander": "~8.2.0",
     "@reduxjs/toolkit": "~1.5.0",
     "redux-observable": "~1.2.0",
     "log4js": "^6.1.2",

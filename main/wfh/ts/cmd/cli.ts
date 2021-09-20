@@ -3,7 +3,7 @@
 import commander from 'commander';
 import chalk from 'chalk';
 import * as op from 'rxjs/operators';
-import * as tp from './types';
+// import * as tp from './types';
 import * as pkgMgr from '../package-mgr';
 // import '../tsc-packages-slice';
 import {packages4Workspace} from '../package-mgr/package-list-helper';
@@ -17,7 +17,7 @@ import {CommandOverrider, withCwdOption} from './override-commander';
 import {initInjectorForNodePackages} from '../package-runner';
 import {hlDesc, arrayOptionFn} from './utils';
 import {getLogger} from 'log4js';
-import {CliOptions as TsconfigCliOptions} from './cli-tsconfig-hook';
+// import {CliOptions as TsconfigCliOptions} from './cli-tsconfig-hook';
 import * as _cliWatch from './cli-watch';
 const pk = require('../../../package.json') as {version: string};
 // const WIDTH = 130;
@@ -138,7 +138,7 @@ function subComands(program: commander.Command) {
     .action(async (workspace?: string) => {
       // eslint-disable-next-line no-console
       console.log(sexyFont('PLink').string);
-      (await import('./cli-init')).default(initCmd.opts() as tp.InitCmdOptions & tp.NpmCliOption, workspace);
+      (await import('./cli-init')).default(initCmd.opts() , workspace);
     });
   addNpmInstallOption(initCmd);
 
@@ -211,7 +211,7 @@ function subComands(program: commander.Command) {
       ' (All NPM config environment variables will affect dependency installation, see https://docs.npmjs.com/cli/v7/using-npm/config#environment-variables)')
     .action(async () => {
       skipVersionCheck = true;
-      await (await import('./cli-link-plink')).reinstallWithLinkedPlink(upgradeCmd.opts() as tp.NpmCliOption);
+      await (await import('./cli-link-plink')).reinstallWithLinkedPlink(upgradeCmd.opts() );
     });
   addNpmInstallOption(upgradeCmd);
   // program.command('dockerize <workspace-dir>')
@@ -228,7 +228,7 @@ function subComands(program: commander.Command) {
     .option('--hoist', 'list hoisted transitive Dependency information', false)
     .description('If you want to know how many packages will actually run, this command prints out a list and the priorities, including installed packages')
     .action(async () => {
-      await (await import('./cli-ls')).default(listCmd.opts() as any);
+      await (await import('./cli-ls')).default(listCmd.opts() );
     });
 
   const addCmd = program.command('add <dependency...>')
@@ -249,7 +249,7 @@ function subComands(program: commander.Command) {
     .option('--unhook <file>', 'remove tsconfig/jsconfig file from Plink\'s automatic updating file list', arrayOptionFn, [])
     .option('--clear,--unhook-all', 'remove all tsconfig files from from Plink\'s automatic updating file list', false)
     .action(async () => {
-      (await import('./cli-tsconfig-hook')).doTsconfig(tsconfigCmd.opts() as TsconfigCliOptions);
+      (await import('./cli-tsconfig-hook')).doTsconfig(tsconfigCmd.opts() );
     });
 
   /**
@@ -266,7 +266,7 @@ function subComands(program: commander.Command) {
     .option('-i, --incre-version <value>',
       'version increment, valid values are: major, minor, patch, prerelease', 'patch')
     .action(async (packages: string[]) => {
-      await (await import('./cli-bump')).default({...bumpCmd.opts() as tp.BumpOptions, packages});
+      await (await import('./cli-bump')).default({...bumpCmd.opts() , packages});
     });
   // withGlobalOptions(bumpCmd);
   // bumpCmd.usage(bumpCmd.usage() + '\n' + hl('plink bump <package> ...') + ' to recursively bump package.json from multiple directories\n' +
@@ -287,7 +287,7 @@ function subComands(program: commander.Command) {
     .option('--jf, --json-file <pkg-json-file>', 'the package.json file in which "devDependencies", "dependencies" should to be changed according to packed file, ' +
       'by default package.json files in all work spaces will be checked and changed')
     .action(async (packages: string[]) => {
-      await (await import('./cli-pack')).pack({...packCmd.opts() as tp.PackOptions, packages});
+      await (await import('./cli-pack')).pack({...packCmd.opts() , packages});
     });
   // withGlobalOptions(packCmd);
   packCmd.usage(packCmd.usage() + '\nBy default, run "npm pack" for each linked package which are dependencies of current workspace');
@@ -307,7 +307,7 @@ function subComands(program: commander.Command) {
       arrayOptionFn, [])
     .option('--public', 'same as "npm publish" command option "--access public"', false)
     .action(async (packages: string[]) => {
-      await (await import('./cli-pack')).publish({...publishCmd.opts() as tp.PublishOptions, packages});
+      await (await import('./cli-pack')).publish({...publishCmd.opts() , packages});
     });
 
 
@@ -327,17 +327,17 @@ function subComands(program: commander.Command) {
     .option('--tsconfig <file>', 'Use "compilerOptions.paths" property to resolve ts/js file module')
     .option('--alias <alias-express>', 'multiple JSON express, e.g. --alias \'"^@/(.+)$","src/$1"\'', arrayOptionFn, [])
     .action(async (packages: string[]) => {
-      return (await import('./cli-analyze')).default(packages, analysisCmd.opts() as tp.AnalyzeOptions);
+      return (await import('./cli-analyze')).default(packages, analysisCmd.opts());
     });
 
   analysisCmd.usage(analysisCmd.usage() + '\n' +
     'e.g.\n  ' + chalk.blue('plink analyze -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts\n  ' +
     'plink analyze -d packages/foobar1/src -d packages/foobar2/ts'));
 
-  const watchCmd = program.command('watch [package...]')
+  const watchCmd = program.command('watch')
   .description('Watch package source code file changes (files referenced in .npmignore will be ignored) and update Plink state, ' +
-  'automatically install transitive dependency', {
-    package: cliPackageArgDesc})
+  'automatically install transitive dependency')
+  .argument('[package...]', cliPackageArgDesc, [])
   .option('--cp, --copy <directory>', 'copy package files to specific directory, mimic behavior of "npm install <pkg>", but this won\'t install dependencies')
   .action((pkgs: string[]) => {
     const {cliWatch} = require('./cli-watch') as typeof _cliWatch;
@@ -348,7 +348,7 @@ function subComands(program: commander.Command) {
     .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
     'Because we store absolute path info of each package in internal state, and it will become invalid after you rename or move directory')
     .action(async (workspace: string) => {
-      (await import('./cli-ls')).checkDir(updateDirCmd.opts() as tp.GlobalOptions);
+      (await import('./cli-ls')).checkDir(updateDirCmd.opts() );
     });
 }
 

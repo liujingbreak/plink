@@ -1,6 +1,7 @@
 export interface GlobalOptions {
-  config: string[];
-  prop: string[];
+  /** configure files */
+  config?: string[];
+  prop?: string[];
   /** set log level to "debug" */
   verbose?: boolean;
   cwd?: string;

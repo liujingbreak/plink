@@ -78,6 +78,10 @@ export const configSlice = stateFactory.newSlice({
   initialState: initialState as PlinkSettings,
   reducers: {
     saveCliOption(s, {payload}: PayloadAction<GlobalOptions>) {
+      if (payload.config) {
+        // Later on process may change cwd by chdir(), make sure file paths are absolute, so that it remains correctly even in difference working directory
+        payload.config = payload.config.map(entry => Path.resolve(entry));
+      }
       s.cliOptions = payload;
       s.devMode = payload.dev === true;
     }

@@ -10,12 +10,11 @@ import {config, log4File, plinkEnv, commander} from '@wfh/plink';
 const log = log4File(__filename);
 
 const cli: CliExtension = (program) => {
-  const buildCmd = program.command('cra-build <app|lib> <package-name>')
-    .description('Compile react application or library (work with create-react-app v4.0.3)', {
-      'app|lib': '"app" stands for building a complete application like create-react-app,\n' +
-        '"lib" stands for building a library',
-      'package-name': 'target package name, the "scope" name part can be omitted'
-    })
+  const buildCmd = program.command('cra-build')
+    .description('Compile react application or library (work with create-react-app v4.0.3)')
+    .argument('<app|lib>', '"app" stands for building a complete application like create-react-app,\n' +
+    '"lib" stands for building a library')
+    .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
     .option('-w, --watch', 'when argument is "lib", watch file changes and compile', false)
     .option('-i, --include <module-path-regex>',
     '(multiple value), when argument is "lib", we will set "external" property of Webpack configuration for all request not begin with "." (not relative path), ' +
@@ -27,7 +26,7 @@ const cli: CliExtension = (program) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
       }
-      runReactScripts(buildCmd.name(), buildCmd.opts() as BuildCliOpts, type, pkgName);
+      runReactScripts(buildCmd.name(), buildCmd.opts() , type, pkgName);
 
       require('react-scripts/scripts/build');
     });
@@ -39,7 +38,7 @@ const cli: CliExtension = (program) => {
         'package-name': 'target package name, the "scope" name part can be omitted'
       })
     .action(async (pkgName): Promise<void> => {
-      runReactScripts(StartCmd.name(), StartCmd.opts() as BuildCliOpts, 'lib', pkgName);
+      runReactScripts(StartCmd.name(), StartCmd.opts() , 'lib', pkgName);
       await (await import('../tsd-generate')).buildTsd([pkgName]);
     });
 
@@ -52,7 +51,7 @@ const cli: CliExtension = (program) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
       }
-      runReactScripts(StartCmd.name(), StartCmd.opts() as BuildCliOpts, 'app', pkgName);
+      runReactScripts(StartCmd.name(), StartCmd.opts() , 'app', pkgName);
       require('react-scripts/scripts/start');
     });
   withClicOpt(StartCmd);

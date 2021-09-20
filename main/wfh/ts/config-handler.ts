@@ -124,7 +124,8 @@ export class ConfigHandlerMgr {
       });
     }
     for (const [file, exportName] of fileAndExports) {
-      const exp = require(Path.resolve(file));
+      const absFile = Path.isAbsolute(file) ? file : Path.resolve(file);
+      const exp = require(absFile) as {[exportName: string]: any};
       exporteds.push({file, handler: exp[exportName] ? exp[exportName] : exp});
     }
     return exporteds;

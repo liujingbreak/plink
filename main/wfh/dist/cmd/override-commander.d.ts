@@ -12,9 +12,9 @@ interface CommandContext {
 export declare class PlinkCommandHelp extends commander.Help {
     subcommandTerm(cmd: commander.Command): string;
     optionTerm(option: PlinkCmdOption): string;
-    longestSubcommandTermLengthForReal(cmd: commander.Command, helper: PlinkCommandHelp): number;
-    longestOptionTermLengthForReal(cmd: commander.Command, helper: PlinkCommandHelp): number;
-    realPadWidth(cmd: commander.Command, helper: PlinkCommandHelp): number;
+    private longestSubcommandTermLengthForReal;
+    private longestOptionTermLengthForReal;
+    private realPadWidth;
     formatHelp(cmd: commander.Command, helper: PlinkCommandHelp): string;
 }
 /**
