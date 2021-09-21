@@ -1,11 +1,10 @@
 import express, {Application} from 'express';
-import api, {DrcpApi} from '__api';
-import {ExtensionContext} from '@wfh/plink';
+import {ExtensionContext, log4File} from '@wfh/plink';
 import _ from 'lodash';
 import Path from 'path';
 import _cors from 'cors';
 
-let log = require('log4js').getLogger(api.packageName + '.setApi');
+let log = log4File(__filename);
 // let swig = require('swig-templates');
 
 interface RouterDefCallback {
@@ -28,8 +27,6 @@ export function createPackageDefinedRouters(app: Application) {
       throw er;
     }
   });
-  // app.use(revertRenderFunction);
-  // app.use(revertRenderFunctionForError);//important
 }
 
 export function applyPackageDefinedAppSetting(app: Application) {
@@ -39,7 +36,7 @@ export function applyPackageDefinedAppSetting(app: Application) {
 }
 
 export function setupApi(api: ExtensionContext, app: Application) {
-  let apiPrototype: DrcpApi = Object.getPrototypeOf(api);
+  let apiPrototype = Object.getPrototypeOf(api) as ExtensionContext;
   apiPrototype.express = express;
   apiPrototype.expressApp = app;
   // apiPrototype.swig = swig;
@@ -124,7 +121,8 @@ export function setupApi(api: ExtensionContext, app: Application) {
     apiPrototype[method] = function(_x: any) {
       let args = [].slice.apply(arguments);
       function setupMiddleware(app: Application) {
-        app[method].apply(app, args);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        app[method](...args);
       }
       setupMiddleware.packageName = this.packageName;
       // this function will be

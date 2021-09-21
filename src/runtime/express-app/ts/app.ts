@@ -3,17 +3,17 @@ import express, {Request, Response, NextFunction, Application} from 'express';
 import * as Path from 'path';
 import * as fs from 'fs';
 // var favicon = require('serve-favicon');
-import {logger, ExtensionContext} from '@wfh/plink';
+import {logger, ExtensionContext, config} from '@wfh/plink';
 import bodyParser from 'body-parser';
 import {setupApi, applyPackageDefinedAppSetting, createPackageDefinedRouters} from './routes';
-import api from '__api';
+
 const cookieParser = require('cookie-parser');
 const engines = require('consolidate');
 const log = logger.getLogger('@wfh/express-app');
 const compression = require('compression');
 // var swigInjectLoader = require('swig-package-tmpl-loader');
 
-const VIEW_PATH = Path.relative(api.config().rootPath,
+const VIEW_PATH = Path.relative(config().rootPath,
   Path.resolve(__dirname, '..', 'views'));
 var app: express.Express;
 
@@ -26,7 +26,7 @@ export = {
     api.eventBus.on('packagesActivated', function() {
       log.info('packagesActivated');
       process.nextTick(() => {
-        create(app, api.config());
+        create(app, config());
         expressAppReady$.next(app);
         expressAppReady$.complete();
         api.eventBus.emit('appCreated', app);
@@ -43,7 +43,7 @@ export = {
   }
 };
 
-function create(app: express.Express, setting: any) {
+function create(app: express.Express, setting: ReturnType<typeof config>) {
   // view engine setup
   // swig.setDefaults({
   //   varControls: ['{=', '=}'],
@@ -66,7 +66,7 @@ function create(app: express.Express, setting: any) {
   app.set('views', [setting.rootPath]);
   app.set('view engine', 'html');
   app.set('x-powered-by', false);
-  app.set('env', api.config().devMode ? 'development' : 'production');
+  app.set('env', config().devMode ? 'development' : 'production');
   applyPackageDefinedAppSetting(app);
   // uncomment after placing your favicon in /public
   // app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -95,7 +95,7 @@ function create(app: express.Express, setting: any) {
     res.setHeader('X-Nodejs', nodeVer);
     next();
   });
-  const hashFile = Path.join(api.config().rootPath, 'githash-server.txt');
+  const hashFile = Path.join(config().rootPath, 'githash-server.txt');
   if (fs.existsSync(hashFile)) {
     const githash = fs.readFileSync(hashFile, 'utf8');
     app.get('/githash-server', (req: Request, res: Response) => {

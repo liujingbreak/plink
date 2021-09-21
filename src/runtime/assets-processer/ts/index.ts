@@ -33,7 +33,7 @@ export function activate(api: ExtensionContext) {
   log.info('Serve static dir', staticFolder);
 
   // api.use('/', createResponseTimestamp);
-  proxyToDevServer();
+  proxyToDevServer(api);
 
   const httpProxySet = getSetting().httpProxy;
   if (httpProxySet) {
@@ -58,7 +58,7 @@ export function activate(api: ExtensionContext) {
       ` start command with "--prop ${api.packageName}.serveIndex=true --prop staticDir=<resource directory>`));
   }
   api.expressAppSet(app => activateCd(app, imap));
-  fallbackIndexHtml();
+  fallbackIndexHtml(api);
   api.use('/', staticHandler); // Serve fallbacked request to index.html
 
   const mailSetting = (api.config.get(api.packageName) as WithMailServerConfig).fetchMailServer;

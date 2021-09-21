@@ -364,6 +364,14 @@ export const slice = stateFactory.newSlice({
     _associatePackageToSrcDir(d,
       {payload: {pattern, pkgs}}: PayloadAction<{pattern: string; pkgs: {name: string}[]}>) {
       d.srcDir2Packages.set(pathToProjKey(pattern), pkgs.map(pkgs => pkgs.name));
+    },
+    _clearProjAndSrcDirPkgs(d) {
+      for (const key of d.project2Packages.keys()) {
+        d.project2Packages.set(key, []);
+      }
+      for (const key of d.srcDir2Packages.keys()) {
+        d.srcDir2Packages.set(key, []);
+      }
     }
   }
 });
@@ -938,6 +946,7 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
   } else {
     const rm = (await import('../recipe-manager'));
     pkgList = [];
+    actionDispatcher._clearProjAndSrcDirPkgs();
     await rm.scanPackages().pipe(
       tap(([proj, jsonFile, srcDir]) => {
         if (proj && !projPkgMap.has(proj))
@@ -960,6 +969,7 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
         }
       })
     ).toPromise();
+    // log.warn(projPkgMap, srcPkgMap);
     for (const [prj, pkgs] of projPkgMap.entries()) {
       actionDispatcher._associatePackageToPrj({prj, pkgs});
     }

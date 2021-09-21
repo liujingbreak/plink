@@ -1,15 +1,14 @@
 import {createProxyMiddleware as proxy, Options} from 'http-proxy-middleware';
 import express from '@wfh/express-app/dist/express';
-import api from '__api';
 import _ from 'lodash';
 // import Url from 'url';
-import {log4File, config as plinkConfig} from '@wfh/plink';
+import {log4File, config as plinkConfig, ExtensionContext} from '@wfh/plink';
 import {getSetting} from '../isom/assets-processer-setting';
 const log = log4File(__filename);
 interface ReqWithNextCb extends express.Request {
   __goNext: express.NextFunction;
 }
-export function proxyToDevServer() {
+export function proxyToDevServer(api: ExtensionContext) {
   // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
   let setting: Options | undefined = getSetting().proxyToDevServer;
   if (setting == null)
@@ -24,23 +23,25 @@ export function proxyToDevServer() {
   config.onError = (err, req, res) => {
     if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
       log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
-      if ((req as any).__goNext)
+      if ((req as ReqWithNextCb).__goNext)
         return (req as ReqWithNextCb).__goNext();
       return;
     }
     log.warn(err);
-    if ((req as any).__goNext)
+    if ((req as ReqWithNextCb).__goNext)
       (req as ReqWithNextCb).__goNext(err);
   };
 
   const proxyHandler = proxy('/', config);
-  api.use((req, res, next) => {
-    (req as ReqWithNextCb).__goNext = next;
-    proxyHandler(req, res, next);
+  api.expressAppSet((app, express) => {
+    app.use((req, res, next) => {
+      (req as ReqWithNextCb).__goNext = next;
+      proxyHandler(req, res, next);
+    });
   });
 }
 
-export function fallbackIndexHtml() {
+export function fallbackIndexHtml(api: ExtensionContext) {
   const ruleObj: {[key: string]: string} = getSetting().fallbackIndexHtml;
 
   const rules: Array<{reg: RegExp; tmpl: _.TemplateExecutor}> = [];

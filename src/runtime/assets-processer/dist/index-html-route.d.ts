@@ -1,2 +1,3 @@
-export declare function proxyToDevServer(): void;
-export declare function fallbackIndexHtml(): void;
+import { ExtensionContext } from '@wfh/plink';
+export declare function proxyToDevServer(api: ExtensionContext): void;
+export declare function fallbackIndexHtml(api: ExtensionContext): void;
