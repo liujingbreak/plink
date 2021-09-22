@@ -8,6 +8,10 @@ const log = log4File(__filename);
 interface ReqWithNextCb extends express.Request {
   __goNext: express.NextFunction;
 }
+function isReqWithNextCb(obj: any): obj is ReqWithNextCb {
+  return obj.__goNext != null;
+}
+
 export function proxyToDevServer(api: ExtensionContext) {
   // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
   let setting: Options | undefined = getSetting().proxyToDevServer;
@@ -23,17 +27,17 @@ export function proxyToDevServer(api: ExtensionContext) {
   config.onError = (err, req, res) => {
     if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
       log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
-      if ((req as ReqWithNextCb).__goNext)
-        return (req as ReqWithNextCb).__goNext();
+      if (isReqWithNextCb(req))
+        return req.__goNext();
       return;
     }
     log.warn(err);
-    if ((req as ReqWithNextCb).__goNext)
-      (req as ReqWithNextCb).__goNext(err);
+    if (isReqWithNextCb(req))
+      req.__goNext(err);
   };
 
   const proxyHandler = proxy('/', config);
-  api.expressAppSet((app, express) => {
+  api.expressAppUse((app, express) => {
     app.use((req, res, next) => {
       (req as ReqWithNextCb).__goNext = next;
       proxyHandler(req, res, next);

@@ -5,7 +5,6 @@ import _ from 'lodash';
 import {getLogger} from 'log4js';
 import {plinkEnv, getTscConfigOfPkg} from '../utils/misc';
 import ts from 'typescript';
-import fs from 'fs';
 
 export type PackageType = '*' | 'build' | 'core';
 const log = getLogger('plink.package-list-helper');
@@ -283,7 +282,7 @@ export function appendTypeRoots(pathsDirs: string[], tsconfigDir: string, assign
       assigneeOptions.typeRoots = [];
     assigneeOptions.typeRoots.push(
       // plink directory: wfh/types, it is a symlink at runtime, due to Plink uses preserve-symlinks to run commands
-      Path.relative(tsconfigDir, fs.realpathSync(Path.resolve(__dirname, '../../types'))).replace(/\\/g, '/'),
+      Path.relative(tsconfigDir, Path.resolve(__dirname, '../../types')).replace(/\\/g, '/'),
       ...typeRootsInPackages(opts.workspaceDir).map(dir => Path.relative(tsconfigDir, dir).replace(/\\/g, '/'))
     );
   }
@@ -309,15 +308,15 @@ export function appendTypeRoots(pathsDirs: string[], tsconfigDir: string, assign
     delete assigneeOptions.typeRoots;
 }
 
-function typeRootsInPackages(onlyIncludeWorkspace?: string) {
+function typeRootsInPackages(onlyIncludedWorkspace?: string) {
   // const {getState, workspaceKey}: typeof _pkgMgr = require('./package-mgr');
-  const wsKeys = onlyIncludeWorkspace ? [workspaceKey(onlyIncludeWorkspace)] : getState().workspaces.keys();
+  const wsKeys = onlyIncludedWorkspace ? [workspaceKey(onlyIncludedWorkspace)] : getState().workspaces.keys();
   const dirs: string[] = [];
   for (const wsKey of wsKeys) {
     for (const pkg of packages4WorkspaceKey(wsKey)) {
       const typeRoot = pkg.json.plink ? pkg.json.plink.typeRoot : pkg.json.dr ? pkg.json.dr.typeRoot : null;
       if (typeRoot) {
-        const dir = Path.resolve(pkg.realPath, typeRoot);
+        const dir = Path.resolve(pkg.path, typeRoot);
         dirs.push(dir);
       }
     }

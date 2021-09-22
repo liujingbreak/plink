@@ -260,7 +260,7 @@ export const slice = stateFactory.newSlice({
       } else {
         pkjsonStr = fs.readFileSync(pkgjsonFile, 'utf8');
       }
-      const pkjson: PackageJsonInterf = JSON.parse(pkjsonStr);
+      const pkjson = JSON.parse(pkjsonStr) as PackageJsonInterf;
       // for (const deps of [pkjson.dependencies, pkjson.devDependencies] as {[name: string]: string}[] ) {
       //   Object.entries(deps);
       // }
@@ -1046,7 +1046,7 @@ async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) 
  * @param realPath real path of package
  */
 export function createPackageInfo(pkJsonFile: string, isInstalled = false): PackageInfo {
-  const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
+  const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8')) as PackageInfo['json'];
   return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
 }
 /**
@@ -1084,7 +1084,7 @@ function* scanInstalledPackage4Workspace(state: PackagesState, workspaceKey: str
  * @param symLink symlink path of package
  * @param realPath real path of package
  */
-function createPackageInfoWithJson(pkJsonFile: string, json: any, isInstalled = false): PackageInfo {
+function createPackageInfoWithJson(pkJsonFile: string, json: PackageInfo['json'], isInstalled = false): PackageInfo {
   const m = moduleNameReg.exec(json.name);
   const pkInfo: PackageInfo = {
     shortName: m![2],
@@ -1099,7 +1099,7 @@ function createPackageInfoWithJson(pkJsonFile: string, json: any, isInstalled = 
 }
 
 function cp(from: string, to: string) {
-  if (_.startsWith(from, '-')) {
+  if (from.startsWith('-')) {
     from = arguments[1];
     to = arguments[2];
   }

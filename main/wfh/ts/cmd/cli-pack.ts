@@ -163,10 +163,13 @@ async function npmPack(packagePath: string, tarballDir: string):
 
     const resultInfo = parseNpmPackOutput(output.errout);
 
-    const packageName = resultInfo.get('name')!;
+    const packageName = resultInfo.get('name');
     // cb(packageName, resultInfo.get('filename')!);
     log.info(output.errout);
     log.info(output.stdout);
+    if (packageName == null) {
+      throw new Error('My bad, can not parse `npm pack` output: ' + output.errout + '\n, please try again, this could happend occasionally');
+    }
     return {
       name: packageName,
       filename: output.stdout.trim(),
@@ -240,8 +243,8 @@ function changeDependencies(package2tarball: Map<string, string>, deps: ObjectAs
   }
 }
 
-function handleExption(packagePath: string, e: Error) {
-  if (e && e.message && e.message.indexOf('EPUBLISHCONFLICT') > 0)
+function handleExption(packagePath: string, e: unknown) {
+  if (e && (e as Error).message && (e as Error).message.indexOf('EPUBLISHCONFLICT') > 0)
     log.info(`npm pack ${packagePath}: EPUBLISHCONFLICT.`);
   else
     log.error(packagePath, e);

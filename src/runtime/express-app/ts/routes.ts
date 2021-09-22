@@ -91,9 +91,9 @@ export function setupApi(api: ExtensionContext, app: Application) {
     setupRouter.stack = new Error().stack;
     routerSetupFuncs.push(setupRouter);
 
-    function customizedRender() {
-      let args = [].slice.call(arguments);
-      if (arguments[0].endsWith('_drcp-express-error.html'))
+    function customizedRender(this: express.Response, ...args: [string, ...any[]]) {
+      // let args = ([] as any).slice.call(arguments);
+      if (args[0].endsWith('_drcp-express-error.html'))
         return oldRender.apply(this, args);
       else if (_.startsWith(args[0], '/')) {
         args[0] = args[0].substring(1);

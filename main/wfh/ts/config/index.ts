@@ -91,15 +91,6 @@ config.change = function(reducer: (setting: PlinkSettings) => void ) {
 
 config.getStore = getStore;
 
-// config.configHandlerMgrCreated = function(cb: (handler: ConfigHandlerMgr) => Promise<any> | void): Promise<void> {
-//   return configHandlerMgr$.pipe(
-//     op.distinctUntilChanged(),
-//     op.filter(handler => handler != null),
-//     op.concatMap(handler => Promise.resolve(cb(handler!))),
-//     op.take(1)
-//   ).toPromise();
-// };
-
 function load(cliOption: CliOptions) {
   const pkgSettingFiles = loadPackageSettings();
   const configFileList = cliOption.config || [];
