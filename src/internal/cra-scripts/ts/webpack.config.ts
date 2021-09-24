@@ -22,6 +22,7 @@ import TemplateHtmlPlugin from '@wfh/webpack-common/dist/template-html-plugin';
 import nodeResolve from 'resolve';
 // import {PlinkWebpackResolvePlugin} from '@wfh/webpack-common/dist/webpack-resolve-plugin';
 import {getSetting} from '../isom/cra-scripts-setting';
+import ora from 'ora';
 // import {changeTsConfigFile} from './change-tsconfig';
 
 const log = logger.getLogger('@wfh/cra-scripts.webpack-config');
@@ -72,17 +73,10 @@ export = function(webpackEnv: 'production' | 'development') {
   appendOurOwnTsLoader(config);
   insertLessLoaderRule(config.module!.rules);
   changeForkTsCheckerPlugin(config);
+  addProgressPlugin(config);
 
   if (cmdOption.buildType === 'app') {
     config.output!.path = craPaths().appBuild;
-    config.plugins!.push(new ProgressPlugin({
-      activeModules: true,
-      modules: true,
-      modulesCount: 100,
-      handler(percentage, msg, ...args) {
-        log.info(Math.round(percentage * 100), '%', msg, ...args);
-      }
-    }));
   }
 
   // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
@@ -156,6 +150,27 @@ export = function(webpackEnv: 'production' | 'development') {
   return config;
 };
 
+function addProgressPlugin(config: Configuration) {
+  const spinner = ora();
+  let spinnerStarted = false;
+
+  config.plugins!.push(new ProgressPlugin({
+    activeModules: true,
+    modules: true,
+    modulesCount: 100,
+    handler(percentage, msg, ...args) {
+      if (!spinnerStarted) {
+        spinner.start();
+        spinnerStarted = true;
+      }
+      spinner.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
+      // log.info(Math.round(percentage * 100), '%', msg, ...args);
+      if (percentage === 1) {
+        spinner.stop();
+      }
+    }
+  }));
+}
 /**
  * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
  */

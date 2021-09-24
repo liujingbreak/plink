@@ -106,6 +106,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     target: 'ES2017',
     importHelpers: false,
     declaration: true,
+    // module: 'ESNext',
     /**
      * for gulp-sourcemaps usage:
      *  If you set the outDir option to the same value as the directory in gulp.dest, you should set the sourceRoot to ./.
@@ -116,8 +117,8 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     inlineSourceMap: argv.sourceMap === 'inline',
     sourceMap: argv.sourceMap !== 'inline',
     inlineSources: argv.sourceMap === 'inline',
-    emitDeclarationOnly: argv.ed
-    // preserveSymlinks: true
+    emitDeclarationOnly: argv.ed,
+    preserveSymlinks: true
   };
 
   setupCompilerOptionsWithPackages(compilerOptions, argv, ts);
