@@ -8,7 +8,7 @@ import fsext from 'fs-extra';
 import fs from 'fs';
 import _ from 'lodash';
 import Path from 'path';
-import {from, merge, Observable, of, defer, throwError, EMPTY, concat} from 'rxjs';
+import {from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
 import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
   take, concatMap, ignoreElements, scan, catchError, tap, finalize } from 'rxjs/operators';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
@@ -1005,13 +1005,23 @@ function _createSymlinksForWorkspace(wsKey: string) {
       lines: [Path.relative(rootDir, symlinkDir).replace(/\\/g, '/')]});
   }
 
-  let symlinksToCreate = from(pkgNameSet.values())
+  let symlinksToCreate = from(Array.from(pkgNameSet.values())) // Important, do not use pkgNameSet iterable, it will be changed before subscription
   .pipe(
-    map(name => getState().srcPackages.get(name) || ws.installedComponents!.get(name)!)
+    map(name => {
+      const pkg = getState().srcPackages.get(name) || ws.installedComponents!.get(name)!;
+      if (pkg == null) {
+        log.warn(`Missing package information of ${name}, please run "Plink sync ${wsKey}" again to sync Plink state`);
+      }
+      return pkg;
+    }),
+    filter(pkg => pkg != null)
   );
-  const workDir = workspaceDir(wsKey);
-  if (workDir !== plinkEnv.rootDir) {
-    symlinksToCreate = concat(symlinksToCreate, of(getState().linkedDrcp! || getState().installedDrcp));
+
+  if (rootDir === workspaceDir(wsKey)) {
+    const plinkPkg = getState().linkedDrcp || getState().installedDrcp;
+    if (plinkPkg) {
+      pkgNameSet.add(plinkPkg.name);
+    }
   }
 
   return merge(
@@ -1024,11 +1034,10 @@ function _createSymlinksForWorkspace(wsKey: string) {
 
 async function _deleteUselessSymlink(checkDir: string, excludeSet: Set<string>) {
   const dones: Promise<void>[] = [];
-  const plinkPkg = getState().linkedDrcp || getState().installedDrcp;
-  const drcpName = plinkPkg?.name;
   const done1 = listModuleSymlinks(checkDir, link => {
+
     const pkgName = Path.relative(checkDir, link).replace(/\\/g, '/');
-    if ( (drcpName == null || drcpName !== pkgName) && !excludeSet.has(pkgName)) {
+    if (!excludeSet.has(pkgName)) {
       // eslint-disable-next-line no-console
       log.info(`Delete extraneous symlink: ${link}`);
       dones.push(fs.promises.unlink(link));

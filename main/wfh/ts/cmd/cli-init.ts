@@ -80,10 +80,11 @@ export function printWorkspaces() {
   });
   const sep = ['--------------', '------------------', '------------', '----------', '-----'].map(item => chalk.gray(item));
   table.push([{colSpan: 5, content: chalk.underline('Worktree Space and linked dependencies\n'), hAlign: 'center'}],
-    ['WORKTREE SPACE', 'DEPENDENCY PACKAGE', 'EXPECTED VERSION', 'ACTUAL VERSION', 'STATE'].map(item => chalk.gray(item)),
+    ['WORKTREE SPACE', 'DEPENDENCY PACKAGE', 'EXPECTED VERSION', 'ACTUAL VERSION', 'SRC DIR'].map(item => chalk.gray(item)),
     sep);
 
   let wsIdx = 0;
+  const srcPkgs = getState().srcPackages;
   for (const reldir of getState().workspaces.keys()) {
     if (wsIdx > 0) {
       table.push(sep);
@@ -104,10 +105,10 @@ export function printWorkspaces() {
       const same = expectedVer === ver;
       table.push([
         i === 0 ? workspaceLabel : '',
-        same ? dep : chalk.red(dep),
-        same ? expectedVer : chalk.bgRed(expectedVer),
+        same || !isInstalled ? dep : `${chalk.red('*')} ${dep}`,
+        same ? expectedVer : isInstalled ? chalk.bgRed(expectedVer) : chalk.gray(expectedVer),
         ver,
-        isInstalled ? '' : chalk.gray('linked')
+        isInstalled ? chalk.gray('(installed)') : Path.relative(plinkEnv.rootDir, srcPkgs.get(dep)!.realPath)
       ]);
       i++;
     }

@@ -22,8 +22,8 @@ import TemplateHtmlPlugin from '@wfh/webpack-common/dist/template-html-plugin';
 import nodeResolve from 'resolve';
 // import {PlinkWebpackResolvePlugin} from '@wfh/webpack-common/dist/webpack-resolve-plugin';
 import {getSetting} from '../isom/cra-scripts-setting';
-import ora from 'ora';
-// import {changeTsConfigFile} from './change-tsconfig';
+import _ora from 'ora';
+// const oraProm = require('../ora') as Promise<typeof _ora>;
 
 const log = logger.getLogger('@wfh/cra-scripts.webpack-config');
 const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -73,7 +73,9 @@ export = function(webpackEnv: 'production' | 'development') {
   appendOurOwnTsLoader(config);
   insertLessLoaderRule(config.module!.rules);
   changeForkTsCheckerPlugin(config);
-  addProgressPlugin(config);
+  if (process.stdout.isTTY)
+    config.plugins!.push(new ProgressPlugin({profile: true}));
+  // addProgressPlugin(config);
 
   if (cmdOption.buildType === 'app') {
     config.output!.path = craPaths().appBuild;
@@ -150,27 +152,28 @@ export = function(webpackEnv: 'production' | 'development') {
   return config;
 };
 
-function addProgressPlugin(config: Configuration) {
-  const spinner = ora();
-  let spinnerStarted = false;
+// function addProgressPlugin(config: Configuration) {
 
-  config.plugins!.push(new ProgressPlugin({
-    activeModules: true,
-    modules: true,
-    modulesCount: 100,
-    handler(percentage, msg, ...args) {
-      if (!spinnerStarted) {
-        spinner.start();
-        spinnerStarted = true;
-      }
-      spinner.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
-      // log.info(Math.round(percentage * 100), '%', msg, ...args);
-      if (percentage === 1) {
-        spinner.stop();
-      }
-    }
-  }));
-}
+//   let spinner: ReturnType<typeof _ora>;
+
+//   config.plugins!.push(new ProgressPlugin({
+//     activeModules: true,
+//     modules: true,
+//     modulesCount: 100,
+//     async handler(percentage, msg, ...args) {
+//       if (spinner == null) {
+//         spinner = (await oraProm)();
+//         spinner.start();
+//       }
+//       spinner!.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
+//       // log.info(Math.round(percentage * 100), '%', msg, ...args);
+//       // if (percentage > 0.98) {
+//       //   spinner!.stop();
+//       // }
+//     }
+//   }));
+// }
+
 /**
  * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
  */

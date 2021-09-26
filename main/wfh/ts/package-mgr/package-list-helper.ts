@@ -56,7 +56,7 @@ export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true): 
     avoidDuplicateSet.add(pkName);
     const pk = linked.get(pkName);
     if (pk == null)
-      log.error(`Missing package ${pkName} in workspace ${wsKey}`);
+      log.info(`Missing package ${pkName} in workspace ${wsKey}`);
     else
       yield pk;
   }
@@ -66,7 +66,7 @@ export function* packages4WorkspaceKey(wsKey: string, includeInstalled = true): 
     }
     const pk = linked.get(pkName);
     if (pk == null)
-      log.error(`Missing package ${pkName} in workspace ${wsKey}`);
+      log.info(`Missing package ${pkName} in workspace ${wsKey}`);
     else
       yield pk;
   }

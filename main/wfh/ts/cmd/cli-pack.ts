@@ -89,7 +89,9 @@ async function packPackages(packageDirs: string[], tarballDir: string, targetJso
 
   if (packageDirs && packageDirs.length > 0) {
     const done = rx.from(packageDirs).pipe(
-      op.mergeMap(packageDir => rx.defer(() => npmPack(packageDir, tarballDir)), 4),
+      op.mergeMap(packageDir => rx.defer(() => npmPack(packageDir, tarballDir)).pipe(
+        op.retry(2)
+      ), 4),
       op.reduce<ReturnType<typeof npmPack> extends Promise<infer T> ? T : unknown>((all, item) => {
         all.push(item);
         return all;

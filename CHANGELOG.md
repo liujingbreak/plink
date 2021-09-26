@@ -1,4 +1,10 @@
 # Changelog
+
+## Plink 0.12.1
+- `plink pack` will retry twice in case encountering error due to incomplete `npm pack` command output.
+- Bug fixes
+## Plink 0.12.0
+Big refactor to use symlinks instead of NODE_PATH hacking for monorepor module loading resolution approach.
 ## dr-comp-package@0.6.0
 - Component's package.json property `dr.jsLoader` is no longer required,
 `.ts`, `.tsx` file will be transformed by `ts-loader` by default.

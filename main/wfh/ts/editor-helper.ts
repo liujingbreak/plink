@@ -5,7 +5,6 @@ import log4js from 'log4js';
 import Path from 'path';
 import chalk from 'chalk';
 import { setTsCompilerOptForNodePath, CompilerOptions, packages4Workspace } from './package-mgr/package-list-helper';
-// import {filterEffect} from '../../packages/redux-toolkit-observable/dist/rx-utils';
 import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
   isCwdWorkspace, workspaceDir } from './package-mgr';
 import { stateFactory, ofPayloadAction, action$Of } from './store';
@@ -111,20 +110,6 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
   }
 
   return rx.merge(
-    // pkgStore().pipe(
-    //   filterEffect(s => [s.linkedDrcp, s.installedDrcp]),
-    //   op.filter(([linkedDrcp, installedDrcp]) => linkedDrcp != null || installedDrcp != null),
-    //   op.map(([linkedDrcp, installedDrcp]) => {
-    //     // if (getPkgState().linkedDrcp) {
-    //     const plinkDir = linkedDrcp || installedDrcp!;
-    //     const file = Path.resolve(plinkDir.realPath, 'wfh/tsconfig.json');
-    //     const relPath = Path.relative(rootPath, file).replace(/\\/g, '/');
-    //     if (!getState().tsconfigByRelPath.has(relPath)) {
-    //       process.nextTick(() => dispatcher.hookTsconfig([file]));
-    //     }
-    //     return rx.EMPTY;
-    //   })
-    // ),
     action$.pipe(ofPayloadAction(slice.actions.clearSymlinks),
       op.concatMap(() => {
         return rx.from(_recp.allSrcDirs()).pipe(

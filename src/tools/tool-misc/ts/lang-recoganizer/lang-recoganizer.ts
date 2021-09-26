@@ -8,12 +8,14 @@ interface PositionInfo {
 }
 
 const childStepActions = {
-  mark(laNum: number) {},
-  replay(position: number) {},
-  // unmark() {},
   process(payload: {d: any; i: number}) {},
   sucess<R extends PositionInfo>(result: R) {},
   failed(reason: string[]) {}
+};
+
+type MarkAndReplay = {
+  mark(laNum: number): void;
+  replay(position: number): void;
 };
 
 type Action = {
@@ -61,7 +63,7 @@ function createStep<T>(interceptor?: () => rx.OperatorFunction<Action, Action>) 
   return {dispatcher, actions};
 }
 
-type StepFactory = () => ReturnType<typeof createStep>;
+type StepFactory = (mr: MarkAndReplay) => ReturnType<typeof createStep>;
 
 /**
  * simplest comparison step
@@ -69,7 +71,7 @@ type StepFactory = () => ReturnType<typeof createStep>;
  * @returns 
  */
 export function cmp<T>(...expectStr: T[]) {
-  return () => {
+  return (mr: MarkAndReplay) => {
     const {dispatcher, actions} = createStep();
     const actionByType = splitActionByType(actions);
     let index = 0;
@@ -106,13 +108,13 @@ type ScopeResult = PositionInfo & {name: string; children: PositionInfo[]};
 /** scope step */
 export function scope<T>(name: string, stepFactories: (StepFactory)[],
   opts?: {onSuccess(children: PositionInfo[]): any}): StepFactory {
-  return () => {
+  return (mr: MarkAndReplay) => {
     let onSuccessResultTransformer: undefined | ((children: PositionInfo[]) => any);
     if (opts)
       onSuccessResultTransformer = opts.onSuccess;
     const {dispatcher, actions} = createStep();
     const actionByType = splitActionByType(actions);
-    const steps = stepFactories.map((fac) => fac());
+    const steps = stepFactories.map((fac) => fac(mr));
     let currStepIdx = 0;
     const last = steps.length - 1;
     let startPosition = -1;
@@ -145,10 +147,7 @@ export function scope<T>(name: string, stepFactories: (StepFactory)[],
           childStepActions.failed.pipe(
             op.map(({payload: reason}) => {dispatcher.failed([name, ...reason]); })
           )
-        ).pipe(op.take(1)),
-        childStepActions.mark.pipe(op.tap(act => dispatcher.mark(act.payload))),
-        childStepActions.replay.pipe(op.tap(act => dispatcher.replay(act.payload)))
-        // childStepActions.unmark.pipe(op.tap(act => this.dispatcher.unmark()))
+        ).pipe(op.take(1))
       ).pipe(
         op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
       ).subscribe();
@@ -174,10 +173,10 @@ export function scope<T>(name: string, stepFactories: (StepFactory)[],
 
 /** Choice */
 export function choice(laNum = 2, ...choiceFactories: (StepFactory)[]) {
-  return () => {
+  return (mr: MarkAndReplay) => {
     const {dispatcher, actions} = createStep();
     const failedChoiceResult = [] as string[][];
-    const choices = choiceFactories.map((fac, idx) => fac());
+    const choices = choiceFactories.map((fac, idx) => fac(mr));
     const actionByType = splitActionByType(actions);
     let currChoiceIdx = 0;
     let replayPos: number;
@@ -186,9 +185,7 @@ export function choice(laNum = 2, ...choiceFactories: (StepFactory)[]) {
       op.map(({payload}) => {
         if (replayPos == null) {
           replayPos = payload.i;
-        }
-        if (currChoiceIdx === 0) {
-          dispatcher.mark(laNum);
+          mr.mark(laNum);
         }
         choices[currChoiceIdx].dispatcher.process(payload);
       })
@@ -200,16 +197,12 @@ export function choice(laNum = 2, ...choiceFactories: (StepFactory)[]) {
       const choiceActions = splitActionByType(choices[currChoiceIdx].actions);
 
       rx.merge(
-        choiceActions.mark.pipe(op.tap(act => dispatcher.mark(act.payload))),
-        choiceActions.replay.pipe(op.tap(act => dispatcher.replay(act.payload)))
-        // choiceActions.unmark.pipe(op.tap(act => this.dispatcher.unmark()))
       ).pipe(
         op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
       ).subscribe();
 
       choiceActions.sucess.pipe(
         op.tap(({payload}) => {
-          // this.dispatcher.unmark();
           dispatcher.sucess(payload);
         }),
         op.take(1),
@@ -223,7 +216,7 @@ export function choice(laNum = 2, ...choiceFactories: (StepFactory)[]) {
           if (currChoiceIdx < last) {
             currChoiceIdx++;
             subscribeCurrentChoice();
-            dispatcher.replay(replayPos);
+            mr.replay(replayPos);
           } else {
             dispatcher.failed(['None is matched: ' + failedChoiceResult.map(str => str.join(' - ')).join('; ')]);
           }
@@ -234,6 +227,40 @@ export function choice(laNum = 2, ...choiceFactories: (StepFactory)[]) {
     };
 
     subscribeCurrentChoice();
+    return {dispatcher, actions};
+  };
+}
+
+export function isNotLa(step: StepFactory) {
+  return (mr: MarkAndReplay) => {
+    const {dispatcher, actions} = createStep();
+    const actionByType = splitActionByType(actions);
+    const predicateStep = step(mr);
+    const predActions = splitActionByType(predicateStep.actions);
+    let startPos: number;
+    let currPos: number;
+
+    rx.merge(
+      actionByType.process.pipe(
+        op.take(1),
+        op.map(({payload: {d, i}}) => {
+          startPos = i;
+          mr.mark(Number.MAX_VALUE);
+        })
+      ),
+      actionByType.process.pipe(
+        op.tap(({payload}) => {
+          currPos = payload.i;
+          predicateStep.dispatcher.process(payload);
+        })
+      ),
+      predActions.failed.pipe(
+        op.tap(() => {
+          dispatcher.sucess({start: startPos, end: currPos});
+          mr.replay(startPos);
+        })
+      )
+    ).subscribe();
     return {dispatcher, actions};
   };
 }
@@ -250,7 +277,7 @@ const defaultLoopOptions = {greedy: true, laNum: 2, minTimes: 0, maxTimes: Numbe
 
 /** Loop */
 export function loop(factory: StepFactory, opts?: LoopOptions) {
-  return () => {
+  return (mr: MarkAndReplay) => {
     const {dispatcher, actions} = createStep();
     let options: Required<LoopOptions>;
     if (opts == null) {
@@ -271,7 +298,7 @@ export function loop(factory: StepFactory, opts?: LoopOptions) {
         op.take(1),
         op.map(({payload}) => {
           markedPos = payload.i;
-          dispatcher.mark(options.laNum);
+          mr.mark(options.laNum);
         })
       ).subscribe();
     };
@@ -279,7 +306,7 @@ export function loop(factory: StepFactory, opts?: LoopOptions) {
     markAtLoopableBegin();
 
     const createNewLoopable = () => {
-      currentLoopable = factory();
+      currentLoopable = factory(mr);
       const childStepActions = splitActionByType(currentLoopable.actions);
       rx.merge(
         rx.merge(
@@ -303,21 +330,19 @@ export function loop(factory: StepFactory, opts?: LoopOptions) {
           childStepActions.failed.pipe(
             op.map(({payload: reason}) => {
               if (loopCount > options.minTimes) {
-                dispatcher.replay(markedPos);
                 const result: PositionInfo = {
                   start: startPosition,
                   end: markedPos,
                   children: loopResults
                 } as PositionInfo;
                 dispatcher.sucess(result);
+                mr.replay(markedPos);
               } else {
                 dispatcher.failed(reason);
               }
             })
           )
-        ).pipe(op.take(1)),
-        childStepActions.mark.pipe(op.tap(act => dispatcher.mark(act.payload))),
-        childStepActions.replay.pipe(op.tap(act => dispatcher.replay(act.payload)))
+        ).pipe(op.take(1))
       ).pipe(
         op.takeUntil(rx.merge(actionByType.sucess, actionByType.failed))
       ).subscribe();
@@ -343,7 +368,18 @@ export function loop(factory: StepFactory, opts?: LoopOptions) {
 export function parse<T>(stateMachine: StepFactory, debug = false) {
   return (input$: rx.Observable<T>) => {
     return rx.defer(() => {
-      const rootStep = stateMachine();
+      const mark$ = new rx.Subject<number>();
+      const replay$ = new rx.Subject<number>();
+      const mr: MarkAndReplay = {
+        mark(laNum: number) {
+          mark$.next(laNum);
+        },
+        replay(pos: number) {
+          replay$.next(pos);
+        }
+      };
+
+      const rootStep = stateMachine(mr);
       const actionByType = splitActionByType(rootStep.actions);
 
       return rx.merge(
@@ -361,9 +397,7 @@ export function parse<T>(stateMachine: StepFactory, debug = false) {
         // input$ must be the last one being subscribed in merge list, otherwise other subscription night don't have change to 
         // observe emitted result after input$.pipe() has completed
         input$.pipe(
-          cacheAndReplay(actionByType.mark.pipe(op.map(act => act.payload)),
-            actionByType.replay.pipe(op.map(act => act.payload))
-          ),
+          cacheAndReplay(mark$, replay$),
           op.map(({value, idx}, totalIndex) => {
             if (debug) {
               // eslint-disable-next-line no-console

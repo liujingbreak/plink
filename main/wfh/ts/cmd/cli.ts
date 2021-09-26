@@ -47,7 +47,7 @@ export async function createCommands(startTime: number) {
       if (wsDirs.length > 0) {
         // eslint-disable-next-line no-console
         console.log(`More commands are available in worktree space directories: [${wsDirs.map(item => chalk.cyan(item)).join(', ')}]\n` +
-          `Try commands:\n${wsDirs.map(dir => '  plink --cwd ' + dir).join('\n')}`);
+          `Try commands:\n${wsDirs.map(dir => '  plink --space ' + dir).join('\n')}`);
       }
     }
     // eslint-disable-next-line no-console

@@ -1,6 +1,4 @@
 import { OperatorFunction } from 'rxjs';
-/** A React useEffect() hook like operator function */
-export declare function filterEffect<T, R extends any[]>(dependecies: (current: T) => R): OperatorFunction<T, R>;
 export declare function reselect<T, R, R1, R2, R3, R4, R5>(selectors: [
     (current: T) => R1,
     (current: T) => R2,

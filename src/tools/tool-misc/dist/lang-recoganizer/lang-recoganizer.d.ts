@@ -4,14 +4,16 @@ interface PositionInfo {
     end: number;
 }
 declare const childStepActions: {
-    mark(laNum: number): void;
-    replay(position: number): void;
     process(payload: {
         d: any;
         i: number;
     }): void;
     sucess<R extends PositionInfo>(result: R): void;
     failed(reason: string[]): void;
+};
+declare type MarkAndReplay = {
+    mark(laNum: number): void;
+    replay(position: number): void;
 };
 declare type Action = {
     type: keyof typeof childStepActions;
@@ -26,8 +28,6 @@ declare type ActionByType = {
 export declare function splitActionByType(action$: rx.Observable<Action>): ActionByType;
 declare function createStep<T>(interceptor?: () => rx.OperatorFunction<Action, Action>): {
     dispatcher: {
-        mark: (laNum: number) => void;
-        replay: (position: number) => void;
         process: (payload: {
             d: any;
             i: number;
@@ -37,16 +37,14 @@ declare function createStep<T>(interceptor?: () => rx.OperatorFunction<Action, A
     };
     actions: rx.Observable<Action>;
 };
-declare type StepFactory = () => ReturnType<typeof createStep>;
+declare type StepFactory = (mr: MarkAndReplay) => ReturnType<typeof createStep>;
 /**
  * simplest comparison step
  * @param expectStr
  * @returns
  */
-export declare function cmp<T>(...expectStr: T[]): () => {
+export declare function cmp<T>(...expectStr: T[]): (mr: MarkAndReplay) => {
     dispatcher: {
-        mark: (laNum: number) => void;
-        replay: (position: number) => void;
         process: (payload: {
             d: any;
             i: number;
@@ -61,10 +59,19 @@ export declare function scope<T>(name: string, stepFactories: (StepFactory)[], o
     onSuccess(children: PositionInfo[]): any;
 }): StepFactory;
 /** Choice */
-export declare function choice(laNum?: number, ...choiceFactories: (StepFactory)[]): () => {
+export declare function choice(laNum?: number, ...choiceFactories: (StepFactory)[]): (mr: MarkAndReplay) => {
     dispatcher: {
-        mark: (laNum: number) => void;
-        replay: (position: number) => void;
+        process: (payload: {
+            d: any;
+            i: number;
+        }) => void;
+        sucess: <R extends PositionInfo>(result: R) => void;
+        failed: (reason: string[]) => void;
+    };
+    actions: rx.Observable<Action>;
+};
+export declare function isNotLa(step: StepFactory): (mr: MarkAndReplay) => {
+    dispatcher: {
         process: (payload: {
             d: any;
             i: number;
@@ -76,14 +83,14 @@ export declare function choice(laNum?: number, ...choiceFactories: (StepFactory)
 };
 interface LoopOptions {
     laNum?: number;
+    /** default is true */
+    greedy?: boolean;
     minTimes?: number;
     maxTimes?: number;
 }
 /** Loop */
-export declare function loop(factory: StepFactory, opts?: LoopOptions): () => {
+export declare function loop(factory: StepFactory, opts?: LoopOptions): (mr: MarkAndReplay) => {
     dispatcher: {
-        mark: (laNum: number) => void;
-        replay: (position: number) => void;
         process: (payload: {
             d: any;
             i: number;
