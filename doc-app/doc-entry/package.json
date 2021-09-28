@@ -1,6 +1,6 @@
 {
   "name": "@wfh/doc-entry",
-  "version": "1.0.1-1",
+  "version": "1.1.0",
   "description": "",
   "main": "build/lib-bundle.js",
   "dr": {

@@ -58,7 +58,7 @@ export async function generate(packageName: string, cmdName: string, opts: CBOpt
         throw new Error(`${pkJsonFile} has already defined a "cli" property as executable entry`);
       }
       const pkjsonText = replaceText(text, [{
-        text: '\n    "cli": "dist/cli/cli.js#default"' + (drProp.properties.length > 0 ? ',' : '\n  '),
+        text: `\n    "cli": "${pkgTsDirInfo.destDir}/cli/cli.js#default"` + (drProp.properties.length > 0 ? ',' : '\n  '),
         start: drProp.start + 1,
         end: drProp.start + 1
       }]);

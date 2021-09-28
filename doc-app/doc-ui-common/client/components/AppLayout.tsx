@@ -4,11 +4,12 @@ import classnames from 'classnames/bind';
 import cls from 'classnames';
 import clsDdp from 'classnames/dedupe';
 import styles from './AppLayout.module.scss';
-import { TopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
+import { TopAppBar } from '@wfh/material-components-react/client/TopAppBar';
 import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {sliceOptionFactory, epicFactory, Ctx} from './appLayout.state';
-import {LinearProgress} from '@wfh/doc-ui-common/client/material/LinearProgress';
+import {LinearProgress} from '@wfh/material-components-react/client/LinearProgress';
 import {MediaMatch} from './layout/MediaMatch';
+import {SwitchAnim} from '@wfh/doc-ui-common/client/animation/SwitchAnim';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import '@material/layout-grid/mdc-layout-grid.scss';
@@ -39,12 +40,9 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef.current, props.className]);
 
-  // const progressBarRef = React.useCallback((dom: HTMLDivElement | null) => {
-  //   slice.dispatch({type: 'topLoadingBarReady', reducer(s: AppLayoutState) {
-  //     if (dom)
-  //       s.topLoadingBarRef = dom;
-  //   }});
-  // }, []);
+  const title = React.useMemo(() => <SwitchAnim type='opacity' contentHash={state.barTitle}>{state.barTitle}</SwitchAnim>,
+    [state.barTitle]);
+
 
   const onScrollRaw = React.useCallback((event: React.UIEvent<HTMLDivElement, UIEvent>) => {
     scrollEvent$.next(event);
@@ -83,11 +81,10 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
 
   const content = (
     <TopAppBar ref={slice.actionDispatcher._setTopBarRef} classNameHeader={cx('app-bar-header', state.frontLayerClassName)}
-      classNameMain={cx('app-bar-main')} title={state.barTitle} type={state.topAppBarType}
+      classNameMain={cx('app-bar-main')} title={title} type={state.topAppBarType}
       renderMain={renderMain}
       _onHeaderRef={slice.actionDispatcher._setTopAppBarDomRef}
-    >
-    </TopAppBar>
+    />
   );
 
   return <Ctx.Provider value={slice}>

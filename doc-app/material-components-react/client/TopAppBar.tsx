@@ -5,7 +5,6 @@ import styles from './TopAppBar.scss';
 import {MDCTopAppBar} from '@material/top-app-bar';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {SwitchAnim} from '../animation/SwitchAnim';
 export {MDCTopAppBar};
 const cx = classnames.bind(styles);
 // const cls = cx('mdc-top-app-bar');
@@ -81,7 +80,9 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
           {props.left || null}
           {/* <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Open navigation menu' onClick={props.onDrawerMenuClick}>menu</button> */}
           <span className='mdc-top-app-bar__title'>
-            <SwitchAnim type='opacity' contentHash={props.title}>{props.title}</SwitchAnim>
+          {props.title}
+            {/* <SwitchAnim type='opacity' contentHash={props.title}>{props.title}</SwitchAnim>
+             */}
           </span>
         </section>
         <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-end' role='toolbar'>

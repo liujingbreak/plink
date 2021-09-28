@@ -605,7 +605,7 @@ stateFactory.addEpic((action$, state$) => {
             }),
             ignoreElements()
           );
-        } else if (isActionOfCreator(action, slice.actions._workspaceBatchChanged)) {
+        } else if (action.type === slice.actions._workspaceBatchChanged.type) {
           const wsKeys = action.payload;
           return merge(...wsKeys.map(_createSymlinksForWorkspace)).pipe(
             finalize(() => actionDispatcher.workspaceChanged(wsKeys))
@@ -622,7 +622,6 @@ stateFactory.addEpic((action$, state$) => {
       tap(() => {
         actionDispatcher._workspaceBatchChanged(Array.from(updatedWorkspaceSet.values()));
         updatedWorkspaceSet.clear();
-        // return from(writeConfigFiles());
       }),
       map(() => {
         actionDispatcher.packagesUpdated();

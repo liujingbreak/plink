@@ -12,12 +12,12 @@
  * e.g. DOM object, React Component, functions
  */
 import {EpicFactory, Slice, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import { MDCTopAppBar } from '@wfh/doc-ui-common/client/material/TopAppBar';
+import { MDCTopAppBar } from '@wfh/material-components-react/client/TopAppBar';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
 import {Size} from './layout/MediaMatch';
-import {TopAppBarProps} from '../material/TopAppBar';
+import {TopAppBarProps} from '@wfh/material-components-react/client/TopAppBar';
 
 export const Ctx = React.createContext<Slice<AppLayoutState, typeof reducers> | null | undefined>(null);
 export function useAppLayout() {

@@ -3,7 +3,7 @@ import React from 'react';
 // import clsddp from 'classnames/dedupe';
 import styles from './ColorInfo.module.scss';
 import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import {Ripple} from '@wfh/doc-ui-common/client/material/Ripple';
+import {Ripple} from '@wfh/material-components-react/client/Ripple';
 import {epicFactory, sliceOptionFactory, ColorInfoObservableProps} from './colorInfo.state';
 
 export type ColorInfoProps = React.PropsWithChildren<ColorInfoObservableProps & {

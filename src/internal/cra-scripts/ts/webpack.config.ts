@@ -22,7 +22,6 @@ import TemplateHtmlPlugin from '@wfh/webpack-common/dist/template-html-plugin';
 import nodeResolve from 'resolve';
 // import {PlinkWebpackResolvePlugin} from '@wfh/webpack-common/dist/webpack-resolve-plugin';
 import {getSetting} from '../isom/cra-scripts-setting';
-import _ora from 'ora';
 // const oraProm = require('../ora') as Promise<typeof _ora>;
 
 const log = logger.getLogger('@wfh/cra-scripts.webpack-config');

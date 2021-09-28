@@ -329,8 +329,15 @@ export class CommandOverrider {
 }
 
 export function withCwdOption(cmd: commander.Command): commander.Command {
-  return cmd.option('--space,--cwd <working dir>', 'Run command in a different worktree directory: [' +
+  if (cmd instanceof PlinkCommand)
+    cmd.optionStyler = str => chalk.gray(str);
+
+  const cmdObj = cmd.option('--space,--cwd <working dir>', 'Run command in a different worktree directory: [' +
     [...getState().workspaces.keys()].join(', ') + ']');
+
+  if (cmd instanceof PlinkCommand)
+    cmd.optionStyler = undefined;
+  return cmdObj;
 }
 
 export function withGlobalOptions(cmd: commander.Command | PlinkCommand): commander.Command {

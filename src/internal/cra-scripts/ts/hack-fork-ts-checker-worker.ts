@@ -22,11 +22,11 @@ const log = log4File(__filename);
 
 log.info(chalk.cyan('[hack-for-ts-checker]') + ' fork-ts-checker-webpack-plugin runs, ' + forkTsDir);
 
-const localTs: typeof ts = require(tsJs);
+const localTs = require(tsJs) as typeof ts;
 const cwd = process.cwd();
 const createWatchCompilerHost = localTs.createWatchCompilerHost;
 
-localTs.createWatchCompilerHost = function(configFileName: string | string[], optionsToExtend: CompilerOptions | undefined,
+localTs.createWatchCompilerHost = function(this: typeof ts, configFileName: string | string[], optionsToExtend: CompilerOptions | undefined,
   ...restArgs: any[]) {
 
   const co = changeTsConfigFile();
@@ -35,7 +35,7 @@ localTs.createWatchCompilerHost = function(configFileName: string | string[], op
   const readFile = host.readFile;
   host.readFile = function(path: string, encoding?: string) {
     const content = readFile.apply(this, arguments);
-    if (!path.endsWith('.d.ts') && !path.endsWith('.json')) {
+    if (!path.endsWith('.d.ts') && !path.endsWith('.json') && content) {
       // console.log('WatchCompilerHost.readFile', path);
       const changed = plink.browserInjector.injectToFile(path, content);
       if (changed !== content) {
@@ -45,8 +45,8 @@ localTs.createWatchCompilerHost = function(configFileName: string | string[], op
     }
     return content;
   };
-  return host as any;
-};
+  return host;
+} as typeof createWatchCompilerHost;
 
 // Patch createProgram to change "rootFiles"
 const _createPrm = localTs.createProgram;
@@ -78,7 +78,7 @@ localTs.createProgram = function(rootNames: readonly string[], options: Compiler
     console.error('[hack-fork-ts-checker-worker] Error', ex);
     throw ex;
   }
-} as any;
+} as typeof _createPrm;
 Object.assign(localTs.createProgram, _createPrm);
 
 hookCommonJsRequire((filename, target, rq, resolve) => {

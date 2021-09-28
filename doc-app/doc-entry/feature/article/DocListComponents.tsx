@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { mdFiles } from './docListConfig';
-import {List} from '@wfh/doc-ui-common/client/material/List';
+import {List} from '@wfh/material-components-react/client/List';
 
 
 interface DocListComponentsProps {

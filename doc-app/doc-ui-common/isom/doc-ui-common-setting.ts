@@ -4,8 +4,7 @@ import {config, PlinkSettings} from '@wfh/plink';
  * Package setting type
  */
 export interface DocUiCommonSetting {
-  /** Theme of Material design */
-  materialTheme: 'default' | 'ugly';
+
 }
 
 /**
@@ -14,7 +13,6 @@ export interface DocUiCommonSetting {
  */
 export function defaultSetting(cliOptions: NonNullable<PlinkSettings['cliOptions']>): DocUiCommonSetting {
   const defaultValue: DocUiCommonSetting = {
-    materialTheme: 'default'
   };
 
   return defaultValue;

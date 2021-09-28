@@ -6,7 +6,7 @@ import styles from './Palette.module.scss';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {sliceOptionFactory, epicFactory, PaletteObservableProps} from './paletteSlice';
 import {ColorTool} from './ColorTool';
-import {Slider} from '@wfh/doc-ui-common/client/material/Slider';
+import {Slider} from '@wfh/material-components-react/client/Slider';
 
 export type PaletteProps = React.PropsWithChildren<PaletteObservableProps & {
   // Define extra (non-observable) properties

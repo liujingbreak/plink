@@ -1,0 +1,16 @@
+{
+  "name": "@wfh/material-components-react",
+  "version": "1.0.0",
+  "description": "Google's material-components-web encapsulated in React and RxJS",
+  "plink": {
+    "setting": {
+      "value": "isom/material-components-react-setting.js#defaultSetting",
+      "type": "isom/material-components-react-setting#MaterialComponentsReactSetting"
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Liu Jing",
+  "license": "MIT"
+}

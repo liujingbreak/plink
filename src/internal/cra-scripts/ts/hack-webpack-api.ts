@@ -1,9 +1,9 @@
 import _webpack from 'webpack';
 import chalk from 'chalk';
-// Don't install @types/react-dev-utils, it breaks latest html-webpack-plugin's own type definitions 
-const _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
 import {getCmdOptions} from './utils';
 import Path from 'path';
+// Don't install @types/react-dev-utils, it breaks latest html-webpack-plugin's own type definitions 
+const _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
 
 /**
  * CRA only has "build" command which runs Webpack compiler.run() function, but we want to

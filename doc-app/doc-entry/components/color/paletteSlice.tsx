@@ -4,7 +4,7 @@ import * as rx from 'rxjs';
 import {ColorToolProps} from './ColorTool';
 import {ColorToolSliceHelper} from './colorTool.state';
 import Color from 'color';
-import {SliderProps} from '@wfh/doc-ui-common/client/material/Slider';
+import {SliderProps} from '@wfh/material-components-react/client/Slider';
 export interface PaletteObservableProps {
   colorMain: string;
   colorMix: string;
