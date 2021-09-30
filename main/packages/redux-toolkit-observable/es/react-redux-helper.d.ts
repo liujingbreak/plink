@@ -4,6 +4,7 @@ import { EpicFactory, SliceHelper } from './helper';
 import { CreateSliceOptions, Draft } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 export { ofPayloadAction };
+export { connect, Provider as ReduxProvider } from 'react-redux';
 export * from './helper';
 /**
  * Use a dedicated Redux slice store for single component instance

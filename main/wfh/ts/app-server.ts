@@ -1,5 +1,5 @@
 import commander from 'commander';
-import {GlobalOptions, initConfig, initProcess, initAsChildProcess} from './index';
+import {initConfig, initProcess, initAsChildProcess} from './index';
 import * as _runner from './package-runner';
 import logConfig from './log-config';
 import {withGlobalOptions} from './cmd/override-commander';
@@ -9,7 +9,7 @@ import chalk from 'chalk';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 
-const exit$ = new rx.BehaviorSubject<null | 'start' | 'done'>(null);
+export const exit$ = new rx.BehaviorSubject<null | 'start' | 'done'>(null);
 const exitDone$ = exit$.pipe(op.filter(action => action === 'done'), op.take(1));
 
 let storeSettingDispatcher: ReturnType<typeof initProcess> | undefined;
@@ -50,7 +50,7 @@ if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--p
   .action((args: string[]) => {
     // eslint-disable-next-line no-console
     console.log('\nPlink version:', version);
-    const setting = initConfig(program.opts() as GlobalOptions);
+    const setting = initConfig(program.opts());
     logConfig(setting());
     const {runServer} = require('./package-runner') as typeof _runner;
     shutdown = runServer().shutdown;

@@ -1,5 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { stateFactory, ofPayloadAction } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
+import {action$Of} from '@wfh/redux-toolkit-observable/es/helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import axiosObs from 'axios-observable';
@@ -27,7 +28,11 @@ const markdownSlice = stateFactory.newSlice({
     registerFiles(s, {payload}: PayloadAction<MarkdownState['markdowns']>) {
       Object.assign(s.markdowns, payload);
     },
-    getHtml(s, action: PayloadAction<string>) {}
+    getHtml(s, action: PayloadAction<string>) {},
+    getHtmlDone(s, {payload}: PayloadAction<{key: string; data: LoaderRecivedData}>) {
+      s.contents[payload.key] = payload.data;
+      s.computed.reactHtml[payload.key] = {__html: payload.data.content};
+    }
   }
 });
 
@@ -40,11 +45,8 @@ const releaseEpic = stateFactory.addEpic<{Markdown: MarkdownState}>((action$, st
         const url = getState().markdowns[key];
         return axiosObs.get<LoaderRecivedData>(url)
         .pipe(
-          op.tap(res => {
-            dispatcher._change(s => {
-              s.contents[key] = res.data;
-              s.computed.reactHtml[key] = {__html: res.data.content};
-            });
+          op.map(res => {
+            dispatcher.getHtmlDone({key, data: res.data});
           })
         );
       })
@@ -67,6 +69,8 @@ export function getState() {
 export function getStore() {
   return stateFactory.sliceStore(markdownSlice);
 }
+
+export const getHtmlDone = action$Of(stateFactory, markdownSlice.actions.getHtmlDone);
 
 if (module.hot) {
   module.hot.dispose(data => {

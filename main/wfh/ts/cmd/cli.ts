@@ -305,7 +305,7 @@ function subComands(program: commander.Command) {
       }, [] as string[])
     .option('-w,--workspace <workspace-dir>', 'publish packages which are linked as dependency of specific workspaces',
       arrayOptionFn, [])
-    .option('--public', 'same as "npm publish" command option "--access public"', false)
+    .option('--public', 'same as "npm publish" command option "--access public"', true)
     .action(async (packages: string[]) => {
       await (await import('./cli-pack')).publish({...publishCmd.opts() , packages});
     });

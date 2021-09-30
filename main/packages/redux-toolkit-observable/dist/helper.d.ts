@@ -6,6 +6,11 @@ import { immerable } from 'immer';
 export declare type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R, Name>) => Epic<PayloadAction<any>, any, {
     [sliceName in Name]: S;
 }> | void;
+/**
+ * A separate Redux slice which has its own life cycle, works for component internal state management.
+ * Compare to React's useReducer() hook, sliceHelper offers more strong functionality for complicated component,
+ * it uses redux-observable to resolve async action needs.
+ */
 export declare type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string = string> = Slice<S, R, Name> & {
     /** You don't have to create en Epic for subscribing action stream, you subscribe this property
      * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action

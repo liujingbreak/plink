@@ -7,8 +7,7 @@ import ReactDOM from 'react-dom';
 // import clsddp from 'classnames/dedupe';
 import styles from './$__MyComponent__$.module.scss';
 /*<% if (isConnected) { %>*/
-import {connect/*<% if (isEntry) { %>*/, Provider as ReduxProvider /*<% } %>*/} from 'react-redux';
-import {InjectedCompPropsType /*<% if (isEntry) { %>*/, useStoreOfStateFactory /*<% } %>*/} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {InjectedCompPropsType, connect /*<% if (isEntry) { %>*/, useStoreOfStateFactory, ReduxProvider /*<% } %>*/} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 /*<% if (isEntry) { %>*/import {stateFactory} from '@wfh/redux-toolkit-observable/es/state-factory-browser';/*<% } %>*/
 // import {createSelector} from '@reduxjs/toolkit';
 import {getState} from '$__slice_file__$'; // change to you Redux slice path

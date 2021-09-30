@@ -1,9 +1,9 @@
 {
   "name": "@wfh/doc-entry",
-  "version": "1.1.0",
+  "version": "1.1.1-0",
   "description": "",
   "main": "build/lib-bundle.js",
-  "dr": {
+  "plink": {
     "cra-app-entry": "start.tsx",
     "cra-lib-entry": "main/MainComponent.tsx",
     "config-overrides-path": "config-overrides.ts",
@@ -12,6 +12,16 @@
       "type": "isom/doc-entry-setting#DocEntrySetting"
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liujingbreak/plink.git"
+  },
+  "author": "LJ",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/liujingbreak/plink/issues"
+  },
+  "homepage": "https://github.com/liujingbreak/plink/tree/master/doc-app/doc-entry",
   "sideEffects": true,
   "dependencies": {
     "react-router-dom": "5.2.0",
@@ -22,7 +32,5 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC"
+  }
 }

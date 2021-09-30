@@ -3,10 +3,9 @@ import React from 'react';
 import 'github-markdown-css/github-markdown.css';
 import styles from './MarkdownViewComp.module.scss';
 import {getState, dispatcher} from './markdownSlice';
-import {connect} from 'react-redux';
 import unescape from 'lodash/unescape';
 // import {MarkdownIndex} from './MarkdownIndex';
-import {InjectedCompPropsType} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {InjectedCompPropsType, connect} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {SwitchAnim} from '../animation/SwitchAnim';
 
 // import mermaid from 'mermaid';
@@ -15,11 +14,11 @@ import 'highlight.js/scss/solarized-light.scss';
 // const cx = classnames.bind(styles);
 
 let mermaidIdSeed = 0;
-export interface MarkdownViewCompProps {
+export type MarkdownViewCompProps = {
   /** markdown file relative path, which is compiled by markdown-loader */
   mdKey?: string;
   onContent?: (dom: HTMLElement) => void;
-}
+};
 
 const ConnectHOC = connect(mapToPropsFactory, {}, null, {forwardRef: true});
 

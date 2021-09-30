@@ -1,6 +1,6 @@
 {
   "name": "@wfh/plink",
-  "version": "0.12.1",
+  "version": "0.12.2-0",
   "description": "Plink - A monorepo management tool to link packages and projects",
   "main": "wfh/dist/index.js",
   "types": "wfh/dist/index.d.ts",
@@ -19,14 +19,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dr-web-house/web-fun-house.git"
+    "url": "https://github.com/liujingbreak/plink.git"
   },
   "author": "LJ",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/dr-web-house/issues"
+    "url": "https://github.com/liujingbreak/plink/issues"
   },
-  "homepage": "https://dr-web-house.github.io",
+  "homepage": "https://github.com/liujingbreak/plink",
   "engines": {
     "node": ">=8.0.0"
   },

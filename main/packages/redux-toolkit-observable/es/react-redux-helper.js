@@ -6,8 +6,9 @@ import { useEffect, useState } from 'react';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 export { ofPayloadAction };
-let COMPONENT_ID = 0;
+export { connect, Provider as ReduxProvider } from 'react-redux';
 export * from './helper';
+let COMPONENT_ID = 0;
 /**
  * Use a dedicated Redux slice store for single component instance
  * @param optsFactory
