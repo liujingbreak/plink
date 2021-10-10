@@ -1,7 +1,7 @@
 {
   "name": "@wfh/doc-entry",
-  "version": "1.1.1-0",
-  "description": "",
+  "version": "1.1.1-1",
+  "description": "Doc site for Plink, extensible React-router based web application",
   "main": "build/lib-bundle.js",
   "plink": {
     "cra-app-entry": "start.tsx",

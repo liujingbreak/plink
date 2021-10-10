@@ -1,6 +1,0 @@
-<%packageNames.forEach((pk, idx) =>  {%>
-	require('<%=pk%>');
-<% }); %>
-<% if (devMode && console.log) {%>
-console.log('DLL entry <%=chunkName%>');
-<% } %>
