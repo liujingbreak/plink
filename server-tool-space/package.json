@@ -1,17 +1,18 @@
 {
   "name": "@wfh/server-tool-space",
   "version": "1.0.0",
-  "description": "",
+  "description": "Plink server space",
+  "private": true,
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "LJ",
   "license": "ISC",
   "dependencies": {
     "@wfh/assets-processer": "1.1.68-2",
     "@wfh/http-server": "1.1.5-0",
-    "@wfh/http-request-proxy": "5.1.8",
-    "@wfh/express-app": "1.1.10"
+    "@wfh/express-app": "1.1.10",
+    "@wfh/tool-misc": "1.2.1-1"
   }
 }
