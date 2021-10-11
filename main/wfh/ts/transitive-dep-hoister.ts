@@ -35,15 +35,12 @@ export function listCompDependency(
   const devDeps = scanner.devDeps;
   let hoistedDev: Map<string, DependentInfo>;
   let hoistedDevPeers: Map<string, DependentInfo>;
-  if (workspaceDevDeps) {
-    scanner = new TransitiveDepScanner(allDeps, workspace, pkJsonFiles);
-    scanner.initExistingDeps(devDeps);
+
+  scanner = new TransitiveDepScanner(allDeps, workspace, pkJsonFiles);
+  scanner.initExistingDeps(devDeps);
+  if (workspaceDevDeps)
     scanner.scanFor(jsons.filter(item => _.has(workspaceDevDeps, item.name)), true);
-    [hoistedDev, hoistedDevPeers] = scanner.hoistDeps(HoistedDepInfo);
-  } else {
-    hoistedDev = new Map();
-    hoistedDevPeers = new Map();
-  }
+  [hoistedDev, hoistedDevPeers] = scanner.hoistDeps(HoistedDepInfo);
   // TODO: devDependencies might contains transitive dependency which duplicates to "dependencies"
   return {
     hoisted: HoistedDepInfo,

@@ -1,4 +1,4 @@
-import {getState, pathToProjKey, workspaceKey, PackageInfo} from './index';
+import {getState, pathToProjKey, workspaceKey, PackageInfo, workspaceDir} from './index';
 import Path from 'path';
 import {calcNodePaths} from '../node-path-calc';
 import _ from 'lodash';
@@ -316,7 +316,7 @@ function typeRootsInPackages(onlyIncludedWorkspace?: string) {
     for (const pkg of packages4WorkspaceKey(wsKey)) {
       const typeRoot = pkg.json.plink ? pkg.json.plink.typeRoot : pkg.json.dr ? pkg.json.dr.typeRoot : null;
       if (typeRoot) {
-        const dir = Path.resolve(pkg.path, typeRoot);
+        const dir = Path.resolve(workspaceDir(wsKey), pkg.path, typeRoot);
         dirs.push(dir);
       }
     }

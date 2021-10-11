@@ -1,6 +1,6 @@
 {
   "name": "@wfh/assets-processer",
-  "version": "1.2.0-2",
+  "version": "1.2.0-3",
   "description": "Work with Plink, copy assets to destDir folder only when devMode is false",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -54,8 +54,7 @@
     "@types/nodemailer": "^6.2.1",
     "@types/serve-index": "^1.7.30",
     "@types/yauzl": "~2.9.1",
-    "@types/fs-extra": "5.0.4",
-    "@types/jasmine": "^3.9.0"
+    "@types/fs-extra": "5.0.4"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
