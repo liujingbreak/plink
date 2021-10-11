@@ -99,7 +99,7 @@ export class ConfigHandlerMgr {
       registerTsNode({
         typeCheck: true,
         compilerOptions,
-        skipIgnore: true, // important, by "true" will skip files are under node_modules
+        skipIgnore: true, // important, by "false" will ignore files are under node_modules
         compiler: require.resolve('typescript'),
         /**
          * Important!! prevent ts-node looking for tsconfig.json from current working directory
