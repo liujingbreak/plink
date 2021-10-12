@@ -25,7 +25,7 @@ If heard about **Lerna**, **Yarn**'s workspace concept and [Nx](https://nx.dev),
 	* 3.4. [How it works](#Howitworks)
 * 4. [Features](#Features)
 * 5. [Environment variables and working directories](#Environmentvariablesandworkingdirectories)
-		* 5.1. [Change `dist` to other directoryry](#Changedisttootherdirectoryry)
+		* 5.1. [Change `dist` to other directory](#Changedisttootherdirectory)
 * 6. [Unlike Yarn workspaces](#UnlikeYarnworkspaces)
 * 7. [Dependency Hoist](#DependencyHoist)
 
@@ -40,20 +40,21 @@ This repoistory of **Plink** is a monorepo, it contains multiple packages with c
 | - | - | -
 | @wfh/plink | main/wfh | Plink's main package, basis of Plink, extensible command line core, monorepo/multrepo management, configuration core, graph algorithm utility...
 | @wfh/plink-cli | main/install-cli | Plink's command line entry package for globally installation
-|              @wfh/cra-scripts  | src\internal\cra-scripts       | A monorepo supported **create-react-app** monkey-patch tool
-|           @wfh/ng-app-builder  | src\internal\ng-app-builder    | A monorepo supported **Angular cli** extension tool (Angular 8+)
-|           @wfh/webpack-common  | src\internal\webpack-common    | A common dependency of Plink's React and Angular project builder tool
-|         @wfh/assets-processer  | src\runtime\assets-processer   | Comprehensive Express.js based middleware for HTTP static resource, HTTP proxy server...
-|              @wfh/express-app  | src\runtime\express-app        | Express.js engine of Plink's extensible HTTP server
-|              @wfh/http-server  | src\runtime\http-server        | Plink's extensible HTTP server
-|          @wfh/json-schema-gen  | src\tools\json-schema-gen      | Cmd line tool of JSON schema generation, Typescript file AST analysis
-|       @wfh/log4js-pm2intercom  | src\tools\log4js-intercom      | A fixing package for PM2 multi-process logger management
-|                 @wfh/prebuild  | src\tools\prebuild             | Node.js server hot deployment tool for Plink node server based application
-|                @wfh/tool-misc  | src\tools\tool-misc            | Typescript source code generation tool for Plink setting file, React component, RTK slice definition
-| @wfh/redux-toolkit-observable  | main\redux-toolkit-observable  | A better Typescript encapsulated library of Redux-toolkit (RTK) + Redux-observable combination 
-|      @wfh/thread-promise-pool  | main\thread-promise-pool       | Utility of Node.js thread / process pool
-|                @wfh/doc-entry  | doc-app\doc-entry              | Plink documentation site
-|            @wfh/doc-ui-common  | doc-app\doc-ui-common          | Reusable UI goods, including Material components, reactive canvas
+|              @wfh/cra-scripts  | src\internal\cra-scripts          | A monorepo supported **create-react-app** monkey-patch tool
+|           @wfh/ng-app-builder  | src\internal\ng-app-builder       | A monorepo supported **Angular cli** extension tool (Angular 8+)
+|           @wfh/webpack-common  | src\internal\webpack-common       | A common dependency of Plink's React and Angular project builder tool
+|         @wfh/assets-processer  | src\runtime\assets-processer      | Comprehensive Express.js based middleware for HTTP static resource, HTTP proxy server...
+|              @wfh/express-app  | src\runtime\express-app           | Express.js engine of Plink's extensible HTTP server
+|              @wfh/http-server  | src\runtime\http-server           | Plink's extensible HTTP server
+|          @wfh/json-schema-gen  | src\tools\json-schema-gen         | Cmd line tool of JSON schema generation, Typescript file AST analysis
+|       @wfh/log4js-pm2intercom  | src\tools\log4js-intercom         | A fixing package for PM2 multi-process logger management
+|                 @wfh/prebuild  | src\tools\prebuild                | Node.js server hot deployment tool for Plink node server based application
+|                @wfh/tool-misc  | src\tools\tool-misc               | Typescript source code generation tool for Plink setting file, React component, RTK slice definition
+| @wfh/redux-toolkit-observable  | main\redux-toolkit-observable     | A better Typescript encapsulated library of Redux-toolkit (RTK) + Redux-observable combination 
+|      @wfh/thread-promise-pool  | main\thread-promise-pool          | Utility of Node.js thread / process pool
+|                @wfh/doc-entry  | doc-app\doc-entry                 | Plink documentation site
+|            @wfh/doc-ui-common  | doc-app\doc-ui-common             | Reusable UI goods, including Material components, reactive canvas
+|@wfh/material-components-react  | doc-app/material-components-react | Google's material-components-web encapsulated in React and RxJS
 
 ##  2. <a name='Purpose'></a>Purpose
 To embrace **Monorepo** and **Multiple-repo** at same time.
@@ -211,7 +212,7 @@ import something from '@foobar/redux-slice-A';
   Such a directory should not be checked in Git repo, by default this directory is named "dist", and Plink will assign an
   environment vararible `PLINK_DATA_DIR` with this default directory path `dist`, all pluggable command line extension modules and
   forked process (or thread worker) can access this variable `process.env.PLINK_DATA_DIR`.
-####  5.1. <a name='Changedisttootherdirectoryry'></a>Change `dist` to other directoryry
+####  5.1. <a name='Changedisttootherdirectory'></a>Change `dist` to other directory
 
   Simple assign environment variable PLINK_DATA_DIR to any relative path name before start plink command.
   > PLINK_DATA_DIR must be a relative path, not absolute path.

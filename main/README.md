@@ -24,7 +24,7 @@ If heard about **Lerna**, **Yarn**'s workspace concept and [Nx](https://nx.dev),
 	* 2.4. [How it works](#Howitworks)
 * 3. [Features](#Features)
 * 4. [Environment variables and working directories](#Environmentvariablesandworkingdirectories)
-		* 4.1. [Change `dist` to other directoryry](#Changedisttootherdirectoryry)
+		* 4.1. [Change `dist` to other directory](#Changedisttootherdirectory)
 * 5. [Unlike Yarn workspaces](#UnlikeYarnworkspaces)
 * 6. [Dependency Hoist](#DependencyHoist)
 
@@ -176,8 +176,8 @@ import something from '@foobar/redux-slice-A';
  - Support monorepo project structure.
  - Hoist and merge dependencies of nested packages.
  - Work with tools like `create-react-app` and `@angular/cli`
- - Share reusable component, features, functions between different projects.
- - Share file structure, configurations between different projects.
+ - Share reusable component, features, functions cross different projects.
+ - Share file structure, configurations cross different projects.
  - Easy to upgrade.
  - Opinionated cross framework solutions, web components, libraries, tools.
  - Automation code generator for configuration, UI components, state management slice...
@@ -190,7 +190,7 @@ import something from '@foobar/redux-slice-A';
   Such a directory should not be checked in Git repo, by default this directory is named "dist", and Plink will assign an
   environment vararible `PLINK_DATA_DIR` with this default directory path `dist`, all pluggable command line extension modules and
   forked process (or thread worker) can access this variable `process.env.PLINK_DATA_DIR`.
-####  4.1. <a name='Changedisttootherdirectoryry'></a>Change `dist` to other directoryry
+####  4.1. <a name='Changedisttootherdirectory'></a>Change `dist` to other directory
 
   Simple assign environment variable PLINK_DATA_DIR to any relative path name before start plink command.
   > PLINK_DATA_DIR must be a relative path, not absolute path.
