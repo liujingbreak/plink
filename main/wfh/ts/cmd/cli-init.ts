@@ -106,7 +106,7 @@ export function printWorkspaces() {
       table.push([
         i === 0 ? workspaceLabel : '',
         same || !isInstalled ? dep : `${chalk.red('*')} ${dep}`,
-        same ? expectedVer : isInstalled ? chalk.bgRed(expectedVer) : chalk.gray(expectedVer),
+        same ? expectedVer : chalk.yellow(expectedVer),
         ver,
         isInstalled ? chalk.gray('(installed)') : Path.relative(plinkEnv.rootDir, srcPkgs.get(dep)!.realPath)
       ]);
