@@ -17,23 +17,23 @@ export declare function initConfig(options: GlobalOptions): import("..").DrcpCon
  * @param onShutdownSignal
  */
 export declare function initProcess(saveState?: boolean, onShutdownSignal?: () => void | Promise<any>, isChildProcess?: boolean): import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<{
-    actionOnExit: "none" | "save" | "send";
+    actionOnExit: "save" | "send" | "none";
     stateChangeCount: number;
 }, {
     changeActionOnExit(s: {
-        actionOnExit: "none" | "save" | "send";
+        actionOnExit: "save" | "send" | "none";
         stateChangeCount: number;
-    }, mode: "none" | "save" | "send"): void;
+    }, mode: "save" | "send" | "none"): void;
     processExit(s: {
-        actionOnExit: "none" | "save" | "send";
+        actionOnExit: "save" | "send" | "none";
         stateChangeCount: number;
     }): void;
     storeSaved(s: {
-        actionOnExit: "none" | "save" | "send";
+        actionOnExit: "save" | "send" | "none";
         stateChangeCount: number;
     }): void;
 }> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<{
-    actionOnExit: "none" | "save" | "send";
+    actionOnExit: "save" | "send" | "none";
     stateChangeCount: number;
 }>>;
 /**
@@ -47,22 +47,22 @@ export declare function initProcess(saveState?: boolean, onShutdownSignal?: () =
  * @param syncState send changed state back to main process
  */
 export declare function initAsChildProcess(saveState?: boolean, onShutdownSignal?: () => void | Promise<any>): import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<{
-    actionOnExit: "none" | "save" | "send";
+    actionOnExit: "save" | "send" | "none";
     stateChangeCount: number;
 }, {
     changeActionOnExit(s: {
-        actionOnExit: "none" | "save" | "send";
+        actionOnExit: "save" | "send" | "none";
         stateChangeCount: number;
-    }, mode: "none" | "save" | "send"): void;
+    }, mode: "save" | "send" | "none"): void;
     processExit(s: {
-        actionOnExit: "none" | "save" | "send";
+        actionOnExit: "save" | "send" | "none";
         stateChangeCount: number;
     }): void;
     storeSaved(s: {
-        actionOnExit: "none" | "save" | "send";
+        actionOnExit: "save" | "send" | "none";
         stateChangeCount: number;
     }): void;
 }> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<{
-    actionOnExit: "none" | "save" | "send";
+    actionOnExit: "save" | "send" | "none";
     stateChangeCount: number;
 }>>;

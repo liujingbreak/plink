@@ -35,7 +35,7 @@ export const configViewSlice = stateFactory.newSlice({
   name: 'configView',
   initialState,
   reducers: {
-    loadPackageSettingMeta(d, action: PayloadAction<{workspaceKey: string, packageName?: string}>) {},
+    loadPackageSettingMeta(d, action: PayloadAction<{workspaceKey: string; packageName?: string}>) {},
     _packageSettingMetaLoaded(s,
       {payload: [propMetas, dtsFile, pkg]}: PayloadAction<[PropertyMeta[], string, PackageInfo]>) {
       s.packageMetaByName.set(pkg.name, {
@@ -73,7 +73,7 @@ stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
         return Promise.all(Array.from(getPackageSettingFiles(
             payload.workspaceKey, payload.packageName ? new Set([payload.packageName]) : undefined)
           ).concat([ ['wfh/dist/config/config-slice', 'BasePlinkSettings', '', '', plinkPkg] ])
-          .map(([typeFile, typeExport,,,pkg]) => {
+          .map(([typeFile, typeExport, , , pkg]) => {
 
             const dtsFileBase = Path.resolve(pkg.realPath, typeFile);
             return pool.submit<[metas: PropertyMeta[], dtsFile: string]>({

@@ -57,6 +57,8 @@ if (!envSetDone) {
   const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(plinkDir).isSymbolicLink();
   if (isDrcpSymlink)
     plinkDir = fs.realpathSync(plinkDir);
+
+  // TODO: remove nodePath, it no longer useful
   const nodePath = setupNodePath(workDir, rootDir,
     fs.existsSync(Path.resolve(symlinkDirName)) ? Path.resolve(symlinkDirName) : null,
     plinkDir);

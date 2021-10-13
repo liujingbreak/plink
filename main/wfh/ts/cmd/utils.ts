@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import Path from 'path';
 import _config from '../config';
 import { createPackageInfo, PackageInfo, PackagesState, getState } from '../package-mgr';
+import {plinkEnv} from '../utils/misc';
 
 export function completePackageName(guessingNames: Iterable<string>):
   Generator<string | null, void, unknown>;
@@ -63,14 +64,13 @@ export function* findPackagesByNames(state: PackagesState | Iterable<string>, gu
   }
 }
 
-const nodePaths: string[] = process.env.NODE_PATH ? process.env.NODE_PATH!.split(Path.delimiter) : [];
 /**
  * Look up package.json file in environment variable NODE_PATH 
  * @param moduleName 
  */
 export function lookupPackageJson(moduleName: string) {
-  for (const p of nodePaths) {
-    const test = Path.resolve(p, moduleName, 'package.json');
+  for (const p of [plinkEnv.workDir, plinkEnv.rootDir]) {
+    const test = Path.resolve(p, plinkEnv.symlinkDirName, moduleName, 'package.json');
     if (fs.existsSync(test)) {
       return test;
     }

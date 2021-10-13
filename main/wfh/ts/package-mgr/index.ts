@@ -104,7 +104,7 @@ export interface WorkspaceState {
   /** names of those linked source packages */
   linkedDevDependencies: [string, string][];
 
-  /** installed DR component packages [name, version]*/
+  /** installed Plink component packages [name, version]*/
   installedComponents?: Map<string, PackageInfo>;
 
   hoistInfo: Map<string, DependentInfo>;
