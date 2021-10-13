@@ -22,8 +22,8 @@ export default async function(options: BumpOptions & {packages: string[]}) {
       [] as string[]);
 
     await bumpPackages(pkgNames, options.increVersion);
-    await new Promise(resolve => setImmediate(resolve));
   }
+  await new Promise(resolve => setImmediate(resolve));
   actionDispatcher.scanAndSyncPackages({});
 }
 
