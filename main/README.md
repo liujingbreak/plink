@@ -95,8 +95,34 @@ What are the benefits of a monorepo?
 - **You may link multiple projects that is inside or outside current repository, build them together, run them together, without**
 
 ###  2.3. <a name='Directorystructuremaylooklike:'></a>Directory structure may look like:
+- A simple Plink style repo is basically same as Lerna project structure
 ```
-Plink style monorepo
+/- < Repository root directory >
+  |- package.json
+  |- node_modules
+  |- dist/
+  |   |- plink-state.json
+  |
+  |- packages/
+      |- app-entry-1
+      |     |- src/
+      |     |- package.json
+      |
+      |- app-entry-2
+      |     |- src/
+      |     |- package.json
+      |
+      |- commons/
+            |- animation/
+            |    |- package.json
+            |- isomophic-utils/
+            |    |- package.json
+            |- other-nested-package...
+                |- package.json
+```
+
+- A Plink style monorepo with multiple dependency installation space
+```
 /- < Repository root directory >
   |- react-space (created with create-react-app)
   |     |- package.json
@@ -114,7 +140,9 @@ Plink style monorepo
   |- node_modules/
   |     |- @wfh/plink
   |     |- ... (symlinks to package directories)
-  |     
+  |
+  |- dist/
+  |   |- plink-state.json
   +- packages/
         |- redux-slice-A/
         |     |- src/
