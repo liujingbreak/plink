@@ -123,16 +123,14 @@ function subComands(program: commander.Command) {
   });
   /** command init
    */
-  const initCmd = program.command('init [work-directory]').alias('sync')
+  const initCmd = program.command('init').alias('sync')
     .description('Initialize and update work directory, generate basic configuration files for project and component packages,' +
       ' calculate hoisted transitive dependencies, and run "npm install" in current directory.' +
-      ' (All NPM config environment variables will affect dependency installation, see https://docs.npmjs.com/cli/v7/using-npm/config#environment-variables)',
-      {
-        'work-directory': 'A relative or abosolute directory path, use "." to determine current directory,\n  ommitting this argument meaning:\n' +
-          '  - If current directory is already a "work directory", update it.\n' +
-          '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
-          ' directory.'
-      })
+      ' (All NPM config environment variables will affect dependency installation, see https://docs.npmjs.com/cli/v7/using-npm/config#environment-variables)')
+    .argument('[work-directory]', 'A relative or abosolute directory path, use "." to determine current directory,\n  ommitting this argument meaning:\n' +
+    '  - If current directory is already a "work directory", update it.\n' +
+    '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
+    ' directory.')
     .option('-f, --force', 'Force run "npm install" in specific workspace directory, this is not same as npm install option "-f" ', false)
     // .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
     .action(async (workspace?: string) => {
@@ -453,6 +451,8 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
 function addNpmInstallOption(cmd: commander.Command) {
   cmd.option('--cache <npm-cache>', 'same as npm install option "--cache"')
   .option('--ci, --use-ci', 'Use "npm ci" instead of "npm install" to install dependencies', false)
+  .option('--prune', 'Run "npm prune" after installation')
+  .option('--ddp, --dedupe', 'Run "npm dedupe" after installation')
   // .option('--offline', 'same as npm option "--offline" during executing npm install/ci ', false)
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
   .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false);

@@ -89,6 +89,8 @@ export interface NpmOptions {
     cache?: string;
     isForce: boolean;
     useNpmCi?: boolean;
+    prune?: boolean;
+    dedupe?: boolean;
     offline?: boolean;
 }
 export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {

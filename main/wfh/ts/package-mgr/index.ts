@@ -127,6 +127,8 @@ export interface NpmOptions {
   cache?: string;
   isForce: boolean;
   useNpmCi?: boolean;
+  prune?: boolean;
+  dedupe?: boolean;
   offline?: boolean;
 }
 
@@ -853,14 +855,18 @@ export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJso
 
     await exe('npm', ...cmdArgs, {cwd: dir, env}).done;
     await new Promise(resolve => setImmediate(resolve));
-    await exe('npm', 'prune', {cwd: dir, env}).done;
-    // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
-    // why, I have to add a setImmediate() between them to workaround
-    await new Promise(resolve => setImmediate(resolve));
-    try {
-      await exe('npm', 'ddp', {cwd: dir, env}).promise;
-    } catch (ddpErr) {
-      log.warn('Failed to dedupe dependencies, but it is OK', ddpErr);
+    if (npmOpt.prune) {
+      await exe('npm', 'prune', {cwd: dir, env}).done;
+      // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
+      // why, I have to add a setImmediate() between them to workaround
+      await new Promise(resolve => setImmediate(resolve));
+    }
+    if (npmOpt.dedupe) {
+      try {
+        await exe('npm', 'ddp', {cwd: dir, env}).promise;
+      } catch (ddpErr) {
+        log.warn('Failed to dedupe dependencies, but it is OK', ddpErr);
+      }
     }
   } catch (e) {
     // eslint-disable-next-line no-console
