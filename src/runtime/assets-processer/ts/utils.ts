@@ -72,76 +72,75 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
 
   const patPath = new RegExp('^' + _.escapeRegExp(proxyPath) + '(/|$)');
   const hpmLog = logger.getLogger('HPM.' + proxyPath);
-  api.expressAppSet(app => {
-    app.use(proxyPath,
-      proxy({
-        // eslint-disable-next-line max-len
-        target: protocol + '//' + host,
-        changeOrigin: true,
-        ws: false,
-        secure: false,
-        cookieDomainRewrite: { '*': '' },
-        pathRewrite: opts.pathRewrite ?  opts.pathRewrite : (path, req) => {
-          // hpmLog.warn('patPath=', patPath, 'path=', path);
-          const ret = path && path.replace(patPath, pathname == null ? '/' : pathname + '/');
-          // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
-          return ret;
-        },
-        logLevel: 'debug',
-        logProvider: provider => hpmLog,
-        proxyTimeout: opts.proxyTimeout != null ? opts.proxyTimeout : 10000,
-        onProxyReq(proxyReq, req, res, opt) {
-          if (opts.deleteOrigin)
-            proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
-          const referer = proxyReq.getHeader('referer');
-          if (referer) {
-            proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer as string).pathname}`);
-          }
-          if (opts.onProxyReq) {
-            opts.onProxyReq(proxyReq, req, res, opt);
-          }
-          hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method!}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
-          // if (api.config().devMode)
-          //   hpmLog.info('on proxy request headers: ', JSON.stringify(proxyReq.getHeaders(), null, '  '));
-        },
-        onProxyRes(incoming, req, res) {
-          incoming.headers['Access-Control-Allow-Origin'] = '*';
-          if (api.config().devMode) {
-            hpmLog.info(`Proxy recieve ${req.url!}, status: ${incoming.statusCode!}\n`,
-              JSON.stringify(incoming.headers, null, '  '));
-          } else {
-            hpmLog.info(`Proxy recieve ${req.url!}, status: ${incoming.statusCode!}`);
-          }
-          if (api.config().devMode || config().cliOptions?.verbose) {
+  const proxyMidOpt: ProxyOptions = {
+    // eslint-disable-next-line max-len
+    target: protocol + '//' + host,
+    changeOrigin: true,
+    ws: false,
+    secure: false,
+    cookieDomainRewrite: { '*': '' },
+    pathRewrite: opts.pathRewrite ?  opts.pathRewrite : (path, req) => {
+      // hpmLog.warn('patPath=', patPath, 'path=', path);
+      const ret = path && path.replace(patPath, pathname == null ? '/' : pathname + '/');
+      // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
+      return ret;
+    },
+    logLevel: 'debug',
+    logProvider: provider => hpmLog,
+    proxyTimeout: opts.proxyTimeout != null ? opts.proxyTimeout : 10000,
+    onProxyReq(proxyReq, req, res) {
+      if (opts.deleteOrigin)
+        proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
+      const referer = proxyReq.getHeader('referer');
+      if (referer) {
+        proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer as string).pathname}`);
+      }
+      if (opts.onProxyReq) {
+        opts.onProxyReq(proxyReq, req, res);
+      }
+      hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
+      // if (api.config().devMode)
+      //   hpmLog.info('on proxy request headers: ', JSON.stringify(proxyReq.getHeaders(), null, '  '));
+    },
+    onProxyRes(incoming, req, res) {
+      incoming.headers['Access-Control-Allow-Origin'] = '*';
+      if (api.config().devMode) {
+        hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode!}\n`,
+          JSON.stringify(incoming.headers, null, '  '));
+      } else {
+        hpmLog.info(`Proxy recieve ${req.url}, status: ${incoming.statusCode!}`);
+      }
+      if (api.config().devMode || config().cliOptions?.verbose) {
 
-            const ct = incoming.headers['content-type'];
-            hpmLog.info(`Response ${req.url!} headers:\n`, incoming.rawHeaders);
-            const isText = (ct && /\b(json|text)\b/i.test(ct));
-            if (isText) {
-              const bufs = [] as string[];
-              incoming.pipe(new stream.Writable({
-                write(chunk: Buffer, enc, cb) {
-                  bufs.push((chunk.toString()));
-                  cb();
-                },
-                final(cb) {
-                  hpmLog.info(`Response ${req.url!} text body:\n`, bufs.join(''));
-                }
-              }));
+        const ct = incoming.headers['content-type'];
+        hpmLog.info(`Response ${req.url} headers:\n`, incoming.rawHeaders);
+        const isText = (ct && /\b(json|text)\b/i.test(ct));
+        if (isText) {
+          const bufs = [] as string[];
+          incoming.pipe(new stream.Writable({
+            write(chunk: Buffer, enc, cb) {
+              bufs.push((chunk.toString()));
+              cb();
+            },
+            final(cb) {
+              hpmLog.info(`Response ${req.url} text body:\n`, bufs.join(''));
             }
-          }
-          if (opts.onProxyRes) {
-            opts.onProxyRes(incoming, req, res);
-          }
-        },
-        onError(err, req, res) {
-          hpmLog.warn(err);
-          if (opts.onError) {
-            opts.onError(err, req, res);
-          }
+          }));
         }
-      })
-    );
+      }
+      if (opts.onProxyRes) {
+        opts.onProxyRes(incoming, req, res);
+      }
+    },
+    onError(err, req, res) {
+      hpmLog.warn(err);
+      if (opts.onError) {
+        opts.onError(err, req, res);
+      }
+    }
+  };
+  api.expressAppSet(app => {
+    app.use(proxyPath, proxy(proxyMidOpt));
   });
 }
 

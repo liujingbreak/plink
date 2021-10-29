@@ -1,6 +1,6 @@
 {
   "name": "@wfh/assets-processer",
-  "version": "1.2.0-3",
+  "version": "1.2.0-4",
   "description": "Work with Plink, copy assets to destDir folder only when devMode is false",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
