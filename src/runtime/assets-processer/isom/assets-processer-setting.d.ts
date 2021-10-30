@@ -57,7 +57,7 @@ export interface AssetsProcesserSetting {
      *
      * Default value is {target: 'http://localhost:4200'} when "--dev" mode is on.
      *
-     * ChangeOrigin and ws (websocket) will be enabled, since devServer mostly like will
+     * ChangeOrigin and ws (websocket) will be enabled, since devServer most likely will
      * enable Webpack HMR through websocket.
     */
     proxyToDevServer?: Options;

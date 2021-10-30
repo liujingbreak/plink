@@ -47,7 +47,7 @@ export function setupApi(api: ExtensionContext, app: Application) {
 	 * @return {[type]} [description]
 	 */
   apiPrototype.router = function(this: typeof api) {
-    let self = this;
+    const self = this;
     let calleePackageName = this.packageName;
     if (self._router) {
       return self._router;
