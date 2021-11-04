@@ -43,7 +43,7 @@ const releaseEpic = stateFactory.addEpic<{Markdown: MarkdownState}>((action$, st
     action$.pipe(ofPayloadAction(markdownSlice.actions.getHtml),
       op.mergeMap(({payload: key}) => {
         const url = getState().markdowns[key];
-        return axiosObs.get<LoaderRecivedData>(url)
+        return rx.from(axiosObs.get<LoaderRecivedData>(url))
         .pipe(
           op.map(res => {
             dispatcher.getHtmlDone({key, data: res.data});
