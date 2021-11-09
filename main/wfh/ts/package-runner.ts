@@ -7,6 +7,7 @@ import _NodeApi from './package-mgr/node-package-api';
 import PackageInstance from './packageNodeInstance';
 import { orderPackages } from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
+import type {default as ExtensionContext} from './package-mgr/node-package-api';
 import Path from 'path';
 import {createLazyPackageFileFinder, packages4Workspace} from './package-utils';
 import log4js from 'log4js';
@@ -23,6 +24,11 @@ export interface ServerRunnerEvent {
   functionName: string;
 }
 
+interface ExtensionExport {
+  activate?(ctx: ExtensionContext): void | Promise<void>;
+  deactivate?(): any;
+}
+
 export function isServerPackage(pkg: PackageState) {
   const plinkProp = pkg.json.plink || pkg.json.dr;
   return plinkProp && (plinkProp.type === 'server' || (Array.isArray(plinkProp.type) && plinkProp.type.includes('server')));
@@ -32,7 +38,7 @@ export function readPriorityProperty(json: any) {
   return _.get(json, 'plink.serverPriority', _.get(json, 'dr.serverPriority'));
 }
 
-export function runServer(): {started: Promise<unknown>; shutdown(): Promise<void>} {
+export function runServer(): {started: Promise<{name: string; exp:  ExtensionExport}[]>; shutdown(): Promise<void>} {
   let wsKey: string | null | undefined = workspaceKey(getWorkDir());
   wsKey = getState().workspaces.has(wsKey) ? wsKey : getState().currWorkspace;
   if (wsKey == null) {
@@ -110,16 +116,16 @@ export async function runSinglePackage({target, args}: {target: string; args: st
   await Promise.resolve(_exports[func].apply(global, args || []));
 }
 
-export function runPackages(target: string, includePackages: Iterable<string>): Promise<{name: string; exp: any}[]> {
+export function runPackages(target: string, includePackages: Iterable<string>): Promise<{name: string; exp:  ExtensionExport}[]> {
 
   return _runPackages(includePackages, () => target.split('#') as [string, string]);
 }
 
 async function _runPackages(includePackages: Iterable<string>,
   targetOfPkg: (pkg: string) => [fileToRun: string | undefined, funcToRun: string] | undefined | null
-): Promise<{name: string; exp: any}[]> {
+): Promise<{name: string; exp: ExtensionExport}[]> {
   const includeNameSet = new Set<string>(includePackages);
-  const pkgExportsInReverOrder: {name: string; exp: any}[] = [];
+  const pkgExportsInDescendOrder: {name: string; exp: ExtensionExport}[] = [];
 
   const [packageInfo, proto] = initInjectorForNodePackages();
   const components = packageInfo.allModules.filter(pk => {
@@ -156,7 +162,7 @@ async function _runPackages(includePackages: Iterable<string>,
       const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
       log.debug('require(%sf)', JSON.stringify(mod));
       const fileExports = require(Path.resolve(getWorkDir(), 'node_modules', mod));
-      pkgExportsInReverOrder.unshift({name: pkInstance.name, exp: fileExports});
+      pkgExportsInDescendOrder.unshift({name: pkInstance.name, exp: fileExports});
       if (_.isFunction(fileExports[funcToRun])) {
         log.info(funcToRun + ` ${chalk.cyan(mod)}`);
         return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
@@ -164,7 +170,7 @@ async function _runPackages(includePackages: Iterable<string>,
   });
   (proto.eventBus ).emit('done', {});
   NodeApi.prototype.eventBus.emit('packagesActivated', includeNameSet);
-  return pkgExportsInReverOrder;
+  return pkgExportsInDescendOrder;
 }
 
 /**

@@ -1,0 +1,5 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const network_util_1 = require("./utils/network-util");
+void (0, network_util_1.createTunnelProxy)();
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic3RhcnQtcHJveHkuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi90cy9zdGFydC1wcm94eS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLHVEQUF1RDtBQUV2RCxLQUFLLElBQUEsZ0NBQWlCLEdBQUUsQ0FBQyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7Y3JlYXRlVHVubmVsUHJveHl9IGZyb20gJy4vdXRpbHMvbmV0d29yay11dGlsJztcblxudm9pZCBjcmVhdGVUdW5uZWxQcm94eSgpO1xuIl19
