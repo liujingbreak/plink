@@ -256,7 +256,7 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {
     const realDir = Path.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
     pathMapping[name] = [realDir];
 
-    pathMapping[`${name}/${tsDirs.destDir}/*`] = [`${realDir}/${tsDirs.srcDir}/*`];
+    pathMapping[`${name}/${tsDirs.destDir}/*`.replace(/\/\//g, '/')] = [`${realDir}/${tsDirs.srcDir}/*`.replace(/\/\//g, '/')];
     // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
     pathMapping[name + '/*'] = [`${realDir}/*`];
   }

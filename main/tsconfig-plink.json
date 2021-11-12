@@ -4,6 +4,27 @@
     "target": "es2017",
     "rootDir": "wfh/ts",
     "declaration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@wfh/redux-toolkit-observable": [
+        "packages/redux-toolkit-observable"
+      ],
+      "@wfh/redux-toolkit-observable/dist/*": [
+        "packages/redux-toolkit-observable/dist/*"
+      ],
+      "@wfh/redux-toolkit-observable/*": [
+        "packages/redux-toolkit-observable/*"
+      ],
+      "@wfh/thread-promise-pool": [
+        "packages/thread-promise-pool"
+      ],
+      "@wfh/thread-promise-pool/dist/*": [
+        "packages/thread-promise-pool/ts/*"
+      ],
+      "@wfh/thread-promise-pool/*": [
+        "packages/thread-promise-pool/*"
+      ]
+    }
   },
   "references": [
     {"path": "tsconfig-share.json"},

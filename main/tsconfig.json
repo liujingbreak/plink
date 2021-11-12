@@ -2,10 +2,32 @@
 	"extends": "./wfh/tsconfig-base.json",
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",
+    "rootDir": ".",
     "typeRoots": [
       "node_modules/@types/*",
       "wfh/types"
-    ]
+    ],
+    "paths": {
+      "@wfh/redux-toolkit-observable": [
+        "packages/redux-toolkit-observable"
+      ],
+      "@wfh/redux-toolkit-observable/dist/*": [
+        "packages/redux-toolkit-observable/*"
+      ],
+      "@wfh/redux-toolkit-observable/*": [
+        "packages/redux-toolkit-observable/*"
+      ],
+      "@wfh/thread-promise-pool": [
+        "packages/thread-promise-pool"
+      ],
+      "@wfh/thread-promise-pool/dist/*": [
+        "packages/thread-promise-pool/ts/*"
+      ],
+      "@wfh/thread-promise-pool/*": [
+        "packages/thread-promise-pool/*"
+      ]
+    }
   },
   "include": [
     "wfh/ts/**/*.ts",
