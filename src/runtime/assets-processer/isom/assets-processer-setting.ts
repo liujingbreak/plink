@@ -43,7 +43,7 @@ export interface AssetsProcesserSetting {
   serveIndex: boolean;
   requireToken: boolean;
   /** 
-   * @type import('http-proxy-middleware').Config
+   * @type import('http-proxy-middleware').Options
    * Proxy request to another dev server, if proxy got an error response, then fallback request to
    * local static file resource
    * e.g. {target: http://localhsot:3000} for create-react-app dev server,

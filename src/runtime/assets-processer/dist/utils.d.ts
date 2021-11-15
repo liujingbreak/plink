@@ -10,11 +10,13 @@ export declare function createResponseTimestamp(req: Request, res: Response, nex
 /**
  * This function uses http-proxy-middleware internally.
  *
+ * Be aware with command line option "--verbose", once enable "verbose", this function will
+ * read (pipe) remote server response body into a string buffer for any message with content-type is "text" or "json" based
  * Create and use an HTTP request proxy for specific request path
  * @param proxyPath
  * @param targetUrl
  */
-export declare function setupHttpProxy(proxyPath: string, apiUrl: string, opts?: {
+export declare function setupHttpProxy(proxyPath: string, targetUrl: string, opts?: {
     /** Bypass CORS restrict on target server */
     deleteOrigin?: boolean;
     pathRewrite?: ProxyOptions['pathRewrite'];

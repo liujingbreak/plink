@@ -3,8 +3,11 @@ import stream from 'stream';
 import api from '__api';
 import _ from 'lodash';
 import {config, logger} from '@wfh/plink';
+// import inspector from 'inspector';
+// import fs from 'fs';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
+// inspector.open(9222, 'localhost', true);
 const logTime = logger.getLogger(api.packageName + '.timestamp');
 
 /**
@@ -49,11 +52,13 @@ export function createResponseTimestamp(req: Request, res: Response, next: NextF
 /**
  * This function uses http-proxy-middleware internally.
  * 
+ * Be aware with command line option "--verbose", once enable "verbose", this function will
+ * read (pipe) remote server response body into a string buffer for any message with content-type is "text" or "json" based
  * Create and use an HTTP request proxy for specific request path
  * @param proxyPath 
  * @param targetUrl 
  */
-export function setupHttpProxy(proxyPath: string, apiUrl: string,
+export function setupHttpProxy(proxyPath: string, targetUrl: string,
   opts: {
     /** Bypass CORS restrict on target server */
     deleteOrigin?: boolean;
@@ -67,8 +72,8 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
   } = {}) {
 
   proxyPath = _.trimEnd(proxyPath, '/');
-  apiUrl = _.trimEnd(apiUrl, '/');
-  const { protocol, host, pathname } = new URL(apiUrl);
+  targetUrl = _.trimEnd(targetUrl, '/');
+  const { protocol, host, pathname } = new URL(targetUrl);
 
   const patPath = new RegExp('^' + _.escapeRegExp(proxyPath) + '(/|$)');
   const hpmLog = logger.getLogger('HPM.' + proxyPath);
@@ -81,7 +86,7 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
     cookieDomainRewrite: { '*': '' },
     pathRewrite: opts.pathRewrite ?  opts.pathRewrite : (path, req) => {
       // hpmLog.warn('patPath=', patPath, 'path=', path);
-      const ret = path && path.replace(patPath, pathname == null ? '/' : pathname + '/');
+      const ret = path && path.replace(patPath, _.trimEnd(pathname, '/') + '/');
       // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
       return ret;
     },
@@ -144,3 +149,12 @@ export function setupHttpProxy(proxyPath: string, apiUrl: string,
   });
 }
 
+// export function proxyAndRecordResponse(proxyPath: string, targetUrl: string) {
+//   setupHttpProxy(proxyPath, targetUrl, {
+//     deleteOrigin: true,
+//     onProxyRes(incoming, req, res) {
+//       const filePath = req.url;
+//       incoming.pipe();
+//     }
+//   });
+// }
