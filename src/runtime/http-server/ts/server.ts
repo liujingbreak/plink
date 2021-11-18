@@ -37,7 +37,7 @@ export function activate() {
   const config = api.config;
   const rootPath: string = config().rootPath;
 
-  const sslSetting: any = config()['@wfh/http-server'].ssl;
+  const sslSetting = config()['@wfh/http-server'].ssl;
 
   if (sslSetting && sslSetting.enabled) {
     if (!sslSetting.key) {

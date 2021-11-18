@@ -22,7 +22,7 @@ export interface AssetsProcesserSetting {
    * Key is a RegExp string, value is target path.
    * e.g.  {'^/[^/?#.]+': '<%=match[0]%>/index.html'}
    * 
-   * In case user access "/hellow?uid=123", the actual Express.js
+   * In case user access "/hellow?uid=123" or "/hellow/sub", the actual Express.js
    * `request.path` will be change to "/index.html", `request.query` will be kept
    */
   fallbackIndexHtml: {[key: string]: string};
@@ -34,6 +34,7 @@ export interface AssetsProcesserSetting {
     loginSecret: string;
     env?: string;
   } | null;
+
   /** Setting this value to true will enable serving Index HTML page for static resource under:
    *  <root dir>/dist/static.
    * 
@@ -82,6 +83,7 @@ export const defaultSetting: PackageSettingInterf<AssetsProcesserSetting> = (cli
       woff: '365 days',
       woff2: '365 days'
     },
+    cacheStaticResDuration: 15 * 60000,
     fallbackIndexHtml: {'^/[^/?#.]+': '<%=match[0]%>/index.html'},
     httpProxy: {},
     fetchMailServer: null,
