@@ -1,6 +1,6 @@
 {
   "name": "@wfh/material-components-react",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Google's material-components-web encapsulated in React and RxJS",
   "plink": {
     "setting": {
@@ -22,18 +22,18 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
-    "@material/top-app-bar": "12.0.0",
-    "@material/icon-button": "12.0.0",
-    "@material/theme": "12.0.0",
-    "@material/drawer": "12.0.0",
-    "@material/list": "12.0.0",
-    "@material/button": "12.0.0",
-    "@material/linear-progress": "12.0.0",
-    "@material/layout-grid": "12.0.0",
-    "@material-icons/font": "1.0.8",
-    "@material/slider": "12.0.0",
-    "@material/dialog": "12.0.0",
-    "@material/textfield": "12.0.0",
-    "@material/ripple": "^12.0.0"
+    "@material/top-app-bar": "13.0.0",
+    "@material/icon-button": "13.0.0",
+    "@material/theme": "13.0.0",
+    "@material/drawer": "13.0.0",
+    "@material/list": "13.0.0",
+    "@material/button": "13.0.0",
+    "@material/linear-progress": "13.0.0",
+    "@material/layout-grid": "13.0.0",
+    "@material-icons/font": "1.0.21",
+    "@material/slider": "13.0.0",
+    "@material/dialog": "13.0.0",
+    "@material/textfield": "13.0.0",
+    "@material/ripple": "^13.0.0"
   }
 }

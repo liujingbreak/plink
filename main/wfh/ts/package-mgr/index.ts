@@ -617,7 +617,7 @@ stateFactory.addEpic((action$, state$) => {
         }
       })
     ),
-
+    // something is newly installed or changed in workspace node_modules
     actionByTypes.workspaceStateUpdated.pipe(
       map(action => updatedWorkspaceSet.add(action.payload)),
       debounceTime(800),

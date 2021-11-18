@@ -1,0 +1,14 @@
+{
+  "name": "@wfh/install-patches",
+  "version": "1.0.0",
+  "description": "3rd-party library bug fixes or workarounds collection for Plink",
+  "main": "dist/index.js",
+  "plink": {
+    "cli": "dist/cli/cli.js#default"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Liu Jing",
+  "license": "MIT"
+}

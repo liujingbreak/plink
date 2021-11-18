@@ -1,4 +1,4 @@
-import {CliExtension} from '@wfh/plink/wfh/dist';
+import {CliExtension} from '@wfh/plink';
 
 const cliExt: CliExtension = (program) => {
   const cmd = program.command('$__foobar__$')
@@ -6,7 +6,7 @@ const cliExt: CliExtension = (program) => {
   .argument('[argument1...]', 'Description for argument1', [])
   .option('-f, --file <spec>', 'sample option')
   .action(async (argument1: string[]) => {
-    await (await import('./cli-$__foobarFile__$')).$__foobarId__$(argument1, cmd.opts());
+    (await import('./cli-$__foobarFile__$')).$__foobarId__$(argument1, cmd.opts());
   });
 
   // TODO: Add more sub command here

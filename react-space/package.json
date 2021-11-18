@@ -35,7 +35,8 @@
     "@wfh/http-server": "1.1.4",
     "@wfh/assets-processer": "1.1.67-2",
     "axios": "0.21.1",
-    "@wfh/material-components-react": "1.0.0"
+    "@wfh/material-components-react": "1.0.0",
+    "@wfh/install-patches": "1.0.0"
   },
   "devDependencies": {
     "@wfh/cra-scripts": "../tarballs/wfh-cra-scripts-1.0.30-0.tgz",

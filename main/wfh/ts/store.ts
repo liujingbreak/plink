@@ -12,10 +12,10 @@ import {isMainThread, threadId} from 'worker_threads';
 import {PlinkEnv} from './node-path';
 import chalk from 'chalk';
 
-import {createReducers, action$Of} from '../../packages/redux-toolkit-observable/dist/helper';
+import {createReducers, action$Of, castByActionType} from '../../packages/redux-toolkit-observable/dist/helper';
 // import chalk from 'chalk';
 
-export {ofPayloadAction, createReducers, action$Of};
+export {ofPayloadAction, createReducers, action$Of, castByActionType};
 enableMapSet();
 configDefaultLog();
 

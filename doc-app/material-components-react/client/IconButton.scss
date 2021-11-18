@@ -1,6 +1,5 @@
 @use 'theme';
-@use "@material/icon-button";
-@include icon-button.core-styles;
+@use "@material/icon-button/styles";
 
 .mdc-icon-button {
   position: relative;

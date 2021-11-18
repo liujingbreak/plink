@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import { StateFactory, ofPayloadAction } from '../../packages/redux-toolkit-observable/dist/redux-toolkit-observable';
-import { createReducers, action$Of } from '../../packages/redux-toolkit-observable/dist/helper';
-export { ofPayloadAction, createReducers, action$Of };
+import { createReducers, action$Of, castByActionType } from '../../packages/redux-toolkit-observable/dist/helper';
+export { ofPayloadAction, createReducers, action$Of, castByActionType };
 declare const PROCESS_MSG_TYPE = "rtk-observable:state";
 export declare type ProcessStateSyncMsg = {
     type: typeof PROCESS_MSG_TYPE;

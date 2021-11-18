@@ -83,7 +83,6 @@ export const defaultSetting: PackageSettingInterf<AssetsProcesserSetting> = (cli
       woff: '365 days',
       woff2: '365 days'
     },
-    cacheStaticResDuration: 15 * 60000,
     fallbackIndexHtml: {'^/[^/?#.]+': '<%=match[0]%>/index.html'},
     httpProxy: {},
     fetchMailServer: null,
