@@ -37,6 +37,6 @@ async function bumpPackages(pkgNames: string[], increVersion: string) {
   }).map((pkg) => {
     log.info(`bump ${pkg!.name} version`);
     const pkDir = pkg!.realPath;
-    return exe('npm', 'version', increVersion, {cwd: pkDir}).promise;
+    return exe('npm', 'version', increVersion, '--no-commit-hooks', '--no-git-tag-version', {cwd: pkDir}).promise;
   }));
 }

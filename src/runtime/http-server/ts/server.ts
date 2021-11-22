@@ -14,7 +14,7 @@ try {
   healthCheckServer = api.config.get(api.packageName + '.noHealthCheck', false) ?
     false : require('@bk/bkjk-node-health-server');
 } catch (e) {
-  if (e.code === 'MODULE_NOT_FOUND') {
+  if ((e as {code?: string}).code === 'MODULE_NOT_FOUND') {
     log.info('@bk/bkjk-node-health-server is not found, skip it.');
   }
 }

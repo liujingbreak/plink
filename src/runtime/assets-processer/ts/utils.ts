@@ -2,6 +2,7 @@ import {Request, Response, NextFunction} from 'express';
 import stream from 'stream';
 import api from '__api';
 import _ from 'lodash';
+import {readCompressedResponse} from '@wfh/http-server/dist/utils';
 import {config, logger} from '@wfh/plink';
 // import inspector from 'inspector';
 // import fs from 'fs';
@@ -118,13 +119,13 @@ export function setupHttpProxy(proxyPath: string, targetUrl: string,
       if (api.config().devMode || config().cliOptions?.verbose) {
 
         const ct = incoming.headers['content-type'];
-        hpmLog.info(`Response ${req.url} headers:\n`, incoming.rawHeaders);
+        hpmLog.info(`Response ${req.url} headers:\n`, incoming.headers);
         const isText = (ct && /\b(json|text)\b/i.test(ct));
         if (isText) {
           const bufs = [] as string[];
-          incoming.pipe(new stream.Writable({
-            write(chunk: Buffer, enc, cb) {
-              bufs.push((chunk.toString()));
+          void readCompressedResponse(incoming, new stream.Writable({
+            write(chunk: Buffer | string, enc, cb) {
+              bufs.push(Buffer.isBuffer(chunk) ? chunk.toString() : chunk);
               cb();
             },
             final(cb) {

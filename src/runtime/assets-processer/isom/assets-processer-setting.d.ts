@@ -24,7 +24,7 @@ export interface AssetsProcesserSetting {
      * Key is a RegExp string, value is target path.
      * e.g.  {'^/[^/?#.]+': '<%=match[0]%>/index.html'}
      *
-     * In case user access "/hellow?uid=123", the actual Express.js
+     * In case user access "/hellow?uid=123" or "/hellow/sub", the actual Express.js
      * `request.path` will be change to "/index.html", `request.query` will be kept
      */
     fallbackIndexHtml: {

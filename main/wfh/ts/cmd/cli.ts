@@ -293,8 +293,9 @@ function subComands(program: commander.Command) {
   /**
    * Pack command
    */
-  const publishCmd = program.command('publish [package...]')
-    .description('run npm publish', {package: cliPackageArgDesc})
+  const publishCmd = program.command('publish')
+    .description('run npm publish')
+    .argument('[package...]', cliPackageArgDesc)
     .option('--dir <package directory>', 'publish packages by specifying directories', arrayOptionFn, [])
     .option<string[]>('--pj, --project <project-dir,...>',
     'project directories to be looked up for all packages which need to be packed to tarball files',
@@ -309,10 +310,10 @@ function subComands(program: commander.Command) {
     });
 
 
-  const analysisCmd = program.command('analyze [pkg-name...]')
+  const analysisCmd = program.command('analyze')
     .alias('analyse')
-    .argument('pkg-name', 'the name of target source package, the package must be Plink compliant package, this command will only ' +
-    'scan special "plink.tsc" source code directory like "ts/" and "isom/" of target package')
+    .argument('[package...]', 'the name of target source package, the package must be Plink compliant package, this command will only ' +
+      'scan special "plink.tsc" source code directory like "ts/" and "isom/" of target package')
     .description('Use Typescript compiler to parse source code, list dependences by DFS algarithm, result information includes' +
       ': cyclic dependecies, unresolvable dependencies, external dependencies, dependencies are not under target directory.')
     .option('-x <regexp>', 'Ingore "module name" that matches specific Regular Experssion', '\\.(less|scss|css)$')
