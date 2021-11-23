@@ -1,4 +1,4 @@
-import {createProxyMiddleware as proxy, Options} from 'http-proxy-middleware';
+import {createProxyMiddleware as proxy, Options, fixRequestBody} from 'http-proxy-middleware';
 import express from '@wfh/express-app/dist/express';
 import _ from 'lodash';
 // import Url from 'url';
@@ -23,6 +23,7 @@ export function proxyToDevServer(api: ExtensionContext) {
   config.ws = true;
   config.logProvider = () => log;
   const plinkSetting = plinkConfig();
+  config.onProxyReq = fixRequestBody;
   config.logLevel = plinkSetting.devMode || plinkSetting.cliOptions?.verbose ? 'debug' : 'info';
   config.onError = (err, req, res) => {
     if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {

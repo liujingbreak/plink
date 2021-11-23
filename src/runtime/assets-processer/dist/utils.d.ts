@@ -17,7 +17,7 @@ export declare function createResponseTimestamp(req: Request, res: Response, nex
  * @param targetUrl
  */
 export declare function setupHttpProxy(proxyPath: string, targetUrl: string, opts?: {
-    /** Bypass CORS restrict on target server */
+    /** Bypass CORS restrict on target server, default is true */
     deleteOrigin?: boolean;
     pathRewrite?: ProxyOptions['pathRewrite'];
     onProxyReq?: ProxyOptions['onProxyReq'];
@@ -27,3 +27,4 @@ export declare function setupHttpProxy(proxyPath: string, targetUrl: string, opt
     selfHandleResponse?: ProxyOptions['selfHandleResponse'];
     proxyTimeout?: ProxyOptions['proxyTimeout'];
 }): void;
+export declare function createProxyWithCache(proxyPath: string, cacheRootDir: string): void;

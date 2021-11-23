@@ -20,6 +20,7 @@ export function packageAssetsFolders(deployUrl: string, onEach: (dir: string, ou
   findAllPackages(
     (name: string, entryPath: string, parsedName: {name: string}, json: any, packagePath: string) => {
 
+    // TODO: should move this piece logic to cra-scripts
     if (json.dr && json.dr['cra-lib-entry']) {
       const assetsFolder = 'build/' + parsedName.name + '/static/media';
       let assetsDir = Path.resolve(packagePath, assetsFolder);

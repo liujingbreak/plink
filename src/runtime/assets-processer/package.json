@@ -38,7 +38,7 @@
     "gulp-unzip": "1.0.0",
     "adm-zip": "^0.4.14",
     "pify": "~4.0.1",
-    "http-proxy-middleware": "~1.0.6",
+    "http-proxy-middleware": "~2.0.1",
     "nodemailer": "^6.3.0",
     "serve-index": "^1.9.1",
     "yauzl": "~2.10.0",
