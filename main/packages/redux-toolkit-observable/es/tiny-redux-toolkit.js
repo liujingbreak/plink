@@ -176,6 +176,12 @@ export function createSlice(opt) {
         actionDispatcher,
         destroy,
         destroy$: unprocessedAction$.pipe(op.filter(action => action.type === '__OnDestroy'), op.take(1)),
+        epic(epic) {
+            const epicFactory = () => {
+                return epic;
+            };
+            addEpic$(rx.of(epicFactory));
+        },
         addEpic(epicFactory) {
             return addEpic$(rx.of(epicFactory));
         },

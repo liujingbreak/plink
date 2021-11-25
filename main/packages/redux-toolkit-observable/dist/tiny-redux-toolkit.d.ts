@@ -53,7 +53,24 @@ export interface Slice<S, R extends Reducers<S>> {
     actions: Actions<S, R>;
     destroy: () => void;
     destroy$: rx.Observable<any>;
+    /**
+     *
+     * @param epic the "Epic" stream of actions-in, actions-out, refer to https://redux-observable.js.org/docs/basics/Epics.html
+     * @returns a function to destory (subscribe from) epic
+     */
+    epic(epic: Epic<S>): void;
+    /**
+     * epic(epic) is recommended to be used instead of addEpic(), it has conciser method signature.
+     * @param epicFactory a factory function which creates the "Epic" (stream of actions-in and actions-out,
+     *  refer to https://redux-observable.js.org/docs/basics/Epics.html)
+     * @returns a function to remove/unsubscribe this epic
+     */
     addEpic(epicFactory: EpicFactory<S, R>): () => void;
+    /**
+     * Most of the time you just need epic(epic), this method is convenient in case of constantly "adding"
+     * new epic after "unsubscribe" from preceding old epic
+     * @param epicFactory$ this observable will be "switchMap()"ed in a pipeline
+     */
     addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): () => void;
     getStore(): rx.Observable<S>;
     getState(): S;

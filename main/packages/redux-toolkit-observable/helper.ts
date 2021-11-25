@@ -72,6 +72,10 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
     ...slice,
     action$: action$.asObservable(),
     actionDispatcher,
+    epic(epic: Epic) {
+      const fac: EpicFactory<S, R> = () => epic;
+      addEpic$(of(fac));
+    },
     addEpic(epicFactory: EpicFactory<S, R>) {
       return addEpic$(of(epicFactory));
     },

@@ -225,7 +225,7 @@ export function createProxyWithCache(proxyPath: string, cacheRootDir: string) {
     }
   });
 
-  slice.addEpic(slice => action$ => {
+  slice.epic(action$ => {
     const actions = castByActionType(slice.actions, action$);
     // const loadActionByKey: Map<string, rx.Observable<string>>;
     // const saveActionByKey: Map<string, rx.Observable<string>>;

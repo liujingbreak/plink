@@ -31,6 +31,10 @@ export function createSliceHelper(stateFactory, opts) {
     }
     // let releaseEpic: Array<() => void> = [];
     const helper = Object.assign(Object.assign({}, slice), { action$: action$.asObservable(), actionDispatcher,
+        epic(epic) {
+            const fac = () => epic;
+            addEpic$(of(fac));
+        },
         addEpic(epicFactory) {
             return addEpic$(of(epicFactory));
         },
