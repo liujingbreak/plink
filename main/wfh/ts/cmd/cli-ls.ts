@@ -23,7 +23,7 @@ export default async function list(opt: GlobalOptions & {json: boolean; hoist: b
   if (opt.json)
     console.log(JSON.stringify(jsonOfLinkedPackageForProjects(), null, '  '));
   else
-    console.log(listPackagesByProjects());
+    console.log(listPackagesByProjects((require('../package-mgr') as typeof pkMgr).getState()));
 
   const table = createCliTable({horizontalLines: false});
   table.push(
@@ -55,14 +55,13 @@ export function checkDir(opt: GlobalOptions) {
   pkMgr.actionDispatcher.updateDir();
 }
 
-function listPackagesByProjects() {
+export function listPackagesByProjects(state: pkMgr.PackagesState) {
   const cwd = process.cwd();
-  const pmgr: typeof pkMgr = require('../package-mgr');
-  const linkedPkgs = pmgr.getState().srcPackages;
+  const linkedPkgs = state.srcPackages;
 
   const table = createCliTable({horizontalLines: false, colAligns: ['right', 'left', 'left']});
   table.push([{colSpan: 3, content: chalk.bold('LINKED PACKAGES IN PROJECT\n'), hAlign: 'center'}]);
-  for (const [prj, pkgNames] of pmgr.getState().project2Packages.entries()) {
+  for (const [prj, pkgNames] of state.project2Packages.entries()) {
     table.push([{
       colSpan: 3, hAlign: 'left',
       content: chalk.bold('Project: ') + (prj ? chalk.cyan(prj) : chalk.cyan('(root directory)'))}
@@ -78,7 +77,7 @@ function listPackagesByProjects() {
         Path.relative(cwd, pk.realPath)]);
     }
   }
-  for (const [prj, pkgNames] of pmgr.getState().srcDir2Packages.entries()) {
+  for (const [prj, pkgNames] of state.srcDir2Packages.entries()) {
     table.push([{
       colSpan: 3, hAlign: 'left',
       content: chalk.bold('Source directory: ') + (prj ? chalk.cyan(prj) : chalk.cyan('(root directory)'))}

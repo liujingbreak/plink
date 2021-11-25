@@ -27,4 +27,4 @@ export declare function setupHttpProxy(proxyPath: string, targetUrl: string, opt
     selfHandleResponse?: ProxyOptions['selfHandleResponse'];
     proxyTimeout?: ProxyOptions['proxyTimeout'];
 }): void;
-export declare function createProxyWithCache(proxyPath: string, cacheRootDir: string): void;
+export declare function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string): void;

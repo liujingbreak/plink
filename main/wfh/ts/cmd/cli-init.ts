@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import Path from 'path';
 import {merge} from 'rxjs';
 import { distinctUntilChanged, map, skip, scan } from 'rxjs/operators';
+import {listPackagesByProjects} from './cli-ls';
 import { actionDispatcher as actions, getState, getStore, WorkspaceState} from '../package-mgr';
 import '../editor-helper';
 import { packages4WorkspaceKey } from '../package-utils';
@@ -15,25 +16,11 @@ import {dispatcher as storeSettingDispatcher} from '../store';
 
 export default function(opt: options.InitCmdOptions & options.NpmCliOption, workspace?: string) {
   storeSettingDispatcher.changeActionOnExit('save');
-  const cwd = plinkEnv.workDir;
   getStore().pipe(
     distinctUntilChanged((s1, s2) => s1.packagesUpdateChecksum === s2.packagesUpdateChecksum),
     skip(1),
-    map(s => s.srcPackages),
-    map(srcPackages => {
-      const paks = Array.from(srcPackages.values());
-
-      const table = createCliTable({
-        horizontalLines: false,
-        colAligns: ['right', 'left']
-      });
-      table.push([{colSpan: 3, content: 'Linked packages', hAlign: 'center'}]);
-      table.push(['Package name', 'Version', 'Path'],
-                 ['------------', '-------', '----']);
-      for (const pk of paks) {
-        table.push([pk.name, (pk.json as {version: string}).version, chalk.gray(Path.relative(cwd, pk.realPath))]);
-      }
-      console.log(table.toString());
+    map(s => {
+      console.log(listPackagesByProjects(s));
       printWorkspaces();
     })
   ).subscribe();

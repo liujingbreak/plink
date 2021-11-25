@@ -17,7 +17,7 @@ const cliExt: CliExtension = (program) => {
   program.command('listzip <file>')
   .description('List zip file content and size')
   .action(async file => {
-    const {listZip}: typeof _unzip = require('./cli-unzip');
+    const {listZip} = require('./cli-unzip') as typeof _unzip;
     await listZip(file);
   });
 
@@ -30,6 +30,7 @@ const cliExt: CliExtension = (program) => {
     const {unZip} = await import('./cli-unzip');
     await unZip(zipFile, destDir);
   });
+
 };
 
 export default cliExt;

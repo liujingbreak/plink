@@ -121,7 +121,8 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
               op.mergeMap(stat => {
                 log.info('remove symlink ' + dir);
                 return fs.promises.unlink(dir);
-              })
+              }),
+              op.catchError((err, src) => rx.EMPTY)
             );
           }),
           op.finalize(() => dispatcher.clearSymlinksDone())

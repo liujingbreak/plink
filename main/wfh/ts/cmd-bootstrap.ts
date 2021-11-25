@@ -2,11 +2,11 @@
 /* eslint-disable no-console */
 import './node-path';
 // import checkNode from './utils/node-version-check';
+import {isMainThread, threadId} from 'worker_threads';
 import chalk from 'chalk';
 import {initProcess, initAsChildProcess} from './utils/bootstrap-process';
 import * as _cli from './cmd/cli';
 import {forkFile} from './fork-for-preserve-symlink';
-import {isMainThread, threadId} from 'worker_threads';
 
 const startTime = new Date().getTime();
 

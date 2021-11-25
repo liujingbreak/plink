@@ -1,22 +1,21 @@
-import {Request, Response, NextFunction} from 'express';
 import stream from 'stream';
+import Path from 'path';
+import {Request, Response, NextFunction} from 'express';
 import api from '__api';
 import _ from 'lodash';
 import {readCompressedResponse} from '@wfh/http-server/dist/utils';
-import {config, logger} from '@wfh/plink';
+import {config, logger, log4File} from '@wfh/plink';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
 import fs from 'fs-extra';
-import Path from 'path';
 
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 // import inspector from 'inspector';
-// import fs from 'fs';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
 // inspector.open(9222, 'localhost', true);
 const logTime = logger.getLogger(api.packageName + '.timestamp');
-
+const log = log4File(__filename);
 /**
  * Middleware for printing each response process duration time to log
  * @param req 
@@ -187,77 +186,204 @@ function defaultProxyOptions(proxyPath: string, targetUrl: string) {
 
 type ProxyCacheState = {
   cacheDir: string;
-  cacheByUri: Map<string, {
-    /** loading from storage */
-    loading: boolean;
-    /** saving to storage */
-    saving: boolean;
-    /** immutable cached buffer */
-    data?: {
-      headers: [string, string][];
-      body: Buffer;
-    };
-  }>;
+  cacheByUri: Map<string, CacheData | 'loading' | 'requesting'>;
   error?: Error;
 };
 
-export function createProxyWithCache(proxyPath: string, cacheRootDir: string) {
+type CacheData = {
+  headers: [string, string | string[]][];
+  body: Buffer;
+};
+
+export function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string) {
   const initialState: ProxyCacheState = {
     cacheDir: cacheRootDir,
     cacheByUri: new Map()
   };
-  const slice = createSlice({
+
+  api.expressAppSet(app => {
+    app.use(proxyPath, (req, res, next) => {
+      const key = keyOfUri(req.method, req.url);
+      cacheService.actionDispatcher.hitCache({key, req, res, next});
+    });
+  });
+
+  const cacheService = createSlice({
     initialState,
     name: proxyPath,
     reducers: {
-      getCached(s: ProxyCacheState, {method, uri}: {method: string; uri: string}) {},
-      _loadCache(s: ProxyCacheState, key: string) {
-        s.cacheByUri.set(key, {loading: true, saving: false});
+      hitCache(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction}) {},
+
+      _addToCache(s: ProxyCacheState, payload: {
+        key: string;
+        data: {headers: CacheData['headers']; readable: stream.Readable};
+      }) {},
+
+      _loadFromStorage(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction}) {
+        s.cacheByUri.set(payload.key, 'loading');
       },
-      _cacheLoaded(s: ProxyCacheState, payload: {key: string; headers: [string, string][]; body: Buffer}) {
-        s.cacheByUri.set(payload.key, {loading: false, saving: false, data: {
-          headers: payload.headers,
-          body: payload.body
-        }});
+
+      _requestRemote(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction}) {
+        s.cacheByUri.set(payload.key, 'requesting');
       },
-      // _saveCache(s: ProxyCacheState, payload: {key: string; buffer: Buffer}) {},
-      _doneCache(s: ProxyCacheState, key: string) {}
+      _gotCache(s: ProxyCacheState, payload: {
+        key: string;
+        data: CacheData;
+      }) {
+        // s.cacheByUri.set(payload.key, payload.data);
+        s.cacheByUri.delete(payload.key);
+      }
     }
   });
 
-  slice.epic(action$ => {
-    const actions = castByActionType(slice.actions, action$);
-    // const loadActionByKey: Map<string, rx.Observable<string>>;
-    // const saveActionByKey: Map<string, rx.Observable<string>>;
+  cacheService.epic(action$ => {
+    const proxyOpt = defaultProxyOptions(proxyPath, targetUrl);
+
+    const proxyError$ = new rx.Subject<Parameters<(typeof proxyOpt)['onError']>>();
+    const proxyRes$ = new rx.Subject<Parameters<(typeof proxyOpt)['onProxyRes']>>();
+
+    const proxyMiddleware = proxy({
+      ...proxyOpt,
+      onProxyRes(...args) {
+        proxyRes$.next(args);
+        proxyOpt.onProxyRes(...args);
+      },
+      onError(...args) {
+        proxyOpt.onError(...args);
+        proxyError$.next(args);
+      }
+    });
+    const actions = castByActionType(cacheService.actions, action$);
 
     return rx.merge(
-      actions.getCached.pipe(
-        op.mergeMap(async ({payload}) => {
-          const key = keyOfUri(payload);
-          const item = slice.getState().cacheByUri.get(key);
-
+      actions.hitCache.pipe(
+        op.mergeMap( ({payload}) => {
+          const item = cacheService.getState().cacheByUri.get(payload.key);
           if (item == null) {
-            slice.actionDispatcher._loadCache(key);
-            const cFile = Path.resolve(slice.getState().cacheDir, key, 'header.json');
-            if (fs.existsSync(cFile)) {
-              return Promise.all([
-                fs.promises.readFile(cFile, 'utf-8'),
-                fs.promises.readFile(Path.resolve(slice.getState().cacheDir, key, 'body'))
-              ]).then(([headers, body]) => {
-                slice.actionDispatcher._cacheLoaded({key, headers: JSON.parse(headers) as [string, string][], body});
-              });
-            }
-            await fs.mkdirp(Path.resolve(slice.getState().cacheDir, key));
+            cacheService.actionDispatcher._loadFromStorage(payload);
+            return rx.EMPTY;
+          } else if (item === 'loading' || item === 'requesting') {
+            return actions._gotCache.pipe(
+              op.filter(action => action.payload.key === payload.key),
+              op.take(1),
+              op.map(({payload: {data}}) => {
+                for (const entry of data.headers) {
+                  payload.res.setHeader(entry[0], entry[1]);
+                }
+                payload.res.end(data.body);
+              })
+            );
+          } else {
+            sendRes(payload.res, item.headers, item.body);
+            return rx.EMPTY;
           }
+        })
+      ),
+      actions._loadFromStorage.pipe(
+        op.map(async ({payload}) => {
+          const hFile = Path.resolve(cacheService.getState().cacheDir, payload.key, payload.key + '.header.json');
+          const bFile = Path.resolve(cacheService.getState().cacheDir, payload.key, payload.key + '.body');
+          if (fs.existsSync(hFile)) {
+            const [headersStr, body] = await Promise.all([
+              fs.promises.readFile(hFile, 'utf-8'),
+              fs.promises.readFile(bFile)
+            ]);
+            const headers = JSON.parse(headersStr) as [string, string | string[]][];
+            cacheService.actionDispatcher._gotCache({key: payload.key, data: {
+              headers,
+              body
+            }});
+            sendRes(payload.res, headers, body);
+          } else {
+            cacheService.actionDispatcher._requestRemote(payload);
+          }
+        })
+      ),
+      actions._requestRemote.pipe(
+        op.mergeMap(({payload}) => rx.merge(
+          rx.race(
+            proxyRes$.pipe(
+              op.filter(([proxyRes, origReq]) => origReq === payload.req),
+              op.take(1),
+              op.map(([proxyRes]) => {
+                cacheService.actionDispatcher._addToCache({
+                  key: payload.key,
+                  data: {
+                    headers: Object.entries(proxyRes.headers).filter(entry => entry[1] != null) as [string, string | string[]][],
+                    readable: proxyRes
+                  }
+                });
+              })
+            ),
+            proxyError$.pipe(
+              op.filter(([err, origReq]) => origReq === payload.req),
+              op.take(1),
+              op.map(() => {})
+            )
+          ),
+          rx.defer(() => proxyMiddleware(payload.req, payload.res, payload.next)).pipe(
+            op.ignoreElements()
+          )
+        ))
+      ),
+      actions._addToCache.pipe(
+        op.mergeMap(async ({payload: {key, data}}) => {
+          log.info('cache size:', cacheService.getState().cacheByUri.size);
+          const dir = Path.resolve(cacheService.getState().cacheDir, key);
+          await fs.mkdirp(dir);
+          const fileWriter = fs.createWriteStream(Path.join(dir, key + '.body'), {flags: 'w'});
+          const bodyBufs: Buffer[] = [];
+          let completeBody: Buffer;
+          await Promise.all([
+            new Promise<void>((resolve, reject) => {
+              stream.pipeline(
+                data.readable,
+                new stream.Transform({
+                  transform(chunk, enc) {
+                    bodyBufs.push(chunk);
+                    this.push(chunk);
+                  },
+                  flush(cb) {
+                    completeBody = Buffer.concat(bodyBufs);
+                    cacheService.actionDispatcher._gotCache({key, data: {
+                      headers: data.headers,
+                      body: completeBody
+                    }});
+                    cb();
+                  }
+                }),
+                fileWriter,
+                err => {
+                  if (err) return reject(err);
+                  resolve();
+                }
+              );
+            }),
+            fs.promises.writeFile(
+              Path.join(dir, key + '.header.json'),
+              JSON.stringify(data.headers, null, '  '),
+              'utf-8')
+          ]);
         })
       )
     ).pipe(
-      op.ignoreElements()
+      op.ignoreElements(),
+      op.catchError((err, src) => src)
     );
   });
 }
 
-function keyOfUri({method, uri}: {method: string; uri: string}) {
+function sendRes(res: Response, headers: [string, string | string[]][], body: Buffer | stream.Readable) {
+  for (const [name, value] of headers) {
+    res.setHeader(name, value);
+  }
+  if (Buffer.isBuffer(body))
+    res.end(body);
+  else
+    stream.pipeline(body, res);
+}
+
+function keyOfUri(method: string, uri: string) {
   const url = new URL(method + ':/' + uri);
   const key = method + '/' + url.pathname + (url.search ? '/' + _.trimStart(url.search, '?') : '');
   return key;

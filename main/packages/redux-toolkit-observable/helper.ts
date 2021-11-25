@@ -19,6 +19,7 @@ export type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string =
    * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
    */
   action$: Observable<PayloadAction | Action>;
+  action$ByType: ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>>>;
   actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
   destroy$: Observable<any>;
   addEpic(epicFactory: EpicFactory<S, R>): () => void;
@@ -34,7 +35,7 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
   const slice = stateFactory.newSlice(opts);
   const actionDispatcher = stateFactory.bindActionCreators(slice);
   const destory$ = new Subject();
-  let action$ = new Subject<PayloadAction | Action>();
+  const action$ = new Subject<PayloadAction | Action>();
 
   new Observable(() => {
     // Release epic
@@ -71,6 +72,7 @@ export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
   const helper = {
     ...slice,
     action$: action$.asObservable(),
+    action$ByType: castByActionType(slice.actions, action$),
     actionDispatcher,
     epic(epic: Epic) {
       const fac: EpicFactory<S, R> = () => epic;
@@ -181,6 +183,21 @@ export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<
     return splitActions;
 }
 
+export function action$ByType<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, slice: Slice<S, R> | SliceHelper<S, R>) {
+  if ((slice as SliceHelper<S, R>).action$) {
+    return (slice as SliceHelper<S, R>).action$ByType;
+  } else {
+    const action$ = new Subject<PayloadAction | Action>();
+    stateFactory.addEpic(_action$ => {
+      return _action$.pipe(
+        op.tap(action => action$.next(action)),
+        op.ignoreElements()
+      );
+    }, slice.name);
+    return castByActionType(slice.actions, action$);
+  }
+}
+
 export function isActionOfCreator<P, T extends string>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<P, T>):
   action is PayloadAction<P, T> {
   return action.type === actionCreator.type;
@@ -244,6 +261,7 @@ export function action$OfSlice<S, R extends SliceCaseReducers<S>,
     });
   });
 }
+
 
 /**
  * ImmerJS does not work with some large object (like HTMLElement), meaning you can not directly defined a

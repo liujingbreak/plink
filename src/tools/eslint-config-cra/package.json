@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Eslint configuration based on create-reac-app's eslint-config-react-app  with extra typescript-eslint/tslint configuration",
   "main": "index.js",
-  "plink": {},
   "dependencies": {
     "eslint-config-react-app": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^4.28.0",

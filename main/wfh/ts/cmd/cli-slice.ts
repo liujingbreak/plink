@@ -1,8 +1,8 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import {createReducers} from '../../../packages/redux-toolkit-observable/dist/helper';
 import { from, merge, of } from 'rxjs';
 // import {cliActionDispatcher, getStore, cliSlice, CliExtension} from './cli-slice';
 import * as op from 'rxjs/operators';
+import {createReducers} from '../../../packages/redux-toolkit-observable/dist/helper';
 import * as pkgMgr from '../package-mgr';
 import { stateFactory, processExitAction$ } from '../store';
 import {OurCommandMetadata} from './types';

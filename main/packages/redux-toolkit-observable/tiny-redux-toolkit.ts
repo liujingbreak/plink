@@ -62,7 +62,9 @@ export type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType:
 export interface Slice<S, R extends Reducers<S>> {
   name: string | number;
   state$: rx.BehaviorSubject<S>;
+  /** Action creator functions */
   action$: rx.Observable<PayloadAction<any> | Action<S>>;
+  action$ByType: ActionByType<S, R>;
   dispatch: (action: PayloadAction<S> | Action<S>) => void;
   /** Action creators bound with dispatcher */
   actionDispatcher: Actions<S, R>;
@@ -320,6 +322,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     name,
     state$,
     action$,
+    action$ByType: castByActionType(actionCreators, action$),
     actions: actionCreators,
     dispatch,
     actionDispatcher,
@@ -350,12 +353,12 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
 
 export function action$OfSlice<S, R extends Reducers<S>,
   T extends keyof R>(
-  sliceHelper: Slice<S, R>,
+  slice: Slice<S, R>,
   actionType: T) {
 
   return new rx.Observable<R[T] extends (s: any) => any ? {type: T} :
     R[T] extends (s: any, p: infer P) => any ? {payload: P; type: T} : never>(sub => {
-    sliceHelper.addEpic(slice => (action$) => {
+    slice.addEpic(slice => (action$) => {
       return action$.pipe(
         ofPayloadAction(slice.actions[actionType]!),
         op.map(action => sub.next(action as any)),
@@ -365,6 +368,9 @@ export function action$OfSlice<S, R extends Reducers<S>,
   });
 }
 
+export function action$ByType<S, R extends Reducers<S>>(slice: Slice<S, R>) {
+  return castByActionType(slice.actions, slice.action$);
+}
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.

@@ -1,14 +1,14 @@
-import {WatchOption} from './types';
-import chokidar from 'chokidar';
-import {findPackagesByNames} from './utils';
-import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
-import {getLogger} from 'log4js';
 import * as Path from 'path';
-import {actionDispatcher} from '../package-mgr';
 import fs from 'fs';
+import {getLogger} from 'log4js';
+import * as op from 'rxjs/operators';
+import * as rx from 'rxjs';
+import chokidar from 'chokidar';
 import {mkdirpSync} from 'fs-extra';
 import anymatch from 'anymatch';
+import {actionDispatcher} from '../package-mgr';
+import {findPackagesByNames} from './utils';
+import {WatchOption} from './types';
 
 const log = getLogger('plink.cli');
 

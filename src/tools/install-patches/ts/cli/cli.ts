@@ -1,8 +1,8 @@
 import {CliExtension, log4File} from '@wfh/plink';
 import {getStore as getPkgMgrStore, slice, workspaceDir} from '@wfh/plink/wfh/dist/package-mgr/index';
 import {stateFactory, castByActionType} from '@wfh/plink/wfh/dist/store';
-import patchPostcss from '../fix-postcss-values-parser';
 import * as op from 'rxjs/operators';
+import patchPostcss from '../fix-postcss-values-parser';
 
 const log = log4File(__filename);
 

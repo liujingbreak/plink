@@ -33,6 +33,9 @@ export interface AssetsProcesserSetting {
     httpProxy: {
         [proxyPath: string]: string;
     };
+    httpProxyWithCache: {
+        [proxyPath: string]: string;
+    };
     fetchMailServer: {
         imap: string;
         smtp: string;

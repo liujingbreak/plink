@@ -1,22 +1,22 @@
 /// <reference path="./cfont.d.ts" />
 /* eslint-disable max-len */
+import fs from 'fs';
+import Path from 'path';
 import commander from 'commander';
 import chalk from 'chalk';
 import * as op from 'rxjs/operators';
 // import * as tp from './types';
+import * as _ from 'lodash';
+import semver from 'semver';
+import {getLogger} from 'log4js';
 import * as pkgMgr from '../package-mgr';
 // import '../tsc-packages-slice';
 import {packages4Workspace} from '../package-mgr/package-list-helper';
-import * as _ from 'lodash';
 import { isDrcpSymlink, sexyFont, getRootDir, boxString, plinkEnv } from '../utils/misc';
 import * as _symlinks from '../utils/symlinks';
-import fs from 'fs';
-import Path from 'path';
-import semver from 'semver';
-import {CommandOverrider, withCwdOption} from './override-commander';
 import {initInjectorForNodePackages} from '../package-runner';
+import {CommandOverrider, withCwdOption} from './override-commander';
 import {hlDesc, arrayOptionFn} from './utils';
-import {getLogger} from 'log4js';
 // import {CliOptions as TsconfigCliOptions} from './cli-tsconfig-hook';
 import * as _cliWatch from './cli-watch';
 const pk = require('../../../package.json') as {version: string};

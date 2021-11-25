@@ -1,18 +1,18 @@
+import { connect as tslConnect, ConnectionOptions, TLSSocket } from 'tls';
+import Path from 'path';
 import { createTransport } from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import {Observable, BehaviorSubject } from 'rxjs';
 import { map, /* concatMap, takeWhile, takeLast, mapTo,*/ tap, distinctUntilChanged
   // skip, filter, take
 } from 'rxjs/operators';
-import { connect as tslConnect, ConnectionOptions, TLSSocket } from 'tls';
 import fs from 'fs-extra';
 import * as _ from 'lodash';
-import Path from 'path';
-import {Checksum, WithMailServerConfig} from './fetch-types';
 import {log4File, config} from '@wfh/plink';
 import __plink from '__plink';
-import {createServerDataHandler, parseLinesOfTokens, ImapTokenType, StringLit} from './mail/imap-msg-parser';
 import { LookAhead, Token } from '@wfh/plink/wfh/dist/async-LLn-parser';
+import {Checksum, WithMailServerConfig} from './fetch-types';
+import {createServerDataHandler, parseLinesOfTokens, ImapTokenType, StringLit} from './mail/imap-msg-parser';
 import {parse as parseRfc822, RCF822ParseResult} from './mail/rfc822-sync-parser';
 
 // import {Socket} from 'net';

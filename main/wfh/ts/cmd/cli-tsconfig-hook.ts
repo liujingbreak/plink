@@ -1,7 +1,7 @@
-import {getStore, dispatcher} from '../editor-helper';
-import * as op from 'rxjs/operators';
-// import {getLogger} from 'log4js';
 import Path from 'path';
+import * as op from 'rxjs/operators';
+import {getStore, dispatcher} from '../editor-helper';
+// import {getLogger} from 'log4js';
 import {getRootDir} from '../utils/misc';
 import {dispatcher as storeSettingDispatcher} from '../store';
 

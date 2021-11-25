@@ -16,6 +16,7 @@ export declare type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends 
      * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
      */
     action$: Observable<PayloadAction | Action>;
+    action$ByType: ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>>>;
     actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
     destroy$: Observable<any>;
     addEpic(epicFactory: EpicFactory<S, R>): () => void;
@@ -78,6 +79,7 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 export declare function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R, action$: Observable<PayloadAction | Action>): ActionByType<R>;
+export declare function action$ByType<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, slice: Slice<S, R> | SliceHelper<S, R>): ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>>>;
 export declare function isActionOfCreator<P, T extends string>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<P, T>): action is PayloadAction<P, T>;
 /**
  * Add an epicFactory to another component's sliceHelper

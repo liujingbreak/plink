@@ -214,7 +214,7 @@ function create(tsconfigFile, reactVersion) {
         "guard-for-in": "error",
         "id-blacklist": "off",
         "id-match": "off",
-        "import/order": "off",
+        "import/order": ["warn", {"groups": ["builtin", "external", "parent", "sibling", "index"]}],
         "jsdoc/check-alignment": "off",
         "jsdoc/check-indentation": "off",
         "jsdoc/newline-after-description": "off",
