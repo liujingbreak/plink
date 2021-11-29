@@ -1,11 +1,11 @@
 import * as Path from 'path';
 import * as fs from 'fs';
+import {isMainThread, threadId} from 'worker_threads';
 import chalk from 'chalk';
 import log4js from 'log4js';
+import _ from 'lodash';
 import {hookCommonJsRequire} from './loaderHooks';
 import {calcNodePaths} from './node-path-calc';
-import _ from 'lodash';
-import {isMainThread, threadId} from 'worker_threads';
 
 let logPrefix = '';
 if (process.send || !isMainThread)
@@ -42,7 +42,7 @@ if (!envSetDone) {
   const PLINK_WORK_DIR = process.env.PLINK_WORK_DIR;
   if (PLINK_WORK_DIR) {
     // eslint-disable-next-line no-console
-    console.log(chalk.gray(logPrefix + `Environment variable PLINK_WORK_DIR is set, default workspace is: ${PLINK_WORK_DIR}`));
+    console.log(chalk.gray(logPrefix + `Environment variable PLINK_WORK_DIR is set: ${PLINK_WORK_DIR}`));
   }
   const workDir = PLINK_WORK_DIR ? Path.resolve(PLINK_WORK_DIR) : process.cwd();
   const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR, workDir);

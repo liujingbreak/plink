@@ -26,6 +26,8 @@ export default async function patch(workspaceDirs: Iterable<string>) {
           const targetFile = Path.resolve(Path.dirname(jsonFile), 'lib/parser.js');
           log.info('Patch postcss-values-parser@2.0.1 ' + targetFile);
           await fs.promises.copyFile(Path.resolve(__dirname, '../fix-postcss-values-parser/parser.js'), targetFile);
+        } else {
+          log.info(`Installed postcss-values-parser version is ${pkJson.version}, not 2.0.1, skip patching.`);
         }
       }
     })

@@ -8,7 +8,7 @@ import { GlobalOptions } from '../cmd/types';
  * so that child process gets same GlobalOptions as the main process does.
  * @param options
  */
-export declare function initConfig(options: GlobalOptions): import("..").DrcpConfig;
+export declare function initConfig(options?: GlobalOptions): import("..").DrcpConfig;
 /**
  * - Register process event handler for SIGINT and shutdown command
  * - Initialize redux-store for Plink

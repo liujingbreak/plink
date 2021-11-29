@@ -1,13 +1,13 @@
-import commander from 'commander';
-import {initConfig, initProcess, initAsChildProcess} from './index';
-import * as _runner from './package-runner';
-import logConfig from './log-config';
-import {withGlobalOptions} from './cmd/override-commander';
-import {forkFile} from './fork-for-preserve-symlink';
 import {isMainThread, threadId} from 'worker_threads';
+import commander from 'commander';
 import chalk from 'chalk';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import {forkFile} from './fork-for-preserve-symlink';
+import {withGlobalOptions} from './cmd/override-commander';
+import logConfig from './log-config';
+import * as _runner from './package-runner';
+import {initConfig, initProcess, initAsChildProcess} from './index';
 
 export const exit$ = new rx.BehaviorSubject<null | 'start' | 'done'>(null);
 const exitDone$ = exit$.pipe(op.filter(action => action === 'done'), op.take(1));

@@ -4,16 +4,16 @@ import {Request, Response, NextFunction} from 'express';
 import api from '__api';
 import _ from 'lodash';
 import {readCompressedResponse} from '@wfh/http-server/dist/utils';
-import {config, logger, log4File} from '@wfh/plink';
+import {logger, log4File} from '@wfh/plink';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
 import fs from 'fs-extra';
 
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-// import inspector from 'inspector';
+import inspector from 'inspector';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
-// inspector.open(9222, 'localhost', true);
+inspector.open(9222, 'localhost', true);
 const logTime = logger.getLogger(api.packageName + '.timestamp');
 const log = log4File(__filename);
 /**
@@ -141,8 +141,8 @@ function defaultProxyOptions(proxyPath: string, targetUrl: string) {
       // if (opts.deleteOrigin)
       proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
       const referer = proxyReq.getHeader('referer');
-      if (referer) {
-        proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer as string).pathname}`);
+      if (typeof referer === 'string') {
+        proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer).pathname}`);
       }
       hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method || 'uknown'}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
     },
@@ -154,7 +154,7 @@ function defaultProxyOptions(proxyPath: string, targetUrl: string) {
       } else {
         hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode!}`);
       }
-      if (api.config().devMode || config().cliOptions?.verbose) {
+      if (api.config().devMode) {
 
         const ct = incoming.headers['content-type'];
         hpmLog.info(`Response ${req.url || ''} headers:\n`, incoming.headers);
@@ -196,6 +196,7 @@ type CacheData = {
 };
 
 export function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string) {
+  debugger;
   const initialState: ProxyCacheState = {
     cacheDir: cacheRootDir,
     cacheByUri: new Map()
@@ -388,3 +389,7 @@ function keyOfUri(method: string, uri: string) {
   const key = method + '/' + url.pathname + (url.search ? '/' + _.trimStart(url.search, '?') : '');
   return key;
 }
+
+export const testable = {
+  keyOfUri
+};

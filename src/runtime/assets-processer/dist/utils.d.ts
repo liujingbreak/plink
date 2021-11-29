@@ -28,3 +28,8 @@ export declare function setupHttpProxy(proxyPath: string, targetUrl: string, opt
     proxyTimeout?: ProxyOptions['proxyTimeout'];
 }): void;
 export declare function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string): void;
+declare function keyOfUri(method: string, uri: string): string;
+export declare const testable: {
+    keyOfUri: typeof keyOfUri;
+};
+export {};

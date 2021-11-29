@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,  @typescript-eslint/no-unsafe-return */
+import Path from 'path';
 import commander from 'commander';
-import {WorkspaceState, PackageInfo, getState} from '../package-mgr';
 import chalk from 'chalk';
-import {arrayOptionFn} from './utils';
-import * as _bootstrap from '../utils/bootstrap-process';
-import { GlobalOptions, OurCommandMetadata } from './types';
-import {cliActionDispatcher} from './cli-slice';
 import log4js from 'log4js';
 import stripAnsi from 'strip-ansi';
-import Path from 'path';
+import {WorkspaceState, PackageInfo, getState} from '../package-mgr';
+import * as _bootstrap from '../utils/bootstrap-process';
 import {plinkEnv} from '../utils/misc';
+import {arrayOptionFn} from './utils';
+import { OurCommandMetadata } from './types';
+import {cliActionDispatcher} from './cli-slice';
 export {commander};
 
 const log = log4js.getLogger('plink.override-commander');
@@ -225,11 +225,11 @@ export class PlinkCommand extends commander.Command {
     return (super.requiredOption as any)(...args);
   }
   action(fn: (...args: any[]) => void | Promise<void>) {
-    function actionCallback(this: commander.Command) {
+    function actionCallback(this: commander.Command, ...args: any[]) {
       try {
         const {initConfig} = require('../utils/bootstrap-process') as typeof _bootstrap;
-        initConfig(this.opts() as GlobalOptions);
-        return fn.apply(this, arguments);
+        initConfig(this.opts() );
+        return fn.apply(this, args);
       } catch (e) {
         log.error(e);
       }

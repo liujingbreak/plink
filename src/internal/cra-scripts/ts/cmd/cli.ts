@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 // import fs from 'fs';
-import {CliExtension} from '@wfh/plink';
 import Path from 'path';
-// import commander from 'Commander';
-import {saveCmdOptionsToEnv, BuildCliOpts} from '../utils';
 import {fork} from 'child_process';
-import * as _preload from '../preload';
+import {CliExtension} from '@wfh/plink';
 import {config, log4File, plinkEnv, commander} from '@wfh/plink';
+import {saveCmdOptionsToEnv, BuildCliOpts} from '../utils';
+import * as _preload from '../preload';
 const log = log4File(__filename);
 
 const cli: CliExtension = (program) => {

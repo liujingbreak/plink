@@ -1,10 +1,10 @@
 import '../node-path';
 import log4js from 'log4js';
+import * as op from 'rxjs/operators';
 import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
-import * as op from 'rxjs/operators';
 
 const log = log4js.getLogger('plink.bootstrap-process');
 
@@ -24,7 +24,7 @@ process.on('unhandledRejection', err => {
  * so that child process gets same GlobalOptions as the main process does.
  * @param options 
  */
-export function initConfig(options: GlobalOptions) {
+export function initConfig(options: GlobalOptions = {}) {
   config.initSync(options);
   // logConfig(config());
   return config;

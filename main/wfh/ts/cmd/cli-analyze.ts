@@ -1,21 +1,21 @@
-import {AnalyzeOptions} from './types';
 import os from 'os';
 import Path from 'path';
 import glob from 'glob';
 import _ from 'lodash';
 // import { PayloadAction } from '@reduxjs/toolkit';
-import { stateFactory, ofPayloadAction, createReducers } from '../store';
 import { ignoreElements, catchError, map, mergeMap} from 'rxjs/operators';
 import * as op from 'rxjs/operators';
 import {merge} from 'rxjs';
-import {Context} from './cli-analyse-worker';
-import {createCliTable} from '../utils/misc';
 import log4js from 'log4js';
-import {Pool} from '../../../packages/thread-promise-pool/dist';
 import chalk from 'chalk';
-import {findPackagesByNames} from './utils';
+import {Pool} from '../../../packages/thread-promise-pool/dist';
+import {createCliTable} from '../utils/misc';
+import { stateFactory, ofPayloadAction, createReducers } from '../store';
 import {getState} from '../package-mgr';
 import {getTscConfigOfPkg} from '../utils/misc';
+import {findPackagesByNames} from './utils';
+import {Context} from './cli-analyse-worker';
+import {AnalyzeOptions} from './types';
 // import config from '../config';
 
 const log = log4js.getLogger('plink.analyse');

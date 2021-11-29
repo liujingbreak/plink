@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable  max-len */
+import Path from 'path';
 import * as _ from 'lodash';
+import log4js from 'log4js';
+import chalk from 'chalk';
 import {PackageInfo, packageOfFileFactory, walkPackages} from './package-mgr/package-info-gathering';
 import { nodeInjector, webInjector } from './injector-factory';
 import _NodeApi from './package-mgr/node-package-api';
@@ -8,12 +11,9 @@ import PackageInstance from './packageNodeInstance';
 import { orderPackages } from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
 import type {default as ExtensionContext} from './package-mgr/node-package-api';
-import Path from 'path';
 import {createLazyPackageFileFinder, packages4Workspace} from './package-utils';
-import log4js from 'log4js';
 import {isCwdWorkspace, getState, workspaceKey, PackageInfo as PackageState} from './package-mgr';
 import {packages4WorkspaceKey} from './package-mgr/package-list-helper';
-import chalk from 'chalk';
 
 import {getWorkDir} from './utils/misc';
 
@@ -180,7 +180,7 @@ export function initInjectorForNodePackages():
   [PackageInfo, _NodeApi] {
   const {getPkgOfFile, packageInfo} = packageOfFileFactory();
   // const packageInfo: PackageInfo = walkPackages();
-  const NodeApi: typeof _NodeApi = require('./package-mgr/node-package-api').default;
+  const NodeApi = require('./package-mgr/node-package-api').default as typeof _NodeApi;
   const proto = NodeApi.prototype;
   proto.argv = {};
   proto.packageInfo = packageInfo;

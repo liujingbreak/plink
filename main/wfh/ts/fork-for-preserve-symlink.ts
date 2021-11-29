@@ -1,14 +1,25 @@
 import Path from 'path';
 import {fork} from 'child_process';
 import fs from 'fs';
+import os from 'os';
+import log4js from 'log4js';
 import {plinkEnv} from './utils/misc';
 import * as _editorHelper from './editor-helper';
 import * as _store from './store';
-import os from 'os';
 
-import log4js from 'log4js';
 export const isWin32 = os.platform().indexOf('win32') >= 0;
 const log = log4js.getLogger('plink.fork-for-preserver-symlink');
+
+export function workDirChangedByCli() {
+  let argv = process.argv.slice(2);
+  const foundCmdOptIdx =  argv.findIndex(arg => arg === '--cwd' || arg === '--space');
+  const workdir = foundCmdOptIdx >= 0 ? Path.resolve(plinkEnv.rootDir,  argv[foundCmdOptIdx + 1]) : null;
+  if (workdir) {
+    argv.splice(foundCmdOptIdx, 2);
+    // process.env.PLINK_WORK_DIR = workdir;
+  }
+  return workdir;
+}
 
 export async function forkFile(moduleName: string) {
   process.on('SIGINT', () => {
@@ -25,14 +36,8 @@ export async function forkFile(moduleName: string) {
     recoverNodeModuleSymlink();
   });
 
-
-  let argv = process.argv.slice(2);
-  const foundCmdOptIdx =  argv.findIndex(arg => arg === '--cwd' || arg === '--space');
-  const workdir = foundCmdOptIdx >= 0 ? Path.resolve(plinkEnv.rootDir,  argv[foundCmdOptIdx + 1]) : null;
-  if (workdir) {
-    argv.splice(foundCmdOptIdx, 2);
-    // process.env.PLINK_WORK_DIR = workdir;
-  }
+  const workdir = workDirChangedByCli();
+  const argv = process.argv;
 
   process.execArgv.push('--preserve-symlinks-main', '--preserve-symlinks');
   const foundDebugOptIdx = argv.findIndex(arg => arg === '--inspect' || arg === '--inspect-brk');
