@@ -18,7 +18,7 @@ export function workDirChangedByCli() {
     argv.splice(foundCmdOptIdx, 2);
     // process.env.PLINK_WORK_DIR = workdir;
   }
-  return workdir;
+  return {workdir, argv};
 }
 
 export async function forkFile(moduleName: string) {
@@ -36,8 +36,7 @@ export async function forkFile(moduleName: string) {
     recoverNodeModuleSymlink();
   });
 
-  const workdir = workDirChangedByCli();
-  const argv = process.argv;
+  const {workdir, argv} = workDirChangedByCli();
 
   process.execArgv.push('--preserve-symlinks-main', '--preserve-symlinks');
   const foundDebugOptIdx = argv.findIndex(arg => arg === '--inspect' || arg === '--inspect-brk');

@@ -1,5 +1,5 @@
-import { AnalyzeOptions } from './types';
 import { Context } from './cli-analyse-worker';
+import { AnalyzeOptions } from './types';
 export default function (packages: string[], opts: AnalyzeOptions): void;
 export declare function printResult(result: NonNullable<AnalyzeState['result']>, opts: {
     j: AnalyzeOptions['j'];
@@ -14,10 +14,7 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<i
     analyzeFile(d: AnalyzeState, payload: {
         files: string[];
         tsconfig?: string;
-        alias: [
-            pattern: string,
-            replace: string
-        ][];
+        alias: [pattern: string, replace: string][];
         ignore?: string;
     }): void;
 }> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<AnalyzeState>>;
