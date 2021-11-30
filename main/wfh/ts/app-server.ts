@@ -10,6 +10,9 @@ import * as _runner from './package-runner';
 import {initConfig, initProcess, initAsChildProcess} from './index';
 
 export const exit$ = new rx.BehaviorSubject<null | 'start' | 'done'>(null);
+/** Emitted function will be executed during server shutdown phase */
+export const shutdownHook$ = new rx.ReplaySubject<() => (rx.ObservableInput<any> | void)>();
+
 const exitDone$ = exit$.pipe(op.filter(action => action === 'done'), op.take(1));
 
 let storeSettingDispatcher: ReturnType<typeof initProcess> | undefined;
@@ -34,8 +37,6 @@ if (process.send) {
   storeSettingDispatcher.changeActionOnExit('none');
 }
 
-
-
 if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
   void forkFile('@wfh/plink/wfh/dist/app-server.js');
 } else {
@@ -57,6 +58,12 @@ if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--p
 
     exit$.pipe(
       op.filter(action => action === 'start'),
+      op.concatMap(() => shutdownHook$.pipe(
+        op.mergeMap(hook => {
+          const result = hook();
+          return result || rx.EMPTY;
+        })
+      )),
       op.concatMap(() => shutdown()),
       op.tap(() => {
         exit$.next('done');

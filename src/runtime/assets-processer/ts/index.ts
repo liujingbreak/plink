@@ -11,7 +11,9 @@ import { ImapManager } from './fetch-remote-imap';
 import { WithMailServerConfig } from './fetch-types';
 import { fallbackIndexHtml, proxyToDevServer } from './index-html-route';
 import { createStaticRoute } from './static-middleware';
-import { setupHttpProxy, createProxyWithCache } from './utils';
+import { createProxyWithCache } from './proxy-cache/cache-service';
+import {setupHttpProxy} from './utils';
+
 const log = log4File(__filename);
 // const log = require('log4js').getLogger(api.packageName);
 const serverFavicon = require('serve-favicon');
@@ -46,7 +48,7 @@ export function activate(api: ExtensionContext) {
   const httpProxyWithCacheSet = getSetting().httpProxyWithCache;
   if (httpProxyWithCacheSet) {
     for (const proxyPath of Object.keys(httpProxyWithCacheSet)) {
-      const dir = Path.join(config().destDir, _.trimStart(proxyPath, '/'));
+      const dir = Path.join(config().destDir, 'http-proxy-cache', _.trimStart(proxyPath, '/'));
       const endPoint = httpProxyWithCacheSet[proxyPath];
       log.info(`Enable HTTP proxy ${proxyPath} --> ${endPoint}, cache directory: ${dir}`);
       createProxyWithCache(proxyPath, endPoint, dir);

@@ -76,6 +76,8 @@ export interface Slice<S, R extends Reducers<S>> {
     addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): () => void;
     getStore(): rx.Observable<S>;
     getState(): S;
+    /** un-processed actions go through this operator */
+    setActionInterceptor(intec: rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>): void;
 }
 export declare type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
 /** filter action stream by type */

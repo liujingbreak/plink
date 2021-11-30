@@ -369,7 +369,7 @@ function spaceOnlySubCommands(program: commander.Command) {
     .option('--merge,--merge-tsconfig <file>', 'Merge compilerOptions "baseUrl" and "paths" from specified tsconfig file')
     .option('--copath, --compiler-options-paths <pathMapJson>',
       'Add more "paths" property to compiler options. ' +
-      '(e.g. --copath \'{\"@/*":["/Users/worker/ocean-ui/src/*"]}\')', (v, prev) => {
+      '(e.g. --copath \'{"@/*":["/Users/worker/ocean-ui/src/*"]}\')', (v, prev) => {
       prev.push(...v.split(',')); return prev;
     }, [] as string[])
     .option('--co <JSON-string>',
@@ -449,8 +449,9 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
 }
 
 function addNpmInstallOption(cmd: commander.Command) {
-  cmd.option('--cache <npm-cache>', 'same as npm install option "--cache"')
-  .option('--ci, --use-ci', 'Use "npm ci" instead of "npm install" to install dependencies', false)
+  cmd.option('--yarn, --use-yarn', 'Use Yarn instead of NPM to install dependencies', false)
+  .option('--cache <npm-cache>', 'same as npm install option "--cache"')
+  .option('--ci, --use-ci', 'Use "npm ci" instead of "npm install" to install dependencies; when "--useYarn" is on, add argument "--immutable"', false)
   .option('--prune', 'Run "npm prune" after installation')
   .option('--ddp, --dedupe', 'Run "npm dedupe" after installation')
   // .option('--offline', 'same as npm option "--offline" during executing npm install/ci ', false)

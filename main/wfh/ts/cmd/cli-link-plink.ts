@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import Path from 'path';
-import {getRootDir} from '../utils/misc';
 import fs from 'fs';
+import {getRootDir} from '../utils/misc';
 import {getState, installInDir} from '../package-mgr';
 import {NpmCliOption} from './types';
 /**
@@ -39,5 +39,6 @@ export async function reinstallWithLinkedPlink(opt: NpmCliOption) {
   const str = JSON.stringify(pkJson, null, '  ');
   // eslint-disable-next-line no-console
   console.log('Install with package.json:', str);
-  await installInDir(rootDir, {isForce: false, cache: opt.cache, useNpmCi: opt.useCi, offline: opt.offline}, origPkJsonStr, str);
+  await installInDir(rootDir, {isForce: false, cache: opt.cache, 
+    useYarn: opt.useYarn, useNpmCi: opt.useCi, offline: opt.offline}, origPkJsonStr, str);
 }

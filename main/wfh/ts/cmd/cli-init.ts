@@ -1,18 +1,18 @@
 /* eslint-disable no-console, max-len */
-import chalk from 'chalk';
 import Path from 'path';
+import chalk from 'chalk';
 import {merge} from 'rxjs';
 import { distinctUntilChanged, map, skip, scan } from 'rxjs/operators';
-import {listPackagesByProjects} from './cli-ls';
+import _ from 'lodash';
 import { actionDispatcher as actions, getState, getStore, WorkspaceState} from '../package-mgr';
-import '../editor-helper';
+import {dispatcher as storeSettingDispatcher} from '../store';
+import {createCliTable, plinkEnv} from '../utils/misc';
 import { packages4WorkspaceKey } from '../package-utils';
+import {listPackagesByProjects} from './cli-ls';
+import '../editor-helper';
 // import { getRootDir } from '../utils/misc';
 import { listProject } from './cli-project';
-import _ from 'lodash';
 import * as options from './types';
-import {createCliTable, plinkEnv} from '../utils/misc';
-import {dispatcher as storeSettingDispatcher} from '../store';
 
 export default function(opt: options.InitCmdOptions & options.NpmCliOption, workspace?: string) {
   storeSettingDispatcher.changeActionOnExit('save');
@@ -52,11 +52,13 @@ export default function(opt: options.InitCmdOptions & options.NpmCliOption, work
   ))).subscribe();
 
   if (workspace) {
-    actions.updateWorkspace({dir: workspace, isForce: opt.force, cache: opt.cache, useNpmCi: opt.useCi});
-  } else {
-    actions.initRootDir({isForce: opt.force, cache: opt.cache, useNpmCi: opt.useCi});
-    setImmediate(() => listProject());
-  }
+    actions.updateWorkspace({dir: workspace, isForce: opt.force, useYarn: opt.useYarn,
+      cache: opt.cache, useNpmCi: opt.useCi});
+} else {
+  actions.initRootDir({isForce: opt.force,
+    useYarn: opt.useYarn, cache: opt.cache, useNpmCi: opt.useCi});
+  setImmediate(() => listProject());
+}
   // setImmediate(() => printWorkspaces());
 }
 
@@ -120,7 +122,7 @@ function convertVersion(pkgJson: {
     return '';
   }
   if (ver.startsWith('.') || ver.startsWith('file:')) {
-    const m = /\-(\d+(?:\.\d+){1,2}(?:\-[^\-]+)?)\.tgz$/.exec(ver);
+    const m = /\-(\d+(?:\.\d+){1,2}(?:-[^-]+)?)\.tgz$/.exec(ver);
     if (m) {
       return m[1];
     }

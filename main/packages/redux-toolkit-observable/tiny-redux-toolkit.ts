@@ -93,6 +93,8 @@ export interface Slice<S, R extends Reducers<S>> {
   addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): () => void;
   getStore(): rx.Observable<S>;
   getState(): S;
+  /** un-processed actions go through this operator */
+  setActionInterceptor(intec: rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>): void;
 }
 
 export type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
@@ -229,49 +231,56 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   // To warn developer that no action dispatching shoud be called inside a reducer, this is side-effects and 
   // will leads to recursive reducer
   let inReducer = false;
+  const interceptor$ = new rx.BehaviorSubject<rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>>(
+    input => input
+  );
 
   const sub = rx.merge(
-    unprocessedAction$.pipe(
-      // op.observeOn(rx.queueScheduler), // Avoid recursively dispatching action inside an reducer, but normally recursively dispatching should be warned and forbidden
-      op.tap(action => {
-        if (opt.debug) {
-          // eslint-disable-next-line no-console
-          console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
-        }
-      }),
-      op.tap(action => {
-        if (action.reducer) {
-          const currState = state$.getValue();
-          const shallowCopied = {...currState, __ac: ++actionCount};
-          executingReducer = true;
-          if (inReducer) {
-            throw new Error(`Do not dispatch action inside a reducer! (action: ${action.type})`);
+    interceptor$.pipe(
+      op.switchMap(interceptor => unprocessedAction$.pipe(
+        // op.observeOn(rx.queueScheduler), // Avoid recursively dispatching action inside an reducer, but normally recursively dispatching should be warned and forbidden
+        op.tap(action => {
+          if (opt.debug) {
+            // eslint-disable-next-line no-console
+            console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
           }
-          inReducer = true;
-          let newState: S | void;
-          try {
-            newState = action.reducer(shallowCopied, (action as PayloadAction<S>).payload);
-          } finally {
-            inReducer = false;
-            executingReducer = false;
+        }),
+        interceptor,
+        op.tap(action => {
+          if (action.reducer) {
+            const currState = state$.getValue();
+            const shallowCopied = {...currState, __ac: ++actionCount};
+            executingReducer = true;
+            if (inReducer) {
+              throw new Error(`Do not dispatch action inside a reducer! (action: ${action.type})`);
+            }
+            inReducer = true;
+            let newState: S | void;
+            try {
+              newState = action.reducer(shallowCopied, (action as PayloadAction<S>).payload);
+            } finally {
+              inReducer = false;
+              executingReducer = false;
+            }
+            // inReducer = false;
+            // executingReducer = false;
+            const changed = newState ? newState : shallowCopied;
+            state$.next(changed);
           }
-          // inReducer = false;
-          // executingReducer = false;
-          const changed = newState ? newState : shallowCopied;
-          state$.next(changed);
-        }
-        action$.next(action);
-      }),
-      op.catchError((err, caught) => {
-        console.error(err);
-        dispatch({type: 'reducer error',
-          reducer(s: S) {
-            return {...s, error: err as unknown};
-          }
-        });
-        return caught;
-      })
+          action$.next(action);
+        }),
+        op.catchError((err, caught) => {
+          console.error(err);
+          dispatch({type: 'reducer error',
+            reducer(s: S) {
+              return {...s, error: err as unknown};
+            }
+          });
+          return caught;
+        })
+      ))
     ),
+
     state$.pipe(
       op.tap(state => {
         if (opt.debug) {
@@ -334,6 +343,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
       };
       addEpic$(rx.of(epicFactory));
     },
+    setActionInterceptor(intec: rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>) {},
     addEpic(epicFactory: EpicFactory<S, R>) {
       return addEpic$(rx.of(epicFactory));
     },

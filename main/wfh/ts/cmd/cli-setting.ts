@@ -1,14 +1,14 @@
 // eslint-disable  max-len, no-console
+import * as util from 'util';
+import Path from 'path';
+import * as op from 'rxjs/operators';
+import chalk from 'chalk';
+import {getLogger} from 'log4js';
 import config from '../config/index';
 import {dispatcher, getStore, getState} from '../config/config-view-slice';
 import {workspaceKey, PackageInfo} from '../package-mgr';
-import {findPackagesByNames, completePackageName} from './utils';
-import * as op from 'rxjs/operators';
 import {createCliTable, plinkEnv} from '../utils/misc';
-import chalk from 'chalk';
-import * as util from 'util';
-import Path from 'path';
-import {getLogger} from 'log4js';
+import {findPackagesByNames, completePackageName} from './utils';
 
 const log = getLogger('plink.cli-setting');
 

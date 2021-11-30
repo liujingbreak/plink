@@ -1,12 +1,12 @@
-import {PlinkEnv} from '../node-path';
 import Path from 'path';
-import {stateFactory, processExitAction$} from '../store';
+import {isMainThread, threadId} from 'worker_threads';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
-import { GlobalOptions } from '../cmd/types';
 import {PayloadAction} from '@reduxjs/toolkit';
 import log4js from 'log4js';
-import {isMainThread, threadId} from 'worker_threads';
+import {PlinkEnv} from '../node-path';
+import {stateFactory, processExitAction$} from '../store';
+import { GlobalOptions } from '../cmd/types';
 import {getLanIPv4} from '../utils/network-util';
 
 const {distDir, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -15,6 +15,7 @@ export interface PlinkSettings {
   port: number | string;
   publicPath: string;
   localIP: string;
+  useYarn: boolean;
   /**
    * process.env.NODE_ENV will be automatically
    * updated to 'developement' or 'production corresponding to this property
@@ -59,6 +60,7 @@ const initialState: Partial<PlinkSettings> = {
   localIP: getLanIPv4(),
   publicPath: '/',
   devMode: false,
+  useYarn: false,
   destDir: distDir,
   staticDir: Path.resolve(distDir, 'static'),
   serverDir: Path.resolve(distDir, 'server'),

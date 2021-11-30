@@ -27,9 +27,11 @@ export declare function setupHttpProxy(proxyPath: string, targetUrl: string, opt
     selfHandleResponse?: ProxyOptions['selfHandleResponse'];
     proxyTimeout?: ProxyOptions['proxyTimeout'];
 }): void;
-export declare function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string): void;
-declare function keyOfUri(method: string, uri: string): string;
-export declare const testable: {
-    keyOfUri: typeof keyOfUri;
+export declare function defaultProxyOptions(proxyPath: string, targetUrl: string): ProxyOptions & {
+    pathRewrite: {
+        [regexp: string]: string;
+    } | ((path: string, req: import("http-proxy-middleware/dist/types").Request) => string) | ((path: string, req: import("http-proxy-middleware/dist/types").Request) => Promise<string>);
+    onProxyReq: import("http-proxy-middleware/dist/types").OnProxyReqCallback;
+    onProxyRes: import("http-proxy-middleware/dist/types").OnProxyResCallback;
+    onError: import("http-proxy-middleware/dist/types").OnErrorCallback;
 };
-export {};

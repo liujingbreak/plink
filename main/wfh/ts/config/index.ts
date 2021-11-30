@@ -1,21 +1,21 @@
 /* eslint-disable prefer-const, max-len */
-import _ from 'lodash';
 import fs from 'fs';
 import Path from 'path';
+import _ from 'lodash';
 import chalk from 'chalk';
-import {ConfigHandlerMgr, DrcpConfig, ConfigHandler} from '../config-handler';
-import {GlobalOptions as CliOptions} from '../cmd/types';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import log4js from 'log4js';
-import {dispatcher, getState, PlinkSettings, getStore} from './config-slice';
 // Refactor: circular reference
+import yamljs from 'yamljs';
 import * as _pkgList from '../package-mgr/package-list-helper';
 import * as _pkgMgr from '../package-mgr';
 import {plinkEnv} from '../utils/misc';
-import {PackageSettingInterf} from './config.types';
 // const yamljs = require('yamljs');
-import yamljs from 'yamljs';
+import {GlobalOptions as CliOptions} from '../cmd/types';
+import {ConfigHandlerMgr, DrcpConfig, ConfigHandler} from '../config-handler';
+import {PackageSettingInterf} from './config.types';
+import {dispatcher, getState, PlinkSettings, getStore} from './config-slice';
 require('yamlify/register');
 
 const log = log4js.getLogger('plink.config');

@@ -86,6 +86,7 @@ export interface WorkspaceState {
     };
 }
 export interface NpmOptions {
+    useYarn?: boolean;
     cache?: string;
     isForce: boolean;
     useNpmCi?: boolean;

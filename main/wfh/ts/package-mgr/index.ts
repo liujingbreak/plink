@@ -2,15 +2,17 @@
  * Unfortunately, this file is very long, you need to fold by indention for better view of source code in Editor
  */
 
+import fs from 'fs';
+import Path from 'path';
+import { EOL } from 'os';
 import { PayloadAction } from '@reduxjs/toolkit';
 import chalk from 'chalk';
 import fsext from 'fs-extra';
-import fs from 'fs';
 import _ from 'lodash';
-import Path from 'path';
 import {from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
 import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
   take, concatMap, ignoreElements, scan, catchError, tap, finalize } from 'rxjs/operators';
+import {getLogger} from 'log4js';
 import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
 import { exe } from '../process-utils';
 import { setProjectList, setLinkPatterns} from '../recipe-manager';
@@ -19,8 +21,6 @@ import {isActionOfCreator, castByActionType} from '../../../packages/redux-toolk
 // import { getRootDir } from '../utils/misc';
 import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync } from '../utils/symlinks';
 import {symbolicLinkPackages} from '../rwPackageJson';
-import { EOL } from 'os';
-import {getLogger} from 'log4js';
 import { plinkEnv } from '../utils/misc';
 const log = getLogger('plink.package-mgr');
 export interface PackageInfo {
@@ -124,6 +124,7 @@ export interface WorkspaceState {
 }
 
 export interface NpmOptions {
+  useYarn?: boolean;
   cache?: string;
   isForce: boolean;
   useNpmCi?: boolean;
@@ -851,19 +852,22 @@ export async function installInDir(dir: string, npmOpt: NpmOptions, originPkgJso
     if (npmOpt.offline)
       env.npm_config_offline = 'true';
 
-    const cmdArgs = [npmOpt.useNpmCi ? 'ci' : 'install'];
+    const exeName = npmOpt.useYarn ? 'yarn' : 'npm';
+    const cmdArgs = [npmOpt.useYarn !== true && npmOpt.useNpmCi ? 'ci' : 'install'];
 
-    await exe('npm', ...cmdArgs, {cwd: dir, env}).done;
+    await exe(exeName, ...cmdArgs, {cwd: dir, env}).done;
     await new Promise(resolve => setImmediate(resolve));
-    if (npmOpt.prune) {
-      await exe('npm', 'prune', {cwd: dir, env}).done;
+    if (npmOpt.useYarn !== true && npmOpt.prune) {
+      await exe(exeName, 'prune', {cwd: dir, env}).done;
       // "npm ddp" right after "npm install" will cause devDependencies being removed somehow, don't known
       // why, I have to add a setImmediate() between them to workaround
       await new Promise(resolve => setImmediate(resolve));
     }
     if (npmOpt.dedupe) {
       try {
-        await exe('npm', 'ddp', {cwd: dir, env}).promise;
+        await exe(exeName, 'dedupe',
+          ...[npmOpt.useYarn === true ? '--immutable' : ''],
+          {cwd: dir, env}).promise;
       } catch (ddpErr) {
         log.warn('Failed to dedupe dependencies, but it is OK', ddpErr);
       }

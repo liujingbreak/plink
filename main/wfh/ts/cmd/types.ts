@@ -20,6 +20,7 @@ export interface InitCmdOptions extends GlobalOptions {
   // lintHook: boolean;
 }
 export interface NpmCliOption {
+  useYarn: boolean;
   cache?: string;
   production: boolean;
   useCi: boolean;

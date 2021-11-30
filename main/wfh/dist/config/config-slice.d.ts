@@ -1,11 +1,12 @@
 import * as rx from 'rxjs';
-import { GlobalOptions } from '../cmd/types';
 import { PayloadAction } from '@reduxjs/toolkit';
+import { GlobalOptions } from '../cmd/types';
 export interface PlinkSettings {
     /** Node.js server port number */
     port: number | string;
     publicPath: string;
     localIP: string;
+    useYarn: boolean;
     /**
      * process.env.NODE_ENV will be automatically
      * updated to 'developement' or 'production corresponding to this property

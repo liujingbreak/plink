@@ -18,6 +18,7 @@ export interface InitCmdOptions extends GlobalOptions {
     force: boolean;
 }
 export interface NpmCliOption {
+    useYarn: boolean;
     cache?: string;
     production: boolean;
     useCi: boolean;
