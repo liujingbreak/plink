@@ -5,7 +5,7 @@ export type ProxyCacheState = {
   // proxyOptions: HpmOptions;
   cacheDir: string;
   cacheByUri: Map<string, CacheData | 'loading' | 'requesting'>;
-  responseTransformer: (() => stream.Transform)[];
+  responseTransformer: ((headers: CacheData['headers']) => stream.Transform[])[];
   error?: Error;
 };
 

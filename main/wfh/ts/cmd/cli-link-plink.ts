@@ -39,6 +39,6 @@ export async function reinstallWithLinkedPlink(opt: NpmCliOption) {
   const str = JSON.stringify(pkJson, null, '  ');
   // eslint-disable-next-line no-console
   console.log('Install with package.json:', str);
-  await installInDir(rootDir, {isForce: false, cache: opt.cache, 
+  await installInDir(rootDir, {isForce: false, cache: opt.cache,
     useYarn: opt.useYarn, useNpmCi: opt.useCi, offline: opt.offline}, origPkJsonStr, str);
 }

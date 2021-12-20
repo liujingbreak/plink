@@ -1,6 +1,7 @@
 import Path from 'path';
 import {Transform} from 'stream';
 import fs from 'fs';
+import zlib from 'zlib';
 import {config, log4File, ExtensionContext} from '@wfh/plink';
 import {shutdownHook$} from '@wfh/plink/wfh/dist/app-server';
 import * as rx from 'rxjs';
@@ -26,7 +27,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
   const pkgDownloadRouter = api.express.Router();
 
   api.use(Path.posix.join(setting.path || '/registry', 'packages'), pkgDownloadRouter);
-  pkgDownloadRouter.get('/:pkgName', (req, res) => {
+  pkgDownloadRouter.get('/:pkgName', (_req, _res) => {
 
   });
 
@@ -34,7 +35,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
     name: 'pkgCache',
     initialState: {} as TarballsInfo,
     reducers: {
-      load(s: TarballsInfo, data: TarballsInfo) {
+      load(_s: TarballsInfo, data: TarballsInfo) {
         s = {
           ...data
         };
@@ -62,7 +63,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
     return rx.merge(
       // After state is loaded and changed, add a server shutdown hook to save state to file
       actionByType.load.pipe(
-        op.switchMap(action => pkgDownloadCtl.getStore()),
+        op.switchMap(_action => pkgDownloadCtl.getStore()),
         op.take(1),
         op.map(() => {
           shutdownHook$.next(() => {
@@ -86,11 +87,26 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
   });
 
   versionsCacheCtl.actionDispatcher.configTransformer([
-    () => {
+    (headers) => {
       let buffer = '';
-      return new Transform({
-        transform(chunk, encode, cb) {
-          if (Buffer.isBuffer(chunk)) {
+      let compressionTran: Transform | undefined;
+      switch (headers['content-encoding']) {
+        case 'br':
+          compressionTran = zlib.createBrotliDecompress();
+          break;
+        // Or, just use zlib.createUnzip() to handle both of the following cases:
+        case 'gzip':
+          compressionTran = zlib.createGunzip();
+          break;
+        case 'deflate':
+          compressionTran = zlib.createInflate();
+          break;
+        default:
+      }
+      const transformers = compressionTran ? [compressionTran] : [];
+      transformers.push(new Transform({
+       transform(chunk, _encode, cb) {
+            if (Buffer.isBuffer(chunk)) {
             buffer += chunk.toString();
           } else {
             buffer += chunk as string;
@@ -104,7 +120,8 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
           }
           cb(null, JSON.stringify(json));
         }
-      });
+      }));
+      return transformers;
     }
   ]);
 }

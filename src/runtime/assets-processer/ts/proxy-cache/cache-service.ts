@@ -38,7 +38,7 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
     reducers: {
       configureProxy(s: ProxyCacheState, payload: HpmOptions) {
       },
-      configTransformer(s: ProxyCacheState, payload: (() => stream.Transform)[]) {
+      configTransformer(s: ProxyCacheState, payload: ProxyCacheState['responseTransformer']) {
         s.responseTransformer = payload;
       },
       hitCache(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction}) {},
@@ -181,7 +181,8 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
           const statusCode = data.readable.statusCode || 200;
           const {responseTransformer} = cacheController.getState();
           return pipeToBuffer(data.readable,
-            ...(responseTransformer ? responseTransformer.map(entry => entry()) : []) as NodeJS.ReadWriteStream[]
+            ...(responseTransformer ? _.flatten(responseTransformer.map(entry => entry(data.headers))) :
+                []) as NodeJS.ReadWriteStream[]
           ).pipe(
             op.mergeMap(async buf => {
               cacheController.actionDispatcher._gotCache({key, data: {
