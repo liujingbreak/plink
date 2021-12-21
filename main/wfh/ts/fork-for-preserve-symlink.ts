@@ -24,7 +24,7 @@ export function workDirChangedByCli() {
 export async function forkFile(moduleName: string) {
   process.on('SIGINT', () => {
     // eslint-disable-next-line no-console
-    console.log('bye');
+    log.info('bye');
     recoverNodeModuleSymlink();
     process.exit(0);
   });

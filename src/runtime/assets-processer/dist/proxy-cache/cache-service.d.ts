@@ -4,7 +4,6 @@ import { Options as HpmOptions } from 'http-proxy-middleware';
 import { ProxyCacheState, CacheData } from './types';
 export declare function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string, opts?: {
     manual: boolean;
-    pathRewrite?: HpmOptions['pathRewrite'];
 }): import("@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit").Slice<ProxyCacheState, {
     configureProxy(s: ProxyCacheState, payload: HpmOptions): void;
     configTransformer(s: ProxyCacheState, payload: ProxyCacheState['responseTransformer']): void;
@@ -16,6 +15,7 @@ export declare function createProxyWithCache(proxyPath: string, targetUrl: strin
     }): void;
     _addToCache(s: ProxyCacheState, payload: {
         key: string;
+        res: Response;
         data: {
             headers: CacheData['headers'];
             readable: IncomingMessage;
@@ -38,4 +38,4 @@ export declare function createProxyWithCache(proxyPath: string, targetUrl: strin
         data: CacheData;
     }): void;
 }>;
-export declare function keyOfUri(method: string, uri: string): string;
+export declare function keyOfUri(method: string, path: string): string;

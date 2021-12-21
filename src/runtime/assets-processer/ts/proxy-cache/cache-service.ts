@@ -17,7 +17,7 @@ const log = log4File(__filename);
 const httpProxyLog = logger.getLogger(log.category + '#httpProxy');
 
 export function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string,
-                 opts: {manual: boolean; pathRewrite?: HpmOptions['pathRewrite']} = {manual: false}) {
+                 opts: {manual: boolean} = {manual: false}) {
   const initialState: ProxyCacheState = {
     // proxyOptions: defaultProxyOptions(proxyPath, targetUrl),
     cacheDir: cacheRootDir,
@@ -47,6 +47,7 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
 
       _addToCache(s: ProxyCacheState, payload: {
         key: string;
+        res: Response;
         data: {headers: CacheData['headers']; readable: IncomingMessage};
       }) {},
 
@@ -61,17 +62,14 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
         key: string;
         data: CacheData;
       }) {
-        log.info('got cache', payload.key);
-        s.cacheByUri.set(payload.key, payload.data);
-        // s.cacheByUri.delete(payload.key);
+        if (payload.data.statusCode !== 304)
+          s.cacheByUri.set(payload.key, payload.data);
       }
     }
   });
 
   cacheController.epic(action$ => {
     const defaultProxyOpt = defaultProxyOptions(proxyPath, targetUrl);
-    if (opts.pathRewrite)
-      defaultProxyOpt.pathRewrite = opts.pathRewrite;
 
     const proxyError$ = new rx.Subject<Parameters<(typeof defaultProxyOpt)['onError']>>();
     const proxyRes$ = new rx.Subject<Parameters<(typeof defaultProxyOpt)['onProxyRes']>>();
@@ -84,6 +82,7 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
         op.map(({payload: extraOpt}) => {
           proxyMiddleware$.next(proxy({
             ...defaultProxyOpt,
+            followRedirects: true,
             ...extraOpt,
             onProxyRes(...args) {
               proxyRes$.next(args);
@@ -102,21 +101,24 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
       ),
       actions.hitCache.pipe(
         op.mergeMap( ({payload}) => {
+          const waitCacheAndSendRes = actions._gotCache.pipe(
+            op.filter(action => action.payload.key === payload.key &&
+              payload.res.writableEnded !== true), // In case it is of redirected request, HPM has done piping response (ignored "manual reponse" setting)
+            op.take(1),
+            op.map(({payload: {data}}) => {
+              for (const entry of data.headers) {
+                payload.res.setHeader(entry[0], entry[1]);
+              }
+              payload.res.status(data.statusCode);
+              payload.res.end(data.body);
+            })
+          );
           const item = cacheController.getState().cacheByUri.get(payload.key);
           if (item == null) {
             cacheController.actionDispatcher._loadFromStorage(payload);
-            return rx.EMPTY;
+            return waitCacheAndSendRes;
           } else if (item === 'loading' || item === 'requesting') {
-            return actions._gotCache.pipe(
-              op.filter(action => action.payload.key === payload.key),
-              op.take(1),
-              op.map(({payload: {data}}) => {
-                for (const entry of data.headers) {
-                  payload.res.setHeader(entry[0], entry[1]);
-                }
-                payload.res.end(data.body);
-              })
-            );
+            return waitCacheAndSendRes;
           } else {
             httpProxyLog.info('hit cached', payload.key);
             sendRes(payload.res, item.statusCode, item.headers, item.body);
@@ -141,7 +143,7 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
               headers,
               body
             }});
-            sendRes(payload.res, statusCode, headers, body);
+            // sendRes(payload.res, statusCode, headers, body);
           } else {
             log.info('No existing file for', payload.key);
             cacheController.actionDispatcher._requestRemote(payload);
@@ -155,11 +157,12 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
               op.filter(([proxyRes, origReq]) => origReq === payload.req),
               op.take(1),
               op.map(([proxyRes]) => {
-                httpProxyLog.warn('Incoming response read completed ?', proxyRes.complete);
                 cacheController.actionDispatcher._addToCache({
                   key: payload.key,
+                  res: payload.res,
                   data: {
-                    headers: Object.entries(proxyRes.headers).filter(entry => entry[1] != null) as [string, string | string[]][],
+                    headers: Object.entries(proxyRes.headers)
+                    .filter(entry => entry[1] != null) as [string, string | string[]][],
                     readable: proxyRes
                   }
                 });
@@ -178,24 +181,34 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
         ))
       ),
       actions._addToCache.pipe(
-        op.mergeMap(({payload: {key, data}}) => {
+        op.mergeMap(({payload: {key, res, data}}) => {
           httpProxyLog.info('cache size:', cacheController.getState().cacheByUri.size);
           const dir = Path.join(cacheController.getState().cacheDir, key);
           const file = Path.join(dir, 'body');
           const statusCode = data.readable.statusCode || 200;
           const {responseTransformer} = cacheController.getState();
-          return pipeToBuffer(data.readable,
+          return (statusCode === 200 ? pipeToBuffer(data.readable,
             ...(responseTransformer ? _.flatten(responseTransformer.map(entry => entry(data.headers))) :
-                []) as NodeJS.ReadWriteStream[]
+                []) ) :
+            pipeToBuffer(data.readable)
           ).pipe(
             op.mergeMap(async buf => {
+              // log.warn('content-length:', buf.length);
+              const lengthHeaderIdx = data.headers.findIndex(row => row[0] === 'content-length');
+              if (lengthHeaderIdx >= 0)
+                data.headers[lengthHeaderIdx][1] = '' + buf.length;
+
               cacheController.actionDispatcher._gotCache({key, data: {
                 statusCode,
                 headers: data.headers,
                 body: buf
               }});
-              await fs.mkdirp(Path.dirname(file));
+              if (statusCode === 304) {
+                log.warn('Version info is not recorded, due to response 304 from', res.req.url, ',\n you can remove existing npm/cache cache to avoid 304');
+                return rx.EMPTY;
+              }
 
+              await fs.mkdirp(Path.dirname(file));
               await Promise.all([
                 fs.promises.writeFile(file, buf),
                 fs.promises.writeFile(
@@ -203,7 +216,7 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
                     JSON.stringify({statusCode, headers: data.headers}, null, '  '),
                   'utf-8')
                 ]);
-              httpProxyLog.info('write response to file', Path.posix.relative(process.cwd(), file));
+              httpProxyLog.info('write response to file', Path.posix.relative(process.cwd(), file), 'size', buf.length);
             }),
             op.catchError((err, src) => {
               httpProxyLog.error('HTTP proxy cache error: failed to cache response', err);
@@ -273,8 +286,8 @@ function sendRes(res: Response, statusCode: number, headers: [string, string | s
     stream.pipeline(body, res);
 }
 
-export function keyOfUri(method: string, uri: string) {
-  const url = new URL('http://f.com' + uri);
+export function keyOfUri(method: string, path: string) {
+  const url = new URL('http://f.com' + path);
   const key = method + url.pathname + (url.search ? '/' + _.trimStart(url.search, '?') : '');
   return key;
 }

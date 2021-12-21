@@ -11,8 +11,10 @@ import {initConfig, initProcess, initAsChildProcess} from './index';
 
 export const exit$ = new rx.BehaviorSubject<null | 'start' | 'done'>(null);
 /** Emitted function will be executed during server shutdown phase */
-export const shutdownHook$ = new rx.ReplaySubject<() => (rx.ObservableInput<any> | void)>();
+export const shutdownHooks: (() => (rx.ObservableInput<any> | void))[] = [];
 
+// Subscribe to "done" event for being notified when app server is shutdown and all
+// hooks are done execution
 const exitDone$ = exit$.pipe(op.filter(action => action === 'done'), op.take(1));
 
 let storeSettingDispatcher: ReturnType<typeof initProcess> | undefined;
@@ -27,7 +29,7 @@ if (process.send) {
   process.on('exit', (code) => {
     // eslint-disable-next-line no-console
     console.log((process.send || !isMainThread ? `[P${process.pid}.T${threadId}] ` : '') +
-      chalk.green(`${code !== 0 ? 'Failed' : 'Done'}`));
+      chalk.green(`${code !== 0 ? 'App server stopped with failures' : 'App server is shutdown'}`));
   });
   storeSettingDispatcher = initProcess(true, () => {
     const done = exitDone$.toPromise();
@@ -58,16 +60,19 @@ if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--p
 
     exit$.pipe(
       op.filter(action => action === 'start'),
-      op.concatMap(() => shutdownHook$.pipe(
-        op.mergeMap(hook => {
-          const result = hook();
-          return result || rx.EMPTY;
-        })
-      )),
-      op.concatMap(() => shutdown()),
-      op.tap(() => {
-        exit$.next('done');
-        exit$.complete();
+      op.take(1),
+      op.concatMap(() => rx.from(shutdownHooks)),
+      op.mergeMap(hookFn => {
+        const result = hookFn();
+        return result || rx.EMPTY;
+      }),
+      op.finalize(() => {
+        void shutdown().then(() => {
+          exit$.next('done');
+          exit$.complete();
+          // eslint-disable-next-line no-console
+          console.log('Packages are deactivated');
+        });
       })
     ).subscribe();
   });

@@ -5,18 +5,19 @@ import {ConfigHandler, DrcpSettings, InjectorConfigHandler} from '@wfh/plink';
 
 const workspaceSetting: ConfigHandler & InjectorConfigHandler = {
   /** Change settings of Plink and other Plink compliant packages */
-  onConfig(setting: DrcpSettings, cliOpt: NonNullable<DrcpSettings['cliOptions']>): void {
+  onConfig(setting: DrcpSettings, _cliOpt: NonNullable<DrcpSettings['cliOptions']>): void {
     setting['@wfh/assets-processer'].npmRegistryCacheServer = {
       path: '/npm',
+      cacheDir: setting.destDir + '/npm-server-cache',
       registry: 'https://registry.npm.taobao.org/'
     };
   },
   /** For Node.js runtime, replace module in "require()" or import syntax */
-  setupNodeInjector(factory, setting) {
+  setupNodeInjector(_factory, _setting) {
     // factory.fromPlinkPackage('@wfh/foobar').alias('moduleA', 'moduleB');
   },
   /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */
-  setupWebInjector(factory, setting) {
+  setupWebInjector(_factory, _setting) {
     // factory.fromPlinkPackage('@wfh/foobar').alias('moduleA', 'moduleB');
   }
 };

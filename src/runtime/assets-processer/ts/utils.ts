@@ -1,4 +1,5 @@
 import stream from 'stream';
+import {ClientRequest} from 'http';
 import {Request, Response, NextFunction} from 'express';
 import api from '__plink';
 import _ from 'lodash';
@@ -107,6 +108,18 @@ export function setupHttpProxy(proxyPath: string, targetUrl: string,
   });
 }
 
+/*
+ * This interface is not exposed by http-proxy-middleware, it is used when option "followRedirect"
+ * is enabled, most likely this is behavior of http-proxy
+ */
+interface RedirectableRequest {
+  _currentRequest: ClientRequest;
+}
+
+function isRedirectableRequest(req: unknown): req is RedirectableRequest {
+  return (req as RedirectableRequest)._currentRequest !== null;
+}
+
 export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
   proxyPath = _.trimEnd(proxyPath, '/');
   targetUrl = _.trimEnd(targetUrl, '/');
@@ -132,13 +145,19 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
     logProvider: provider => hpmLog,
     proxyTimeout: 10000,
     onProxyReq(proxyReq, req, res, ...rest) {
-      // if (opts.deleteOrigin)
-      proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
-      const referer = proxyReq.getHeader('referer');
-      if (typeof referer === 'string') {
-        proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer).pathname}`);
+      // This proxyReq could be "RedirectRequest" if option "followRedirect" is on
+      if (isRedirectableRequest(proxyReq)) {
+        hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
+          proxyReq._currentRequest.getHeaders(), null, '  ')}`);
+      } else {
+        proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
+        const referer = proxyReq.getHeader('referer');
+        if (typeof referer === 'string') {
+          proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer).pathname}`);
+        }
+        hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
+          proxyReq.getHeaders(), null, '  ')}`);
       }
-      hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method || 'uknown'}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
     },
     onProxyRes(incoming, req, res) {
       incoming.headers['Access-Control-Allow-Origin'] = '*';

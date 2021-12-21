@@ -141,6 +141,7 @@ export const slice = stateFactory.newSlice({
     initRootDir(d, {payload}: PayloadAction<NpmOptions>) {
       d.npmInstallOpt.cache = payload.cache;
       d.npmInstallOpt.useNpmCi = payload.useNpmCi;
+      d.npmInstallOpt.useYarn = payload.useYarn;
     },
 
     /** 
@@ -157,6 +158,7 @@ export const slice = stateFactory.newSlice({
       packageJsonFiles?: string[];
     } & NpmOptions>) {
       d.npmInstallOpt.cache = payload.cache;
+      d.npmInstallOpt.useYarn = payload.useYarn;
       d.npmInstallOpt.useNpmCi = payload.useNpmCi;
     },
     scanAndSyncPackages(d: PackagesState, action: PayloadAction<{packageJsonFiles?: string[]}>) {

@@ -40,6 +40,8 @@ export interface AssetsProcesserSetting {
      * Start with a NPM registry cache server
      */
     npmRegistryCacheServer?: {
+        /** default is calculated, by `config().localIP` and `config().port`, e.g. 'http://192.168.1.3:14333' */
+        host?: string;
         /** default is /registry */
         path?: string;
         /** default cache directory is dist/npm-registry-cache */
