@@ -9,6 +9,10 @@ const workspaceSetting: ConfigHandler & InjectorConfigHandler = {
     setting['@wfh/assets-processer'].httpProxyWithCache = {
       '/registry': 'https://registry.npm.taobao.org/'
     };
+    setting['@wfh/assets-processer'].npmRegistryCacheServer = {
+      path: '/npm',
+      registry: 'https://registry.npm.taobao.org/'
+    };
   },
   /** For Node.js runtime, replace module in "require()" or import syntax */
   setupNodeInjector(factory, setting) {

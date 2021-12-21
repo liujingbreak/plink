@@ -31,6 +31,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
 
   api.use(Path.posix.join(setting.path || '/registry', '_tarballs'), pkgDownloadRouter);
   pkgDownloadRouter.get('/:pkgName/:version', (req, res) => {
+    pkgDownloadCtl.actionDispatcher.fetchTarball({req, res, pkgName: req.params.pkgName, version: req.params.version});
   });
 
   const pkgDownloadCtl = createSlice({
@@ -49,9 +50,8 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
         pkgEntry[payload.version] = payload.origUrl;
       },
       fetchTarball(_s: TarballsInfo,
-        _payload: {req: Request; res: Response, pkgName: string; version: string; url: string}) {
-      },
-      fetchTarballDone(_s: TarballsInfo, _payload: {pkgName: string; version: string}) {}
+        _payload: {req: Request; res: Response, pkgName: string; version: string}) {
+      }
     },
     debug: !!config().cliOptions?.verbose
   });
