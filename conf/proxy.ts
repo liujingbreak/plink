@@ -6,9 +6,6 @@ import {ConfigHandler, DrcpSettings, InjectorConfigHandler} from '@wfh/plink';
 const workspaceSetting: ConfigHandler & InjectorConfigHandler = {
   /** Change settings of Plink and other Plink compliant packages */
   onConfig(setting: DrcpSettings, cliOpt: NonNullable<DrcpSettings['cliOptions']>): void {
-    setting['@wfh/assets-processer'].httpProxyWithCache = {
-      '/registry': 'https://registry.npm.taobao.org/'
-    };
     setting['@wfh/assets-processer'].npmRegistryCacheServer = {
       path: '/npm',
       registry: 'https://registry.npm.taobao.org/'
