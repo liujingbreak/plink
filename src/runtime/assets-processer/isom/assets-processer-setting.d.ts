@@ -36,6 +36,17 @@ export interface AssetsProcesserSetting {
     httpProxyWithCache: {
         [proxyPath: string]: string;
     };
+    /**
+     * Start with a NPM registry cache server
+     */
+    npmRegistryCacheServer?: {
+        /** default is /registry */
+        path?: string;
+        /** default cache directory is dist/npm-registry-cache */
+        cacheDir?: string;
+        /** URI of upstream registry, default is https://registry.npmjs.org */
+        registry?: string;
+    };
     fetchMailServer: {
         imap: string;
         smtp: string;

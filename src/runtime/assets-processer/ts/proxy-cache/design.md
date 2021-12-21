@@ -1,3 +1,4 @@
+# NPM registry cache server design
 ```mermaid
 flowchart TD
 npmCli((npm cli))
@@ -14,7 +15,7 @@ pkgDownloadCtl(Package<br>download<br>controller)
 targzProxyPool(targz Download<br>proxy pool)
 hpm[http-proxy-middleware]
 
-npmCli --> |get versions| versionRouter ---> versionsCacheCtl --> |depends on| hpm
+npmCli --> |get versions| versionRouter ---> versionsCacheCtl -.-> |depends on| hpm
 
 versionsCacheCtl --> |"forward(proxy) request,<br>transform response"| npmRegistry
 
@@ -22,7 +23,7 @@ versionsCacheCtl --> |read & write| fileCache
 
 npmCli --> |download targz| pkgRouter --> pkgDownloadCtl
 
-pkgDownloadCtl --> |create proxies<br>based on<br>targz remote URL mapping | targzProxyPool --> |depends on| hpm
+pkgDownloadCtl --> |create proxies<br>based on<br>targz remote URL mapping | targzProxyPool -.-> |depends on| hpm
 targzProxyPool --> |forward request| targzMirror
 targzProxyPool --> |write| fileCache
 

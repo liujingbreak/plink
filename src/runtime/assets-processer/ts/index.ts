@@ -12,6 +12,7 @@ import { WithMailServerConfig } from './fetch-types';
 import { fallbackIndexHtml, proxyToDevServer } from './index-html-route';
 import { createStaticRoute } from './static-middleware';
 import { createProxyWithCache } from './proxy-cache/cache-service';
+import createNpmRegistryServer from './proxy-cache/npm-registry-cache-service';
 import {setupHttpProxy} from './utils';
 
 const log = log4File(__filename);
@@ -55,6 +56,7 @@ export function activate(api: ExtensionContext) {
     }
   }
 
+  createNpmRegistryServer(api);
   // const zss = createZipRoute(maxAgeMap);
 
   // api.use('/', zss.handler);

@@ -16,7 +16,8 @@ import {ProxyCacheState, CacheData} from './types';
 const log = log4File(__filename);
 const httpProxyLog = logger.getLogger(log.category + '#httpProxy');
 
-export function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string) {
+export function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string,
+                 opts: {manual: boolean; pathRewrite?: HpmOptions['pathRewrite']} = {manual: false}) {
   const initialState: ProxyCacheState = {
     // proxyOptions: defaultProxyOptions(proxyPath, targetUrl),
     cacheDir: cacheRootDir,
@@ -24,13 +25,14 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
     responseTransformer: []
   };
 
-  api.expressAppSet(app => {
-    app.use(proxyPath, (req, res, next) => {
-      const key = keyOfUri(req.method, req.url);
-      cacheController.actionDispatcher.hitCache({key, req, res, next});
+  if (!opts.manual) {
+    api.expressAppSet(app => {
+      app.use(proxyPath, (req, res, next) => {
+        const key = keyOfUri(req.method, req.url);
+        cacheController.actionDispatcher.hitCache({key, req, res, next});
+      });
     });
-  });
-
+  }
   const cacheController = createSlice({
     initialState,
     name: `HTTP-proxy-cache-${proxyPath}` ,
@@ -68,6 +70,8 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
 
   cacheController.epic(action$ => {
     const defaultProxyOpt = defaultProxyOptions(proxyPath, targetUrl);
+    if (opts.pathRewrite)
+      defaultProxyOpt.pathRewrite = opts.pathRewrite;
 
     const proxyError$ = new rx.Subject<Parameters<(typeof defaultProxyOpt)['onError']>>();
     const proxyRes$ = new rx.Subject<Parameters<(typeof defaultProxyOpt)['onProxyRes']>>();
@@ -269,7 +273,7 @@ function sendRes(res: Response, statusCode: number, headers: [string, string | s
     stream.pipeline(body, res);
 }
 
-function keyOfUri(method: string, uri: string) {
+export function keyOfUri(method: string, uri: string) {
   const url = new URL('http://f.com' + uri);
   const key = method + url.pathname + (url.search ? '/' + _.trimStart(url.search, '?') : '');
   return key;
