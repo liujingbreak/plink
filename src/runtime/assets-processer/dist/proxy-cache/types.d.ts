@@ -3,7 +3,10 @@ import stream from 'stream';
 export declare type ProxyCacheState = {
     cacheDir: string;
     cacheByUri: Map<string, CacheData | 'loading' | 'requesting'>;
-    responseTransformer: ((headers: CacheData['headers']) => stream.Transform[])[];
+    /** transform remote response */
+    responseTransformer: ((resHeaders: CacheData['headers'], reqHost: string | undefined) => stream.Transform[])[];
+    /** transform cached response */
+    cacheTransformer: ((resHeaders: CacheData['headers'], reqHost: string | undefined) => stream.Transform[])[];
     error?: Error;
 };
 export declare type CacheData = {

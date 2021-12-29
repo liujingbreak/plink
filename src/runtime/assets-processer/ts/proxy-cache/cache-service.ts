@@ -22,7 +22,8 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
     // proxyOptions: defaultProxyOptions(proxyPath, targetUrl),
     cacheDir: cacheRootDir,
     cacheByUri: new Map(),
-    responseTransformer: []
+    responseTransformer: [],
+    cacheTransformer: []
   };
 
   if (!opts.manual) {
@@ -40,13 +41,19 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
     reducers: {
       configureProxy(s: ProxyCacheState, payload: HpmOptions) {
       },
-      configTransformer(s: ProxyCacheState, payload: ProxyCacheState['responseTransformer']) {
-        s.responseTransformer = payload;
+      configTransformer(s: ProxyCacheState, payload: {
+        remote?: ProxyCacheState['responseTransformer'];
+        cached?: ProxyCacheState['cacheTransformer'];
+      }) {
+        if (payload.remote)
+          s.responseTransformer = payload.remote;
+        if (payload.cached)
+          s.cacheTransformer = payload.cached;
       },
       hitCache(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction}) {},
 
       _addToCache(s: ProxyCacheState, payload: {
-        key: string;
+        key: string; reqHost: string | undefined;
         res: Response;
         data: {headers: CacheData['headers']; readable: IncomingMessage};
       }) {},
@@ -76,6 +83,23 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
 
     let proxyMiddleware$ = new rx.ReplaySubject<ReturnType<typeof proxy>>(1);
     const actions = castByActionType(cacheController.actions, action$);
+
+    function changeCachedResponse(headers: CacheData['headers'], reqHost: string | undefined, body: Buffer) {
+      if (reqHost && !reqHost.startsWith('http')) {
+        // TODO: support case of HTTPS
+        reqHost = 'http://' + reqHost;
+      }
+      const {cacheTransformer} = cacheController.getState();
+      const transformers = _.flatten(cacheTransformer.map(entry => entry(headers, reqHost)));
+      return transformBuffer(body, ...transformers).pipe(
+        op.map(changedBody => ({
+          headers: headers.map(item => item[0] === 'content-length' ?
+                             [item[0], changedBody.length + ''] as [string, string] :
+                             item),
+          body: changedBody
+        }))
+      );
+    }
 
     return rx.merge(
       actions.configureProxy.pipe(
@@ -121,13 +145,16 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
             return waitCacheAndSendRes;
           } else {
             httpProxyLog.info('hit cached', payload.key);
-            sendRes(payload.res, item.statusCode, item.headers, item.body);
-            return rx.EMPTY;
+            return changeCachedResponse(item.headers, payload.req.headers.host, item.body).pipe(
+              op.map(data => {
+                sendRes(payload.res, item.statusCode, data.headers, data.body);
+              })
+            );
           }
         })
       ),
       actions._loadFromStorage.pipe(
-        op.map(async ({payload}) => {
+        op.mergeMap(async ({payload}) => {
           const dir = Path.join(cacheController.getState().cacheDir, payload.key);
           const hFile = Path.join(dir, 'header.json');
           const bFile = Path.join(dir, 'body');
@@ -138,10 +165,11 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
               fs.promises.readFile(bFile)
             ]);
             const {statusCode, headers} = JSON.parse(headersStr) as {statusCode: number; headers: [string, string | string[]][]};
+            const data = await changeCachedResponse(headers, payload.req.headers.host, body).toPromise();
             cacheController.actionDispatcher._gotCache({key: payload.key, data: {
               statusCode,
-              headers,
-              body
+              headers: data.headers,
+              body: data.body
             }});
             // sendRes(payload.res, statusCode, headers, body);
           } else {
@@ -156,9 +184,10 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
             proxyRes$.pipe(
               op.filter(([proxyRes, origReq]) => origReq === payload.req),
               op.take(1),
-              op.map(([proxyRes]) => {
+              op.map(([proxyRes, origReq]) => {
+                // log.warn('origReq host', origReq.headers.host);
                 cacheController.actionDispatcher._addToCache({
-                  key: payload.key,
+                  key: payload.key, reqHost: origReq.headers.host,
                   res: payload.res,
                   data: {
                     headers: Object.entries(proxyRes.headers)
@@ -181,14 +210,18 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
         ))
       ),
       actions._addToCache.pipe(
-        op.mergeMap(({payload: {key, res, data}}) => {
-          httpProxyLog.info('cache size:', cacheController.getState().cacheByUri.size);
+        op.mergeMap(({payload: {key, reqHost, res, data}}) => {
+          httpProxyLog.debug('cache size:', cacheController.getState().cacheByUri.size);
           const dir = Path.join(cacheController.getState().cacheDir, key);
           const file = Path.join(dir, 'body');
           const statusCode = data.readable.statusCode || 200;
           const {responseTransformer} = cacheController.getState();
+          if (reqHost && !reqHost.startsWith('http')) {
+            reqHost = 'http://' + reqHost;
+          }
           return (statusCode === 200 ? pipeToBuffer(data.readable,
-            ...(responseTransformer ? _.flatten(responseTransformer.map(entry => entry(data.headers))) :
+            ...(responseTransformer ?
+                _.flatten(responseTransformer.map(entry => entry(data.headers, reqHost))) :
                 []) ) :
             pipeToBuffer(data.readable)
           ).pipe(
@@ -272,6 +305,33 @@ function pipeToBuffer(source: IncomingMessage, ...transformers: NodeJS.ReadWrite
       source.pause();
       source.destroy();
     };
+  });
+}
+
+function transformBuffer(source: Buffer, ...transformers: NodeJS.ReadWriteStream[]) {
+  return new rx.Observable<Buffer>(sub => {
+    const inputStream = new stream.Readable({
+      read(_size) {
+        this.push(source);
+        this.push(null);
+      }
+    });
+    const bodyBufs: Buffer[] = [];
+    let completeBody: Buffer;
+
+    stream.pipeline([inputStream, ...transformers, new stream.Writable({
+        write(chunk, enc, cb) {
+          bodyBufs.push(chunk);
+          cb();
+        }
+      })],
+      (err: NodeJS.ErrnoException | null) => {
+        if (err) return sub.error(err);
+        completeBody = Buffer.concat(bodyBufs);
+        sub.next(completeBody);
+        sub.complete();
+      }
+    );
   });
 }
 

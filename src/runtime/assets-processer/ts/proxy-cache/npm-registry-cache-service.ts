@@ -9,18 +9,21 @@ import * as op from 'rxjs/operators';
 import * as _ from 'lodash';
 import {Request, Response} from 'express';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
-import {NpmRegistryVersionJson, TarballsInfo} from './types';
+import {CacheData, NpmRegistryVersionJson, TarballsInfo} from './types';
 import {createProxyWithCache, keyOfUri} from './cache-service';
-import inspector from 'inspector';
 
-inspector.open(9222 );
 const log = log4File(__filename);
+
+type PkgDownloadRequestParams = {
+  pkgName: string;
+  version: string;
+};
 
 export default function createNpmRegistryServer(api: ExtensionContext) {
   const setting = config()['@wfh/assets-processer'].npmRegistryCacheServer;
   if (setting == null)
     return;
-  const host = setting.host || (`http://localhost${config().port !== 80 ? ':' + config().port : ''}`);
+  const DEFAULT_HOST = setting.host || (`http://localhost${config().port !== 80 ? ':' + config().port : ''}`);
   const STATE_FILE = Path.resolve(setting.cacheDir || config.resolve('destDir'), 'npm-registry-cache.json');
 
   const servePath = Path.posix.join(setting.path || '/registry', 'versions');
@@ -57,7 +60,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
           s[payload.pkgName] = {...pkgEntry, ...payload.versions};
       },
       fetchTarball(_s: TarballsInfo,
-        _payload: {req: Request; res: Response, pkgName: string; version: string}) {
+        _payload: {req: Request<PkgDownloadRequestParams>; res: Response; pkgName: string; version: string}) {
       }
     },
     debug: !!config().cliOptions?.verbose
@@ -67,7 +70,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
     const actionByType = castByActionType(pkgDownloadCtl.actions, action$);
     // const fetchActionState = new Map<string, Response[]>();
     // map key is host name of remote tarball server
-    // const cacheSvcByOrigin = new Map<string, ReturnType<typeof createProxyWithCache>>();
+    const cacheSvcByOrigin = new Map<string, ReturnType<typeof createProxyWithCache>>();
 
     if (fs.existsSync(STATE_FILE)) {
       void fs.promises.readFile(STATE_FILE, 'utf-8')
@@ -90,23 +93,33 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
             op.filter(value => value != null),
             op.take(1),
             op.map(url => {
-              const {origin, pathname} = new URL(url);
-              // let service = cacheSvcByOrigin.get(origin);
-              // if (service == null) {
-              const service = createProxyWithCache(`${payload.pkgName}-${payload.version}`, origin,
-                      tarballDir,
-                      { manual: true });
-                // cacheSvcByOrigin.set(origin, service);
-              service.actionDispatcher.configureProxy({
-                pathRewrite(_path, _req) {
-                  return pathname;
+              try {
+                const {origin, pathname} = new URL(url);
+                let service = cacheSvcByOrigin.get(origin);
+                if (service == null) {
+                  log.info('create download proxy intance for', origin);
+                  service = createProxyWithCache(origin, origin,
+                    tarballDir,
+                    { manual: true });
+                  cacheSvcByOrigin.set(origin, service);
+                  service.actionDispatcher.configureProxy({
+                    pathRewrite(_path, req) {
+                      const {params: {pkgName, version}} = (req as Request<PkgDownloadRequestParams>);
+                      const url = pkgDownloadCtl.getState()[pkgName][version];
+                      const {pathname} = new URL(url);
+                      return pathname;
+                    }
+                  });
                 }
-              });
-              service.actionDispatcher.hitCache({
-                key: keyOfUri(payload.req.method, pathname),
-                req: payload.req, res: payload.res,
-                next: () => {}
-              });
+                service.actionDispatcher.hitCache({
+                  key: keyOfUri(payload.req.method, pathname),
+                  req: payload.req, res: payload.res,
+                  next: () => {}
+                });
+              } catch (e) {
+                log.error('Failed for download URL:' + url, e);
+                throw e;
+              }
             })
           );
         })
@@ -125,14 +138,18 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
     selfHandleResponse: true
   });
 
-  versionsCacheCtl.actionDispatcher.configTransformer([
-    (headers) => {
+  versionsCacheCtl.actionDispatcher.configTransformer({
+    remote: [ createTransformer(true)],
+    cached: [createTransformer(false)]
+  });
+
+  function createTransformer(trackRemoteUrl: boolean) {
+    return (headers: CacheData['headers'], reqHost: string | undefined) => {
       let buffer = '';
       let decompress: Transform | undefined;
       let compresser: Transform | undefined;
       const encodingHeader = headers.find(([name, value]) => name === 'content-encoding');
       const contentEncoding = encodingHeader ? encodingHeader[1] : '';
-      log.info('content-encoding:', contentEncoding);
       switch (contentEncoding) {
         case 'br':
           decompress = zlib.createBrotliDecompress();
@@ -165,10 +182,12 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
             const param: {[ver: string]: string} = {};
             for (const [ver, versionEntry] of Object.entries(json.versions)) {
               param[ver] = versionEntry.dist.tarball;
-              versionEntry.dist.tarball = host + `${serveTarballPath}/${encodeURIComponent(json.name)}/${encodeURIComponent(ver)}`;
+              versionEntry.dist.tarball = (reqHost || DEFAULT_HOST) + `${serveTarballPath}/${encodeURIComponent(json.name)}/${encodeURIComponent(ver)}`;
               // log.info('rewrite tarball download URL to ' + versionEntry.dist.tarball);
             }
-            pkgDownloadCtl.actionDispatcher.add({pkgName: json.name, versions: param});
+            if (trackRemoteUrl)
+              pkgDownloadCtl.actionDispatcher.add({pkgName: json.name, versions: param});
+
             cb(null, JSON.stringify(json));
           } catch (e) {
             log.error(e);
@@ -180,8 +199,8 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
       if (compresser)
         transformers.push(compresser);
       return transformers;
-    }
-  ]);
+    };
+  }
 }
 
 

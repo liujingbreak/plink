@@ -6,7 +6,10 @@ export declare function createProxyWithCache(proxyPath: string, targetUrl: strin
     manual: boolean;
 }): import("@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit").Slice<ProxyCacheState, {
     configureProxy(s: ProxyCacheState, payload: HpmOptions): void;
-    configTransformer(s: ProxyCacheState, payload: ProxyCacheState['responseTransformer']): void;
+    configTransformer(s: ProxyCacheState, payload: {
+        remote?: ProxyCacheState['responseTransformer'];
+        cached?: ProxyCacheState['cacheTransformer'];
+    }): void;
     hitCache(s: ProxyCacheState, payload: {
         key: string;
         req: Request;
@@ -15,6 +18,7 @@ export declare function createProxyWithCache(proxyPath: string, targetUrl: strin
     }): void;
     _addToCache(s: ProxyCacheState, payload: {
         key: string;
+        reqHost: string | undefined;
         res: Response;
         data: {
             headers: CacheData['headers'];
