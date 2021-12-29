@@ -3,6 +3,8 @@ import {ClientRequest} from 'http';
 import {Request, Response, NextFunction} from 'express';
 import api from '__plink';
 import _ from 'lodash';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import {readCompressedResponse} from '@wfh/http-server/dist/utils';
 import {logger} from '@wfh/plink';
 
@@ -126,7 +128,7 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
   const { protocol, host, pathname } = new URL(targetUrl);
 
   const patPath = new RegExp('^' + _.escapeRegExp(proxyPath) + '(/|$)');
-  const hpmLog = logger.getLogger('HPM.' + proxyPath);
+  const hpmLog = logger.getLogger('HPM.' + targetUrl);
 
   const proxyMidOpt: ProxyOptions &  {[K in 'pathRewrite' | 'onProxyReq' | 'onProxyRes' | 'onError']: NonNullable<ProxyOptions[K]>} = {
     // eslint-disable-next-line max-len
@@ -196,3 +198,61 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
   };
   return proxyMidOpt;
 }
+
+const log = logger.getLogger(api.packageName + '.createReplayReadableFactory');
+
+export function createReplayReadableFactory(readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[]) {
+  const buf$ = new rx.ReplaySubject<Buffer>();
+  let cacheBufLen = 0;
+  const cacheWriter = new stream.Writable({
+    write(chunk: Buffer, _enc, cb) {
+      cacheBufLen += chunk.length;
+      // log.warn('cache updated:', cacheBufLen);
+      buf$.next(chunk);
+      cb();
+    },
+    final(cb) {
+      buf$.complete();
+      log.info('cache completed length:', cacheBufLen);
+      cb();
+    }
+  });
+
+  let caching = false;
+  // let readerCount = 0;
+
+  return () => {
+    // readerCount++;
+    // let bufferLengthSum = 0;
+    // const readerId = readerCount;
+    const readCall$ = new rx.Subject<stream.Readable>();
+    const readableStream = new stream.Readable({
+      read(_size) {
+        readCall$.next(this);
+        if (!caching) {
+          caching = true;
+          const streams = [readable,
+            ...(transforms || []), cacheWriter] as Array<NodeJS.ReadableStream | NodeJS.WritableStream | NodeJS.ReadWriteStream>;
+          // To workaround NodeJS 16 bug
+          streams.reduce(
+            (prev, curr) => (prev as NodeJS.ReadableStream)
+            .pipe(curr as NodeJS.ReadWriteStream));
+        }
+      }
+    });
+    rx.zip(readCall$, buf$)
+      .pipe(
+        op.map(([readable, buf], idx) => {
+          readable.push(buf);
+          // bufferLengthSum += buf.length;
+          // log.debug(`reader: ${readerId}, reads (${idx}) ${bufferLengthSum}`);
+        }),
+        op.finalize(() => {
+          readableStream.push(null);
+        })
+      ).subscribe();
+
+    return readableStream;
+  };
+}
+

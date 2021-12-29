@@ -1,18 +1,22 @@
 /// <reference types="node" />
-import stream from 'stream';
+export declare type Transformer = (resHeaders: CacheData['headers'], reqHost: string | undefined, source: NodeJS.ReadableStream) => PromiseLike<{
+    readable: () => NodeJS.ReadableStream;
+    length: number;
+}>;
 export declare type ProxyCacheState = {
     cacheDir: string;
-    cacheByUri: Map<string, CacheData | 'loading' | 'requesting'>;
+    cacheByUri: Map<string, CacheData | 'loading' | 'requesting' | 'saving'>;
     /** transform remote response */
-    responseTransformer: ((resHeaders: CacheData['headers'], reqHost: string | undefined) => stream.Transform[])[];
+    responseTransformer?: Transformer;
     /** transform cached response */
-    cacheTransformer: ((resHeaders: CacheData['headers'], reqHost: string | undefined) => stream.Transform[])[];
+    cacheTransformer?: Transformer;
+    memCacheLength: number;
     error?: Error;
 };
 export declare type CacheData = {
     statusCode: number;
     headers: [string, string | string[]][];
-    body: Buffer;
+    body: () => NodeJS.ReadableStream;
 };
 export declare type NpmRegistryVersionJson = {
     name: string;

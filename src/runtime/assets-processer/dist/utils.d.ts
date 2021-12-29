@@ -1,3 +1,5 @@
+/// <reference types="node" />
+import stream from 'stream';
 import { Request, Response, NextFunction } from 'express';
 import { Options as ProxyOptions } from 'http-proxy-middleware';
 /**
@@ -35,3 +37,4 @@ export declare function defaultProxyOptions(proxyPath: string, targetUrl: string
     onProxyRes: import("http-proxy-middleware/dist/types").OnProxyResCallback;
     onError: import("http-proxy-middleware/dist/types").OnErrorCallback;
 };
+export declare function createReplayReadableFactory(readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[]): () => stream.Readable;

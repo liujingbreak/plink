@@ -1,21 +1,28 @@
 // import { Options as HpmOptions} from 'http-proxy-middleware';
-import stream from 'stream';
+
+export type Transformer = (resHeaders: CacheData['headers'],
+  reqHost: string | undefined, source: NodeJS.ReadableStream) => PromiseLike<{
+  readable: () => NodeJS.ReadableStream;
+  length: number
+}>;
 
 export type ProxyCacheState = {
   // proxyOptions: HpmOptions;
   cacheDir: string;
-  cacheByUri: Map<string, CacheData | 'loading' | 'requesting'>;
+  cacheByUri: Map<string, CacheData |
+    'loading' | 'requesting' | 'saving'>;
   /** transform remote response */
-  responseTransformer: ((resHeaders: CacheData['headers'], reqHost: string | undefined) => stream.Transform[])[];
+  responseTransformer?: Transformer;
   /** transform cached response */
-  cacheTransformer: ((resHeaders: CacheData['headers'], reqHost: string | undefined) => stream.Transform[])[];
+  cacheTransformer?: Transformer;
+  memCacheLength: number;
   error?: Error;
 };
 
 export type CacheData = {
   statusCode: number;
   headers: [string, string | string[]][];
-  body: Buffer;
+  body: () => NodeJS.ReadableStream;
 };
 
 export type NpmRegistryVersionJson = {

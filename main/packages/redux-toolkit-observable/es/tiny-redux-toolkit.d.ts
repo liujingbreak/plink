@@ -45,7 +45,9 @@ export declare type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>,
 export interface Slice<S, R extends Reducers<S>> {
     name: string | number;
     state$: rx.BehaviorSubject<S>;
+    /** Action creator functions */
     action$: rx.Observable<PayloadAction<any> | Action<S>>;
+    action$ByType: ActionByType<S, R>;
     dispatch: (action: PayloadAction<S> | Action<S>) => void;
     /** Action creators bound with dispatcher */
     actionDispatcher: Actions<S, R>;
@@ -74,6 +76,8 @@ export interface Slice<S, R extends Reducers<S>> {
     addEpic$(epicFactory$: rx.Observable<EpicFactory<S, R> | null | undefined>): () => void;
     getStore(): rx.Observable<S>;
     getState(): S;
+    /** un-processed actions go through this operator */
+    setActionInterceptor(intec: rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>): void;
 }
 export declare type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
 /** filter action stream by type */
@@ -112,6 +116,7 @@ export interface SliceOptions<S, R extends Reducers<S>> {
     /** Generate unique ID as part of slice's name, default: true */
     generateId?: boolean;
     debug?: boolean;
+    debugActionOnly?: boolean;
     rootStore?: rx.BehaviorSubject<{
         [k: string]: S;
     }>;
@@ -124,12 +129,13 @@ export interface SliceOptions<S, R extends Reducers<S>> {
 export declare function createSlice<S extends {
     error?: Error;
 }, R extends Reducers<S>>(opt: SliceOptions<S, R>): Slice<S, R>;
-export declare function action$OfSlice<S, R extends Reducers<S>, T extends keyof R>(sliceHelper: Slice<S, R>, actionType: T): rx.Observable<R[T] extends (s: any) => any ? {
+export declare function action$OfSlice<S, R extends Reducers<S>, T extends keyof R>(slice: Slice<S, R>, actionType: T): rx.Observable<R[T] extends (s: any) => any ? {
     type: T;
 } : R[T] extends (s: any, p: infer P) => any ? {
     payload: P;
     type: T;
 } : never>;
+export declare function action$ByType<S, R extends Reducers<S>>(slice: Slice<S, R>): ActionByType<S, R>;
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.

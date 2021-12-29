@@ -116,6 +116,7 @@ export interface SliceOptions<S, R extends Reducers<S>> {
     /** Generate unique ID as part of slice's name, default: true */
     generateId?: boolean;
     debug?: boolean;
+    debugActionOnly?: boolean;
     rootStore?: rx.BehaviorSubject<{
         [k: string]: S;
     }>;

@@ -98,14 +98,15 @@ export function createSlice(opt) {
     // To warn developer that no action dispatching shoud be called inside a reducer, this is side-effects and 
     // will leads to recursive reducer
     let inReducer = false;
-    const sub = rx.merge(unprocessedAction$.pipe(
+    const interceptor$ = new rx.BehaviorSubject(input => input);
+    const sub = rx.merge(interceptor$.pipe(op.switchMap(interceptor => unprocessedAction$.pipe(
     // op.observeOn(rx.queueScheduler), // Avoid recursively dispatching action inside an reducer, but normally recursively dispatching should be warned and forbidden
     op.tap(action => {
-        if (opt.debug) {
+        if (opt.debug || opt.debugActionOnly) {
             // eslint-disable-next-line no-console
             console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
         }
-    }), op.tap(action => {
+    }), interceptor, op.tap(action => {
         if (action.reducer) {
             const currState = state$.getValue();
             const shallowCopied = Object.assign(Object.assign({}, currState), { __ac: ++actionCount });
@@ -136,7 +137,7 @@ export function createSlice(opt) {
             }
         });
         return caught;
-    })), state$.pipe(op.tap(state => {
+    })))), state$.pipe(op.tap(state => {
         if (opt.debug) {
             // eslint-disable-next-line no-console
             console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', state);
@@ -171,6 +172,7 @@ export function createSlice(opt) {
         name,
         state$,
         action$,
+        action$ByType: castByActionType(actionCreators, action$),
         actions: actionCreators,
         dispatch,
         actionDispatcher,
@@ -182,6 +184,7 @@ export function createSlice(opt) {
             };
             addEpic$(rx.of(epicFactory));
         },
+        setActionInterceptor(intec) { },
         addEpic(epicFactory) {
             return addEpic$(rx.of(epicFactory));
         },
@@ -198,12 +201,15 @@ export function createSlice(opt) {
     };
     return slice;
 }
-export function action$OfSlice(sliceHelper, actionType) {
+export function action$OfSlice(slice, actionType) {
     return new rx.Observable(sub => {
-        sliceHelper.addEpic(slice => (action$) => {
+        slice.addEpic(slice => (action$) => {
             return action$.pipe(ofPayloadAction(slice.actions[actionType]), op.map(action => sub.next(action)), op.ignoreElements());
         });
     });
+}
+export function action$ByType(slice) {
+    return castByActionType(slice.actions, slice.action$);
 }
 /**
  * Add an epicFactory to another component's sliceHelper

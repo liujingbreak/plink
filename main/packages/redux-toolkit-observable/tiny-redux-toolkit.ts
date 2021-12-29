@@ -170,6 +170,7 @@ export interface SliceOptions<S, R extends Reducers<S>> {
   /** Generate unique ID as part of slice's name, default: true */
   generateId?: boolean;
   debug?: boolean;
+  debugActionOnly?: boolean;
   rootStore?: rx.BehaviorSubject<{[k: string]: S}>;
 }
 
@@ -240,7 +241,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
       op.switchMap(interceptor => unprocessedAction$.pipe(
         // op.observeOn(rx.queueScheduler), // Avoid recursively dispatching action inside an reducer, but normally recursively dispatching should be warned and forbidden
         op.tap(action => {
-          if (opt.debug) {
+          if (opt.debug || opt.debugActionOnly) {
             // eslint-disable-next-line no-console
             console.log(`%c ${name} internal:action `, 'color: black; background: #fae4fc;', action.type);
           }

@@ -1,5 +1,5 @@
 import Path from 'path';
-import {Transform} from 'stream';
+import {Transform, Writable, Readable} from 'stream';
 import fs from 'fs';
 import zlib from 'zlib';
 import {config, log4File, ExtensionContext} from '@wfh/plink';
@@ -9,7 +9,7 @@ import * as op from 'rxjs/operators';
 import * as _ from 'lodash';
 import {Request, Response} from 'express';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
-import {CacheData, NpmRegistryVersionJson, TarballsInfo} from './types';
+import {CacheData, NpmRegistryVersionJson, TarballsInfo, Transformer} from './types';
 import {createProxyWithCache, keyOfUri} from './cache-service';
 
 const log = log4File(__filename);
@@ -41,8 +41,9 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
 
   api.use(serveTarballPath, pkgDownloadRouter);
   pkgDownloadRouter.get('/:pkgName/:version', (req, res) => {
-    log.info('incoming request download tarball', req.params.pkgName);
-    pkgDownloadCtl.actionDispatcher.fetchTarball({req, res, pkgName: req.params.pkgName, version: req.params.version});
+    log.info('incoming request download tarball', req.url);
+    pkgDownloadCtl.actionDispatcher.fetchTarball({
+      req, res, pkgName: req.params.pkgName, version: req.params.version});
   });
 
   const pkgDownloadCtl = createSlice({
@@ -63,7 +64,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
         _payload: {req: Request<PkgDownloadRequestParams>; res: Response; pkgName: string; version: string}) {
       }
     },
-    debug: !!config().cliOptions?.verbose
+    debugActionOnly: !!config().cliOptions?.verbose
   });
 
   pkgDownloadCtl.epic(action$ => {
@@ -94,13 +95,13 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
             op.take(1),
             op.map(url => {
               try {
-                const {origin, pathname} = new URL(url);
+                const {origin, host, pathname} = new URL(url);
                 let service = cacheSvcByOrigin.get(origin);
                 if (service == null) {
                   log.info('create download proxy intance for', origin);
                   service = createProxyWithCache(origin, origin,
-                    tarballDir,
-                    { manual: true });
+                    Path.join(tarballDir, host.replace(/:/g, '_')),
+                    { manual: true, memCacheLength: 0 });
                   cacheSvcByOrigin.set(origin, service);
                   service.actionDispatcher.configureProxy({
                     pathRewrite(_path, req) {
@@ -139,16 +140,19 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
   });
 
   versionsCacheCtl.actionDispatcher.configTransformer({
-    remote: [ createTransformer(true)],
-    cached: [createTransformer(false)]
+    remote: createTransformer(true),
+    cached: createTransformer(false)
   });
 
-  function createTransformer(trackRemoteUrl: boolean) {
-    return (headers: CacheData['headers'], reqHost: string | undefined) => {
-      let buffer = '';
-      let decompress: Transform | undefined;
-      let compresser: Transform | undefined;
-      const encodingHeader = headers.find(([name, value]) => name === 'content-encoding');
+  function createTransformer(trackRemoteUrl: boolean): Transformer {
+    return (headers: CacheData['headers'], reqHost: string | undefined,
+           source: NodeJS.ReadableStream) => {
+      let fragments = '';
+      let bufLength = 0;
+      const subject = new rx.ReplaySubject<Buffer>();
+      let decompress: NodeJS.ReadWriteStream | undefined;
+      let compresser: NodeJS.ReadWriteStream | undefined;
+      const encodingHeader = headers.find(([name]) => name === 'content-encoding');
       const contentEncoding = encodingHeader ? encodingHeader[1] : '';
       switch (contentEncoding) {
         case 'br':
@@ -170,37 +174,81 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
       const processTrans = new Transform({
         transform(chunk, _encode, cb) {
           if (Buffer.isBuffer(chunk)) {
-            buffer += chunk.toString();
+            fragments += chunk.toString();
           } else {
-            buffer += chunk as string;
+            fragments += chunk as string;
           }
           cb();
         },
         flush(cb) {
+          if (fragments.length === 0) {
+            return cb(null, '');
+          }
           try {
-            const json = JSON.parse(buffer) as NpmRegistryVersionJson;
+            const json = JSON.parse(fragments) as NpmRegistryVersionJson;
             const param: {[ver: string]: string} = {};
+
             for (const [ver, versionEntry] of Object.entries(json.versions)) {
-              param[ver] = versionEntry.dist.tarball;
-              versionEntry.dist.tarball = (reqHost || DEFAULT_HOST) + `${serveTarballPath}/${encodeURIComponent(json.name)}/${encodeURIComponent(ver)}`;
-              // log.info('rewrite tarball download URL to ' + versionEntry.dist.tarball);
+              const origTarballUrl = param[ver] = versionEntry.dist.tarball;
+              const urlObj = new URL(origTarballUrl);
+              const url = versionEntry.dist.tarball = (reqHost || DEFAULT_HOST) +
+                `${serveTarballPath}/${encodeURIComponent(json.name)}/${encodeURIComponent(ver)}${urlObj.search}`;
+              if (!url.startsWith('http'))
+                versionEntry.dist.tarball = 'http://' + url;
             }
             if (trackRemoteUrl)
               pkgDownloadCtl.actionDispatcher.add({pkgName: json.name, versions: param});
 
             cb(null, JSON.stringify(json));
           } catch (e) {
-            log.error(e);
-            return cb(e as Error);
+            log.error(fragments, e);
+            return cb(null, '');
           }
         }
       });
       transformers.push(processTrans);
       if (compresser)
         transformers.push(compresser);
-      return transformers;
+      // NodeJS bug: https://github.com/nodejs/node/issues/40191
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      return new Promise<number>(resolve => {
+        (transformers as Array<NodeJS.ReadWriteStream | NodeJS.WritableStream>).concat(new Writable({
+          write(chunk, enc, cb) {
+            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            bufLength += buffer.length;
+            subject.next(buffer);
+            cb();
+          },
+          final(cb) {
+            subject.complete();
+            cb();
+            resolve(bufLength);
+          }
+        }))
+        .reduce((prev, curr) => prev.pipe(curr) as NodeJS.ReadableStream, source);
+      })
+      .then(bufLength => {
+
+        return {
+          length: bufLength,
+          readable: () => new Readable({
+            read() {
+              const self = this;
+              subject.subscribe({
+              next(buf) {
+                self.push(buf);
+              },
+              error(err) {
+                self.destroy(err);
+              },
+              complete() {
+                self.push(null);
+              }
+            });
+            }
+          })
+        };
+      });
     };
   }
 }
-
-

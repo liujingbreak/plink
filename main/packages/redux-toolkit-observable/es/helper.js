@@ -6,7 +6,7 @@ export function createSliceHelper(stateFactory, opts) {
     const slice = stateFactory.newSlice(opts);
     const actionDispatcher = stateFactory.bindActionCreators(slice);
     const destory$ = new Subject();
-    let action$ = new Subject();
+    const action$ = new Subject();
     new Observable(() => {
         // Release epic
         return stateFactory.addEpic(_action$ => {
@@ -30,7 +30,7 @@ export function createSliceHelper(stateFactory, opts) {
         return () => sub.unsubscribe();
     }
     // let releaseEpic: Array<() => void> = [];
-    const helper = Object.assign(Object.assign({}, slice), { action$: action$.asObservable(), actionDispatcher,
+    const helper = Object.assign(Object.assign({}, slice), { action$: action$.asObservable(), action$ByType: castByActionType(slice.actions, action$), actionDispatcher,
         epic(epic) {
             const fac = () => epic;
             addEpic$(of(fac));
@@ -113,6 +113,18 @@ export function castByActionType(actionCreators, action$) {
         });
     }
     return splitActions;
+}
+export function action$ByType(stateFactory, slice) {
+    if (slice.action$) {
+        return slice.action$ByType;
+    }
+    else {
+        const action$ = new Subject();
+        stateFactory.addEpic(_action$ => {
+            return _action$.pipe(op.tap(action => action$.next(action)), op.ignoreElements());
+        }, slice.name);
+        return castByActionType(slice.actions, action$);
+    }
 }
 export function isActionOfCreator(action, actionCreator) {
     return action.type === actionCreator.type;
