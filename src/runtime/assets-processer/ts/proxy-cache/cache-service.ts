@@ -119,12 +119,11 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
 
       if (responseTransformer == null) {
         const doneMkdir = fs.mkdirp(dir);
-
-        const readableFac = createReplayReadableFactory(proxyRes);
-        // cacheController.actionDispatcher._done({key, data: {
-        //       statusCode, headers, body: readableFac
-        //     }, res
-        //   });
+        const readableFac = createReplayReadableFactory(proxyRes, undefined, key);
+         // cacheController.actionDispatcher._done({key, data: {
+         //       statusCode, headers, body: () => proxyRes
+         //     }, res
+         //   });
         cacheController.actionDispatcher._savingFile({key, data: {
             statusCode, headers, body: readableFac
           }, res
@@ -212,8 +211,9 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
             op.filter(action => action.payload.key === payload.key), // In case it is of redirected request, HPM has done piping response (ignored "manual reponse" setting)
             op.take(1),
             op.mergeMap(({payload: {key, res, data}}) => {
-              if (res.writableEnded)
-                return rx.EMPTY;
+              if (res.writableEnded) {
+                throw new Error('Response is ended early, why?');
+              }
               for (const entry of data.headers) {
                 res.setHeader(entry[0], entry[1]);
               }

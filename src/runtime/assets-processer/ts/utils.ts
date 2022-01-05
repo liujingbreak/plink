@@ -201,7 +201,10 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
 
 const log = logger.getLogger(api.packageName + '.createReplayReadableFactory');
 
-export function createReplayReadableFactory(readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[]) {
+export function createReplayReadableFactory(
+  readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[],
+  debugInfo?: string
+) {
   const buf$ = new rx.ReplaySubject<Buffer>();
   let cacheBufLen = 0;
   const cacheWriter = new stream.Writable({
@@ -213,7 +216,9 @@ export function createReplayReadableFactory(readable: NodeJS.ReadableStream, tra
     },
     final(cb) {
       buf$.complete();
-      log.info('cache completed length:', cacheBufLen);
+      if (cacheBufLen === 0) {
+        log.warn((debugInfo || '') + ', cache completed length is 0');
+      }
       cb();
     }
   });
@@ -236,10 +241,12 @@ export function createReplayReadableFactory(readable: NodeJS.ReadableStream, tra
           // To workaround NodeJS 16 bug
           streams.reduce(
             (prev, curr) => (prev as NodeJS.ReadableStream)
-            .pipe(curr as NodeJS.ReadWriteStream));
+            .pipe(curr as NodeJS.ReadWriteStream))
+            .on('error', err => log.error(err));
         }
       }
     });
+
     rx.zip(readCall$, buf$)
       .pipe(
         op.map(([readable, buf], idx) => {
