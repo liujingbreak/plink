@@ -8,10 +8,10 @@ import * as op from 'rxjs/operators';
 import {readCompressedResponse} from '@wfh/http-server/dist/utils';
 import {logger} from '@wfh/plink';
 
-// import inspector from 'inspector';
+import inspector from 'inspector';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
-// inspector.open(9222, 'localhost', true);
+inspector.open(9222, 'localhost');
 const logTime = logger.getLogger(api.packageName + '.timestamp');
 /**
  * Middleware for printing each response process duration time to log
@@ -119,7 +119,7 @@ interface RedirectableRequest {
 }
 
 function isRedirectableRequest(req: unknown): req is RedirectableRequest {
-  return (req as RedirectableRequest)._currentRequest !== null;
+  return (req as RedirectableRequest)._currentRequest != null;
 }
 
 export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
@@ -149,6 +149,7 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
     onProxyReq(proxyReq, req, res, ...rest) {
       // This proxyReq could be "RedirectRequest" if option "followRedirect" is on
       if (isRedirectableRequest(proxyReq)) {
+        debugger;
         hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
           proxyReq._currentRequest.getHeaders(), null, '  ')}`);
       } else {
@@ -203,7 +204,7 @@ const log = logger.getLogger(api.packageName + '.createReplayReadableFactory');
 
 export function createReplayReadableFactory(
   readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[],
-  debugInfo?: string
+  opts?: {debugInfo?: string; expectLen?: number}
 ) {
   const buf$ = new rx.ReplaySubject<Buffer>();
   let cacheBufLen = 0;
@@ -216,8 +217,9 @@ export function createReplayReadableFactory(
     },
     final(cb) {
       buf$.complete();
-      if (cacheBufLen === 0) {
-        log.warn((debugInfo || '') + ', cache completed length is 0');
+      if (cacheBufLen === 0 || (opts?.expectLen != null && opts?.expectLen > cacheBufLen )) {
+        log.error((opts?.debugInfo || '') + `, cache completed length is ${cacheBufLen} which is less than expected ${opts?.expectLen}`);
+        throw new Error('Cache length does not meet expected length');
       }
       cb();
     }

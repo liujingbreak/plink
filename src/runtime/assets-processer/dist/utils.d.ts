@@ -37,4 +37,7 @@ export declare function defaultProxyOptions(proxyPath: string, targetUrl: string
     onProxyRes: import("http-proxy-middleware/dist/types").OnProxyResCallback;
     onError: import("http-proxy-middleware/dist/types").OnErrorCallback;
 };
-export declare function createReplayReadableFactory(readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[], debugInfo?: string): () => stream.Readable;
+export declare function createReplayReadableFactory(readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[], opts?: {
+    debugInfo?: string;
+    expectLen?: number;
+}): () => stream.Readable;

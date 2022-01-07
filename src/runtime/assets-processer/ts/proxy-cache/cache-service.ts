@@ -1,6 +1,5 @@
 import Path from 'path';
 import { IncomingMessage, ServerResponse } from 'http';
-import inspector from 'inspector';
 import fs from 'fs-extra';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -13,7 +12,6 @@ import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/
 import {createReplayReadableFactory, defaultProxyOptions} from '../utils';
 import {ProxyCacheState, CacheData} from './types';
 
-inspector.open(9222);
 const httpProxyLog = logger.getLogger(log4File(__filename).category + '#httpProxy');
 
 export function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string,
@@ -119,7 +117,8 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
 
       if (responseTransformer == null) {
         const doneMkdir = fs.mkdirp(dir);
-        const readableFac = createReplayReadableFactory(proxyRes, undefined, key);
+        const readableFac = createReplayReadableFactory(proxyRes, undefined,
+          {debugInfo: key, expectLen: parseInt(proxyRes.headers['content-length'] as string, 10)});
          // cacheController.actionDispatcher._done({key, data: {
          //       statusCode, headers, body: () => proxyRes
          //     }, res
