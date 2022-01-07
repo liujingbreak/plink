@@ -13,6 +13,7 @@ import {createReplayReadableFactory, defaultProxyOptions} from '../utils';
 import {ProxyCacheState, CacheData} from './types';
 
 const httpProxyLog = logger.getLogger(log4File(__filename).category + '#httpProxy');
+const REDIRECT_STATUS = new Map<number, number>([301, 302, 307, 308].map(code => [code, code]));
 
 export function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string,
                  opts: {manual: boolean; memCacheLength?: number} = {manual: false}) {
@@ -188,8 +189,15 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
           proxyMiddleware$.next(proxy({
             ...defaultProxyOpt,
             followRedirects: true,
+            logLevel: config().cliOptions?.verbose ? 'debug' :
+              'info',
+            proxyTimeout: 20000,
             ...extraOpt,
             onProxyRes(...args) {
+              if (REDIRECT_STATUS.has(args[0].statusCode || 200)) {
+                httpProxyLog.info('skip redirected response');
+                return;
+              }
               proxyRes$.next(args);
               defaultProxyOpt.onProxyRes(...args);
               if (extraOpt.onProxyRes)

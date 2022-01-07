@@ -8,10 +8,8 @@ import * as op from 'rxjs/operators';
 import {readCompressedResponse} from '@wfh/http-server/dist/utils';
 import {logger} from '@wfh/plink';
 
-import inspector from 'inspector';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
-inspector.open(9222, 'localhost');
 const logTime = logger.getLogger(api.packageName + '.timestamp');
 /**
  * Middleware for printing each response process duration time to log
@@ -31,7 +29,7 @@ export function createResponseTimestamp(req: Request, res: Response, next: NextF
       `] (since ${date.toLocaleTimeString()} ${startTime}) [${req.header('user-agent')!}]`);
   }
 
-  res.end = function(chunk?: any, encoding?: string | (() => void), cb?: () => void) {
+  res.end = function(_chunk?: any, _encoding?: string | (() => void), _cb?: () => void) {
     const argv = Array.prototype.slice.call(arguments, 0);
     const lastArg = arguments[arguments.length - 1];
     if (typeof lastArg === 'function') {
@@ -137,20 +135,19 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
     ws: false,
     secure: false,
     cookieDomainRewrite: { '*': '' },
-    pathRewrite: (path, req) => {
+    pathRewrite: (path, _req) => {
       // hpmLog.warn('patPath=', patPath, 'path=', path);
       const ret = path && path.replace(patPath, _.trimEnd(pathname, '/') + '/');
       // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
       return ret;
     },
     logLevel: 'debug',
-    logProvider: provider => hpmLog,
+    logProvider: _provider => hpmLog,
     proxyTimeout: 10000,
-    onProxyReq(proxyReq, req, res, ...rest) {
+    onProxyReq(proxyReq, req, _res, ..._rest) {
       // This proxyReq could be "RedirectRequest" if option "followRedirect" is on
       if (isRedirectableRequest(proxyReq)) {
-        debugger;
-        hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
+        hpmLog.info(`Redirect request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
           proxyReq._currentRequest.getHeaders(), null, '  ')}`);
       } else {
         proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
@@ -162,7 +159,7 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
           proxyReq.getHeaders(), null, '  ')}`);
       }
     },
-    onProxyRes(incoming, req, res) {
+    onProxyRes(incoming, req, _res) {
       incoming.headers['Access-Control-Allow-Origin'] = '*';
       if (api.config().devMode) {
         hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode!}\n`,
@@ -179,11 +176,11 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
           if (!incoming.complete) {
             const bufs = [] as string[];
             void readCompressedResponse(incoming, new stream.Writable({
-              write(chunk: Buffer | string, enc, cb) {
+              write(chunk: Buffer | string, _enc, cb) {
                 bufs.push(Buffer.isBuffer(chunk) ? chunk.toString() : chunk);
                 cb();
               },
-              final(cb) {
+              final(_cb) {
                 hpmLog.info(`Response ${req.url || ''} text body:\n`, bufs.join(''));
               }
             }));
@@ -193,7 +190,7 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
         }
       }
     },
-    onError(err, req, res) {
+    onError(err, _req, _res) {
       hpmLog.warn(err);
     }
   };
@@ -218,8 +215,8 @@ export function createReplayReadableFactory(
     final(cb) {
       buf$.complete();
       if (cacheBufLen === 0 || (opts?.expectLen != null && opts?.expectLen > cacheBufLen )) {
-        log.error((opts?.debugInfo || '') + `, cache completed length is ${cacheBufLen} which is less than expected ${opts?.expectLen}`);
-        throw new Error('Cache length does not meet expected length');
+        log.error((opts?.debugInfo || '') + `, cache completed length is ${cacheBufLen} which is less than expected ${opts!.expectLen!}`);
+        cb(new Error('Cache length does not meet expected length'));
       }
       cb();
     }
@@ -251,7 +248,7 @@ export function createReplayReadableFactory(
 
     rx.zip(readCall$, buf$)
       .pipe(
-        op.map(([readable, buf], idx) => {
+        op.map(([readable, buf], _idx) => {
           readable.push(buf);
           // bufferLengthSum += buf.length;
           // log.debug(`reader: ${readerId}, reads (${idx}) ${bufferLengthSum}`);

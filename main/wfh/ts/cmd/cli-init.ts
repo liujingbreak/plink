@@ -209,7 +209,7 @@ function printColorExplaination(workspace: WorkspaceState) {
       'conflict dependency version, resolve them by choosing a version and add them to worktree space.\n');
   }
   if (_.size(summary.missingDeps) > 0) {
-    console.log(`Above listed transitive peer dependencies in ${chalk.bgYellow('yellow')} should be added to worktree space as "dependencies":\n` +
+    console.log(`Above listed transitive peer dependencies in ${chalk.yellow('yellow')} should be added to worktree space as "dependencies":\n` +
       chalk.yellow(JSON.stringify(summary.missingDeps, null, '  ').replace(/^([^])/mg, (m, p1) => '  ' + p1) + '\n'));
   }
   if (_.size(summary.missingDevDeps) > 0) {
