@@ -116,7 +116,7 @@ interface RedirectableRequest {
   _currentRequest: ClientRequest;
 }
 
-function isRedirectableRequest(req: unknown): req is RedirectableRequest {
+export function isRedirectableRequest(req: unknown): req is RedirectableRequest {
   return (req as RedirectableRequest)._currentRequest != null;
 }
 
@@ -147,7 +147,7 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
     onProxyReq(proxyReq, req, _res, ..._rest) {
       // This proxyReq could be "RedirectRequest" if option "followRedirect" is on
       if (isRedirectableRequest(proxyReq)) {
-        hpmLog.info(`Redirect request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
+        hpmLog.warn(`Redirect request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
           proxyReq._currentRequest.getHeaders(), null, '  ')}`);
       } else {
         proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server

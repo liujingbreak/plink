@@ -193,7 +193,7 @@ function renderHoistDepInfo(dep: string, dependents: DependentInfo): [dep: strin
 }
 function renderHoistPeerDepInfo(dep: string, dependents: DependentInfo): [dep: string, ver: string] {
   return [
-    dependents.missing ? chalk.bgYellow(dep) : (dependents.duplicatePeer ? dep : chalk.green(dep)),
+    dependents.missing ? chalk.yellow(dep) : (dependents.duplicatePeer ? dep : chalk.green(dep)),
     dependents.by.map((item, idx) =>
       `${dependents.direct && idx === 0 ? chalk.green(item.ver) : idx > 0 ? item.ver : chalk.cyan(item.ver)}: ${chalk.grey(item.name)}`
     ).join('\n')

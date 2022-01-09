@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import stream from 'stream';
+import { ClientRequest } from 'http';
 import { Request, Response, NextFunction } from 'express';
 import { Options as ProxyOptions } from 'http-proxy-middleware';
 /**
@@ -29,6 +30,10 @@ export declare function setupHttpProxy(proxyPath: string, targetUrl: string, opt
     selfHandleResponse?: ProxyOptions['selfHandleResponse'];
     proxyTimeout?: ProxyOptions['proxyTimeout'];
 }): void;
+interface RedirectableRequest {
+    _currentRequest: ClientRequest;
+}
+export declare function isRedirectableRequest(req: unknown): req is RedirectableRequest;
 export declare function defaultProxyOptions(proxyPath: string, targetUrl: string): ProxyOptions & {
     pathRewrite: {
         [regexp: string]: string;
@@ -41,3 +46,4 @@ export declare function createReplayReadableFactory(readable: NodeJS.ReadableStr
     debugInfo?: string;
     expectLen?: number;
 }): () => stream.Readable;
+export {};
