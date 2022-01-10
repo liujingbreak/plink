@@ -80,7 +80,8 @@ export function runServer(): {started: Promise<{name: string; exp:  ExtensionExp
       for (const {name, exp} of reverseOrderPkgExports) {
         if (_.isFunction(exp.deactivate)) {
           log.info('deactivate', name);
-          await Promise.resolve(exp.deactivate());
+          await Promise.resolve(exp.deactivate())
+            .catch(err => log.warn(err));
         }
       }
       log.info('Shutdown completed');

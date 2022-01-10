@@ -10,6 +10,7 @@ let log = log4File(__filename);
 interface RouterDefCallback {
   (app: Application, exp: typeof express): void;
   packageName?: string;
+  stack?: string;
 }
 
 let routerSetupFuncs: RouterDefCallback[] = [];
@@ -18,9 +19,13 @@ let appSets: RouterDefCallback[] = [];
 
 
 export function createPackageDefinedRouters(app: Application) {
+  log.debug('createPackageDefinedRouters');
   routerSetupFuncs.forEach(function(routerDef) {
     try {
-      log.debug(routerDef.packageName, 'defines router/middleware');
+      if (routerDef.packageName)
+        log.debug(routerDef.packageName, 'defines router/middleware');
+      else
+        log.debug(routerDef.stack);
       routerDef(app, express);
     } catch (er) {
       log.error('package ' + routerDef.packageName + ' router', er);
@@ -30,7 +35,9 @@ export function createPackageDefinedRouters(app: Application) {
 }
 
 export function applyPackageDefinedAppSetting(app: Application) {
+  log.debug('applyPackageDefinedAppSetting');
   appSets.forEach(callback => {
+    log.debug(callback.stack);
     callback(app, express);
   });
 }
@@ -136,7 +143,7 @@ export function setupApi(api: ExtensionContext, app: Application) {
 
   /**
 	 * Callback functions will be called after express app being created
-	 * @param  {Function} callback function(app, express)
+	 * @param  callback function(app, express)
 	 * e.g.
 	 * 	api.expressAppSet((app, express) => {
  	 * 		app.set('trust proxy', true);
@@ -144,8 +151,14 @@ export function setupApi(api: ExtensionContext, app: Application) {
  	 * 	});
 	 * @return void
 	 */
-  apiPrototype.expressAppSet = (callback) => appSets.push(callback);
-  apiPrototype.expressAppUse = (callback) => routerSetupFuncs.push(callback);
+  apiPrototype.expressAppSet = (callback) => {
+    appSets.push(callback);
+    (callback as RouterDefCallback).stack = new Error('info').stack;
+  };
+  apiPrototype.expressAppUse = (callback) => {
+    routerSetupFuncs.push(callback);
+    (callback as RouterDefCallback).stack = new Error('info').stack;
+  };
   /**
 	 * e.g.
 	 * 	api.router().options('/api', api.cors());

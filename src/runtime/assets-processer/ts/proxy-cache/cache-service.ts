@@ -11,9 +11,7 @@ import { createProxyMiddleware as proxy, Options as HpmOptions} from 'http-proxy
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
 import {createReplayReadableFactory, defaultProxyOptions} from '../utils';
 import {ProxyCacheState, CacheData} from './types';
-import inspector from 'inspector';
 
-inspector.open(9222, 'localhost');
 const httpProxyLog = logger.getLogger(log4File(__filename).category + '#httpProxy');
 const REDIRECT_STATUS = new Map<number, number>([301, 302, 307, 308].map(code => [code, code]));
 

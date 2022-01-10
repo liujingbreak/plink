@@ -8,8 +8,10 @@ const handler: ReactScriptsHandler = {
     // change CRA paths:
 
     // output directory will be dist/static/main
-    if (cmdOpt.buildType === 'app')
+    if (cmdOpt.buildType === 'app') {
       craPaths.appBuild = craPaths.appBuild + '/plink';
+      craPaths.publicUrlOrPath = '/plink';
+    }
     // webpack output.publicPath will be /main/, same as set environment variable PUBLIC_URL
     // craPaths.publicUrlOrPath = '/main/';
   },

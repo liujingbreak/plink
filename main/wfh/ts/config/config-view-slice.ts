@@ -72,7 +72,7 @@ stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
 
         return Promise.all(Array.from(getPackageSettingFiles(
             payload.workspaceKey, payload.packageName ? new Set([payload.packageName]) : undefined)
-          ).concat([ ['wfh/dist/config/config-slice', 'BasePlinkSettings', '', '', plinkPkg] ])
+          ).concat([ ['wfh/dist/config/config-slice', 'PlinkSettings', '', '', plinkPkg] ])
           .map(([typeFile, typeExport, , , pkg]) => {
 
             const dtsFileBase = Path.resolve(pkg.realPath, typeFile);

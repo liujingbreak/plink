@@ -60,6 +60,9 @@ var config = {
 module.exports = config;
 
 module.exports.setup = function(options) {
+  if (options.cliOptions.verbose) {
+    config.categories.default.level = 'debug';
+  }
 	var {logger} = options;
 	if (options.rootPath) {
 		

@@ -12,6 +12,9 @@ export interface HttpServerSetting {
     port: number;
     httpForward: boolean;
   };
+  /** Additional host names (other than localhost or local IP address)
+  * that HTTP/HTTPS server needs to listened */
+  hostnames: string[];
 }
 
 /**
@@ -26,7 +29,8 @@ export function defaultSetting(): HttpServerSetting {
       port: 443,
       httpForward: true
     },
-    noHealthCheck: false
+    noHealthCheck: false,
+    hostnames: []
   };
   // Return settings based on command line option "dev"
   if (config().cliOptions?.dev) {

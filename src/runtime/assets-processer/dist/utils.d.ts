@@ -1,7 +1,8 @@
 /// <reference types="node" />
 import stream from 'stream';
-import { ClientRequest } from 'http';
+import { ClientRequest, IncomingMessage } from 'http';
 import { Request, Response, NextFunction } from 'express';
+import { ServerOptions } from 'http-proxy';
 import { Options as ProxyOptions } from 'http-proxy-middleware';
 /**
  * Middleware for printing each response process duration time to log
@@ -34,6 +35,9 @@ interface RedirectableRequest {
     _currentRequest: ClientRequest;
 }
 export declare function isRedirectableRequest(req: unknown): req is RedirectableRequest;
+/**
+ * Options of http-proxy-middleware
+ */
 export declare function defaultProxyOptions(proxyPath: string, targetUrl: string): ProxyOptions & {
     pathRewrite: {
         [regexp: string]: string;
@@ -42,8 +46,16 @@ export declare function defaultProxyOptions(proxyPath: string, targetUrl: string
     onProxyRes: import("http-proxy-middleware/dist/types").OnProxyResCallback;
     onError: import("http-proxy-middleware/dist/types").OnErrorCallback;
 };
+/** Options of http-proxy
+ */
+export declare function defaultHttpProxyOptions(target?: string): ServerOptions;
 export declare function createReplayReadableFactory(readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[], opts?: {
     debugInfo?: string;
     expectLen?: number;
 }): () => stream.Readable;
+/**
+ * Fix proxied body if bodyParser is involved.
+ * Copied from https://github.com/chimurai/http-proxy-middleware/blob/master/src/handlers/fix-request-body.ts
+ */
+export declare function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): void;
 export {};

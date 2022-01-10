@@ -1,5 +1,6 @@
 import stream from 'stream';
-import {ClientRequest} from 'http';
+import {ClientRequest, IncomingMessage} from 'http';
+import * as querystring from 'querystring';
 import {Request, Response, NextFunction} from 'express';
 import api from '__plink';
 import _ from 'lodash';
@@ -7,7 +8,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {readCompressedResponse} from '@wfh/http-server/dist/utils';
 import {logger} from '@wfh/plink';
-
+import {ServerOptions} from 'http-proxy';
 import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
 
 const logTime = logger.getLogger(api.packageName + '.timestamp');
@@ -120,6 +121,9 @@ export function isRedirectableRequest(req: unknown): req is RedirectableRequest 
   return (req as RedirectableRequest)._currentRequest != null;
 }
 
+/**
+ * Options of http-proxy-middleware
+ */
 export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
   proxyPath = _.trimEnd(proxyPath, '/');
   targetUrl = _.trimEnd(targetUrl, '/');
@@ -197,6 +201,21 @@ export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
   return proxyMidOpt;
 }
 
+/** Options of http-proxy
+ */
+export function defaultHttpProxyOptions(target?: string): ServerOptions {
+  return {
+    target,
+    changeOrigin: true,
+    ws: false,
+    secure: false,
+    cookieDomainRewrite: { '*': '' },
+    // logLevel: 'debug',
+    // logProvider: provider => hpmLog,
+    proxyTimeout: 10000
+  };
+}
+
 const log = logger.getLogger(api.packageName + '.createReplayReadableFactory');
 
 export function createReplayReadableFactory(
@@ -262,3 +281,29 @@ export function createReplayReadableFactory(
   };
 }
 
+/**
+ * Fix proxied body if bodyParser is involved.
+ * Copied from https://github.com/chimurai/http-proxy-middleware/blob/master/src/handlers/fix-request-body.ts
+ */
+export function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): void {
+  const requestBody = (req as Request).body;
+
+  if (!requestBody || !Object.keys(requestBody).length) {
+    return;
+  }
+
+  const contentType = proxyReq.getHeader('Content-Type') as string;
+  const writeBody = (bodyData: string) => {
+    // deepcode ignore ContentLengthInCode: bodyParser fix
+    proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+    proxyReq.write(bodyData);
+  };
+
+  if (contentType && contentType.includes('application/json')) {
+    writeBody(JSON.stringify(requestBody));
+  }
+
+  if (contentType === 'application/x-www-form-urlencoded') {
+    writeBody(querystring.stringify(requestBody));
+  }
+}

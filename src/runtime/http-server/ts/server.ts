@@ -4,14 +4,14 @@ import * as fs from 'fs';
 import * as Path from 'path';
 import api from '__api';
 import {getLanIPv4} from '@wfh/plink/wfh/dist/utils/network-util';
-import {log4File} from '@wfh/plink';
+import {log4File, config} from '@wfh/plink';
 
 const log = log4File(__filename);
 var server: https.Server | http.Server;
 
 let healthCheckServer: {startServer(): void; endServer(): void} | undefined;
 try {
-  healthCheckServer = api.config.get(api.packageName + '.noHealthCheck', false) ?
+  healthCheckServer = config.get(api.packageName + '.noHealthCheck', false) ?
     false : require('@bk/bkjk-node-health-server');
 } catch (e) {
   if ((e as {code?: string}).code === 'MODULE_NOT_FOUND') {
@@ -62,7 +62,7 @@ export function activate() {
 
   function startHttpServer(app: any) {
     log.info('start HTTP');
-    const port = config().port ? config().port : 80;
+    const port = Number(config().port ? config().port : 80);
     server = http.createServer(app);
     // Node 8 has a keepAliveTimeout bug which doesn't respect active connections.
     // Connections will end after ~5 seconds (arbitrary), often not letting the full download
@@ -82,15 +82,27 @@ export function activate() {
       onListening(server, 'HTTP server', port);
       api.eventBus.emit('serverStarted', {});
     });
+
+    for (const hostname of config()['@wfh/http-server'].hostnames) {
+      log.info('listen on additional host name:', hostname);
+      server = http.createServer(app);
+      server.listen(port, hostname);
+      server.on('error', (err: Error) => {
+        onError(server, port, err);
+      });
+      server.on('listening', () => {
+        onListening(server, 'HTTP server', port);
+        api.eventBus.emit('serverStarted', {});
+      });
+    }
   }
 
   function startHttpsServer(app: any) {
     log.info('start HTTPS');
     const startPromises = [];
-    let port: number | string = sslSetting.port ? sslSetting.port : 433;
+    let port: number = Number(sslSetting.port ? sslSetting.port : 433);
     let httpPort = config().port ? config().port : 80;
 
-    port = typeof(port) === 'number' ? port : normalizePort(port );
     server = https.createServer({
       key: fs.readFileSync(Path.resolve(rootPath, sslSetting.key)),
       cert: fs.readFileSync(Path.resolve(rootPath, sslSetting.cert))
@@ -106,6 +118,22 @@ export function activate() {
     startPromises.push(new Promise(resolve => {
       server.on('listening', () => resolve(server));
     }));
+
+    for (const hostname of config()['@wfh/http-server'].hostnames) {
+      log.info('listen on additional host name:', hostname);
+      server = https.createServer({
+        key: fs.readFileSync(Path.resolve(rootPath, sslSetting.key)),
+        cert: fs.readFileSync(Path.resolve(rootPath, sslSetting.cert))
+      }, app);
+      server.listen(port, hostname);
+      server.on('error', (error: Error) => {
+        onError(server, port, error);
+      });
+      startPromises.push(new Promise(resolve => {
+        server.on('listening', () => resolve(server));
+      }));
+
+    }
 
     if (sslSetting.httpForward !== false) {
       const redirectHttpServer = http.createServer((req: any, res: any) => {
@@ -138,19 +166,19 @@ export function activate() {
     });
   }
 
-  function normalizePort(val: string): number | string {
-    const port = parseInt(val , 10);
-    if (isNaN(port)) {
-      // named pipe
-      return val;
-    }
+  // function normalizePort(val: string): number | string {
+  //   const port = parseInt(val , 10);
+  //   if (isNaN(port)) {
+  //     // named pipe
+  //     return val;
+  //   }
 
-    if (port >= 0) {
-      // port number
-      return port;
-    }
-    throw new Error('ssl.port must be a positive number');
-  }
+  //   if (port >= 0) {
+  //     // port number
+  //     return port;
+  //   }
+  //   throw new Error('ssl.port must be a positive number');
+  // }
 
   /**
 	 * Event listener for HTTP server "listening" event.

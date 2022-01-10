@@ -75,9 +75,22 @@ const cliExt: CliExtension = (program) => {
     .option('--tiny', 'A RxJS based tiny Slice for managing individual component internal state, useful for complicated component', false)
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .action(async (dir: string, sliceName: string[]) => {
-      await (await import('./cli-cra-gen')).genSlice(dir, sliceName, genCraSliceCmd.opts() as any);
+      await (await import('./cli-cra-gen')).genSlice(dir, sliceName, genCraSliceCmd.opts() );
     });
 
+  const htCmd = program.command('http-tunnel')
+    .alias('ht')
+    .description('Start forward proxy server')
+    .argument('[port]', 'Port number', 14881)
+    .option('-m <host-map>', '(multiple option) host mapping, e.g. -m www.google.com=localhost:8080',
+      (value, map) => {
+        const [host1, host2] = value.split('=');
+        map.set(host1.trim(), host2.trim());
+        return map;
+      }, new Map<string, string>())
+    .action(async (port: number) => {
+      (await import('./cli-forward-proxy')).start(port, htCmd.opts().m);
+    });
   // program.command('install-eslint')
   // .description('Install eslint to current project')
   // .action(async () => {

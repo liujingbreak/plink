@@ -1,7 +1,7 @@
-import * as rx from 'rxjs';
-import express, {Request, Response, NextFunction, Application} from 'express';
 import * as Path from 'path';
 import * as fs from 'fs';
+import * as rx from 'rxjs';
+import express, {Request, Response, Application} from 'express';
 // var favicon = require('serve-favicon');
 import {logger, ExtensionContext, config} from '@wfh/plink';
 import bodyParser from 'body-parser';
@@ -89,6 +89,15 @@ function create(app: express.Express, setting: ReturnType<typeof config>) {
   }));
   app.use(cookieParser());
   app.use(compression());
+  // app.use((req, res, next) => {
+  //   if (req.url.startsWith('http://') || req.url.startsWith('https://')) {
+  //     // in case request HOST is a unknown name, most likely is proxied
+  //     req.url = new URL(req.url).pathname;
+  //     req.originalUrl = req.url;
+  //     log.warn('rewrite url to', req.url);
+  //   }
+  //   next();
+  // });
 
   const nodeVer = process.version;
   app.use((req, res, next) => {
@@ -110,7 +119,7 @@ function create(app: express.Express, setting: ReturnType<typeof config>) {
   createPackageDefinedRouters(app);
   // error handlers
   // catch 404 and forward to error handler
-  app.use(function(req, res, next) {
+  app.use(function(req, res) {
     // log.info('Not Found: ' + req.originalUrl);
     if (req.url.indexOf('/favicon/') >= 0) {
       return res.status(404);
@@ -118,7 +127,7 @@ function create(app: express.Express, setting: ReturnType<typeof config>) {
     // const err = new Error('Not Found');
     res.status(404);
     // next(err);
-    log.info(`Not found: ${req.originalUrl}, UA: "${req.header('user-agent') as string}"`);
+    log.info(`Not found: ${req.originalUrl}, ${req.url}, UA: "${req.header('user-agent') as string}"`);
     res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
       message: 'Sorry, page is not found',
       error: null
@@ -128,9 +137,9 @@ function create(app: express.Express, setting: ReturnType<typeof config>) {
   // development error handler
   // will print stacktrace
   if (setting.devMode || app.get('env') === 'development') {
-    app.use(function(err: any, req: Request, res: Response, next: NextFunction) {
+    app.use(function(err: any, req: Request, res: Response) {
       res.status((err ).status || 500);
-      log.error(req.originalUrl, err.inspect ? err.inspect() : err);
+      log.error(req.originalUrl, ',', req.url, req.header('user-agent'), err.inspect ? err.inspect() : err);
       res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {
         message: err.message,
         error: err
@@ -140,7 +149,7 @@ function create(app: express.Express, setting: ReturnType<typeof config>) {
 
   // production error handler
   // no stacktraces leaked to user
-  app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
+  app.use(function(err: Error, req: Request, res: Response) {
     res.status((err as any).status || 500);
     log.error(req.originalUrl, err);
     res.render(Path.join(VIEW_PATH, '_drcp-express-error.html'), {

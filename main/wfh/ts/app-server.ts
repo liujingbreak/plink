@@ -66,13 +66,17 @@ if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--p
         const result = hookFn();
         return result || rx.EMPTY;
       }),
-      op.finalize(() => {
-        void shutdown().then(() => {
-          exit$.next('done');
-          exit$.complete();
-          // eslint-disable-next-line no-console
-          console.log('Packages are deactivated');
-        });
+      op.catchError(err => {
+        console.error('Failed to execute shutdown hooks', err);
+        return rx.EMPTY;
+      }),
+      op.count(),
+      op.concatMap(async () => {
+        await shutdown();
+        exit$.next('done');
+        exit$.complete();
+        // eslint-disable-next-line no-console
+        console.log('Packages are deactivated');
       })
     ).subscribe();
   });

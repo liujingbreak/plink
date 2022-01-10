@@ -38,7 +38,8 @@ export function initConfig(options: GlobalOptions = {}) {
  * @param onShutdownSignal 
  */
 export function initProcess(saveState = true, onShutdownSignal?: () => void | Promise<any>, isChildProcess = false) {
-  process.on('SIGINT', function() {
+  // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
+  process.on('exit', function() {
     // eslint-disable-next-line no-console
     log.info('pid ' + process.pid + ': bye');
     void onShut();
@@ -67,7 +68,8 @@ export function initProcess(saveState = true, onShutdownSignal?: () => void | Pr
 
   async function onShut() {
     if (onShutdownSignal) {
-      await Promise.resolve(onShutdownSignal());
+      await Promise.resolve(onShutdownSignal())
+        .catch(err => console.error(err));
     }
     const saved = storeSavedAction$.pipe(op.take(1)).toPromise();
     dispatcher.processExit();
