@@ -5,12 +5,15 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {Request, Response, NextFunction} from 'express';
+import httpProxy, {ServerOptions as HpmOptions} from 'http-proxy';
 import api from '__plink';
 import {logger, log4File, config} from '@wfh/plink';
-import { createProxyMiddleware as proxy, Options as HpmOptions} from 'http-proxy-middleware';
+import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
 import {createReplayReadableFactory, defaultProxyOptions} from '../utils';
 import {ProxyCacheState, CacheData} from './types';
+import {httpProxyObservable} from '../http-proxy-observable';
+
 
 const httpProxyLog = logger.getLogger(log4File(__filename).category + '#httpProxy');
 const REDIRECT_STATUS = new Map<number, number>([301, 302, 307, 308].map(code => [code, code]));

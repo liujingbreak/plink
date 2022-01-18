@@ -15,11 +15,11 @@
   },
   "scripts": {
     "link-plink": "node main/bin/link.js",
-    "lint-wfh": "eslint -c main/.eslintrc.js --ext .ts main/wfh/ts",
-    "lint-redux": "eslint -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",
-    "lint-thread": "eslint -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
-    "lint-main-file": "eslint -c main/.eslintrc.js",
-    "lint-other": "eslint -c .eslintrc.js"
+    "lint-wfh": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/wfh/ts",
+    "lint-redux": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",
+    "lint-thread": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
+    "lint-main-file": "eslint --no-eslintrc -c main/.eslintrc.js",
+    "lint-other": "eslint --no-eslintrc -c .eslintrc.js"
   },
   "devDependencies": {
     "@wfh/eslint-config-cra": "./src/tools/eslint-config-cra",

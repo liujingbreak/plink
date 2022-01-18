@@ -17,7 +17,10 @@ export type HttpProxyEventParams = {
 const EVENTS = 'error,start,proxyReq,proxyRes,ProxyReqWs,econnreset,end,open,close'.split(',') as
   Array<keyof HttpProxyEventParams>;
 
-export function httpProxyObservable(proxy: HttpProxy) {
+export function httpProxyObservable(proxy: HttpProxy) :
+  {[evt in keyof HttpProxyEventParams]:
+    rx.Observable<{type: evt; payload: HttpProxyEventParams[evt]}>
+  } {
   const obsObj = {} as {[evt in keyof HttpProxyEventParams]: rx.Observable<{type: evt; payload: HttpProxyEventParams[evt]}>};
   const createdSubjs = {} as typeof obsObj;
 
