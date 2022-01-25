@@ -5,23 +5,33 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {Request, Response, NextFunction} from 'express';
-import httpProxy, {ServerOptions as HpmOptions} from 'http-proxy';
+import {ServerOptions, createProxyServer} from 'http-proxy';
 import api from '__plink';
 import {logger, log4File, config} from '@wfh/plink';
-import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
+// import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
-import {createReplayReadableFactory, defaultProxyOptions} from '../utils';
+import {createReplayReadableFactory} from '../utils';
+import {httpProxyObservable, observeProxyResponse} from '../http-proxy-observable';
 import {ProxyCacheState, CacheData} from './types';
-import {httpProxyObservable} from '../http-proxy-observable';
 
 
 const httpProxyLog = logger.getLogger(log4File(__filename).category + '#httpProxy');
-const REDIRECT_STATUS = new Map<number, number>([301, 302, 307, 308].map(code => [code, code]));
 
-export function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string,
+export function createProxyWithCache(proxyPath: string, serverOptions: ServerOptions, cacheRootDir: string,
                  opts: {manual: boolean; memCacheLength?: number} = {manual: false}) {
+  const defaultProxy = createProxyServer({
+    changeOrigin: true,
+    ws: false,
+    secure: false,
+    cookieDomainRewrite: { '*': '' },
+    followRedirects: true,
+    proxyTimeout: 20000,
+    timeout: 10000,
+    ...serverOptions
+  });
   const initialState: ProxyCacheState = {
-    // proxyOptions: defaultProxyOptions(proxyPath, targetUrl),
+    proxy: defaultProxy,
+    proxy$: httpProxyObservable(defaultProxy),
     cacheDir: cacheRootDir,
     cacheByUri: new Map(),
     memCacheLength: opts.memCacheLength == null ? Number.MAX_VALUE : opts.memCacheLength
@@ -40,8 +50,6 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
     name: `HTTP-proxy-cache-${proxyPath}` ,
     debugActionOnly: config().cliOptions?.verbose,
     reducers: {
-      configureProxy(s: ProxyCacheState, payload: HpmOptions) {
-      },
       configTransformer(s: ProxyCacheState, payload: {
         remote?: ProxyCacheState['responseTransformer'];
         cached?: ProxyCacheState['cacheTransformer'];
@@ -51,7 +59,11 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
         if (payload.cached)
           s.cacheTransformer = payload.cached;
       },
-      hitCache(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction}) {},
+      hitCache(s: ProxyCacheState, payload: {
+        key: string; req: Request; res: Response; next: NextFunction;
+        /** override remote target */
+        target?: string;
+      }) {},
 
       _requestRemoteDone(s: ProxyCacheState, payload: {
         key: string; reqHost: string | undefined;
@@ -59,11 +71,14 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
         data: {headers: CacheData['headers']; readable: IncomingMessage};
       }) {},
 
-      _loadFromStorage(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction}) {
+      _loadFromStorage(s: ProxyCacheState, payload: {key: string; req: Request; res: Response;
+                       next: NextFunction;
+        target?: string; }) {
         s.cacheByUri.set(payload.key, 'loading');
       },
 
-      _requestRemote(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction}) {
+      _requestRemote(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction;
+        target?: string; }) {
         s.cacheByUri.set(payload.key, 'requesting');
       },
       _savingFile(s: ProxyCacheState, payload: {
@@ -95,16 +110,14 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
   });
 
   cacheController.epic(action$ => {
-    const defaultProxyOpt = defaultProxyOptions(proxyPath, targetUrl);
-    const proxyError$ = new rx.Subject<Parameters<(typeof defaultProxyOpt)['onError']>>();
-    const proxyRes$ = new rx.Subject<Parameters<(typeof defaultProxyOpt)['onProxyRes']>>();
-
-    let proxyMiddleware$ = new rx.ReplaySubject<ReturnType<typeof proxy>>(1);
     const actions = castByActionType(cacheController.actions, action$);
 
-    async function requestingRemote(key: string, reqHost: string | undefined,
-                                    proxyRes: IncomingMessage,
-                                    res: ServerResponse, headers: [string, string | string[]][]) {
+    async function requestingRemote(
+      key: string, reqHost: string | undefined,
+      proxyRes: IncomingMessage,
+      res: ServerResponse,
+      headers: [string, string | string[]][]) {
+
       httpProxyLog.debug('cache size:', cacheController.getState().cacheByUri.size);
       const dir = Path.join(cacheController.getState().cacheDir, key);
       const file = Path.join(dir, 'body');
@@ -187,34 +200,6 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
     }
 
     return rx.merge(
-      actions.configureProxy.pipe(
-        op.map(({payload: extraOpt}) => {
-          proxyMiddleware$.next(proxy({
-            ...defaultProxyOpt,
-            followRedirects: true,
-            logLevel: config().cliOptions?.verbose ? 'debug' :
-              'info',
-            proxyTimeout: 20000,
-            ...extraOpt,
-            onProxyRes(...args) {
-              if (REDIRECT_STATUS.has(args[0].statusCode || 200)) {
-                httpProxyLog.info('skip redirected response');
-                return;
-              }
-              proxyRes$.next(args);
-              defaultProxyOpt.onProxyRes(...args);
-              if (extraOpt.onProxyRes)
-                extraOpt.onProxyRes(...args);
-            },
-            onError(...args) {
-              defaultProxyOpt.onError(...args);
-              proxyError$.next(args);
-              if (extraOpt.onError)
-                extraOpt.onError(...args);
-            }
-          }));
-        })
-      ),
       actions.hitCache.pipe(
         op.mergeMap( ({payload}) => {
           const waitCacheAndSendRes = rx.race(actions._done, actions._savingFile).pipe(
@@ -354,33 +339,37 @@ export function createProxyWithCache(proxyPath: string, targetUrl: string, cache
         })
       ),
       actions._requestRemote.pipe(
-        op.mergeMap(({payload}) => rx.merge(
-          rx.race(
-            proxyRes$.pipe(
-              op.filter(([, , res]) => res === payload.res),
-              op.take(1),
-              op.mergeMap(([proxyRes, origReq, serverRes]) => {
-                return rx.defer(() => requestingRemote(payload.key, payload.req.headers.host, proxyRes, serverRes,
-                  Object.entries(proxyRes.headers)
-                  .filter(entry => entry[1] != null) as [string, string | string[]][]))
-                .pipe(
-                  op.timeout(15000)
-                );
-              })
-            ),
-            proxyError$.pipe(
-              op.filter(([err, origReq, serverRes]) => serverRes === payload.res),
-              op.take(1),
-              op.map(([err]) => {
-                httpProxyLog.error('HPM error', err);
-              })
-            )
-          ),
-          proxyMiddleware$.pipe(
-            op.take(1),
-            op.map(proxy => proxy(payload.req, payload.res, payload.next))
-          )
-        ))
+        // wait for proxy being created
+        // op.mergeMap(action => cacheController.getStore().pipe(
+        //   op.map(s => s.proxy),
+        //   op.distinctUntilChanged(),
+        //   op.filter(proxy => proxy != null),
+        //   op.mapTo({proxy, payload: action.payload})
+        // )),
+        op.mergeMap(({payload}) => {
+
+          const proxyOpts: ServerOptions = {};
+          if (payload.target) {
+            proxyOpts.target = payload.target;
+            proxyOpts.ignorePath = true;
+          }
+          return rx.defer(() => {
+            cacheController.getState().proxy.web(payload.req, payload.res, proxyOpts);
+            return observeProxyResponse(cacheController.getState().proxy$, payload.res);
+          }).pipe(
+            op.mergeMap(({payload: [proxyRes, _req, res]}) => {
+              return requestingRemote(payload.key, payload.req.headers.host, proxyRes, res,
+                Object.entries(proxyRes.headers).filter(entry => entry[1] != null) as [string, string | string[]][]);
+            }),
+            op.catchError(err => {
+              httpProxyLog.warn(`Retry "${payload.req.url}"`, err);
+              return rx.timer(1000).pipe(
+                op.mapTo(rx.throwError(err))
+              );
+            }),
+            op.retry(3)
+          );
+        })
       )
     ).pipe(
       op.ignoreElements(),

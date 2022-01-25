@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /// <reference path="./cfont.d.ts" />
 /* eslint-disable max-len */
 import fs from 'fs';
@@ -333,9 +334,12 @@ function subComands(program: commander.Command) {
     'plink analyze -d packages/foobar1/src -d packages/foobar2/ts'));
 
   const watchCmd = program.command('watch')
-  .description('Watch package source code file changes (files referenced in .npmignore will be ignored) and update Plink state, ' +
+  .description('Watch package source file or specific file changes (files referenced in .npmignore will be ignored) and update Plink state, ' +
   'automatically install transitive dependency')
   .argument('[package...]', cliPackageArgDesc, [])
+  .option('-a <directory>', 'Use chokidar watch additional directories or files (multiple) for copy, option "--cp" must also be presented',
+    (value, prev) => {prev.push(value); return prev; }, [] as string[])
+  .option('--include', 'glob pattern append to "-a" option')
   .option('--cp, --copy <directory>', 'copy package files to specific directory, mimic behavior of "npm install <pkg>", but this won\'t install dependencies')
   .action((pkgs: string[]) => {
     const {cliWatch} = require('./cli-watch') as typeof _cliWatch;

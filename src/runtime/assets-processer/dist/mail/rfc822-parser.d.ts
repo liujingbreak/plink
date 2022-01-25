@@ -21,4 +21,4 @@ export interface RCF822HeaderType {
     key: string;
     value: string[];
 }
-export declare function parse(readable: Buffer): Promise<RCF822ParseResult>;
+export declare function parse(readable: Buffer): any;

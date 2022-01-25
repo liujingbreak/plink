@@ -27,7 +27,7 @@ export function cliWatch(packages: string[], opt: WatchOption) {
       }
       return true;
     }),
-    op.mergeMap((pkg, idx) => {
+    op.mergeMap((pkg, _idx) => {
       return new rx.Observable<'change' | 'unlink'>(sub => {
         // log.info(pkg.realPath);
         const pkgJsonFile = Path.resolve(pkg!.realPath, 'package.json');
@@ -72,7 +72,7 @@ export function cliWatch(packages: string[], opt: WatchOption) {
     // const copyTo = Path.resolve(opt.copy);
     rx.from(pkgs).pipe(
       op.filter(pkg => pkg != null),
-      op.mergeMap((pkg, idx) => {
+      op.mergeMap((pkg) => {
         const npmIgnore = Path.resolve(pkg!.realPath, '.npmignore');
         return (fs.existsSync(npmIgnore) ?
           rx.from(fs.promises.readFile(npmIgnore, 'utf-8')) :
@@ -121,5 +121,31 @@ export function cliWatch(packages: string[], opt: WatchOption) {
         return fs.promises.copyFile(srcFile, target);
       })
     ).subscribe();
+
+    if (opt.a && opt.a.length > 0) {
+      log.info('additional watches:', opt.a);
+      rx.from(opt.a).pipe(
+        op.mergeMap(source => new rx.Observable<[from: string, to: string]>(sub => {
+          const watcher = chokidar.watch(opt.include ? Path.posix.join(source.replace(/\\/g, '/'), opt.include) : source);
+
+          watcher.on('add', path => {
+            const relative = Path.relative(source, path);
+            log.info('chokidar add', relative);
+            sub.next([path, Path.join(opt.copy!, relative)]);
+          });
+          watcher.on('change', path => {
+            const relative = Path.relative(source, path);
+            log.info('chokidar change', relative);
+            sub.next([path, Path.join(opt.copy!, relative)]);
+          });
+          return () => watcher.close();
+        })),
+        op.mergeMap(([srcFile, target]) => {
+          log.info('copy', srcFile, 'to\n ', target);
+          mkdirpSync(Path.dirname(target));
+          return fs.promises.copyFile(srcFile, target);
+        })
+      ).subscribe();
+    }
   }
 }

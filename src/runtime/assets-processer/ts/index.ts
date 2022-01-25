@@ -52,7 +52,7 @@ export function activate(api: ExtensionContext) {
       const dir = Path.join(config().destDir, 'http-proxy-cache', _.trimStart(proxyPath, '/'));
       const endPoint = httpProxyWithCacheSet[proxyPath];
       log.info(`Enable HTTP proxy ${proxyPath} --> ${endPoint}, cache directory: ${dir}`);
-      createProxyWithCache(proxyPath, endPoint, dir);
+      createProxyWithCache(proxyPath, {target: endPoint}, dir);
     }
   }
 

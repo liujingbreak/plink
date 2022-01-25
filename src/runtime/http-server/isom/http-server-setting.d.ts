@@ -2,6 +2,7 @@
  * Package setting type
  */
 export interface HttpServerSetting {
+    /** Deprecated */
     noHealthCheck: boolean;
     ssl: {
         enabled: boolean;
@@ -13,6 +14,15 @@ export interface HttpServerSetting {
     /** Additional host names (other than localhost or local IP address)
     * that HTTP/HTTPS server needs to listened */
     hostnames: string[];
+    /** starts with multiple servers
+    * if this property is provided, property "ssl" will be ignored */
+    servers?: {
+        ssl?: {
+            key: string;
+            cert: string;
+        };
+        port: number;
+    }[];
 }
 /**
  * Plink runs this funtion to get package level setting value

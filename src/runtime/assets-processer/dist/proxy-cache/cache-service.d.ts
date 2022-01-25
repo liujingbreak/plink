@@ -1,12 +1,11 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import { Request, Response, NextFunction } from 'express';
-import { Options as HpmOptions } from 'http-proxy-middleware';
+import { ServerOptions } from 'http-proxy';
 import { ProxyCacheState, CacheData } from './types';
-export declare function createProxyWithCache(proxyPath: string, targetUrl: string, cacheRootDir: string, opts?: {
+export declare function createProxyWithCache(proxyPath: string, serverOptions: ServerOptions, cacheRootDir: string, opts?: {
     manual: boolean;
     memCacheLength?: number;
 }): import("@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit").Slice<ProxyCacheState, {
-    configureProxy(s: ProxyCacheState, payload: HpmOptions): void;
     configTransformer(s: ProxyCacheState, payload: {
         remote?: ProxyCacheState['responseTransformer'];
         cached?: ProxyCacheState['cacheTransformer'];
@@ -16,6 +15,8 @@ export declare function createProxyWithCache(proxyPath: string, targetUrl: strin
         req: Request;
         res: Response;
         next: NextFunction;
+        /** override remote target */
+        target?: string;
     }): void;
     _requestRemoteDone(s: ProxyCacheState, payload: {
         key: string;
@@ -31,12 +32,14 @@ export declare function createProxyWithCache(proxyPath: string, targetUrl: strin
         req: Request;
         res: Response;
         next: NextFunction;
+        target?: string;
     }): void;
     _requestRemote(s: ProxyCacheState, payload: {
         key: string;
         req: Request;
         res: Response;
         next: NextFunction;
+        target?: string;
     }): void;
     _savingFile(s: ProxyCacheState, payload: {
         key: string;

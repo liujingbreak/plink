@@ -3,7 +3,12 @@ import net from 'net';
 import {log4File, config} from '@wfh/plink';
 const log = log4File(__filename);
 
-export function start(port: number, hostMap: Map<string, string> = new Map()) {
+export function start(port: number, hostMap: Map<string, string> = new Map(),
+  opts?: {
+    /** if host is not in hostMap, forward to this proxy */
+    fallbackProxyHost: string;
+    fallbackproxyPort: number;
+  }) {
   const server = net.createServer();
 
   server.on('connection', (clientToProxySocket) => {
@@ -37,15 +42,28 @@ export function start(port: number, hostMap: Map<string, string> = new Map()) {
       log.info('proxy to:', serverAddress + ':' + serverPort);
       const mapped = serverAddress ? hostMap.get(serverAddress) : null;
 
+      let proxyToServerSocket: net.Socket;
+
       if (mapped) {
         let splitted = mapped.split(':');
         serverAddress = splitted[0];
         if (splitted[1])
           serverPort = parseInt(splitted[1], 10);
         log.info('mapped to', serverAddress, ':', serverPort);
+      } else if (opts?.fallbackProxyHost){
+        proxyToServerSocket = net.connect({
+          host: opts.fallbackProxyHost,
+          port: opts.fallbackproxyPort
+        }, () => {
+          log.debug('PROXY TO FORBACK proxy connection created', opts.fallbackProxyHost, ':', opts.fallbackproxyPort);
+          proxyToServerSocket.write(data);
+          // Piping the sockets
+          clientToProxySocket.pipe(proxyToServerSocket);
+          proxyToServerSocket.pipe(clientToProxySocket);
+        });
       }
 
-      let proxyToServerSocket = net.connect({
+      proxyToServerSocket = net.connect({
           host: serverAddress,
           port: serverPort
         }, () => {
@@ -62,15 +80,15 @@ export function start(port: number, hostMap: Map<string, string> = new Map()) {
           proxyToServerSocket.pipe(clientToProxySocket);
         });
 
-      proxyToServerSocket.on('error', (err) => {
-        log.info('PROXY TO SERVER ERROR', serverAddress, ':', serverPort, err);
+      proxyToServerSocket!.on('error', (err) => {
+        log.warn('PROXY TO SERVER ERROR', serverAddress, ':', serverPort, err);
       });
-      proxyToServerSocket.on('lookup', (err, addr, fam, host) => {
+      proxyToServerSocket!.on('lookup', (err, addr, fam, host) => {
         if (err)
           log.warn('lookup error', err);
-        log.info(addr, host);
+        log.info('lookup', addr, host);
       });
-      proxyToServerSocket.on('timeout', () => {
+      proxyToServerSocket!.on('timeout', () => {
         log.info('PROXY TO SERVER timeout', serverAddress, ':', serverPort);
       });
     });
@@ -84,11 +102,17 @@ export function start(port: number, hostMap: Map<string, string> = new Map()) {
     log.info('SERVER ERROR');
     log.info(err);
   });
+
   server.on('close', () => {
     log.info('Client Disconnected');
   });
+
   server.listen(port, () => {
     log.info(`Server runnig at http://${config().localIP}:` + port);
   });
+
+  return () => {
+    server.close();
+  };
 }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import {useRtk} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
-import {sliceOptionFactory, epicFactory, SurfaceProps as Props} from './surfaceSlice';
 import cls from 'classnames';
+import {sliceOptionFactory, epicFactory, SurfaceProps as Props} from './surfaceSlice';
 // import clsddp from 'classnames/dedupe';
 import styles from './Surface.module.scss';
 

@@ -72,4 +72,6 @@ export interface OurCommandOption<T = string> {
 }
 export interface WatchOption {
     copy?: string;
+    include?: string;
+    a: string[];
 }

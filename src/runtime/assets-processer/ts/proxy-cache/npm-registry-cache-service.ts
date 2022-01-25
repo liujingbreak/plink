@@ -28,15 +28,15 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
 
   const servePath = Path.posix.join(setting.path || '/registry', 'versions');
   log.info('NPM registry cache is serving at ', servePath);
-  const versionsCacheCtl = createProxyWithCache(servePath,
-    setting.registry || 'https://registry.npmjs.org',
+  const versionsCacheCtl = createProxyWithCache(servePath, {
+      selfHandleResponse: true,
+      target: setting.registry || 'https://registry.npmjs.org'
+    },
     Path.posix.join(setting.cacheDir || config.resolve('destDir'), 'versions')
   );
 
   const tarballDir = Path.resolve(setting.cacheDir || config.resolve('destDir'), 'download-tarballs');
-
   const pkgDownloadRouter = api.express.Router();
-
   const serveTarballPath = Path.posix.join(setting.path || '/registry', '_tarballs');
 
   api.use(serveTarballPath, pkgDownloadRouter);
@@ -99,18 +99,12 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
                 let service = cacheSvcByOrigin.get(origin);
                 if (service == null) {
                   log.info('create download proxy intance for', origin);
-                  service = createProxyWithCache(origin, origin,
+                  service = createProxyWithCache(origin, {
+                    target: url
+                  },
                     Path.join(tarballDir, host.replace(/:/g, '_')),
                     { manual: true, memCacheLength: 0 });
                   cacheSvcByOrigin.set(origin, service);
-                  service.actionDispatcher.configureProxy({
-                    pathRewrite(_path, req) {
-                      const {params: {pkgName, version}} = (req as Request<PkgDownloadRequestParams>);
-                      const url = pkgDownloadCtl.getState()[pkgName][version];
-                      const {pathname} = new URL(url);
-                      return pathname;
-                    }
-                  });
                 }
                 service.actionDispatcher.hitCache({
                   key: keyOfUri(payload.req.method, pathname),
@@ -132,11 +126,6 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
         return src; // re-subsribe on fail
       })
     );
-  });
-
-
-  versionsCacheCtl.actionDispatcher.configureProxy({
-    selfHandleResponse: true
   });
 
   versionsCacheCtl.actionDispatcher.configTransformer({
@@ -233,6 +222,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
           length: bufLength,
           readable: () => new Readable({
             read() {
+              // eslint-disable-next-line @typescript-eslint/no-this-alias
               const self = this;
               subject.subscribe({
               next(buf) {

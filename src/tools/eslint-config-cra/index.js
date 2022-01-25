@@ -12,49 +12,53 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 Happy linting! 💖
 */
 const path = require('path');
+const reactAppCfg = require('eslint-config-react-app');
 
 module.exports = create(path.resolve(__dirname, "../../tsconfig.json"), '17.0.2');
 
 module.exports.create = create;
 
-function create(tsconfigFile, reactVersion) {
+function create(tsconfigFile) {
+  const reactOverride = reactAppCfg.overrides[0];
   return {
-    "env": {
-        "browser": true,
-        "es6": true
-    },
-    "extends": [
-        "plugin:@typescript-eslint/recommended",
-        "plugin:@typescript-eslint/recommended-requiring-type-checking",
-        "prettier",
-        "react-app"
+    root: true,
+    ...reactAppCfg,
+    extends: [
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@typescript-eslint/recommended-requiring-type-checking",
+//      "prettier",
+      ...reactAppCfg.extends
     ],
-    settings: {
-        react: {
-            version: reactVersion, // To override "detect" setting in CRA's eslint-config-react-app/base.js
-        },
-    },
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-        // "debugLevel": true,
-        "project": tsconfigFile,
-        "sourceType": "module"
-    },
-    "plugins": [
+    ignorePatterns: [
+      "**/dist/**/*",
+      "**/*.d.ts"
+    ],
+    // settings: {
+    //   react: {
+    //       version: reactVersion, // To override "detect" setting in CRA's eslint-config-react-app/base.js
+    //   },
+    // },
+    overrides: [{
+      files: reactOverride.files,
+      plugins: [
         "eslint-plugin-jsdoc",
         "eslint-plugin-import",
         "eslint-plugin-prefer-arrow",
         "@typescript-eslint",
         "@typescript-eslint/tslint"
-    ],
-    "ignorePatterns": [
-        "**/dist/**/*",
-        "**/*.d.ts"
-    ],
-    "rules": {
+      ],
+      excludedFiles: '*.d.ts',
+      parser: "@typescript-eslint/parser",
+      parserOptions: {
+        ...(reactOverride.parserOptions),
+        // debugLevel: true,
+        project: tsconfigFile
+      },
+      rules: {
+        ...(reactOverride.rules),
         "@typescript-eslint/tslint/config": ["warn", {
-            "rules": {
-                "whitespace": [true,
+            rules: {
+                whitespace: [true,
                     "check-branch",
                     "check-decl",
                     "check-operator",
@@ -76,24 +80,24 @@ function create(tsconfigFile, reactVersion) {
         "@typescript-eslint/ban-types": [
             "error",
             {
-                "types": {
-                    "Object": {
-                        "message": "Avoid using the `Object` type. Did you mean `object`?"
+                types: {
+                    Object: {
+                        message: "Avoid using the `Object` type. Did you mean `object`?"
                     },
-                    "Function": {
-                        "message": "Avoid using the `Function` type. Prefer a specific function type, like `() => void`."
+                    Function: {
+                        message: "Avoid using the `Function` type. Prefer a specific function type, like `() => void`."
                     },
-                    "Boolean": {
-                        "message": "Avoid using the `Boolean` type. Did you mean `boolean`?"
+                    Boolean: {
+                        message: "Avoid using the `Boolean` type. Did you mean `boolean`?"
                     },
-                    "Number": {
-                        "message": "Avoid using the `Number` type. Did you mean `number`?"
+                    Number: {
+                        message: "Avoid using the `Number` type. Did you mean `number`?"
                     },
-                    "String": {
-                        "message": "Avoid using the `String` type. Did you mean `string`?"
+                    String: {
+                        message: "Avoid using the `String` type. Did you mean `string`?"
                     },
-                    "Symbol": {
-                        "message": "Avoid using the `Symbol` type. Did you mean `symbol`?"
+                    Symbol: {
+                        message: "Avoid using the `Symbol` type. Did you mean `symbol`?"
                     }
                 }
             }
@@ -103,7 +107,7 @@ function create(tsconfigFile, reactVersion) {
         "@typescript-eslint/explicit-member-accessibility": [
             "error",
             {
-                "accessibility": "no-public"
+                accessibility: "no-public"
             }
         ],
         "@typescript-eslint/explicit-module-boundary-types": "off",
@@ -114,13 +118,13 @@ function create(tsconfigFile, reactVersion) {
         "@typescript-eslint/member-delimiter-style": [
             "warn",
             {
-                "multiline": {
-                    "delimiter": "semi",
-                    "requireLast": true
+                multiline: {
+                    delimiter: "semi",
+                    requireLast: true
                 },
-                "singleline": {
-                    "delimiter": "semi",
-                    "requireLast": false
+                singleline: {
+                    delimiter: "semi",
+                    requireLast: false
                 }
             }
         ],
@@ -143,7 +147,7 @@ function create(tsconfigFile, reactVersion) {
         "@typescript-eslint/no-shadow": [
             "off",
             {
-                "hoist": "all"
+                hoist: "all"
             }
         ],
         "@typescript-eslint/no-this-alias": "warn",
@@ -155,7 +159,7 @@ function create(tsconfigFile, reactVersion) {
         "@typescript-eslint/no-unused-expressions": [
             "error",
             {
-                "allowShortCircuit": true
+                allowShortCircuit: true
             }
         ],
         "@typescript-eslint/no-unused-vars": "off",
@@ -180,146 +184,149 @@ function create(tsconfigFile, reactVersion) {
         "@typescript-eslint/triple-slash-reference": [
             "off",
             {
-                "path": "always",
-                "types": "prefer-import",
-                "lib": "always"
+                path: "always",
+                types: "prefer-import",
+                lib: "always"
             }
         ],
-        "brace-style": ["error", "1tbs", {
-            "allowSingleLine": true
-        }],
-        "no-extra-semi": "off",
         "@typescript-eslint/no-extra-semi": "error",
         "@typescript-eslint/unbound-method": ["off", { ignoreStatic: true }],
-        "@typescript-eslint/unified-signatures": "error",
-        "prefer-rest-params": "off",
-        "arrow-parens": [
-            "off",
-            "always"
-        ],
-        "comma-dangle": "error",
-        "complexity": "off",
-        "constructor-super": "error",
-        "curly": [
-            "off",
-            "multi-line"
-        ],
-        "default-case": "error",
-        "dot-notation": "error",
-        "eol-last": "error",
-        "eqeqeq": [
-            "error",
-            "smart"
-        ],
-        "guard-for-in": "error",
-        "id-blacklist": "off",
-        "id-match": "off",
-        "import/order": ["warn", {"groups": ["builtin", "external", "parent", "sibling", "index"]}],
-        "jsdoc/check-alignment": "off",
-        "jsdoc/check-indentation": "off",
-        "jsdoc/newline-after-description": "off",
-        "linebreak-style": [
-            "error",
-            "unix"
-        ],
-        "max-classes-per-file": "off",
-        "new-parens": "error",
-        "no-array-constructor": "off",
-        "no-bitwise": "off",
-        "no-caller": "error",
-        "no-cond-assign": "off",
-        "no-console": [
-            "error",
-            {
-                "allow": [
-                    "warn",
-                    "dir",
-                    "time",
-                    "timeEnd",
-                    "timeLog",
-                    "trace",
-                    "assert",
-                    "clear",
-                    "count",
-                    "countReset",
-                    "group",
-                    "groupEnd",
-                    "table",
-                    "debug",
-                    "info",
-                    "dirxml",
-                    "error",
-                    "groupCollapsed",
-                    "Console",
-                    "profile",
-                    "profileEnd",
-                    "timeStamp",
-                    "context"
-                ]
-            }
-        ],
-        "no-constant-condition": "off",
-        "no-debugger": "error",
-        "no-empty": "off",
-        "no-empty-function": "off",
-        "no-eval": "error",
-        "no-fallthrough": "off",
-        "no-implied-eval": "off",
-        "no-invalid-this": "off",
-        "no-new-wrappers": "off",
-        "no-shadow": "off",
-        "no-throw-literal": "error",
-        "no-trailing-spaces": [
-            "error",
-            {
-                "ignoreComments": true
-            }
-        ],
-        "no-undef-init": "error",
-        "no-underscore-dangle": "off",
-        "no-unsafe-finally": "error",
-        "no-unused-expressions": "error",
-        "no-unused-labels": "error",
-        "no-unused-vars": "off",
-        "no-use-before-define": "off",
-        "no-var": "off",
-        "object-shorthand": "error",
-        "one-var": [
-            "off",
-            "never"
-        ],
-        "prefer-arrow/prefer-arrow-functions": "off",
-        "prefer-const": "off",
-        "quote-props": [
-            "error",
-            "as-needed"
-        ],
-        "quotes": ["warn", "single"],
-        "radix": "error",
-        "require-await": "off",
-        "semi": "error",
-        "space-before-function-paren": [
-            "error",
-            {
-                "anonymous": "never",
-                "named": "never"
-            }
-        ],
-        "spaced-comment": [
-            "error",
-            "always",
-            {
-                "markers": [
-                    "/"
-                ]
-            }
-        ],
-        "use-isnan": "error",
-        "valid-typeof": "off",
-        'no-loop-func': 'warn',
-        'import/no-anonymous-default-export': 'off', // override rules from eslint-config-react-app
-        'array-callback-return': 'off',
-        'import/no-webpack-loader-syntax': 'off', // override rules from eslint-config-react-app
+        "@typescript-eslint/unified-signatures": "error"
+      }
+    }],
+    rules: {
+      "brace-style": ["error", "1tbs", {
+          allowSingleLine: true
+      }],
+      "no-extra-semi": "off",
+      "prefer-rest-params": "off",
+      "arrow-parens": [
+          "off",
+          "always"
+      ],
+      "comma-dangle": "error",
+      complexity: "off",
+      "constructor-super": "error",
+      curly: [
+          "off",
+          "multi-line"
+      ],
+      "default-case": "error",
+      "dot-notation": "error",
+      "eol-last": "error",
+      eqeqeq: [
+          "error",
+          "smart"
+      ],
+      "guard-for-in": "error",
+      "id-blacklist": "off",
+      "id-match": "off",
+      "import/order": ["warn", {groups: ["builtin", "external", "parent", "sibling", "index"]}],
+      "jsdoc/check-alignment": "off",
+      "jsdoc/check-indentation": "off",
+      "jsdoc/newline-after-description": "off",
+      "linebreak-style": [
+          "error",
+          "unix"
+      ],
+      "max-classes-per-file": "off",
+      "new-parens": "error",
+      "no-array-constructor": "off",
+      "no-bitwise": "off",
+      "no-caller": "error",
+      "no-cond-assign": "off",
+      "no-console": [
+          "error",
+          {
+              allow: [
+                  "warn",
+                  "dir",
+                  "time",
+                  "timeEnd",
+                  "timeLog",
+                  "trace",
+                  "assert",
+                  "clear",
+                  "count",
+                  "countReset",
+                  "group",
+                  "groupEnd",
+                  "table",
+                  "debug",
+                  "info",
+                  "dirxml",
+                  "error",
+                  "groupCollapsed",
+                  "Console",
+                  "profile",
+                  "profileEnd",
+                  "timeStamp",
+                  "context"
+              ]
+          }
+      ],
+      "no-constant-condition": "off",
+      "no-debugger": "error",
+      "no-empty": "off",
+      "no-empty-function": "off",
+      "no-eval": "error",
+      "no-fallthrough": "off",
+      "no-implied-eval": "off",
+      "no-invalid-this": "off",
+      "no-new-wrappers": "off",
+      "no-shadow": "off",
+      "no-throw-literal": "error",
+      "no-trailing-spaces": [
+          "error",
+          {
+              ignoreComments: true
+          }
+      ],
+      "no-undef-init": "error",
+      "no-underscore-dangle": "off",
+      "no-unsafe-finally": "error",
+      "no-unused-expressions": "error",
+      "no-unused-labels": "error",
+      "no-unused-vars": "off",
+      "no-use-before-define": "off",
+      "no-var": "off",
+      "object-shorthand": "error",
+      "one-var": [
+          "off",
+          "never"
+      ],
+      "prefer-arrow/prefer-arrow-functions": "off",
+      "prefer-const": "off",
+      "quote-props": [
+          "error",
+          "as-needed"
+      ],
+      quotes: ["warn", "single"],
+      radix: "error",
+      "require-await": "off",
+      semi: "error",
+      "space-before-function-paren": [
+          "error",
+          {
+              anonymous: "never",
+              named: "never"
+          }
+      ],
+      "spaced-comment": [
+          "error",
+          "always",
+          {
+              markers: [
+                  "/"
+              ]
+          }
+      ],
+      "use-isnan": "error",
+      "valid-typeof": "off",
+      'no-loop-func': 'warn',
+      'import/no-anonymous-default-export': 'off', // override rules from eslint-config-react-app
+      'array-callback-return': 'off',
+      'import/no-webpack-loader-syntax': 'off', // override rules from eslint-config-react-app
     }
   };
 }

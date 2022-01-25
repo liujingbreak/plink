@@ -17,5 +17,6 @@ subjectAltName = @alt_names
 DNS.1 = $DOMAIN
 EOF
 
-openssl x509 -req -in $DOMAIN.csr -CA ../myCA.pem -CAkey ../myCA.key -CAcreateserial -out $DOMAIN.crt -days 825 -sha256 -extfile $DOMAIN.ext 
+echo "openssl x509 -req -in $DOMAIN.csr -CA myCA.pem -CAkey myCA.key -CAcreateserial -out $DOMAIN.crt -days 825 -sha256 -extfile $DOMAIN.ext"
+openssl x509 -req -in $DOMAIN.csr -CA myCA.crt -CAkey myCA.key -CAcreateserial -out $DOMAIN.crt -days 825 -sha256 -extfile $DOMAIN.ext
 

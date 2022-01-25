@@ -1,3 +1,5 @@
+import httpProxy from 'http-proxy';
+import {HttpProxyEventObs} from '../http-proxy-observable';
 // import { Options as HpmOptions} from 'http-proxy-middleware';
 
 export type Transformer = (resHeaders: CacheData['headers'],
@@ -7,6 +9,8 @@ export type Transformer = (resHeaders: CacheData['headers'],
 }>;
 
 export type ProxyCacheState = {
+  proxy: httpProxy;
+  proxy$: HttpProxyEventObs;
   // proxyOptions: HpmOptions;
   cacheDir: string;
   cacheByUri: Map<string, CacheData |
