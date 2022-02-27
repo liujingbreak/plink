@@ -7,7 +7,7 @@ import _ from 'lodash';
 import {Request, Response, NextFunction} from 'express';
 import {ServerOptions, createProxyServer} from 'http-proxy';
 import api from '__plink';
-import {logger, log4File, config} from '@wfh/plink';
+import {log4File, config} from '@wfh/plink';
 // import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
 import {createReplayReadableFactory} from '../utils';
@@ -15,7 +15,7 @@ import {httpProxyObservable, observeProxyResponse} from '../http-proxy-observabl
 import {ProxyCacheState, CacheData} from './types';
 
 
-const httpProxyLog = logger.getLogger(log4File(__filename).category + '#httpProxy');
+const httpProxyLog = log4File(__filename);
 
 export function createProxyWithCache(proxyPath: string, serverOptions: ServerOptions, cacheRootDir: string,
                  opts: {manual: boolean; memCacheLength?: number} = {manual: false}) {
@@ -129,7 +129,11 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
           }
         });
         httpProxyLog.warn('Version info is not recorded, due to response 304 from', res.req.url, ',\n you can remove existing npm/cache cache to avoid 304');
-        return rx.EMPTY;
+        return;
+      }
+      if (statusCode !== 200) {
+        httpProxyLog.error(`Response code is ${statusCode} for request:`, res.req.url);
+        return;
       }
 
       if (responseTransformer == null) {
@@ -247,7 +251,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
             op.map(key => httpProxyLog.info(`replied: ${key}`))
           );
           const item = cacheController.getState().cacheByUri.get(payload.key);
-          httpProxyLog.info('hitCache for ' + payload.key + ',' + item);
+          httpProxyLog.info('hitCache for ' + payload.key);
           if (item == null) {
             cacheController.actionDispatcher._loadFromStorage(payload);
             return waitCacheAndSendRes;
@@ -351,7 +355,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
           const proxyOpts: ServerOptions = {};
           if (payload.target) {
             proxyOpts.target = payload.target;
-            proxyOpts.ignorePath = true;
+            // proxyOpts.ignorePath = true;
           }
           return rx.defer(() => {
             cacheController.getState().proxy.web(payload.req, payload.res, proxyOpts);
@@ -372,6 +376,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
         })
       )
     ).pipe(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       op.ignoreElements(),
       op.catchError((err, src) => {
         httpProxyLog.error('HTTP proxy cache error', err);

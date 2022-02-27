@@ -1,5 +1,5 @@
 import Path from 'path';
-import {Transform, Writable, Readable} from 'stream';
+import {Transform, Writable, Readable, promises as streamProm} from 'stream';
 import fs from 'fs';
 import zlib from 'zlib';
 import {config, log4File, ExtensionContext} from '@wfh/plink';
@@ -134,8 +134,8 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
   });
 
   function createTransformer(trackRemoteUrl: boolean): Transformer {
-    return (headers: CacheData['headers'], reqHost: string | undefined,
-           source: NodeJS.ReadableStream) => {
+    return async (headers: CacheData['headers'], reqHost: string | undefined,
+      source: NodeJS.ReadableStream) => {
       let fragments = '';
       let bufLength = 0;
       const subject = new rx.ReplaySubject<Buffer>();
@@ -159,7 +159,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
           break;
         default:
       }
-      const transformers = decompress ? [decompress] : [];
+      const transformers: any[] = decompress ? [decompress] : [];
       const processTrans = new Transform({
         transform(chunk, _encode, cb) {
           if (Buffer.isBuffer(chunk)) {
@@ -198,33 +198,32 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
       transformers.push(processTrans);
       if (compresser)
         transformers.push(compresser);
-      // NodeJS bug: https://github.com/nodejs/node/issues/40191
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      return new Promise<number>(resolve => {
-        (transformers as Array<NodeJS.ReadWriteStream | NodeJS.WritableStream>).concat(new Writable({
-          write(chunk, enc, cb) {
-            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+
+      transformers.push( new Writable({
+          write(chunk_1, _enc, cb_2) {
+            const buffer = Buffer.isBuffer(chunk_1) ? chunk_1 : Buffer.from(chunk_1 as string);
             bufLength += buffer.length;
             subject.next(buffer);
-            cb();
+            cb_2();
           },
-          final(cb) {
+          final(cb_3) {
             subject.complete();
-            cb();
-            resolve(bufLength);
+            cb_3();
           }
-        }))
-        .reduce((prev, curr) => prev.pipe(curr) as NodeJS.ReadableStream, source);
-      })
-      .then(bufLength => {
+        })
+      );
+      // NodeJS bug: https://github.com/nodejs/node/issues/40191:
+      // stream.promises.pipeline doesn't support arrays of streams since node 16.10
+      const done: Promise<unknown> = (streamProm.pipeline as any)(source, ...transformers);
+      await done;
 
-        return {
-          length: bufLength,
-          readable: () => new Readable({
-            read() {
-              // eslint-disable-next-line @typescript-eslint/no-this-alias
-              const self = this;
-              subject.subscribe({
+      return {
+        length: bufLength,
+        readable: () => new Readable({
+          read() {
+            // eslint-disable-next-line @typescript-eslint/no-this-alias
+            const self = this;
+            subject.subscribe({
               next(buf) {
                 self.push(buf);
               },
@@ -235,10 +234,9 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
                 self.push(null);
               }
             });
-            }
-          })
-        };
-      });
+          }
+        })
+      };
     };
   }
 }

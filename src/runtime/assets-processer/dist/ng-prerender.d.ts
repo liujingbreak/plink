@@ -13,5 +13,7 @@ export declare class PrerenderForExpress {
        */
     constructor(...routeMapFiles: string[]);
     asMiddleware(): (req: Request, res: Response, next: NextFunction) => void;
-    protected queryPrerenderPages(routeMapFiles: string[]): any;
+    protected queryPrerenderPages(routeMapFiles: string[]): Promise<{
+        [route: string]: string;
+    }>;
 }
