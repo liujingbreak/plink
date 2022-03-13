@@ -16,7 +16,8 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
   const actions = {
     proxyToProxy(_remoteHost: string, _remotePort: number, _socket: Socket, _firstPacket: Buffer) {},
     proxyToRemote(_remoteHost: string, _remotePort: number,
-      _socket: Socket, _firstPacket: Buffer, _isTsl: boolean, httpProtocal: string) {}
+      _socket: Socket, _firstPacket: Buffer, _isTsl: boolean, httpProtocal: string) {},
+    remoteSocketCreated(_socket: Socket, msg: string) {}
   };
 
   type ActionType<K extends keyof typeof actions> = {
@@ -106,21 +107,22 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     action$.pipe(
       ofType('proxyToProxy'),
       op.map(({payload: [host, port, clientToProxySocket, data]}) => {
-        const proxyToServerSocket = net.connect({
+        let proxyToServerSocket = net.connect({
           host, port
         }, () => {
           log.warn('PROXY TO FORBACK proxy connection created', host, ':', port);
-          proxyToServerSocket.pipe(clientToProxySocket);
+          proxyToServerSocket = proxyToServerSocket.pipe(clientToProxySocket);
           proxyToServerSocket.write(data);
           // Piping the sockets
           clientToProxySocket.pipe(proxyToServerSocket);
         });
+        dispatch.remoteSocketCreated(proxyToServerSocket, 'Remote proxy');
       })
     ),
     action$.pipe(
       ofType('proxyToRemote'),
       op.map(({payload: [host, port, clientToProxySocket, data, isTLSConnection, protocal]}) => {
-        const proxyToServerSocket = net.connect({
+        let proxyToServerSocket = net.connect({
           host,
           port
         }, () => {
@@ -134,10 +136,17 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
           }
           // Piping the sockets
           clientToProxySocket.pipe(proxyToServerSocket);
-          proxyToServerSocket.pipe(clientToProxySocket);
+          proxyToServerSocket = proxyToServerSocket.pipe(clientToProxySocket);
         });
+        dispatch.remoteSocketCreated(proxyToServerSocket, 'remote server');
+      })
+    ),
+    action$.pipe(
+      ofType('remoteSocketCreated'),
+      op.map(({payload: [proxyToServerSocket]}) => {
+        log.info('Register error event handler to socket');
         proxyToServerSocket.on('error', (err) => {
-        log.warn('PROXY TO SERVER ERROR', host, ':', port, err);
+        log.warn('PROXY TO SERVER ERROR', proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
         });
         proxyToServerSocket.on('lookup', (err, addr, _fam, host) => {
           if (err)
@@ -145,103 +154,16 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
           log.info('lookup', addr, host);
         });
         proxyToServerSocket.on('timeout', () => {
-          log.info('PROXY TO SERVER timeout', host, ':', port);
+          log.info('PROXY TO SERVER timeout', proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort);
         });
       })
     )
   ).pipe(
     op.catchError((err, src) => {
-      log.error(err);
+      log.error('Fatal error', err);
       return src;
     })
   ).subscribe();
-
-  // server.on('connection', (clientToProxySocket) => {
-  //   log.debug('Client Connected To Proxy', clientToProxySocket.remoteAddress +
-  //            ':' + clientToProxySocket.remotePort);
-  //   // We need only the data once, the starting packet
-  //   clientToProxySocket.once('data', (data) => {
-  //     const greeting = data.toString();
-  //     log.info(greeting);
-  //     let isTLSConnection = greeting.indexOf('CONNECT') !== -1;
-
-  //     // Considering Port as 80 by default 
-  //     let serverPort = 80;
-  //     let serverAddress = '';
-  //     let protocal = 'HTTP/1.1';
-  //     if (isTLSConnection) {
-  //       const match = /CONNECT +([^\s:]+)(?::(\S+))?(?: +(\S+))?/.exec(greeting)!;
-  //       // Port changed to 443, parsing the host from CONNECT 
-  //       serverPort = match[2] ? parseInt(match[2], 10) : 443;
-  //       serverAddress = match[1];
-  //       if (match[3])
-  //         protocal = match[3];
-  //     } else {
-  //       // Parsing HOST from HTTP
-  //       const match = /Host: +([^\s:]+)(?::(\S+))?/.exec(greeting);
-  //       if (match != null) {
-  //         serverAddress = match[1];
-  //         serverPort = match[2] ? parseInt(match[2], 10) : 80;
-  //       }
-  //     }
-  //     log.info('proxy to:', serverAddress + ':' + serverPort);
-  //     const mapped = serverAddress ? hostMap.get(serverAddress) : null;
-
-  //     let proxyToServerSocket: net.Socket;
-
-  //     if (mapped) {
-  //       let splitted = mapped.split(':');
-  //       serverAddress = splitted[0];
-  //       if (splitted[1])
-  //         serverPort = parseInt(splitted[1], 10);
-  //       log.info('mapped to', serverAddress, ':', serverPort);
-  //     } else if (opts?.fallbackProxyHost){
-  //       proxyToServerSocket = net.connect({
-  //         host: opts.fallbackProxyHost,
-  //         port: opts.fallbackproxyPort
-  //       }, () => {
-  //         log.debug('PROXY TO FORBACK proxy connection created', opts.fallbackProxyHost, ':', opts.fallbackproxyPort);
-  //         proxyToServerSocket.pipe(clientToProxySocket);
-  //         proxyToServerSocket.write(data);
-  //         // Piping the sockets
-  //         clientToProxySocket.pipe(proxyToServerSocket);
-  //       });
-  //     }
-
-  //     proxyToServerSocket = net.connect({
-  //         host: serverAddress,
-  //         port: serverPort
-  //       }, () => {
-  //         log.debug('PROXY TO SERVER connection created', serverAddress, ':', serverPort);
-
-  //         if (isTLSConnection) {
-  //           // Send Back OK to HTTPS CONNECT Request
-  //           clientToProxySocket.write(protocal + ' 200 OK\r\n\n');
-  //         } else {
-  //           proxyToServerSocket.write(data);
-  //         }
-  //         // Piping the sockets
-  //         clientToProxySocket.pipe(proxyToServerSocket);
-  //         proxyToServerSocket.pipe(clientToProxySocket);
-  //       });
-
-  //     proxyToServerSocket!.on('error', (err) => {
-  //       log.warn('PROXY TO SERVER ERROR', serverAddress, ':', serverPort, err);
-  //     });
-  //     proxyToServerSocket!.on('lookup', (err, addr, _fam, host) => {
-  //       if (err)
-  //         log.warn('lookup error', err);
-  //       log.info('lookup', addr, host);
-  //     });
-  //     proxyToServerSocket!.on('timeout', () => {
-  //       log.info('PROXY TO SERVER timeout', serverAddress, ':', serverPort);
-  //     });
-  //   });
-
-  //   clientToProxySocket.on('error', err => {
-  //     log.warn('CLIENT TO PROXY ERROR', err);
-  //   });
-  // });
 
   server.on('error', (err) => {
     log.info('SERVER ERROR');
@@ -260,14 +182,4 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     server.close();
   };
 }
-
-// type ServerEvents = {
-//   connection: {type: 'connection'; param: Socket};
-//   error: {type: 'error'; param: Error};
-//   close: {type: 'close'};
-//   listening: {type: 'listening', param: number};
-// };
-// 
-// type ServerEventParam<E extends keyof ServerEvents> = ServerEvents[E] extends {type: any; param: infer P} ? P : undefined;
-
 
