@@ -31,7 +31,7 @@
   },
   "include": [
     "wfh/ts/**/*.ts",
-    "pacakges/redux-toolkit-observable/**/*.ts",
-    "pacakges/thread-promise-pool/ts/**/*.ts"
+    "packages/redux-toolkit-observable/**/*.ts",
+    "packages/thread-promise-pool/ts/**/*.ts"
   ]
 }

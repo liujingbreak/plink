@@ -20,10 +20,10 @@ export function reselect<T, R, R1, R2, R3, R4, R5>(selectors: [
  */
 
 export type ActionTypes<AC> = {
-    [K in keyof AC]: {
-        type: K;
-        payload: AC[K] extends (p: infer P) => any ? P : AC[K] extends (...p: infer PArray) => any ? PArray : unknown;
-    };
+  [K in keyof AC]: {
+    type: K;
+    payload: AC[K] extends (p: infer P) => any ? P : AC[K] extends (...p: infer PArray) => any ? PArray : unknown;
+  };
 };
 
 /**
@@ -41,40 +41,40 @@ export type ActionTypes<AC> = {
  *   type definition for downstream action compare bare "filter()"
  */
 export function createActionStream<AC>(actionCreator: AC, debug?: boolean) {
-    const dispatcher = {} as AC;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const actionUpstream = new Subject<ActionTypes<AC>[keyof ActionTypes<AC>]>();
-    for (const type of Object.keys(actionCreator)) {
-        dispatcher[type] = (...params: any[]) => {
-            const action = {
-                type,
-                payload: params.length === 1 ? params[0] : params
-            } as ActionTypes<AC>[keyof ActionTypes<AC>];
-            actionUpstream.next(action);
-        };
-    }
+  const dispatcher = {} as AC;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const actionUpstream = new Subject<ActionTypes<AC>[keyof ActionTypes<AC>]>();
+  for (const type of Object.keys(actionCreator)) {
+    dispatcher[type] = (...params: any[]) => {
+      const action = {
+        type,
+        payload: params.length === 1 ? params[0] : params
+      } as ActionTypes<AC>[keyof ActionTypes<AC>];
+      actionUpstream.next(action);
+    };
+  }
 
-    const action$ = debug
-        ? actionUpstream.pipe(
+  const action$ = debug
+    ? actionUpstream.pipe(
               tap(action => {
                   // eslint-disable-next-line no-console
                   console.log('%c rx:action ', 'color: white; background: #8c61ff;', action.type);
               }),
               share()
           )
-        : actionUpstream;
+    : actionUpstream;
 
-    return {
-        dispatcher,
-        action$,
-        ofType: createOfTypeOperator(actionCreator)
-    };
+  return {
+    dispatcher,
+    action$,
+    ofType: createOfTypeOperator(actionCreator)
+  };
 }
 
 /** create rx a operator to filter action by action.type */
 function createOfTypeOperator<AC>(_actionCreator: AC) {
-    return <T extends keyof AC>(type: T) =>
-        (upstream: Observable<any>) => {
-            return upstream.pipe(filter(action => action.type === type)) as Observable<ActionTypes<AC>[T]>;
-        };
+  return <T extends keyof AC>(type: T) =>
+    (upstream: Observable<any>) => {
+      return upstream.pipe(filter(action => action.type === type)) as Observable<ActionTypes<AC>[T]>;
+    };
 }

@@ -24,25 +24,35 @@ export type Reducers<S, R = any> = {
   /** Returning `undefined / void` has same effect of returning old state reference,
    * Returning a brand new state object for immutability in normal case.
    */
-  [K in keyof R]: (state: S, payload?: any) => S | void;
+  [K in keyof R]: (state: S, ...payload: any[]) => S | void;
 };
 
 export type Actions<S, R> = {
   [K in keyof R]:
-    R[K] extends (s: S) => any ? ActionCreatorWithoutPayload<S> :
-    R[K] extends (s: S, payload: infer P) => any ? ActionCreatorWithPayload<S, P> : ActionCreatorWithPayload<S, unknown>;
+    R[K] extends (s: S) => any ? {
+      (): Action<S>;
+      type: K;
+    } :
+    R[K] extends (s: S, payload: infer P) => any ? {
+      (payload: P): PayloadAction<S, P>;
+      type: K;
+    } :
+    R[K] extends (s: S, ...payload: infer M) => any ? {
+      (...payload: M): PayloadAction<S, M>;
+      type: K;
+    } : {
+      (): Action<S>;
+      type: K;
+    };
 };
 
-export type ActionCreator<S, P> = ActionCreatorWithoutPayload<S> | ActionCreatorWithPayload<S, P>;
-interface ActionCreatorWithoutPayload<S> {
-  (): Action<S>;
-  type: string;
-}
-
-interface ActionCreatorWithPayload<S, P> {
-  (payload: P): PayloadAction<S, P>;
-  type: string;
-}
+type ActionTypes<S, R> = {
+  [K in keyof R]:
+    R[K] extends (s: S) => any ? Action<S>:
+    R[K] extends (s: S, payload: infer P) => any ? PayloadAction<S, P> :
+    R[K] extends (s: S, ...payload: infer M) => any ? PayloadAction<S, M> :
+    PayloadAction<S, unknown>;
+};
 
 type OutputActionObs<S, R extends Reducers<any>, K extends keyof R> =
   rx.Observable<R[K] extends (s: S) => any ? Action<S> : R[K] extends (s: S, payload: infer P) => any ? PayloadAction<S, P> : PayloadAction<S, unknown>>;
@@ -99,19 +109,16 @@ export interface Slice<S, R extends Reducers<S>> {
 
 export type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
 
-// type PayloadTypeOfAction<ActionCreatorType> = ActionCreatorType extends ActionCreatorWithoutPayload<any> ? void :
-//   ActionCreatorType extends ActionCreatorWithPayload<any, infer P> ? P : never;
-
 /** filter action stream by type */
-export function ofPayloadAction<S, P>(actionCreators: ActionCreator<S, P>): rx.OperatorFunction<any, PayloadAction<S, P>>;
-  // (source: rx.Observable<PayloadAction<any> | Action<any>>) => rx.Observable<PayloadAction<S, PayloadTypeOfAction<A>>>;
-export function ofPayloadAction<S, P, S1, P1>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>):
-  rx.OperatorFunction<any , PayloadAction<S, P> | PayloadAction<S1, P1>>;
-export function ofPayloadAction<S, P, S1, P1, S2, P2>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>, actionCreators2: ActionCreator<S2, P2>):
-  rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1> | PayloadAction<S2, P2>>;
-export function ofPayloadAction(
-  ...actionCreators: ActionCreator<any, any>[]): rx.OperatorFunction<any, PayloadAction<any, any>> {
-  return function(src: rx.Observable<PayloadAction<any>>) {
+export function ofPayloadAction<S, R, K extends keyof R>(actionCreators: Actions<S, R>[K]): rx.OperatorFunction<any, ActionTypes<S, R>[K]>;
+export function ofPayloadAction<S, R, K extends keyof R, K1 extends keyof R>(actionCreators: Actions<S, R>[K], actionCreators1: Actions<S, R>[K1]):
+  rx.OperatorFunction<any , ActionTypes<S, R>[K] | ActionTypes<S, R>[K1]>;
+export function ofPayloadAction<S, R, K extends keyof R, K1 extends keyof R, K2 extends keyof R>(
+  actionCreators: Actions<S, R>[K], actionCreators1: Actions<S, R>[K1], actionCreators2: Actions<S, R>[K2]):
+  rx.OperatorFunction<any, ActionTypes<S, R>[K] | ActionTypes<S, R>[K1]>;
+export function ofPayloadAction<S, R>(
+  ...actionCreators: Actions<S, R>[keyof R][]): rx.OperatorFunction<any, ActionTypes<S, R>[keyof R]> {
+  return function(src: rx.Observable<ActionTypes<S, R>[keyof R]>) {
     return src.pipe(
       op.filter(action => actionCreators.some(ac => action.type === ac.type))
     );
@@ -145,9 +152,10 @@ export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actio
     const source = action$.pipe(op.share());
     const splitActions = {} as ActionByType<S, R>;
 
-    for (const reducerName of Object.keys(actionCreators)) {
+    for (const reducerName of Object.keys(actionCreators) as (keyof R)[]) {
       Object.defineProperty(splitActions, reducerName, {
         get() {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           return source.pipe(ofPayloadAction(actionCreators[reducerName]));
         }
       });
@@ -156,8 +164,9 @@ export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actio
     return splitActions;
 }
 
-export function isActionOfCreator<P, S>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<S, P>):
-  action is PayloadAction<S, P> {
+export function isActionOfCreator<S, R, K extends keyof R>(action: any, actionCreator: Actions<S, R>[K]):
+  action is ActionTypes<S, R>[K] {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return action.type === actionCreator.type;
 }
 
@@ -434,6 +443,7 @@ demoSlice.addEpic((slice, ofType) => {
         op.tap(action => typeof action.payload.data === 'string')
       ),
       action$.pipe(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         ofPayloadAction(slice.actions.world),
         op.tap(action => slice.actionDispatcher.hellow({data: 'yes'}))
       ),
