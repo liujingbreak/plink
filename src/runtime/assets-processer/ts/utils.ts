@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import stream from 'stream';
 import {ClientRequest, IncomingMessage} from 'http';
 import * as querystring from 'querystring';
@@ -282,6 +284,11 @@ export function createReplayReadableFactory(
 }
 
 /**
+ * This is not working for POST request according to my experience in Node 16.3.0, due to
+ * by the time node-http-proxy emits event "proxyReq", `req.pipe(proxyReq)` has already
+ * been executed, meaning the proxyReq has "end" itself as reacting to req.complete: true 
+ * or end event.
+ *
  * Fix proxied body if bodyParser is involved.
  * Copied from https://github.com/chimurai/http-proxy-middleware/blob/master/src/handlers/fix-request-body.ts
  */
@@ -294,9 +301,15 @@ export function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): v
 
   const contentType = proxyReq.getHeader('Content-Type') as string;
   const writeBody = (bodyData: string) => {
-    // deepcode ignore ContentLengthInCode: bodyParser fix
-    proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-    proxyReq.write(bodyData);
+    if (proxyReq.headersSent) {
+      log.error('proxy request header is sent earlier than the moment of fixRequestBody()!');
+    } else {
+      // deepcode ignore ContentLengthInCode: bodyParser fix
+      const len = Buffer.byteLength(bodyData);
+      proxyReq.setHeader('Content-Length', len);
+      log.info('fix proxy body', contentType, len);
+      proxyReq.write(bodyData);
+    }
   };
 
   if (contentType && contentType.includes('application/json')) {
@@ -307,3 +320,35 @@ export function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): v
     writeBody(querystring.stringify(requestBody));
   }
 }
+
+export function createBufferForHttpProxy(req: IncomingMessage) {
+  const contentType = req.headers['content-type'];
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const body = (req as any).body;
+  if (body == null)
+    return undefined;
+
+  if (contentType && contentType.includes('application/json')) {
+    return new stream.Readable({
+      read() {
+        this.push(Buffer.from(JSON.stringify(body)));
+        this.push(null);
+      }
+    });
+  } else if (contentType === 'application/x-www-form-urlencoded') {
+    return new stream.Readable({
+      read() {
+        this.push(Buffer.from(querystring.stringify(body)));
+        this.push(null);
+      }
+    });
+  } else if (Buffer.isBuffer(body)) {
+    return new stream.Readable({
+      read() {
+        this.push(body);
+        this.push(null);
+      }
+    });
+  }
+}
+

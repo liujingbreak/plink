@@ -3,6 +3,9 @@ import net, {Socket} from 'net';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {log4File, config} from '@wfh/plink';
+// import inspector from 'inspector';
+
+// inspector.open(9222, 'localhost', true);
 const log = log4File(__filename);
 
 export function start(port: number, hostMap: Map<string, string> = new Map(),
@@ -17,7 +20,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     proxyToProxy(_remoteHost: string, _remotePort: number, _socket: Socket, _firstPacket: Buffer) {},
     proxyToRemote(_remoteHost: string, _remotePort: number,
       _socket: Socket, _firstPacket: Buffer, _isTsl: boolean, httpProtocal: string) {},
-    remoteSocketCreated(_socket: Socket, msg: string) {}
+    remoteSocketConnected(_socket: Socket, msg: string) {}
   };
 
   type ActionType<K extends keyof typeof actions> = {
@@ -111,23 +114,26 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
           host, port
         }, () => {
           log.warn('PROXY TO FORBACK proxy connection created', host, ':', port);
-          proxyToServerSocket = proxyToServerSocket.pipe(clientToProxySocket);
+          const connected = proxyToServerSocket.pipe(clientToProxySocket);
+          dispatch.remoteSocketConnected(connected, 'Remote proxy reading');
           proxyToServerSocket.write(data);
           // Piping the sockets
           clientToProxySocket.pipe(proxyToServerSocket);
         });
-        dispatch.remoteSocketCreated(proxyToServerSocket, 'Remote proxy');
+        dispatch.remoteSocketConnected(proxyToServerSocket, 'remote proxy server connection');
       })
     ),
     action$.pipe(
       ofType('proxyToRemote'),
       op.map(({payload: [host, port, clientToProxySocket, data, isTLSConnection, protocal]}) => {
-        let proxyToServerSocket = net.connect({
-          host,
-          port
-        }, () => {
+        let proxyToServerSocket = net.connect({ host, port }, () => {
           log.info('PROXY TO SERVER connection created', host, ':', port);
 
+          const socket = proxyToServerSocket.pipe(clientToProxySocket);
+          dispatch.remoteSocketConnected(socket, 'remote server reading');
+          // .on('error', err => {
+          //   log.error('proxy to remote server read error', err);
+          // });
           if (isTLSConnection) {
             // Send Back OK to HTTPS CONNECT Request
             clientToProxySocket.write(protocal + ' 200 OK\r\n\n');
@@ -136,17 +142,16 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
           }
           // Piping the sockets
           clientToProxySocket.pipe(proxyToServerSocket);
-          proxyToServerSocket = proxyToServerSocket.pipe(clientToProxySocket);
         });
-        dispatch.remoteSocketCreated(proxyToServerSocket, 'remote server');
+        dispatch.remoteSocketConnected(proxyToServerSocket, 'remote server connection');
       })
     ),
     action$.pipe(
-      ofType('remoteSocketCreated'),
-      op.map(({payload: [proxyToServerSocket]}) => {
-        log.info('Register error event handler to socket');
+      ofType('remoteSocketConnected'),
+      op.map(({payload: [proxyToServerSocket, msg]}) => {
+        log.info('Register error event handler to', msg);
         proxyToServerSocket.on('error', (err) => {
-        log.warn('PROXY TO SERVER ERROR', proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
+          log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
         });
         proxyToServerSocket.on('lookup', (err, addr, _fam, host) => {
           if (err)
@@ -154,7 +159,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
           log.info('lookup', addr, host);
         });
         proxyToServerSocket.on('timeout', () => {
-          log.info('PROXY TO SERVER timeout', proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort);
+          log.warn('PROXY TO SERVER timeout', proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort);
         });
       })
     )

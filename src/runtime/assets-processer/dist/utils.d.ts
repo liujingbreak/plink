@@ -54,8 +54,14 @@ export declare function createReplayReadableFactory(readable: NodeJS.ReadableStr
     expectLen?: number;
 }): () => stream.Readable;
 /**
+ * This is not working for POST request according to my experience in Node 16.3.0, due to
+ * by the time node-http-proxy emits event "proxyReq", `req.pipe(proxyReq)` has already
+ * been executed, meaning the proxyReq has "end" itself as reacting to req.complete: true
+ * or end event.
+ *
  * Fix proxied body if bodyParser is involved.
  * Copied from https://github.com/chimurai/http-proxy-middleware/blob/master/src/handlers/fix-request-body.ts
  */
 export declare function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): void;
+export declare function createBufferForHttpProxy(req: IncomingMessage): stream.Readable | undefined;
 export {};
