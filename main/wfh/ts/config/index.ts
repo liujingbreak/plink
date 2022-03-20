@@ -73,8 +73,6 @@ config.resolve = function(pathPropName: 'rootPath' | 'destDir' | 'staticDir' | '
   return Path.resolve(...args);
 };
 
-// config.configureStore = configureStore;
-
 config.configHandlerMgr = configHandlerMgr$;
 
 config.configHandlerMgrChanged = function(cb: (handler: ConfigHandlerMgr) => void) {

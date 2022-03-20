@@ -3,14 +3,15 @@ import {Transform, Writable, Readable, promises as streamProm} from 'stream';
 import fs from 'fs';
 import zlib from 'zlib';
 import {config, log4File, ExtensionContext} from '@wfh/plink';
-import {shutdownHooks} from '@wfh/plink/wfh/dist/app-server';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import * as _ from 'lodash';
 import {Request, Response} from 'express';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
 import {CacheData, NpmRegistryVersionJson, TarballsInfo, Transformer} from './types';
-import {createProxyWithCache, keyOfUri} from './cache-service';
+import {createProxyWithCache} from './cache-service';
+// import insp from 'inspector';
+// insp.open(9222, '0.0.0.0', true);
 
 const log = log4File(__filename);
 
@@ -39,8 +40,9 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
   const pkgDownloadRouter = api.express.Router();
   const serveTarballPath = Path.posix.join(setting.path || '/registry', '_tarballs');
 
-  api.use(serveTarballPath, pkgDownloadRouter);
-  pkgDownloadRouter.get('/:pkgName/:version', (req, res) => {
+  api.expressAppSet(app => app.use(serveTarballPath, pkgDownloadRouter));
+
+  pkgDownloadRouter.get<PkgDownloadRequestParams>('/:pkgName/:version', (req, res) => {
     log.info('incoming request download tarball', req.url);
     pkgDownloadCtl.actionDispatcher.fetchTarball({
       req, res, pkgName: req.params.pkgName, version: req.params.version});
@@ -71,7 +73,9 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
     const actionByType = castByActionType(pkgDownloadCtl.actions, action$);
     // const fetchActionState = new Map<string, Response[]>();
     // map key is host name of remote tarball server
-    const cacheSvcByOrigin = new Map<string, ReturnType<typeof createProxyWithCache>>();
+    // const cacheSvcByOrigin = new Map<string, ReturnType<typeof createProxyWithCache>>();
+    const tarballCacheSerivce = createProxyWithCache('', {followRedirects: true},
+      tarballDir);
 
     if (fs.existsSync(STATE_FILE)) {
       void fs.promises.readFile(STATE_FILE, 'utf-8')
@@ -80,10 +84,6 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
         pkgDownloadCtl.actionDispatcher.load(JSON.parse(content));
       });
     }
-    shutdownHooks.push(() => {
-      log.info('Save changed', STATE_FILE);
-      return fs.promises.writeFile(STATE_FILE, JSON.stringify(pkgDownloadCtl.getState(), null, '  '));
-    });
 
     return rx.merge(
        actionByType.fetchTarball.pipe(
@@ -95,21 +95,12 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
             op.take(1),
             op.map(url => {
               try {
-                const {origin, host, pathname} = new URL(url);
-                let service = cacheSvcByOrigin.get(origin);
-                if (service == null) {
-                  log.info('create download proxy intance for', origin);
-                  service = createProxyWithCache(origin, {
-                    target: url
-                  },
-                    Path.join(tarballDir, host.replace(/:/g, '_')),
-                    { manual: true, memCacheLength: 0 });
-                  cacheSvcByOrigin.set(origin, service);
-                }
-                service.actionDispatcher.hitCache({
-                  key: keyOfUri(payload.req.method, pathname),
+                log.warn('download', url);
+                tarballCacheSerivce.actionDispatcher.hitCache({
+                  key: url.replace(/:/g, '.'),
                   req: payload.req, res: payload.res,
-                  next: () => {}
+                  next: () => {},
+                  target: url
                 });
               } catch (e) {
                 log.error('Failed for download URL:' + url, e);
@@ -239,4 +230,9 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
       };
     };
   }
+
+  return () => {
+    log.info('Save changed', STATE_FILE);
+    return fs.promises.writeFile(STATE_FILE, JSON.stringify(pkgDownloadCtl.getState(), null, '  '));
+  };
 }

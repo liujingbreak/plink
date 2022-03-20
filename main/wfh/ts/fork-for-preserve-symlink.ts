@@ -1,11 +1,16 @@
 import Path from 'path';
-import {fork} from 'child_process';
+import {fork, ChildProcess} from 'child_process';
+import {threadId} from 'worker_threads';
 import fs from 'fs';
 import os from 'os';
 import log4js from 'log4js';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
+import chalk from 'chalk';
 import {plinkEnv} from './utils/misc';
 import * as _editorHelper from './editor-helper';
-import * as _store from './store';
+import * as bootstrapProc from './utils/bootstrap-process';
+import * as store from './store';
 
 export const isWin32 = os.platform().indexOf('win32') >= 0;
 const log = log4js.getLogger('plink.fork-for-preserver-symlink');
@@ -21,20 +26,43 @@ export function workDirChangedByCli() {
   return {workdir, argv};
 }
 
-export async function forkFile(moduleName: string) {
-  process.on('SIGINT', () => {
+export default function run(moduleName: string, opts: {
+    stateExitAction?: 'save' | 'send' | 'none';
+    handleShutdownMsg?: boolean;
+  },
+  bootStrap: () => (() => (rx.ObservableInput<unknown> | void))[]) {
+
+  if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
+    void forkFile(moduleName, opts.handleShutdownMsg != null ? opts.handleShutdownMsg : false);
+    return;
+  }
+
+  const {initProcess, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
+
+  initProcess(opts.stateExitAction || 'none', (code) => {
     // eslint-disable-next-line no-console
-    log.info('bye');
-    recoverNodeModuleSymlink();
-    process.exit(0);
-  });
+    console.log(`Plink [P${process.pid}.T${threadId}] ` +
+      chalk.green(`${code !== 0 ? 'stopped with failures' : 'is shutdown'}`));
+  }, opts.handleShutdownMsg);
 
+  // Must be invoked after initProcess, otherwise store is not ready (empty)
+  exitHooks.push(...bootStrap());
+}
+
+/** run in main process */
+async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
   let recovered = false;
-  const removed = await removeNodeModuleSymlink();
+  const {initProcess} = require('./utils/bootstrap-process') as typeof bootstrapProc;
+  const {stateFactory} = require('./store') as typeof store;
+  let cp: ChildProcess | undefined;
 
-  process.on('beforeExit', () => {
+  initProcess('none', () => {
     recoverNodeModuleSymlink();
   });
+
+  // removeNodeModuleSymlink needs Editor-helper, and editor-helper needs store being configured!
+  stateFactory.configureStore();
+  const removed = await removeNodeModuleSymlink();
 
   const {workdir, argv} = workDirChangedByCli();
 
@@ -53,15 +81,28 @@ export async function forkFile(moduleName: string) {
   }
 
   env.__plink_fork_main = moduleName;
-  // env.__plink_save_state = '1';
 
   if (workdir)
     env.PLINK_WORK_DIR = workdir;
 
-  const cp = fork(Path.resolve(__dirname, 'fork-preserve-symlink-main.js'), argv, {
+  cp = fork(Path.resolve(__dirname, 'fork-preserve-symlink-main.js'), argv, {
     env,
     stdio: 'inherit'
   });
+
+  if (handleShutdownMsg) {
+    const processMsg$ = rx.fromEventPattern<string>(h => process.on('message', h), h => process.off('message', h));
+    const processExit$ = rx.fromEventPattern( h => process.on('SIGINT', h), h => process.off('SIGINT', h));
+
+    rx.merge(processExit$, processMsg$.pipe(
+      op.filter(msg => msg === 'shutdown')
+    )).pipe(
+      op.take(1),
+      op.tap(() => {
+        cp!.send('shutdown');
+      })
+    ).subscribe();
+  }
 
   cp.on('exit', code => {
     if (code != null && code !== 0) {
@@ -90,7 +131,6 @@ export async function forkFile(moduleName: string) {
 async function removeNodeModuleSymlink() {
   const {getState} = require('./editor-helper') as typeof _editorHelper;
   const links = getState().nodeModuleSymlinks;
-
   if (links == null)
     return Promise.resolve([]);
 
@@ -105,7 +145,6 @@ async function removeNodeModuleSymlink() {
     }
 
     const content = fs.readlinkSync(link);
-    log.info('backup symlink: ' + link);
     await fs.promises.unlink(link);
     return {link, content};
   });

@@ -13,9 +13,9 @@ export = function() {
   const {initInjectorForNodePackages} = require('./package-runner') as typeof _pr;
 
   if (process.send) {
-    initAsChildProcess(false);
+    initAsChildProcess('none');
   } else {
-    initProcess(false);
+    initProcess('none');
   }
   initConfig({dev: true, verbose: true});
   initInjectorForNodePackages();

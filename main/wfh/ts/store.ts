@@ -1,19 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import Path from 'path';
 import fs from 'fs';
+import {isMainThread, threadId} from 'worker_threads';
 import fse from 'fs-extra';
 import {tap, filter} from 'rxjs/operators';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {StateFactory, ofPayloadAction} from '../../packages/redux-toolkit-observable/dist/redux-toolkit-observable';
+import chalk from 'chalk';
 import log4js from 'log4js';
 import serialize from 'serialize-javascript';
 import {enableMapSet} from 'immer';
-import {isMainThread, threadId} from 'worker_threads';
-import {PlinkEnv} from './node-path';
-import chalk from 'chalk';
-
+import {StateFactory, ofPayloadAction} from '../../packages/redux-toolkit-observable/dist/redux-toolkit-observable';
 import {createReducers, action$Of, castByActionType} from '../../packages/redux-toolkit-observable/dist/helper';
-// import chalk from 'chalk';
+import {PlinkEnv} from './node-path';
 
 export {ofPayloadAction, createReducers, action$Of, castByActionType};
 enableMapSet();
@@ -90,19 +89,23 @@ for (const ignoreSliceName of IGNORE_SLICE) {
   delete lastSavedState[ignoreSliceName];
 }
 
+/**
+ * Before actuall using stateFactory, I must execute `stateFactory.configureStore();`,
+ * and its better after most of the slices havee been defined
+ */
 export const stateFactory = new StateFactory(lastSavedState);
+
 const defaultLog = log4js.getLogger('plink.store');
 
-type StoreSetting = {
+export type StoreSetting = {
   actionOnExit: 'save' | 'send' | 'none';
   stateChangeCount: number;
 };
 
 const initialState: StoreSetting = {
-  actionOnExit: process.env.__plink_save_state === '1' ? 'save' : process.send && isMainThread ? 'send' : 'none',
+  actionOnExit: process.send && isMainThread ? 'send' : 'none',
   stateChangeCount: 0
 };
-process.env.__plink_save_state = '0';
 
 const simpleReducers = {
   changeActionOnExit(s: StoreSetting, mode: StoreSetting['actionOnExit']) {
@@ -112,8 +115,8 @@ const simpleReducers = {
    * Dispatch this action before you explicitly run process.exit(0) to quit, because "beforeExit"
    * won't be triggered prior to process.exit(0)
    */
-  processExit(s: StoreSetting) {},
-  storeSaved(s: StoreSetting) {}
+  processExit() {},
+  storeSaved() {}
 };
 
 const storeSettingSlice = stateFactory.newSlice({
@@ -128,7 +131,7 @@ function getState() {
 
 export const dispatcher = stateFactory.bindActionCreators(storeSettingSlice);
 
-stateFactory.addEpic<typeof storeSettingSlice>((action$, store$) => rx.merge(
+stateFactory.addEpic<typeof storeSettingSlice>((action$) => rx.merge(
   stateFactory.sliceStore(storeSettingSlice).pipe(
     op.map((s) => s.stateChangeCount), op.distinctUntilChanged(),
     op.filter(count => count === 0),
@@ -138,7 +141,7 @@ stateFactory.addEpic<typeof storeSettingSlice>((action$, store$) => rx.merge(
   ),
   action$.pipe(ofPayloadAction(storeSettingSlice.actions.processExit),
     op.take(1),
-    op.switchMap(async action => {
+    op.switchMap(async () => {
       const log = log4js.getLogger('plink.store');
       const {actionOnExit} = getState();
 
@@ -178,7 +181,7 @@ stateFactory.addEpic<typeof storeSettingSlice>((action$, store$) => rx.merge(
       !ignoreSliceSet.has(action.type.slice(0, action.type.indexOf('/')))
     ),
     op.takeUntil(action$.pipe(ofPayloadAction(storeSettingSlice.actions.processExit))),
-    tap((action) => {
+    tap(() => {
       dispatcher._change(s => s.stateChangeCount = s.stateChangeCount + 1);
     })
   )
@@ -206,17 +209,13 @@ export function startLogging() {
   ).subscribe();
 }
 
-let signaled = false;
 /**
  * a listener registered on the 'beforeExit' event can make asynchronous calls, 
  * and thereby cause the Node.js process to continue.
  * The 'beforeExit' event is not emitted for conditions causing explicit termination,
  * such as calling process.exit() or uncaught exceptions.
  */
-process.on('beforeExit', (code) => {
-  if (signaled)
-    return;
-  signaled = true;
+process.once('beforeExit', () => {
   dispatcher.processExit();
 });
 

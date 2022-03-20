@@ -1,9 +1,10 @@
 import 'source-map-support/register';
 
-import Query from '../utils/ts-ast-query';
-import fs from 'fs';
-import ts from 'typescript';
 import Path from 'path';
+import fs from 'fs';
+import Module from 'module';
+import ts from 'typescript';
+import Query from '../utils/ts-ast-query';
 // import {EOL as eol} from 'os';
 import {DFS} from '../utils/graph';
 import {jsonToCompilerOptions} from '../ts-compiler';
@@ -14,7 +15,6 @@ import {webInjector} from '../injector-factory';
 import {closestCommonParentDir, plinkEnv} from '../utils/misc';
 import {mergeBaseUrlAndPaths, RequiredCompilerOptions, parseConfigFileToJson} from '../ts-cmd-util';
 import {log4File} from '../logger';
-import Module from 'module';
 
 const NODE_MODULE_SET = new Set(Module.builtinModules);
 

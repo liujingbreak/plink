@@ -31,8 +31,6 @@ export async function createCommands(startTime: number) {
   process.title = 'Plink';
   // const {stateFactory}: typeof store = require('../store');
   await import('./cli-slice');
-  // stateFactory.configureStore();
-
 
   let cliExtensions: string[] | undefined;
   const program = new commander.Command('plink')

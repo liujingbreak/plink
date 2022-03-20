@@ -2,6 +2,8 @@ import Path from 'path';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import _ from 'lodash';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import serveIndex from 'serve-index';
 import {log4File, config, DrcpSettings, findPackagesByNames, ExtensionContext} from '@wfh/plink';
 import {getSetting} from '../isom/assets-processer-setting';
@@ -18,9 +20,13 @@ import {setupHttpProxy} from './utils';
 const log = log4File(__filename);
 // const log = require('log4js').getLogger(api.packageName);
 const serverFavicon = require('serve-favicon');
+const deactivateSubj = new rx.ReplaySubject<() => (PromiseLike<any> | void)>();
 
 export function deactivate() {
   fetchRemote.stop();
+  return deactivateSubj.pipe(
+    op.mergeMap(shutdown => rx.defer(() => shutdown()))
+  ).toPromise();
 }
 export function activate(api: ExtensionContext) {
   var staticFolder = api.config.resolve('staticDir');
@@ -56,7 +62,9 @@ export function activate(api: ExtensionContext) {
     }
   }
 
-  createNpmRegistryServer(api);
+  const saveNpmRegistry = createNpmRegistryServer(api);
+  if (saveNpmRegistry)
+    deactivateSubj.next(saveNpmRegistry);
   // const zss = createZipRoute(maxAgeMap);
 
   // api.use('/', zss.handler);
@@ -84,9 +92,7 @@ export function activate(api: ExtensionContext) {
     void fetchRemote.start(imap);
   });
 
-  if (!api.config().devMode) {
-    return;
-  }
+  deactivateSubj.complete();
 }
 
 

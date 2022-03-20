@@ -343,19 +343,11 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
         })
       ),
       actions._requestRemote.pipe(
-        // wait for proxy being created
-        // op.mergeMap(action => cacheController.getStore().pipe(
-        //   op.map(s => s.proxy),
-        //   op.distinctUntilChanged(),
-        //   op.filter(proxy => proxy != null),
-        //   op.mapTo({proxy, payload: action.payload})
-        // )),
         op.mergeMap(({payload}) => {
-
           const proxyOpts: ServerOptions = {};
           if (payload.target) {
             proxyOpts.target = payload.target;
-            // proxyOpts.ignorePath = true;
+            proxyOpts.ignorePath = true;
           }
           return rx.defer(() => {
             cacheController.getState().proxy.web(payload.req, payload.res, proxyOpts);

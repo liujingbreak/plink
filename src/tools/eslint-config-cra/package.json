@@ -1,6 +1,6 @@
 {
   "name": "@wfh/eslint-config-cra",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Eslint configuration based on create-reac-app's eslint-config-react-app  with extra typescript-eslint/tslint configuration",
   "main": "index.js",
   "dependencies": {

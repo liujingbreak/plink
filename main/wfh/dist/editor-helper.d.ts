@@ -19,14 +19,14 @@ interface HookedTsconfig {
     originJson: any;
 }
 declare const slice: import("@reduxjs/toolkit").Slice<EditorHelperState, {
-    clearSymlinks(s: import("immer/dist/internal").WritableDraft<EditorHelperState>): void;
+    clearSymlinks(): void;
     hookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookAll(): void;
     clearSymlinksDone(S: import("immer/dist/internal").WritableDraft<EditorHelperState>): void;
 } & import("../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>, "editor-helper">;
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
-    clearSymlinks(s: import("immer/dist/internal").WritableDraft<EditorHelperState>): void;
+    clearSymlinks(): void;
     hookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookAll(): void;

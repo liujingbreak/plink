@@ -610,7 +610,7 @@ stateFactory.addEpic((action$, state$) => {
             }),
             ignoreElements()
           );
-        } else if (action.type === slice.actions._workspaceBatchChanged.type) {
+        } else if (isActionOfCreator(action, slice.actions._workspaceBatchChanged)) {
           const wsKeys = action.payload;
           return merge(...wsKeys.map(_createSymlinksForWorkspace)).pipe(
             finalize(() => actionDispatcher.workspaceChanged(wsKeys))

@@ -1,5 +1,6 @@
 import '../node-path';
 import log4js from 'log4js';
+import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import config from '../config';
 // import logConfig from '../log-config';
@@ -7,6 +8,9 @@ import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
 
 const log = log4js.getLogger('plink.bootstrap-process');
+
+/** When process on 'SIGINT' and "beforeExit", all functions will be executed */
+export const exitHooks = [] as Array<() => (rx.ObservableInput<unknown> | void)>;
 
 process.on('uncaughtException', function(err) {
   log.error('Uncaught exception: ', err);
@@ -37,20 +41,24 @@ export function initConfig(options: GlobalOptions = {}) {
  * DO NOT fork a child process on this function
  * @param onShutdownSignal 
  */
-export function initProcess(saveState = true, onShutdownSignal?: () => void | Promise<any>, isChildProcess = false) {
+export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'none', onShutdownSignal?: (code: number) => void | Promise<any>, handleShutdownMsg = false) {
   // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
-  process.on('exit', function() {
-    // eslint-disable-next-line no-console
+  process.once('beforeExit', function(code) {
     log.info('pid ' + process.pid + ': bye');
-    void onShut();
+    void onShut(code);
   });
-  if (!isChildProcess) {
+  process.once('SIGINT', () => {
+    log.info('pid' + process.pid + ' recieves SIGINT');
+    void onShut(0);
+  });
+
+  if (handleShutdownMsg) {
     // Be aware this is why "initProcess" can not be "fork"ed in a child process, it will keep alive for parent process's 'message' event
     process.on('message', function(msg) {
       if (msg === 'shutdown') {
         // eslint-disable-next-line no-console
         log.info('Recieve shutdown message from PM2, bye.');
-        void onShut();
+        void onShut(0);
       }
     });
   }
@@ -59,16 +67,19 @@ export function initProcess(saveState = true, onShutdownSignal?: () => void | Pr
 
   startLogging();
   stateFactory.configureStore();
-  dispatcher.changeActionOnExit('none');
-  // if (isChildProcess && saveState)
-  //   dispatcher.changeActionOnExit('save');
-  // else if (!isChildProcess && !saveState) {
-  //   dispatcher.changeActionOnExit('none');
-  // }
+  dispatcher.changeActionOnExit(saveState);
 
-  async function onShut() {
+  async function onShut(code: number) {
+    await rx.merge(
+      ...exitHooks.map(hookFn => rx.defer(() => hookFn()).pipe(
+        op.catchError(err => {
+          log.error('Failed to execute shutdown hooks', err);
+          return rx.EMPTY;
+        })
+      ))
+    ).toPromise();
     if (onShutdownSignal) {
-      await Promise.resolve(onShutdownSignal())
+      await Promise.resolve(onShutdownSignal(code))
         .catch(err => console.error(err));
     }
     const saved = storeSavedAction$.pipe(op.take(1)).toPromise();
@@ -82,13 +93,16 @@ export function initProcess(saveState = true, onShutdownSignal?: () => void | Pr
 /**
  * Initialize redux-store for Plink.
  * 
- * Use this function instead of initProcess() in case it is in a forked child process or worker thread.
- * 
+ * Use this function instead of initProcess() in case it is in a forked child process or worker thread of Plink.
+ * So that plink won't listener to PM2's shutdown message in this case.
+ * Be aware that Plink main process could be a child process of PM2 or any other Node.js process manager,
+ * that's what initProcess() does to listener to PM2's message.
+
  * Unlink initProcess() which registers process event handler for SIGINT and shutdown command,
  * in case this is running as a forked child process, it will stand by until parent process explicitly
  *  sends a signal to exit
  * @param syncState send changed state back to main process
  */
-export function initAsChildProcess(saveState = false, onShutdownSignal?: () => void | Promise<any>) {
-  return initProcess(saveState, onShutdownSignal, true);
+export function initAsChildProcess(saveState: store.StoreSetting['actionOnExit'] = 'none', onShutdownSignal?: () => void | Promise<any>) {
+  return initProcess(saveState, onShutdownSignal, false);
 }

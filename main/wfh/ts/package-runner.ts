@@ -38,7 +38,10 @@ export function readPriorityProperty(json: any) {
   return _.get(json, 'plink.serverPriority', _.get(json, 'dr.serverPriority'));
 }
 
-export function runServer(): {started: Promise<{name: string; exp:  ExtensionExport}[]>; shutdown(): Promise<void>} {
+export function runServer(): {
+  started: Promise<{name: string; exp:  ExtensionExport}[]>;
+  shutdown(): Promise<void>
+} {
   let wsKey: string | null | undefined = workspaceKey(getWorkDir());
   wsKey = getState().workspaces.has(wsKey) ? wsKey : getState().currWorkspace;
   if (wsKey == null) {

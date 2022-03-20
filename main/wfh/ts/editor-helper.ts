@@ -1,21 +1,25 @@
 /* eslint-disable max-len */
+import Path from 'path';
 import * as fs from 'fs-extra';
 import _ from 'lodash';
 import log4js from 'log4js';
-import Path from 'path';
 import chalk from 'chalk';
-import { setTsCompilerOptForNodePath, CompilerOptions, packages4Workspace } from './package-mgr/package-list-helper';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
+import { ActionCreatorWithPayload, PayloadAction } from '@reduxjs/toolkit';
+import ts from 'typescript';
+import { setTsCompilerOptForNodePath, CompilerOptions, packages4WorkspaceKey } from './package-mgr/package-list-helper';
 import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
   isCwdWorkspace, workspaceDir } from './package-mgr';
 import { stateFactory, ofPayloadAction, action$Of } from './store';
 import * as _recp from './recipe-manager';
 import {symbolicLinkPackages} from './rwPackageJson';
 import {getPackageSettingFiles} from './config';
-import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
-import { ActionCreatorWithPayload, PayloadAction } from '@reduxjs/toolkit';
 import {plinkEnv, closestCommonParentDir} from './utils/misc';
-import ts from 'typescript';
+// import isp from 'inspector';
+// if (process.send)
+//   isp.open(9222, '0.0.0.0', true);
+
 const {workDir, rootDir: rootPath} = plinkEnv;
 
 
@@ -51,7 +55,7 @@ const slice = stateFactory.newSlice({
   name: 'editor-helper',
   initialState,
   reducers: {
-    clearSymlinks(s) {},
+    clearSymlinks() {},
     hookTsconfig(s, {payload}: PayloadAction<string[]>) {},
     unHookTsconfig(s, {payload}: PayloadAction<string[]>) {
       for (const file of payload) {
@@ -81,18 +85,19 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     }
 
     const currWorkspaceDir = workspaceDir(wsKey);
-    const srcPkgSet = new Set(Array.from(packages4Workspace(wsKey, false)).map(pkg => pkg.realPath));
+    const srcPkgSet = new Set(Array.from(packages4WorkspaceKey(wsKey, false)).map(pkg => pkg.realPath));
     const srcDirs = Array.from(_recp.allSrcDirs())
       .map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir) : item.srcDir);
-
     return rx.from(srcDirs).pipe(
       op.filter(dir => !noModuleSymlink.has(dir)),
-      op.tap(destDir => {
+      op.tap(srcDir => {
         rx.of({name: 'node_modules', realPath: Path.join(currWorkspaceDir, 'node_modules')}).pipe(
-          symbolicLinkPackages(destDir)
+          symbolicLinkPackages(srcDir)
         ).subscribe();
       }),
-      op.filter(dir => srcPkgSet.has(dir)),
+      // only those "node_modules" symlink which are inside source package need to be remove
+      // otherwise it will mess up Node.js module lookup algorithm
+      op.filter(srcDir => srcPkgSet.has(srcDir)),
       op.reduce<string, string[]>((acc, item) => {
         acc.push(item);
         return acc;
