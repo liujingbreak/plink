@@ -18,20 +18,26 @@ export interface PayloadAction<S, P = any> {
     reducer?(old: S, payload: P): S | void;
 }
 export declare type Reducers<S, R = any> = {
-    [K in keyof R]: (state: S, payload?: any) => S | void;
+    [K in keyof R]: (state: S, ...payload: any[]) => S | void;
 };
 export declare type Actions<S, R> = {
-    [K in keyof R]: R[K] extends (s: S) => any ? ActionCreatorWithoutPayload<S> : R[K] extends (s: S, payload: infer P) => any ? ActionCreatorWithPayload<S, P> : ActionCreatorWithPayload<S, unknown>;
+    [K in keyof R]: R[K] extends (s: S) => any ? {
+        (): ActionTypes<S, R>[K];
+        type: string;
+    } : R[K] extends (s: S, payload: infer P) => any ? {
+        (payload: P): ActionTypes<S, R>[K];
+        type: string;
+    } : R[K] extends (s: S, ...payload: infer M) => any ? {
+        (...payload: M): ActionTypes<S, R>[K];
+        type: string;
+    } : {
+        (): ActionTypes<S, R>[K];
+        type: string;
+    };
 };
-export declare type ActionCreator<S, P> = ActionCreatorWithoutPayload<S> | ActionCreatorWithPayload<S, P>;
-interface ActionCreatorWithoutPayload<S> {
-    (): Action<S>;
-    type: string;
-}
-interface ActionCreatorWithPayload<S, P> {
-    (payload: P): PayloadAction<S, P>;
-    type: string;
-}
+declare type ActionTypes<S, R> = {
+    [K in keyof R]: R[K] extends (s: S) => any ? Action<S> : R[K] extends (s: S, payload: infer P) => any ? PayloadAction<S, P> : R[K] extends (s: S, ...payload: infer M) => any ? PayloadAction<S, M> : PayloadAction<S, unknown>;
+};
 declare type OutputActionObs<S, R extends Reducers<any>, K extends keyof R> = rx.Observable<R[K] extends (s: S) => any ? Action<S> : R[K] extends (s: S, payload: infer P) => any ? PayloadAction<S, P> : PayloadAction<S, unknown>>;
 declare type OfTypePipeOp<S, R extends Reducers<S>, K extends keyof R> = (src: rx.Observable<PayloadAction<S> | Action<S>>) => OutputActionObs<S, R, K>;
 /** same as ofPayloadAction() , to filter action stream by type, unlike ofPayloadAction(), parameter is a string instead of actionCreator */
@@ -80,12 +86,39 @@ export interface Slice<S, R extends Reducers<S>> {
     setActionInterceptor(intec: rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>): void;
 }
 export declare type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
-/** filter action stream by type */
-export declare function ofPayloadAction<S, P>(actionCreators: ActionCreator<S, P>): rx.OperatorFunction<any, PayloadAction<S, P>>;
-export declare function ofPayloadAction<S, P, S1, P1>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>): rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1>>;
-export declare function ofPayloadAction<S, P, S1, P1, S2, P2>(actionCreators: ActionCreator<S, P>, actionCreators1: ActionCreator<S1, P1>, actionCreators2: ActionCreator<S2, P2>): rx.OperatorFunction<any, PayloadAction<S, P> | PayloadAction<S1, P1> | PayloadAction<S2, P2>>;
+declare type ActionOfCreator<C> = C extends {
+    (): any;
+    type: string;
+} ? {
+    type: string;
+    payload: undefined;
+} : C extends {
+    (payload: infer P): any;
+    type: string;
+} ? {
+    type: string;
+    payload: P;
+} : C extends {
+    (...args: infer M): any;
+    type: string;
+} ? {
+    type: string;
+    payload: M;
+} : unknown;
+export interface OfPayloadActionFn {
+    <C>(actionCreators: C): rx.OperatorFunction<any, ActionOfCreator<C>>;
+    <C1, C2>(actionCreators: C1, actionCreators1: C2): rx.OperatorFunction<any, ActionOfCreator<C1> | ActionOfCreator<C2>>;
+    <C1, C2, C3>(actionCreators: C1, actionCreators1: C2, actionCreators2: C3): rx.OperatorFunction<any, ActionOfCreator<C1> | ActionOfCreator<C2> | ActionOfCreator<C3>>;
+    (...actionCreators: {
+        type: string;
+    }[]): rx.OperatorFunction<any, {
+        type: string;
+        payload?: unknown;
+    }>;
+}
+export declare const ofPayloadAction: OfPayloadActionFn;
 declare type ActionByType<S, R> = {
-    [K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>;
+    [K in keyof R]: rx.Observable<ActionTypes<S, R>[K]>;
 };
 /**
  * Map action stream to multiple action streams by theire action type.
@@ -108,7 +141,9 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 export declare function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>, action$: rx.Observable<PayloadAction<any> | Action<S>>): ActionByType<S, R>;
-export declare function isActionOfCreator<P, S>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<S, P>): action is PayloadAction<S, P>;
+export declare function isActionOfCreator<C extends {
+    type: string;
+}>(action: any, actionCreator: C): action is ActionOfCreator<C>;
 export interface SliceOptions<S, R extends Reducers<S>> {
     name: string;
     initialState: S;

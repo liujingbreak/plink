@@ -1,7 +1,7 @@
 import React from 'react';
-import { createSlice } from './tiny-redux-toolkit';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
+import { createSlice } from './tiny-redux-toolkit';
 export * from './tiny-redux-toolkit';
 function withBaseReducers(origReducers) {
     const reducers = Object.assign({ _syncComponentProps(s, payload) {

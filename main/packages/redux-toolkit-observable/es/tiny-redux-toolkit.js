@@ -9,11 +9,11 @@
  */
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-export function ofPayloadAction(...actionCreators) {
+export const ofPayloadAction = (...actionCreators) => {
     return function (src) {
         return src.pipe(op.filter(action => actionCreators.some(ac => action.type === ac.type)));
     };
-}
+};
 /**
  * Map action stream to multiple action streams by theire action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
@@ -40,6 +40,7 @@ export function castByActionType(actionCreators, action$) {
     for (const reducerName of Object.keys(actionCreators)) {
         Object.defineProperty(splitActions, reducerName, {
             get() {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 return source.pipe(ofPayloadAction(actionCreators[reducerName]));
             }
         });
@@ -47,6 +48,7 @@ export function castByActionType(actionCreators, action$) {
     return splitActions;
 }
 export function isActionOfCreator(action, actionCreator) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return action.type === actionCreator.type;
 }
 const sliceCount4Name = {};
@@ -67,19 +69,30 @@ export function createSlice(opt) {
     const actionDispatcher = {};
     for (const [key, reducer] of Object.entries(opt.reducers)) {
         const type = name + '/' + key;
-        const creator = ((payload) => {
-            const action = { type, payload, reducer };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const creator = ((...payload) => {
+            const action = {
+                type,
+                payload: payload.length === 0 ? undefined :
+                    payload.length === 1 ? payload[0] :
+                        payload,
+                reducer
+            };
             return action;
         });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         creator.type = type;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         actionCreators[key] = creator;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         actionDispatcher[key] = ((payload) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
             const action = creator(payload);
             dispatch(action);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return action;
         });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         actionDispatcher[key].type = creator.type;
     }
     const state$ = new rx.BehaviorSubject(opt.initialState);
@@ -244,7 +257,9 @@ demoSlice.addEpic((slice, ofType) => {
     return (action$, state$) => {
         const actionStreams = castByActionType(slice.actions, action$);
         // slice.actionDispatcher.abc();
-        return rx.merge(actionStreams.hellow.pipe(), action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(ofPayloadAction(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload))).pipe(op.ignoreElements());
+        return rx.merge(actionStreams.hellow.pipe(), action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        ofPayloadAction(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload))).pipe(op.ignoreElements());
     };
 });
 action$OfSlice(demoSlice, 'hellow').pipe(op.tap(action => action));

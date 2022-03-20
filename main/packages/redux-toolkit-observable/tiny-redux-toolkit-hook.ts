@@ -1,7 +1,7 @@
 import React from 'react';
-import {createSlice, Reducers, Slice, SliceOptions, EpicFactory, OfTypeFn, Epic} from './tiny-redux-toolkit';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
+import {createSlice, Reducers, Slice, SliceOptions, EpicFactory, OfTypeFn, Epic} from './tiny-redux-toolkit';
 export * from './tiny-redux-toolkit';
 
 export interface BaseComponentState<Props> {

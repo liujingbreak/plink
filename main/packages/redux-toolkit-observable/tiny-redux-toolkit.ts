@@ -30,19 +30,19 @@ export type Reducers<S, R = any> = {
 export type Actions<S, R> = {
   [K in keyof R]:
     R[K] extends (s: S) => any ? {
-      (): Action<S>;
-      type: K;
+      (): ActionTypes<S, R>[K];
+      type: string;
     } :
     R[K] extends (s: S, payload: infer P) => any ? {
-      (payload: P): PayloadAction<S, P>;
-      type: K;
+      (payload: P): ActionTypes<S, R>[K];
+      type: string;
     } :
     R[K] extends (s: S, ...payload: infer M) => any ? {
-      (...payload: M): PayloadAction<S, M>;
-      type: K;
+      (...payload: M): ActionTypes<S, R>[K];
+      type: string;
     } : {
-      (): Action<S>;
-      type: K;
+      (): ActionTypes<S, R>[K];
+      type: string;
     };
 };
 
@@ -109,23 +109,38 @@ export interface Slice<S, R extends Reducers<S>> {
 
 export type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
 
-/** filter action stream by type */
-export function ofPayloadAction<S, R, K extends keyof R>(actionCreators: Actions<S, R>[K]): rx.OperatorFunction<any, ActionTypes<S, R>[K]>;
-export function ofPayloadAction<S, R, K extends keyof R, K1 extends keyof R>(actionCreators: Actions<S, R>[K], actionCreators1: Actions<S, R>[K1]):
-  rx.OperatorFunction<any , ActionTypes<S, R>[K] | ActionTypes<S, R>[K1]>;
-export function ofPayloadAction<S, R, K extends keyof R, K1 extends keyof R, K2 extends keyof R>(
-  actionCreators: Actions<S, R>[K], actionCreators1: Actions<S, R>[K1], actionCreators2: Actions<S, R>[K2]):
-  rx.OperatorFunction<any, ActionTypes<S, R>[K] | ActionTypes<S, R>[K1]>;
-export function ofPayloadAction<S, R>(
-  ...actionCreators: Actions<S, R>[keyof R][]): rx.OperatorFunction<any, ActionTypes<S, R>[keyof R]> {
-  return function(src: rx.Observable<ActionTypes<S, R>[keyof R]>) {
+type ActionOfCreator<C> = C extends {
+  (): any;
+  type: string;
+} ? { type: string; payload: undefined } :
+  C extends {
+    (payload: infer P): any;
+    type: string;
+  } ? {type: string; payload: P} :
+  C extends {
+    (...args: infer M): any;
+    type: string;
+  } ? {type: string; payload: M} : unknown;
+
+export interface OfPayloadActionFn {
+  <C>(actionCreators: C): rx.OperatorFunction<any, ActionOfCreator<C>>;
+  <C1, C2>(actionCreators: C1, actionCreators1: C2):
+    rx.OperatorFunction<any , ActionOfCreator<C1> | ActionOfCreator<C2>>;
+  <C1, C2, C3>(actionCreators: C1, actionCreators1: C2, actionCreators2: C3):
+    rx.OperatorFunction<any, ActionOfCreator<C1> | ActionOfCreator<C2> | ActionOfCreator<C3>>;
+  (...actionCreators: {type: string}[]): rx.OperatorFunction<any, {type: string; payload?: unknown}>;
+}
+
+export const ofPayloadAction: OfPayloadActionFn = (
+  ...actionCreators: {type: string}[]) => {
+  return function(src: rx.Observable<{type: string}>) {
     return src.pipe(
       op.filter(action => actionCreators.some(ac => action.type === ac.type))
     );
   };
-}
+};
 
-type ActionByType<S, R> = {[K in keyof R]: rx.Observable<ReturnType<Actions<S, R>[K]>>};
+type ActionByType<S, R> = {[K in keyof R]: rx.Observable<ActionTypes<S, R>[K]>};
 /**
  * Map action stream to multiple action streams by theire action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
@@ -164,8 +179,8 @@ export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actio
     return splitActions;
 }
 
-export function isActionOfCreator<S, R, K extends keyof R>(action: any, actionCreator: Actions<S, R>[K]):
-  action is ActionTypes<S, R>[K] {
+export function isActionOfCreator<C extends {type: string}>(action: any, actionCreator: C):
+  action is ActionOfCreator<C> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return action.type === actionCreator.type;
 }
@@ -201,21 +216,32 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
 
   for (const [key, reducer] of Object.entries(opt.reducers)) {
     const type = name + '/' + key;
-    const creator = ((payload: unknown) => {
-      const action = {type, payload, reducer};
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const creator = ((...payload: unknown[]) => {
+      const action = {
+        type,
+        payload: payload.length === 0 ? undefined :
+          payload.length === 1 ? payload[0] :
+          payload,
+        reducer
+      };
       return action;
-    }) as ActionCreatorWithPayload<S, any>;
+    }) as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     creator.type = type;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    actionCreators[key as keyof R] = creator as any;
+    actionCreators[key as keyof R] = creator;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     actionDispatcher[key as keyof R] = ((payload?: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       const action = creator(payload);
       dispatch(action);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return action;
     }) as any;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     actionDispatcher[key as keyof R].type = creator.type;
   }
 
@@ -380,7 +406,7 @@ export function action$OfSlice<S, R extends Reducers<S>,
     R[T] extends (s: any, p: infer P) => any ? {payload: P; type: T} : never>(sub => {
     slice.addEpic(slice => (action$) => {
       return action$.pipe(
-        ofPayloadAction(slice.actions[actionType]!),
+        ofPayloadAction(slice.actions[actionType]),
         op.map(action => sub.next(action as any)),
         op.ignoreElements()
       );
@@ -421,7 +447,8 @@ const demoSlice = createSlice({
   initialState: {} as {ok?: boolean; error?: Error},
   reducers: {
     hellow(s, greeting: {data: string}) {},
-    world(s) {}
+    world(s) {},
+    multiPayloadReducer(s, arg1: string, arg2: number) {}
   }
 });
 demoSlice.addEpic((slice, ofType) => {
@@ -430,6 +457,7 @@ demoSlice.addEpic((slice, ofType) => {
     // slice.actionDispatcher.abc();
     return rx.merge(
       actionStreams.hellow.pipe(),
+      actionStreams.multiPayloadReducer.pipe(),
       action$.pipe(
         ofType('hellow', 'hellow'),
         op.map(action => slice.actions.world())
@@ -449,7 +477,11 @@ demoSlice.addEpic((slice, ofType) => {
       ),
       action$.pipe(
         ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world),
-        op.tap(action => action.payload)
+        op.tap(action => action.payload )
+      ),
+      action$.pipe(
+        ofPayloadAction(slice.actions.multiPayloadReducer),
+        op.tap(({payload: [a1, a2]}) => alert(a1))
       )
     ).pipe(op.ignoreElements());
   };
