@@ -9,7 +9,7 @@ import * as store from '../store';
 
 const log = log4js.getLogger('plink.bootstrap-process');
 
-/** When process on 'SIGINT' and "beforeExit", all functions will be executed */
+/** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 export const exitHooks = [] as Array<() => (rx.ObservableInput<unknown> | void)>;
 
 process.on('uncaughtException', function(err) {
@@ -45,11 +45,11 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
   process.once('beforeExit', function(code) {
     log.info('pid ' + process.pid + ': bye');
-    void onShut(code);
+    void onShut(code, false);
   });
   process.once('SIGINT', () => {
     log.info('pid' + process.pid + ' recieves SIGINT');
-    void onShut(0);
+    void onShut(0, true);
   });
 
   if (handleShutdownMsg) {
@@ -58,7 +58,7 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
       if (msg === 'shutdown') {
         // eslint-disable-next-line no-console
         log.info('Recieve shutdown message from PM2, bye.');
-        void onShut(0);
+        void onShut(0, true);
       }
     });
   }
@@ -69,11 +69,13 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   stateFactory.configureStore();
   dispatcher.changeActionOnExit(saveState);
 
-  async function onShut(code: number) {
+  async function onShut(code: number, explicitlyExit: boolean) {
+    let exitCode = 0;
     await rx.merge(
       ...exitHooks.map(hookFn => rx.defer(() => hookFn()).pipe(
         op.catchError(err => {
           log.error('Failed to execute shutdown hooks', err);
+          exitCode = 1;
           return rx.EMPTY;
         })
       ))
@@ -85,7 +87,9 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
     const saved = storeSavedAction$.pipe(op.take(1)).toPromise();
     dispatcher.processExit();
     await saved;
-    setImmediate(() => process.exit(0));
+    if (explicitlyExit) {
+      setImmediate(() => process.exit(exitCode));
+    }
   }
   return dispatcher;
 }

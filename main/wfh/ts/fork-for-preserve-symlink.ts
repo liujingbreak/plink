@@ -52,7 +52,7 @@ export default function run(moduleName: string, opts: {
 /** run in main process */
 async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
   let recovered = false;
-  const {initProcess} = require('./utils/bootstrap-process') as typeof bootstrapProc;
+  const {initProcess, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
   const {stateFactory} = require('./store') as typeof store;
   let cp: ChildProcess | undefined;
 
@@ -104,11 +104,17 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
     ).subscribe();
   }
 
-  cp.on('exit', code => {
+  const onChildExit$ = new rx.ReplaySubject<number>();
+  cp.once('exit', code => {
     if (code != null && code !== 0) {
-      process.exit(code);
+      onChildExit$.error(new Error('Child process exit with code: ' + code));
+      return;
+      // process.exit(code);
     }
+    onChildExit$.next(code || 0);
+    onChildExit$.complete();
   });
+  exitHooks.push(() => onChildExit$);
 
   function recoverNodeModuleSymlink() {
     if (recovered)

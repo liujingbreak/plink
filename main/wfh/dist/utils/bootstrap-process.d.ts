@@ -2,7 +2,7 @@ import '../node-path';
 import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
 import * as store from '../store';
-/** When process on 'SIGINT' and "beforeExit", all functions will be executed */
+/** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 export declare const exitHooks: (() => (rx.ObservableInput<unknown> | void))[];
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
