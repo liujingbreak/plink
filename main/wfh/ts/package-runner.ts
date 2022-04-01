@@ -4,6 +4,8 @@ import Path from 'path';
 import * as _ from 'lodash';
 import log4js from 'log4js';
 import chalk from 'chalk';
+import * as op from 'rxjs/operators';
+import * as rx from 'rxjs';
 import {PackageInfo, packageOfFileFactory, walkPackages} from './package-mgr/package-info-gathering';
 import { nodeInjector, webInjector } from './injector-factory';
 import _NodeApi from './package-mgr/node-package-api';
@@ -80,13 +82,21 @@ export function runServer(): {
     async shutdown() {
       const reverseOrderPkgExports = await started;
       log.info('Shutting down');
-      for (const {name, exp} of reverseOrderPkgExports) {
-        if (_.isFunction(exp.deactivate)) {
+      await rx.from(reverseOrderPkgExports).pipe(
+        op.concatMap(({name, exp}) => {
           log.info('deactivate', name);
-          await Promise.resolve(exp.deactivate())
-            .catch(err => log.warn(err));
-        }
-      }
+          if (_.isFunction(exp.deactivate)) {
+            return rx.from(Promise.resolve(exp.deactivate())).pipe(
+              op.timeoutWith(5000, rx.of(`deactivate ${name} timeout`)),
+              op.catchError(err => {
+                log.warn(err);
+                return rx.EMPTY;
+              })
+            );
+          }
+          return rx.EMPTY;
+        })
+      ).toPromise();
       log.info('Shutdown completed');
     }
   };
