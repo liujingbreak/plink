@@ -113,7 +113,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
         let proxyToServerSocket = net.connect({
           host, port
         }, () => {
-          log.warn('PROXY TO FORBACK proxy connection created', host, ':', port);
+          log.info('PROXY TO FORBACK proxy connection created', host, ':', port);
           const connected = proxyToServerSocket.pipe(clientToProxySocket);
           dispatch.remoteSocketConnected(connected, 'Remote proxy reading');
           proxyToServerSocket.write(data);
@@ -149,14 +149,12 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     action$.pipe(
       ofType('remoteSocketConnected'),
       op.map(({payload: [proxyToServerSocket, msg]}) => {
-        log.info('Register error event handler to', msg);
         proxyToServerSocket.on('error', (err) => {
           log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
         });
         proxyToServerSocket.on('lookup', (err, addr, _fam, host) => {
           if (err)
             log.warn('lookup error', err);
-          log.info('lookup', addr, host);
         });
         proxyToServerSocket.on('timeout', () => {
           log.warn('PROXY TO SERVER timeout', proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort);
