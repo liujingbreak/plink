@@ -40,6 +40,8 @@ export interface AssetsProcesserSetting {
     cacheDir?: string;
     /** URI of upstream registry, default is https://registry.npmjs.org */
     registry?: string;
+    /** proxy server */
+    proxy?: string;
   };
   fetchMailServer: {
     imap: string;

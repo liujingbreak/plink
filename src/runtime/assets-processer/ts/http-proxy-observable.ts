@@ -28,31 +28,24 @@ export function httpProxyObservable(proxy: HttpProxy): HttpProxyEventObs {
   const createdSubjs = {} as typeof obsObj;
 
   for (const event of EVENTS) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    obsObj[event] = rx.fromEventPattern<HttpProxyEventParams[typeof event]>(
-      handler => proxy.on(event, handler),
-      handler => proxy.off(event, handler)
-    ).pipe(
-      op.map(args => ({
-        type: event,
-        payload: args
-      }))
-    ) as any;
-
     Object.defineProperty(obsObj, event, {
       get() {
         let ob = createdSubjs[event];
-        if (ob)
+        if (ob) {
           return ob;
-        const sub = new rx.Subject<{type: keyof HttpProxyEventParams;
-          payload: HttpProxyEventParams[keyof HttpProxyEventParams]; }>();
+        }
 
-        const handler = (...args: HttpProxyEventParams[typeof event]) => {
-          sub.next({type: event, payload: args});
-        };
-        proxy.on(event, handler);
+        const sub = rx.fromEventPattern<HttpProxyEventParams[typeof event]>(
+          handler => proxy.on(event, handler),
+          handler => proxy.off(event, handler)
+        ).pipe(
+          op.map(args => ({
+            type: event,
+            payload: args
+          }))
+        );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        createdSubjs[event] = sub.asObservable() as any;
+        createdSubjs[event] = sub as any;
         return sub;
       }
     });
@@ -84,8 +77,8 @@ export function observeProxyResponse(httpProxy$: HttpProxyEventObs, res: Respons
     rx.merge(httpProxy$.econnreset, httpProxy$.error).pipe(
       op.filter(event => event.payload[2] === res),
       op.take(1),
-      op.mergeMap(event => {
-        return rx.throwError(event.payload[0]);
+      op.mergeMap(({payload: [err]}) => {
+        return rx.throwError(err);
       })
     )
   ).pipe(

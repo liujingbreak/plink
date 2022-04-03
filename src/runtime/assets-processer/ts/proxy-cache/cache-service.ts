@@ -1,11 +1,15 @@
 import Path from 'path';
 import { IncomingMessage, ServerResponse } from 'http';
+import util from 'util';
+import stream from 'stream';
+import url from 'url';
 import fs from 'fs-extra';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {Request, Response, NextFunction} from 'express';
 import {ServerOptions, createProxyServer} from 'http-proxy';
+import chalk from 'chalk';
 import api from '__plink';
 import {log4File, config} from '@wfh/plink';
 // import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
@@ -31,11 +35,12 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
   });
   const initialState: ProxyCacheState = {
     proxy: defaultProxy,
-    proxy$: httpProxyObservable(defaultProxy),
     cacheDir: cacheRootDir,
     cacheByUri: new Map(),
     memCacheLength: opts.memCacheLength == null ? Number.MAX_VALUE : opts.memCacheLength
   };
+
+  const proxy$ = httpProxyObservable(defaultProxy);
 
   if (!opts.manual) {
     api.expressAppSet(app => {
@@ -111,6 +116,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
 
   cacheController.epic(action$ => {
     const actions = castByActionType(cacheController.actions, action$);
+    const dispatcher = cacheController.actionDispatcher;
 
     async function requestingRemote(
       key: string, reqHost: string | undefined,
@@ -124,7 +130,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
       const statusCode = proxyRes.statusCode || 200;
       const {responseTransformer} = cacheController.getState();
       if (statusCode === 304) {
-        cacheController.actionDispatcher._done({key, res, data: {
+        dispatcher._done({key, res, data: {
             statusCode, headers, body: createReplayReadableFactory(proxyRes)
           }
         });
@@ -133,6 +139,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
       }
       if (statusCode !== 200) {
         httpProxyLog.error(`Response code is ${statusCode} for request:`, res.req.url);
+        dispatcher._done({key, res, data: {statusCode, headers, body: () => proxyRes}});
         return;
       }
 
@@ -140,11 +147,11 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
         const doneMkdir = fs.mkdirp(dir);
         const readableFac = createReplayReadableFactory(proxyRes, undefined,
           {debugInfo: key, expectLen: parseInt(proxyRes.headers['content-length'] as string, 10)});
-         // cacheController.actionDispatcher._done({key, data: {
+         // dispatcher._done({key, data: {
          //       statusCode, headers, body: () => proxyRes
          //     }, res
          //   });
-        cacheController.actionDispatcher._savingFile({key, data: {
+        dispatcher._savingFile({key, data: {
             statusCode, headers, body: readableFac
           }, res
         });
@@ -160,7 +167,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
             .on('finish', resolve)
             .on('error', reject));
 
-          cacheController.actionDispatcher._done({key, data: {
+          dispatcher._done({key, data: {
               statusCode, headers, body: readableFac
             }, res
           });
@@ -183,7 +190,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
       if (lengthHeaderIdx >= 0)
         headers[lengthHeaderIdx][1] = '' + length;
 
-      cacheController.actionDispatcher._savingFile({key, res, data: {
+      dispatcher._savingFile({key, res, data: {
           statusCode, headers, body: transformed
       } });
 
@@ -197,7 +204,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
         .pipe(fs.createWriteStream(file))
         .on('error', reject));
 
-      cacheController.actionDispatcher._done({key, res, data: {
+      dispatcher._done({key, res, data: {
           statusCode, headers, body: transformed
       } });
       httpProxyLog.info('write response to file', Path.posix.relative(process.cwd(), file), 'size', length);
@@ -206,8 +213,9 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
     return rx.merge(
       actions.hitCache.pipe(
         op.mergeMap( ({payload}) => {
-          const waitCacheAndSendRes = rx.race(actions._done, actions._savingFile).pipe(
-            op.filter(action => action.payload.key === payload.key), // In case it is of redirected request, HPM has done piping response (ignored "manual reponse" setting)
+          const waitCacheAndSendRes = actions._done.pipe(
+            // In case it is of redirected request, HPM has done piping response (ignored "manual reponse" setting)
+            op.filter(action => action.payload.key === payload.key),
             op.take(1),
             op.mergeMap(({payload: {key, res, data}}) => {
               if (res.writableEnded) {
@@ -217,8 +225,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
                 res.setHeader(entry[0], entry[1]);
               }
               res.statusCode = data.statusCode;
-              httpProxyLog.info('reply to', payload.key);
-              const pipeEvent$ = new rx.Subject<string>();
+              const pipeEvent$ = new rx.Subject<'finish' | 'close'>();
               res.on('finish', () => {
                 pipeEvent$.next('finish');
               })
@@ -228,35 +235,47 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
               .on('error', err => pipeEvent$.error(err));
 
               data.body().pipe(res);
+              httpProxyLog.info('pipe response of', payload.key);
+
               return pipeEvent$.pipe(
                 op.filter(event => event === 'finish' || event === 'close'),
                 op.tap(event => {
                   if (event === 'close')
-                    httpProxyLog.error('Response connection is closed early');
+                    httpProxyLog.error('Response connection is closed early', key,
+                                       'expect content-lenth', data.headers['content-length']);
                 }),
                 op.take(1),
-                op.mapTo(key),
-                op.timeout(120000),
-                op.catchError(err => {
-                  if (!res.headersSent) {
-                    res.statusCode = 500;
-                    res.end();
-                  } else {
-                    res.end();
-                  }
-                  return rx.EMPTY;
-                })
+                op.mapTo(key)
+                // op.timeout(120000),
+                // op.catchError(err => {
+                  // httpProxyLog.error(err);
+                  // if (!res.headersSent) {
+                    // res.statusCode = 500;
+                    // res.end();
+                  // } else {
+                    // res.end();
+                  // }
+                  // return rx.EMPTY;
+                // })
               );
             }),
-            op.map(key => httpProxyLog.info(`replied: ${key}`))
+            op.tap(key => httpProxyLog.info(`replied: ${key}`))
           );
           const item = cacheController.getState().cacheByUri.get(payload.key);
           httpProxyLog.info('hitCache for ' + payload.key);
+
+          let finished$: rx.Observable<unknown> | undefined;
+
           if (item == null) {
-            cacheController.actionDispatcher._loadFromStorage(payload);
-            return waitCacheAndSendRes;
+            finished$ = rx.merge(
+              waitCacheAndSendRes,
+              rx.defer(() => {
+                dispatcher._loadFromStorage(payload);
+                return rx.EMPTY;
+              })
+            );
           } else if (item === 'loading' || item === 'requesting' || item === 'saving') {
-            return waitCacheAndSendRes;
+            finished$ = waitCacheAndSendRes;
           } else {
             httpProxyLog.info('hit cached', payload.key);
             const transformer = cacheController.getState().cacheTransformer;
@@ -265,36 +284,46 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
                 payload.res.setHeader(entry[0], entry[1]);
               }
               payload.res.status(item.statusCode);
-              return new rx.Observable<void>(sub => {
+              finished$ = new rx.Observable<void>(sub => {
                 item.body()
                 .on('end', () => {sub.next(); sub.complete(); })
                 .pipe(payload.res);
               });
+            } else {
+              finished$ = rx.from(transformer(item.headers, payload.req.headers.host, item.body())).pipe(
+                op.take(1),
+                op.mergeMap(({readable, length}) => {
+                  const lengthHeaderIdx = item.headers.findIndex(row => row[0] === 'content-length');
+                  if (lengthHeaderIdx >= 0)
+                    item.headers[lengthHeaderIdx][1] = '' + length;
+                  for (const entry of item.headers) {
+                    payload.res.setHeader(entry[0], entry[1]);
+                  }
+                  payload.res.status(item.statusCode);
+                  return stream.promises.pipeline(
+                    readable(), payload.res
+                  );
+                })
+              );
             }
-
-            return rx.from(transformer(item.headers, payload.req.headers.host, item.body())).pipe(
-              op.take(1),
-              op.mergeMap(({readable, length}) => {
-                const lengthHeaderIdx = item.headers.findIndex(row => row[0] === 'content-length');
-                if (lengthHeaderIdx >= 0)
-                  item.headers[lengthHeaderIdx][1] = '' + length;
-                for (const entry of item.headers) {
-                  payload.res.setHeader(entry[0], entry[1]);
-                }
-                payload.res.status(item.statusCode);
-                return new rx.Observable<void>(sub => {
-                  readable().on('end', () => sub.complete())
-                    .pipe(payload.res)
-                    .on('error', err => sub.error(err));
-                });
-              })
-            );
           }
-        }),
-        op.catchError(err => {
-          httpProxyLog.error('Failed to write response', err);
-          return rx.EMPTY;
-        })
+
+          return rx.timer(5000, 5000).pipe(
+            op.takeUntil(finished$),
+            op.map(idx => {
+              const item = cacheController.getState().cacheByUri.get(payload.key);
+              httpProxyLog.info(`${chalk.blue(payload.key)} [${typeof item === 'string' ? item : 'cached'}] has been processed for ${chalk.yellow((idx + 1) * 5 + 's')}`);
+              return item;
+            }),
+            op.count(),
+            op.tap(() => httpProxyLog.info(`${chalk.green(payload.key)} is finished`)),
+            op.timeout(60000),
+            op.catchError((err) => {
+              httpProxyLog.error('Failed to write response', err);
+              return rx.EMPTY;
+            })
+          );
+        }, 5)
       ),
       actions._loadFromStorage.pipe(
         op.mergeMap(async ({payload}) => {
@@ -309,7 +338,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
                 const headersStr = await fs.promises.readFile(hFile, 'utf-8');
                 const {statusCode, headers} = JSON.parse(headersStr) as {statusCode: number; headers: [string, string | string[]][]};
 
-                cacheController.actionDispatcher._done({key: payload.key, res: payload.res,
+                dispatcher._done({key: payload.key, res: payload.res,
                   data: {
                     statusCode,
                     headers,
@@ -325,7 +354,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
               if (lengthHeaderIdx >= 0)
                 headers[lengthHeaderIdx][1] = '' + length;
 
-              cacheController.actionDispatcher._done({key: payload.key,
+              dispatcher._done({key: payload.key,
                 res: payload.res,
                 data: {
                   statusCode,
@@ -334,11 +363,11 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
                 }});
             } else {
               httpProxyLog.info('No existing file for', payload.key);
-              cacheController.actionDispatcher._requestRemote(payload);
+              dispatcher._requestRemote(payload);
             }
           } catch (ex) {
             httpProxyLog.error('Failed to save cache for: ' + payload.key, ex);
-            cacheController.actionDispatcher._clean(payload.key);
+            dispatcher._clean(payload.key);
           }
         })
       ),
@@ -351,7 +380,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
           }
           return rx.defer(() => {
             cacheController.getState().proxy.web(payload.req, payload.res, proxyOpts);
-            return observeProxyResponse(cacheController.getState().proxy$, payload.res);
+            return observeProxyResponse(proxy$, payload.res);
           }).pipe(
             op.mergeMap(({payload: [proxyRes, _req, res]}) => {
               return requestingRemote(payload.key, payload.req.headers.host, proxyRes, res,
@@ -365,6 +394,17 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
             }),
             op.retry(3)
           );
+        })
+      ),
+      proxy$.proxyReq.pipe(
+        op.tap(({payload: [proxyReq, req, res, opts]}) => {
+          const target = opts.target as url.Url;
+          httpProxyLog.info('Request', target.hostname, target.pathname);
+        })
+      ),
+      proxy$.econnreset.pipe(
+        op.tap(({payload: [err]}) => {
+          httpProxyLog.info('econnreset', err);
         })
       )
     ).pipe(

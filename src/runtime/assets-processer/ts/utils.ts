@@ -46,7 +46,7 @@ export function createResponseTimestamp(req: Request, res: Response, next: NextF
     } else if (argv.length === 1) {
       argv.push(print);
     }
-    const ret = end.apply(res, argv);
+    const ret = end.apply(res, argv as any);
     return ret;
   };
 
@@ -329,26 +329,37 @@ export function createBufferForHttpProxy(req: IncomingMessage) {
     return undefined;
 
   if (contentType && contentType.includes('application/json')) {
-    return new stream.Readable({
-      read() {
-        this.push(Buffer.from(JSON.stringify(body)));
-        this.push(null);
-      }
-    });
+    const buf = Buffer.from(JSON.stringify(body));
+    return {
+      readable: new stream.Readable({
+        read() {
+          this.push(buf);
+          this.push(null);
+        }
+      }),
+      length: buf.length
+    };
   } else if (contentType === 'application/x-www-form-urlencoded') {
-    return new stream.Readable({
-      read() {
-        this.push(Buffer.from(querystring.stringify(body)));
-        this.push(null);
-      }
-    });
+    const buf = Buffer.from(querystring.stringify(body));
+    return {
+      readable: new stream.Readable({
+        read() {
+          this.push(buf);
+          this.push(null);
+        }
+      }),
+      length: buf.length
+    };
   } else if (Buffer.isBuffer(body)) {
-    return new stream.Readable({
-      read() {
-        this.push(body);
-        this.push(null);
-      }
-    });
+    return {
+      readable: new stream.Readable({
+        read() {
+          this.push(body);
+          this.push(null);
+        }
+      }),
+      length: body.length
+    };
   }
 }
 

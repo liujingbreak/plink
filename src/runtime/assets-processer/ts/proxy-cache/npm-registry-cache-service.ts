@@ -1,4 +1,5 @@
 import Path from 'path';
+import os from 'os';
 import {Transform, Writable, Readable, promises as streamProm} from 'stream';
 import fs from 'fs';
 import zlib from 'zlib';
@@ -7,12 +8,14 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import * as _ from 'lodash';
 import {Request, Response} from 'express';
+import ProxyAgent from 'proxy-agent';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
+import chalk from 'chalk';
 import {CacheData, NpmRegistryVersionJson, TarballsInfo, Transformer} from './types';
 import {createProxyWithCache} from './cache-service';
 // import insp from 'inspector';
 // insp.open(9222, '0.0.0.0', true);
-
+const isWin = os.platform().indexOf('win32') >= 0;
 const log = log4File(__filename);
 
 type PkgDownloadRequestParams = {
@@ -28,10 +31,14 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
   const STATE_FILE = Path.resolve(setting.cacheDir || config.resolve('destDir'), 'npm-registry-cache.json');
 
   const servePath = Path.posix.join(setting.path || '/registry', 'versions');
-  log.info('NPM registry cache is serving at ', servePath);
+  const envVarDesc = `${isWin ? 'set' : 'export'} npm_config_registry=http://${config().localIP}:${config().port}${servePath}`;
+  log.info('NPM registry cache is serving at ', servePath, '\n' +
+    `You can set environment variable: ${chalk.cyan(envVarDesc)}`);
+
   const versionsCacheCtl = createProxyWithCache(servePath, {
       selfHandleResponse: true,
-      target: setting.registry || 'https://registry.npmjs.org'
+      target: setting.registry || 'https://registry.npmjs.org',
+      agent: setting.proxy ? new ProxyAgent(setting.proxy) : undefined
     },
     Path.posix.join(setting.cacheDir || config.resolve('destDir'), 'versions')
   );
@@ -43,7 +50,6 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
   api.expressAppSet(app => app.use(serveTarballPath, pkgDownloadRouter));
 
   pkgDownloadRouter.get<PkgDownloadRequestParams>('/:pkgName/:version', (req, res) => {
-    log.info('incoming request download tarball', req.url);
     pkgDownloadCtl.actionDispatcher.fetchTarball({
       req, res, pkgName: req.params.pkgName, version: req.params.version});
   });
@@ -74,7 +80,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
     // const fetchActionState = new Map<string, Response[]>();
     // map key is host name of remote tarball server
     // const cacheSvcByOrigin = new Map<string, ReturnType<typeof createProxyWithCache>>();
-    const tarballCacheSerivce = createProxyWithCache('', {followRedirects: true},
+    const tarballCacheSerivce = createProxyWithCache('', {followRedirects: true, selfHandleResponse: true},
       tarballDir);
 
     if (fs.existsSync(STATE_FILE)) {
@@ -94,10 +100,10 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
             op.filter(value => value != null),
             op.take(1),
             op.map(url => {
+              log.info('incoming request download', url);
               try {
-                log.warn('download', url);
                 tarballCacheSerivce.actionDispatcher.hitCache({
-                  key: url.replace(/:/g, '.'),
+                  key: url.replace(/^https?:\//g, ''),
                   req: payload.req, res: payload.res,
                   next: () => {},
                   target: url
@@ -168,18 +174,24 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
             const json = JSON.parse(fragments) as NpmRegistryVersionJson;
             const param: {[ver: string]: string} = {};
 
-            for (const [ver, versionEntry] of Object.entries(json.versions)) {
-              const origTarballUrl = param[ver] = versionEntry.dist.tarball;
-              const urlObj = new URL(origTarballUrl);
-              const url = versionEntry.dist.tarball = (reqHost || DEFAULT_HOST) +
-                `${serveTarballPath}/${encodeURIComponent(json.name)}/${encodeURIComponent(ver)}${urlObj.search}`;
-              if (!url.startsWith('http'))
-                versionEntry.dist.tarball = 'http://' + url;
-            }
-            if (trackRemoteUrl)
-              pkgDownloadCtl.actionDispatcher.add({pkgName: json.name, versions: param});
+            if (json.versions) {
+              for (const [ver, versionEntry] of Object.entries(json.versions)) {
+                const origTarballUrl = param[ver] = versionEntry.dist.tarball;
+                const urlObj = new URL(origTarballUrl);
+                const url = versionEntry.dist.tarball = (reqHost || DEFAULT_HOST) +
+                  `${serveTarballPath}/${encodeURIComponent(json.name)}/${encodeURIComponent(ver)}${urlObj.search}`;
+                if (!url.startsWith('http'))
+                  versionEntry.dist.tarball = 'http://' + url;
+              }
+              if (trackRemoteUrl)
+                pkgDownloadCtl.actionDispatcher.add({pkgName: json.name, versions: param});
 
-            cb(null, JSON.stringify(json));
+              cb(null, JSON.stringify(json));
+            } else {
+              log.info('Skip transform', fragments);
+              cb(null, fragments);
+            }
+
           } catch (e) {
             log.error(fragments, e);
             return cb(null, '');
@@ -205,6 +217,7 @@ export default function createNpmRegistryServer(api: ExtensionContext) {
       );
       // NodeJS bug: https://github.com/nodejs/node/issues/40191:
       // stream.promises.pipeline doesn't support arrays of streams since node 16.10
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       const done: Promise<unknown> = (streamProm.pipeline as any)(source, ...transformers);
       await done;
 

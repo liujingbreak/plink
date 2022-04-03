@@ -196,6 +196,7 @@ function create(tsconfigFile) {
       }
     }],
     rules: {
+      ...reactAppCfg.rules,
       "brace-style": ["error", "1tbs", {
           allowSingleLine: true
       }],

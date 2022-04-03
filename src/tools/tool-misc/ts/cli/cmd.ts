@@ -1,6 +1,6 @@
 import {CliExtension, cliPackageArgDesc} from '@wfh/plink';
 // import {cliPackageArgDesc}
-import {CBOptions, generate} from './cli-gcmd';
+import {generate} from './cli-gcmd';
 
 const cliExt: CliExtension = (program) => {
   // program.command('eslint <dir>')
@@ -15,7 +15,7 @@ const cliExt: CliExtension = (program) => {
   // .option('--for-template <templateName>', 'Create a template generator command', false)
   .option('-d, --dry-run', 'Dryrun', false)
   .action(async (packageName: string, cmdName: string) => {
-    await generate(packageName, cmdName, cmd.opts() as CBOptions);
+    await generate(packageName, cmdName, cmd.opts() );
   });
   cmd.usage(cmd.usage() + '\ne.g.\n  plink gcmd my-package my-command');
 
@@ -25,7 +25,7 @@ const cliExt: CliExtension = (program) => {
     'package-name': cliPackageArgDesc
   })
   .action(async (packageNames: string[]) => {
-    await (await import('./cli-gsetting')).generateSetting(packageNames, settingCmd.opts() as any);
+    await (await import('./cli-gsetting')).generateSetting(packageNames, settingCmd.opts() );
   });
 
   const cfgCmd = program.command('gcfg <file>').alias('gen-config')
@@ -35,7 +35,7 @@ const cliExt: CliExtension = (program) => {
     file: 'Output configuration file path (with or without suffix name ".ts"), e.g. "conf/foobar.prod"'
   })
   .action(async (file: string) => {
-    await (await import('./cli-gcfg')).generateConfig(file, cfgCmd.opts() as any);
+    await (await import('./cli-gcfg')).generateConfig(file, cfgCmd.opts() );
   });
 
   const genCraCmd = program.command('cra-gen-pkg <path>')

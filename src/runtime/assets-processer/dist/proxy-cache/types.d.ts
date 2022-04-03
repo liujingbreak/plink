@@ -1,13 +1,11 @@
 /// <reference types="node" />
 import httpProxy from 'http-proxy';
-import { HttpProxyEventObs } from '../http-proxy-observable';
 export declare type Transformer = (resHeaders: CacheData['headers'], reqHost: string | undefined, source: NodeJS.ReadableStream) => PromiseLike<{
     readable: () => NodeJS.ReadableStream;
     length: number;
 }>;
 export declare type ProxyCacheState = {
     proxy: httpProxy;
-    proxy$: HttpProxyEventObs;
     cacheDir: string;
     cacheByUri: Map<string, CacheData | 'loading' | 'requesting' | 'saving'>;
     /** transform remote response */

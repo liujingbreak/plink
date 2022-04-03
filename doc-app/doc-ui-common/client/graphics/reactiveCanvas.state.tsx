@@ -471,7 +471,9 @@ export const basePaintableReducers = {
   _setParent(s: BasePaintableState, parent: PaintableSlice<any, any> | undefined) {
     s.parent = parent;
   },
+  /** render self and children */
   renderAll(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
+  /** render self only, not chidren */
   render(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
   _renderChildren(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},
   afterRender(s: BasePaintableState, _canvasCtx: CanvasRenderingContext2D) {},

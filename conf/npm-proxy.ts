@@ -11,6 +11,7 @@ const workspaceSetting: ConfigHandler & InjectorConfigHandler = {
       cacheDir: setting.destDir + '/npm-server-cache',
       registry: 'https://registry.npm.taobao.org/'
     };
+    setting.port = 4873;
   },
   /** For Node.js runtime, replace module in "require()" or import syntax */
   setupNodeInjector(_factory, _setting) {
