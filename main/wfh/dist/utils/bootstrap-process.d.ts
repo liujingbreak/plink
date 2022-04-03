@@ -3,7 +3,7 @@ import * as rx from 'rxjs';
 import { GlobalOptions } from '../cmd/types';
 import * as store from '../store';
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
-export declare const exitHooks: (() => (rx.ObservableInput<unknown> | void))[];
+export declare const exitHooks: (() => (rx.ObservableInput<unknown> | void | number))[];
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
  * If this function is called from a child process or thread worker of Plink,

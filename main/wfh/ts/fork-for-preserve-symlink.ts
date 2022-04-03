@@ -106,11 +106,6 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
 
   const onChildExit$ = new rx.ReplaySubject<number>();
   cp.once('exit', code => {
-    if (code != null && code !== 0) {
-      onChildExit$.error(new Error('Child process exit with code: ' + code));
-      return;
-      // process.exit(code);
-    }
     onChildExit$.next(code || 0);
     onChildExit$.complete();
   });

@@ -10,7 +10,7 @@ import * as store from '../store';
 const log = log4js.getLogger('plink.bootstrap-process');
 
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
-export const exitHooks = [] as Array<() => (rx.ObservableInput<unknown> | void)>;
+export const exitHooks = [] as Array<() => (rx.ObservableInput<unknown> | void | number)>;
 
 process.on('uncaughtException', function(err) {
   log.error('Uncaught exception: ', err);
@@ -72,7 +72,18 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   async function onShut(code: number, explicitlyExit: boolean) {
     let exitCode = 0;
     await rx.merge(
-      ...exitHooks.map(hookFn => rx.defer(() => hookFn()).pipe(
+      ...exitHooks.map(hookFn => rx.defer(() => {
+        const ret = hookFn();
+        if (typeof ret === 'number') {
+          return rx.of(ret);
+        }
+        return ret;
+      }).pipe(
+        op.map(ret => {
+          if (typeof ret === 'number' && ret !== 0) {
+            exitCode = ret;
+          }
+        }),
         op.catchError(err => {
           log.error('Failed to execute shutdown hooks', err);
           exitCode = 1;
