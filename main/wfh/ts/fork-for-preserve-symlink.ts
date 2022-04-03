@@ -41,8 +41,8 @@ export default function run(moduleName: string, opts: {
 
   initProcess(opts.stateExitAction || 'none', (code) => {
     // eslint-disable-next-line no-console
-    console.log(`Plink [P${process.pid}.T${threadId}] ` +
-      chalk.green(`${code !== 0 ? 'stopped with failures' : 'is shutdown'}`));
+    console.log(`Plink process ${process.pid} thread ${threadId} ` +
+      chalk.green(`${code !== 0 ? 'ends with failures' : 'ends'}`));
   }, opts.handleShutdownMsg);
 
   // Must be invoked after initProcess, otherwise store is not ready (empty)
@@ -92,9 +92,9 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
 
   if (handleShutdownMsg) {
     const processMsg$ = rx.fromEventPattern<string>(h => process.on('message', h), h => process.off('message', h));
-    const processExit$ = rx.fromEventPattern( h => process.on('SIGINT', h), h => process.off('SIGINT', h));
+    // const processExit$ = rx.fromEventPattern( h => process.on('SIGINT', h), h => process.off('SIGINT', h));
 
-    rx.merge(processExit$, processMsg$.pipe(
+    rx.merge(processMsg$.pipe(
       op.filter(msg => msg === 'shutdown')
     )).pipe(
       op.take(1),
@@ -106,6 +106,9 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
 
   const onChildExit$ = new rx.ReplaySubject<number>();
   cp.once('exit', code => {
+    // if (code !== 0) {
+      // console.log('child process exits:', code);
+    // }
     onChildExit$.next(code || 0);
     onChildExit$.complete();
   });
@@ -127,7 +130,7 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
 
 /**
  * Temporarily rename <pkg>/node_modules to another name
- * @returns 
+ * @returns
  */
 async function removeNodeModuleSymlink() {
   const {getState} = require('./editor-helper') as typeof _editorHelper;

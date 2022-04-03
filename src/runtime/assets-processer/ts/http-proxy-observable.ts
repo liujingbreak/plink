@@ -29,14 +29,16 @@ export function httpProxyObservable(proxy: HttpProxy): HttpProxyEventObs {
 
   for (const event of EVENTS) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    obsObj[event] = new rx.Observable<{type: keyof HttpProxyEventParams;
-      payload: HttpProxyEventParams[keyof HttpProxyEventParams]; }>(sub => {
-      const handler = (...args: HttpProxyEventParams[typeof event]) => {
-        sub.next({type: event, payload: args});
-      };
-      proxy.on(event, handler);
-      return () => proxy.off(event, handler as (...a: any[]) => void);
-    }) as any;
+    obsObj[event] = rx.fromEventPattern<HttpProxyEventParams[typeof event]>(
+      handler => proxy.on(event, handler),
+      handler => proxy.off(event, handler)
+    ).pipe(
+      op.map(args => ({
+        type: event,
+        payload: args
+      }))
+    ) as any;
+
     Object.defineProperty(obsObj, event, {
       get() {
         let ob = createdSubjs[event];

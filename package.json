@@ -14,6 +14,7 @@
     "noModuleSymlink": ["main/packages"]
   },
   "scripts": {
+    "plink": "plink",
     "link-plink": "node main/bin/link.js",
     "lint-wfh": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/wfh/ts",
     "lint-redux": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",

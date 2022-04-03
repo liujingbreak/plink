@@ -45,11 +45,11 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
   process.once('beforeExit', function(code) {
     log.info('pid ' + process.pid + ': bye');
-    void onShut(code, false);
+    onShut(code, false);
   });
   process.once('SIGINT', () => {
     log.info('pid' + process.pid + ' recieves SIGINT');
-    void onShut(0, true);
+    onShut(0, true);
   });
 
   if (handleShutdownMsg) {
@@ -58,7 +58,7 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
       if (msg === 'shutdown') {
         // eslint-disable-next-line no-console
         log.info('Recieve shutdown message from PM2, bye.');
-        void onShut(0, true);
+        onShut(0, true);
       }
     });
   }
@@ -69,38 +69,60 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   stateFactory.configureStore();
   dispatcher.changeActionOnExit(saveState);
 
-  async function onShut(code: number, explicitlyExit: boolean) {
+  function onShut(code: number, explicitlyExit: boolean) {
     let exitCode = 0;
-    await rx.merge(
-      ...exitHooks.map(hookFn => rx.defer(() => {
-        const ret = hookFn();
-        if (typeof ret === 'number') {
-          return rx.of(ret);
-        }
-        return ret;
-      }).pipe(
-        op.map(ret => {
-          if (typeof ret === 'number' && ret !== 0) {
-            exitCode = ret;
+    rx.concat(
+      rx.from(exitHooks).pipe(
+        op.mergeMap(hookFn => {
+          try {
+            const ret = hookFn();
+            if (ret == null || typeof ret === 'number') {
+              return rx.of(ret);
+            } else {
+              return rx.from(ret);
+            }
+          } catch (err) {
+            log.error('Failed to execute shutdown hooks', err);
+            exitCode = 1;
+            return rx.EMPTY;
           }
         }),
         op.catchError(err => {
           log.error('Failed to execute shutdown hooks', err);
           exitCode = 1;
           return rx.EMPTY;
+        }),
+        op.map((ret) => {
+          if (typeof ret === 'number' && ret !== 0) {
+            exitCode = ret;
+            log.info('Exit hook returns:', exitCode);
+          }
         })
-      ))
-    ).toPromise();
-    if (onShutdownSignal) {
-      await Promise.resolve(onShutdownSignal(code))
-        .catch(err => console.error(err));
-    }
-    const saved = storeSavedAction$.pipe(op.take(1)).toPromise();
-    dispatcher.processExit();
-    await saved;
-    if (explicitlyExit) {
-      setImmediate(() => process.exit(exitCode));
-    }
+      ),
+      rx.merge(
+        // once "dispatcher.processExit() is executed, storeSavedAction$ will be emtted recusively.
+        // Therefore storeSavedAction$ must be subscribed before dispatcher.processExit()
+        storeSavedAction$.pipe(op.take(1)),
+        // A defer() can make sure dispatcher.processExit() is called later than storeSavedAction$
+        // being subscribed
+        rx.defer(() => {
+          dispatcher.processExit();
+          return rx.EMPTY;
+        })
+      )
+    ).pipe(
+      op.finalize(() => {
+        if (explicitlyExit) {
+          // eslint-disable-next-line no-console
+          console.log(`Process ${process.pid} Exit with`, exitCode);
+          process.exit(exitCode);
+        } else if (exitCode !== 0) {
+          // eslint-disable-next-line no-console
+          console.log(`Process ${process.pid} Exit with`, exitCode);
+          process.exit(exitCode);
+        }
+      })
+    ).subscribe();
   }
   return dispatcher;
 }

@@ -35,3 +35,9 @@ export declare const storeSavedAction$: rx.Observable<{
     type: string;
 }>;
 export declare function startLogging(): void;
+/**
+ * a listener registered on the 'beforeExit' event can make asynchronous calls,
+ * and thereby cause the Node.js process to continue.
+ * The 'beforeExit' event is not emitted for conditions causing explicit termination,
+ * such as calling process.exit() or uncaught exceptions.
+ */

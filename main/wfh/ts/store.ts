@@ -171,16 +171,18 @@ stateFactory.addEpic<typeof storeSettingSlice>((action$) => rx.merge(
         } as ProcessStateSyncMsg);
 
         log.info(chalk.gray('in a forked child process, skip saving state'));
+      } else {
+        log.info(chalk.gray('skip saving state'));
       }
-    }),
-    op.tap(() => dispatcher.storeSaved())
+      dispatcher.storeSaved();
+    })
   ),
   stateFactory.actionsToDispatch.pipe(
     filter(action => !action.type.endsWith('/_init') &&
       !IGNORE_ACTION.has(action.type) &&
       !ignoreSliceSet.has(action.type.slice(0, action.type.indexOf('/')))
     ),
-    op.takeUntil(action$.pipe(ofPayloadAction(storeSettingSlice.actions.processExit))),
+    // op.takeUntil(action$.pipe(ofPayloadAction(storeSettingSlice.actions.processExit))),
     tap(() => {
       dispatcher._change(s => s.stateChangeCount = s.stateChangeCount + 1);
     })
@@ -215,9 +217,9 @@ export function startLogging() {
  * The 'beforeExit' event is not emitted for conditions causing explicit termination,
  * such as calling process.exit() or uncaught exceptions.
  */
-process.once('beforeExit', () => {
-  dispatcher.processExit();
-});
+// process.once('beforeExit', () => {
+  // dispatcher.processExit();
+// });
 
 // TEST async action for Thunk middleware
 // stateFactory.store$.subscribe(store => {

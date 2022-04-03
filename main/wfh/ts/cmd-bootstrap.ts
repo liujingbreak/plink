@@ -23,30 +23,4 @@ runWithPreserveSymlink('@wfh/plink/wfh/dist/cmd-bootstrap', {
   void (require('./cmd/cli') as typeof _cli).createCommands(startTime);
   return [];
 });
-// (async function run() {
-//
-//   let storeSettingDispatcher: ReturnType<typeof initProcess> | undefined;
-//   if (process.send) {
-//     // current process is forked
-//     initAsChildProcess('save');
-//   } else {
-//     process.on('exit', (code) => {
-//       // eslint-disable-next-line no-console
-//       console.log((process.send || !isMainThread ? `[P${process.pid}.T${threadId}] ` : '') +
-//         chalk.green(`${code !== 0 ? 'Failed' : 'Done'} in ${new Date().getTime() - startTime} ms`));
-//     });
-//     storeSettingDispatcher = initProcess();
-//   }
-//   if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
-//     if (storeSettingDispatcher)
-//       storeSettingDispatcher.changeActionOnExit('none');
-//     void forkFile('@wfh/plink/wfh/dist/cmd-bootstrap');
-//     return;
-//   }
-//   await new Promise(resolve => process.nextTick(resolve));
-//
-//   return (require('./cmd/cli') as typeof _cli).createCommands(startTime);
-// })().catch(err => {
-//   console.log(err);
-//   process.exit(1);
-// });
+
