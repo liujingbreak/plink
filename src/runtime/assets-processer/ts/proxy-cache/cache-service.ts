@@ -1,6 +1,5 @@
 import Path from 'path';
 import { IncomingMessage, ServerResponse } from 'http';
-import util from 'util';
 import stream from 'stream';
 import url from 'url';
 import fs from 'fs-extra';
