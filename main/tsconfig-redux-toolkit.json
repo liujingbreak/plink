@@ -1,8 +1,8 @@
 {
-	"extends": "./wfh/tsconfig-base.json",
-	"compilerOptions": {
+  "extends": "./wfh/tsconfig-base.json",
+  "compilerOptions": {
     "rootDir": "packages/redux-toolkit-observable",
-		"target": "ES2017",
+    "target": "ES2017",
     "outDir": "packages/redux-toolkit-observable/dist",
     "declaration": true,
     "composite": true

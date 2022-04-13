@@ -4,6 +4,6 @@ const config = require('@wfh/eslint-config-cra').create(
 );
 
 // To change default ignorePatterns
-config.ignorePatterns = ["wfh/dist/**/*"];
+config.ignorePatterns = ["wfh/dist/**/*", "**/*.d.ts"];
 
 module.exports = config;

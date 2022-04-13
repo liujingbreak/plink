@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable max-len */
 import Path from 'path';
 import * as fs from 'fs-extra';

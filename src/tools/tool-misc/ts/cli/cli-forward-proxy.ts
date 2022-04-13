@@ -20,7 +20,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     proxyToProxy(_remoteHost: string, _remotePort: number, _socket: Socket, _firstPacket: Buffer) {},
     proxyToRemote(_remoteHost: string, _remotePort: number,
       _socket: Socket, _firstPacket: Buffer, _isTsl: boolean, httpProtocal: string) {},
-    remoteSocketConnected(_socket: Socket, msg: string) {}
+    socketCreated(_socket: Socket, msg: string) {}
   };
 
   type ActionType<K extends keyof typeof actions> = {
@@ -115,12 +115,12 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
         }, () => {
           log.info('PROXY TO FORBACK proxy connection created', host, ':', port);
           const connected = proxyToServerSocket.pipe(clientToProxySocket);
-          dispatch.remoteSocketConnected(connected, 'Remote proxy reading');
+          dispatch.socketCreated(connected, 'Remote proxy reading');
           proxyToServerSocket.write(data);
           // Piping the sockets
           clientToProxySocket.pipe(proxyToServerSocket);
         });
-        dispatch.remoteSocketConnected(proxyToServerSocket, 'remote proxy server connection');
+        dispatch.socketCreated(proxyToServerSocket, 'remote proxy server connection');
       })
     ),
     action$.pipe(
@@ -130,10 +130,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
           log.info('PROXY TO SERVER connection created', host, ':', port);
 
           const socket = proxyToServerSocket.pipe(clientToProxySocket);
-          dispatch.remoteSocketConnected(socket, 'remote server reading');
-          // .on('error', err => {
-          //   log.error('proxy to remote server read error', err);
-          // });
+          dispatch.socketCreated(socket, 'remote server reading');
           if (isTLSConnection) {
             // Send Back OK to HTTPS CONNECT Request
             clientToProxySocket.write(protocal + ' 200 OK\r\n\n');
@@ -143,11 +140,11 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
           // Piping the sockets
           clientToProxySocket.pipe(proxyToServerSocket);
         });
-        dispatch.remoteSocketConnected(proxyToServerSocket, 'remote server connection');
+        dispatch.socketCreated(proxyToServerSocket, 'remote server connection');
       })
     ),
     action$.pipe(
-      ofType('remoteSocketConnected'),
+      ofType('socketCreated'),
       op.map(({payload: [proxyToServerSocket, msg]}) => {
         proxyToServerSocket.on('error', (err) => {
           log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);

@@ -197,7 +197,9 @@ export function createSlice(opt) {
             };
             addEpic$(rx.of(epicFactory));
         },
-        setActionInterceptor(intec) { },
+        setActionInterceptor(intec) {
+            interceptor$.next(intec);
+        },
         addEpic(epicFactory) {
             return addEpic$(rx.of(epicFactory));
         },
@@ -250,16 +252,17 @@ const demoSlice = createSlice({
     initialState: {},
     reducers: {
         hellow(s, greeting) { },
-        world(s) { }
+        world(s) { },
+        multiPayloadReducer(s, arg1, arg2) { }
     }
 });
 demoSlice.addEpic((slice, ofType) => {
     return (action$, state$) => {
         const actionStreams = castByActionType(slice.actions, action$);
         // slice.actionDispatcher.abc();
-        return rx.merge(actionStreams.hellow.pipe(), action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(
+        return rx.merge(actionStreams.hellow.pipe(), actionStreams.multiPayloadReducer.pipe(), action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        ofPayloadAction(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload))).pipe(op.ignoreElements());
+        ofPayloadAction(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe(ofPayloadAction(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload)), action$.pipe(ofPayloadAction(slice.actions.multiPayloadReducer), op.tap(({ payload: [a1, a2] }) => alert(a1)))).pipe(op.ignoreElements());
     };
 });
 action$OfSlice(demoSlice, 'hellow').pipe(op.tap(action => action));

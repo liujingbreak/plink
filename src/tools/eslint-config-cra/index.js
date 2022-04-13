@@ -40,6 +40,7 @@ function create(tsconfigFile) {
     // },
     overrides: [{
       files: reactOverride.files,
+      excludedFiles: '*.d.ts',
       plugins: [
         "eslint-plugin-jsdoc",
         "eslint-plugin-import",
@@ -47,7 +48,6 @@ function create(tsconfigFile) {
         "@typescript-eslint",
         "@typescript-eslint/tslint"
       ],
-      excludedFiles: '*.d.ts',
       parser: "@typescript-eslint/parser",
       parserOptions: {
         ...(reactOverride.parserOptions),

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /**
  * This file provide some hooks which leverages RxJS to mimic Redux-toolkit + Redux-observable
  * which is supposed to be used independently within any React component in case your component has 
@@ -187,7 +188,7 @@ export function isActionOfCreator<C extends {type: string}>(action: any, actionC
 
 const sliceCount4Name: {[name: string]: number} = {};
 
-export interface SliceOptions<S, R extends Reducers<S>> {
+export interface SliceOptions<RS, R extends Reducers<RS>, S extends RS = RS> {
   name: string;
   initialState: S;
   reducers: R;
@@ -379,7 +380,9 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
       };
       addEpic$(rx.of(epicFactory));
     },
-    setActionInterceptor(intec: rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>) {},
+    setActionInterceptor(intec: rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>) {
+      interceptor$.next(intec);
+    },
     addEpic(epicFactory: EpicFactory<S, R>) {
       return addEpic$(rx.of(epicFactory));
     },

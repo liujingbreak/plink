@@ -26,12 +26,22 @@
       ],
       "@wfh/thread-promise-pool/*": [
         "packages/thread-promise-pool/*"
+      ],
+      "@wfh/reactive-terminal-ui": [
+        "packages/reactive-terminal-ui"
+      ],
+      "@wfh/reactive-terminal-ui/dist/*": [
+        "packages/reactive-terminal-ui/src/*"
       ]
     }
   },
   "include": [
     "wfh/ts/**/*.ts",
     "packages/redux-toolkit-observable/**/*.ts",
-    "packages/thread-promise-pool/ts/**/*.ts"
+    "packages/thread-promise-pool/ts/**/*.ts",
+    "packages/reactive-terminal-ui/src/**/*.ts"
+  ],
+  "exclude": [
+    "packages/**/*.d.ts"
   ]
 }

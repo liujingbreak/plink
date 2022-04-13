@@ -1,36 +1,36 @@
 {
-	"compilerOptions": {
-		"baseUrl": ".",
-		"outDir": "dist",
-		"declaration": false,
-		"module":"commonjs",
-		"target":"es2015",
-		"noImplicitAny": true,
-		"suppressImplicitAnyIndexErrors": true,
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-		"inlineSourceMap": true,
-		"inlineSources": true,
-		"moduleResolution": "node",
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true,
-		"noUnusedLocals": true,
-		"preserveSymlinks": false,
-		"downlevelIteration": false,
-		"strictNullChecks": true,
-		"resolveJsonModule": true,
-		"diagnostics": false,
-		"skipLibCheck": true,
-		"newLine": "lf",
-		"lib": [
-			"ES2017",
-			"DOM"
-		],
-		"pretty": true,
-		"rootDir": "ts"
-	},
-	
-	"include": [
-		"ts/**/*.ts"
-	]
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "dist",
+    "declaration": false,
+    "module":"commonjs",
+    "target":"es2015",
+    "noImplicitAny": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "noUnusedLocals": true,
+    "preserveSymlinks": false,
+    "downlevelIteration": false,
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
+    "diagnostics": false,
+    "skipLibCheck": true,
+    "newLine": "lf",
+    "lib": [
+      "ES2017",
+      "DOM"
+    ],
+    "pretty": true,
+    "rootDir": "ts"
+  },
+
+  "include": [
+    "ts/**/*.ts"
+  ]
 }

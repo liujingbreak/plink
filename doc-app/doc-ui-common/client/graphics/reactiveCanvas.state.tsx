@@ -13,18 +13,12 @@
  * e.g. DOM object, React Component, functions
  */
 import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction, Action,
-  castByActionType, Actions} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+  castByActionType, Actions, SliceOptions, Reducers} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 // import {DFS} from '@wfh/plink/wfh/dist-es5/utils/graph';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import * as easeFn from '../animation/ease-functions';
 
-export type ReactiveCanvasProps = React.PropsWithChildren<{
-  className?: string;
-  /** default 2 */
-  scaleRatio?: number;
-  onReady?(paintCtx: PaintableContext): Iterable<PaintableSlice<any, any>> | void;
-}>;
 export interface ReactiveCanvasState {
   ctx?: CanvasRenderingContext2D;
   componentProps: ReactiveCanvasProps;
@@ -41,6 +35,59 @@ export interface ReactiveCanvasState {
   _countAnimatings:  number;
   // _needRender?: boolean;
   error?: Error;
+}
+
+
+export type ReactiveCanvasProps = React.PropsWithChildren<{
+  className?: string;
+  /** default 2 */
+  scaleRatio?: number;
+  onReady?(paintCtx: PaintableContext): Iterable<PaintableSlice<any, any>> | void;
+}>;
+
+export type ReactiveCanvasSlice = Slice<ReactiveCanvasState, typeof reducers>;
+
+export interface BasePaintableState {
+  // pctx?: PaintableContext;
+  children?: [Set<PaintableSlice>];
+  parent?: PaintableSlice;
+  attached: boolean;
+  error?: Error;
+}
+
+export type PaintableSlice<S = undefined, R = undefined> = Slice<
+  S extends undefined ? BasePaintableState : BasePaintableState & S,
+  R extends undefined ? typeof basePaintableReducers : typeof basePaintableReducers & R
+>;
+
+export interface PaintableCreateOption<S = undefined, R extends Reducers<any> | undefined = undefined,
+  SliceState = S extends undefined ? BasePaintableState : BasePaintableState & S
+  > {
+  name: string;
+  extendInitialState?: S;
+  extendReducers?: R;
+  actionInterceptor?: ((slice: PaintableSlice<S, R>) => rx.OperatorFunction<
+    PayloadAction<SliceState> | Action<SliceState>,
+    PayloadAction<SliceState> | Action<SliceState>>) | null;
+  debug?: boolean;
+}
+
+export type PositionalPaintableSlice<S = undefined, R = undefined> =
+  PaintableSlice<S extends undefined ? PositionalState : PositionalState & S,
+    R extends undefined ? typeof positionalReducers : typeof positionalReducers & R>;
+
+export interface PositionalState {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** relative size of parent, if parent is not a positional paintable, size is relative to reactive canvas, value is between 0 ~ 1 */
+  relativeWidth?: number;
+  relativeHeight?: number;
+  /** relative left position to parent width */
+  relativeX?: number;
+  /** relative right position to parent height */
+  relativeY?: number;
 }
 
 const reducers = {
@@ -224,8 +271,6 @@ export const epicFactory: EpicFactory<ReactiveCanvasState, typeof reducers> = fu
   };
 };
 
-export type ReactiveCanvasSlice = Slice<ReactiveCanvasState, typeof reducers>;
-
 /**
  * PaintableContext is a tailored version of reactiveCanvasSlice for a child Paintable component
  */
@@ -250,39 +295,33 @@ export class PaintableContext {
     }
     this.needRender = true;
   }
-  // /** So that children will be rendered to a different canvas */
-  // changeCanvasContext(ctx: CanvasRenderingContext2D) {
-  //   this.canvasSlice.actionDispatcher.changeContext(ctx);
-  // }
 
-  createPaintableSlice<S = undefined, R = undefined>({name, extendInitialState, extendReducers, actionInterceptor, debug}:
+  createPaintableSlice<S = undefined, R extends Reducers<S> | undefined = undefined>({name, extendInitialState, extendReducers, actionInterceptor, debug}:
     PaintableCreateOption<S, R>): PaintableSlice<S, R> {
 
-    if (extendInitialState == null) {
-      extendInitialState = {} as S;
-    }
-    if (extendReducers == null) {
-      extendReducers = {} as R;
-    }
     const initState: BasePaintableState = {
       // pctx: this,
       attached: false
     };
-    const slice = createSlice({
-      name,
-      initialState: Object.assign(initState, extendInitialState),
-      reducers: Object.assign(basePaintableReducers, extendReducers),
-      debug
-    }) as unknown as Slice<BasePaintableState, typeof basePaintableReducers>;
+
+    // const slice = createSlice({
+      // name,
+      // initialState: extendInitialState ? Object.assign(initState, extendInitialState) : initState,
+      // reducers: Object.assign(basePaintableReducers, extendReducers),
+      // debug
+    // }) as unknown as Slice<BasePaintableState, typeof basePaintableReducers>;
+
+    const slice = createSliceWith({
+      name, initialState: initState, reducers: basePaintableReducers, extendInitialState, extendReducers});
 
     slice.addEpic(slice => {
-      return inputAction$ => {
-        const action$ = actionInterceptor ? inputAction$.pipe(
-          actionInterceptor(slice as unknown as PaintableSlice<S, R>) as
-            rx.OperatorFunction<any, PayloadAction<BasePaintableState, any> | Action<BasePaintableState>>,
-          op.share() // share() is important, it prevents actionInterceptorOpt being executed on same action for multiple times, when there are multiple 
-          // action$ subscribers
-        ) : inputAction$;
+      return action$ => {
+        // const action$ = actionInterceptor ? inputAction$.pipe(
+          // actionInterceptor(slice as unknown as PaintableSlice<S, R>) as
+            // rx.OperatorFunction<any, PayloadAction<BasePaintableState, any> | Action<BasePaintableState>>,
+          // op.share() // share() is important, it prevents actionInterceptorOpt being executed on same action for multiple times, when there are multiple 
+          // // action$ subscribers
+        // ) : inputAction$;
         const dispatcher = slice.actionDispatcher;
         const actionsByType = castByActionType(slice.actions, action$);
         return rx.merge(
@@ -395,26 +434,33 @@ export class PaintableContext {
       };
     });
 
+    if (actionInterceptor) {
+      const interceptor = actionInterceptor(slice as unknown as PaintableSlice<S, R>);
+      (slice).setActionInterceptor(interceptor);
+    }
+
     this.canvasSlice.destroy$.subscribe({next() {
       slice.destroy();
     }});
     return slice as unknown as PaintableSlice<S, R>;
   }
 
-  createPosPaintable<S = undefined, R = undefined>(opt: PaintableCreateOption<S, R>): PositionalPaintableSlice<S, R> {
+  createPosPaintable<S = undefined, R extends Reducers<S> | undefined = undefined>(
+    opt: PaintableCreateOption<S, R>): PositionalPaintableSlice<S, R> {
     const initialPosState: PositionalState = {
       x: 0, y: 0, w: 400, h: 300,
       relativeHeight: 1,
       relativeWidth: 1
     };
-    const paintableOpt = opt as unknown as PaintableCreateOption<PositionalState, typeof positionalReducers>;
-    paintableOpt.extendInitialState = opt.extendInitialState ?
-      Object.assign(initialPosState, opt.extendInitialState) : initialPosState;
-    paintableOpt.extendReducers = opt.extendReducers ?
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    opt.extendInitialState = opt.extendInitialState ?
+      Object.assign(initialPosState, opt.extendInitialState) : initialPosState as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    opt.extendReducers = opt.extendReducers ?
       Object.assign(positionalReducers, opt.extendReducers) :
-      positionalReducers;
+      positionalReducers as any;
 
-    const positionalPaintable = this.createPaintableSlice(paintableOpt);
+    const positionalPaintable = this.createPaintableSlice(opt as PaintableCreateOption<PositionalState, typeof positionalReducers>);
     positionalPaintable.addEpic(positionalEpicFactory);
 
     return positionalPaintable as unknown as PositionalPaintableSlice<S, R>;
@@ -445,13 +491,22 @@ export class PaintableContext {
     return this.canvasSlice.getStore();
   }
 }
-export interface BasePaintableState {
-  // pctx?: PaintableContext;
-  children?: [Set<PaintableSlice>];
-  parent?: PaintableSlice;
-  attached: boolean;
-  error?: Error;
+
+function createSliceWith<BS, BR extends Reducers<any>, ES, ER extends Reducers<any>>(
+  sliceOpt: SliceOptions<BS, BR> & {extendInitialState?: ES; extendReducers?: ER}) {
+
+  const initState = sliceOpt.extendInitialState ? {...sliceOpt.initialState, ...sliceOpt.extendInitialState} : {...sliceOpt.initialState};
+  const reducers = sliceOpt.extendReducers ? {...sliceOpt.reducers, ...sliceOpt.extendReducers} : sliceOpt.reducers;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  const slice = createSlice<ES extends undefined ? BS : BS & ES, ER extends undefined ? BR : BR & ER>({
+    ...(sliceOpt as any),
+    initialState: initState,
+    reducers
+  });
+
+  return slice;
 }
+
 export const basePaintableReducers = {
   // init(s: BasePaintableState, pctx: PaintableContext) {
   //   s.pctx = pctx;
@@ -482,42 +537,6 @@ export const basePaintableReducers = {
   }
   // destroy(s: BasePaintableState) {}
 };
-
-export type PaintableSlice<S = undefined, R = undefined> = Slice<
-  S extends undefined ? BasePaintableState : BasePaintableState & S,
-  R extends undefined ? typeof basePaintableReducers : typeof basePaintableReducers & R
->;
-
-export interface PaintableCreateOption<S = undefined, R = undefined,
-  SliceType = PaintableSlice<S, R>,
-  SliceState = S extends undefined ? BasePaintableState : BasePaintableState & S
-  > {
-  name: string;
-  extendInitialState?: S;
-  extendReducers?: R;
-  actionInterceptor?: ((slice: SliceType) => rx.OperatorFunction<
-    PayloadAction<SliceState> | Action<SliceState>,
-    PayloadAction<SliceState> | Action<SliceState>>) | null;
-  debug?: boolean;
-}
-
-export type PositionalPaintableSlice<S = undefined, R = undefined> =
-  PaintableSlice<S extends undefined ? PositionalState : PositionalState & S,
-    R extends undefined ? typeof positionalReducers : typeof positionalReducers & R>;
-
-export interface PositionalState {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  /** relative size of parent, if parent is not a positional paintable, size is relative to reactive canvas, value is between 0 ~ 1 */
-  relativeWidth?: number;
-  relativeHeight?: number;
-  /** relative left position to parent width */
-  relativeX?: number;
-  /** relative right position to parent height */
-  relativeY?: number;
-}
 
 export const positionalReducers = {
   changePosition(s: PositionalState, pos: [number, number]) {
