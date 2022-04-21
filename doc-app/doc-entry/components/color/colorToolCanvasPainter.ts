@@ -30,13 +30,13 @@ export function create(pctx: PaintableContext) {
       op.switchMap(() => {
         return pctx.action$.pipe(ofPayloadAction(pctx.actions.resize),
           op.tap(() => {
-            const w = pctx!.getState().width >> 1;
-            const h = pctx!.getState().height >> 1;
+            const w = pctx.getState().width >> 1;
+            const h = pctx.getState().height >> 1;
             cachedCanvas = createCanvas(w, h);
             // const pctx = baseSlice.getState().pctx!;
             const ctx = cachedCanvas.getContext('2d')!;
             ctx.fillStyle = 'white';
-            ctx.fillRect(0,0,w,h);
+            ctx.fillRect(0, 0, w, h);
             ctx.fillStyle = new Color('red').mix(new Color('white'), 0.7).hex();
 
             ctx.beginPath();

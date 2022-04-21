@@ -54,6 +54,7 @@ export declare class StateFactory {
     private reducerMap;
     private epicWithUnsub$;
     private errorSlice;
+    private sharedSliceStore$;
     constructor(preloadedState: ConfigureStoreOptions['preloadedState']);
     /**
      *

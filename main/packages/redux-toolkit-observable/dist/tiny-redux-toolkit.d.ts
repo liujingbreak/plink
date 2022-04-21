@@ -144,7 +144,7 @@ export declare function castByActionType<S, R extends Reducers<S>>(actionCreator
 export declare function isActionOfCreator<C extends {
     type: string;
 }>(action: any, actionCreator: C): action is ActionOfCreator<C>;
-export interface SliceOptions<S, R extends Reducers<S>> {
+export interface SliceOptions<RS, R extends Reducers<RS>, S extends RS = RS> {
     name: string;
     initialState: S;
     reducers: R;

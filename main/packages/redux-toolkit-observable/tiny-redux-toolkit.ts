@@ -70,6 +70,7 @@ export interface OfTypeFn<S, R extends Reducers<S>> {
 }
 
 export type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType: OfTypeFn<S, R>) => Epic<S> | void;
+
 export interface Slice<S, R extends Reducers<S>> {
   name: string | number;
   state$: rx.BehaviorSubject<S>;
@@ -250,7 +251,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   const unprocessedAction$ = new rx.Subject<PayloadAction<S> | Action<S>>();
   const action$ = new rx.Subject<PayloadAction<S> | Action<S>>();
 
-  function ofType<S, R extends Reducers<S>, T extends keyof R>(
+  function ofType<T extends keyof R>(
     ...actionTypes: T[]) {
     return function(src: rx.Observable<PayloadAction<any>>) {
       return src.pipe(

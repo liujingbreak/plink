@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /**
  * This file provide some hooks which leverages RxJS to mimic Redux-toolkit + Redux-observable
  * which is supposed to be used independently within any React component in case your component has

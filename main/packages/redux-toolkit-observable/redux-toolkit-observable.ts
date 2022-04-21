@@ -13,7 +13,7 @@ import {
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject, OperatorFunction } from 'rxjs';
-import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError} from 'rxjs/operators';
+import { distinctUntilChanged, filter, map, mergeMap, share, take, takeUntil, tap, catchError} from 'rxjs/operators';
 
 export {PayloadAction, SliceCaseReducers, Slice};
 
@@ -83,6 +83,8 @@ export class StateFactory {
   private reducerMap: ReducersMapObject<any, PayloadAction<any>>;
   private epicWithUnsub$: Subject<[Epic<PayloadAction<unknown>>, string, Subject<string>]>;
   private errorSlice: InferSliceType<typeof errorSliceOpt>;
+
+  private sharedSliceStore$ = new Map<string, Observable<unknown>>();
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<unknown>(preloadedState);
@@ -220,7 +222,14 @@ export class StateFactory {
       opt as CreateSliceOptions<S, _CaseReducer & ExtraSliceReducers<S>, Name>);
 
     this.addSliceMaybeReplaceReducer(slice);
-
+    const slicedStore = (this.realtimeState$ as Subject<Record<string, any>>).pipe(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      map(s => s[opt.name]),
+      filter(ss => ss != null),
+      distinctUntilChanged(),
+      share()
+    );
+    this.sharedSliceStore$.set(opt.name, slicedStore);
     return slice;
   }
 
@@ -230,6 +239,7 @@ export class StateFactory {
       this.debugLog.next(['[redux-toolkit-obs]', 'remove slice '+ slice.name]);
       const newRootReducer = this.createRootReducer();
       this.getRootStore()!.replaceReducer(newRootReducer);
+      this.sharedSliceStore$.delete(slice.name);
     }
   }
 
@@ -264,11 +274,7 @@ export class StateFactory {
   }
 
   sliceStore<SS>(slice: Slice<SS>): Observable<SS> {
-    return (this.realtimeState$ as Subject<{[key: string]: SS}>).pipe(
-      map(s => s[slice.name]),
-      filter(ss => ss != null),
-      distinctUntilChanged()
-    );
+    return this.sharedSliceStore$.get(slice.name) as Observable<SS>;
   }
 
   getErrorState() {

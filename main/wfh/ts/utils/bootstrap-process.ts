@@ -39,9 +39,9 @@ export function initConfig(options: GlobalOptions = {}) {
  * - Initialize redux-store for Plink
  * 
  * DO NOT fork a child process on this function
- * @param onShutdownSignal 
+ * @param _onShutdownSignal 
  */
-export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'none', onShutdownSignal?: (code: number) => void | Promise<any>, handleShutdownMsg = false) {
+export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'none', _onShutdownSignal?: (code: number) => void | Promise<any>, handleShutdownMsg = false) {
   // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
   process.once('beforeExit', function(code) {
     log.info('pid ' + process.pid + ': bye');
@@ -69,7 +69,7 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   stateFactory.configureStore();
   dispatcher.changeActionOnExit(saveState);
 
-  function onShut(code: number, explicitlyExit: boolean) {
+  function onShut(_code: number, explicitlyExit: boolean) {
     let exitCode = 0;
     rx.concat(
       rx.from(exitHooks).pipe(

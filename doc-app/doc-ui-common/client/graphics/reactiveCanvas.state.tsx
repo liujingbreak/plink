@@ -77,16 +77,20 @@ export type PositionalPaintableSlice<S = undefined, R = undefined> =
     R extends undefined ? typeof positionalReducers : typeof positionalReducers & R>;
 
 export interface PositionalState {
+  /** value is calculated by relativeX */
   x: number;
+  /** value is calculated by relativeY */
   y: number;
+  /** value is calculated by relativeWidth */
   w: number;
+  /** value is calculated by relativeHeight */
   h: number;
   /** relative size of parent, if parent is not a positional paintable, size is relative to reactive canvas, value is between 0 ~ 1 */
   relativeWidth?: number;
   relativeHeight?: number;
-  /** relative left position to parent width */
+  /** relative left position to parent width, 0 - 1 */
   relativeX?: number;
-  /** relative right position to parent height */
+  /** relative right position to parent height, 0 - 1 */
   relativeY?: number;
 }
 
@@ -304,24 +308,11 @@ export class PaintableContext {
       attached: false
     };
 
-    // const slice = createSlice({
-      // name,
-      // initialState: extendInitialState ? Object.assign(initState, extendInitialState) : initState,
-      // reducers: Object.assign(basePaintableReducers, extendReducers),
-      // debug
-    // }) as unknown as Slice<BasePaintableState, typeof basePaintableReducers>;
-
     const slice = createSliceWith({
       name, initialState: initState, reducers: basePaintableReducers, extendInitialState, extendReducers});
 
     slice.addEpic(slice => {
       return action$ => {
-        // const action$ = actionInterceptor ? inputAction$.pipe(
-          // actionInterceptor(slice as unknown as PaintableSlice<S, R>) as
-            // rx.OperatorFunction<any, PayloadAction<BasePaintableState, any> | Action<BasePaintableState>>,
-          // op.share() // share() is important, it prevents actionInterceptorOpt being executed on same action for multiple times, when there are multiple 
-          // // action$ subscribers
-        // ) : inputAction$;
         const dispatcher = slice.actionDispatcher;
         const actionsByType = castByActionType(slice.actions, action$);
         return rx.merge(
@@ -336,14 +327,12 @@ export class PaintableContext {
             })
           ),
 
-          // action$.pipe(ofPayloadAction(slice.actions._renderChildren),
           actionsByType._renderChildren.pipe(
             op.map(({payload}) => {
               for (const chr of slice.getState().children![0].values()) {
                 chr.actionDispatcher.renderAll(payload);
               }
           })),
-          // action$.pipe(ofPayloadAction(slice.actions.setAnimating),
           actionsByType.setAnimating.pipe(
             op.switchMap(({payload: animating}) => {
               if (animating) {
@@ -360,7 +349,6 @@ export class PaintableContext {
             })
           ),
           actionsByType.addChildren.pipe(
-          // action$.pipe(ofPayloadAction(slice.actions.addChildren),
             op.map(({payload: children}) => {
               // const state = slice.getState();
               slice.dispatch({
@@ -381,7 +369,6 @@ export class PaintableContext {
             })
           ),
           actionsByType.removeChildren.pipe(
-          // action$.pipe(ofPayloadAction(slice.actions.removeChildren),
             op.map(({payload: children}) => {
               slice.dispatch({
                 type: 'detach children',
@@ -394,7 +381,6 @@ export class PaintableContext {
             })
           ),
           actionsByType.clearChildren.pipe(
-          // action$.pipe(ofPayloadAction(slice.actions.clearChildren),
             op.map(action => {
               const childrenState = slice.getState().children;
               if (childrenState == null)
@@ -410,15 +396,6 @@ export class PaintableContext {
                 return rx.EMPTY;
               }
               return rx.merge(
-                // parent.action$.pipe(ofPayloadAction(parent.actions._renderChildren),
-                //   op.map(({payload}) => {
-                //     payload.canvasCtx.save();
-                //     dispatcher.render(payload);
-                //     dispatcher._renderChildren(payload);
-                //     dispatcher.afterRender(payload);
-                //     payload.canvasCtx.restore();
-                //   })
-                // ),
                 parent.getStore().pipe(
                   op.map(s => s.attached), op.distinctUntilChanged(),
                   op.map(attached => {
@@ -566,8 +543,6 @@ export const positionalEpicFactory: EpicFactory<
   typeof positionalReducers & typeof basePaintableReducers
 > = slice => {
   return action$ => {
-    // const actionsByType = castByActionType(slice.actions, action$);
-
     return rx.merge(
       rx.combineLatest(
         slice.getStore().pipe(

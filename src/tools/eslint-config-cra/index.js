@@ -56,7 +56,7 @@ function create(tsconfigFile) {
       },
       rules: {
         ...(reactOverride.rules),
-        "@typescript-eslint/no-unsafe-argument": "warn",
+        "@typescript-eslint/no-unsafe-argument": "off",
         "@typescript-eslint/tslint/config": ["warn", {
             rules: {
                 whitespace: [true,
