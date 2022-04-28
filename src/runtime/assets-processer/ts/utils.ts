@@ -299,7 +299,7 @@ export function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): v
     return;
   }
 
-  const contentType = proxyReq.getHeader('Content-Type') as string;
+  const contentType = proxyReq.getHeader('Content-Type') as string | undefined;
   const writeBody = (bodyData: string) => {
     if (proxyReq.headersSent) {
       log.error('proxy request header is sent earlier than the moment of fixRequestBody()!');
@@ -314,9 +314,7 @@ export function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): v
 
   if (contentType && contentType.includes('application/json')) {
     writeBody(JSON.stringify(requestBody));
-  }
-
-  if (contentType === 'application/x-www-form-urlencoded') {
+  } else if (contentType?.includes('application/x-www-form-urlencoded')) {
     writeBody(querystring.stringify(requestBody));
   }
 }
@@ -339,7 +337,7 @@ export function createBufferForHttpProxy(req: IncomingMessage) {
       }),
       length: buf.length
     };
-  } else if (contentType === 'application/x-www-form-urlencoded') {
+  } else if (contentType?.includes('application/x-www-form-urlencoded')) {
     const buf = Buffer.from(querystring.stringify(body));
     return {
       readable: new stream.Readable({

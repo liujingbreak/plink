@@ -18,9 +18,9 @@ export declare function initConfig(options?: GlobalOptions): import("..").DrcpCo
  * - Initialize redux-store for Plink
  *
  * DO NOT fork a child process on this function
- * @param onShutdownSignal
+ * @param _onShutdownSignal
  */
-export declare function initProcess(saveState?: store.StoreSetting['actionOnExit'], onShutdownSignal?: (code: number) => void | Promise<any>, handleShutdownMsg?: boolean): import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<store.StoreSetting, {
+export declare function initProcess(saveState?: store.StoreSetting['actionOnExit'], _onShutdownSignal?: (code: number) => void | Promise<any>, handleShutdownMsg?: boolean): import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<store.StoreSetting, {
     changeActionOnExit(s: store.StoreSetting, mode: "save" | "send" | "none"): void;
     processExit(): void;
     storeSaved(): void;

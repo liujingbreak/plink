@@ -7,4 +7,4 @@ export declare function workDirChangedByCli(): {
 export default function run(moduleName: string, opts: {
     stateExitAction?: 'save' | 'send' | 'none';
     handleShutdownMsg?: boolean;
-}, bootStrap: () => (() => (rx.ObservableInput<unknown> | void))[]): void;
+}, bootStrap: () => ((Array<() => rx.ObservableInput<unknown>>) | void)): void;

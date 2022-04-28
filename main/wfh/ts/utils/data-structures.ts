@@ -321,3 +321,10 @@ export class RedBlackTree<T> {
 export class DuplicateKeyTree<T> extends RedBlackTree<T> {
 
 }
+
+export type Interval = {min: number; max: number};
+
+export class IntervalSearchTree<T extends Interval> {
+
+}
+

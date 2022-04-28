@@ -30,7 +30,7 @@ export default function run(moduleName: string, opts: {
     stateExitAction?: 'save' | 'send' | 'none';
     handleShutdownMsg?: boolean;
   },
-  bootStrap: () => (() => (rx.ObservableInput<unknown> | void))[]) {
+  bootStrap: () => ((Array<() => rx.ObservableInput<unknown>>) | void)) {
 
   if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
     void forkFile(moduleName, opts.handleShutdownMsg != null ? opts.handleShutdownMsg : false);
@@ -46,7 +46,9 @@ export default function run(moduleName: string, opts: {
   }, opts.handleShutdownMsg);
 
   // Must be invoked after initProcess, otherwise store is not ready (empty)
-  exitHooks.push(...bootStrap());
+  const funcs = bootStrap();
+  if (Array.isArray(funcs))
+    exitHooks.push(...funcs);
 }
 
 /** run in main process */

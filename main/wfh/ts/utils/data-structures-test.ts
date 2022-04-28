@@ -1,6 +1,6 @@
+import * as _ from 'lodash';
 import {RedBlackTree, RbTreeNode} from './data-structures';
 import {DFS, Vertex} from './graph';
-import * as _ from 'lodash';
 
 export function test() {
   const tree = new RedBlackTree<number>();
@@ -34,12 +34,12 @@ export function test() {
     tree.delete(key);
   }
 
-    dfs = new DFS<RbTreeNode<number>>(adjacencyOf);
-    dfs.visit([tree.root!]);
+  dfs = new DFS<RbTreeNode<number>>(adjacencyOf);
+  dfs.visit([tree.root!]);
 
   function adjacencyOf(node: RbTreeNode<number>, vertex: Vertex<RbTreeNode<number>>, level: number) {
     // eslint-disable-next-line no-console
-    console.log(`${_.repeat('| ', level)}- ${node.key + ''}: ${node.isRed ? 'red' : 'black'}`);
+    console.log(`${_.repeat('| ', level)}- ${node.p ? node.p?.left === node ? 'left' : 'right' : 'root'} ${node.key + ''}: ${node.isRed ? 'red' : 'black'}`);
     return [node.left, node.right].filter((node) : node is RbTreeNode<number> => node != null);
   }
 }

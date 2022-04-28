@@ -1,5 +1,4 @@
 import commander from 'commander';
-import * as rx from 'rxjs';
 import runWithPreserveSymlink from './fork-for-preserve-symlink';
 import * as overrideCmd from './cmd/override-commander';
 import logConfig from './log-config';
@@ -10,7 +9,6 @@ runWithPreserveSymlink('@wfh/plink/wfh/dist/app-server.js', {stateExitAction: 'n
   const {version} = require('../../package.json') as {version: string};
 
   /** Emitted function will be executed during server shutdown phase */
-  const shutdownHooks: (() => (rx.ObservableInput<unknown> | void))[] = [];
   process.title = 'Plink - server';
 
   const program = new commander.Command()
@@ -18,13 +16,13 @@ runWithPreserveSymlink('@wfh/plink/wfh/dist/app-server.js', {stateExitAction: 'n
   .action(() => {
     // eslint-disable-next-line no-console
     console.log('\nPlink version:', version);
-    const {initConfig} = require('./utils/bootstrap-process') as typeof bootstrapProc;
+    const {initConfig, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
     const setting = initConfig(program.opts());
     logConfig(setting());
     const {runServer} = require('./package-runner') as typeof _runner;
     const shutdown = runServer().shutdown;
 
-    shutdownHooks.push(shutdown);
+    exitHooks.push(shutdown);
   });
 
   const {withGlobalOptions} = require('./cmd/override-commander') as typeof overrideCmd;
@@ -35,7 +33,6 @@ runWithPreserveSymlink('@wfh/plink/wfh/dist/app-server.js', {stateExitAction: 'n
     console.error(e, e.stack);
     process.exit(1);
   });
-  return shutdownHooks;
 });
 
 
