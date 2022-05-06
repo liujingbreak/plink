@@ -1,13 +1,13 @@
-import { BaseLexer, Token } from '../base-LLn-parser';
-import trim from 'lodash/trim';
-import get from 'lodash/get';
-import _ from 'lodash';
 import * as Path from 'path';
+import _ from 'lodash';
+import get from 'lodash/get';
+import trim from 'lodash/trim';
 // import * as fs from 'fs';
 import '../node-path';
-import type {PlinkEnv} from '../node-path';
 import * as cfonts from 'cfonts';
 import Table from 'cli-table3';
+import { BaseLexer, Token } from '../base-LLn-parser';
+import type {PlinkEnv} from '../node-path';
 
 const {isDrcpSymlink, workDir, rootDir, symlinkDirName, distDir, nodePath, plinkDir} =
   JSON.parse(process.env.__plink!) as PlinkEnv;
@@ -42,7 +42,7 @@ export class WordLexer extends BaseLexer<WordTokenType> {
           const first = this.la()!;
           if (/[a-zA-Z$_]/.test(first)) {
             this.advance();
-            while(this.la() != null && /[a-zA-Z$_0-9]/.test(this.la()!)) {
+            while (this.la() != null && /[a-zA-Z$_0-9]/.test(this.la()!)) {
               this.advance();
             }
             if (/-/.test(this.la()!))
@@ -75,7 +75,7 @@ export class WordLexer extends BaseLexer<WordTokenType> {
   consumeNumbers() {
     // if (/[0-9]/.test(this.la())) {
     this.advance();
-    while(this.la() != null && /[0-9.]/.test(this.la()!)) {
+    while (this.la() != null && /[0-9.]/.test(this.la()!)) {
       this.advance();
     }
     // }

@@ -2,18 +2,14 @@
 import * as Path from 'path';
 import chalk from 'chalk';
 import _ from 'lodash';
-import {register as registerTsNode} from 'ts-node';
-import {GlobalOptions as CliOptions} from './cmd/types';
-import {getRootDir, getWorkDir} from './utils/misc';
 import {getLogger} from 'log4js';
-import {PlinkSettings} from './config/config-slice';
-import {setTsCompilerOptForNodePath} from './package-mgr/package-list-helper';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {Draft} from '@reduxjs/toolkit';
-import ts from 'typescript';
+import {GlobalOptions as CliOptions} from './cmd/types';
+import {getRootDir, getWorkDir} from './utils/misc';
+import {PlinkSettings} from './config/config-slice';
 
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
-import fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const {cyan} = chalk;
 const log = getLogger('plink.config-handler');
@@ -36,8 +32,8 @@ export interface DrcpConfig {
    * Resolve a path based on `rootPath`
    * @name resolve
    * @memberof config
-   * @param  {string} property name or property path, like "name", "name.childProp[1]"
-   * @return {string}     absolute path
+   * @param {string} dir name or property path, like "name", "name.childProp[1]"
+   * @return {string} absolute path
    */
   resolve(dir: 'rootPath' | 'destDir' | 'staticDir' | 'serverDir', ...path: string[]): string;
   resolve(...path: string[]): string;
@@ -58,15 +54,13 @@ export interface DrcpConfig {
 
 export interface ConfigHandler {
   /**
-	 * 
-	 * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
-	 * @param drcpCliArgv (deprecated) Override command line argumemnt for DRCP
-	 */
+   * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
+   * @param cliOpt (deprecated) Override command line argumemnt for DRCP
+   */
   onConfig(configSetting: PlinkSettings, cliOpt: CliOptions): void;
 }
 
 export class ConfigHandlerMgr {
-  static compilerOptions: any;
   private static _tsNodeRegistered = false;
 
   private static initConfigHandlers(fileAndExports: Iterable<[file: string, exportName: string]>, rootPath: string):
@@ -75,53 +69,7 @@ export class ConfigHandlerMgr {
 
     if (!ConfigHandlerMgr._tsNodeRegistered) {
       ConfigHandlerMgr._tsNodeRegistered = true;
-
-      const internalTscfgFile = Path.resolve(__dirname, '../tsconfig-base.json');
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const {compilerOptions} = ts.readConfigFile(internalTscfgFile,
-        file => fs.readFileSync(file, 'utf8')
-      ).config;
-      ConfigHandlerMgr.compilerOptions = compilerOptions;
-
-      setTsCompilerOptForNodePath(process.cwd(), './', compilerOptions, {
-        enableTypeRoots: true,
-        workspaceDir: getWorkDir()
-      });
-
-      compilerOptions.module = 'commonjs';
-      compilerOptions.noUnusedLocals = false;
-      compilerOptions.diagnostics = true;
-      compilerOptions.declaration = false;
-      delete compilerOptions.rootDir;
-
-      // console.log(compilerOptions);
-      registerTsNode({
-        typeCheck: true,
-        compilerOptions,
-        skipIgnore: true, // important, by "false" will ignore files are under node_modules
-        compiler: require.resolve('typescript'),
-        /**
-         * Important!! prevent ts-node looking for tsconfig.json from current working directory
-         */
-        skipProject: true
-        , transformers: {
-          before: [
-            context => (src) => {
-              // log.info('before ts-node compiles:', src.fileName);
-              // console.log(src.text);
-              return src;
-            }
-          ],
-          after: [
-            context => (src) => {
-              // log.info('ts-node compiles:', src.fileName);
-              // console.log(src.text);
-              return src;
-            }
-          ]
-        }
-      });
+      require('./utils/ts-node-setup');
     }
     for (const [file, exportName] of fileAndExports) {
       const absFile = Path.isAbsolute(file) ? file : Path.resolve(file);

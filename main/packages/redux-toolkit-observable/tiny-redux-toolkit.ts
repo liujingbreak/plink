@@ -15,10 +15,10 @@ export interface Action<S> {
   reducer?(old: S): S | void;
 }
 
-export interface PayloadAction<S, P = any> {
+export interface PayloadAction<S, P = any[]> {
   type: string;
   payload: P;
-  reducer?(old: S, payload: P): S | void;
+  reducer?(old: S, ...payload: P extends Array<infer I> ? I[] : [P]): S | void;
 }
 
 export type Reducers<S, R = any> = {
@@ -219,7 +219,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
   for (const [key, reducer] of Object.entries(opt.reducers)) {
     const type = name + '/' + key;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const creator = ((...payload: unknown[]) => {
+    const creator = ((payload: unknown[]) => {
       const action = {
         type,
         payload: payload.length === 0 ? undefined :
@@ -235,7 +235,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     actionCreators[key as keyof R] = creator;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    actionDispatcher[key as keyof R] = ((payload?: any) => {
+    actionDispatcher[key as keyof R] = ((...payload: any[]) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       const action = creator(payload);
       dispatch(action);
@@ -295,7 +295,9 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
             inReducer = true;
             let newState: S | void;
             try {
-              newState = action.reducer(shallowCopied, (action as PayloadAction<S>).payload);
+              const payload = (action as PayloadAction<S>).payload;
+              const params = Array.isArray(payload) ? payload : [payload];
+              newState = action.reducer(shallowCopied, ...params);
             } finally {
               inReducer = false;
               executingReducer = false;
@@ -346,7 +348,17 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
         if (fac) {
           const epic = fac(slice, ofType as OfTypeFn<S, R>);
           if (epic)
-            return epic(action$, state$);
+            return epic(action$, state$).pipe(
+              op.catchError((err, src) => {
+                console.error(err);
+                dispatch({type: 'Epic error',
+                  reducer(s: S) {
+                    return {...s, error: err as unknown};
+                  }
+                });
+                return src;
+              })
+            );
         }
         return rx.EMPTY;
       }),
@@ -354,7 +366,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
       op.tap(action => dispatch(action)),
       op.catchError((err, caught) => {
         console.error(err);
-        dispatch({type: 'epic error',
+        dispatch({type: 'Epics error',
           reducer(s: S) {
             return {...s, error: err as unknown};
           }
@@ -418,6 +430,9 @@ export function action$OfSlice<S, R extends Reducers<S>,
   });
 }
 
+/**
+ * @deprecated use Slice['action$ByType'] instead
+ */
 export function action$ByType<S, R extends Reducers<S>>(slice: Slice<S, R>) {
   return castByActionType(slice.actions, slice.action$);
 }

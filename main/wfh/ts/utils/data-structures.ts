@@ -17,7 +17,7 @@ export interface RbTreeNode<T> {
 export class RedBlackTree<T> {
   root: RbTreeNode<T> | null | undefined = null;
 
-  constructor(private comparator?: (a: T, b: T) => -1 | 0 | 1) {
+  constructor(protected comparator?: (a: T, b: T) => number) {
     if (comparator == null) {
       this.comparator = (a, b) => {
         return a < b ? -1 :
@@ -56,7 +56,6 @@ export class RedBlackTree<T> {
     };
     if (y == null) {
       this.root = z;
-      // z.isRed = false;
     } else if (cmp! < 0 ) {
       y.left = z;
     } else if (cmp! > 0 ) {
@@ -183,18 +182,10 @@ export class RedBlackTree<T> {
   minimumOf(node: RbTreeNode<T> | null | undefined = this.root) {
     // let min: RbTreeNode<T> | null = null;
     while (node?.left) {
-      // min = node;
       node = node.left;
     }
     return node ? node : null;
   }
-
-  // maximumOf(node: RbTreeNode<T> = this.root) {
-
-  //   while (this.isNotNil(node))
-  //     node = node.right;
-  //   return node;
-  // }
 
   private transplant(replaceNode: RbTreeNode<T>, withNode: RbTreeNode<T> | null = null) {
     if (replaceNode.p == null) {
@@ -322,9 +313,15 @@ export class DuplicateKeyTree<T> extends RedBlackTree<T> {
 
 }
 
-export type Interval = {min: number; max: number};
+export type IntervalKey = {low: number; high: number, max?: number};
 
-export class IntervalSearchTree<T extends Interval> {
+function intervalComparator(k1: IntervalKey, k2: IntervalKey) {
+  return k1.low - k2.low;
+}
 
+export class IntervalTree extends RedBlackTree<IntervalKey> {
+  constructor() {
+    super(intervalComparator);
+  }
 }
 

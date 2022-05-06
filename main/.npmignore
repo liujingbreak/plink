@@ -3,6 +3,7 @@
 package-lock.json
 /drcp-types
 /wfh/ts/**/*.ts
+**/__test__/**
 /redux-toolkit-observable/*.ts
 /thread-promise-pool/ts
 /wfh/doc

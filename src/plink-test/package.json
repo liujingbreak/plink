@@ -1,0 +1,13 @@
+{
+  "name": "@wfh/plink-test",
+  "version": "1.0.0",
+  "description": "Plink test cases for Jest",
+  "main": "index.js",
+  "author": "LJ",
+  "license": "MIT",
+  "plink": {
+    "tsc": {
+      "src": "src"
+    }
+  }
+}

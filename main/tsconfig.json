@@ -5,8 +5,9 @@
     "baseUrl": ".",
     "rootDir": ".",
     "typeRoots": [
-      "node_modules/@types/*",
-      "wfh/types"
+      "node_modules/@types",
+      "wfh/types",
+      "../node_modules/@types"
     ],
     "paths": {
       "@wfh/redux-toolkit-observable": [

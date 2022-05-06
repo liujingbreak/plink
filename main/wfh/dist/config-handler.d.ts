@@ -1,7 +1,7 @@
-import { GlobalOptions as CliOptions } from './cmd/types';
-import { PlinkSettings } from './config/config-slice';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Draft } from '@reduxjs/toolkit';
+import { GlobalOptions as CliOptions } from './cmd/types';
+import { PlinkSettings } from './config/config-slice';
 export { PlinkSettings };
 export interface DrcpConfig {
     /**
@@ -20,8 +20,8 @@ export interface DrcpConfig {
      * Resolve a path based on `rootPath`
      * @name resolve
      * @memberof config
-     * @param  {string} property name or property path, like "name", "name.childProp[1]"
-     * @return {string}     absolute path
+     * @param {string} dir name or property path, like "name", "name.childProp[1]"
+     * @return {string} absolute path
      */
     resolve(dir: 'rootPath' | 'destDir' | 'staticDir' | 'serverDir', ...path: string[]): string;
     resolve(...path: string[]): string;
@@ -39,14 +39,12 @@ export interface DrcpConfig {
 }
 export interface ConfigHandler {
     /**
-       *
-       * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
-       * @param drcpCliArgv (deprecated) Override command line argumemnt for DRCP
-       */
+     * @param configSetting Override properties from dist/config.yaml, which is also you get from `api.config()`
+     * @param cliOpt (deprecated) Override command line argumemnt for DRCP
+     */
     onConfig(configSetting: PlinkSettings, cliOpt: CliOptions): void;
 }
 export declare class ConfigHandlerMgr {
-    static compilerOptions: any;
     private static _tsNodeRegistered;
     private static initConfigHandlers;
     protected configHandlers: Array<{

@@ -12,10 +12,10 @@ export interface Action<S> {
     type: string;
     reducer?(old: S): S | void;
 }
-export interface PayloadAction<S, P = any> {
+export interface PayloadAction<S, P = any[]> {
     type: string;
     payload: P;
-    reducer?(old: S, payload: P): S | void;
+    reducer?(old: S, ...payload: P extends Array<infer I> ? I[] : [P]): S | void;
 }
 export declare type Reducers<S, R = any> = {
     [K in keyof R]: (state: S, ...payload: any[]) => S | void;
@@ -170,6 +170,9 @@ export declare function action$OfSlice<S, R extends Reducers<S>, T extends keyof
     payload: P;
     type: T;
 } : never>;
+/**
+ * @deprecated use Slice['action$ByType'] instead
+ */
 export declare function action$ByType<S, R extends Reducers<S>>(slice: Slice<S, R>): ActionByType<S, R>;
 /**
  * Add an epicFactory to another component's sliceHelper

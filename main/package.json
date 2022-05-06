@@ -11,9 +11,9 @@
   "scripts": {
     "tsc": "tsc",
     "build:node": "tsc -b tsconfig-plink.json",
-    "watch:node": "tsc  -b tsconfig-plink.json -w",
+    "watch:node": "tsc -b tsconfig-plink.json -w",
     "build:es": "tsc -b tsconfig-es5.json",
-    "build:redux": "tsc -p tsconfig-redux-toolkit.json && tsc -p tsconfig-redux-toolkit-es.json",
+    "build:redux": "tsc -p packages/redux-toolkit-observable/tsconfig-redux-toolkit.json && tsc -p packages/redux-toolkit-observable/tsconfig-redux-toolkit-es.json",
     "build:share": "tsc -p tsconfig-share.json",
     "clean": "rm -rf wfh/*.tsbuildinfo && rm -rf wfh/dist/*"
   },
@@ -67,10 +67,11 @@
     "anymatch": "^3.1.2"
   },
   "devDependencies": {
-    "@types/jasmine": "^3.6.7",
     "@types/react-redux": "^7.1.16",
     "@types/react": "^17.0.5",
     "@types/semver": "^7.3.4",
-    "@types/lru-cache": "^5.1.0"
+    "@types/lru-cache": "^5.1.0",
+    "jest": "^28.1.0",
+    "@types/jest": "^27.5.0"
   }
 }

@@ -14,9 +14,9 @@ export interface RbTreeNode<T> {
     size: number;
 }
 export declare class RedBlackTree<T> {
-    private comparator?;
+    protected comparator?: ((a: T, b: T) => number) | undefined;
     root: RbTreeNode<T> | null | undefined;
-    constructor(comparator?: ((a: T, b: T) => -1 | 0 | 1) | undefined);
+    constructor(comparator?: ((a: T, b: T) => number) | undefined);
     /**
      *
      * @param key
@@ -37,4 +37,12 @@ export declare class RedBlackTree<T> {
 }
 /** Allow inserting multiple items with same key in a red-black tree */
 export declare class DuplicateKeyTree<T> extends RedBlackTree<T> {
+}
+export declare type IntervalKey = {
+    low: number;
+    high: number;
+    max?: number;
+};
+export declare class IntervalTree extends RedBlackTree<IntervalKey> {
+    constructor();
 }
