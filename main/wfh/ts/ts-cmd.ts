@@ -1,18 +1,18 @@
 /* eslint-disable max-len */
+import Path, {resolve, join, relative, sep} from 'path';
 import chalk from 'chalk';
-import * as packageUtils from './package-utils';
 import * as fs from 'fs-extra';
 import * as _ from 'lodash';
-import Path, {resolve, join, relative, sep} from 'path';
 import _ts from 'typescript';
-import {getTscConfigOfPkg, PackageTsDirs, plinkEnv} from './utils/misc';
 import {CompilerOptions} from 'typescript';
-import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions, allPackages} from './package-mgr/package-list-helper';
-import {findPackagesByNames} from './cmd/utils';
 import {DirTree} from 'require-injector/dist/dir-tree';
-import {getState, workspaceKey, PackageInfo} from './package-mgr';
 import log4js from 'log4js';
 import glob from 'glob';
+import {getTscConfigOfPkg, PackageTsDirs, plinkEnv} from './utils/misc';
+import {setTsCompilerOptForNodePath, CompilerOptions as RequiredCompilerOptions, allPackages} from './package-mgr/package-list-helper';
+import {findPackagesByNames} from './cmd/utils';
+import {getState, workspaceKey, PackageInfo} from './package-mgr';
+import * as packageUtils from './package-utils';
 import {mergeBaseUrlAndPaths, parseConfigFileToJson} from './ts-cmd-util';
 import {webInjector} from './injector-factory';
 import {analyseFiles} from './cmd/cli-analyze';
@@ -129,7 +129,8 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   async function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, realPath: string) {
     countPkg++;
     const tscCfg = argv.overridePackgeDirs && _.has(argv.overridePackgeDirs, name) ?
-      argv.overridePackgeDirs[name] : getTscConfigOfPkg(json);
+      argv.overridePackgeDirs[name]
+      : getTscConfigOfPkg(json);
     // For workaround https://github.com/microsoft/TypeScript/issues/37960
     // Use a symlink path instead of a real path, so that Typescript compiler will not
     // recognize them as from somewhere with "node_modules", the symlink must be reside
@@ -169,7 +170,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       }
     }
     if (tscCfg.include) {
-      let patterns = ([] as string[]).concat(tscCfg.include);
+      const patterns = ([] as string[]).concat(tscCfg.include);
       for (const pattern of patterns) {
         const globPattern = resolve(symlinkDir, pattern).replace(/\\/g, '/');
         glob.sync(globPattern).filter(file => !file.endsWith('.d.ts')).forEach(file => rootFiles.push(file));
@@ -221,12 +222,12 @@ function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string,
   const origCreateProgram = programHost.createProgram;
   // Ts's createWatchProgram will call WatchCompilerHost.createProgram(), this is where we patch "CompilerHost"
   programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
-    host?: _ts.CompilerHost) {
+    host?: _ts.CompilerHost, ...rest: any[]) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (host && (host as any)._overrided == null) {
       patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
     }
-    const program = origCreateProgram.apply(this, arguments as any) ;
+    const program = origCreateProgram.call(this, rootNames, options, host, ...rest) ;
     return program;
   };
 
@@ -298,7 +299,7 @@ function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOpt
   const readFile = host.readFile;
   const cwd = process.cwd();
   host.readFile = function(path: string, encoding?: string) {
-    const content = readFile.apply(this, arguments as any) ;
+    const content = readFile.call(this, path, encoding) ;
     if (content && !path.endsWith('.d.ts') && !path.endsWith('.json')) {
       // console.log('WatchCompilerHost.readFile', path);
       const changed = webInjector.injectToFile(path, content);
@@ -341,7 +342,7 @@ function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOpt
 function reportDiagnostic(diagnostic: _ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
   let fileInfo = '';
   if (diagnostic.file) {
-    const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
+    const {line, character} = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
     const realFile = realPathOf(diagnostic.file.fileName, commonRootDir, packageDirTree, true) || diagnostic.file.fileName;
     fileInfo = `${realFile}, line: ${line + 1}, column: ${character + 1}`;
   }

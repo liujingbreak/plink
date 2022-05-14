@@ -1,6 +1,6 @@
-import _ts from 'typescript';
 import fs from 'fs';
 import Path from 'path';
+import _ts from 'typescript';
 import {CompilerOptions as RequiredCompilerOptions} from './package-mgr/package-list-helper';
 export {RequiredCompilerOptions};
 
@@ -57,7 +57,7 @@ export function parseConfigFileToJson(ts: typeof _ts, file: string) {
     const extendsFile = Path.resolve(Path.dirname(file), json.extends);
     const pJson = parseConfigFileToJson(ts, extendsFile);
     for (const [prop, value] of Object.entries(pJson.compilerOptions)) {
-      if (prop !== 'baseUrl' && prop !== 'paths' && !json.compilerOptions.hasOwnProperty(prop)) {
+      if (prop !== 'baseUrl' && prop !== 'paths' && !Object.prototype.hasOwnProperty.call(json.compilerOptions, prop)) {
         json.compilerOptions[prop] = value;
       }
     }

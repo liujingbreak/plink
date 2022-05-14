@@ -9,5 +9,9 @@
     "tsc": {
       "src": "src"
     }
+  },
+  "peerDependencies": {
+    "jest": "^28.1.0",
+    "@types/jest": "^27.5.0"
   }
 }

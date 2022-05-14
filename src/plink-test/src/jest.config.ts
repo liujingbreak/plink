@@ -3,8 +3,13 @@
  * https://jestjs.io/docs/configuration
  */
 // import Path from 'path';
+import type {Config} from '@jest/types';
 
-export default {
+const transform: Config.InitialOptions['transform'] = {
+  '\\.[jt]sx?$': 'babel-jest'
+};
+
+const config: Config.InitialOptions = {
   // All imported modules in your tests should be mocked automatically
   // automock: false,
 
@@ -125,9 +130,7 @@ export default {
   // rootDir: undefined,
 
   // A list of paths to directories that Jest should use to search for files in
-  roots: [
-    __dirname
-  ],
+  roots: [__dirname],
 
   // Allows you to use a custom runner instead of Jest's default test runner
   // runner: "jest-runner",
@@ -157,7 +160,7 @@ export default {
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)'
   // "**/?(*.)+(spec|test).[tj]s?(x)"
-  ]
+  ],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   // testPathIgnorePatterns: [
@@ -174,7 +177,7 @@ export default {
   // testRunner: "jest-circus/runner",
 
   // A map from regular expressions to paths to transformers
-  // transform: undefined,
+  transform
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   // transformIgnorePatterns: [
@@ -194,3 +197,6 @@ export default {
   // Whether to use watchman for file crawling
   // watchman: true,
 };
+
+export default config;
+
