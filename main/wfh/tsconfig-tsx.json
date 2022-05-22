@@ -1,15 +1,12 @@
 {
-	"extends": "./tsconfig-base.json",
-	"compilerOptions": {
-		"jsx": "preserve",
-		"module":"esnext",
-		"target":"es2015",
-		"downlevelIteration": true,
-		"isolatedModules": false,
-		"resolveJsonModule": false,
-		"lib": [
-			"ES2017",
-			"dom"
-		]
-	}
+  "extends": "./tsconfig-base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "module": "esnext",
+    "target": "es2015",
+    "downlevelIteration": true,
+    "isolatedModules": false,
+    "resolveJsonModule": false,
+    "lib": ["ES2017", "dom"]
+  }
 }

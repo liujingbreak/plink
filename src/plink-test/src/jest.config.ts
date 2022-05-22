@@ -2,11 +2,16 @@
  * For a detailed explanation regarding each configuration property and type check, visit:
  * https://jestjs.io/docs/configuration
  */
-// import Path from 'path';
+import Path from 'path';
 import type {Config} from '@jest/types';
 
 const transform: Config.InitialOptions['transform'] = {
-  '\\.[jt]sx?$': 'babel-jest'
+  '\\.jsx?$': 'babel-jest',
+  '\\.tsx?$': [
+    Path.resolve(__dirname, 'ts-transformer.js'), {
+      rootFiles: process.argv.splice(2).filter(arg => /\.tsx?$/.test(arg))
+    }
+  ]
 };
 
 const config: Config.InitialOptions = {
@@ -130,7 +135,7 @@ const config: Config.InitialOptions = {
   // rootDir: undefined,
 
   // A list of paths to directories that Jest should use to search for files in
-  roots: [__dirname],
+  roots: [Path.dirname(__dirname)],
 
   // Allows you to use a custom runner instead of Jest's default test runner
   // runner: "jest-runner",
@@ -158,8 +163,8 @@ const config: Config.InitialOptions = {
 
   // The glob patterns Jest uses to detect test files
   testMatch: [
-    '**/__tests__/**/*.[jt]s?(x)'
-  // "**/?(*.)+(spec|test).[tj]s?(x)"
+    // Path.relative(process.cwd(), Path.resolve(__dirname, '../__tests__')).replace(/\\/g, '/') + '/**/*.[jt]s?(x)'
+    '**/?(*.)+(spec|test).[tj]s?(x)'
   ],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped

@@ -2,7 +2,7 @@
 import Path, {resolve, join, relative, sep} from 'path';
 import chalk from 'chalk';
 import * as fs from 'fs-extra';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import _ts from 'typescript';
 import {CompilerOptions} from 'typescript';
 import {DirTree} from 'require-injector/dist/dir-tree';
@@ -216,6 +216,21 @@ function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string,
     return reportDiagnostic(diagnostic, commonRootDir, packageDirTree, ts);
   }
   const programHost = ts.createWatchCompilerHost(rootFiles, compilerOptions, ts.sys,
+    // https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
+    // TypeScript can use several different program creation "strategies":
+    //  * ts.createEmitAndSemanticDiagnosticsBuilderProgram,
+    //  * ts.createSemanticDiagnosticsBuilderProgram
+    //  * ts.createAbstractBuilder
+    // The first two produce "builder programs". These use an incremental strategy
+    // to only re-check and emit files whose contents may have changed, or whose
+    // dependencies may have changes which may impact change the result of prior
+    // type-check and emit.
+    // The last uses an ordinary program which does a full type check after every
+    // change.
+    // Between `createEmitAndSemanticDiagnosticsBuilderProgram` and
+    // `createSemanticDiagnosticsBuilderProgram`, the only difference is emit.
+    // For pure type-checking scenarios, or when another tool/process handles emit,
+    // using `createSemanticDiagnosticsBuilderProgram` may be more desirable
     ts.createEmitAndSemanticDiagnosticsBuilderProgram, _reportDiagnostic, d => reportWatchStatusChanged(d, ts));
   patchWatchCompilerHost(programHost);
 
@@ -340,17 +355,23 @@ function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOpt
 // }
 
 function reportDiagnostic(diagnostic: _ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
-  let fileInfo = '';
-  if (diagnostic.file) {
-    const {line, character} = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-    const realFile = realPathOf(diagnostic.file.fileName, commonRootDir, packageDirTree, true) || diagnostic.file.fileName;
-    fileInfo = `${realFile}, line: ${line + 1}, column: ${character + 1}`;
-  }
-  console.error(chalk.red(`Error ${diagnostic.code} ${fileInfo} :`), ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
+  // let fileInfo = '';
+  // if (diagnostic.file) {
+  //   const {line, character} = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
+  //   const realFile = realPathOf(diagnostic.file.fileName, commonRootDir, packageDirTree, true) || diagnostic.file.fileName;
+  //   fileInfo = `${realFile}, line: ${line + 1}, column: ${character + 1}`;
+  // }
+  // console.error(chalk.red(`Error ${diagnostic.code} ${fileInfo} :`), ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
+  const out = ts.formatDiagnosticsWithColorAndContext([diagnostic], {
+    getCanonicalFileName: fileName => realPathOf(fileName, commonRootDir, packageDirTree, true) || fileName,
+    getCurrentDirectory: ts.sys.getCurrentDirectory,
+    getNewLine: () => ts.sys.newLine
+  });
+  console.error(out);
 }
 
 function reportWatchStatusChanged(diagnostic: _ts.Diagnostic, ts: typeof _ts = _ts) {
-  console.info(chalk.cyan(ts.formatDiagnostic(diagnostic, formatHost)));
+  console.info(chalk.cyan(ts.formatDiagnosticsWithColorAndContext([diagnostic], formatHost)));
 }
 
 const COMPILER_OPTIONS_MERGE_EXCLUDE = new Set(['baseUrl', 'typeRoots', 'paths', 'rootDir']);

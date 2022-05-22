@@ -1,13 +1,17 @@
+/* eslint-disable @typescript-eslint/indent */
 import * as http from 'http';
 import * as https from 'https';
 import * as fs from 'fs';
 import * as Path from 'path';
+import * as rx from 'rxjs';
 import api from '__api';
 import {getLanIPv4} from '@wfh/plink/wfh/dist/utils/network-util';
 import {log4File, config} from '@wfh/plink';
 
 const log = log4File(__filename);
 let server: https.Server | http.Server | undefined;
+
+export const serverCreated$ = new rx.ReplaySubject<http.Server | https.Server>();
 
 export function activate() {
   const rootPath: string = config().rootPath;
@@ -48,7 +52,7 @@ export function activate() {
       api.eventBus.on('appCreated', (app) => startHttpsServer(
         app, Number(sslSetting.port ? sslSetting.port : 433),
         key, cert
-        ));
+      ));
     } else {
       api.eventBus.on('appCreated', (app) => startHttpServer(app, Number(config().port ? config().port : 80)));
     }
@@ -67,6 +71,7 @@ export function activate() {
     if (/^v8.\d.\d+$/.test(process.version)) {
       server.keepAliveTimeout = 30000; // 30 seconds
     }
+    serverCreated$.next(server);
     server.listen(port);
     server.on('error', (err: Error) => {
       onError(server, port, err);
@@ -79,6 +84,7 @@ export function activate() {
     for (const hostname of config()['@wfh/http-server'].hostnames) {
       log.info('listen on additional host name:', hostname);
       const server = http.createServer(app);
+      serverCreated$.next(server);
       server.listen(port, hostname);
       server.on('error', (err: Error) => {
         onError(server, port, err);
@@ -94,9 +100,10 @@ export function activate() {
     log.info('start HTTPS');
     const startPromises = [];
     // let port: number = Number(sslSetting.port ? sslSetting.port : 433);
-    let httpPort = config().port ? config().port : 80;
+    const httpPort = config().port ? config().port : 80;
 
-    const server = https.createServer({ key, cert }, app);
+    const server = https.createServer({key, cert}, app);
+    serverCreated$.next(server);
 
     server.listen(port);
     if (/^v8.\d.\d+$/.test(process.version)) {
@@ -111,7 +118,8 @@ export function activate() {
 
     for (const hostname of config()['@wfh/http-server'].hostnames) {
       log.info('listen on additional host name:', hostname);
-      const server = https.createServer({ key, cert }, app);
+      const server = https.createServer({key, cert}, app);
+      serverCreated$.next(server);
       server.listen(port, hostname);
       server.on('error', (error: Error) => {
         onError(server, port, error);
@@ -145,12 +153,12 @@ export function activate() {
     // }
 
     void Promise.all(startPromises)
-    .then((servers: any[]) => {
-      onListening(servers[0], 'HTTPS server', port);
-      if (servers.length > 1)
-        onListening(servers[1], 'HTTP Forwarding server', httpPort);
-      api.eventBus.emit('serverStarted', {});
-    });
+      .then((servers: any[]) => {
+        onListening(servers[0], 'HTTPS server', port);
+        if (servers.length > 1)
+          onListening(servers[1], 'HTTP Forwarding server', httpPort);
+        api.eventBus.emit('serverStarted', {});
+      });
   }
 
   /**
@@ -174,16 +182,16 @@ export function activate() {
 
     // handle specific listen errors with friendly messages
     switch (error.code) {
-      case 'EACCES':
-        log.error(bind + ' requires elevated privileges');
-        process.exit(1);
-        break;
-      case 'EADDRINUSE':
-        log.error(bind + ' is already in use');
-        process.exit(1);
-        break;
-      default:
-        throw error;
+    case 'EACCES':
+      log.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      log.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
     }
   }
 }

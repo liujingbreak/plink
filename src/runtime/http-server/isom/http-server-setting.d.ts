@@ -11,7 +11,7 @@ export interface HttpServerSetting {
         port: number;
         httpForward: boolean;
     };
-    /** Additional host names (other than localhost or local IP address)
+    /** Additional host names (other than default host)
     * that HTTP/HTTPS server needs to listened */
     hostnames: string[];
     /** starts with multiple servers
