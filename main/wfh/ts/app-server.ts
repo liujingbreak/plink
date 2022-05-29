@@ -12,27 +12,27 @@ runWithPreserveSymlink('@wfh/plink/wfh/dist/app-server.js', {stateExitAction: 'n
   process.title = 'Plink - server';
 
   const program = new commander.Command()
-  .arguments('[args...]')
-  .action(() => {
+    .arguments('[args...]')
+    .action(() => {
     // eslint-disable-next-line no-console
-    console.log('\nPlink version:', version);
-    const {initConfig, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
-    const setting = initConfig(program.opts());
-    logConfig(setting());
-    const {runServer} = require('./package-runner') as typeof _runner;
-    const shutdown = runServer().shutdown;
+      console.log('\nPlink version:', version);
+      const {initConfig, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
+      const setting = initConfig(program.opts());
+      logConfig(setting());
+      const {runServer} = require('./package-runner') as typeof _runner;
+      const shutdown = runServer().shutdown;
 
-    exitHooks.push(shutdown);
-  });
+      exitHooks.push(shutdown);
+    });
 
   const {withGlobalOptions} = require('./cmd/override-commander') as typeof overrideCmd;
   withGlobalOptions(program);
 
   program.parseAsync(process.argv)
-  .catch((e: Error) => {
-    console.error(e, e.stack);
-    process.exit(1);
-  });
+    .catch((e: Error) => {
+      console.error(e, e.stack);
+      process.exit(1);
+    });
 });
 
 

@@ -7,8 +7,7 @@ import chokida from 'chokidar';
 
 type ChildProcessFactory = () => cp.ChildProcess[] | rx.Observable<cp.ChildProcess>;
 
-export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory):
-  rx.Observable<string> {
+export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory) {
   const watcher = chokida.watch(dirOrFile, {ignoreInitial: true});
   const change$ = rx.fromEventPattern<[path: string, stats?: fs.Stats]>(h => watcher.on('change', h), h => watcher.off('change', h))
     .pipe(
@@ -111,5 +110,5 @@ export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProces
       return rx.EMPTY;
     })
   ).subscribe();
-  return action$;
+  return {action$, serverState$};
 }

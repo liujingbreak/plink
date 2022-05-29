@@ -13,7 +13,7 @@ import {getLogger} from 'log4js';
 import * as pkgMgr from '../package-mgr';
 // import '../tsc-packages-slice';
 import {packages4Workspace} from '../package-mgr/package-list-helper';
-import { isDrcpSymlink, sexyFont, getRootDir, boxString, plinkEnv } from '../utils/misc';
+import {isDrcpSymlink, sexyFont, getRootDir, boxString, plinkEnv} from '../utils/misc';
 import * as _symlinks from '../utils/symlinks';
 import {initInjectorForNodePackages} from '../package-runner';
 import {CommandOverrider, withCwdOption} from './override-commander';
@@ -34,33 +34,33 @@ export async function createCommands(startTime: number) {
 
   let cliExtensions: string[] | undefined;
   const program = new commander.Command('plink')
-  .description(chalk.cyan('A pluggable monorepo and multi-repo management tool'))
-  .action((args: string[]) => {
+    .description(chalk.cyan('A pluggable monorepo and multi-repo management tool'))
+    .action((args: string[]) => {
     // eslint-disable-next-line no-console
-    console.log(sexyFont('PLink').string);
-    // eslint-disable-next-line no-console
-    console.log(program.helpInformation());
-
-    if (wsState == null) {
-      const wsDirs = [...pkgMgr.getState().workspaces.keys()];
-      if (wsDirs.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log(`More commands are available in worktree space directories: [${wsDirs.map(item => chalk.cyan(item)).join(', ')}]\n` +
-          `Try commands:\n${wsDirs.map(dir => '  plink --space ' + dir).join('\n')}`);
-      }
-    }
-    // eslint-disable-next-line no-console
-    console.log(`\nversion: ${pk.version} ${isDrcpSymlink ? chalk.yellow('(symlinked)') : ''} `);
-    if (cliExtensions && cliExtensions.length > 0) {
+      console.log(sexyFont('PLink').string);
       // eslint-disable-next-line no-console
-      console.log(`Found ${cliExtensions.length} command line extension` +
+      console.log(program.helpInformation());
+
+      if (wsState == null) {
+        const wsDirs = [...pkgMgr.getState().workspaces.keys()];
+        if (wsDirs.length > 0) {
+        // eslint-disable-next-line no-console
+          console.log(`More commands are available in worktree space directories: [${wsDirs.map(item => chalk.cyan(item)).join(', ')}]\n` +
+          `Try commands:\n${wsDirs.map(dir => '  plink --space ' + dir).join('\n')}`);
+        }
+      }
+      // eslint-disable-next-line no-console
+      console.log(`\nversion: ${pk.version} ${isDrcpSymlink ? chalk.yellow('(symlinked)') : ''} `);
+      if (cliExtensions && cliExtensions.length > 0) {
+      // eslint-disable-next-line no-console
+        console.log(`Found ${cliExtensions.length} command line extension` +
       `${cliExtensions.length > 1 ? 's' : ''}: ${cliExtensions.map(pkg => chalk.blue(pkg)).join(', ')}`);
-    }
-    // eslint-disable-next-line no-console
-    console.log('\n', chalk.bgRed('Please determine a sub command listed above'));
-    checkPlinkVersion();
-    process.nextTick(() => process.exit(1));
-  });
+      }
+      // eslint-disable-next-line no-console
+      console.log('\n', chalk.bgRed('Please determine a sub command listed above'));
+      checkPlinkVersion();
+      process.nextTick(() => process.exit(1));
+    });
   program.addHelpText('before', sexyFont('PLink').string);
   withCwdOption(program);
 
@@ -135,7 +135,7 @@ function subComands(program: commander.Command) {
     .action(async (workspace?: string) => {
       // eslint-disable-next-line no-console
       console.log(sexyFont('PLink').string);
-      (await import('./cli-init')).default(initCmd.opts() , workspace);
+      (await import('./cli-init')).default(initCmd.opts(), workspace);
     });
   addNpmInstallOption(initCmd);
 
@@ -145,10 +145,10 @@ function subComands(program: commander.Command) {
   program.command('project [add|remove] [dir...]')
     .description('Associate, disassociate or list associated project folders, Plink will' +
       ' scan source code directories from associated projects', {
-        'add|remove': 'Specify whether Associate to a project or Disassociate from a project',
-        dir: 'Specify target project repo directory (absolute path or relative path to current directory)' +
+      'add|remove': 'Specify whether Associate to a project or Disassociate from a project',
+      dir: 'Specify target project repo directory (absolute path or relative path to current directory)' +
           ', specify multiple project by seperating them with space character'
-      })
+    })
     .action(async (action: 'add' | 'remove' | undefined, projectDir: string[]) => {
       // eslint-disable-next-line no-console
       console.log(sexyFont('PLink').string);
@@ -158,14 +158,14 @@ function subComands(program: commander.Command) {
   program.command('src [add|remove] [dir...]')
     .description('Associate, disassociate or list source directories, Plink will' +
       ' scan source code directories for packages', {
-        'add|remove': 'Specify whether associate to a directory or disassociate from a directory',
-        dir: 'specify multiple directories by seperating them with space character'
-      })
-      .action(async (action: 'add' | 'remove' | undefined, dirs: string[]) => {
-        // eslint-disable-next-line no-console
-        console.log(sexyFont('PLink').string);
-        (await import('./cli-project')).default({isSrcDir: true}, action, dirs);
-      });
+      'add|remove': 'Specify whether associate to a directory or disassociate from a directory',
+      dir: 'specify multiple directories by seperating them with space character'
+    })
+    .action(async (action: 'add' | 'remove' | undefined, dirs: string[]) => {
+      // eslint-disable-next-line no-console
+      console.log(sexyFont('PLink').string);
+      (await import('./cli-project')).default({isSrcDir: true}, action, dirs);
+    });
 
   /**
    * command lint
@@ -231,9 +231,9 @@ function subComands(program: commander.Command) {
   const addCmd = program.command('add <dependency...>')
     .description('Add dependency to package.json file, with option "--dev" to add as "devDependencies", ' +
       'without option "--to" this command adds dependency to current worktree space\'s package.json file',
-      {
-        dependency: 'dependency package name in form of "<a linked package name without scope part>", "<package name>@<version>", '
-      })
+    {
+      dependency: 'dependency package name in form of "<a linked package name without scope part>", "<package name>@<version>", '
+    })
     .option('--to <pkg name | worktree dir | pkg dir>', 'add dependency to the package.json of specific linked source package by name or directory, or a worktree space directory')
     .action(async (packages: string[]) => {
       await (await import('./cli-add-package')).addDependencyTo(packages, addCmd.opts().to, addCmd.opts().dev);
@@ -256,14 +256,14 @@ function subComands(program: commander.Command) {
     .description('bump package.json version number for specific package, same as "npm version" does',
       {package: cliPackageArgDesc})
     .option<string[]>('--pj, --project <project-dir,...>', 'only bump component packages from specific project directory',
-      (value, prev) => {
-        prev.push(...value.split(','));
-        return prev;
-      }, [])
+    (value, prev) => {
+      prev.push(...value.split(','));
+      return prev;
+    }, [])
     .option('-i, --incre-version <value>',
       'version increment, valid values are: major, minor, patch, prerelease', 'patch')
     .action(async (packages: string[]) => {
-      await (await import('./cli-bump')).default({...bumpCmd.opts() , packages});
+      await (await import('./cli-bump')).default({...bumpCmd.opts(), packages});
     });
   // withGlobalOptions(bumpCmd);
   // bumpCmd.usage(bumpCmd.usage() + '\n' + hl('plink bump <package> ...') + ' to recursively bump package.json from multiple directories\n' +
@@ -284,7 +284,7 @@ function subComands(program: commander.Command) {
     .option('--jf, --json-file <pkg-json-file>', 'the package.json file in which "devDependencies", "dependencies" should to be changed according to packed file, ' +
       'by default package.json files in all work spaces will be checked and changed')
     .action(async (packages: string[]) => {
-      await (await import('./cli-pack')).pack({...packCmd.opts() , packages});
+      await (await import('./cli-pack')).pack({...packCmd.opts(), packages});
     });
   // withGlobalOptions(packCmd);
   packCmd.usage(packCmd.usage() + '\nBy default, run "npm pack" for each linked package which are dependencies of current workspace');
@@ -297,15 +297,15 @@ function subComands(program: commander.Command) {
     .argument('[package...]', cliPackageArgDesc)
     .option('--dir <package directory>', 'publish packages by specifying directories', arrayOptionFn, [])
     .option<string[]>('--pj, --project <project-dir,...>',
-    'project directories to be looked up for all packages which need to be packed to tarball files',
-      (value, prev) => {
-        prev.push(...value.split(',')); return prev;
-      }, [] as string[])
+      'project directories to be looked up for all packages which need to be packed to tarball files',
+    (value, prev) => {
+      prev.push(...value.split(',')); return prev;
+    }, [] as string[])
     .option('-w,--workspace <workspace-dir>', 'publish packages which are linked as dependency of specific workspaces',
       arrayOptionFn, [])
     .option('--public', 'same as "npm publish" command option "--access public"', true)
     .action(async (packages: string[]) => {
-      await (await import('./cli-pack')).publish({...publishCmd.opts() , packages});
+      await (await import('./cli-pack')).publish({...publishCmd.opts(), packages});
     });
 
 
@@ -332,17 +332,17 @@ function subComands(program: commander.Command) {
     'plink analyze -d packages/foobar1/src -d packages/foobar2/ts'));
 
   const watchCmd = program.command('watch')
-  .description('Watch package source file or specific file changes (files referenced in .npmignore will be ignored) and update Plink state, ' +
+    .description('Watch package source file or specific file changes (files referenced in .npmignore will be ignored) and update Plink state, ' +
   'automatically install transitive dependency')
-  .argument('[package...]', cliPackageArgDesc, [])
-  .option('-a <directory>', 'Use chokidar watch additional directories or files (multiple) for copy, option "--cp" must also be presented',
-    (value, prev) => {prev.push(value); return prev; }, [] as string[])
-  .option('--include', 'glob pattern append to "-a" option')
-  .option('--cp, --copy <directory>', 'copy package files to specific directory, mimic behavior of "npm install <pkg>", but this won\'t install dependencies')
-  .action((pkgs: string[]) => {
-    const {cliWatch} = require('./cli-watch') as typeof _cliWatch;
-    cliWatch(pkgs, watchCmd.opts());
-  });
+    .argument('[package...]', cliPackageArgDesc, [])
+    .option('-a <directory>', 'Use chokidar watch additional directories or files (multiple) for copy, option "--cp" must also be presented',
+      (value, prev) => {prev.push(value); return prev; }, [] as string[])
+    .option('--include', 'glob pattern append to "-a" option')
+    .option('--cp, --copy <directory>', 'copy package files to specific directory, mimic behavior of "npm install <pkg>", but this won\'t install dependencies')
+    .action((pkgs: string[]) => {
+      const {cliWatch} = require('./cli-watch') as typeof _cliWatch;
+      cliWatch(pkgs, watchCmd.opts());
+    });
 
   const updateDirCmd = program.command('update-dir')
     .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
@@ -372,8 +372,8 @@ function spaceOnlySubCommands(program: commander.Command) {
     .option('--copath, --compiler-options-paths <pathMapJson>',
       'Add more "paths" property to compiler options. ' +
       '(e.g. --copath \'{"@/*":["/Users/worker/ocean-ui/src/*"]}\')', (v, prev) => {
-      prev.push(...v.split(',')); return prev;
-    }, [] as string[])
+        prev.push(...v.split(',')); return prev;
+      }, [] as string[])
     .option('--co <JSON-string>',
       `Partial compiler options to be merged (except "baseUrl"), "paths" must be relative to ${Path.relative(process.cwd(), plinkEnv.workDir) || 'current directory'}`)
     .action(async (packages: string[]) => {
@@ -407,7 +407,7 @@ function spaceOnlySubCommands(program: commander.Command) {
     .action(async (pkgName: string) => {
       (await import('./cli-setting')).default(pkgName);
     });
-    /** command run*/
+  /** command run*/
   const runCmd = program.command('run <target> [arguments...]')
     .description('Run specific module\'s exported function\n')
     .action(async (target: string, args: string[]) => {
@@ -418,11 +418,11 @@ function spaceOnlySubCommands(program: commander.Command) {
     `e.g.\n  ${chalk.green('plink run ../packages/forbar-package/dist/file.js#function argument1 argument2...')}\n` +
     'execute exported function of TS/JS file from specific package or path\n\n' +
     '<target> - JS or TS file module path which can be resolved by Node.js (ts-node) followed by "#" and exported function name,\n');
-    // 'e.g. \n' +
-    // chalk.green('package-name/dist/foobar.js#myFunction') +
-    // ', function can be async which returns Promise\n' +
-    // chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
-    // ', relative or absolute path\n');
+  // 'e.g. \n' +
+  // chalk.green('package-name/dist/foobar.js#myFunction') +
+  // ', function can be async which returns Promise\n' +
+  // chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
+  // ', relative or absolute path\n');
 
 
 }
@@ -452,13 +452,13 @@ function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceSt
 
 function addNpmInstallOption(cmd: commander.Command) {
   cmd.option('--yarn, --use-yarn', 'Use Yarn instead of NPM to install dependencies', false)
-  .option('--cache <npm-cache>', 'same as npm install option "--cache"')
-  .option('--ci, --use-ci', 'Use "npm ci" instead of "npm install" to install dependencies; when "--useYarn" is on, add argument "--immutable"', false)
-  .option('--prune', 'Run "npm prune" after installation')
-  .option('--ddp, --dedupe', 'Run "npm dedupe" after installation')
+    .option('--cache <npm-cache>', 'same as npm install option "--cache"')
+    .option('--ci, --use-ci', 'Use "npm ci" instead of "npm install" to install dependencies; when "--useYarn" is on, add argument "--immutable"', false)
+    .option('--prune', 'Run "npm prune" after installation')
+    .option('--ddp, --dedupe', 'Run "npm dedupe" after installation')
   // .option('--offline', 'same as npm option "--offline" during executing npm install/ci ', false)
   // .option('--yarn', 'Use Yarn to install component peer dependencies instead of using NPM', false)
-  .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false);
+    .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false);
 }
 
 function checkPlinkVersion() {

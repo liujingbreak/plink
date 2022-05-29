@@ -1,8 +1,15 @@
+import fs from 'fs';
 import _ts from 'typescript';
+// import inspector from 'inspector';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import chokidar from 'chokidar';
 import {createSlice} from '../../../packages/redux-toolkit-observable/dist/tiny-redux-toolkit';
+import {createActionStream} from '../../../packages/redux-toolkit-observable/dist/rx-utils';
+// import {createActionStream} from '../../../packages/redux-toolkit-observable/rx-utils';
 import {parseConfigFileToJson} from '../ts-cmd-util';
+
+// inspector.open(9222, 'localhost', true);
 
 export type WatchStatusChange = {
   type: 'watchStatusChange';
@@ -147,7 +154,7 @@ export function plinkNodeJsCompilerOption(
     baseCompilerOptions = tsxTsconfig.compilerOptions;
     // baseCompilerOptions = {...baseCompilerOptions, ...tsxTsconfig.config.compilerOptions};
   } else {
-    const baseTsconfigFile = require.resolve('../tsconfig-base.json');
+    const baseTsconfigFile = require.resolve('../../tsconfig-base.json');
     const baseTsconfig = parseConfigFileToJson(ts, baseTsconfigFile);
     // log.info('Use tsconfig file:', baseTsconfigFile);
     baseCompilerOptions = baseTsconfig.compilerOptions;
@@ -175,10 +182,12 @@ export function plinkNodeJsCompilerOption(
   return compilerOptions;
 }
 
-export function transpileSingleFile(content: string, fileName: string, ts = require('typescript') as typeof _ts) {
-  const {outputText, diagnostics, sourceMapText} = ts.transpileModule(content, {
-    compilerOptions: {...plinkNodeJsCompilerOption(ts), isolatedModules: true}
-  });
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+export function transpileSingleFile(content: string, ts: any = _ts) {
+  const {outputText, diagnostics, sourceMapText} = (ts as typeof _ts)
+    .transpileModule(content, {
+      compilerOptions: {...plinkNodeJsCompilerOption(ts), isolatedModules: true, inlineSourceMap: false}
+    });
 
   return {
     outputText,
@@ -186,5 +195,130 @@ export function transpileSingleFile(content: string, fileName: string, ts = requ
     diagnostics,
     diagnosticsText: diagnostics
   };
+}
+
+const langServiceActionCreator = {
+  addSourceFile(file: string, content: string) {},
+  changeSourceFile(file: string) {},
+  onEmitFailure(file: string, diagnostics: string) {},
+  _emitFile(file: string, content: string) {},
+  stop() {}
+};
+
+type LangServiceState = {
+  versions: Map<string, number>;
+  /** root files */
+  files: Set<string>;
+};
+
+export function languageServices(globs: string[], ts: any = _ts, opts: {
+  formatDiagnosticFileName?(path: string): string;
+  watcher?: chokidar.WatchOptions;
+} = {}) {
+  const ts0 = ts as typeof _ts;
+  const {dispatcher, action$, ofType} = createActionStream(langServiceActionCreator, true);
+  const store = new rx.BehaviorSubject<LangServiceState>({
+    versions: new Map(),
+    files: new Set()
+  });
+
+  function setState(cb: (curr: LangServiceState) => LangServiceState) {
+    store.next(cb(store.getValue()));
+  }
+
+  const formatHost: _ts.FormatDiagnosticsHost = {
+    getCanonicalFileName: opts.formatDiagnosticFileName || (path => path),
+    getCurrentDirectory: _ts.sys.getCurrentDirectory,
+    getNewLine: () => _ts.sys.newLine
+  };
+
+  const serviceHost: _ts.LanguageServiceHost = {
+    getScriptFileNames() {
+      return Array.from(store.getValue().files.values());
+    },
+    getScriptVersion(fileName: string) {
+      return store.getValue().versions.get(fileName) + '' || '-1';
+    },
+    getCompilationSettings() {
+      return {...plinkNodeJsCompilerOption(ts0), isolatedModules: true, inlineSourceMap: false};
+    },
+    getScriptSnapshot(fileName: string) {
+      if (!fs.existsSync(fileName)) {
+        return undefined;
+      }
+
+      return ts0.ScriptSnapshot.fromString(fs.readFileSync(fileName).toString());
+    },
+    getCurrentDirectory: () => process.cwd(),
+
+    getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options)
+  };
+  const documentRegistry = ts0.createDocumentRegistry();
+  const services = ts0.createLanguageService(serviceHost, documentRegistry);
+  const addSourceFile$ = action$.pipe(ofType('addSourceFile'));
+  const changeSourceFile$ = action$.pipe(ofType('changeSourceFile'));
+  const stop$ = action$.pipe(ofType('stop'));
+
+  let watcher: ReturnType<typeof chokidar.watch>;
+
+  rx.merge(
+    addSourceFile$.pipe(
+      op.map(({payload: [fileName, content]}) => {
+        setState(s => {
+          s.files.add(fileName);
+          s.versions.set(fileName, 0);
+          return s;
+        });
+        // getEmitFile(fileName);
+      })
+    ),
+    changeSourceFile$.pipe(
+      op.map(({payload: [fileName, content]}) => {
+        setState(s => {
+          const version = s.versions.get(fileName);
+          s.versions.set(fileName, (version != null ? version : 0) + 1);
+          return s;
+        });
+      })
+    ),
+
+    new rx.Observable<never>(sub => {
+      if (watcher == null)
+        watcher = chokidar.watch(globs, opts.watcher);
+
+      watcher.on('change', path => dispatcher.changeSourceFile(path));
+      return () => {
+        void watcher.close().then(() => {
+          // eslint-disable-next-line no-console
+          console.log('[tsc-util] chokidar watcher stops');
+        });
+      };
+    })
+  ).pipe(
+    op.takeUntil(stop$),
+    op.catchError((err, src) => {
+      console.error('Language service error', err);
+      return src;
+    })
+  ).subscribe();
+
+  function getEmitFile(fileName: string) {
+    const output = services.getEmitOutput(fileName);
+
+    if (!output.emitSkipped) {
+      // console.log(`Emitting ${fileName}`);
+    } else {
+      // console.log(`Emitting ${fileName} failed`);
+      const syntDiag = services.getSyntacticDiagnostics(fileName);
+      const semanticDiag = services.getSemanticDiagnostics(fileName);
+      dispatcher.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext([...syntDiag, ...semanticDiag], formatHost));
+    }
+
+    output.outputFiles.forEach(o => {
+      dispatcher._emitFile(o.name, o.text);
+    });
+  }
+
+  return dispatcher;
 }
 

@@ -191,13 +191,11 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     log.info('Watch mode');
     watch(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
     return [];
-    // watch(compGlobs, tsProject, commonRootDir, packageDirTree, argv.ed, argv.jsx, onCompiled);
   } else {
     const emitted = compile(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
     if (process.send)
       process.send('plink-tsc compiled');
     return emitted;
-    // promCompile = compile(compGlobs, tsProject, commonRootDir, packageDirTree, argv.ed);
   }
 }
 
@@ -231,7 +229,8 @@ function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string,
     // `createSemanticDiagnosticsBuilderProgram`, the only difference is emit.
     // For pure type-checking scenarios, or when another tool/process handles emit,
     // using `createSemanticDiagnosticsBuilderProgram` may be more desirable
-    ts.createEmitAndSemanticDiagnosticsBuilderProgram, _reportDiagnostic, d => reportWatchStatusChanged(d, ts));
+    ts.createEmitAndSemanticDiagnosticsBuilderProgram, _reportDiagnostic, d => reportWatchStatusChanged(d, ts),
+    undefined, {watchDirectory: ts.WatchDirectoryKind.UseFsEvents});
   patchWatchCompilerHost(programHost);
 
   const origCreateProgram = programHost.createProgram;

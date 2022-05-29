@@ -3,18 +3,17 @@
 // import inspector from 'inspector';
 import {TransformerCreator, SyncTransformer} from '@jest/transform';
 import {transpileSingleFile} from '@wfh/plink/wfh/dist/utils/tsc-util';
+import ts from 'typescript';
 // inspector.open(9222, 'localhost', true);
 
 type TransformerConfig = {
-  rootFiles: string[]
+  rootFiles: string[];
 };
 
 const createTransformer: TransformerCreator<SyncTransformer<TransformerConfig>, TransformerConfig> = (config) => {
-  console.log(process.pid, config);
-  // const events = watch(config!.rootFiles);
+  // const events = wath(config!.rootFiles);
   // rx.merge(
-  //   events.onWriteFile.pipe(
-  //     op.map(({payload: [fileName, data, onError, sources]}) => {
+  //   events.onWriteFile.pipe( op.map(({payload: [fileName, data, onError, sources]}) => {
   //       debugger;
   //     })
   //   ),
@@ -26,8 +25,7 @@ const createTransformer: TransformerCreator<SyncTransformer<TransformerConfig>, 
 
   const transformer: SyncTransformer<TransformerConfig> = {
     process(sourceText, sourcePath, options) {
-      const compiled = transpileSingleFile(sourceText, sourcePath);
-      console.log('transpile', sourcePath, 'map:', compiled.sourceMapText);
+      const compiled = transpileSingleFile(sourceText, ts);
       if (compiled.diagnosticsText) {
         console.error(compiled.diagnosticsText);
       }

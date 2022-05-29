@@ -1,28 +1,21 @@
-import {OperatorFunction, Subject, Observable} from 'rxjs';
-import {distinctUntilChanged, map, filter, tap, share} from 'rxjs/operators';
-
-export function reselect<T, R, R1, R2, R3, R4, R5>(selectors: [
-  (current: T) => R1, (current: T) => R2, (current: T) => R3, (current: T) => R4, (current: T) => R5, ...((current: T) => any)[]
-], combine: (...results: [R1, R2, R3, R4, R5, ...any[]]) => R): OperatorFunction<T, R> {
-  return src => {
-    return src.pipe(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      map(s => selectors.map(selector => selector(s)) as [R1, R2, R3, R4, R5, ...any[]]),
-      distinctUntilChanged((a, b) => a.every((result, i) => result === b[i])),
-      map(results => combine(...results))
-    );
-  };
-}
-
 /**
  * redux-observable like async reactive actions, side effect utilities
  * https://redux-observable.js.org/
  */
 
+import {Observable, Subject} from 'rxjs';
+import {filter, tap, share} from 'rxjs/operators';
+
 export type ActionTypes<AC> = {
   [K in keyof AC]: {
     type: K;
-    payload: AC[K] extends (p: infer P) => any ? P : AC[K] extends (...p: infer PArray) => any ? PArray : unknown;
+    payload: AC[K] extends () => any
+      ? undefined
+      : AC[K] extends (p: infer P) => any
+        ? P
+        : AC[K] extends (...p: infer PArray) => any
+          ? PArray
+          : unknown;
   };
 };
 
@@ -42,12 +35,12 @@ export type ActionTypes<AC> = {
  */
 export function createActionStream<AC>(actionCreator: AC, debug?: boolean) {
   const dispatcher = {} as AC;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const actionUpstream = new Subject<ActionTypes<AC>[keyof ActionTypes<AC>]>();
   for (const type of Object.keys(actionCreator)) {
     dispatcher[type] = (...params: any[]) => {
       const action = {
         type,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         payload: params.length === 1 ? params[0] : params
       } as ActionTypes<AC>[keyof ActionTypes<AC>];
       actionUpstream.next(action);
@@ -56,25 +49,48 @@ export function createActionStream<AC>(actionCreator: AC, debug?: boolean) {
 
   const action$ = debug
     ? actionUpstream.pipe(
-              tap(action => {
-                  // eslint-disable-next-line no-console
-                  console.log('%c rx:action ', 'color: white; background: #8c61ff;', action.type);
-              }),
-              share()
-          )
+      tap(typeof window !== 'undefined'
+        ? action => {
+          // eslint-disable-next-line no-console
+          console.log('%c rx:action ', 'color: white; background: #8c61ff;', action.type);
+        }
+        : action => console.log('rx:action', action.type)),
+      share()
+    )
     : actionUpstream;
 
   return {
     dispatcher,
     action$,
-    ofType: createOfTypeOperator(actionCreator)
+    ofType: createOfTypeOperator<AC>(),
+    isActionType: createIsActionTypeFn<AC>()
+  };
+}
+
+export interface OfTypeFn<AC> {
+  <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+  <T extends keyof AC, T2 extends keyof AC>(type: T, type2: T2): (
+    upstream: Observable<any>
+  ) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2]>;
+  <T extends keyof AC, T2 extends keyof AC, T3 extends keyof AC>(type: T, type2: T2, type3: T3): (
+    upstream: Observable<any>
+  ) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2] | ActionTypes<AC>[T3]>;
+  <T extends keyof AC>(...types: T[]): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+}
+
+function createIsActionTypeFn<AC>() {
+  return function isActionType<K extends keyof AC>(action: {type: unknown}, type: K): action is ActionTypes<AC>[K] {
+    return action.type === type;
   };
 }
 
 /** create rx a operator to filter action by action.type */
-function createOfTypeOperator<AC>(_actionCreator: AC) {
-  return <T extends keyof AC>(type: T) =>
+function createOfTypeOperator<AC>(): OfTypeFn<AC> {
+  return <T extends keyof AC>(...types: T[]) =>
     (upstream: Observable<any>) => {
-      return upstream.pipe(filter(action => action.type === type)) as Observable<ActionTypes<AC>[T]>;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      return upstream.pipe(filter(action => types.some(type => action.type === type))) as Observable<
+      ActionTypes<AC>[T]
+      >;
     };
 }

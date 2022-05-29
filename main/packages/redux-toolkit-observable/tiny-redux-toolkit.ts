@@ -166,19 +166,19 @@ slice.addEpic(slice => action$ => {
 export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>,
   action$: rx.Observable<PayloadAction<any> | Action<S>>): ActionByType<S, R> {
 
-    const source = action$.pipe(op.share());
-    const splitActions = {} as ActionByType<S, R>;
+  const source = action$.pipe(op.share());
+  const splitActions = {} as ActionByType<S, R>;
 
-    for (const reducerName of Object.keys(actionCreators) as (keyof R)[]) {
-      Object.defineProperty(splitActions, reducerName, {
-        get() {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          return source.pipe(ofPayloadAction(actionCreators[reducerName]));
-        }
-      });
-    }
+  for (const reducerName of Object.keys(actionCreators) as (keyof R)[]) {
+    Object.defineProperty(splitActions, reducerName, {
+      get() {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        return source.pipe(ofPayloadAction(actionCreators[reducerName]));
+      }
+    });
+  }
 
-    return splitActions;
+  return splitActions;
 }
 
 export function isActionOfCreator<C extends {type: string}>(action: any, actionCreator: C):
@@ -224,7 +224,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
         type,
         payload: payload.length === 0 ? undefined :
           payload.length === 1 ? payload[0] :
-          payload,
+            payload,
         reducer
       };
       return action;
@@ -331,7 +331,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     ),
     opt.rootStore ? state$.pipe(
       op.tap(state => opt.rootStore!.next({...opt.rootStore?.getValue(), [opt.name]: state}))
-     ) : rx.EMPTY
+    ) : rx.EMPTY
   ).subscribe();
 
   function destroy() {
@@ -420,14 +420,14 @@ export function action$OfSlice<S, R extends Reducers<S>,
 
   return new rx.Observable<R[T] extends (s: any) => any ? {type: T} :
     R[T] extends (s: any, p: infer P) => any ? {payload: P; type: T} : never>(sub => {
-    slice.addEpic(slice => (action$) => {
-      return action$.pipe(
-        ofPayloadAction(slice.actions[actionType]),
-        op.map(action => sub.next(action as any)),
-        op.ignoreElements()
-      );
+      slice.addEpic(slice => (action$) => {
+        return action$.pipe(
+          ofPayloadAction(slice.actions[actionType]),
+          op.map(action => sub.next(action as any)),
+          op.ignoreElements()
+        );
+      });
     });
-  });
 }
 
 /**
@@ -449,7 +449,7 @@ export function action$ByType<S, R extends Reducers<S>>(slice: Slice<S, R>) {
  * ```
  * @param epicFactory 
  */
- export function sliceRefActionOp<S, R extends Reducers<S>>(epicFactory: EpicFactory<S, R>):
+export function sliceRefActionOp<S, R extends Reducers<S>>(epicFactory: EpicFactory<S, R>):
   rx.OperatorFunction<PayloadAction<any, Slice<S, R>>, PayloadAction<any, any>> {
   return function(in$: rx.Observable<PayloadAction<any, Slice<S, R>>>) {
     return in$.pipe(

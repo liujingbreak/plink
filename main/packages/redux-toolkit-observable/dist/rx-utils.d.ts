@@ -1,20 +1,12 @@
-import { OperatorFunction, Observable } from 'rxjs';
-export declare function reselect<T, R, R1, R2, R3, R4, R5>(selectors: [
-    (current: T) => R1,
-    (current: T) => R2,
-    (current: T) => R3,
-    (current: T) => R4,
-    (current: T) => R5,
-    ...((current: T) => any)[]
-], combine: (...results: [R1, R2, R3, R4, R5, ...any[]]) => R): OperatorFunction<T, R>;
 /**
  * redux-observable like async reactive actions, side effect utilities
  * https://redux-observable.js.org/
  */
+import { Observable } from 'rxjs';
 export declare type ActionTypes<AC> = {
     [K in keyof AC]: {
         type: K;
-        payload: AC[K] extends (p: infer P) => any ? P : AC[K] extends (...p: infer PArray) => any ? PArray : unknown;
+        payload: AC[K] extends () => any ? undefined : AC[K] extends (p: infer P) => any ? P : AC[K] extends (...p: infer PArray) => any ? PArray : unknown;
     };
 };
 /**
@@ -34,5 +26,14 @@ export declare type ActionTypes<AC> = {
 export declare function createActionStream<AC>(actionCreator: AC, debug?: boolean): {
     dispatcher: AC;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
-    ofType: <T extends keyof AC>(type: T) => (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+    ofType: OfTypeFn<AC>;
+    isActionType: <K extends keyof AC>(action: {
+        type: unknown;
+    }, type: K) => action is ActionTypes<AC>[K];
 };
+export interface OfTypeFn<AC> {
+    <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+    <T extends keyof AC, T2 extends keyof AC>(type: T, type2: T2): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2]>;
+    <T extends keyof AC, T2 extends keyof AC, T3 extends keyof AC>(type: T, type2: T2, type3: T3): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2] | ActionTypes<AC>[T3]>;
+    <T extends keyof AC>(...types: T[]): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+}

@@ -74,7 +74,7 @@ export function dfsTraverseFiles(files: string[], tsconfigFile: string | null | 
     ignore ? new RegExp(ignore) : undefined);
 
   // in case the file is in under directory node_modules, all relative path will be resolved to packageId,
-  let resolved = ts.resolveModuleName('./' + Path.parse(files[0]).name, files[0], co!, host, resCache).resolvedModule;
+  const resolved = ts.resolveModuleName('./' + Path.parse(files[0]).name, files[0], co!, host, resCache).resolvedModule;
   context.ignorePkgName = resolved?.packageId?.name;
 
   const dfs: DFS<string> = new DFS<string>(file => {
@@ -138,7 +138,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
     },
     {
       query: ':PropertyAssignment>.name',
-      callback(ast, path, parents) {
+      callback(ast, _path, _parents) {
         if (ast.getText() === 'loadChildren') {
           const value = (ast.parent as ts.PropertyAssignment).initializer;
           if (value.kind === ts.SyntaxKind.StringLiteral) {
@@ -158,7 +158,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
     },
     {
       query: ':CallExpression>.expression:ImportKeyword',
-      callback(ast, path) {
+      callback(ast, _path) {
         const dep = resolve(((ast.parent as ts.CallExpression).arguments[0] as ts.StringLiteral).text, file,
           ctx, ast.getStart(), q.src);
         if (dep)
@@ -167,7 +167,7 @@ function parseFile(q: Query, file: string, ctx: Context) {
     },
     {
       query: ':CallExpression',
-      callback(ast, path) {
+      callback(ast, _path) {
         const node = ast as ts.CallExpression ;
         if (node.expression.kind === ts.SyntaxKind.Identifier &&
           (node.expression as ts.Identifier).text === 'require' &&
@@ -200,7 +200,7 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
   if (path.startsWith('"') || path.startsWith('\''))
     path = path.slice(1, -1);
 
-  if (ctx.ignorePattern && ctx.ignorePattern.test(path)) {
+  if (ctx.ignorePattern?.test(path)) {
     return null;
   }
 
@@ -221,11 +221,11 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
   let resolved = ts.resolveModuleName(path, file, co!, host, resCache).resolvedModule;
   if (resolved == null) {
     [path + '/index', path + '.js', path + '.jsx', path + '/index.js', path + '/index.jsx']
-    .some(tryPath => {
-      log.debug(`For path "${path}", try path:`, tryPath);
-      resolved = ts.resolveModuleName(tryPath, file, co!, host, resCache).resolvedModule;
-      return resolved != null;
-    });
+      .some(tryPath => {
+        log.debug(`For path "${path}", try path:`, tryPath);
+        resolved = ts.resolveModuleName(tryPath, file, co!, host, resCache).resolvedModule;
+        return resolved != null;
+      });
   }
 
   // if (path.startsWith('.') || Path.isAbsolute(path)) {

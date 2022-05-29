@@ -26,14 +26,14 @@ export type ReducerWithDefaultActions<SS,
   ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
 
 export function ofPayloadAction<P1, T1 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>):
-  OperatorFunction<any, P1 extends undefined ? {type: T1} : PayloadAction<P1, T1>>;
+OperatorFunction<any, P1 extends undefined ? {type: T1} : PayloadAction<P1, T1>>;
 export function ofPayloadAction<P1, P2, T1 extends string, T2 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>, actionCreators2: ActionCreatorWithPayload<P2, T2>):
-  OperatorFunction<any, PayloadAction<P1 | P2, T1 | T2>>;
+OperatorFunction<any, PayloadAction<P1 | P2, T1 | T2>>;
 export function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string, T3 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>,
   actionCreators2: ActionCreatorWithPayload<P2, T2>, actionCreators3: ActionCreatorWithPayload<P3, T3>):
-  OperatorFunction<any, PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
+OperatorFunction<any, PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
 export function ofPayloadAction<P, T extends string>(...actionCreators: ActionCreatorWithPayload<P, T>[]):
-  OperatorFunction<any, PayloadAction<P, T>> {
+OperatorFunction<any, PayloadAction<P, T>> {
   return ofType(...actionCreators.map(c => c.type)) as OperatorFunction<any, PayloadAction<P, T>>;
 }
 
@@ -53,7 +53,7 @@ type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends
 export type InferSliceType<MyCreateSliceOptionsType> =
   Slice<InferStateType<MyCreateSliceOptionsType>,
   (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) &
-    ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>,
+  ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>,
   string>;
 
 /** A Helper infer type */
@@ -250,12 +250,12 @@ export class StateFactory {
    */
   addEpic<SL = Slice<any, any, string>>(
     epic: Epic<
-      PayloadAction<any>, any,
-      {
-        [key in SL extends Slice<any, any, infer Name> ? Name : string]:
-        SL extends Slice<infer S, any, any> ? S : any
-      }
-      >,
+    PayloadAction<any>, any,
+    {
+      [key in SL extends Slice<any, any, infer Name> ? Name : string]:
+      SL extends Slice<infer S, any, any> ? S : any
+    }
+    >,
     epicName?: string) {
     const epicId = 'Epic-' + (epicName || ++this.epicSeq);
     const unsubscribeEpic = new Subject<string>();
@@ -347,7 +347,7 @@ export class StateFactory {
 
   private addSliceMaybeReplaceReducer<State, Name extends string = string>(
     slice: Slice<State, SliceCaseReducers<State> & ExtraSliceReducers<State>, Name>
-    ) {
+  ) {
     this.reducerMap[slice.name] = slice.reducer;
     if (this.getRootStore()) {
       const newRootReducer = this.createRootReducer();
@@ -405,7 +405,7 @@ export type PayloadCaseReducers<S, R extends SliceCaseReducers<S>> = {
  * @returns 
  */
 export function fromPaylodReducer<S, R extends SliceCaseReducers<S>>(payloadReducers: PayloadCaseReducers<S, R>):
-  CreateSliceOptions<S, R>['reducers'] {
+CreateSliceOptions<S, R>['reducers'] {
   const reducers = {} as CreateSliceOptions<S, R>['reducers'];
   for (const [caseName, simpleReducer] of Object.entries(payloadReducers)) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

@@ -1,6 +1,9 @@
 export enum Color {
+  /** unvisisted */
   white = 0,
+  /** visiting */
   gray,
+  /** visisted */
   black
 }
 

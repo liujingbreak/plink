@@ -170,17 +170,17 @@ slice.addEpic(slice => action$ => {
  */
 export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R,
   action$: Observable<PayloadAction | Action>): ActionByType<R> {
-    const source = action$.pipe(op.share());
-    const splitActions = {} as ActionByType<R>;
+  const source = action$.pipe(op.share());
+  const splitActions = {} as ActionByType<R>;
 
-    for (const reducerName of Object.keys(actionCreators)) {
-      Object.defineProperty(splitActions, reducerName, {
-        get() {
-          return source.pipe(ofPayloadAction(actionCreators[reducerName]));
-        }
-      });
-    }
-    return splitActions;
+  for (const reducerName of Object.keys(actionCreators)) {
+    Object.defineProperty(splitActions, reducerName, {
+      get() {
+        return source.pipe(ofPayloadAction(actionCreators[reducerName]));
+      }
+    });
+  }
+  return splitActions;
 }
 
 export function action$ByType<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, slice: Slice<S, R> | SliceHelper<S, R>) {

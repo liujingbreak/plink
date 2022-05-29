@@ -2,22 +2,22 @@
 import {Worker, WorkerOptions} from 'worker_threads';
 import {ChildProcess, fork} from 'child_process';
 // import {queue} from './promise-queque';
+import os from 'os';
 import {Task, Command, InitialOptions} from './worker';
 
 import {Task as ProcessTask, InitialOptions as InitialOptions4Proc} from './worker-process';
 
-import os from 'os';
 export {Task};
 
 class PromisedTask<T> {
   promise: Promise<T>;
 
-  resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0];
-  reject: Parameters<ConstructorParameters<typeof Promise>[0]>[1];
+  resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0] | undefined;
+  reject: Parameters<ConstructorParameters<typeof Promise>[0]>[1] | undefined;
 
   constructor(private task: Task, verbose = false) {
     this.promise = new Promise<T>((resolve, reject) => {
-      this.resolve = resolve;
+      this.resolve = resolve as any;
       this.reject = reject;
     });
   }
@@ -27,21 +27,21 @@ class PromisedTask<T> {
     const onMessage = (msg: {type: 'error' | 'wait'; data: T}) => {
       if (msg.type === 'wait') {
         unsubscribeWorker();
-        this.resolve(msg.data);
+        this.resolve!(msg.data);
       } else if (msg.type === 'error') {
         unsubscribeWorker();
-        this.reject(msg.data);
+        this.reject!(msg.data);
       }
     };
 
     const onExit = (code: number) => {
       // if (this.verbose) {
-        // console.log('[thread-pool] PromisedTask on exit');
+      // console.log('[thread-pool] PromisedTask on exit');
       // }
 
       unsubscribeWorker();
       if (code !== 0) {
-        this.reject(`Thread ${worker.threadId} exist with code ` + code);
+        this.reject!(`Thread ${worker.threadId} exist with code ` + code);
       }
     };
 
@@ -54,7 +54,7 @@ class PromisedTask<T> {
 
     const onError = (err: any) => {
       unsubscribeWorker();
-      this.reject(err);
+      this.reject!(err);
     };
 
     worker.on('message', onMessage);
@@ -70,12 +70,13 @@ class PromisedTask<T> {
 class PromisedProcessTask<T> {
   promise: Promise<T>;
 
-  resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0];
-  reject: Parameters<ConstructorParameters<typeof Promise>[0]>[1];
+  resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0] | undefined;
+  reject: Parameters<ConstructorParameters<typeof Promise>[0]>[1] | undefined;
 
   constructor(private task: ProcessTask | InitialOptions4Proc) {
     this.promise = new Promise<T>((resolve, reject) => {
-      this.resolve = resolve;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      this.resolve = resolve as any;
       this.reject = reject;
     });
   }
@@ -83,10 +84,10 @@ class PromisedProcessTask<T> {
 
     const onMessage = (msg: {type: 'error' | 'wait'; data: T}) => {
       if (msg.type === 'wait') {
-        this.resolve(msg.data);
+        this.resolve!(msg.data);
         unsubscribeWorker();
       } else if (msg.type === 'error') {
-        this.reject(msg.data);
+        this.reject!(msg.data);
         unsubscribeWorker();
       }
     };
@@ -94,7 +95,7 @@ class PromisedProcessTask<T> {
     const onExit = (code: number) => {
       unsubscribeWorker();
       if (code !== 0) {
-        this.reject('Child process exist with code ' + code);
+        this.reject!('Child process exist with code ' + code);
       }
     };
 
@@ -107,7 +108,7 @@ class PromisedProcessTask<T> {
 
     const onError = (err: any) => {
       unsubscribeWorker();
-      this.reject(err);
+      this.reject!(err);
     };
 
     worker.on('message', onMessage);
@@ -116,7 +117,7 @@ class PromisedProcessTask<T> {
     worker.on('exit', onExit);
     const msg = {...this.task, verbose};
     if (!worker.send(msg)) {
-      this.reject('Is Child process event threshold full? This is weird.');
+      this.reject!('Is Child process event threshold full? This is weird.');
     }
   }
 }
@@ -215,7 +216,7 @@ export class Pool {
   }
 
   private async createChildProcess() {
-    let worker: ChildProcess = fork(require.resolve('./worker-process'), {serialization: 'advanced', stdio: 'inherit'});
+    const worker: ChildProcess = fork(require.resolve('./worker-process'), {serialization: 'advanced', stdio: 'inherit'});
     this.runningWorkers.add(worker);
 
     // if (this.workerOptions && (this.workerOptions.verbose || this.workerOptions.initializer)) {
@@ -228,7 +229,7 @@ export class Pool {
       const initTask = new PromisedProcessTask({
         verbose,
         initializer: this.workerOptions?.initializer
-        });
+      });
       initTask.runByProcess(worker, !!this.workerOptions?.verbose);
       await initTask.promise;
     }
@@ -251,12 +252,11 @@ export class Pool {
   }
 
   private createWorker(task: PromisedTask<any>) {
-    let worker: Worker;
     if (this.workerOptions?.verbose) {
-        // eslint-disable-next-line no-console
-        console.log('[thread-pool] createWorker');
+      // eslint-disable-next-line no-console
+      console.log('[thread-pool] createWorker');
     }
-    worker = new Worker(require.resolve('./worker'), {
+    const worker = new Worker(require.resolve('./worker'), {
       ...this.workerOptions,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       workerData: {

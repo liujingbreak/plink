@@ -1,6 +1,9 @@
 export declare enum Color {
+    /** unvisisted */
     white = 0,
+    /** visiting */
     gray = 1,
+    /** visisted */
     black = 2
 }
 export declare class Vertex<T> {

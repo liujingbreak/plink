@@ -27,10 +27,18 @@ export declare function plinkNodeJsCompilerOption(ts: typeof _ts, opts?: {
     inlineSourceMap?: boolean;
     emitDeclarationOnly?: boolean;
 }): Record<string, any>;
-export declare function transpileSingleFile(content: string, fileName: string, ts?: typeof _ts): {
+export declare function transpileSingleFile(content: string, ts?: any): {
     outputText: string;
     sourceMapText: string | undefined;
     diagnostics: _ts.Diagnostic[] | undefined;
     diagnosticsText: _ts.Diagnostic[] | undefined;
+};
+export declare function languageServices(ts?: any, opts?: {
+    formatDiagnosticFileName?(path: string): string;
+}): {
+    addSourceFile(file: string, content: string): void;
+    changeSourceFile(file: string, content: string): void;
+    onEmitFailure(file: string, diagnostics: string): void;
+    _emitFile(file: string, content: string): void;
 };
 export {};
