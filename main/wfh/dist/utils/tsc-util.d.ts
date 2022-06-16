@@ -1,5 +1,6 @@
 import _ts from 'typescript';
 import * as rx from 'rxjs';
+import chokidar from 'chokidar';
 export declare type WatchStatusChange = {
     type: 'watchStatusChange';
     payload: _ts.Diagnostic;
@@ -33,12 +34,14 @@ export declare function transpileSingleFile(content: string, ts?: any): {
     diagnostics: _ts.Diagnostic[] | undefined;
     diagnosticsText: _ts.Diagnostic[] | undefined;
 };
-export declare function languageServices(ts?: any, opts?: {
+export declare function languageServices(globs: string[], ts?: any, opts?: {
     formatDiagnosticFileName?(path: string): string;
+    watcher?: chokidar.WatchOptions;
 }): {
     addSourceFile(file: string, content: string): void;
-    changeSourceFile(file: string, content: string): void;
+    changeSourceFile(file: string): void;
     onEmitFailure(file: string, diagnostics: string): void;
     _emitFile(file: string, content: string): void;
+    stop(): void;
 };
 export {};

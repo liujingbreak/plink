@@ -1,9 +1,9 @@
-import * as ts from 'typescript';
 import {readFileSync} from 'fs';
-import {plinkEnv} from './utils/misc';
 import * as Path from 'path';
+import * as ts from 'typescript';
 import chalk from 'chalk';
 import {getLogger} from 'log4js';
+import {plinkEnv} from './utils/misc';
 const log = getLogger('plink.ts-compiler');
 
 export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
@@ -24,7 +24,7 @@ export function jsonToCompilerOptions(jsonCompilerOpt: any, file = 'tsconfig.jso
   basePath = plinkEnv.workDir): ts.CompilerOptions {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   return ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys, basePath.replace(/\\/g, '/'),
-  undefined, file).options;
+    undefined, file).options;
 }
 
 /**
@@ -47,7 +47,7 @@ export function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOp
 const {red, yellow} = chalk;
 class TsCompiler {
   fileNames: string[] = [];
-  files: ts.MapLike<{ version: number }> = {};
+  files: ts.MapLike<{version: number}> = {};
   langService: ts.LanguageService;
   fileContent = new Map<string, string>();
   // currentFile: string;
@@ -60,8 +60,8 @@ class TsCompiler {
     const cwd = plinkEnv.workDir;
     const serviceHost: ts.LanguageServiceHost = {
       getNewLine() { return '\n'; },
-      getCompilationSettings() { return self.compilerOptions;},
-      getScriptFileNames() {return self.fileNames;},
+      getCompilationSettings() { return self.compilerOptions; },
+      getScriptFileNames() {return self.fileNames; },
       getScriptVersion: fileName =>
         this.files[fileName] && this.files[fileName].version.toString(),
       getScriptSnapshot: fileName => {
@@ -126,7 +126,7 @@ class TsCompiler {
     allDiagnostics.forEach(diagnostic => {
       const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
       if (diagnostic.file) {
-        const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
+        const {line, character} = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
         log.info((isError ? red : yellow)(`[wfh.ts-compiler] ${(isError ? 'Error' : 'Warning')} ` +
           `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`));
       } else {
@@ -137,7 +137,7 @@ class TsCompiler {
 }
 
 let singletonCompiler: TsCompiler;
-export function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions|string): string | undefined {
+export function transpileAndCheck(tsCode: string, filename: string, co: ts.CompilerOptions | string): string | undefined {
   if (typeof co === 'string') {
     co = readTsConfig(co);
   }

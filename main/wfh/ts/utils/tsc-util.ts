@@ -5,7 +5,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import chokidar from 'chokidar';
 import {createSlice} from '../../../packages/redux-toolkit-observable/dist/tiny-redux-toolkit';
-import {createActionStream} from '../../../packages/redux-toolkit-observable/dist/rx-utils';
+import {createActionStreamByType} from '../../../packages/redux-toolkit-observable/dist/rx-utils';
 // import {createActionStream} from '../../../packages/redux-toolkit-observable/rx-utils';
 import {parseConfigFileToJson} from '../ts-cmd-util';
 
@@ -197,18 +197,20 @@ export function transpileSingleFile(content: string, ts: any = _ts) {
   };
 }
 
-const langServiceActionCreator = {
-  addSourceFile(file: string, content: string) {},
-  changeSourceFile(file: string) {},
-  onEmitFailure(file: string, diagnostics: string) {},
-  _emitFile(file: string, content: string) {},
-  stop() {}
+type LangServiceActionCreator = {
+  addSourceFile(file: string, sync: boolean) : void;
+  changeSourceFile(file: string) : void;
+  onEmitFailure(file: string, diagnostics: string) : void;
+  _emitFile(file: string, content: string) : void;
+  stop(): void;
 };
 
 type LangServiceState = {
   versions: Map<string, number>;
   /** root files */
   files: Set<string>;
+  unemitted: Set<string>;
+  isStopped: boolean;
 };
 
 export function languageServices(globs: string[], ts: any = _ts, opts: {
@@ -216,10 +218,12 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
   watcher?: chokidar.WatchOptions;
 } = {}) {
   const ts0 = ts as typeof _ts;
-  const {dispatcher, action$, ofType} = createActionStream(langServiceActionCreator, true);
+  const {dispatchFactory, action$, ofType} = createActionStreamByType<LangServiceActionCreator>({debug: true});
   const store = new rx.BehaviorSubject<LangServiceState>({
     versions: new Map(),
-    files: new Set()
+    files: new Set(),
+    unemitted: new Set(),
+    isStopped: false
   });
 
   function setState(cb: (curr: LangServiceState) => LangServiceState) {
@@ -234,13 +238,14 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
 
   const serviceHost: _ts.LanguageServiceHost = {
     getScriptFileNames() {
+      console.log('[tac-util] getScriptFileNames');
       return Array.from(store.getValue().files.values());
     },
     getScriptVersion(fileName: string) {
       return store.getValue().versions.get(fileName) + '' || '-1';
     },
     getCompilationSettings() {
-      return {...plinkNodeJsCompilerOption(ts0), isolatedModules: true, inlineSourceMap: false};
+      return {...plinkNodeJsCompilerOption(ts0), isolatedModules: false, inlineSourceMap: false};
     },
     getScriptSnapshot(fileName: string) {
       if (!fs.existsSync(fileName)) {
@@ -249,12 +254,19 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
 
       return ts0.ScriptSnapshot.fromString(fs.readFileSync(fileName).toString());
     },
+    getCancellationToken() {
+      return {
+        isCancellationRequested() {
+          return store.getValue().isStopped;
+        }
+      };
+    },
     getCurrentDirectory: () => process.cwd(),
 
     getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options)
   };
   const documentRegistry = ts0.createDocumentRegistry();
-  const services = ts0.createLanguageService(serviceHost, documentRegistry);
+  let services: _ts.LanguageService | undefined;
   const addSourceFile$ = action$.pipe(ofType('addSourceFile'));
   const changeSourceFile$ = action$.pipe(ofType('changeSourceFile'));
   const stop$ = action$.pipe(ofType('stop'));
@@ -263,13 +275,33 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
 
   rx.merge(
     addSourceFile$.pipe(
-      op.map(({payload: [fileName, content]}) => {
+      op.map(({payload: [fileName, sync]}) => {
         setState(s => {
           s.files.add(fileName);
           s.versions.set(fileName, 0);
           return s;
         });
-        // getEmitFile(fileName);
+        // TODO: debounce
+        if (sync)
+          getEmitFile(fileName);
+        else {
+          setState(s => {
+            s.unemitted.add(fileName);
+            return s;
+          });
+          return fileName;
+        }
+      }),
+      op.filter((file) : file is string => file != null),
+      op.debounceTime(333),
+      op.map(() => {
+        for (const file of store.getValue().unemitted.values()) {
+          getEmitFile(file);
+        }
+        setState(s => {
+          s.unemitted.clear();
+          return s;
+        });
       })
     ),
     changeSourceFile$.pipe(
@@ -279,6 +311,7 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
           s.versions.set(fileName, (version != null ? version : 0) + 1);
           return s;
         });
+        getEmitFile(fileName);
       })
     ),
 
@@ -286,7 +319,8 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
       if (watcher == null)
         watcher = chokidar.watch(globs, opts.watcher);
 
-      watcher.on('change', path => dispatcher.changeSourceFile(path));
+      watcher.on('add', path => dispatchFactory('addSourceFile')(path, false));
+      watcher.on('change', path => dispatchFactory('changeSourceFile')(path));
       return () => {
         void watcher.close().then(() => {
           // eslint-disable-next-line no-console
@@ -299,26 +333,41 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
     op.catchError((err, src) => {
       console.error('Language service error', err);
       return src;
+    }),
+    op.finalize(() => {
+      setState(s => {
+        s.isStopped = true;
+        return s;
+      });
     })
   ).subscribe();
 
   function getEmitFile(fileName: string) {
+    if (services == null) {
+      services = ts0.createLanguageService(serviceHost, documentRegistry);
+    }
     const output = services.getEmitOutput(fileName);
 
-    if (!output.emitSkipped) {
-      // console.log(`Emitting ${fileName}`);
-    } else {
+    if (output.emitSkipped) {
       // console.log(`Emitting ${fileName} failed`);
       const syntDiag = services.getSyntacticDiagnostics(fileName);
       const semanticDiag = services.getSemanticDiagnostics(fileName);
-      dispatcher.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext([...syntDiag, ...semanticDiag], formatHost));
+      dispatchFactory('onEmitFailure')(fileName, ts0.formatDiagnosticsWithColorAndContext([...syntDiag, ...semanticDiag], formatHost));
     }
 
     output.outputFiles.forEach(o => {
-      dispatcher._emitFile(o.name, o.text);
+      dispatchFactory('_emitFile')(o.name, o.text);
     });
   }
 
-  return dispatcher;
+  return {dispatchFactory, action$, ofType};
 }
 
+export function test() {
+  const {action$, ofType} = languageServices(['test/*.ts']);
+  action$.pipe(
+    ofType('_emitFile'),
+    // eslint-disable-next-line no-console
+    op.map(({payload: [file]}) => console.log('emit', file))
+  ).subscribe();
+}

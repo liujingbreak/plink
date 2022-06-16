@@ -31,9 +31,21 @@ export declare function createActionStream<AC>(actionCreator: AC, debug?: boolea
         type: unknown;
     }, type: K) => action is ActionTypes<AC>[K];
 };
+declare type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
+export declare function createActionStreamByType<AC extends Record<string, ((...payload: any[]) => void)>>(opt?: {
+    debug?: boolean;
+}): {
+    dispatchFactory: SimpleActionDispatchFactory<AC>;
+    action$: Observable<ActionTypes<AC>[keyof AC]>;
+    ofType: OfTypeFn<AC>;
+    isActionType: <K extends keyof AC>(action: {
+        type: unknown;
+    }, type: K) => action is ActionTypes<AC>[K];
+};
 export interface OfTypeFn<AC> {
     <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
     <T extends keyof AC, T2 extends keyof AC>(type: T, type2: T2): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2]>;
     <T extends keyof AC, T2 extends keyof AC, T3 extends keyof AC>(type: T, type2: T2, type3: T3): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2] | ActionTypes<AC>[T3]>;
     <T extends keyof AC>(...types: T[]): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
 }
+export {};
