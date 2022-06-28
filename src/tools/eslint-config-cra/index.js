@@ -124,6 +124,7 @@ function create(tsconfigFile) {
             }
           ],
           '@typescript-eslint/explicit-module-boundary-types': 'off',
+          indent: 'off',
           '@typescript-eslint/indent': [
             'warn',
             2

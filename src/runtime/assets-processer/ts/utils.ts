@@ -312,7 +312,7 @@ export function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): v
     }
   };
 
-  if (contentType && contentType.includes('application/json')) {
+  if (contentType?.includes('application/json')) {
     writeBody(JSON.stringify(requestBody));
   } else if (contentType?.includes('application/x-www-form-urlencoded')) {
     writeBody(querystring.stringify(requestBody));
@@ -326,7 +326,7 @@ export function createBufferForHttpProxy(req: IncomingMessage) {
   if (body == null)
     return undefined;
 
-  if (contentType && contentType.includes('application/json')) {
+  if (contentType?.includes('application/json')) {
     const buf = Buffer.from(JSON.stringify(body));
     return {
       readable: new stream.Readable({

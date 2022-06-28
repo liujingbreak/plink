@@ -1,6 +1,6 @@
 import zlib from 'zlib';
 import {IncomingMessage} from 'http';
-import { promises as streamPro, pipeline, Readable, Writable } from 'stream';
+import {promises as streamPro, pipeline, Readable, Writable} from 'stream';
 
 export async function readCompressedResponse(clientResponse: IncomingMessage, output: Writable) {
   return new Promise<void>((resolve, reject) => {
@@ -44,12 +44,12 @@ export async function compressedIncomingMsgToBuffer(msg: IncomingMessage): Promi
 }
 
 export async function compressResponse(data: Buffer | string, response: Writable, contentEncoding?: string) {
-  const source = new Readable({ read() {
+  const source = new Readable({read() {
     this.push(data);
     this.push(null);
   }});
 
-  switch(contentEncoding) {
+  switch (contentEncoding) {
     case 'br':
       return streamPro.pipeline(source, zlib.createBrotliCompress(), response);
     case 'gzip':
@@ -61,3 +61,34 @@ export async function compressResponse(data: Buffer | string, response: Writable
   }
 }
 
+export async function compressResWithContentLength(data: Buffer | string, response: Writable, contentEncoding?: string): Promise<{contentLength: number; write(): Promise<void>}> {
+  const chunks = [] as Buffer[];
+  let len = 0;
+  await new Promise<void>(resolve => {
+    const output = new Writable({
+      write(chunk, enc, cb) {
+        const buf = chunk as Buffer;
+        chunks.push(buf);
+        len += buf.length;
+        cb();
+      },
+      final(cb) {
+        cb();
+        resolve();
+      }
+    });
+    void compressResponse(data, output, contentEncoding);
+  });
+  return {
+    contentLength: len,
+    write() {
+      return streamPro.pipeline(new Readable({
+        read() {
+          this.push(chunks.shift());
+          if (chunks.length === 0)
+            this.push(null);
+        }
+      }), response);
+    }
+  };
+}
