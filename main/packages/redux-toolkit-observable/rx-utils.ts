@@ -87,7 +87,10 @@ type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
  *   type definition for downstream action compare bare "filter()"
  */
 // eslint-disable-next-line space-before-function-paren
-export function createActionStreamByType<AC extends Record<string, ((...payload: any[]) => void)>>(opt: {debug?: boolean} = {}) {
+export function createActionStreamByType<AC extends Record<string, ((...payload: any[]) => void)>>(opt: {
+  debug?: string | boolean;
+  log?: (msg: string, ...objs: any[]) => unknown;
+} = {}) {
   const actionUpstream = new Subject<ActionTypes<AC>[keyof ActionTypes<AC>]>();
   const dispatcher = {} as AC;
 
@@ -97,7 +100,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     }
     const dispatch = (...params: any[]) => {
       const action = {
-        type: type as keyof AC,
+        type,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         payload: params.length === 1 ? params[0] : params
       } as ActionTypes<AC>[keyof ActionTypes<AC>];
@@ -107,14 +110,19 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     return dispatch;
   }
 
+  const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
   const action$ = opt.debug
     ? actionUpstream.pipe(
-      tap(typeof window !== 'undefined'
-        ? action => {
+      opt.log ?
+        tap(action => opt.log!(debugName + 'rx:action', action.type)) :
+        typeof window !== 'undefined' ?
+          tap(action => {
           // eslint-disable-next-line no-console
-          console.log('%c rx:action ', 'color: white; background: #8c61ff;', action.type);
-        }
-        : action => console.log('rx:action', action.type)),
+            console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', action.type);
+          })
+          :
+          // eslint-disable-next-line no-console
+          tap(action => console.log(debugName + 'rx:action', action.type)),
       share()
     )
     : actionUpstream;

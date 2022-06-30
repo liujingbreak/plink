@@ -1,3 +1,3 @@
-export declare function npmInstall(): Promise<unknown>;
-export declare function test(): Promise<void>;
-export declare function cleanTest(): Promise<void>;
+export declare function npmInstall(): Promise<any>;
+export declare function test(): Promise<any>;
+export declare function cleanTest(): Promise<any>;

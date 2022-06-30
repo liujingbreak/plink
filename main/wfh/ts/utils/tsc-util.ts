@@ -1,149 +1,26 @@
 import fs from 'fs';
+import Path from 'path';
 import _ts from 'typescript';
 // import inspector from 'inspector';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import chokidar from 'chokidar';
-import {createSlice} from '../../../packages/redux-toolkit-observable/dist/tiny-redux-toolkit';
 import {createActionStreamByType} from '../../../packages/redux-toolkit-observable/dist/rx-utils';
 // import {createActionStream} from '../../../packages/redux-toolkit-observable/rx-utils';
 import {parseConfigFileToJson} from '../ts-cmd-util';
-
 // inspector.open(9222, 'localhost', true);
 
-export type WatchStatusChange = {
-  type: 'watchStatusChange';
-  payload: _ts.Diagnostic;
+type TscOptions = {
+  jsx?: boolean;
+  inlineSourceMap?: boolean;
+  emitDeclarationOnly?: boolean;
+  changeCompilerOptions?: (co: Record<string, any>) => void;
+  traceResolution?: boolean;
 };
 
-export type OnWriteFile = {
-  type: 'onWriteFile';
-};
-
-type WatchState = {
-  error?: Error;
-};
-
-const actions = {
-  onWriteFile(_s: WatchState, ..._args: Parameters<_ts.WriteFileCallback>) {},
-  onDiagnosticString(_s: WatchState, _text: string, _isWatchStateChange: boolean) {},
-  _watchStatusChange(_s: WatchState, _diagnostic: _ts.Diagnostic) {},
-  _reportDiagnostic(_s: WatchState, _diagnostic: _ts.Diagnostic) {}
-};
-
-export type Options = {
-  ts: typeof _ts;
-  mode: 'watch' | 'compile';
-  formatDiagnosticFileName?(path: string): string;
-  transformSrcFile?(file: string, content: string, encoding?: string): string | null | undefined;
-};
-
-export function watch(rootFiles: string[], jsonCompilerOpt?: Record<string, any> | null, opts: Options = {
-  mode: 'compile',
-  ts: require('typescript') as typeof _ts
-}) {
-  const {actionDispatcher: dispatcher, addEpic, action$ByType, getState} = createSlice({
-    name: 'watchContorl',
-    initialState: {} as WatchState,
-    reducers: actions
-  });
-
-  const formatHost: _ts.FormatDiagnosticsHost = {
-    getCanonicalFileName: opts.formatDiagnosticFileName || (path => path),
-    getCurrentDirectory: _ts.sys.getCurrentDirectory,
-    getNewLine: () => _ts.sys.newLine
-  };
-
-  const ts = opts.ts || require('typescript');
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt || plinkNodeJsCompilerOption(ts, {jsx: true})}, ts.sys,
-    process.cwd().replace(/\\/g, '/'),
-    undefined, 'tsconfig.json').options;
-
-  const programHost = ts.createWatchCompilerHost(
-    rootFiles, compilerOptions, ts.sys,
-    // https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
-    // TypeScript can use several different program creation "strategies":
-    //  * ts.createEmitAndSemanticDiagnosticsBuilderProgram,
-    //  * ts.createSemanticDiagnosticsBuilderProgram
-    //  * ts.createAbstractBuilder
-    // The first two produce "builder programs". These use an incremental strategy
-    // to only re-check and emit files whose contents may have changed, or whose
-    // dependencies may have changes which may impact change the result of prior
-    // type-check and emit.
-    // The last uses an ordinary program which does a full type check after every
-    // change.
-    // Between `createEmitAndSemanticDiagnosticsBuilderProgram` and
-    // `createSemanticDiagnosticsBuilderProgram`, the only difference is emit.
-    // For pure type-checking scenarios, or when another tool/process handles emit,
-    // using `createSemanticDiagnosticsBuilderProgram` may be more desirable
-    ts.createEmitAndSemanticDiagnosticsBuilderProgram, dispatcher._reportDiagnostic, dispatcher._watchStatusChange);
-  if (opts.transformSrcFile)
-    patchWatchCompilerHost(programHost, opts.transformSrcFile);
-
-  const origCreateProgram = programHost.createProgram;
-  // Ts's createWatchProgram will call WatchCompilerHost.createProgram(), this is where we patch "CompilerHost"
-  programHost.createProgram = function(rootNames: readonly string[] | undefined, options: _ts.CompilerOptions | undefined,
-    host?: _ts.CompilerHost, ...rest: any[]) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (host && (host as any)._overrided == null) {
-      patchCompilerHost(host, dispatcher.onWriteFile);
-    }
-    const program = origCreateProgram.call(this, rootNames, options, host, ...rest) ;
-    return program;
-  };
-
-  ts.createWatchProgram(programHost);
-  addEpic(_slice => _action$ => {
-    return rx.merge(
-      action$ByType._reportDiagnostic.pipe(
-        op.map(({payload: diagnostic}) => {
-          dispatcher.onDiagnosticString(ts.formatDiagnosticsWithColorAndContext([diagnostic], formatHost), false);
-        })
-      ),
-      action$ByType._watchStatusChange.pipe(
-        op.map(({payload: diagnostic}) => {
-          dispatcher.onDiagnosticString(ts.formatDiagnosticsWithColorAndContext([diagnostic], formatHost), true);
-        })
-      )
-    ).pipe(
-      op.ignoreElements()
-    );
-  });
-
-  if (getState().error) {
-    throw getState().error;
-  }
-
-  return action$ByType;
-}
-
-function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOptions<_ts.EmitAndSemanticDiagnosticsBuilderProgram> | _ts.CompilerHost,
-  transform: NonNullable<Options['transformSrcFile']>) {
-  const readFile = host.readFile;
-
-  host.readFile = function(path: string, encoding?: string) {
-    const content = readFile.call(this, path, encoding) ;
-    if (content) {
-      const changed = transform(path, content, encoding);
-      if (changed != null && changed !== content) {
-        return changed;
-      }
-    }
-    return content;
-  };
-}
-
-function patchCompilerHost(host: _ts.CompilerHost,
-  write: _ts.WriteFileCallback) {
-  // It seems to not able to write file through symlink in Windows
-  // const _writeFile = host.writeFile;
-  host.writeFile = write;
-}
-
-export function plinkNodeJsCompilerOption(
+function plinkNodeJsCompilerOptionJson(
   ts: typeof _ts,
-  opts: {jsx?: boolean; inlineSourceMap?: boolean; emitDeclarationOnly?: boolean} = {}
+  opts: TscOptions = {}
 ) {
   const {jsx = false, inlineSourceMap = true, emitDeclarationOnly = false} = opts;
   let baseCompilerOptions: any;
@@ -159,27 +36,50 @@ export function plinkNodeJsCompilerOption(
     // log.info('Use tsconfig file:', baseTsconfigFile);
     baseCompilerOptions = baseTsconfig.compilerOptions;
   }
+
+  const coRootDir = Path.parse(process.cwd()).root;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const compilerOptions: Record<string, any> = {
+  const compilerOptions = {
     ...baseCompilerOptions,
     target: 'ES2017',
-    importHelpers: false,
+    importHelpers: true,
     declaration: true,
+    // diagnostics: true,
     // module: 'ESNext',
     /**
      * for gulp-sourcemaps usage:
      *  If you set the outDir option to the same value as the directory in gulp.dest, you should set the sourceRoot to ./.
      */
-    outDir: '',
-    rootDir: '',
+    outDir: coRootDir, // must be same as rootDir
+    rootDir: coRootDir,
     skipLibCheck: true,
     inlineSourceMap,
-    sourceMap: inlineSourceMap,
+    sourceMap: !inlineSourceMap,
     inlineSources: inlineSourceMap,
     emitDeclarationOnly,
-    preserveSymlinks: true
-  };
+    traceResolution: opts.traceResolution,
+    preserveSymlinks: false
+  } as Record<keyof _ts.CompilerOptions, any>;
+  if (opts.changeCompilerOptions)
+    opts.changeCompilerOptions(compilerOptions);
+
   return compilerOptions;
+}
+
+function plinkNodeJsCompilerOption(
+  ts: typeof _ts,
+  opts: TscOptions & {basePath?: string} = {}
+) {
+  const json = plinkNodeJsCompilerOptionJson(ts, opts);
+  const basePath = (opts.basePath || process.cwd()).replace(/\\/g, '/');
+  const {options} = ts.parseJsonConfigFileContent(
+    {compilerOptions: json},
+    ts.sys,
+    basePath,
+    undefined,
+    Path.resolve(basePath, 'tsconfig-in-memory.json')
+  );
+  return options;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -197,11 +97,20 @@ export function transpileSingleFile(content: string, ts: any = _ts) {
   };
 }
 
+export enum LogLevel {
+  trace, log, error
+}
+
 type LangServiceActionCreator = {
+  watch(dirs: string[]): void;
   addSourceFile(file: string, sync: boolean) : void;
   changeSourceFile(file: string) : void;
-  onEmitFailure(file: string, diagnostics: string) : void;
+  onCompilerOptions(co: _ts.CompilerOptions): void;
+  onEmitFailure(file: string, diagnostics: string, type: 'compilerOptions' | 'syntactic' | 'semantic') : void;
+  onSuggest(file: string, msg: string): void;
   _emitFile(file: string, content: string) : void;
+  log(level: LogLevel, msg: string): void;
+  /** stop watch */
   stop(): void;
 };
 
@@ -213,12 +122,14 @@ type LangServiceState = {
   isStopped: boolean;
 };
 
-export function languageServices(globs: string[], ts: any = _ts, opts: {
+export function languageServices(ts: any = _ts, opts: {
   formatDiagnosticFileName?(path: string): string;
+  transformSourceFile?(path: string, content: string): string;
   watcher?: chokidar.WatchOptions;
+  tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]>;
 } = {}) {
   const ts0 = ts as typeof _ts;
-  const {dispatchFactory, action$, ofType} = createActionStreamByType<LangServiceActionCreator>({debug: true});
+  const {dispatchFactory, action$, ofType} = createActionStreamByType<LangServiceActionCreator>();
   const store = new rx.BehaviorSubject<LangServiceState>({
     versions: new Map(),
     files: new Set(),
@@ -236,23 +147,27 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
     getNewLine: () => _ts.sys.newLine
   };
 
+  const co = plinkNodeJsCompilerOption(ts0, opts.tscOpts);
+
   const serviceHost: _ts.LanguageServiceHost = {
+    ...ts0.sys, // Important, default language service host does not implement methods like fileExists
     getScriptFileNames() {
-      console.log('[tac-util] getScriptFileNames');
       return Array.from(store.getValue().files.values());
     },
     getScriptVersion(fileName: string) {
       return store.getValue().versions.get(fileName) + '' || '-1';
     },
     getCompilationSettings() {
-      return {...plinkNodeJsCompilerOption(ts0), isolatedModules: false, inlineSourceMap: false};
+      dispatchFactory('onCompilerOptions')(co);
+      return co;
     },
     getScriptSnapshot(fileName: string) {
       if (!fs.existsSync(fileName)) {
         return undefined;
       }
 
-      return ts0.ScriptSnapshot.fromString(fs.readFileSync(fileName).toString());
+      const originContent = fs.readFileSync(fileName).toString();
+      return ts0.ScriptSnapshot.fromString(opts.transformSourceFile ? opts.transformSourceFile(fileName, originContent) : originContent);
     },
     getCancellationToken() {
       return {
@@ -261,9 +176,21 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
         }
       };
     },
-    getCurrentDirectory: () => process.cwd(),
+    useCaseSensitiveFileNames() { return ts0.sys.useCaseSensitiveFileNames; },
+    getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options),
 
-    getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options)
+    trace(s) {
+      dispatchFactory('log')(LogLevel.log, s);
+      console.log('[lang-service trace]', s);
+    },
+    error(s) {
+      dispatchFactory('log')(LogLevel.error, s);
+      console.log('[lang-service error]', s);
+    },
+    log(s) {
+      dispatchFactory('log')(LogLevel.log, s);
+      console.log('[lang-service log]', s);
+    }
   };
   const documentRegistry = ts0.createDocumentRegistry();
   let services: _ts.LanguageService | undefined;
@@ -274,14 +201,31 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
   let watcher: ReturnType<typeof chokidar.watch>;
 
   rx.merge(
+    action$.pipe(
+      ofType('watch'),
+      op.exhaustMap(({payload: dirs}) =>  new rx.Observable<never>(() => {
+        if (watcher == null)
+          watcher = chokidar.watch(dirs.map(dir => dir.replace(/\\/g, '/')), opts.watcher);
+
+        watcher.on('add', path => dispatchFactory('addSourceFile')(path, false));
+        watcher.on('change', path => dispatchFactory('changeSourceFile')(path));
+        return () => {
+          void watcher.close().then(() => {
+            // eslint-disable-next-line no-console
+            console.log('[tsc-util] chokidar watcher stops');
+          });
+        };
+      })
+      )
+    ),
     addSourceFile$.pipe(
+      op.filter(({payload: [file]}) => /\.(?:tsx?|json)$/.test(file)),
       op.map(({payload: [fileName, sync]}) => {
         setState(s => {
           s.files.add(fileName);
           s.versions.set(fileName, 0);
           return s;
         });
-        // TODO: debounce
         if (sync)
           getEmitFile(fileName);
         else {
@@ -305,7 +249,9 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
       })
     ),
     changeSourceFile$.pipe(
-      op.map(({payload: [fileName, content]}) => {
+      op.filter(({payload: file}) => /\.(?:tsx?|json)$/.test(file)),
+      // TODO: debounce on same file changes
+      op.map(({payload: fileName}) => {
         setState(s => {
           const version = s.versions.get(fileName);
           s.versions.set(fileName, (version != null ? version : 0) + 1);
@@ -313,21 +259,7 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
         });
         getEmitFile(fileName);
       })
-    ),
-
-    new rx.Observable<never>(sub => {
-      if (watcher == null)
-        watcher = chokidar.watch(globs, opts.watcher);
-
-      watcher.on('add', path => dispatchFactory('addSourceFile')(path, false));
-      watcher.on('change', path => dispatchFactory('changeSourceFile')(path));
-      return () => {
-        void watcher.close().then(() => {
-          // eslint-disable-next-line no-console
-          console.log('[tsc-util] chokidar watcher stops');
-        });
-      };
-    })
+    )
   ).pipe(
     op.takeUntil(stop$),
     op.catchError((err, src) => {
@@ -345,14 +277,40 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
   function getEmitFile(fileName: string) {
     if (services == null) {
       services = ts0.createLanguageService(serviceHost, documentRegistry);
+      const coDiag = services.getCompilerOptionsDiagnostics();
+      if (coDiag.length > 0)
+        dispatchFactory('onEmitFailure')(
+          fileName,
+          ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost),
+          'compilerOptions');
     }
     const output = services.getEmitOutput(fileName);
-
     if (output.emitSkipped) {
       // console.log(`Emitting ${fileName} failed`);
-      const syntDiag = services.getSyntacticDiagnostics(fileName);
-      const semanticDiag = services.getSemanticDiagnostics(fileName);
-      dispatchFactory('onEmitFailure')(fileName, ts0.formatDiagnosticsWithColorAndContext([...syntDiag, ...semanticDiag], formatHost));
+    }
+
+    const syntDiag = services.getSyntacticDiagnostics(fileName);
+    if (syntDiag.length > 0) {
+      dispatchFactory('onEmitFailure')(
+        fileName,
+        ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost),
+        'syntactic');
+    }
+    const semanticDiag = services.getSemanticDiagnostics(fileName);
+
+    if (semanticDiag.length > 0) {
+      dispatchFactory('onEmitFailure')(
+        fileName,
+        ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost),
+        'semantic');
+    }
+
+    const suggests = services.getSuggestionDiagnostics(fileName);
+
+    for (const sug of suggests) {
+      const {line, character} = sug.file.getLineAndCharacterOfPosition(sug.start);
+      dispatchFactory('onSuggest')(fileName, `${fileName}:${line + 1}:${character + 1} ` +
+                                   ts0.flattenDiagnosticMessageText(sug.messageText, '\n', 2));
     }
 
     output.outputFiles.forEach(o => {
@@ -360,11 +318,16 @@ export function languageServices(globs: string[], ts: any = _ts, opts: {
     });
   }
 
-  return {dispatchFactory, action$, ofType};
+  return {
+    dispatchFactory, action$, ofType,
+    store: store.pipe(
+      op.map(s => s.files)
+    )
+  };
 }
 
-export function test() {
-  const {action$, ofType} = languageServices(['test/*.ts']);
+export function test(dir: string) {
+  const {action$, ofType} = languageServices([dir]);
   action$.pipe(
     ofType('_emitFile'),
     // eslint-disable-next-line no-console

@@ -1,4 +1,4 @@
-/// <reference types="@wfh/tool-misc/ts/eslint-cli" />
+/// <reference path="eslint-cli.d.ts" />
 /**
  * Run eslint only for .ts file, exclude .d.ts files
  * @param dir

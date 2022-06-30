@@ -1,4 +1,4 @@
-import _ts from 'typescript';
+import { default as _ts } from 'typescript';
 import { PackageTsDirs } from './utils/misc';
 import { CompilerOptions as RequiredCompilerOptions } from './package-mgr/package-list-helper';
 export { RequiredCompilerOptions };
@@ -26,11 +26,4 @@ export interface TscCmdParam {
         [pkgName: string]: PackageTsDirs;
     };
 }
-/**
- * @param {object} argv
- * argv.watch: boolean
- * argv.package: string[]
- * @param {function} onCompiled () => void
- * @return void
- */
 export declare function tsc(argv: TscCmdParam, ts?: typeof _ts): Promise<string[]>;

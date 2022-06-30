@@ -1,7 +1,6 @@
 import Path from 'path';
 import _ from 'lodash';
 
-// TODO: Node path is no longer useful, remove it
 export function calcNodePaths(rootDir: string, symlinksDir: string | null, cwd: string, plinkDir: string) {
   const nodePaths: string[] = [Path.resolve(rootDir, 'node_modules')];
   if (symlinksDir) {

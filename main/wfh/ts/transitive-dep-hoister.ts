@@ -1,9 +1,9 @@
 /* eslint-disable  max-len */
 // import {mkdirpSync} from 'fs-extra';
 import * as _ from 'lodash';
-import {SimpleLinkedList, SimpleLinkedListNode} from './utils/misc';
 import {getLogger} from 'log4js';
 import semver from 'semver';
+import {SimpleLinkedList, SimpleLinkedListNode} from './utils/misc';
 
 const log = getLogger('plink.transitive-dep-hoister');
 
@@ -33,14 +33,14 @@ export function listCompDependency(
   scanner.scanFor(jsons.filter(item => _.has(workspaceDeps, item.name)));
   const [HoistedDepInfo, HoistedPeerDepInfo] = scanner.hoistDeps();
   const devDeps = scanner.devDeps;
-  let hoistedDev: Map<string, DependentInfo>;
-  let hoistedDevPeers: Map<string, DependentInfo>;
+  // let hoistedDev: Map<string, DependentInfo>;
+  // let hoistedDevPeers: Map<string, DependentInfo>;
 
   scanner = new TransitiveDepScanner(allDeps, workspace, pkJsonFiles);
   scanner.initExistingDeps(devDeps);
   if (workspaceDevDeps)
     scanner.scanFor(jsons.filter(item => _.has(workspaceDevDeps, item.name)), true);
-  [hoistedDev, hoistedDevPeers] = scanner.hoistDeps(HoistedDepInfo);
+  const [hoistedDev, hoistedDevPeers] = scanner.hoistDeps(HoistedDepInfo);
   // TODO: devDependencies might contains transitive dependency which duplicates to "dependencies"
   return {
     hoisted: HoistedDepInfo,
@@ -104,12 +104,14 @@ export class TransitiveDepScanner {
       if (this.excludeLinkedDeps.has(name))
         continue;
       const m = versionReg.exec(version);
-      const currNode = this.directDepsList.push([name, {
-        ver: version === '*' ? '' : version,
-        verNum: m ? m[2] : undefined,
-        pre: m ? m[1] : '',
-        by: `(${workspaceName || '<root directory>'})`
-      }]);
+      const currNode = this.directDepsList.push([
+        name, {
+          ver: version === '*' ? '' : version,
+          verNum: m ? m[2] : undefined,
+          pre: m ? m[1] : '',
+          by: `(${workspaceName || '<root directory>'})`
+        }
+      ]);
       this.directDeps.set(name, currNode);
     }
   }
@@ -295,7 +297,8 @@ function sortByVersion(verInfoList: DepInfo[], name: string) {
         try {
           const res = semver.rcompare(info1.verNum, info2.verNum);
           if (res === 0)
-            return info1.pre === '' && info2.pre !== '' ? -1 :
+            return info1.pre === '' && info2.pre !== ''
+              ? -1 :
               (info1.pre !== '' && info2.pre === '' ? 1 : 0);
           else
             return res;

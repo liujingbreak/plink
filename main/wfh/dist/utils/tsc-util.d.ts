@@ -1,47 +1,76 @@
 import _ts from 'typescript';
 import * as rx from 'rxjs';
 import chokidar from 'chokidar';
-export declare type WatchStatusChange = {
-    type: 'watchStatusChange';
-    payload: _ts.Diagnostic;
-};
-export declare type OnWriteFile = {
-    type: 'onWriteFile';
-};
-declare type WatchState = {
-    error?: Error;
-};
-export declare type Options = {
-    ts: typeof _ts;
-    mode: 'watch' | 'compile';
-    formatDiagnosticFileName?(path: string): string;
-    transformSrcFile?(file: string, content: string, encoding?: string): string | null | undefined;
-};
-export declare function watch(rootFiles: string[], jsonCompilerOpt?: Record<string, any> | null, opts?: Options): {
-    onWriteFile: rx.Observable<import("../../../packages/redux-toolkit-observable/dist/tiny-redux-toolkit").PayloadAction<WatchState, [fileName: string, data: string, writeByteOrderMark: boolean, onError?: ((message: string) => void) | undefined, sourceFiles?: readonly _ts.SourceFile[] | undefined]>>;
-    onDiagnosticString: rx.Observable<import("../../../packages/redux-toolkit-observable/dist/tiny-redux-toolkit").PayloadAction<WatchState, [_text: string, _isWatchStateChange: boolean]>>;
-    _watchStatusChange: rx.Observable<import("../../../packages/redux-toolkit-observable/dist/tiny-redux-toolkit").PayloadAction<WatchState, _ts.Diagnostic>>;
-    _reportDiagnostic: rx.Observable<import("../../../packages/redux-toolkit-observable/dist/tiny-redux-toolkit").PayloadAction<WatchState, _ts.Diagnostic>>;
-};
-export declare function plinkNodeJsCompilerOption(ts: typeof _ts, opts?: {
+declare type TscOptions = {
     jsx?: boolean;
     inlineSourceMap?: boolean;
     emitDeclarationOnly?: boolean;
-}): Record<string, any>;
+    changeCompilerOptions?: (co: Record<string, any>) => void;
+    traceResolution?: boolean;
+};
+declare function plinkNodeJsCompilerOption(ts: typeof _ts, opts?: TscOptions & {
+    basePath?: string;
+}): _ts.CompilerOptions;
 export declare function transpileSingleFile(content: string, ts?: any): {
     outputText: string;
     sourceMapText: string | undefined;
     diagnostics: _ts.Diagnostic[] | undefined;
     diagnosticsText: _ts.Diagnostic[] | undefined;
 };
-export declare function languageServices(globs: string[], ts?: any, opts?: {
-    formatDiagnosticFileName?(path: string): string;
-    watcher?: chokidar.WatchOptions;
-}): {
-    addSourceFile(file: string, content: string): void;
+export declare enum LogLevel {
+    trace = 0,
+    log = 1,
+    error = 2
+}
+declare type LangServiceActionCreator = {
+    watch(dirs: string[]): void;
+    addSourceFile(file: string, sync: boolean): void;
     changeSourceFile(file: string): void;
-    onEmitFailure(file: string, diagnostics: string): void;
+    onCompilerOptions(co: _ts.CompilerOptions): void;
+    onEmitFailure(file: string, diagnostics: string, type: 'compilerOptions' | 'syntactic' | 'semantic'): void;
+    onSuggest(file: string, msg: string): void;
     _emitFile(file: string, content: string): void;
+    log(level: LogLevel, msg: string): void;
+    /** stop watch */
     stop(): void;
 };
+export declare function languageServices(ts?: any, opts?: {
+    formatDiagnosticFileName?(path: string): string;
+    transformSourceFile?(path: string, content: string): string;
+    watcher?: chokidar.WatchOptions;
+    tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]>;
+}): {
+    dispatchFactory: <K extends keyof LangServiceActionCreator>(type: K) => LangServiceActionCreator[K];
+    action$: rx.Observable<{
+        type: "watch";
+        payload: string[];
+    } | {
+        type: "addSourceFile";
+        payload: [file: string, sync: boolean];
+    } | {
+        type: "changeSourceFile";
+        payload: string;
+    } | {
+        type: "onCompilerOptions";
+        payload: _ts.CompilerOptions;
+    } | {
+        type: "onEmitFailure";
+        payload: [file: string, diagnostics: string, type: "compilerOptions" | "syntactic" | "semantic"];
+    } | {
+        type: "onSuggest";
+        payload: [file: string, msg: string];
+    } | {
+        type: "_emitFile";
+        payload: [file: string, content: string];
+    } | {
+        type: "log";
+        payload: [level: LogLevel, msg: string];
+    } | {
+        type: "stop";
+        payload: undefined;
+    }>;
+    ofType: import("../../../packages/redux-toolkit-observable/dist/rx-utils").OfTypeFn<LangServiceActionCreator>;
+    store: rx.Observable<Set<string>>;
+};
+export declare function test(dir: string): void;
 export {};

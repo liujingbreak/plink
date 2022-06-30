@@ -32,8 +32,26 @@ export declare function createActionStream<AC>(actionCreator: AC, debug?: boolea
     }, type: K) => action is ActionTypes<AC>[K];
 };
 declare type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
+/**
+ * Unlike `createActionStream()`, this function only needs an "Action creator" type as generic type parameter,
+ * instead of an actual empty "Action creator" object to be parameter
+ *
+ * create Stream of action stream and action dispatcher,
+ * similar to redux-observable Epic concept,
+ * What you can get from this function are:
+ *   1. An action observable (stream),
+ *      so that you can subscribe to it and react with fantastic Reactive operators
+ *      to handle complex async logic
+ *
+ *   2. An action dispatcher,
+ *      so that you can emit new action along with paramters (payload) back to action observale stream.
+ *
+ *   3. An RxJs "filter()" operator to filter action by its type, it provides better Typescript
+ *   type definition for downstream action compare bare "filter()"
+ */
 export declare function createActionStreamByType<AC extends Record<string, ((...payload: any[]) => void)>>(opt?: {
-    debug?: boolean;
+    debug?: string | boolean;
+    log?: (msg: string, ...objs: any[]) => unknown;
 }): {
     dispatchFactory: SimpleActionDispatchFactory<AC>;
     action$: Observable<ActionTypes<AC>[keyof AC]>;

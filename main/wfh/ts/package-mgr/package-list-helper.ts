@@ -286,9 +286,9 @@ function typeRootsInPackages(onlyIncludedWorkspace?: string) {
   const dirs: string[] = [];
   for (const wsKey of wsKeys) {
     for (const pkg of packages4WorkspaceKey(wsKey)) {
-      const typeRoot = pkg.json.plink ? pkg.json.plink.typeRoot : pkg.json.dr ? pkg.json.dr.typeRoot : null;
+      const typeRoot = pkg.json.plink?.typeRoot || pkg.json.dr?.typeRoot;
       if (typeRoot) {
-        const dir = Path.resolve(workspaceDir(wsKey), pkg.path, typeRoot);
+        const dir = Path.resolve(workspaceDir(wsKey), pkg.realPath, typeRoot);
         dirs.push(dir);
       }
     }

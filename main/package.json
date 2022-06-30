@@ -1,6 +1,6 @@
 {
   "name": "@wfh/plink",
-  "version": "0.12.6-2",
+  "version": "0.12.6-3",
   "description": "Plink - A monorepo management tool to link packages and projects",
   "main": "wfh/dist/index.js",
   "types": "wfh/dist/index.d.ts",
@@ -58,7 +58,7 @@
     "redux-observable": "~1.2.0",
     "log4js": "^6.1.2",
     "cfonts": "~2.8.6",
-    "tslib": "^2.2.0",
+    "tslib": "^2.4.0",
     "@types/node": "^16.11.9",
     "serialize-javascript": "~5.0.1",
     "@types/serialize-javascript": "~5.0.0",
