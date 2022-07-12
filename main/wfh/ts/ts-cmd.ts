@@ -158,7 +158,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     },
     tscOpts: {
       jsx: argv.jsx,
-      inlineSourceMap: true,
+      inlineSourceMap: false,
       emitDeclarationOnly: argv.ed,
       basePath: commonRootDir,
       changeCompilerOptions(co) {

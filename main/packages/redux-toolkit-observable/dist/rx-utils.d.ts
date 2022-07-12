@@ -50,8 +50,7 @@ declare type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => 
  *   type definition for downstream action compare bare "filter()"
  */
 export declare function createActionStreamByType<AC extends Record<string, ((...payload: any[]) => void)>>(opt?: {
-    debug?: string | boolean;
-    log?: (msg: string, ...objs: any[]) => unknown;
+    debug?: boolean;
 }): {
     dispatchFactory: SimpleActionDispatchFactory<AC>;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
