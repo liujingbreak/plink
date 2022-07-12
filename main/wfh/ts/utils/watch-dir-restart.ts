@@ -5,9 +5,13 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import chokida from 'chokidar';
 
-type ChildProcessFactory = () => cp.ChildProcess[] | rx.Observable<cp.ChildProcess>;
+type ChildProcessFactory = () => cp.ChildProcess;
 
-export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory) {
+export type Options = {
+  retryOnError?: number;
+};
+
+export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory[], opts: Options = {}) {
   const watcher = chokida.watch(dirOrFile, {ignoreInitial: true});
   const change$ = rx.fromEventPattern<[path: string, stats?: fs.Stats]>(h => watcher.on('change', h), h => watcher.off('change', h))
     .pipe(
@@ -40,7 +44,7 @@ export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProces
         return wait;
       })
     ),
-    // restart -> (after stopped) -> stop, start
+    // restart -> stop -> (after stopped) -> start
     action$.pipe(
       op.filter(type => type === 'restart'),
       op.concatMap(() => {
@@ -57,49 +61,53 @@ export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProces
     action$.pipe(
       op.filter(type => type === 'start'),
       op.concatMap(() => {
-        let child$: rx.Observable<cp.ChildProcess>;
-        if (forkJsFiles.length > 0 && typeof forkJsFiles[0] === 'string') {
-          child$ = rx.from(forkJsFiles as string[]).pipe(op.map(forkJsFile => cp.fork(forkJsFile)));
-        } else {
-          child$ = rx.from((forkJsFiles as ChildProcessFactory)());
-        }
+        const factories = (forkJsFiles.length > 0 && typeof forkJsFiles[0] === 'string') ?
+          (forkJsFiles as string[]).map(forkJsFile => () => cp.fork(forkJsFile))
+          :
+          (forkJsFiles as ChildProcessFactory[]);
+
         serverState$.next('started');
 
-        const store = new rx.BehaviorSubject<{numOfChild?: number; numOfExited: number}>({
-          numOfExited: 0
-        });
-
         return rx.merge(
-          store.pipe(
-            op.filter(s => s.numOfExited === s.numOfChild),
-            op.take(1),
-            op.tap(() => {
+          rx.from(factories).pipe(
+            op.mergeMap(fac => new rx.Observable<cp.ChildProcess>(sub => {
+                const child = fac();
+                const subStop = action$.pipe(
+                  op.filter(type => type === 'stop'),
+                  op.take(1),
+                  op.takeUntil(serverState$.pipe(op.filter(s => s === 'stopped'))),
+                  op.tap(() => {
+                    child.kill('SIGINT');
+                    serverState$.next('stopping');
+                  })
+                ).subscribe();
+
+                child.on('exit', (code, signal) => {
+                  // Send antion to kill other child process
+                  if (serverState$.getValue() !== 'stopping') {
+                    const msg = `Unexpected exit signal ${code + ''} - ${signal?.toString() || ''}`;
+                    // eslint-disable-next-line no-console
+                    console.log(msg);
+                    sub.error(new Error(msg));
+                  }
+                  sub.complete();
+                });
+
+                child.on('error', (err) => {
+                  // eslint-disable-next-line no-console
+                  console.log('Child process encounters error:', err);
+                  sub.error(err);
+                });
+                sub.next(child);
+
+                return () => subStop.unsubscribe();
+              }).pipe(
+                op.retry(opts.retryOnError != null ? opts.retryOnError : 10)
+              )
+            ),
+            op.finalize(() => {
               serverState$.next('stopped');
             })
-          ),
-          child$.pipe(
-            op.tap(child => {
-              child.on('error', err => {
-                // action$.error(err);
-                const state = store.getValue();
-                store.next({...state, numOfExited: state.numOfExited + 1});
-                console.error('[watch-dir-restart] child process error', err);
-              });
-              child.on('exit', () => {
-                const state = store.getValue();
-                store.next({...state, numOfExited: state.numOfExited + 1});
-              });
-            }),
-            op.count(),
-            op.map(count => {
-              store.next({...store.getValue(), numOfChild: count});
-            })
-          ),
-          action$.pipe(
-            op.filter(type => type === 'stop'),
-            op.take(1),
-            op.mergeMap(() => child$),
-            op.map(child => child.kill('SIGINT'))
           )
         );
       })

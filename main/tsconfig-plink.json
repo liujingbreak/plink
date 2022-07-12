@@ -5,6 +5,8 @@
     "rootDir": "wfh/ts",
     "declaration": true,
     "baseUrl": ".",
+    "inlineSourceMap": false,
+    "sourceMap": true,
     "paths": {
       "@wfh/redux-toolkit-observable": [
         "packages/redux-toolkit-observable"
