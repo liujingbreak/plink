@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* eslint-disable no-console */
 require("./node-path");
 // import checkNode from './utils/node-version-check';
 const worker_threads_1 = require("worker_threads");
-const chalk_1 = __importDefault(require("chalk"));
-const fork_for_preserve_symlink_1 = __importDefault(require("./fork-for-preserve-symlink"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const fork_for_preserve_symlink_1 = tslib_1.__importDefault(require("./fork-for-preserve-symlink"));
 const startTime = new Date().getTime();
 (0, fork_for_preserve_symlink_1.default)('@wfh/plink/wfh/dist/cmd-bootstrap', {
     stateExitAction: 'save',

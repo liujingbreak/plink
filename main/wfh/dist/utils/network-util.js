@@ -1,12 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTunnelProxy = exports.getLanIPv4 = void 0;
-const os_1 = __importDefault(require("os"));
-const http_1 = __importDefault(require("http"));
-const net_1 = __importDefault(require("net"));
+const tslib_1 = require("tslib");
+const os_1 = tslib_1.__importDefault(require("os"));
+const http_1 = tslib_1.__importDefault(require("http"));
+const net_1 = tslib_1.__importDefault(require("net"));
 function getLanIPv4() {
     const inters = os_1.default.networkInterfaces();
     if (inters.en0) {

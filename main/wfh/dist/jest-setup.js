@@ -1,8 +1,6 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-const path_1 = __importDefault(require("path"));
+const tslib_1 = require("tslib");
+const path_1 = tslib_1.__importDefault(require("path"));
 module.exports = function () {
     if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
         console.error('Node.js process must be executed with environment varaible NODE_PRESERVE_SYMLINKS=1');

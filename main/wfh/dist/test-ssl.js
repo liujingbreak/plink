@@ -1,11 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /* eslint-disable no-console */
-const https_1 = __importDefault(require("https"));
-const fs_1 = __importDefault(require("fs"));
+const https_1 = tslib_1.__importDefault(require("https"));
+const fs_1 = tslib_1.__importDefault(require("fs"));
 function testSSL(endPoint, caFile) {
     let ca;
     if (caFile && fs_1.default.existsSync(caFile)) {

@@ -7,11 +7,7 @@ import type {Config} from '@jest/types';
 
 const transform: Config.InitialOptions['transform'] = {
   '\\.jsx?$': 'babel-jest',
-  '\\.tsx?$': [
-    Path.resolve(__dirname, 'ts-transformer.js'), {
-      rootFiles: process.argv.splice(2).filter(arg => /\.tsx?$/.test(arg))
-    }
-  ]
+  '\\.tsx?$': [Path.resolve(__dirname, 'ts-transformer.js'), {}]
 };
 
 const config: Config.InitialOptions = {

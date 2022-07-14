@@ -17,6 +17,10 @@ export declare function transpileSingleFile(content: string, ts?: any): {
     diagnostics: _ts.Diagnostic[] | undefined;
     diagnosticsText: _ts.Diagnostic[] | undefined;
 };
+export declare function createTranspileFileWithTsCheck(ts?: any, opts?: NonNullable<Parameters<typeof languageServices>[1]>): (content: string, file: string) => {
+    code: string;
+    map: string;
+};
 export declare enum LogLevel {
     trace = 0,
     log = 1,
@@ -24,12 +28,12 @@ export declare enum LogLevel {
 }
 declare type LangServiceActionCreator = {
     watch(dirs: string[]): void;
-    addSourceFile(file: string, sync: boolean): void;
-    changeSourceFile(file: string): void;
+    addSourceFile(file: string, sync: boolean, content?: string): void;
+    changeSourceFile(file: string, content: string | undefined | null): void;
     onCompilerOptions(co: _ts.CompilerOptions): void;
     onEmitFailure(file: string, diagnostics: string, type: 'compilerOptions' | 'syntactic' | 'semantic'): void;
     onSuggest(file: string, msg: string): void;
-    _emitFile(file: string, content: string): void;
+    emitFile(file: string, content: string): void;
     log(level: LogLevel, msg: string): void;
     /** stop watch */
     stop(): void;
@@ -46,10 +50,10 @@ export declare function languageServices(ts?: any, opts?: {
         payload: string[];
     } | {
         type: "addSourceFile";
-        payload: [file: string, sync: boolean];
+        payload: [file: string, sync: boolean, content?: string | undefined];
     } | {
         type: "changeSourceFile";
-        payload: string;
+        payload: [file: string, content: string | null | undefined];
     } | {
         type: "onCompilerOptions";
         payload: _ts.CompilerOptions;
@@ -60,14 +64,14 @@ export declare function languageServices(ts?: any, opts?: {
         type: "onSuggest";
         payload: [file: string, msg: string];
     } | {
-        type: "_emitFile";
+        type: "emitFile";
         payload: [file: string, content: string];
     } | {
         type: "log";
         payload: [level: LogLevel, msg: string];
     } | {
         type: "stop";
-        payload: undefined;
+        payload: unknown;
     }>;
     ofType: import("../../../packages/redux-toolkit-observable/dist/rx-utils").OfTypeFn<LangServiceActionCreator>;
     store: rx.Observable<Set<string>>;

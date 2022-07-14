@@ -71,7 +71,7 @@ export function createSlice(opt) {
     for (const [key, reducer] of Object.entries(opt.reducers)) {
         const type = name + '/' + key;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const creator = ((...payload) => {
+        const creator = ((payload) => {
             const action = {
                 type,
                 payload: payload.length === 0 ? undefined :
@@ -86,7 +86,7 @@ export function createSlice(opt) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         actionCreators[key] = creator;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        actionDispatcher[key] = ((payload) => {
+        actionDispatcher[key] = ((...payload) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
             const action = creator(payload);
             dispatch(action);
@@ -131,7 +131,9 @@ export function createSlice(opt) {
             inReducer = true;
             let newState;
             try {
-                newState = action.reducer(shallowCopied, action.payload);
+                const payload = action.payload;
+                const params = Array.isArray(payload) ? payload : [payload];
+                newState = action.reducer(shallowCopied, ...params);
             }
             finally {
                 inReducer = false;
@@ -168,12 +170,20 @@ export function createSlice(opt) {
             if (fac) {
                 const epic = fac(slice, ofType);
                 if (epic)
-                    return epic(action$, state$);
+                    return epic(action$, state$).pipe(op.catchError((err, src) => {
+                        console.error(err);
+                        dispatch({ type: 'Epic error',
+                            reducer(s) {
+                                return Object.assign(Object.assign({}, s), { error: err });
+                            }
+                        });
+                        return src;
+                    }));
             }
             return rx.EMPTY;
         }), op.takeUntil(unprocessedAction$.pipe(op.filter(action => action.type === '__OnDestroy'), op.take(1))), op.tap(action => dispatch(action)), op.catchError((err, caught) => {
             console.error(err);
-            dispatch({ type: 'epic error',
+            dispatch({ type: 'Epics error',
                 reducer(s) {
                     return Object.assign(Object.assign({}, s), { error: err });
                 }
@@ -224,6 +234,9 @@ export function action$OfSlice(slice, actionType) {
         });
     });
 }
+/**
+ * @deprecated use Slice['action$ByType'] instead
+ */
 export function action$ByType(slice) {
     return castByActionType(slice.actions, slice.action$);
 }
@@ -268,3 +281,4 @@ demoSlice.addEpic((slice, ofType) => {
 });
 action$OfSlice(demoSlice, 'hellow').pipe(op.tap(action => action));
 action$OfSlice(demoSlice, 'world').pipe(op.tap(action => action));
+//# sourceMappingURL=tiny-redux-toolkit.js.map

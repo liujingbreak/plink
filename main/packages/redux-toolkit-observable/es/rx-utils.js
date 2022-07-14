@@ -1,12 +1,9 @@
+/**
+ * redux-observable like async reactive actions, side effect utilities
+ * https://redux-observable.js.org/
+ */
 import { Subject } from 'rxjs';
-import { distinctUntilChanged, map, filter, tap, share } from 'rxjs/operators';
-export function reselect(selectors, combine) {
-    return src => {
-        return src.pipe(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        map(s => selectors.map(selector => selector(s))), distinctUntilChanged((a, b) => a.every((result, i) => result === b[i])), map(results => combine(...results)));
-    };
-}
+import { filter, tap, share } from 'rxjs/operators';
 /**
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
@@ -23,32 +20,99 @@ export function reselect(selectors, combine) {
  */
 export function createActionStream(actionCreator, debug) {
     const dispatcher = {};
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const actionUpstream = new Subject();
     for (const type of Object.keys(actionCreator)) {
         dispatcher[type] = (...params) => {
             const action = {
                 type,
-                payload: params.length === 1 ? params[0] : params
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
             };
             actionUpstream.next(action);
         };
     }
     const action$ = debug
-        ? actionUpstream.pipe(tap(action => {
+        ? actionUpstream.pipe(tap(typeof window !== 'undefined'
+            ? action => {
+                // eslint-disable-next-line no-console
+                console.log('%c rx:action ', 'color: white; background: #8c61ff;', action.type);
+            }
             // eslint-disable-next-line no-console
-            console.log('%c rx:action ', 'color: white; background: #8c61ff;', action.type);
-        }), share())
+            : action => console.log('rx:action', action.type)), share())
         : actionUpstream;
     return {
         dispatcher,
         action$,
-        ofType: createOfTypeOperator(actionCreator)
+        ofType: createOfTypeOperator(),
+        isActionType: createIsActionTypeFn()
+    };
+}
+/**
+ * Unlike `createActionStream()`, this function only needs an "Action creator" type as generic type parameter,
+ * instead of an actual empty "Action creator" object to be parameter
+ *
+ * create Stream of action stream and action dispatcher,
+ * similar to redux-observable Epic concept,
+ * What you can get from this function are:
+ *   1. An action observable (stream),
+ *      so that you can subscribe to it and react with fantastic Reactive operators
+ *      to handle complex async logic
+ *
+ *   2. An action dispatcher,
+ *      so that you can emit new action along with paramters (payload) back to action observale stream.
+ *
+ *   3. An RxJs "filter()" operator to filter action by its type, it provides better Typescript
+ *   type definition for downstream action compare bare "filter()"
+ */
+// eslint-disable-next-line space-before-function-paren
+export function createActionStreamByType(opt = {}) {
+    const actionUpstream = new Subject();
+    const dispatcher = {};
+    function dispatchFactory(type) {
+        if (Object.prototype.hasOwnProperty.call(dispatcher, type)) {
+            return dispatcher[type];
+        }
+        const dispatch = (...params) => {
+            const action = {
+                type,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
+            };
+            actionUpstream.next(action);
+        };
+        dispatcher[type] = dispatch;
+        return dispatch;
+    }
+    const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
+    const action$ = opt.debug
+        ? actionUpstream.pipe(opt.log ?
+            tap(action => opt.log(debugName + 'rx:action', action.type)) :
+            typeof window !== 'undefined' ?
+                tap(action => {
+                    // eslint-disable-next-line no-console
+                    console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', action.type);
+                })
+                :
+                    // eslint-disable-next-line no-console
+                    tap(action => console.log(debugName + 'rx:action', action.type)), share())
+        : actionUpstream;
+    return {
+        dispatchFactory: dispatchFactory,
+        action$,
+        ofType: createOfTypeOperator(),
+        isActionType: createIsActionTypeFn()
+    };
+}
+function createIsActionTypeFn() {
+    return function isActionType(action, type) {
+        return action.type === type;
     };
 }
 /** create rx a operator to filter action by action.type */
-function createOfTypeOperator(_actionCreator) {
-    return (type) => (upstream) => {
-        return upstream.pipe(filter(action => action.type === type));
+function createOfTypeOperator() {
+    return (...types) => (upstream) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        return upstream.pipe(filter(action => types.some(type => action.type === type)));
     };
 }
+//# sourceMappingURL=rx-utils.js.map

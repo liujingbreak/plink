@@ -20,7 +20,8 @@
     "lint-redux": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",
     "lint-thread": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
     "lint-main-file": "eslint --no-eslintrc -c main/.eslintrc.js",
-    "lint-other": "eslint --no-eslintrc -c .eslintrc.js"
+    "lint-other": "eslint --no-eslintrc -c .eslintrc.js",
+    "test": "cd server-space && test"
   },
   "devDependencies": {
     "@wfh/eslint-config-cra": "./src/tools/eslint-config-cra",

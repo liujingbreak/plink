@@ -18,11 +18,12 @@ type TscOptions = {
   traceResolution?: boolean;
 };
 
-function plinkNodeJsCompilerOptionJson(
-  ts: typeof _ts,
-  opts: TscOptions = {}
-) {
-  const {jsx = false, inlineSourceMap = false, emitDeclarationOnly = false} = opts;
+function plinkNodeJsCompilerOptionJson(ts: typeof _ts, opts: TscOptions = {}) {
+  const {
+    jsx = false,
+    inlineSourceMap = false,
+    emitDeclarationOnly = false
+  } = opts;
   let baseCompilerOptions: any;
   if (jsx) {
     const baseTsconfigFile2 = require.resolve('../tsconfig-tsx.json');
@@ -60,8 +61,7 @@ function plinkNodeJsCompilerOptionJson(
     traceResolution: opts.traceResolution,
     preserveSymlinks: false
   } as Record<keyof _ts.CompilerOptions, any>;
-  if (opts.changeCompilerOptions)
-    opts.changeCompilerOptions(compilerOptions);
+  if (opts.changeCompilerOptions) opts.changeCompilerOptions(compilerOptions);
 
   return compilerOptions;
 }
@@ -84,10 +84,15 @@ function plinkNodeJsCompilerOption(
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 export function transpileSingleFile(content: string, ts: any = _ts) {
-  const {outputText, diagnostics, sourceMapText} = (ts as typeof _ts)
-    .transpileModule(content, {
-      compilerOptions: {...plinkNodeJsCompilerOption(ts), isolatedModules: true, inlineSourceMap: false}
-    });
+  const {outputText, diagnostics, sourceMapText} = (
+    ts as typeof _ts
+  ).transpileModule(content, {
+    compilerOptions: {
+      ...plinkNodeJsCompilerOption(ts),
+      isolatedModules: true,
+      inlineSourceMap: false
+    }
+  });
 
   return {
     outputText,
@@ -97,18 +102,62 @@ export function transpileSingleFile(content: string, ts: any = _ts) {
   };
 }
 
+export function createTranspileFileWithTsCheck(
+  ts: any = _ts,
+  opts?: NonNullable<Parameters<typeof languageServices>[1]>
+) {
+  const {action$, ofType, dispatchFactory} = languageServices(ts, opts);
+
+  return function(content: string, file: string) {
+    let destFile: string | undefined;
+    let sourceMap: string | undefined;
+    rx.merge(
+      action$.pipe(
+        ofType('emitFile'),
+        op.map(({payload: [outputFile, outputContent]}) => {
+          if (outputFile.endsWith('.js')) {
+            destFile = outputContent;
+          } else if (outputFile.endsWith('.map')) {
+            sourceMap = outputContent;
+          }
+        }),
+        op.takeWhile(() => destFile == null || sourceMap == null)
+      ),
+      action$.pipe(
+        ofType('onEmitFailure', 'onSuggest'),
+        op.map(({payload: [file, diagnostics]}) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          console.error('[tsc-util]', diagnostics);
+        })
+      )
+    ).subscribe();
+    dispatchFactory('addSourceFile')(file, true, content);
+
+    return {
+      code: destFile!,
+      map: sourceMap!
+    };
+  };
+}
+
 export enum LogLevel {
-  trace, log, error
+  trace,
+  log,
+  error
 }
 
 type LangServiceActionCreator = {
   watch(dirs: string[]): void;
-  addSourceFile(file: string, sync: boolean) : void;
-  changeSourceFile(file: string) : void;
+  addSourceFile(file: string, sync: boolean, content?: string): void;
+  changeSourceFile(file: string, content: string | undefined | null): void;
   onCompilerOptions(co: _ts.CompilerOptions): void;
-  onEmitFailure(file: string, diagnostics: string, type: 'compilerOptions' | 'syntactic' | 'semantic') : void;
+  onEmitFailure(
+    file: string,
+    diagnostics: string,
+    type: 'compilerOptions' | 'syntactic' | 'semantic'
+  ): void;
   onSuggest(file: string, msg: string): void;
-  _emitFile(file: string, content: string) : void;
+  emitFile(file: string, content: string): void;
   log(level: LogLevel, msg: string): void;
   /** stop watch */
   stop(): void;
@@ -120,21 +169,25 @@ type LangServiceState = {
   files: Set<string>;
   unemitted: Set<string>;
   isStopped: boolean;
+  fileContentCache: Map<string, string>;
 };
 
-export function languageServices(ts: any = _ts, opts: {
+export function languageServices( ts: any = _ts, opts: {
   formatDiagnosticFileName?(path: string): string;
   transformSourceFile?(path: string, content: string): string;
   watcher?: chokidar.WatchOptions;
   tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]>;
-} = {}) {
+} = {}
+) {
   const ts0 = ts as typeof _ts;
-  const {dispatchFactory, action$, ofType} = createActionStreamByType<LangServiceActionCreator>();
+  const {dispatchFactory, action$, ofType} =
+    createActionStreamByType<LangServiceActionCreator>();
   const store = new rx.BehaviorSubject<LangServiceState>({
     versions: new Map(),
     files: new Set(),
     unemitted: new Set(),
-    isStopped: false
+    isStopped: false,
+    fileContentCache: new Map()
   });
 
   function setState(cb: (curr: LangServiceState) => LangServiceState) {
@@ -166,8 +219,13 @@ export function languageServices(ts: any = _ts, opts: {
         return undefined;
       }
 
-      const originContent = fs.readFileSync(fileName).toString();
-      return ts0.ScriptSnapshot.fromString(opts.transformSourceFile ? opts.transformSourceFile(fileName, originContent) : originContent);
+      const cached = store.getValue().fileContentCache.get(fileName);
+      const originContent = cached != null ? cached : fs.readFileSync(fileName).toString();
+      return ts0.ScriptSnapshot.fromString(
+        opts.transformSourceFile
+          ? opts.transformSourceFile(fileName, originContent)
+          : originContent
+      );
     },
     getCancellationToken() {
       return {
@@ -176,12 +234,14 @@ export function languageServices(ts: any = _ts, opts: {
         }
       };
     },
-    useCaseSensitiveFileNames() { return ts0.sys.useCaseSensitiveFileNames; },
+    useCaseSensitiveFileNames() {
+      return ts0.sys.useCaseSensitiveFileNames;
+    },
     getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options),
 
     trace(s) {
       dispatchFactory('log')(LogLevel.log, s);
-      console.log('[lang-service trace]', s);
+      // console.log('[lang-service trace]', s);
     },
     error(s) {
       dispatchFactory('log')(LogLevel.error, s);
@@ -203,31 +263,41 @@ export function languageServices(ts: any = _ts, opts: {
   rx.merge(
     action$.pipe(
       ofType('watch'),
-      op.exhaustMap(({payload: dirs}) =>  new rx.Observable<never>(() => {
-        if (watcher == null)
-          watcher = chokidar.watch(dirs.map(dir => dir.replace(/\\/g, '/')), opts.watcher);
+      op.exhaustMap(
+        ({payload: dirs}) =>
+          new rx.Observable<never>(() => {
+            if (watcher == null)
+              watcher = chokidar.watch(
+                dirs.map(dir => dir.replace(/\\/g, '/')),
+                opts.watcher
+              );
 
-        watcher.on('add', path => dispatchFactory('addSourceFile')(path, false));
-        watcher.on('change', path => dispatchFactory('changeSourceFile')(path));
-        return () => {
-          void watcher.close().then(() => {
-            // eslint-disable-next-line no-console
-            console.log('[tsc-util] chokidar watcher stops');
-          });
-        };
-      })
+            watcher.on('add', path =>
+              dispatchFactory('addSourceFile')(path, false)
+            );
+            watcher.on('change', path =>
+              dispatchFactory('changeSourceFile')(path, null)
+            );
+            return () => {
+              void watcher.close().then(() => {
+                // eslint-disable-next-line no-console
+                console.log('[tsc-util] chokidar watcher stops');
+              });
+            };
+          })
       )
     ),
     addSourceFile$.pipe(
       op.filter(({payload: [file]}) => /\.(?:tsx?|json)$/.test(file)),
-      op.map(({payload: [fileName, sync]}) => {
+      op.map(({payload: [fileName, sync, content]}) => {
         setState(s => {
           s.files.add(fileName);
           s.versions.set(fileName, 0);
+          if (content != null)
+            s.fileContentCache.set(fileName, content);
           return s;
         });
-        if (sync)
-          getEmitFile(fileName);
+        if (sync) getEmitFile(fileName);
         else {
           setState(s => {
             s.unemitted.add(fileName);
@@ -236,7 +306,7 @@ export function languageServices(ts: any = _ts, opts: {
           return fileName;
         }
       }),
-      op.filter((file) : file is string => file != null),
+      op.filter((file): file is string => file != null),
       op.debounceTime(333),
       op.map(() => {
         for (const file of store.getValue().unemitted.values()) {
@@ -249,30 +319,34 @@ export function languageServices(ts: any = _ts, opts: {
       })
     ),
     changeSourceFile$.pipe(
-      op.filter(({payload: file}) => /\.(?:tsx?|json)$/.test(file)),
+      op.filter(({payload: [file]}) => /\.(?:tsx?|json)$/.test(file)),
       // TODO: debounce on same file changes
-      op.map(({payload: fileName}) => {
+      op.map(({payload: [fileName, content]}) => {
         setState(s => {
           const version = s.versions.get(fileName);
           s.versions.set(fileName, (version != null ? version : 0) + 1);
+          if (content != null)
+            s.fileContentCache.set(fileName, content);
           return s;
         });
         getEmitFile(fileName);
       })
     )
-  ).pipe(
-    op.takeUntil(stop$),
-    op.catchError((err, src) => {
-      console.error('Language service error', err);
-      return src;
-    }),
-    op.finalize(() => {
-      setState(s => {
-        s.isStopped = true;
-        return s;
-      });
-    })
-  ).subscribe();
+  )
+    .pipe(
+      op.takeUntil(stop$),
+      op.catchError((err, src) => {
+        console.error('Language service error', err);
+        return src;
+      }),
+      op.finalize(() => {
+        setState(s => {
+          s.isStopped = true;
+          return s;
+        });
+      })
+    )
+    .subscribe();
 
   function getEmitFile(fileName: string) {
     if (services == null) {
@@ -282,7 +356,8 @@ export function languageServices(ts: any = _ts, opts: {
         dispatchFactory('onEmitFailure')(
           fileName,
           ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost),
-          'compilerOptions');
+          'compilerOptions'
+        );
     }
     const output = services.getEmitOutput(fileName);
     if (output.emitSkipped) {
@@ -294,7 +369,8 @@ export function languageServices(ts: any = _ts, opts: {
       dispatchFactory('onEmitFailure')(
         fileName,
         ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost),
-        'syntactic');
+        'syntactic'
+      );
     }
     const semanticDiag = services.getSemanticDiagnostics(fileName);
 
@@ -302,35 +378,43 @@ export function languageServices(ts: any = _ts, opts: {
       dispatchFactory('onEmitFailure')(
         fileName,
         ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost),
-        'semantic');
+        'semantic'
+      );
     }
 
     const suggests = services.getSuggestionDiagnostics(fileName);
 
     for (const sug of suggests) {
-      const {line, character} = sug.file.getLineAndCharacterOfPosition(sug.start);
-      dispatchFactory('onSuggest')(fileName, `${fileName}:${line + 1}:${character + 1} ` +
-                                   ts0.flattenDiagnosticMessageText(sug.messageText, '\n', 2));
+      const {line, character} = sug.file.getLineAndCharacterOfPosition(
+        sug.start
+      );
+      dispatchFactory('onSuggest')(
+        fileName,
+        `${fileName}:${line + 1}:${character + 1} ` +
+          ts0.flattenDiagnosticMessageText(sug.messageText, '\n', 2)
+      );
     }
 
     output.outputFiles.forEach(o => {
-      dispatchFactory('_emitFile')(o.name, o.text);
+      dispatchFactory('emitFile')(o.name, o.text);
     });
   }
 
   return {
-    dispatchFactory, action$, ofType,
-    store: store.pipe(
-      op.map(s => s.files)
-    )
+    dispatchFactory,
+    action$,
+    ofType,
+    store: store.pipe(op.map(s => s.files))
   };
 }
 
 export function test(dir: string) {
   const {action$, ofType} = languageServices([dir]);
-  action$.pipe(
-    ofType('_emitFile'),
-    // eslint-disable-next-line no-console
-    op.map(({payload: [file]}) => console.log('emit', file))
-  ).subscribe();
+  action$
+    .pipe(
+      ofType('emitFile'),
+      // eslint-disable-next-line no-console
+      op.map(({payload: [file]}) => console.log('emit', file))
+    )
+    .subscribe();
 }

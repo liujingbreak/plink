@@ -85,7 +85,7 @@ export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProces
                 child.on('exit', (code, signal) => {
                   // Send antion to kill other child process
                   if (serverState$.getValue() !== 'stopping') {
-                    const msg = `Unexpected exit signal ${code + ''} - ${signal?.toString() || ''}`;
+                    const msg = `[watch-dir-restart]: Unexpected exit signal ${code + ''} - ${signal?.toString() || ''}`;
                     // eslint-disable-next-line no-console
                     console.log(msg);
                     sub.error(new Error(msg));
@@ -95,7 +95,7 @@ export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProces
 
                 child.on('error', (err) => {
                   // eslint-disable-next-line no-console
-                  console.log('Child process encounters error:', err);
+                  console.log('[watch-dir-restart]: Child process encounters error:', err);
                   sub.error(err);
                 });
                 sub.next(child);

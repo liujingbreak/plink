@@ -5,6 +5,8 @@
     "target": "ES2017",
     "outDir": "dist",
     "declaration": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
     "composite": true
   },
   "include": [

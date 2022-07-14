@@ -1,49 +1,24 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tsc = void 0;
+const tslib_1 = require("tslib");
 /* eslint-disable max-len */
-const path_1 = __importStar(require("path"));
-const fs = __importStar(require("fs"));
-const chalk_1 = __importDefault(require("chalk"));
-const rx = __importStar(require("rxjs"));
-const op = __importStar(require("rxjs/operators"));
-const fse = __importStar(require("fs-extra"));
-const lodash_1 = __importDefault(require("lodash"));
-const glob_1 = __importDefault(require("glob"));
-const typescript_1 = __importDefault(require("typescript"));
+const path_1 = tslib_1.__importStar(require("path"));
+const fs = tslib_1.__importStar(require("fs"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const rx = tslib_1.__importStar(require("rxjs"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
+const fse = tslib_1.__importStar(require("fs-extra"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const glob_1 = tslib_1.__importDefault(require("glob"));
+const typescript_1 = tslib_1.__importDefault(require("typescript"));
 const dir_tree_1 = require("require-injector/dist/dir-tree");
-const log4js_1 = __importDefault(require("log4js"));
+const log4js_1 = tslib_1.__importDefault(require("log4js"));
 const misc_1 = require("./utils/misc");
 const package_list_helper_1 = require("./package-mgr/package-list-helper");
 const utils_1 = require("./cmd/utils");
 const package_mgr_1 = require("./package-mgr");
-const packageUtils = __importStar(require("./package-utils"));
+const packageUtils = tslib_1.__importStar(require("./package-utils"));
 const ts_cmd_util_1 = require("./ts-cmd-util");
 const injector_factory_1 = require("./injector-factory");
 const cli_analyze_1 = require("./cmd/cli-analyze");
@@ -164,7 +139,7 @@ async function tsc(argv, ts = typescript_1.default) {
     function dealCommonJob() {
         return rx.merge(action$.pipe(ofType('onCompilerOptions'), op.take(1), op.map(({ payload: compilerOptions }) => {
             log.info('typescript compilerOptions:', compilerOptions);
-        })), action$.pipe(ofType('_emitFile'), op.map(async ({ payload: [file, content] }) => {
+        })), action$.pipe(ofType('emitFile'), op.map(async ({ payload: [file, content] }) => {
             const destFile = realPathOf(file, commonRootDir, packageDirTree, false);
             if (destFile == null)
                 return;

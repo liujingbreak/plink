@@ -1,12 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listProject = void 0;
+const tslib_1 = require("tslib");
 // import fs from 'fs-extra';
-const lodash_1 = __importDefault(require("lodash"));
-const path_1 = __importDefault(require("path"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const operators_1 = require("rxjs/operators");
 const package_mgr_1 = require("../package-mgr");
 const misc_1 = require("../utils/misc");

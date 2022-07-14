@@ -1,12 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.arrayOptionFn = exports.hlDesc = exports.hl = exports.lookupPackageJson = exports.findPackagesByNames = exports.completePackageName = void 0;
-const chalk_1 = __importDefault(require("chalk"));
-const fs_extra_1 = __importDefault(require("fs-extra"));
-const path_1 = __importDefault(require("path"));
+const tslib_1 = require("tslib");
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const package_mgr_1 = require("../package-mgr");
 const misc_1 = require("../utils/misc");
 function* completePackageName(state, guessingNames) {

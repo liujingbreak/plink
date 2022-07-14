@@ -26,7 +26,7 @@ export function test() {
   // });
   const keys = _.range(0, len);
   for (let i = 0, l = len / 2; i < l; i++) {
-    let randomKeyIdx = Math.floor(Math.random() * keys.length);
+    const randomKeyIdx = Math.floor(Math.random() * keys.length);
     const key = keys[randomKeyIdx];
     keys.splice(randomKeyIdx, 1);
     // eslint-disable-next-line no-console

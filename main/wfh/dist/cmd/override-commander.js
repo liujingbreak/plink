@@ -1,16 +1,14 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.withGlobalOptions = exports.withCwdOption = exports.CommandOverrider = exports.PlinkCommand = exports.PlinkCommandHelp = exports.commander = void 0;
+const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,  @typescript-eslint/no-unsafe-return */
-const path_1 = __importDefault(require("path"));
-const commander_1 = __importDefault(require("commander"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const commander_1 = tslib_1.__importDefault(require("commander"));
 exports.commander = commander_1.default;
-const chalk_1 = __importDefault(require("chalk"));
-const log4js_1 = __importDefault(require("log4js"));
-const strip_ansi_1 = __importDefault(require("strip-ansi"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const strip_ansi_1 = tslib_1.__importDefault(require("strip-ansi"));
 const package_mgr_1 = require("../package-mgr");
 const misc_1 = require("../utils/misc");
 const utils_1 = require("./utils");

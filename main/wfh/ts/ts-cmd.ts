@@ -181,7 +181,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
         })
       ),
       action$.pipe(
-        ofType('_emitFile'),
+        ofType('emitFile'),
         op.map(async ({payload: [file, content]}) => {
           const destFile = realPathOf(file, commonRootDir, packageDirTree, false);
           if (destFile == null)

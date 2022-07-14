@@ -1,43 +1,18 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCommands = exports.cliPackageArgDesc = void 0;
+const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /// <reference path="./cfont.d.ts" />
 /* eslint-disable max-len */
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const commander_1 = __importDefault(require("commander"));
-const chalk_1 = __importDefault(require("chalk"));
-const op = __importStar(require("rxjs/operators"));
-const semver_1 = __importDefault(require("semver"));
+const fs_1 = tslib_1.__importDefault(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const commander_1 = tslib_1.__importDefault(require("commander"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
+const semver_1 = tslib_1.__importDefault(require("semver"));
 const log4js_1 = require("log4js");
-const pkgMgr = __importStar(require("../package-mgr"));
+const pkgMgr = tslib_1.__importStar(require("../package-mgr"));
 // import '../tsc-packages-slice';
 const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const misc_1 = require("../utils/misc");
@@ -52,7 +27,7 @@ exports.cliPackageArgDesc = 'Single or multiple package names, the "scope" name 
 async function createCommands(startTime) {
     process.title = 'Plink';
     // const {stateFactory}: typeof store = require('../store');
-    await Promise.resolve().then(() => __importStar(require('./cli-slice')));
+    await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-slice')));
     let cliExtensions;
     const program = new commander_1.default.Command('plink')
         .description(chalk_1.default.cyan('A pluggable monorepo and multi-repo management tool'))
@@ -153,7 +128,7 @@ function subComands(program) {
         .action(async (workspace) => {
         // eslint-disable-next-line no-console
         console.log((0, misc_1.sexyFont)('PLink').string);
-        (await Promise.resolve().then(() => __importStar(require('./cli-init')))).default(initCmd.opts(), workspace);
+        (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-init')))).default(initCmd.opts(), workspace);
     });
     addNpmInstallOption(initCmd);
     /**
@@ -169,7 +144,7 @@ function subComands(program) {
         .action(async (action, projectDir) => {
         // eslint-disable-next-line no-console
         console.log((0, misc_1.sexyFont)('PLink').string);
-        (await Promise.resolve().then(() => __importStar(require('./cli-project')))).default({ isSrcDir: false }, action, projectDir);
+        (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-project')))).default({ isSrcDir: false }, action, projectDir);
     });
     program.command('src [add|remove] [dir...]')
         .description('Associate, disassociate or list source directories, Plink will' +
@@ -180,7 +155,7 @@ function subComands(program) {
         .action(async (action, dirs) => {
         // eslint-disable-next-line no-console
         console.log((0, misc_1.sexyFont)('PLink').string);
-        (await Promise.resolve().then(() => __importStar(require('./cli-project')))).default({ isSrcDir: true }, action, dirs);
+        (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-project')))).default({ isSrcDir: true }, action, dirs);
     });
     /**
      * command lint
@@ -205,7 +180,7 @@ function subComands(program) {
         // .option('--only-symlink', 'Clean only symlinks, not dist directory', false)
         .action(async () => {
         const scanNodeModules = require('../utils/symlinks').default;
-        const editor = await Promise.resolve().then(() => __importStar(require('../editor-helper')));
+        const editor = await Promise.resolve().then(() => tslib_1.__importStar(require('../editor-helper')));
         editor.dispatcher.clearSymlinks();
         await editor.getAction$('clearSymlinksDone').pipe(op.take(1)).toPromise();
         await scanNodeModules(undefined, 'all');
@@ -220,7 +195,7 @@ function subComands(program) {
         ' (All NPM config environment variables will affect dependency installation, see https://docs.npmjs.com/cli/v7/using-npm/config#environment-variables)')
         .action(async () => {
         skipVersionCheck = true;
-        await (await Promise.resolve().then(() => __importStar(require('./cli-link-plink')))).reinstallWithLinkedPlink(upgradeCmd.opts());
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-link-plink')))).reinstallWithLinkedPlink(upgradeCmd.opts());
     });
     addNpmInstallOption(upgradeCmd);
     // program.command('dockerize <workspace-dir>')
@@ -235,7 +210,7 @@ function subComands(program) {
         .option('--hoist', 'list hoisted transitive Dependency information', false)
         .description('If you want to know how many packages will actually run, this command prints out a list and the priorities, including installed packages')
         .action(async () => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-ls')))).default(listCmd.opts());
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-ls')))).default(listCmd.opts());
     });
     const addCmd = program.command('add <dependency...>')
         .description('Add dependency to package.json file, with option "--dev" to add as "devDependencies", ' +
@@ -244,7 +219,7 @@ function subComands(program) {
     })
         .option('--to <pkg name | worktree dir | pkg dir>', 'add dependency to the package.json of specific linked source package by name or directory, or a worktree space directory')
         .action(async (packages) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-add-package')))).addDependencyTo(packages, addCmd.opts().to, addCmd.opts().dev);
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-add-package')))).addDependencyTo(packages, addCmd.opts().to, addCmd.opts().dev);
     });
     const tsconfigCmd = program.command('tsconfig')
         .description('List tsconfig.json, jsconfig.json files which will be updated automatically by Plink, (a monorepo means there are node packages which are symlinked from real source code directory' +
@@ -253,7 +228,7 @@ function subComands(program) {
         .option('--unhook <file>', 'remove tsconfig/jsconfig file from Plink\'s automatic updating file list', utils_1.arrayOptionFn, [])
         .option('--clear,--unhook-all', 'remove all tsconfig files from from Plink\'s automatic updating file list', false)
         .action(async () => {
-        (await Promise.resolve().then(() => __importStar(require('./cli-tsconfig-hook')))).doTsconfig(tsconfigCmd.opts());
+        (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-tsconfig-hook')))).doTsconfig(tsconfigCmd.opts());
     });
     /**
      * Bump command
@@ -266,7 +241,7 @@ function subComands(program) {
     }, [])
         .option('-i, --incre-version <value>', 'version increment, valid values are: major, minor, patch, prerelease', 'patch')
         .action(async (packages) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-bump')))).default(Object.assign(Object.assign({}, bumpCmd.opts()), { packages }));
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-bump')))).default(Object.assign(Object.assign({}, bumpCmd.opts()), { packages }));
     });
     // withGlobalOptions(bumpCmd);
     // bumpCmd.usage(bumpCmd.usage() + '\n' + hl('plink bump <package> ...') + ' to recursively bump package.json from multiple directories\n' +
@@ -283,7 +258,7 @@ function subComands(program) {
         .option('--jf, --json-file <pkg-json-file>', 'the package.json file in which "devDependencies", "dependencies" should to be changed according to packed file, ' +
         'by default package.json files in all work spaces will be checked and changed')
         .action(async (packages) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-pack')))).pack(Object.assign(Object.assign({}, packCmd.opts()), { packages }));
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-pack')))).pack(Object.assign(Object.assign({}, packCmd.opts()), { packages }));
     });
     // withGlobalOptions(packCmd);
     packCmd.usage(packCmd.usage() + '\nBy default, run "npm pack" for each linked package which are dependencies of current workspace');
@@ -301,7 +276,7 @@ function subComands(program) {
         .option('-w,--workspace <workspace-dir>', 'publish packages which are linked as dependency of specific workspaces', utils_1.arrayOptionFn, [])
         .option('--public', 'same as "npm publish" command option "--access public"', true)
         .action(async (packages) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-pack')))).publish(Object.assign(Object.assign({}, publishCmd.opts()), { packages }));
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-pack')))).publish(Object.assign(Object.assign({}, publishCmd.opts()), { packages }));
     });
     const analysisCmd = program.command('analyze')
         .alias('analyse')
@@ -316,7 +291,7 @@ function subComands(program) {
         .option('--tsconfig <file>', 'Use "compilerOptions.paths" property to resolve ts/js file module')
         .option('--alias <alias-express>', 'multiple JSON express, e.g. --alias \'"^@/(.+)$","src/$1"\'', utils_1.arrayOptionFn, [])
         .action(async (packages) => {
-        return (await Promise.resolve().then(() => __importStar(require('./cli-analyze')))).default(packages, analysisCmd.opts());
+        return (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-analyze')))).default(packages, analysisCmd.opts());
     });
     analysisCmd.usage(analysisCmd.usage() + '\n' +
         'e.g.\n  ' + chalk_1.default.blue('plink analyze -f "packages/foobar1/**/*" -f packages/foobar2/ts/main.ts\n  ' +
@@ -336,7 +311,7 @@ function subComands(program) {
         .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
         'Because we store absolute path info of each package in internal state, and it will become invalid after you rename or move directory')
         .action(async (workspace) => {
-        (await Promise.resolve().then(() => __importStar(require('./cli-ls')))).checkDir(updateDirCmd.opts());
+        (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-ls')))).checkDir(updateDirCmd.opts());
     });
 }
 function spaceOnlySubCommands(program) {
@@ -365,7 +340,7 @@ function spaceOnlySubCommands(program) {
         .option('--co <JSON-string>', `Partial compiler options to be merged (except "baseUrl"), "paths" must be relative to ${path_1.default.relative(process.cwd(), misc_1.plinkEnv.workDir) || 'current directory'}`)
         .action(async (packages) => {
         const opt = tscCmd.opts();
-        const tsc = await Promise.resolve().then(() => __importStar(require('../ts-cmd')));
+        const tsc = await Promise.resolve().then(() => tslib_1.__importStar(require('../ts-cmd')));
         await tsc.tsc({
             package: packages,
             project: opt.project,
@@ -389,13 +364,13 @@ function spaceOnlySubCommands(program) {
     program.command('setting [package]')
         .description('List packages setting and values', { package: 'package name, only list setting for specific package' })
         .action(async (pkgName) => {
-        (await Promise.resolve().then(() => __importStar(require('./cli-setting')))).default(pkgName);
+        (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-setting')))).default(pkgName);
     });
     /** command run*/
     const runCmd = program.command('run <target> [arguments...]')
         .description('Run specific module\'s exported function\n')
         .action(async (target, args) => {
-        await (await Promise.resolve().then(() => __importStar(require('../package-runner')))).runSinglePackage({ target, args });
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('../package-runner')))).runSinglePackage({ target, args });
     });
     runCmd.usage(runCmd.usage() + '\n' + chalk_1.default.green('plink run <target> [arguments...]\n') +
         `e.g.\n  ${chalk_1.default.green('plink run ../packages/forbar-package/dist/file.js#function argument1 argument2...')}\n` +

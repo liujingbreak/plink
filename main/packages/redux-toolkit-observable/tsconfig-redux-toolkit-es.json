@@ -1,6 +1,6 @@
 {
-	"extends": "./wfh/tsconfig-base.json",
-	"compilerOptions": {
+  "extends": "../../wfh/tsconfig-base.json",
+  "compilerOptions": {
     "rootDir": ".",
     "target": "ES2017",
     "module": "ESNext",
@@ -8,9 +8,9 @@
     "declaration": true,
     "strict": true,
     "composite": true,
-    "sourceMap": false,
-		"inlineSourceMap": false,
-		"inlineSources": false
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "inlineSources": true
   },
   "include": [
     "*.ts"

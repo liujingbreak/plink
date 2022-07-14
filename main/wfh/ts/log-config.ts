@@ -1,9 +1,9 @@
 // eslint-disable  no-console
-import fs from 'fs-extra';
 import Path from 'path';
+import fs from 'fs-extra';
+import log4js from 'log4js';
 import {PlinkSettings} from './config-handler';
 // import config from './config';
-import log4js from 'log4js';
 const log = log4js.getLogger('plink.log-config');
 
 export default function(configObj: PlinkSettings) {

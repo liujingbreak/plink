@@ -1,30 +1,8 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.test = void 0;
-const _ = __importStar(require("lodash"));
+const tslib_1 = require("tslib");
+const _ = tslib_1.__importStar(require("lodash"));
 const data_structures_1 = require("./data-structures");
 const graph_1 = require("./graph");
 function test() {
@@ -48,7 +26,7 @@ function test() {
     // });
     const keys = _.range(0, len);
     for (let i = 0, l = len / 2; i < l; i++) {
-        let randomKeyIdx = Math.floor(Math.random() * keys.length);
+        const randomKeyIdx = Math.floor(Math.random() * keys.length);
         const key = keys[randomKeyIdx];
         keys.splice(randomKeyIdx, 1);
         // eslint-disable-next-line no-console

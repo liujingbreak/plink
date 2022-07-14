@@ -1,44 +1,19 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mapPackagesByType = exports.prepareLazyNodeInjector = exports.initInjectorForNodePackages = exports.runPackages = exports.runSinglePackage = exports.runServer = exports.readPriorityProperty = exports.isServerPackage = void 0;
+const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable  max-len */
-const path_1 = __importDefault(require("path"));
-const _ = __importStar(require("lodash"));
-const log4js_1 = __importDefault(require("log4js"));
-const chalk_1 = __importDefault(require("chalk"));
-const op = __importStar(require("rxjs/operators"));
-const rx = __importStar(require("rxjs"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const _ = tslib_1.__importStar(require("lodash"));
+const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
+const rx = tslib_1.__importStar(require("rxjs"));
 const package_info_gathering_1 = require("./package-mgr/package-info-gathering");
 const injector_factory_1 = require("./injector-factory");
 const package_priority_helper_1 = require("./package-priority-helper");
-const packageNodeInstance_1 = __importDefault(require("./packageNodeInstance"));
+const packageNodeInstance_1 = tslib_1.__importDefault(require("./packageNodeInstance"));
 const package_utils_1 = require("./package-utils");
 const package_mgr_1 = require("./package-mgr");
 const package_list_helper_1 = require("./package-mgr/package-list-helper");

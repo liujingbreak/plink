@@ -16,7 +16,7 @@ export const isWin32 = os.platform().indexOf('win32') >= 0;
 const log = log4js.getLogger('plink.fork-for-preserver-symlink');
 
 export function workDirChangedByCli() {
-  let argv = process.argv.slice(2);
+  const argv = process.argv.slice(2);
   const foundCmdOptIdx =  argv.findIndex(arg => arg === '--cwd' || arg === '--space');
   const workdir = foundCmdOptIdx >= 0 ? Path.resolve(plinkEnv.rootDir,  argv[foundCmdOptIdx + 1]) : null;
   if (workdir) {
@@ -27,10 +27,10 @@ export function workDirChangedByCli() {
 }
 
 export default function run(moduleName: string, opts: {
-    stateExitAction?: 'save' | 'send' | 'none';
-    handleShutdownMsg?: boolean;
-  },
-  bootStrap: () => ((Array<() => rx.ObservableInput<unknown>>) | void)) {
+  stateExitAction?: 'save' | 'send' | 'none';
+  handleShutdownMsg?: boolean;
+},
+bootStrap: () => ((Array<() => rx.ObservableInput<unknown>>) | void)) {
 
   if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
     void forkFile(moduleName, opts.handleShutdownMsg != null ? opts.handleShutdownMsg : false);
@@ -109,7 +109,7 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
   const onChildExit$ = new rx.ReplaySubject<number>();
   cp.once('exit', code => {
     // if (code !== 0) {
-      // console.log('child process exits:', code);
+    // console.log('child process exits:', code);
     // }
     onChildExit$.next(code || 0);
     onChildExit$.complete();
@@ -144,8 +144,8 @@ async function removeNodeModuleSymlink() {
     let stat: fs.Stats | undefined;
     try {
       stat = await fs.promises.lstat(link);
-    if (!stat.isSymbolicLink())
-      return null;
+      if (!stat.isSymbolicLink())
+        return null;
     } catch (ex) {
       return null;
     }

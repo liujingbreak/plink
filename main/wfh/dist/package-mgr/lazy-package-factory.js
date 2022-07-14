@@ -1,11 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseName = void 0;
+const tslib_1 = require("tslib");
 const dir_tree_1 = require("require-injector/dist/dir-tree");
-const packageNodeInstance_1 = __importDefault(require("../packageNodeInstance"));
+const packageNodeInstance_1 = tslib_1.__importDefault(require("../packageNodeInstance"));
 const misc_1 = require("../utils/misc");
 const path_1 = require("path");
 /**

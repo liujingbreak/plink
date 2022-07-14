@@ -94,3 +94,4 @@ export function useTinyReduxTookit(optsFactory, ...epicFactories) {
     }, []);
     return [state, slice];
 }
+//# sourceMappingURL=tiny-redux-toolkit-hook.js.map

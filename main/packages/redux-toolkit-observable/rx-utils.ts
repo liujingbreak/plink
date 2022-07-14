@@ -6,18 +6,28 @@
 import {Observable, Subject} from 'rxjs';
 import {filter, tap, share} from 'rxjs/operators';
 
+type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
+
 export type ActionTypes<AC> = {
   [K in keyof AC]: {
     type: K;
-    payload: AC[K] extends () => any
-      ? undefined
-      : AC[K] extends (p: infer P) => any
-        ? P
-        : AC[K] extends (...p: infer PArray) => any
-          ? PArray
-          : unknown;
+    payload: InferParam<AC[K]>;
   };
 };
+
+
+type InferParam<F> = Plen<F> extends 1 | 0 ?
+  (F extends (a: infer A) => any ? A : unknown)
+  :
+  Plen<F> extends 2 ? F extends (...p: infer P) => any ? P : unknown
+    :
+    Plen<F> extends 1 | 2 ?
+      F extends (a: infer A, b: infer B) => any ?
+        A | [A, B]
+        :
+        F extends (...p: infer P) => any ? P : unknown
+      :
+      F extends (...p: infer P) => any ? P : unknown;
 
 /**
  * create Stream of action stream and action dispatcher,
@@ -41,7 +51,7 @@ export function createActionStream<AC>(actionCreator: AC, debug?: boolean) {
       const action = {
         type,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        payload: params.length === 1 ? params[0] : params
+        payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
       } as ActionTypes<AC>[keyof ActionTypes<AC>];
       actionUpstream.next(action);
     };
@@ -54,6 +64,7 @@ export function createActionStream<AC>(actionCreator: AC, debug?: boolean) {
           // eslint-disable-next-line no-console
           console.log('%c rx:action ', 'color: white; background: #8c61ff;', action.type);
         }
+        // eslint-disable-next-line no-console
         : action => console.log('rx:action', action.type)),
       share()
     )
@@ -102,7 +113,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
       const action = {
         type,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        payload: params.length === 1 ? params[0] : params
+        payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
       } as ActionTypes<AC>[keyof ActionTypes<AC>];
       actionUpstream.next(action);
     };

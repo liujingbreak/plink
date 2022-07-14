@@ -1,11 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const commander_1 = __importDefault(require("commander"));
-const fork_for_preserve_symlink_1 = __importDefault(require("./fork-for-preserve-symlink"));
-const log_config_1 = __importDefault(require("./log-config"));
+const tslib_1 = require("tslib");
+const commander_1 = tslib_1.__importDefault(require("commander"));
+const fork_for_preserve_symlink_1 = tslib_1.__importDefault(require("./fork-for-preserve-symlink"));
+const log_config_1 = tslib_1.__importDefault(require("./log-config"));
 (0, fork_for_preserve_symlink_1.default)('@wfh/plink/wfh/dist/app-server.js', { stateExitAction: 'none', handleShutdownMsg: true }, () => {
     const { version } = require('../../package.json');
     /** Emitted function will be executed during server shutdown phase */

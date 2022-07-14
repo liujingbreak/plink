@@ -127,3 +127,4 @@ demoSlice.addEpic(slice => {
 });
 action$OfSlice(demoSlice, 'hellow').pipe(op.tap(action => console.log(action)));
 action$OfSlice(demoSlice, 'world').pipe(op.tap(action => console.log(action)));
+//# sourceMappingURL=react-redux-helper.js.map

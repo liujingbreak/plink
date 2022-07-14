@@ -1,13 +1,11 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 /**
  * Node option prever-symlink does not effect on "main" file, so this file acts as main file to call real file from
  * a symlink location
  */
-const path_1 = __importDefault(require("path"));
+const path_1 = tslib_1.__importDefault(require("path"));
 let dir = process.env.PLINK_WORK_DIR ? process.env.PLINK_WORK_DIR : process.cwd();
 const root = path_1.default.parse(dir).root;
 let target;

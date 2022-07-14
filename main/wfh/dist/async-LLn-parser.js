@@ -1,12 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LookAhead = exports.mapChunks = exports.mapChunksObs = exports.parser = exports.Token = exports.Chunk = void 0;
+const tslib_1 = require("tslib");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const util_1 = __importDefault(require("util"));
+const util_1 = tslib_1.__importDefault(require("util"));
 class Chunk {
     constructor(pos, line, col) {
         this.pos = pos;
