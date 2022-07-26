@@ -2,6 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerExtension = exports.transpileAndCheck = exports.transpileSingleTs = exports.jsonToCompilerOptions = exports.readTsConfig = void 0;
 const tslib_1 = require("tslib");
+/**
+ * Deprecated: use main/wfh/ts/utils/tsc-util.ts instead
+ */
 const fs_1 = require("fs");
 const Path = tslib_1.__importStar(require("path"));
 const ts = tslib_1.__importStar(require("typescript"));

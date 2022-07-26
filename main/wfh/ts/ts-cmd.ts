@@ -58,7 +58,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   const compDirInfo: Map<string, PackageDirInfo> = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
 
   const packageDirTree = new DirTree<PackageDirInfo>();
-  const commonRootDir = plinkEnv.workDir;
+  const workDir = plinkEnv.workDir;
   // const commonRootDir = plinkEnv.rootDir;
 
   let countPkg = 0;
@@ -73,7 +73,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   // const commonRootDir = closestCommonParentDir(pkgInfos.map(pkg => pkg.realPath));
   await Promise.all(pkgInfos.map(pkg => onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath)));
   for (const info of compDirInfo.values()) {
-    const treePath = relative(commonRootDir, info.pkgDir);
+    const treePath = relative(workDir, info.pkgDir);
     log.debug('treePath', treePath);
     packageDirTree.putData(treePath, info);
   }
@@ -160,9 +160,9 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       jsx: argv.jsx,
       inlineSourceMap: false,
       emitDeclarationOnly: argv.ed,
-      basePath: commonRootDir,
+      basePath: workDir,
       changeCompilerOptions(co) {
-        setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, commonRootDir.replace(/\\/g, '/'), argv, ts);
+        setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, workDir.replace(/\\/g, '/'), argv, ts);
       }
     }
   });
@@ -183,7 +183,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       action$.pipe(
         ofType('emitFile'),
         op.map(async ({payload: [file, content]}) => {
-          const destFile = realPathOf(file, commonRootDir, packageDirTree, false);
+          const destFile = realPathOf(file, workDir, packageDirTree, false);
           if (destFile == null)
             return;
           writtenFile$.next(destFile);

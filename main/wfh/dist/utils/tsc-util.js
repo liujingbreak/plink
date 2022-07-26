@@ -1,17 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.test = exports.languageServices = exports.LogLevel = exports.createTranspileFileWithTsCheck = exports.transpileSingleFile = void 0;
+exports.test = exports.registerNode = exports.languageServices = exports.LogLevel = exports.createTranspileFileWithTsCheck = exports.transpileSingleFile = void 0;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
-const typescript_1 = tslib_1.__importDefault(require("typescript"));
 // import inspector from 'inspector';
+const typescript_1 = tslib_1.__importDefault(require("typescript"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const chokidar_1 = tslib_1.__importDefault(require("chokidar"));
 const rx_utils_1 = require("../../../packages/redux-toolkit-observable/dist/rx-utils");
 // import {createActionStream} from '../../../packages/redux-toolkit-observable/rx-utils';
 const ts_cmd_util_1 = require("../ts-cmd-util");
+const misc_1 = require("./misc");
 function plinkNodeJsCompilerOptionJson(ts, opts = {}) {
     const { jsx = false, inlineSourceMap = false, emitDeclarationOnly = false } = opts;
     let baseCompilerOptions;
@@ -253,6 +254,27 @@ function languageServices(ts = typescript_1.default, opts = {}) {
     };
 }
 exports.languageServices = languageServices;
+function registerNode() {
+    const compile = createTranspileFileWithTsCheck(typescript_1.default, {
+        tscOpts: { inlineSourceMap: true, basePath: misc_1.plinkEnv.workDir }
+    });
+    const ext = '.ts';
+    const old = require.extensions[ext] || require.extensions['.js'];
+    require.extensions[ext] = function (m, filename) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const _compile = m._compile;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        m._compile = function (code, fileName) {
+            const { code: jscode } = compile(code, fileName);
+            // console.log(jscode);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            return _compile.call(this, jscode, fileName);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return old(m, filename);
+    };
+}
+exports.registerNode = registerNode;
 function test(dir) {
     const { action$, ofType } = languageServices([dir]);
     action$

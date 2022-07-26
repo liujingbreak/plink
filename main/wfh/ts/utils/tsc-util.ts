@@ -1,13 +1,14 @@
 import fs from 'fs';
 import Path from 'path';
-import _ts from 'typescript';
 // import inspector from 'inspector';
+import _ts from 'typescript';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import chokidar from 'chokidar';
 import {createActionStreamByType} from '../../../packages/redux-toolkit-observable/dist/rx-utils';
 // import {createActionStream} from '../../../packages/redux-toolkit-observable/rx-utils';
 import {parseConfigFileToJson} from '../ts-cmd-util';
+import {plinkEnv} from './misc';
 // inspector.open(9222, 'localhost', true);
 
 type TscOptions = {
@@ -405,6 +406,27 @@ export function languageServices( ts: any = _ts, opts: {
     action$,
     ofType,
     store: store.pipe(op.map(s => s.files))
+  };
+}
+
+export function registerNode() {
+  const compile = createTranspileFileWithTsCheck(_ts, {
+    tscOpts: {inlineSourceMap: true, basePath: plinkEnv.workDir}
+  });
+  const ext = '.ts';
+  const old = require.extensions[ext] || require.extensions['.js'];
+  require.extensions[ext] = function(m: any, filename) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const _compile = m._compile;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    m._compile = function(code: string, fileName: string) {
+      const {code: jscode} = compile(code, fileName);
+      // console.log(jscode);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      return _compile.call(this, jscode, fileName);
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return old(m, filename);
   };
 }
 

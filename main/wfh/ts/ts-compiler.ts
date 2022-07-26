@@ -1,3 +1,6 @@
+/**
+ * Deprecated: use main/wfh/ts/utils/tsc-util.ts instead
+ */
 import {readFileSync} from 'fs';
 import * as Path from 'path';
 import * as ts from 'typescript';

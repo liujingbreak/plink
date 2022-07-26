@@ -32,7 +32,7 @@ async function tsc(argv, ts = typescript_1.default) {
     const includePatterns = [];
     const compDirInfo = new Map(); // {[name: string]: {srcDir: string, destDir: string}}
     const packageDirTree = new dir_tree_1.DirTree();
-    const commonRootDir = misc_1.plinkEnv.workDir;
+    const workDir = misc_1.plinkEnv.workDir;
     // const commonRootDir = plinkEnv.rootDir;
     let countPkg = 0;
     let pkgInfos;
@@ -47,7 +47,7 @@ async function tsc(argv, ts = typescript_1.default) {
     // const commonRootDir = closestCommonParentDir(pkgInfos.map(pkg => pkg.realPath));
     await Promise.all(pkgInfos.map(pkg => onComponent(pkg.name, pkg.path, null, pkg.json, pkg.realPath)));
     for (const info of compDirInfo.values()) {
-        const treePath = (0, path_1.relative)(commonRootDir, info.pkgDir);
+        const treePath = (0, path_1.relative)(workDir, info.pkgDir);
         log.debug('treePath', treePath);
         packageDirTree.putData(treePath, info);
     }
@@ -128,9 +128,9 @@ async function tsc(argv, ts = typescript_1.default) {
             jsx: argv.jsx,
             inlineSourceMap: false,
             emitDeclarationOnly: argv.ed,
-            basePath: commonRootDir,
+            basePath: workDir,
             changeCompilerOptions(co) {
-                setupCompilerOptionsWithPackages(co, commonRootDir.replace(/\\/g, '/'), argv, ts);
+                setupCompilerOptionsWithPackages(co, workDir.replace(/\\/g, '/'), argv, ts);
             }
         }
     });
@@ -140,7 +140,7 @@ async function tsc(argv, ts = typescript_1.default) {
         return rx.merge(action$.pipe(ofType('onCompilerOptions'), op.take(1), op.map(({ payload: compilerOptions }) => {
             log.info('typescript compilerOptions:', compilerOptions);
         })), action$.pipe(ofType('emitFile'), op.map(async ({ payload: [file, content] }) => {
-            const destFile = realPathOf(file, commonRootDir, packageDirTree, false);
+            const destFile = realPathOf(file, workDir, packageDirTree, false);
             if (destFile == null)
                 return;
             writtenFile$.next(destFile);

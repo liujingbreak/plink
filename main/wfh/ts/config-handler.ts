@@ -8,6 +8,7 @@ import {Draft} from '@reduxjs/toolkit';
 import {GlobalOptions as CliOptions} from './cmd/types';
 import {getRootDir, getWorkDir} from './utils/misc';
 import {PlinkSettings} from './config/config-slice';
+import * as _tscUtil from './utils/tsc-util';
 
 // import {registerExtension, jsonToCompilerOptions} from './ts-compiler';
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -69,7 +70,7 @@ export class ConfigHandlerMgr {
 
     if (!ConfigHandlerMgr._tsNodeRegistered) {
       ConfigHandlerMgr._tsNodeRegistered = true;
-      require('./utils/ts-node-setup');
+      (require('./utils/tsc-util') as typeof _tscUtil).registerNode();
     }
     for (const [file, exportName] of fileAndExports) {
       const absFile = Path.isAbsolute(file) ? file : Path.resolve(file);

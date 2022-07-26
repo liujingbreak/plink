@@ -1,6 +1,3 @@
-// import * as op from 'rxjs/operators';
-// import * as rx from 'rxjs';
-// import inspector from 'inspector';
 import {TransformerCreator, SyncTransformer} from '@jest/transform';
 import {createTranspileFileWithTsCheck} from '@wfh/plink/wfh/dist/utils/tsc-util';
 // import logConfig from '@wfh/plink/wfh/dist/log-config';

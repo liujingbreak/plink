@@ -31,7 +31,7 @@ class ConfigHandlerMgr {
         const exporteds = [];
         if (!ConfigHandlerMgr._tsNodeRegistered) {
             ConfigHandlerMgr._tsNodeRegistered = true;
-            require('./utils/ts-node-setup');
+            require('./utils/tsc-util').registerNode();
         }
         for (const [file, exportName] of fileAndExports) {
             const absFile = Path.isAbsolute(file) ? file : Path.resolve(file);
