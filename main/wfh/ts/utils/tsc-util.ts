@@ -289,7 +289,7 @@ export function languageServices( ts: any = _ts, opts: {
       )
     ),
     addSourceFile$.pipe(
-      op.filter(({payload: [file]}) => /\.(?:tsx?|json)$/.test(file)),
+      op.filter(({payload: [file]}) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)),
       op.map(({payload: [fileName, sync, content]}) => {
         setState(s => {
           s.files.add(fileName);
@@ -320,7 +320,7 @@ export function languageServices( ts: any = _ts, opts: {
       })
     ),
     changeSourceFile$.pipe(
-      op.filter(({payload: [file]}) => /\.(?:tsx?|json)$/.test(file)),
+      op.filter(({payload: [file]}) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)),
       // TODO: debounce on same file changes
       op.map(({payload: [fileName, content]}) => {
         setState(s => {

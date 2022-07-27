@@ -170,7 +170,7 @@ function languageServices(ts = typescript_1.default, opts = {}) {
                 console.log('[tsc-util] chokidar watcher stops');
             });
         };
-    }))), addSourceFile$.pipe(op.filter(({ payload: [file] }) => /\.(?:tsx?|json)$/.test(file)), op.map(({ payload: [fileName, sync, content] }) => {
+    }))), addSourceFile$.pipe(op.filter(({ payload: [file] }) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)), op.map(({ payload: [fileName, sync, content] }) => {
         setState(s => {
             s.files.add(fileName);
             s.versions.set(fileName, 0);
@@ -195,7 +195,7 @@ function languageServices(ts = typescript_1.default, opts = {}) {
             s.unemitted.clear();
             return s;
         });
-    })), changeSourceFile$.pipe(op.filter(({ payload: [file] }) => /\.(?:tsx?|json)$/.test(file)), 
+    })), changeSourceFile$.pipe(op.filter(({ payload: [file] }) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)), 
     // TODO: debounce on same file changes
     op.map(({ payload: [fileName, content] }) => {
         setState(s => {
