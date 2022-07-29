@@ -168,8 +168,9 @@ function createOfTypeOperator<AC>(): OfTypeFn<AC> {
   return <T extends keyof AC>(...types: T[]) =>
     (upstream: Observable<any>) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return upstream.pipe(filter(action => types.some(type => action.type === type))) as Observable<
-      ActionTypes<AC>[T]
-      >;
+      return upstream.pipe(
+        filter((action) : action is ActionTypes<AC>[T] => types.some((type) => action.type === type)),
+        share()
+      ) ;
     };
 }
