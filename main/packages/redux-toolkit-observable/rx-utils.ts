@@ -45,14 +45,14 @@ type InferParam<F> = Plen<F> extends 1 | 0 ?
  */
 export function createActionStream<AC>(actionCreator: AC, debug?: boolean) {
   const dispatcher = {} as AC;
-  const actionUpstream = new Subject<ActionTypes<AC>[keyof ActionTypes<AC>]>();
+  const actionUpstream = new Subject<ActionTypes<AC>[keyof AC]>();
   for (const type of Object.keys(actionCreator)) {
     dispatcher[type] = (...params: any[]) => {
       const action = {
         type,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
-      } as ActionTypes<AC>[keyof ActionTypes<AC>];
+      } as ActionTypes<AC>[keyof AC];
       actionUpstream.next(action);
     };
   }
@@ -102,7 +102,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
   debug?: string | boolean;
   log?: (msg: string, ...objs: any[]) => unknown;
 } = {}) {
-  const actionUpstream = new Subject<ActionTypes<AC>[keyof ActionTypes<AC>]>();
+  const actionUpstream = new Subject<ActionTypes<AC>[keyof AC]>();
   const dispatcher = {} as AC;
 
   function dispatchFactory(type: keyof AC) {
@@ -114,7 +114,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
         type,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
-      } as ActionTypes<AC>[keyof ActionTypes<AC>];
+      } as ActionTypes<AC>[keyof AC];
       actionUpstream.next(action);
     };
     dispatcher[type] = dispatch as AC[keyof AC];

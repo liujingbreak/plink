@@ -176,7 +176,10 @@ export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<
   for (const reducerName of Object.keys(actionCreators)) {
     Object.defineProperty(splitActions, reducerName, {
       get() {
-        return source.pipe(ofPayloadAction(actionCreators[reducerName]));
+        return source.pipe(
+          ofPayloadAction(actionCreators[reducerName]),
+          op.share()
+        );
       }
     });
   }

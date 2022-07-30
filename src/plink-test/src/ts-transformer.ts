@@ -9,7 +9,10 @@ const transformerWithTsCheck = createTranspileFileWithTsCheck(ts, {});
 const createTransformer: TransformerCreator<SyncTransformer<Record<string, unknown>>, Record<string, unknown>> = (_config) => {
   const transformer: SyncTransformer<Record<string, unknown>> = {
     process(sourceText, sourcePath, _options) {
-      return transformerWithTsCheck(sourceText, sourcePath);
+      const done = transformerWithTsCheck(sourceText, sourcePath);
+      // eslint-disable-next-line no-console
+      console.log('[ts-transformer] transpile', sourcePath);
+      return done;
       // const compiled = transpileSingleFile(sourceText, ts);
       // if (compiled.diagnosticsText) {
       //   console.error(compiled.diagnosticsText);

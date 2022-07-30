@@ -112,7 +112,7 @@ function createIsActionTypeFn() {
 function createOfTypeOperator() {
     return (...types) => (upstream) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        return upstream.pipe(filter(action => types.some(type => action.type === type)));
+        return upstream.pipe(filter((action) => types.some((type) => action.type === type)), share());
     };
 }
 //# sourceMappingURL=rx-utils.js.map

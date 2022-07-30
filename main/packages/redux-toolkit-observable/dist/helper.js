@@ -136,7 +136,7 @@ function castByActionType(actionCreators, action$) {
     for (const reducerName of Object.keys(actionCreators)) {
         Object.defineProperty(splitActions, reducerName, {
             get() {
-                return source.pipe((0, redux_toolkit_observable_1.ofPayloadAction)(actionCreators[reducerName]));
+                return source.pipe((0, redux_toolkit_observable_1.ofPayloadAction)(actionCreators[reducerName]), op.share());
             }
         });
     }

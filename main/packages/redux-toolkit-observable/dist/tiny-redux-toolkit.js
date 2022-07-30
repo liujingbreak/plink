@@ -38,7 +38,7 @@ const rx = __importStar(require("rxjs"));
 const op = __importStar(require("rxjs/operators"));
 const ofPayloadAction = (...actionCreators) => {
     return function (src) {
-        return src.pipe(op.filter(action => actionCreators.some(ac => action.type === ac.type)));
+        return src.pipe(op.filter(action => actionCreators.some(ac => action.type === ac.type)), op.share());
     };
 };
 exports.ofPayloadAction = ofPayloadAction;
@@ -63,13 +63,12 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 function castByActionType(actionCreators, action$) {
-    const source = action$.pipe(op.share());
     const splitActions = {};
     for (const reducerName of Object.keys(actionCreators)) {
         Object.defineProperty(splitActions, reducerName, {
             get() {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                return source.pipe((0, exports.ofPayloadAction)(actionCreators[reducerName]));
+                return action$.pipe((0, exports.ofPayloadAction)(actionCreators[reducerName]));
             }
         });
     }
@@ -103,8 +102,10 @@ function createSlice(opt) {
         const creator = ((payload) => {
             const action = {
                 type,
-                payload: payload.length === 0 ? undefined :
-                    payload.length === 1 ? payload[0] :
+                payload: payload.length === 0
+                    ? undefined :
+                    payload.length === 1
+                        ? payload[0] :
                         payload,
                 reducer
             };
@@ -130,7 +131,7 @@ function createSlice(opt) {
     const action$ = new rx.Subject();
     function ofType(...actionTypes) {
         return function (src) {
-            return src.pipe(op.filter(action => actionTypes.some(ac => action.type === name + '/' + ac)));
+            return src.pipe(op.filter(action => actionTypes.some(ac => action.type === name + '/' + ac), op.share()));
         };
     }
     function dispatch(action) {
@@ -187,7 +188,9 @@ function createSlice(opt) {
             // eslint-disable-next-line no-console
             console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', state);
         }
-    })), opt.rootStore ? state$.pipe(op.tap(state => { var _a; return opt.rootStore.next(Object.assign(Object.assign({}, (_a = opt.rootStore) === null || _a === void 0 ? void 0 : _a.getValue()), { [opt.name]: state })); })) : rx.EMPTY).subscribe();
+    })), opt.rootStore
+        ? state$.pipe(op.tap(state => { var _a; return opt.rootStore.next(Object.assign(Object.assign({}, (_a = opt.rootStore) === null || _a === void 0 ? void 0 : _a.getValue()), { [opt.name]: state })); }))
+        : rx.EMPTY).subscribe();
     function destroy() {
         dispatch({
             type: '__OnDestroy'
