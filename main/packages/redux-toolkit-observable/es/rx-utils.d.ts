@@ -55,6 +55,7 @@ export declare function createActionStreamByType<AC extends Record<string, ((...
     debug?: string | boolean;
     log?: (msg: string, ...objs: any[]) => unknown;
 }): {
+    dispatcher: AC;
     dispatchFactory: SimpleActionDispatchFactory<AC>;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
     ofType: OfTypeFn<AC>;

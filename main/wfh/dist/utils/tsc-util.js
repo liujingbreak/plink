@@ -63,7 +63,7 @@ function transpileSingleFile(content, ts = typescript_1.default) {
 }
 exports.transpileSingleFile = transpileSingleFile;
 function createTranspileFileWithTsCheck(ts = typescript_1.default, opts) {
-    const { action$, ofType, dispatchFactory } = languageServices(ts, opts);
+    const { action$, ofType, dispatcher } = languageServices(ts, opts);
     return function (content, file) {
         let destFile;
         let sourceMap;
@@ -78,7 +78,7 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, opts) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             console.error('[tsc-util]', diagnostics);
         }))).subscribe();
-        dispatchFactory('addSourceFile')(file, true, content);
+        dispatcher.addSourceFile(file, true, content);
         return {
             code: destFile,
             map: sourceMap
@@ -94,7 +94,7 @@ var LogLevel;
 })(LogLevel = exports.LogLevel || (exports.LogLevel = {}));
 function languageServices(ts = typescript_1.default, opts = {}) {
     const ts0 = ts;
-    const { dispatchFactory, action$, ofType } = (0, rx_utils_1.createActionStreamByType)();
+    const { dispatcher, dispatchFactory, action$, ofType } = (0, rx_utils_1.createActionStreamByType)();
     const store = new rx.BehaviorSubject({
         versions: new Map(),
         files: new Set(),
@@ -119,7 +119,7 @@ function languageServices(ts = typescript_1.default, opts = {}) {
             return store.getValue().versions.get(fileName) + '' || '-1';
         },
         getCompilationSettings() {
-            dispatchFactory('onCompilerOptions')(co);
+            dispatcher.onCompilerOptions(co);
             return co;
         },
         getScriptSnapshot(fileName) {
@@ -142,15 +142,15 @@ function languageServices(ts = typescript_1.default, opts = {}) {
         useCaseSensitiveFileNames() {
             return ts0.sys.useCaseSensitiveFileNames;
         }, getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options), trace(s) {
-            dispatchFactory('log')(LogLevel.log, s);
+            dispatcher.log(LogLevel.log, s);
             // console.log('[lang-service trace]', s);
         },
         error(s) {
-            dispatchFactory('log')(LogLevel.error, s);
+            dispatcher.log(LogLevel.error, s);
             console.log('[lang-service error]', s);
         },
         log(s) {
-            dispatchFactory('log')(LogLevel.log, s);
+            dispatcher.log(LogLevel.log, s);
             console.log('[lang-service log]', s);
         } });
     const documentRegistry = ts0.createDocumentRegistry();
@@ -162,8 +162,8 @@ function languageServices(ts = typescript_1.default, opts = {}) {
     rx.merge(action$.pipe(ofType('watch'), op.exhaustMap(({ payload: dirs }) => new rx.Observable(() => {
         if (watcher == null)
             watcher = chokidar_1.default.watch(dirs.map(dir => dir.replace(/\\/g, '/')), opts.watcher);
-        watcher.on('add', path => dispatchFactory('addSourceFile')(path, false));
-        watcher.on('change', path => dispatchFactory('changeSourceFile')(path, null));
+        watcher.on('add', path => dispatcher.addSourceFile(path, false));
+        watcher.on('change', path => dispatcher.changeSourceFile(path, null));
         return () => {
             void watcher.close().then(() => {
                 // eslint-disable-next-line no-console
@@ -222,7 +222,7 @@ function languageServices(ts = typescript_1.default, opts = {}) {
             services = ts0.createLanguageService(serviceHost, documentRegistry);
             const coDiag = services.getCompilerOptionsDiagnostics();
             if (coDiag.length > 0)
-                dispatchFactory('onEmitFailure')(fileName, ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost), 'compilerOptions');
+                dispatcher.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost), 'compilerOptions');
         }
         const output = services.getEmitOutput(fileName);
         if (output.emitSkipped) {
@@ -230,23 +230,24 @@ function languageServices(ts = typescript_1.default, opts = {}) {
         }
         const syntDiag = services.getSyntacticDiagnostics(fileName);
         if (syntDiag.length > 0) {
-            dispatchFactory('onEmitFailure')(fileName, ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost), 'syntactic');
+            dispatcher.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost), 'syntactic');
         }
         const semanticDiag = services.getSemanticDiagnostics(fileName);
         if (semanticDiag.length > 0) {
-            dispatchFactory('onEmitFailure')(fileName, ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost), 'semantic');
+            dispatcher.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost), 'semantic');
         }
         const suggests = services.getSuggestionDiagnostics(fileName);
         for (const sug of suggests) {
             const { line, character } = sug.file.getLineAndCharacterOfPosition(sug.start);
-            dispatchFactory('onSuggest')(fileName, `${fileName}:${line + 1}:${character + 1} ` +
+            dispatcher.onSuggest(fileName, `${fileName}:${line + 1}:${character + 1} ` +
                 ts0.flattenDiagnosticMessageText(sug.messageText, '\n', 2));
         }
         output.outputFiles.forEach(o => {
-            dispatchFactory('emitFile')(o.name, o.text);
+            dispatcher.emitFile(o.name, o.text);
         });
     }
     return {
+        dispatcher,
         dispatchFactory,
         action$,
         ofType,

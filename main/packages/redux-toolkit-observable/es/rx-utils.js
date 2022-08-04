@@ -83,6 +83,11 @@ export function createActionStreamByType(opt = {}) {
         dispatcher[type] = dispatch;
         return dispatch;
     }
+    const dispatcherProxy = new Proxy({}, {
+        get(target, key, rec) {
+            return dispatchFactory(key);
+        }
+    });
     const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
     const action$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
@@ -97,6 +102,7 @@ export function createActionStreamByType(opt = {}) {
                     tap(action => console.log(debugName + 'rx:action', action.type)), share())
         : actionUpstream;
     return {
+        dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
         ofType: createOfTypeOperator(),

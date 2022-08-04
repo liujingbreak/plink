@@ -44,6 +44,7 @@ export declare function languageServices(ts?: any, opts?: {
     watcher?: chokidar.WatchOptions;
     tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]>;
 }): {
+    dispatcher: LangServiceActionCreator;
     dispatchFactory: <K extends keyof LangServiceActionCreator>(type: K) => LangServiceActionCreator[K];
     action$: rx.Observable<{
         type: "watch";

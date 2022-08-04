@@ -120,6 +120,11 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     dispatcher[type] = dispatch as AC[keyof AC];
     return dispatch;
   }
+  const dispatcherProxy = new Proxy<AC>({} as AC, {
+    get(target, key, rec) {
+      return dispatchFactory(key as keyof AC);
+    }
+  });
 
   const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
   const action$ = opt.debug
@@ -139,6 +144,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     : actionUpstream;
 
   return {
+    dispatcher: dispatcherProxy,
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
     action$,
     ofType: createOfTypeOperator<AC>(),

@@ -107,7 +107,7 @@ export function createTranspileFileWithTsCheck(
   ts: any = _ts,
   opts?: NonNullable<Parameters<typeof languageServices>[1]>
 ) {
-  const {action$, ofType, dispatchFactory} = languageServices(ts, opts);
+  const {action$, ofType, dispatcher} = languageServices(ts, opts);
 
   return function(content: string, file: string) {
     let destFile: string | undefined;
@@ -132,7 +132,7 @@ export function createTranspileFileWithTsCheck(
         })
       )
     ).subscribe();
-    dispatchFactory('addSourceFile')(file, true, content);
+    dispatcher.addSourceFile(file, true, content);
 
     return {
       code: destFile!,
@@ -181,7 +181,7 @@ export function languageServices( ts: any = _ts, opts: {
 } = {}
 ) {
   const ts0 = ts as typeof _ts;
-  const {dispatchFactory, action$, ofType} =
+  const {dispatcher, dispatchFactory, action$, ofType} =
     createActionStreamByType<LangServiceActionCreator>();
   const store = new rx.BehaviorSubject<LangServiceState>({
     versions: new Map(),
@@ -212,7 +212,7 @@ export function languageServices( ts: any = _ts, opts: {
       return store.getValue().versions.get(fileName) + '' || '-1';
     },
     getCompilationSettings() {
-      dispatchFactory('onCompilerOptions')(co);
+      dispatcher.onCompilerOptions(co);
       return co;
     },
     getScriptSnapshot(fileName: string) {
@@ -241,15 +241,15 @@ export function languageServices( ts: any = _ts, opts: {
     getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options),
 
     trace(s) {
-      dispatchFactory('log')(LogLevel.log, s);
+      dispatcher.log(LogLevel.log, s);
       // console.log('[lang-service trace]', s);
     },
     error(s) {
-      dispatchFactory('log')(LogLevel.error, s);
+      dispatcher.log(LogLevel.error, s);
       console.log('[lang-service error]', s);
     },
     log(s) {
-      dispatchFactory('log')(LogLevel.log, s);
+      dispatcher.log(LogLevel.log, s);
       console.log('[lang-service log]', s);
     }
   };
@@ -274,10 +274,10 @@ export function languageServices( ts: any = _ts, opts: {
               );
 
             watcher.on('add', path =>
-              dispatchFactory('addSourceFile')(path, false)
+              dispatcher.addSourceFile(path, false)
             );
             watcher.on('change', path =>
-              dispatchFactory('changeSourceFile')(path, null)
+              dispatcher.changeSourceFile(path, null)
             );
             return () => {
               void watcher.close().then(() => {
@@ -354,7 +354,7 @@ export function languageServices( ts: any = _ts, opts: {
       services = ts0.createLanguageService(serviceHost, documentRegistry);
       const coDiag = services.getCompilerOptionsDiagnostics();
       if (coDiag.length > 0)
-        dispatchFactory('onEmitFailure')(
+        dispatcher.onEmitFailure(
           fileName,
           ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost),
           'compilerOptions'
@@ -367,7 +367,7 @@ export function languageServices( ts: any = _ts, opts: {
 
     const syntDiag = services.getSyntacticDiagnostics(fileName);
     if (syntDiag.length > 0) {
-      dispatchFactory('onEmitFailure')(
+      dispatcher.onEmitFailure(
         fileName,
         ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost),
         'syntactic'
@@ -376,7 +376,7 @@ export function languageServices( ts: any = _ts, opts: {
     const semanticDiag = services.getSemanticDiagnostics(fileName);
 
     if (semanticDiag.length > 0) {
-      dispatchFactory('onEmitFailure')(
+      dispatcher.onEmitFailure(
         fileName,
         ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost),
         'semantic'
@@ -389,7 +389,7 @@ export function languageServices( ts: any = _ts, opts: {
       const {line, character} = sug.file.getLineAndCharacterOfPosition(
         sug.start
       );
-      dispatchFactory('onSuggest')(
+      dispatcher.onSuggest(
         fileName,
         `${fileName}:${line + 1}:${character + 1} ` +
           ts0.flattenDiagnosticMessageText(sug.messageText, '\n', 2)
@@ -397,11 +397,12 @@ export function languageServices( ts: any = _ts, opts: {
     }
 
     output.outputFiles.forEach(o => {
-      dispatchFactory('emitFile')(o.name, o.text);
+      dispatcher.emitFile(o.name, o.text);
     });
   }
 
   return {
+    dispatcher,
     dispatchFactory,
     action$,
     ofType,
