@@ -1,5 +1,5 @@
-import {RedBlackTree, RbTreeNode} from '@wfh/plink/wfh/dist/utils/data-structures';
-import {DFS, Vertex} from '@wfh/plink/wfh/dist/utils/graph';
+import {RedBlackTree, RbTreeNode} from '@wfh/plink/wfh/ts/utils/rb-tree';
+import {DFS, Vertex} from '@wfh/plink/wfh/ts/utils/graph';
 import _ from 'lodash';
 
 describe('RB tree', () => {
@@ -9,13 +9,23 @@ describe('RB tree', () => {
     for (let i = 0; i < len; i++) {
     // eslint-disable-next-line no-console
       console.log('add key', i);
-      tree.insert(i);
+      tree.insert(i, null);
     }
 
     const lines = [] as string[];
     let dfs = new DFS<RbTreeNode<number>>(adjacencyOf);
 
     dfs.visit([tree.root!]);
+    // eslint-disable-next-line no-console
+    console.log('After insertion:\n', lines.join('\n'));
+    expect(tree.root?.size).toEqual(len);
+    lines.splice(0);
+
+    expect(tree.minimum()?.key).toEqual(0);
+    expect(tree.atIndex(1)?.key).toEqual(1);
+    expect(tree.atIndex(18)?.key).toEqual(18);
+    expect(tree.indexOf(2)).toEqual(2);
+    expect(tree.indexOf(18)).toEqual(18);
 
     // eslint-disable-next-line no-console
     console.log('------------------ deletion');
@@ -40,10 +50,11 @@ describe('RB tree', () => {
     dfs = new DFS<RbTreeNode<number>>(adjacencyOf);
     dfs.visit([tree.root!]);
     // eslint-disable-next-line no-console
-    console.log(lines.join('\n'));
+    console.log('After deletion\n', lines.join('\n'));
+    expect(tree.root?.size).toEqual(Math.floor(len / 2));
 
     function adjacencyOf(node: RbTreeNode<number>, vertex: Vertex<RbTreeNode<number>>, level: number) {
-      lines.push(`${_.repeat('| ', level)}- ${node.p ? node.p?.left === node ? 'left' : 'right' : 'root'} ${node.key + ''}: ${node.isRed ? 'red' : 'black'}`);
+      lines.push(`${_.repeat('| ', level)}- ${node.p ? node.p?.left === node ? 'left' : 'right' : 'root'} ${node.key + ''}: ${node.isRed ? 'red' : 'black'} size: ${node.size}`);
       return [node.left, node.right].filter((node) : node is RbTreeNode<number> => node != null);
     }
   });

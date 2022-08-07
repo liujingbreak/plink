@@ -6,21 +6,24 @@
  * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
 
-export interface RbTreeNode<T> {
+export type RbTreeNode<T, V = unknown> = {
   key: T;
-  p: RbTreeNode<T> | null;
-  left: RbTreeNode<T> | null;
-  right: RbTreeNode<T> | null;
+  value: V;
+  p: RbTreeNode<T, V> | null;
+  left: RbTreeNode<T, V> | null;
+  right: RbTreeNode<T, V> | null;
   isRed: boolean;
   size: number;
-}
-export class RedBlackTree<T> {
-  root: RbTreeNode<T> | null | undefined = null;
+};
+
+export class RedBlackTree<T, V = unknown> {
+  root: RbTreeNode<T, V> | null | undefined = null;
 
   constructor(protected comparator?: (a: T, b: T) => number) {
     if (comparator == null) {
       this.comparator = (a, b) => {
-        return a < b ? -1 :
+        return a < b ?
+          -1 :
           a > b ? 1 : 0;
       };
     }
@@ -31,8 +34,8 @@ export class RedBlackTree<T> {
    * @param key
    * @returns null if key duplicates with existing tree node
    */
-  insert(key: T): RbTreeNode<T> | null {
-    let y: RbTreeNode<T> | null = null;
+  insert(key: T, value: V): RbTreeNode<T, V> {
+    let y: RbTreeNode<T, V> | null = null;
     let x = this.root;
     let cmp: number;
     while (x) {
@@ -43,17 +46,67 @@ export class RedBlackTree<T> {
       } else if (cmp > 0) {
         x = x.right;
       } else {
-        return null; // duplicate key found
+        return x; // duplicate key found
       }
     }
-    const z: RbTreeNode<T> = {
+    const z = {
       isRed: true,
       key,
       p: y,
-      left: null,
-      right: null,
-      size: 0
-    };
+      value
+      // left: null,
+      // right: null
+    } as unknown as RbTreeNode<T, V>;
+
+    let left: RbTreeNode<T, V> | null | undefined;
+    let right: RbTreeNode<T, V> | null | undefined;
+
+    Object.defineProperty(z, 'left', {
+      get() {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+        return left;
+      },
+      set(v: RbTreeNode<any, any> | null | undefined) {
+        if (left === v)
+          return;
+        left = v;
+        z.size = (left ? left.size : 0) + (right ? right.size : 0) + 1;
+      }
+    });
+
+    Object.defineProperty(z, 'right', {
+      get() {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+        return right;
+      },
+      set(v: RbTreeNode<any, any> | null | undefined) {
+        if (right === v)
+          return;
+        right = v;
+        z.size = (left ? left.size : 0) + (right ? right.size : 0) + 1;
+      }
+    });
+
+    let size = 0;
+
+    Object.defineProperty(z, 'size', {
+      get() {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+        return size;
+      },
+      set(v: number) {
+        if (size === v)
+          return;
+
+        size = v;
+        if (z.p) {
+          z.p.size = (z.p.left?.size || 0) + (z.p.right?.size || 0) + 1;
+        }
+      }
+    });
+
+    z.size = 1;
+
     if (y == null) {
       this.root = z;
     } else if (cmp! < 0 ) {
@@ -65,6 +118,53 @@ export class RedBlackTree<T> {
     return z;
   }
 
+  /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0 */
+  atIndex(idx: number, beginNode: RbTreeNode<T, V> | null | undefined = this.root): RbTreeNode<T, V> | null | undefined {
+    let currNode = beginNode;
+    while (currNode) {
+      const leftSize = (currNode.left?.size || 0);
+      if (leftSize === idx)
+        return currNode;
+      else if (idx < leftSize) {
+        currNode = currNode.left;
+      } else {
+        currNode = currNode.right;
+        idx -= leftSize + 1;
+      }
+    }
+    return currNode;
+  }
+
+  indexOf(key: T): number {
+    let node = this.search(key);
+    if (node == null)
+      return -1;
+
+    let currIdx = (node.left?.size || 0);
+    while (node.p) {
+      if (node === node.p.right) {
+        currIdx += (node.p.left?.size || 0) + 1;
+      }
+      node = node.p;
+    }
+    return currIdx;
+  }
+
+  search(key: T): RbTreeNode<T, V> | null {
+    let node = this.root;
+    while (node) {
+      const cmp = this.comparator!(key, node.key);
+      if (cmp === 0)
+        return node;
+      if (cmp < 0) {
+        node = node.left;
+      } else {
+        node = node.right;
+      }
+    }
+    return null;
+  }
+
   delete(key: T) {
     const node = this.search(key);
     if (node == null) {
@@ -74,18 +174,18 @@ export class RedBlackTree<T> {
     return true;
   }
 
-  isRed(node: RbTreeNode<T> | null | undefined) {
-    return node != null && node.isRed;
+  isRed(node: RbTreeNode<T, V> | null | undefined) {
+    return !!node?.isRed;
   }
 
-  isBlack(node: RbTreeNode<T> | null | undefined) {
+  isBlack(node: RbTreeNode<T, V> | null | undefined) {
     return node == null || !node.isRed;
   }
 
-  protected deleteNode(z: RbTreeNode<T>) {
-    let y: RbTreeNode<T> | null  = z;
+  protected deleteNode(z: RbTreeNode<T, V>) {
+    let y: RbTreeNode<T, V> | null  = z;
     let origIsRed = this.isRed(y);
-    let x: RbTreeNode<T> | null = null;
+    let x: RbTreeNode<T, V> | null = null;
     if (z.left == null) {
       x = z.right;
       this.transplant(z, z.right);
@@ -94,7 +194,7 @@ export class RedBlackTree<T> {
       this.transplant(z, z.left);
     } else {
       // both left and right child are not empty
-      y = this.minimumOf(z.right);
+      y = this.minimum(z.right);
       if (y == null)
         return false;
       origIsRed = this.isRed(y);
@@ -118,7 +218,7 @@ export class RedBlackTree<T> {
     return true;
   }
 
-  private deleteFixup(x: RbTreeNode<T>) {
+  private deleteFixup(x: RbTreeNode<T, V>) {
     while (x !== this.root && this.isBlack(x)) {
       if (x.p && x === x.p.left) {
         let w = x.p.right; // w is x's sibling
@@ -179,15 +279,15 @@ export class RedBlackTree<T> {
     x.isRed = false;
   }
 
-  minimumOf(node: RbTreeNode<T> | null | undefined = this.root) {
-    // let min: RbTreeNode<T> | null = null;
+  minimum(node: RbTreeNode<T, V> | null | undefined = this.root) {
+    // let min: RbTreeNode<T, V> | null = null;
     while (node?.left) {
       node = node.left;
     }
     return node ? node : null;
   }
 
-  private transplant(replaceNode: RbTreeNode<T>, withNode: RbTreeNode<T> | null = null) {
+  private transplant(replaceNode: RbTreeNode<T, V>, withNode: RbTreeNode<T, V> | null = null) {
     if (replaceNode.p == null) {
       this.root = withNode;
     } else if (replaceNode === replaceNode.p.left) {
@@ -199,22 +299,7 @@ export class RedBlackTree<T> {
       withNode.p = replaceNode.p;
   }
 
-  search(key: T): RbTreeNode<T> | null {
-    let node = this.root;
-    while (node) {
-      const cmp = this.comparator!(key, node.key);
-      if (cmp === 0)
-        return node;
-      if (cmp < 0) {
-        node = node.left;
-      } else {
-        node = node.right;
-      }
-    }
-    return null;
-  }
-
-  protected redBlackInsertFixUp(z: RbTreeNode<T>) {
+  protected redBlackInsertFixUp(z: RbTreeNode<T, V>) {
     while (this.isRed(z.p)) {
       if (z.p?.p && z.p === z.p.p.left) {
         const uncle = z.p.p.right;
@@ -268,7 +353,7 @@ export class RedBlackTree<T> {
       this.root.isRed = false;
   }
 
-  private leftRotate(x: RbTreeNode<T>) {
+  private leftRotate(x: RbTreeNode<T, V>) {
     // console.log('leftRotate', x.key);
     const y = x.right;
     if (y == null)
@@ -288,7 +373,7 @@ export class RedBlackTree<T> {
     x.p = y;
   }
 
-  private rightRotate(x: RbTreeNode<T>) {
+  private rightRotate(x: RbTreeNode<T, V>) {
     const y = x.left;
     if (y == null)
       return;
@@ -305,23 +390,6 @@ export class RedBlackTree<T> {
       x.p.left = y;
     y.right = x;
     x.p = y;
-  }
-}
-
-/** Allow inserting multiple items with same key in a red-black tree */
-export class DuplicateKeyTree<T> extends RedBlackTree<T> {
-
-}
-
-export type IntervalKey = {low: number; high: number, max?: number};
-
-function intervalComparator(k1: IntervalKey, k2: IntervalKey) {
-  return k1.low - k2.low;
-}
-
-export class IntervalTree extends RedBlackTree<IntervalKey> {
-  constructor() {
-    super(intervalComparator);
   }
 }
 

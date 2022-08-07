@@ -29,6 +29,7 @@ type InferParam<F> = Plen<F> extends 1 | 0 ?
       :
       F extends (...p: infer P) => any ? P : unknown;
 
+let SEQ = 0;
 /**
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
@@ -43,18 +44,21 @@ type InferParam<F> = Plen<F> extends 1 | 0 ?
  *   3. An RxJs "filter()" operator to filter action by its type, it provides better Typescript
  *   type definition for downstream action compare bare "filter()"
  */
-export function createActionStream<AC>(actionCreator: AC, debug?: boolean) {
+// eslint-disable-next-line space-before-function-paren
+export function createActionStream<AC extends Record<string, ((...payload: any[]) => void)>>(actionCreator: AC, debug?: boolean) {
   const dispatcher = {} as AC;
   const actionUpstream = new Subject<ActionTypes<AC>[keyof AC]>();
+  const typePrefix = SEQ++ + '/';
   for (const type of Object.keys(actionCreator)) {
-    dispatcher[type] = (...params: any[]) => {
+    const dispatch = (...params: any[]) => {
       const action = {
-        type,
+        type: typePrefix + type,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
       } as ActionTypes<AC>[keyof AC];
       actionUpstream.next(action);
     };
+    dispatcher[type as keyof AC] = dispatch as AC[keyof AC];
   }
 
   const action$ = debug
@@ -73,7 +77,7 @@ export function createActionStream<AC>(actionCreator: AC, debug?: boolean) {
   return {
     dispatcher,
     action$,
-    ofType: createOfTypeOperator<AC>(),
+    ofType: createOfTypeOperator<AC>(typePrefix),
     isActionType: createIsActionTypeFn<AC>()
   };
 }
@@ -104,6 +108,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
 } = {}) {
   const actionUpstream = new Subject<ActionTypes<AC>[keyof AC]>();
   const dispatcher = {} as AC;
+  const typePrefix = SEQ++ + '/';
 
   function dispatchFactory(type: keyof AC) {
     if (Object.prototype.hasOwnProperty.call(dispatcher, type)) {
@@ -111,7 +116,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     }
     const dispatch = (...params: any[]) => {
       const action = {
-        type,
+        type: typePrefix + type,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
       } as ActionTypes<AC>[keyof AC];
@@ -147,7 +152,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     dispatcher: dispatcherProxy,
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
     action$,
-    ofType: createOfTypeOperator<AC>(),
+    ofType: createOfTypeOperator<AC>(typePrefix),
     isActionType: createIsActionTypeFn<AC>()
   };
 }
@@ -170,12 +175,12 @@ function createIsActionTypeFn<AC>() {
 }
 
 /** create rx a operator to filter action by action.type */
-function createOfTypeOperator<AC>(): OfTypeFn<AC> {
+function createOfTypeOperator<AC>(typePrefix = ''): OfTypeFn<AC> {
   return <T extends keyof AC>(...types: T[]) =>
     (upstream: Observable<any>) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return upstream.pipe(
-        filter((action) : action is ActionTypes<AC>[T] => types.some((type) => action.type === type)),
+        filter((action) : action is ActionTypes<AC>[T] => types.some((type) => action.type === typePrefix + type)),
         share()
       ) ;
     };

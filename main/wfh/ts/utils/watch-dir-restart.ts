@@ -23,7 +23,7 @@ export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProces
     );
 
   const action$ = new rx.Subject<'stop' | 'restart' | 'start'>();
-  const serverState$ = new rx.BehaviorSubject<'stopped' | 'started' | 'starting' | 'stopping'>('stopped');
+  const serverState$ = new rx.BehaviorSubject<'stopped' | 'started' | 'stopping'>('stopped');
 
   rx.merge(
     action$.pipe(

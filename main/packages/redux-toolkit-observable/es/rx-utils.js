@@ -4,6 +4,7 @@
  */
 import { Subject } from 'rxjs';
 import { filter, tap, share } from 'rxjs/operators';
+let SEQ = 0;
 /**
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
@@ -21,10 +22,11 @@ import { filter, tap, share } from 'rxjs/operators';
 export function createActionStream(actionCreator, debug) {
     const dispatcher = {};
     const actionUpstream = new Subject();
+    const typePrefix = SEQ++ + '/';
     for (const type of Object.keys(actionCreator)) {
         dispatcher[type] = (...params) => {
             const action = {
-                type,
+                type: typePrefix + type,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
             };
@@ -43,7 +45,7 @@ export function createActionStream(actionCreator, debug) {
     return {
         dispatcher,
         action$,
-        ofType: createOfTypeOperator(),
+        ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn()
     };
 }
@@ -68,13 +70,14 @@ export function createActionStream(actionCreator, debug) {
 export function createActionStreamByType(opt = {}) {
     const actionUpstream = new Subject();
     const dispatcher = {};
+    const typePrefix = SEQ++ + '/';
     function dispatchFactory(type) {
         if (Object.prototype.hasOwnProperty.call(dispatcher, type)) {
             return dispatcher[type];
         }
         const dispatch = (...params) => {
             const action = {
-                type,
+                type: typePrefix + type,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
             };
@@ -105,7 +108,7 @@ export function createActionStreamByType(opt = {}) {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
-        ofType: createOfTypeOperator(),
+        ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn()
     };
 }
@@ -115,10 +118,10 @@ function createIsActionTypeFn() {
     };
 }
 /** create rx a operator to filter action by action.type */
-function createOfTypeOperator() {
+function createOfTypeOperator(typePrefix = '') {
     return (...types) => (upstream) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        return upstream.pipe(filter((action) => types.some((type) => action.type === type)), share());
+        return upstream.pipe(filter((action) => types.some((type) => action.type === typePrefix + type)), share());
     };
 }
 //# sourceMappingURL=rx-utils.js.map

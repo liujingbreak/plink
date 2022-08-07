@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createActionStreamByType = exports.createActionStream = void 0;
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
+let SEQ = 0;
 /**
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
@@ -24,10 +25,11 @@ const operators_1 = require("rxjs/operators");
 function createActionStream(actionCreator, debug) {
     const dispatcher = {};
     const actionUpstream = new rxjs_1.Subject();
+    const typePrefix = SEQ++ + '/';
     for (const type of Object.keys(actionCreator)) {
         dispatcher[type] = (...params) => {
             const action = {
-                type,
+                type: typePrefix + type,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
             };
@@ -46,7 +48,7 @@ function createActionStream(actionCreator, debug) {
     return {
         dispatcher,
         action$,
-        ofType: createOfTypeOperator(),
+        ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn()
     };
 }
@@ -72,13 +74,14 @@ exports.createActionStream = createActionStream;
 function createActionStreamByType(opt = {}) {
     const actionUpstream = new rxjs_1.Subject();
     const dispatcher = {};
+    const typePrefix = SEQ++ + '/';
     function dispatchFactory(type) {
         if (Object.prototype.hasOwnProperty.call(dispatcher, type)) {
             return dispatcher[type];
         }
         const dispatch = (...params) => {
             const action = {
-                type,
+                type: typePrefix + type,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
             };
@@ -109,7 +112,7 @@ function createActionStreamByType(opt = {}) {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
-        ofType: createOfTypeOperator(),
+        ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn()
     };
 }
@@ -120,10 +123,10 @@ function createIsActionTypeFn() {
     };
 }
 /** create rx a operator to filter action by action.type */
-function createOfTypeOperator() {
+function createOfTypeOperator(typePrefix = '') {
     return (...types) => (upstream) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        return upstream.pipe((0, operators_1.filter)((action) => types.some((type) => action.type === type)), (0, operators_1.share)());
+        return upstream.pipe((0, operators_1.filter)((action) => types.some((type) => action.type === typePrefix + type)), (0, operators_1.share)());
     };
 }
 //# sourceMappingURL=rx-utils.js.map
