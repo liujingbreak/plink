@@ -22,12 +22,13 @@ let SEQ = 0;
  *   3. An RxJs "filter()" operator to filter action by its type, it provides better Typescript
  *   type definition for downstream action compare bare "filter()"
  */
+// eslint-disable-next-line space-before-function-paren
 function createActionStream(actionCreator, debug) {
     const dispatcher = {};
     const actionUpstream = new rxjs_1.Subject();
     const typePrefix = SEQ++ + '/';
     for (const type of Object.keys(actionCreator)) {
-        dispatcher[type] = (...params) => {
+        const dispatch = (...params) => {
             const action = {
                 type: typePrefix + type,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -35,6 +36,7 @@ function createActionStream(actionCreator, debug) {
             };
             actionUpstream.next(action);
         };
+        dispatcher[type] = dispatch;
     }
     const action$ = debug
         ? actionUpstream.pipe((0, operators_1.tap)(typeof window !== 'undefined'

@@ -189,7 +189,7 @@ function resolve(path, file, ctx, pos, src) {
             break;
         }
     }
-    if (NODE_MODULE_SET.has(path)) {
+    if (NODE_MODULE_SET.has(path) || path.startsWith('node:')) {
         ctx.nodeModuleDeps.add(path);
         return null;
     }

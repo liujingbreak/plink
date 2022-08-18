@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
-import fs from 'fs';
+import fs from 'node:fs';
 import * as cp from 'child_process';
+import {Worker} from 'node:cluster';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import chokida from 'chokidar';
@@ -11,7 +12,7 @@ export type Options = {
   retryOnError?: number;
 };
 
-export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory[], opts: Options = {}) {
+export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory[] | Worker[], opts: Options = {}) {
   const watcher = chokida.watch(dirOrFile, {ignoreInitial: true});
   const change$ = rx.fromEventPattern<[path: string, stats?: fs.Stats]>(h => watcher.on('change', h), h => watcher.off('change', h))
     .pipe(

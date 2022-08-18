@@ -34,7 +34,7 @@ export class RedBlackTree<T, V = unknown> {
    * @param key
    * @returns null if key duplicates with existing tree node
    */
-  insert(key: T, value: V): RbTreeNode<T, V> {
+  insert(key: T): Omit<RbTreeNode<T, V>, 'value'> & {value: V | undefined} {
     let y: RbTreeNode<T, V> | null = null;
     let x = this.root;
     let cmp: number;
@@ -52,8 +52,7 @@ export class RedBlackTree<T, V = unknown> {
     const z = {
       isRed: true,
       key,
-      p: y,
-      value
+      p: y
       // left: null,
       // right: null
     } as unknown as RbTreeNode<T, V>;

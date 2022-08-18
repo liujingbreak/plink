@@ -23,7 +23,9 @@ export declare class RedBlackTree<T, V = unknown> {
      * @param key
      * @returns null if key duplicates with existing tree node
      */
-    insert(key: T, value: V): RbTreeNode<T, V>;
+    insert(key: T): Omit<RbTreeNode<T, V>, 'value'> & {
+        value: V | undefined;
+    };
     /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0 */
     atIndex(idx: number, beginNode?: RbTreeNode<T, V> | null | undefined): RbTreeNode<T, V> | null | undefined;
     indexOf(key: T): number;

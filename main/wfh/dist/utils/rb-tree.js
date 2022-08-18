@@ -25,7 +25,7 @@ class RedBlackTree {
      * @param key
      * @returns null if key duplicates with existing tree node
      */
-    insert(key, value) {
+    insert(key) {
         let y = null;
         let x = this.root;
         let cmp;
@@ -45,8 +45,7 @@ class RedBlackTree {
         const z = {
             isRed: true,
             key,
-            p: y,
-            value
+            p: y
             // left: null,
             // right: null
         };

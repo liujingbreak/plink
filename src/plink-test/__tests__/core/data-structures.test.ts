@@ -9,7 +9,7 @@ describe('RB tree', () => {
     for (let i = 0; i < len; i++) {
     // eslint-disable-next-line no-console
       console.log('add key', i);
-      tree.insert(i, null);
+      tree.insert(i);
     }
 
     const lines = [] as string[];

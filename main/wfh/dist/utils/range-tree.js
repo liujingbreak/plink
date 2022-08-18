@@ -20,22 +20,24 @@ class RangeSearcher {
         _RangeSearcher_highBoundryTree.set(this, new IntervalByHighBoundary());
     }
     addRange(value) {
-        const node = tslib_1.__classPrivateFieldGet(this, _RangeSearcher_lowBoundryTree, "f").search(value);
-        if (node) {
+        const node = tslib_1.__classPrivateFieldGet(this, _RangeSearcher_lowBoundryTree, "f").insert(value);
+        if (node.value) {
             node.value.push(value);
         }
         else {
-            tslib_1.__classPrivateFieldGet(this, _RangeSearcher_lowBoundryTree, "f").insert(value, [value]);
+            node.value = [value];
         }
-        const nodeH = tslib_1.__classPrivateFieldGet(this, _RangeSearcher_highBoundryTree, "f").search(value);
-        if (nodeH) {
+        const nodeH = tslib_1.__classPrivateFieldGet(this, _RangeSearcher_highBoundryTree, "f").insert(value);
+        if (nodeH.value) {
             nodeH.value.push(value);
         }
         else {
-            tslib_1.__classPrivateFieldGet(this, _RangeSearcher_highBoundryTree, "f").insert(value, [value]);
+            nodeH.value = [value];
         }
     }
     removeRange(value) {
+        tslib_1.__classPrivateFieldGet(this, _RangeSearcher_lowBoundryTree, "f").delete(value);
+        tslib_1.__classPrivateFieldGet(this, _RangeSearcher_highBoundryTree, "f").delete(value);
     }
 }
 exports.RangeSearcher = RangeSearcher;

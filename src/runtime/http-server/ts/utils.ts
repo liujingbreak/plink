@@ -43,6 +43,7 @@ export async function compressedIncomingMsgToBuffer(msg: IncomingMessage): Promi
   return Buffer.concat(data);
 }
 
+/** Make sure you remove "content-length" header so that Node.js will add "tranfer-encoding: chunked" */
 export async function compressResponse(data: Buffer | string, response: Writable, contentEncoding?: string) {
   const source = new Readable({read() {
     this.push(data);
@@ -61,6 +62,7 @@ export async function compressResponse(data: Buffer | string, response: Writable
   }
 }
 
+/** You set content-length header, this will disable "tranfer-encoding: chunked" mode */
 export async function compressResWithContentLength(data: Buffer | string, response: Writable, contentEncoding?: string): Promise<{contentLength: number; write(): Promise<void>}> {
   const chunks = [] as Buffer[];
   let len = 0;

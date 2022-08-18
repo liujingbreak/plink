@@ -41,10 +41,10 @@ export declare function isRedirectableRequest(req: unknown): req is Redirectable
 export declare function defaultProxyOptions(proxyPath: string, targetUrl: string): ProxyOptions & {
     pathRewrite: {
         [regexp: string]: string;
-    } | ((path: string, req: import("http-proxy-middleware/dist/types").Request) => string) | ((path: string, req: import("http-proxy-middleware/dist/types").Request) => Promise<string>);
-    onProxyReq: import("http-proxy-middleware/dist/types").OnProxyReqCallback;
-    onProxyRes: import("http-proxy-middleware/dist/types").OnProxyResCallback;
-    onError: import("http-proxy-middleware/dist/types").OnErrorCallback;
+    } | ((path: string, req: import("node_modules/http-proxy-middleware/dist/types").Request) => string) | ((path: string, req: import("node_modules/http-proxy-middleware/dist/types").Request) => Promise<string>);
+    onProxyReq: import("node_modules/http-proxy-middleware/dist/types").OnProxyReqCallback;
+    onProxyRes: import("node_modules/http-proxy-middleware/dist/types").OnProxyResCallback;
+    onError: import("node_modules/http-proxy-middleware/dist/types").OnErrorCallback;
 };
 /** Options of http-proxy
  */

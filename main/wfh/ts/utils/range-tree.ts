@@ -21,22 +21,23 @@ export class RangeSearcher<V extends IntervalKey> {
   private constructor() {}
 
   addRange(value: V) {
-    const node = this.#lowBoundryTree.search(value);
-    if (node) {
+    const node = this.#lowBoundryTree.insert(value);
+    if (node.value) {
       node.value.push(value);
     } else {
-      this.#lowBoundryTree.insert(value, [value]);
+      node.value = [value];
     }
-    const nodeH = this.#highBoundryTree.search(value);
-    if (nodeH) {
+    const nodeH = this.#highBoundryTree.insert(value);
+    if (nodeH.value) {
       nodeH.value.push(value);
     } else {
-      this.#highBoundryTree.insert(value, [value]);
+      nodeH.value = [value];
     }
   }
 
   removeRange(value: V) {
-
+    this.#lowBoundryTree.delete(value);
+    this.#highBoundryTree.delete(value);
   }
 }
 

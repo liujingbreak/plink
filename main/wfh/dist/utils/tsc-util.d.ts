@@ -47,6 +47,9 @@ export declare function languageServices(ts?: any, opts?: {
     dispatcher: LangServiceActionCreator;
     dispatchFactory: <K extends keyof LangServiceActionCreator>(type: K) => LangServiceActionCreator[K];
     action$: rx.Observable<{
+        type: "stop";
+        payload: unknown;
+    } | {
         type: "watch";
         payload: string[];
     } | {
@@ -70,9 +73,6 @@ export declare function languageServices(ts?: any, opts?: {
     } | {
         type: "log";
         payload: [level: LogLevel, msg: string];
-    } | {
-        type: "stop";
-        payload: unknown;
     }>;
     ofType: import("../../../packages/redux-toolkit-observable/dist/rx-utils").OfTypeFn<LangServiceActionCreator>;
     store: rx.Observable<Set<string>>;

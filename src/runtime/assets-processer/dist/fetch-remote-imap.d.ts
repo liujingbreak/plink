@@ -1,5 +1,6 @@
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { LookAhead, Token } from '@wfh/plink/wfh/dist/async-LLn-parser';
+import { Checksum } from './fetch-types';
 import { ImapTokenType } from './mail/imap-msg-parser';
 export declare function sendMail(subject: string, text: string, file?: string): Promise<void>;
 export declare function retrySendMail(subject: string, text: string, file?: string): Promise<void>;
@@ -33,7 +34,7 @@ export declare function connectImap(callback: (context: ImapCommandContext) => P
 export declare class ImapManager {
     env: string;
     zipDownloadDir?: string | undefined;
-    checksumState: any;
+    checksumState: BehaviorSubject<Checksum | null>;
     fileWritingState: ImapCommandContext['fileWritingState'];
     watching: boolean;
     private toFetchAppsState;

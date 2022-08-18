@@ -1,5 +1,5 @@
 import Path from 'path';
-import { IncomingMessage, ServerResponse } from 'http';
+import {IncomingMessage, ServerResponse} from 'http';
 import stream from 'stream';
 import url from 'url';
 import fs from 'fs-extra';
@@ -21,12 +21,12 @@ import {ProxyCacheState, CacheData} from './types';
 const httpProxyLog = log4File(__filename);
 
 export function createProxyWithCache(proxyPath: string, serverOptions: ServerOptions, cacheRootDir: string,
-                 opts: {manual: boolean; memCacheLength?: number} = {manual: false}) {
+  opts: {manual: boolean; memCacheLength?: number} = {manual: false}) {
   const defaultProxy = createProxyServer({
     changeOrigin: true,
     ws: false,
     secure: false,
-    cookieDomainRewrite: { '*': '' },
+    cookieDomainRewrite: {'*': ''},
     followRedirects: true,
     proxyTimeout: 20000,
     timeout: 10000,
@@ -51,7 +51,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
   }
   const cacheController = createSlice({
     initialState,
-    name: `HTTP-proxy-cache-${proxyPath}` ,
+    name: `HTTP-proxy-cache-${proxyPath}`,
     debugActionOnly: config().cliOptions?.verbose,
     reducers: {
       configTransformer(s: ProxyCacheState, payload: {
@@ -75,14 +75,21 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
         data: {headers: CacheData['headers']; readable: IncomingMessage};
       }) {},
 
-      _loadFromStorage(s: ProxyCacheState, payload: {key: string; req: Request; res: Response;
-                       next: NextFunction;
-        target?: string; }) {
+      _loadFromStorage(
+        s: ProxyCacheState,
+        payload: {
+          key: string; req: Request; res: Response;
+          next: NextFunction;
+          target?: string;
+        }
+      ) {
         s.cacheByUri.set(payload.key, 'loading');
       },
 
-      _requestRemote(s: ProxyCacheState, payload: {key: string; req: Request; res: Response; next: NextFunction;
-        target?: string; }) {
+      _requestRemote(s: ProxyCacheState, payload: {
+        key: string; req: Request; res: Response; next: NextFunction;
+        target?: string;
+      }) {
         s.cacheByUri.set(payload.key, 'requesting');
       },
       _savingFile(s: ProxyCacheState, payload: {
@@ -130,8 +137,8 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
       const {responseTransformer} = cacheController.getState();
       if (statusCode === 304) {
         dispatcher._done({key, res, data: {
-            statusCode, headers, body: createReplayReadableFactory(proxyRes)
-          }
+          statusCode, headers, body: createReplayReadableFactory(proxyRes)
+        }
         });
         httpProxyLog.warn('Version info is not recorded, due to response 304 from', res.req.url, ',\n you can remove existing npm/cache cache to avoid 304');
         return;
@@ -146,18 +153,18 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
         const doneMkdir = fs.mkdirp(dir);
         const readableFac = createReplayReadableFactory(proxyRes, undefined,
           {debugInfo: key, expectLen: parseInt(proxyRes.headers['content-length'] as string, 10)});
-         // dispatcher._done({key, data: {
-         //       statusCode, headers, body: () => proxyRes
-         //     }, res
-         //   });
+        // dispatcher._done({key, data: {
+        //       statusCode, headers, body: () => proxyRes
+        //     }, res
+        //   });
         dispatcher._savingFile({key, data: {
-            statusCode, headers, body: readableFac
-          }, res
+          statusCode, headers, body: readableFac
+        }, res
         });
         await doneMkdir;
         void fs.promises.writeFile(
           Path.join(dir, 'header.json'),
-            JSON.stringify({statusCode, headers}, null, '  '),
+          JSON.stringify({statusCode, headers}, null, '  '),
           'utf-8');
 
         try {
@@ -167,8 +174,8 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
             .on('error', reject));
 
           dispatcher._done({key, data: {
-              statusCode, headers, body: readableFac
-            }, res
+            statusCode, headers, body: readableFac
+          }, res
           });
 
           httpProxyLog.info(`response is written to (length: ${headers.find(item => item[0] === 'content-length')![1] as string})`,
@@ -190,8 +197,8 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
         headers[lengthHeaderIdx][1] = '' + length;
 
       dispatcher._savingFile({key, res, data: {
-          statusCode, headers, body: transformed
-      } });
+        statusCode, headers, body: transformed
+      }});
 
       await fs.mkdirp(dir);
       void fs.promises.writeFile(
@@ -204,8 +211,8 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
         .on('error', reject));
 
       dispatcher._done({key, res, data: {
-          statusCode, headers, body: transformed
-      } });
+        statusCode, headers, body: transformed
+      }});
       httpProxyLog.info('write response to file', Path.posix.relative(process.cwd(), file), 'size', length);
     }
 
@@ -228,10 +235,10 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
               res.on('finish', () => {
                 pipeEvent$.next('finish');
               })
-              .on('close', () => {
-                pipeEvent$.next('close');
-              })
-              .on('error', err => pipeEvent$.error(err));
+                .on('close', () => {
+                  pipeEvent$.next('close');
+                })
+                .on('error', err => pipeEvent$.error(err));
 
               data.body().pipe(res);
               httpProxyLog.info('pipe response of', payload.key);
@@ -241,20 +248,20 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
                 op.tap(event => {
                   if (event === 'close')
                     httpProxyLog.error('Response connection is closed early', key,
-                                       'expect content-lenth', data.headers['content-length']);
+                      'expect content-lenth', data.headers['content-length']);
                 }),
                 op.take(1),
                 op.mapTo(key)
                 // op.timeout(120000),
                 // op.catchError(err => {
-                  // httpProxyLog.error(err);
-                  // if (!res.headersSent) {
-                    // res.statusCode = 500;
-                    // res.end();
-                  // } else {
-                    // res.end();
-                  // }
-                  // return rx.EMPTY;
+                // httpProxyLog.error(err);
+                // if (!res.headersSent) {
+                // res.statusCode = 500;
+                // res.end();
+                // } else {
+                // res.end();
+                // }
+                // return rx.EMPTY;
                 // })
               );
             }),
@@ -285,8 +292,8 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
               payload.res.status(item.statusCode);
               finished$ = new rx.Observable<void>(sub => {
                 item.body()
-                .on('end', () => {sub.next(); sub.complete(); })
-                .pipe(payload.res);
+                  .on('end', () => {sub.next(); sub.complete(); })
+                  .pipe(payload.res);
               });
             } else {
               finished$ = rx.from(transformer(item.headers, payload.req.headers.host, item.body())).pipe(

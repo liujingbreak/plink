@@ -213,7 +213,7 @@ function resolve(path: string, file: string, ctx: Context, pos: number, src: ts.
     }
   }
 
-  if (NODE_MODULE_SET.has(path)) {
+  if (NODE_MODULE_SET.has(path) || path.startsWith('node:')) {
     ctx.nodeModuleDeps.add(path);
     return null;
   }
