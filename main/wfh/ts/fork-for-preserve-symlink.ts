@@ -1,5 +1,5 @@
 import Path from 'path';
-import {fork, ChildProcess} from 'child_process';
+import {fork} from 'child_process';
 import {threadId} from 'worker_threads';
 import fs from 'fs';
 import os from 'os';
@@ -56,7 +56,6 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
   let recovered = false;
   const {initProcess, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
   const {stateFactory} = require('./store') as typeof store;
-  let cp: ChildProcess | undefined;
 
   initProcess('none', () => {
     recoverNodeModuleSymlink();
@@ -68,7 +67,7 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
 
   const {workdir, argv} = workDirChangedByCli();
 
-  process.execArgv.push('--preserve-symlinks-main', '--preserve-symlinks');
+  // process.execArgv.push('--preserve-symlinks-main', '--preserve-symlinks');
   const foundDebugOptIdx = argv.findIndex(arg => arg === '--inspect' || arg === '--inspect-brk');
 
   const env: {[key: string]: string | undefined} = {...process.env};
@@ -87,8 +86,9 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
   if (workdir)
     env.PLINK_WORK_DIR = workdir;
 
-  cp = fork(Path.resolve(__dirname, 'fork-preserve-symlink-main.js'), argv, {
+  const cp = fork(Path.resolve(__dirname, 'fork-preserve-symlink-main.js'), argv, {
     env,
+    execArgv: process.execArgv.concat(['--preserve-symlinks-main', '--preserve-symlinks']),
     stdio: 'inherit'
   });
 
@@ -101,7 +101,7 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
     )).pipe(
       op.take(1),
       op.tap(() => {
-        cp!.send('shutdown');
+        cp.send('shutdown');
       })
     ).subscribe();
   }

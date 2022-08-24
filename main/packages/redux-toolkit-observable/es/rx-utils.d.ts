@@ -25,7 +25,7 @@ declare type InferParam<F> = Plen<F> extends 1 | 0 ? (F extends (a: infer A) => 
  *   3. An RxJs "filter()" operator to filter action by its type, it provides better Typescript
  *   type definition for downstream action compare bare "filter()"
  */
-export declare function createActionStream<AC>(actionCreator: AC, debug?: boolean): {
+export declare function createActionStream<AC extends Record<string, ((...payload: any[]) => void)>>(actionCreator: AC, debug?: boolean): {
     dispatcher: AC;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
     ofType: OfTypeFn<AC>;

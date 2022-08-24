@@ -68,7 +68,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
       op.map(({clientToProxySocket, data}) => {
         const greeting = data.toString();
         log.info(greeting);
-        let isTLSConnection = greeting.indexOf('CONNECT') !== -1;
+        const isTLSConnection = greeting.indexOf('CONNECT') !== -1;
 
         // Considering Port as 80 by default 
         let serverPort = 80;
@@ -91,7 +91,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
         }
         // log.info('proxy to:', serverAddress + ':' + serverPort);
         if (serverAddress && hostMap.has(serverAddress)) {
-          let splitted = hostMap.get(serverAddress)!.split(':');
+          const splitted = hostMap.get(serverAddress)!.split(':');
           serverAddress = splitted[0];
           if (splitted[1])
             serverPort = parseInt(splitted[1], 10);
@@ -110,7 +110,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     action$.pipe(
       ofType('proxyToProxy'),
       op.map(({payload: [host, port, clientToProxySocket, data]}) => {
-        let proxyToServerSocket = net.connect({
+        const proxyToServerSocket = net.connect({
           host, port
         }, () => {
           log.info('PROXY TO FORBACK proxy connection created', host, ':', port);
@@ -126,7 +126,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     action$.pipe(
       ofType('proxyToRemote'),
       op.map(({payload: [host, port, clientToProxySocket, data, isTLSConnection, protocal]}) => {
-        let proxyToServerSocket = net.connect({ host, port }, () => {
+        const proxyToServerSocket = net.connect({ host, port }, () => {
           log.info('PROXY TO SERVER connection created', host, ':', port);
 
           const socket = proxyToServerSocket.pipe(clientToProxySocket);

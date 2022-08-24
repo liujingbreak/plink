@@ -19,12 +19,13 @@ let SEQ = 0;
  *   3. An RxJs "filter()" operator to filter action by its type, it provides better Typescript
  *   type definition for downstream action compare bare "filter()"
  */
+// eslint-disable-next-line space-before-function-paren
 export function createActionStream(actionCreator, debug) {
     const dispatcher = {};
     const actionUpstream = new Subject();
     const typePrefix = SEQ++ + '/';
     for (const type of Object.keys(actionCreator)) {
-        dispatcher[type] = (...params) => {
+        const dispatch = (...params) => {
             const action = {
                 type: typePrefix + type,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -32,6 +33,7 @@ export function createActionStream(actionCreator, debug) {
             };
             actionUpstream.next(action);
         };
+        dispatcher[type] = dispatch;
     }
     const action$ = debug
         ? actionUpstream.pipe(tap(typeof window !== 'undefined'
@@ -46,7 +48,7 @@ export function createActionStream(actionCreator, debug) {
         dispatcher,
         action$,
         ofType: createOfTypeOperator(typePrefix),
-        isActionType: createIsActionTypeFn()
+        isActionType: createIsActionTypeFn(typePrefix)
     };
 }
 /**
@@ -109,12 +111,12 @@ export function createActionStreamByType(opt = {}) {
         dispatchFactory: dispatchFactory,
         action$,
         ofType: createOfTypeOperator(typePrefix),
-        isActionType: createIsActionTypeFn()
+        isActionType: createIsActionTypeFn(typePrefix)
     };
 }
-function createIsActionTypeFn() {
+function createIsActionTypeFn(prefix) {
     return function isActionType(action, type) {
-        return action.type === type;
+        return action.type === prefix + type;
     };
 }
 /** create rx a operator to filter action by action.type */

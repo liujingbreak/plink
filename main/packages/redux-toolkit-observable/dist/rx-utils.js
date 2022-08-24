@@ -51,7 +51,7 @@ function createActionStream(actionCreator, debug) {
         dispatcher,
         action$,
         ofType: createOfTypeOperator(typePrefix),
-        isActionType: createIsActionTypeFn()
+        isActionType: createIsActionTypeFn(typePrefix)
     };
 }
 exports.createActionStream = createActionStream;
@@ -115,13 +115,13 @@ function createActionStreamByType(opt = {}) {
         dispatchFactory: dispatchFactory,
         action$,
         ofType: createOfTypeOperator(typePrefix),
-        isActionType: createIsActionTypeFn()
+        isActionType: createIsActionTypeFn(typePrefix)
     };
 }
 exports.createActionStreamByType = createActionStreamByType;
-function createIsActionTypeFn() {
+function createIsActionTypeFn(prefix) {
     return function isActionType(action, type) {
-        return action.type === type;
+        return action.type === prefix + type;
     };
 }
 /** create rx a operator to filter action by action.type */

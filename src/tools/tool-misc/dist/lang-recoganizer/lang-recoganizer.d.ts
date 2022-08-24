@@ -35,7 +35,7 @@ declare function createStep<T>(interceptor?: () => rx.OperatorFunction<Action, A
         sucess: <R extends PositionInfo>(result: R) => void;
         failed: (reason: string[]) => void;
     };
-    actions: any;
+    actions: rx.Observable<Action>;
 };
 declare type StepFactory = (mr: MarkAndReplay) => ReturnType<typeof createStep>;
 /**
@@ -52,7 +52,7 @@ export declare function cmp<T>(...expectStr: T[]): (mr: MarkAndReplay) => {
         sucess: <R extends PositionInfo>(result: R) => void;
         failed: (reason: string[]) => void;
     };
-    actions: any;
+    actions: rx.Observable<Action>;
 };
 /** scope step */
 export declare function scope<T>(name: string, stepFactories: (StepFactory)[], opts?: {
@@ -68,7 +68,7 @@ export declare function choice(laNum?: number, ...choiceFactories: (StepFactory)
         sucess: <R extends PositionInfo>(result: R) => void;
         failed: (reason: string[]) => void;
     };
-    actions: any;
+    actions: rx.Observable<Action>;
 };
 export declare function isNotLa(step: StepFactory): (mr: MarkAndReplay) => {
     dispatcher: {
@@ -79,7 +79,7 @@ export declare function isNotLa(step: StepFactory): (mr: MarkAndReplay) => {
         sucess: <R extends PositionInfo>(result: R) => void;
         failed: (reason: string[]) => void;
     };
-    actions: any;
+    actions: rx.Observable<Action>;
 };
 interface LoopOptions {
     laNum?: number;
@@ -98,8 +98,14 @@ export declare function loop(factory: StepFactory, opts?: LoopOptions): (mr: Mar
         sucess: <R extends PositionInfo>(result: R) => void;
         failed: (reason: string[]) => void;
     };
-    actions: any;
+    actions: rx.Observable<Action>;
 };
-export declare function parse<T>(stateMachine: StepFactory, debug?: boolean): (input$: rx.Observable<T>) => any;
+export declare function parse<T>(stateMachine: StepFactory, debug?: boolean): (input$: rx.Observable<T>) => rx.Observable<{
+    payload: PositionInfo;
+    type: "sucess";
+} | {
+    payload: string[];
+    type: "failed";
+}>;
 export declare function test(): void;
 export {};

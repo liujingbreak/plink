@@ -1,0 +1,1 @@
+{"version":3,"file":"config.js","sourceRoot":"","sources":["config.ts"],"names":[],"mappings":";;AAIA,MAAM,aAAa,GAAW;IAC5B,YAAY,EAAE,EAAE;CACjB,CAAC;AAEF,kBAAe,aAAa,CAAC","sourcesContent":["export interface Config {\n  fillPalettes: {[colorNum: string]: string};\n}\n\nconst defaultConfig: Config = {\n  fillPalettes: {}\n};\n\nexport default defaultConfig;\n"]}

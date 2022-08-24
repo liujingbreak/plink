@@ -78,7 +78,7 @@ export function createActionStream<AC extends Record<string, ((...payload: any[]
     dispatcher,
     action$,
     ofType: createOfTypeOperator<AC>(typePrefix),
-    isActionType: createIsActionTypeFn<AC>()
+    isActionType: createIsActionTypeFn<AC>(typePrefix)
   };
 }
 
@@ -153,7 +153,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
     action$,
     ofType: createOfTypeOperator<AC>(typePrefix),
-    isActionType: createIsActionTypeFn<AC>()
+    isActionType: createIsActionTypeFn<AC>(typePrefix)
   };
 }
 
@@ -168,9 +168,9 @@ export interface OfTypeFn<AC> {
   <T extends keyof AC>(...types: T[]): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
 }
 
-function createIsActionTypeFn<AC>() {
+function createIsActionTypeFn<AC>(prefix: string) {
   return function isActionType<K extends keyof AC>(action: {type: unknown}, type: K): action is ActionTypes<AC>[K] {
-    return action.type === type;
+    return action.type === prefix + type;
   };
 }
 
