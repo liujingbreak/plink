@@ -1,7 +1,7 @@
 /* eslint no-console: 0 */
-const cluster = require('cluster');
-const Path = require('path');
-const {isMainThread} = require('worker_threads');
+const cluster = require('node:cluster');
+const Path = require('node:path');
+const {isMainThread} = require('node:worker_threads');
 const pm2InstanceId = process.env.NODE_APP_INSTANCE;
 var isPm2 = cluster.isWorker && pm2InstanceId != null;
 // const SLACK_API_TOKEN = '<paste your token>';
@@ -22,6 +22,8 @@ if (isPm2) {
     // Refer to https://github.com/liujingbreak/log4js-pm2-intercom
     process.send({topic: 'log4js:master'});
   }
+} else if (cluster.isWorker) {
+  fileName = 'cluster worker should not log file';
 } else if (process.send || !isMainThread) { // this is a forked process, should use a different file name
   fileName = `plink.(${process.pid}).log`;
   patterns.colorfulOutput = 'pid:%z %[[%p]%c%] - %m';
@@ -60,6 +62,10 @@ var config = {
 module.exports = config;
 
 module.exports.setup = function(options) {
+  if (cluster.isWorker) {
+    console.log('[log4js.js] Skip configuring Log4js for cluster worker');
+    return;
+  }
   var {logger} = options;
   if (options.rootPath) {
 

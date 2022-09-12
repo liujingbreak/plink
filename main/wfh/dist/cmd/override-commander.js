@@ -223,12 +223,6 @@ class PlinkCmdOption extends commander_1.default.Option {
 class CommandOverrider {
     constructor(program, ws) {
         this.program = program;
-        // nameStyler: PlinkCommand['nameStyler'];
-        // private currClieCreatorFile: string;
-        // private currCliCreatorPkg: PackageInfo | null = null;
-        // private currCliPkgMataInfos: OurCommandMetadata[];
-        // private allSubCmds: OurAugmentedCommander[] = [];
-        // private metaMap = new WeakMap<commander.Command, Partial<OurCommandMetadata>>();
         this.pkgMetasMap = new Map();
         this.ctx = {
             metaMap: new WeakMap()

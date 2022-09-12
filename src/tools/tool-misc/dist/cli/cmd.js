@@ -1,28 +1,8 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const node_cluster_1 = tslib_1.__importDefault(require("node:cluster"));
+const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const plink_1 = require("@wfh/plink");
 // import {cliPackageArgDesc}
 const cli_gcmd_1 = require("./cli-gcmd");
@@ -47,7 +27,7 @@ const cliExt = (program) => {
         'package-name': plink_1.cliPackageArgDesc
     })
         .action(async (packageNames) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-gsetting')))).generateSetting(packageNames, settingCmd.opts());
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-gsetting')))).generateSetting(packageNames, settingCmd.opts());
     });
     const cfgCmd = program.command('gcfg <file>').alias('gen-config')
         .option('-d, --dry-run', 'Dryrun', false)
@@ -56,7 +36,7 @@ const cliExt = (program) => {
         file: 'Output configuration file path (with or without suffix name ".ts"), e.g. "conf/foobar.prod"'
     })
         .action(async (file) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-gcfg')))).generateConfig(file, cfgCmd.opts());
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-gcfg')))).generateConfig(file, cfgCmd.opts());
     });
     const genCraCmd = program.command('cra-gen-pkg <path>')
         .description('For create-react-app project, generate a sample package', { path: 'package directory in relative or absolute path' })
@@ -67,7 +47,7 @@ const cliExt = (program) => {
         ' you may also use environment variable "BUILD_PATH" for create-react-app version above 4.0.3)')
         .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
         .action(async (dir) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-cra-gen')))).genPackage(dir, genCraCmd.opts().comp, genCraCmd.opts().feature, genCraCmd.opts().output, genCraCmd.opts().dryRun);
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-cra-gen')))).genPackage(dir, genCraCmd.opts().comp, genCraCmd.opts().feature, genCraCmd.opts().output, genCraCmd.opts().dryRun);
     });
     const genCraCompCmd = program.command('cra-gen-comp <dir> <componentName...>')
         .description('For create-react-app project, generate sample components', {
@@ -78,7 +58,7 @@ const cliExt = (program) => {
         // .option('--internal-slice,--is', 'Use a lightweiht Redux-toolkit + redux-observable like tool to manage component internal state,' +
         //   ' useful for implementing complex component which might have bigc state and async side effects')
         .action(async (dir, compNames) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-cra-gen')))).genComponents(dir, compNames, {
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-cra-gen')))).genComponents(dir, compNames, {
             connectedToSlice: genCraCompCmd.opts().conn,
             dryrun: genCraCompCmd.opts().dryRun
         });
@@ -92,7 +72,7 @@ const cliExt = (program) => {
         .option('--tiny', 'A RxJS based tiny Slice for managing individual component internal state, useful for complicated component', false)
         .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
         .action(async (dir, sliceName) => {
-        await (await Promise.resolve().then(() => __importStar(require('./cli-cra-gen')))).genSlice(dir, sliceName, genCraSliceCmd.opts());
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-cra-gen')))).genSlice(dir, sliceName, genCraSliceCmd.opts());
     });
     const htCmd = program.command('http-tunnel')
         .alias('ht')
@@ -104,14 +84,28 @@ const cliExt = (program) => {
         return map;
     }, new Map())
         .option('-p,--fallback <fallback-proxy>', 'A fallback proxy server e.g. 172.29.8.195:8888')
+        .option('--cluster', 'enable cluster', false)
         .action(async (port) => {
-        const fallbackOpt = htCmd.opts().fallback ? htCmd.opts().fallback.split(':') : undefined;
-        (await Promise.resolve().then(() => __importStar(require('./cli-forward-proxy')))).start(port, htCmd.opts().m, fallbackOpt
-            ? {
-                fallbackProxyHost: fallbackOpt[0],
-                fallbackproxyPort: fallbackOpt[1] != null ? Number(fallbackOpt[1]) : 80
-            }
-            : undefined);
+        if (htCmd.opts().cluster) {
+            node_cluster_1.default.setupMaster({
+                exec: node_path_1.default.resolve(__dirname, 'forward-proxy-worker.js'),
+                args: [
+                    port + '',
+                    JSON.stringify([...htCmd.opts().m.entries()]),
+                    JSON.stringify(htCmd.opts().fallback || '')
+                ]
+            });
+            Promise.resolve().then(() => tslib_1.__importStar(require('../run-cluster')));
+        }
+        else {
+            const fallbackOpt = htCmd.opts().fallback ? htCmd.opts().fallback.split(':') : undefined;
+            (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-forward-proxy')))).start(port, htCmd.opts().m, fallbackOpt
+                ? {
+                    fallbackProxyHost: fallbackOpt[0],
+                    fallbackproxyPort: fallbackOpt[1] != null ? Number(fallbackOpt[1]) : 80
+                }
+                : undefined);
+        }
     });
     // program.command('install-eslint')
     // .description('Install eslint to current project')

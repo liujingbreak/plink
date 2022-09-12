@@ -192,7 +192,7 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath) {
     }
     // if (pkgName !== '@wfh/plink') {
     drcpDir = path_1.default.relative(baseUrlAbsPath, drcpDir).replace(/\\/g, '/');
-    pathMapping['@wfh/plink'] = [drcpDir];
+    pathMapping['@wfh/plink'] = [drcpDir + '/wfh/ts/index.ts'];
     pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/ts/*'];
     return pathMapping;
 }

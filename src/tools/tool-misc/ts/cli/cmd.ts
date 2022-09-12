@@ -1,3 +1,5 @@
+import cluster from 'node:cluster';
+import Path from 'node:path';
 import {CliExtension, cliPackageArgDesc} from '@wfh/plink';
 // import {cliPackageArgDesc}
 import {generate} from './cli-gcmd';
@@ -89,14 +91,27 @@ const cliExt: CliExtension = (program) => {
         return map;
       }, new Map<string, string>())
     .option('-p,--fallback <fallback-proxy>', 'A fallback proxy server e.g. 172.29.8.195:8888')
+    .option('--cluster', 'enable cluster', false)
     .action(async (port: number) => {
-      const fallbackOpt = htCmd.opts().fallback ? (htCmd.opts().fallback as string).split(':') : undefined;
-      (await import('./cli-forward-proxy')).start(port, htCmd.opts().m, fallbackOpt
-        ? {
-          fallbackProxyHost: fallbackOpt[0],
-          fallbackproxyPort: fallbackOpt[1] != null ? Number(fallbackOpt[1]) : 80
-        }
-        : undefined);
+      if (htCmd.opts().cluster) {
+        cluster.setupMaster({
+          exec: Path.resolve(__dirname, 'forward-proxy-worker.js'),
+          args: [
+            port + '',
+            JSON.stringify([...(htCmd.opts().m as Map<string, string>).entries()]),
+            JSON.stringify(htCmd.opts().fallback || '')
+          ]
+        });
+        import('../run-cluster');
+      } else {
+        const fallbackOpt = htCmd.opts().fallback ? (htCmd.opts().fallback as string).split(':') : undefined;
+        (await import('./cli-forward-proxy')).start(port, htCmd.opts().m, fallbackOpt
+          ? {
+            fallbackProxyHost: fallbackOpt[0],
+            fallbackproxyPort: fallbackOpt[1] != null ? Number(fallbackOpt[1]) : 80
+          }
+          : undefined);
+      }
     });
   // program.command('install-eslint')
   // .description('Install eslint to current project')

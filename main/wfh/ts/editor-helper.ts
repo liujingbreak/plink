@@ -360,13 +360,15 @@ function backupTsConfigOf(file: string) {
 
 
 async function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string) {
-  const file = Path.isAbsolute(data.relPath) ? data.relPath :
+  const file = Path.isAbsolute(data.relPath)
+    ? data.relPath :
     Path.resolve(rootPath, data.relPath);
   const tsconfigDir = Path.dirname(file);
   const backup = backupTsConfigOf(file);
 
   const json = (fs.existsSync(backup) ?
-    JSON.parse(await fs.promises.readFile(backup, 'utf8')) : _.cloneDeep(data.originJson) ) as  {compilerOptions?: CompilerOptions};
+    JSON.parse(await fs.promises.readFile(backup, 'utf8'))
+    : _.cloneDeep(data.originJson) ) as  {compilerOptions?: CompilerOptions};
 
   // if (json.compilerOptions?.paths && json.compilerOptions.paths['_package-settings'] != null) {
   //   delete json.compilerOptions.paths['_package-settings'];

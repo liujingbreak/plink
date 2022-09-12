@@ -1,6 +1,6 @@
+import path from 'node:path';
 import * as log4js from 'log4js';
 import {packageOfFileFactory} from './package-mgr/package-info-gathering';
-import path from 'path';
 /**
  * Get log4js Logger for specific node.js file, the output log will have
  * category in form of "<pkg name>.<file base name>"

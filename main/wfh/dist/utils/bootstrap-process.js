@@ -3,10 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.initAsChildProcess = exports.initProcess = exports.initConfig = exports.exitHooks = void 0;
 const tslib_1 = require("tslib");
 require("../node-path");
+const node_cluster_1 = tslib_1.__importDefault(require("node:cluster"));
+const node_child_process_1 = tslib_1.__importDefault(require("node:child_process"));
 const log4js_1 = tslib_1.__importDefault(require("log4js"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const config_1 = tslib_1.__importDefault(require("../config"));
+const log4jsAppenders = tslib_1.__importStar(require("./log4js-appenders"));
 const log = log4js_1.default.getLogger('plink.bootstrap-process');
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 exports.exitHooks = [];
@@ -39,6 +42,7 @@ exports.initConfig = initConfig;
  * @param _onShutdownSignal
  */
 function initProcess(saveState = 'none', _onShutdownSignal, handleShutdownMsg = false) {
+    interceptFork();
     // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
     process.once('beforeExit', function (code) {
         log.info('pid ' + process.pid + ': bye');
@@ -48,6 +52,7 @@ function initProcess(saveState = 'none', _onShutdownSignal, handleShutdownMsg = 
         log.info('pid' + process.pid + ' recieves SIGINT');
         onShut(0, true);
     });
+    configDefaultLog();
     if (handleShutdownMsg) {
         // Be aware this is why "initProcess" can not be "fork"ed in a child process, it will keep alive for parent process's 'message' event
         process.on('message', function (msg) {
@@ -130,4 +135,77 @@ function initAsChildProcess(saveState = 'none', onShutdownSignal) {
     return initProcess(saveState, onShutdownSignal, false);
 }
 exports.initAsChildProcess = initAsChildProcess;
+function interceptFork() {
+    const origFork = node_child_process_1.default.fork;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    node_child_process_1.default.fork = function (...args) {
+        // eslint-disable-next-line no-console
+        console.log('Someone forks child process from', process.pid);
+        const cp = origFork.apply(node_child_process_1.default, args);
+        cp.on('message', (msg) => {
+            if (msg && (msg).type === 'plinkLog4jsEvent') {
+                // log4js.getLogger().log((msg as {payload: unknown}).payload);
+                // eslint-disable-next-line no-console
+                console.log(msg.payload);
+            }
+        });
+        return cp;
+    };
+}
+function configDefaultLog() {
+    if (node_cluster_1.default.isWorker) {
+        log4js_1.default.configure({
+            appenders: {
+                out: { type: log4jsAppenders.clusterSlaveAppender }
+            },
+            categories: {
+                default: { appenders: ['out'], level: 'info' }
+            }
+        });
+        return;
+    }
+    else if (process.send) {
+        log4js_1.default.configure({
+            appenders: {
+                out: { type: log4jsAppenders.childProcessAppender }
+            },
+            categories: {
+                default: { appenders: ['out'], level: 'info' }
+            }
+        });
+    }
+    else {
+        log4js_1.default.configure({
+            appenders: {
+                out: {
+                    type: 'stdout',
+                    layout: { type: 'pattern', pattern: '[P%z] %[%c%] - %m' }
+                }
+            },
+            categories: {
+                default: { appenders: ['out'], level: 'info' }
+            }
+        });
+    }
+    /**
+     - %r time in toLocaleTimeString format
+     - %p log level
+     - %c log category
+     - %h hostname
+     - %m log data
+     - %d date, formatted - default is ISO8601, format options are: ISO8601, ISO8601_WITH_TZ_OFFSET, ABSOLUTE, DATE, or any string compatible with the date-format library. e.g. %d{DATE}, %d{yyyy/MM/dd-hh.mm.ss}
+     - %% % - for when you want a literal % in your output
+     - %n newline
+     - %z process id (from process.pid)
+     - %f full path of filename (requires enableCallStack: true on the category, see configuration object)
+     - %f{depth} path’s depth let you chose to have only filename (%f{1}) or a chosen number of directories
+     - %l line number (requires enableCallStack: true on the category, see configuration object)
+     - %o column postion (requires enableCallStack: true on the category, see configuration object)
+     - %s call stack (requires enableCallStack: true on the category, see configuration object)
+     - %x{<tokenname>} add dynamic tokens to your log. Tokens are specified in the tokens parameter.
+     - %X{<tokenname>} add values from the Logger context. Tokens are keys into the context values.
+     - %[ start a coloured block (colour will be taken from the log level, similar to colouredLayout)
+     - %] end a coloured block
+     */
+}
 //# sourceMappingURL=bootstrap-process.js.map

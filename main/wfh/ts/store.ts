@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import Path from 'path';
 import fs from 'fs';
-import {isMainThread, threadId} from 'worker_threads';
+import {isMainThread} from 'worker_threads';
 import fse from 'fs-extra';
 import {tap, filter} from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -16,7 +16,6 @@ import {PlinkEnv} from './node-path';
 
 export {ofPayloadAction, createReducers, action$Of, castByActionType};
 enableMapSet();
-configDefaultLog();
 
 const PROCESS_MSG_TYPE = 'rtk-observable:state';
 export type ProcessStateSyncMsg = {
@@ -26,44 +25,6 @@ export type ProcessStateSyncMsg = {
 export function isStateSyncMsg(msg: unknown): msg is ProcessStateSyncMsg {
   return (msg as ProcessStateSyncMsg).type === PROCESS_MSG_TYPE;
 }
-
-function configDefaultLog() {
-  let logPatternPrefix = '';
-  if (process.send || !isMainThread)
-    logPatternPrefix = `[P${process.pid}.T${threadId}] `;
-  log4js.configure({
-    appenders: {
-      out: {
-        type: 'stdout',
-        layout: {type: 'pattern', pattern: logPatternPrefix + '%[%c%] - %m'}
-      }
-    },
-    categories: {
-      default: {appenders: ['out'], level: 'info'}
-    }
-  });
-  /**
-   - %r time in toLocaleTimeString format
-   - %p log level
-   - %c log category
-   - %h hostname
-   - %m log data
-   - %d date, formatted - default is ISO8601, format options are: ISO8601, ISO8601_WITH_TZ_OFFSET, ABSOLUTE, DATE, or any string compatible with the date-format library. e.g. %d{DATE}, %d{yyyy/MM/dd-hh.mm.ss}
-   - %% % - for when you want a literal % in your output
-   - %n newline
-   - %z process id (from process.pid)
-   - %f full path of filename (requires enableCallStack: true on the category, see configuration object)
-   - %f{depth} path’s depth let you chose to have only filename (%f{1}) or a chosen number of directories
-   - %l line number (requires enableCallStack: true on the category, see configuration object)
-   - %o column postion (requires enableCallStack: true on the category, see configuration object)
-   - %s call stack (requires enableCallStack: true on the category, see configuration object)
-   - %x{<tokenname>} add dynamic tokens to your log. Tokens are specified in the tokens parameter.
-   - %X{<tokenname>} add values from the Logger context. Tokens are keys into the context values.
-   - %[ start a coloured block (colour will be taken from the log level, similar to colouredLayout)
-   - %] end a coloured block
-   */
-}
-
 
 export const BEFORE_SAVE_STATE = 'BEFORE_SAVE_STATE';
 const IGNORE_SLICE = ['config', 'configView', 'cli', 'analyze', 'storeSetting'];

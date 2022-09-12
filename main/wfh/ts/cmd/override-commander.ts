@@ -257,12 +257,6 @@ class PlinkCmdOption extends commander.Option {
   optionStyler?: (cmdName: string) => string;
 }
 export class CommandOverrider {
-  // nameStyler: PlinkCommand['nameStyler'];
-  // private currClieCreatorFile: string;
-  // private currCliCreatorPkg: PackageInfo | null = null;
-  // private currCliPkgMataInfos: OurCommandMetadata[];
-  // private allSubCmds: OurAugmentedCommander[] = [];
-  // private metaMap = new WeakMap<commander.Command, Partial<OurCommandMetadata>>();
   private pkgMetasMap = new Map<string, OurCommandMetadata[]>();
   private ctx: Partial<CommandContext> = {
     metaMap: new WeakMap<commander.Command, Partial<OurCommandMetadata>>()
@@ -305,7 +299,7 @@ export class CommandOverrider {
         this.pkgMetasMap.set(pk.name, commandMetaInfos);
       } catch (e) {
         // eslint-disable-next-line no-console
-        log.warn(`Failed to load command line extension in package ${pk.name}: "${e.message as string}"`, e);
+        log.warn(`Failed to load command line extension in package ${pk.name}: "${(e as Error).message }"`, e);
       } finally {
         filePath = null;
       }

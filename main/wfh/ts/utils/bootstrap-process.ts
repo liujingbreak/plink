@@ -1,4 +1,6 @@
 import '../node-path';
+import cluster from 'node:cluster';
+import chrp from 'node:child_process';
 import log4js from 'log4js';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -6,6 +8,7 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
+import * as log4jsAppenders from './log4js-appenders';
 
 const log = log4js.getLogger('plink.bootstrap-process');
 
@@ -42,6 +45,7 @@ export function initConfig(options: GlobalOptions = {}) {
  * @param _onShutdownSignal 
  */
 export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'none', _onShutdownSignal?: (code: number) => void | Promise<any>, handleShutdownMsg = false) {
+  interceptFork();
   // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
   process.once('beforeExit', function(code) {
     log.info('pid ' + process.pid + ': bye');
@@ -52,6 +56,7 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
     onShut(0, true);
   });
 
+  configDefaultLog();
   if (handleShutdownMsg) {
     // Be aware this is why "initProcess" can not be "fork"ed in a child process, it will keep alive for parent process's 'message' event
     process.on('message', function(msg) {
@@ -142,4 +147,77 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
  */
 export function initAsChildProcess(saveState: store.StoreSetting['actionOnExit'] = 'none', onShutdownSignal?: () => void | Promise<any>) {
   return initProcess(saveState, onShutdownSignal, false);
+}
+
+function interceptFork() {
+  const origFork = chrp.fork;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  chrp.fork = function(...args: Parameters<typeof origFork>) {
+    // eslint-disable-next-line no-console
+    console.log('Someone forks child process from', process.pid);
+    const cp = origFork.apply(chrp, args);
+    cp.on('message', (msg: {type?: string}) => {
+      if (msg && (msg).type === 'plinkLog4jsEvent') {
+        // log4js.getLogger().log((msg as {payload: unknown}).payload);
+        // eslint-disable-next-line no-console
+        console.log((msg as {payload: unknown}).payload);
+      }
+    });
+    return cp;
+  } as any;
+}
+
+function configDefaultLog() {
+  if (cluster.isWorker) {
+    log4js.configure({
+      appenders: {
+        out: {type: log4jsAppenders.clusterSlaveAppender}
+      },
+      categories: {
+        default: {appenders: ['out'], level: 'info'}
+      }
+    });
+    return;
+  } else if (process.send) {
+    log4js.configure({
+      appenders: {
+        out: {type: log4jsAppenders.childProcessAppender}
+      },
+      categories: {
+        default: {appenders: ['out'], level: 'info'}
+      }
+    });
+  } else {
+    log4js.configure({
+      appenders: {
+        out: {
+          type: 'stdout',
+          layout: {type: 'pattern', pattern: '[P%z] %[%c%] - %m'}
+        }
+      },
+      categories: {
+        default: {appenders: ['out'], level: 'info'}
+      }
+    });
+  }
+  /**
+   - %r time in toLocaleTimeString format
+   - %p log level
+   - %c log category
+   - %h hostname
+   - %m log data
+   - %d date, formatted - default is ISO8601, format options are: ISO8601, ISO8601_WITH_TZ_OFFSET, ABSOLUTE, DATE, or any string compatible with the date-format library. e.g. %d{DATE}, %d{yyyy/MM/dd-hh.mm.ss}
+   - %% % - for when you want a literal % in your output
+   - %n newline
+   - %z process id (from process.pid)
+   - %f full path of filename (requires enableCallStack: true on the category, see configuration object)
+   - %f{depth} path’s depth let you chose to have only filename (%f{1}) or a chosen number of directories
+   - %l line number (requires enableCallStack: true on the category, see configuration object)
+   - %o column postion (requires enableCallStack: true on the category, see configuration object)
+   - %s call stack (requires enableCallStack: true on the category, see configuration object)
+   - %x{<tokenname>} add dynamic tokens to your log. Tokens are specified in the tokens parameter.
+   - %X{<tokenname>} add values from the Logger context. Tokens are keys into the context values.
+   - %[ start a coloured block (colour will be taken from the log level, similar to colouredLayout)
+   - %] end a coloured block
+   */
 }

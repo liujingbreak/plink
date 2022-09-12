@@ -190,8 +190,7 @@ async function _runPackages(includePackages: Iterable<string>,
 /**
  * So that we can use `import api from '__plink'` anywhere in our package
  */
-export function initInjectorForNodePackages():
-  [PackageInfo, _NodeApi] {
+export function initInjectorForNodePackages(): [PackageInfo, _NodeApi] {
   const {getPkgOfFile, packageInfo} = packageOfFileFactory();
   // const packageInfo: PackageInfo = walkPackages();
   const NodeApi = require('./package-mgr/node-package-api').default as typeof _NodeApi;
