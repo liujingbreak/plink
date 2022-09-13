@@ -1,13 +1,13 @@
+import Path from 'path';
 import * as _ from 'lodash';
 import {getLogger} from 'log4js';
 import {DirTree} from 'require-injector/dist/dir-tree';
-import PackageInstance from '../packageNodeInstance';
-import {packages4Workspace} from './package-list-helper';
-import {PackageInfo as PackageState} from './index';
-import {parseName} from './lazy-package-factory';
-import {plinkEnv} from '../utils/misc';
 import LRU from 'lru-cache';
-import Path from 'path';
+import PackageInstance from '../packageNodeInstance';
+import {plinkEnv} from '../utils/misc';
+import {packages4Workspace} from './package-list-helper';
+import {parseName} from './lazy-package-factory';
+import {PackageInfo as PackageState} from './index';
 // import inspector from 'inspector';
 
 const log = getLogger('plink.package-info-gathering');
@@ -42,7 +42,7 @@ export function packageOfFileFactory() {
   const packageInfo: PackageInfo = walkPackages();
 
   function getPkgOfFile(file: string): PackageInstance | undefined {
-    var found = cache.get(file);
+    let found = cache.get(file);
     if (!found) {
       found = packageInfo.dirTree.getAllData(file).pop();
       if (found)

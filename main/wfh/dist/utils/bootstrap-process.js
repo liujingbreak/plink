@@ -9,7 +9,7 @@ const log4js_1 = tslib_1.__importDefault(require("log4js"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const config_1 = tslib_1.__importDefault(require("../config"));
-const log4jsAppenders = tslib_1.__importStar(require("./log4js-appenders"));
+const log4js_appenders_1 = require("./log4js-appenders");
 const log = log4js_1.default.getLogger('plink.bootstrap-process');
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 exports.exitHooks = [];
@@ -139,35 +139,31 @@ function interceptFork() {
     const origFork = node_child_process_1.default.fork;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     node_child_process_1.default.fork = function (...args) {
-        // eslint-disable-next-line no-console
-        console.log('Someone forks child process from', process.pid);
         const cp = origFork.apply(node_child_process_1.default, args);
-        cp.on('message', (msg) => {
-            if (msg && (msg).type === 'plinkLog4jsEvent') {
-                // log4js.getLogger().log((msg as {payload: unknown}).payload);
-                // eslint-disable-next-line no-console
-                console.log(msg.payload);
-            }
-        });
+        cp.on('message', log4js_appenders_1.childProcessMsgHandler);
         return cp;
     };
+    node_cluster_1.default.on('fork', worker => {
+        worker.on('message', log4js_appenders_1.childProcessMsgHandler);
+    });
 }
 function configDefaultLog() {
     if (node_cluster_1.default.isWorker) {
         log4js_1.default.configure({
             appenders: {
-                out: { type: log4jsAppenders.clusterSlaveAppender }
+                out: { type: log4js_appenders_1.childProcessAppender }
             },
             categories: {
                 default: { appenders: ['out'], level: 'info' }
-            }
+            },
+            disableClustering: true
         });
         return;
     }
     else if (process.send) {
         log4js_1.default.configure({
             appenders: {
-                out: { type: log4jsAppenders.childProcessAppender }
+                out: { type: log4js_appenders_1.childProcessAppender }
             },
             categories: {
                 default: { appenders: ['out'], level: 'info' }

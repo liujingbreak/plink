@@ -8,7 +8,7 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
-import * as log4jsAppenders from './log4js-appenders';
+import {childProcessAppender, childProcessMsgHandler as logMsgHandler} from './log4js-appenders';
 
 const log = log4js.getLogger('plink.bootstrap-process');
 
@@ -153,35 +153,32 @@ function interceptFork() {
   const origFork = chrp.fork;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   chrp.fork = function(...args: Parameters<typeof origFork>) {
-    // eslint-disable-next-line no-console
-    console.log('Someone forks child process from', process.pid);
     const cp = origFork.apply(chrp, args);
-    cp.on('message', (msg: {type?: string}) => {
-      if (msg && (msg).type === 'plinkLog4jsEvent') {
-        // log4js.getLogger().log((msg as {payload: unknown}).payload);
-        // eslint-disable-next-line no-console
-        console.log((msg as {payload: unknown}).payload);
-      }
-    });
+    cp.on('message', logMsgHandler);
     return cp;
   } as any;
+
+  cluster.on('fork', worker => {
+    worker.on('message', logMsgHandler);
+  });
 }
 
 function configDefaultLog() {
   if (cluster.isWorker) {
     log4js.configure({
       appenders: {
-        out: {type: log4jsAppenders.clusterSlaveAppender}
+        out: {type: childProcessAppender}
       },
       categories: {
         default: {appenders: ['out'], level: 'info'}
-      }
+      },
+      disableClustering: true
     });
     return;
   } else if (process.send) {
     log4js.configure({
       appenders: {
-        out: {type: log4jsAppenders.childProcessAppender}
+        out: {type: childProcessAppender}
       },
       categories: {
         default: {appenders: ['out'], level: 'info'}

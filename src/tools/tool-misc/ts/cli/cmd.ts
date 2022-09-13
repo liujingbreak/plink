@@ -1,6 +1,7 @@
 import cluster from 'node:cluster';
 import Path from 'node:path';
 import {CliExtension, cliPackageArgDesc} from '@wfh/plink';
+import {startCluster} from '../run-cluster';
 // import {cliPackageArgDesc}
 import {generate} from './cli-gcmd';
 
@@ -102,7 +103,7 @@ const cliExt: CliExtension = (program) => {
             JSON.stringify(htCmd.opts().fallback || '')
           ]
         });
-        import('../run-cluster');
+        startCluster();
       } else {
         const fallbackOpt = htCmd.opts().fallback ? (htCmd.opts().fallback as string).split(':') : undefined;
         (await import('./cli-forward-proxy')).start(port, htCmd.opts().m, fallbackOpt

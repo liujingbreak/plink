@@ -2,16 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.walkPackages = exports.packageOfFileFactory = exports.PackageInstance = void 0;
 const tslib_1 = require("tslib");
+const path_1 = tslib_1.__importDefault(require("path"));
 const _ = tslib_1.__importStar(require("lodash"));
 const log4js_1 = require("log4js");
 const dir_tree_1 = require("require-injector/dist/dir-tree");
+const lru_cache_1 = tslib_1.__importDefault(require("lru-cache"));
 const packageNodeInstance_1 = tslib_1.__importDefault(require("../packageNodeInstance"));
 exports.PackageInstance = packageNodeInstance_1.default;
+const misc_1 = require("../utils/misc");
 const package_list_helper_1 = require("./package-list-helper");
 const lazy_package_factory_1 = require("./lazy-package-factory");
-const misc_1 = require("../utils/misc");
-const lru_cache_1 = tslib_1.__importDefault(require("lru-cache"));
-const path_1 = tslib_1.__importDefault(require("path"));
 // import inspector from 'inspector';
 const log = (0, log4js_1.getLogger)('plink.package-info-gathering');
 const { workDir, symlinkDirName } = misc_1.plinkEnv;
@@ -32,7 +32,7 @@ function packageOfFileFactory() {
     const cache = new lru_cache_1.default({ max: 20, maxAge: 20000 });
     const packageInfo = walkPackages();
     function getPkgOfFile(file) {
-        var found = cache.get(file);
+        let found = cache.get(file);
         if (!found) {
             found = packageInfo.dirTree.getAllData(file).pop();
             if (found)

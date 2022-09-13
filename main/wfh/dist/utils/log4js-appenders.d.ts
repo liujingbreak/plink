@@ -5,5 +5,8 @@ import { AppenderModule } from 'log4js';
 /**
  * Log4js can handle cluster worker configuration, it will most likely ignore appenders, so it could be empty appender
  */
-export declare const clusterSlaveAppender: AppenderModule;
+export declare const doNothingAppender: AppenderModule;
 export declare const childProcessAppender: AppenderModule;
+export declare function childProcessMsgHandler(msg: {
+    type?: string;
+}): void;

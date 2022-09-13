@@ -4,6 +4,7 @@ const tslib_1 = require("tslib");
 const node_cluster_1 = tslib_1.__importDefault(require("node:cluster"));
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const plink_1 = require("@wfh/plink");
+const run_cluster_1 = require("../run-cluster");
 // import {cliPackageArgDesc}
 const cli_gcmd_1 = require("./cli-gcmd");
 const cliExt = (program) => {
@@ -95,7 +96,7 @@ const cliExt = (program) => {
                     JSON.stringify(htCmd.opts().fallback || '')
                 ]
             });
-            Promise.resolve().then(() => tslib_1.__importStar(require('../run-cluster')));
+            (0, run_cluster_1.startCluster)();
         }
         else {
             const fallbackOpt = htCmd.opts().fallback ? htCmd.opts().fallback.split(':') : undefined;
