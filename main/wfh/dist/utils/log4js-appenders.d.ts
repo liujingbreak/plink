@@ -8,5 +8,6 @@ import { AppenderModule } from 'log4js';
 export declare const doNothingAppender: AppenderModule;
 export declare const childProcessAppender: AppenderModule;
 export declare function childProcessMsgHandler(msg: {
-    type?: string;
+    topic?: string;
+    data: string;
 }): void;

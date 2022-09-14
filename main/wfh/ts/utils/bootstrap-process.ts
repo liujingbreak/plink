@@ -8,7 +8,7 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
-import {childProcessAppender, childProcessMsgHandler as logMsgHandler} from './log4js-appenders';
+import {childProcessAppender, doNothingAppender, childProcessMsgHandler as logMsgHandler} from './log4js-appenders';
 
 const log = log4js.getLogger('plink.bootstrap-process');
 
@@ -154,25 +154,34 @@ function interceptFork() {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   chrp.fork = function(...args: Parameters<typeof origFork>) {
     const cp = origFork.apply(chrp, args);
-    cp.on('message', logMsgHandler);
+    cp.on('message', handleChildProcessMessage);
     return cp;
   } as any;
 
-  cluster.on('fork', worker => {
-    worker.on('message', logMsgHandler);
-  });
+  cluster.on('message', handleChildProcessMessage);
+}
+
+function handleChildProcessMessage(msg: {topic?: string, data: string}, ...others: any[]) {
+  if (!logMsgHandler(msg) && msg.topic === 'plink-broadcast') {
+    if (process.send) {
+      process.send(msg, ...others);
+    }
+  }
 }
 
 function configDefaultLog() {
   if (cluster.isWorker) {
+    // https://github.dev/log4js-node/log4js-node/blob/master/lib/clustering.js
+    // if `disableClustering` is not `true`, log4js will ignore configuration and
+    // always use `process.send()`
     log4js.configure({
       appenders: {
-        out: {type: childProcessAppender}
+        out: {type: doNothingAppender}
       },
       categories: {
         default: {appenders: ['out'], level: 'info'}
-      },
-      disableClustering: true
+      }
+      // disableClustering: true
     });
     return;
   } else if (process.send) {

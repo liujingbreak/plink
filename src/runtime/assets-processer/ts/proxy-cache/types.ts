@@ -1,7 +1,3 @@
-import httpProxy from 'http-proxy';
-// import {HttpProxyEventObs} from '../http-proxy-observable';
-// import { Options as HpmOptions} from 'http-proxy-middleware';
-
 export type Transformer = (resHeaders: CacheData['headers'],
   reqHost: string | undefined, source: NodeJS.ReadableStream) => PromiseLike<{
   readable: () => NodeJS.ReadableStream;
@@ -9,10 +5,9 @@ export type Transformer = (resHeaders: CacheData['headers'],
 }>;
 
 export type ProxyCacheState = {
-  proxy: httpProxy;
-  cacheDir: string;
-  cacheByUri: Map<string, CacheData |
-    'loading' | 'requesting' | 'saving'>;
+  // proxy: httpProxy;
+  cacheDir?: string;
+  cacheByUri: Map<string, CacheData | 'loading' | 'requesting' | 'saving'>;
   /** transform remote response */
   responseTransformer?: Transformer;
   /** transform cached response */

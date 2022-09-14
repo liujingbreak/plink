@@ -143,20 +143,21 @@ function interceptFork() {
         cp.on('message', log4js_appenders_1.childProcessMsgHandler);
         return cp;
     };
-    node_cluster_1.default.on('fork', worker => {
-        worker.on('message', log4js_appenders_1.childProcessMsgHandler);
-    });
+    node_cluster_1.default.on('message', log4js_appenders_1.childProcessMsgHandler);
 }
 function configDefaultLog() {
     if (node_cluster_1.default.isWorker) {
+        // https://github.dev/log4js-node/log4js-node/blob/master/lib/clustering.js
+        // if `disableClustering` is not `true`, log4js will ignore configuration and
+        // always use `process.send()`
         log4js_1.default.configure({
             appenders: {
-                out: { type: log4js_appenders_1.childProcessAppender }
+                out: { type: log4js_appenders_1.doNothingAppender }
             },
             categories: {
                 default: { appenders: ['out'], level: 'info' }
-            },
-            disableClustering: true
+            }
+            // disableClustering: true
         });
         return;
     }

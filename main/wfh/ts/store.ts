@@ -156,7 +156,6 @@ export const processExitAction$ = action$Of(stateFactory, storeSettingSlice.acti
 export const storeSavedAction$ = action$Of(stateFactory, storeSettingSlice.actions.storeSaved);
 
 export function startLogging() {
-
   // const logState = log4js.getLogger('plink.store.state');
   const logAction = log4js.getLogger('plink.store.action');
 

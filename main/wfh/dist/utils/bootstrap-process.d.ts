@@ -21,7 +21,7 @@ export declare function initConfig(options?: GlobalOptions): import("..").DrcpCo
  * @param _onShutdownSignal
  */
 export declare function initProcess(saveState?: store.StoreSetting['actionOnExit'], _onShutdownSignal?: (code: number) => void | Promise<any>, handleShutdownMsg?: boolean): import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<store.StoreSetting, {
-    changeActionOnExit(s: store.StoreSetting, mode: "save" | "send" | "none"): void;
+    changeActionOnExit(s: store.StoreSetting, mode: "send" | "save" | "none"): void;
     processExit(): void;
     storeSaved(): void;
 }> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<store.StoreSetting>>;
@@ -39,7 +39,7 @@ export declare function initProcess(saveState?: store.StoreSetting['actionOnExit
  * @param syncState send changed state back to main process
  */
 export declare function initAsChildProcess(saveState?: store.StoreSetting['actionOnExit'], onShutdownSignal?: () => void | Promise<any>): import("@reduxjs/toolkit").CaseReducerActions<import("../../../packages/redux-toolkit-observable/dist/helper").RegularReducers<store.StoreSetting, {
-    changeActionOnExit(s: store.StoreSetting, mode: "save" | "send" | "none"): void;
+    changeActionOnExit(s: store.StoreSetting, mode: "send" | "save" | "none"): void;
     processExit(): void;
     storeSaved(): void;
 }> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<store.StoreSetting>>;
