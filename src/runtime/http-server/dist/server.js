@@ -57,7 +57,7 @@ function activate() {
     }
     function startHttpServer(app, port) {
         log.info('start HTTP');
-        const server = http.createServer(app);
+        const server = http.createServer({ keepAlive: true }, app);
         // Node 8 has a keepAliveTimeout bug which doesn't respect active connections.
         // Connections will end after ~5 seconds (arbitrary), often not letting the full download
         // of large pieces of content, such as a vendor javascript file.  This results in browsers

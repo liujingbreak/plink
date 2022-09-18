@@ -5,41 +5,44 @@ import http from 'node:http';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {log4File} from '@wfh/plink';
-import {ProxyCacheState} from './types';
 
 const log = log4File(__filename);
 
-type ProcessMsg = {
-  topic?: string;
-  srcPid: number;
-  destPid: number;
-  path?: keyof ProxyCacheState;
-  method?: 'subscribe' | 'updateIf' | 'unsubscribe' | 'update' | 'changed';
-  ifValue?: any;
+type MemoStore = {
+  updateLock: Map<string, boolean>;
+  data: Map<string, unknown>;
 };
 
 export function startStore() {
-  const msg$ = new rx.Observable<ProcessMsg>(sub => {
-    const server = http.createServer({}, (req, res) => {
-    });
+  const action$ = new rx.Subject<'listening' | 'shutdown'>();
+  const req$ = new rx.Subject<[http.IncomingMessage, http.OutgoingMessage]>();
+  const server$ = new rx.Observable<unknown>(sub => {
+    const server = http.createServer();
+    server.keepAliveTimeout = 60000;
     server.listen(14401);
-    server.on('', '');
+    server.once('listening', () => action$.next('listening'));
+    server.on('error', err => sub.error(err));
+    server.on('request', (req, res) => req$.next([req, res]));
+
+    rx.merge(
+      req$.pipe()
+    ).pipe(
+      op.takeUntil(action$.pipe(op.filter(ac => ac === 'shutdown'))),
+      op.catchError((err, src) => {
+        log.error(err);
+        return src;
+      })
+    ).subscribe();
+
     return () => {
+      server.close();
+      action$.next('shutdown');
     };
   });
-  const store = new rx.BehaviorSubject<ProxyCacheState>({
-    cacheByUri: new Map(),
-    memCacheLength: opts.memCacheLength == null ? Number.MAX_VALUE : opts.memCacheLength
+  const store = new rx.BehaviorSubject<MemoStore>({
+    updateLock: new Map(),
+    data: new Map()
   });
 
-  rx.merge(
-    msg$.pipe(
-      op.filter(msg => msg.method === 'update')
-    )
-  ).pipe(
-    op.catchError((err, src) => {
-      log.error(err);
-      return src;
-    })
-  ).subscribe();
+  return server$;
 }
