@@ -1,14 +1,14 @@
 // eslint-disable  max-len
 import {EventEmitter} from 'events';
 
-import config from '../config';
 import npmimportCssLoader from 'require-injector/dist/css-loader';
 import Inject from 'require-injector';
-import * as assetsUrl from '../../dist/assets-url';
-import {PackageInfo} from './package-info-gathering';
-import PackageInstance from '../packageNodeInstance';
 import _ from 'lodash';
 import {Logger, getLogger} from 'log4js';
+import PackageInstance from '../packageNodeInstance';
+import * as assetsUrl from '../../dist/assets-url';
+import config from '../config';
+import {PackageInfo} from './package-info-gathering';
 
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 
@@ -30,21 +30,23 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
   packageShortName: string;
   // packageUtils = packageUitls;
   // compileNodePath = [config().nodePath];
-  eventBus: EventEmitter;
+  eventBus = new EventEmitter();
   config = config;
   argv: any;
-  packageInfo: PackageInfo;
-  default: NodeApi;
+  packageInfo: PackageInfo | undefined;
+  default: NodeApi | undefined;
   logger: Logger;
 
-  browserInjector: Inject;
+  browserInjector: Inject | undefined;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   findPackageByFile: (file: string) => PackageInstance | undefined;
-  getNodeApiForPackage: (pkInstance: PackageInstance) => NodeApi;
+  getNodeApiForPackage: ((pkInstance: PackageInstance) => NodeApi) | undefined;
 
-  assetsUrl: typeof assetsUrl.assetsUrl;
-  serverUrl: typeof assetsUrl.serverUrl;
+  assetsUrl = assetsUrl.assetsUrl;
+  serverUrl = assetsUrl.serverUrl;
   /** @deprecated */
-  entryPageUrl: typeof assetsUrl.entryPageUrl;
+  entryPageUrl = assetsUrl.entryPageUrl;
 
   get contextPath() {
     return this._contextPath();
@@ -150,8 +152,8 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
   }
 }
 
-NodeApi.prototype.eventBus = new EventEmitter();
+// NodeApi.prototype.eventBus = new EventEmitter();
 
-assetsUrl.patchToApi(NodeApi.prototype);
+// assetsUrl.patchToApi(NodeApi.prototype);
 
 export default NodeApi;

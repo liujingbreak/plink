@@ -31,7 +31,6 @@ export default function(configObj: PlinkSettings) {
 
     log4js.configure(localSetting);
     log4js.getLogger('logConfig').info(`\n\n-------------- Log ${new Date().toLocaleString()} ----------------\n`);
-    void import('./store').then(store => store.startLogging());
   } catch (e) {
     log.error(e);
     // log.info('\nIt seems current log4js configure file is outdated, please delete\n\t' + log4jsConfig +

@@ -33,10 +33,7 @@ export function createProxyWithCache(proxyPath: string, serverOptions: ServerOpt
     ...serverOptions
   });
   const initialState: ProxyCacheState = {
-    proxy: defaultProxy,
     cacheDir: cacheRootDir,
-    cacheByUri: new Map(),
-    memCacheLength: opts.memCacheLength == null ? Number.MAX_VALUE : opts.memCacheLength
   };
 
   const proxy$ = httpProxyObservable(defaultProxy);

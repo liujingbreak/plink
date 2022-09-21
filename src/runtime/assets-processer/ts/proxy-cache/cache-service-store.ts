@@ -5,6 +5,7 @@ import http from 'node:http';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {log4File} from '@wfh/plink';
+import {createActionStreamByType} from '@wfh/redux-toolkit-observable/dist/rx-utils';
 
 const log = log4File(__filename);
 
@@ -46,3 +47,15 @@ export function startStore() {
 
   return server$;
 }
+
+type ClientMessage = {
+  queryAndLock(key: string): void;
+  lockDone(key: string): void;
+  queryDone(key: string, data: any): void;
+};
+
+export function createClient() {
+  const slice = createActionStreamByType<ClientMessage>();
+  return slice;
+}
+

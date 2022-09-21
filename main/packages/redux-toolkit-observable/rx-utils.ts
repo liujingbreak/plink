@@ -3,8 +3,8 @@
  * https://redux-observable.js.org/
  */
 
-import {Observable, Subject} from 'rxjs';
-import {filter, tap, share} from 'rxjs/operators';
+import {Observable, Subject, defer} from 'rxjs';
+import {filter, mergeMap, tap, share, groupBy} from 'rxjs/operators';
 
 type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
 
@@ -131,6 +131,19 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     }
   });
 
+  const emitByType = {} as Record<keyof AC, Subject<ActionTypes<AC>[keyof AC]>>;
+  const actionsByType = {} as Record<keyof AC, Observable<ActionTypes<AC>[keyof AC]>>;
+
+  function actionOfType<T extends keyof AC>(type: T) {
+    let a$ = actionsByType[type];
+    if (a$ == null) {
+      const emitter = new Subject<ActionTypes<AC>[keyof AC]>();
+      emitByType[type] = emitter;
+      a$ = actionsByType[type] = defer(() => emitter);
+    }
+    return a$;
+  }
+
   const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
   const action$ = opt.debug
     ? actionUpstream.pipe(
@@ -152,6 +165,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     dispatcher: dispatcherProxy,
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
     action$,
+    actionOfType,
     ofType: createOfTypeOperator<AC>(typePrefix),
     isActionType: createIsActionTypeFn<AC>(typePrefix)
   };

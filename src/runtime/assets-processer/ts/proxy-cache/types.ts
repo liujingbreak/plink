@@ -7,12 +7,10 @@ export type Transformer = (resHeaders: CacheData['headers'],
 export type ProxyCacheState = {
   // proxy: httpProxy;
   cacheDir?: string;
-  cacheByUri: Map<string, CacheData | 'loading' | 'requesting' | 'saving'>;
   /** transform remote response */
   responseTransformer?: Transformer;
   /** transform cached response */
   cacheTransformer?: Transformer;
-  memCacheLength: number;
   error?: Error;
 };
 

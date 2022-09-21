@@ -50,7 +50,7 @@ export function runServer(): {
     throw new Error('Current directory is not a workspace directory');
   }
   const pkgs = Array.from(packages4WorkspaceKey(wsKey, true))
-  .filter(isServerPackage);
+    .filter(isServerPackage);
 
   const pkgNames = pkgs.map(item => item.name);
   const pkgEntryMap = new Map<string, [file: string | undefined, func: string]>(pkgs.map(item => {
@@ -68,11 +68,11 @@ export function runServer(): {
   }));
 
   const started = _runPackages(pkgNames, pkgName => pkgEntryMap.get(pkgName))
-  .then(reverseOrderPkgExports => {
-    return new Promise<typeof reverseOrderPkgExports>(resolve => setTimeout(() => {
-      resolve(reverseOrderPkgExports);
-    }, 500));
-  });
+    .then(reverseOrderPkgExports => {
+      return new Promise<typeof reverseOrderPkgExports>(resolve => setTimeout(() => {
+        resolve(reverseOrderPkgExports);
+      }, 500));
+    });
 
   // const reverseOrderPkgExports = await runPackages('#activate', pkgs);
 
@@ -170,17 +170,17 @@ async function _runPackages(includePackages: Iterable<string>,
     name: item.longName,
     priority: _.get(item.json, 'plink.serverPriority', _.get(item.json, 'dr.serverPriority'))
   })),
-    pkInstance  => {
-      const [fileToRun, funcToRun] = targetOfPkg(pkInstance.name)!;
-      packageNamesInOrder.push(pkInstance.name);
-      const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
-      log.debug('require(%sf)', JSON.stringify(mod));
-      const fileExports = require(Path.resolve(getWorkDir(), 'node_modules', mod));
-      pkgExportsInDescendOrder.unshift({name: pkInstance.name, exp: fileExports});
-      if (_.isFunction(fileExports[funcToRun])) {
-        log.info(funcToRun + ` ${chalk.cyan(mod)}`);
-        return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
-      }
+  pkInstance  => {
+    const [fileToRun, funcToRun] = targetOfPkg(pkInstance.name)!;
+    packageNamesInOrder.push(pkInstance.name);
+    const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
+    log.debug('require(%sf)', JSON.stringify(mod));
+    const fileExports = require(Path.resolve(getWorkDir(), 'node_modules', mod));
+    pkgExportsInDescendOrder.unshift({name: pkInstance.name, exp: fileExports});
+    if (_.isFunction(fileExports[funcToRun])) {
+      log.info(funcToRun + ` ${chalk.cyan(mod)}`);
+      return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
+    }
   });
   (proto.eventBus ).emit('done', {});
   NodeApi.prototype.eventBus.emit('packagesActivated', includeNameSet);
@@ -236,13 +236,13 @@ export function prepareLazyNodeInjector(argv?: {[key: string]: any}) {
   };
   nodeInjector.fromRoot()
   // .alias('log4js', Path.resolve(config().rootPath, 'node_modules/log4js'))
-  .value('__injector', nodeInjector)
-  .factory('__api', (sourceFilePath: string) => {
-    const packageInstance = proto.findPackageByFile(sourceFilePath);
-    if (packageInstance)
-      return getApiForPackage(packageInstance, NodeApi);
-    return null;
-  });
+    .value('__injector', nodeInjector)
+    .factory('__api', (sourceFilePath: string) => {
+      const packageInstance = proto.findPackageByFile(sourceFilePath);
+      if (packageInstance)
+        return getApiForPackage(packageInstance, NodeApi);
+      return null;
+    });
 }
 
 export function mapPackagesByType(types: string[], onEachPackage: (nodePackage: NodePackage) => void) {
@@ -283,9 +283,9 @@ function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeA
   nodeInjector.addPackage(pkInstance.longName, pkInstance.realPath,
     pkInstance.path === pkInstance.realPath ? undefined : pkInstance.path);
   nodeInjector.fromDir(pkInstance.realPath)
-  .value('__injector', nodeInjector)
-  .factory('__api', apiFactory)
-  .factory('__plink', apiFactory);
+    .value('__injector', nodeInjector)
+    .factory('__api', apiFactory)
+    .factory('__plink', apiFactory);
 
   // webInjector.fromDir(pkInstance.realPath)
   // .replaceCode('__api', '__api');
@@ -294,8 +294,8 @@ function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeA
   const symlinkDir = pkInstance.path !== pkInstance.realPath ? pkInstance.path : null;
   if (symlinkDir) {
     nodeInjector.fromDir(symlinkDir)
-    .value('__injector', nodeInjector)
-    .factory('__plink', apiFactory);
+      .value('__injector', nodeInjector)
+      .factory('__plink', apiFactory);
 
     // webInjector.fromDir(symlinkDir)
     // .replaceCode('__api', '__api');
