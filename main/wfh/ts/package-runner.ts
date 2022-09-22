@@ -182,8 +182,8 @@ async function _runPackages(includePackages: Iterable<string>,
       return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
     }
   });
-  (proto.eventBus ).emit('done', {});
-  NodeApi.prototype.eventBus.emit('packagesActivated', includeNameSet);
+  (proto.eventBus!).emit('done', {});
+  NodeApi.prototype.eventBus!.emit('packagesActivated', includeNameSet);
   return pkgExportsInDescendOrder;
 }
 

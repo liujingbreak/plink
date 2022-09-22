@@ -4,13 +4,11 @@ exports.workDirChangedByCli = exports.isWin32 = void 0;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const child_process_1 = require("child_process");
-const worker_threads_1 = require("worker_threads");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const os_1 = tslib_1.__importDefault(require("os"));
 const log4js_1 = tslib_1.__importDefault(require("log4js"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const misc_1 = require("./utils/misc");
 exports.isWin32 = os_1.default.platform().indexOf('win32') >= 0;
 const log = log4js_1.default.getLogger('plink.fork-for-preserver-symlink');
@@ -31,25 +29,23 @@ function run(moduleName, opts, bootStrap) {
         return;
     }
     const { initProcess, exitHooks } = require('./utils/bootstrap-process');
-    initProcess(opts.stateExitAction || 'none', (code) => {
-        // eslint-disable-next-line no-console
-        console.log(`Plink process ${process.pid} thread ${worker_threads_1.threadId} ` +
-            chalk_1.default.green(`${code !== 0 ? 'ends with failures' : 'ends'}`));
-    }, opts.handleShutdownMsg);
+    process.env.__plinkLogMainPid = process.pid + '';
+    initProcess(opts.stateExitAction || 'none');
     // Must be invoked after initProcess, otherwise store is not ready (empty)
     const funcs = bootStrap();
     if (Array.isArray(funcs))
         exitHooks.push(...funcs);
 }
 exports.default = run;
-/** run in main process */
+/** run in main process, mayby in PM2 as a cluster process */
 async function forkFile(moduleName, handleShutdownMsg) {
     let recovered = false;
     const { initProcess, exitHooks } = require('./utils/bootstrap-process');
     const { stateFactory } = require('./store');
-    initProcess('none', () => {
+    exitHooks.push(() => {
         recoverNodeModuleSymlink();
     });
+    initProcess('none');
     // removeNodeModuleSymlink needs Editor-helper, and editor-helper needs store being configured!
     stateFactory.configureStore();
     const removed = await removeNodeModuleSymlink();
@@ -76,8 +72,7 @@ async function forkFile(moduleName, handleShutdownMsg) {
     });
     if (handleShutdownMsg) {
         const processMsg$ = rx.fromEventPattern(h => process.on('message', h), h => process.off('message', h));
-        // const processExit$ = rx.fromEventPattern( h => process.on('SIGINT', h), h => process.off('SIGINT', h));
-        rx.merge(processMsg$.pipe(op.filter(msg => msg === 'shutdown'))).pipe(op.take(1), op.tap(() => {
+        processMsg$.pipe(op.filter(msg => msg === 'shutdown'), op.take(1), op.tap(() => {
             cp.send('shutdown');
         })).subscribe();
     }

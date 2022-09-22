@@ -20,32 +20,36 @@ export const childProcessAppender: AppenderModule = {
     if (process.send == null)
       throw new Error('Appender can not be used with process.send undefined (in master process)');
 
-    return function(logEvent: LoggingEvent) {
-      emitLogEventToParent(logEvent);
-    };
+    return emitLogEventToParent;
   }
 };
 
 function emitLogEventToParent(logEvent: LoggingEvent | string) {
-  process.send!({
-    topic: 'log4js:message',
-    data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
-  });
+  try {
+    process.send!({
+      topic: 'log4js:message',
+      data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
+    });
+  } catch (e: any) {
+    console.error(`emit log error, PID: ${process.pid}`, e);
+  }
 }
 
-export function childProcessMsgHandler(msg: {topic?: string, data: string}) {
+/**
+ * Emit log event to log4js appenders
+ */
+export function emitChildProcessLogMsg(msg: {topic?: string, data: string}, toParent = false) {
   if (msg && msg.topic === 'log4js:message') {
     const logEvent = msg.data;
-    if (process.send) {
-      emitLogEventToParent(logEvent);
-      return true;
+    if (toParent) {
+      emitLogEventToParent(msg.data);
     } else {
       sendLoggingEvent(deserialise(logEvent));
-      // getLogger(logEvent.categoryName).log(logEvent.level, ...logEvent.data);
-      // eslint-disable-next-line no-console
-      // console.log(process.pid, logEvent);
-      return true;
     }
+    // getLogger(logEvent.categoryName).log(logEvent.level, ...logEvent.data);
+    // eslint-disable-next-line no-console
+    // console.log(process.pid, logEvent);
+    return true;
   }
   return false;
 }

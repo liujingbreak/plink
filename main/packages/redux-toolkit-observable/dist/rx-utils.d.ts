@@ -58,6 +58,7 @@ export declare function createActionStreamByType<AC extends Record<string, ((...
     dispatcher: AC;
     dispatchFactory: SimpleActionDispatchFactory<AC>;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
+    actionOfType: <T extends keyof AC>(type: T) => Record<keyof AC, Observable<ActionTypes<AC>[keyof AC]>>[T];
     ofType: OfTypeFn<AC>;
     isActionType: <K extends keyof AC>(action: {
         type: unknown;

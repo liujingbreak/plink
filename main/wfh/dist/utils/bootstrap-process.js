@@ -14,11 +14,11 @@ const log = log4js_1.default.getLogger('plink.bootstrap-process');
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 exports.exitHooks = [];
 process.on('uncaughtException', function (err) {
-    log.error('Uncaught exception: ', err);
+    console.error(`PID: ${process.pid} Uncaught exception: `, err);
     throw err; // let PM2 handle exception
 });
-process.on('unhandledRejection', err => {
-    log.error('unhandledRejection', err);
+process.on(`PID: ${process.pid} unhandledRejection`, err => {
+    console.error('unhandledRejection', err);
 });
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
@@ -41,7 +41,7 @@ exports.initConfig = initConfig;
  * DO NOT fork a child process on this function
  * @param _onShutdownSignal
  */
-function initProcess(saveState = 'none', _onShutdownSignal, handleShutdownMsg = false) {
+function initProcess(saveState = 'none') {
     interceptFork();
     // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
     process.once('beforeExit', function (code) {
@@ -53,16 +53,6 @@ function initProcess(saveState = 'none', _onShutdownSignal, handleShutdownMsg = 
         onShut(0, true);
     });
     configDefaultLog();
-    if (handleShutdownMsg) {
-        // Be aware this is why "initProcess" can not be "fork"ed in a child process, it will keep alive for parent process's 'message' event
-        process.on('message', function (msg) {
-            if (msg === 'shutdown') {
-                // eslint-disable-next-line no-console
-                log.info('Recieve shutdown message from PM2, bye.');
-                onShut(0, true);
-            }
-        });
-    }
     const { dispatcher, storeSavedAction$, stateFactory, startLogging } = require('../store');
     startLogging();
     stateFactory.configureStore();
@@ -105,17 +95,16 @@ function initProcess(saveState = 'none', _onShutdownSignal, handleShutdownMsg = 
         }))).pipe(op.finalize(() => {
             if (explicitlyExit) {
                 // eslint-disable-next-line no-console
-                console.log(`Process ${process.pid} Exit with`, exitCode);
+                console.log(`[bootstrap-process] Process ${process.pid} Exit with`, exitCode);
                 process.exit(exitCode);
             }
             else if (exitCode !== 0) {
                 // eslint-disable-next-line no-console
-                console.log(`Process ${process.pid} Exit with`, exitCode);
+                console.log(`[bootstrap-process] Process ${process.pid} Exit with`, exitCode);
                 process.exit(exitCode);
             }
         })).subscribe();
     }
-    return dispatcher;
 }
 exports.initProcess = initProcess;
 /**
@@ -131,19 +120,23 @@ exports.initProcess = initProcess;
  *  sends a signal to exit
  * @param syncState send changed state back to main process
  */
-function initAsChildProcess(saveState = 'none', onShutdownSignal) {
-    return initProcess(saveState, onShutdownSignal, false);
+function initAsChildProcess(saveState = 'none') {
+    return initProcess(saveState);
 }
 exports.initAsChildProcess = initAsChildProcess;
 function interceptFork() {
     const origFork = node_child_process_1.default.fork;
+    const handler = process.env.__plinkLogMainPid === process.pid + '' ||
+        process.send == null ?
+        (msg) => (0, log4js_appenders_1.emitChildProcessLogMsg)(msg, false)
+        : (msg) => (0, log4js_appenders_1.emitChildProcessLogMsg)(msg, true);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     node_child_process_1.default.fork = function (...args) {
         const cp = origFork.apply(node_child_process_1.default, args);
-        cp.on('message', log4js_appenders_1.childProcessMsgHandler);
+        cp.on('message', handler);
         return cp;
     };
-    node_cluster_1.default.on('message', log4js_appenders_1.childProcessMsgHandler);
+    node_cluster_1.default.on('message', handler);
 }
 function configDefaultLog() {
     if (node_cluster_1.default.isWorker) {
@@ -159,25 +152,25 @@ function configDefaultLog() {
             }
             // disableClustering: true
         });
-        return;
     }
-    else if (process.send) {
-        log4js_1.default.configure({
-            appenders: {
-                out: { type: log4js_appenders_1.childProcessAppender }
-            },
-            categories: {
-                default: { appenders: ['out'], level: 'info' }
-            }
-        });
-    }
-    else {
+    else if (process.env.__plinkLogMainPid === process.pid + '') {
+        // eslint-disable-next-line no-console
         log4js_1.default.configure({
             appenders: {
                 out: {
                     type: 'stdout',
                     layout: { type: 'pattern', pattern: '[P%z] %[%c%] - %m' }
                 }
+            },
+            categories: {
+                default: { appenders: ['out'], level: 'info' }
+            }
+        });
+    }
+    else if (process.send) {
+        log4js_1.default.configure({
+            appenders: {
+                out: { type: log4js_appenders_1.childProcessAppender }
             },
             categories: {
                 default: { appenders: ['out'], level: 'info' }

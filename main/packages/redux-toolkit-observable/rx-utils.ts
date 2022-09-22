@@ -4,7 +4,7 @@
  */
 
 import {Observable, Subject, defer} from 'rxjs';
-import {filter, mergeMap, tap, share, groupBy} from 'rxjs/operators';
+import {filter, tap, share} from 'rxjs/operators';
 
 type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
 
@@ -133,13 +133,25 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
 
   const emitByType = {} as Record<keyof AC, Subject<ActionTypes<AC>[keyof AC]>>;
   const actionsByType = {} as Record<keyof AC, Observable<ActionTypes<AC>[keyof AC]>>;
+  let splitByTypeConnected = false;
 
   function actionOfType<T extends keyof AC>(type: T) {
     let a$ = actionsByType[type];
     if (a$ == null) {
       const emitter = new Subject<ActionTypes<AC>[keyof AC]>();
       emitByType[type] = emitter;
-      a$ = actionsByType[type] = defer(() => emitter);
+      a$ = actionsByType[type] = defer(() => {
+        if (!splitByTypeConnected) {
+          splitByTypeConnected = true;
+          action$.subscribe(action => {
+            const emitter = emitByType[action.type];
+            if (emitter) {
+              emitter.next(action);
+            }
+          });
+        }
+        return emitter;
+      });
     }
     return a$;
   }

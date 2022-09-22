@@ -1,7 +1,9 @@
 // eslint-disable  no-console
 import Path from 'path';
+import cluster from 'node:cluster';
 import fs from 'fs-extra';
 import log4js from 'log4js';
+import {childProcessAppender, doNothingAppender} from './utils/log4js-appenders';
 import {PlinkSettings} from './config-handler';
 // import config from './config';
 const log = log4js.getLogger('plink.log-config');
@@ -16,28 +18,24 @@ export default function(configObj: PlinkSettings) {
   }
   fs.mkdirpSync(Path.resolve(rootPath, 'logs'));
 
-  // const opt = {
-  //   cwd: rootPath,
-  //   reloadSecs: 9999
-  // };
-
-  // if (reloadSec !== undefined)
-  //   opt.reloadSecs = reloadSec;
   try {
-    let localSetting = require(log4jsConfig);
+    let localSetting = require(log4jsConfig) as (log4js.Configuration & {setup?: (config: any) => log4js.Configuration});
     if (localSetting.setup instanceof Function) {
       localSetting = localSetting.setup(configObj);
     }
-
+    // Same logic as bootstrap-process#configDefaultLog()
+    if (cluster.isWorker) {
+      for (const key of Object.keys(localSetting.appenders)) {
+        localSetting.appenders[key] = {type: doNothingAppender, name: 'ignore cluster'};
+      }
+    } else if (process.env.__plinkLogMainPid !== process.pid + '' && process.send) {
+      for (const key of Object.keys(localSetting.appenders)) {
+        localSetting.appenders[key] = {type: childProcessAppender, name: 'send to parent'};
+      }
+    }
     log4js.configure(localSetting);
-    log4js.getLogger('logConfig').info(`\n\n-------------- Log ${new Date().toLocaleString()} ----------------\n`);
+    log.info(`\n\nPID:${process.pid} -------------- ${new Date().toLocaleString()} ----------------\n`);
   } catch (e) {
     log.error(e);
-    // log.info('\nIt seems current log4js configure file is outdated, please delete\n\t' + log4jsConfig +
-    // 	'\n  and run "drcp init" to get a new one.\n');
-    // // log4js.configure({
-    // // 	appenders: {out: {type: 'stdout'}},
-    // // 	categories: {default: {appenders: ['out'], level: 'info'}}
-    // // });
   }
 }

@@ -23,13 +23,13 @@ export = {
   activate(api: ExtensionContext) {
     app = express();
     setupApi(api, app);
-    api.eventBus.on('packagesActivated', function() {
+    api.eventBus!.on('packagesActivated', function() {
       log.info('packagesActivated');
       process.nextTick(() => {
         create(app, config());
         expressAppReady$.next(app);
         expressAppReady$.complete();
-        api.eventBus.emit('appCreated', app);
+        api.eventBus!.emit('appCreated', app);
       });
     });
   },

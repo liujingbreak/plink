@@ -1,0 +1,1 @@
+{"version":3,"file":"globals.js","sourceRoot":"","sources":["../ts/globals.ts"],"names":[],"mappings":";;;;;;AAAA,mEAAkE;AAA1D,4HAAA,OAAO,OAAW;AAC1B,mEAA2E;AAAnE,qIAAA,OAAO,OAAoB","sourcesContent":["export {default as DrcpApi} from './package-mgr/node-package-api';\nexport {default as ExtensionContext} from './package-mgr/node-package-api';\n"]}

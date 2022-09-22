@@ -7,7 +7,10 @@ import { AppenderModule } from 'log4js';
  */
 export declare const doNothingAppender: AppenderModule;
 export declare const childProcessAppender: AppenderModule;
-export declare function childProcessMsgHandler(msg: {
+/**
+ * Emit log event to log4js appenders
+ */
+export declare function emitChildProcessLogMsg(msg: {
     topic?: string;
     data: string;
-}): void;
+}, toParent?: boolean): boolean;

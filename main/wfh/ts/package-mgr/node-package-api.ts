@@ -27,10 +27,10 @@ function parseName(longName: string) {
 // var suppressWarn4Urls = config.get('suppressWarning.assetsUrl', []).map(line => new RegExp(line));
 
 class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
+  eventBus: EventEmitter | undefined;
   packageShortName: string;
   // packageUtils = packageUitls;
   // compileNodePath = [config().nodePath];
-  eventBus = new EventEmitter();
   config = config;
   argv: any;
   packageInfo: PackageInfo | undefined;
@@ -152,7 +152,7 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
   }
 }
 
-// NodeApi.prototype.eventBus = new EventEmitter();
+NodeApi.prototype.eventBus = new EventEmitter();
 
 // assetsUrl.patchToApi(NodeApi.prototype);
 

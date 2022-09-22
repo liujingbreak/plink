@@ -3,11 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 // eslint-disable  max-len
 const events_1 = require("events");
-const config_1 = tslib_1.__importDefault(require("../config"));
 const css_loader_1 = tslib_1.__importDefault(require("require-injector/dist/css-loader"));
-const assetsUrl = tslib_1.__importStar(require("../../dist/assets-url"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const log4js_1 = require("log4js");
+const assetsUrl = tslib_1.__importStar(require("../../dist/assets-url"));
+const config_1 = tslib_1.__importDefault(require("../config"));
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 function parseName(longName) {
     const ret = { name: longName, scope: '' };
@@ -25,7 +25,13 @@ class NodeApi {
     constructor(packageName, packageInstance) {
         this.packageName = packageName;
         this.packageInstance = packageInstance;
+        // packageUtils = packageUitls;
+        // compileNodePath = [config().nodePath];
         this.config = config_1.default;
+        this.assetsUrl = assetsUrl.assetsUrl;
+        this.serverUrl = assetsUrl.serverUrl;
+        /** @deprecated */
+        this.entryPageUrl = assetsUrl.entryPageUrl;
         this.packageShortName = parseName(packageName).name;
         // this.contextPath = this._contextPath();
         this.logger = (0, log4js_1.getLogger)(this.packageName);
@@ -119,6 +125,6 @@ class NodeApi {
     }
 }
 NodeApi.prototype.eventBus = new events_1.EventEmitter();
-assetsUrl.patchToApi(NodeApi.prototype);
+// assetsUrl.patchToApi(NodeApi.prototype);
 exports.default = NodeApi;
 //# sourceMappingURL=node-package-api.js.map

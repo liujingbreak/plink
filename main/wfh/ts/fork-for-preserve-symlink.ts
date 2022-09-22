@@ -1,16 +1,23 @@
 import Path from 'path';
 import {fork} from 'child_process';
-import {threadId} from 'worker_threads';
 import fs from 'fs';
 import os from 'os';
 import log4js from 'log4js';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import chalk from 'chalk';
 import {plinkEnv} from './utils/misc';
 import * as _editorHelper from './editor-helper';
 import * as bootstrapProc from './utils/bootstrap-process';
 import * as store from './store';
+
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      __plinkLogMainPid: string;
+      __plink_fork_main?: string;
+    }
+  }
+}
 
 export const isWin32 = os.platform().indexOf('win32') >= 0;
 const log = log4js.getLogger('plink.fork-for-preserver-symlink');
@@ -26,11 +33,13 @@ export function workDirChangedByCli() {
   return {workdir, argv};
 }
 
-export default function run(moduleName: string, opts: {
-  stateExitAction?: 'save' | 'send' | 'none';
-  handleShutdownMsg?: boolean;
-},
-bootStrap: () => ((Array<() => rx.ObservableInput<unknown>>) | void)) {
+export default function run(
+  moduleName: string,
+  opts: {
+    stateExitAction?: 'save' | 'send' | 'none';
+    handleShutdownMsg?: boolean;
+  },
+  bootStrap: () => ((Array<() => rx.ObservableInput<unknown>>) | void)) {
 
   if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
     void forkFile(moduleName, opts.handleShutdownMsg != null ? opts.handleShutdownMsg : false);
@@ -38,12 +47,9 @@ bootStrap: () => ((Array<() => rx.ObservableInput<unknown>>) | void)) {
   }
 
   const {initProcess, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
+  process.env.__plinkLogMainPid = process.pid + '';
 
-  initProcess(opts.stateExitAction || 'none', (code) => {
-    // eslint-disable-next-line no-console
-    console.log(`Plink process ${process.pid} thread ${threadId} ` +
-      chalk.green(`${code !== 0 ? 'ends with failures' : 'ends'}`));
-  }, opts.handleShutdownMsg);
+  initProcess(opts.stateExitAction || 'none');
 
   // Must be invoked after initProcess, otherwise store is not ready (empty)
   const funcs = bootStrap();
@@ -51,15 +57,16 @@ bootStrap: () => ((Array<() => rx.ObservableInput<unknown>>) | void)) {
     exitHooks.push(...funcs);
 }
 
-/** run in main process */
+/** run in main process, mayby in PM2 as a cluster process */
 async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
   let recovered = false;
   const {initProcess, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
   const {stateFactory} = require('./store') as typeof store;
 
-  initProcess('none', () => {
+  exitHooks.push(() => {
     recoverNodeModuleSymlink();
   });
+  initProcess('none');
 
   // removeNodeModuleSymlink needs Editor-helper, and editor-helper needs store being configured!
   stateFactory.configureStore();
@@ -70,7 +77,7 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
   // process.execArgv.push('--preserve-symlinks-main', '--preserve-symlinks');
   const foundDebugOptIdx = argv.findIndex(arg => arg === '--inspect' || arg === '--inspect-brk');
 
-  const env: {[key: string]: string | undefined} = {...process.env};
+  const env: NodeJS.ProcessEnv = {...process.env};
   if (foundDebugOptIdx >= 0) {
     env.NODE_OPTIONS = env.NODE_OPTIONS ? env.NODE_OPTIONS + ' ' + argv[foundDebugOptIdx] : argv[foundDebugOptIdx];
     argv.splice(foundDebugOptIdx, 1);
@@ -94,11 +101,9 @@ async function forkFile(moduleName: string, handleShutdownMsg: boolean) {
 
   if (handleShutdownMsg) {
     const processMsg$ = rx.fromEventPattern<string>(h => process.on('message', h), h => process.off('message', h));
-    // const processExit$ = rx.fromEventPattern( h => process.on('SIGINT', h), h => process.off('SIGINT', h));
 
-    rx.merge(processMsg$.pipe(
-      op.filter(msg => msg === 'shutdown')
-    )).pipe(
+    processMsg$.pipe(
+      op.filter(msg => msg === 'shutdown'),
       op.take(1),
       op.tap(() => {
         cp.send('shutdown');

@@ -97,6 +97,29 @@ function createActionStreamByType(opt = {}) {
             return dispatchFactory(key);
         }
     });
+    const emitByType = {};
+    const actionsByType = {};
+    let splitByTypeConnected = false;
+    function actionOfType(type) {
+        let a$ = actionsByType[type];
+        if (a$ == null) {
+            const emitter = new rxjs_1.Subject();
+            emitByType[type] = emitter;
+            a$ = actionsByType[type] = (0, rxjs_1.defer)(() => {
+                if (!splitByTypeConnected) {
+                    splitByTypeConnected = true;
+                    action$.subscribe(action => {
+                        const emitter = emitByType[action.type];
+                        if (emitter) {
+                            emitter.next(action);
+                        }
+                    });
+                }
+                return emitter;
+            });
+        }
+        return a$;
+    }
     const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
     const action$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
@@ -114,6 +137,7 @@ function createActionStreamByType(opt = {}) {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
+        actionOfType,
         ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn(typePrefix)
     };

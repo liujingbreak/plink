@@ -8,7 +8,8 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
-import {childProcessAppender, doNothingAppender, childProcessMsgHandler as logMsgHandler} from './log4js-appenders';
+import {childProcessAppender, doNothingAppender,
+  emitChildProcessLogMsg} from './log4js-appenders';
 
 const log = log4js.getLogger('plink.bootstrap-process');
 
@@ -16,12 +17,12 @@ const log = log4js.getLogger('plink.bootstrap-process');
 export const exitHooks = [] as Array<() => (rx.ObservableInput<unknown> | void | number)>;
 
 process.on('uncaughtException', function(err) {
-  log.error('Uncaught exception: ', err);
+  console.error(`PID: ${process.pid} Uncaught exception: `, err);
   throw err; // let PM2 handle exception
 });
 
-process.on('unhandledRejection', err => {
-  log.error('unhandledRejection', err);
+process.on(`PID: ${process.pid} unhandledRejection`, err => {
+  console.error('unhandledRejection', err);
 });
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
@@ -44,7 +45,7 @@ export function initConfig(options: GlobalOptions = {}) {
  * DO NOT fork a child process on this function
  * @param _onShutdownSignal 
  */
-export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'none', _onShutdownSignal?: (code: number) => void | Promise<any>, handleShutdownMsg = false) {
+export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'none') {
   interceptFork();
   // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
   process.once('beforeExit', function(code) {
@@ -57,16 +58,6 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   });
 
   configDefaultLog();
-  if (handleShutdownMsg) {
-    // Be aware this is why "initProcess" can not be "fork"ed in a child process, it will keep alive for parent process's 'message' event
-    process.on('message', function(msg) {
-      if (msg === 'shutdown') {
-        // eslint-disable-next-line no-console
-        log.info('Recieve shutdown message from PM2, bye.');
-        onShut(0, true);
-      }
-    });
-  }
 
   const {dispatcher, storeSavedAction$, stateFactory, startLogging} = require('../store') as typeof store;
 
@@ -119,17 +110,16 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
       op.finalize(() => {
         if (explicitlyExit) {
           // eslint-disable-next-line no-console
-          console.log(`Process ${process.pid} Exit with`, exitCode);
+          console.log(`[bootstrap-process] Process ${process.pid} Exit with`, exitCode);
           process.exit(exitCode);
         } else if (exitCode !== 0) {
           // eslint-disable-next-line no-console
-          console.log(`Process ${process.pid} Exit with`, exitCode);
+          console.log(`[bootstrap-process] Process ${process.pid} Exit with`, exitCode);
           process.exit(exitCode);
         }
       })
     ).subscribe();
   }
-  return dispatcher;
 }
 
 /**
@@ -145,28 +135,24 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
  *  sends a signal to exit
  * @param syncState send changed state back to main process
  */
-export function initAsChildProcess(saveState: store.StoreSetting['actionOnExit'] = 'none', onShutdownSignal?: () => void | Promise<any>) {
-  return initProcess(saveState, onShutdownSignal, false);
+export function initAsChildProcess(saveState: store.StoreSetting['actionOnExit'] = 'none') {
+  return initProcess(saveState);
 }
 
 function interceptFork() {
   const origFork = chrp.fork;
+  const handler = process.env.__plinkLogMainPid === process.pid + '' ||
+    process.send == null ?
+    (msg: any) => emitChildProcessLogMsg(msg, false)
+    : (msg: any) => emitChildProcessLogMsg(msg, true);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   chrp.fork = function(...args: Parameters<typeof origFork>) {
     const cp = origFork.apply(chrp, args);
-    cp.on('message', handleChildProcessMessage);
+    cp.on('message', handler);
     return cp;
   } as any;
 
-  cluster.on('message', handleChildProcessMessage);
-}
-
-function handleChildProcessMessage(msg: {topic?: string, data: string}, ...others: any[]) {
-  if (!logMsgHandler(msg) && msg.topic === 'plink-broadcast') {
-    if (process.send) {
-      process.send(msg, ...others);
-    }
-  }
+  cluster.on('message', handler);
 }
 
 function configDefaultLog() {
@@ -183,23 +169,23 @@ function configDefaultLog() {
       }
       // disableClustering: true
     });
-    return;
-  } else if (process.send) {
-    log4js.configure({
-      appenders: {
-        out: {type: childProcessAppender}
-      },
-      categories: {
-        default: {appenders: ['out'], level: 'info'}
-      }
-    });
-  } else {
+  } else if (process.env.__plinkLogMainPid === process.pid + '') {
+    // eslint-disable-next-line no-console
     log4js.configure({
       appenders: {
         out: {
           type: 'stdout',
           layout: {type: 'pattern', pattern: '[P%z] %[%c%] - %m'}
         }
+      },
+      categories: {
+        default: {appenders: ['out'], level: 'info'}
+      }
+    });
+  } else if (process.send) {
+    log4js.configure({
+      appenders: {
+        out: {type: childProcessAppender}
       },
       categories: {
         default: {appenders: ['out'], level: 'info'}

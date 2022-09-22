@@ -24,7 +24,7 @@ if (isPm2) {
   }
 } else if (cluster.isWorker) {
   fileName = 'cluster worker should not log file';
-} else if (process.send || !isMainThread) { // this is a forked process, should use a different file name
+} else if (!isMainThread) { // this is a forked process, should use a different file name
   fileName = `plink.(${process.pid}).log`;
   patterns.colorfulOutput = 'pid:%z %[[%p]%c%] - %m';
 }
