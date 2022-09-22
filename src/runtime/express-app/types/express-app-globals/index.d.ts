@@ -1,7 +1,7 @@
 import express from 'express';
 // import {DrcpApi} from '__api';
 
-declare module '@wfh/plink/wfh/globals' {
+declare module '@wfh/plink/wfh/dist/globals' {
   interface DrcpApi {
     express: typeof express;
     expressApp: express.Application;

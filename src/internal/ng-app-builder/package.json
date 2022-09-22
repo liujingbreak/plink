@@ -1,6 +1,6 @@
 {
   "name": "@wfh/ng-app-builder",
-  "version": "2.1.44",
+  "version": "2.1.45",
   "description": "Angular 8 CLI builder customized for monorepo with symlinks",
   "browser": "browser.ts",
   "main": "dist/server.js",

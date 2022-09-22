@@ -6,13 +6,13 @@
     "jsx": "preserve",
     "target": "es2015",
     "module": "commonjs",
-    "rootDir": ".",
+    "rootDir": "../..",
     "paths": {
-      "@wfh/plink": ["../../../"],
-      "@wfh/plink/*": ["../../../*"]
+      "@wfh/plink": ["../../ts/index.ts"],
+      "@wfh/plink/wfh/dist/*": ["../../ts/*"]
     }
   },
   "include": [
-    "."
+    "index.d.ts"
   ]
 }

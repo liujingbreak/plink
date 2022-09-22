@@ -1,5 +1,5 @@
-import {DrcpApi} from '@wfh/plink/wfh/globals';
-declare module '@wfh/plink/wfh/globals' {
+import {DrcpApi} from '@wfh/plink/wfh/dist/globals';
+declare module '@wfh/plink/wfh/dist/globals' {
   interface DrcpApi {
 		deployUrl: string;
 		ssr: boolean;
