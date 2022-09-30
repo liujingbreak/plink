@@ -147,10 +147,12 @@ function languageServices(ts = typescript_1.default, opts = {}) {
         },
         error(s) {
             dispatcher.log(LogLevel.error, s);
+            // eslint-disable-next-line no-console
             console.log('[lang-service error]', s);
         },
         log(s) {
             dispatcher.log(LogLevel.log, s);
+            // eslint-disable-next-line no-console
             console.log('[lang-service log]', s);
         } });
     const documentRegistry = ts0.createDocumentRegistry();

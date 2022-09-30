@@ -51,7 +51,8 @@ function createActionStream(actionCreator, debug) {
         dispatcher,
         action$,
         ofType: createOfTypeOperator(typePrefix),
-        isActionType: createIsActionTypeFn(typePrefix)
+        isActionType: createIsActionTypeFn(typePrefix),
+        nameOfAction: (action) => action.type.split('/')[1]
     };
 }
 exports.createActionStream = createActionStream;
@@ -109,7 +110,7 @@ function createActionStreamByType(opt = {}) {
                 if (!splitByTypeConnected) {
                     splitByTypeConnected = true;
                     action$.subscribe(action => {
-                        const emitter = emitByType[action.type];
+                        const emitter = emitByType[action.type.split('/')[1]];
                         if (emitter) {
                             emitter.next(action);
                         }
@@ -139,7 +140,8 @@ function createActionStreamByType(opt = {}) {
         action$,
         actionOfType,
         ofType: createOfTypeOperator(typePrefix),
-        isActionType: createIsActionTypeFn(typePrefix)
+        isActionType: createIsActionTypeFn(typePrefix),
+        nameOfAction: (action) => action.type.split('/')[1]
     };
 }
 exports.createActionStreamByType = createActionStreamByType;

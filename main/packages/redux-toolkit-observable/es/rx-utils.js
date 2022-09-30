@@ -2,7 +2,7 @@
  * redux-observable like async reactive actions, side effect utilities
  * https://redux-observable.js.org/
  */
-import { Subject } from 'rxjs';
+import { Subject, defer } from 'rxjs';
 import { filter, tap, share } from 'rxjs/operators';
 let SEQ = 0;
 /**
@@ -93,6 +93,29 @@ export function createActionStreamByType(opt = {}) {
             return dispatchFactory(key);
         }
     });
+    const emitByType = {};
+    const actionsByType = {};
+    let splitByTypeConnected = false;
+    function actionOfType(type) {
+        let a$ = actionsByType[type];
+        if (a$ == null) {
+            const emitter = new Subject();
+            emitByType[type] = emitter;
+            a$ = actionsByType[type] = defer(() => {
+                if (!splitByTypeConnected) {
+                    splitByTypeConnected = true;
+                    action$.subscribe(action => {
+                        const emitter = emitByType[action.type.split('/')[1]];
+                        if (emitter) {
+                            emitter.next(action);
+                        }
+                    });
+                }
+                return emitter;
+            });
+        }
+        return a$;
+    }
     const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
     const action$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
@@ -110,6 +133,7 @@ export function createActionStreamByType(opt = {}) {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
+        actionOfType,
         ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn(typePrefix)
     };

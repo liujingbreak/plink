@@ -10,7 +10,7 @@ type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
 
 export type ActionTypes<AC> = {
   [K in keyof AC]: {
-    type: K;
+    type: string;
     payload: InferParam<AC[K]>;
   };
 };
@@ -78,7 +78,8 @@ export function createActionStream<AC extends Record<string, ((...payload: any[]
     dispatcher,
     action$,
     ofType: createOfTypeOperator<AC>(typePrefix),
-    isActionType: createIsActionTypeFn<AC>(typePrefix)
+    isActionType: createIsActionTypeFn<AC>(typePrefix),
+    nameOfAction: <K extends keyof AC>(action: ActionTypes<AC>[K]) => action.type.split('/')[1] as K
   };
 }
 
@@ -132,10 +133,10 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
   });
 
   const emitByType = {} as Record<keyof AC, Subject<ActionTypes<AC>[keyof AC]>>;
-  const actionsByType = {} as Record<keyof AC, Observable<ActionTypes<AC>[keyof AC]>>;
+  const actionsByType = {} as {[K in keyof AC]: Observable<ActionTypes<AC>[K]>};
   let splitByTypeConnected = false;
 
-  function actionOfType<T extends keyof AC>(type: T) {
+  function actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]> {
     let a$ = actionsByType[type];
     if (a$ == null) {
       const emitter = new Subject<ActionTypes<AC>[keyof AC]>();
@@ -144,7 +145,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
         if (!splitByTypeConnected) {
           splitByTypeConnected = true;
           action$.subscribe(action => {
-            const emitter = emitByType[action.type];
+            const emitter = emitByType[action.type.split('/')[1]];
             if (emitter) {
               emitter.next(action);
             }
@@ -179,7 +180,8 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     action$,
     actionOfType,
     ofType: createOfTypeOperator<AC>(typePrefix),
-    isActionType: createIsActionTypeFn<AC>(typePrefix)
+    isActionType: createIsActionTypeFn<AC>(typePrefix),
+    nameOfAction: (action: ActionTypes<AC>[keyof AC]): keyof AC | undefined => action.type.split('/')[1]
   };
 }
 

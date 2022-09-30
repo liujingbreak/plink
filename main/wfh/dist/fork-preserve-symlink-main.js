@@ -2,14 +2,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 /**
+ * @deprecated This file is no longer used in favor of "--preserve-symlinks-main"
+ *
  * Node option prever-symlink does not effect on "main" file, so this file acts as main file to call real file from
  * a symlink location
  */
 const path_1 = tslib_1.__importDefault(require("path"));
+console.log('[fork-preserve-symlink-main]', __dirname, process.env.__plink_fork_main);
 let dir = process.env.PLINK_WORK_DIR ? process.env.PLINK_WORK_DIR : process.cwd();
 const root = path_1.default.parse(dir).root;
 let target;
-while (true) {
+for (;;) {
     target = path_1.default.resolve(dir, 'node_modules', process.env.__plink_fork_main);
     try {
         require.resolve(target);

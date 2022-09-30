@@ -4,20 +4,20 @@ exports.generateToken = exports.activate = void 0;
 const tslib_1 = require("tslib");
 const os_1 = tslib_1.__importDefault(require("os"));
 const util = tslib_1.__importStar(require("util"));
-const fetch_remote_1 = require("../fetch-remote");
 const path_1 = tslib_1.__importDefault(require("path"));
+const crypto_1 = tslib_1.__importDefault(require("crypto"));
 const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const mem_stats_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
-const crypto_1 = tslib_1.__importDefault(require("crypto"));
 const __api_1 = tslib_1.__importDefault(require("__api"));
 const plink_1 = require("@wfh/plink");
+const fetch_remote_1 = require("../fetch-remote");
 const log = (0, plink_1.log4File)(__filename);
 const requireToken = (0, plink_1.config)()['@wfh/assets-processer'].requireToken;
 const mailSetting = (0, plink_1.config)()['@wfh/assets-processer'].fetchMailServer;
 function activate(app, imap) {
     let writingFile;
-    let filesHash = readChecksumFile();
+    const filesHash = readChecksumFile();
     const { isPm2, isMainProcess } = (0, fetch_remote_1.getPm2Info)();
     if (isPm2) {
         void initPm2();

@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /// <reference path="./cfont.d.ts" />
 /* eslint-disable max-len */
-import fs from 'fs';
-import Path from 'path';
+import fs from 'node:fs';
+import Path from 'node:path';
+import os from 'node:os';
+import {spawn} from 'node:child_process';
 import commander from 'commander';
 import chalk from 'chalk';
 import * as op from 'rxjs/operators';
@@ -16,6 +18,7 @@ import {packages4Workspace} from '../package-mgr/package-list-helper';
 import {isDrcpSymlink, sexyFont, getRootDir, boxString, plinkEnv} from '../utils/misc';
 import * as _symlinks from '../utils/symlinks';
 import {initInjectorForNodePackages} from '../package-runner';
+import {exitHooks} from '../utils/bootstrap-process';
 import {CommandOverrider, withCwdOption} from './override-commander';
 import {hlDesc, arrayOptionFn} from './utils';
 // import {CliOptions as TsconfigCliOptions} from './cli-tsconfig-hook';
@@ -249,6 +252,34 @@ function subComands(program: commander.Command) {
       (await import('./cli-tsconfig-hook')).doTsconfig(tsconfigCmd.opts() );
     });
 
+  const exeCmd = program.command('exe')
+    .description(
+      'Execute specific shell/batch under node_module/.bin, ' +
+      'Plink will set environment variable NODE_PRESERVE_SYMLINKS ' +
+      'to "1" before start executable (and temporarily remove problematic symlinks from package source directory), ' +
+      'add "<worktree space or current-dir>node_modules/.bin" to environment variable PATH'
+    )
+    .argument('<executable>', 'executable shell or batch, e.g. jest')
+    .argument('[arguments...]', 'arguments')
+    .action((executable: string, args: string[]) => {
+      if (process.cwd() !== plinkEnv.workDir) {
+        process.env.PATH = Path.resolve('node_modules/.bin') + Path.delimiter + process.env.PATH;
+      }
+      process.env.PATH = Path.join(plinkEnv.workDir, 'node_modules/.bin') + Path.delimiter + process.env.PATH;
+
+      const cp = spawn(executable, args, {
+        stdio: 'inherit',
+        env: {...process.env, NODE_PRESERVE_SYMLINKS: '1'},
+        shell: os.platform() === 'win32'
+      });
+
+      exitHooks.push(() => new Promise<number | null>(resolve => {
+        cp.once('exit', code => resolve(code));
+      }));
+    });
+
+  exeCmd.usage('[--space <working-dir>] <executable> -- [arguments...]');
+
   /**
    * Bump command
    */
@@ -297,7 +328,7 @@ function subComands(program: commander.Command) {
     .argument('[package...]', cliPackageArgDesc)
     .option('--dir <package directory>', 'publish packages by specifying directories', arrayOptionFn, [])
     .option<string[]>('--pj, --project <project-dir,...>',
-      'project directories to be looked up for all packages which need to be packed to tarball files',
+    'project directories to be looked up for all packages which need to be packed to tarball files',
     (value, prev) => {
       prev.push(...value.split(',')); return prev;
     }, [] as string[])
@@ -423,8 +454,6 @@ function spaceOnlySubCommands(program: commander.Command) {
   // ', function can be async which returns Promise\n' +
   // chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
   // ', relative or absolute path\n');
-
-
 }
 
 function loadExtensionCommand(program: commander.Command, ws: pkgMgr.WorkspaceState | undefined, overrider: CommandOverrider): string[] {

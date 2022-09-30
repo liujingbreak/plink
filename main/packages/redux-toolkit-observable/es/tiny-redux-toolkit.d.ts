@@ -121,7 +121,7 @@ declare type ActionByType<S, R> = {
     [K in keyof R]: rx.Observable<ActionTypes<S, R>[K]>;
 };
 /**
- * Map action stream to multiple action streams by theire action type.
+ * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
  * Usage:
 ```

@@ -14,8 +14,8 @@ function start(port, hostMap = new Map(), opts) {
     const server = net_1.default.createServer();
     const actions = {
         proxyToProxy(_remoteHost, _remotePort, _socket, _firstPacket) { },
-        proxyToRemote(_remoteHost, _remotePort, _socket, _firstPacket, _isTsl, httpProtocal) { },
-        socketCreated(_socket, msg) { }
+        proxyToRemote(_remoteHost, _remotePort, _socket, _firstPacket, _isTsl, _httpProtocal) { },
+        socketCreated(_socket, _msg) { }
     };
     const dispatch = {};
     const action$ = new rx.Subject();
@@ -110,9 +110,12 @@ function start(port, hostMap = new Map(), opts) {
         dispatch.socketCreated(proxyToServerSocket, 'remote server connection');
     })), action$.pipe(ofType('socketCreated'), op.map(({ payload: [proxyToServerSocket, msg] }) => {
         proxyToServerSocket.on('error', (err) => {
-            log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
+            if (err.code === 'ECONNRESET')
+                log.warn('PROXY TO SERVER ECONNRESET', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
+            else
+                log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
         });
-        proxyToServerSocket.on('lookup', (err, addr, _fam, host) => {
+        proxyToServerSocket.on('lookup', (err, _addr, _fam, _host) => {
             if (err)
                 log.warn('lookup error', err);
         });

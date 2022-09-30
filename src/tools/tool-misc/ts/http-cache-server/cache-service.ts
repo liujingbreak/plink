@@ -13,8 +13,8 @@ import api from '__plink';
 import {log4File, config} from '@wfh/plink';
 // import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
 import {createSlice, castByActionType} from '@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit';
-import {createReplayReadableFactory} from '../utils';
-import {httpProxyObservable, observeProxyResponse} from '../http-proxy-observable';
+import {createReplayReadableFactory} from '@wfh/assets-processer/dist/utils';
+import {httpProxyObservable, observeProxyResponse} from '@wfh/assets-processer/dist/http-proxy-observable';
 import {ProxyCacheState, CacheData} from './types';
 
 

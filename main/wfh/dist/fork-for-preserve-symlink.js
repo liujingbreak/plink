@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.workDirChangedByCli = exports.isWin32 = void 0;
+exports.execFile = exports.workDirChangedByCli = exports.isWin32 = void 0;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const child_process_1 = require("child_process");
@@ -38,13 +38,14 @@ function run(moduleName, opts, bootStrap) {
 }
 exports.default = run;
 /** run in main process, mayby in PM2 as a cluster process */
-async function forkFile(moduleName, handleShutdownMsg) {
+async function forkFile(moduleName, broadcastShutdown) {
     let recovered = false;
     const { initProcess, exitHooks } = require('./utils/bootstrap-process');
     const { stateFactory } = require('./store');
     exitHooks.push(() => {
         recoverNodeModuleSymlink();
     });
+    process.env.__plinkLogMainPid = '-1';
     initProcess('none');
     // removeNodeModuleSymlink needs Editor-helper, and editor-helper needs store being configured!
     stateFactory.configureStore();
@@ -52,7 +53,7 @@ async function forkFile(moduleName, handleShutdownMsg) {
     const { workdir, argv } = workDirChangedByCli();
     // process.execArgv.push('--preserve-symlinks-main', '--preserve-symlinks');
     const foundDebugOptIdx = argv.findIndex(arg => arg === '--inspect' || arg === '--inspect-brk');
-    const env = Object.assign({}, process.env);
+    const env = process.env;
     if (foundDebugOptIdx >= 0) {
         env.NODE_OPTIONS = env.NODE_OPTIONS ? env.NODE_OPTIONS + ' ' + argv[foundDebugOptIdx] : argv[foundDebugOptIdx];
         argv.splice(foundDebugOptIdx, 1);
@@ -62,15 +63,15 @@ async function forkFile(moduleName, handleShutdownMsg) {
         env.NODE_OPTIONS = env.NODE_OPTIONS ? env.NODE_OPTIONS + ' --inspect-brk' : '--inspect-brk';
         argv.splice(debugOptIdx, 1);
     }
-    env.__plink_fork_main = moduleName;
+    // env.__plink_fork_main = moduleName;
     if (workdir)
         env.PLINK_WORK_DIR = workdir;
-    const cp = (0, child_process_1.fork)(path_1.default.resolve(__dirname, 'fork-preserve-symlink-main.js'), argv, {
-        env,
+    const file = resolveTargetModule(moduleName, workdir || process.cwd());
+    const cp = (0, child_process_1.fork)(file /* , Path.resolve(__dirname, 'fork-preserve-symlink-main.js')*/, argv, {
         execArgv: process.execArgv.concat(['--preserve-symlinks-main', '--preserve-symlinks']),
         stdio: 'inherit'
     });
-    if (handleShutdownMsg) {
+    if (broadcastShutdown) {
         const processMsg$ = rx.fromEventPattern(h => process.on('message', h), h => process.off('message', h));
         processMsg$.pipe(op.filter(msg => msg === 'shutdown'), op.take(1), op.tap(() => {
             cp.send('shutdown');
@@ -97,6 +98,56 @@ async function forkFile(moduleName, handleShutdownMsg) {
         }
     }
 }
+async function execFile(excutable) {
+    let recovered = false;
+    const { initProcess, exitHooks } = require('./utils/bootstrap-process');
+    const { stateFactory } = require('./store');
+    exitHooks.push(() => {
+        recoverNodeModuleSymlink();
+    });
+    initProcess('none');
+    // removeNodeModuleSymlink needs Editor-helper, and editor-helper needs store being configured!
+    stateFactory.configureStore();
+    const removed = await removeNodeModuleSymlink();
+    const { workdir, argv } = workDirChangedByCli();
+    // process.execArgv.push('--preserve-symlinks-main', '--preserve-symlinks');
+    const foundDebugOptIdx = argv.findIndex(arg => arg === '--inspect' || arg === '--inspect-brk');
+    const env = Object.assign({}, process.env);
+    if (foundDebugOptIdx >= 0) {
+        env.NODE_OPTIONS = env.NODE_OPTIONS ? env.NODE_OPTIONS + ' ' + argv[foundDebugOptIdx] : argv[foundDebugOptIdx];
+        argv.splice(foundDebugOptIdx, 1);
+    }
+    const debugOptIdx = argv.findIndex(arg => arg === '--debug');
+    if (debugOptIdx >= 0) {
+        env.NODE_OPTIONS = env.NODE_OPTIONS ? env.NODE_OPTIONS + ' --inspect-brk' : '--inspect-brk';
+        argv.splice(debugOptIdx, 1);
+    }
+    if (workdir)
+        env.PLINK_WORK_DIR = workdir;
+    const cp = (0, child_process_1.spawn)(excutable, argv, {
+        env: Object.assign(Object.assign({}, env), { NODE_PRESERVE_SYMLINKS: '1' }),
+        stdio: 'inherit',
+        shell: os_1.default.platform() === 'win32'
+    });
+    const onChildExit$ = new rx.ReplaySubject();
+    cp.once('exit', code => {
+        onChildExit$.next(code || 0);
+        onChildExit$.complete();
+    });
+    exitHooks.push(() => onChildExit$);
+    function recoverNodeModuleSymlink() {
+        if (recovered)
+            return;
+        recovered = true;
+        for (const { link, content } of removed) {
+            if (!fs_1.default.existsSync(link)) {
+                void fs_1.default.promises.symlink(content, link, exports.isWin32 ? 'junction' : 'dir');
+                log.info('recover ' + link);
+            }
+        }
+    }
+}
+exports.execFile = execFile;
 /**
  * Temporarily rename <pkg>/node_modules to another name
  * @returns
@@ -122,5 +173,25 @@ async function removeNodeModuleSymlink() {
     });
     const res = await Promise.all(dones);
     return res.filter(item => item != null);
+}
+function resolveTargetModule(tModule, workDir) {
+    if (!path_1.default.extname(tModule)) {
+        tModule += '.js';
+    }
+    const root = path_1.default.parse(workDir).root;
+    let dir = workDir;
+    let target;
+    for (;;) {
+        target = path_1.default.resolve(dir, 'node_modules', tModule);
+        if (fs_1.default.existsSync(target))
+            break;
+        else {
+            if (dir === root) {
+                throw new Error('Can not require module ' + tModule + ' from directory ' + workDir);
+            }
+            dir = path_1.default.dirname(dir);
+        }
+    }
+    return target;
 }
 //# sourceMappingURL=fork-for-preserve-symlink.js.map

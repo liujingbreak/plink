@@ -19,8 +19,8 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
   const actions = {
     proxyToProxy(_remoteHost: string, _remotePort: number, _socket: Socket, _firstPacket: Buffer) {},
     proxyToRemote(_remoteHost: string, _remotePort: number,
-      _socket: Socket, _firstPacket: Buffer, _isTsl: boolean, httpProtocal: string) {},
-    socketCreated(_socket: Socket, msg: string) {}
+      _socket: Socket, _firstPacket: Buffer, _isTsl: boolean, _httpProtocal: string) {},
+    socketCreated(_socket: Socket, _msg: string) {}
   };
 
   type ActionType<K extends keyof typeof actions> = {
@@ -147,9 +147,12 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
       ofType('socketCreated'),
       op.map(({payload: [proxyToServerSocket, msg]}) => {
         proxyToServerSocket.on('error', (err) => {
-          log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
+          if ((err as NodeJS.ErrnoException).code === 'ECONNRESET')
+            log.warn('PROXY TO SERVER ECONNRESET', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
+          else
+            log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
         });
-        proxyToServerSocket.on('lookup', (err, addr, _fam, host) => {
+        proxyToServerSocket.on('lookup', (err, _addr, _fam, _host) => {
           if (err)
             log.warn('lookup error', err);
         });

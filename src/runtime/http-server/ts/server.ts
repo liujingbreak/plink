@@ -23,9 +23,9 @@ export function activate() {
       if (serverCfg.ssl) {
         const key = fs.readFileSync(Path.resolve(rootPath, serverCfg.ssl.key));
         const cert = fs.readFileSync(Path.resolve(rootPath, serverCfg.ssl.cert));
-        api.eventBus.on('appCreated', (app) => startHttpsServer(app, serverCfg.port, key, cert));
+        api.eventBus?.once('appCreated', (app) => startHttpsServer(app, serverCfg.port, key, cert));
       } else {
-        api.eventBus.on('appCreated', (app) => startHttpServer(app, serverCfg.port));
+        api.eventBus?.once('appCreated', (app) => startHttpServer(app, serverCfg.port));
       }
     }
   } else {
@@ -49,12 +49,12 @@ export function activate() {
       log.debug('SSL enabled');
       const key = fs.readFileSync(Path.resolve(rootPath, sslSetting.key));
       const cert = fs.readFileSync(Path.resolve(rootPath, sslSetting.cert));
-      api.eventBus.on('appCreated', (app) => startHttpsServer(
+      api.eventBus?.once('appCreated', (app) => startHttpsServer(
         app, Number(sslSetting.port ? sslSetting.port : 433),
         key, cert
       ));
     } else {
-      api.eventBus.on('appCreated', (app) => startHttpServer(app, Number(config().port ? config().port : 80)));
+      api.eventBus?.once('appCreated', (app) => startHttpServer(app, Number(config().port ? config().port : 80)));
     }
   }
 
@@ -78,7 +78,7 @@ export function activate() {
     });
     server.on('listening', () => {
       onListening(server, 'HTTP server', port);
-      api.eventBus.emit('serverStarted', {});
+      api.eventBus?.emit('serverStarted', {});
     });
 
     for (const hostname of config()['@wfh/http-server'].hostnames) {
@@ -91,7 +91,7 @@ export function activate() {
       });
       server.on('listening', () => {
         onListening(server, 'HTTP server', port);
-        api.eventBus.emit('serverStarted', {});
+        api.eventBus?.emit('serverStarted', {});
       });
     }
   }
@@ -157,7 +157,7 @@ export function activate() {
         onListening(servers[0], 'HTTPS server', port);
         if (servers.length > 1)
           onListening(servers[1], 'HTTP Forwarding server', httpPort);
-        api.eventBus.emit('serverStarted', {});
+        api.eventBus?.emit('serverStarted', {});
       });
   }
 
@@ -197,7 +197,7 @@ export function activate() {
 }
 
 export function deactivate() {
-  api.eventBus.emit('serverStopped', {});
+  api.eventBus?.emit('serverStopped', {});
   if (server)
     server.close();
   log.info('HTTP server is shut');

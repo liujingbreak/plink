@@ -1,9 +1,10 @@
-import {Request, Response, NextFunction} from 'express';
-import { readFile, existsSync } from 'fs-extra';
 import {join} from 'path';
+import {log4File} from '@wfh/plink';
+import {Request, Response, NextFunction} from 'express';
+import {readFile, existsSync} from 'fs-extra';
 import * as _ from 'lodash';
 import api from '__api';
-const log = require('log4js').getLogger(api.packageName);
+const log = log4File(__filename);
 
 export const ROUTE_MAP_FILE = 'prerender-routes.json';
 const staticDir: string = api.config.resolve('staticDir');
@@ -12,7 +13,7 @@ export class PrerenderForExpress {
   // noPrerender = false;
   prerenderPages: {[route: string]: string} = {}; // page contents
   // lastQueried: Map<string, number> = new Map();
-  prerenderMap: {[route: string]: string};
+  prerenderMap: {[route: string]: string} = {};
 
   /**
 	 * constructor
@@ -25,10 +26,11 @@ export class PrerenderForExpress {
     // 	log.warn('No prerender files found in ', this.prerenderMapFile);
     // 	return;
     // }
-    this.queryPrerenderPages(routeMapFiles)
-    .then(pages => this.prerenderPages = pages);
+    void this.queryPrerenderPages(routeMapFiles)
+      .then(pages => this.prerenderPages = pages);
 
-    api.eventBus.on('@wfh/assets-processer.downloaded', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    api.eventBus?.on('@wfh/assets-processer.downloaded', async () => {
       log.info('assets downloaded, update prerendered pages');
       const pages = await this.queryPrerenderPages(routeMapFiles);
       this.prerenderPages = pages;
@@ -64,7 +66,7 @@ export class PrerenderForExpress {
     };
   }
 
-  protected queryPrerenderPages(routeMapFiles: string[]) {
+  protected async queryPrerenderPages(routeMapFiles: string[]) {
     const pages: {[route: string]: string} = {};
     const allDone: Array<Promise<void>> = [];
     for (const prerenderMapFile of routeMapFiles) {
@@ -83,6 +85,7 @@ export class PrerenderForExpress {
         });
       }));
     }
-    return Promise.all(allDone).then(() => pages);
+    await Promise.all(allDone);
+    return pages;
   }
 }

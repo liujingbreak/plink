@@ -1,3 +1,4 @@
+import {describe, it, expect} from '@jest/globals';
 import {testable} from '../cmd/cli-pack';
 
 describe('drcp-cmd', () => {

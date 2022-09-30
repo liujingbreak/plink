@@ -26,11 +26,15 @@ function default_1(configObj) {
         // Same logic as bootstrap-process#configDefaultLog()
         if (node_cluster_1.default.isWorker) {
             for (const key of Object.keys(localSetting.appenders)) {
+                if (localSetting.appenders[key].type === 'logLevelFilter')
+                    continue;
                 localSetting.appenders[key] = { type: log4js_appenders_1.doNothingAppender, name: 'ignore cluster' };
             }
         }
         else if (process.env.__plinkLogMainPid !== process.pid + '' && process.send) {
             for (const key of Object.keys(localSetting.appenders)) {
+                if (localSetting.appenders[key].type === 'logLevelFilter')
+                    continue;
                 localSetting.appenders[key] = { type: log4js_appenders_1.childProcessAppender, name: 'send to parent' };
             }
         }

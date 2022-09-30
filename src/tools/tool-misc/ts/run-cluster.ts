@@ -5,8 +5,6 @@ import {log4File} from '@wfh/plink';
 const numCPUs = cpus().length;
 const log = log4File(__filename);
 
-
-
 export function startCluster(num = numCPUs) {
   if (num < 2) {
     num = 2;

@@ -14,17 +14,14 @@ const __plink_1 = tslib_1.__importDefault(require("__plink"));
 const plink_1 = require("@wfh/plink");
 // import { createProxyMiddleware as proxy} from 'http-proxy-middleware';
 const tiny_redux_toolkit_1 = require("@wfh/redux-toolkit-observable/dist/tiny-redux-toolkit");
-const utils_1 = require("../utils");
-const http_proxy_observable_1 = require("../http-proxy-observable");
+const utils_1 = require("@wfh/assets-processer/dist/utils");
+const http_proxy_observable_1 = require("@wfh/assets-processer/dist/http-proxy-observable");
 const httpProxyLog = (0, plink_1.log4File)(__filename);
 function createProxyWithCache(proxyPath, serverOptions, cacheRootDir, opts = { manual: false }) {
     var _a;
     const defaultProxy = (0, http_proxy_1.createProxyServer)(Object.assign({ changeOrigin: true, ws: false, secure: false, cookieDomainRewrite: { '*': '' }, followRedirects: true, proxyTimeout: 20000, timeout: 10000 }, serverOptions));
     const initialState = {
-        proxy: defaultProxy,
         cacheDir: cacheRootDir,
-        cacheByUri: new Map(),
-        memCacheLength: opts.memCacheLength == null ? Number.MAX_VALUE : opts.memCacheLength
     };
     const proxy$ = (0, http_proxy_observable_1.httpProxyObservable)(defaultProxy);
     if (!opts.manual) {

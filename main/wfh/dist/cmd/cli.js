@@ -5,8 +5,10 @@ const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /// <reference path="./cfont.d.ts" />
 /* eslint-disable max-len */
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
+const node_path_1 = tslib_1.__importDefault(require("node:path"));
+const node_os_1 = tslib_1.__importDefault(require("node:os"));
+const node_child_process_1 = require("node:child_process");
 const commander_1 = tslib_1.__importDefault(require("commander"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
@@ -17,6 +19,7 @@ const pkgMgr = tslib_1.__importStar(require("../package-mgr"));
 const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const misc_1 = require("../utils/misc");
 const package_runner_1 = require("../package-runner");
+const bootstrap_process_1 = require("../utils/bootstrap-process");
 const override_commander_1 = require("./override-commander");
 const utils_1 = require("./utils");
 const pk = require('../../../package.json');
@@ -230,6 +233,28 @@ function subComands(program) {
         .action(async () => {
         (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-tsconfig-hook')))).doTsconfig(tsconfigCmd.opts());
     });
+    const exeCmd = program.command('exe')
+        .description('Execute specific shell/batch under node_module/.bin, ' +
+        'Plink will set environment variable NODE_PRESERVE_SYMLINKS ' +
+        'to "1" before start executable (and temporarily remove problematic symlinks from package source directory), ' +
+        'add "<worktree space or current-dir>node_modules/.bin" to environment variable PATH')
+        .argument('<executable>', 'executable shell or batch, e.g. jest')
+        .argument('[arguments...]', 'arguments')
+        .action((executable, args) => {
+        if (process.cwd() !== misc_1.plinkEnv.workDir) {
+            process.env.PATH = node_path_1.default.resolve('node_modules/.bin') + node_path_1.default.delimiter + process.env.PATH;
+        }
+        process.env.PATH = node_path_1.default.join(misc_1.plinkEnv.workDir, 'node_modules/.bin') + node_path_1.default.delimiter + process.env.PATH;
+        const cp = (0, node_child_process_1.spawn)(executable, args, {
+            stdio: 'inherit',
+            env: Object.assign(Object.assign({}, process.env), { NODE_PRESERVE_SYMLINKS: '1' }),
+            shell: node_os_1.default.platform() === 'win32'
+        });
+        bootstrap_process_1.exitHooks.push(() => new Promise(resolve => {
+            cp.once('exit', code => resolve(code));
+        }));
+    });
+    exeCmd.usage('[--space <working-dir>] <executable> -- [arguments...]');
     /**
      * Bump command
      */
@@ -254,7 +279,7 @@ function subComands(program) {
         .option('--dir <package directory>', 'pack packages by specifying directories', utils_1.arrayOptionFn, [])
         .option('-w,--workspace <workspace-dir>', 'pack packages which are linked as dependency of specific workspaces', utils_1.arrayOptionFn, [])
         .option('--pj, --project <project-dir>', 'project directories to be looked up for all packages which need to be packed to tarball files', utils_1.arrayOptionFn, [])
-        .option('--tar-dir <dir>', 'directory to save tar files', path_1.default.join((0, misc_1.getRootDir)(), 'tarballs'))
+        .option('--tar-dir <dir>', 'directory to save tar files', node_path_1.default.join((0, misc_1.getRootDir)(), 'tarballs'))
         .option('--jf, --json-file <pkg-json-file>', 'the package.json file in which "devDependencies", "dependencies" should to be changed according to packed file, ' +
         'by default package.json files in all work spaces will be checked and changed')
         .action(async (packages) => {
@@ -337,7 +362,7 @@ function spaceOnlySubCommands(program) {
         prev.push(...v.split(','));
         return prev;
     }, [])
-        .option('--co <JSON-string>', `Partial compiler options to be merged (except "baseUrl"), "paths" must be relative to ${path_1.default.relative(process.cwd(), misc_1.plinkEnv.workDir) || 'current directory'}`)
+        .option('--co <JSON-string>', `Partial compiler options to be merged (except "baseUrl"), "paths" must be relative to ${node_path_1.default.relative(process.cwd(), misc_1.plinkEnv.workDir) || 'current directory'}`)
         .action(async (packages) => {
         const opt = tscCmd.opts();
         const tsc = await Promise.resolve().then(() => tslib_1.__importStar(require('../ts-cmd')));
@@ -414,9 +439,9 @@ function addNpmInstallOption(cmd) {
         .option('--production', 'Add "--production" or "--only=prod" command line argument to "yarn/npm install"', false);
 }
 function checkPlinkVersion() {
-    const pkjson = path_1.default.resolve((0, misc_1.getRootDir)(), 'package.json');
-    if (fs_1.default.existsSync(pkjson)) {
-        const json = JSON.parse(fs_1.default.readFileSync(pkjson, 'utf8'));
+    const pkjson = node_path_1.default.resolve((0, misc_1.getRootDir)(), 'package.json');
+    if (node_fs_1.default.existsSync(pkjson)) {
+        const json = JSON.parse(node_fs_1.default.readFileSync(pkjson, 'utf8'));
         let depVer = json.dependencies && json.dependencies['@wfh/plink'] ||
             json.devDependencies && json.devDependencies['@wfh/plink'];
         if (depVer == null) {

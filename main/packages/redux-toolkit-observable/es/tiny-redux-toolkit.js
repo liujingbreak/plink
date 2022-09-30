@@ -16,7 +16,7 @@ export const ofPayloadAction = (...actionCreators) => {
     };
 };
 /**
- * Map action stream to multiple action streams by theire action type.
+ * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
  * Usage:
 ```

@@ -1,16 +1,16 @@
-import {Application, Request} from 'express';
 import os from 'os';
-import {Checksum} from '../fetch-types';
 import * as util from 'util';
-import {getPm2Info, zipDownloadDir, forkExtractExstingZip, retry} from '../fetch-remote';
 import Path from 'path';
-import {ImapManager} from '../fetch-remote-imap';
+import crypto, {Hash} from 'crypto';
 import fs from 'fs-extra';
 import _ from 'lodash';
 import memstat from '@wfh/plink/wfh/dist/utils/mem-stats';
-import crypto, {Hash} from 'crypto';
+import {Application, Request} from 'express';
 import api from '__api';
 import {log4File, config} from '@wfh/plink';
+import {ImapManager} from '../fetch-remote-imap';
+import {getPm2Info, zipDownloadDir, forkExtractExstingZip, retry} from '../fetch-remote';
+import {Checksum} from '../fetch-types';
 const log = log4File(__filename);
 // import {stringifyListAllVersions} from '@wfh/prebuild/dist/artifacts';
 
@@ -43,7 +43,7 @@ const mailSetting = config()['@wfh/assets-processer'].fetchMailServer;
 export function activate(app: Application, imap: ImapManager) {
   let writingFile: string | undefined;
 
-  let filesHash = readChecksumFile();
+  const filesHash = readChecksumFile();
 
   const {isPm2, isMainProcess} = getPm2Info();
   if (isPm2) {
@@ -90,7 +90,7 @@ export function activate(app: Application, imap: ImapManager) {
       return;
     if (isPm2 && !isMainProcess) {
       process.send!({
-        type : 'process:msg',
+        type: 'process:msg',
         data: {
           'cd-server:check mail': req.params.seq,
           pid: process.pid
@@ -173,19 +173,19 @@ export function activate(app: Application, imap: ImapManager) {
     try {
       recieved = await readResponseToBuffer(req, req.params.hash, contentLen ? parseInt(contentLen, 10) : 10 * 1024 * 1024);
     } catch (e) {
-      if (e.message === 'sha256 not match') {
+      if ((e as Error).message === 'sha256 not match') {
         res.send(`[WARN] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}\n` +
           `Recieved file is corrupted with hash ${(e as {sha256?: string}).sha256 || '<unknown>'},\nwhile expecting file hash is ${newChecksumItem.sha256}`);
       } else {
         res.status(500);
-        res.send(e.stack);
+        res.send((e as Error).stack);
       }
     }
     res.send(`[ACCEPT] ${os.hostname()} pid: ${process.pid}: ${JSON.stringify(newChecksumItem, null, '  ')}`);
 
     let fileBaseName = Path.basename(req.params.file);
     const dot = fileBaseName.lastIndexOf('.');
-    if (dot >=0 )
+    if (dot >= 0 )
       fileBaseName = fileBaseName.slice(0, dot);
     writingFile = Path.resolve(zipDownloadDir, `${fileBaseName.slice(0, fileBaseName.lastIndexOf('.'))}.${process.pid}.zip`);
     fs.mkdirpSync(Path.dirname(writingFile));
@@ -194,7 +194,7 @@ export function activate(app: Application, imap: ImapManager) {
     writeChecksumFile(filesHash);
     if (isPm2) {
       const msg: Pm2Packet = {
-        type : 'process:msg',
+        type: 'process:msg',
         data: {
           'cd-server:checksum updating': newChecksumItem,
           pid: process.pid
@@ -210,13 +210,13 @@ export function activate(app: Application, imap: ImapManager) {
   function onZipFileWritten() {
     if (isPm2 && !isMainProcess) {
       const msg: Pm2Packet = {
-        type : 'process:msg',
+        type: 'process:msg',
         data: {extractZip: true, pid: process.pid}
       };
       process.send!(msg);
     } else
-      retry(2, forkExtractExstingZip).then(() => api.eventBus.emit(api.packageName + '.downloaded'))
-        .catch(e => {log.error(e);});
+      retry(2, forkExtractExstingZip).then(() => api.eventBus!.emit(api.packageName + '.downloaded'))
+        .catch(e => {log.error(e); });
   }
 
   async function initPm2() {
@@ -247,8 +247,8 @@ export function activate(app: Application, imap: ImapManager) {
       if (packet.data.extractZip && packet.data.pid !== process.pid) {
         log.info('Other process triggers "extractZip" from id:', _.get(packet, 'process.pm_id'));
         retry(2, forkExtractExstingZip)
-          .then(() => api.eventBus.emit(api.packageName + '.downloaded'))
-          .catch(e => {log.error(e);});
+          .then(() => api.eventBus!.emit(api.packageName + '.downloaded'))
+          .catch(e => {log.error(e); });
       }
     });
   }

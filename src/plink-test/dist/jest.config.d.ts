@@ -1,3 +1,3 @@
-import type { Config } from '@jest/types';
-declare const config: Config.InitialOptions;
+import type { Config } from 'jest';
+declare const config: Config;
 export default config;

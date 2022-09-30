@@ -212,7 +212,8 @@ function create(tsconfigFile) {
     ],
     rules: {
       ...reactAppCfg.rules,
-      'comma-dangle': ['warn', 'never'],
+      'prefer-const': 'error',
+      'comma-dangle': ['error', 'never'],
       'comma-spacing': ['warn', {before: false, after: true}],
       'space-before-blocks': ['warn', 'always'],
       'multiline-ternary': ['warn', 'always-multiline'],
@@ -232,7 +233,6 @@ function create(tsconfigFile) {
         'off',
         'always'
       ],
-      'comma-dangle': 'error',
       complexity: 'off',
       'constructor-super': 'error',
       curly: [
@@ -324,7 +324,6 @@ function create(tsconfigFile) {
         'never'
       ],
       'prefer-arrow/prefer-arrow-functions': 'off',
-      'prefer-const': 'off',
       'quote-props': [
         'error',
         'as-needed'

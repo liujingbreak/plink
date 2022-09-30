@@ -23,7 +23,7 @@ type PkgDownloadRequestParams = {
   version: string;
 };
 
-export default function createNpmRegistryServer(api: ExtensionContext) {
+export default function createNpmRegistryServer(api: ExtensionContext): (() => Promise<void>) | undefined {
   const setting = config()['@wfh/assets-processer'].npmRegistryCacheServer;
   if (setting == null)
     return;

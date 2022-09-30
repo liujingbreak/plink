@@ -47,31 +47,31 @@ export declare function languageServices(ts?: any, opts?: {
     dispatcher: LangServiceActionCreator;
     dispatchFactory: <K extends keyof LangServiceActionCreator>(type: K) => LangServiceActionCreator[K];
     action$: rx.Observable<{
-        type: "watch";
+        type: string;
         payload: string[];
     } | {
-        type: "addSourceFile";
+        type: string;
         payload: [file: string, sync: boolean, content?: string | undefined];
     } | {
-        type: "changeSourceFile";
+        type: string;
         payload: [file: string, content: string | null | undefined];
     } | {
-        type: "onCompilerOptions";
+        type: string;
         payload: _ts.CompilerOptions;
     } | {
-        type: "onEmitFailure";
+        type: string;
         payload: [file: string, diagnostics: string, type: "compilerOptions" | "syntactic" | "semantic"];
     } | {
-        type: "onSuggest";
+        type: string;
         payload: [file: string, msg: string];
     } | {
-        type: "emitFile";
+        type: string;
         payload: [file: string, content: string];
     } | {
-        type: "log";
+        type: string;
         payload: [level: LogLevel, msg: string];
     } | {
-        type: "stop";
+        type: string;
         payload: unknown;
     }>;
     ofType: import("../../../packages/redux-toolkit-observable/dist/rx-utils").OfTypeFn<LangServiceActionCreator>;

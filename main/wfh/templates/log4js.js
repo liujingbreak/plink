@@ -62,11 +62,6 @@ var config = {
 module.exports = config;
 
 module.exports.setup = function(options) {
-  if (cluster.isWorker || (process.send && pm2InstanceId !== '0')) {
-    console.log('[log4js.js] Skip configuring Log4js for cluster worker or child process, use default configuration');
-    // default configuration is in bootstrap-process, which sends log to parent process by customized Log4js appender
-    return;
-  }
   var {logger} = options;
   if (options.rootPath) {
 

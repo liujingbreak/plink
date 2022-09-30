@@ -1,18 +1,14 @@
 /// <reference types="node" />
-import httpProxy from 'http-proxy';
 export declare type Transformer = (resHeaders: CacheData['headers'], reqHost: string | undefined, source: NodeJS.ReadableStream) => PromiseLike<{
     readable: () => NodeJS.ReadableStream;
     length: number;
 }>;
 export declare type ProxyCacheState = {
-    proxy: httpProxy;
-    cacheDir: string;
-    cacheByUri: Map<string, CacheData | 'loading' | 'requesting' | 'saving'>;
+    cacheDir?: string;
     /** transform remote response */
     responseTransformer?: Transformer;
     /** transform cached response */
     cacheTransformer?: Transformer;
-    memCacheLength: number;
     error?: Error;
 };
 export declare type CacheData = {

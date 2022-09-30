@@ -1,12 +1,14 @@
 /* eslint-disable no-console */
 // eslint-disable  no-console
 // import {LLStateMachine, StateHandler, Chunk} from '../LLn-state-machine';
-import parseJson from '../utils/json-parser';
-import parseJsonSync from '../utils/json-sync-parser';
 import fs from 'fs';
 import Path from 'path';
+import {jest, xit, describe, it, expect} from '@jest/globals';
+import parseJson from '../utils/json-parser';
+import parseJsonSync from '../utils/json-sync-parser';
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
+// jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
+jest.setTimeout(300000);
 
 describe('JSON parser', () => {
   xit('async json-parser', async () => {

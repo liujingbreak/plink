@@ -136,6 +136,7 @@ async function tsc(argv, ts = typescript_1.default) {
     });
     const cwd = process.cwd();
     const writtenFile$ = new rx.Subject();
+    const emitFailedFile$ = new rx.Subject();
     function dealCommonJob() {
         return rx.merge(action$.pipe(ofType('onCompilerOptions'), op.take(1), op.map(({ payload: compilerOptions }) => {
             log.info('typescript compilerOptions:', compilerOptions);
@@ -148,6 +149,7 @@ async function tsc(argv, ts = typescript_1.default) {
             await fse.mkdirp(path_1.default.dirname(destFile));
             void fs.promises.writeFile(destFile, content);
         })), action$.pipe(ofType('onEmitFailure'), op.map(({ payload: [file, msg, type] }) => {
+            emitFailedFile$.next(file);
             log.error(`[${type}] ` + msg);
         })), action$.pipe(ofType('onSuggest'), op.map(({ payload: [_fileName, msg] }) => {
             log.warn(msg);
@@ -163,7 +165,8 @@ async function tsc(argv, ts = typescript_1.default) {
     }
     else {
         const emitted = [];
-        rx.merge(dealCommonJob(), writtenFile$.pipe(op.map(file => emitted.push(file)))).subscribe();
+        const failedFiles = [];
+        rx.merge(dealCommonJob(), writtenFile$.pipe(op.map(file => emitted.push(file))), emitFailedFile$.pipe(op.map(file => failedFiles.push(file)))).subscribe();
         for (const dir of watchDirs) {
             rootFiles.push(...glob_1.default.sync(dir + '/**/*.ts'));
             if (argv.jsx) {
@@ -180,9 +183,13 @@ async function tsc(argv, ts = typescript_1.default) {
             dispatchFactory('addSourceFile')(file, true);
         }
         writtenFile$.complete();
+        emitFailedFile$.complete();
         // const emitted = compile(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
         if (process.send)
             process.send('plink-tsc compiled');
+        if (failedFiles.length > 0) {
+            throw new Error(`Failed to compile following files:\n${failedFiles.join(',\n')}`);
+        }
         return emitted;
     }
 }

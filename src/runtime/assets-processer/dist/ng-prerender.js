@@ -2,11 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PrerenderForExpress = exports.ROUTE_MAP_FILE = void 0;
 const tslib_1 = require("tslib");
-const fs_extra_1 = require("fs-extra");
 const path_1 = require("path");
+const plink_1 = require("@wfh/plink");
+const fs_extra_1 = require("fs-extra");
 const _ = tslib_1.__importStar(require("lodash"));
 const __api_1 = tslib_1.__importDefault(require("__api"));
-const log = require('log4js').getLogger(__api_1.default.packageName);
+const log = (0, plink_1.log4File)(__filename);
 exports.ROUTE_MAP_FILE = 'prerender-routes.json';
 const staticDir = __api_1.default.config.resolve('staticDir');
 class PrerenderForExpress {
@@ -15,17 +16,21 @@ class PrerenderForExpress {
        * @param routeMapFiles array of dist/static/<app>/_prerender/prerender-routes.json
        */
     constructor(...routeMapFiles) {
+        var _a;
         // noPrerender = false;
         this.prerenderPages = {}; // page contents
+        // lastQueried: Map<string, number> = new Map();
+        this.prerenderMap = {};
         // this.prerenderMapFile = join(staticDir, this.applName, '_prerender', ROUTE_MAP_FILE);
         // this.noPrerender = !existsSync(this.prerenderMapFile);
         // if (this.noPrerender) {
         // 	log.warn('No prerender files found in ', this.prerenderMapFile);
         // 	return;
         // }
-        this.queryPrerenderPages(routeMapFiles)
+        void this.queryPrerenderPages(routeMapFiles)
             .then(pages => this.prerenderPages = pages);
-        __api_1.default.eventBus.on('@wfh/assets-processer.downloaded', async () => {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        (_a = __api_1.default.eventBus) === null || _a === void 0 ? void 0 : _a.on('@wfh/assets-processer.downloaded', async () => {
             log.info('assets downloaded, update prerendered pages');
             const pages = await this.queryPrerenderPages(routeMapFiles);
             this.prerenderPages = pages;
@@ -61,7 +66,7 @@ class PrerenderForExpress {
             }
         };
     }
-    queryPrerenderPages(routeMapFiles) {
+    async queryPrerenderPages(routeMapFiles) {
         const pages = {};
         const allDone = [];
         for (const prerenderMapFile of routeMapFiles) {
@@ -80,7 +85,8 @@ class PrerenderForExpress {
                 });
             }));
         }
-        return Promise.all(allDone).then(() => pages);
+        await Promise.all(allDone);
+        return pages;
     }
 }
 exports.PrerenderForExpress = PrerenderForExpress;

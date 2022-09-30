@@ -24,8 +24,10 @@ export const childProcessAppender: AppenderModule = {
   }
 };
 
-function emitLogEventToParent(logEvent: LoggingEvent | string) {
+function emitLogEventToParent(logEvent: LoggingEvent | string, _fromChildProcess = false) {
   try {
+    // if (typeof logEvent !== 'string')
+    //   console.log(`[debug log] ${fromChildProcess ? '<passthrough>' : ''} emit to parent from`, process.pid, logEvent.pid, logEvent.data);
     process.send!({
       topic: 'log4js:message',
       data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
@@ -42,7 +44,7 @@ export function emitChildProcessLogMsg(msg: {topic?: string, data: string}, toPa
   if (msg && msg.topic === 'log4js:message') {
     const logEvent = msg.data;
     if (toParent) {
-      emitLogEventToParent(msg.data);
+      emitLogEventToParent(msg.data, true);
     } else {
       sendLoggingEvent(deserialise(logEvent));
     }

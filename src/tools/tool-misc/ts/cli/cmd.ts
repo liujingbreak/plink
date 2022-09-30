@@ -92,9 +92,9 @@ const cliExt: CliExtension = (program) => {
         return map;
       }, new Map<string, string>())
     .option('-p,--fallback <fallback-proxy>', 'A fallback proxy server e.g. 172.29.8.195:8888')
-    .option('--cluster', 'enable cluster', false)
+    .option('--cluster <num>', 'enable cluster and fork "num" number of worker process, specify value greater than 0')
     .action(async (port: number) => {
-      if (htCmd.opts().cluster) {
+      if (Number(htCmd.opts().cluster) > 0) {
         cluster.setupMaster({
           exec: Path.resolve(__dirname, 'forward-proxy-worker.js'),
           args: [
@@ -103,7 +103,7 @@ const cliExt: CliExtension = (program) => {
             JSON.stringify(htCmd.opts().fallback || '')
           ]
         });
-        startCluster();
+        startCluster(htCmd.opts().cluster);
       } else {
         const fallbackOpt = htCmd.opts().fallback ? (htCmd.opts().fallback as string).split(':') : undefined;
         (await import('./cli-forward-proxy')).start(port, htCmd.opts().m, fallbackOpt

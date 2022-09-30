@@ -6,6 +6,7 @@ const tslib_1 = require("tslib");
  * https://jestjs.io/docs/configuration
  */
 const path_1 = tslib_1.__importDefault(require("path"));
+// import {defaults} from 'jest-config';
 const transform = {
     '\\.jsx?$': 'babel-jest',
     '\\.tsx?$': [path_1.default.resolve(__dirname, 'ts-transformer.js'), {}]
@@ -96,9 +97,11 @@ const config = {
     // Automatically restore mock state and implementation before every test
     // restoreMocks: false,
     // The root directory that Jest should scan for tests and modules within
-    // rootDir: undefined,
+    rootDir: process.env.PLINK_WORK_DIR ?
+        path_1.default.join(process.env.PLINK_WORK_DIR, 'node_modules/@wfh/plink-test/__tests__') :
+        path_1.default.resolve('.'),
     // A list of paths to directories that Jest should use to search for files in
-    roots: [path_1.default.dirname(__dirname)],
+    roots: undefined,
     // Allows you to use a custom runner instead of Jest's default test runner
     // runner: "jest-runner",
     // The paths to modules that run some code to configure or set up the testing environment before each test
@@ -121,9 +124,9 @@ const config = {
         '**/?(*.)+(spec|test).[tj]s?(x)'
     ],
     // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
-    // testPathIgnorePatterns: [
-    //   "/node_modules/"
-    // ],
+    testPathIgnorePatterns: [
+    // "/node_modules/"
+    ],
     // The regexp pattern or array of patterns that Jest uses to detect test files
     // testRegex: [],
     // This option allows the use of a custom results processor
@@ -131,12 +134,12 @@ const config = {
     // This option allows use of a custom test runner
     // testRunner: "jest-circus/runner",
     // A map from regular expressions to paths to transformers
-    transform
+    transform,
     // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-    // transformIgnorePatterns: [
-    //   "/node_modules/",
-    //   "\\.pnp\\.[^\\/]+$"
-    // ],
+    transformIgnorePatterns: [
+        // "/node_modules/",
+        '\\.pnp\\.[^\\/]+$'
+    ]
     // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
     // unmockedModulePathPatterns: undefined,
     // Indicates whether each individual test should be reported during the run

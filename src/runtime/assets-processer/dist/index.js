@@ -6,8 +6,8 @@ const path_1 = tslib_1.__importDefault(require("path"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const rx = tslib_1.__importStar(require("rxjs"));
-const op = tslib_1.__importStar(require("rxjs/operators"));
+// import * as rx from 'rxjs';
+// import * as op from 'rxjs/operators';
 const serve_index_1 = tslib_1.__importDefault(require("serve-index"));
 const plink_1 = require("@wfh/plink");
 const assets_processer_setting_1 = require("../isom/assets-processer-setting");
@@ -16,25 +16,28 @@ const fetchRemote = tslib_1.__importStar(require("./fetch-remote"));
 const fetch_remote_imap_1 = require("./fetch-remote-imap");
 const index_html_route_1 = require("./index-html-route");
 const static_middleware_1 = require("./static-middleware");
-const cache_service_1 = require("./proxy-cache/cache-service");
-const npm_registry_cache_service_1 = tslib_1.__importDefault(require("./proxy-cache/npm-registry-cache-service"));
+// import {createProxyWithCache} from './proxy-cache/cache-service';
+// import createNpmRegistryServer from './proxy-cache/npm-registry-cache-service';
 const utils_1 = require("./utils");
 const log = (0, plink_1.log4File)(__filename);
 // const log = require('log4js').getLogger(api.packageName);
 const serverFavicon = require('serve-favicon');
-const deactivateSubj = new rx.ReplaySubject();
+// const deactivateSubj = new rx.ReplaySubject<() => (PromiseLike<any> | void)>();
 function deactivate() {
     fetchRemote.stop();
-    return deactivateSubj.pipe(op.mergeMap(shutdown => rx.defer(() => shutdown()))).toPromise();
+    // return deactivateSubj.pipe(
+    //   op.mergeMap(shutdown => rx.defer(() => shutdown()))
+    // ).toPromise();
 }
 exports.deactivate = deactivate;
 function activate(api) {
-    var staticFolder = api.config.resolve('staticDir');
+    var _a;
+    const staticFolder = api.config.resolve('staticDir');
     log.debug('express static path: ' + staticFolder);
-    var favicon = findFavicon();
+    const favicon = findFavicon();
     if (favicon)
         api.use(serverFavicon(favicon));
-    var maxAgeMap = (0, assets_processer_setting_1.getSetting)().cacheControlMaxAge;
+    const maxAgeMap = (0, assets_processer_setting_1.getSetting)().cacheControlMaxAge;
     log.info('cache control', maxAgeMap);
     log.info('Serve static dir', staticFolder);
     // api.use('/', createResponseTimestamp);
@@ -52,13 +55,12 @@ function activate(api) {
             const dir = path_1.default.join((0, plink_1.config)().destDir, 'http-proxy-cache', lodash_1.default.trimStart(proxyPath, '/'));
             const endPoint = httpProxyWithCacheSet[proxyPath];
             log.info(`Enable HTTP proxy ${proxyPath} --> ${endPoint}, cache directory: ${dir}`);
-            (0, cache_service_1.createProxyWithCache)(proxyPath, { target: endPoint }, dir);
+            // createProxyWithCache(proxyPath, {target: endPoint}, dir);
         }
     }
-    const saveNpmRegistry = (0, npm_registry_cache_service_1.default)(api);
-    if (saveNpmRegistry)
-        deactivateSubj.next(saveNpmRegistry);
-    // const zss = createZipRoute(maxAgeMap);
+    // const saveNpmRegistry = createNpmRegistryServer(api);
+    // if (saveNpmRegistry)
+    //   deactivateSubj.next(saveNpmRegistry);
     // api.use('/', zss.handler);
     const staticHandler = (0, static_middleware_1.createStaticRoute)(staticFolder, maxAgeMap);
     api.use('/', staticHandler);
@@ -77,11 +79,11 @@ function activate(api) {
     api.use('/', staticHandler); // Serve fallbacked request to index.html
     const mailSetting = api.config.get(api.packageName).fetchMailServer;
     const imap = new fetch_remote_imap_1.ImapManager(mailSetting ? mailSetting.env : 'local');
-    api.eventBus.on('appCreated', () => {
+    (_a = api.eventBus) === null || _a === void 0 ? void 0 : _a.on('appCreated', () => {
         // appCreated event is emitted by express-app
         void fetchRemote.start(imap);
     });
-    deactivateSubj.complete();
+    // deactivateSubj.complete();
 }
 exports.activate = activate;
 function findFavicon() {
@@ -99,7 +101,7 @@ function _findFaviconInConfig(property) {
             const pkg = [...(0, plink_1.findPackagesByNames)([pkName])][0];
             if (pkg) {
                 const assetsFolder = ((_a = pkg.json.plink) === null || _a === void 0 ? void 0 : _a.assetsDir) || ((_b = pkg.json.dr) === null || _b === void 0 ? void 0 : _b.assetsDir) || 'assets';
-                var favicon = path_1.default.join(pkg.realPath, assetsFolder, 'favicon.ico');
+                const favicon = path_1.default.join(pkg.realPath, assetsFolder, 'favicon.ico');
                 if (fs_extra_1.default.existsSync(favicon)) {
                     if (faviconFile) {
                         log.warn('Found duplicate favicon file in', pkg.name, 'existing', faviconPackage);

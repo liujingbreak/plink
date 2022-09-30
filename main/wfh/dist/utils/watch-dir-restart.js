@@ -30,12 +30,9 @@ function default_1(dirOrFile, forkJsFiles, opts = {}) {
     }), op.tap(() => action$.next('start'))), 
     // start -> started, stop -> stopped
     action$.pipe(op.filter(type => type === 'start'), op.concatMap(() => {
-        const factories = (forkJsFiles.length > 0 && typeof forkJsFiles[0] === 'string') ?
-            forkJsFiles.map(forkJsFile => () => cp.fork(forkJsFile))
-            :
-                forkJsFiles;
         serverState$.next('started');
-        return rx.merge(rx.from(factories).pipe(op.mergeMap(fac => new rx.Observable(sub => {
+        return rx.from(forkJsFiles).pipe(op.mergeMap(forkJsFile => new rx.Observable(sub => {
+            const fac = typeof forkJsFile === 'string' ? () => cp.fork(forkJsFile) : forkJsFile;
             const child = fac();
             const subStop = action$.pipe(op.filter(type => type === 'stop'), op.take(1), op.takeUntil(serverState$.pipe(op.filter(s => s === 'stopped'))), op.tap(() => {
                 child.kill('SIGINT');
@@ -49,18 +46,19 @@ function default_1(dirOrFile, forkJsFiles, opts = {}) {
                     console.log(msg);
                     sub.error(new Error(msg));
                 }
-                sub.complete();
+                else {
+                    sub.complete();
+                }
             });
             child.on('error', (err) => {
                 // eslint-disable-next-line no-console
                 console.log('[watch-dir-restart]: Child process encounters error:', err);
                 sub.error(err);
             });
-            sub.next(child);
             return () => subStop.unsubscribe();
         }).pipe(op.retry(opts.retryOnError != null ? opts.retryOnError : 10))), op.finalize(() => {
             serverState$.next('stopped');
-        })));
+        }));
     })), rx.defer(() => {
         // initial
         action$.next('start');

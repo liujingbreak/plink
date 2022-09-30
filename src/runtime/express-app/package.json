@@ -1,7 +1,7 @@
 {
   "name": "@wfh/express-app",
   "description": "Work with Plink, base Express app",
-  "version": "1.1.14",
+  "version": "1.1.15",
   "main": "dist/app.js",
   "types": "dist/app.d.ts",
   "dependencies": {

@@ -170,6 +170,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   const cwd = process.cwd();
 
   const writtenFile$ = new rx.Subject<string>();
+  const emitFailedFile$ = new rx.Subject<string>();
 
   function dealCommonJob() {
     return rx.merge(
@@ -195,6 +196,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       action$.pipe(
         ofType('onEmitFailure'),
         op.map(({payload: [file, msg, type]}) => {
+          emitFailedFile$.next(file);
           log.error(`[${type}] ` + msg);
         })
       ),
@@ -219,11 +221,13 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     return [];
   } else {
     const emitted = [] as string[];
+    const failedFiles = [] as string[];
     rx.merge(
       dealCommonJob(),
       writtenFile$.pipe(
         op.map(file => emitted.push(file))
-      )
+      ),
+      emitFailedFile$.pipe(op.map(file => failedFiles.push(file)))
     ).subscribe();
 
     for (const dir of watchDirs) {
@@ -242,9 +246,13 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       dispatchFactory('addSourceFile')(file, true);
     }
     writtenFile$.complete();
+    emitFailedFile$.complete();
     // const emitted = compile(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
     if (process.send)
       process.send('plink-tsc compiled');
+    if (failedFiles.length > 0) {
+      throw new Error(`Failed to compile following files:\n${failedFiles.join(',\n')}`);
+    }
     return emitted;
   }
 }

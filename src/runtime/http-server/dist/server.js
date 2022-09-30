@@ -15,6 +15,7 @@ const log = (0, plink_1.log4File)(__filename);
 let server;
 exports.serverCreated$ = new rx.ReplaySubject();
 function activate() {
+    var _a, _b, _c, _d;
     const rootPath = (0, plink_1.config)().rootPath;
     const multiServerSetting = (0, plink_1.config)()['@wfh/http-server'].servers;
     if (multiServerSetting) {
@@ -22,10 +23,10 @@ function activate() {
             if (serverCfg.ssl) {
                 const key = fs.readFileSync(Path.resolve(rootPath, serverCfg.ssl.key));
                 const cert = fs.readFileSync(Path.resolve(rootPath, serverCfg.ssl.cert));
-                __api_1.default.eventBus.on('appCreated', (app) => startHttpsServer(app, serverCfg.port, key, cert));
+                (_a = __api_1.default.eventBus) === null || _a === void 0 ? void 0 : _a.once('appCreated', (app) => startHttpsServer(app, serverCfg.port, key, cert));
             }
             else {
-                __api_1.default.eventBus.on('appCreated', (app) => startHttpServer(app, serverCfg.port));
+                (_b = __api_1.default.eventBus) === null || _b === void 0 ? void 0 : _b.once('appCreated', (app) => startHttpServer(app, serverCfg.port));
             }
         }
     }
@@ -49,15 +50,15 @@ function activate() {
             log.debug('SSL enabled');
             const key = fs.readFileSync(Path.resolve(rootPath, sslSetting.key));
             const cert = fs.readFileSync(Path.resolve(rootPath, sslSetting.cert));
-            __api_1.default.eventBus.on('appCreated', (app) => startHttpsServer(app, Number(sslSetting.port ? sslSetting.port : 433), key, cert));
+            (_c = __api_1.default.eventBus) === null || _c === void 0 ? void 0 : _c.once('appCreated', (app) => startHttpsServer(app, Number(sslSetting.port ? sslSetting.port : 433), key, cert));
         }
         else {
-            __api_1.default.eventBus.on('appCreated', (app) => startHttpServer(app, Number((0, plink_1.config)().port ? (0, plink_1.config)().port : 80)));
+            (_d = __api_1.default.eventBus) === null || _d === void 0 ? void 0 : _d.once('appCreated', (app) => startHttpServer(app, Number((0, plink_1.config)().port ? (0, plink_1.config)().port : 80)));
         }
     }
     function startHttpServer(app, port) {
         log.info('start HTTP');
-        const server = http.createServer({ keepAlive: true }, app);
+        const server = http.createServer(app);
         // Node 8 has a keepAliveTimeout bug which doesn't respect active connections.
         // Connections will end after ~5 seconds (arbitrary), often not letting the full download
         // of large pieces of content, such as a vendor javascript file.  This results in browsers
@@ -74,8 +75,9 @@ function activate() {
             onError(server, port, err);
         });
         server.on('listening', () => {
+            var _a;
             onListening(server, 'HTTP server', port);
-            __api_1.default.eventBus.emit('serverStarted', {});
+            (_a = __api_1.default.eventBus) === null || _a === void 0 ? void 0 : _a.emit('serverStarted', {});
         });
         for (const hostname of (0, plink_1.config)()['@wfh/http-server'].hostnames) {
             log.info('listen on additional host name:', hostname);
@@ -86,8 +88,9 @@ function activate() {
                 onError(server, port, err);
             });
             server.on('listening', () => {
+                var _a;
                 onListening(server, 'HTTP server', port);
-                __api_1.default.eventBus.emit('serverStarted', {});
+                (_a = __api_1.default.eventBus) === null || _a === void 0 ? void 0 : _a.emit('serverStarted', {});
             });
         }
     }
@@ -141,10 +144,11 @@ function activate() {
         // }
         void Promise.all(startPromises)
             .then((servers) => {
+            var _a;
             onListening(servers[0], 'HTTPS server', port);
             if (servers.length > 1)
                 onListening(servers[1], 'HTTP Forwarding server', httpPort);
-            __api_1.default.eventBus.emit('serverStarted', {});
+            (_a = __api_1.default.eventBus) === null || _a === void 0 ? void 0 : _a.emit('serverStarted', {});
         });
     }
     /**
@@ -180,7 +184,8 @@ function activate() {
 }
 exports.activate = activate;
 function deactivate() {
-    __api_1.default.eventBus.emit('serverStopped', {});
+    var _a;
+    (_a = __api_1.default.eventBus) === null || _a === void 0 ? void 0 : _a.emit('serverStopped', {});
     if (server)
         server.close();
     log.info('HTTP server is shut');

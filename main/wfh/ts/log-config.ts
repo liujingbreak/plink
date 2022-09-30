@@ -26,10 +26,15 @@ export default function(configObj: PlinkSettings) {
     // Same logic as bootstrap-process#configDefaultLog()
     if (cluster.isWorker) {
       for (const key of Object.keys(localSetting.appenders)) {
+        if (localSetting.appenders[key].type === 'logLevelFilter')
+          continue;
         localSetting.appenders[key] = {type: doNothingAppender, name: 'ignore cluster'};
       }
     } else if (process.env.__plinkLogMainPid !== process.pid + '' && process.send) {
+
       for (const key of Object.keys(localSetting.appenders)) {
+        if (localSetting.appenders[key].type === 'logLevelFilter')
+          continue;
         localSetting.appenders[key] = {type: childProcessAppender, name: 'send to parent'};
       }
     }

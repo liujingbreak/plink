@@ -11,7 +11,7 @@ function httpProxyObservable(proxy) {
     for (const event of EVENTS) {
         Object.defineProperty(obsObj, event, {
             get() {
-                let ob = createdSubjs[event];
+                const ob = createdSubjs[event];
                 if (ob) {
                     return ob;
                 }

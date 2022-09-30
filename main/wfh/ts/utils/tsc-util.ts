@@ -246,10 +246,12 @@ export function languageServices( ts: any = _ts, opts: {
     },
     error(s) {
       dispatcher.log(LogLevel.error, s);
+      // eslint-disable-next-line no-console
       console.log('[lang-service error]', s);
     },
     log(s) {
       dispatcher.log(LogLevel.log, s);
+      // eslint-disable-next-line no-console
       console.log('[lang-service log]', s);
     }
   };

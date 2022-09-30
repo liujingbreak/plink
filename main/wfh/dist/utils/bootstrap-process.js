@@ -11,6 +11,7 @@ const op = tslib_1.__importStar(require("rxjs/operators"));
 const config_1 = tslib_1.__importDefault(require("../config"));
 const log4js_appenders_1 = require("./log4js-appenders");
 const log = log4js_1.default.getLogger('plink.bootstrap-process');
+let processInitialized = false;
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 exports.exitHooks = [];
 process.on('uncaughtException', function (err) {
@@ -42,6 +43,14 @@ exports.initConfig = initConfig;
  * @param _onShutdownSignal
  */
 function initProcess(saveState = 'none') {
+    if (processInitialized) {
+        console.warn(new Error('Do not initialize process twice'));
+        return;
+    }
+    processInitialized = true;
+    if (process.env.__plinkLogMainPid == null) {
+        process.env.__plinkLogMainPid = process.pid + '';
+    }
     interceptFork();
     // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
     process.once('beforeExit', function (code) {
@@ -126,8 +135,8 @@ function initAsChildProcess(saveState = 'none') {
 exports.initAsChildProcess = initAsChildProcess;
 function interceptFork() {
     const origFork = node_child_process_1.default.fork;
-    const handler = process.env.__plinkLogMainPid === process.pid + '' ||
-        process.send == null ?
+    const handler = (process.env.__plinkLogMainPid === process.pid + '' ||
+        process.send == null) ?
         (msg) => (0, log4js_appenders_1.emitChildProcessLogMsg)(msg, false)
         : (msg) => (0, log4js_appenders_1.emitChildProcessLogMsg)(msg, true);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

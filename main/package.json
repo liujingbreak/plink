@@ -1,6 +1,6 @@
 {
   "name": "@wfh/plink",
-  "version": "0.12.6-9",
+  "version": "0.12.6-10",
   "description": "Plink - A monorepo management tool to link packages and projects",
   "main": "wfh/dist/index.js",
   "types": "wfh/dist/index.d.ts",
@@ -70,7 +70,6 @@
     "@types/react": "^17.0.5",
     "@types/semver": "^7.3.4",
     "@types/lru-cache": "^5.1.0",
-    "jest": "^28.1.0",
-    "@types/jest": "^27.5.0"
+    "@jest/globals": "^29.1.2"
   }
 }

@@ -51,7 +51,7 @@ export function spawn(command: string, ...args: Array<string | Option>): Result 
     opts.stdio = 'inherit';
   }
   console.log(opts.cwd || process.cwd(), '> spawn process:', command, ...args);
-  const res = sysSpawn(command, args as string[], opts);
+  const res = sysSpawn(command, args as string[], {...opts, shell: isWindows});
   const done = checkTimeout(promisifyChildProcess(res, opts, `${command} ${args.join(' ')}`), opts.timeout)
   .catch(e => {
     if (e.message === 'Timeout' && res) {
@@ -173,24 +173,11 @@ export function promisifyExe(command: string, ...argsAndOption: Array<string | O
  */
 export function exe(command: string, ...argsAndOption: Array<string | Option>): Result {
   // var args = [].slice.call(arguments);
-  if (isWindows) {
-    switch (command) {
-      // case 'node':
-      case 'npm':
-      case 'npx':
-      case 'yarn':
-      case 'gulp':
-        command += '.cmd';
-        break;
-      default:
-    }
-    command = command.replace(/\//g, '\\');
-  }
   return spawn(command, ...argsAndOption);
 }
 
 export function createStringWriter(): {writer: Writable; done: Promise<string>} {
-  let strs: string[] = [];
+  const strs: string[] = [];
   let resolve: (str: string) => void;
   const done = new Promise<string>(res => {
     resolve = res;

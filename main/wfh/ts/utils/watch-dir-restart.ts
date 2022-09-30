@@ -62,54 +62,48 @@ export default function(dirOrFile: string[], forkJsFiles: string[] | ChildProces
     action$.pipe(
       op.filter(type => type === 'start'),
       op.concatMap(() => {
-        const factories = (forkJsFiles.length > 0 && typeof forkJsFiles[0] === 'string') ?
-          (forkJsFiles as string[]).map(forkJsFile => () => cp.fork(forkJsFile))
-          :
-          (forkJsFiles as ChildProcessFactory[]);
-
         serverState$.next('started');
+        return rx.from(forkJsFiles).pipe(
+          op.mergeMap(forkJsFile => new rx.Observable(
+            sub => {
+              const fac = typeof forkJsFile === 'string' ? () => cp.fork(forkJsFile) : forkJsFile as ChildProcessFactory;
+              const child = fac();
+              const subStop = action$.pipe(
+                op.filter(type => type === 'stop'),
+                op.take(1),
+                op.takeUntil(serverState$.pipe(op.filter(s => s === 'stopped'))),
+                op.tap(() => {
+                  child.kill('SIGINT');
+                  serverState$.next('stopping');
+                })
+              ).subscribe();
 
-        return rx.merge(
-          rx.from(factories).pipe(
-            op.mergeMap(fac => new rx.Observable<cp.ChildProcess>(sub => {
-                const child = fac();
-                const subStop = action$.pipe(
-                  op.filter(type => type === 'stop'),
-                  op.take(1),
-                  op.takeUntil(serverState$.pipe(op.filter(s => s === 'stopped'))),
-                  op.tap(() => {
-                    child.kill('SIGINT');
-                    serverState$.next('stopping');
-                  })
-                ).subscribe();
-
-                child.on('exit', (code, signal) => {
-                  // Send antion to kill other child process
-                  if (serverState$.getValue() !== 'stopping') {
-                    const msg = `[watch-dir-restart]: Unexpected exit signal ${code + ''} - ${signal?.toString() || ''}`;
-                    // eslint-disable-next-line no-console
-                    console.log(msg);
-                    sub.error(new Error(msg));
-                  }
-                  sub.complete();
-                });
-
-                child.on('error', (err) => {
+              child.on('exit', (code, signal) => {
+                // Send antion to kill other child process
+                if (serverState$.getValue() !== 'stopping') {
+                  const msg = `[watch-dir-restart]: Unexpected exit signal ${code + ''} - ${signal?.toString() || ''}`;
                   // eslint-disable-next-line no-console
-                  console.log('[watch-dir-restart]: Child process encounters error:', err);
-                  sub.error(err);
-                });
-                sub.next(child);
+                  console.log(msg);
+                  sub.error(new Error(msg));
+                } else {
+                  sub.complete();
+                }
+              });
 
-                return () => subStop.unsubscribe();
-              }).pipe(
-                op.retry(opts.retryOnError != null ? opts.retryOnError : 10)
-              )
-            ),
-            op.finalize(() => {
-              serverState$.next('stopped');
-            })
-          )
+              child.on('error', (err) => {
+                // eslint-disable-next-line no-console
+                console.log('[watch-dir-restart]: Child process encounters error:', err);
+                sub.error(err);
+              });
+
+              return () => subStop.unsubscribe();
+            }).pipe(
+              op.retry(opts.retryOnError != null ? opts.retryOnError : 10)
+            )
+          ),
+          op.finalize(() => {
+            serverState$.next('stopped');
+          })
         );
       })
     ),

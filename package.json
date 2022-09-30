@@ -1,6 +1,5 @@
 {
-  "name": "plink-mono",
-  "description": "This is a monorepo package, not for publishing",
+  "name": "plink-mono",  "description": "This is a monorepo package, not for publishing",
   "version": "1.0.0",
   "private": true,
   "packages": [
@@ -21,7 +20,8 @@
     "lint-thread": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
     "lint-main-file": "eslint --no-eslintrc -c main/.eslintrc.js",
     "lint-other": "eslint --no-eslintrc -c .eslintrc.js",
-    "test": "cd server-tool-space && npm run test"
+    "test": "\"./server-tool-space/node_modules/.bin/jest\" -c src/plink-test/dist/jest.config.js",
+    "test-win32": "server-tool-space\\node_modules\\.bin\\jest -c src\\plink-test\\dist\\jest.config.js"
   },
   "devDependencies": {
     "@wfh/eslint-config-cra": "./src/tools/eslint-config-cra",
