@@ -48,7 +48,8 @@ export function createActionStream(actionCreator, debug) {
         dispatcher,
         action$,
         ofType: createOfTypeOperator(typePrefix),
-        isActionType: createIsActionTypeFn(typePrefix)
+        isActionType: createIsActionTypeFn(typePrefix),
+        nameOfAction: (action) => action.type.split('/')[1]
     };
 }
 /**
@@ -135,7 +136,8 @@ export function createActionStreamByType(opt = {}) {
         action$,
         actionOfType,
         ofType: createOfTypeOperator(typePrefix),
-        isActionType: createIsActionTypeFn(typePrefix)
+        isActionType: createIsActionTypeFn(typePrefix),
+        nameOfAction: (action) => action.type.split('/')[1]
     };
 }
 function createIsActionTypeFn(prefix) {

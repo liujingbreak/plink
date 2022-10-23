@@ -155,7 +155,7 @@ function subComands(program: commander.Command) {
     .action(async (action: 'add' | 'remove' | undefined, projectDir: string[]) => {
       // eslint-disable-next-line no-console
       console.log(sexyFont('PLink').string);
-      (await import('./cli-project')).default({isSrcDir: false}, action, projectDir);
+      await (await import('./cli-project')).default({isSrcDir: false}, action, projectDir);
     });
 
   program.command('src [add|remove] [dir...]')

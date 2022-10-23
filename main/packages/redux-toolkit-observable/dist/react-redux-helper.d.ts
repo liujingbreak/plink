@@ -1,8 +1,8 @@
 import { InferableComponentEnhancerWithProps } from 'react-redux';
-import { StateFactory, SliceCaseReducers, ofPayloadAction, PayloadAction } from './redux-toolkit-observable';
-import { EpicFactory, SliceHelper } from './helper';
 import { CreateSliceOptions, Draft } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
+import { EpicFactory, SliceHelper } from './helper';
+import { StateFactory, SliceCaseReducers, ofPayloadAction, PayloadAction } from './redux-toolkit-observable';
 export { ofPayloadAction };
 export { connect, Provider as ReduxProvider } from 'react-redux';
 export * from './helper';

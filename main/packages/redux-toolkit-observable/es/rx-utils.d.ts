@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
 declare type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
 export declare type ActionTypes<AC> = {
     [K in keyof AC]: {
-        type: K;
+        type: string;
         payload: InferParam<AC[K]>;
     };
 };
@@ -32,6 +32,7 @@ export declare function createActionStream<AC extends Record<string, ((...payloa
     isActionType: <K extends keyof AC>(action: {
         type: unknown;
     }, type: K) => action is ActionTypes<AC>[K];
+    nameOfAction: <K_1 extends keyof AC>(action: ActionTypes<AC>[K_1]) => K_1;
 };
 declare type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
 /**
@@ -58,11 +59,12 @@ export declare function createActionStreamByType<AC extends Record<string, ((...
     dispatcher: AC;
     dispatchFactory: SimpleActionDispatchFactory<AC>;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
-    actionOfType: <T extends keyof AC>(type: T) => Record<keyof AC, Observable<ActionTypes<AC>[keyof AC]>>[T];
+    actionOfType: <T extends keyof AC>(type: T) => Observable<ActionTypes<AC>[T]>;
     ofType: OfTypeFn<AC>;
     isActionType: <K extends keyof AC>(action: {
         type: unknown;
     }, type: K) => action is ActionTypes<AC>[K];
+    nameOfAction: (action: ActionTypes<AC>[keyof AC]) => keyof AC | undefined;
 };
 export interface OfTypeFn<AC> {
     <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;

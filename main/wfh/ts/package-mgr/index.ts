@@ -4,24 +4,24 @@
 
 import fs from 'fs';
 import Path from 'path';
-import { EOL } from 'os';
-import { PayloadAction } from '@reduxjs/toolkit';
+import {EOL} from 'os';
+import {PayloadAction} from '@reduxjs/toolkit';
 import chalk from 'chalk';
 import fsext from 'fs-extra';
 import _ from 'lodash';
 import {from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
-import { distinctUntilChanged, filter, map, debounceTime, takeWhile,
-  take, concatMap, ignoreElements, scan, catchError, tap, finalize } from 'rxjs/operators';
+import {distinctUntilChanged, filter, map, debounceTime, takeWhile,
+  take, concatMap, ignoreElements, scan, catchError, tap, finalize} from 'rxjs/operators';
 import {getLogger} from 'log4js';
-import { listCompDependency, PackageJsonInterf, DependentInfo } from '../transitive-dep-hoister';
-import { exe } from '../process-utils';
-import { setProjectList, setLinkPatterns} from '../recipe-manager';
-import { stateFactory, ofPayloadAction } from '../store';
+import {listCompDependency, PackageJsonInterf, DependentInfo} from '../transitive-dep-hoister';
+import {exe} from '../process-utils';
+import {setProjectList, setLinkPatterns} from '../recipe-manager';
+import {stateFactory, ofPayloadAction} from '../store';
 import {isActionOfCreator, castByActionType} from '../../../packages/redux-toolkit-observable/dist/helper';
 // import { getRootDir } from '../utils/misc';
-import cleanInvalidSymlinks, { isWin32, listModuleSymlinks, unlinkAsync } from '../utils/symlinks';
+import cleanInvalidSymlinks, {isWin32, listModuleSymlinks, unlinkAsync} from '../utils/symlinks';
 import {symbolicLinkPackages} from '../rwPackageJson';
-import { plinkEnv } from '../utils/misc';
+import {plinkEnv} from '../utils/misc';
 const log = getLogger('plink.package-mgr');
 export interface PackageInfo {
   name: string;

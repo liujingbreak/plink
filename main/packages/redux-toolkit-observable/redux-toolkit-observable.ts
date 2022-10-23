@@ -13,7 +13,7 @@ import {
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject, OperatorFunction } from 'rxjs';
-import { distinctUntilChanged, filter, map, mergeMap, share, take, takeUntil, tap, catchError} from 'rxjs/operators';
+import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError} from 'rxjs/operators';
 
 export {PayloadAction, SliceCaseReducers, Slice};
 
@@ -84,7 +84,7 @@ export class StateFactory {
   private epicWithUnsub$: Subject<[Epic<PayloadAction<unknown>>, string, Subject<string>]>;
   private errorSlice: InferSliceType<typeof errorSliceOpt>;
 
-  private sharedSliceStore$ = new Map<string, Observable<unknown>>();
+  sliceStoreMap = new Map<string, Observable<unknown>>();
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<unknown>(preloadedState);
@@ -227,9 +227,9 @@ export class StateFactory {
       map(s => s[opt.name]),
       filter(ss => ss != null),
       distinctUntilChanged(),
-      share()
+      // share() do not use share() for a BehaviorSubject
     );
-    this.sharedSliceStore$.set(opt.name, slicedStore);
+    this.sliceStoreMap.set(opt.name, slicedStore);
     return slice;
   }
 
@@ -239,7 +239,7 @@ export class StateFactory {
       this.debugLog.next(['[redux-toolkit-obs]', 'remove slice '+ slice.name]);
       const newRootReducer = this.createRootReducer();
       this.getRootStore()!.replaceReducer(newRootReducer);
-      this.sharedSliceStore$.delete(slice.name);
+      this.sliceStoreMap.delete(slice.name);
     }
   }
 
@@ -274,7 +274,7 @@ export class StateFactory {
   }
 
   sliceStore<SS>(slice: Slice<SS>): Observable<SS> {
-    return this.sharedSliceStore$.get(slice.name) as Observable<SS>;
+    return this.sliceStoreMap.get(slice.name) as Observable<SS>;
   }
 
   getErrorState() {

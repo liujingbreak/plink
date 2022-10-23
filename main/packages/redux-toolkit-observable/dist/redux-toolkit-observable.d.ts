@@ -54,7 +54,7 @@ export declare class StateFactory {
     private reducerMap;
     private epicWithUnsub$;
     private errorSlice;
-    private sharedSliceStore$;
+    sliceStoreMap: Map<string, Observable<unknown>>;
     constructor(preloadedState: ConfigureStoreOptions['preloadedState']);
     /**
      *

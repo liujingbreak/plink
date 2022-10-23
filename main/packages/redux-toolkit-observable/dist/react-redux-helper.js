@@ -30,14 +30,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useStoreOfStateFactory = exports.useRtk = exports.useReduxTookit = exports.useReduxTookitWith = exports.ReduxProvider = exports.connect = exports.ofPayloadAction = void 0;
-const redux_toolkit_observable_1 = require("./redux-toolkit-observable");
-Object.defineProperty(exports, "ofPayloadAction", { enumerable: true, get: function () { return redux_toolkit_observable_1.ofPayloadAction; } });
 const react_1 = __importDefault(require("react"));
-const state_factory_browser_1 = require("./state-factory-browser");
-const helper_1 = require("./helper");
 const react_2 = require("react");
 const rx = __importStar(require("rxjs"));
 const op = __importStar(require("rxjs/operators"));
+const helper_1 = require("./helper");
+const state_factory_browser_1 = require("./state-factory-browser");
+const redux_toolkit_observable_1 = require("./redux-toolkit-observable");
+Object.defineProperty(exports, "ofPayloadAction", { enumerable: true, get: function () { return redux_toolkit_observable_1.ofPayloadAction; } });
 var react_redux_1 = require("react-redux");
 Object.defineProperty(exports, "connect", { enumerable: true, get: function () { return react_redux_1.connect; } });
 Object.defineProperty(exports, "ReduxProvider", { enumerable: true, get: function () { return react_redux_1.Provider; } });

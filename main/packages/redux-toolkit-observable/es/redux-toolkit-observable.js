@@ -7,7 +7,7 @@
 import { combineReducers, configureStore, createSlice as reduxCreateSlice } from '@reduxjs/toolkit';
 import { createEpicMiddleware, ofType } from 'redux-observable';
 import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs';
-import { distinctUntilChanged, filter, map, mergeMap, share, take, takeUntil, tap, catchError } from 'rxjs/operators';
+import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError } from 'rxjs/operators';
 export function ofPayloadAction(...actionCreators) {
     return ofType(...actionCreators.map(c => c.type));
 }
@@ -27,7 +27,7 @@ export class StateFactory {
         this.epicSeq = 0;
         // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
         this.debugLog = new ReplaySubject(15);
-        this.sharedSliceStore$ = new Map();
+        this.sliceStoreMap = new Map();
         this.errorHandleMiddleware = (api) => {
             return (next) => {
                 return (action) => {
@@ -150,8 +150,8 @@ export class StateFactory {
         this.addSliceMaybeReplaceReducer(slice);
         const slicedStore = this.realtimeState$.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        map(s => s[opt.name]), filter(ss => ss != null), distinctUntilChanged(), share());
-        this.sharedSliceStore$.set(opt.name, slicedStore);
+        map(s => s[opt.name]), filter(ss => ss != null), distinctUntilChanged());
+        this.sliceStoreMap.set(opt.name, slicedStore);
         return slice;
     }
     removeSlice(slice) {
@@ -160,7 +160,7 @@ export class StateFactory {
             this.debugLog.next(['[redux-toolkit-obs]', 'remove slice ' + slice.name]);
             const newRootReducer = this.createRootReducer();
             this.getRootStore().replaceReducer(newRootReducer);
-            this.sharedSliceStore$.delete(slice.name);
+            this.sliceStoreMap.delete(slice.name);
         }
     }
     /**
@@ -183,7 +183,7 @@ export class StateFactory {
         return store ? store.getState()[slice.name] : {};
     }
     sliceStore(slice) {
-        return this.sharedSliceStore$.get(slice.name);
+        return this.sliceStoreMap.get(slice.name);
     }
     getErrorState() {
         return this.sliceState(this.errorSlice);

@@ -31,7 +31,7 @@ class StateFactory {
         this.epicSeq = 0;
         // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
         this.debugLog = new rxjs_1.ReplaySubject(15);
-        this.sharedSliceStore$ = new Map();
+        this.sliceStoreMap = new Map();
         this.errorHandleMiddleware = (api) => {
             return (next) => {
                 return (action) => {
@@ -154,8 +154,8 @@ class StateFactory {
         this.addSliceMaybeReplaceReducer(slice);
         const slicedStore = this.realtimeState$.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        (0, operators_1.map)(s => s[opt.name]), (0, operators_1.filter)(ss => ss != null), (0, operators_1.distinctUntilChanged)(), (0, operators_1.share)());
-        this.sharedSliceStore$.set(opt.name, slicedStore);
+        (0, operators_1.map)(s => s[opt.name]), (0, operators_1.filter)(ss => ss != null), (0, operators_1.distinctUntilChanged)());
+        this.sliceStoreMap.set(opt.name, slicedStore);
         return slice;
     }
     removeSlice(slice) {
@@ -164,7 +164,7 @@ class StateFactory {
             this.debugLog.next(['[redux-toolkit-obs]', 'remove slice ' + slice.name]);
             const newRootReducer = this.createRootReducer();
             this.getRootStore().replaceReducer(newRootReducer);
-            this.sharedSliceStore$.delete(slice.name);
+            this.sliceStoreMap.delete(slice.name);
         }
     }
     /**
@@ -187,7 +187,7 @@ class StateFactory {
         return store ? store.getState()[slice.name] : {};
     }
     sliceStore(slice) {
-        return this.sharedSliceStore$.get(slice.name);
+        return this.sliceStoreMap.get(slice.name);
     }
     getErrorState() {
         return this.sliceState(this.errorSlice);

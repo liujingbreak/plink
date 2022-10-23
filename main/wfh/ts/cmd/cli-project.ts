@@ -1,20 +1,23 @@
 // import fs from 'fs-extra';
+import Path from 'node:path';
 import _ from 'lodash';
-import Path from 'path';
-import { distinctUntilChanged, map, skip, take } from 'rxjs/operators';
-import { actionDispatcher as pkgActions, getStore } from '../package-mgr';
-import { boxString, getRootDir } from '../utils/misc';
+import log4js from 'log4js';
+// import * as rx from 'rxjs';
+import {distinctUntilChanged, map, skip, take} from 'rxjs/operators';
+// import {map, take} from 'rxjs/operators';
+import {actionDispatcher as pkgActions, getStore, slice} from '../package-mgr';
+import {boxString, getRootDir} from '../utils/misc';
 import {dispatcher as storeSettingDispatcher} from '../store';
 // import { writeFile } from './utils';
 // import config from '../config';
 const rootPath = getRootDir();
-
+const log = log4js.getLogger('plink.project');
 /**
  * @param action 
  * @param dirs 
  */
-export default function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', dirs?: string[]) {
-  listProject(undefined, true);
+export default async function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', dirs?: string[]) {
+  void listProject(undefined, true);
   switch (action) {
     case 'add':
       storeSettingDispatcher.changeActionOnExit('save');
@@ -35,12 +38,18 @@ export default function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', di
       }
       break;
     default:
-      listProject();
+      try {
+        log.info('## start', slice.name);
+        await listProject();
+      } catch (e) {
+        log.error(e);
+      }
   }
+  log.info('## command out');
 }
 
 export function listProject(projects?: string[], afterChange = false) {
-  getStore().pipe(
+  return getStore().pipe(
     distinctUntilChanged((a, b) => a.project2Packages === b.project2Packages &&
       a.srcDir2Packages === b.srcDir2Packages),
     map(s => ({project2Packages: [...s.project2Packages.keys()], srcDir2Packages: [...s.srcDir2Packages.keys()]})),
@@ -55,7 +64,7 @@ export function listProject(projects?: string[], afterChange = false) {
       printProjects(s.project2Packages, s.srcDir2Packages);
     }),
     take(1)
-  ).subscribe();
+  ).toPromise();
 }
 
 function printProjects(projects: Iterable<string>, srcDirs: Iterable<string>) {

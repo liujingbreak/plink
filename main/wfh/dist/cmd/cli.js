@@ -147,7 +147,7 @@ function subComands(program) {
         .action(async (action, projectDir) => {
         // eslint-disable-next-line no-console
         console.log((0, misc_1.sexyFont)('PLink').string);
-        (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-project')))).default({ isSrcDir: false }, action, projectDir);
+        await (await Promise.resolve().then(() => tslib_1.__importStar(require('./cli-project')))).default({ isSrcDir: false }, action, projectDir);
     });
     program.command('src [add|remove] [dir...]')
         .description('Associate, disassociate or list source directories, Plink will' +
