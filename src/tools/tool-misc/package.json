@@ -1,6 +1,6 @@
 {
   "name": "@wfh/tool-misc",
-  "version": "1.2.2-1",
+  "version": "1.2.2-2",
   "description": "Work with Plink, miscellaneous tools",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -22,7 +22,8 @@
   "devDependencies": {
     "@types/markdown-it": "12.0.1",
     "@types/fs-extra": "5.0.4",
-    "@types/glob": "^7.1.1"
+    "@types/glob": "^7.1.1",
+    "@jest/globals": "^29.1.2"
   },
   "author": "LJ",
   "license": "MIT"

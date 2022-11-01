@@ -73,6 +73,7 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
 
   startLogging();
   stateFactory.configureStore();
+
   dispatcher.changeActionOnExit(saveState);
 
   function onShut(_code: number, explicitlyExit: boolean) {

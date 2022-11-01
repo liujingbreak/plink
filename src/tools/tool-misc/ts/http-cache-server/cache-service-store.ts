@@ -14,20 +14,26 @@ const log = log4File(__filename);
 //   keyMap: Map<string, {expiration: number; data: any}>;
 // };
 
+type ServerActions = {
+  listening(): void;
+  shutdown(): void;
+  request(req: http.IncomingMessage, res: http.OutgoingMessage): void;
+  error(err: Error): void;
+};
+
 export function startStore() {
-  const action$ = new rx.Subject<'listening' | 'shutdown'>();
-  const req$ = new rx.Subject<[http.IncomingMessage, http.OutgoingMessage]>();
+  const slice = createActionStreamByType<ServerActions>();
   const server = http.createServer({keepAlive: true});
   server.keepAliveTimeout = 60000;
   server.listen(14401);
-  server.once('listening', () => action$.next('listening'));
-  server.on('error', err => action$.error(err));
-  server.on('request', (req, res) => req$.next([req, res]));
+  server.once('listening', () => slice.dispatcher.listening());
+  server.on('error', err => slice.dispatcher.error(err));
+  server.on('request', (req, res) => slice.dispatcher.request(req, res));
 
   rx.merge(
-    req$.pipe(
-      op.mergeMap(async ([req, res]) => {
-        log.info(req.url, req.method);
+    slice.actionOfType('request').pipe(
+      op.mergeMap(async ({payload: [req, res]}) => {
+        log.info('[server] ' + req.method, req.url);
         if (req.url === '/cache' && req.method === 'POST') {
           let jsonStr = '';
           const writable = new Writable({
@@ -40,31 +46,37 @@ export function startStore() {
             }
           });
           await promises.pipeline(req, writable);
-          log.info('server', jsonStr);
-          res.end('ok');
+          onMessage(jsonStr, res);
         }
-      }))
+      })
+    ),
+    slice.actionOfType('error').pipe(
+      op.map(err => log.warn('[server] runtime error', err))
+    )
   ).pipe(
-    op.takeUntil(action$.pipe(
-      op.filter(ac => ac === 'shutdown'),
+    op.takeUntil(slice.actionOfType('shutdown').pipe(
       op.take(1),
       op.map(() => {
-        log.info('shuting down');
+        log.info('[server] shuting down');
         server.close();
       })
     )),
     op.catchError((err, src) => {
-      log.error(err);
+      log.error('[server]', err);
       return src;
     })
   ).subscribe();
 
+  function onMessage(jsonStr: string, res: http.OutgoingMessage) {
+    log.info('[server] got', jsonStr);
+    res.end('ok');
+  }
+
   return {
     shutdown() {
-      action$.next('shutdown');
+      slice.dispatcher.shutdown();
     },
-    started: action$.pipe(
-      op.filter((act): act is 'listening' => act === 'listening'),
+    started: slice.actionOfType('listening').pipe(
       op.take(1)
     ).toPromise()
   };
@@ -84,15 +96,16 @@ type ClientMessage = {
   setForNonexist(key: string): void;
   subscribeChange(key: string): void;
   unsubscribe(key: string): void;
-  _requestSubscribe(key: string): void;
-  // requestError(key: string, req: http.ClientRequest, err: unknown): void;
+  _reconnectForSubs(): void;
+  _requestClose(req: http.ClientRequest): void;
+  _responseEnd(req: http.ClientRequest, resContent: string | Buffer): void;
 } & ServerResponseMsg;
 
 export function createClient() {
   const agent = new http.Agent({keepAlive: true});
   const longPollAgent = new http.Agent({keepAlive: true});
 
-  const slice = createActionStreamByType<ClientMessage>();
+  const slice = createActionStreamByType<ClientMessage>({debug: true});
   const subscribingKeys$ = new rx.BehaviorSubject<Set<string>>(new Set());
   rx.merge(
     slice.actionOfType('subscribeChange').pipe(
@@ -101,49 +114,63 @@ export function createClient() {
         subscribingKeys$.next(subscribingKeys$.getValue());
       })
     ),
-    subscribingKeys$.pipe(
-      // TODO
-      op.mergeMap(act => new rx.Observable(sub => {
+    rx.merge(
+      subscribingKeys$,
+      slice.actionOfType('_reconnectForSubs').pipe(op.subscribeOn(rx.queueScheduler))
+    ).pipe(
+      op.switchMap(() => new rx.Observable<Buffer>(sub => {
         const req = http.request('http://localhost:14401/cache', {
           method: 'POST',
-          agent: longPollAgent
+          agent: longPollAgent,
+          headers: {
+            'Transfer-Encoding': 'chunked'
+          }
         }, res => {
           log.info('client recieving');
           res.on('end', () => {
             // slice.dispatcher._done(, act.payload as string);
             sub.complete();
           });
-          // TODO
-          res.resume();
+          res.on('data', (chunk) => sub.next(chunk));
+          res.on('error', err => {
+            req.end();
+            sub.error(err);
+          });
         });
         req.on('error', err => {
           if (req.reusedSocket && (err as unknown as {code: string}).code === 'ECONNRESET') {
             log.info('Connection closed by server "ECONNRESET", create new request');
-            (slice.dispatchFactory(slice.nameOfAction(act) as unknown as 'ping'))(act.payload as string);
+            slice.dispatcher._reconnectForSubs();
           } else {
             sub.error(err);
           }
         });
-        req.end(JSON.stringify(act));
-      }).pipe(
-        // op.takeUntil(slice.actionOfType('unsubscribe').pipe(
-        //   op.filter(act => act.payload === key),
-        //   op.take(1)
-        // ))
-      ))
+        req.write(JSON.stringify({
+          type: 'subscribe',
+          payload: {
+            client: '' + process.pid,
+            keys: [...subscribingKeys$.getValue().keys()]
+          }
+        }));
+
+        return () => {
+          req.end();
+        };
+      }))
     ),
     slice.action$.pipe(
-      op.filter(act => typeof act.payload === 'string' && !slice.isActionType(act, 'subscribeChange')),
-      op.mergeMap(act => new rx.Observable<http.IncomingMessage>(sub => {
+      op.filter(act => typeof act.payload === 'string' && !slice.isActionType(act, 'subscribeChange') && !slice.isActionType(act, '_reconnectForSubs')),
+      op.mergeMap(act => new rx.Observable<string | Buffer>(sub => {
         log.info('client', act.type);
         const req = http.request('http://localhost:14401/cache', {
           method: 'POST',
           agent
         }, res => {
           log.info('client recieving');
-          res.on('end', () => {
-            sub.next(res);
+          void readToBuffer(res).then(content => {
+            sub.next(content);
             sub.complete();
+            slice.dispatcher._responseEnd(req, content);
           });
         });
         if (req.reusedSocket) {
@@ -159,15 +186,29 @@ export function createClient() {
             sub.error(err);
           }
         });
-        req.end(JSON.stringify(act));
-      }).pipe(
-        op.mergeMap(res => readToBuffer(res)),
-        op.map(out => slice.dispatcher.onRespond(slice.nameOfAction(act)!, act.payload as string, out))
-      ))
+        req.on('close', () => {
+          slice.dispatcher._requestClose(req);
+        });
+        req.end(JSON.stringify({...act, type: slice.nameOfAction(act)}));
+
+        rx.combineLatest(
+          slice.actionOfType('_requestClose').pipe(
+            op.map(({payload}) => payload),
+            op.filter(payload => payload === req)
+          ),
+          slice.actionOfType('_responseEnd').pipe(
+            op.map(({payload}) => payload),
+            op.filter(([req0]) => req0 === req)
+          )
+        ).pipe(
+          op.take(1),
+          op.map(([, [, out]]) => slice.dispatcher.onRespond(slice.nameOfAction(act)!, act.payload as string, out))
+        ).subscribe();
+      }))
     )
   ).pipe(
     op.catchError((err, src) => {
-      log.error('client error', err);
+      log.error('[client] error', err);
       return src;
     })
   ).subscribe();
@@ -178,8 +219,9 @@ async function readToBuffer(input: Readable) {
   const buf = [] as Array<string | Buffer>;
   let encoding: string | undefined;
   const writable = new Writable({
-    write(chunk, enc, cb) {
+    write(chunk: Buffer, enc, cb) {
       encoding = enc;
+      // log.info('[client] recieve', chunk.toString());
       buf.push(chunk);
       cb();
     },

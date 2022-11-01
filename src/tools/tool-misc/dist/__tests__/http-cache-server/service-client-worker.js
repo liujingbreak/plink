@@ -9,7 +9,7 @@ void (async () => {
     const { createClient } = await Promise.resolve().then(() => tslib_1.__importStar(require('../../http-cache-server/cache-service-store')));
     const log = (0, plink_1.log4File)(__filename);
     const client = createClient();
-    rx.concat(client.actionOfType('_done').pipe(op.map(act => log.info(act.type, 'is done')), op.take(2)), rx.of(1).pipe(op.map(() => {
+    rx.concat(client.actionOfType('onRespond').pipe(op.map(act => log.info(act.type, 'is done')), op.take(2)), rx.of(1).pipe(op.map(() => {
         log.info('worker exists');
         process.exit(0);
     }))).subscribe();

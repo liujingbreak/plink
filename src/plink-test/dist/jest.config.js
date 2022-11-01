@@ -97,9 +97,7 @@ const config = {
     // Automatically restore mock state and implementation before every test
     // restoreMocks: false,
     // The root directory that Jest should scan for tests and modules within
-    rootDir: process.env.PLINK_WORK_DIR ?
-        path_1.default.join(process.env.PLINK_WORK_DIR, 'node_modules/@wfh/plink-test/__tests__') :
-        path_1.default.resolve('.'),
+    rootDir: path_1.default.resolve('.'),
     // A list of paths to directories that Jest should use to search for files in
     roots: undefined,
     // Allows you to use a custom runner instead of Jest's default test runner

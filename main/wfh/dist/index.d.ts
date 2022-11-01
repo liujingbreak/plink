@@ -12,6 +12,7 @@ export { findPackagesByNames, lookupPackageJson } from './cmd/utils';
 export { cliPackageArgDesc } from './cmd/cli';
 export * from './store';
 export * from './utils/bootstrap-process';
+export { default as forkAsPreserveSymlink } from './fork-for-preserve-symlink';
 export { initInjectorForNodePackages, prepareLazyNodeInjector, runServer } from './package-runner';
 export { getRootDir, getSymlinkForPackage, plinkEnv } from './utils/misc';
 export { PackagesState, PackageInfo } from './package-mgr';

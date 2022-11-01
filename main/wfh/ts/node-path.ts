@@ -1,3 +1,4 @@
+import 'source-map-support/register';
 import * as Path from 'path';
 import * as fs from 'fs';
 import {isMainThread, threadId} from 'worker_threads';
@@ -7,15 +8,20 @@ import _ from 'lodash';
 import {hookCommonJsRequire} from './loaderHooks';
 import {calcNodePaths} from './node-path-calc';
 
-let logPrefix = '';
-if (process.send || !isMainThread)
-  logPrefix += `[P${process.pid}.T${threadId}]`;
 
-let envSetDone = false;
+// To avoid this file being executed multiple times within single Node.js process/thread,
+// use a state '__plink_node_path' property on global object. Since Plink might run current
+// module with resolve or symlink path, this file could have 2 instances of Node.js module
+// in Node.js VM, so I can not rely on module level variable to track "state", that's why
+// global object is better than module level variable here.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+if ((global as any).__plink_node_path == null) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  (global as any).__plink_node_path = true;
+  let logPrefix = `[MP${process.pid}]`;
+  if (process.send || !isMainThread)
+    logPrefix += `[P${process.pid}.T${threadId}]`;
 
-if (!envSetDone) {
-  envSetDone = true;
-  require('source-map-support/register');
   hookCommonJsRequire((file, target, req, resolve) => {
     if (target === 'log4js') {
       return log4js;
@@ -46,12 +52,11 @@ if (!envSetDone) {
   }
   const workDir = PLINK_WORK_DIR ? Path.resolve(PLINK_WORK_DIR) : process.cwd();
   const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR, workDir);
-  checkUpLevelNodeModules(rootDir);
   // We can change this path to another directory like '.links',
   // if we don't want node_modules to be polluted by symlinks;
-  const symlinkDirName = exitingEnvVar && exitingEnvVar.symlinkDirName ?
-    exitingEnvVar.symlinkDirName : 'node_modules';
-
+  const symlinkDirName = exitingEnvVar?.symlinkDirName ?
+    exitingEnvVar.symlinkDirName :
+    'node_modules';
 
   let plinkDir = Path.resolve(rootDir, 'node_modules/@wfh/plink');
   const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(plinkDir).isSymbolicLink();
@@ -130,35 +135,4 @@ export interface PlinkEnv {
   nodePath: string[];
   plinkDir: string;
 }
-
-/**
- * Webpack and TS compiler by default will look up node_modules from up level directries,
- * this breaks Plink's way of adding extra node path for Node.js, TS or Webpack, it leads
- * to problematic module loading issue.
- */
-function checkUpLevelNodeModules(rootDir: string) {
-  // Go with preserve
-  // const dirs = [] as string[];
-
-  // let currDir = rootDir;
-  // const {root} = Path.parse(rootDir);
-  // do {
-  //   currDir = Path.dirname(currDir);
-  //   dirs.push(Path.resolve(currDir, 'node_modules'));
-  // } while (currDir !== root);
-
-  // const nodeModule = dirs.find(dir => fs.existsSync(dir));
-  // if (nodeModule) {
-  //   // eslint-disable-next-line no-console
-  //   console.log(`Please install in another directory, or remove ${chalk.red(nodeModule)}.\n` +
-  //     chalk.yellow('It could be problematic for Plink to manage monorepo dependency (through environmet variable "NODE_PATH" in runtime).\n' +
-  //     '(Alternatively, you may consider install whatever "global" dependency with `npm i -g` instead of having directory like ' +
-  //     chalk.red(nodeModule) + ')' ) );
-
-  //   throw new Error(chalk.red('Found "node_modules" in upper level directories, ' +
-  //     'Installation is cancelled, sorry for inconvienience.'));
-  // }
-}
-
-
 

@@ -10,7 +10,7 @@ void (async () => {
   const client = createClient();
 
   rx.concat(
-    client.actionOfType('_done').pipe(
+    client.actionOfType('onRespond').pipe(
       op.map(act => log.info(act.type, 'is done')),
       op.take(2)
     ),
