@@ -27,10 +27,12 @@ export function startCluster(num = numCPUs) {
     log.info(`Primary ${process.pid} is running`);
 
     for (let i = 0; i < num; i++) {
-      cluster.fork();
+      const worker = cluster.fork();
+      worker.send(JSON.stringify({__plink_cluster_worker_index: i}));
     }
     cluster.on('exit', (worker, _code, _signal) => {
       log.info('Worker', worker.process.pid, 'exits');
     });
   }
 }
+

@@ -26,7 +26,8 @@ function startCluster(num = numCPUs) {
     if (node_cluster_1.default.isPrimary) {
         log.info(`Primary ${process.pid} is running`);
         for (let i = 0; i < num; i++) {
-            node_cluster_1.default.fork();
+            const worker = node_cluster_1.default.fork();
+            worker.send(JSON.stringify({ __plink_cluster_worker_index: i }));
         }
         node_cluster_1.default.on('exit', (worker, _code, _signal) => {
             log.info('Worker', worker.process.pid, 'exits');

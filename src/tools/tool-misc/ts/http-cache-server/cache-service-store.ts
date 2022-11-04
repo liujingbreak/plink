@@ -6,7 +6,7 @@ import {promises, Writable, Readable} from 'node:stream';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {log4File} from '@wfh/plink';
-import {createActionStreamByType} from '@wfh/redux-toolkit-observable/dist/rx-utils';
+import {ActionTypes, createActionStreamByType} from '@wfh/redux-toolkit-observable/dist/rx-utils';
 
 const log = log4File(__filename);
 
@@ -18,8 +18,26 @@ type ServerActions = {
   listening(): void;
   shutdown(): void;
   request(req: http.IncomingMessage, res: http.OutgoingMessage): void;
+  emitStateChange(clientId: string, key: string, value: any): void;
+  onClientUnsubscribe(clientId: string, keys: string | null): void;
+  keepSubsAlive(clientId: string, key: string): void;
   error(err: Error): void;
 };
+
+type RequestBody<
+  T extends 'subscribe' | Exclude<keyof ClientMessage, 'subscribeChange' | '_responseEnd' | '_reconnectForSubs'> =
+  'subscribe' | Exclude<keyof ClientMessage, 'subscribeChange' | '_responseEnd' | '_reconnectForSubs'>
+> = T extends 'subscribe' ? {
+  type: 'subscribe';
+  payload: {
+    client: number;
+    keys: string[];
+  }
+} : T extends Exclude<keyof ClientMessage, 'subscribeChange' | '_responseEnd' | '_reconnectForSubs'> ? {
+  type: T;
+  client: number;
+  payload: ActionTypes<ClientMessage>[T]['payload'];
+} : unknown;
 
 export function startStore() {
   const slice = createActionStreamByType<ServerActions>();
@@ -30,6 +48,11 @@ export function startStore() {
   server.on('error', err => slice.dispatcher.error(err));
   server.on('request', (req, res) => slice.dispatcher.request(req, res));
 
+  // key is clientId + ':' + data key, value is changed data value
+  const subscribedMsgQByObsKey = new Map<string, any[]>();
+  const subscribeResponse$ = new rx.BehaviorSubject<http.OutgoingMessage | null>(null);
+
+  const store = new rx.BehaviorSubject<Map<string, any>>(new Map());
   rx.merge(
     slice.actionOfType('request').pipe(
       op.mergeMap(async ({payload: [req, res]}) => {
@@ -47,6 +70,7 @@ export function startStore() {
           });
           await promises.pipeline(req, writable);
           onMessage(jsonStr, res);
+          subscribeResponse$.next(res);
         }
       })
     ),
@@ -69,7 +93,64 @@ export function startStore() {
 
   function onMessage(jsonStr: string, res: http.OutgoingMessage) {
     log.info('[server] got', jsonStr);
-    res.end('ok');
+    const action = JSON.parse(jsonStr) as RequestBody;
+    if (action.type === 'subscribe') {
+      const {client, keys} = action.payload as unknown as {client: string; keys: string[]};
+      for (const key of keys) {
+        const observeKey = client + ':' + key;
+        if (!subscribedMsgQByObsKey.has(observeKey)) {
+          const changedValues = [] as any[];
+          subscribedMsgQByObsKey.set(observeKey, changedValues);
+          const obs = rx.merge(
+            store.pipe(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+              op.filter(s => s.get(key)),
+              op.distinctUntilChanged(),
+              op.map(value => {
+                // TODO: push changes to client
+                changedValues.push(value);
+              })
+            ),
+            slice.actionOfType('keepSubsAlive').pipe(
+              op.filter(({payload: [client0, key0]}) => client0 === client && key0 === key),
+              op.debounceTime(2 * 60000), // wait for 2 minutes to auto close subscription,
+              op.take(1),
+              op.map(() => slice.dispatcher.onClientUnsubscribe(client, key))
+            )
+          );
+          obs.subscribe();
+        } else {
+          slice.dispatcher.keepSubsAlive(client, key);
+        }
+      }
+    } else {
+      if (action.type === 'setForNonexist') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const {payload: [key, value]} = action;
+        if (store.getValue().has(key)) {
+          res.end(JSON.stringify(store.getValue().get(key)));
+          return;
+        } else {
+          store.getValue().set(key, value);
+          store.next(store.getValue());
+        }
+      } else if (action.type === 'increase') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const {payload: [key, value]} = action as ActionTypes<ClientMessage>['increase'];
+        const state = store.getValue();
+        if (state.has(key)) {
+          state.set(key, state.get(key) + value);
+        } else {
+          state.set(key, value);
+        }
+        store.next(state);
+        res.end(JSON.stringify(state.get(key)));
+        return;
+      } else if (action.type === 'unsubscribe') {
+        slice.dispatcher.onClientUnsubscribe('' + action.client, action.payload);
+      }
+      res.end('ok');
+    }
   }
 
   return {
@@ -80,9 +161,6 @@ export function startStore() {
       op.take(1)
     ).toPromise()
   };
-  // const store = new rx.BehaviorSubject<MemoStore>({
-  //   keyMap: new Map()
-  // });
 }
 
 type ServerResponseMsg = {
@@ -93,11 +171,11 @@ type ServerResponseMsg = {
 
 type ClientMessage = {
   ping(key: string): void;
-  setForNonexist(key: string): void;
+  setForNonexist(key: string, value: any): void;
+  increase(key: string, value: number): void;
   subscribeChange(key: string): void;
   unsubscribe(key: string): void;
   _reconnectForSubs(): void;
-  _requestClose(req: http.ClientRequest): void;
   _responseEnd(req: http.ClientRequest, resContent: string | Buffer): void;
 } & ServerResponseMsg;
 
@@ -159,7 +237,11 @@ export function createClient() {
       }))
     ),
     slice.action$.pipe(
-      op.filter(act => typeof act.payload === 'string' && !slice.isActionType(act, 'subscribeChange') && !slice.isActionType(act, '_reconnectForSubs')),
+      op.filter(
+        act => !slice.isActionType(act, 'subscribeChange') &&
+         !slice.isActionType(act, '_reconnectForSubs') &&
+         !slice.isActionType(act, '_responseEnd')
+      ),
       op.mergeMap(act => new rx.Observable<string | Buffer>(sub => {
         log.info('client', act.type);
         const req = http.request('http://localhost:14401/cache', {
@@ -186,25 +268,18 @@ export function createClient() {
             sub.error(err);
           }
         });
-        req.on('close', () => {
-          slice.dispatcher._requestClose(req);
-        });
-        req.end(JSON.stringify({...act, type: slice.nameOfAction(act)}));
+        // req.on('close', () => {
+        //   slice.dispatcher._requestClose(req);
+        // });
+        const requestBody = {...act, type: slice.nameOfAction(act)};
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (requestBody.payload as any).client = process.pid;
+        req.end(JSON.stringify(requestBody));
 
-        rx.combineLatest(
-          slice.actionOfType('_requestClose').pipe(
-            op.map(({payload}) => payload),
-            op.filter(payload => payload === req)
-          ),
-          slice.actionOfType('_responseEnd').pipe(
-            op.map(({payload}) => payload),
-            op.filter(([req0]) => req0 === req)
-          )
-        ).pipe(
-          op.take(1),
-          op.map(([, [, out]]) => slice.dispatcher.onRespond(slice.nameOfAction(act)!, act.payload as string, out))
-        ).subscribe();
-      }))
+      }).pipe(
+        op.take(1),
+        op.map(out => slice.dispatcher.onRespond(slice.nameOfAction(act)!, act.payload as string, out))
+      ))
     )
   ).pipe(
     op.catchError((err, src) => {

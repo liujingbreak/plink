@@ -18,16 +18,15 @@ declare type ServerResponseMsg = {
 };
 declare type ClientMessage = {
     ping(key: string): void;
-    setForNonexist(key: string): void;
+    setForNonexist(key: string, value: any): void;
     subscribeChange(key: string): void;
     unsubscribe(key: string): void;
     _reconnectForSubs(): void;
-    _requestClose(req: http.ClientRequest): void;
     _responseEnd(req: http.ClientRequest, resContent: string | Buffer): void;
 } & ServerResponseMsg;
 export declare function createClient(): {
     dispatcher: ClientMessage;
-    dispatchFactory: <K extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_requestClose" | "_responseEnd" | keyof ServerResponseMsg>(type: K) => ClientMessage[K];
+    dispatchFactory: <K extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg>(type: K) => ClientMessage[K];
     action$: rx.Observable<{
         type: string;
         payload: string;
@@ -39,26 +38,23 @@ export declare function createClient(): {
         payload: string;
     } | {
         type: string;
-        payload: string;
+        payload: [key: string, value: any];
     } | {
         type: string;
         payload: string;
-    } | {
-        type: string;
-        payload: http.ClientRequest;
     } | {
         type: string;
         payload: [req: http.ClientRequest, resContent: string | Buffer];
     } | {
         type: string;
-        payload: [type: "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_requestClose" | "_responseEnd" | keyof ServerResponseMsg, key: string, content: string | Buffer];
+        payload: [type: "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg, key: string, content: string | Buffer];
     } | {
         type: string;
         payload: string;
     }>;
-    actionOfType: <T extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_requestClose" | "_responseEnd" | keyof ServerResponseMsg>(type: T) => rx.Observable<import("@wfh/redux-toolkit-observable/dist/rx-utils").ActionTypes<ClientMessage>[T]>;
+    actionOfType: <T extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg>(type: T) => rx.Observable<import("@wfh/redux-toolkit-observable/dist/rx-utils").ActionTypes<ClientMessage>[T]>;
     ofType: import("@wfh/redux-toolkit-observable/dist/rx-utils").OfTypeFn<ClientMessage>;
-    isActionType: <K_1 extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_requestClose" | "_responseEnd" | keyof ServerResponseMsg>(action: {
+    isActionType: <K_1 extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg>(action: {
         type: unknown;
     }, type: K_1) => action is import("@wfh/redux-toolkit-observable/dist/rx-utils").ActionTypes<ClientMessage>[K_1];
     nameOfAction: (action: {
@@ -72,22 +68,19 @@ export declare function createClient(): {
         payload: string;
     } | {
         type: string;
-        payload: string;
+        payload: [key: string, value: any];
     } | {
         type: string;
         payload: string;
-    } | {
-        type: string;
-        payload: http.ClientRequest;
     } | {
         type: string;
         payload: [req: http.ClientRequest, resContent: string | Buffer];
     } | {
         type: string;
-        payload: [type: "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_requestClose" | "_responseEnd" | keyof ServerResponseMsg, key: string, content: string | Buffer];
+        payload: [type: "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg, key: string, content: string | Buffer];
     } | {
         type: string;
         payload: string;
-    }) => "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_requestClose" | "_responseEnd" | keyof ServerResponseMsg | undefined;
+    }) => "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg | undefined;
 };
 export {};

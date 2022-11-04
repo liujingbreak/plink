@@ -104,7 +104,9 @@ function createClient() {
         return () => {
             req.end();
         };
-    }))), slice.action$.pipe(op.filter(act => typeof act.payload === 'string' && !slice.isActionType(act, 'subscribeChange') && !slice.isActionType(act, '_reconnectForSubs')), op.mergeMap(act => new rx.Observable(sub => {
+    }))), slice.action$.pipe(op.filter(act => !slice.isActionType(act, 'subscribeChange') &&
+        !slice.isActionType(act, '_reconnectForSubs') &&
+        !slice.isActionType(act, '_responseEnd')), op.mergeMap(act => new rx.Observable(sub => {
         log.info('client', act.type);
         const req = node_http_1.default.request('http://localhost:14401/cache', {
             method: 'POST',
@@ -131,12 +133,11 @@ function createClient() {
                 sub.error(err);
             }
         });
-        req.on('close', () => {
-            slice.dispatcher._requestClose(req);
-        });
+        // req.on('close', () => {
+        //   slice.dispatcher._requestClose(req);
+        // });
         req.end(JSON.stringify(Object.assign(Object.assign({}, act), { type: slice.nameOfAction(act) })));
-        rx.combineLatest(slice.actionOfType('_requestClose').pipe(op.map(({ payload }) => payload), op.filter(payload => payload === req)), slice.actionOfType('_responseEnd').pipe(op.map(({ payload }) => payload), op.filter(([req0]) => req0 === req))).pipe(op.take(1), op.map(([, [, out]]) => slice.dispatcher.onRespond(slice.nameOfAction(act), act.payload, out))).subscribe();
-    })))).pipe(op.catchError((err, src) => {
+    }).pipe(op.take(1), op.map(out => slice.dispatcher.onRespond(slice.nameOfAction(act), act.payload, out)))))).pipe(op.catchError((err, src) => {
         log.error('[client] error', err);
         return src;
     })).subscribe();

@@ -91,16 +91,18 @@ async function runSinglePackage({ target, args }) {
     const [file, func] = target.split('#');
     const pkgNameMatch = /((?:@[^/]+\/)?[a-zA-Z0-9_-]+)\/$/.exec(file);
     let moduleName = path_1.default.resolve(file);
-    if (pkgNameMatch && pkgNameMatch[1] && _.has(pkgInfo.moduleMap, pkgNameMatch[1])) {
+    if ((pkgNameMatch === null || pkgNameMatch === void 0 ? void 0 : pkgNameMatch[1]) && _.has(pkgInfo.moduleMap, pkgNameMatch[1])) {
         moduleName = file;
     }
     const _exports = require(path_1.default.resolve((0, misc_1.getWorkDir)(), 'node_modules', moduleName));
-    if (!_.has(_exports, func)) {
-        log.error(`There is no export function: ${func}, existing export members are:\n` +
-            `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
-        return;
+    if (func) {
+        if (!_.has(_exports, func)) {
+            log.error(`There is no export function: ${func}, existing export members are:\n` +
+                `${Object.keys(_exports).filter(name => typeof (_exports[name]) === 'function').map(name => name + '()').join('\n')}`);
+            return;
+        }
+        await Promise.resolve(_exports[func].apply(global, args || []));
     }
-    await Promise.resolve(_exports[func].apply(global, args || []));
 }
 exports.runSinglePackage = runSinglePackage;
 function runPackages(target, includePackages) {
