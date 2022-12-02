@@ -6,12 +6,11 @@ const tslib_1 = require("tslib");
  * @deprecated
  */
 require("source-map-support/register");
-const adm_zip_1 = tslib_1.__importDefault(require("adm-zip"));
 const os_1 = tslib_1.__importDefault(require("os"));
 const util_1 = tslib_1.__importDefault(require("util"));
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
-const pify = require('pify');
+const adm_zip_1 = tslib_1.__importDefault(require("adm-zip"));
 process.on('uncaughtException', (err) => {
     // eslint-disable-next-line
     console.log(err);
@@ -30,7 +29,6 @@ const argv = process.argv;
 const zipDir = argv[2];
 const zipExtractDir = argv[3];
 const deleteOption = argv[4];
-const readFileAsync = pify(fs_1.default.readFile);
 async function start() {
     const fileNames = fs_1.default.readdirSync(zipDir);
     const proms = fileNames.filter(name => path_1.default.extname(name).toLowerCase() === '.zip')
@@ -64,7 +62,7 @@ async function start() {
     }
 }
 async function tryExtract(file) {
-    const data = await readFileAsync(file);
+    const data = await fs_1.default.promises.readFile(file);
     await new Promise((resolve, reject) => {
         const zip = new adm_zip_1.default(data);
         zip.extractAllToAsync(zipExtractDir, true, (err) => {

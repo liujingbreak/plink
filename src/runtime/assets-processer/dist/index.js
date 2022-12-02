@@ -79,7 +79,7 @@ function activate(api) {
     api.use('/', staticHandler); // Serve fallbacked request to index.html
     const mailSetting = api.config.get(api.packageName).fetchMailServer;
     const imap = new fetch_remote_imap_1.ImapManager(mailSetting ? mailSetting.env : 'local');
-    (_a = api.eventBus) === null || _a === void 0 ? void 0 : _a.on('appCreated', () => {
+    (_a = api.eventBus) === null || _a === void 0 ? void 0 : _a.once('appCreated', () => {
         // appCreated event is emitted by express-app
         void fetchRemote.start(imap);
     });

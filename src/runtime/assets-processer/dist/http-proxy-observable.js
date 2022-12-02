@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.observeProxyResponse = exports.httpProxyObservable = void 0;
+exports.observeProxyResponseAndChange = exports.observeProxyResponse = exports.httpProxyObservable = void 0;
 const tslib_1 = require("tslib");
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
+const utils_1 = require("@wfh/http-server/dist/utils");
 const EVENTS = 'error,start,proxyReq,proxyRes,ProxyReqWs,econnreset,end,open,close'.split(',');
 function httpProxyObservable(proxy) {
     const obsObj = {};
@@ -46,4 +47,24 @@ function observeProxyResponse(httpProxy$, res, skipRedirectRes = true) {
     }))).pipe(op.take(1));
 }
 exports.observeProxyResponse = observeProxyResponse;
+function observeProxyResponseAndChange(httpProxy$, res, change, skipRedirectRes = true) {
+    return observeProxyResponse(httpProxy$, res, skipRedirectRes).pipe(op.mergeMap(async ({ payload: [pRes] }) => {
+        const content = await (0, utils_1.compressedIncomingMsgToBuffer)(pRes);
+        const changed = await Promise.resolve(change(content));
+        for (const [header, value] of Object.entries(pRes.headers)) {
+            if (header.toLowerCase() === 'content-length') {
+                continue;
+            }
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    res.setHeader(header, item);
+                }
+            }
+            else if (value)
+                res.setHeader(header, value);
+        }
+        await (0, utils_1.compressResponse)(changed, res, pRes.headers['content-encoding']);
+    }));
+}
+exports.observeProxyResponseAndChange = observeProxyResponseAndChange;
 //# sourceMappingURL=http-proxy-observable.js.map

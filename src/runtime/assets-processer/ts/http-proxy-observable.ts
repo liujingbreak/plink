@@ -1,6 +1,7 @@
 import HttpProxy from 'http-proxy';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import {compressedIncomingMsgToBuffer, compressResponse} from '@wfh/http-server/dist/utils';
 
 type Response = Parameters<HttpProxy['web']>[1];
 
@@ -83,6 +84,29 @@ export function observeProxyResponse(httpProxy$: HttpProxyEventObs, res: Respons
     )
   ).pipe(
     op.take(1)
+  );
+}
+
+export function observeProxyResponseAndChange(
+  httpProxy$: HttpProxyEventObs, res: Response, change: (origContent: Buffer) => Buffer | string | PromiseLike<Buffer | string>,
+  skipRedirectRes = true) {
+  return observeProxyResponse(httpProxy$, res, skipRedirectRes).pipe(
+    op.mergeMap(async ({payload: [pRes]}) => {
+      const content = await compressedIncomingMsgToBuffer(pRes);
+      const changed = await Promise.resolve(change(content));
+      for (const [header, value] of Object.entries(pRes.headers)) {
+        if (header.toLowerCase() === 'content-length') {
+          continue;
+        }
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            res.setHeader(header, item);
+          }
+        } else if (value)
+          res.setHeader(header, value);
+      }
+      await compressResponse(changed, res, pRes.headers['content-encoding']);
+    })
   );
 }
 

@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import HttpProxy from 'http-proxy';
 import * as rx from 'rxjs';
 declare type Response = Parameters<HttpProxy['web']>[1];
@@ -29,4 +30,5 @@ export declare function httpProxyObservable(proxy: HttpProxy): HttpProxyEventObs
 ```
  */
 export declare function observeProxyResponse(httpProxy$: HttpProxyEventObs, res: Response, skipRedirectRes?: boolean): HttpProxyEventObs['proxyRes'];
+export declare function observeProxyResponseAndChange(httpProxy$: HttpProxyEventObs, res: Response, change: (origContent: Buffer) => Buffer | string | PromiseLike<Buffer | string>, skipRedirectRes?: boolean): rx.Observable<void>;
 export {};
