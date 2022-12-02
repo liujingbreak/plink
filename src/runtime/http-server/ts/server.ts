@@ -76,6 +76,15 @@ export function activate() {
     server.on('error', (err: Error) => {
       onError(server, port, err);
     });
+    server.on('clientError', (err, socket) => {
+      const nErr = err as NodeJS.ErrnoException;
+      if (nErr.code === 'ECONNRESET' || !socket.writable) {
+        log.info('Client error', nErr.message);
+        return;
+      }
+      log.info('Client error', nErr.message);
+      socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+    });
     server.on('listening', () => {
       onListening(server, 'HTTP server', port);
       api.eventBus?.emit('serverStarted', {});

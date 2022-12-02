@@ -74,6 +74,15 @@ function activate() {
         server.on('error', (err) => {
             onError(server, port, err);
         });
+        server.on('clientError', (err, socket) => {
+            const nErr = err;
+            if (nErr.code === 'ECONNRESET' || !socket.writable) {
+                log.info('Client error', nErr.message);
+                return;
+            }
+            log.info('Client error', nErr.message);
+            socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+        });
         server.on('listening', () => {
             var _a;
             onListening(server, 'HTTP server', port);
