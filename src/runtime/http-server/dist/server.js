@@ -88,6 +88,11 @@ function activate() {
             onListening(server, 'HTTP server', port);
             (_a = __api_1.default.eventBus) === null || _a === void 0 ? void 0 : _a.emit('serverStarted', {});
         });
+        server.on('connection', conn => {
+            conn.on('error', err => {
+                log.warn('Connection error', err);
+            });
+        });
         for (const hostname of (0, plink_1.config)()['@wfh/http-server'].hostnames) {
             log.info('listen on additional host name:', hostname);
             const server = http.createServer(app);

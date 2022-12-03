@@ -10,6 +10,8 @@ import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
 import {childProcessAppender, doNothingAppender,
   emitChildProcessLogMsg} from './log4js-appenders';
+// import inspector from 'inspector';
+
 
 const log = log4js.getLogger('plink.bootstrap-process');
 let processInitialized = false;
@@ -18,12 +20,21 @@ let processInitialized = false;
 export const exitHooks = [] as Array<() => (rx.ObservableInput<unknown> | void | number)>;
 
 process.on('uncaughtException', function(err) {
-  console.error(`PID: ${process.pid} Uncaught exception: `, err);
-  throw err; // let PM2 handle exception
+  if ((err as NodeJS.ErrnoException).code === 'ECONNRESET') {
+    log.error('uncaughtException "ECONNRESET"', err);
+  } else {
+    log.error(`PID: ${process.pid} uncaughtException: `, err);
+    throw err; // let PM2 handle exception
+  }
 });
 
 process.on(`PID: ${process.pid} unhandledRejection`, err => {
-  console.error('unhandledRejection', err);
+  if ((err as NodeJS.ErrnoException).code === 'ECONNRESET') {
+    log.error('unhandledRejection "ECONNRESET"', err);
+  } else {
+    log.error(`PID: ${process.pid} unhandledRejection: `, err);
+    throw err; // let PM2 handle exception
+  }
 });
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
@@ -56,6 +67,10 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   if (process.env.__plinkLogMainPid == null) {
     process.env.__plinkLogMainPid = process.pid + '';
   }
+  // if (process.env.__plinkLogMainPid !== process.pid + '') {
+  //   console.log('open inspector on 9222 of PID:', process.pid);
+  //   inspector.open(9222);
+  // }
   interceptFork();
   // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
   process.once('beforeExit', function(code) {

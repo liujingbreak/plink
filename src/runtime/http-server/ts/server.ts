@@ -89,6 +89,11 @@ export function activate() {
       onListening(server, 'HTTP server', port);
       api.eventBus?.emit('serverStarted', {});
     });
+    server.on('connection', conn => {
+      conn.on('error', err => {
+        log.warn('Connection error', err);
+      });
+    });
 
     for (const hostname of config()['@wfh/http-server'].hostnames) {
       log.info('listen on additional host name:', hostname);

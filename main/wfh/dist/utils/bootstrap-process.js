@@ -10,16 +10,28 @@ const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const config_1 = tslib_1.__importDefault(require("../config"));
 const log4js_appenders_1 = require("./log4js-appenders");
+// import inspector from 'inspector';
 const log = log4js_1.default.getLogger('plink.bootstrap-process');
 let processInitialized = false;
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 exports.exitHooks = [];
 process.on('uncaughtException', function (err) {
-    console.error(`PID: ${process.pid} Uncaught exception: `, err);
-    throw err; // let PM2 handle exception
+    if (err.code === 'ECONNRESET') {
+        log.error('uncaughtException "ECONNRESET"', err);
+    }
+    else {
+        log.error(`PID: ${process.pid} uncaughtException: `, err);
+        throw err; // let PM2 handle exception
+    }
 });
 process.on(`PID: ${process.pid} unhandledRejection`, err => {
-    console.error('unhandledRejection', err);
+    if (err.code === 'ECONNRESET') {
+        log.error('unhandledRejection "ECONNRESET"', err);
+    }
+    else {
+        log.error(`PID: ${process.pid} unhandledRejection: `, err);
+        throw err; // let PM2 handle exception
+    }
 });
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
@@ -51,6 +63,10 @@ function initProcess(saveState = 'none') {
     if (process.env.__plinkLogMainPid == null) {
         process.env.__plinkLogMainPid = process.pid + '';
     }
+    // if (process.env.__plinkLogMainPid !== process.pid + '') {
+    //   console.log('open inspector on 9222 of PID:', process.pid);
+    //   inspector.open(9222);
+    // }
     interceptFork();
     // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
     process.once('beforeExit', function (code) {

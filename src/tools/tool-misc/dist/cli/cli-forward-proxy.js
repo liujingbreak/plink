@@ -36,6 +36,7 @@ function start(port, hostMap = new Map(), opts) {
         };
     }
     rx.merge(rx.fromEvent(server, 'connection').pipe(op.mergeMap((clientToProxySocket) => {
+        clientToProxySocket.on('error', err => log.warn('connection error', err));
         log.debug('Client Connected To Proxy', clientToProxySocket.remoteAddress +
             ':' + clientToProxySocket.remotePort);
         return rx.fromEvent(clientToProxySocket, 'data').pipe(op.map(data => ({ clientToProxySocket, data })), op.take(1));

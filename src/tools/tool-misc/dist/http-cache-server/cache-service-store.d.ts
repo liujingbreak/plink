@@ -4,6 +4,7 @@
  */
 import http from 'node:http';
 import * as rx from 'rxjs';
+import { ActionTypes } from '@wfh/redux-toolkit-observable/dist/rx-utils';
 export declare function startStore(): {
     shutdown(): void;
     started: Promise<{
@@ -19,6 +20,7 @@ declare type ServerResponseMsg = {
 declare type ClientMessage = {
     ping(key: string): void;
     setForNonexist(key: string, value: any): void;
+    increase(key: string, value: number): void;
     subscribeChange(key: string): void;
     unsubscribe(key: string): void;
     _reconnectForSubs(): void;
@@ -26,8 +28,17 @@ declare type ClientMessage = {
 } & ServerResponseMsg;
 export declare function createClient(): {
     dispatcher: ClientMessage;
-    dispatchFactory: <K extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg>(type: K) => ClientMessage[K];
+    dispatchFactory: <K extends "subscribeChange" | "_responseEnd" | "_reconnectForSubs" | "ping" | "setForNonexist" | "increase" | "unsubscribe" | keyof ServerResponseMsg>(type: K) => ClientMessage[K];
     action$: rx.Observable<{
+        type: string;
+        payload: [key: string, value: any];
+    } | {
+        type: string;
+        payload: [key: string, value: number];
+    } | {
+        type: string;
+        payload: string;
+    } | {
         type: string;
         payload: string;
     } | {
@@ -35,29 +46,32 @@ export declare function createClient(): {
         payload: unknown;
     } | {
         type: string;
-        payload: string;
-    } | {
-        type: string;
-        payload: [key: string, value: any];
-    } | {
-        type: string;
-        payload: string;
-    } | {
-        type: string;
         payload: [req: http.ClientRequest, resContent: string | Buffer];
     } | {
         type: string;
-        payload: [type: "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg, key: string, content: string | Buffer];
+        payload: string;
+    } | {
+        type: string;
+        payload: [type: "subscribeChange" | "_responseEnd" | "_reconnectForSubs" | "ping" | "setForNonexist" | "increase" | "unsubscribe" | keyof ServerResponseMsg, key: string, content: string | Buffer];
     } | {
         type: string;
         payload: string;
     }>;
-    actionOfType: <T extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg>(type: T) => rx.Observable<import("@wfh/redux-toolkit-observable/dist/rx-utils").ActionTypes<ClientMessage>[T]>;
+    actionOfType: <T extends "subscribeChange" | "_responseEnd" | "_reconnectForSubs" | "ping" | "setForNonexist" | "increase" | "unsubscribe" | keyof ServerResponseMsg>(type: T) => rx.Observable<ActionTypes<ClientMessage>[T]>;
     ofType: import("@wfh/redux-toolkit-observable/dist/rx-utils").OfTypeFn<ClientMessage>;
-    isActionType: <K_1 extends "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg>(action: {
+    isActionType: <K_1 extends "subscribeChange" | "_responseEnd" | "_reconnectForSubs" | "ping" | "setForNonexist" | "increase" | "unsubscribe" | keyof ServerResponseMsg>(action: {
         type: unknown;
-    }, type: K_1) => action is import("@wfh/redux-toolkit-observable/dist/rx-utils").ActionTypes<ClientMessage>[K_1];
+    }, type: K_1) => action is ActionTypes<ClientMessage>[K_1];
     nameOfAction: (action: {
+        type: string;
+        payload: [key: string, value: any];
+    } | {
+        type: string;
+        payload: [key: string, value: number];
+    } | {
+        type: string;
+        payload: string;
+    } | {
         type: string;
         payload: string;
     } | {
@@ -65,22 +79,16 @@ export declare function createClient(): {
         payload: unknown;
     } | {
         type: string;
-        payload: string;
-    } | {
-        type: string;
-        payload: [key: string, value: any];
-    } | {
-        type: string;
-        payload: string;
-    } | {
-        type: string;
         payload: [req: http.ClientRequest, resContent: string | Buffer];
     } | {
         type: string;
-        payload: [type: "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg, key: string, content: string | Buffer];
+        payload: string;
+    } | {
+        type: string;
+        payload: [type: "subscribeChange" | "_responseEnd" | "_reconnectForSubs" | "ping" | "setForNonexist" | "increase" | "unsubscribe" | keyof ServerResponseMsg, key: string, content: string | Buffer];
     } | {
         type: string;
         payload: string;
-    }) => "ping" | "setForNonexist" | "subscribeChange" | "unsubscribe" | "_reconnectForSubs" | "_responseEnd" | keyof ServerResponseMsg | undefined;
+    }) => "subscribeChange" | "_responseEnd" | "_reconnectForSubs" | "ping" | "setForNonexist" | "increase" | "unsubscribe" | keyof ServerResponseMsg | undefined;
 };
 export {};

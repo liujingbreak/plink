@@ -20,6 +20,10 @@ function startStore() {
     server.once('listening', () => slice.dispatcher.listening());
     server.on('error', err => slice.dispatcher.error(err));
     server.on('request', (req, res) => slice.dispatcher.request(req, res));
+    // key is clientId + ':' + data key, value is changed data value
+    const subscribedMsgQByObsKey = new Map();
+    const subscribeResponse$ = new rx.BehaviorSubject(null);
+    const store = new rx.BehaviorSubject(new Map());
     rx.merge(slice.actionOfType('request').pipe(op.mergeMap(async ({ payload: [req, res] }) => {
         log.info('[server] ' + req.method, req.url);
         if (req.url === '/cache' && req.method === 'POST') {
@@ -35,6 +39,7 @@ function startStore() {
             });
             await node_stream_1.promises.pipeline(req, writable);
             onMessage(jsonStr, res);
+            subscribeResponse$.next(res);
         }
     })), slice.actionOfType('error').pipe(op.map(err => log.warn('[server] runtime error', err)))).pipe(op.takeUntil(slice.actionOfType('shutdown').pipe(op.take(1), op.map(() => {
         log.info('[server] shuting down');
@@ -45,7 +50,60 @@ function startStore() {
     })).subscribe();
     function onMessage(jsonStr, res) {
         log.info('[server] got', jsonStr);
-        res.end('ok');
+        const action = JSON.parse(jsonStr);
+        if (action.type === 'subscribe') {
+            const { client, keys } = action.payload;
+            for (const key of keys) {
+                const observeKey = client + ':' + key;
+                if (!subscribedMsgQByObsKey.has(observeKey)) {
+                    const changedValues = [];
+                    subscribedMsgQByObsKey.set(observeKey, changedValues);
+                    const obs = rx.merge(store.pipe(
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                    op.filter(s => s.get(key)), op.distinctUntilChanged(), op.map(value => {
+                        // TODO: push changes to client
+                        changedValues.push(value);
+                    })), slice.actionOfType('keepSubsAlive').pipe(op.filter(({ payload: [client0, key0] }) => client0 === client && key0 === key), op.debounceTime(2 * 60000), // wait for 2 minutes to auto close subscription,
+                    op.take(1), op.map(() => slice.dispatcher.onClientUnsubscribe(client, key))));
+                    obs.subscribe();
+                }
+                else {
+                    slice.dispatcher.keepSubsAlive(client, key);
+                }
+            }
+        }
+        else {
+            if (action.type === 'setForNonexist') {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const { payload: [key, value] } = action;
+                if (store.getValue().has(key)) {
+                    res.end(JSON.stringify(store.getValue().get(key)));
+                    return;
+                }
+                else {
+                    store.getValue().set(key, value);
+                    store.next(store.getValue());
+                }
+            }
+            else if (action.type === 'increase') {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const { payload: [key, value] } = action;
+                const state = store.getValue();
+                if (state.has(key)) {
+                    state.set(key, state.get(key) + value);
+                }
+                else {
+                    state.set(key, value);
+                }
+                store.next(state);
+                res.end(JSON.stringify(state.get(key)));
+                return;
+            }
+            else if (action.type === 'unsubscribe') {
+                slice.dispatcher.onClientUnsubscribe('' + action.client, action.payload);
+            }
+            res.end('ok');
+        }
     }
     return {
         shutdown() {
@@ -53,9 +111,6 @@ function startStore() {
         },
         started: slice.actionOfType('listening').pipe(op.take(1)).toPromise()
     };
-    // const store = new rx.BehaviorSubject<MemoStore>({
-    //   keyMap: new Map()
-    // });
 }
 exports.startStore = startStore;
 function createClient() {
@@ -136,7 +191,10 @@ function createClient() {
         // req.on('close', () => {
         //   slice.dispatcher._requestClose(req);
         // });
-        req.end(JSON.stringify(Object.assign(Object.assign({}, act), { type: slice.nameOfAction(act) })));
+        const requestBody = Object.assign(Object.assign({}, act), { type: slice.nameOfAction(act) });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        requestBody.payload.client = process.pid;
+        req.end(JSON.stringify(requestBody));
     }).pipe(op.take(1), op.map(out => slice.dispatcher.onRespond(slice.nameOfAction(act), act.payload, out)))))).pipe(op.catchError((err, src) => {
         log.error('[client] error', err);
         return src;
