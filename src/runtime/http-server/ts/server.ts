@@ -76,19 +76,21 @@ export function activate() {
     server.on('error', (err: Error) => {
       onError(server, port, err);
     });
+    // Not sure if this helps to "uncaughtException"
     server.on('clientError', (err, socket) => {
       const nErr = err as NodeJS.ErrnoException;
       if (nErr.code === 'ECONNRESET' || !socket.writable) {
-        log.info('Client error', nErr.message);
+        log.info('Client ECONNRESET error', nErr);
         return;
       }
-      log.info('Client error', nErr.message);
+      log.info('Client error', nErr);
       socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
     });
     server.on('listening', () => {
       onListening(server, 'HTTP server', port);
       api.eventBus?.emit('serverStarted', {});
     });
+    // Not sure if this helps to "uncaughtException"
     server.on('connection', conn => {
       conn.on('error', err => {
         log.warn('Connection error', err);
@@ -125,6 +127,22 @@ export function activate() {
     }
     server.on('error', (error: Error) => {
       onError(server, port, error);
+    });
+    // Not sure if this helps to "uncaughtException"
+    server.on('clientError', (err, socket) => {
+      const nErr = err as NodeJS.ErrnoException;
+      if (nErr.code === 'ECONNRESET' || !socket.writable) {
+        log.info('Client ECONNRESET error', nErr);
+        return;
+      }
+      log.info('Client error', nErr);
+      socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+    });
+    // Not sure if this helps to "uncaughtException"
+    server.on('connection', conn => {
+      conn.on('error', err => {
+        log.warn('Connection error', err);
+      });
     });
     startPromises.push(new Promise(resolve => {
       server.on('listening', () => resolve(server));

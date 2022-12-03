@@ -19,8 +19,9 @@ type ServerActions = {
   shutdown(): void;
   request(req: http.IncomingMessage, res: http.OutgoingMessage): void;
   emitStateChange(clientId: string, key: string, value: any): void;
-  onClientUnsubscribe(clientId: string, keys: string | null): void;
-  keepSubsAlive(clientId: string, key: string): void;
+  onClientUnsubscribe(clientId: string, key: string | null): void;
+  // keepSubsAlive(clientId: string, key: string): void;
+  sendChange(clientId: string, key: string, value: any): void;
   error(err: Error): void;
 };
 
@@ -49,8 +50,10 @@ export function startStore() {
   server.on('request', (req, res) => slice.dispatcher.request(req, res));
 
   // key is clientId + ':' + data key, value is changed data value
-  const subscribedMsgQByObsKey = new Map<string, any[]>();
-  const subscribeResponse$ = new rx.BehaviorSubject<http.OutgoingMessage | null>(null);
+  const subscribedMsgQByObsKey = new Map<string, {
+    res$: rx.BehaviorSubject<http.OutgoingMessage | null>,
+    changedValues$: rx.BehaviorSubject<any[]>
+  }>();
 
   const store = new rx.BehaviorSubject<Map<string, any>>(new Map());
   rx.merge(
@@ -70,7 +73,6 @@ export function startStore() {
           });
           await promises.pipeline(req, writable);
           onMessage(jsonStr, res);
-          subscribeResponse$.next(res);
         }
       })
     ),
@@ -96,31 +98,57 @@ export function startStore() {
     const action = JSON.parse(jsonStr) as RequestBody;
     if (action.type === 'subscribe') {
       const {client, keys} = action.payload as unknown as {client: string; keys: string[]};
+      const responseOpenTimeup$ = new rx.Subject();
+      const res$ = new rx.BehaviorSubject<http.OutgoingMessage | null>(res);
+      // TODO: When unsubscribe, end response; when duration reaches 1 minute, end response
+
       for (const key of keys) {
         const observeKey = client + ':' + key;
         if (!subscribedMsgQByObsKey.has(observeKey)) {
-          const changedValues = [] as any[];
-          subscribedMsgQByObsKey.set(observeKey, changedValues);
-          const obs = rx.merge(
+          const changedValues$ = new rx.BehaviorSubject<any[]>([]);
+          subscribedMsgQByObsKey.set(observeKey, {res$, changedValues$});
+          rx.merge(
             store.pipe(
               // eslint-disable-next-line @typescript-eslint/no-unsafe-return
               op.filter(s => s.get(key)),
               op.distinctUntilChanged(),
               op.map(value => {
-                // TODO: push changes to client
-                changedValues.push(value);
+                changedValues$.getValue().push(value);
+                changedValues$.next(changedValues$.getValue());
               })
             ),
-            slice.actionOfType('keepSubsAlive').pipe(
-              op.filter(({payload: [client0, key0]}) => client0 === client && key0 === key),
+            res$.pipe(
+              op.filter(res => res == null),
+              // op.filter(({payload: [client0, key0]}) => client0 === client && key0 === key),
               op.debounceTime(2 * 60000), // wait for 2 minutes to auto close subscription,
               op.take(1),
               op.map(() => slice.dispatcher.onClientUnsubscribe(client, key))
+            ),
+            rx.combineLatest(changedValues$, res$).pipe(
+              op.filter(([values, res]) => values.length > 0 && res != null),
+              op.map(([values, res]) => {
+                for (const value of values) {
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                  res!.write(JSON.stringify({key, value}));
+                  slice.dispatcher.sendChange(client, key, value);
+                }
+                changedValues$.getValue().splice(0);
+              })
             )
-          );
-          obs.subscribe();
+          ).pipe(
+            op.takeUntil(slice.actionOfType('onClientUnsubscribe').pipe(
+              op.filter(({payload: [clientId, unsubscribeKey]}) => clientId === client && (key == null || unsubscribeKey === key)),
+              op.tap(({payload: [clientId, unsubscribeKey]}) => {
+                log.info(`unsubscribed from ${clientId}: ${unsubscribeKey || 'all'}`);
+              })
+            ))
+          ).subscribe();
+
+          responseOpenTimeup$.next();
         } else {
-          slice.dispatcher.keepSubsAlive(client, key);
+          const {res$} = subscribedMsgQByObsKey.get(observeKey)!;
+          res$.next(res);
+          // slice.dispatcher.keepSubsAlive(client, key);
         }
       }
     } else {

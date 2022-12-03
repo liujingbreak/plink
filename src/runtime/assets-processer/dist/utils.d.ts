@@ -2,8 +2,7 @@
 import stream from 'stream';
 import { ClientRequest, IncomingMessage } from 'http';
 import { Request, Response, NextFunction } from 'express';
-import { ServerOptions } from 'http-proxy';
-import { Options as ProxyOptions } from 'http-proxy-middleware';
+import ProxyServer, { ServerOptions } from 'http-proxy';
 /**
  * Middleware for printing each response process duration time to log
  * @param req
@@ -23,13 +22,6 @@ export declare function createResponseTimestamp(req: Request, res: Response, nex
 export declare function setupHttpProxy(proxyPath: string, targetUrl: string, opts?: {
     /** Bypass CORS restrict on target server, default is true */
     deleteOrigin?: boolean;
-    pathRewrite?: ProxyOptions['pathRewrite'];
-    onProxyReq?: ProxyOptions['onProxyReq'];
-    onProxyRes?: ProxyOptions['onProxyRes'];
-    onError?: ProxyOptions['onError'];
-    buffer?: ProxyOptions['buffer'];
-    selfHandleResponse?: ProxyOptions['selfHandleResponse'];
-    proxyTimeout?: ProxyOptions['proxyTimeout'];
 }): void;
 interface RedirectableRequest {
     _currentRequest: ClientRequest;
@@ -38,14 +30,7 @@ export declare function isRedirectableRequest(req: unknown): req is Redirectable
 /**
  * Options of http-proxy-middleware
  */
-export declare function defaultProxyOptions(proxyPath: string, targetUrl: string): ProxyOptions & {
-    pathRewrite: {
-        [regexp: string]: string;
-    } | ((path: string, req: import("node_modules/http-proxy-middleware/dist/types").Request) => string) | ((path: string, req: import("node_modules/http-proxy-middleware/dist/types").Request) => Promise<string>);
-    onError: import("node_modules/http-proxy-middleware/dist/types").OnErrorCallback;
-    onProxyRes: import("node_modules/http-proxy-middleware/dist/types").OnProxyResCallback;
-    onProxyReq: import("node_modules/http-proxy-middleware/dist/types").OnProxyReqCallback;
-};
+export declare function defaultProxyOptions(proxyPath: string, targetUrl: string): ProxyServer.ServerOptions;
 /** Options of http-proxy
  */
 export declare function defaultHttpProxyOptions(target?: string): ServerOptions;
@@ -67,4 +52,5 @@ export declare function createBufferForHttpProxy(req: IncomingMessage): {
     readable: stream.Readable;
     length: number;
 } | undefined;
+export declare function testHttpProxyServer(): void;
 export {};

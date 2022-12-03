@@ -14,7 +14,7 @@ const log = plink_1.logger.getLogger('@wfh/express-app');
 const compression = require('compression');
 // var swigInjectLoader = require('swig-package-tmpl-loader');
 const VIEW_PATH = Path.relative((0, plink_1.config)().rootPath, Path.resolve(__dirname, '..', 'views'));
-var app;
+let app;
 const expressAppReady$ = new rx.ReplaySubject(1);
 function create(app, setting) {
     // view engine setup
@@ -88,6 +88,21 @@ function create(app, setting) {
         });
     }
     (0, routes_1.createPackageDefinedRouters)(app);
+    app.use('/ping', (req, res) => {
+        log.info('response header', JSON.stringify(res.getHeaders()));
+        log.info('response:', req.body);
+        res.write('...\n');
+        setTimeout(() => {
+            log.info('Pong');
+            res.end('Pong\n');
+        }, 2000);
+        // res.destroy();
+        // req.on('data', (data: Buffer) => {
+        //   log.info('Recieve', data.toString());
+        // });
+        // req.on('end', () => res.end('Pong\n'));
+        // res.end('recieving\n');
+    });
     // error handlers
     // catch 404 and forward to error handler
     app.use(function (req, res) {

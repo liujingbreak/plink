@@ -15,7 +15,7 @@ const compression = require('compression');
 
 const VIEW_PATH = Path.relative(config().rootPath,
   Path.resolve(__dirname, '..', 'views'));
-var app: express.Express;
+let app: express.Express;
 
 const expressAppReady$ = new rx.ReplaySubject<Application>(1);
 
@@ -117,6 +117,22 @@ function create(app: express.Express, setting: ReturnType<typeof config>) {
     });
   }
   createPackageDefinedRouters(app);
+
+  app.use('/ping', (req, res) => {
+    log.info('response header', JSON.stringify(res.getHeaders()));
+    log.info('response:', req.body);
+    res.write('...\n');
+    setTimeout(() => {
+      log.info('Pong');
+      res.end('Pong\n');
+    }, 2000);
+    // res.destroy();
+    // req.on('data', (data: Buffer) => {
+    //   log.info('Recieve', data.toString());
+    // });
+    // req.on('end', () => res.end('Pong\n'));
+    // res.end('recieving\n');
+  });
   // error handlers
   // catch 404 and forward to error handler
   app.use(function(req, res) {

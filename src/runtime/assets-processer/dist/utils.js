@@ -1,19 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createBufferForHttpProxy = exports.fixRequestBody = exports.createReplayReadableFactory = exports.defaultHttpProxyOptions = exports.defaultProxyOptions = exports.isRedirectableRequest = exports.setupHttpProxy = exports.createResponseTimestamp = void 0;
+exports.testHttpProxyServer = exports.createBufferForHttpProxy = exports.fixRequestBody = exports.createReplayReadableFactory = exports.defaultHttpProxyOptions = exports.defaultProxyOptions = exports.isRedirectableRequest = exports.setupHttpProxy = exports.createResponseTimestamp = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable prefer-rest-params */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 const stream_1 = tslib_1.__importDefault(require("stream"));
 const querystring = tslib_1.__importStar(require("querystring"));
-const __plink_1 = tslib_1.__importDefault(require("__plink"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
-const utils_1 = require("@wfh/http-server/dist/utils");
+// import {readCompressedResponse} from '@wfh/http-server/dist/utils';
 const plink_1 = require("@wfh/plink");
-const http_proxy_middleware_1 = require("http-proxy-middleware");
-const logTime = plink_1.logger.getLogger(__plink_1.default.packageName + '.timestamp');
+const http_proxy_1 = tslib_1.__importDefault(require("http-proxy"));
+const http_proxy_observable_1 = require("./http-proxy-observable");
+const pkgLog = (0, plink_1.log4File)(__filename);
+const logTime = plink_1.logger.getLogger(pkgLog.name + '.timestamp');
 /**
  * Middleware for printing each response process duration time to log
  * @param req
@@ -64,28 +66,31 @@ function setupHttpProxy(proxyPath, targetUrl, opts = {}) {
     proxyPath = lodash_1.default.trimEnd(proxyPath, '/');
     targetUrl = lodash_1.default.trimEnd(targetUrl, '/');
     const defaultOpt = defaultProxyOptions(proxyPath, targetUrl);
-    const proxyMidOpt = Object.assign(Object.assign({}, defaultOpt), { onProxyReq(...args) {
-            const origHeader = args[0].getHeader('Origin');
-            defaultOpt.onProxyReq(...args);
-            if (opts.deleteOrigin === false) {
-                // Recover removed header "Origin"
-                args[0].setHeader('Origin', origHeader);
-            }
-            if (opts.onProxyReq)
-                opts.onProxyReq(...args);
-        },
-        onProxyRes(...args) {
-            if (opts.onProxyRes)
-                opts.onProxyRes(...args);
-            defaultOpt.onProxyRes(...args);
-        },
-        onError(...args) {
-            defaultOpt.onError(...args);
-            if (opts.onError)
-                opts.onError(...args);
-        } });
-    __plink_1.default.expressAppSet(app => {
-        app.use(proxyPath, (0, http_proxy_middleware_1.createProxyMiddleware)(proxyMidOpt));
+    const api = require('__api');
+    const proxyServer = new http_proxy_1.default(defaultOpt);
+    const obs = (0, http_proxy_observable_1.httpProxyObservable)(proxyServer);
+    if (opts.deleteOrigin) {
+        obs.proxyReq.pipe(op.map(({ payload: [pReq, req, res] }) => {
+            pReq.removeHeader('Origin');
+        })).subscribe();
+    }
+    obs.proxyRes.pipe(op.map(({ payload: [pRes, req, res] }) => {
+        if (pRes.headers['access-control-allow-origin'] || res.hasHeader('Access-Control-Allow-Origin')) {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+        }
+    })).subscribe();
+    proxyServer.on('error', (err, _req, _res, targetOrSocket) => log.error('proxy error', err, targetOrSocket));
+    proxyServer.on('econnreset', (_pReq, _req, _res, target) => log.error('proxy connection reset', target.toString()));
+    api.expressAppSet(app => {
+        app.use(proxyPath, (req, res, next) => {
+            log.warn('handle proxy path', proxyPath);
+            (0, http_proxy_observable_1.observeProxyResponse)(obs, res).pipe(op.map(({ payload: [proxyRes] }) => {
+                if (proxyRes.statusCode === 404) {
+                    next();
+                }
+            })).subscribe();
+            proxyServer.web(req, res);
+        });
     });
 }
 exports.setupHttpProxy = setupHttpProxy;
@@ -99,73 +104,70 @@ exports.isRedirectableRequest = isRedirectableRequest;
 function defaultProxyOptions(proxyPath, targetUrl) {
     proxyPath = lodash_1.default.trimEnd(proxyPath, '/');
     targetUrl = lodash_1.default.trimEnd(targetUrl, '/');
-    const { protocol, host, pathname } = new URL(targetUrl);
-    const patPath = new RegExp('^' + lodash_1.default.escapeRegExp(proxyPath) + '(/|$)');
-    const hpmLog = plink_1.logger.getLogger('HPM.' + targetUrl);
+    // const patPath = new RegExp('^' + _.escapeRegExp(proxyPath) + '(/|$)');
+    // const hpmLog = logger.getLogger('HPM.' + targetUrl);
     const proxyMidOpt = {
         // eslint-disable-next-line max-len
-        target: protocol + '//' + host,
+        target: targetUrl,
         changeOrigin: true,
         ws: false,
         secure: false,
         cookieDomainRewrite: { '*': '' },
-        pathRewrite: (path, _req) => {
-            // hpmLog.warn('patPath=', patPath, 'path=', path);
-            const ret = path && path.replace(patPath, lodash_1.default.trimEnd(pathname, '/') + '/');
-            // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
-            return ret;
-        },
-        logLevel: 'debug',
-        logProvider: _provider => hpmLog,
-        proxyTimeout: 10000,
-        onProxyReq(proxyReq, req, _res, ..._rest) {
-            // This proxyReq could be "RedirectRequest" if option "followRedirect" is on
-            if (isRedirectableRequest(proxyReq)) {
-                hpmLog.warn(`Redirect request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(proxyReq._currentRequest.getHeaders(), null, '  ')}`);
-            }
-            else {
-                proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
-                const referer = proxyReq.getHeader('referer');
-                if (typeof referer === 'string') {
-                    proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer).pathname}`);
-                }
-                hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method || 'uknown'}, ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}`);
-            }
-        },
-        onProxyRes(incoming, req, _res) {
-            incoming.headers['Access-Control-Allow-Origin'] = '*';
-            if (__plink_1.default.config().devMode) {
-                hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode}\n`, JSON.stringify(incoming.headers, null, '  '));
-            }
-            else {
-                hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode}`);
-            }
-            if (__plink_1.default.config().devMode) {
-                const ct = incoming.headers['content-type'];
-                hpmLog.info(`Response ${req.url || ''} headers:\n`, incoming.headers);
-                const isText = (ct && /\b(json|text)\b/i.test(ct));
-                if (isText) {
-                    if (!incoming.complete) {
-                        const bufs = [];
-                        void (0, utils_1.readCompressedResponse)(incoming, new stream_1.default.Writable({
-                            write(chunk, _enc, cb) {
-                                bufs.push(Buffer.isBuffer(chunk) ? chunk.toString() : chunk);
-                                cb();
-                            },
-                            final(_cb) {
-                                hpmLog.info(`Response ${req.url || ''} text body:\n`, bufs.join(''));
-                            }
-                        }));
-                    }
-                    else if (incoming.body) {
-                        hpmLog.info(`Response ${req.url || ''} text body:\n`, incoming.toString());
-                    }
-                }
-            }
-        },
-        onError(err, _req, _res) {
-            hpmLog.warn(err);
-        }
+        // pathRewrite: (path, _req) => {
+        //   // hpmLog.warn('patPath=', patPath, 'path=', path);
+        //   const ret = path && path.replace(patPath, _.trimEnd(pathname, '/') + '/');
+        //   // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
+        //   return ret;
+        // },
+        proxyTimeout: 10000
+        // onProxyReq(proxyReq, req, _res, ..._rest) {
+        //   // This proxyReq could be "RedirectRequest" if option "followRedirect" is on
+        //   if (isRedirectableRequest(proxyReq)) {
+        //     hpmLog.warn(`Redirect request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
+        //       proxyReq._currentRequest.getHeaders(), null, '  ')}`);
+        //   } else {
+        //     proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
+        //     const referer = proxyReq.getHeader('referer');
+        //     if (typeof referer === 'string') {
+        //       proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer).pathname}`);
+        //     }
+        //     hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
+        //       proxyReq.getHeaders(), null, '  ')}`);
+        //   }
+        // },
+        // onProxyRes(incoming, req, _res) {
+        //   incoming.headers['Access-Control-Allow-Origin'] = '*';
+        //   if (config().devMode) {
+        //     hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode!}\n`,
+        //       JSON.stringify(incoming.headers, null, '  '));
+        //   } else {
+        //     hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode!}`);
+        //   }
+        //   if (config().devMode) {
+        //     const ct = incoming.headers['content-type'];
+        //     hpmLog.info(`Response ${req.url || ''} headers:\n`, incoming.headers);
+        //     const isText = (ct && /\b(json|text)\b/i.test(ct));
+        //     if (isText) {
+        //       if (!incoming.complete) {
+        //         const bufs = [] as string[];
+        //         void readCompressedResponse(incoming, new stream.Writable({
+        //           write(chunk: Buffer | string, _enc, cb) {
+        //             bufs.push(Buffer.isBuffer(chunk) ? chunk.toString() : chunk);
+        //             cb();
+        //           },
+        //           final(_cb) {
+        //             hpmLog.info(`Response ${req.url || ''} text body:\n`, bufs.join(''));
+        //           }
+        //         }));
+        //       } else if ((incoming as {body?: Buffer | string}).body) {
+        //         hpmLog.info(`Response ${req.url || ''} text body:\n`, (incoming as {body?: Buffer | string}).toString());
+        //       }
+        //     }
+        //   }
+        // },
+        // onError(err, _req, _res) {
+        //   hpmLog.warn(err);
+        // }
     };
     return proxyMidOpt;
 }
@@ -179,13 +181,11 @@ function defaultHttpProxyOptions(target) {
         ws: false,
         secure: false,
         cookieDomainRewrite: { '*': '' },
-        // logLevel: 'debug',
-        // logProvider: provider => hpmLog,
         proxyTimeout: 10000
     };
 }
 exports.defaultHttpProxyOptions = defaultHttpProxyOptions;
-const log = plink_1.logger.getLogger(__plink_1.default.packageName + '.createReplayReadableFactory');
+const log = plink_1.logger.getLogger(pkgLog.name + '.createReplayReadableFactory');
 function createReplayReadableFactory(readable, transforms, opts) {
     const buf$ = new rx.ReplaySubject();
     let cacheBufLen = 0;
@@ -316,4 +316,13 @@ function createBufferForHttpProxy(req) {
     }
 }
 exports.createBufferForHttpProxy = createBufferForHttpProxy;
+function testHttpProxyServer() {
+    const { runServer } = require('@wfh/plink/wfh/dist/package-runner');
+    const shutdown = runServer().shutdown;
+    plink_1.config.change(setting => {
+        setting['@wfh/assets-processer'].httpProxy = { '/takeMeToPing': 'http://localhost:14333/ping' };
+    });
+    plink_1.exitHooks.push(shutdown);
+}
+exports.testHttpProxyServer = testHttpProxyServer;
 //# sourceMappingURL=utils.js.map

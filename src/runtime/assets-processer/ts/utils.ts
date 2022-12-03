@@ -1,19 +1,21 @@
+/* eslint-disable prefer-rest-params */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import stream from 'stream';
 import {ClientRequest, IncomingMessage} from 'http';
 import * as querystring from 'querystring';
 import {Request, Response, NextFunction} from 'express';
-import api from '__plink';
 import _ from 'lodash';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {readCompressedResponse} from '@wfh/http-server/dist/utils';
-import {logger} from '@wfh/plink';
-import {ServerOptions} from 'http-proxy';
-import { createProxyMiddleware as proxy, Options as ProxyOptions} from 'http-proxy-middleware';
+// import {readCompressedResponse} from '@wfh/http-server/dist/utils';
+import {logger, exitHooks, config, log4File, ExtensionContext} from '@wfh/plink';
+import ProxyServer, {ServerOptions} from 'http-proxy';
+import * as _runner from '@wfh/plink/wfh/dist/package-runner';
+import {httpProxyObservable, observeProxyResponse} from './http-proxy-observable';
 
-const logTime = logger.getLogger(api.packageName + '.timestamp');
+const pkgLog = log4File(__filename);
+const logTime = logger.getLogger(pkgLog.name + '.timestamp');
 /**
  * Middleware for printing each response process duration time to log
  * @param req 
@@ -66,48 +68,43 @@ export function setupHttpProxy(proxyPath: string, targetUrl: string,
   opts: {
     /** Bypass CORS restrict on target server, default is true */
     deleteOrigin?: boolean;
-    pathRewrite?: ProxyOptions['pathRewrite'];
-    onProxyReq?: ProxyOptions['onProxyReq'];
-    onProxyRes?: ProxyOptions['onProxyRes'];
-    onError?: ProxyOptions['onError'];
-    buffer?: ProxyOptions['buffer'];
-    selfHandleResponse?: ProxyOptions['selfHandleResponse'];
-    proxyTimeout?: ProxyOptions['proxyTimeout'];
   } = {}) {
 
   proxyPath = _.trimEnd(proxyPath, '/');
   targetUrl = _.trimEnd(targetUrl, '/');
 
   const defaultOpt = defaultProxyOptions(proxyPath, targetUrl);
-
-  const proxyMidOpt: ProxyOptions = {
-    ...defaultOpt,
-    onProxyReq(...args) {
-      const origHeader = args[0].getHeader('Origin');
-      defaultOpt.onProxyReq(...args);
-
-      if (opts.deleteOrigin === false) {
-        // Recover removed header "Origin"
-        args[0].setHeader('Origin', origHeader as string);
+  const api = require('__api') as ExtensionContext;
+  const proxyServer = new ProxyServer(defaultOpt);
+  const obs = httpProxyObservable(proxyServer);
+  if (opts.deleteOrigin) {
+    obs.proxyReq.pipe(
+      op.map(({payload: [pReq, req, res]}) => {
+        pReq.removeHeader('Origin');
+      })
+    ).subscribe();
+  }
+  obs.proxyRes.pipe(
+    op.map(({payload: [pRes, req, res]}) => {
+      if (pRes.headers['access-control-allow-origin'] || res.hasHeader('Access-Control-Allow-Origin')) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
       }
-      if (opts.onProxyReq)
-        opts.onProxyReq(...args);
-    },
-    onProxyRes(...args) {
-      if (opts.onProxyRes)
-        opts.onProxyRes(...args);
-      defaultOpt.onProxyRes(...args);
-    },
-    onError(...args) {
-      defaultOpt.onError(...args);
-      if (opts.onError)
-        opts.onError(...args);
-    }
-  };
-
-
+    })
+  ).subscribe();
+  proxyServer.on('error', (err, _req, _res, targetOrSocket) => log.error('proxy error', err, targetOrSocket));
+  proxyServer.on('econnreset', (_pReq, _req, _res, target) => log.error('proxy connection reset', target.toString()));
   api.expressAppSet(app => {
-    app.use(proxyPath, proxy(proxyMidOpt));
+    app.use(proxyPath, (req, res, next) => {
+      log.warn('handle proxy path', proxyPath);
+      observeProxyResponse(obs, res).pipe(
+        op.map(({payload: [proxyRes]}) => {
+          if (proxyRes.statusCode === 404) {
+            next();
+          }
+        })
+      ).subscribe();
+      proxyServer.web(req, res);
+    });
   });
 }
 
@@ -129,76 +126,73 @@ export function isRedirectableRequest(req: unknown): req is RedirectableRequest 
 export function defaultProxyOptions(proxyPath: string, targetUrl: string) {
   proxyPath = _.trimEnd(proxyPath, '/');
   targetUrl = _.trimEnd(targetUrl, '/');
-  const { protocol, host, pathname } = new URL(targetUrl);
 
-  const patPath = new RegExp('^' + _.escapeRegExp(proxyPath) + '(/|$)');
-  const hpmLog = logger.getLogger('HPM.' + targetUrl);
+  // const patPath = new RegExp('^' + _.escapeRegExp(proxyPath) + '(/|$)');
+  // const hpmLog = logger.getLogger('HPM.' + targetUrl);
 
-  const proxyMidOpt: ProxyOptions &  {[K in 'pathRewrite' | 'onProxyReq' | 'onProxyRes' | 'onError']: NonNullable<ProxyOptions[K]>} = {
+  const proxyMidOpt: ServerOptions = {
     // eslint-disable-next-line max-len
-    target: protocol + '//' + host,
+    target: targetUrl,
     changeOrigin: true,
     ws: false,
     secure: false,
-    cookieDomainRewrite: { '*': '' },
-    pathRewrite: (path, _req) => {
-      // hpmLog.warn('patPath=', patPath, 'path=', path);
-      const ret = path && path.replace(patPath, _.trimEnd(pathname, '/') + '/');
-      // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
-      return ret;
-    },
-    logLevel: 'debug',
-    logProvider: _provider => hpmLog,
-    proxyTimeout: 10000,
-    onProxyReq(proxyReq, req, _res, ..._rest) {
-      // This proxyReq could be "RedirectRequest" if option "followRedirect" is on
-      if (isRedirectableRequest(proxyReq)) {
-        hpmLog.warn(`Redirect request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
-          proxyReq._currentRequest.getHeaders(), null, '  ')}`);
-      } else {
-        proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
-        const referer = proxyReq.getHeader('referer');
-        if (typeof referer === 'string') {
-          proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer).pathname}`);
-        }
-        hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
-          proxyReq.getHeaders(), null, '  ')}`);
-      }
-    },
-    onProxyRes(incoming, req, _res) {
-      incoming.headers['Access-Control-Allow-Origin'] = '*';
-      if (api.config().devMode) {
-        hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode!}\n`,
-          JSON.stringify(incoming.headers, null, '  '));
-      } else {
-        hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode!}`);
-      }
-      if (api.config().devMode) {
+    cookieDomainRewrite: {'*': ''},
+    // pathRewrite: (path, _req) => {
+    //   // hpmLog.warn('patPath=', patPath, 'path=', path);
+    //   const ret = path && path.replace(patPath, _.trimEnd(pathname, '/') + '/');
+    //   // hpmLog.info(`proxy to path: ${req.method} ${protocol + '//' + host}${ret}, req.url = ${req.url}`);
+    //   return ret;
+    // },
+    proxyTimeout: 10000
+    // onProxyReq(proxyReq, req, _res, ..._rest) {
+    //   // This proxyReq could be "RedirectRequest" if option "followRedirect" is on
+    //   if (isRedirectableRequest(proxyReq)) {
+    //     hpmLog.warn(`Redirect request to ${protocol}//${host}${proxyReq._currentRequest.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
+    //       proxyReq._currentRequest.getHeaders(), null, '  ')}`);
+    //   } else {
+    //     proxyReq.removeHeader('Origin'); // Bypass CORS restrict on target server
+    //     const referer = proxyReq.getHeader('referer');
+    //     if (typeof referer === 'string') {
+    //       proxyReq.setHeader('referer', `${protocol}//${host}${new URL(referer).pathname}`);
+    //     }
+    //     hpmLog.info(`Proxy request to ${protocol}//${host}${proxyReq.path} method: ${req.method || 'uknown'}, ${JSON.stringify(
+    //       proxyReq.getHeaders(), null, '  ')}`);
+    //   }
+    // },
+    // onProxyRes(incoming, req, _res) {
+    //   incoming.headers['Access-Control-Allow-Origin'] = '*';
+    //   if (config().devMode) {
+    //     hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode!}\n`,
+    //       JSON.stringify(incoming.headers, null, '  '));
+    //   } else {
+    //     hpmLog.info(`Proxy recieve ${req.url || ''}, status: ${incoming.statusCode!}`);
+    //   }
+    //   if (config().devMode) {
 
-        const ct = incoming.headers['content-type'];
-        hpmLog.info(`Response ${req.url || ''} headers:\n`, incoming.headers);
-        const isText = (ct && /\b(json|text)\b/i.test(ct));
-        if (isText) {
-          if (!incoming.complete) {
-            const bufs = [] as string[];
-            void readCompressedResponse(incoming, new stream.Writable({
-              write(chunk: Buffer | string, _enc, cb) {
-                bufs.push(Buffer.isBuffer(chunk) ? chunk.toString() : chunk);
-                cb();
-              },
-              final(_cb) {
-                hpmLog.info(`Response ${req.url || ''} text body:\n`, bufs.join(''));
-              }
-            }));
-          } else if ((incoming as {body?: Buffer | string}).body) {
-            hpmLog.info(`Response ${req.url || ''} text body:\n`, (incoming as {body?: Buffer | string}).toString());
-          }
-        }
-      }
-    },
-    onError(err, _req, _res) {
-      hpmLog.warn(err);
-    }
+    //     const ct = incoming.headers['content-type'];
+    //     hpmLog.info(`Response ${req.url || ''} headers:\n`, incoming.headers);
+    //     const isText = (ct && /\b(json|text)\b/i.test(ct));
+    //     if (isText) {
+    //       if (!incoming.complete) {
+    //         const bufs = [] as string[];
+    //         void readCompressedResponse(incoming, new stream.Writable({
+    //           write(chunk: Buffer | string, _enc, cb) {
+    //             bufs.push(Buffer.isBuffer(chunk) ? chunk.toString() : chunk);
+    //             cb();
+    //           },
+    //           final(_cb) {
+    //             hpmLog.info(`Response ${req.url || ''} text body:\n`, bufs.join(''));
+    //           }
+    //         }));
+    //       } else if ((incoming as {body?: Buffer | string}).body) {
+    //         hpmLog.info(`Response ${req.url || ''} text body:\n`, (incoming as {body?: Buffer | string}).toString());
+    //       }
+    //     }
+    //   }
+    // },
+    // onError(err, _req, _res) {
+    //   hpmLog.warn(err);
+    // }
   };
   return proxyMidOpt;
 }
@@ -211,14 +205,12 @@ export function defaultHttpProxyOptions(target?: string): ServerOptions {
     changeOrigin: true,
     ws: false,
     secure: false,
-    cookieDomainRewrite: { '*': '' },
-    // logLevel: 'debug',
-    // logProvider: provider => hpmLog,
+    cookieDomainRewrite: {'*': ''},
     proxyTimeout: 10000
   };
 }
 
-const log = logger.getLogger(api.packageName + '.createReplayReadableFactory');
+const log = logger.getLogger(pkgLog.name + '.createReplayReadableFactory');
 
 export function createReplayReadableFactory(
   readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[],
@@ -261,7 +253,7 @@ export function createReplayReadableFactory(
           // To workaround NodeJS 16 bug
           streams.reduce(
             (prev, curr) => (prev as NodeJS.ReadableStream)
-            .pipe(curr as NodeJS.ReadWriteStream))
+              .pipe(curr as NodeJS.ReadWriteStream))
             .on('error', err => log.error(err));
         }
       }
@@ -359,5 +351,14 @@ export function createBufferForHttpProxy(req: IncomingMessage) {
       length: body.length
     };
   }
+}
+
+export function testHttpProxyServer() {
+  const {runServer} = require('@wfh/plink/wfh/dist/package-runner') as typeof _runner;
+  const shutdown = runServer().shutdown;
+  config.change(setting => {
+    setting['@wfh/assets-processer'].httpProxy = {'/takeMeToPing': 'http://localhost:14333/ping'};
+  });
+  exitHooks.push(shutdown);
 }
 

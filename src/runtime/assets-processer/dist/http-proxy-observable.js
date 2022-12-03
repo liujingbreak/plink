@@ -41,10 +41,10 @@ const REDIRECT_STATUS = new Map([301, 302, 307, 308].map(code => [code, code]));
  */
 function observeProxyResponse(httpProxy$, res, skipRedirectRes = true) {
     // Same as "race" which is deprecated in RxJS 7
-    return rx.merge(httpProxy$.proxyRes.pipe(op.filter(event => event.payload[2] === res &&
-        !(skipRedirectRes && REDIRECT_STATUS.has(event.payload[0].statusCode || 200))), op.take(1)), rx.merge(httpProxy$.econnreset, httpProxy$.error).pipe(op.filter(event => event.payload[2] === res), op.take(1), op.mergeMap(({ payload: [err] }) => {
+    return httpProxy$.proxyRes.pipe(op.filter(event => event.payload[2] === res &&
+        !(skipRedirectRes && REDIRECT_STATUS.has(event.payload[0].statusCode || 200))), op.take(1), op.takeUntil(rx.merge(httpProxy$.econnreset, httpProxy$.error).pipe(op.filter(event => event.payload[2] === res), op.take(1), op.mergeMap(({ payload: [err] }) => {
         return rx.throwError(err);
-    }))).pipe(op.take(1));
+    })))).pipe(op.take(1));
 }
 exports.observeProxyResponse = observeProxyResponse;
 function observeProxyResponseAndChange(httpProxy$, res, change, skipRedirectRes = true) {
