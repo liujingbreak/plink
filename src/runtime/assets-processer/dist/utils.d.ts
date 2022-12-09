@@ -48,7 +48,7 @@ export declare function createReplayReadableFactory(readable: NodeJS.ReadableStr
  * Copied from https://github.com/chimurai/http-proxy-middleware/blob/master/src/handlers/fix-request-body.ts
  */
 export declare function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): void;
-export declare function createBufferForHttpProxy(req: IncomingMessage): {
+export declare function createBufferForHttpProxy(req: IncomingMessage, replaceBody?: any): {
     readable: stream.Readable;
     length: number;
 } | undefined;

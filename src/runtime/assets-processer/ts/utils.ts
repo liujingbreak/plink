@@ -311,10 +311,10 @@ export function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): v
   }
 }
 
-export function createBufferForHttpProxy(req: IncomingMessage) {
+export function createBufferForHttpProxy(req: IncomingMessage, replaceBody?: any) {
   const contentType = req.headers['content-type'];
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const body = (req as any).body;
+  const body = replaceBody != null ? replaceBody : (req as any).body;
   if (body == null)
     return undefined;
 

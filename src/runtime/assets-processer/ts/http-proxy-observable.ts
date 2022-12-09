@@ -1,3 +1,4 @@
+import http from 'node:http';
 import HttpProxy from 'http-proxy';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -65,7 +66,7 @@ const REDIRECT_STATUS = new Map<number, number>([301, 302, 307, 308].map(code =>
 ```
  */
 export function observeProxyResponse(httpProxy$: HttpProxyEventObs, res: Response,
-  skipRedirectRes = true):
+  skipRedirectRes = true, maxWaitMsecond = 30000):
   HttpProxyEventObs['proxyRes'] {
   // Same as "race" which is deprecated in RxJS 7
   return httpProxy$.proxyRes.pipe(
@@ -79,9 +80,8 @@ export function observeProxyResponse(httpProxy$: HttpProxyEventObs, res: Respons
       op.mergeMap(({payload: [err]}) => {
         return rx.throwError(err);
       })
-    ))
-  ).pipe(
-    op.take(1)
+    )),
+    op.timeout(maxWaitMsecond)
   );
 }
 
@@ -106,5 +106,19 @@ export function observeProxyResponseAndChange(
       await compressResponse(changed, res, pRes.headers['content-encoding']);
     })
   );
+}
+
+/**
+ * You can use Http-proxy option `cookieDomainRewrite: {'*': ''}` at most of the time,
+ * but when you want to `selfHandleResponse: true`, you'll need this function to help:
+ *
+ * `rewriteResponseSetCookieHeader(res.header['set-cookie'], res)`
+*/
+export function *clearSetCookieDomainOfProxyResponse(pRes: http.IncomingMessage) {
+  const setCookieHeader = pRes.headers['set-cookie'];
+  if (setCookieHeader != null)
+    for (const value of setCookieHeader) {
+      yield value.replace(/;\s*domain=[^;]+/ig, '');
+    }
 }
 

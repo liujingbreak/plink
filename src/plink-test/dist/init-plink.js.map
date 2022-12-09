@@ -1,0 +1,1 @@
+{"version":3,"file":"init-plink.js","sourceRoot":"","sources":["init-plink.ts"],"names":[],"mappings":";;AAAA,sCAAuC;AAEvC,IAAA,mBAAW,EAAC,MAAM,CAAC,CAAC","sourcesContent":["import {initProcess} from '@wfh/plink';\n\ninitProcess('none');\n"]}

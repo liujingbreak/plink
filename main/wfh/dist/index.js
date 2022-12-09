@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.packageOfFileFactory = exports.log4File = exports.logConfig = exports.logger = exports.setTsCompilerOptForNodePath = exports.plinkEnv = exports.getSymlinkForPackage = exports.getRootDir = exports.runServer = exports.prepareLazyNodeInjector = exports.initInjectorForNodePackages = exports.forkAsPreserveSymlink = exports.cliPackageArgDesc = exports.lookupPackageJson = exports.findPackagesByNames = exports.commander = exports.PlinkCommand = exports.webInjector = exports.nodeInjector = exports.DrPackageInjector = exports.ExtensionContext = exports.config = void 0;
+exports.packageOfFileFactory = exports.log4File = exports.logConfig = exports.logger = exports.setTsCompilerOptForNodePath = exports.plinkEnv = exports.getSymlinkForPackage = exports.getRootDir = exports.runServer = exports.prepareLazyNodeInjector = exports.initInjectorForNodePackages = exports.forceForkAsPreserveSymlink = exports.forkAsPreserveSymlink = exports.cliPackageArgDesc = exports.lookupPackageJson = exports.findPackagesByNames = exports.commander = exports.PlinkCommand = exports.webInjector = exports.nodeInjector = exports.DrPackageInjector = exports.ExtensionContext = exports.config = void 0;
 const tslib_1 = require("tslib");
 tslib_1.__exportStar(require("./config-handler"), exports);
 var index_1 = require("./config/index");
@@ -26,6 +26,7 @@ tslib_1.__exportStar(require("./store"), exports);
 tslib_1.__exportStar(require("./utils/bootstrap-process"), exports);
 var fork_for_preserve_symlink_1 = require("./fork-for-preserve-symlink");
 Object.defineProperty(exports, "forkAsPreserveSymlink", { enumerable: true, get: function () { return tslib_1.__importDefault(fork_for_preserve_symlink_1).default; } });
+Object.defineProperty(exports, "forceForkAsPreserveSymlink", { enumerable: true, get: function () { return fork_for_preserve_symlink_1.forkFile; } });
 var package_runner_1 = require("./package-runner");
 Object.defineProperty(exports, "initInjectorForNodePackages", { enumerable: true, get: function () { return package_runner_1.initInjectorForNodePackages; } });
 Object.defineProperty(exports, "prepareLazyNodeInjector", { enumerable: true, get: function () { return package_runner_1.prepareLazyNodeInjector; } });

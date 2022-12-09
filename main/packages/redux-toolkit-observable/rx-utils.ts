@@ -45,7 +45,14 @@ let SEQ = 0;
  *   type definition for downstream action compare bare "filter()"
  */
 // eslint-disable-next-line space-before-function-paren
-export function createActionStream<AC extends Record<string, ((...payload: any[]) => void)>>(actionCreator: AC, debug?: boolean) {
+export function createActionStream<AC extends Record<string, ((...payload: any[]) => void)>>(actionCreator: AC, debug?: boolean):
+{
+  dispatcher: AC;
+  action$: Observable<ActionTypes<AC>[keyof AC]>;
+  ofType: OfTypeFn<AC>;
+  isActionType: <K extends keyof AC>(action: {type: unknown; }, type: K) => action is ActionTypes<AC>[K];
+  nameOfAction: <K extends keyof AC>(action: ActionTypes<AC>[K]) => K;
+} {
   const dispatcher = {} as AC;
   const actionUpstream = new Subject<ActionTypes<AC>[keyof AC]>();
   const typePrefix = SEQ++ + '/';
@@ -85,6 +92,16 @@ export function createActionStream<AC extends Record<string, ((...payload: any[]
 
 type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
 
+export type ActionStreamControl<AC> = {
+  dispatcher: AC;
+  dispatchFactory: SimpleActionDispatchFactory<AC>;
+  action$: Observable<ActionTypes<AC>[keyof AC]>;
+  actionOfType: <T extends keyof AC>(type: T) => Observable<ActionTypes<AC>[T]>;
+  ofType: OfTypeFn<AC>;
+  isActionType: <K extends keyof AC>(action: {type: unknown;}, type: K) => action is ActionTypes<AC>[K];
+  nameOfAction: (action: ActionTypes<AC>[keyof AC]) => keyof AC | undefined;
+};
+
 /**
  * Unlike `createActionStream()`, this function only needs an "Action creator" type as generic type parameter,
  * instead of an actual empty "Action creator" object to be parameter
@@ -106,7 +123,7 @@ type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
 export function createActionStreamByType<AC extends Record<string, ((...payload: any[]) => void)>>(opt: {
   debug?: string | boolean;
   log?: (msg: string, ...objs: any[]) => unknown;
-} = {}) {
+} = {}): ActionStreamControl<AC> {
   const actionUpstream = new Subject<ActionTypes<AC>[keyof AC]>();
   const dispatcher = {} as AC;
   const typePrefix = SEQ++ + '/';

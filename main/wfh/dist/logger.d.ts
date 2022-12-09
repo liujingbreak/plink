@@ -8,4 +8,4 @@ import * as log4js from 'log4js';
  * - EJS module (mjs): loggerForFile(new URL(import.meta.url).pathname)
  * @param file
  */
-export declare function log4File(file: string): log4js.Logger;
+export declare function log4File(file: string, subName?: string): log4js.Logger;

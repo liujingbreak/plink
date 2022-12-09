@@ -273,10 +273,10 @@ function fixRequestBody(proxyReq, req) {
     }
 }
 exports.fixRequestBody = fixRequestBody;
-function createBufferForHttpProxy(req) {
+function createBufferForHttpProxy(req, replaceBody) {
     const contentType = req.headers['content-type'];
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const body = req.body;
+    const body = replaceBody != null ? replaceBody : req.body;
     if (body == null)
         return undefined;
     if (contentType === null || contentType === void 0 ? void 0 : contentType.includes('application/json')) {

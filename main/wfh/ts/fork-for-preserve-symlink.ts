@@ -1,5 +1,5 @@
 import Path from 'path';
-import {fork} from 'child_process';
+import {fork, ForkOptions} from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import log4js from 'log4js';
@@ -34,6 +34,9 @@ export function workDirChangedByCli() {
   return {workdir, argv};
 }
 
+/**
+ * @returns promise<number> if a child process is forked to apply "--preserve-symlinks", or `undefined` no new child process is created
+ */
 export default function run(
   moduleName: string,
   opts?: {
@@ -42,8 +45,7 @@ export default function run(
   }) {
 
   if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
-    void forkFile(moduleName, opts?.handleShutdownMsg != null ? opts.handleShutdownMsg : false, opts || {});
-    return;
+    return forkFile(moduleName, opts || {}).exited;
   }
   // In case it is already under "preserve-symlinks" mode
   const {workdir} = workDirChangedByCli();
@@ -52,27 +54,38 @@ export default function run(
   runModule(file, opts?.stateExitAction);
 }
 
-/** run in main process, mayby in PM2 as a cluster process */
-async function forkFile(
+/** run in main process, mayby in PM2 as a cluster process,
+* Unlike `run(modulename, opts)` this function will always fork a child process, it is conditionally executed inside `run(modulename, opts)`
+*/
+export function forkFile(
   moduleName: string,
-  broadcastShutdown: boolean,
-  opts: {
+  opts?: {
     stateExitAction?: 'save' | 'send' | 'none';
     handleShutdownMsg?: boolean;
-  }) {
+  } & ForkOptions) {
   let recovered = false;
   const {initProcess, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
   const {stateFactory} = require('./store') as typeof store;
 
-  exitHooks.push(() => {
-    recoverNodeModuleSymlink();
-  });
+  exitHooks.push(() => removed.then((removeResolved) => {
+    if (recovered)
+      return;
+    recovered = true;
+
+    for (const {link, content} of removeResolved) {
+      if (!fs.existsSync(link)) {
+        void fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
+        log.info('recover ' + link);
+      }
+    }
+  }));
+
   process.env.__plinkLogMainPid = '-1';
   initProcess('none');
 
   // removeNodeModuleSymlink needs Editor-helper, and editor-helper needs store being configured!
   stateFactory.configureStore();
-  const removed = await removeNodeModuleSymlink();
+  const removed = removeNodeModuleSymlink();
 
   const {workdir, argv} = workDirChangedByCli();
 
@@ -98,11 +111,12 @@ async function forkFile(
   const file = resolveTargetModule(moduleName, workdir || process.env.PLINK_WORK_DIR || process.cwd());
   const cp = fork(Path.resolve(plinkEnv.rootDir, 'node_modules/@wfh/plink/wfh/dist/fork-module-wrapper.js'), argv, {
     execArgv: process.execArgv.concat(['--preserve-symlinks-main', '--preserve-symlinks']),
-    stdio: 'inherit'
+    stdio: 'inherit',
+    ...(opts ? opts : {})
   });
   cp.send(JSON.stringify({type: 'plink-fork-wrapper', opts, moduleFile: file}));
 
-  if (broadcastShutdown) {
+  if (opts?.handleShutdownMsg) {
     const processMsg$ = rx.fromEventPattern<string>(h => process.on('message', h), h => process.off('message', h));
 
     processMsg$.pipe(
@@ -124,18 +138,10 @@ async function forkFile(
   });
   exitHooks.push(() => onChildExit$);
 
-  function recoverNodeModuleSymlink() {
-    if (recovered)
-      return;
-    recovered = true;
-
-    for (const {link, content} of removed) {
-      if (!fs.existsSync(link)) {
-        void fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
-        log.info('recover ' + link);
-      }
-    }
-  }
+  return {
+    childProcess: cp,
+    exited: onChildExit$.toPromise()
+  };
 }
 
 /**

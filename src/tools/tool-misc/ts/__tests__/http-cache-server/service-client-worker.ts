@@ -18,7 +18,7 @@ process.on('message', msg => {
 initProcess('none');
 
 void (async () => {
-  const {createClient} = await import('../../http-cache-server/cache-service-store');
+  const {createClient} = await import('../../http-cache-server/cache-service-client');
   const log = log4File(__filename);
   const client = createClient();
 

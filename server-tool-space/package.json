@@ -5,6 +5,7 @@
   "private": true,
   "main": "app.js",
   "scripts": {
+    "jest": "jest -c node_modules/@wfh/plink-test/dist/jest.config.js"
   },
   "author": "LJ",
   "license": "ISC",

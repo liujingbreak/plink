@@ -1,25 +1,27 @@
-import cluster from 'node:cluster';
-import {exitHooks} from '@wfh/plink';
-import * as cacheServiceStore from '../../http-cache-server/cache-service-store';
-import * as runCluster from '../../http-cache-server/run-cluster';
+// import cluster from 'node:cluster';
+import {exitHooks, initProcess} from '@wfh/plink';
+import * as __service from '../../http-cache-server/cache-service-store';
+// import * as runCluster from '../../http-cache-server/run-cluster';
+
+initProcess('none');
 
 void (async function() {
-  const {startStore} = require('../../http-cache-server/cache-service-store') as typeof cacheServiceStore;
-  const {startCluster} = require('../../http-cache-server/run-cluster') as typeof runCluster;
+  // const {startCluster} = require('../../http-cache-server/run-cluster') as typeof runCluster;
 
   exitHooks.push(() => {
     storeServer.shutdown();
   });
 
-  const storeServer = startStore();
+  const {startStore} = require('../../http-cache-server/cache-service-store') as typeof __service;
+
+  const storeServer = startStore({reconnInterval: 2000});
   await storeServer.started;
 
-  cluster.setupMaster({
-    exec: require.resolve('../../../dist/__tests__/http-cache-server/service-client-worker'),
-    args: []
-  });
+  // cluster.setupMaster({
+  //   exec: require.resolve('../../../dist/__tests__/http-cache-server/service-client-worker'),
+  //   args: []
+  // });
 
-  startCluster(2);
-  await new Promise(resolve => setTimeout(resolve, 10000));
-  storeServer.shutdown();
+  // startCluster(2);
+  // storeServer.shutdown();
 })();

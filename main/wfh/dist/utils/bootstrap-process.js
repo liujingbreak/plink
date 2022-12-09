@@ -56,7 +56,7 @@ exports.initConfig = initConfig;
  */
 function initProcess(saveState = 'none') {
     if (processInitialized) {
-        console.warn(new Error('Do not initialize process twice'));
+        console.info(new Error('Current process has already been initialized, skip initialization'));
         return;
     }
     processInitialized = true;

@@ -17,14 +17,6 @@ const log = (0, log4js_1.getLogger)('plink.package-info-gathering');
 const { workDir, symlinkDirName } = misc_1.plinkEnv;
 let existingFileToPkgHelper;
 // let packageInfo: PackageInfo;
-/**
- * walkPackages
- * @param {*} config
- * @param {*} argv
- * @param {*} packageUtils
- * @param {*} ignoreCache
- * @return {PackageInfo}
- */
 function packageOfFileFactory() {
     if (existingFileToPkgHelper) {
         return existingFileToPkgHelper;

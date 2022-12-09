@@ -6,11 +6,18 @@ const tslib_1 = require("tslib");
  * https://jestjs.io/docs/configuration
  */
 const path_1 = tslib_1.__importDefault(require("path"));
+require("./init-plink");
+const plink_1 = require("@wfh/plink");
+const package_list_helper_1 = require("@wfh/plink/wfh/dist/package-mgr/package-list-helper");
+const package_mgr_1 = require("@wfh/plink/wfh/dist/package-mgr");
 // import {defaults} from 'jest-config';
 const transform = {
     '\\.jsx?$': 'babel-jest',
     '\\.tsx?$': [path_1.default.resolve(__dirname, 'ts-transformer.js'), {}]
 };
+const plinkPkg = (0, package_mgr_1.getState)().linkedDrcp || (0, package_mgr_1.getState)().installedDrcp;
+// Jest does not support symlinks for search directory, so I have to use "realPath"
+const packageDirs = [plinkPkg, ...(0, package_list_helper_1.packages4Workspace)()].map(pkg => path_1.default.resolve(plink_1.plinkEnv.workDir, pkg.realPath));
 const config = {
     // All imported modules in your tests should be mocked automatically
     // automock: false,
@@ -58,7 +65,7 @@ const config = {
     // A set of global variables that need to be available in all test environments
     // globals: {},
     // The maximum amount of workers used to run your tests. Can be specified as % or a number. E.g. maxWorkers: 10% will use 10% of your CPU amount + 1 as the maximum worker number. maxWorkers: 2 will use a maximum of 2 workers.
-    // maxWorkers: "50%",
+    maxWorkers: 2,
     // An array of directory names to be searched recursively up from the requiring module's location
     // moduleDirectories: [
     //   "node_modules"
@@ -93,13 +100,13 @@ const config = {
     // Reset the module registry before running each individual test
     // resetModules: false,
     // A path to a custom resolver
-    // resolver: undefined,
+    resolver: path_1.default.resolve(__dirname, 'jest.resolver.js'),
     // Automatically restore mock state and implementation before every test
     // restoreMocks: false,
     // The root directory that Jest should scan for tests and modules within
-    rootDir: path_1.default.resolve('.'),
+    rootDir: packageDirs[0],
     // A list of paths to directories that Jest should use to search for files in
-    roots: undefined,
+    roots: packageDirs,
     // Allows you to use a custom runner instead of Jest's default test runner
     // runner: "jest-runner",
     // The paths to modules that run some code to configure or set up the testing environment before each test
@@ -117,9 +124,11 @@ const config = {
     // Adds a location field to test results
     // testLocationInResults: false,
     // The glob patterns Jest uses to detect test files
+    // https://jestjs.io/docs/29.1/configuration#testmatch-arraystring
     testMatch: [
         // Path.relative(process.cwd(), Path.resolve(__dirname, '../__tests__')).replace(/\\/g, '/') + '/**/*.[jt]s?(x)'
-        '**/?(*.)+(spec|test).[tj]s?(x)'
+        '**/?(*.)+.(spec|test).[tj]s?(x)',
+        '**/*.test.[tj]s?(x)'
     ],
     // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
     testPathIgnorePatterns: [

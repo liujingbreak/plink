@@ -10,11 +10,11 @@ import {packageOfFileFactory} from './package-mgr/package-info-gathering';
  * - EJS module (mjs): loggerForFile(new URL(import.meta.url).pathname)
  * @param file 
  */
-export function log4File(file: string) {
+export function log4File(file: string, subName?: string) {
   const pkg = packageOfFileFactory().getPkgOfFile(file);
   if (pkg) {
-    return log4js.getLogger(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(path.basename(file))![1]);
+    return log4js.getLogger(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(path.basename(file))![1] + (subName ? '.' + subName : ''));
   } else {
-    return log4js.getLogger(/^(.*?)\.[^.]*$/.exec(path.basename(file))![1]);
+    return log4js.getLogger(/^(.*?)\.[^.]*$/.exec(path.basename(file))![1] + (subName ? '.' + subName : ''));
   }
 }

@@ -14,13 +14,13 @@ const package_info_gathering_1 = require("./package-mgr/package-info-gathering")
  * - EJS module (mjs): loggerForFile(new URL(import.meta.url).pathname)
  * @param file
  */
-function log4File(file) {
+function log4File(file, subName) {
     const pkg = (0, package_info_gathering_1.packageOfFileFactory)().getPkgOfFile(file);
     if (pkg) {
-        return log4js.getLogger(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1]);
+        return log4js.getLogger(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1] + (subName ? '.' + subName : ''));
     }
     else {
-        return log4js.getLogger(/^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1]);
+        return log4js.getLogger(/^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1] + (subName ? '.' + subName : ''));
     }
 }
 exports.log4File = log4File;

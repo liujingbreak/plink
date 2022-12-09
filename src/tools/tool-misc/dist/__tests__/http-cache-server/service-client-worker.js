@@ -19,7 +19,7 @@ process.on('message', msg => {
 });
 (0, plink_1.initProcess)('none');
 void (async () => {
-    const { createClient } = await Promise.resolve().then(() => tslib_1.__importStar(require('../../http-cache-server/cache-service-store')));
+    const { createClient } = await Promise.resolve().then(() => tslib_1.__importStar(require('../../http-cache-server/cache-service-client')));
     const log = (0, plink_1.log4File)(__filename);
     const client = createClient();
     rx.concat(rx.merge(masterMsg$.pipe(op.map(idx => {

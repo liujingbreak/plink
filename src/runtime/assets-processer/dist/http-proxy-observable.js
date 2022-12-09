@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.observeProxyResponseAndChange = exports.observeProxyResponse = exports.httpProxyObservable = void 0;
+exports.clearSetCookieDomainOfProxyResponse = exports.observeProxyResponseAndChange = exports.observeProxyResponse = exports.httpProxyObservable = void 0;
 const tslib_1 = require("tslib");
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
@@ -39,12 +39,12 @@ const REDIRECT_STATUS = new Map([301, 302, 307, 308].map(code => [code, code]));
   })
 ```
  */
-function observeProxyResponse(httpProxy$, res, skipRedirectRes = true) {
+function observeProxyResponse(httpProxy$, res, skipRedirectRes = true, maxWaitMsecond = 30000) {
     // Same as "race" which is deprecated in RxJS 7
     return httpProxy$.proxyRes.pipe(op.filter(event => event.payload[2] === res &&
         !(skipRedirectRes && REDIRECT_STATUS.has(event.payload[0].statusCode || 200))), op.take(1), op.takeUntil(rx.merge(httpProxy$.econnreset, httpProxy$.error).pipe(op.filter(event => event.payload[2] === res), op.take(1), op.mergeMap(({ payload: [err] }) => {
         return rx.throwError(err);
-    })))).pipe(op.take(1));
+    }))), op.timeout(maxWaitMsecond));
 }
 exports.observeProxyResponse = observeProxyResponse;
 function observeProxyResponseAndChange(httpProxy$, res, change, skipRedirectRes = true) {
@@ -67,4 +67,18 @@ function observeProxyResponseAndChange(httpProxy$, res, change, skipRedirectRes 
     }));
 }
 exports.observeProxyResponseAndChange = observeProxyResponseAndChange;
+/**
+ * You can use Http-proxy option `cookieDomainRewrite: {'*': ''}` at most of the time,
+ * but when you want to `selfHandleResponse: true`, you'll need this function to help:
+ *
+ * `rewriteResponseSetCookieHeader(res.header['set-cookie'], res)`
+*/
+function* clearSetCookieDomainOfProxyResponse(pRes) {
+    const setCookieHeader = pRes.headers['set-cookie'];
+    if (setCookieHeader != null)
+        for (const value of setCookieHeader) {
+            yield value.replace(/;\s*domain=[^;]+/ig, '');
+        }
+}
+exports.clearSetCookieDomainOfProxyResponse = clearSetCookieDomainOfProxyResponse;
 //# sourceMappingURL=http-proxy-observable.js.map

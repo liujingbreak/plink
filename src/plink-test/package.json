@@ -10,6 +10,12 @@
       "src": "src"
     }
   },
+  "devDependencies": {
+    "@types/resolve": "^1.20.2"
+  },
+  "dependencies": {
+    "resolve": "^1.22.1"
+  },
   "peerDependencies": {
     "jest": "^29.1.2"
   }

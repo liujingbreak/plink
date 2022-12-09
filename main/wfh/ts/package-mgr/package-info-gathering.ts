@@ -25,14 +25,6 @@ let existingFileToPkgHelper: {
   getPkgOfFile(file: string): PackageInstance | undefined;
 } | undefined;
 // let packageInfo: PackageInfo;
-/**
- * walkPackages
- * @param {*} config 
- * @param {*} argv 
- * @param {*} packageUtils 
- * @param {*} ignoreCache
- * @return {PackageInfo}
- */
 
 export function packageOfFileFactory() {
   if (existingFileToPkgHelper) {
