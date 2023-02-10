@@ -50,12 +50,8 @@ async function testStore() {
     client.dispatcher.shutdownServer();
     await client.serverReplied('shutdownServer', () => true);
     // childProcess.kill('SIGINT');
-<<<<<<< HEAD
-    await mainProcExited;
+    await Promise.all([clientProcess2Exited, mainProcExited]);
     console.log('Store server process exits');
-=======
-    return Promise.all([clientProcess2Exited, mainProcExited]);
->>>>>>> f8c1fbeb... wip
 }
 exports.testStore = testStore;
 //# sourceMappingURL=test-func.js.map

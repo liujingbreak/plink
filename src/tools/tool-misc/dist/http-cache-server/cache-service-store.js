@@ -62,11 +62,7 @@ function startStore(opts) {
         slice.actionOfType('endSubscribeRes').pipe(op.map(({ payload: clientId }) => {
             const byClient = state$.getValue().responseByClientId;
             return byClient.get(clientId);
-<<<<<<< HEAD
         }), op.filter(res0 => res0 === res), op.map(() => res.off('close', hClose))), state$.pipe(op.map(s => s.responseByClientId.get(client)), op.distinctUntilChanged(), op.switchMap(res => rx.timer(res == null ? 2 * 60000 : reconnInterval)
-=======
-        }), op.filter(res0 => res0 === res), op.map(() => res.off('close', hClose))), state$.pipe(op.map(s => s.responseByClientId.get(client)), op.switchMap(res => rx.timer(res == null ? 2 * 60000 : reconnInterval)
->>>>>>> f8c1fbeb... wip
             .pipe(op.mapTo(res))), op.map(res => {
             if (res == null) {
                 // client does not reconnect, consider as "unsubscribe"

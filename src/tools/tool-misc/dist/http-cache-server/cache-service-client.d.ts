@@ -59,13 +59,13 @@ export declare function createClient(opts?: {
         payload: string;
     } | {
         type: string;
+        payload: string;
+    } | {
+        type: string;
         payload: unknown;
     } | {
         type: string;
         payload: [key: string, value: any];
-    } | {
-        type: string;
-        payload: string;
     } | {
         type: string;
         payload: [key: string, value: number];
@@ -101,13 +101,13 @@ export declare function createClient(opts?: {
         payload: string;
     } | {
         type: string;
+        payload: string;
+    } | {
+        type: string;
         payload: unknown;
     } | {
         type: string;
         payload: [key: string, value: any];
-    } | {
-        type: string;
-        payload: string;
     } | {
         type: string;
         payload: [key: string, value: number];
