@@ -177,6 +177,8 @@ function startStore(opts) {
             else if (action.type === 'shutdownServer') {
                 res.end('ok');
                 slice.dispatcher.shutdown();
+                store.getValue().set('__SERVER', 'shutting');
+                store.next(store.getValue());
                 return;
             }
             const defaultContent = { success: true };

@@ -37,7 +37,10 @@ export declare type ClientActions = {
     _shutdownSelf(): void;
 } & ClientMessage & ServerResponseMsg;
 export declare function createClient(opts?: {
+    /** default 1000 */
     reconnectWaitMs?: number;
+    /** default http://localhost:14401*/
+    serverEndpoint?: string;
 }): {
     serverReplied<K extends keyof ClientMessage>(actType: K, predicate: (payload: ActionTypes<ClientMessage>[K]["payload"], content: string | Buffer) => boolean): Promise<{
         type: string;

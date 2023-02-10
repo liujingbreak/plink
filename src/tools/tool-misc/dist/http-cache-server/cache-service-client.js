@@ -42,7 +42,7 @@ function createClient(opts) {
         !slice.isActionType(act, '_responseEnd') &&
         !slice.isActionType(act, 'onRespond') &&
         !slice.isActionType(act, 'onChange')), op.mergeMap(act => new rx.Observable(sub => {
-        const req = node_http_1.default.request('http://localhost:14401/cache', {
+        const req = node_http_1.default.request((opts === null || opts === void 0 ? void 0 : opts.serverEndpoint) || 'http://localhost:14401/cache', {
             method: 'POST',
             agent
         }, res => {
@@ -72,17 +72,18 @@ function createClient(opts) {
         req.end(JSON.stringify(requestBody));
     }).pipe(op.map(out => {
         slice.dispatcher.onRespond(slice.nameOfAction(act), act.payload, out);
-        if (slice.isActionType(act, 'shutdownServer'))
-            slice.dispatcher._shutdownSelf();
+        // if (slice.isActionType(act, 'shutdownServer'))
+        //   slice.dispatcher._shutdownSelf();
     }), op.catchError((err, src) => {
         logClient.error('Error in action: ' + slice.nameOfAction(act), err);
         return src;
     })))), slice.actionOfType('onRespond').pipe(op.map(({ payload }) => {
         logClient.info('Recieved', payload);
-    }))).pipe(op.takeUntil(slice.actionOfType('_shutdownSelf')), op.catchError((err, src) => {
+    })), slice.actionOfType('onChange').pipe(op.filter(({ payload: [key, value] }) => key === '__SERVER' && value === 'shutting'), op.take(1), op.map(() => slice.dispatcher._shutdownSelf()))).pipe(op.takeUntil(slice.actionOfType('_shutdownSelf')), op.catchError((err, src) => {
         logClient.error('client', err);
         return src;
     })).subscribe();
+    slice.dispatcher.subscribeKey('__SERVER');
     return Object.assign(Object.assign({}, slice), { serverReplied(actType, predicate) {
             return slice.actionOfType('onRespond').pipe(op.filter(({ payload: [type, payload, content] }) => type === actType && predicate(payload, content)), op.take(1)).toPromise();
         } });

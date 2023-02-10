@@ -34,7 +34,12 @@ export type ClientActions = {
   _shutdownSelf(): void;
 } & ClientMessage & ServerResponseMsg;
 
-export function createClient(opts?: {/** default 1000 */reconnectWaitMs?: number}) {
+export function createClient(opts?: {
+  /** default 1000 */
+  reconnectWaitMs?: number;
+  /** default http://localhost:14401*/
+  serverEndpoint?: string;
+}) {
   const agent = new http.Agent({keepAlive: true});
   logClient.info('client is created');
 
@@ -86,7 +91,7 @@ export function createClient(opts?: {/** default 1000 */reconnectWaitMs?: number
          !slice.isActionType(act, 'onChange')
       ),
       op.mergeMap(act => new rx.Observable<string | Buffer>(sub => {
-        const req = http.request('http://localhost:14401/cache', {
+        const req = http.request(opts?.serverEndpoint || 'http://localhost:14401/cache', {
           method: 'POST',
           agent
         }, res => {
@@ -116,8 +121,8 @@ export function createClient(opts?: {/** default 1000 */reconnectWaitMs?: number
       }).pipe(
         op.map(out => {
           slice.dispatcher.onRespond(slice.nameOfAction(act)! as keyof ClientMessage, act.payload as any, out);
-          if (slice.isActionType(act, 'shutdownServer'))
-            slice.dispatcher._shutdownSelf();
+          // if (slice.isActionType(act, 'shutdownServer'))
+          //   slice.dispatcher._shutdownSelf();
         }),
         op.catchError((err, src) => {
           logClient.error('Error in action: ' + slice.nameOfAction(act), err);
@@ -129,6 +134,11 @@ export function createClient(opts?: {/** default 1000 */reconnectWaitMs?: number
       op.map(({payload}) => {
         logClient.info('Recieved', payload);
       })
+    ),
+    slice.actionOfType('onChange').pipe(
+      op.filter(({payload: [key, value]}) => key === '__SERVER' && value === 'shutting'),
+      op.take(1),
+      op.map(() => slice.dispatcher._shutdownSelf())
     )
   ).pipe(
     op.takeUntil(slice.actionOfType('_shutdownSelf')),
@@ -137,6 +147,8 @@ export function createClient(opts?: {/** default 1000 */reconnectWaitMs?: number
       return src;
     })
   ).subscribe();
+
+  slice.dispatcher.subscribeKey('__SERVER');
   return {
     ...slice,
     serverReplied<K extends keyof ClientMessage>(

@@ -262,6 +262,8 @@ export function startStore(opts?: {reconnInterval?: number}) {
       } else if (action.type === 'shutdownServer') {
         res.end('ok');
         slice.dispatcher.shutdown();
+        store.getValue().set('__SERVER', 'shutting');
+        store.next(store.getValue());
         return;
       }
       const defaultContent: ServerResponseContent['ping'] = {success: true};
