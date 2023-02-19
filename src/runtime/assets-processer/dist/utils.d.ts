@@ -2,7 +2,7 @@
 import stream from 'stream';
 import { ClientRequest, IncomingMessage } from 'http';
 import { Request, Response, NextFunction } from 'express';
-import ProxyServer, { ServerOptions } from 'http-proxy';
+import proxy, { ServerOptions } from 'http-proxy';
 /**
  * Middleware for printing each response process duration time to log
  * @param req
@@ -30,7 +30,7 @@ export declare function isRedirectableRequest(req: unknown): req is Redirectable
 /**
  * Options of http-proxy-middleware
  */
-export declare function defaultProxyOptions(proxyPath: string, targetUrl: string): ProxyServer.ServerOptions;
+export declare function defaultProxyOptions(proxyPath: string, targetUrl: string): proxy.ServerOptions;
 /** Options of http-proxy
  */
 export declare function defaultHttpProxyOptions(target?: string): ServerOptions;
@@ -39,6 +39,8 @@ export declare function createReplayReadableFactory(readable: NodeJS.ReadableStr
     expectLen?: number;
 }): () => stream.Readable;
 /**
+ * Use createBufferForHttpProxy() instead.
+ *
  * This is not working for POST request according to my experience in Node 16.3.0, due to
  * by the time node-http-proxy emits event "proxyReq", `req.pipe(proxyReq)` has already
  * been executed, meaning the proxyReq has "end" itself as reacting to req.complete: true
@@ -48,6 +50,9 @@ export declare function createReplayReadableFactory(readable: NodeJS.ReadableStr
  * Copied from https://github.com/chimurai/http-proxy-middleware/blob/master/src/handlers/fix-request-body.ts
  */
 export declare function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): void;
+/**
+ * create stream for http-proxy web option "buffer"
+ */
 export declare function createBufferForHttpProxy(req: IncomingMessage, replaceBody?: any): {
     readable: stream.Readable;
     length: number;

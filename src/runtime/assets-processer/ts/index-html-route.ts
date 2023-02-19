@@ -1,48 +1,43 @@
-import {createProxyMiddleware as proxy, Options, fixRequestBody} from 'http-proxy-middleware';
-import express from '@wfh/express-app/dist/express';
+import proxy, {ServerOptions} from 'http-proxy';
 import _ from 'lodash';
 // import Url from 'url';
-import {log4File, config as plinkConfig, ExtensionContext} from '@wfh/plink';
+import {log4File, ExtensionContext} from '@wfh/plink';
 import {getSetting} from '../isom/assets-processer-setting';
+import {createBufferForHttpProxy} from './utils';
 const log = log4File(__filename);
-interface ReqWithNextCb extends express.Request {
-  __goNext: express.NextFunction;
-}
-function isReqWithNextCb(obj: any): obj is ReqWithNextCb {
-  return obj.__goNext != null;
-}
 
 export function proxyToDevServer(api: ExtensionContext) {
   // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
-  let setting: Options | undefined = getSetting().proxyToDevServer;
+  const setting = getSetting().proxyToDevServer as ServerOptions | undefined;
   if (setting == null)
     return;
 
-  const config: Options = _.cloneDeep(setting);
+  const config: ServerOptions = _.cloneDeep(setting);
   config.changeOrigin = true;
   config.ws = true;
-  config.logProvider = () => log;
-  const plinkSetting = plinkConfig();
-  config.onProxyReq = fixRequestBody;
-  config.logLevel = plinkSetting.devMode || plinkSetting.cliOptions?.verbose ? 'debug' : 'info';
-  config.onError = (err, req, res) => {
-    if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
-      log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
-      if (isReqWithNextCb(req))
-        return req.__goNext();
-      return;
-    }
-    log.warn(err);
-    if (isReqWithNextCb(req))
-      req.__goNext(err);
-  };
+  // const plinkSetting = plinkConfig();
+  // config.onProxyReq = fixRequestBody;
+  // config.logLevel = plinkSetting.devMode || plinkSetting.cliOptions?.verbose ? 'debug' : 'info';
+  // config.onError = (err, req, res) => {
+  //   if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
+  //     log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
+  //     if (isReqWithNextCb(req))
+  //       return req.__goNext();
+  //     return;
+  //   }
+  // log.warn(err);
+  // if (isReqWithNextCb(req))
+  //   req.__goNext(err);
+  // };
 
-  const proxyHandler = proxy('/', config);
-  api.expressAppUse((app, express) => {
-    app.use((req, res, next) => {
-      (req as ReqWithNextCb).__goNext = next;
-      proxyHandler(req, res, next);
-    });
+  // const proxyHandler = proxy('/', config);
+  const proxyHanlder = proxy.createProxyServer(config);
+  api.use((req, res, next) => {
+    const body = createBufferForHttpProxy(req);
+    proxyHanlder.web(req, res, {
+      buffer: body?.readable,
+      headers: body ? {'content-length': body?.length + '' || '0'} : {}
+    }, next);
   });
 }
 

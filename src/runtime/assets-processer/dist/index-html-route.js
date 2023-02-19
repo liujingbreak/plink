@@ -2,45 +2,43 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fallbackIndexHtml = exports.proxyToDevServer = void 0;
 const tslib_1 = require("tslib");
-const http_proxy_middleware_1 = require("http-proxy-middleware");
+const http_proxy_1 = tslib_1.__importDefault(require("http-proxy"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 // import Url from 'url';
 const plink_1 = require("@wfh/plink");
 const assets_processer_setting_1 = require("../isom/assets-processer-setting");
+const utils_1 = require("./utils");
 const log = (0, plink_1.log4File)(__filename);
-function isReqWithNextCb(obj) {
-    return obj.__goNext != null;
-}
 function proxyToDevServer(api) {
-    var _a;
     // const hpmLog = log4js.getLogger('assets-process.index-html-route.proxy');
-    let setting = (0, assets_processer_setting_1.getSetting)().proxyToDevServer;
+    const setting = (0, assets_processer_setting_1.getSetting)().proxyToDevServer;
     if (setting == null)
         return;
     const config = lodash_1.default.cloneDeep(setting);
     config.changeOrigin = true;
     config.ws = true;
-    config.logProvider = () => log;
-    const plinkSetting = (0, plink_1.config)();
-    config.onProxyReq = http_proxy_middleware_1.fixRequestBody;
-    config.logLevel = plinkSetting.devMode || ((_a = plinkSetting.cliOptions) === null || _a === void 0 ? void 0 : _a.verbose) ? 'debug' : 'info';
-    config.onError = (err, req, res) => {
-        if (err.code === 'ECONNREFUSED') {
-            log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
-            if (isReqWithNextCb(req))
-                return req.__goNext();
-            return;
-        }
-        log.warn(err);
-        if (isReqWithNextCb(req))
-            req.__goNext(err);
-    };
-    const proxyHandler = (0, http_proxy_middleware_1.createProxyMiddleware)('/', config);
-    api.expressAppUse((app, express) => {
-        app.use((req, res, next) => {
-            req.__goNext = next;
-            proxyHandler(req, res, next);
-        });
+    // const plinkSetting = plinkConfig();
+    // config.onProxyReq = fixRequestBody;
+    // config.logLevel = plinkSetting.devMode || plinkSetting.cliOptions?.verbose ? 'debug' : 'info';
+    // config.onError = (err, req, res) => {
+    //   if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
+    //     log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
+    //     if (isReqWithNextCb(req))
+    //       return req.__goNext();
+    //     return;
+    //   }
+    // log.warn(err);
+    // if (isReqWithNextCb(req))
+    //   req.__goNext(err);
+    // };
+    // const proxyHandler = proxy('/', config);
+    const proxyHanlder = http_proxy_1.default.createProxyServer(config);
+    api.use((req, res, next) => {
+        const body = (0, utils_1.createBufferForHttpProxy)(req);
+        proxyHanlder.web(req, res, {
+            buffer: body === null || body === void 0 ? void 0 : body.readable,
+            headers: body ? { 'content-length': (body === null || body === void 0 ? void 0 : body.length) + '' || '0' } : {}
+        }, next);
     });
 }
 exports.proxyToDevServer = proxyToDevServer;

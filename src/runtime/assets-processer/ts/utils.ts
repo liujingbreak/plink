@@ -10,7 +10,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 // import {readCompressedResponse} from '@wfh/http-server/dist/utils';
 import {logger, exitHooks, config, log4File, ExtensionContext} from '@wfh/plink';
-import ProxyServer, {ServerOptions} from 'http-proxy';
+import proxy, {ServerOptions} from 'http-proxy';
 import * as _runner from '@wfh/plink/wfh/dist/package-runner';
 import {httpProxyObservable, observeProxyResponse} from './http-proxy-observable';
 
@@ -75,7 +75,7 @@ export function setupHttpProxy(proxyPath: string, targetUrl: string,
 
   const defaultOpt = defaultProxyOptions(proxyPath, targetUrl);
   const api = require('__api') as ExtensionContext;
-  const proxyServer = new ProxyServer(defaultOpt);
+  const proxyServer = proxy.createProxyServer(defaultOpt);
   const obs = httpProxyObservable(proxyServer);
   if (opts.deleteOrigin) {
     obs.proxyReq.pipe(
@@ -276,6 +276,8 @@ export function createReplayReadableFactory(
 }
 
 /**
+ * Use createBufferForHttpProxy() instead.
+ *
  * This is not working for POST request according to my experience in Node 16.3.0, due to
  * by the time node-http-proxy emits event "proxyReq", `req.pipe(proxyReq)` has already
  * been executed, meaning the proxyReq has "end" itself as reacting to req.complete: true 
@@ -311,6 +313,9 @@ export function fixRequestBody(proxyReq: ClientRequest, req: IncomingMessage): v
   }
 }
 
+/**
+ * create stream for http-proxy web option "buffer"
+ */
 export function createBufferForHttpProxy(req: IncomingMessage, replaceBody?: any) {
   const contentType = req.headers['content-type'];
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

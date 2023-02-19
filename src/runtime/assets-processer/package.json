@@ -46,6 +46,7 @@
     "proxy-agent": "^5.0.0"
   },
   "devDependencies": {
+    "@types/http-proxy": "1.17.9",
     "@types/adm-zip": "^0.4.33",
     "@types/lodash": "^4.14.92",
     "@types/yazl": "2.4.2",
