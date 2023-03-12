@@ -98,7 +98,7 @@ export type ActionStreamControl<AC> = {
   action$: Observable<ActionTypes<AC>[keyof AC]>;
   actionOfType: <T extends keyof AC>(type: T) => Observable<ActionTypes<AC>[T]>;
   ofType: OfTypeFn<AC>;
-  isActionType: <K extends keyof AC>(action: {type: unknown;}, type: K) => action is ActionTypes<AC>[K];
+  isActionType: <K extends keyof AC>(action: {type: unknown}, type: K) => action is ActionTypes<AC>[K];
   nameOfAction: (action: ActionTypes<AC>[keyof AC]) => keyof AC | undefined;
 };
 
@@ -134,7 +134,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     }
     const dispatch = (...params: any[]) => {
       const action = {
-        type: typePrefix + type,
+        type: typePrefix + (type as string),
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
       } as ActionTypes<AC>[keyof AC];
@@ -215,7 +215,7 @@ export interface OfTypeFn<AC> {
 
 function createIsActionTypeFn<AC>(prefix: string) {
   return function isActionType<K extends keyof AC>(action: {type: unknown}, type: K): action is ActionTypes<AC>[K] {
-    return action.type === prefix + type;
+    return action.type === prefix + (type as string);
   };
 }
 
@@ -225,7 +225,8 @@ function createOfTypeOperator<AC>(typePrefix = ''): OfTypeFn<AC> {
     (upstream: Observable<any>) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return upstream.pipe(
-        filter((action) : action is ActionTypes<AC>[T] => types.some((type) => action.type === typePrefix + type)),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        filter((action) : action is ActionTypes<AC>[T] => types.some((type) => action.type === typePrefix + (type as string))),
         share()
       ) ;
     };

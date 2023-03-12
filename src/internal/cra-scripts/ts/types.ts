@@ -1,6 +1,6 @@
 import {Configuration} from 'webpack';
-import {CommandOption} from './build-options';
 import ts from 'typescript';
+import {CommandOption} from './build-options';
 export interface CraScriptsPaths {
   dotenv: string;
   appPath: string;

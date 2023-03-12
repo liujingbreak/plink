@@ -16,7 +16,7 @@ const cli: CliExtension = (program) => {
     .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
     .option('-w, --watch', 'when argument is "lib", watch file changes and compile', false)
     .option('-i, --include <module-path-regex>',
-    '(multiple value), when argument is "lib", we will set "external" property of Webpack configuration for all request not begin with "." (not relative path), ' +
+      '(multiple value), when argument is "lib", we will set "external" property of Webpack configuration for all request not begin with "." (not relative path), ' +
     'meaning all non-relative modules will not be included in the output bundle file, you need to explicitly provide a list in' +
     ' Regular expression (e.g. -i \'^someLib(/|$)\' -i \'^someLib2(/|$)\' -i ...) ' +
     ' to make them be included in bundle file. To make specific module (React) external: -i \'^(?!react(-dom)?($|/))\'', arrayOptionFn, [])
@@ -25,7 +25,7 @@ const cli: CliExtension = (program) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
       }
-      runReactScripts(buildCmd.name(), buildCmd.opts() , type, pkgName);
+      runReactScripts(buildCmd.name(), buildCmd.opts(), type, pkgName);
 
       require('react-scripts/scripts/build');
     });
@@ -34,10 +34,10 @@ const cli: CliExtension = (program) => {
   program.command('cra-build-tsd <package-name>')
     .description('Compile packages for only generating Typescript definition files. If you are creating a library, ' +
       'command "cra-build" will also generate tsd file along with client bundle', {
-        'package-name': 'target package name, the "scope" name part can be omitted'
-      })
+      'package-name': 'target package name, the "scope" name part can be omitted'
+    })
     .action(async (pkgName): Promise<void> => {
-      runReactScripts(StartCmd.name(), StartCmd.opts() , 'lib', pkgName);
+      runReactScripts(StartCmd.name(), StartCmd.opts(), 'lib', pkgName);
       await (await import('../tsd-generate')).buildTsd([pkgName]);
     });
 
@@ -50,7 +50,7 @@ const cli: CliExtension = (program) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
       }
-      runReactScripts(StartCmd.name(), StartCmd.opts() , 'app', pkgName);
+      runReactScripts(StartCmd.name(), StartCmd.opts(), 'app', pkgName);
       require('react-scripts/scripts/start');
     });
   withClicOpt(StartCmd);
@@ -62,27 +62,27 @@ const cli: CliExtension = (program) => {
     });
 
   program.command('cra-analyze [js-dir]')
-  .alias('cra-analyse')
-  .description('Run source-map-explorer', {
-    'js-dir': 'Normally this path should be <root-dir>dist/static/<output-path-basename>/static/js'
-  })
-  .action(async (outputPath: string) => {
-    const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const smeBin = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'] as string;
+    .alias('cra-analyse')
+    .description('Run source-map-explorer', {
+      'js-dir': 'Normally this path should be <root-dir>dist/static/<output-path-basename>/static/js'
+    })
+    .action(async (outputPath: string) => {
+      const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const smeBin = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'] as string;
 
-    await new Promise<any>((resolve, rej) => {
-      const cp = fork(Path.resolve(smePkgDir, smeBin), [
-        '--gzip', '--no-root',
-        Path.resolve(outputPath ? outputPath : '', '*.js')
-      ], {stdio: ['inherit', 'inherit', 'inherit', 'ipc']});
-      cp.on('error', err => {
-        console.error(err);
-        rej(err);
+      await new Promise<any>((resolve, rej) => {
+        const cp = fork(Path.resolve(smePkgDir, smeBin), [
+          '--gzip', '--no-root',
+          Path.resolve(outputPath ? outputPath : '', '*.js')
+        ], {stdio: ['inherit', 'inherit', 'inherit', 'ipc']});
+        cp.on('error', err => {
+          console.error(err);
+          rej(err);
+        });
+        cp.on('exit', (_sign, code) => {resolve(code); });
       });
-      cp.on('exit', (_sign, code) => {resolve(code); });
     });
-  });
 };
 
 function withClicOpt(cmd: commander.Command) {

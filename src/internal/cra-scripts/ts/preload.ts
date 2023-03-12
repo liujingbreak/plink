@@ -3,20 +3,20 @@
  * Do not actually import entity other than "type" from here
  * Because we have not set node path yet.
  */
+import Path from 'path';
+import {sep} from 'path';
+import fs from 'fs-extra';
+import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
 import {drawPuppy} from './utils';
 import _paths from './cra-scripts-paths';
 import {getCmdOptions} from './utils';
-import Path from 'path';
-import fs from 'fs-extra';
 import {hackWebpack4Compiler} from './hack-webpack-api';
-import {sep} from 'path';
-import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
 import {register as registerForkTsChecker} from './hack-fork-ts-checker';
 // Avoid child process require us!
 const deleteExecArgIdx: number[] = [];
 for (let i = 0, l = process.execArgv.length; i < l; i++) {
-  if (i < l - 1 && /^(?:\-r|\-\-require)$/.test(process.execArgv[i]) &&
-  /^@wfh\/cra\-scripts($|\/)/.test(process.execArgv[i + 1])) {
+  if (i < l - 1 && /^(?:-r|--require)$/.test(process.execArgv[i]) &&
+  /^@wfh\/cra-scripts($|\/)/.test(process.execArgv[i + 1])) {
     deleteExecArgIdx.push(i);
   }
 }
@@ -26,7 +26,7 @@ deleteExecArgIdx.reduce((offset, deleteIdx) => {
 }, 0);
 
 export function poo() {
-  let getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
+  const getCraPaths = (require('./cra-scripts-paths') as {default: typeof _paths}).default;
 
   const reactScriptsPath = Path.resolve('node_modules/react-scripts');
   // const reactDevUtilsPath = Path.resolve('node_modules/react-dev-utils');

@@ -1,27 +1,27 @@
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
-import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
-import type { PlinkEnv } from '@wfh/plink/wfh/dist/node-path';
+import Path from 'path';
+import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
+import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';
 import StatsPlugin from '@wfh/webpack-common/dist/webpack-stats-plugin';
-import { Options as TsLoaderOpts } from '@wfh/webpack-common/dist/ts-loader';
+import {Options as TsLoaderOpts} from '@wfh/webpack-common/dist/ts-loader';
 import fs from 'fs-extra';
 import _ from 'lodash';
 // import walkPackagesAndSetupInjector from './injector-setup';
 import {logger, packageOfFileFactory} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
-import Path from 'path';
-import { Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem, Compiler, ProgressPlugin } from 'webpack';
+import {Configuration, RuleSetLoader, RuleSetRule, RuleSetUseItem, Compiler, ProgressPlugin} from 'webpack';
 import api from '__plink';
 // import { findPackage } from './build-target-helper';
-import { ReactScriptsHandler } from './types';
-import { drawPuppy, getCmdOptions, printConfig,getReportDir } from './utils';
+import TemplateHtmlPlugin from '@wfh/webpack-common/dist/template-html-plugin';
+import nodeResolve from 'resolve';
+import {getSetting} from '../isom/cra-scripts-setting';
+import {ReactScriptsHandler} from './types';
+import {drawPuppy, getCmdOptions, printConfig, getReportDir} from './utils';
 // import {createLazyPackageFileFinder} from '@wfh/plink/wfh/dist/package-utils';
 import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
-import TemplateHtmlPlugin from '@wfh/webpack-common/dist/template-html-plugin';
-import nodeResolve from 'resolve';
 // import {PlinkWebpackResolvePlugin} from '@wfh/webpack-common/dist/webpack-resolve-plugin';
-import {getSetting} from '../isom/cra-scripts-setting';
 // const oraProm = require('../ora') as Promise<typeof _ora>;
 
 const log = logger.getLogger('@wfh/cra-scripts.webpack-config');
@@ -183,7 +183,7 @@ function changeForkTsCheckerPlugin(config: Configuration) {
   // let forkTsCheckIdx = -1;
   for (let i = 0, l = plugins.length; i < l; i++) {
     if (plugins[i] instanceof cnst) {
-      (plugins[i] as any).reportFiles = [];
+      (plugins[i] ).reportFiles = [];
       // forkTsCheckIdx = i;
       break;
     }
@@ -272,14 +272,14 @@ function insertLessLoaderRule(origRules: RuleSetRule[]): void {
   };
 
   // Insert at last 2nd position, right before file-loader
-  oneOf.splice(oneOf.length -2, 0, lessModuleRule, lessRule);
+  oneOf.splice(oneOf.length - 2, 0, lessModuleRule, lessRule);
 
   function createLessRuleUse(useItems: RuleSetUseItem[]) {
     return useItems.map(useItem => {
       if (typeof useItem === 'string' || typeof useItem === 'function') {
         return useItem;
       }
-      let newUseItem: RuleSetLoader = {...useItem};
+      const newUseItem: RuleSetLoader = {...useItem};
       if (useItem.loader && /[\\/]css\-loader[\\/]/.test(useItem.loader)) {
         newUseItem.options = {
           ...(newUseItem.options as any || {}),
@@ -321,7 +321,7 @@ function changeFileLoader(rules: RuleSetRule[]): void {
       checkSet(rule.use);
 
     } else if (Array.isArray(rule.loader)) {
-        checkSet(rule.loader);
+      checkSet(rule.loader);
     } else if (rule.oneOf) {
       insertRawLoader(rule.oneOf);
       return changeFileLoader(rule.oneOf);
@@ -338,8 +338,8 @@ function changeFileLoader(rules: RuleSetRule[]): void {
           options: fileLoaderOptions
         };
       } else {
-        const ruleSetRule = rule as RuleSetRule | RuleSetLoader;
-         if ((typeof ruleSetRule.loader) === 'string' &&
+        const ruleSetRule = rule ;
+        if ((typeof ruleSetRule.loader) === 'string' &&
         ((ruleSetRule.loader as string).indexOf('file-loader') >= 0 ||
         (ruleSetRule.loader as string).indexOf('url-loader') >= 0
         )) {
@@ -361,8 +361,8 @@ function changeFileLoader(rules: RuleSetRule[]): void {
       }
       if (_rule.test && _rule.test.toString() === '/\.(js|mjs|jsx|ts|tsx)$/' &&
         _rule.include) {
-          delete _rule.include;
-          _rule.test = createRuleTestFunc4Src(_rule.test, craPaths.appSrc);
+        delete _rule.include;
+        _rule.test = createRuleTestFunc4Src(_rule.test, craPaths.appSrc);
       }
     }
   }
@@ -374,8 +374,9 @@ function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) 
     const pk = api.findPackageByFile(file);
 
     const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
-      (origTest instanceof RegExp) ? origTest.test(file) :
-        (origTest instanceof Function ? origTest(file) : origTest === file);
+      (origTest instanceof RegExp)
+      ? origTest.test(file) :
+      (origTest instanceof Function ? origTest(file) : origTest === file);
     // log.warn(`[webpack.config] babel-loader: ${file}`, yes);
     return yes;
   };
@@ -384,9 +385,7 @@ function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) 
 function insertRawLoader(rules: RuleSetRule[]) {
   const htmlLoaderRule = {
     test: /\.html$/,
-    use: [
-      {loader: 'raw-loader'}
-    ]
+    use: [{loader: 'raw-loader'}]
   };
   rules.push(htmlLoaderRule);
 }
@@ -397,7 +396,7 @@ function replaceSassLoader(rules: RuleSetRule[]) {
   oneOf.filter(subRule => Array.isArray(subRule.use))
     .forEach(subRule => {
       const useItem = (subRule.use as RuleSetLoader[])
-      .find(useItem => useItem.loader && /sass-loader/.test(useItem.loader));
+        .find(useItem => useItem.loader && /sass-loader/.test(useItem.loader));
       if (useItem != null) {
         useItem.options = {
           implementation: require('sass'),

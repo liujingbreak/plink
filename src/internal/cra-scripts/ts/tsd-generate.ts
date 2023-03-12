@@ -1,11 +1,11 @@
-import { getCmdOptions } from './utils';
 import {TscCmdParam} from '@wfh/plink/wfh/dist/ts-cmd';
 import {findPackagesByNames} from '@wfh/plink';
-import {PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT} from './types';
-import {runTsConfigHandlers4LibTsd} from './utils';
 import * as _tscmd from '@wfh/plink/wfh/dist/ts-cmd';
 import _ from 'lodash';
 import ts from 'typescript';
+import {runTsConfigHandlers4LibTsd} from './utils';
+import {PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT} from './types';
+import {getCmdOptions} from './utils';
 
 export async function buildTsd(packages?: string[], overridePackgeDirs: TscCmdParam['overridePackgeDirs'] = {}) {
 

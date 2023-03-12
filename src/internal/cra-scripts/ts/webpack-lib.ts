@@ -1,12 +1,12 @@
-import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
 // import {findPackage} from './build-target-helper';
 // import childProc from 'child_process';
 import Path from 'path';
-import { getCmdOptions } from './utils';
+import {Worker} from 'worker_threads';
 import {logger as log4js, findPackagesByNames, plinkEnv} from '@wfh/plink';
 import chalk from 'chalk';
-import {Worker} from 'worker_threads';
+import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
 import _ from 'lodash';
+import {getCmdOptions} from './utils';
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -44,7 +44,8 @@ export default function change(buildPackage: string, config: Configuration, node
 
   config.plugins = config.plugins!.filter(plugin => {
 
-    return [MiniCssExtractPlugin,
+    return [
+      MiniCssExtractPlugin,
       ForkTsCheckerWebpackPlugin,
       InlineChunkHtmlPlugin,
       HotModuleReplacementPlugin
@@ -150,7 +151,7 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
       checkSet(rule.use);
 
     } else if (Array.isArray(rule.loader)) {
-        checkSet(rule.loader);
+      checkSet(rule.loader);
     } else if (rule.oneOf) {
       return findAndChangeRule(rule.oneOf);
     }
@@ -159,7 +160,7 @@ function findAndChangeRule(rules: RuleSetRule[]): void {
   function checkSet(set: (RuleSetRule | RuleSetUseItem)[]) {
     const found = set.findIndex(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
-      use => (use as any).loader && (use as any).loader.indexOf(MiniCssExtractPlugin.loader) >= 0);
+      use => (use ).loader && (use ).loader.indexOf(MiniCssExtractPlugin.loader) >= 0);
     // const found = rule.use.findIndex(use => (use as any).loader && (use as any).loader.indexOf('mini-css-extract-plugin') >= 0);
     if (found >= 0) {
       set.splice(found, 1);

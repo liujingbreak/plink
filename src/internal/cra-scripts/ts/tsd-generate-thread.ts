@@ -1,7 +1,7 @@
-import { parentPort, isMainThread} from 'worker_threads';
+import {parentPort, isMainThread} from 'worker_threads';
+import {initConfig, initAsChildProcess} from '@wfh/plink/wfh/dist/utils/bootstrap-process';
 import * as tsdGen from './tsd-generate';
 
-import {initConfig, initAsChildProcess} from '@wfh/plink/wfh/dist/utils/bootstrap-process';
 (async function() {
   if (!isMainThread) {
     initAsChildProcess();

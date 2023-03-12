@@ -1,10 +1,10 @@
+import Path from 'path';
+import fs from 'fs';
 import {closestCommonParentDir} from '@wfh/plink/wfh/dist/utils/misc';
 import {getState} from '@wfh/plink/wfh/dist/package-mgr';
 import {getRootDir, setTsCompilerOptForNodePath, plinkEnv/* , log4File*/} from '@wfh/plink';
 import ts from 'typescript';
 import {runTsConfigHandlers, getReportDir} from './utils';
-import Path from 'path';
-import fs from 'fs';
 // const log = log4File(__filename);
 
 export function changeTsConfigFile() {
@@ -12,17 +12,17 @@ export function changeTsConfigFile() {
   const plinkRoot = getRootDir();
   const rootDir = closestCommonParentDir(Array.from(
     getState().project2Packages.keys()
-    ).map(prjDir => Path.resolve(plinkRoot, prjDir))).replace(/\\/g, '/');
+  ).map(prjDir => Path.resolve(plinkRoot, prjDir))).replace(/\\/g, '/');
 
   const tsconfigJson =
     ts.readConfigFile(process.env._plink_cra_scripts_tsConfig!,
       (file) => fs.readFileSync(file, 'utf-8')).config as {
-        compilerOptions: {
-          rootDir?: string; baseUrl?: string; paths: {[k: string]: string[]};
-          preserveSymlinks?: boolean;
-        };
-        include?: string[];
+      compilerOptions: {
+        rootDir?: string; baseUrl?: string; paths: {[k: string]: string[]};
+        preserveSymlinks?: boolean;
       };
+      include?: string[];
+    };
     // JSON.parse(fs.readFileSync(process.env._plink_cra_scripts_tsConfig!, 'utf8'));
   const tsconfigDir = Path.dirname(process.env._plink_cra_scripts_tsConfig!);
 

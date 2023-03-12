@@ -1,15 +1,15 @@
-import {getCmdOptions} from './utils';
 // import {findPackage} from './build-target-helper';
 import Path from 'path';
-import _ from 'lodash';
 import fs from 'fs';
+import _ from 'lodash';
 // import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 import pCfg from '@wfh/plink/wfh/dist/config';
-import { ConfigHandlerMgr } from '@wfh/plink/wfh/dist/config-handler';
-import {ReactScriptsHandler, CraScriptsPaths, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT, PKG_APP_ENTRY_PROP,
-  PKG_APP_ENTRY_DEFAULT} from './types';
+import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
 import fsext from 'fs-extra';
 import {log4File, config, findPackagesByNames} from '@wfh/plink';
+import {ReactScriptsHandler, CraScriptsPaths, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT, PKG_APP_ENTRY_PROP,
+  PKG_APP_ENTRY_DEFAULT} from './types';
+import {getCmdOptions} from './utils';
 const log = log4File(__filename);
 
 let craScriptsPaths: CraScriptsPaths;

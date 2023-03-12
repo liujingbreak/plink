@@ -3,14 +3,14 @@
  * The actual working solution is hack-fork-ts-checker.ts
  */
 
+import Path from 'path';
+import fs from 'fs';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import {closestCommonParentDir} from '@wfh/plink/wfh/dist/utils/misc';
 import {getState} from '@wfh/plink/wfh/dist/package-mgr';
 import {setTsCompilerOptForNodePath, plinkEnv} from '@wfh/plink';
 import ts from 'typescript';
 import {runTsConfigHandlers} from './utils';
-import Path from 'path';
-import fs from 'fs';
 // const log = log4File(__filename);
 
 export class ForkTsCheckerExtend extends ForkTsCheckerWebpackPlugin {
@@ -22,7 +22,7 @@ export class ForkTsCheckerExtend extends ForkTsCheckerWebpackPlugin {
         getState().project2Packages.keys())
         .map(prjDir => Path.resolve(plinkRoot, prjDir))).replace(/\\/g, '/');
 
-      const tsconfigJson: {compilerOptions: any, include?: string[]} =
+      const tsconfigJson: {compilerOptions: any; include?: string[]} =
         ts.readConfigFile(opts.tsconfig!, (file) => fs.readFileSync(file, 'utf-8')).config;
       const tsconfigDir = Path.dirname(opts.tsconfig!);
 

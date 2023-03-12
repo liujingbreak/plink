@@ -1,7 +1,7 @@
+import Path from 'path';
 import _webpack from 'webpack';
 import chalk from 'chalk';
 import {getCmdOptions} from './utils';
-import Path from 'path';
 // Don't install @types/react-dev-utils, it breaks latest html-webpack-plugin's own type definitions 
 const _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
 
@@ -29,7 +29,7 @@ export function hackWebpack4Compiler() {
           if (Object.prototype.hasOwnProperty.call(err, 'postcssNode')) {
             errMessage +=
               '\nCompileError: Begins at CSS selector ' +
-              (err as any).postcssNode.selector;
+              (err ).postcssNode.selector;
           }
           messages = formatWebpackMessages({
             errors: [errMessage],
@@ -37,7 +37,7 @@ export function hackWebpack4Compiler() {
           } as any);
         } else {
           messages = formatWebpackMessages(
-            stats.toJson({ all: false, warnings: true, errors: true })
+            stats.toJson({all: false, warnings: true, errors: true})
           );
         }
         if (messages.errors.length) {

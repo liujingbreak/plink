@@ -1,11 +1,11 @@
 /* eslint-disable no-console */
-import util, { isRegExp } from 'util';
-import {CommandOption} from './build-options';
+import util, {isRegExp} from 'util';
 import Path from 'path';
 import _ from 'lodash';
 import {gt} from 'semver';
-import * as _craPaths from './cra-scripts-paths';
 import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
+import * as _craPaths from './cra-scripts-paths';
+import {CommandOption} from './build-options';
 import {ReactScriptsHandler} from './types';
 const log = log4File(__filename);
 

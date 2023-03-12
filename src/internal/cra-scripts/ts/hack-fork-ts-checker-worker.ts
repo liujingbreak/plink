@@ -5,14 +5,14 @@
  *  - change rootNames in parameters of ts.createProgram()
  *  - change compilerOptions.rootDir in parameters of ts.createProgram()
  */
+import Path from 'path';
 import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
 import chalk from 'chalk';
-import Path from 'path';
 import ts, {CompilerOptions, CompilerHost, CreateProgramOptions} from 'typescript';
 import nodeResolve from 'resolve';
-import {changeTsConfigFile} from './change-tsconfig';
 import {log4File} from '@wfh/plink';
 import plink from '__plink';
+import {changeTsConfigFile} from './change-tsconfig';
 
 const indexJs = process.env._plink_cra_scripts_indexJs!;
 
@@ -53,7 +53,7 @@ const _createPrm = localTs.createProgram;
 localTs.createProgram = function(rootNames: readonly string[], options: CompilerOptions, host?: CompilerHost) {
   try {
     // const co = changeTsConfigFile();
-    let changedRootNames: string[] = [indexJs.replace(/\\/g, '/')];
+    const changedRootNames: string[] = [indexJs.replace(/\\/g, '/')];
     // Because createProgram() is overloaded, it might accept 1 or 5 parameters
     if (arguments.length === 1) {
       options = (arguments[0] as CreateProgramOptions).options;
