@@ -24,12 +24,12 @@ const SurfaceDemo = loadable(async () => {
 });
 
 export const routes: AnimatableRoutesProps['routes'] = [
-  {path: '/test', children: 'test ok'},
-  {path: '/demo/background', children: <BgDemo/>},
-  {path: '/demo/background-blur', children: <BgBlurDemo/>},
-  {path: '/demo/surface', children: <SurfaceDemo/>},
-  {path: '/demo', children: <LazyDemoComponent/>},
-  {path: '/doc/:mdKey', children: <LazyDocComponent/>}
+  {path: '/test', element: 'test ok'},
+  {path: '/demo/background', element: <BgDemo/>},
+  {path: '/demo/background-blur', element: <BgBlurDemo/>},
+  {path: '/demo/surface', element: <SurfaceDemo/>},
+  {path: '/demo', element: <LazyDemoComponent/>},
+  {path: '/doc/:mdKey', element: <LazyDocComponent/>}
 ];
 
 export const defaultRedirect = '/demo';

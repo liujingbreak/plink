@@ -1,4 +1,3 @@
-/// <reference types="webpack-dev-server" />
 import { Configuration } from 'webpack';
 /**
  * process.env.INLINE_RUNTIME_CHUNK = 'false' must be set before goes to react-scripts's webpack configure

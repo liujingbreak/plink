@@ -4,7 +4,7 @@ import Path from 'path';
 import {Worker} from 'worker_threads';
 import {logger as log4js, findPackagesByNames, plinkEnv} from '@wfh/plink';
 import chalk from 'chalk';
-import {Configuration, Compiler, RuleSetRule, RuleSetUseItem} from 'webpack';
+import {Configuration, Compiler, RuleSetRule, RuleSetUseItem, EntryObject} from 'webpack';
 import _ from 'lodash';
 import {getCmdOptions} from './utils';
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
@@ -54,7 +54,7 @@ export default function change(buildPackage: string, config: Configuration, node
     ].every(cls => !(plugin instanceof cls));
   });
 
-  findAndChangeRule(config.module!.rules);
+  findAndChangeRule(config.module!.rules!);
 
   const cmdOpts = getCmdOptions();
   const externalRequestSet = new Set<string>();
@@ -70,24 +70,21 @@ export default function change(buildPackage: string, config: Configuration, node
 
   (config.externals as Extract<Configuration['externals'], Array<any>>)
     .push(
-      async (context: string, request: string, callback: (error?: any, result?: any) => void ) => {
-        if (includeModuleRe.some(rg => rg.test(request))) {
+      async ({context, request}, callback: (error?: any, result?: any) => void ) => {
+        if (request && includeModuleRe.some(rg => rg.test(request))) {
           return callback();
         }
         if (entrySet == null && config.entry)
           entrySet = await createEntrySet(config.entry);
 
-        if ((!request.startsWith('.') && !entrySet.has(request) &&
+        if (request && (!request.startsWith('.') && !entrySet.has(request) &&
           !/[?!]/.test(request)) // && (!/(?:^|[\\/])@babel[\\/]runtime[\\/]/.test(request))
-          ||
-          // TODO: why hard coe bklib ?
-          request.indexOf('/bklib.min') >= 0) {
-
+        ) {
           if (Path.isAbsolute(request)) {
             log.info('request absolute path:', request);
             return callback();
           } else {
-            log.debug('external request:', request, `(${context})`);
+            log.debug('external request:', request, `(${context ?? ''})`);
             externalRequestSet.add(request);
             return callback(null, request);
           }
@@ -122,7 +119,9 @@ export default function change(buildPackage: string, config: Configuration, node
   );
 }
 
-async function createEntrySet(configEntry: NonNullable<Configuration['entry']>, entrySet?: Set<string>) {
+type EntryDescription = EntryObject extends {[index: string]: infer V} ? Exclude<V, string | string[]> : unknown;
+
+async function createEntrySet(configEntry: NonNullable<Configuration['entry'] | EntryDescription>, entrySet?: Set<string>) {
   if (entrySet == null)
     entrySet = new Set<string>();
 
@@ -135,32 +134,38 @@ async function createEntrySet(configEntry: NonNullable<Configuration['entry']>, 
   } else if (typeof configEntry === 'function') {
     await Promise.resolve(configEntry()).then(entries => createEntrySet(entries));
   } else if (typeof configEntry === 'object') {
-    await Promise.all(Object.entries(configEntry).map(([_key, value]) => {
-      return createEntrySet(value);
-    }));
+    if (configEntry.import) {
+      await createEntrySet(configEntry.import);
+    } else {
+      await Promise.all(Object.entries(configEntry).map(([_key, value]) => {
+        return createEntrySet(value);
+      }));
+    }
   }
   return entrySet;
 }
 
+type RuleSetUseItemObj = Exclude<RuleSetUseItem, string | ((...a: any[]) => any)>;
 
-function findAndChangeRule(rules: RuleSetRule[]): void {
+function findAndChangeRule(rules: NonNullable<NonNullable<Configuration['module']>['rules']> | RuleSetUseItem[]): void {
   // TODO: check in case CRA will use Rule.use instead of "loader"
+  if (!Array.isArray(rules))
+    return;
   checkSet(rules);
   for (const rule of rules) {
-    if (Array.isArray(rule.use)) {
-      checkSet(rule.use);
-
-    } else if (Array.isArray(rule.loader)) {
-      checkSet(rule.loader);
-    } else if (rule.oneOf) {
-      return findAndChangeRule(rule.oneOf);
+    if (typeof rule === 'string')
+      continue;
+    if (Array.isArray((rule as RuleSetRule).use)) {
+      checkSet((rule as RuleSetRule).use as RuleSetUseItem[]);
+    } else if ((rule as RuleSetRule).oneOf) {
+      return findAndChangeRule((rule as RuleSetRule).oneOf!);
     }
   }
 
-  function checkSet(set: (RuleSetRule | RuleSetUseItem)[]) {
+  function checkSet(set: RuleSetUseItem[]) {
     const found = set.findIndex(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
-      use => (use ).loader && (use ).loader.indexOf(MiniCssExtractPlugin.loader) >= 0);
+      use => (use as RuleSetUseItemObj).loader && (use as RuleSetUseItemObj).loader!.indexOf(MiniCssExtractPlugin.loader) >= 0);
     // const found = rule.use.findIndex(use => (use as any).loader && (use as any).loader.indexOf('mini-css-extract-plugin') >= 0);
     if (found >= 0) {
       set.splice(found, 1);

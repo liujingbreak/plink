@@ -154,7 +154,9 @@ function createIsActionTypeFn(prefix) {
 function createOfTypeOperator(typePrefix = '') {
     return (...types) => (upstream) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        return upstream.pipe((0, operators_1.filter)((action) => types.some((type) => action.type === typePrefix + type)), (0, operators_1.share)());
+        return upstream.pipe(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (0, operators_1.filter)((action) => types.some((type) => action.type === typePrefix + type)), (0, operators_1.share)());
     };
 }
 //# sourceMappingURL=rx-utils.js.map

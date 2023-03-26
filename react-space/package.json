@@ -45,7 +45,7 @@
     "@wfh/redux-toolkit-observable": "1.0.5",
     "@wfh/translate-generator": "1.1.4",
     "@wfh/thread-promise-pool": "1.0.1-1",
-    "@reduxjs/toolkit": "~1.5.0",
+    "@reduxjs/toolkit": "~1.9.3",
     "redux-observable": "~1.2.0",
     "react-app-polyfill": "^2.0.0",
     "@wfh/express-app": "1.1.8",

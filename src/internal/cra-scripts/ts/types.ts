@@ -1,5 +1,6 @@
 import {Configuration} from 'webpack';
 import ts from 'typescript';
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import {CommandOption} from './build-options';
 export interface CraScriptsPaths {
   dotenv: string;
@@ -16,6 +17,8 @@ export interface CraScriptsPaths {
   testsSetup: string;
   proxySetup: string;
   appNodeModules: string;
+  appWebpackCache: string;
+  appTsBuildInfoFile: string;
   swSrc: string;
   publicUrlOrPath: string;
   // These properties only exist before ejecting:
@@ -23,6 +26,9 @@ export interface CraScriptsPaths {
   ownNodeModules: string; // This is empty on npm 3
   appTypeDeclarations: string;
   ownTypeDeclarations: string;
+
+  // A simlink path to appIndexJs which is under node_modules
+  plinkEntryFileSymlink: string;
 }
 export interface ReactScriptsHandler {
   /** Change CRA's paths  */
@@ -40,3 +46,5 @@ export const PKG_LIB_ENTRY_DEFAULT = 'public_api.ts';
 export const PKG_APP_ENTRY_PROP = 'cra-app-entry';
 export const PKG_APP_ENTRY_DEFAULT = 'start.tsx';
 
+export type ForkTsCheckerWebpackPluginOptions = NonNullable<ConstructorParameters<typeof ForkTsCheckerWebpackPlugin>[0]>;
+export type ForkTsCheckerWebpackPluginTypescriptOpts = Exclude<NonNullable<ForkTsCheckerWebpackPluginOptions['typescript']>, boolean>;

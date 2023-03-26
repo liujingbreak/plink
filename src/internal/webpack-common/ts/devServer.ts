@@ -1,5 +1,4 @@
-import * as wp from 'webpack';
-import {Application} from 'express';
+import {Configuration} from 'webpack-dev-server';
 import {log4File} from '@wfh/plink';
 const log = log4File(__filename);
 
@@ -8,15 +7,15 @@ const log = log4File(__filename);
  * Allow CORS
  * @param webpackConfig 
  */
-export default function(webpackConfig: {devServer: wp.Configuration['devServer']}) {
+export default function(webpackConfig: {devServer: Configuration}) {
   if (!webpackConfig.devServer) {
     return;
   }
   const devServer = webpackConfig.devServer;
-  const origin = webpackConfig.devServer.before;
+  const origin = webpackConfig.devServer.onBeforeSetupMiddleware;
   devServer.host = '0.0.0.0';
 
-  devServer.before = function before(app: Application) {
+  devServer.onBeforeSetupMiddleware = function(devServer) {
     // To elimiate HMR web socket issue:
     //   Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
     // at ServerResponse.setHeader (_http_outgoing.js:470:11)
@@ -25,24 +24,25 @@ export default function(webpackConfig: {devServer: wp.Configuration['devServer']
     // at onFinish (/Users/liujing/bk/credit-appl/node_modules/on-finished/index.js:100:5)
     // at callback (/Users/liujing/bk/credit-appl/node_modules/ee-first/index.js:55:10)
 
-    app.use((req, res, next) => {
+    devServer.app!.use((req, res, next) => {
       const old = res.setHeader;
       // const oldEnd = res.end;
-      res.setHeader = function() {
+      res.setHeader = function(...args) {
         try {
-          old.apply(res, arguments);
+          return old.apply(res, args);
         } catch (e) {
-          if (e.code === 'ERR_HTTP_HEADERS_SENT') {
+          if ((e as any).code === 'ERR_HTTP_HEADERS_SENT') {
             log.warn('Cannot set headers after they are sent to the client');
           } else {
             throw e;
           }
         }
+        return res;
       };
       next();
     });
     if (origin)
-      origin.apply(this, arguments);
+      origin.call(this, devServer);
   };
   devServer.compress = true;
   if (devServer.headers == null)
@@ -50,5 +50,6 @@ export default function(webpackConfig: {devServer: wp.Configuration['devServer']
   // CORS enablement
   devServer.headers['Access-Control-Allow-Origin'] = '*';
   devServer.headers['Access-Control-Allow-Headers'] = '*';
+  (devServer.static as any).watch = false;
 
 }

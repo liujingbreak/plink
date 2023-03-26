@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import Path from 'path';
 import _webpack from 'webpack';
 import chalk from 'chalk';
@@ -17,7 +19,8 @@ export function hackWebpack4Compiler() {
   }
   const hacked = function() {
     const formatWebpackMessages: typeof _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
-    const compiler: ReturnType<typeof webpack> = webpack.apply(global, arguments);
+    // eslint-disable-next-line prefer-rest-params
+    const compiler: ReturnType<typeof webpack> = webpack.apply(global, arguments as any);
     // const origRun = compiler.run;
     compiler.run = (handler) => {
       return compiler.watch({}, (err, stats) => {
@@ -29,13 +32,13 @@ export function hackWebpack4Compiler() {
           if (Object.prototype.hasOwnProperty.call(err, 'postcssNode')) {
             errMessage +=
               '\nCompileError: Begins at CSS selector ' +
-              (err ).postcssNode.selector;
+              (err as any).postcssNode.selector;
           }
           messages = formatWebpackMessages({
             errors: [errMessage],
             warnings: []
           } as any);
-        } else {
+        } else if (stats) {
           messages = formatWebpackMessages(
             stats.toJson({all: false, warnings: true, errors: true})
           );

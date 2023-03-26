@@ -1,10 +1,10 @@
 import React from 'react';
 import clsDdp from 'classnames/dedupe';
-import styles from './AnimatableRoutes.module.scss';
-import {SwitchAnim, SwitchAnimProps} from './SwitchAnim';
-import {useLocation, matchPath, RouteProps, match} from 'react-router-dom';
+import {useLocation, matchPath, RouteObject} from 'react-router-dom';
 import {PayloadAction} from '@reduxjs/toolkit';
 import {useAppLayout} from '../components/appLayout.state';
+import {SwitchAnim} from './SwitchAnim';
+import styles from './AnimatableRoutes.module.scss';
 // import * as rx from 'rxjs';
 // import * as op from 'rxjs/operators';
 
@@ -12,7 +12,7 @@ export type AnimatableRoutesProps = React.PropsWithChildren<{
   parentDom?: {className: string} | null;
   className?: string;
   /** imutable */
-  routes: Array<{[p in 'path' | 'strict' | 'exact' | 'sensitive']?: RouteProps[p]} & {children: SwitchAnimProps['children']}>;
+  routes: RouteObject[];
   /**  */
   otherMatch?: string;
 }>;
@@ -29,26 +29,20 @@ const reducer: React.Reducer<AnimatableRoutesState, PayloadAction<(state: Animat
 };
 
 const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
-  // const location = useLocation();
-  // const [matchedIdx, setMatchedIdx] = React.useState<number>();
   const [state, dispatcher] = React.useReducer(reducer, {matchedIdx: undefined, routeMatch: null} as AnimatableRoutesState);
   const location = useLocation();
-  // useEffect(() => {
-  //   const actions = new rx.Subject<PayloadAction<any>>();
-  //   const sub = actions.pipe(
-  //   ).subscribe();
-  //   return () => sub.unsubscribe();
-  // }, []);
 
   const rootRef = React.useRef<HTMLDivElement>(null);
   const layout = useAppLayout();
+
+  useMatch();
 
   React.useEffect(() => {
     // console.log('location path:', location.pathname);
     let i = 0;
     let matched = false;
     for (const route of prop.routes) {
-      const match = matchPath<{[p: string]: string}>(location.pathname, route);
+      const match = matchPath(route.path!, location.pathname);
       if (match) {
         const matchedIdx = i;
         dispatcher({type: 'setMatched', payload: (s) => {
@@ -81,28 +75,33 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
   }, [prop.className, prop.parentDom]);
 
   const content = <RouteMatchCtx.Provider value={state.routeMatch}>
-  { state.matchedIdx != null ? // prop.routes[state.matchedIdx].children :
-      <SwitchAnim debug={false} size='full' parentDom={prop.parentDom == null ? rootRef.current : prop.parentDom}
-      contentHash={state.matchedIdx}>{prop.routes[state.matchedIdx].children}</SwitchAnim> :
+    { state.matchedIdx != null ? // prop.routes[state.matchedIdx].children :
+      <SwitchAnim debug={false} size="full" parentDom={prop.parentDom == null ? rootRef.current : prop.parentDom}
+        contentHash={state.matchedIdx}>{prop.routes[state.matchedIdx].element}</SwitchAnim> :
       prop.children ? prop.children : <></>
-  }
+    }
   </RouteMatchCtx.Provider>;
 
-  return prop.parentDom ? content : (
-    <div ref={rootRef} className={clsDdp(styles.scope, prop.className)}>
-      {content}
-    </div>
-  );
+  return prop.parentDom
+    ? content
+    : (
+      <div ref={rootRef} className={clsDdp(styles.scope, prop.className)}>
+        {content}
+      </div>
+    );
 };
 
 
 export {AnimatableRoutes};
 
-export function useParams<Params extends { [K in keyof Params]?: string } = Record<string, any>>(): Params {
+export function useParams<Params extends {[K in keyof Params]?: string} = Record<string, any>>(): Params {
   const match = React.useContext(RouteMatchCtx);
   return (match?.params || {}) as Params;
 }
 
-export function useMatch<Params extends { [K in keyof Params]?: string } = Record<string, any>>()  {
-  return React.useContext(RouteMatchCtx) as match<Params>;
+/**
+ * Unlike react-router's useMatch(path), this function return currently "matched" path
+ */
+export function useMatch<Params extends {[K in keyof Params]?: string} = Record<string, any>>()  {
+  return React.useContext(RouteMatchCtx);
 }

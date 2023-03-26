@@ -1,0 +1,1 @@
+{"version":3,"file":"md-types.js","sourceRoot":"","sources":["md-types.ts"],"names":[],"mappings":"","sourcesContent":["export interface TOC {\n  /** begin with 0 */\n  level: number;\n  tag: string;\n  text: string;\n  id: string;\n  children?: TOC[];\n}\n\nexport interface LoaderRecivedData {\n  toc: TOC[];\n  content: string;\n}\n"]}

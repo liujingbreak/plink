@@ -10,7 +10,7 @@ const log = log4File(__filename);
 
 const cli: CliExtension = (program) => {
   const buildCmd = program.command('cra-build')
-    .description('Compile react application or library (work with create-react-app v4.0.3)')
+    .description('Compile react application or library (work with create-react-app v5.0.1)')
     .argument('<app|lib>', '"app" stands for building a complete application like create-react-app,\n' +
     '"lib" stands for building a library')
     .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
@@ -42,10 +42,9 @@ const cli: CliExtension = (program) => {
     });
 
 
-  const StartCmd = program.command('cra-start <package-name>')
-    .description('Run CRA start script for react application or library (work with create-react-app v4.0.3)', {
-      'package-name': 'target package name, the "scope" name part can be omitted'
-    })
+  const StartCmd = program.command('cra-start')
+    .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
+    .description('Run CRA start script for react application or library (work with create-react-app v5.0.1)')
     .action((pkgName) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));

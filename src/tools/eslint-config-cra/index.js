@@ -46,9 +46,9 @@ function create(tsconfigFile) {
         ],
         excludedFiles: '*.d.ts',
         plugins: [
-          'eslint-plugin-jsdoc',
-          'eslint-plugin-import',
-          'eslint-plugin-prefer-arrow',
+          'jsdoc',
+          'import',
+          'prefer-arrow',
           '@typescript-eslint',
           '@typescript-eslint/tslint'
         ],

@@ -39,5 +39,5 @@ export async function buildTsd(packages?: string[], overridePackgeDirs: TscCmdPa
   };
   const {tsc} = require('@wfh/plink/wfh/dist/ts-cmd') as typeof _tscmd;
   workerData.compilerOptions = runTsConfigHandlers4LibTsd();
-  await tsc(workerData, ts);
+  await tsc(workerData, ts as any);
 }

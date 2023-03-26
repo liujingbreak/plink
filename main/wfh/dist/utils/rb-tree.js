@@ -29,6 +29,8 @@ class RedBlackTree {
         let y = null;
         let x = this.root;
         let cmp;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const self = this;
         while (x) {
             y = x;
             cmp = this.comparator(key, x.key);
@@ -61,6 +63,7 @@ class RedBlackTree {
                     return;
                 left = v;
                 z.size = (left ? left.size : 0) + (right ? right.size : 0) + 1;
+                self.onLeftChildChange(v);
             }
         });
         Object.defineProperty(z, 'right', {
@@ -73,6 +76,7 @@ class RedBlackTree {
                     return;
                 right = v;
                 z.size = (left ? left.size : 0) + (right ? right.size : 0) + 1;
+                self.onRightChildChange(v);
             }
         });
         let size = 0;
@@ -164,6 +168,16 @@ class RedBlackTree {
     }
     isBlack(node) {
         return node == null || !node.isRed;
+    }
+    /**
+     * To be extend and overridden
+     */
+    onLeftChildChange(_child) {
+    }
+    /**
+     * To be extend and overridden
+     */
+    onRightChildChange(_child) {
     }
     deleteNode(z) {
         let y = z;
@@ -272,7 +286,7 @@ class RedBlackTree {
         x.isRed = false;
     }
     minimum(node = this.root) {
-        // let min: RbTreeNode<T, V> | null = null;
+        // let min: ND | null = null;
         while (node === null || node === void 0 ? void 0 : node.left) {
             node = node.left;
         }

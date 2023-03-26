@@ -1,14 +1,14 @@
+import path from 'path';
+import util from 'util';
+import os from 'os';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {Pool} from '@wfh/thread-promise-pool';
-import {TOC} from '../isom/md-types';
-import path from 'path';
 import {log4File} from '@wfh/plink';
 import replaceCode, {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
-import util from 'util';
 import _ from 'lodash';
 import parse5, {ChildNode, Element, TextNode} from 'parse5';
-import os from 'os';
+import {TOC} from '../isom/md-types';
 const log = log4File(__filename);
 
 let threadPool: Pool;
@@ -20,7 +20,7 @@ const headerSet = new Set<string>('h1 h2 h3 h4 h5'.split(' '));
  * @param resolveImage 
  */
 export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>):
-  rx.Observable<{toc: TOC[]; content: string}> {
+rx.Observable<{toc: TOC[]; content: string}> {
   if (threadPool == null) {
     threadPool = new Pool();
   }
@@ -42,12 +42,12 @@ export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) =
         op.map(all => {
           const content = replaceCode(html, all);
           // log.warn(html, '\n=>\n', content);
-          return { toc, content };
+          return {toc, content};
         }),
         op.catchError(err => {
           log.error(err);
           // cb(err, JSON.stringify({ toc, content: source }), sourceMap);
-          return rx.of({ toc, content: source });
+          return rx.of({toc, content: source});
         })
       );
     })
@@ -55,7 +55,7 @@ export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) =
 }
 
 function dfsAccessElement(root: parse5.Document, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
-toc: TOC[] = []) {
+  toc: TOC[] = []) {
   const chr = new rx.BehaviorSubject<ChildNode[]>(root.childNodes || []);
   const done: (rx.Observable<ReplacementInf>)[] = [];
 
@@ -72,13 +72,13 @@ toc: TOC[] = []) {
         if (resolveImage && imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
           log.info('found img src=' + imgSrc.value);
           done.push(rx.from(resolveImage(imgSrc.value))
-          .pipe(
-            op.map(resolved => {
-              const srcPos = el.sourceCodeLocation!.attrs.src;
-              log.info(`resolve ${imgSrc.value} to ${util.inspect(resolved)}`);
-              return {start: srcPos.startOffset + 'src'.length + 1, end: srcPos.endOffset, text: resolved};
-            })
-          ));
+            .pipe(
+              op.map(resolved => {
+                const srcPos = el.sourceCodeLocation!.attrs!.src;
+                log.info(`resolve ${imgSrc.value} to ${util.inspect(resolved)}`);
+                return {start: srcPos.startOffset + 'src'.length + 1, end: srcPos.endOffset, text: resolved};
+              })
+            ));
         }
       } else if (headerSet.has(nodeName)) {
         toc.push({level: 0, tag: nodeName,
@@ -113,7 +113,7 @@ function lookupTextNodeIn(el: Element) {
 
 function createTocTree(input: TOC[]) {
   const root: TOC = {level: -1, tag: 'h0', text: '', id: '', children: []};
-  let byLevel: TOC[] = [root]; // a stack of previous TOC items ordered by level
+  const byLevel: TOC[] = [root]; // a stack of previous TOC items ordered by level
   let prevHeaderSize = Number(root.tag.charAt(1));
   for (const item of input) {
     const headerSize = Number(item.tag.charAt(1));
@@ -172,13 +172,13 @@ export function insertOrUpdateMarkdownToc(input: string) {
       const existing = input.indexOf(BEGIN);
       let changedMd = '';
       if (existing >= 0) {
-        let replacePos = existing + BEGIN.length;
+        const replacePos = existing + BEGIN.length;
         const replaceEnd = input.indexOf(END);
         changedMd = input.slice(0, replacePos) + '\n' + tocStr + '\n' + input.slice(replaceEnd);
       } else {
-        changedMd = [BEGIN , tocStr, END, input].join('\n');
+        changedMd = [BEGIN, tocStr, END, input].join('\n');
       }
-      return { changedMd, toc: tocToString(toc), html };
+      return {changedMd, toc: tocToString(toc), html};
     }),
     op.take(1)
   ).toPromise();

@@ -85,7 +85,10 @@ export type BuildCliOpts = {
 
 export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib'): CommandOption {
 
-  const completeName = [...findPackagesByNames([pkgName])][0]!.name;
+  const completeName = [...findPackagesByNames([pkgName])][0]?.name;
+  if (completeName == null) {
+    throw new Error(`Package named "${pkgName}" can not be found`);
+  }
   const cmdOptions: CommandOption = {
     cmd: cmdName,
     buildType,

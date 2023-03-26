@@ -1,15 +1,15 @@
-import RJ from 'require-injector';
-import _config from './config';
-import {PlinkSettings} from './config/config-slice';
-import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
-import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as Path from 'path';
+import RJ from 'require-injector';
+import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
+import * as _ from 'lodash';
 import log4js from 'log4js';
+import _config from './config';
+import {PlinkSettings} from './config/config-slice';
 import {getRootDir, getWorkDir} from './utils/misc';
 const log = log4js.getLogger('plink.injector-factory');
 
-const packageNamePathMap = new Map<string, {symlink?: string; realPath: string;}>();
+const packageNamePathMap = new Map<string, {symlink?: string; realPath: string}>();
 
 const emptyFactoryMap = {
   factory: emptryChainableFunction,
@@ -62,7 +62,7 @@ export class DrPackageInjector extends RJ {
     const realpaths = Array.from(packageNamePathMap.values())
       .map(item => item.realPath);
     const symlinks = Array.from(packageNamePathMap.values())
-    .map(item => item.symlink).filter(dir => dir != null);
+      .map(item => item.symlink).filter(dir => dir != null);
     return super.fromDir(realpaths.concat(symlinks as string[]));
   }
 
@@ -101,9 +101,9 @@ export class DrPackageInjector extends RJ {
   }
 }
 
-export let nodeInjector = new DrPackageInjector(false);
+export const nodeInjector = new DrPackageInjector(false);
 
-export let webInjector = new DrPackageInjector(true);
+export const webInjector = new DrPackageInjector(true);
 
 export interface InjectorConfigHandler {
   /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */

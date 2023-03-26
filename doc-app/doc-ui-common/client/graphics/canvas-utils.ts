@@ -1,6 +1,6 @@
 /// <reference path="bezier-js.d.ts" />
 import {applyToPoint, Matrix, transform, translate} from 'transformation-matrix';
-import {Bezier} from 'bezier-js/dist/bezier';
+import {Bezier} from 'bezier-js';
 import glur from 'glur';
 
 // import {getMinAndMax} from '@wfh/plink/wfh/dist-es5/utils/algorithms';
@@ -205,8 +205,8 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
       origPoint = p;
       ctx.moveTo(p.x, p.y);
       if (opts && opts.debug)
-          // eslint-disable-next-line no-console
-          console.log('moveTo', p);
+      // eslint-disable-next-line no-console
+        console.log('moveTo', p);
     } else {
       const c1 = segements[i - 1].absHandleOutPoint();
       const c2 = seg.absHandleInPoint();
@@ -328,53 +328,53 @@ export function smoothSegments(segments: Segment[], opts: {
   // Set up the knots array now, taking the paddings into account.
   n += paddingLeft + paddingRight;
   if (n <= 1)
-      return;
+    return;
   for (let i = 0, j = from - paddingLeft; i <= n; i++, j++) {
-      knots[i] = segments[(j < 0 ? j + segments.length : j) % segments.length].point;
+    knots[i] = segments[(j < 0 ? j + segments.length : j) % segments.length].point;
   }
   let x = knots[0].x + 2 * knots[1].x;
   let y = knots[0].y + 2 * knots[1].y;
   let  f = 2;
-  let  n_1 = n - 1;
-  let  rx = [x];
-  let  ry = [y];
-  let  rf = [f];
-  let  px: number[] = [];
-  let  py: number[] = [];
+  const  n_1 = n - 1;
+  const  rx = [x];
+  const  ry = [y];
+  const  rf = [f];
+  const  px: number[] = [];
+  const  py: number[] = [];
   // Solve with the Thomas algorithm
   for (let i = 1; i < n; i++) {
-      const internal = i < n_1;
-      //  internal--(I)  asymmetric--(R) (R)--continuous
-      let a = internal ? 1 : asymmetric ? 1 : 2;
-      let b = internal ? 4 : asymmetric ? 2 : 7;
-      let u = internal ? 4 : asymmetric ? 3 : 8;
-      let v = internal ? 2 : asymmetric ? 0 : 1;
-      let m = a / f;
-      f = rf[i] = b - m;
-      x = rx[i] = u * knots[i].x + v * knots[i + 1].x - m * x;
-      y = ry[i] = u * knots[i].y + v * knots[i + 1].y - m * y;
+    const internal = i < n_1;
+    //  internal--(I)  asymmetric--(R) (R)--continuous
+    const a = internal ? 1 : asymmetric ? 1 : 2;
+    const b = internal ? 4 : asymmetric ? 2 : 7;
+    const u = internal ? 4 : asymmetric ? 3 : 8;
+    const v = internal ? 2 : asymmetric ? 0 : 1;
+    const m = a / f;
+    f = rf[i] = b - m;
+    x = rx[i] = u * knots[i].x + v * knots[i + 1].x - m * x;
+    y = ry[i] = u * knots[i].y + v * knots[i + 1].y - m * y;
   }
 
   px[n_1] = rx[n_1] / rf[n_1];
   py[n_1] = ry[n_1] / rf[n_1];
   for (let i = n - 2; i >= 0; i--) {
-      px[i] = (rx[i] - px[i + 1]) / rf[i];
-      py[i] = (ry[i] - py[i + 1]) / rf[i];
+    px[i] = (rx[i] - px[i + 1]) / rf[i];
+    py[i] = (ry[i] - py[i + 1]) / rf[i];
   }
   px[n] = (3 * knots[n].x - px[n_1]) / 2;
   py[n] = (3 * knots[n].y - py[n_1]) / 2;
 
   // Now update the segments
   for (let i = paddingLeft, max = n - paddingRight, j = from;
-          i <= max; i++, j++) {
-      const segment = segments[j < 0 ? j + segments.length : j];
-      const pt = segment.point;
-      const hx = px[i] - pt.x;
-      const hy = py[i] - pt.y;
-      if (loop || i < max)
-          segment.handleOut = {x: hx, y: hy};
-      if (loop || i > paddingLeft)
-          segment.handleIn = {x: -hx, y: -hy};
+    i <= max; i++, j++) {
+    const segment = segments[j < 0 ? j + segments.length : j];
+    const pt = segment.point;
+    const hx = px[i] - pt.x;
+    const hy = py[i] - pt.y;
+    if (loop || i < max)
+      segment.handleOut = {x: hx, y: hy};
+    if (loop || i > paddingLeft)
+      segment.handleIn = {x: -hx, y: -hy};
   }
 }
 

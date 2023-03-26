@@ -257,148 +257,6 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   }
 }
 
-// const formatHost: _ts.FormatDiagnosticsHost = {
-//   getCanonicalFileName: path => path,
-//   getCurrentDirectory: _ts.sys.getCurrentDirectory,
-//   getNewLine: () => _ts.sys.newLine
-// };
-
-// function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
-//   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
-//     process.cwd().replace(/\\/g, '/'),
-//     undefined, 'tsconfig.json').options;
-
-//   function _reportDiagnostic(diagnostic: _ts.Diagnostic) {
-//     return reportDiagnostic(diagnostic, commonRootDir, packageDirTree, ts);
-//   }
-//   const programHost = ts.createWatchCompilerHost(rootFiles, compilerOptions, ts.sys,
-//     // https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
-//     // TypeScript can use several different program creation "strategies":
-//     //  * ts.createEmitAndSemanticDiagnosticsBuilderProgram,
-//     //  * ts.createSemanticDiagnosticsBuilderProgram
-//     //  * ts.createAbstractBuilder
-//     // The first two produce "builder programs". These use an incremental strategy
-//     // to only re-check and emit files whose contents may have changed, or whose
-//     // dependencies may have changes which may impact change the result of prior
-//     // type-check and emit.
-//     // The last uses an ordinary program which does a full type check after every
-//     // change.
-//     // Between `createEmitAndSemanticDiagnosticsBuilderProgram` and
-//     // `createSemanticDiagnosticsBuilderProgram`, the only difference is emit.
-//     // For pure type-checking scenarios, or when another tool/process handles emit,
-//     // using `createSemanticDiagnosticsBuilderProgram` may be more desirable
-//     ts.createEmitAndSemanticDiagnosticsBuilderProgram, _reportDiagnostic, d => reportWatchStatusChanged(d, ts),
-//     undefined, {watchDirectory: ts.WatchDirectoryKind.UseFsEvents});
-//   patchWatchCompilerHost(programHost);
-
-//   const origCreateProgram = programHost.createProgram;
-//   // Ts's createWatchProgram will call WatchCompilerHost.createProgram(), this is where we patch "CompilerHost"
-//   programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
-//     host?: _ts.CompilerHost, ...rest: any[]) {
-//     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-//     if (host && (host as any)._overrided == null) {
-//       patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
-//     }
-//     const program = origCreateProgram.call(this, rootNames, options, host, ...rest) ;
-//     return program;
-//   };
-
-//   ts.createWatchProgram(programHost);
-// }
-
-// function compile(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>,
-//   ts: typeof _ts = _ts) {
-//   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
-//     process.cwd().replace(/\\/g, '/'),
-//     undefined, 'tsconfig.json').options;
-//   const host = ts.createCompilerHost(compilerOptions);
-//   patchWatchCompilerHost(host);
-//   const emitted = patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
-//   const program = ts.createProgram(rootFiles, compilerOptions, host);
-//   const emitResult = program.emit();
-//   const allDiagnostics = ts.getPreEmitDiagnostics(program)
-//     .concat(emitResult.diagnostics);
-
-//   function _reportDiagnostic(diagnostic: _ts.Diagnostic) {
-//     return reportDiagnostic(diagnostic, commonRootDir, packageDirTree, ts);
-//   }
-//   allDiagnostics.forEach(diagnostic => {
-//     _reportDiagnostic(diagnostic);
-//   });
-//   if (emitResult.emitSkipped) {
-//     throw new Error('Compile failed');
-//   }
-//   return emitted;
-// }
-
-/** Overriding WriteFile() */
-// function patchCompilerHost(host: _ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>,
-//   co: _ts.CompilerOptions, ts: typeof _ts = _ts): string[] {
-//   const emittedList: string[] = [];
-//   // It seems to not able to write file through symlink in Windows
-//   // const _writeFile = host.writeFile;
-//   const writeFile: _ts.WriteFileCallback = function(fileName, data, writeByteOrderMark, onError, sourceFiles) {
-//     const destFile = realPathOf(fileName, commonRootDir, packageDirTree);
-//     if (destFile == null) {
-//       log.debug('skip', fileName);
-//       return;
-//     }
-//     emittedList.push(destFile);
-//     log.info('write file', Path.relative(process.cwd(), destFile));
-//     // Typescript's writeFile() function performs weird with symlinks under watch mode in Windows:
-//     // Every time a ts file is changed, it triggers the symlink being compiled and to be written which is
-//     // as expected by me,
-//     // but late on it triggers the same real file also being written immediately, this is not what I expect,
-//     // and it does not actually write out any changes to final JS file.
-//     // So I decide to use original Node.js file system API
-//     fs.mkdirpSync(Path.dirname(destFile));
-//     fs.writeFileSync(destFile, data);
-//     // It seems Typescript compiler always uses slash instead of back slash in file path, even in Windows
-//     // return _writeFile.call(this, destFile.replace(/\\/g, '/'), ...Array.prototype.slice.call(arguments, 1));
-//   };
-//   host.writeFile = writeFile;
-
-//   return emittedList;
-// }
-
-// function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOptions<_ts.EmitAndSemanticDiagnosticsBuilderProgram> | _ts.CompilerHost) {
-//   const readFile = host.readFile;
-//   const cwd = process.cwd();
-//   host.readFile = function(path: string, encoding?: string) {
-//     const content = readFile.call(this, path, encoding) ;
-//     if (content && !path.endsWith('.d.ts') && !path.endsWith('.json')) {
-//       // console.log('WatchCompilerHost.readFile', path);
-//       const changed = webInjector.injectToFile(path, content);
-//       if (changed !== content) {
-//         log.info(Path.relative(cwd, path) + ' is patched');
-//         return changed;
-//       }
-//     }
-//     return content;
-//   };
-// }
-
-
-// function reportDiagnostic(diagnostic: _ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
-//   // let fileInfo = '';
-//   // if (diagnostic.file) {
-//   //   const {line, character} = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-//   //   const realFile = realPathOf(diagnostic.file.fileName, commonRootDir, packageDirTree, true) || diagnostic.file.fileName;
-//   //   fileInfo = `${realFile}, line: ${line + 1}, column: ${character + 1}`;
-//   // }
-//   // console.error(chalk.red(`Error ${diagnostic.code} ${fileInfo} :`), ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
-//   const out = ts.formatDiagnosticsWithColorAndContext([diagnostic], {
-//     getCanonicalFileName: fileName => realPathOf(fileName, commonRootDir, packageDirTree, true) || fileName,
-//     getCurrentDirectory: ts.sys.getCurrentDirectory,
-//     getNewLine: () => ts.sys.newLine
-//   });
-//   console.error(out);
-// }
-
-// function reportWatchStatusChanged(diagnostic: _ts.Diagnostic, ts: typeof _ts = _ts) {
-//   console.info(chalk.cyan(ts.formatDiagnosticsWithColorAndContext([diagnostic], formatHost)));
-// }
-
 const COMPILER_OPTIONS_MERGE_EXCLUDE = new Set(['baseUrl', 'typeRoots', 'paths', 'rootDir']);
 
 function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, basePath: string, opts?: TscCmdParam, ts: typeof _ts = _ts): void {
@@ -431,9 +289,9 @@ function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptio
       compilerOptions.paths = opts.pathsJsons.reduce((pathMap, jsonStr) => {
         Object.assign(pathMap, JSON.parse(jsonStr));
         return pathMap;
-      }, compilerOptions.paths);
+      }, compilerOptions.paths ?? {});
     } else {
-      Object.assign(compilerOptions.paths, opts.pathsJsons);
+      Object.assign(compilerOptions.paths!, opts.pathsJsons);
     }
   }
 

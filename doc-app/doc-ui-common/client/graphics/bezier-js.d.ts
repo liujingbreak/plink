@@ -2,7 +2,7 @@
  * http://pomax.github.io/bezierjs
  */
 
-declare module 'bezier-js/dist/bezier' {
+declare module 'bezier-js' {
   export type PointsCoords = number[] | {x: number; y: number; z?: number;}[];
 
   export interface CoordBounds {

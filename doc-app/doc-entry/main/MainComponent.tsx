@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import {createRoot} from 'react-dom/client';
 import clsddp from 'classnames/dedupe';
 import './Main.module.scss';
 import {BrowserRouter as Router, Switch, Redirect} from 'react-router-dom';
@@ -26,16 +26,16 @@ const MainComp: React.FC<{[p: string]: never}> = function(prop) {
     return <>...</>;
   }
   return <ReduxProvider store={reduxStore}>
-      <AppLayout parentDom={rootEl}>
-        <Router basename={process.env.REACT_APP_routeBasename}>
-          <AnimatableRoutes routes={routes}>
-            <Switch>
-              <Redirect from='/' exact to={defaultRedirect}/>
-            </Switch>
-          </AnimatableRoutes>
-        </Router>
-      </AppLayout>
-    </ReduxProvider>;
+    <AppLayout parentDom={rootEl}>
+      <Router basename={process.env.REACT_APP_routeBasename}>
+        <AnimatableRoutes routes={routes}>
+          <Switch>
+            <Redirect from='/' exact to={defaultRedirect}/>
+          </Switch>
+        </AnimatableRoutes>
+      </Router>
+    </AppLayout>
+  </ReduxProvider>;
 };
 
 stateFactory.configureStore();
@@ -43,11 +43,12 @@ stateFactory.configureStore();
 export default MainComp;
 
 export function renderDom(dom: HTMLElement) {
-  ReactDOM.render(<MainComp/>, dom);
+  const root = createRoot(dom);
+  root.render(<MainComp/>);
 
   return {
     unmount() {
-      ReactDOM.unmountComponentAtNode(dom);
+      root.unmount();
     }
   };
 }

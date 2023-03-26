@@ -30,7 +30,7 @@ export function change(buildPackage: string, config: Configuration, nodePath: st
     // runtimeChunk: 'single',
     splitChunks: {
       chunks: 'all',
-      name: true,
+      name: false,
       cacheGroups: {
         lazyVendor: {
           name: 'lazy-vendor',
@@ -50,15 +50,16 @@ export function change(buildPackage: string, config: Configuration, nodePath: st
     /^react-dom($|[/\\])/i,
     // externals()
     // /^@angular/,
-    (context: string, request: string, callback: (error?: null, result?: string) => void) => {
-
+    ({request}, callback: (error?: Error, result?: string | boolean | string[] | {[index: string]: any}) => void) => {
+      if (request == null)
+        return callback();
       // Absolute & Relative paths are not externals
       if (/^\.{0,2}\//.test(request) || Path.isAbsolute(request)) {
         return callback();
       }
       try {
         require.resolve(request);
-        callback(null, 'commonjs ' + request);
+        callback(undefined, 'commonjs ' + request);
       } catch {
         log.info('bundled', request);
         // Node couldn't find it, so it must be user-aliased

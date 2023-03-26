@@ -1,12 +1,26 @@
 "use strict";
+/**
+ * This Webpack resolve plugin is experimental and debug purposed.
+ * Not being used anywhere.
+ */
+// import {Hook} from 'tapable';
+// import {} from 'enhanced-resolve';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlinkWebpackResolvePlugin = void 0;
+// interface Resolver {
+//   hooks: {
+//     resolve: Hook<Request, RequestContext>;
+//   };
+// }
+// interface RequestContext {
+//   stack: Set<string>;
+// }
+// interface Request {
+//   context: {issuer?: string; compiler?: unknown;};
+//   path: string;
+//   request: string;
+// }
 class PlinkWebpackResolvePlugin {
-    apply(resolver /* EnhancedResolve.Resolver */) {
-        resolver.hooks.resolve.tapPromise('PlinkModuleResolver', async (req, ctx) => {
-            console.log(req.path, req.request);
-        });
-    }
 }
 exports.PlinkWebpackResolvePlugin = PlinkWebpackResolvePlugin;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoid2VicGFjay1yZXNvbHZlLXBsdWdpbi5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIndlYnBhY2stcmVzb2x2ZS1wbHVnaW4udHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7O0FBdUJBLE1BQWEseUJBQXlCO0lBQ3BDLEtBQUssQ0FBQyxRQUFrQixDQUFDLDhCQUE4QjtRQUNyRCxRQUFRLENBQUMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxVQUFVLENBQUMscUJBQXFCLEVBQUUsS0FBSyxFQUFFLEdBQUcsRUFBRSxHQUFHLEVBQUUsRUFBRTtZQUMxRSxPQUFPLENBQUMsR0FBRyxDQUFDLEdBQUcsQ0FBQyxJQUFJLEVBQUUsR0FBRyxDQUFDLE9BQU8sQ0FBQyxDQUFDO1FBQ3JDLENBQUMsQ0FBQyxDQUFDO0lBQ0wsQ0FBQztDQUNGO0FBTkQsOERBTUMiLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIFRoaXMgV2VicGFjayByZXNvbHZlIHBsdWdpbiBpcyBleHBlcmltZW50YWwgYW5kIGRlYnVnIHB1cnBvc2VkLlxuICogTm90IGJlaW5nIHVzZWQgYW55d2hlcmUuXG4gKi9cbmltcG9ydCB7SG9va30gZnJvbSAndGFwYWJsZSc7XG4vLyBpbXBvcnQge30gZnJvbSAnZW5oYW5jZWQtcmVzb2x2ZSc7XG5cbmludGVyZmFjZSBSZXNvbHZlciB7XG4gIGhvb2tzOiB7XG4gICAgcmVzb2x2ZTogSG9vazxSZXF1ZXN0LCBSZXF1ZXN0Q29udGV4dD47XG4gIH07XG59XG5cbmludGVyZmFjZSBSZXF1ZXN0Q29udGV4dCB7XG4gIHN0YWNrOiBTZXQ8c3RyaW5nPjtcbn1cblxuaW50ZXJmYWNlIFJlcXVlc3Qge1xuICBjb250ZXh0OiB7aXNzdWVyPzogc3RyaW5nOyBjb21waWxlcj86IHVua25vd247fTtcbiAgcGF0aDogc3RyaW5nO1xuICByZXF1ZXN0OiBzdHJpbmc7XG59XG5cbmV4cG9ydCBjbGFzcyBQbGlua1dlYnBhY2tSZXNvbHZlUGx1Z2luIHtcbiAgYXBwbHkocmVzb2x2ZXI6IFJlc29sdmVyIC8qIEVuaGFuY2VkUmVzb2x2ZS5SZXNvbHZlciAqLykge1xuICAgIHJlc29sdmVyLmhvb2tzLnJlc29sdmUudGFwUHJvbWlzZSgnUGxpbmtNb2R1bGVSZXNvbHZlcicsIGFzeW5jIChyZXEsIGN0eCkgPT4ge1xuICAgICAgY29uc29sZS5sb2cocmVxLnBhdGgsIHJlcS5yZXF1ZXN0KTtcbiAgICB9KTtcbiAgfVxufVxuIl19
+//# sourceMappingURL=webpack-resolve-plugin.js.map

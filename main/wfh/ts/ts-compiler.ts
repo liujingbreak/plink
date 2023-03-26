@@ -9,10 +9,10 @@ import {getLogger} from 'log4js';
 import {plinkEnv} from './utils/misc';
 const log = getLogger('plink.ts-compiler');
 
-export function readTsConfig(tsconfigFile: string): ts.CompilerOptions {
+export function readTsConfig(tsconfigFile: string, localTypescript: typeof ts = ts): ts.CompilerOptions {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const tsconfig = ts.readConfigFile(tsconfigFile, (file) => readFileSync(file, 'utf-8')).config;
-  return ts.parseJsonConfigFileContent(tsconfig, ts.sys, plinkEnv.workDir.replace(/\\/g, '/'),
+  const tsconfig = localTypescript.readConfigFile(tsconfigFile, (file) => readFileSync(file, 'utf-8')).config;
+  return localTypescript.parseJsonConfigFileContent(tsconfig, localTypescript.sys, plinkEnv.workDir.replace(/\\/g, '/'),
     undefined, tsconfigFile).options;
 }
 
@@ -34,8 +34,8 @@ export function jsonToCompilerOptions(jsonCompilerOpt: any, file = 'tsconfig.jso
  * Refer to https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#transpiling-a-single-file
  * @param tsCode 
  */
-export function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOptions): string {
-  const res = ts.transpileModule(tsCode, {compilerOptions});
+export function transpileSingleTs(tsCode: string, compilerOptions: ts.CompilerOptions, localTypescript: typeof ts = ts): string {
+  const res = localTypescript.transpileModule(tsCode, {compilerOptions});
   if (res.diagnostics && res.diagnostics.length > 0) {
     const msg = `Failed to transpile TS expression: ${tsCode}\n` + res.diagnostics.join('\n');
     console.error(msg);

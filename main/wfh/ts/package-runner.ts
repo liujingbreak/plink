@@ -102,7 +102,7 @@ export function runServer(): {
   };
 }
 
-const apiCache: {[name: string]: any} = {};
+const apiCache: Record<string, _NodeApi> = {};
 // const packageTree = new DirTree<PackageInstance>();
 
 /**
