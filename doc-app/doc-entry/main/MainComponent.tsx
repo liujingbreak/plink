@@ -2,13 +2,12 @@ import React from 'react';
 import {createRoot} from 'react-dom/client';
 import clsddp from 'classnames/dedupe';
 import './Main.module.scss';
-import {BrowserRouter as Router, Switch, Redirect} from 'react-router-dom';
+import {RouterProvider, createBrowserRouter} from 'react-router-dom';
 import {Provider as ReduxProvider} from 'react-redux';
 import { stateFactory } from '@wfh/redux-toolkit-observable/es/state-factory-browser';
 import { useStoreOfStateFactory } from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import { AppLayout } from '@wfh/doc-ui-common/client/components/AppLayout';
-import {AnimatableRoutes} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
-import {routes, defaultRedirect} from '@wfh/doc-entry/configurable/routes';
+import {routes} from '@wfh/doc-entry/configurable/routes';
 import '@material-icons/font/css/outline.css';
 import registerMarkdownFiles from '@wfh/doc-entry/configurable/markdown-setup';
 
@@ -21,19 +20,17 @@ registerMarkdownFiles();
 
 const MainComp: React.FC<{[p: string]: never}> = function(prop) {
   const reduxStore = useStoreOfStateFactory(stateFactory);
+  const router = React.useMemo(() => {
+    // routes.forEach(route => route.element = )
+    return createBrowserRouter(routes, {basename: process.env.REACT_APP_routeBasename});
+  }, []);
 
   if (reduxStore == null) {
     return <>...</>;
   }
   return <ReduxProvider store={reduxStore}>
     <AppLayout parentDom={rootEl}>
-      <Router basename={process.env.REACT_APP_routeBasename}>
-        <AnimatableRoutes routes={routes}>
-          <Switch>
-            <Redirect from='/' exact to={defaultRedirect}/>
-          </Switch>
-        </AnimatableRoutes>
-      </Router>
+      <RouterProvider router={router} />
     </AppLayout>
   </ReduxProvider>;
 };

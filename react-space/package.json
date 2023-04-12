@@ -13,8 +13,8 @@
     "typescript": "^4.4.2",
     "web-vitals": "^2.1.0",
 
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1",
     "workbox-background-sync": "^5.1.3",
     "workbox-broadcast-update": "^5.1.3",
@@ -29,8 +29,7 @@
     "workbox-strategies": "^5.1.3",
     "workbox-streams": "^5.1.3",
 
-    "react-redux": "^7.2.2",
-    "@types/react-redux": "^7.1.11",
+    "react-redux": "^8.0.5",
     "@wfh/doc-entry": "1.0.0",
     "@wfh/doc-ui-common": "1.0.0",
     "@wfh/http-server": "1.1.4",
