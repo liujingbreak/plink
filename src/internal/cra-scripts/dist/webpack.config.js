@@ -19,25 +19,25 @@ const change_tsconfig_1 = require("./change-tsconfig");
 // inspector.open(9222, 'localhost', true);
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-config');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
-// function addProgressPlugin(config: Configuration) {
-//   let spinner: ReturnType<typeof _ora>;
-//   config.plugins!.push(new ProgressPlugin({
-//     activeModules: true,
-//     modules: true,
-//     modulesCount: 100,
-//     async handler(percentage, msg, ...args) {
-//       if (spinner == null) {
-//         spinner = (await oraProm)();
-//         spinner.start();
-//       }
-//       spinner!.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
-//       // log.info(Math.round(percentage * 100), '%', msg, ...args);
-//       // if (percentage > 0.98) {
-//       //   spinner!.stop();
-//       // }
-//     }
-//   }));
-// }
+function addProgressPlugin(config) {
+    // let spinner: ReturnType<typeof _ora>;
+    config.plugins.push(new webpack_1.ProgressPlugin({
+        activeModules: true,
+        modules: true,
+        modulesCount: 100,
+        handler(percentage, msg, ...args) {
+            // if (spinner == null) {
+            //   spinner = (await oraProm)();
+            //   spinner.start();
+            // }
+            // spinner!.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
+            log.info(Math.round(percentage * 100), '%', msg, ...args);
+            // if (percentage > 0.98) {
+            //   spinner!.stop();
+            // }
+        }
+    }));
+}
 /**
  * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
  */
@@ -312,6 +312,8 @@ module.exports = function (webpackEnv) {
     // Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
     if (cmdOption.cmd === 'cra-build')
         config.plugins.push(new webpack_stats_plugin_1.default());
+    else
+        addProgressPlugin(config);
     if (cmdOption.buildType === 'lib') {
         (0, webpack_lib_1.default)(cmdOption.buildTarget, config, nodePath);
     }

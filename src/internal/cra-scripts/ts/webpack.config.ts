@@ -113,6 +113,8 @@ export = function(webpackEnv: 'production' | 'development') {
 
   if (cmdOption.cmd === 'cra-build')
     config.plugins!.push(new StatsPlugin());
+  else
+    addProgressPlugin(config);
 
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
@@ -182,27 +184,26 @@ export = function(webpackEnv: 'production' | 'development') {
   return config;
 };
 
-// function addProgressPlugin(config: Configuration) {
+function addProgressPlugin(config: Configuration) {
+  // let spinner: ReturnType<typeof _ora>;
 
-//   let spinner: ReturnType<typeof _ora>;
-
-//   config.plugins!.push(new ProgressPlugin({
-//     activeModules: true,
-//     modules: true,
-//     modulesCount: 100,
-//     async handler(percentage, msg, ...args) {
-//       if (spinner == null) {
-//         spinner = (await oraProm)();
-//         spinner.start();
-//       }
-//       spinner!.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
-//       // log.info(Math.round(percentage * 100), '%', msg, ...args);
-//       // if (percentage > 0.98) {
-//       //   spinner!.stop();
-//       // }
-//     }
-//   }));
-// }
+  config.plugins!.push(new ProgressPlugin({
+    activeModules: true,
+    modules: true,
+    modulesCount: 100,
+    handler(percentage, msg, ...args) {
+      // if (spinner == null) {
+      //   spinner = (await oraProm)();
+      //   spinner.start();
+      // }
+      // spinner!.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
+      log.info(Math.round(percentage * 100), '%', msg, ...args);
+      // if (percentage > 0.98) {
+      //   spinner!.stop();
+      // }
+    }
+  }));
+}
 
 /**
  * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
