@@ -38,33 +38,33 @@ export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R exten
  * @param epicFactories 
  * @returns 
  */
-export function useTinyRtk<Props, S extends BaseComponentState<Props>, R extends Reducers<S>>(
-    optsFactory: () => SliceOptions<S, R>, props: Props, ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>
-  ): [state: S, slice: Slice<S, R & CompPropsSyncReducer<Props, S>>] {
+export function useTinyRtk<Props extends Record<string, any>, S extends BaseComponentState<Props>, R extends Reducers<S>>(
+  optsFactory: () => SliceOptions<S, R>, props: Props, ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>
+): [state: S, slice: Slice<S, R & CompPropsSyncReducer<Props, S>>] {
 
-    const extendOptsFactory = React.useCallback(() => {
-      const opts = optsFactory();
+  const extendOptsFactory = React.useCallback(() => {
+    const opts = optsFactory();
 
-      return {
-        ...opts,
-        reducers: withBaseReducers<Props, S, typeof opts.reducers>(opts.reducers)
-      };
+    return {
+      ...opts,
+      reducers: withBaseReducers<Props, S, typeof opts.reducers>(opts.reducers)
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+  }, []);
 
-    React.useEffect(() => () => {
-      (stateAndSlice[1] as Slice<S, CompPropsSyncReducer<Props, S>>).actionDispatcher._willUnmount();
+  React.useEffect(() => () => {
+    (stateAndSlice[1] as Slice<S, CompPropsSyncReducer<Props, S>>).actionDispatcher._willUnmount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+  }, []);
 
-    const stateAndSlice = useTinyReduxTookit(extendOptsFactory, ...epicFactories);
+  const stateAndSlice = useTinyReduxTookit(extendOptsFactory, ...epicFactories);
 
-    React.useEffect(() => {
-      stateAndSlice[1].actionDispatcher._syncComponentProps(props);
+  React.useEffect(() => {
+    stateAndSlice[1].actionDispatcher._syncComponentProps(props);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, Object.values(props));
+  }, Object.values(props));
 
-    return stateAndSlice;
+  return stateAndSlice;
 }
 /**
  * For performance reason, better define opts.reducers outside of component rendering function

@@ -36,11 +36,13 @@ const cli = (program) => {
     })
         .action(async (pkgName) => {
         runReactScripts(StartCmd.name(), StartCmd.opts(), 'lib', pkgName);
-        await (await Promise.resolve().then(() => tslib_1.__importStar(require('../tsd-generate')))).buildTsd([pkgName]);
+        await (await import('../tsd-generate.js')).buildTsd([pkgName]);
     });
     const StartCmd = program.command('cra-start')
         .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
         .description('Run CRA start script for react application or library (work with create-react-app v5.0.1)')
+        .option('--use-poll, --poll', 'use Webpack watch option "poll"', false)
+        .option('--no-ts-checker, --no-tsck', 'disable forked-ts-checker-webpack-plugin for Typescript', false)
         .action((pkgName) => {
         if (process.cwd() !== path_1.default.resolve(plink_1.plinkEnv.workDir)) {
             process.chdir(path_1.default.resolve(plink_1.plinkEnv.workDir));
@@ -52,7 +54,7 @@ const cli = (program) => {
     program.command('cra-open <url>')
         .description('Run react-dev-utils/openBrowser', { url: 'URL' })
         .action(async (url) => {
-        (await Promise.resolve().then(() => tslib_1.__importStar(require('../cra-open-browser')))).default(url);
+        (await import('../cra-open-browser.cjs')).default.default(url);
     });
     program.command('cra-analyze [js-dir]')
         .alias('cra-analyse')

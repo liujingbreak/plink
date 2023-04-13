@@ -4,11 +4,13 @@ export declare const getReportDir: () => string;
 export declare function drawPuppy(slogon: string, message?: string): void;
 export declare function printConfig(c: any, level?: number): string;
 export declare function getCmdOptions(): CommandOption;
-export declare type BuildCliOpts = {
+export type BuildCliOpts = {
     watch: boolean;
     include?: string[];
     publicUrl?: string;
     sourceMap?: boolean;
+    poll: boolean;
+    tsck: CommandOption['tsck'];
 } & NonNullable<PlinkSettings['cliOptions']>;
 export declare function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib'): CommandOption;
 export declare function craVersionCheck(): void;

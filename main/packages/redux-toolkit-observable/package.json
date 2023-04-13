@@ -15,7 +15,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "peerDependencies": {
-    "@reduxjs/toolkit": "~1.5.0",
+    "@reduxjs/toolkit": "~1.9.3",
     "redux-observable": "~1.2.0",
     "@types/react-redux": "^7.1.16",
     "react-redux": "^7.2.2",

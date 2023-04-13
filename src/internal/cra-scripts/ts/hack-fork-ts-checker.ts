@@ -4,14 +4,18 @@
  *  - change rootNames in parameters of ts.createProgram()
  *  - change compilerOptions.rootDir in parameters of ts.createProgram()
  */
-// import Path from 'node:path';
+import Path from 'node:path';
 import * as _plink from '@wfh/plink';
 // import inspector from 'inspector';
 
 
 export function register() {
-  // process.env.NODE_OPTIONS =  (process.env.NODE_OPTIONS || '') + ' -r ' +
-  //   Path.resolve(__filename); // + ' --inspect-brk';
+  process.env.NODE_OPTIONS =  (process.env.NODE_OPTIONS || '') + ' -r ' +
+    Path.resolve(__filename); // + ' --inspect-brk';
+}
+
+if (process.send) {
+  // const plink = require('@wfh/plink') as typeof _plink;
 }
 
 // if (process.send && /[\\/]fork-ts-checker-webpack-plugin[\\/]/.test(process.argv[1])) {

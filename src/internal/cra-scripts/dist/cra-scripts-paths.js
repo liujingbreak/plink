@@ -67,7 +67,7 @@ function paths() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     config_1.default.configHandlerMgrChanged(handler => handler.runEachSync((cfgFile, _result, handler) => {
         if (handler.changeCraPaths != null) {
-            log.info('Execute CRA scripts paths overrides', cfgFile);
+            log.info('Execute CRA scripts paths configuration', cfgFile);
             handler.changeCraPaths(changedPaths, (0, plink_1.config)().cliOptions.env, cmdOption);
         }
     }));

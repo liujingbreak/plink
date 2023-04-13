@@ -6,6 +6,7 @@ export interface TscCmdParam {
     package?: string[];
     project?: string[];
     watch?: boolean;
+    poll?: boolean;
     sourceMap?: string;
     jsx?: boolean;
     ed?: boolean;

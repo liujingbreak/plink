@@ -22,7 +22,7 @@ const headerSet = new Set<string>('h1 h2 h3 h4 h5'.split(' '));
 export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>):
 rx.Observable<{toc: TOC[]; content: string}> {
   if (threadPool == null) {
-    threadPool = new Pool();
+    threadPool = new Pool(3, 1000);
   }
 
   return rx.from(threadPool.submit<string>({

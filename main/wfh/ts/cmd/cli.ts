@@ -391,6 +391,7 @@ function spaceOnlySubCommands(program: commander.Command) {
     .description('Run Typescript compiler to compile source code for target packages, ' +
     'which have been linked to current work directory', {package: cliPackageArgDesc})
     .option('-w, --watch', 'Typescript compiler watch mode', false)
+    .option('--poll', 'Use poll mode watch', false)
     .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
       prev.push(...v.split(',')); return prev;
     }, [] as string[])
@@ -415,6 +416,7 @@ function spaceOnlySubCommands(program: commander.Command) {
         package: packages,
         project: opt.project,
         watch: opt.watch,
+        poll: opt.poll,
         sourceMap: opt.sourceMap,
         jsx: opt.jsx,
         ed: opt.emitDeclarationOnly,

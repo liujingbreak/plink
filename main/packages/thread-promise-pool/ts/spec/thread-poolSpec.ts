@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import {describe, it, expect}  from '@jest/globals';
 import {Pool} from '../index';
 
 describe('Thread pool', () => {

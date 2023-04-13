@@ -28,6 +28,7 @@ export interface TscCmdParam {
   package?: string[];
   project?: string[];
   watch?: boolean;
+  poll?: boolean;
   sourceMap?: string;
   jsx?: boolean;
   ed?: boolean;
@@ -85,7 +86,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
   // const destDir = Path.relative(process.cwd(), commonRootDir).replace(/\\/g, '/');
 
   /** set compGlobs */
-  async function onComponent(name: string, packagePath: string, _parsedName: any, json: any, realPath: string) {
+  async function onComponent(name: string, _packagePath: string, _parsedName: any, json: any, realPath: string) {
     countPkg++;
     const tscCfg = argv.overridePackgeDirs && _.has(argv.overridePackgeDirs, name) ?
       argv.overridePackgeDirs[name]
@@ -140,15 +141,11 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       for (const srcDir of srcDirs) {
         const relPath = resolve(realPath, srcDir!).replace(/\\/g, '/');
         watchDirs.push(relPath);
-        // glob.sync(relPath + '/**/*.ts').filter(file => !file.endsWith('.d.ts')).forEach(file => rootFiles.push(file));
-        // if (argv.jsx) {
-        //   glob.sync(relPath + '/**/*.tsx').filter(file => !file.endsWith('.d.ts')).forEach(file => rootFiles.push(file));
-        // }
       }
     }
   }
 
-  const {action$, ofType, dispatchFactory} = languageServices(ts, {
+  const {action$, ofType, dispatcher} = languageServices(ts, {
     transformSourceFile(file, content) {
       const changed = webInjector.injectToFile(file, content);
       if (changed !== content) {
@@ -161,10 +158,18 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       inlineSourceMap: false,
       emitDeclarationOnly: argv.ed,
       basePath: workDir,
+      tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
       changeCompilerOptions(co) {
         setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, workDir.replace(/\\/g, '/'), argv, ts);
       }
-    }
+    },
+    watcher: argv.poll ?
+      {
+        usePolling: true,
+        interval: 1000,
+        binaryInterval: 2000
+      } :
+      undefined
   });
 
   const cwd = process.cwd();
@@ -215,8 +220,8 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     rx.merge(
       dealCommonJob()
     ).subscribe();
-    exitHooks.push(() => dispatchFactory('stop')());
-    dispatchFactory('watch')([...watchDirs, ...includePatterns]);
+    exitHooks.push(() => dispatcher.stop());
+    dispatcher.watch([...watchDirs, ...includePatterns]);
     // watch(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
     return [];
   } else {
@@ -231,9 +236,9 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     ).subscribe();
 
     for (const dir of watchDirs) {
-      rootFiles.push(...glob.sync(dir + '/**/*.ts'));
+      rootFiles.push(...glob.sync(dir + '/**/*.?([cm])ts'));
       if (argv.jsx) {
-        rootFiles.push(...glob.sync(dir + '/**/*.tsx'));
+        rootFiles.push(...glob.sync(dir + '/**/*.?([cm])tsx'));
       }
     }
     for (const pat of includePatterns) {
@@ -243,7 +248,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       }
     }
     for (const file of rootFiles) {
-      dispatchFactory('addSourceFile')(file, true);
+      dispatcher.addSourceFile(file, true);
     }
     writtenFile$.complete();
     emitFailedFile$.complete();

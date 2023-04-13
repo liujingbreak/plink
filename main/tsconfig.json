@@ -4,6 +4,7 @@
     "strict": true,
     "baseUrl": ".",
     "rootDir": ".",
+    "moduleResolution": "node",
     "typeRoots": [
       "node_modules/@types",
       "wfh/types",

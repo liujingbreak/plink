@@ -67,7 +67,7 @@ export default function paths() {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   pCfg.configHandlerMgrChanged(handler => handler.runEachSync<ReactScriptsHandler>((cfgFile, _result, handler) => {
     if (handler.changeCraPaths != null) {
-      log.info('Execute CRA scripts paths overrides', cfgFile);
+      log.info('Execute CRA scripts paths configuration', cfgFile);
       handler.changeCraPaths(changedPaths, config().cliOptions!.env!, cmdOption);
     }
   }));

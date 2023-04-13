@@ -3,6 +3,7 @@
   "compilerOptions": {
     "target": "es2017",
     "rootDir": "wfh/ts",
+    "moduleResolution": "node",
     "declaration": true,
     "baseUrl": ".",
     "inlineSourceMap": false,

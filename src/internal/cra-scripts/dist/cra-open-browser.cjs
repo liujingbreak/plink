@@ -9,4 +9,4 @@ function openBrowser(url) {
     return true;
 }
 exports.default = openBrowser;
-//# sourceMappingURL=cra-open-browser.js.map
+//# sourceMappingURL=cra-open-browser.cjs.map

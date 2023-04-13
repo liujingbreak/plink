@@ -22,7 +22,7 @@ const headerSet = new Set('h1 h2 h3 h4 h5'.split(' '));
  */
 function markdownToHtml(source, resolveImage) {
     if (threadPool == null) {
-        threadPool = new thread_promise_pool_1.Pool();
+        threadPool = new thread_promise_pool_1.Pool(3, 1000);
     }
     return rx.from(threadPool.submit({
         file: path_1.default.resolve(__dirname, 'markdown-loader-worker.js'), exportFn: 'parseToHtml', args: [source]

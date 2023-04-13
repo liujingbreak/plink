@@ -1,10 +1,10 @@
-import {StateFactory, ExtraSliceReducers, ofPayloadAction} from './redux-toolkit-observable';
 import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft,
   ActionCreatorWithPayload} from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import {Observable, EMPTY, of, Subject, OperatorFunction} from 'rxjs';
 import * as op from 'rxjs/operators';
 import { immerable, Immutable } from 'immer';
+import {StateFactory, ExtraSliceReducers, ofPayloadAction} from './redux-toolkit-observable';
 
 export type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends string = string> =
   (slice: SliceHelper<S, R, Name>) => Epic<PayloadAction<any>, any, {[sliceName in Name]: S}> | void;
@@ -19,8 +19,8 @@ export type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string =
    * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
    */
   action$: Observable<PayloadAction | Action>;
-  action$ByType: ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>>>;
-  actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
+  action$ByType: ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>, Name>>;
+  actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>, Name>;
   destroy$: Observable<any>;
   addEpic(epicFactory: EpicFactory<S, R>): () => void;
   addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): () => void;
@@ -29,7 +29,7 @@ export type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string =
   getState(): S;
 };
 
-export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
+export function createSliceHelper<S extends Record<string, any>, R extends SliceCaseReducers<S>>(
   stateFactory: StateFactory, opts: CreateSliceOptions<S, R>): SliceHelper<S, R> {
 
   const slice = stateFactory.newSlice(opts);
@@ -168,7 +168,7 @@ slice.addEpic(slice => action$ => {
  * @param actionCreators 
  * @param action$ 
  */
-export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R,
+export function castByActionType<Name extends string, R extends CaseReducerActions<SliceCaseReducers<any>, Name>>(actionCreators: R,
   action$: Observable<PayloadAction | Action>): ActionByType<R> {
   const source = action$.pipe(op.share());
   const splitActions = {} as ActionByType<R>;
@@ -283,7 +283,8 @@ export function action$OfSlice<S, R extends SliceCaseReducers<S>,
  */
 export class Refrigerator<T> {
   private ref: Immutable<T>;
-  [immerable]: false;
+  [immerable] = false;
+  static [immerable] = false;
 
   constructor(originRef: T) {
     this.ref = originRef as Immutable<T>;
@@ -301,4 +302,3 @@ export class Refrigerator<T> {
     return this.ref as T;
   }
 }
-Refrigerator[immerable] = false;

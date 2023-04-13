@@ -17,6 +17,7 @@ type TscOptions = {
   emitDeclarationOnly?: boolean;
   changeCompilerOptions?: (co: Record<string, any>) => void;
   traceResolution?: boolean;
+  tsBuildInfoFile?: string;
 };
 
 function plinkNodeJsCompilerOptionJson(ts: typeof _ts, opts: TscOptions = {}) {
@@ -46,6 +47,7 @@ function plinkNodeJsCompilerOptionJson(ts: typeof _ts, opts: TscOptions = {}) {
     target: 'ES2017',
     importHelpers: true,
     declaration: true,
+    tsBuildInfoFile: opts.tsBuildInfoFile,
     // diagnostics: true,
     // module: 'ESNext',
     /**
@@ -116,7 +118,7 @@ export function createTranspileFileWithTsCheck(
       action$.pipe(
         ofType('emitFile'),
         op.map(({payload: [outputFile, outputContent]}) => {
-          if (outputFile.endsWith('.js')) {
+          if (/\.[mc]?js/.test(outputFile)) {
             destFile = outputContent;
           } else if (outputFile.endsWith('.map')) {
             sourceMap = outputContent;
@@ -181,7 +183,7 @@ export function languageServices( ts: any = _ts, opts: {
 } = {}
 ) {
   const ts0 = ts as typeof _ts;
-  const {dispatcher, dispatchFactory, action$, ofType} =
+  const {dispatcher, dispatchFactory, action$, actionOfType, ofType} =
     createActionStreamByType<LangServiceActionCreator>();
   const store = new rx.BehaviorSubject<LangServiceState>({
     versions: new Map(),
@@ -264,8 +266,7 @@ export function languageServices( ts: any = _ts, opts: {
   let watcher: ReturnType<typeof chokidar.watch>;
 
   rx.merge(
-    action$.pipe(
-      ofType('watch'),
+    actionOfType('watch').pipe(
       op.exhaustMap(
         ({payload: dirs}) =>
           new rx.Observable<never>(() => {
@@ -291,7 +292,7 @@ export function languageServices( ts: any = _ts, opts: {
       )
     ),
     addSourceFile$.pipe(
-      op.filter(({payload: [file]}) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)),
+      op.filter(({payload: [file]}) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)),
       op.map(({payload: [fileName, sync, content]}) => {
         setState(s => {
           s.files.add(fileName);

@@ -1,14 +1,39 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.test = exports.registerNode = exports.languageServices = exports.LogLevel = exports.createTranspileFileWithTsCheck = exports.transpileSingleFile = void 0;
-const tslib_1 = require("tslib");
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 // import inspector from 'inspector';
-const typescript_1 = tslib_1.__importDefault(require("typescript"));
-const rx = tslib_1.__importStar(require("rxjs"));
-const op = tslib_1.__importStar(require("rxjs/operators"));
-const chokidar_1 = tslib_1.__importDefault(require("chokidar"));
+const typescript_1 = __importDefault(require("typescript"));
+const rx = __importStar(require("rxjs"));
+const op = __importStar(require("rxjs/operators"));
+const chokidar_1 = __importDefault(require("chokidar"));
 const rx_utils_1 = require("../../../packages/redux-toolkit-observable/dist/rx-utils");
 // import {createActionStream} from '../../../packages/redux-toolkit-observable/rx-utils';
 const ts_cmd_util_1 = require("../ts-cmd-util");
@@ -31,7 +56,7 @@ function plinkNodeJsCompilerOptionJson(ts, opts = {}) {
     }
     const coRootDir = path_1.default.parse(process.cwd()).root;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const compilerOptions = Object.assign(Object.assign({}, baseCompilerOptions), { target: 'ES2017', importHelpers: true, declaration: true, 
+    const compilerOptions = Object.assign(Object.assign({}, baseCompilerOptions), { target: 'ES2017', importHelpers: true, declaration: true, tsBuildInfoFile: opts.tsBuildInfoFile, 
         // diagnostics: true,
         // module: 'ESNext',
         /**
@@ -68,7 +93,7 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, opts) {
         let destFile;
         let sourceMap;
         rx.merge(action$.pipe(ofType('emitFile'), op.map(({ payload: [outputFile, outputContent] }) => {
-            if (outputFile.endsWith('.js')) {
+            if (/\.[mc]?js/.test(outputFile)) {
                 destFile = outputContent;
             }
             else if (outputFile.endsWith('.map')) {
@@ -94,7 +119,7 @@ var LogLevel;
 })(LogLevel = exports.LogLevel || (exports.LogLevel = {}));
 function languageServices(ts = typescript_1.default, opts = {}) {
     const ts0 = ts;
-    const { dispatcher, dispatchFactory, action$, ofType } = (0, rx_utils_1.createActionStreamByType)();
+    const { dispatcher, dispatchFactory, action$, actionOfType, ofType } = (0, rx_utils_1.createActionStreamByType)();
     const store = new rx.BehaviorSubject({
         versions: new Map(),
         files: new Set(),
@@ -161,7 +186,7 @@ function languageServices(ts = typescript_1.default, opts = {}) {
     const changeSourceFile$ = action$.pipe(ofType('changeSourceFile'));
     const stop$ = action$.pipe(ofType('stop'));
     let watcher;
-    rx.merge(action$.pipe(ofType('watch'), op.exhaustMap(({ payload: dirs }) => new rx.Observable(() => {
+    rx.merge(actionOfType('watch').pipe(op.exhaustMap(({ payload: dirs }) => new rx.Observable(() => {
         if (watcher == null)
             watcher = chokidar_1.default.watch(dirs.map(dir => dir.replace(/\\/g, '/')), opts.watcher);
         watcher.on('add', path => dispatcher.addSourceFile(path, false));
@@ -172,7 +197,7 @@ function languageServices(ts = typescript_1.default, opts = {}) {
                 console.log('[tsc-util] chokidar watcher stops');
             });
         };
-    }))), addSourceFile$.pipe(op.filter(({ payload: [file] }) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)), op.map(({ payload: [fileName, sync, content] }) => {
+    }))), addSourceFile$.pipe(op.filter(({ payload: [file] }) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)), op.map(({ payload: [fileName, sync, content] }) => {
         setState(s => {
             s.files.add(fileName);
             s.versions.set(fileName, 0);

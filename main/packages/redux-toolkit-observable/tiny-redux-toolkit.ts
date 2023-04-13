@@ -258,7 +258,7 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     return function(src: rx.Observable<PayloadAction<any>>) {
       return src.pipe(
         op.filter(
-          action => actionTypes.some(ac => action.type === name + '/' + ac),
+          action => actionTypes.some(ac => action.type === name + '/' + (ac as string)),
           op.share()
         )
       );
@@ -507,7 +507,7 @@ demoSlice.addEpic((slice, ofType) => {
       ),
       action$.pipe(
         ofPayloadAction(slice.actions.multiPayloadReducer),
-        op.tap(({payload: [a1, a2]}) => alert(a1))
+        op.map(({payload: [a1]}) => alert(a1))
       )
     ).pipe(op.ignoreElements());
   };

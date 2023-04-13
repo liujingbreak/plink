@@ -8,7 +8,7 @@
       "esnext"
     ],
 
-    "noUnusedLocals": false,
+    "noUnusedLocals": true,
 
     "allowJs": true,
     "skipLibCheck": true,

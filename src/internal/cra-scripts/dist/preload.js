@@ -57,9 +57,9 @@ function poo() {
             }
             switch (resolve(target)) {
                 case reactWebpackCfg:
-                    return require('./webpack.config');
+                    return require('./webpack.config').default;
                 case reactWebpackDevServerCfg:
-                    return require('./webpack.devserver.config');
+                    return require('./webpack.devserver.config').default;
                 case clearConsole:
                     return noClearConsole;
                 case craPaths:
@@ -67,7 +67,7 @@ function poo() {
                 default:
             }
             if (target === 'react-dev-utils/openBrowser') {
-                return require('./cra-open-browser').default;
+                return require('./cra-open-browser.cjs').default;
             }
         }
         else if (filename.startsWith(craPackagesPathPrefix)) {

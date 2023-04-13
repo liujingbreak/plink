@@ -81,10 +81,11 @@ export type BuildCliOpts = {
   include?: string[];
   publicUrl?: string;
   sourceMap?: boolean;
+  poll: boolean;
+  tsck: CommandOption['tsck'];
 } & NonNullable<PlinkSettings['cliOptions']>;
 
 export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib'): CommandOption {
-
   const completeName = [...findPackagesByNames([pkgName])][0]?.name;
   if (completeName == null) {
     throw new Error(`Package named "${pkgName}" can not be found`);
@@ -98,7 +99,9 @@ export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: Buil
     publicUrl: opts.publicUrl,
     // external: opts.external,
     includes: opts.include,
-    webpackEnv: opts.dev ? 'development' : 'production'
+    webpackEnv: opts.dev ? 'development' : 'production',
+    usePoll: opts.poll,
+    tsck: opts.tsck
   };
   if (opts.publicUrl) {
     (process.env as any).PUBLIC_URL = opts.publicUrl;

@@ -54,6 +54,6 @@ export declare const configSlice: import("@reduxjs/toolkit").Slice<PlinkSettings
 } & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PlinkSettings>, "config">;
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     saveCliOption(s: import("immer/dist/internal").WritableDraft<PlinkSettings>, { payload }: PayloadAction<GlobalOptions>): void;
-} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PlinkSettings>>;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PlinkSettings>, "config">;
 export declare function getState(): PlinkSettings;
 export declare function getStore(): rx.Observable<PlinkSettings>;

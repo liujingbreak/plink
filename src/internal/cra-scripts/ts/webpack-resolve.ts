@@ -8,6 +8,6 @@ export function addResolveAlias(config: Configuration) {
     config.resolve.alias = {};
 
   return [...packages4Workspace(undefined, false)]
-    .map(pkg => config.resolve!.alias![pkg.name] = pkg.realPath);
+    .map(pkg => (config.resolve!.alias! as Record<string, string>)[pkg.name] = pkg.realPath);
 }
 

@@ -14,4 +14,7 @@ export interface CommandOption {
     publicUrl?: string;
     includes?: string[];
     webpackEnv: 'development' | 'production';
+    usePoll: boolean;
+    /** use fork-ts-checker */
+    tsck: boolean;
 }

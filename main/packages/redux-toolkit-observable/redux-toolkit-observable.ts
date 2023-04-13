@@ -199,7 +199,8 @@ export class StateFactory {
    * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
    * - initialState is loaded from StateFactory's partial preloadedState
    */
-  newSlice<S, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  newSlice<S extends Record<string, any>, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(
     opt: CreateSliceOptions<S, _CaseReducer, Name>):
     Slice<S, _CaseReducer & ExtraSliceReducers<S>, Name> {
 
@@ -215,7 +216,7 @@ export class StateFactory {
       };
     }
 
-    if (this.preloadedState && this.preloadedState[opt.name]) {
+    if (this.preloadedState?.[opt.name]) {
       Object.assign(opt.initialState, this.preloadedState[opt.name]);
     }
     const slice = reduxCreateSlice(
@@ -294,7 +295,7 @@ export class StateFactory {
    * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
    * Parameter is a Slice instead of action map
    */
-  bindActionCreators<A>(slice: {actions: A})
+  bindActionCreators<A extends Record<string, any>>(slice: {actions: A})
     : A {
 
     const actionMap = {} as A;
@@ -306,7 +307,7 @@ export class StateFactory {
         return action as unknown;
       };
       (doAction as unknown as {type: string}).type = (actionCreator as PayloadActionCreator).type;
-      actionMap[name] = doAction as unknown;
+      actionMap[name as keyof A] = doAction as any;
     }
     return actionMap;
   }

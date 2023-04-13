@@ -1,6 +1,6 @@
 import RJ from 'require-injector';
-import { PlinkSettings } from './config/config-slice';
 import { FactoryMapCollection, FactoryMapInterf } from 'require-injector/dist/factory-map';
+import { PlinkSettings } from './config/config-slice';
 export declare class DrPackageInjector extends RJ {
     protected noNode: boolean;
     constructor(noNode?: boolean);
@@ -11,8 +11,8 @@ export declare class DrPackageInjector extends RJ {
     notFromPackages(...excludePackages: string[]): FactoryMapInterf;
     readInjectFile(fileNameWithoutExt?: string): void;
 }
-export declare let nodeInjector: DrPackageInjector;
-export declare let webInjector: DrPackageInjector;
+export declare const nodeInjector: DrPackageInjector;
+export declare const webInjector: DrPackageInjector;
 export interface InjectorConfigHandler {
     /** For Client framework build tool (React, Angular), replace module in "require()" or import syntax */
     setupWebInjector?(factory: DrPackageInjector, allSetting: PlinkSettings): void;

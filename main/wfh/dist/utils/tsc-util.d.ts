@@ -1,12 +1,13 @@
 import _ts from 'typescript';
 import * as rx from 'rxjs';
 import chokidar from 'chokidar';
-declare type TscOptions = {
+type TscOptions = {
     jsx?: boolean;
     inlineSourceMap?: boolean;
     emitDeclarationOnly?: boolean;
     changeCompilerOptions?: (co: Record<string, any>) => void;
     traceResolution?: boolean;
+    tsBuildInfoFile?: string;
 };
 declare function plinkNodeJsCompilerOption(ts: typeof _ts, opts?: TscOptions & {
     basePath?: string;
@@ -26,7 +27,7 @@ export declare enum LogLevel {
     log = 1,
     error = 2
 }
-declare type LangServiceActionCreator = {
+type LangServiceActionCreator = {
     watch(dirs: string[]): void;
     addSourceFile(file: string, sync: boolean, content?: string): void;
     changeSourceFile(file: string, content: string | undefined | null): void;

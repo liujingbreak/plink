@@ -1,9 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.log4File = void 0;
-const tslib_1 = require("tslib");
-const node_path_1 = tslib_1.__importDefault(require("node:path"));
-const log4js = tslib_1.__importStar(require("log4js"));
+const node_path_1 = __importDefault(require("node:path"));
+const log4js_1 = require("log4js");
 const package_info_gathering_1 = require("./package-mgr/package-info-gathering");
 /**
  * Get log4js Logger for specific node.js file, the output log will have
@@ -17,10 +19,10 @@ const package_info_gathering_1 = require("./package-mgr/package-info-gathering")
 function log4File(file, subName) {
     const pkg = (0, package_info_gathering_1.packageOfFileFactory)().getPkgOfFile(file);
     if (pkg) {
-        return log4js.getLogger(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1] + (subName ? '.' + subName : ''));
+        return (0, log4js_1.getLogger)(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1] + (subName ? '.' + subName : ''));
     }
     else {
-        return log4js.getLogger(/^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1] + (subName ? '.' + subName : ''));
+        return (0, log4js_1.getLogger)(/^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1] + (subName ? '.' + subName : ''));
     }
 }
 exports.log4File = log4File;

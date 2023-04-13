@@ -22,6 +22,6 @@ export declare const tscActionDispatcher: import("@reduxjs/toolkit").CaseReducer
         pkg: string;
         items: PackageJsonTscPropertyItem[];
     }[]>): void;
-} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<TscState>>;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<TscState>, "tsc">;
 export declare function getState(): TscState;
 export declare function getStore(): Observable<TscState>;

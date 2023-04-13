@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "less-loader": "~7.0.2",
+    "string-width": "^5.1.2",
     "raw-loader": "~4.0.1",
     "less": "^3.12.2",
     "react-app-polyfill": "~2.0.0",

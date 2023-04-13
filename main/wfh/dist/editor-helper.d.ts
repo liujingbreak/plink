@@ -34,7 +34,7 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     unHookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookAll(): void;
     clearSymlinksDone(S: import("immer/dist/internal").WritableDraft<EditorHelperState>): void;
-} & import("../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>>;
+} & import("../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>, "editor-helper">;
 export declare function getAction$(type: keyof (typeof slice)['caseReducers']): rx.Observable<{
     type: any;
 } | {

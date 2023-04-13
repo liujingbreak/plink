@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import * as _pkgList from '../package-mgr/package-list-helper';
 import { ConfigHandlerMgr, DrcpConfig } from '../config-handler';
 export declare const configHandlerMgr$: rx.BehaviorSubject<ConfigHandlerMgr | undefined>;
-declare type PackageInfo = ReturnType<(typeof _pkgList)['packages4Workspace']> extends Generator<infer T> ? T : unknown;
+type PackageInfo = ReturnType<(typeof _pkgList)['packages4Workspace']> extends Generator<infer T> ? T : unknown;
 /**
  * @returns [defaultValueFile, exportName, dtsFile]
  */

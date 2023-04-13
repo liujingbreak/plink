@@ -1,5 +1,5 @@
 import path from 'node:path';
-import * as log4js from 'log4js';
+import {getLogger} from 'log4js';
 import {packageOfFileFactory} from './package-mgr/package-info-gathering';
 /**
  * Get log4js Logger for specific node.js file, the output log will have
@@ -13,8 +13,8 @@ import {packageOfFileFactory} from './package-mgr/package-info-gathering';
 export function log4File(file: string, subName?: string) {
   const pkg = packageOfFileFactory().getPkgOfFile(file);
   if (pkg) {
-    return log4js.getLogger(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(path.basename(file))![1] + (subName ? '.' + subName : ''));
+    return getLogger(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(path.basename(file))![1] + (subName ? '.' + subName : ''));
   } else {
-    return log4js.getLogger(/^(.*?)\.[^.]*$/.exec(path.basename(file))![1] + (subName ? '.' + subName : ''));
+    return getLogger(/^(.*?)\.[^.]*$/.exec(path.basename(file))![1] + (subName ? '.' + subName : ''));
   }
 }

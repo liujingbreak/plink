@@ -1,9 +1,10 @@
 /// <reference types="node" />
+/// <reference types="node" />
 import * as cp from 'child_process';
 import { Worker } from 'node:cluster';
 import * as rx from 'rxjs';
-declare type ChildProcessFactory = () => cp.ChildProcess;
-export declare type Options = {
+type ChildProcessFactory = () => cp.ChildProcess;
+export type Options = {
     retryOnError?: number;
 };
 export default function (dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory[] | Worker[], opts?: Options): {

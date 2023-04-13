@@ -1,8 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 const worker_threads_1 = require("worker_threads");
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const chalk_1 = __importDefault(require("chalk"));
 const cli_1 = require("./cmd/cli");
 const startTime = new Date().getTime();
 process.on('exit', (code) => {

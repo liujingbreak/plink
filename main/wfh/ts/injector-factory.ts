@@ -71,10 +71,11 @@ export class DrPackageInjector extends RJ {
   }
 
   notFromPackages(...excludePackages: string[]) {
-    const names = _.difference(_.keys(packageNamePathMap), excludePackages);
-    const dirs = names.map(pkName => packageNamePathMap[pkName]);
+    const names = _.difference([...packageNamePathMap.keys()], excludePackages);
+    const dirs = names.map(pkName => packageNamePathMap.get(pkName)!.realPath);
+    const symdirs = names.map(pkName => packageNamePathMap.get(pkName)!.symlink!);
     log.debug('from ' + dirs);
-    return super.fromDir(dirs);
+    return super.fromDir(dirs.concat(symdirs));
   }
 
   readInjectFile(fileNameWithoutExt?: string) {

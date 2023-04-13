@@ -6,7 +6,7 @@ const log = logger.getLogger('@wfh/cra-scripts.webpack.devserver.config');
 
 const origDevServerConfig = require('react-scripts/config/webpackDevServer.config') as (...args: unknown[]) => DevServerOpts;
 
-export = function(this: unknown, ...args: any[]) {
+export default function(this: unknown, ...args: any[]) {
   // eslint-disable-next-line prefer-rest-params
   const devServerCfg = origDevServerConfig.apply(this, args);
   // devServerCfg.stats = 'normal';
@@ -18,4 +18,4 @@ export = function(this: unknown, ...args: any[]) {
 
   log.info('Dev server configure:', printConfig(devServerCfg));
   return devServerCfg;
-};
+}

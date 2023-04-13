@@ -1,17 +1,19 @@
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 import Path from 'path';
+import util from 'node:util';
 import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
 import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';
 import StatsPlugin from '@wfh/webpack-common/dist/webpack-stats-plugin';
-// import {Options as TsLoaderOpts} from '@wfh/webpack-common/dist/ts-loader';
 import fs from 'fs-extra';
 import _ from 'lodash';
-import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig, } from '@wfh/plink';
+import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {Configuration, RuleSetRule, Compiler, ProgressPlugin} from 'webpack';
 import api from '__plink';
 import nodeResolve from 'resolve';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import {Options as HtmlWebpackPluginOptions} from 'html-webpack-plugin';
 import {ReactScriptsHandler, ForkTsCheckerWebpackPluginOptions, ForkTsCheckerWebpackPluginTypescriptOpts} from './types';
 import {drawPuppy, getCmdOptions, printConfig, getReportDir} from './utils';
@@ -19,16 +21,42 @@ import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
 import {changeTsConfigFile} from './change-tsconfig';
 import * as webpackResolveCfg from './webpack-resolve';
-// import inspector from 'inspector';
+// import inspector from 'node:inspector';
 // inspector.open(9222, 'localhost', true);
 
 const log = logger.getLogger('@wfh/cra-scripts.webpack-config');
 const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
-export = function(webpackEnv: 'production' | 'development') {
+export default function(webpackEnv: 'production' | 'development') {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const {addResolveAlias} = require('./webpack-resolve') as typeof webpackResolveCfg;
   drawPuppy('Hack create-react-app', `If you want to know how Webpack is configured, check: ${api.config.resolve('destDir', 'cra-scripts.report')}`);
+
+  const progressMsg$ = new rx.Subject<any[]>();
+  rx.from(import('string-width'))
+    .pipe(
+      op.mergeMap(({default: strWidth}) => progressMsg$.pipe(
+        op.map(msg => {
+          let lines = 1;
+          const str = util.format('', ...msg);
+          const width = strWidth(str);
+          if (width > process.stdout.columns) {
+            lines = Math.ceil(process.stdout.columns / width);
+          }
+          return {str, lines};
+        }),
+        op.concatMap(({str, lines}) => rx.concat(
+          rx.merge(
+            new Promise<void>(resolve => process.stdout.cursorTo(0, resolve)),
+            new Promise<void>(resolve => process.stdout.moveCursor(-lines + 1, 0, resolve)),
+            new Promise<void>(resolve => process.stdout.clearLine(0, resolve))
+          ),
+          rx.defer(() => {
+            return new Promise<void>(resolve => process.stdout.write(str, () => resolve()));
+          })
+        ))
+      ))
+    ).subscribe();
 
   const cmdOption = getCmdOptions();
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
@@ -77,8 +105,6 @@ export = function(webpackEnv: 'production' | 'development') {
   // appendOurOwnTsLoader(config);
   // insertLessLoaderRule(config.module!.rules as RuleSetRule[]);
   // changeForkTsCheckerPlugin(config);
-  if (process.stdout.isTTY)
-    config.plugins!.push(new ProgressPlugin({profile: true}));
 
   if (cmdOption.buildType === 'app') {
     config.output!.path = craPaths().appBuild;
@@ -105,6 +131,10 @@ export = function(webpackEnv: 'production' | 'development') {
   // config.resolveLoader.symlinks = false;
   if (config.watchOptions == null)
     config.watchOptions = {};
+  if (cmdOption.usePoll) {
+    config.watchOptions.poll = 1000;
+  }
+  config.watchOptions.aggregateTimeout = 800;
   config.watchOptions.ignored = /\bnode_modules\b/;
 
   // config.resolve!.plugins.unshift(new PlinkWebpackResolvePlugin());
@@ -114,7 +144,7 @@ export = function(webpackEnv: 'production' | 'development') {
   if (cmdOption.cmd === 'cra-build')
     config.plugins!.push(new StatsPlugin());
   else
-    addProgressPlugin(config);
+    addProgressPlugin(config, (...s) => progressMsg$.next(s));
 
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
@@ -175,34 +205,28 @@ export = function(webpackEnv: 'production' | 'development') {
       }
     }
   }
-  changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir);
+  changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
 
   runConfigHandlers(config, webpackEnv);
   log.info(`output.publicPath: ${config.output!.publicPath as string}`);
   fs.writeFileSync(Path.resolve(reportDir, 'webpack.config.plink.js'), printConfig(config));
 
   return config;
-};
+}
 
-function addProgressPlugin(config: Configuration) {
+function addProgressPlugin(config: Configuration, send: (...msg: any[]) => void) {
   // let spinner: ReturnType<typeof _ora>;
 
-  config.plugins!.push(new ProgressPlugin({
-    activeModules: true,
-    modules: true,
-    modulesCount: 100,
-    handler(percentage, msg, ...args) {
-      // if (spinner == null) {
-      //   spinner = (await oraProm)();
-      //   spinner.start();
-      // }
-      // spinner!.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
-      log.info(Math.round(percentage * 100), '%', msg, ...args);
-      // if (percentage > 0.98) {
-      //   spinner!.stop();
-      // }
-    }
-  }));
+  if (process.stdout.isTTY) {
+    config.plugins!.push(new ProgressPlugin({
+      activeModules: true,
+      modules: true,
+      modulesCount: 100,
+      handler(percentage, msg, ...args) {
+        send(Math.round(percentage * 100), '%', msg, ...args);
+      }
+    }));
+  }
 }
 
 /**
@@ -277,7 +301,11 @@ function runConfigHandlers(config: Configuration, webpackEnv: string) {
   }, 'create-react-app Webpack config'));
 }
 
-function changeForkTsCheckerOptions(config: Configuration, appIndexFile: string, moduleResolveBase: string) {
+function changeForkTsCheckerOptions(
+  config: Configuration, appIndexFile: string,
+  moduleResolveBase: string,
+  cmdOptions: ReturnType<typeof getCmdOptions>
+) {
   const plugins = config.plugins!;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const cnst = require(nodeResolve.sync('react-dev-utils/ForkTsCheckerWebpackPlugin',
@@ -292,6 +320,12 @@ function changeForkTsCheckerOptions(config: Configuration, appIndexFile: string,
     throw new Error('Can not find fork-ts-checker-webpack-plugin in existing Webpack configuation');
   }
   const opts = (plugin as unknown as {options: ForkTsCheckerWebpackPluginOptions}).options;
+  if (!cmdOptions.tsck) {
+    log.warn('fork-ts-checker-webpack-plugin is disabled');
+    // (opts.typescript as Exclude<ForkTsCheckerWebpackPluginOptions['typescript'], boolean | undefined>).enabled = false;
+    config.plugins = config.plugins!.filter(p => p !== plugin);
+    return;
+  }
   const tsconfig = (opts.typescript as ForkTsCheckerWebpackPluginTypescriptOpts).configOverwrite!;
   const typescriptOpts = opts.typescript as ForkTsCheckerWebpackPluginTypescriptOpts;
   typescriptOpts.diagnosticOptions = {
@@ -316,13 +350,13 @@ function changeForkTsCheckerOptions(config: Configuration, appIndexFile: string,
 
   const override = changeTsConfigFile(appIndexFile).tsconfigJson;
 
-  for (const coProp of ['sourceMap', 'inlineSourceMap', 'declarationMap']) {
-    delete override.compilerOptions[coProp];
+  for (const coProp of ['sourceMap', 'inlineSourceMap', 'declarationMap'] as const) {
+    delete (override.compilerOptions as Record<string, any>)[coProp];
   }
   Object.assign(tsconfig.compilerOptions!, override.compilerOptions);
   for (const [prop, value] of Object.entries(override)) {
     if (prop !== 'compilerOptions')
-      tsconfig[prop] = value;
+      (tsconfig as Record<string, any>)[prop] = value;
   }
   const tsconfigReport = Path.resolve(getReportDir(), 'tsconfig.json');
   log.info('tsconfig for forked-ts-checker', tsconfigReport);

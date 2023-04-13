@@ -1,8 +1,8 @@
+import fs from 'fs';
+import Path from 'path';
 import chalk from 'chalk';
 import log4js from 'log4js';
 import _ from 'lodash';
-import fs from 'fs';
-import Path from 'path';
 import * as packageUtils from '../package-utils';
 import config from '../config';
 const jsYaml = require('js-yaml');
@@ -11,12 +11,12 @@ const log = log4js.getLogger('plink.cliAdvanced');
 export function addupConfigs(onEachYaml: (file: string, configContent: string) => void) {
   const componentConfigs: {
     outputPathMap: {[k: string]: string};
-    browserSideConfigProp: string[]
+    browserSideConfigProp: string[];
   } = {outputPathMap: {}, browserSideConfigProp: []};
   const browserSideConfigProp = componentConfigs.browserSideConfigProp;
 
-  const componentConfigs4Env = {}; // key is env:string, value is componentConfigs
-  const trackOutputPath = {}; // For checking conflict
+  const componentConfigs4Env = {} as Record<string, any>; // key is env:string, value is componentConfigs
+  const trackOutputPath = {}  as Record<string, any>; // For checking conflict
   for (const pkg of packageUtils.allPackages()) {
     const {name, json, shortName} = pkg;
 
@@ -37,7 +37,7 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
     });
 
     // outputPath
-    var outputPath = dr.outputPath;
+    let outputPath = dr.outputPath;
     if (outputPath == null)
       outputPath = dr.ngRouterPath;
     if (outputPath == null)
@@ -74,7 +74,7 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
 }
 
 function _addupCompConfigProp(componentConfigs: {[k: string]: any}, compName: string, browserSideConfigProp: string[],
-  configJson: {public: any, server: any}) {
+  configJson: {public: any; server: any}) {
   if (!configJson)
     return;
   // component customized configuration properties

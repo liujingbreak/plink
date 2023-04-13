@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import isRegExp from 'lodash/isRegExp';
 import uniq from 'lodash/uniq';
 import _ from 'lodash';
-import ts, { SyntaxKind as sk} from 'typescript';
+import ts, {SyntaxKind as sk} from 'typescript';
 import chalk from 'chalk';
 export {ts as typescript};
 
@@ -120,7 +120,7 @@ export default class Selector {
 
   walkAst(handlers: WalkCallback[]): void;
   walkAst(ast: ts.Node, handlers: WalkCallback[]): void;
-  walkAst(ast: ts.Node|WalkCallback[] , handlers?: WalkCallback[]): void {
+  walkAst(ast: ts.Node | WalkCallback[], handlers?: WalkCallback[]): void {
     if (Array.isArray(ast)) {
       handlers = ast;
       ast = this.src;
@@ -161,7 +161,7 @@ export default class Selector {
   findMapTo<T>(query: string, callback: AstHandler<T>): T | null;
   findMapTo<T>(ast: ts.Node, query: string, callback: AstHandler<T>): T | null;
   // eslint-disable-next-line max-len
-  findMapTo<T>(...arg: [queryOrAst: string | ts.Node, callBackOrQuery: AstHandler<T>|string, callback?: AstHandler<T>]): T | null {
+  findMapTo<T>(...arg: [queryOrAst: string | ts.Node, callBackOrQuery: AstHandler<T> | string, callback?: AstHandler<T>]): T | null {
     let query: string;
     let ast: ts.Node;
     let callback: AstHandler<T>;
@@ -286,7 +286,7 @@ export default class Selector {
     let needPopPathEl = false;
 
     // if (ast.kind !== ts.SyntaxKind.SourceFile) {
-      // let propName = parents[parents.length - 1] === this.src ? '' : this._findParentPropName(ast, parents);
+    // let propName = parents[parents.length - 1] === this.src ? '' : this._findParentPropName(ast, parents);
     let pathEl = ':' + sk[ast.kind];
     if (propName)
       pathEl = '.' + propName + pathEl;
@@ -321,16 +321,16 @@ export default class Selector {
         }
         const isStop = this.traverse(child, cb, propName, parents, pathEls);
         return isStop;
-          // return undefined;
+        // return undefined;
       },
-        subArray => {
-          let propName = _value2key.get(subArray);
-          if (propName == null) {
-            createValue2KeyMap(ast, _value2key, true);
-            propName = _value2key.get(subArray);
-          }
-          return this.traverseArray(subArray, cb, propName, parents, pathEls);
+      subArray => {
+        let propName = _value2key.get(subArray);
+        if (propName == null) {
+          createValue2KeyMap(ast, _value2key, true);
+          propName = _value2key.get(subArray);
         }
+        return this.traverseArray(subArray, cb, propName, parents, pathEls);
+      }
       );
       parents.pop();
     }
@@ -365,7 +365,7 @@ export default class Selector {
     }
 
     for (const prop of properties) {
-      const value = p[prop] as unknown;
+      const value = p[prop as keyof ts.Node] as unknown;
       if (['parent', 'kind', '_children', 'pos', 'end'].includes(prop))
         continue;
       if (Array.isArray(value)) {
@@ -402,7 +402,7 @@ function createValue2KeyMap(ast: ts.Node, value2KeyMap: Map<any, string>, rebuil
 
   if (rebuild || cached == null) {
     props = Object.keys(ast)
-      .filter(prop => typeof ast[prop] !== 'function' && !['parent', 'kind', '_children', 'pos', 'end'].includes(prop));
+      .filter(prop => typeof ast[prop as keyof ts.Node] !== 'function' && !['parent', 'kind', '_children', 'pos', 'end'].includes(prop));
     if (cached == null) {
       astSchemaCache[ast.kind] = props;
     } else {
@@ -415,7 +415,7 @@ function createValue2KeyMap(ast: ts.Node, value2KeyMap: Map<any, string>, rebuil
     props = cached;
   }
   for (const key of props!) {
-    value2KeyMap.set(ast[key], key);
+    value2KeyMap.set(ast[key as keyof ts.Node], key);
   }
   return props!;
 }
@@ -452,6 +452,7 @@ export class Query {
     let testPos = path.length - 1;
     const startTestPos = testPos;
     for (const consecutiveNodes of this.queryPaths.slice(0)) {
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         if (this.matchesConsecutiveNodes(consecutiveNodes, path, testPos)) {
           testPos -= consecutiveNodes.length;
@@ -470,7 +471,7 @@ export class Query {
 
   protected _parseDesc(singleAstDesc: string): AstQuery {
     const astChar: AstQuery = {};
-      // eslint-disable-next-line
+    // eslint-disable-next-line
 			let m = /^(?:\.([a-zA-Z0-9_$]+)(?:\[([0-9]*)\])?)?(?:\:([a-zA-Z0-9_$]+))?$|^\*$/.exec(singleAstDesc);
     if (m == null) {
       throw new Error(`Invalid query string "${chalk.yellow(singleAstDesc)}"`);
@@ -487,11 +488,12 @@ export class Query {
 
   private matchesAst(query: AstQuery, target: AstCharacter): boolean {
     for (const key of Object.keys(query)) {
-      const value = query[key] as unknown;
-      if (isRegExp(value)) {
-        if (!value.test(target[key]))
+      const value = query[key as keyof AstQuery] as unknown;
+      const targetPropValue = target[key as keyof AstCharacter];
+      if (isRegExp(value) && targetPropValue) {
+        if (!value.test(targetPropValue + ''))
           return false;
-      } else if (target[key] !== value)
+      } else if (targetPropValue !== value)
         return false;
     }
     return true;

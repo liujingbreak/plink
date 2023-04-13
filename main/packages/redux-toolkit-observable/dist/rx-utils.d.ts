@@ -3,14 +3,14 @@
  * https://redux-observable.js.org/
  */
 import { Observable } from 'rxjs';
-declare type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
-export declare type ActionTypes<AC> = {
+type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
+export type ActionTypes<AC> = {
     [K in keyof AC]: {
         type: string;
         payload: InferParam<AC[K]>;
     };
 };
-declare type InferParam<F> = Plen<F> extends 1 | 0 ? (F extends (a: infer A) => any ? A : unknown) : Plen<F> extends 2 ? F extends (...p: infer P) => any ? P : unknown : Plen<F> extends 1 | 2 ? F extends (a: infer A, b: infer B) => any ? A | [A, B] : F extends (...p: infer P) => any ? P : unknown : F extends (...p: infer P) => any ? P : unknown;
+type InferParam<F> = Plen<F> extends 1 | 0 ? (F extends (a: infer A) => any ? A : unknown) : Plen<F> extends 2 ? F extends (...p: infer P) => any ? P : unknown : Plen<F> extends 1 | 2 ? F extends (a: infer A, b: infer B) => any ? A | [A, B] : F extends (...p: infer P) => any ? P : unknown : F extends (...p: infer P) => any ? P : unknown;
 /**
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
@@ -34,8 +34,8 @@ export declare function createActionStream<AC extends Record<string, ((...payloa
     }, type: K) => action is ActionTypes<AC>[K];
     nameOfAction: <K extends keyof AC>(action: ActionTypes<AC>[K]) => K;
 };
-declare type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
-export declare type ActionStreamControl<AC> = {
+type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
+export type ActionStreamControl<AC> = {
     dispatcher: AC;
     dispatchFactory: SimpleActionDispatchFactory<AC>;
     action$: Observable<ActionTypes<AC>[keyof AC]>;

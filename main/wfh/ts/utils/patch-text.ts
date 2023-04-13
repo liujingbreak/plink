@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import util = require('util');
+import util from 'util';
 
 /**
  * @param  {[type]} text

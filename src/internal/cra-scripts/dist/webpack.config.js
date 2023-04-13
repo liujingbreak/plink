@@ -1,42 +1,204 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 const path_1 = tslib_1.__importDefault(require("path"));
+const node_util_1 = tslib_1.__importDefault(require("node:util"));
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const splitChunks_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/splitChunks"));
 const webpack_stats_plugin_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/webpack-stats-plugin"));
-// import {Options as TsLoaderOpts} from '@wfh/webpack-common/dist/ts-loader';
 const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
 const plink_1 = require("@wfh/plink");
 const mem_stats_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
 const webpack_1 = require("webpack");
 const __plink_1 = tslib_1.__importDefault(require("__plink"));
 const resolve_1 = tslib_1.__importDefault(require("resolve"));
+const rx = tslib_1.__importStar(require("rxjs"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
 const utils_1 = require("./utils");
 const webpack_lib_1 = tslib_1.__importDefault(require("./webpack-lib"));
 const change_tsconfig_1 = require("./change-tsconfig");
-// import inspector from 'inspector';
+// import inspector from 'node:inspector';
 // inspector.open(9222, 'localhost', true);
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-config');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
-function addProgressPlugin(config) {
-    // let spinner: ReturnType<typeof _ora>;
-    config.plugins.push(new webpack_1.ProgressPlugin({
-        activeModules: true,
-        modules: true,
-        modulesCount: 100,
-        handler(percentage, msg, ...args) {
-            // if (spinner == null) {
-            //   spinner = (await oraProm)();
-            //   spinner.start();
-            // }
-            // spinner!.text = `${Math.round(percentage * 100)} % ${msg} ${args.join(' ')}`;
-            log.info(Math.round(percentage * 100), '%', msg, ...args);
-            // if (percentage > 0.98) {
-            //   spinner!.stop();
-            // }
+function default_1(webpackEnv) {
+    var _a, _b, _c, _d, _e;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const { addResolveAlias } = require('./webpack-resolve');
+    (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${__plink_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
+    const progressMsg$ = new rx.Subject();
+    rx.from(import('string-width'))
+        .pipe(op.mergeMap(({ default: strWidth }) => progressMsg$.pipe(op.map(msg => {
+        let lines = 1;
+        const str = node_util_1.default.format('', ...msg);
+        const width = strWidth(str);
+        if (width > process.stdout.columns) {
+            lines = Math.ceil(process.stdout.columns / width);
         }
-    }));
+        return { str, lines };
+    }), op.concatMap(({ str, lines }) => rx.concat(rx.merge(new Promise(resolve => process.stdout.cursorTo(0, resolve)), new Promise(resolve => process.stdout.moveCursor(-lines + 1, 0, resolve)), new Promise(resolve => process.stdout.clearLine(0, resolve))), rx.defer(() => {
+        return new Promise(resolve => process.stdout.write(str, () => resolve()));
+    })))))).subscribe();
+    const cmdOption = (0, utils_1.getCmdOptions)();
+    // `npm run build` by default is in production mode, below hacks the way react-scripts does
+    if (cmdOption.devMode || cmdOption.watch) {
+        webpackEnv = 'development';
+        log.info('Development mode is on:', webpackEnv);
+    }
+    else {
+        // process.env.GENERATE_SOURCEMAP = 'false';
+    }
+    log.info('webpackEnv :', webpackEnv);
+    process.env.INLINE_RUNTIME_CHUNK = 'true';
+    const origWebpackConfig = require('react-scripts/config/webpack.config');
+    reviseNodePathEnv();
+    const { default: craPaths } = require('./cra-scripts-paths');
+    const reactScriptsInstalledDir = path_1.default.resolve(plink_1.plinkEnv.workDir, 'node_modules/react-scripts');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const config = origWebpackConfig(webpackEnv);
+    if (webpackEnv === 'production') {
+        // Try to workaround issue: default InlineChunkPlugin 's test property does not match
+        // CRA's output chunk file name template,
+        // when we set optimization.runtimeChunk to "single" instead of default CRA's value
+        config.output.filename = 'static/js/[name]-[contenthash:8].js';
+        config.output.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
+        config.output.devtoolModuleFilenameTemplate =
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            (info) => path_1.default.relative(rootDir, info.absoluteResourcePath).replace(/\\/g, '/');
+    }
+    else {
+        config.output.filename = 'static/js/[name].js';
+        config.output.chunkFilename = 'static/js/[name].chunk.js';
+    }
+    config.stats = 'normal';
+    addResolveAlias(config);
+    const reportDir = (0, utils_1.getReportDir)();
+    fs_extra_1.default.mkdirpSync(reportDir);
+    fs_extra_1.default.writeFile(path_1.default.resolve(reportDir, 'webpack.config.cra.js'), (0, utils_1.printConfig)(config), (err) => {
+        if (err)
+            log.error('Failed to write ' + path_1.default.resolve(reportDir, 'webpack.config.cra.js'), err);
+    });
+    // Make sure babel compiles source folder out side of current src directory
+    // changeFileLoader(config.module!.rules as RuleSetRule[]);
+    // replaceSassLoader(config.module!.rules as RuleSetRule[]);
+    // appendOurOwnTsLoader(config);
+    // insertLessLoaderRule(config.module!.rules as RuleSetRule[]);
+    // changeForkTsCheckerPlugin(config);
+    if (cmdOption.buildType === 'app') {
+        config.output.path = craPaths().appBuild;
+    }
+    // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
+    if ((_a = config.resolve) === null || _a === void 0 ? void 0 : _a.plugins) {
+        const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
+        const srcScopePluginIdx = config.resolve.plugins.findIndex(plugin => plugin instanceof ModuleScopePlugin);
+        if (srcScopePluginIdx >= 0) {
+            config.resolve.plugins.splice(srcScopePluginIdx, 1);
+        }
+    }
+    // config.resolve!.symlinks = false;
+    const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
+    const resolveModules = ['node_modules', ...nodePath];
+    // config.resolve!.symlinks = false;
+    config.resolve.modules = [...(_c = (_b = config.resolve) === null || _b === void 0 ? void 0 : _b.modules) !== null && _c !== void 0 ? _c : [], ...nodePath];
+    if (config.resolveLoader == null)
+        config.resolveLoader = {};
+    config.resolveLoader.modules = resolveModules;
+    // config.resolveLoader.symlinks = false;
+    if (config.watchOptions == null)
+        config.watchOptions = {};
+    if (cmdOption.usePoll) {
+        config.watchOptions.poll = 1000;
+    }
+    config.watchOptions.aggregateTimeout = 800;
+    config.watchOptions.ignored = /\bnode_modules\b/;
+    // config.resolve!.plugins.unshift(new PlinkWebpackResolvePlugin());
+    // Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
+    if (cmdOption.cmd === 'cra-build')
+        config.plugins.push(new webpack_stats_plugin_1.default());
+    else
+        addProgressPlugin(config, (...s) => progressMsg$.next(s));
+    if (cmdOption.buildType === 'lib') {
+        (0, webpack_lib_1.default)(cmdOption.buildTarget, config, nodePath);
+    }
+    else {
+        config.plugins.push(new (class {
+            apply(compiler) {
+                compiler.hooks.done.tap('cra-scripts', _stats => {
+                    // if (/(^|\s)--expose-gc(\s|$)/.test(process.env.NODE_OPTIONS!) ||
+                    //   )
+                    if (global.gc)
+                        global.gc();
+                    (0, mem_stats_1.default)();
+                });
+            }
+        })());
+        const htmlWebpackPluginConstrutor = require(resolve_1.default.sync('html-webpack-plugin', { basedir: reactScriptsInstalledDir }));
+        const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
+        htmlWebpackPluginInstance.userOptions.templateParameters = {
+            _config: (0, plink_1.config)(),
+            __api: __plink_1.default
+        };
+        (0, splitChunks_1.default)(config, (mod) => {
+            var _a;
+            const file = (_a = mod.resource) !== null && _a !== void 0 ? _a : null;
+            if (file == null)
+                return true;
+            const pkg = getPkgOfFile(file);
+            return pkg == null || (pkg.json.dr == null && pkg.json.plink == null);
+        });
+    }
+    const rules = [...(_e = (_d = config.module) === null || _d === void 0 ? void 0 : _d.rules) !== null && _e !== void 0 ? _e : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
+    for (const rule of rules) {
+        if (typeof rule !== 'string') {
+            if (rule.oneOf) {
+                rules.push(...rule.oneOf);
+            }
+            else if (Array.isArray(rule.use)) {
+                rules.push(...rule.use); // In factor rule.use is RuleSetUseItem not RuleSetRule
+            }
+            else if (rule.loader) {
+                if (/\bbabel-loader\b/.test(rule.loader)) {
+                    if (rule.include) {
+                        delete rule.include;
+                        rule.test = createRuleTestFunc4Src(rule.test);
+                    }
+                }
+                else if (/\bsass-loader\b/.test(rule.loader)) {
+                    rule.options = {
+                        implementation: require('sass'),
+                        webpackImporter: false,
+                        sourceMap: true,
+                        sassOptions: {
+                            includePaths: ['node_modules', ...nodePath]
+                        }
+                    };
+                }
+                else if (/\bsource-map-loader\b/.test(rule.loader)) {
+                    rule.test = createRuleTestFunc4Src(rule.test);
+                }
+            }
+        }
+    }
+    changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
+    runConfigHandlers(config, webpackEnv);
+    log.info(`output.publicPath: ${config.output.publicPath}`);
+    fs_extra_1.default.writeFileSync(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), (0, utils_1.printConfig)(config));
+    return config;
+}
+exports.default = default_1;
+function addProgressPlugin(config, send) {
+    // let spinner: ReturnType<typeof _ora>;
+    if (process.stdout.isTTY) {
+        config.plugins.push(new webpack_1.ProgressPlugin({
+            activeModules: true,
+            modules: true,
+            modulesCount: 100,
+            handler(percentage, msg, ...args) {
+                send(Math.round(percentage * 100), '%', msg, ...args);
+            }
+        }));
+    }
 }
 /**
  * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
@@ -107,7 +269,7 @@ function runConfigHandlers(config, webpackEnv) {
         }
     }, 'create-react-app Webpack config'));
 }
-function changeForkTsCheckerOptions(config, appIndexFile, moduleResolveBase) {
+function changeForkTsCheckerOptions(config, appIndexFile, moduleResolveBase, cmdOptions) {
     var _a;
     const plugins = config.plugins;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -119,6 +281,12 @@ function changeForkTsCheckerOptions(config, appIndexFile, moduleResolveBase) {
         throw new Error('Can not find fork-ts-checker-webpack-plugin in existing Webpack configuation');
     }
     const opts = plugin.options;
+    if (!cmdOptions.tsck) {
+        log.warn('fork-ts-checker-webpack-plugin is disabled');
+        // (opts.typescript as Exclude<ForkTsCheckerWebpackPluginOptions['typescript'], boolean | undefined>).enabled = false;
+        config.plugins = config.plugins.filter(p => p !== plugin);
+        return;
+    }
     const tsconfig = opts.typescript.configOverwrite;
     const typescriptOpts = opts.typescript;
     typescriptOpts.diagnosticOptions = {
@@ -233,155 +401,6 @@ function createRuleTestFunc4Src(origTest, appSrc) {
         return yes;
     };
 }
-module.exports = function (webpackEnv) {
-    var _a, _b, _c, _d, _e;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const { addResolveAlias } = require('./webpack-resolve');
-    (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${__plink_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
-    const cmdOption = (0, utils_1.getCmdOptions)();
-    // `npm run build` by default is in production mode, below hacks the way react-scripts does
-    if (cmdOption.devMode || cmdOption.watch) {
-        webpackEnv = 'development';
-        log.info('Development mode is on:', webpackEnv);
-    }
-    else {
-        // process.env.GENERATE_SOURCEMAP = 'false';
-    }
-    log.info('webpackEnv :', webpackEnv);
-    process.env.INLINE_RUNTIME_CHUNK = 'true';
-    const origWebpackConfig = require('react-scripts/config/webpack.config');
-    reviseNodePathEnv();
-    const { default: craPaths } = require('./cra-scripts-paths');
-    const reactScriptsInstalledDir = path_1.default.resolve(plink_1.plinkEnv.workDir, 'node_modules/react-scripts');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    const config = origWebpackConfig(webpackEnv);
-    if (webpackEnv === 'production') {
-        // Try to workaround issue: default InlineChunkPlugin 's test property does not match
-        // CRA's output chunk file name template,
-        // when we set optimization.runtimeChunk to "single" instead of default CRA's value
-        config.output.filename = 'static/js/[name]-[contenthash:8].js';
-        config.output.chunkFilename = 'static/js/[name]-[contenthash:8].chunk.js';
-        config.output.devtoolModuleFilenameTemplate =
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (info) => path_1.default.relative(rootDir, info.absoluteResourcePath).replace(/\\/g, '/');
-    }
-    else {
-        config.output.filename = 'static/js/[name].js';
-        config.output.chunkFilename = 'static/js/[name].chunk.js';
-    }
-    config.stats = 'normal';
-    addResolveAlias(config);
-    const reportDir = (0, utils_1.getReportDir)();
-    fs_extra_1.default.mkdirpSync(reportDir);
-    fs_extra_1.default.writeFile(path_1.default.resolve(reportDir, 'webpack.config.cra.js'), (0, utils_1.printConfig)(config), (err) => {
-        if (err)
-            log.error('Failed to write ' + path_1.default.resolve(reportDir, 'webpack.config.cra.js'), err);
-    });
-    // Make sure babel compiles source folder out side of current src directory
-    // changeFileLoader(config.module!.rules as RuleSetRule[]);
-    // replaceSassLoader(config.module!.rules as RuleSetRule[]);
-    // appendOurOwnTsLoader(config);
-    // insertLessLoaderRule(config.module!.rules as RuleSetRule[]);
-    // changeForkTsCheckerPlugin(config);
-    if (process.stdout.isTTY)
-        config.plugins.push(new webpack_1.ProgressPlugin({ profile: true }));
-    if (cmdOption.buildType === 'app') {
-        config.output.path = craPaths().appBuild;
-    }
-    // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
-    if ((_a = config.resolve) === null || _a === void 0 ? void 0 : _a.plugins) {
-        const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
-        const srcScopePluginIdx = config.resolve.plugins.findIndex(plugin => plugin instanceof ModuleScopePlugin);
-        if (srcScopePluginIdx >= 0) {
-            config.resolve.plugins.splice(srcScopePluginIdx, 1);
-        }
-    }
-    // config.resolve!.symlinks = false;
-    const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
-    const resolveModules = ['node_modules', ...nodePath];
-    // config.resolve!.symlinks = false;
-    config.resolve.modules = [...(_c = (_b = config.resolve) === null || _b === void 0 ? void 0 : _b.modules) !== null && _c !== void 0 ? _c : [], ...nodePath];
-    if (config.resolveLoader == null)
-        config.resolveLoader = {};
-    config.resolveLoader.modules = resolveModules;
-    // config.resolveLoader.symlinks = false;
-    if (config.watchOptions == null)
-        config.watchOptions = {};
-    config.watchOptions.ignored = /\bnode_modules\b/;
-    // config.resolve!.plugins.unshift(new PlinkWebpackResolvePlugin());
-    // Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
-    if (cmdOption.cmd === 'cra-build')
-        config.plugins.push(new webpack_stats_plugin_1.default());
-    else
-        addProgressPlugin(config);
-    if (cmdOption.buildType === 'lib') {
-        (0, webpack_lib_1.default)(cmdOption.buildTarget, config, nodePath);
-    }
-    else {
-        config.plugins.push(new (class {
-            apply(compiler) {
-                compiler.hooks.done.tap('cra-scripts', _stats => {
-                    // if (/(^|\s)--expose-gc(\s|$)/.test(process.env.NODE_OPTIONS!) ||
-                    //   )
-                    if (global.gc)
-                        global.gc();
-                    (0, mem_stats_1.default)();
-                });
-            }
-        })());
-        const htmlWebpackPluginConstrutor = require(resolve_1.default.sync('html-webpack-plugin', { basedir: reactScriptsInstalledDir }));
-        const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
-        htmlWebpackPluginInstance.userOptions.templateParameters = {
-            _config: (0, plink_1.config)(),
-            __api: __plink_1.default
-        };
-        (0, splitChunks_1.default)(config, (mod) => {
-            var _a;
-            const file = (_a = mod.resource) !== null && _a !== void 0 ? _a : null;
-            if (file == null)
-                return true;
-            const pkg = getPkgOfFile(file);
-            return pkg == null || (pkg.json.dr == null && pkg.json.plink == null);
-        });
-    }
-    const rules = [...(_e = (_d = config.module) === null || _d === void 0 ? void 0 : _d.rules) !== null && _e !== void 0 ? _e : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
-    for (const rule of rules) {
-        if (typeof rule !== 'string') {
-            if (rule.oneOf) {
-                rules.push(...rule.oneOf);
-            }
-            else if (Array.isArray(rule.use)) {
-                rules.push(...rule.use); // In factor rule.use is RuleSetUseItem not RuleSetRule
-            }
-            else if (rule.loader) {
-                if (/\bbabel-loader\b/.test(rule.loader)) {
-                    if (rule.include) {
-                        delete rule.include;
-                        rule.test = createRuleTestFunc4Src(rule.test);
-                    }
-                }
-                else if (/\bsass-loader\b/.test(rule.loader)) {
-                    rule.options = {
-                        implementation: require('sass'),
-                        webpackImporter: false,
-                        sourceMap: true,
-                        sassOptions: {
-                            includePaths: ['node_modules', ...nodePath]
-                        }
-                    };
-                }
-                else if (/\bsource-map-loader\b/.test(rule.loader)) {
-                    rule.test = createRuleTestFunc4Src(rule.test);
-                }
-            }
-        }
-    }
-    changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir);
-    runConfigHandlers(config, webpackEnv);
-    log.info(`output.publicPath: ${config.output.publicPath}`);
-    fs_extra_1.default.writeFileSync(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), (0, utils_1.printConfig)(config));
-    return config;
-};
 // function insertRawLoader(rules: RuleSetRule[]) {
 //   const htmlLoaderRule = {
 //     test: /\.html$/,

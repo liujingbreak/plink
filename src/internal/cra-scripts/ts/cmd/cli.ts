@@ -38,13 +38,15 @@ const cli: CliExtension = (program) => {
     })
     .action(async (pkgName): Promise<void> => {
       runReactScripts(StartCmd.name(), StartCmd.opts(), 'lib', pkgName);
-      await (await import('../tsd-generate')).buildTsd([pkgName]);
+      await (await import('../tsd-generate.js')).buildTsd([pkgName]);
     });
 
 
   const StartCmd = program.command('cra-start')
     .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
     .description('Run CRA start script for react application or library (work with create-react-app v5.0.1)')
+    .option('--use-poll, --poll', 'use Webpack watch option "poll"', false)
+    .option('--no-ts-checker, --no-tsck', 'disable forked-ts-checker-webpack-plugin for Typescript', false)
     .action((pkgName) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
@@ -57,7 +59,7 @@ const cli: CliExtension = (program) => {
   program.command('cra-open <url>')
     .description('Run react-dev-utils/openBrowser', {url: 'URL'})
     .action(async url => {
-      (await import('../cra-open-browser')).default(url);
+      (await import('../cra-open-browser.cjs')).default.default(url);
     });
 
   program.command('cra-analyze [js-dir]')

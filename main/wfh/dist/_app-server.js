@@ -1,8 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const commander_1 = tslib_1.__importDefault(require("commander"));
-const log_config_1 = tslib_1.__importDefault(require("./log-config"));
+const commander_1 = __importDefault(require("commander"));
+const log_config_1 = __importDefault(require("./log-config"));
 const { version } = require('../../package.json');
 /** Emitted function will be executed during server shutdown phase */
 process.title = 'Plink - server';

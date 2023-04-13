@@ -4,7 +4,7 @@ import {config} from '@wfh/plink';
 import * as op from 'rxjs/operators';
 
 const handler: ReactScriptsHandler = {
-  changeCraPaths(craPaths, env, cmdOpt) {
+  changeCraPaths(craPaths, _env, cmdOpt) {
     // change CRA paths:
 
     // output directory will be dist/static/main

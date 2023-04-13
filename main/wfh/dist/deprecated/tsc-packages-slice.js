@@ -1,10 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getStore = exports.getState = exports.tscActionDispatcher = exports.tscSlice = void 0;
-const tslib_1 = require("tslib");
 const store_1 = require("../store");
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const operators_1 = require("rxjs/operators");
 const rxjs_1 = require("rxjs");
 const package_mgr_1 = require("../package-mgr");

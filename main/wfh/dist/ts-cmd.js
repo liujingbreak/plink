@@ -1,24 +1,49 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tsc = void 0;
-const tslib_1 = require("tslib");
 /* eslint-disable max-len */
-const path_1 = tslib_1.__importStar(require("path"));
-const fs = tslib_1.__importStar(require("fs"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const rx = tslib_1.__importStar(require("rxjs"));
-const op = tslib_1.__importStar(require("rxjs/operators"));
-const fse = tslib_1.__importStar(require("fs-extra"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const glob_1 = tslib_1.__importDefault(require("glob"));
-const typescript_1 = tslib_1.__importDefault(require("typescript"));
+const path_1 = __importStar(require("path"));
+const fs = __importStar(require("fs"));
+const chalk_1 = __importDefault(require("chalk"));
+const rx = __importStar(require("rxjs"));
+const op = __importStar(require("rxjs/operators"));
+const fse = __importStar(require("fs-extra"));
+const lodash_1 = __importDefault(require("lodash"));
+const glob_1 = __importDefault(require("glob"));
+const typescript_1 = __importDefault(require("typescript"));
 const dir_tree_1 = require("require-injector/dist/dir-tree");
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const log4js_1 = __importDefault(require("log4js"));
 const misc_1 = require("./utils/misc");
 const package_list_helper_1 = require("./package-mgr/package-list-helper");
 const utils_1 = require("./cmd/utils");
 const package_mgr_1 = require("./package-mgr");
-const packageUtils = tslib_1.__importStar(require("./package-utils"));
+const packageUtils = __importStar(require("./package-utils"));
 const ts_cmd_util_1 = require("./ts-cmd-util");
 const injector_factory_1 = require("./injector-factory");
 const cli_analyze_1 = require("./cmd/cli-analyze");
@@ -56,7 +81,7 @@ async function tsc(argv, ts = typescript_1.default) {
     }
     // const destDir = Path.relative(process.cwd(), commonRootDir).replace(/\\/g, '/');
     /** set compGlobs */
-    async function onComponent(name, packagePath, _parsedName, json, realPath) {
+    async function onComponent(name, _packagePath, _parsedName, json, realPath) {
         countPkg++;
         const tscCfg = argv.overridePackgeDirs && lodash_1.default.has(argv.overridePackgeDirs, name) ?
             argv.overridePackgeDirs[name]
@@ -109,14 +134,10 @@ async function tsc(argv, ts = typescript_1.default) {
             for (const srcDir of srcDirs) {
                 const relPath = (0, path_1.resolve)(realPath, srcDir).replace(/\\/g, '/');
                 watchDirs.push(relPath);
-                // glob.sync(relPath + '/**/*.ts').filter(file => !file.endsWith('.d.ts')).forEach(file => rootFiles.push(file));
-                // if (argv.jsx) {
-                //   glob.sync(relPath + '/**/*.tsx').filter(file => !file.endsWith('.d.ts')).forEach(file => rootFiles.push(file));
-                // }
             }
         }
     }
-    const { action$, ofType, dispatchFactory } = (0, tsc_util_1.languageServices)(ts, {
+    const { action$, ofType, dispatcher } = (0, tsc_util_1.languageServices)(ts, {
         transformSourceFile(file, content) {
             const changed = injector_factory_1.webInjector.injectToFile(file, content);
             if (changed !== content) {
@@ -129,10 +150,18 @@ async function tsc(argv, ts = typescript_1.default) {
             inlineSourceMap: false,
             emitDeclarationOnly: argv.ed,
             basePath: workDir,
+            tsBuildInfoFile: path_1.default.resolve(workDir, 'plink.tsBuildInfo.json'),
             changeCompilerOptions(co) {
                 setupCompilerOptionsWithPackages(co, workDir.replace(/\\/g, '/'), argv, ts);
             }
-        }
+        },
+        watcher: argv.poll ?
+            {
+                usePolling: true,
+                interval: 1000,
+                binaryInterval: 2000
+            } :
+            undefined
     });
     const cwd = process.cwd();
     const writtenFile$ = new rx.Subject();
@@ -158,8 +187,8 @@ async function tsc(argv, ts = typescript_1.default) {
     if (argv.watch) {
         log.info('Watch mode');
         rx.merge(dealCommonJob()).subscribe();
-        bootstrap_process_1.exitHooks.push(() => dispatchFactory('stop')());
-        dispatchFactory('watch')([...watchDirs, ...includePatterns]);
+        bootstrap_process_1.exitHooks.push(() => dispatcher.stop());
+        dispatcher.watch([...watchDirs, ...includePatterns]);
         // watch(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
         return [];
     }
@@ -168,9 +197,9 @@ async function tsc(argv, ts = typescript_1.default) {
         const failedFiles = [];
         rx.merge(dealCommonJob(), writtenFile$.pipe(op.map(file => emitted.push(file))), emitFailedFile$.pipe(op.map(file => failedFiles.push(file)))).subscribe();
         for (const dir of watchDirs) {
-            rootFiles.push(...glob_1.default.sync(dir + '/**/*.ts'));
+            rootFiles.push(...glob_1.default.sync(dir + '/**/*.?([cm])ts'));
             if (argv.jsx) {
-                rootFiles.push(...glob_1.default.sync(dir + '/**/*.tsx'));
+                rootFiles.push(...glob_1.default.sync(dir + '/**/*.?([cm])tsx'));
             }
         }
         for (const pat of includePatterns) {
@@ -180,7 +209,7 @@ async function tsc(argv, ts = typescript_1.default) {
             }
         }
         for (const file of rootFiles) {
-            dispatchFactory('addSourceFile')(file, true);
+            dispatcher.addSourceFile(file, true);
         }
         writtenFile$.complete();
         emitFailedFile$.complete();
@@ -194,137 +223,9 @@ async function tsc(argv, ts = typescript_1.default) {
     }
 }
 exports.tsc = tsc;
-// const formatHost: _ts.FormatDiagnosticsHost = {
-//   getCanonicalFileName: path => path,
-//   getCurrentDirectory: _ts.sys.getCurrentDirectory,
-//   getNewLine: () => _ts.sys.newLine
-// };
-// function watch(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
-//   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
-//     process.cwd().replace(/\\/g, '/'),
-//     undefined, 'tsconfig.json').options;
-//   function _reportDiagnostic(diagnostic: _ts.Diagnostic) {
-//     return reportDiagnostic(diagnostic, commonRootDir, packageDirTree, ts);
-//   }
-//   const programHost = ts.createWatchCompilerHost(rootFiles, compilerOptions, ts.sys,
-//     // https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
-//     // TypeScript can use several different program creation "strategies":
-//     //  * ts.createEmitAndSemanticDiagnosticsBuilderProgram,
-//     //  * ts.createSemanticDiagnosticsBuilderProgram
-//     //  * ts.createAbstractBuilder
-//     // The first two produce "builder programs". These use an incremental strategy
-//     // to only re-check and emit files whose contents may have changed, or whose
-//     // dependencies may have changes which may impact change the result of prior
-//     // type-check and emit.
-//     // The last uses an ordinary program which does a full type check after every
-//     // change.
-//     // Between `createEmitAndSemanticDiagnosticsBuilderProgram` and
-//     // `createSemanticDiagnosticsBuilderProgram`, the only difference is emit.
-//     // For pure type-checking scenarios, or when another tool/process handles emit,
-//     // using `createSemanticDiagnosticsBuilderProgram` may be more desirable
-//     ts.createEmitAndSemanticDiagnosticsBuilderProgram, _reportDiagnostic, d => reportWatchStatusChanged(d, ts),
-//     undefined, {watchDirectory: ts.WatchDirectoryKind.UseFsEvents});
-//   patchWatchCompilerHost(programHost);
-//   const origCreateProgram = programHost.createProgram;
-//   // Ts's createWatchProgram will call WatchCompilerHost.createProgram(), this is where we patch "CompilerHost"
-//   programHost.createProgram = function(rootNames: readonly string[] | undefined, options: CompilerOptions | undefined,
-//     host?: _ts.CompilerHost, ...rest: any[]) {
-//     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-//     if (host && (host as any)._overrided == null) {
-//       patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
-//     }
-//     const program = origCreateProgram.call(this, rootNames, options, host, ...rest) ;
-//     return program;
-//   };
-//   ts.createWatchProgram(programHost);
-// }
-// function compile(rootFiles: string[], jsonCompilerOpt: any, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>,
-//   ts: typeof _ts = _ts) {
-//   const compilerOptions = ts.parseJsonConfigFileContent({compilerOptions: jsonCompilerOpt}, ts.sys,
-//     process.cwd().replace(/\\/g, '/'),
-//     undefined, 'tsconfig.json').options;
-//   const host = ts.createCompilerHost(compilerOptions);
-//   patchWatchCompilerHost(host);
-//   const emitted = patchCompilerHost(host, commonRootDir, packageDirTree, compilerOptions, ts);
-//   const program = ts.createProgram(rootFiles, compilerOptions, host);
-//   const emitResult = program.emit();
-//   const allDiagnostics = ts.getPreEmitDiagnostics(program)
-//     .concat(emitResult.diagnostics);
-//   function _reportDiagnostic(diagnostic: _ts.Diagnostic) {
-//     return reportDiagnostic(diagnostic, commonRootDir, packageDirTree, ts);
-//   }
-//   allDiagnostics.forEach(diagnostic => {
-//     _reportDiagnostic(diagnostic);
-//   });
-//   if (emitResult.emitSkipped) {
-//     throw new Error('Compile failed');
-//   }
-//   return emitted;
-// }
-/** Overriding WriteFile() */
-// function patchCompilerHost(host: _ts.CompilerHost, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>,
-//   co: _ts.CompilerOptions, ts: typeof _ts = _ts): string[] {
-//   const emittedList: string[] = [];
-//   // It seems to not able to write file through symlink in Windows
-//   // const _writeFile = host.writeFile;
-//   const writeFile: _ts.WriteFileCallback = function(fileName, data, writeByteOrderMark, onError, sourceFiles) {
-//     const destFile = realPathOf(fileName, commonRootDir, packageDirTree);
-//     if (destFile == null) {
-//       log.debug('skip', fileName);
-//       return;
-//     }
-//     emittedList.push(destFile);
-//     log.info('write file', Path.relative(process.cwd(), destFile));
-//     // Typescript's writeFile() function performs weird with symlinks under watch mode in Windows:
-//     // Every time a ts file is changed, it triggers the symlink being compiled and to be written which is
-//     // as expected by me,
-//     // but late on it triggers the same real file also being written immediately, this is not what I expect,
-//     // and it does not actually write out any changes to final JS file.
-//     // So I decide to use original Node.js file system API
-//     fs.mkdirpSync(Path.dirname(destFile));
-//     fs.writeFileSync(destFile, data);
-//     // It seems Typescript compiler always uses slash instead of back slash in file path, even in Windows
-//     // return _writeFile.call(this, destFile.replace(/\\/g, '/'), ...Array.prototype.slice.call(arguments, 1));
-//   };
-//   host.writeFile = writeFile;
-//   return emittedList;
-// }
-// function patchWatchCompilerHost(host: _ts.WatchCompilerHostOfFilesAndCompilerOptions<_ts.EmitAndSemanticDiagnosticsBuilderProgram> | _ts.CompilerHost) {
-//   const readFile = host.readFile;
-//   const cwd = process.cwd();
-//   host.readFile = function(path: string, encoding?: string) {
-//     const content = readFile.call(this, path, encoding) ;
-//     if (content && !path.endsWith('.d.ts') && !path.endsWith('.json')) {
-//       // console.log('WatchCompilerHost.readFile', path);
-//       const changed = webInjector.injectToFile(path, content);
-//       if (changed !== content) {
-//         log.info(Path.relative(cwd, path) + ' is patched');
-//         return changed;
-//       }
-//     }
-//     return content;
-//   };
-// }
-// function reportDiagnostic(diagnostic: _ts.Diagnostic, commonRootDir: string, packageDirTree: DirTree<PackageDirInfo>, ts: typeof _ts = _ts) {
-//   // let fileInfo = '';
-//   // if (diagnostic.file) {
-//   //   const {line, character} = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-//   //   const realFile = realPathOf(diagnostic.file.fileName, commonRootDir, packageDirTree, true) || diagnostic.file.fileName;
-//   //   fileInfo = `${realFile}, line: ${line + 1}, column: ${character + 1}`;
-//   // }
-//   // console.error(chalk.red(`Error ${diagnostic.code} ${fileInfo} :`), ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
-//   const out = ts.formatDiagnosticsWithColorAndContext([diagnostic], {
-//     getCanonicalFileName: fileName => realPathOf(fileName, commonRootDir, packageDirTree, true) || fileName,
-//     getCurrentDirectory: ts.sys.getCurrentDirectory,
-//     getNewLine: () => ts.sys.newLine
-//   });
-//   console.error(out);
-// }
-// function reportWatchStatusChanged(diagnostic: _ts.Diagnostic, ts: typeof _ts = _ts) {
-//   console.info(chalk.cyan(ts.formatDiagnosticsWithColorAndContext([diagnostic], formatHost)));
-// }
 const COMPILER_OPTIONS_MERGE_EXCLUDE = new Set(['baseUrl', 'typeRoots', 'paths', 'rootDir']);
 function setupCompilerOptionsWithPackages(compilerOptions, basePath, opts, ts = typescript_1.default) {
+    var _a;
     let wsKey = (0, package_mgr_1.workspaceKey)(misc_1.plinkEnv.workDir);
     if (!(0, package_mgr_1.getState)().workspaces.has(wsKey))
         wsKey = (0, package_mgr_1.getState)().currWorkspace;
@@ -351,7 +252,7 @@ function setupCompilerOptionsWithPackages(compilerOptions, basePath, opts, ts = 
             compilerOptions.paths = opts.pathsJsons.reduce((pathMap, jsonStr) => {
                 Object.assign(pathMap, JSON.parse(jsonStr));
                 return pathMap;
-            }, compilerOptions.paths);
+            }, (_a = compilerOptions.paths) !== null && _a !== void 0 ? _a : {});
         }
         else {
             Object.assign(compilerOptions.paths, opts.pathsJsons);

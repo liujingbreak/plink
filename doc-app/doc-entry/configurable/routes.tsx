@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 import loadable from '@loadable/component';
 import {ShowTopLoading} from '@wfh/doc-ui-common/client/components/ShowTopLoading';
 import {AnimatableRoutesProps} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';

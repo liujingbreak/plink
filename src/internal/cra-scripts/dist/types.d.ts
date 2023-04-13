@@ -45,5 +45,5 @@ export declare const PKG_LIB_ENTRY_PROP = "cra-lib-entry";
 export declare const PKG_LIB_ENTRY_DEFAULT = "public_api.ts";
 export declare const PKG_APP_ENTRY_PROP = "cra-app-entry";
 export declare const PKG_APP_ENTRY_DEFAULT = "start.tsx";
-export declare type ForkTsCheckerWebpackPluginOptions = NonNullable<ConstructorParameters<typeof ForkTsCheckerWebpackPlugin>[0]>;
-export declare type ForkTsCheckerWebpackPluginTypescriptOpts = Exclude<NonNullable<ForkTsCheckerWebpackPluginOptions['typescript']>, boolean>;
+export type ForkTsCheckerWebpackPluginOptions = NonNullable<ConstructorParameters<typeof ForkTsCheckerWebpackPlugin>[0]>;
+export type ForkTsCheckerWebpackPluginTypescriptOpts = Exclude<NonNullable<ForkTsCheckerWebpackPluginOptions['typescript']>, boolean>;

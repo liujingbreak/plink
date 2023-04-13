@@ -19,7 +19,7 @@ let COMPONENT_ID = 0;
  * @param optsFactory 
  * @param epicFactories 
  */
-export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory,
+export function useReduxTookitWith<S extends Record<string, any>, R extends SliceCaseReducers<S>>(stateFactory: StateFactory,
   optsFactory: () => CreateSliceOptions<S, R>, ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [S, SliceHelper<S, R>] {
 
   const willUnmountSub = React.useMemo(() => new rx.ReplaySubject<void>(1), []);
@@ -77,7 +77,7 @@ export function useReduxTookitWith<S, R extends SliceCaseReducers<S>>(stateFacto
  * @param optsFactory 
  * @param epicFactories 
  */
-export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
+export function useReduxTookit<S extends Record<string, any>, R extends SliceCaseReducers<S>>(
   optsFactory: () => CreateSliceOptions<S, R>,
   ...epicFactories: Array<EpicFactory<S, R> | null | undefined>): [S, SliceHelper<S, R>] {
 
@@ -93,7 +93,7 @@ export function useReduxTookit<S, R extends SliceCaseReducers<S>>(
  * @param epicFactories 
  * @returns [state, sliceHelper]
  */
-export function useRtk<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>>(
+export function useRtk<Props extends Record<string, any>, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>>(
   optsFactory: () => CreateSliceOptions<S, R>,
   props: Props,
   ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>):

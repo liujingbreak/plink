@@ -1,14 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 /* eslint-disable no-console */
 // eslint-disable  no-console
 // import {LLStateMachine, StateHandler, Chunk} from '../LLn-state-machine';
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const globals_1 = require("@jest/globals");
-const json_parser_1 = tslib_1.__importDefault(require("../utils/json-parser"));
-const json_sync_parser_1 = tslib_1.__importDefault(require("../utils/json-sync-parser"));
+const json_parser_1 = __importDefault(require("../utils/json-parser"));
+const json_sync_parser_1 = __importDefault(require("../utils/json-sync-parser"));
 // jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
 globals_1.jest.setTimeout(300000);
 (0, globals_1.describe)('JSON parser', () => {

@@ -1,6 +1,6 @@
+import * as _wt from 'worker_threads';
 import chalk from 'chalk';
 // import { isMainThread, threadId } from 'worker_threads';
-import * as _wt from 'worker_threads';
 
 let header: string | undefined;
 try {
@@ -14,7 +14,7 @@ export default function() {
   const mem = process.memoryUsage();
   let stats = header!;
   for (const key of Object.keys(mem)) {
-    stats += `${key}: ${Math.ceil(mem[key]/1024/1024)}M, `;
+    stats += `${key}: ${Math.ceil(mem[key as keyof NodeJS.MemoryUsage] / 1024 / 1024)}M, `;
   }
   const report = chalk.cyanBright(stats);
 

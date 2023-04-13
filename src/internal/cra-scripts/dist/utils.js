@@ -93,7 +93,9 @@ function saveCmdOptionsToEnv(pkgName, cmdName, opts, buildType) {
         publicUrl: opts.publicUrl,
         // external: opts.external,
         includes: opts.include,
-        webpackEnv: opts.dev ? 'development' : 'production'
+        webpackEnv: opts.dev ? 'development' : 'production',
+        usePoll: opts.poll,
+        tsck: opts.tsck
     };
     if (opts.publicUrl) {
         process.env.PUBLIC_URL = opts.publicUrl;
