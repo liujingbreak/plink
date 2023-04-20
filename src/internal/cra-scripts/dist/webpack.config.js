@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 const path_1 = tslib_1.__importDefault(require("path"));
-const node_util_1 = tslib_1.__importDefault(require("node:util"));
+// import util from 'node:util';
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const splitChunks_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/splitChunks"));
 const webpack_stats_plugin_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/webpack-stats-plugin"));
@@ -14,7 +14,6 @@ const webpack_1 = require("webpack");
 const __plink_1 = tslib_1.__importDefault(require("__plink"));
 const resolve_1 = tslib_1.__importDefault(require("resolve"));
 const rx = tslib_1.__importStar(require("rxjs"));
-const op = tslib_1.__importStar(require("rxjs/operators"));
 const utils_1 = require("./utils");
 const webpack_lib_1 = tslib_1.__importDefault(require("./webpack-lib"));
 const change_tsconfig_1 = require("./change-tsconfig");
@@ -28,18 +27,30 @@ function default_1(webpackEnv) {
     const { addResolveAlias } = require('./webpack-resolve');
     (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${__plink_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
     const progressMsg$ = new rx.Subject();
-    rx.from(import('string-width'))
-        .pipe(op.mergeMap(({ default: strWidth }) => progressMsg$.pipe(op.map(msg => {
-        let lines = 1;
-        const str = node_util_1.default.format('', ...msg);
-        const width = strWidth(str);
-        if (width > process.stdout.columns) {
-            lines = Math.ceil(process.stdout.columns / width);
-        }
-        return { str, lines };
-    }), op.concatMap(({ str, lines }) => rx.concat(rx.merge(new Promise(resolve => process.stdout.cursorTo(0, resolve)), new Promise(resolve => process.stdout.moveCursor(-lines + 1, 0, resolve)), new Promise(resolve => process.stdout.clearLine(0, resolve))), rx.defer(() => {
-        return new Promise(resolve => process.stdout.write(str, () => resolve()));
-    })))))).subscribe();
+    // rx.from(import('string-width'))
+    //   .pipe(
+    //     op.mergeMap(({default: strWidth}) => progressMsg$.pipe(
+    //       op.map(msg => {
+    //         let lines = 1;
+    //         const str = util.format('[Progress]', ...msg);
+    //         const width = strWidth(str);
+    //         if (width > process.stdout.columns) {
+    //           lines = Math.ceil(process.stdout.columns / width);
+    //         }
+    //         return {str, lines};
+    //       }),
+    //       op.concatMap(({str, lines}) => rx.concat(
+    //         rx.concat(
+    //           new Promise<void>(resolve => process.stdout.cursorTo(0, resolve)),
+    //           lines > 1 ? new Promise<void>(resolve => process.stdout.moveCursor(0, -lines + 1, resolve)) : rx.EMPTY,
+    //           new Promise<void>(resolve => process.stdout.clearLine(0, resolve))
+    //         ),
+    //         rx.defer(() => {
+    //           return new Promise<void>(resolve => process.stdout.write(str, () => resolve()));
+    //         })
+    //       ))
+    //     ))
+    //   ).subscribe();
     const cmdOption = (0, utils_1.getCmdOptions)();
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
     if (cmdOption.devMode || cmdOption.watch) {
@@ -110,8 +121,9 @@ function default_1(webpackEnv) {
     if (cmdOption.usePoll) {
         config.watchOptions.poll = 1000;
     }
-    config.watchOptions.aggregateTimeout = 800;
-    config.watchOptions.ignored = /\bnode_modules\b/;
+    config.watchOptions.aggregateTimeout = 900;
+    config.watchOptions.ignored = /(?:\bnode_modules\b|^(?:\/(?:data(?:\/data)?)?)$)/;
+    // config.watchOptions.followSymlinks = false;
     // config.resolve!.plugins.unshift(new PlinkWebpackResolvePlugin());
     // Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
     if (cmdOption.cmd === 'cra-build')
