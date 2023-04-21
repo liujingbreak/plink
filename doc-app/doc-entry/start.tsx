@@ -1,4 +1,5 @@
 /// <reference path="react-app-env.d.ts" />
+/// <reference path="types.d.ts" />
 import 'react-app-polyfill/ie11';
 import './index.scss';
 import sample from '@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/sample.md';

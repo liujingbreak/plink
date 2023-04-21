@@ -17,12 +17,13 @@ const rx = tslib_1.__importStar(require("rxjs"));
 const utils_1 = require("./utils");
 const webpack_lib_1 = tslib_1.__importDefault(require("./webpack-lib"));
 const change_tsconfig_1 = require("./change-tsconfig");
+const termux_issue_webpack_plugin_1 = require("./termux-issue-webpack-plugin");
 // import inspector from 'node:inspector';
 // inspector.open(9222, 'localhost', true);
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-config');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
 function default_1(webpackEnv) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const { addResolveAlias } = require('./webpack-resolve');
     (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${__plink_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
@@ -160,7 +161,8 @@ function default_1(webpackEnv) {
             return pkg == null || (pkg.json.dr == null && pkg.json.plink == null);
         });
     }
-    const rules = [...(_e = (_d = config.module) === null || _d === void 0 ? void 0 : _d.rules) !== null && _e !== void 0 ? _e : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
+    (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin());
+    const rules = [...(_f = (_e = config.module) === null || _e === void 0 ? void 0 : _e.rules) !== null && _f !== void 0 ? _f : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
     for (const rule of rules) {
         if (typeof rule !== 'string') {
             if (rule.oneOf) {

@@ -21,6 +21,7 @@ import change4lib from './webpack-lib';
 import * as _craPaths from './cra-scripts-paths';
 import {changeTsConfigFile} from './change-tsconfig';
 import * as webpackResolveCfg from './webpack-resolve';
+import {TermuxWebpackPlugin} from './termux-issue-webpack-plugin';
 // import inspector from 'node:inspector';
 // inspector.open(9222, 'localhost', true);
 
@@ -176,6 +177,7 @@ export default function(webpackEnv: 'production' | 'development') {
       return pkg == null || (pkg.json.dr == null && pkg.json.plink == null);
     });
   }
+  config.plugins?.push(new TermuxWebpackPlugin());
 
   const rules = [...config.module?.rules ?? []]; // BFS array contains both RuleSetRule and RuleSetUseItem
 
