@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
-const fs_extra_1 = require("fs-extra");
 const path_1 = tslib_1.__importDefault(require("path"));
+const fs_extra_1 = require("fs-extra");
 // import util from 'util';
 const cliExt = (program) => {
     const mdCli = program.command('markdown <file>')
@@ -42,7 +42,7 @@ const cliExt = (program) => {
     program.command('color-info <color-string...>')
         .description('Show color information', { 'color-string': 'In form of CSS color string' })
         .action(async function (colors) {
-        for (const info of (await Promise.resolve().then(() => tslib_1.__importStar(require('../color')))).colorInfo(colors)) {
+        for (const info of (await import('../color.js')).colorInfo(colors)) {
             // eslint-disable-next-line no-console
             console.log(info);
         }
@@ -50,7 +50,7 @@ const cliExt = (program) => {
     program.command('color-contrast <color-string1> <color-string2>')
         .description('Show color contrast information', { 'color-string1': 'In form of CSS color string' })
         .action(async function (...colors) {
-        (await Promise.resolve().then(() => tslib_1.__importStar(require('../color')))).colorContrast(...colors);
+        (await import('../color.js')).colorContrast(...colors);
     });
     program.command('color-mix <color1> <color2> [weight-interval]')
         .description('compare 2 colors', {
@@ -62,7 +62,7 @@ const cliExt = (program) => {
         if (weightInterval == null) {
             weightInterval = '0.1';
         }
-        (await Promise.resolve().then(() => tslib_1.__importStar(require('../color')))).mixColor(color1, color2, Number(weightInterval));
+        (await import('../color.js')).mixColor(color1, color2, Number(weightInterval));
     });
     // TODO: Add more sub command here
 };

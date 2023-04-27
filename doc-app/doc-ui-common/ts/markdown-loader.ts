@@ -6,7 +6,7 @@ import _ from 'lodash';
 // import {jsonToCompilerOptions, transpileSingleTs} from '@wfh/plink/wfh/dist/ts-compiler';
 // import ts from 'typescript';
 import {markdownToHtml} from './markdown-util';
-// inspector.open(9222, 'localhost', true);
+// require('node:inspector').open(9222, 'localhost', true);
 
 const markdownLoader: LoaderDefinition = function(source, sourceMap) {
   const cb = this.async();
@@ -22,7 +22,7 @@ const markdownLoader: LoaderDefinition = function(source, sourceMap) {
     .pipe(
       op.take(1),
       op.map(result => {
-        cb(null, importCode.join('\n') + '\nconst html = `' + result + '`; export default html;', sourceMap);
+        cb(null, importCode.join('\n') + '\nconst html = `' + result.content + '`; export default html;', sourceMap);
       }),
       op.catchError(err => {
         cb(err, JSON.stringify(err), sourceMap);

@@ -6,7 +6,7 @@ const op = tslib_1.__importStar(require("rxjs/operators"));
 // import {jsonToCompilerOptions, transpileSingleTs} from '@wfh/plink/wfh/dist/ts-compiler';
 // import ts from 'typescript';
 const markdown_util_1 = require("./markdown-util");
-// inspector.open(9222, 'localhost', true);
+// require('node:inspector').open(9222, 'localhost', true);
 const markdownLoader = function (source, sourceMap) {
     const cb = this.async();
     const importCode = [];
@@ -19,7 +19,7 @@ const markdownLoader = function (source, sourceMap) {
         return Promise.resolve('${imgSrc' + (imgIdx++) + '}');
     })
         .pipe(op.take(1), op.map(result => {
-        cb(null, importCode.join('\n') + '\nconst html = `' + result + '`; export default html;', sourceMap);
+        cb(null, importCode.join('\n') + '\nconst html = `' + result.content + '`; export default html;', sourceMap);
     }), op.catchError(err => {
         cb(err, JSON.stringify(err), sourceMap);
         return rx.EMPTY;

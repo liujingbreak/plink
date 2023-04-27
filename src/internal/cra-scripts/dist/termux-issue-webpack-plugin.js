@@ -19,15 +19,11 @@ class TermuxWebpackPlugin {
             lookupDirs.push(dir);
         }
         const lookupSet = new Set(lookupDirs);
-        // let compilation: Compilation;
-        // compiler.hooks.compilation.tap('TermuxIssueResolve', (compilation0, params) => {
-        //   compilation = compilation0;
-        // });
         compiler.hooks.done.tap('TermuxIssueResolve', stats => {
             for (const item of stats.compilation.fileDependencies) {
                 if (lookupSet.has(item)) {
                     // eslint-disable-next-line no-console
-                    console.log('[TermuxIssueWebpackPlugin] remove unaccessable fileDependency', item);
+                    console.log('[TermuxIssueWebpackPlugin] remove unaccessible fileDependency', item);
                     stats.compilation.fileDependencies.delete(item);
                 }
             }

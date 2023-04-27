@@ -4,15 +4,15 @@ exports.mixColor = exports.colorContrast = exports.colorInfo = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable no-console */
 /* tslint:disable no-console */
+const node_util_1 = tslib_1.__importDefault(require("node:util"));
 const color_1 = tslib_1.__importDefault(require("color"));
-const util_1 = tslib_1.__importDefault(require("util"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
 // import * as _ from 'lodash';
 function* colorInfo(colorStrs) {
     for (const colorStr of colorStrs) {
         const col = new color_1.default(colorStr);
         const chalker = chalkForColor(col);
-        yield chalker(` ${colorStr} `) + ': ' + chalker(util_1.default.inspect({
+        yield chalker(` ${colorStr} `) + ': ' + chalker(node_util_1.default.inspect({
             luminosity: col.luminosity(),
             hue: col.hue(),
             saturationl: col.saturationl(),

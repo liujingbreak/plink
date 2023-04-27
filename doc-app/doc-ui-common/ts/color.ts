@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* tslint:disable no-console */
+import util from 'node:util';
 import Color from 'color';
-import util from 'util';
 import chalk from 'chalk';
 // import * as _ from 'lodash';
 

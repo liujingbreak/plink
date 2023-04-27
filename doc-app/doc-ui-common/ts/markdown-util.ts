@@ -74,7 +74,7 @@ function dfsAccessElement(root: parse5.Document, resolveImage?: (imgSrc: string)
           done.push(rx.from(resolveImage(imgSrc.value))
             .pipe(
               op.map(resolved => {
-                const srcPos = el.sourceCodeLocation!.attrs!.src;
+                const srcPos = el.sourceCodeLocation!.attrs.src;
                 log.info(`resolve ${imgSrc.value} to ${util.inspect(resolved)}`);
                 return {start: srcPos.startOffset + 'src'.length + 1, end: srcPos.endOffset, text: resolved};
               })
