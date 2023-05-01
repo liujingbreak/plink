@@ -1,6 +1,7 @@
 import '../node-path';
 import cluster from 'node:cluster';
 import chrp from 'node:child_process';
+import {isMainThread} from 'worker_threads';
 import log4js from 'log4js';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -8,7 +9,7 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
-import {childProcessAppender, doNothingAppender,
+import {workerThreadAppender, childProcessAppender, doNothingAppender,
   emitChildProcessLogMsg} from './log4js-appenders';
 // import inspector from 'inspector';
 
@@ -196,18 +197,31 @@ function configDefaultLog() {
       // disableClustering: true
     });
   } else if (process.env.__plinkLogMainPid === process.pid + '') {
-    // eslint-disable-next-line no-console
-    log4js.configure({
-      appenders: {
-        out: {
-          type: 'stdout',
-          layout: {type: 'pattern', pattern: '[P%z] %[%c%] - %m'}
+    if (isMainThread) {
+      // eslint-disable-next-line no-console
+      log4js.configure({
+        appenders: {
+          out: {
+            type: 'stdout',
+            layout: {type: 'pattern', pattern: '[P%z] %[%c%] - %m'}
+          }
+        },
+        categories: {
+          default: {appenders: ['out'], level: 'info'}
         }
-      },
-      categories: {
-        default: {appenders: ['out'], level: 'info'}
-      }
-    });
+      });
+      // log4jsThreadBroadcast.onmessage = msg => emitThreadLogMsg(msg as any);
+      // log4jsThreadBroadcast.unref();
+    } else {
+      log4js.configure({
+        appenders: {
+          out: {type: workerThreadAppender}
+        },
+        categories: {
+          default: {appenders: ['out'], level: 'info'}
+        }
+      });
+    }
   } else if (process.send) {
     log4js.configure({
       appenders: {
@@ -218,6 +232,7 @@ function configDefaultLog() {
       }
     });
   }
+
   /**
    - %r time in toLocaleTimeString format
    - %p log level

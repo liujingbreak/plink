@@ -3,6 +3,7 @@ import {isMainThread, parentPort, workerData, WorkerOptions} from 'worker_thread
 
 let verbose = false;
 let initialDone: Promise<any> = Promise.resolve();
+// require('inspector').open(9222, 'localhost', true);
 
 // process.on('uncaughtException', function(err) {
 //   // log.error('Uncaught exception', err, err.stack);
@@ -88,6 +89,7 @@ async function executeOnEvent(data: Task | Command) {
   }
   await initialDone;
   if (verbose) {
+    // eslint-disable-next-line no-console
     console.log(`[thread-pool] worker ${workerData?.id} run`);
   }
   try {
@@ -96,27 +98,29 @@ async function executeOnEvent(data: Task | Command) {
       ));
 
     if (verbose) {
+      // eslint-disable-next-line no-console
       console.log(`[thread-pool] worker ${workerData?.id} wait`);
     }
     if (result != null && (result as TaskResult).transferList) {
       const transferList = (result as TaskResult).transferList;
       delete result.transferList;
-      parentPort!.postMessage({ type: 'wait', data: result }, transferList);
+      parentPort!.postMessage({ type: 'wait', data: result}, transferList);
     } else {
-      parentPort!.postMessage({ type: 'wait', data: result });
+      parentPort!.postMessage({ type: 'wait', data: result});
     }
 
   } catch (ex) {
-    console.log(`[thread-pool] worker ${workerData?.id} error`, ex);
+    // console.log(`[thread-pool] worker ${workerData?.id} error`, ex);
+    // debugger;
     try {
       parentPort!.postMessage({
         type: 'error',
-        data: ex.toString()
+        data: ex.stack
       });
     } catch (err) {
       parentPort!.postMessage({
         type: 'error',
-        data: err.toString()
+        data: err.stack
       });
     }
   }

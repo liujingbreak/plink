@@ -48,3 +48,6 @@ flowchart TD
 a --> b
 
 ```
+
+![sample image](./plink-cli-screenshot-01-min.png)
+

@@ -9,6 +9,13 @@ export declare function markdownToHtml(source: string, resolveImage?: (imgSrc: s
     toc: TOC[];
     content: string;
 }>;
+export declare function parseHtml(html: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>): rx.Observable<{
+    toc: TOC[];
+    content: string;
+} | {
+    toc: TOC[];
+    content: string;
+}>;
 export declare function traverseTocTree(tocs: TOC[]): Generator<TOC>;
 export declare function tocToString(tocs: TOC[]): string;
 export declare function insertOrUpdateMarkdownToc(input: string): Promise<{

@@ -282,7 +282,7 @@ function createTsConfig(proj, srcRootDir, workspace, extraPathMapping, include =
         skipLibCheck: false,
         jsx: 'preserve',
         target: 'es2015',
-        module: 'commonjs',
+        module: 'nodenext',
         strict: true,
         declaration: false,
         paths: extraPathMapping

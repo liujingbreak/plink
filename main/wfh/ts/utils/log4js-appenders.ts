@@ -1,6 +1,7 @@
 /**
  * https://log4js-node.github.io/log4js-node/writing-appenders.html
  */
+// import {BroadcastChannel} from 'worker_threads';
 import {AppenderModule, LoggingEvent} from 'log4js';
 const {send: sendLoggingEvent} = require('log4js/lib/clustering') as {send(msg: LoggingEvent): void};
 const {deserialise} = require('log4js/lib/LoggingEvent') as {deserialise: (msg: string) => LoggingEvent};
@@ -21,6 +22,19 @@ export const childProcessAppender: AppenderModule = {
       throw new Error('Appender can not be used with process.send undefined (in master process)');
 
     return emitLogEventToParent;
+  }
+};
+
+// export const log4jsThreadBroadcast = new BroadcastChannel('log4js:plink');
+export const workerThreadAppender: AppenderModule = {
+  configure(_config, _layouts, _findAppender) {
+
+    return function(logEvent: LoggingEvent | string) {
+      // log4jsThreadBroadcast?.postMessage({
+      //   topic: 'log4js:message',
+      //   data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
+      // });
+    };
   }
 };
 
@@ -48,9 +62,15 @@ export function emitChildProcessLogMsg(msg: {topic?: string, data: string}, toPa
     } else {
       sendLoggingEvent(deserialise(logEvent));
     }
-    // getLogger(logEvent.categoryName).log(logEvent.level, ...logEvent.data);
-    // eslint-disable-next-line no-console
-    // console.log(process.pid, logEvent);
+    return true;
+  }
+  return false;
+}
+
+export function emitThreadLogMsg(msg: {topic?: string, data: string}) {
+  if (msg && msg.topic === 'log4js:message') {
+    const logEvent = msg.data;
+    sendLoggingEvent(deserialise(logEvent));
     return true;
   }
   return false;

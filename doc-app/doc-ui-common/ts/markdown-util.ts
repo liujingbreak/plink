@@ -22,34 +22,69 @@ const headerSet = new Set<string>('h1 h2 h3 h4 h5'.split(' '));
 export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>):
 rx.Observable<{toc: TOC[]; content: string}> {
   if (threadPool == null) {
-    threadPool = new Pool(3, 1000);
+    threadPool = new Pool(os.cpus().length > 1 ? os.cpus().length - 1 : 3, 1000);
   }
 
-  return rx.from(threadPool.submit<string>({
-    file: path.resolve(__dirname, 'markdown-loader-worker.js'), exportFn: 'parseToHtml', args: [source]
-  })).pipe(
-    op.mergeMap(html => {
-      let toc: TOC[] = [];
+  const threadTask = threadPool.submitAndReturnTask<{toc: TOC[]; content: string}>({
+    file: path.resolve(__dirname, 'markdown-loader-worker.js'),
+    exportFn: 'toContentAndToc',
+    args: [source]
+  });
+
+  const threadMsg$ = new rx.Subject<{type?: string; data: string}>();
+  threadMsg$.pipe(
+    op.filter(msg => msg.type === 'resolveImageSrc'),
+    op.map(msg => msg.data),
+    op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(imgSrc)),
+    op.tap(imgUrl => {
+      threadTask.thread?.postMessage({type: 'resolveImageSrc', data: imgUrl});
+      log.info('send resolved image', imgUrl);
+    }, undefined, () => {
+      threadTask.thread!.off('message', handleThreadMsg);
+      log.info('done');
+    }),
+    op.takeUntil(rx.from(threadTask.promise)),
+    op.catchError(err => {
+      log.error('markdownToHtml error', err);
+      return rx.of({toc: [], content: ''});
+    })
+  ).subscribe();
+
+  const handleThreadMsg = (msg: {type?: string; data: string}) => {
+    threadMsg$.next(msg);
+  };
+  threadTask.thread!.on('message', handleThreadMsg);
+  return rx.from(threadTask.promise);
+}
+
+export function parseHtml(html: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>):
+rx.Observable<{toc: TOC[]; content: string} | {toc: TOC[]; content: string}> {
+  let toc: TOC[] = [];
+  return rx.defer(() => {
+    try {
       const doc = parse5.parse(html, {sourceCodeLocationInfo: true});
       const done = dfsAccessElement(doc, resolveImage, toc);
-
       toc = createTocTree(toc);
-      return rx.merge(...done).pipe(
-        op.reduce<ReplacementInf, ReplacementInf[]>((acc, item) => {
-          acc.push(item);
-          return acc;
-        }, [] as ReplacementInf[]),
-        op.map(all => {
-          const content = replaceCode(html, all);
-          // log.warn(html, '\n=>\n', content);
-          return {toc, content};
-        }),
-        op.catchError(err => {
-          log.error(err);
-          // cb(err, JSON.stringify({ toc, content: source }), sourceMap);
-          return rx.of({toc, content: source});
-        })
-      );
+      return rx.from(done);
+    } catch (e) {
+      console.error('parseHtml() error', e);
+      return rx.from([] as rx.Observable<ReplacementInf>[]);
+    }
+  }).pipe(
+    op.mergeMap(replacement => replacement),
+    op.reduce<ReplacementInf, ReplacementInf[]>((acc, item) => {
+      acc.push(item);
+      return acc;
+    }, [] as ReplacementInf[]),
+    op.map(all => {
+      const content = replaceCode(html, all);
+      // log.warn(html, '\n=>\n', content);
+      return {toc, content};
+    }),
+    op.catchError(err => {
+      log.error('parseHtml error', err);
+      // cb(err, JSON.stringify({ toc, content: source }), sourceMap);
+      return rx.of({toc, content: html});
     })
   );
 }
@@ -74,9 +109,9 @@ function dfsAccessElement(root: parse5.Document, resolveImage?: (imgSrc: string)
           done.push(rx.from(resolveImage(imgSrc.value))
             .pipe(
               op.map(resolved => {
-                const srcPos = el.sourceCodeLocation!.attrs.src;
+                const srcPos = el.sourceCodeLocation?.attrs?.src;
                 log.info(`resolve ${imgSrc.value} to ${util.inspect(resolved)}`);
-                return {start: srcPos.startOffset + 'src'.length + 1, end: srcPos.endOffset, text: resolved};
+                return {start: srcPos!.startOffset + 'src'.length + 1, end: srcPos!.endOffset, text: resolved};
               })
             ));
         }

@@ -1,4 +1,3 @@
-import 'source-map-support/register';
 /**
  * Get environment variables predefined by
 ```

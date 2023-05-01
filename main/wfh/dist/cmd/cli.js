@@ -126,7 +126,7 @@ async function createCommands(startTime) {
         if (e.stack) {
             log.error(e.stack);
         }
-        process.exit(1);
+        throw e;
     }
 }
 exports.createCommands = createCommands;

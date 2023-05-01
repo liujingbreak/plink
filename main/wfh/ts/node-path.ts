@@ -1,4 +1,4 @@
-import 'source-map-support/register';
+// import 'source-map-support/register';
 import * as Path from 'path';
 import * as fs from 'fs';
 import {isMainThread, threadId} from 'worker_threads';

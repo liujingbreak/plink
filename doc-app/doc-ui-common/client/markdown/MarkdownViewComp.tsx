@@ -1,14 +1,13 @@
 import React from 'react';
 // import classnames from 'classnames/bind';
 import 'github-markdown-css/github-markdown.css';
-import styles from './MarkdownViewComp.module.scss';
-import {getState, dispatcher} from './markdownSlice';
 import unescape from 'lodash/unescape';
 // import {MarkdownIndex} from './MarkdownIndex';
 import {InjectedCompPropsType, connect} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {SwitchAnim} from '../animation/SwitchAnim';
 
-// import mermaid from 'mermaid';
+import {getState, dispatcher} from './markdownSlice';
+import styles from './MarkdownViewComp.module.scss';
 import 'highlight.js/scss/solarized-light.scss';
 // import * as op from 'rxjs/operators';
 // const cx = classnames.bind(styles);
@@ -96,7 +95,7 @@ function mapToPropsFactory(rootState: unknown, ownProps: MarkdownViewCompProps) 
 }
 const connected = ConnectHOC(MarkdownViewComp);
 
-let mermaidInited = false;
+const mermaidInited = false;
 
 async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promise<string> {
   const mermaid = (await import('mermaid')).default;
@@ -109,15 +108,13 @@ async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promis
     });
   }
 
-  return new Promise<string>(resolve => {
-    mermaid.render(id, mermaidStr, (svgCode, bindFn) => {
-      resolve(svgCode);
-    });
-  })
-  .catch(err => {
+  try {
+    const {svg} = await mermaid.render(id, mermaidStr);
+    return svg;
+  } catch (err) {
     console.error('Failed to draw mermaid diagram', err);
     return '';
-  });
+  }
 }
 
 export {connected as MarkdownViewComp};

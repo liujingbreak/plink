@@ -12,12 +12,17 @@ const markdownLoader: LoaderDefinition = function(source, sourceMap) {
   const cb = this.async();
   const importCode = [] as string[];
   let imgIdx = 0;
+
+  const logger = this.getLogger('markdown-loader');
+  logger.info(this.loaders);
+  // debugger;
+
   markdownToHtml(source,
     // imgSrc => loadModuleInWebpack(imgSrc.startsWith('.') ? imgSrc : './' + imgSrc, this))
     imgSrc => {
       const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
       importCode.push(`import imgSrc${imgIdx} from '${url}';`);
-      return Promise.resolve('${imgSrc' + (imgIdx++) + '}');
+      return Promise.resolve('"${imgSrc' + (imgIdx++) + '}"');
     })
     .pipe(
       op.take(1),

@@ -107,7 +107,7 @@ export async function createCommands(startTime: number) {
     if ((e as Error).stack) {
       log.error((e as Error).stack);
     }
-    process.exit(1);
+    throw e;
   }
 }
 

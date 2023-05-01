@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.insertOrUpdateMarkdownToc = exports.tocToString = exports.traverseTocTree = exports.markdownToHtml = void 0;
+exports.insertOrUpdateMarkdownToc = exports.tocToString = exports.traverseTocTree = exports.parseHtml = exports.markdownToHtml = void 0;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const util_1 = tslib_1.__importDefault(require("util"));
@@ -22,30 +22,59 @@ const headerSet = new Set('h1 h2 h3 h4 h5'.split(' '));
  */
 function markdownToHtml(source, resolveImage) {
     if (threadPool == null) {
-        threadPool = new thread_promise_pool_1.Pool(3, 1000);
+        threadPool = new thread_promise_pool_1.Pool(os_1.default.cpus().length > 1 ? os_1.default.cpus().length - 1 : 3, 1000);
     }
-    return rx.from(threadPool.submit({
-        file: path_1.default.resolve(__dirname, 'markdown-loader-worker.js'), exportFn: 'parseToHtml', args: [source]
-    })).pipe(op.mergeMap(html => {
-        let toc = [];
-        const doc = parse5_1.default.parse(html, { sourceCodeLocationInfo: true });
-        const done = dfsAccessElement(doc, resolveImage, toc);
-        toc = createTocTree(toc);
-        return rx.merge(...done).pipe(op.reduce((acc, item) => {
-            acc.push(item);
-            return acc;
-        }, []), op.map(all => {
-            const content = (0, patch_text_1.default)(html, all);
-            // log.warn(html, '\n=>\n', content);
-            return { toc, content };
-        }), op.catchError(err => {
-            log.error(err);
-            // cb(err, JSON.stringify({ toc, content: source }), sourceMap);
-            return rx.of({ toc, content: source });
-        }));
-    }));
+    const threadTask = threadPool.submitAndReturnTask({
+        file: path_1.default.resolve(__dirname, 'markdown-loader-worker.js'),
+        exportFn: 'toContentAndToc',
+        args: [source]
+    });
+    const threadMsg$ = new rx.Subject();
+    threadMsg$.pipe(op.filter(msg => msg.type === 'resolveImageSrc'), op.map(msg => msg.data), op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(imgSrc)), op.tap(imgUrl => {
+        var _a;
+        (_a = threadTask.thread) === null || _a === void 0 ? void 0 : _a.postMessage({ type: 'resolveImageSrc', data: imgUrl });
+        log.info('send resolved image', imgUrl);
+    }, undefined, () => {
+        threadTask.thread.off('message', handleThreadMsg);
+        log.info('done');
+    }), op.takeUntil(rx.from(threadTask.promise)), op.catchError(err => {
+        log.error('markdownToHtml error', err);
+        return rx.of({ toc: [], content: '' });
+    })).subscribe();
+    const handleThreadMsg = (msg) => {
+        threadMsg$.next(msg);
+    };
+    threadTask.thread.on('message', handleThreadMsg);
+    return rx.from(threadTask.promise);
 }
 exports.markdownToHtml = markdownToHtml;
+function parseHtml(html, resolveImage) {
+    let toc = [];
+    return rx.defer(() => {
+        try {
+            const doc = parse5_1.default.parse(html, { sourceCodeLocationInfo: true });
+            const done = dfsAccessElement(doc, resolveImage, toc);
+            toc = createTocTree(toc);
+            return rx.from(done);
+        }
+        catch (e) {
+            console.error('parseHtml() error', e);
+            return rx.from([]);
+        }
+    }).pipe(op.mergeMap(replacement => replacement), op.reduce((acc, item) => {
+        acc.push(item);
+        return acc;
+    }, []), op.map(all => {
+        const content = (0, patch_text_1.default)(html, all);
+        // log.warn(html, '\n=>\n', content);
+        return { toc, content };
+    }), op.catchError(err => {
+        log.error('parseHtml error', err);
+        // cb(err, JSON.stringify({ toc, content: source }), sourceMap);
+        return rx.of({ toc, content: html });
+    }));
+}
+exports.parseHtml = parseHtml;
 function dfsAccessElement(root, resolveImage, toc = []) {
     const chr = new rx.BehaviorSubject(root.childNodes || []);
     const done = [];
@@ -60,7 +89,8 @@ function dfsAccessElement(root, resolveImage, toc = []) {
                 log.info('found img src=' + imgSrc.value);
                 done.push(rx.from(resolveImage(imgSrc.value))
                     .pipe(op.map(resolved => {
-                    const srcPos = el.sourceCodeLocation.attrs.src;
+                    var _a, _b;
+                    const srcPos = (_b = (_a = el.sourceCodeLocation) === null || _a === void 0 ? void 0 : _a.attrs) === null || _b === void 0 ? void 0 : _b.src;
                     log.info(`resolve ${imgSrc.value} to ${util_1.default.inspect(resolved)}`);
                     return { start: srcPos.startOffset + 'src'.length + 1, end: srcPos.endOffset, text: resolved };
                 })));

@@ -335,11 +335,11 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string,
   const rootDir = Path.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
   tsjson.compilerOptions = {
     rootDir,
-      // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
+    // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
     skipLibCheck: false,
     jsx: 'preserve',
     target: 'es2015',
-    module: 'commonjs',
+    module: 'nodenext',
     strict: true,
     declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
     paths: extraPathMapping

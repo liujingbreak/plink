@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.emitChildProcessLogMsg = exports.childProcessAppender = exports.doNothingAppender = void 0;
+exports.emitThreadLogMsg = exports.emitChildProcessLogMsg = exports.workerThreadAppender = exports.childProcessAppender = exports.doNothingAppender = void 0;
 const { send: sendLoggingEvent } = require('log4js/lib/clustering');
 const { deserialise } = require('log4js/lib/LoggingEvent');
 /**
@@ -17,6 +17,17 @@ exports.childProcessAppender = {
         if (process.send == null)
             throw new Error('Appender can not be used with process.send undefined (in master process)');
         return emitLogEventToParent;
+    }
+};
+// export const log4jsThreadBroadcast = new BroadcastChannel('log4js:plink');
+exports.workerThreadAppender = {
+    configure(_config, _layouts, _findAppender) {
+        return function (logEvent) {
+            // log4jsThreadBroadcast?.postMessage({
+            //   topic: 'log4js:message',
+            //   data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
+            // });
+        };
     }
 };
 function emitLogEventToParent(logEvent, _fromChildProcess = false) {
@@ -44,12 +55,18 @@ function emitChildProcessLogMsg(msg, toParent = false) {
         else {
             sendLoggingEvent(deserialise(logEvent));
         }
-        // getLogger(logEvent.categoryName).log(logEvent.level, ...logEvent.data);
-        // eslint-disable-next-line no-console
-        // console.log(process.pid, logEvent);
         return true;
     }
     return false;
 }
 exports.emitChildProcessLogMsg = emitChildProcessLogMsg;
+function emitThreadLogMsg(msg) {
+    if (msg && msg.topic === 'log4js:message') {
+        const logEvent = msg.data;
+        sendLoggingEvent(deserialise(logEvent));
+        return true;
+    }
+    return false;
+}
+exports.emitThreadLogMsg = emitThreadLogMsg;
 //# sourceMappingURL=log4js-appenders.js.map
