@@ -1,4 +1,4 @@
-/// <reference types="node" />
+/// <reference types="node" resolution-mode="require"/>
 import * as fs from 'fs';
 export declare const isWin32: boolean;
 export declare const lstatAsync: typeof fs.lstat.__promisify__;

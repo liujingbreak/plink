@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.emitThreadLogMsg = exports.emitChildProcessLogMsg = exports.workerThreadAppender = exports.childProcessAppender = exports.doNothingAppender = void 0;
+exports.emitThreadLogMsg = exports.emitChildProcessLogMsg = exports.workerThreadAppender = exports.log4jsThreadBroadcast = exports.childProcessAppender = exports.doNothingAppender = void 0;
+/**
+ * https://log4js-node.github.io/log4js-node/writing-appenders.html
+ */
+const worker_threads_1 = require("worker_threads");
 const { send: sendLoggingEvent } = require('log4js/lib/clustering');
 const { deserialise } = require('log4js/lib/LoggingEvent');
 /**
@@ -19,14 +23,15 @@ exports.childProcessAppender = {
         return emitLogEventToParent;
     }
 };
-// export const log4jsThreadBroadcast = new BroadcastChannel('log4js:plink');
+exports.log4jsThreadBroadcast = new worker_threads_1.BroadcastChannel('log4js:plink');
+exports.log4jsThreadBroadcast.unref();
 exports.workerThreadAppender = {
     configure(_config, _layouts, _findAppender) {
         return function (logEvent) {
-            // log4jsThreadBroadcast?.postMessage({
-            //   topic: 'log4js:message',
-            //   data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
-            // });
+            exports.log4jsThreadBroadcast === null || exports.log4jsThreadBroadcast === void 0 ? void 0 : exports.log4jsThreadBroadcast.postMessage({
+                topic: 'log4js:message',
+                data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
+            });
         };
     }
 };
@@ -61,8 +66,9 @@ function emitChildProcessLogMsg(msg, toParent = false) {
 }
 exports.emitChildProcessLogMsg = emitChildProcessLogMsg;
 function emitThreadLogMsg(msg) {
-    if (msg && msg.topic === 'log4js:message') {
-        const logEvent = msg.data;
+    var _a;
+    if (((_a = msg.data) === null || _a === void 0 ? void 0 : _a.topic) === 'log4js:message') {
+        const logEvent = msg.data.data;
         sendLoggingEvent(deserialise(logEvent));
         return true;
     }

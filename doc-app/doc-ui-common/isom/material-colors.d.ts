@@ -1,7 +1,7 @@
 /**
  * @material/theme/_theme-color.scss
  */
-type ThemeColors = {
+declare type ThemeColors = {
     [theme: string]: {
         primary?: string;
         'on-primary'?: string;

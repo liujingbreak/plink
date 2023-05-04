@@ -57,13 +57,17 @@ rx.Observable<{toc: TOC[]; content: string}> {
   return rx.from(threadTask.promise);
 }
 
-export function parseHtml(html: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>):
+export function parseHtml(
+  html: string,
+  resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
+  transpileCode?: (language: string, innerHTML: string) => Promise<string> | rx.Observable<string> | void
+):
 rx.Observable<{toc: TOC[]; content: string} | {toc: TOC[]; content: string}> {
   let toc: TOC[] = [];
   return rx.defer(() => {
     try {
       const doc = parse5.parse(html, {sourceCodeLocationInfo: true});
-      const done = dfsAccessElement(doc, resolveImage, toc);
+      const done = dfsAccessElement(html, doc, resolveImage, transpileCode, toc);
       toc = createTocTree(toc);
       return rx.from(done);
     } catch (e) {
@@ -89,7 +93,11 @@ rx.Observable<{toc: TOC[]; content: string} | {toc: TOC[]; content: string}> {
   );
 }
 
-function dfsAccessElement(root: parse5.Document, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
+function dfsAccessElement(
+  sourceHtml: string,
+  root: parse5.Document,
+  resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
+  transpileCode?: (language: string, sourceCode: string) => Promise<string> | rx.Observable<string> | void,
   toc: TOC[] = []) {
   const chr = new rx.BehaviorSubject<ChildNode[]>(root.childNodes || []);
   const done: (rx.Observable<ReplacementInf>)[] = [];
@@ -120,6 +128,23 @@ function dfsAccessElement(root: parse5.Document, resolveImage?: (imgSrc: string)
           text: lookupTextNodeIn(el),
           id: ''
         });
+      } else if (nodeName === 'code') {
+        const classAttr = el.attrs.find(attr => attr.name === 'class' && attr.value?.startsWith('language-'));
+        if (classAttr) {
+          const lang = classAttr.value.slice('language-'.length);
+          if (transpileCode) {
+            const transpileDone = transpileCode(lang, sourceHtml.slice(el.sourceCodeLocation!.startTag.endOffset, el.sourceCodeLocation!.endTag.startOffset));
+            if (transpileDone == null)
+              return;
+            done.push(rx.from(transpileDone).pipe(
+              op.map(text => ({
+                start: (el.parentNode as Element).sourceCodeLocation!.startOffset,
+                end: (el.parentNode as Element).sourceCodeLocation!.endOffset,
+                text
+              }))
+            ));
+          }
+        }
       }
 
       if (el.childNodes)

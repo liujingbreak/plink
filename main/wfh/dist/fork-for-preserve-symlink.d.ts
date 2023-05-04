@@ -1,4 +1,4 @@
-/// <reference types="node" />
+/// <reference types="node" resolution-mode="require"/>
 import { ForkOptions } from 'child_process';
 declare global {
     namespace NodeJS {

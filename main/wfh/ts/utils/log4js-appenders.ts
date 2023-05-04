@@ -1,7 +1,7 @@
 /**
  * https://log4js-node.github.io/log4js-node/writing-appenders.html
  */
-// import {BroadcastChannel} from 'worker_threads';
+import {BroadcastChannel} from 'worker_threads';
 import {AppenderModule, LoggingEvent} from 'log4js';
 const {send: sendLoggingEvent} = require('log4js/lib/clustering') as {send(msg: LoggingEvent): void};
 const {deserialise} = require('log4js/lib/LoggingEvent') as {deserialise: (msg: string) => LoggingEvent};
@@ -25,15 +25,17 @@ export const childProcessAppender: AppenderModule = {
   }
 };
 
-// export const log4jsThreadBroadcast = new BroadcastChannel('log4js:plink');
+export const log4jsThreadBroadcast = new BroadcastChannel('log4js:plink');
+log4jsThreadBroadcast.unref();
+
 export const workerThreadAppender: AppenderModule = {
   configure(_config, _layouts, _findAppender) {
 
     return function(logEvent: LoggingEvent | string) {
-      // log4jsThreadBroadcast?.postMessage({
-      //   topic: 'log4js:message',
-      //   data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
-      // });
+      log4jsThreadBroadcast?.postMessage({
+        topic: 'log4js:message',
+        data: typeof logEvent === 'string' ? logEvent : logEvent.serialise()
+      });
     };
   }
 };
@@ -67,9 +69,9 @@ export function emitChildProcessLogMsg(msg: {topic?: string, data: string}, toPa
   return false;
 }
 
-export function emitThreadLogMsg(msg: {topic?: string, data: string}) {
-  if (msg && msg.topic === 'log4js:message') {
-    const logEvent = msg.data;
+export function emitThreadLogMsg(msg: {data?: {topic?: string, data: string}}) {
+  if (msg.data?.topic === 'log4js:message') {
+    const logEvent = msg.data.data;
     sendLoggingEvent(deserialise(logEvent));
     return true;
   }

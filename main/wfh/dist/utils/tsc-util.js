@@ -141,18 +141,19 @@ function languageServices(ts = typescript_1.default, opts = {}) {
             return Array.from(store.getValue().files.values());
         },
         getScriptVersion(fileName) {
-            return store.getValue().versions.get(fileName) + '' || '-1';
+            return store.getValue().versions.get(fileName.replace(/\\/g, '/')) + '' || '-1';
         },
         getCompilationSettings() {
             dispatcher.onCompilerOptions(co);
             return co;
         },
         getScriptSnapshot(fileName) {
+            // console.log('getScriptSnapshot()', fileName);
             if (!fs_1.default.existsSync(fileName)) {
                 return undefined;
             }
-            const cached = store.getValue().fileContentCache.get(fileName);
-            const originContent = cached != null ? cached : fs_1.default.readFileSync(fileName).toString();
+            const cached = store.getValue().fileContentCache.get(fileName.replace(/\\/g, '/'));
+            const originContent = cached != null ? cached : fs_1.default.readFileSync(fileName, 'utf8');
             return ts0.ScriptSnapshot.fromString(opts.transformSourceFile
                 ? opts.transformSourceFile(fileName, originContent)
                 : originContent);
@@ -182,27 +183,30 @@ function languageServices(ts = typescript_1.default, opts = {}) {
         } });
     const documentRegistry = ts0.createDocumentRegistry();
     let services;
-    const addSourceFile$ = action$.pipe(ofType('addSourceFile'));
-    const changeSourceFile$ = action$.pipe(ofType('changeSourceFile'));
     const stop$ = action$.pipe(ofType('stop'));
     let watcher;
     rx.merge(actionOfType('watch').pipe(op.exhaustMap(({ payload: dirs }) => new rx.Observable(() => {
         if (watcher == null)
             watcher = chokidar_1.default.watch(dirs.map(dir => dir.replace(/\\/g, '/')), opts.watcher);
         watcher.on('add', path => dispatcher.addSourceFile(path, false));
-        watcher.on('change', path => dispatcher.changeSourceFile(path, null));
+        watcher.on('change', path => {
+            void fs_1.default.promises.readFile(path, 'utf8')
+                .then(content => {
+                dispatcher.changeSourceFile(path, content);
+            });
+        });
         return () => {
             void watcher.close().then(() => {
                 // eslint-disable-next-line no-console
                 console.log('[tsc-util] chokidar watcher stops');
             });
         };
-    }))), addSourceFile$.pipe(op.filter(({ payload: [file] }) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)), op.map(({ payload: [fileName, sync, content] }) => {
+    }))), actionOfType('addSourceFile').pipe(op.filter(({ payload: [file] }) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)), op.map(({ payload: [fileName, sync, content] }) => {
         setState(s => {
             s.files.add(fileName);
-            s.versions.set(fileName, 0);
+            s.versions.set(fileName.replace(/\\/g, '/'), 0);
             if (content != null)
-                s.fileContentCache.set(fileName, content);
+                s.fileContentCache.set(fileName.replace(/\\/g, '/'), content);
             return s;
         });
         if (sync)
@@ -222,14 +226,16 @@ function languageServices(ts = typescript_1.default, opts = {}) {
             s.unemitted.clear();
             return s;
         });
-    })), changeSourceFile$.pipe(op.filter(({ payload: [file] }) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)), 
+    })), actionOfType('changeSourceFile').pipe(op.filter(({ payload: [file] }) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)), 
     // TODO: debounce on same file changes
     op.map(({ payload: [fileName, content] }) => {
         setState(s => {
-            const version = s.versions.get(fileName);
-            s.versions.set(fileName, (version != null ? version : 0) + 1);
-            if (content != null)
-                s.fileContentCache.set(fileName, content);
+            const normFile = fileName.replace(/\\/g, '/');
+            const version = s.versions.get(normFile);
+            s.versions.set(normFile, (version != null ? version : 0) + 1);
+            if (content != null) {
+                s.fileContentCache.set(normFile, content);
+            }
             return s;
         });
         getEmitFile(fileName);

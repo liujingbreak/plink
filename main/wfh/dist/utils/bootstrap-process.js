@@ -30,7 +30,7 @@ exports.initAsChildProcess = exports.initProcess = exports.initConfig = exports.
 require("../node-path");
 const node_cluster_1 = __importDefault(require("node:cluster"));
 const node_child_process_1 = __importDefault(require("node:child_process"));
-const worker_threads_1 = require("worker_threads");
+const node_worker_threads_1 = require("node:worker_threads");
 const log4js_1 = __importDefault(require("log4js"));
 const rx = __importStar(require("rxjs"));
 const op = __importStar(require("rxjs/operators"));
@@ -205,7 +205,7 @@ function configDefaultLog() {
         });
     }
     else if (process.env.__plinkLogMainPid === process.pid + '') {
-        if (worker_threads_1.isMainThread) {
+        if (node_worker_threads_1.isMainThread) {
             // eslint-disable-next-line no-console
             log4js_1.default.configure({
                 appenders: {
@@ -218,8 +218,7 @@ function configDefaultLog() {
                     default: { appenders: ['out'], level: 'info' }
                 }
             });
-            // log4jsThreadBroadcast.onmessage = msg => emitThreadLogMsg(msg as any);
-            // log4jsThreadBroadcast.unref();
+            log4js_appenders_1.log4jsThreadBroadcast.onmessage = msg => (0, log4js_appenders_1.emitThreadLogMsg)(msg);
         }
         else {
             log4js_1.default.configure({

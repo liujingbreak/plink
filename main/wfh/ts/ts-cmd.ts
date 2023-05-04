@@ -158,7 +158,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       inlineSourceMap: false,
       emitDeclarationOnly: argv.ed,
       basePath: workDir,
-      tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
+      // tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
       changeCompilerOptions(co) {
         setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, workDir.replace(/\\/g, '/'), argv, ts);
       }
@@ -169,7 +169,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
         interval: 1000,
         binaryInterval: 2000
       } :
-      undefined
+      {usePolling: false}
   });
 
   const cwd = process.cwd();

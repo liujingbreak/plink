@@ -9,7 +9,7 @@ import {createActionStreamByType} from '../../../packages/redux-toolkit-observab
 // import {createActionStream} from '../../../packages/redux-toolkit-observable/rx-utils';
 import {parseConfigFileToJson} from '../ts-cmd-util';
 import {plinkEnv} from './misc';
-// inspector.open(9222, 'localhost', true);
+// require('inspector').open(9229, '0.0.0.0', true);
 
 type TscOptions = {
   jsx?: boolean;
@@ -211,19 +211,20 @@ export function languageServices( ts: any = _ts, opts: {
       return Array.from(store.getValue().files.values());
     },
     getScriptVersion(fileName: string) {
-      return store.getValue().versions.get(fileName) + '' || '-1';
+      return store.getValue().versions.get(fileName.replace(/\\/g, '/')) + '' || '-1';
     },
     getCompilationSettings() {
       dispatcher.onCompilerOptions(co);
       return co;
     },
     getScriptSnapshot(fileName: string) {
+      // console.log('getScriptSnapshot()', fileName);
       if (!fs.existsSync(fileName)) {
         return undefined;
       }
 
-      const cached = store.getValue().fileContentCache.get(fileName);
-      const originContent = cached != null ? cached : fs.readFileSync(fileName).toString();
+      const cached = store.getValue().fileContentCache.get(fileName.replace(/\\/g, '/'));
+      const originContent = cached != null ? cached : fs.readFileSync(fileName, 'utf8');
       return ts0.ScriptSnapshot.fromString(
         opts.transformSourceFile
           ? opts.transformSourceFile(fileName, originContent)
@@ -259,8 +260,6 @@ export function languageServices( ts: any = _ts, opts: {
   };
   const documentRegistry = ts0.createDocumentRegistry();
   let services: _ts.LanguageService | undefined;
-  const addSourceFile$ = action$.pipe(ofType('addSourceFile'));
-  const changeSourceFile$ = action$.pipe(ofType('changeSourceFile'));
   const stop$ = action$.pipe(ofType('stop'));
 
   let watcher: ReturnType<typeof chokidar.watch>;
@@ -279,9 +278,12 @@ export function languageServices( ts: any = _ts, opts: {
             watcher.on('add', path =>
               dispatcher.addSourceFile(path, false)
             );
-            watcher.on('change', path =>
-              dispatcher.changeSourceFile(path, null)
-            );
+            watcher.on('change', path => {
+              void fs.promises.readFile(path, 'utf8')
+                .then(content => {
+                  dispatcher.changeSourceFile(path, content);
+                });
+            });
             return () => {
               void watcher.close().then(() => {
                 // eslint-disable-next-line no-console
@@ -291,14 +293,14 @@ export function languageServices( ts: any = _ts, opts: {
           })
       )
     ),
-    addSourceFile$.pipe(
+    actionOfType('addSourceFile').pipe(
       op.filter(({payload: [file]}) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)),
       op.map(({payload: [fileName, sync, content]}) => {
         setState(s => {
           s.files.add(fileName);
-          s.versions.set(fileName, 0);
+          s.versions.set(fileName.replace(/\\/g, '/'), 0);
           if (content != null)
-            s.fileContentCache.set(fileName, content);
+            s.fileContentCache.set(fileName.replace(/\\/g, '/'), content);
           return s;
         });
         if (sync) getEmitFile(fileName);
@@ -322,15 +324,17 @@ export function languageServices( ts: any = _ts, opts: {
         });
       })
     ),
-    changeSourceFile$.pipe(
+    actionOfType('changeSourceFile').pipe(
       op.filter(({payload: [file]}) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)),
       // TODO: debounce on same file changes
       op.map(({payload: [fileName, content]}) => {
         setState(s => {
-          const version = s.versions.get(fileName);
-          s.versions.set(fileName, (version != null ? version : 0) + 1);
-          if (content != null)
-            s.fileContentCache.set(fileName, content);
+          const normFile = fileName.replace(/\\/g, '/');
+          const version = s.versions.get(normFile);
+          s.versions.set(normFile, (version != null ? version : 0) + 1);
+          if (content != null) {
+            s.fileContentCache.set(normFile, content);
+          }
           return s;
         });
         getEmitFile(fileName);

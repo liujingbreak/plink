@@ -1,7 +1,7 @@
 import '../node-path';
 import cluster from 'node:cluster';
 import chrp from 'node:child_process';
-import {isMainThread} from 'worker_threads';
+import {isMainThread} from 'node:worker_threads';
 import log4js from 'log4js';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -9,7 +9,7 @@ import config from '../config';
 // import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
-import {workerThreadAppender, childProcessAppender, doNothingAppender,
+import {log4jsThreadBroadcast, emitThreadLogMsg, workerThreadAppender, childProcessAppender, doNothingAppender,
   emitChildProcessLogMsg} from './log4js-appenders';
 // import inspector from 'inspector';
 
@@ -210,8 +210,7 @@ function configDefaultLog() {
           default: {appenders: ['out'], level: 'info'}
         }
       });
-      // log4jsThreadBroadcast.onmessage = msg => emitThreadLogMsg(msg as any);
-      // log4jsThreadBroadcast.unref();
+      log4jsThreadBroadcast.onmessage = msg => emitThreadLogMsg(msg as any);
     } else {
       log4js.configure({
         appenders: {

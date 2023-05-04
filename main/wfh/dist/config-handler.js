@@ -37,19 +37,6 @@ const misc_1 = require("./utils/misc");
 const { cyan } = chalk_1.default;
 const log = (0, log4js_1.getLogger)('plink.config-handler');
 class ConfigHandlerMgr {
-    static initConfigHandlers(fileAndExports, rootPath) {
-        const exporteds = [];
-        if (!ConfigHandlerMgr._tsNodeRegistered) {
-            ConfigHandlerMgr._tsNodeRegistered = true;
-            require('./utils/tsc-util').registerNode();
-        }
-        for (const [file, exportName] of fileAndExports) {
-            const absFile = Path.isAbsolute(file) ? file : Path.resolve(file);
-            const exp = require(absFile);
-            exporteds.push({ file, handler: exp[exportName] ? exp[exportName] : exp });
-        }
-        return exporteds;
-    }
     /**
      *
      * @param files Array of string which is in form of "<file>[#<export name>]"
@@ -64,6 +51,19 @@ class ConfigHandlerMgr {
             fileAndExports = fileAndExports0;
         }
         this.configHandlers = ConfigHandlerMgr.initConfigHandlers(fileAndExports, (0, misc_1.getRootDir)());
+    }
+    static initConfigHandlers(fileAndExports, rootPath) {
+        const exporteds = [];
+        if (!ConfigHandlerMgr._tsNodeRegistered) {
+            ConfigHandlerMgr._tsNodeRegistered = true;
+            require('./utils/tsc-util').registerNode();
+        }
+        for (const [file, exportName] of fileAndExports) {
+            const absFile = Path.isAbsolute(file) ? file : Path.resolve(file);
+            const exp = require(absFile);
+            exporteds.push({ file, handler: exp[exportName] ? exp[exportName] : exp });
+        }
+        return exporteds;
     }
     /**
        *
@@ -93,6 +93,6 @@ class ConfigHandlerMgr {
         return lastRes;
     }
 }
-ConfigHandlerMgr._tsNodeRegistered = false;
 exports.ConfigHandlerMgr = ConfigHandlerMgr;
+ConfigHandlerMgr._tsNodeRegistered = false;
 //# sourceMappingURL=config-handler.js.map

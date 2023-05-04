@@ -150,7 +150,7 @@ async function tsc(argv, ts = typescript_1.default) {
             inlineSourceMap: false,
             emitDeclarationOnly: argv.ed,
             basePath: workDir,
-            tsBuildInfoFile: path_1.default.resolve(workDir, 'plink.tsBuildInfo.json'),
+            // tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
             changeCompilerOptions(co) {
                 setupCompilerOptionsWithPackages(co, workDir.replace(/\\/g, '/'), argv, ts);
             }
@@ -161,7 +161,7 @@ async function tsc(argv, ts = typescript_1.default) {
                 interval: 1000,
                 binaryInterval: 2000
             } :
-            undefined
+            { usePolling: false }
     });
     const cwd = process.cwd();
     const writtenFile$ = new rx.Subject();

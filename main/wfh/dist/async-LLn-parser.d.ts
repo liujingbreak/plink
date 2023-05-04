@@ -17,8 +17,8 @@ export declare class Token<T> extends Chunk<string, T> {
 /**
  * You can define a lexer as a function
  */
-export type ParseLex<I, T> = (la: LookAheadObservable<I, T>, sub: Subscriber<Chunk<I, T>>) => Promise<any>;
-export type ParseGrammar<A, T> = (la: LookAhead<Token<T>, T>) => Promise<A>;
+export declare type ParseLex<I, T> = (la: LookAheadObservable<I, T>, sub: Subscriber<Chunk<I, T>>) => Promise<any>;
+export declare type ParseGrammar<A, T> = (la: LookAhead<Token<T>, T>) => Promise<A>;
 /**
  * Parser
  * @param input string type

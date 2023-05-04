@@ -48,12 +48,12 @@ function markdownToHtml(source, resolveImage) {
     return rx.from(threadTask.promise);
 }
 exports.markdownToHtml = markdownToHtml;
-function parseHtml(html, resolveImage) {
+function parseHtml(html, resolveImage, transpileCode) {
     let toc = [];
     return rx.defer(() => {
         try {
             const doc = parse5_1.default.parse(html, { sourceCodeLocationInfo: true });
-            const done = dfsAccessElement(doc, resolveImage, toc);
+            const done = dfsAccessElement(html, doc, resolveImage, transpileCode, toc);
             toc = createTocTree(toc);
             return rx.from(done);
         }
@@ -75,7 +75,7 @@ function parseHtml(html, resolveImage) {
     }));
 }
 exports.parseHtml = parseHtml;
-function dfsAccessElement(root, resolveImage, toc = []) {
+function dfsAccessElement(sourceHtml, root, resolveImage, transpileCode, toc = []) {
     const chr = new rx.BehaviorSubject(root.childNodes || []);
     const done = [];
     chr.pipe(op.mergeMap(children => rx.from(children))).pipe(op.map(node => {
@@ -101,6 +101,22 @@ function dfsAccessElement(root, resolveImage, toc = []) {
                 text: lookupTextNodeIn(el),
                 id: ''
             });
+        }
+        else if (nodeName === 'code') {
+            const classAttr = el.attrs.find(attr => { var _a; return attr.name === 'class' && ((_a = attr.value) === null || _a === void 0 ? void 0 : _a.startsWith('language-')); });
+            if (classAttr) {
+                const lang = classAttr.value.slice('language-'.length);
+                if (transpileCode) {
+                    const transpileDone = transpileCode(lang, sourceHtml.slice(el.sourceCodeLocation.startTag.endOffset, el.sourceCodeLocation.endTag.startOffset));
+                    if (transpileDone == null)
+                        return;
+                    done.push(rx.from(transpileDone).pipe(op.map(text => ({
+                        start: el.parentNode.sourceCodeLocation.startOffset,
+                        end: el.parentNode.sourceCodeLocation.endOffset,
+                        text
+                    }))));
+                }
+            }
         }
         if (el.childNodes)
             chr.next(el.childNodes);

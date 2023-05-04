@@ -1,4 +1,4 @@
-export type IntervalKey = {
+export declare type IntervalKey = {
     low: number;
     high: number;
 };

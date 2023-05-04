@@ -1,5 +1,5 @@
 import { Chunk } from '../LLn-parser';
-export type Token = Chunk<string, string> & {
+export declare type Token = Chunk<string, string> & {
     text: string;
 };
 declare enum AstType {
