@@ -12,7 +12,7 @@ async function runMermaid(sourceCode) {
             securityLevel: 'loose'
         });
     }
-    return await mermaid.render('test-mermaid', sourceCode);
+    return await mermaid.render('mermaid-content', sourceCode);
 }
 exports.runMermaid = runMermaid;
 //# sourceMappingURL=mermaid-vm-script.js.map

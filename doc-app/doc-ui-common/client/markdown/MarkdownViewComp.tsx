@@ -1,3 +1,4 @@
+/// <reference path="../../ts/mermaid-types.d.mts" />
 import React from 'react';
 // import classnames from 'classnames/bind';
 import 'github-markdown-css/github-markdown.css';
@@ -98,7 +99,7 @@ const connected = ConnectHOC(MarkdownViewComp);
 const mermaidInited = false;
 
 async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promise<string> {
-  const mermaid = (await import('mermaid')).default;
+  const mermaid = (await import('mermaid/dist/mermaid.esm.mjs')).default;
   if (mermaidStr == null)
     return Promise.resolve('');
   if (!mermaidInited) {

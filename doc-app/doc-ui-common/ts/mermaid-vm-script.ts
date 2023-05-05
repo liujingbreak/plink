@@ -11,6 +11,7 @@ export async function runMermaid(sourceCode: string) {
       securityLevel: 'loose'
     });
   }
-  return await (mermaid.render('test-mermaid', sourceCode) as Promise<unknown>);
+  return await (mermaid.render('mermaid-content', sourceCode) as Promise<{svg: string}>);
 }
+
 

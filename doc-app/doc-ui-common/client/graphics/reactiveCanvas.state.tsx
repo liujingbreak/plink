@@ -56,25 +56,25 @@ export interface BasePaintableState {
 }
 
 export type PaintableSlice<S = undefined, R = undefined> = Slice<
-  S extends undefined ? BasePaintableState : BasePaintableState & S,
-  R extends undefined ? typeof basePaintableReducers : typeof basePaintableReducers & R
+S extends undefined ? BasePaintableState : BasePaintableState & S,
+R extends undefined ? typeof basePaintableReducers : typeof basePaintableReducers & R
 >;
 
 export interface PaintableCreateOption<S = undefined, R extends Reducers<any> | undefined = undefined,
   SliceState = S extends undefined ? BasePaintableState : BasePaintableState & S
-  > {
+> {
   name: string;
   extendInitialState?: S;
   extendReducers?: R;
   actionInterceptor?: ((slice: PaintableSlice<S, R>) => rx.OperatorFunction<
-    PayloadAction<SliceState> | Action<SliceState>,
-    PayloadAction<SliceState> | Action<SliceState>>) | null;
+  PayloadAction<SliceState> | Action<SliceState>,
+  PayloadAction<SliceState> | Action<SliceState>>) | null;
   debug?: boolean;
 }
 
 export type PositionalPaintableSlice<S = undefined, R = undefined> =
   PaintableSlice<S extends undefined ? PositionalState : PositionalState & S,
-    R extends undefined ? typeof positionalReducers : typeof positionalReducers & R>;
+  R extends undefined ? typeof positionalReducers : typeof positionalReducers & R>;
 
 export interface PositionalState {
   /** value is calculated by relativeX */
@@ -301,7 +301,7 @@ export class PaintableContext {
   }
 
   createPaintableSlice<S = undefined, R extends Reducers<S> | undefined = undefined>({name, extendInitialState, extendReducers, actionInterceptor, debug}:
-    PaintableCreateOption<S, R>): PaintableSlice<S, R> {
+  PaintableCreateOption<S, R>): PaintableSlice<S, R> {
 
     const initState: BasePaintableState = {
       // pctx: this,
@@ -332,7 +332,7 @@ export class PaintableContext {
               for (const chr of slice.getState().children![0].values()) {
                 chr.actionDispatcher.renderAll(payload);
               }
-          })),
+            })),
           actionsByType.setAnimating.pipe(
             op.switchMap(({payload: animating}) => {
               if (animating) {
@@ -357,7 +357,7 @@ export class PaintableContext {
                   if (s.children == null)
                     s.children = [new Set()];
 
-                  let chrSet: Set<PaintableSlice> = s.children ? s.children[0] : new Set();
+                  const chrSet: Set<PaintableSlice> = s.children ? s.children[0] : new Set();
 
                   for (const chr of children) {
                     chrSet.add(chr);
@@ -431,7 +431,8 @@ export class PaintableContext {
     };
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     opt.extendInitialState = opt.extendInitialState ?
-      Object.assign(initialPosState, opt.extendInitialState) : initialPosState as any;
+      Object.assign(initialPosState, opt.extendInitialState)
+      : initialPosState as any;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     opt.extendReducers = opt.extendReducers ?
       Object.assign(positionalReducers, opt.extendReducers) :
@@ -469,7 +470,7 @@ export class PaintableContext {
   }
 }
 
-function createSliceWith<BS, BR extends Reducers<any>, ES, ER extends Reducers<any>>(
+function createSliceWith<BS extends {error?: Error}, BR extends Reducers<any>, ES, ER extends Reducers<any>>(
   sliceOpt: SliceOptions<BS, BR> & {extendInitialState?: ES; extendReducers?: ER}) {
 
   const initState = sliceOpt.extendInitialState ? {...sliceOpt.initialState, ...sliceOpt.extendInitialState} : {...sliceOpt.initialState};
@@ -539,7 +540,7 @@ export const positionalReducers = {
 };
 
 export const positionalEpicFactory: EpicFactory<
-  PositionalState & BasePaintableState,
+PositionalState & BasePaintableState,
   typeof positionalReducers & typeof basePaintableReducers
 > = slice => {
   return action$ => {

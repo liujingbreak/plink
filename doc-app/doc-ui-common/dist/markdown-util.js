@@ -104,18 +104,16 @@ function dfsAccessElement(sourceHtml, root, resolveImage, transpileCode, toc = [
         }
         else if (nodeName === 'code') {
             const classAttr = el.attrs.find(attr => { var _a; return attr.name === 'class' && ((_a = attr.value) === null || _a === void 0 ? void 0 : _a.startsWith('language-')); });
-            if (classAttr) {
+            if (classAttr && transpileCode) {
                 const lang = classAttr.value.slice('language-'.length);
-                if (transpileCode) {
-                    const transpileDone = transpileCode(lang, sourceHtml.slice(el.sourceCodeLocation.startTag.endOffset, el.sourceCodeLocation.endTag.startOffset));
-                    if (transpileDone == null)
-                        return;
-                    done.push(rx.from(transpileDone).pipe(op.map(text => ({
-                        start: el.parentNode.sourceCodeLocation.startOffset,
-                        end: el.parentNode.sourceCodeLocation.endOffset,
-                        text
-                    }))));
-                }
+                const transpileDone = transpileCode(lang, sourceHtml.slice(el.sourceCodeLocation.startTag.endOffset, el.sourceCodeLocation.endTag.startOffset));
+                if (transpileDone == null)
+                    return;
+                done.push(rx.from(transpileDone).pipe(op.map(text => ({
+                    start: el.parentNode.sourceCodeLocation.startOffset,
+                    end: el.parentNode.sourceCodeLocation.endOffset,
+                    text
+                }))));
             }
         }
         if (el.childNodes)

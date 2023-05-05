@@ -13,7 +13,7 @@ export interface ExtraSliceReducers<SS> {
     }>>;
     _change: CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 }
-export declare type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
+export type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
 export declare function ofPayloadAction<P1, T1 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>): OperatorFunction<any, P1 extends undefined ? {
     type: T1;
 } : PayloadAction<P1, T1>>;
@@ -22,11 +22,11 @@ export declare function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extend
 export interface ErrorState {
     actionError?: Error;
 }
-declare type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends CreateSliceOptions<infer S, any, string> ? S : unknown;
+type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends CreateSliceOptions<infer S, any, string> ? S : unknown;
 /** A Helper infer type */
-export declare type InferSliceType<MyCreateSliceOptionsType> = Slice<InferStateType<MyCreateSliceOptionsType>, (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) & ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>, string>;
+export type InferSliceType<MyCreateSliceOptionsType> = Slice<InferStateType<MyCreateSliceOptionsType>, (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) & ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>, string>;
 /** A Helper infer type */
-export declare type InferActionsType<MyCreateSliceOptionsType> = InferSliceType<MyCreateSliceOptionsType>['actions'];
+export type InferActionsType<MyCreateSliceOptionsType> = InferSliceType<MyCreateSliceOptionsType>['actions'];
 export declare class StateFactory {
     private preloadedState;
     /**
@@ -101,7 +101,7 @@ export declare class StateFactory {
     private addSliceMaybeReplaceReducer;
     private createRootReducer;
 }
-export declare type PayloadCaseReducers<S, R extends SliceCaseReducers<S>> = {
+export type PayloadCaseReducers<S, R extends SliceCaseReducers<S>> = {
     [T in keyof R]: R[T] extends (s: any) => any ? (state: Draft<S>) => S | void | Draft<S> : R[T] extends (s: any, action: PayloadAction<infer P>) => any ? (state: Draft<S>, payload: P) => S | void | Draft<S> : (state: Draft<S>, payload: unknown) => S | void | Draft<S>;
 };
 /**

@@ -130,20 +130,18 @@ function dfsAccessElement(
         });
       } else if (nodeName === 'code') {
         const classAttr = el.attrs.find(attr => attr.name === 'class' && attr.value?.startsWith('language-'));
-        if (classAttr) {
+        if (classAttr && transpileCode) {
           const lang = classAttr.value.slice('language-'.length);
-          if (transpileCode) {
-            const transpileDone = transpileCode(lang, sourceHtml.slice(el.sourceCodeLocation!.startTag.endOffset, el.sourceCodeLocation!.endTag.startOffset));
-            if (transpileDone == null)
-              return;
-            done.push(rx.from(transpileDone).pipe(
-              op.map(text => ({
-                start: (el.parentNode as Element).sourceCodeLocation!.startOffset,
-                end: (el.parentNode as Element).sourceCodeLocation!.endOffset,
-                text
-              }))
-            ));
-          }
+          const transpileDone = transpileCode(lang, sourceHtml.slice(el.sourceCodeLocation!.startTag.endOffset, el.sourceCodeLocation!.endTag.startOffset));
+          if (transpileDone == null)
+            return;
+          done.push(rx.from(transpileDone).pipe(
+            op.map(text => ({
+              start: (el.parentNode as Element).sourceCodeLocation!.startOffset,
+              end: (el.parentNode as Element).sourceCodeLocation!.endOffset,
+              text
+            }))
+          ));
         }
       }
 

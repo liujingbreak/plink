@@ -133,7 +133,9 @@ export class StateFactory {
      * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
      * - initialState is loaded from StateFactory's partial preloadedState
      */
+    // eslint-disable-next-line @typescript-eslint/ban-types
     newSlice(opt) {
+        var _a;
         const _opt = opt;
         const reducers = _opt.reducers;
         if (reducers._change == null)
@@ -143,7 +145,7 @@ export class StateFactory {
                 this.debugLog.next(['[redux-toolkit-obs]', `slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`]);
             };
         }
-        if (this.preloadedState && this.preloadedState[opt.name]) {
+        if ((_a = this.preloadedState) === null || _a === void 0 ? void 0 : _a[opt.name]) {
             Object.assign(opt.initialState, this.preloadedState[opt.name]);
         }
         const slice = reduxCreateSlice(opt);

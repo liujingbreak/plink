@@ -4,7 +4,6 @@ exports.toContentAndToc = void 0;
 const tslib_1 = require("tslib");
 const node_worker_threads_1 = require("node:worker_threads");
 const markdown_it_1 = tslib_1.__importDefault(require("markdown-it"));
-const node_vm_1 = tslib_1.__importDefault(require("node:vm"));
 // import {JSDOM} from 'jsdom';
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const rx = tslib_1.__importStar(require("rxjs"));
@@ -27,8 +26,9 @@ const md = new markdown_it_1.default({
     }
 });
 const THREAD_MSG_TYPE_RESOLVE_IMG = 'resolveImageSrc';
-const mermaidVmScript = new node_vm_1.default.Script(`const {runMermaid} = require('./mermaid-vm-script');
-   runMermaid(mermaidSource)`);
+// const mermaidVmScript = new vm.Script(
+//   `const {runMermaid} = require('./mermaid-vm-script');
+//    runMermaid(mermaidSource)`);
 function toContentAndToc(source) {
     const { parseHtml } = require('./markdown-util');
     return parseHtml(md.render(source), imgSrc => {
@@ -44,17 +44,28 @@ function toContentAndToc(source) {
             node_worker_threads_1.parentPort.postMessage({ type: THREAD_MSG_TYPE_RESOLVE_IMG, data: imgSrc });
             return () => node_worker_threads_1.parentPort.off('message', cb);
         });
-    }, async (lang, sourceCode) => {
-        if (lang !== 'mermaid') {
-            log.info('skip language', lang);
-            return sourceCode;
-        }
-        log.info('start to compile Mermaid code', sourceCode);
-        const done = mermaidVmScript.runInNewContext({ require, sourceCode });
-        const { svg } = await done;
-        log.info('Mermaid output:', svg);
-        return svg;
-    }).pipe(op.take(1)).toPromise();
+    }
+    // async (lang, sourceCode) => {
+    //   if (lang !== 'mermaid') {
+    //     log.info('skip language', lang);
+    //     return sourceCode;
+    //   }
+    //   const dom = new JSDOM('<!DOCTYPE html><div id="mermaid-content"></div>');
+    //   (global as any).document = dom.window.document;
+    //   (global as any).window = dom.window;
+    //   const {svg} = await runMermaid(sourceCode);
+    //   // const done = mermaidVmScript.runInNewContext({
+    //   //   require,
+    //   //   esImport: (m: string) => import(m),
+    //   //   mermaidSource: sourceCode,
+    //   //   document: dom.window.document,
+    //   //   window: dom.window
+    //   // }) as Promise<{svg: string}>;
+    //   // const {svg} = await done;
+    //   log.info('Mermaid output:', svg);
+    //   return svg;
+    // }
+    ).pipe(op.take(1)).toPromise();
 }
 exports.toContentAndToc = toContentAndToc;
 //# sourceMappingURL=markdown-loader-worker.js.map

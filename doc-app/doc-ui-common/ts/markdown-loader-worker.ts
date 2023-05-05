@@ -1,11 +1,11 @@
 import {parentPort, MessagePort} from 'node:worker_threads';
 import MarkdownIt from 'markdown-it';
-import vm from 'node:vm';
 // import {JSDOM} from 'jsdom';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import * as highlight from 'highlight.js';
 import {log4File, initAsChildProcess} from '@wfh/plink';
+import {runMermaid} from './mermaid-vm-script';
 import type * as markdownUtil from './markdown-util';
 
 initAsChildProcess();
@@ -28,9 +28,9 @@ const md = new MarkdownIt({
 
 const THREAD_MSG_TYPE_RESOLVE_IMG = 'resolveImageSrc';
 
-const mermaidVmScript = new vm.Script(
-  `const {runMermaid} = require('./mermaid-vm-script');
-   runMermaid(mermaidSource)`);
+// const mermaidVmScript = new vm.Script(
+//   `const {runMermaid} = require('./mermaid-vm-script');
+//    runMermaid(mermaidSource)`);
 
 export function toContentAndToc(source: string) {
   const {parseHtml}  = require('./markdown-util') as typeof markdownUtil;
@@ -49,18 +49,28 @@ export function toContentAndToc(source: string) {
         parentPort!.postMessage({type: THREAD_MSG_TYPE_RESOLVE_IMG, data: imgSrc});
         return () => parentPort!.off('message', cb);
       });
-    },
-    async (lang, sourceCode) => {
-      if (lang !== 'mermaid') {
-        log.info('skip language', lang);
-        return sourceCode;
-      }
-      log.info('start to compile Mermaid code', sourceCode);
-      const done = mermaidVmScript.runInNewContext({require, sourceCode}) as Promise<{svg: string}>;
-      const {svg} = await done;
-      log.info('Mermaid output:', svg);
-      return svg;
     }
+    // async (lang, sourceCode) => {
+    //   if (lang !== 'mermaid') {
+    //     log.info('skip language', lang);
+    //     return sourceCode;
+    //   }
+    //   const dom = new JSDOM('<!DOCTYPE html><div id="mermaid-content"></div>');
+    //   (global as any).document = dom.window.document;
+    //   (global as any).window = dom.window;
+    //   const {svg} = await runMermaid(sourceCode);
+
+    //   // const done = mermaidVmScript.runInNewContext({
+    //   //   require,
+    //   //   esImport: (m: string) => import(m),
+    //   //   mermaidSource: sourceCode,
+    //   //   document: dom.window.document,
+    //   //   window: dom.window
+    //   // }) as Promise<{svg: string}>;
+    //   // const {svg} = await done;
+    //   log.info('Mermaid output:', svg);
+    //   return svg;
+    // }
   ).pipe(
     op.take(1)
   ).toPromise();

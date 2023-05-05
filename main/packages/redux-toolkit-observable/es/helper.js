@@ -1,7 +1,8 @@
-import { ofPayloadAction } from './redux-toolkit-observable';
+var _a, _b;
 import { Observable, EMPTY, of, Subject } from 'rxjs';
 import * as op from 'rxjs/operators';
 import { immerable } from 'immer';
+import { ofPayloadAction } from './redux-toolkit-observable';
 export function createSliceHelper(stateFactory, opts) {
     const slice = stateFactory.newSlice(opts);
     const actionDispatcher = stateFactory.bindActionCreators(slice);
@@ -181,6 +182,7 @@ export function action$OfSlice(sliceHelper, actionType) {
  */
 export class Refrigerator {
     constructor(originRef) {
+        this[_a] = false;
         this.ref = originRef;
         Object.freeze(this);
     }
@@ -196,5 +198,6 @@ export class Refrigerator {
         return this.ref;
     }
 }
-Refrigerator[immerable] = false;
+_a = immerable, _b = immerable;
+Refrigerator[_b] = false;
 //# sourceMappingURL=helper.js.map
