@@ -7,9 +7,9 @@ const LazyDocComponent = loadable(async () => {
   return (await import('../feature/article/ArticalePage')).ArticalePage;
 }, {fallback: <ShowTopLoading/>});
 
-const LazyDemoComponent = loadable(async () => {
-  return (await import('../feature/demo/DemoPage')).DemoPage;
-}, {fallback: <ShowTopLoading/>});
+// const LazyDemoComponent = loadable(async () => {
+//   return (await import('../feature/demo/DemoPage')).DemoPage;
+// }, {fallback: <ShowTopLoading/>});
 
 const BgBlurDemo = loadable(async () => {
   return (await import('../feature/demo/BackgroundBlurDemo')).BackgroundBlurDemo;
@@ -28,7 +28,7 @@ export const routes: AnimatableRoutesProps['routes'] = [
   {path: '/demo/background', element: <BgDemo/>},
   {path: '/demo/background-blur', element: <BgBlurDemo/>},
   {path: '/demo/surface', element: <SurfaceDemo/>},
-  {path: '/demo', element: <LazyDemoComponent/>},
+  // {path: '/demo', element: <LazyDemoComponent/>},
   {path: '/doc/:mdKey', element: <LazyDocComponent/>}
 ];
 

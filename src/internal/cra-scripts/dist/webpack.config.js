@@ -23,7 +23,7 @@ const termux_issue_webpack_plugin_1 = require("./termux-issue-webpack-plugin");
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-config');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
 function default_1(webpackEnv) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const { addResolveAlias } = require('./webpack-resolve');
     (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${__plink_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
@@ -194,6 +194,14 @@ function default_1(webpackEnv) {
             }
         }
     }
+    (_g = config.module) === null || _g === void 0 ? void 0 : _g.rules.push({
+        test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
+        loader: '@wfh/webpack-common/dist/ts-loader',
+        options: {
+            injector: plink_1.webInjector,
+            tsConfigFile: path_1.default.join(plink_1.plinkEnv.workDir, 'tsconfig.json')
+        }
+    });
     changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
     runConfigHandlers(config, webpackEnv);
     log.info(`output.publicPath: ${config.output.publicPath}`);

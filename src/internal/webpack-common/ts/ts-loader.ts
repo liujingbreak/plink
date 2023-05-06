@@ -18,7 +18,7 @@ const loader: wp.LoaderDefinitionFunction<Options> = function(source, sourceMap)
       opts.compileExpContext ? opts.compileExpContext(file) : {});
     cb(null, replaced, sourceMap);
   } catch (e) {
-    console.error('[webpack-common.ts-loader]processing: ' + file, e);
+    this.getLogger('@wfh/webpack-common.ts-loader').error(file, e);
     return cb(e as Error);
   }
 };

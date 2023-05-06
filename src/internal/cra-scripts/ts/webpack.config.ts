@@ -7,7 +7,7 @@ import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';
 import StatsPlugin from '@wfh/webpack-common/dist/webpack-stats-plugin';
 import fs from 'fs-extra';
 import _ from 'lodash';
-import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig} from '@wfh/plink';
+import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig, webInjector} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {Configuration, RuleSetRule, Compiler, ProgressPlugin} from 'webpack';
 import api from '__plink';
@@ -208,6 +208,14 @@ export default function(webpackEnv: 'production' | 'development') {
       }
     }
   }
+  config.module?.rules!.push({
+    test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
+    loader: '@wfh/webpack-common/dist/ts-loader',
+    options: {
+      injector: webInjector,
+      tsConfigFile: Path.join(plinkEnv.workDir, 'tsconfig.json')
+    }
+  });
   changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
 
   runConfigHandlers(config, webpackEnv);

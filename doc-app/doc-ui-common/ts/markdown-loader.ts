@@ -1,4 +1,3 @@
-// import vm from 'vm';
 import {LoaderDefinition} from 'webpack';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -13,8 +12,7 @@ const markdownLoader: LoaderDefinition = function(source, sourceMap) {
   const importCode = [] as string[];
   let imgIdx = 0;
 
-  const logger = this.getLogger('markdown-loader');
-  logger.info(this.loaders);
+  // const logger = this.getLogger('markdown-loader');
   // debugger;
 
   markdownToHtml(source,
