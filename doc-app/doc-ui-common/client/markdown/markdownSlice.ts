@@ -3,12 +3,11 @@ import { stateFactory, ofPayloadAction } from '@wfh/redux-toolkit-observable/es/
 import {action$Of} from '@wfh/redux-toolkit-observable/es/helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
-import axiosObs from 'axios-observable';
 import { LoaderRecivedData } from '@wfh/doc-ui-common/isom/md-types';
 
 export interface MarkdownState {
   /** value is markdown url */
-  markdowns: {[key: string]: string};
+  fileLoader: {[key: string]: () => Promise<LoaderRecivedData> | LoaderRecivedData};
   contents: {[key: string]: LoaderRecivedData};
   computed: {
     reactHtml: {[key: string]: {__html: string}};
@@ -16,7 +15,7 @@ export interface MarkdownState {
 }
 
 const initialState: MarkdownState = {
-  markdowns: {},
+  fileLoader: {},
   contents: {},
   computed: {reactHtml: {}}
 };
@@ -25,30 +24,32 @@ const markdownSlice = stateFactory.newSlice({
   name: 'markdown',
   initialState,
   reducers: {
-    registerFiles(s, {payload}: PayloadAction<MarkdownState['markdowns']>) {
-      Object.assign(s.markdowns, payload);
+    registerFiles(s, {payload}: PayloadAction<MarkdownState['fileLoader']>) {
+      Object.assign(s.fileLoader, payload);
     },
-    getHtml(s, action: PayloadAction<string>) {},
+    getHtml(_s, _action: PayloadAction<string>) {},
     getHtmlDone(s, {payload}: PayloadAction<{key: string; data: LoaderRecivedData}>) {
       s.contents[payload.key] = payload.data;
-      s.computed.reactHtml[payload.key] = {__html: payload.data.content};
+      s.computed.reactHtml[payload.key] = {__html: payload.data.html};
     }
   }
 });
 
 export const dispatcher = stateFactory.bindActionCreators(markdownSlice);
 
-const releaseEpic = stateFactory.addEpic<{Markdown: MarkdownState}>((action$, state$) => {
+const releaseEpic = stateFactory.addEpic<{Markdown: MarkdownState}>((action$, _state$) => {
   return rx.merge(
     action$.pipe(ofPayloadAction(markdownSlice.actions.getHtml),
       op.mergeMap(({payload: key}) => {
-        const url = getState().markdowns[key];
-        return rx.from(axiosObs.get<LoaderRecivedData>(url))
-        .pipe(
-          op.map(res => {
-            dispatcher.getHtmlDone({key, data: res.data});
-          })
-        );
+        const loadFn = getState().fileLoader[key];
+        const res = loadFn();
+        return typeof (res as LoaderRecivedData)?.html === 'string' ?
+          rx.of([key, res as LoaderRecivedData] as const) :
+          (res as Promise<LoaderRecivedData>)
+            .then(res => ([key, res] as const));
+      }),
+      op.map(([key, data]) => {
+        dispatcher.getHtmlDone({key, data});
       })
     )
   ).pipe(
@@ -73,7 +74,7 @@ export function getStore() {
 export const getHtmlDone = action$Of(stateFactory, markdownSlice.actions.getHtmlDone);
 
 if (module.hot) {
-  module.hot.dispose(data => {
+  module.hot.dispose(_data => {
     stateFactory.removeSlice(markdownSlice);
     releaseEpic();
   });

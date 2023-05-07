@@ -18,3 +18,4 @@ export declare function runTsConfigHandlers(compilerOptions: any): void;
 export declare function runTsConfigHandlers4LibTsd(): {
     paths: {};
 };
+export declare function cliLineWrapByWidth(str: string, columns: number, calStrWidth: (str: string) => number): string[];

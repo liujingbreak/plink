@@ -1,4 +1,4 @@
-/// <reference types="node" resolution-mode="require"/>
+/// <reference types="node" />
 import { EventEmitter } from 'events';
 import Inject from 'require-injector';
 import { Logger } from 'log4js';

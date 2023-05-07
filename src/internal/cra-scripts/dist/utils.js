@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runTsConfigHandlers4LibTsd = exports.runTsConfigHandlers = exports.craVersionCheck = exports.saveCmdOptionsToEnv = exports.getCmdOptions = exports.printConfig = exports.drawPuppy = exports.getReportDir = void 0;
+exports.cliLineWrapByWidth = exports.runTsConfigHandlers4LibTsd = exports.runTsConfigHandlers = exports.craVersionCheck = exports.saveCmdOptionsToEnv = exports.getCmdOptions = exports.printConfig = exports.drawPuppy = exports.getReportDir = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable no-console */
 const util_1 = tslib_1.__importStar(require("util"));
@@ -110,12 +110,6 @@ function saveCmdOptionsToEnv(pkgName, cmdName, opts, buildType) {
     return cmdOptions;
 }
 exports.saveCmdOptionsToEnv = saveCmdOptionsToEnv;
-// function withClicOpt(cmd: commander.Command) {
-//   cmd.option('-w, --watch', 'Watch file changes and compile', false)
-//   .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
-//   .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', '/');
-//   withGlobalOptions(cmd);
-// }
 function craVersionCheck() {
     const craPackage = require(path_1.default.resolve('node_modules/react-scripts/package.json'));
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -170,4 +164,58 @@ function runTsConfigHandlers4LibTsd() {
     return compilerOptions;
 }
 exports.runTsConfigHandlers4LibTsd = runTsConfigHandlers4LibTsd;
+function cliLineWrapByWidth(str, columns, calStrWidth) {
+    const lines = [];
+    let offset = 0;
+    let lastWidthData;
+    while (offset < str.length) {
+        // look for closest end position
+        const end = findClosestEnd(str.slice(offset), columns) + 1;
+        const lineEnd = offset + end;
+        lines.push(str.slice(offset, lineEnd));
+        offset = lineEnd;
+    }
+    function findClosestEnd(str, target) {
+        let low = 0, high = str.length;
+        while (high > low) {
+            const mid = low + ((high - low) >> 1);
+            const len = quickWidth(str, mid + 1);
+            // console.log('binary range', str, 'low', low, 'high', high, 'mid', mid, 'len', len);
+            if (target < len) {
+                high = mid;
+            }
+            else if (len < target) {
+                low = mid + 1;
+            }
+            else {
+                return mid;
+            }
+        }
+        // console.log('binary result', high);
+        // Normal binary search should return "hight", because it returns the non-existing index for insertion,
+        // but we are looking for an existing index number of whose value (ranking) is smaller than or equal to "target",
+        // so "minus 1" is needed here
+        return high - 1;
+    }
+    /**
+     * @param end - excluded, same as parameter "end" in string.prototype.slice(start, end)
+     */
+    function quickWidth(str, end) {
+        if (lastWidthData && lastWidthData[0] === str) {
+            const lastEnd = lastWidthData[1];
+            if (end > lastEnd) {
+                lastWidthData[2] = lastWidthData[2] + calStrWidth(str.slice(lastEnd, end));
+                lastWidthData[1] = end;
+            }
+            else if (end < lastEnd) {
+                lastWidthData[2] = lastWidthData[2] - calStrWidth(str.slice(end, lastEnd));
+                lastWidthData[1] = end;
+            }
+            return lastWidthData[2];
+        }
+        return calStrWidth(str.slice(0, end));
+    }
+    return lines;
+}
+exports.cliLineWrapByWidth = cliLineWrapByWidth;
 //# sourceMappingURL=utils.js.map

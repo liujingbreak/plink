@@ -2,16 +2,16 @@
 import Path from 'path';
 import chalk from 'chalk';
 import {merge} from 'rxjs';
-import { distinctUntilChanged, map, skip, scan } from 'rxjs/operators';
+import {distinctUntilChanged, map, skip, scan} from 'rxjs/operators';
 import _ from 'lodash';
-import { actionDispatcher as actions, getState, getStore, WorkspaceState} from '../package-mgr';
+import {actionDispatcher as actions, getState, getStore, WorkspaceState} from '../package-mgr';
 import {dispatcher as storeSettingDispatcher} from '../store';
 import {createCliTable, plinkEnv} from '../utils/misc';
-import { packages4WorkspaceKey } from '../package-utils';
+import {packages4WorkspaceKey} from '../package-utils';
 import {listPackagesByProjects} from './cli-ls';
 import '../editor-helper';
 // import { getRootDir } from '../utils/misc';
-import { listProject } from './cli-project';
+import {listProject} from './cli-project';
 import * as options from './types';
 
 export default function(opt: options.InitCmdOptions & options.NpmCliOption, workspace?: string) {
@@ -54,11 +54,11 @@ export default function(opt: options.InitCmdOptions & options.NpmCliOption, work
   if (workspace) {
     actions.updateWorkspace({dir: workspace, isForce: opt.force, useYarn: opt.useYarn,
       cache: opt.cache, useNpmCi: opt.useCi});
-} else {
-  actions.initRootDir({isForce: opt.force,
-    useYarn: opt.useYarn, cache: opt.cache, useNpmCi: opt.useCi});
-  setImmediate(() => listProject());
-}
+  } else {
+    actions.initRootDir({isForce: opt.force,
+      useYarn: opt.useYarn, cache: opt.cache, useNpmCi: opt.useCi});
+    setImmediate(() => void listProject());
+  }
   // setImmediate(() => printWorkspaces());
 }
 
@@ -142,7 +142,7 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
   if (workspace.hoistDevInfo.size > 0) {
     const table = createTable();
     table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
-    ['---', '---'].map(item => chalk.gray(item)));
+      ['---', '---'].map(item => chalk.gray(item)));
     console.log(chalk.bold(`\nHoisted Transitive (dev) Dependency & Dependents (${workspace.id || '<root directory>'})`));
     for (const [dep, dependents] of workspace.hoistDevInfo.entries()) {
       table.push(renderHoistDepInfo(dep, dependents));
@@ -153,7 +153,7 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
     console.log(chalk.bold(`Hoisted Transitive Peer Dependencies (${workspace.id || '<root directory>'})`));
     const table = createTable();
     table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
-    ['---', '---'].map(item => chalk.gray(item)));
+      ['---', '---'].map(item => chalk.gray(item)));
     for (const [dep, dependents] of workspace.hoistPeerDepInfo.entries()) {
       table.push(renderHoistPeerDepInfo(dep, dependents));
     }
@@ -163,7 +163,7 @@ export function printWorkspaceHoistedDeps(workspace: WorkspaceState) {
     console.log(chalk.yellowBright(`\nHoisted Transitive Peer Dependencies (dev) (${workspace.id || '<root directory>'})`));
     const table = createTable();
     table.push(['DEPENDENCY', 'DEPENDENT'].map(item => chalk.gray(item)),
-    ['---', '---'].map(item => chalk.gray(item)));
+      ['---', '---'].map(item => chalk.gray(item)));
     for (const [dep, dependents] of workspace.hoistDevPeerDepInfo.entries()) {
       table.push(renderHoistPeerDepInfo(dep, dependents));
     }

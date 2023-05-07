@@ -3,13 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.insertOrUpdateMarkdownToc = exports.tocToString = exports.traverseTocTree = exports.parseHtml = exports.markdownToHtml = void 0;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
-const util_1 = tslib_1.__importDefault(require("util"));
 const os_1 = tslib_1.__importDefault(require("os"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const thread_promise_pool_1 = require("@wfh/thread-promise-pool");
 const plink_1 = require("@wfh/plink");
-const patch_text_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/utils/patch-text"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const parse5_1 = tslib_1.__importDefault(require("parse5"));
 const log = (0, plink_1.log4File)(__filename);
@@ -30,7 +28,7 @@ function markdownToHtml(source, resolveImage) {
         args: [source]
     });
     const threadMsg$ = new rx.Subject();
-    threadMsg$.pipe(op.filter(msg => msg.type === 'resolveImageSrc'), op.map(msg => msg.data), op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(imgSrc)), op.tap(imgUrl => {
+    threadMsg$.pipe(op.filter(msg => msg.type === 'resolveImageSrc'), op.map(msg => msg.data), op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(' + ' + JSON.stringify(imgSrc) + ' + ')), op.tap(imgUrl => {
         var _a;
         (_a = threadTask.thread) === null || _a === void 0 ? void 0 : _a.postMessage({ type: 'resolveImageSrc', data: imgUrl });
         log.info('send resolved image', imgUrl);
@@ -48,37 +46,27 @@ function markdownToHtml(source, resolveImage) {
     return rx.from(threadTask.promise);
 }
 exports.markdownToHtml = markdownToHtml;
-function parseHtml(html, resolveImage, transpileCode) {
+function parseHtml(html, resolveImage) {
     let toc = [];
-    return rx.defer(() => {
-        try {
-            const doc = parse5_1.default.parse(html, { sourceCodeLocationInfo: true });
-            const done = dfsAccessElement(html, doc, resolveImage, transpileCode, toc);
-            toc = createTocTree(toc);
-            return rx.from(done);
-        }
-        catch (e) {
-            console.error('parseHtml() error', e);
-            return rx.from([]);
-        }
-    }).pipe(op.mergeMap(replacement => replacement), op.reduce((acc, item) => {
-        acc.push(item);
-        return acc;
-    }, []), op.map(all => {
-        const content = (0, patch_text_1.default)(html, all);
-        // log.warn(html, '\n=>\n', content);
-        return { toc, content };
-    }), op.catchError(err => {
-        log.error('parseHtml error', err);
-        // cb(err, JSON.stringify({ toc, content: source }), sourceMap);
+    try {
+        const doc = parse5_1.default.parse(html, { sourceCodeLocationInfo: true });
+        const content$ = dfsAccessElement(html, doc, resolveImage, toc);
+        toc = createTocTree(toc);
+        return content$.pipe(op.map(content => ({ toc, content })));
+    }
+    catch (e) {
+        console.error('parseHtml() error', e);
         return rx.of({ toc, content: html });
-    }));
+    }
 }
 exports.parseHtml = parseHtml;
-function dfsAccessElement(sourceHtml, root, resolveImage, transpileCode, toc = []) {
+function dfsAccessElement(sourceHtml, root, resolveImage, 
+// transpileCode?: (language: string, sourceCode: string) => Promise<string> | rx.Observable<string> | void,
+toc = []) {
     const chr = new rx.BehaviorSubject(root.childNodes || []);
-    const done = [];
-    chr.pipe(op.mergeMap(children => rx.from(children))).pipe(op.map(node => {
+    const output = [];
+    let htmlOffset = 0;
+    chr.pipe(op.mergeMap(children => rx.from(children)), op.map(node => {
         const nodeName = node.nodeName.toLowerCase();
         if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
             return;
@@ -87,13 +75,9 @@ function dfsAccessElement(sourceHtml, root, resolveImage, transpileCode, toc = [
             const imgSrc = el.attrs.find(item => item.name === 'src');
             if (resolveImage && imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
                 log.info('found img src=' + imgSrc.value);
-                done.push(rx.from(resolveImage(imgSrc.value))
-                    .pipe(op.map(resolved => {
-                    var _a, _b;
-                    const srcPos = (_b = (_a = el.sourceCodeLocation) === null || _a === void 0 ? void 0 : _a.attrs) === null || _b === void 0 ? void 0 : _b.src;
-                    log.info(`resolve ${imgSrc.value} to ${util_1.default.inspect(resolved)}`);
-                    return { start: srcPos.startOffset + 'src'.length + 1, end: srcPos.endOffset, text: resolved };
-                })));
+                output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation.attrs.src.startOffset + 'src'.length + 2));
+                htmlOffset = el.sourceCodeLocation.attrs.src.endOffset - 1;
+                return output.push(resolveImage(imgSrc.value));
             }
         }
         else if (headerSet.has(nodeName)) {
@@ -102,24 +86,15 @@ function dfsAccessElement(sourceHtml, root, resolveImage, transpileCode, toc = [
                 id: ''
             });
         }
-        else if (nodeName === 'code') {
-            const classAttr = el.attrs.find(attr => { var _a; return attr.name === 'class' && ((_a = attr.value) === null || _a === void 0 ? void 0 : _a.startsWith('language-')); });
-            if (classAttr && transpileCode) {
-                const lang = classAttr.value.slice('language-'.length);
-                const transpileDone = transpileCode(lang, sourceHtml.slice(el.sourceCodeLocation.startTag.endOffset, el.sourceCodeLocation.endTag.startOffset));
-                if (transpileDone == null)
-                    return;
-                done.push(rx.from(transpileDone).pipe(op.map(text => ({
-                    start: el.parentNode.sourceCodeLocation.startOffset,
-                    end: el.parentNode.sourceCodeLocation.endOffset,
-                    text
-                }))));
-            }
-        }
-        if (el.childNodes)
+        else if (el.childNodes) {
             chr.next(el.childNodes);
+        }
     })).subscribe();
-    return done;
+    output.push(sourceHtml.slice(htmlOffset));
+    return rx.from(output).pipe(op.concatMap(item => typeof item === 'string' ? rx.of(JSON.stringify(item)) : item == null ? ' + img + ' : item), op.reduce((acc, item) => {
+        acc.push(item);
+        return acc;
+    }, []), op.map(frags => frags.join('')));
 }
 function lookupTextNodeIn(el) {
     const chr = new rx.BehaviorSubject(el.childNodes || []);

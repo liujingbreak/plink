@@ -5,7 +5,6 @@ import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import * as highlight from 'highlight.js';
 import {log4File, initAsChildProcess} from '@wfh/plink';
-import {runMermaid} from './mermaid-vm-script';
 import type * as markdownUtil from './markdown-util';
 
 initAsChildProcess();
@@ -50,27 +49,6 @@ export function toContentAndToc(source: string) {
         return () => parentPort!.off('message', cb);
       });
     }
-    // async (lang, sourceCode) => {
-    //   if (lang !== 'mermaid') {
-    //     log.info('skip language', lang);
-    //     return sourceCode;
-    //   }
-    //   const dom = new JSDOM('<!DOCTYPE html><div id="mermaid-content"></div>');
-    //   (global as any).document = dom.window.document;
-    //   (global as any).window = dom.window;
-    //   const {svg} = await runMermaid(sourceCode);
-
-    //   // const done = mermaidVmScript.runInNewContext({
-    //   //   require,
-    //   //   esImport: (m: string) => import(m),
-    //   //   mermaidSource: sourceCode,
-    //   //   document: dom.window.document,
-    //   //   window: dom.window
-    //   // }) as Promise<{svg: string}>;
-    //   // const {svg} = await done;
-    //   log.info('Mermaid output:', svg);
-    //   return svg;
-    // }
   ).pipe(
     op.take(1)
   ).toPromise();

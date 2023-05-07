@@ -20,12 +20,13 @@ const markdownLoader: LoaderDefinition = function(source, sourceMap) {
     imgSrc => {
       const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
       importCode.push(`import imgSrc${imgIdx} from '${url}';`);
-      return Promise.resolve('"${imgSrc' + (imgIdx++) + '}"');
+      return Promise.resolve(' + imgSrc' + (imgIdx++) + ' + ');
     })
     .pipe(
       op.take(1),
       op.map(result => {
-        cb(null, importCode.join('\n') + '\nconst html = `' + result.content + '`; export default html;', sourceMap);
+        cb(null,
+          importCode.join('\n') + '\nconst html = ' + result.content + ';\nlet toc = ' + JSON.stringify(result.toc) + ';\nlet m = {html, toc};\nexport default m;\n', sourceMap);
       }),
       op.catchError(err => {
         cb(err, JSON.stringify(err), sourceMap);

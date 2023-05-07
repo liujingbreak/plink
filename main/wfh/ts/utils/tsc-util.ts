@@ -28,7 +28,7 @@ function plinkNodeJsCompilerOptionJson(ts: typeof _ts, opts: TscOptions = {}) {
   } = opts;
   let baseCompilerOptions: any;
   if (jsx) {
-    const baseTsconfigFile2 = require.resolve('../tsconfig-tsx.json');
+    const baseTsconfigFile2 = require.resolve('../../tsconfig-tsx.json');
     // log.info('Use tsconfig file:', baseTsconfigFile2);
     const tsxTsconfig = parseConfigFileToJson(ts, baseTsconfigFile2);
     baseCompilerOptions = tsxTsconfig.compilerOptions;

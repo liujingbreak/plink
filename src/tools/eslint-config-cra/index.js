@@ -29,7 +29,9 @@ function create(tsconfigFile) {
     ],
     ignorePatterns: [
       '**/dist/**/*',
-      '**/*.d.ts'
+      '**/*.d.ts',
+      '**/*.d.mts',
+      '**/*.d.cts'
     ],
     // settings: {
     //   react: {
@@ -357,7 +359,3 @@ function create(tsconfigFile) {
   };
 }
 
-function test(c) {
-  const a = c == null ? 'yes' : ['no', 'yes'];
-  return a;
-}

@@ -117,14 +117,6 @@ export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: Buil
   return cmdOptions;
 }
 
-// function withClicOpt(cmd: commander.Command) {
-//   cmd.option('-w, --watch', 'Watch file changes and compile', false)
-//   .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
-//   .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', '/');
-//   withGlobalOptions(cmd);
-// }
-
-
 export function craVersionCheck() {
   const craPackage = require(Path.resolve('node_modules/react-scripts/package.json')) as {version: string};
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -181,3 +173,58 @@ export function runTsConfigHandlers4LibTsd() {
   }
   return compilerOptions;
 }
+
+export function cliLineWrapByWidth(str: string, columns: number, calStrWidth: (str: string) => number) {
+  const lines = [] as string[];
+  let offset = 0;
+  let lastWidthData: [string, number, number] | undefined;
+
+  while (offset < str.length) {
+    // look for closest end position
+    const end = findClosestEnd(str.slice(offset), columns) + 1;
+    const lineEnd = offset + end;
+    lines.push(str.slice(offset, lineEnd));
+    offset = lineEnd;
+  }
+
+  function findClosestEnd(str: string, target: number) {
+    let low = 0, high = str.length;
+    while (high > low) {
+      const mid = low + ((high - low) >> 1);
+      const len = quickWidth(str, mid + 1);
+      // console.log('binary range', str, 'low', low, 'high', high, 'mid', mid, 'len', len);
+      if (target < len) {
+        high = mid;
+      } else if (len < target) {
+        low = mid + 1;
+      } else {
+        return mid;
+      }
+    }
+    // console.log('binary result', high);
+    // Normal binary search should return "hight", because it returns the non-existing index for insertion,
+    // but we are looking for an existing index number of whose value (ranking) is smaller than or equal to "target",
+    // so "minus 1" is needed here
+    return high - 1;
+  }
+
+  /**
+   * @param end - excluded, same as parameter "end" in string.prototype.slice(start, end)
+   */
+  function quickWidth(str: string, end: number) {
+    if (lastWidthData && lastWidthData[0] === str) {
+      const lastEnd = lastWidthData[1];
+      if (end > lastEnd) {
+        lastWidthData[2] = lastWidthData[2] + calStrWidth(str.slice(lastEnd, end));
+        lastWidthData[1] = end;
+      } else if (end < lastEnd) {
+        lastWidthData[2] = lastWidthData[2] - calStrWidth(str.slice(end, lastEnd));
+        lastWidthData[1] = end;
+      }
+      return lastWidthData[2];
+    }
+    return calStrWidth(str.slice(0, end));
+  }
+  return lines;
+}
+

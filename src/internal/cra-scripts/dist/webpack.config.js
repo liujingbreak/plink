@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 const path_1 = tslib_1.__importDefault(require("path"));
-// import util from 'node:util';
+const node_util_1 = tslib_1.__importDefault(require("node:util"));
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const splitChunks_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/splitChunks"));
 const webpack_stats_plugin_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/webpack-stats-plugin"));
@@ -11,9 +11,9 @@ const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
 const plink_1 = require("@wfh/plink");
 const mem_stats_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
 const webpack_1 = require("webpack");
-const __plink_1 = tslib_1.__importDefault(require("__plink"));
 const resolve_1 = tslib_1.__importDefault(require("resolve"));
 const rx = tslib_1.__importStar(require("rxjs"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
 const utils_1 = require("./utils");
 const webpack_lib_1 = tslib_1.__importDefault(require("./webpack-lib"));
 const change_tsconfig_1 = require("./change-tsconfig");
@@ -23,35 +23,24 @@ const termux_issue_webpack_plugin_1 = require("./termux-issue-webpack-plugin");
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-config');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
 function default_1(webpackEnv) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const { addResolveAlias } = require('./webpack-resolve');
-    (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${__plink_1.default.config.resolve('destDir', 'cra-scripts.report')}`);
+    (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${plink_1.config.resolve('destDir', 'cra-scripts.report')}`);
     const progressMsg$ = new rx.Subject();
-    // rx.from(import('string-width'))
-    //   .pipe(
-    //     op.mergeMap(({default: strWidth}) => progressMsg$.pipe(
-    //       op.map(msg => {
-    //         let lines = 1;
-    //         const str = util.format('[Progress]', ...msg);
-    //         const width = strWidth(str);
-    //         if (width > process.stdout.columns) {
-    //           lines = Math.ceil(process.stdout.columns / width);
-    //         }
-    //         return {str, lines};
-    //       }),
-    //       op.concatMap(({str, lines}) => rx.concat(
-    //         rx.concat(
-    //           new Promise<void>(resolve => process.stdout.cursorTo(0, resolve)),
-    //           lines > 1 ? new Promise<void>(resolve => process.stdout.moveCursor(0, -lines + 1, resolve)) : rx.EMPTY,
-    //           new Promise<void>(resolve => process.stdout.clearLine(0, resolve))
-    //         ),
-    //         rx.defer(() => {
-    //           return new Promise<void>(resolve => process.stdout.write(str, () => resolve()));
-    //         })
-    //       ))
-    //     ))
-    //   ).subscribe();
+    rx.from(import('string-width'))
+        .pipe(op.mergeMap(({ default: strWidth }) => {
+        const [cols, rows] = process.stdout.getWindowSize();
+        return progressMsg$.pipe(op.map(msg => {
+            let lines = 1;
+            const str = node_util_1.default.format('[Progress]', ...msg);
+            const width = strWidth(str);
+            if (width > cols) {
+                lines = Math.ceil(process.stdout.columns / width);
+            }
+            return { str, lines };
+        }), op.concatMap(({ str, lines }) => rx.merge(new Promise(resolve => process.stdout.cursorTo(0, rows - lines, resolve)), new Promise(resolve => process.stdout.write(str.trim(), (_err) => resolve())), new Promise(resolve => process.stdout.clearLine(1, resolve)), new Promise(resolve => process.stdout.clearScreenDown(resolve)))));
+    })).subscribe();
     const cmdOption = (0, utils_1.getCmdOptions)();
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
     if (cmdOption.devMode || cmdOption.watch) {
@@ -91,12 +80,7 @@ function default_1(webpackEnv) {
         if (err)
             log.error('Failed to write ' + path_1.default.resolve(reportDir, 'webpack.config.cra.js'), err);
     });
-    // Make sure babel compiles source folder out side of current src directory
-    // changeFileLoader(config.module!.rules as RuleSetRule[]);
     // replaceSassLoader(config.module!.rules as RuleSetRule[]);
-    // appendOurOwnTsLoader(config);
-    // insertLessLoaderRule(config.module!.rules as RuleSetRule[]);
-    // changeForkTsCheckerPlugin(config);
     if (cmdOption.buildType === 'app') {
         config.output.path = craPaths().appBuild;
     }
@@ -149,8 +133,7 @@ function default_1(webpackEnv) {
         const htmlWebpackPluginConstrutor = require(resolve_1.default.sync('html-webpack-plugin', { basedir: reactScriptsInstalledDir }));
         const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
         htmlWebpackPluginInstance.userOptions.templateParameters = {
-            _config: (0, plink_1.config)(),
-            __api: __plink_1.default
+            _config: (0, plink_1.config)()
         };
         (0, splitChunks_1.default)(config, (mod) => {
             var _a;
@@ -179,6 +162,7 @@ function default_1(webpackEnv) {
                     }
                 }
                 else if (/\bsass-loader\b/.test(rule.loader)) {
+                    /** To support Material-component-web */
                     rule.options = {
                         implementation: require('sass'),
                         webpackImporter: false,
@@ -194,14 +178,14 @@ function default_1(webpackEnv) {
             }
         }
     }
-    (_g = config.module) === null || _g === void 0 ? void 0 : _g.rules.push({
-        test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
-        loader: '@wfh/webpack-common/dist/ts-loader',
-        options: {
-            injector: plink_1.webInjector,
-            tsConfigFile: path_1.default.join(plink_1.plinkEnv.workDir, 'tsconfig.json')
-        }
-    });
+    // config.module?.rules!.push({
+    //   test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
+    //   loader: '@wfh/webpack-common/dist/ts-loader',
+    //   options: {
+    //     injector: webInjector,
+    //     tsConfigFile: Path.join(plinkEnv.workDir, 'tsconfig.json')
+    //   }
+    // });
     changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
     runConfigHandlers(config, webpackEnv);
     log.info(`output.publicPath: ${config.output.publicPath}`);
@@ -222,22 +206,19 @@ function addProgressPlugin(config, send) {
         }));
     }
 }
-/**
- * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
- */
-// function changeForkTsCheckerPlugin(config: Configuration) {
-//   const plugins = config.plugins!;
-//   const cnst = require(nodeResolve.sync('react-dev-utils/ForkTsCheckerWebpackPlugin',
-//     {basedir: Path.resolve('node_modules/react-scripts')}));
-//   // let forkTsCheckIdx = -1;
-//   for (let i = 0, l = plugins.length; i < l; i++) {
-//     if (plugins[i] instanceof cnst) {
-//       (plugins[i] ).reportFiles = [];
-//       // forkTsCheckIdx = i;
-//       break;
-//     }
-//   }
-// }
+function createRuleTestFunc4Src(origTest, appSrc) {
+    const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
+    return function testOurSourceFile(file) {
+        const pk = getPkgOfFile(file);
+        const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
+            (origTest instanceof RegExp)
+            ? origTest.test(file) :
+            (origTest instanceof Function ? origTest(file) : origTest === file);
+        // if (yes)
+        //   log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
+        return yes;
+    };
+}
 /**
  * react-scripts/config/env.js filters NODE_PATH for only allowing relative path, this breaks
  * Plink's NODE_PATH setting.
@@ -284,7 +265,7 @@ function runConfigHandlers(config, webpackEnv) {
             }
         }, 'create-react-app Webpack config');
     }
-    __plink_1.default.config.configHandlerMgrChanged(mgr => mgr.runEachSync((cfgFile, _result, handler) => {
+    plink_1.config.configHandlerMgrChanged(mgr => mgr.runEachSync((cfgFile, _result, handler) => {
         if (handler.webpack != null) {
             log.info('Execute command line Webpack configuration overrides', cfgFile);
             handler.webpack(config, webpackEnv, cmdOption);
@@ -386,67 +367,11 @@ function changeForkTsCheckerOptions(config, appIndexFile, moduleResolveBase, cmd
 //     });
 //   }
 // }
-// const fileLoaderOptions = {
-//   // esModule: false,
-//   outputPath(url: string, resourcePath: string, _context: string) {
-//     const pk = api.findPackageByFile(resourcePath);
-//     return `${(pk ? pk.shortName : 'external')}/${url}`;
-//   }
-// };
-/**
- *
- * @param rules
- */
-// function changeFileLoader(rules: RuleSetRule[]): void {
-//   const craPaths = require('react-scripts/config/paths');
-//   // TODO: check in case CRA will use Rule.use instead of "loader"
-//   checkSet(rules);
-//   for (const rule of rules) {
-//     if (Array.isArray(rule.use)) {
-//       checkSet(rule.use);
-//     } else if (Array.isArray(rule.loader)) {
-//       checkSet(rule.loader);
-//     } else if (rule.oneOf) {
-//       insertRawLoader(rule.oneOf);
-//       return changeFileLoader(rule.oneOf);
-//     }
-//   }
-function createRuleTestFunc4Src(origTest, appSrc) {
-    return function testOurSourceFile(file) {
-        const pk = __plink_1.default.findPackageByFile(file);
-        const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
-            (origTest instanceof RegExp)
-            ? origTest.test(file) :
-            (origTest instanceof Function ? origTest(file) : origTest === file);
-        // if (yes)
-        //   log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
-        return yes;
-    };
-}
 // function insertRawLoader(rules: RuleSetRule[]) {
 //   const htmlLoaderRule = {
 //     test: /\.html$/,
 //     use: [{loader: 'raw-loader'}]
 //   };
 //   rules.push(htmlLoaderRule);
-// }
-/** To support Material-component-web */
-// function replaceSassLoader(rules: RuleSetRule[]) {
-//   const oneOf = rules.find(rule => rule.oneOf)?.oneOf;
-//   oneOf?.filter(subRule => Array.isArray(subRule.use))
-//     .forEach(subRule => {
-//       const useItem = (subRule.use as RuleSetLoader[])
-//         .find(useItem => useItem.loader && /sass-loader/.test(useItem.loader));
-//       if (useItem != null) {
-//         useItem.options = {
-//           implementation: require('sass'),
-//           webpackImporter: false,
-//           sourceMap: true,
-//           sassOptions: {
-//             includePaths: ['node_modules', ...nodePath]
-//           }
-//         };
-//       }
-//     });
 // }
 //# sourceMappingURL=webpack.config.js.map

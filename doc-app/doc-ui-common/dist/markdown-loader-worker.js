@@ -44,28 +44,7 @@ function toContentAndToc(source) {
             node_worker_threads_1.parentPort.postMessage({ type: THREAD_MSG_TYPE_RESOLVE_IMG, data: imgSrc });
             return () => node_worker_threads_1.parentPort.off('message', cb);
         });
-    }
-    // async (lang, sourceCode) => {
-    //   if (lang !== 'mermaid') {
-    //     log.info('skip language', lang);
-    //     return sourceCode;
-    //   }
-    //   const dom = new JSDOM('<!DOCTYPE html><div id="mermaid-content"></div>');
-    //   (global as any).document = dom.window.document;
-    //   (global as any).window = dom.window;
-    //   const {svg} = await runMermaid(sourceCode);
-    //   // const done = mermaidVmScript.runInNewContext({
-    //   //   require,
-    //   //   esImport: (m: string) => import(m),
-    //   //   mermaidSource: sourceCode,
-    //   //   document: dom.window.document,
-    //   //   window: dom.window
-    //   // }) as Promise<{svg: string}>;
-    //   // const {svg} = await done;
-    //   log.info('Mermaid output:', svg);
-    //   return svg;
-    // }
-    ).pipe(op.take(1)).toPromise();
+    }).pipe(op.take(1)).toPromise();
 }
 exports.toContentAndToc = toContentAndToc;
 //# sourceMappingURL=markdown-loader-worker.js.map

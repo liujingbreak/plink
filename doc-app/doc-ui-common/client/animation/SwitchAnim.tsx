@@ -3,11 +3,11 @@ import React from 'react';
 import classnames from 'classnames/bind';
 import clsddp from 'classnames/dedupe';
 import cls from 'classnames';
-import styles from './SwitchAnim.module.scss';
 // import {useLightReduxObs} from '../lightReduxHooks';
 import {useTinyReduxTookit, EpicFactory, ofPayloadAction} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
+import styles from './SwitchAnim.module.scss';
 // import get from 'lodash/get';
 const cx = classnames.bind(styles);
 
@@ -220,7 +220,8 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
   const rootCls = cls(props.className || '', (cx(props.size == null ? 'fit' : props.size, 'scope',
     props.type === 'opacity' ? 'animate-opacity' : '')));
   // Your Component rendering goes here
-  return props.parentDom != null ? <>{content}</> :
+  return props.parentDom != null ?
+    <>{content}</> :
     <div className={rootCls}>{ content }</div>;
 };
 

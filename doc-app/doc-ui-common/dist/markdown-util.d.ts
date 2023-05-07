@@ -9,10 +9,7 @@ export declare function markdownToHtml(source: string, resolveImage?: (imgSrc: s
     toc: TOC[];
     content: string;
 }>;
-export declare function parseHtml(html: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>, transpileCode?: (language: string, innerHTML: string) => Promise<string> | rx.Observable<string> | void): rx.Observable<{
-    toc: TOC[];
-    content: string;
-} | {
+export declare function parseHtml(html: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string> | null | undefined): rx.Observable<{
     toc: TOC[];
     content: string;
 }>;

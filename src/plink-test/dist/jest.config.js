@@ -127,8 +127,8 @@ const config = {
     // https://jestjs.io/docs/29.1/configuration#testmatch-arraystring
     testMatch: [
         // Path.relative(process.cwd(), Path.resolve(__dirname, '../__tests__')).replace(/\\/g, '/') + '/**/*.[jt]s?(x)'
-        '**/?(*.)+.(spec|test).[tj]s?(x)',
-        '**/*.test.[tj]s?(x)'
+        '**/?(*.)+.(spec|test).?([mc])[tj]s?(x)',
+        '**/*.(test|spec).?([mc])[tj]s?(x)'
     ],
     // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
     testPathIgnorePatterns: [

@@ -1,5 +1,5 @@
-declare type PackageJSON = Record<string, any>;
-declare type ResolverOptions = {
+type PackageJSON = Record<string, any>;
+type ResolverOptions = {
     /** Directory to begin resolving from. */
     basedir: string;
     /** List of export conditions. */
@@ -19,5 +19,5 @@ declare type ResolverOptions = {
     /** Current root directory. */
     rootDir?: string;
 };
-export declare function sync(request: string, opts: ResolverOptions): any;
+export declare function sync(request: string, opts: ResolverOptions): string;
 export {};

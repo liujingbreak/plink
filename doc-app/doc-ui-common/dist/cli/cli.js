@@ -33,7 +33,7 @@ const cliExt = (program) => {
             if (mdCli.opts().out) {
                 const target = path_1.default.resolve(mdCli.opts().out);
                 (0, fs_extra_1.mkdirpSync)(path_1.default.dirname(target));
-                fs_1.default.writeFileSync(target, content);
+                fs_1.default.writeFileSync(target, eval(content));
                 // eslint-disable-next-line no-console
                 console.log('Output HTML to file:', target);
             }

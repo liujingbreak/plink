@@ -26,6 +26,7 @@
       "ES2017",
       "DOM"
     ],
+    "jsx": "preserve",
     "pretty": true,
     "rootDir": "ts"
   },

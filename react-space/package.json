@@ -35,10 +35,10 @@
     "@wfh/http-server": "1.1.4",
     "@wfh/assets-processer": "1.1.67-2",
     "axios": "0.21.1",
-    "@wfh/material-components-react": "1.0.0",
-    "@wfh/install-patches": "1.0.0"
+    "@wfh/material-components-react": "1.0.0"
   },
   "devDependencies": {
+    "@wfh/plink-test": "1.0.0",
     "@wfh/cra-scripts": "../tarballs/wfh-cra-scripts-1.0.30-0.tgz",
     "@wfh/webpack-common": "../tarballs/wfh-webpack-common-1.0.7-1.tgz",
     "@wfh/redux-toolkit-observable": "1.0.5",
@@ -53,12 +53,17 @@
     "sass": "^1.38.1",
     "rxjs": "~6.4.0"
   },
+  "overrides": {
+    "jest": "^29.1.2",
+    "babel-jest": "^29.1.2"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "sme": "sme"
+    "sme": "sme",
+    "jest": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest -c node_modules/@wfh/plink-test/dist/jest.config.js --runTestsByPath"
   },
   "eslintConfig": {
     "extends": [

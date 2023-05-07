@@ -32,7 +32,7 @@ const cliExt: CliExtension = (program) => {
         if (mdCli.opts().out) {
           const target = Path.resolve(mdCli.opts().out);
           mkdirpSync(Path.dirname(target));
-          fs.writeFileSync(target, content);
+          fs.writeFileSync(target, eval(content));
           // eslint-disable-next-line no-console
           console.log('Output HTML to file:', target);
         }

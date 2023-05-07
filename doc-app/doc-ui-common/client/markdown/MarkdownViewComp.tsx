@@ -24,7 +24,7 @@ const ConnectHOC = connect(mapToPropsFactory, {}, null, {forwardRef: true});
 
 const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = function(props) {
   // const routeParams = useParams<{mdKey: string}>();
- // {__html: props.contents[routeParams.mdKey]}
+  // {__html: props.contents[routeParams.mdKey]}
 
   // const containerRef = React.createRef<HTMLDivElement>();
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
       {/* {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : <>...</>} */}
       <SwitchAnim contentHash={props.mdKey}>
         <div ref={containerRefCb}
-          className='markdown-body'></div>
+          className="markdown-body"></div>
       </SwitchAnim>
     </div>
   );

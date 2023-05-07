@@ -45,7 +45,7 @@ function default_1(opt, workspace) {
     else {
         package_mgr_1.actionDispatcher.initRootDir({ isForce: opt.force,
             useYarn: opt.useYarn, cache: opt.cache, useNpmCi: opt.useCi });
-        setImmediate(() => (0, cli_project_1.listProject)());
+        setImmediate(() => void (0, cli_project_1.listProject)());
     }
     // setImmediate(() => printWorkspaces());
 }

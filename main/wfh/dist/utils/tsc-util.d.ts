@@ -1,7 +1,7 @@
 import _ts from 'typescript';
 import * as rx from 'rxjs';
 import chokidar from 'chokidar';
-declare type TscOptions = {
+type TscOptions = {
     jsx?: boolean;
     inlineSourceMap?: boolean;
     emitDeclarationOnly?: boolean;
@@ -27,7 +27,7 @@ export declare enum LogLevel {
     log = 1,
     error = 2
 }
-declare type LangServiceActionCreator = {
+type LangServiceActionCreator = {
     watch(dirs: string[]): void;
     addSourceFile(file: string, sync: boolean, content?: string): void;
     changeSourceFile(file: string, content: string | undefined | null): void;

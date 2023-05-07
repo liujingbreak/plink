@@ -29,7 +29,8 @@ export const routes: AnimatableRoutesProps['routes'] = [
   {path: '/demo/background-blur', element: <BgBlurDemo/>},
   {path: '/demo/surface', element: <SurfaceDemo/>},
   // {path: '/demo', element: <LazyDemoComponent/>},
-  {path: '/doc/:mdKey', element: <LazyDocComponent/>}
+  {path: '/doc/:mdKey', element: <LazyDocComponent/>},
+  {path: '/*', redirect: '/demo'}
 ];
 
 export const defaultRedirect = '/demo';

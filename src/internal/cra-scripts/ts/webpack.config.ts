@@ -1,19 +1,18 @@
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 import Path from 'path';
-// import util from 'node:util';
+import util from 'node:util';
 import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
 import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';
 import StatsPlugin from '@wfh/webpack-common/dist/webpack-stats-plugin';
 import fs from 'fs-extra';
 import _ from 'lodash';
-import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig, webInjector} from '@wfh/plink';
+import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig/* , webInjector*/} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {Configuration, RuleSetRule, Compiler, ProgressPlugin} from 'webpack';
-import api from '__plink';
 import nodeResolve from 'resolve';
 import * as rx from 'rxjs';
-// import * as op from 'rxjs/operators';
+import * as op from 'rxjs/operators';
 import {Options as HtmlWebpackPluginOptions} from 'html-webpack-plugin';
 import {ReactScriptsHandler, ForkTsCheckerWebpackPluginOptions, ForkTsCheckerWebpackPluginTypescriptOpts} from './types';
 import {drawPuppy, getCmdOptions, printConfig, getReportDir} from './utils';
@@ -31,33 +30,32 @@ const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 export default function(webpackEnv: 'production' | 'development') {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const {addResolveAlias} = require('./webpack-resolve') as typeof webpackResolveCfg;
-  drawPuppy('Hack create-react-app', `If you want to know how Webpack is configured, check: ${api.config.resolve('destDir', 'cra-scripts.report')}`);
+  drawPuppy('Hack create-react-app', `If you want to know how Webpack is configured, check: ${plinkConfig.resolve('destDir', 'cra-scripts.report')}`);
 
   const progressMsg$ = new rx.Subject<any[]>();
-  // rx.from(import('string-width'))
-  //   .pipe(
-  //     op.mergeMap(({default: strWidth}) => progressMsg$.pipe(
-  //       op.map(msg => {
-  //         let lines = 1;
-  //         const str = util.format('[Progress]', ...msg);
-  //         const width = strWidth(str);
-  //         if (width > process.stdout.columns) {
-  //           lines = Math.ceil(process.stdout.columns / width);
-  //         }
-  //         return {str, lines};
-  //       }),
-  //       op.concatMap(({str, lines}) => rx.concat(
-  //         rx.concat(
-  //           new Promise<void>(resolve => process.stdout.cursorTo(0, resolve)),
-  //           lines > 1 ? new Promise<void>(resolve => process.stdout.moveCursor(0, -lines + 1, resolve)) : rx.EMPTY,
-  //           new Promise<void>(resolve => process.stdout.clearLine(0, resolve))
-  //         ),
-  //         rx.defer(() => {
-  //           return new Promise<void>(resolve => process.stdout.write(str, () => resolve()));
-  //         })
-  //       ))
-  //     ))
-  //   ).subscribe();
+  rx.from(import('string-width'))
+    .pipe(
+      op.mergeMap(({default: strWidth}) => {
+        const [cols, rows] = process.stdout.getWindowSize();
+        return progressMsg$.pipe(
+          op.map(msg => {
+            let lines = 1;
+            const str = util.format('[Progress]', ...msg);
+            const width = strWidth(str);
+            if (width > cols) {
+              lines = Math.ceil(process.stdout.columns / width);
+            }
+            return {str, lines};
+          }),
+          op.concatMap(({str, lines}) => rx.merge(
+            new Promise<void>(resolve => process.stdout.cursorTo(0, rows - lines, resolve)),
+            new Promise<void>(resolve => process.stdout.write(str.trim(), (_err) => resolve())),
+            new Promise<void>(resolve => process.stdout.clearLine(1, resolve)),
+            new Promise<void>(resolve => process.stdout.clearScreenDown(resolve))
+          ))
+        );
+      })
+    ).subscribe();
 
   const cmdOption = getCmdOptions();
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
@@ -100,12 +98,7 @@ export default function(webpackEnv: 'production' | 'development') {
       log.error('Failed to write ' + Path.resolve(reportDir, 'webpack.config.cra.js'), err);
   });
 
-  // Make sure babel compiles source folder out side of current src directory
-  // changeFileLoader(config.module!.rules as RuleSetRule[]);
   // replaceSassLoader(config.module!.rules as RuleSetRule[]);
-  // appendOurOwnTsLoader(config);
-  // insertLessLoaderRule(config.module!.rules as RuleSetRule[]);
-  // changeForkTsCheckerPlugin(config);
 
   if (cmdOption.buildType === 'app') {
     config.output!.path = craPaths().appBuild;
@@ -166,8 +159,7 @@ export default function(webpackEnv: 'production' | 'development') {
     const htmlWebpackPluginConstrutor = require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
     const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as {userOptions: HtmlWebpackPluginOptions};
     htmlWebpackPluginInstance.userOptions.templateParameters = {
-      _config: plinkConfig(),
-      __api: api
+      _config: plinkConfig()
     };
     setupSplitChunks(config, (mod) => {
       const file = mod.resource ?? null;
@@ -194,6 +186,7 @@ export default function(webpackEnv: 'production' | 'development') {
             rule.test = createRuleTestFunc4Src(rule.test);
           }
         } else if (/\bsass-loader\b/.test(rule.loader)) {
+          /** To support Material-component-web */
           rule.options = {
             implementation: require('sass'),
             webpackImporter: false,
@@ -208,14 +201,14 @@ export default function(webpackEnv: 'production' | 'development') {
       }
     }
   }
-  config.module?.rules!.push({
-    test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
-    loader: '@wfh/webpack-common/dist/ts-loader',
-    options: {
-      injector: webInjector,
-      tsConfigFile: Path.join(plinkEnv.workDir, 'tsconfig.json')
-    }
-  });
+  // config.module?.rules!.push({
+  //   test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
+  //   loader: '@wfh/webpack-common/dist/ts-loader',
+  //   options: {
+  //     injector: webInjector,
+  //     tsConfigFile: Path.join(plinkEnv.workDir, 'tsconfig.json')
+  //   }
+  // });
   changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
 
   runConfigHandlers(config, webpackEnv);
@@ -240,22 +233,21 @@ function addProgressPlugin(config: Configuration, send: (...msg: any[]) => void)
   }
 }
 
-/**
- * fork-ts-checker does not work for files outside of workspace which is actually our linked source package
- */
-// function changeForkTsCheckerPlugin(config: Configuration) {
-//   const plugins = config.plugins!;
-//   const cnst = require(nodeResolve.sync('react-dev-utils/ForkTsCheckerWebpackPlugin',
-//     {basedir: Path.resolve('node_modules/react-scripts')}));
-//   // let forkTsCheckIdx = -1;
-//   for (let i = 0, l = plugins.length; i < l; i++) {
-//     if (plugins[i] instanceof cnst) {
-//       (plugins[i] ).reportFiles = [];
-//       // forkTsCheckIdx = i;
-//       break;
-//     }
-//   }
-// }
+function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) {
+  const {getPkgOfFile} = packageOfFileFactory();
+  return function testOurSourceFile(file: string)  {
+    const pk = getPkgOfFile(file);
+
+    const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
+      (origTest instanceof RegExp)
+      ? origTest.test(file) :
+      (origTest instanceof Function ? origTest(file) : origTest === file);
+    // if (yes)
+    //   log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
+    return yes;
+  };
+}
+
 /**
  * react-scripts/config/env.js filters NODE_PATH for only allowing relative path, this breaks
  * Plink's NODE_PATH setting.
@@ -304,7 +296,7 @@ function runConfigHandlers(config: Configuration, webpackEnv: string) {
       }
     }, 'create-react-app Webpack config');
   }
-  api.config.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, _result, handler) => {
+  plinkConfig.configHandlerMgrChanged(mgr => mgr.runEachSync<ReactScriptsHandler>((cfgFile, _result, handler) => {
     if (handler.webpack != null) {
       log.info('Execute command line Webpack configuration overrides', cfgFile);
       handler.webpack(config, webpackEnv, cmdOption);
@@ -425,48 +417,6 @@ function changeForkTsCheckerOptions(
 //   }
 // }
 
-// const fileLoaderOptions = {
-//   // esModule: false,
-//   outputPath(url: string, resourcePath: string, _context: string) {
-//     const pk = api.findPackageByFile(resourcePath);
-//     return `${(pk ? pk.shortName : 'external')}/${url}`;
-//   }
-// };
-
-/**
- *
- * @param rules
- */
-// function changeFileLoader(rules: RuleSetRule[]): void {
-//   const craPaths = require('react-scripts/config/paths');
-//   // TODO: check in case CRA will use Rule.use instead of "loader"
-//   checkSet(rules);
-//   for (const rule of rules) {
-//     if (Array.isArray(rule.use)) {
-//       checkSet(rule.use);
-
-//     } else if (Array.isArray(rule.loader)) {
-//       checkSet(rule.loader);
-//     } else if (rule.oneOf) {
-//       insertRawLoader(rule.oneOf);
-//       return changeFileLoader(rule.oneOf);
-//     }
-//   }
-
-function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) {
-  return function testOurSourceFile(file: string)  {
-    const pk = api.findPackageByFile(file);
-
-    const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
-      (origTest instanceof RegExp)
-      ? origTest.test(file) :
-      (origTest instanceof Function ? origTest(file) : origTest === file);
-    // if (yes)
-    //   log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
-    return yes;
-  };
-}
-
 // function insertRawLoader(rules: RuleSetRule[]) {
 //   const htmlLoaderRule = {
 //     test: /\.html$/,
@@ -475,23 +425,3 @@ function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) 
 //   rules.push(htmlLoaderRule);
 // }
 
-/** To support Material-component-web */
-// function replaceSassLoader(rules: RuleSetRule[]) {
-
-//   const oneOf = rules.find(rule => rule.oneOf)?.oneOf;
-//   oneOf?.filter(subRule => Array.isArray(subRule.use))
-//     .forEach(subRule => {
-//       const useItem = (subRule.use as RuleSetLoader[])
-//         .find(useItem => useItem.loader && /sass-loader/.test(useItem.loader));
-//       if (useItem != null) {
-//         useItem.options = {
-//           implementation: require('sass'),
-//           webpackImporter: false,
-//           sourceMap: true,
-//           sassOptions: {
-//             includePaths: ['node_modules', ...nodePath]
-//           }
-//         };
-//       }
-//     });
-// }

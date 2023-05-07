@@ -1,4 +1,4 @@
-/// <reference types="node" resolution-mode="require"/>
+/// <reference types="node" />
 import { Token } from '../async-LLn-parser';
 import { Readable } from 'stream';
 export default function parse(reader: Readable, onToken?: (token: Token<string>) => void): Promise<ObjectAst>;

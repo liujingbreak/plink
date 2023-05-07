@@ -11,18 +11,17 @@ const markdownLoader = function (source, sourceMap) {
     const cb = this.async();
     const importCode = [];
     let imgIdx = 0;
-    const logger = this.getLogger('markdown-loader');
-    logger.info(this.loaders);
+    // const logger = this.getLogger('markdown-loader');
     // debugger;
     (0, markdown_util_1.markdownToHtml)(source, 
     // imgSrc => loadModuleInWebpack(imgSrc.startsWith('.') ? imgSrc : './' + imgSrc, this))
     imgSrc => {
         const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
         importCode.push(`import imgSrc${imgIdx} from '${url}';`);
-        return Promise.resolve('"${imgSrc' + (imgIdx++) + '}"');
+        return Promise.resolve(' + imgSrc' + (imgIdx++) + ' + ');
     })
         .pipe(op.take(1), op.map(result => {
-        cb(null, importCode.join('\n') + '\nconst html = `' + result.content + '`; export default html;', sourceMap);
+        cb(null, importCode.join('\n') + '\nconst html = ' + result.content + ';\nlet toc = ' + JSON.stringify(result.toc) + ';\nlet m = {html, toc};\nexport default m;\n', sourceMap);
     }), op.catchError(err => {
         cb(err, JSON.stringify(err), sourceMap);
         return rx.EMPTY;
