@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 import util, {isRegExp} from 'util';
 import Path from 'path';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {gt} from 'semver';
 import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
@@ -174,7 +176,41 @@ export function runTsConfigHandlers4LibTsd() {
   return compilerOptions;
 }
 
+export function createCliPrinter(msgPrefix: string) {
+  const flushed$ = new rx.Subject<void>();
+  const progressMsg$ = new rx.Subject<any[]>();
+  const [cols, rows] = process.stdout.getWindowSize();
+  rx.combineLatest(import('string-width'), progressMsg$)
+    .pipe(
+      op.mergeMap(([{default: strWidth}, msg]) => {
+        const textLines = cliLineWrapByWidth(util.format(msgPrefix, ...msg), cols, strWidth);
+        return rx.concat(...textLines.map((text, lineIdx) => Promise.all([
+          new Promise<void>(resolve => process.stdout.cursorTo(0, rows - textLines.length + lineIdx, resolve)),
+          new Promise<void>(resolve => process.stdout.write(text, (_err) => resolve())),
+          new Promise<void>(resolve => process.stdout.clearLine(1, resolve))
+        ])));
+      }),
+      op.map(() => flushed$.next())
+    ).subscribe();
+
+  return (...s: (string | number)[]) => {
+    const flushed = flushed$.pipe(
+      op.take(1)
+    ).toPromise();
+
+    progressMsg$.next(s);
+    return flushed;
+  };
+}
+
 export function cliLineWrapByWidth(str: string, columns: number, calStrWidth: (str: string) => number) {
+  return str.split(/\n\r?/).reduce((lines, line) => {
+    lines.push(...cliLineWrap(line, columns, calStrWidth));
+    return lines;
+  }, [] as string[]);
+}
+
+function cliLineWrap(str: string, columns: number, calStrWidth: (str: string) => number) {
   const lines = [] as string[];
   let offset = 0;
   let lastWidthData: [string, number, number] | undefined;
@@ -227,4 +263,3 @@ export function cliLineWrapByWidth(str: string, columns: number, calStrWidth: (s
   }
   return lines;
 }
-

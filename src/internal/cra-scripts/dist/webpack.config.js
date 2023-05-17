@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 const path_1 = tslib_1.__importDefault(require("path"));
-const node_util_1 = tslib_1.__importDefault(require("node:util"));
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const splitChunks_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/splitChunks"));
 const webpack_stats_plugin_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/webpack-stats-plugin"));
@@ -12,8 +11,6 @@ const plink_1 = require("@wfh/plink");
 const mem_stats_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
 const webpack_1 = require("webpack");
 const resolve_1 = tslib_1.__importDefault(require("resolve"));
-const rx = tslib_1.__importStar(require("rxjs"));
-const op = tslib_1.__importStar(require("rxjs/operators"));
 const utils_1 = require("./utils");
 const webpack_lib_1 = tslib_1.__importDefault(require("./webpack-lib"));
 const change_tsconfig_1 = require("./change-tsconfig");
@@ -27,20 +24,7 @@ function default_1(webpackEnv) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const { addResolveAlias } = require('./webpack-resolve');
     (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${plink_1.config.resolve('destDir', 'cra-scripts.report')}`);
-    const progressMsg$ = new rx.Subject();
-    rx.from(import('string-width'))
-        .pipe(op.mergeMap(({ default: strWidth }) => {
-        const [cols, rows] = process.stdout.getWindowSize();
-        return progressMsg$.pipe(op.map(msg => {
-            let lines = 1;
-            const str = node_util_1.default.format('[Progress]', ...msg);
-            const width = strWidth(str);
-            if (width > cols) {
-                lines = Math.ceil(process.stdout.columns / width);
-            }
-            return { str, lines };
-        }), op.concatMap(({ str, lines }) => rx.merge(new Promise(resolve => process.stdout.cursorTo(0, rows - lines, resolve)), new Promise(resolve => process.stdout.write(str.trim(), (_err) => resolve())), new Promise(resolve => process.stdout.clearLine(1, resolve)), new Promise(resolve => process.stdout.clearScreenDown(resolve)))));
-    })).subscribe();
+    const printMsg = (0, utils_1.createCliPrinter)('[Build Progress]');
     const cmdOption = (0, utils_1.getCmdOptions)();
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
     if (cmdOption.devMode || cmdOption.watch) {
@@ -114,7 +98,7 @@ function default_1(webpackEnv) {
     if (cmdOption.cmd === 'cra-build')
         config.plugins.push(new webpack_stats_plugin_1.default());
     else
-        addProgressPlugin(config, (...s) => progressMsg$.next(s));
+        addProgressPlugin(config, (...s) => printMsg(...s));
     if (cmdOption.buildType === 'lib') {
         (0, webpack_lib_1.default)(cmdOption.buildTarget, config, nodePath);
     }

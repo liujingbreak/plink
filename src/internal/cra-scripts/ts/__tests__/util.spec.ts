@@ -37,5 +37,14 @@ describe('utility tool', () => {
     console.log(cliLineWrapByWidth('a', 5, strWidth));
     console.log(cliLineWrapByWidth('', 1, strWidth));
   });
+
+  xit('createCliPrinter should work', async () => {
+    const createCliPrinter = (require('../utils') as typeof _utils).createCliPrinter;
+    const print = createCliPrinter('');
+    for (let i = 0; i < 50; i++) {
+      await print('line ', i + 1);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }, 9999999);
 });
 

@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cliLineWrapByWidth = exports.runTsConfigHandlers4LibTsd = exports.runTsConfigHandlers = exports.craVersionCheck = exports.saveCmdOptionsToEnv = exports.getCmdOptions = exports.printConfig = exports.drawPuppy = exports.getReportDir = void 0;
+exports.cliLineWrapByWidth = exports.createCliPrinter = exports.runTsConfigHandlers4LibTsd = exports.runTsConfigHandlers = exports.craVersionCheck = exports.saveCmdOptionsToEnv = exports.getCmdOptions = exports.printConfig = exports.drawPuppy = exports.getReportDir = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable no-console */
 const util_1 = tslib_1.__importStar(require("util"));
 const path_1 = tslib_1.__importDefault(require("path"));
+const rx = tslib_1.__importStar(require("rxjs"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
 const semver_1 = require("semver");
 const plink_1 = require("@wfh/plink");
 const log = (0, plink_1.log4File)(__filename);
@@ -164,7 +166,34 @@ function runTsConfigHandlers4LibTsd() {
     return compilerOptions;
 }
 exports.runTsConfigHandlers4LibTsd = runTsConfigHandlers4LibTsd;
+function createCliPrinter(msgPrefix) {
+    const flushed$ = new rx.Subject();
+    const progressMsg$ = new rx.Subject();
+    const [cols, rows] = process.stdout.getWindowSize();
+    rx.combineLatest(import('string-width'), progressMsg$)
+        .pipe(op.mergeMap(([{ default: strWidth }, msg]) => {
+        const textLines = cliLineWrapByWidth(util_1.default.format(msgPrefix, ...msg), cols, strWidth);
+        return rx.concat(...textLines.map((text, lineIdx) => Promise.all([
+            new Promise(resolve => process.stdout.cursorTo(0, rows - textLines.length + lineIdx, resolve)),
+            new Promise(resolve => process.stdout.write(text, (_err) => resolve())),
+            new Promise(resolve => process.stdout.clearLine(1, resolve))
+        ])));
+    }), op.map(() => flushed$.next())).subscribe();
+    return (...s) => {
+        const flushed = flushed$.pipe(op.take(1)).toPromise();
+        progressMsg$.next(s);
+        return flushed;
+    };
+}
+exports.createCliPrinter = createCliPrinter;
 function cliLineWrapByWidth(str, columns, calStrWidth) {
+    return str.split(/\n\r?/).reduce((lines, line) => {
+        lines.push(...cliLineWrap(line, columns, calStrWidth));
+        return lines;
+    }, []);
+}
+exports.cliLineWrapByWidth = cliLineWrapByWidth;
+function cliLineWrap(str, columns, calStrWidth) {
     const lines = [];
     let offset = 0;
     let lastWidthData;
@@ -217,5 +246,4 @@ function cliLineWrapByWidth(str, columns, calStrWidth) {
     }
     return lines;
 }
-exports.cliLineWrapByWidth = cliLineWrapByWidth;
 //# sourceMappingURL=utils.js.map
