@@ -22,18 +22,18 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
-    "@material/top-app-bar": "13.0.0",
-    "@material/icon-button": "13.0.0",
-    "@material/theme": "13.0.0",
-    "@material/drawer": "13.0.0",
-    "@material/list": "13.0.0",
-    "@material/button": "13.0.0",
-    "@material/linear-progress": "13.0.0",
-    "@material/layout-grid": "13.0.0",
+    "@material/top-app-bar": "14.0.0",
+    "@material/icon-button": "14.0.0",
+    "@material/theme": "14.0.0",
+    "@material/drawer": "14.0.0",
+    "@material/list": "14.0.0",
+    "@material/button": "14.0.0",
+    "@material/linear-progress": "14.0.0",
+    "@material/layout-grid": "14.0.0",
     "@material-icons/font": "1.0.21",
-    "@material/slider": "13.0.0",
-    "@material/dialog": "13.0.0",
-    "@material/textfield": "13.0.0",
-    "@material/ripple": "^13.0.0"
+    "@material/slider": "14.0.0",
+    "@material/dialog": "14.0.0",
+    "@material/textfield": "14.0.0",
+    "@material/ripple": "^14.0.0"
   }
 }

@@ -24,7 +24,6 @@
   "homepage": "https://github.com/liujingbreak/plink/tree/master/doc-app/doc-entry",
   "sideEffects": true,
   "dependencies": {
-    "react-router-dom": "6.10.0",
     "@loadable/component": "~5.15.3",
     "@types/webpack": "~4.41.25",
     "@types/loadable__component": "5.13.3"

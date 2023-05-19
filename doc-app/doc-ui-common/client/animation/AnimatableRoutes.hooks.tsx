@@ -41,10 +41,10 @@ export type RouterState = {
   matchedRoute?: RouteObject;
 };
 
-export function useRouter(basenameOrParent = '', routes: RouteObject[]) {
+export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) {
   const state$ = React.useMemo(() => new rx.BehaviorSubject<RouterState>({}), []);
   const control = React.useMemo(() => createActionStreamByType<RouteActions>({debug: 'router'}), []);
-  const [matchedRoute, setMatchedRoute] = React.useState<Router>({matchedRoute: null, control});
+  const [router, setRouter] = React.useState<Router>({matchedRoute: null, control});
 
   React.useMemo(() => {
     state$.next({...state$.getValue(), basenameOrParent});
@@ -124,7 +124,7 @@ export function useRouter(basenameOrParent = '', routes: RouteObject[]) {
           console.log('Route to', toPath);
           const matched = matchRoute(compiledRoutes, toPath);
           if (matched)
-            setMatchedRoute(s => ({...s, matchedRoute: matched}));
+            setRouter(s => ({...s, matchedRoute: matched}));
 
           return matched?.redirect;
         }),
@@ -158,7 +158,18 @@ export function useRouter(basenameOrParent = '', routes: RouteObject[]) {
     return () => control.dispatcher.unmount();
   }, [control.dispatcher]);
 
-  return matchedRoute;
+  return router;
+}
+
+export const RouterContext = React.createContext<Router | null>(null);
+
+export const RouterProvider: React.FC<React.PropsWithChildren<{basenameOrParent?: string; routes: RouteObject[]}>> = (props) => {
+  const router = useRouterProvider(props.basenameOrParent, props.routes);
+  return <RouterContext.Provider value={router}>{props.children}</RouterContext.Provider>;
+};
+
+export function useRouter() {
+  return React.useContext(RouterContext);
 }
 
 function resolvePath(...strs: string[]) {

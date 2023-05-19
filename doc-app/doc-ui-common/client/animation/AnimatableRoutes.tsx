@@ -2,7 +2,7 @@ import React from 'react';
 import clsDdp from 'classnames/dedupe';
 import {useAppLayout} from '../components/appLayout.state';
 import {SwitchAnim} from './SwitchAnim';
-import {RouteObject, useRouter, Router} from './AnimatableRoutes.hooks';
+import {RouteObject, RouterContext, useRouterProvider} from './AnimatableRoutes.hooks';
 import styles from './AnimatableRoutes.module.scss';
 
 export type AnimatableRoutesProps = React.PropsWithChildren<{
@@ -13,12 +13,10 @@ export type AnimatableRoutesProps = React.PropsWithChildren<{
   basename?: string;
 }>;
 
-const RouteMatchCtx = React.createContext<Router | null>(null);
-
 const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
   const rootRef = React.useRef<HTMLDivElement>(null);
   const layout = useAppLayout();
-  const router = useRouter(prop.basename ?? '', prop.routes);
+  const router = useRouterProvider(prop.basename ?? '', prop.routes);
 
   // When route is switched, scroll to top
   React.useEffect(() => {
@@ -33,13 +31,13 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
     }
   }, [prop.className, prop.parentDom]);
 
-  const content = <RouteMatchCtx.Provider value={router}>
+  const content = <RouterContext.Provider value={router}>
     { router.matchedRoute != null ?
       <SwitchAnim debug={false} size="full" parentDom={prop.parentDom == null ? rootRef.current : prop.parentDom}
         contentHash={router.matchedRoute.path}>{router.matchedRoute.element}</SwitchAnim> :
       prop.children ? prop.children : <></>
     }
-  </RouteMatchCtx.Provider>;
+  </RouterContext.Provider>;
 
   return prop.parentDom
     ? content
@@ -52,9 +50,3 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
 
 export {AnimatableRoutes};
 
-/**
- * Unlike react-router's useMatch(path), this function return currently "matched" path
- */
-export function useMatchedRoute()  {
-  return React.useContext(RouteMatchCtx);
-}
