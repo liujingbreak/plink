@@ -8,7 +8,7 @@ import {IconButton} from '@wfh/material-components-react/client/IconButton';
 import * as op from 'rxjs/operators';
 import {useRtk} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {Palette} from '../../components/color/Palette';
-// import {useRouter} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
+import {useNavigateHandler} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
 import styles from './DemoPage.module.scss';
 import {sliceOptionFactory, epicFactory, DemoPageObservableProps as Props} from './demoPageSlice';
 // const cx = cls.bind(styles);
@@ -43,6 +43,12 @@ const DemoPage: React.FC<DemoPageProps> = function(props) {
       return destroy;
   }, [layout]);
 
+  const goIntro = useNavigateHandler('/doc/intro');
+  const goTest = useNavigateHandler('/test');
+  const goSurface = useNavigateHandler('/demo/surface');
+  const goBackground = useNavigateHandler('/demo/background');
+  const goBackgroundBlur = useNavigateHandler('/demo/background-blur');
+
   return <div className={(cls(styles.DemoPage, 'mdc-layout-grid'))} >
     <section>
       <header>Ripple effect</header>
@@ -54,11 +60,11 @@ const DemoPage: React.FC<DemoPageProps> = function(props) {
     </section>
     <section>
       <header>Animation effect of switching routes</header>
-      <rr.NavLink to="/doc/intro"><Button>Go Document</Button></rr.NavLink>
-      <rr.NavLink to="/test"><Button>Go Test</Button></rr.NavLink>
-      <rr.NavLink to="/demo/surface"><Button>Surface background effect</Button></rr.NavLink>
-      <rr.NavLink to="/demo/background"><Button>Background Canvas</Button></rr.NavLink>
-      <rr.NavLink to="/demo/background-blur"><Button>Blur background</Button></rr.NavLink>
+      <Button onClick={goIntro}>Go Document</Button>
+      <Button onClick={goTest}>Go Test</Button>
+      <Button onClick={goSurface}>Surface background effect</Button>
+      <Button onClick={goBackground}>Background Canvas</Button>
+      <Button onClick={goBackgroundBlur}>Blur background</Button>
     </section>
     <section className={styles.buttonSection}>
       <header>Buttons</header>

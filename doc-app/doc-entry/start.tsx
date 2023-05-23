@@ -8,15 +8,13 @@ import {bootstrap} from './main/clientApp';
 // import sample from './sample.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!../docs/zh/architecture/sample.md';
 // import design1 from '@wfh/doc-ui-common/dist/markdown-loader!@wfh/assets-processer/ts/proxy-cache/design.md';
 
-export default function() {
-  dispatcher.registerFiles({
-    // intro
-    sample: () => import(
-      './sample.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/sample.md'
-    ).then(res => res.default)
-    // design1
-  });
-}
+dispatcher.registerFiles({
+  intro: () => import('./intro.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/intro.md').then(res => res.default),
+  sample: () => import(
+    './sample.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/sample.md'
+  ).then(res => res.default)
+  // design1
+});
 
 const LazyDocComponent = loadable(async () => {
   return (await import('./feature/article/ArticalePage')).ArticalePage;
@@ -38,7 +36,7 @@ const SurfaceDemo = loadable(async () => {
   return (await import('./feature/demo/SurfaceBackgroundDemo')).SurfaceBackgroundDemo;
 });
 
-export const routes: AnimatableRoutesProps['routes'] = [
+const routes: AnimatableRoutesProps['routes'] = [
   {path: '/test', element: 'test ok'},
   {path: '/demo/background', element: <BgDemo/>},
   {path: '/demo/background-blur', element: <BgBlurDemo/>},
@@ -47,6 +45,6 @@ export const routes: AnimatableRoutesProps['routes'] = [
   {path: '/doc/:mdKey', element: <LazyDocComponent/>},
   {path: '/*', redirect: '/test'}
 ];
-
+// const worker = new Worker(new URL('./feature/demo/worker', import.meta.url));
 bootstrap({routes});
 

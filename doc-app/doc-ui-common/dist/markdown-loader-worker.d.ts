@@ -1,4 +1,5 @@
+import { TOC } from '../isom/md-types';
 export declare function toContentAndToc(source: string): Promise<{
-    toc: import("../isom/md-types").TOC[];
+    toc: TOC[];
     content: string;
 }>;

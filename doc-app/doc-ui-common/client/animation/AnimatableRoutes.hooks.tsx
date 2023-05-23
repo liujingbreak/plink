@@ -172,6 +172,13 @@ export function useRouter() {
   return React.useContext(RouterContext);
 }
 
+export function useNavigateHandler<C extends(...args: any[]) => void>(path: string) {
+  const router = useRouter();
+  return React.useCallback(() => {
+    router?.control.dispatcher.navigateTo(path);
+  }, [path, router?.control.dispatcher]) as C;
+}
+
 function resolvePath(...strs: string[]) {
   return '/' + strs.map(item => trim(item, '/')).join('/');
 }

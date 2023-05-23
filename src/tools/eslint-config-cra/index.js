@@ -11,10 +11,10 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 
 Happy linting! 💖
 */
-const path = require('path');
+// const path = require('path');
 const reactAppCfg = require('eslint-config-react-app');
 
-module.exports = create(path.resolve(__dirname, '../../tsconfig.json'), '17.0.2');
+// module.exports = create(path.resolve(__dirname, '../../tsconfig.json'), '17.0.2');
 
 module.exports.create = create;
 

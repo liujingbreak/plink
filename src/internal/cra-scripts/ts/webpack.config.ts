@@ -113,7 +113,7 @@ export default function(webpackEnv: 'production' | 'development') {
   if (cmdOption.cmd === 'cra-build')
     config.plugins!.push(new StatsPlugin());
   else
-    addProgressPlugin(config, (...s) => printMsg(...s));
+    addProgressPlugin(config, (...s) => void printMsg(...s));
 
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
