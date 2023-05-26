@@ -25,7 +25,9 @@
     "rxjs": "~6.4.0",
     "semver": "^7.3.2",
     "lodash": "^4.17.21",
-    "fs-extra": "^5.0.0"
+    "fs-extra": "^5.0.0",
+    "babel-plugin-formatjs": "10.5.1",
+    "react-intl": "6.4.2"
   },
   "devDependencies": {
     "@types/resolve": "^1.17.1",

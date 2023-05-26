@@ -8,7 +8,7 @@ import fs from 'fs-extra';
 import _ from 'lodash';
 import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig/* , webInjector*/} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
-import {Configuration, RuleSetRule, Compiler, ProgressPlugin} from 'webpack';
+import {FileCacheOptions, Configuration, RuleSetRule, Compiler, ProgressPlugin} from 'webpack';
 import nodeResolve from 'resolve';
 import {Options as HtmlWebpackPluginOptions} from 'html-webpack-plugin';
 import {ReactScriptsHandler, ForkTsCheckerWebpackPluginOptions, ForkTsCheckerWebpackPluginTypescriptOpts} from './types';
@@ -72,8 +72,6 @@ export default function(webpackEnv: 'production' | 'development') {
       log.error('Failed to write ' + Path.resolve(reportDir, 'webpack.config.cra.js'), err);
   });
 
-  // replaceSassLoader(config.module!.rules as RuleSetRule[]);
-
   if (cmdOption.buildType === 'app') {
     config.output!.path = craPaths().appBuild;
   }
@@ -89,6 +87,7 @@ export default function(webpackEnv: 'production' | 'development') {
 
   // config.resolve!.symlinks = false;
   const {getPkgOfFile} = packageOfFileFactory();
+  (config.cache as FileCacheOptions).buildDependencies!.plink = [getPkgOfFile(__filename)!.path.replace(/\\/g, '/') + '/'];
 
   const resolveModules = ['node_modules', ...nodePath];
   // config.resolve!.symlinks = false;
@@ -154,11 +153,17 @@ export default function(webpackEnv: 'production' | 'development') {
       } else if (Array.isArray(rule.use)) {
         rules.push(...rule.use as any); // In factor rule.use is RuleSetUseItem not RuleSetRule
       } else if (rule.loader) {
-        if (/\bbabel-loader\b/.test(rule.loader)) {
-          if (rule.include) {
-            delete rule.include;
-            rule.test = createRuleTestFunc4Src(rule.test);
-          }
+        if (/\bbabel-loader\b/.test(rule.loader) && rule.include) {
+          delete rule.include;
+          rule.test = createRuleTestFunc4Src(rule.test);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          (rule.options as Exclude<RuleSetRule['options'], string | undefined>).plugins.push([
+            'formatjs',
+            {
+              idInterpolationPattern: '[sha512:contenthash:base64:6]',
+              ast: true
+            }
+          ]);
         } else if (/\bsass-loader\b/.test(rule.loader)) {
           /** To support Material-component-web */
           rule.options = {

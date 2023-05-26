@@ -57,16 +57,16 @@ const cli: CliExtension = (program) => {
   withClicOpt(StartCmd);
 
   program.command('cra-open <url>')
-    .description('Run react-dev-utils/openBrowser', {url: 'URL'})
+    .argument('<url>', 'The URL')
+    .description('Run react-dev-utils/openBrowser')
     .action(async url => {
       (await import('../cra-open-browser.cjs')).default.default(url);
     });
 
-  program.command('cra-analyze [js-dir]')
+  program.command('cra-analyze')
     .alias('cra-analyse')
-    .description('Run source-map-explorer', {
-      'js-dir': 'Normally this path should be <root-dir>dist/static/<output-path-basename>/static/js'
-    })
+    .argument('[js-dir]', 'Normally this path should be <root-dir>dist/static/<output-path-basename>/static/js')
+    .description('Run source-map-explorer')
     .action(async (outputPath: string) => {
       const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

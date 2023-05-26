@@ -9,7 +9,7 @@ import {SwitchAnim} from '../animation/SwitchAnim';
 
 import {getState, dispatcher} from './markdownSlice';
 import styles from './MarkdownViewComp.module.scss';
-import 'highlight.js/scss/solarized-light.scss';
+// import 'highlight.js/styles/github-dark.css';
 // import * as op from 'rxjs/operators';
 // const cx = classnames.bind(styles);
 
@@ -56,7 +56,7 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
           const container = document.createElement('div');
           container.className = styles.mermaidDiagram;
           el.parentElement!.insertBefore(container, el);
-          // TODO: can been moved to a Worker !!
+          // Can not be moved to a Worker, mermaid relies on DOM
           const svgStr = await drawMermaidDiagram(el.id, unescape(el.innerHTML));
           container.innerHTML = svgStr;
         });

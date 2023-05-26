@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toContentAndToc = void 0;
+exports.testable = exports.toContentAndToc = void 0;
 const tslib_1 = require("tslib");
 const node_worker_threads_1 = require("node:worker_threads");
+// import inspector from 'node:inspector';
 const markdown_it_1 = tslib_1.__importDefault(require("markdown-it"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const rx = tslib_1.__importStar(require("rxjs"));
@@ -17,7 +18,9 @@ const md = new markdown_it_1.default({
     highlight(str, lang, _attrs) {
         if (lang && lang !== 'mermaid') {
             try {
-                return highlight_js_1.default.highlight(str, { language: lang }).value;
+                const parsed = highlight_js_1.default.highlight(str, { language: lang }).value;
+                // log.info('...........................\n', parsed);
+                return parsed;
             }
             catch (e) {
                 log.debug(e); // skip non-important error like: Unknown language: "mermaid"
@@ -44,6 +47,7 @@ function toContentAndToc(source) {
     }).pipe(op.take(1)).toPromise();
 }
 exports.toContentAndToc = toContentAndToc;
+exports.testable = { parseHtml };
 function parseHtml(html, resolveImage) {
     let toc = [];
     return rx.from(import('parse5')).pipe(op.mergeMap(parser => {
@@ -68,7 +72,15 @@ toc = []) {
         if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
             return;
         const el = node;
-        if (nodeName === 'img') {
+        if (nodeName === 'code') {
+            const classAttr = el.attrs.find(item => item.name === 'class');
+            if (classAttr) {
+                const endQuoteSyntaxPos = el.sourceCodeLocation.attrs.class.endOffset - 1;
+                output.push(sourceHtml.slice(htmlOffset, endQuoteSyntaxPos), rx.of('+ " hljs" +'));
+                htmlOffset = endQuoteSyntaxPos;
+            }
+        }
+        else if (nodeName === 'img') {
             const imgSrc = el.attrs.find(item => item.name === 'src');
             if (resolveImage && imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
                 log.info('found img src=' + imgSrc.value);

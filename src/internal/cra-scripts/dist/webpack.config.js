@@ -64,7 +64,6 @@ function default_1(webpackEnv) {
         if (err)
             log.error('Failed to write ' + path_1.default.resolve(reportDir, 'webpack.config.cra.js'), err);
     });
-    // replaceSassLoader(config.module!.rules as RuleSetRule[]);
     if (cmdOption.buildType === 'app') {
         config.output.path = craPaths().appBuild;
     }
@@ -78,6 +77,7 @@ function default_1(webpackEnv) {
     }
     // config.resolve!.symlinks = false;
     const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
+    config.cache.buildDependencies.plink = [getPkgOfFile(__filename).path.replace(/\\/g, '/') + '/'];
     const resolveModules = ['node_modules', ...nodePath];
     // config.resolve!.symlinks = false;
     config.resolve.modules = [...(_c = (_b = config.resolve) === null || _b === void 0 ? void 0 : _b.modules) !== null && _c !== void 0 ? _c : [], ...nodePath];
@@ -98,7 +98,7 @@ function default_1(webpackEnv) {
     if (cmdOption.cmd === 'cra-build')
         config.plugins.push(new webpack_stats_plugin_1.default());
     else
-        addProgressPlugin(config, (...s) => printMsg(...s));
+        addProgressPlugin(config, (...s) => void printMsg(...s));
     if (cmdOption.buildType === 'lib') {
         (0, webpack_lib_1.default)(cmdOption.buildTarget, config, nodePath);
     }
@@ -139,11 +139,17 @@ function default_1(webpackEnv) {
                 rules.push(...rule.use); // In factor rule.use is RuleSetUseItem not RuleSetRule
             }
             else if (rule.loader) {
-                if (/\bbabel-loader\b/.test(rule.loader)) {
-                    if (rule.include) {
-                        delete rule.include;
-                        rule.test = createRuleTestFunc4Src(rule.test);
-                    }
+                if (/\bbabel-loader\b/.test(rule.loader) && rule.include) {
+                    delete rule.include;
+                    rule.test = createRuleTestFunc4Src(rule.test);
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+                    rule.options.plugins.push([
+                        'formatjs',
+                        {
+                            idInterpolationPattern: '[sha512:contenthash:base64:6]',
+                            ast: true
+                        }
+                    ]);
                 }
                 else if (/\bsass-loader\b/.test(rule.loader)) {
                     /** To support Material-component-web */

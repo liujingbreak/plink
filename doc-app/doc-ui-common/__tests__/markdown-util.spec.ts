@@ -1,6 +1,6 @@
 import {describe, it, expect}  from '@jest/globals';
 import {initProcess} from '@wfh/plink';
-import * as markdownUtil from '../ts/markdown-util';
+import * as markdownUtil from '../ts/markdown-loader-worker';
 
 describe('markdown-util', () => {
   beforeAll(() => {
@@ -8,7 +8,7 @@ describe('markdown-util', () => {
   });
 
   it('should be able to parse HTML with <img> tags', async () => {
-    const {parseHtml} = require('../ts/markdown-util') as typeof markdownUtil;
+    const {testable: {parseHtml}} = require('../ts/markdown-loader-worker') as typeof markdownUtil;
     let i = 0;
     const {content} = await parseHtml(`<html><body>
       <img src="./foobar">

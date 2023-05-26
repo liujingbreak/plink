@@ -1,4 +1,5 @@
 import {parentPort, MessagePort} from 'node:worker_threads';
+// import inspector from 'node:inspector';
 import MarkdownIt from 'markdown-it';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -7,6 +8,7 @@ import type {DefaultTreeAdapterMap} from 'parse5';
 import {log4File, initAsChildProcess} from '@wfh/plink';
 import findLastIndex from 'lodash/findLastIndex';
 import {TOC} from '../isom/md-types';
+// inspector.open(9222, '0.0.0.0', true);
 
 type ChildNode = DefaultTreeAdapterMap['childNode'];
 type Element = DefaultTreeAdapterMap['element'];
@@ -24,7 +26,9 @@ const md = new MarkdownIt({
   highlight(str, lang, _attrs) {
     if (lang && lang !== 'mermaid') {
       try {
-        return highlight.highlight(str, {language: lang}).value;
+        const parsed = highlight.highlight(str, {language: lang}).value;
+        // log.info('...........................\n', parsed);
+        return parsed;
       } catch (e) {
         log.debug(e); // skip non-important error like: Unknown language: "mermaid"
       }
@@ -56,6 +60,8 @@ export function toContentAndToc(source: string) {
     op.take(1)
   ).toPromise();
 }
+
+export const testable = {parseHtml};
 
 function parseHtml(
   html: string,
@@ -94,7 +100,17 @@ function dfsAccessElement(
       if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
         return;
       const el = node as Element;
-      if (nodeName === 'img') {
+      if (nodeName === 'code') {
+        const classAttr = el.attrs.find(item => item.name === 'class');
+        if (classAttr) {
+          const endQuoteSyntaxPos = el.sourceCodeLocation!.attrs!.class!.endOffset - 1;
+          output.push(
+            sourceHtml.slice(htmlOffset, endQuoteSyntaxPos),
+            rx.of('+ " hljs" +')
+          );
+          htmlOffset = endQuoteSyntaxPos;
+        }
+      } else if (nodeName === 'img') {
         const imgSrc = el.attrs.find(item => item.name === 'src');
         if (resolveImage && imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
           log.info('found img src=' + imgSrc.value);
