@@ -96,8 +96,8 @@ export function useReduxTookit<S extends Record<string, any>, R extends SliceCas
 export function useRtk<Props extends Record<string, any>, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>>(
   optsFactory: () => CreateSliceOptions<S, R>,
   props: Props,
-  ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>):
-  [S, SliceHelper<S, R & CompPropsSyncReducer<Props, S>>] {
+  ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>
+): [S, SliceHelper<S, R & CompPropsSyncReducer<Props, S>>] {
 
   const extendOptsFactory = React.useCallback(() => {
     const opts = optsFactory();

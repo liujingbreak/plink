@@ -38,20 +38,6 @@ export const dispatcher = stateFactory.bindActionCreators(blockDiagramSlice);
 const releaseEpic = stateFactory.addEpic<{BlockDiagram: BlockDiagramState}>((action$, state$) => {
 
   return merge(
-    // action$.pipe(ofPayloadAction(blockDiagramSlice.actions.exampleAction),
-    //   op.switchMap(({payload}) => {
-    //     return rx.from(Promise.resolve('mock async HTTP request call'));
-    //   })
-    // ),
-    // getStore().pipe(
-    //   op.map(s => s.foo),
-    //   op.distinctUntilChanged(),
-    //   op.map(changedFoo => {
-    //     dispatcher._change(s => {
-    //       s._computed.bar = 'changed ' + changedFoo;
-    //     });
-    //   })
-    // )
   ).pipe(
     op.catchError((ex, src) => {
       // tslint:disable-next-line: no-console

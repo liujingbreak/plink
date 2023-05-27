@@ -1,7 +1,6 @@
 .logo {
   position: relative;
   display: inline-block;
-  background-image: url(./images/company-logo-transparent.png);
   width: 110px;
   background-position: left center;
   background-size: contain;
@@ -14,17 +13,6 @@
     width: 100%;
     padding-top: 24.188%;
   }
-}
-.bk-logo {
-  display: inline-block;
-  background-image: url(./images/company-logo-color.png);
-  height: 40px;
-  width: 123px;
-  background-position: left center;
-  background-size: contain;
-  background-repeat: no-repeat;
-  margin-right: 10px;
-  vertical-align: middle;
 }
 .title {
   display: flex;

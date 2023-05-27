@@ -1,5 +1,6 @@
 import {parentPort, MessagePort} from 'node:worker_threads';
 // import inspector from 'node:inspector';
+import md5 from 'md5';
 import MarkdownIt from 'markdown-it';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
@@ -120,9 +121,13 @@ function dfsAccessElement(
           return output.push(resolveImage(imgSrc.value));
         }
       } else if (headerSet.has(nodeName)) {
-        toc.push({level: 0, tag: nodeName,
+        const text = lookupTextNodeIn(el);
+        const hash = md5(text);
+        toc.push({
+          level: 0,
+          tag: nodeName,
           text: lookupTextNodeIn(el),
-          id: ''
+          id: hash
         });
       } else if (el.childNodes) {
         chr.next(el.childNodes);
@@ -162,15 +167,15 @@ function lookupTextNodeIn(el: Element) {
 function createTocTree(input: TOC[]) {
   const root: TOC = {level: -1, tag: 'h0', text: '', id: '', children: []};
   const byLevel: TOC[] = [root]; // a stack of previous TOC items ordered by level
-  let prevHeaderSize = Number(root.tag.charAt(1));
+  let prevHeaderWeight = Number(root.tag.charAt(1));
   for (const item of input) {
-    const headerSize = Number(item.tag.charAt(1));
-    // console.log(`${headerSize} ${prevHeaderSize}, ${item.text}`);
-    if (headerSize < prevHeaderSize) {
-      const pIdx = findLastIndex(byLevel, toc => Number(toc.tag.charAt(1)) < headerSize);
+    const headerWeight = Number(item.tag.charAt(1));
+    // console.log(`${headerWeight} ${prevHeaderWeight}, ${item.text}`);
+    if (headerWeight < prevHeaderWeight) {
+      const pIdx = findLastIndex(byLevel, toc => Number(toc.tag.charAt(1)) < headerWeight);
       byLevel.splice(pIdx + 1);
       addAsChild(byLevel[pIdx], item);
-    } else if (headerSize === prevHeaderSize) {
+    } else if (headerWeight === prevHeaderWeight) {
       byLevel.pop();
       const parent = byLevel[byLevel.length - 1];
       addAsChild(parent, item);
@@ -178,7 +183,7 @@ function createTocTree(input: TOC[]) {
       const parent = byLevel[byLevel.length - 1];
       addAsChild(parent, item);
     }
-    prevHeaderSize = headerSize;
+    prevHeaderWeight = headerWeight;
   }
 
   function addAsChild(parent: TOC, child: TOC) {

@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import classnames from 'classnames/bind';
-import {getState, dispatcher} from './markdownSlice';
 import {connect} from 'react-redux';
 import {TOC} from '@wfh/doc-ui-common/isom/md-types';
 import anime from 'animejs';
+import {getState, dispatcher} from './markdownSlice';
 import './MarkdownIndex.scss';
 
 const checkElementInView = (targetEl: HTMLElement) => {

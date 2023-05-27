@@ -4,6 +4,7 @@ exports.testable = exports.toContentAndToc = void 0;
 const tslib_1 = require("tslib");
 const node_worker_threads_1 = require("node:worker_threads");
 // import inspector from 'node:inspector';
+const md5_1 = tslib_1.__importDefault(require("md5"));
 const markdown_it_1 = tslib_1.__importDefault(require("markdown-it"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const rx = tslib_1.__importStar(require("rxjs"));
@@ -91,9 +92,13 @@ toc = []) {
             }
         }
         else if (headerSet.has(nodeName)) {
-            toc.push({ level: 0, tag: nodeName,
+            const text = lookupTextNodeIn(el);
+            const hash = (0, md5_1.default)(text);
+            toc.push({
+                level: 0,
+                tag: nodeName,
                 text: lookupTextNodeIn(el),
-                id: ''
+                id: hash
             });
         }
         else if (el.childNodes) {
@@ -122,16 +127,16 @@ function lookupTextNodeIn(el) {
 function createTocTree(input) {
     const root = { level: -1, tag: 'h0', text: '', id: '', children: [] };
     const byLevel = [root]; // a stack of previous TOC items ordered by level
-    let prevHeaderSize = Number(root.tag.charAt(1));
+    let prevHeaderWeight = Number(root.tag.charAt(1));
     for (const item of input) {
-        const headerSize = Number(item.tag.charAt(1));
-        // console.log(`${headerSize} ${prevHeaderSize}, ${item.text}`);
-        if (headerSize < prevHeaderSize) {
-            const pIdx = (0, findLastIndex_1.default)(byLevel, toc => Number(toc.tag.charAt(1)) < headerSize);
+        const headerWeight = Number(item.tag.charAt(1));
+        // console.log(`${headerWeight} ${prevHeaderWeight}, ${item.text}`);
+        if (headerWeight < prevHeaderWeight) {
+            const pIdx = (0, findLastIndex_1.default)(byLevel, toc => Number(toc.tag.charAt(1)) < headerWeight);
             byLevel.splice(pIdx + 1);
             addAsChild(byLevel[pIdx], item);
         }
-        else if (headerSize === prevHeaderSize) {
+        else if (headerWeight === prevHeaderWeight) {
             byLevel.pop();
             const parent = byLevel[byLevel.length - 1];
             addAsChild(parent, item);
@@ -140,7 +145,7 @@ function createTocTree(input) {
             const parent = byLevel[byLevel.length - 1];
             addAsChild(parent, item);
         }
-        prevHeaderSize = headerSize;
+        prevHeaderWeight = headerWeight;
     }
     function addAsChild(parent, child) {
         if (parent.children == null)

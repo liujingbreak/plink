@@ -1,17 +1,14 @@
 /// <reference path="../../ts/mermaid-types.d.mts" />
 import React from 'react';
+import * as op from 'rxjs/operators';
 // import classnames from 'classnames/bind';
 import 'github-markdown-css/github-markdown.css';
 import unescape from 'lodash/unescape';
 // import {MarkdownIndex} from './MarkdownIndex';
-import {InjectedCompPropsType, connect} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {SwitchAnim} from '../animation/SwitchAnim';
 
-import {getState, dispatcher} from './markdownSlice';
+import {getState, getStore, dispatcher} from './markdownSlice';
 import styles from './MarkdownViewComp.module.scss';
-// import 'highlight.js/styles/github-dark.css';
-// import * as op from 'rxjs/operators';
-// const cx = classnames.bind(styles);
 
 let mermaidIdSeed = 0;
 export type MarkdownViewCompProps = {
@@ -20,14 +17,20 @@ export type MarkdownViewCompProps = {
   onContent?: (dom: HTMLElement) => void;
 };
 
-const ConnectHOC = connect(mapToPropsFactory, {}, null, {forwardRef: true});
+// const ConnectHOC = connect((rootState: unknown, ownProps: MarkdownViewCompProps) => {
+//   return function(rootState: any, props: MarkdownViewCompProps) {
+//     return {
+//       contents: getState().computed.reactHtml
+//     };
+//   };
+// }, {}, null, {forwardRef: true});
 
-const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = function(props) {
+export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props) {
   // const routeParams = useParams<{mdKey: string}>();
   // {__html: props.contents[routeParams.mdKey]}
 
   // const containerRef = React.createRef<HTMLDivElement>();
-  const contentRef = React.useRef<HTMLDivElement>(null);
+  // const contentRef = React.useRef<HTMLDivElement>(null);
   const [, setLoaded] = React.useState<boolean>(false);
   const [containerDom, setContainerDom] = React.useState<HTMLElement>();
 
@@ -38,16 +41,15 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
 
   React.useEffect(() => {
     setLoaded(false);
-    // console.log(props.mdKey);
-    if (props.mdKey) {
+    if (props.mdKey && getState().computed.reactHtml[props.mdKey] == null) {
       dispatcher.getHtml(props.mdKey);
     }
   }, [props.mdKey]);
 
   React.useEffect(() => {
     // console.log(props.contents[props.mdKey!], containerDom, props.mdKey);
-    if (props.mdKey != null && props.contents[props.mdKey] && containerDom) {
-      containerDom.innerHTML = props.contents[props.mdKey].__html;
+    if (props.mdKey != null && getState().computed.reactHtml[props.mdKey] && containerDom) {
+      containerDom.innerHTML = getState().computed.reactHtml[props.mdKey].__html;
 
       setTimeout(() => {
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -72,29 +74,32 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
   [
     containerDom, props.mdKey,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    props.mdKey != null ? props.contents[props.mdKey] : null,
+    props.mdKey != null ? getState().computed.reactHtml[props.mdKey] : null,
     props.onContent
   ]);
 
-  return (
-    <div ref={contentRef}>
-      {/* {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : <>...</>} */}
-      <SwitchAnim contentHash={props.mdKey}>
-        <div ref={containerRefCb}
-          className="markdown-body"></div>
-      </SwitchAnim>
-    </div>
-  );
-};
+  const [, touchState] = React.useState<unknown>(null); // enable React reconcilation/dirty-check
+  React.useEffect(() => {
+    if (props.mdKey == null)
+      return;
+    const state$ = getStore();
+    const sub = state$.pipe(
+      op.map(s => s.computed.reactHtml[props.mdKey!]?.__html),
+      op.distinctUntilChanged()
+    ).subscribe({next(s) {
+      touchState(s);
+    }});
+    return () => sub.unsubscribe();
+  }, [props.mdKey]);
 
-function mapToPropsFactory(rootState: unknown, ownProps: MarkdownViewCompProps) {
-  return function(rootState: any, props: MarkdownViewCompProps) {
-    return {
-      contents: getState().computed.reactHtml
-    };
-  };
-}
-const connected = ConnectHOC(MarkdownViewComp);
+  return (
+    <SwitchAnim className={styles.switchAnim} contentHash={props.mdKey}>
+      <div ref={containerRefCb}
+        className="markdown-body"></div>
+    </SwitchAnim>
+  );
+});
+
 
 const mermaidInited = false;
 
@@ -117,6 +122,4 @@ async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promis
     return '';
   }
 }
-
-export {connected as MarkdownViewComp};
 

@@ -1,10 +1,10 @@
 import React from 'react';
 import classnames from 'classnames/bind';
 import cls from 'classnames';
-import styles from './TopAppBar.scss';
 import {MDCTopAppBar} from '@material/top-app-bar';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import styles from './TopAppBar.scss';
 export {MDCTopAppBar};
 const cx = classnames.bind(styles);
 // const cls = cx('mdc-top-app-bar');
@@ -70,22 +70,22 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
     };
   }, [sub$]);
 
-  let headerStyle = props.type ? typeStyleMap[props.type].header : typeStyleMap.standard.header;
-  let mainStyle = props.type ? typeStyleMap[props.type].main : typeStyleMap.standard.main;
+  const headerStyle = props.type ? typeStyleMap[props.type].header : typeStyleMap.standard.header;
+  const mainStyle = props.type ? typeStyleMap[props.type].main : typeStyleMap.standard.main;
 
   return (<>
     <header className={cls(props.classNameHeader || '', cx('mdc-top-app-bar', headerStyle))} ref={onDivReady}>
-      <div className='mdc-top-app-bar__row'>
-        <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-start'>
+      <div className="mdc-top-app-bar__row">
+        <section className="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
           {props.left || null}
           {/* <button className='material-icons mdc-top-app-bar__navigation-icon mdc-icon-button' aria-label='Open navigation menu' onClick={props.onDrawerMenuClick}>menu</button> */}
-          <span className='mdc-top-app-bar__title'>
-          {props.title}
+          <span className="mdc-top-app-bar__title">
+            {props.title}
             {/* <SwitchAnim type='opacity' contentHash={props.title}>{props.title}</SwitchAnim>
              */}
           </span>
         </section>
-        <section className='mdc-top-app-bar__section mdc-top-app-bar__section--align-end' role='toolbar'>
+        <section className="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
           {props.right || null}
           {/* <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Share'>share</button>
           <button className='material-icons mdc-top-app-bar__action-item mdc-icon-button' aria-label='Delete'>delete</button>
@@ -95,10 +95,11 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
       {props.belowHeader ? props.belowHeader : null}
     </header>
     {
-    props.renderMain ? props.renderMain(cls(props.classNameMain || '', cx(mainStyle))) :
-      <main className={cls(props.classNameMain || '', cx(mainStyle))}>{props.children}</main>
+      props.renderMain
+        ? props.renderMain(cls(props.classNameMain || '', cx(mainStyle))) :
+        <main className={cls(props.classNameMain || '', cx(mainStyle))}>{props.children}</main>
     }
-    </>
+  </>
   );
 };
 const Forwarded = React.forwardRef(TopAppBar);

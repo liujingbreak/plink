@@ -1,9 +1,9 @@
 import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft,
   ActionCreatorWithPayload} from '@reduxjs/toolkit';
-import { Epic } from 'redux-observable';
+import {Epic} from 'redux-observable';
 import {Observable, EMPTY, of, Subject, OperatorFunction} from 'rxjs';
 import * as op from 'rxjs/operators';
-import { immerable, Immutable } from 'immer';
+import {immerable, Immutable} from 'immer';
 import {StateFactory, ExtraSliceReducers, ofPayloadAction} from './redux-toolkit-observable';
 
 export type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends string = string> =
@@ -142,10 +142,10 @@ export function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R
 
 type ActionByType<R> = {
   [K in keyof R]:
-    Observable<
-      R[K] extends PayloadActionCreator<infer P> ?
-        PayloadAction<P> : PayloadAction<unknown>
-    >
+  Observable<
+  R[K] extends PayloadActionCreator<infer P> ?
+    PayloadAction<P> : PayloadAction<unknown>
+  >
 };
 
 /**
@@ -220,7 +220,7 @@ export function isActionOfCreator<P, T extends string>(action: PayloadAction<any
  * @param epicFactory 
  */
 export function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory: EpicFactory<S, R>):
-  OperatorFunction<PayloadAction<SliceHelper<S, R>>, PayloadAction<any>> {
+OperatorFunction<PayloadAction<SliceHelper<S, R>>, PayloadAction<any>> {
   return function(in$: Observable<PayloadAction<SliceHelper<S, R>>>) {
     return in$.pipe(
       op.switchMap(({payload}) => {
@@ -232,7 +232,7 @@ export function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory:
 }
 
 type ActionOfReducer<S, R extends SliceCaseReducers<S>, T extends keyof R> = R[T] extends (s: any, action: infer A) => any ?
-(A extends {payload: infer P} ? {payload: P; type: T} : {type: T}) : never;
+  (A extends {payload: infer P} ? {payload: P; type: T} : {type: T}) : never;
 
 export function action$Of<P, T extends string>(
   stateFactory: StateFactory,
