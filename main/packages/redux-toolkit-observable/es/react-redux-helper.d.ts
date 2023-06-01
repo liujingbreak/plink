@@ -27,21 +27,18 @@ export declare function useReduxTookit<S extends Record<string, any>, R extends 
  * @param epicFactories
  * @returns [state, sliceHelper]
  */
-export declare function useRtk<Props extends Record<string, any>, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>>(optsFactory: () => CreateSliceOptions<S, R>, props: Props, ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>): [
-    S,
-    SliceHelper<S, R & CompPropsSyncReducer<Props, S>>
-];
+export declare function useRtk<Props extends Record<string, any>, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>>(optsFactory: () => CreateSliceOptions<S, R>, props: Props, ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>): [S, SliceHelper<S, R & CompPropsSyncReducer<Props, S>>];
 export interface BaseComponentState<Props> {
     componentProps?: Props;
 }
-export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R & CompPropsSyncReducer<Props, S>>) => Epic<PayloadAction<any>, any, {
+export declare type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R & CompPropsSyncReducer<Props, S>>) => Epic<PayloadAction<any>, any, {
     [Sn in Name]: S;
 }> | void;
-type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
+declare type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
     _syncComponentProps(s: S | Draft<S>, action: PayloadAction<Props>): void;
     _willUnmount(s: S | Draft<S>): void;
 };
-export type InjectedCompPropsType<ConnectHOC> = (ConnectHOC extends InferableComponentEnhancerWithProps<infer TInjectedProps, any> ? TInjectedProps : {
+export declare type InjectedCompPropsType<ConnectHOC> = (ConnectHOC extends InferableComponentEnhancerWithProps<infer TInjectedProps, any> ? TInjectedProps : {
     [p: string]: unknown;
 }) & (ConnectHOC extends InferableComponentEnhancerWithProps<any, infer TOwnProps> ? TOwnProps : {
     [p: string]: unknown;

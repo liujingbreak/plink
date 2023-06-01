@@ -39,7 +39,7 @@ function poo() {
     const craPackagesPathPrefix = path_1.default.resolve('node_modules/react-');
     // Disable @pmmmwh/react-refresh-webpack-plugin, since it excludes our node_modules
     // from HMR
-    process.env.FAST_REFRESH = 'false';
+    // process.env.FAST_REFRESH = 'false';
     (0, loaderHooks_1.hookCommonJsRequire)((filename, target, req, resolve) => {
         if (filename.startsWith(reactScriptsPath + path_2.sep)) {
             if (filename === buildScriptsPath) {

@@ -121,8 +121,13 @@ function createActionStreamByType(opt = {}) {
         }
         return a$;
     }
-    const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
-    const action$ = opt.debug
+    const debugName = typeof opt.debug === 'string' ? `[${opt.debug}] ` : '';
+    const interceptor$ = new rxjs_1.BehaviorSubject(null);
+    function changeActionInterceptor(factory) {
+        const newInterceptor = factory(interceptor$.getValue());
+        interceptor$.next(newInterceptor);
+    }
+    let action$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
             (0, operators_1.tap)(action => opt.log(debugName + 'rx:action', action.type)) :
             typeof window !== 'undefined' ?
@@ -134,11 +139,15 @@ function createActionStreamByType(opt = {}) {
                     // eslint-disable-next-line no-console
                     (0, operators_1.tap)(action => console.log(debugName + 'rx:action', action.type)), (0, operators_1.share)())
         : actionUpstream;
+    action$ = interceptor$.pipe((0, operators_1.switchMap)(interceptor => interceptor ?
+        actionUpstream.pipe(interceptor, (0, operators_1.share)()) :
+        actionUpstream));
     return {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
         actionOfType,
+        changeActionInterceptor,
         ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn(typePrefix),
         nameOfAction: (action) => action.type.split('/')[1]

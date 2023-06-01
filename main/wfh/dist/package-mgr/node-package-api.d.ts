@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import Inject from 'require-injector';
 import { Logger } from 'log4js';
 import PackageInstance from '../packageNodeInstance';
-import * as assetsUrl from '../../dist/assets-url';
+import * as assetsUrl from '../share/assets-url';
 import { PackageInfo } from './package-info-gathering';
 declare class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     packageName: string;

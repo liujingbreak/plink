@@ -2,7 +2,7 @@
   "extends": "./wfh/tsconfig-base.json",
   "compilerOptions": {
     "target": "es2017",
-    "rootDir": "wfh/ts",
+    "rootDirs": ["wfh/ts"],
     "moduleResolution": "node",
     "declaration": true,
     "baseUrl": ".",
@@ -31,7 +31,6 @@
     }
   },
   "references": [
-    {"path": "tsconfig-share.json"},
     {"path": "packages/redux-toolkit-observable/tsconfig-redux-toolkit.json"},
     {"path": "packages/thread-promise-pool/tsconfig-thread-promise.json"}
   ],

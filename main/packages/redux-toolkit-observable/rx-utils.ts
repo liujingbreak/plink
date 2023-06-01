@@ -3,8 +3,8 @@
  * https://redux-observable.js.org/
  */
 
-import {Observable, Subject, defer} from 'rxjs';
-import {filter, tap, share} from 'rxjs/operators';
+import {Observable, Subject, defer, OperatorFunction, BehaviorSubject} from 'rxjs';
+import {switchMap, filter, tap, share} from 'rxjs/operators';
 
 type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
 
@@ -94,12 +94,18 @@ type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
 
 export type ActionStreamControl<AC> = {
   dispatcher: AC;
+  /** use dispatcher.<actionName> instead */
   dispatchFactory: SimpleActionDispatchFactory<AC>;
+  actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]>;
+  changeActionInterceptor<T extends keyof AC>(
+    interceptorFactory: (
+      originalInterceptor: OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]> | null
+    ) => OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]>
+  ): void;
   action$: Observable<ActionTypes<AC>[keyof AC]>;
-  actionOfType: <T extends keyof AC>(type: T) => Observable<ActionTypes<AC>[T]>;
   ofType: OfTypeFn<AC>;
-  isActionType: <K extends keyof AC>(action: {type: unknown}, type: K) => action is ActionTypes<AC>[K];
-  nameOfAction: (action: ActionTypes<AC>[keyof AC]) => keyof AC | undefined;
+  isActionType<K extends keyof AC>(action: {type: unknown}, type: K): action is ActionTypes<AC>[K];
+  nameOfAction(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
 };
 
 /**
@@ -174,8 +180,19 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     return a$;
   }
 
-  const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
-  const action$ = opt.debug
+  const debugName = typeof opt.debug === 'string' ? `[${opt.debug}] ` : '';
+  const interceptor$ = new BehaviorSubject<OperatorFunction<ActionTypes<AC>[keyof AC], ActionTypes<AC>[keyof AC]> | null>(null);
+
+  function changeActionInterceptor(
+    factory: (
+      origin: OperatorFunction<ActionTypes<AC>[keyof AC], ActionTypes<AC>[keyof AC]> | null
+    ) => OperatorFunction<ActionTypes<AC>[keyof AC], ActionTypes<AC>[keyof AC]>
+  ) {
+    const newInterceptor = factory(interceptor$.getValue());
+    interceptor$.next(newInterceptor);
+  }
+
+  let action$ = opt.debug
     ? actionUpstream.pipe(
       opt.log ?
         tap(action => opt.log!(debugName + 'rx:action', action.type)) :
@@ -191,11 +208,18 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     )
     : actionUpstream;
 
+  action$ = interceptor$.pipe(
+    switchMap(interceptor => interceptor ?
+      actionUpstream.pipe(interceptor, share()) :
+      actionUpstream)
+  );
+
   return {
     dispatcher: dispatcherProxy,
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
     action$,
     actionOfType,
+    changeActionInterceptor,
     ofType: createOfTypeOperator<AC>(typePrefix),
     isActionType: createIsActionTypeFn<AC>(typePrefix),
     nameOfAction: (action: ActionTypes<AC>[keyof AC]): keyof AC | undefined => action.type.split('/')[1]

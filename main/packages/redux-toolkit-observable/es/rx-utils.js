@@ -2,8 +2,8 @@
  * redux-observable like async reactive actions, side effect utilities
  * https://redux-observable.js.org/
  */
-import { Subject, defer } from 'rxjs';
-import { filter, tap, share } from 'rxjs/operators';
+import { Subject, defer, BehaviorSubject } from 'rxjs';
+import { switchMap, filter, tap, share } from 'rxjs/operators';
 let SEQ = 0;
 /**
  * create Stream of action stream and action dispatcher,
@@ -117,8 +117,13 @@ export function createActionStreamByType(opt = {}) {
         }
         return a$;
     }
-    const debugName = typeof opt.debug === 'string' ? `[${opt.debug}]` : '';
-    const action$ = opt.debug
+    const debugName = typeof opt.debug === 'string' ? `[${opt.debug}] ` : '';
+    const interceptor$ = new BehaviorSubject(null);
+    function changeActionInterceptor(factory) {
+        const newInterceptor = factory(interceptor$.getValue());
+        interceptor$.next(newInterceptor);
+    }
+    let action$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
             tap(action => opt.log(debugName + 'rx:action', action.type)) :
             typeof window !== 'undefined' ?
@@ -130,11 +135,15 @@ export function createActionStreamByType(opt = {}) {
                     // eslint-disable-next-line no-console
                     tap(action => console.log(debugName + 'rx:action', action.type)), share())
         : actionUpstream;
+    action$ = interceptor$.pipe(switchMap(interceptor => interceptor ?
+        actionUpstream.pipe(interceptor, share()) :
+        actionUpstream));
     return {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
         actionOfType,
+        changeActionInterceptor,
         ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn(typePrefix),
         nameOfAction: (action) => action.type.split('/')[1]

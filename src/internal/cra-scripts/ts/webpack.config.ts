@@ -171,6 +171,9 @@ export default function(webpackEnv: 'production' | 'development') {
             webpackImporter: false,
             sourceMap: true,
             sassOptions: {
+              // According to https://github.com/material-components/material-components-web/blob/master/docs/getting-started.md#appendix-configuring-a-sass-importer-for-nested-node_modules
+              // it's better to implement a "importer" property here to help Sass resolve @matertial modules,
+              // otherwise Sass will always load top level packages from "includePaths" (node_modules) instead of Node's module resolution algorithm
               includePaths: ['node_modules', ...nodePath]
             }
           };
@@ -344,63 +347,4 @@ function changeForkTsCheckerOptions(
   log.info('tsconfig for forked-ts-checker', tsconfigReport);
   void fs.promises.writeFile(tsconfigReport, JSON.stringify(tsconfig, null, '  '));
 }
-
-// function insertLessLoaderRule(origRules: RuleSetRule[]): void {
-//   const oneOf = origRules.find(rule => rule.oneOf)?.oneOf!;
-//   // 1. let's take rules for css as a template
-//   const cssRuleUse = oneOf.find(subRule => subRule.test instanceof RegExp &&
-//     (subRule.test as RegExp).source === '\\.css$')?.use as RuleSetUseItem[];
-
-//   const cssModuleRuleUse = oneOf.find(subRule => subRule.test instanceof RegExp &&
-//     (subRule.test as RegExp).source === '\\.module\\.css$')?.use as RuleSetUseItem[];
-
-//   const lessModuleRule: RuleSetRule = {
-//     test: /\.module\.less$/,
-//     use: createLessRuleUse(cssModuleRuleUse),
-//     sideEffects: true
-//   };
-
-//   const lessRule: RuleSetRule = {
-//     test: /\.less$/,
-//     // exclude: /\.module\.less$/,
-//     use: createLessRuleUse(cssRuleUse),
-//     sideEffects: true
-//   };
-
-//   // Insert at last 2nd position, right before file-loader
-//   oneOf.splice(oneOf.length - 2, 0, lessModuleRule, lessRule);
-
-//   function createLessRuleUse(useItems: RuleSetUseItem[]) {
-//     return useItems.map(useItem => {
-//       if (typeof useItem === 'string' || typeof useItem === 'function') {
-//         return useItem;
-//       }
-//       const newUseItem = {...useItem};
-//       if (useItem.loader && /[\\/]css-loader[\\/]/.test(useItem.loader)) {
-//         newUseItem.options = {
-//           ...(newUseItem.options as any || {}),
-//           importLoaders: 2
-//         };
-//       }
-//       return newUseItem;
-//     }).concat({
-//       loader: 'less-loader',
-//       options: {
-//         lessOptions: {
-//           javascriptEnabled: true,
-//           ...getSetting().lessLoaderOtherOptions
-//         },
-//         additionalData: getSetting().lessLoaderAdditionalData
-//       }
-//     });
-//   }
-// }
-
-// function insertRawLoader(rules: RuleSetRule[]) {
-//   const htmlLoaderRule = {
-//     test: /\.html$/,
-//     use: [{loader: 'raw-loader'}]
-//   };
-//   rules.push(htmlLoaderRule);
-// }
 

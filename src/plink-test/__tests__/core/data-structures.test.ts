@@ -1,6 +1,7 @@
+import chalk from 'chalk';
 import {describe, it, expect}  from '@jest/globals';
-import {RedBlackTree, RbTreeNode} from '@wfh/plink/wfh/ts/utils/rb-tree';
-import {DFS, Vertex} from '@wfh/plink/wfh/ts/utils/graph';
+import {RedBlackTree, RbTreeNode} from '@wfh/plink/wfh/ts/share/algorithms/rb-tree';
+import {DFS} from '@wfh/plink/wfh/ts/share/algorithms/graph';
 import _ from 'lodash';
 
 describe('RB tree', () => {
@@ -14,7 +15,10 @@ describe('RB tree', () => {
     }
 
     const lines = [] as string[];
-    let dfs = new DFS<RbTreeNode<number>>(adjacencyOf);
+    let dfs = new DFS<RbTreeNode<number>>((node, _vertex, level) => {
+      lines.push(`${_.repeat('| ', level)}- ${node.p ? node.p?.left === node ? 'left' : 'right' : 'root'} ${node.key + ''}: ${node.isRed ? 'red' : 'black'} size: ${node.size}`);
+      return [node.left, node.right].filter((node) : node is RbTreeNode<number> => node != null);
+    });
 
     dfs.visit([tree.root!]);
     // eslint-disable-next-line no-console
@@ -48,16 +52,41 @@ describe('RB tree', () => {
     }
 
 
-    dfs = new DFS<RbTreeNode<number>>(adjacencyOf);
+    dfs = new DFS<RbTreeNode<number>>((node, _vertex, level) => {
+      lines.push(`${_.repeat('| ', level)}- ${node.p ? node.p?.left === node ? 'left' : 'right' : 'root'} ${node.key + ''}: ${node.isRed ? 'red' : 'black'} size: ${node.size}`);
+      return [node.left, node.right].filter((node) : node is RbTreeNode<number> => node != null);
+    });
     dfs.visit([tree.root!]);
     // eslint-disable-next-line no-console
     console.log('After deletion\n', lines.join('\n'));
     expect(tree.root?.size).toEqual(Math.floor(len / 2));
+  });
 
-    function adjacencyOf(node: RbTreeNode<number>, vertex: Vertex<RbTreeNode<number>>, level: number) {
-      lines.push(`${_.repeat('| ', level)}- ${node.p ? node.p?.left === node ? 'left' : 'right' : 'root'} ${node.key + ''}: ${node.isRed ? 'red' : 'black'} size: ${node.size}`);
-      return [node.left, node.right].filter((node) : node is RbTreeNode<number> => node != null);
-    }
+  it('keysSmallererThan should work', () => {
+    const tree = new RedBlackTree<number>();
+    '7845390126'.split('').map(it => tree.insert(Number(it)));
+    printTree(tree);
+
+    // eslint-disable-next-line no-console
+    console.log('Keys smaller than 5.5 are', [...tree.keysSmallererThan(5.5)].map(it => it.key));
+    expect([...tree.keysSmallererThan(5.5)].length).toEqual(6);
+    expect([...tree.keysGreaterThan(5.5)].length).toEqual(4);
   });
 });
 
+function printTree(tree: RedBlackTree<any>) {
+  const lines = [] as string[];
+  tree.inorderWalk(node => {
+    let p = node as typeof node | null;
+    let leadingSpaceChars = '';
+    while (p) {
+      leadingSpaceChars = (p.p?.p && ((p === p.p.left && p.p.p.right === p.p) || (p === p.p.right && p.p.p.left === p.p)) ? '|  ' : '   ') + leadingSpaceChars;
+      p = p.p;
+    }
+    const str = `${leadingSpaceChars}+- ${node.p ? node.p?.left === node ? 'L' : 'R' : 'root'} ${node.key + ''} - ` +
+      `size: ${node.size}`;
+    lines.push(node.isRed ? chalk.red(str) : str);
+  });
+  // eslint-disable-next-line no-console
+  console.log(':\n' + lines.join('\n'));
+}

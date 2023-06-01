@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import cls from 'classnames';
+import clsBinder from 'classnames/bind';
 // import {TopAppBar} from '@wfh/material-components-react/client/TopAppBar';
 // import {Drawer} from '@wfh/material-components-react/client/Drawer';
 // import {useParams} from 'react-router-dom';
@@ -12,6 +12,7 @@ import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.state
 import {renderByMdKey} from './articaleComponents';
 import styles from './ArticalePage.module.scss';
 
+const cls = clsBinder.bind(styles);
 
 const EMPTY_ARR: any[] = [];
 export type ArticalePageProps = React.PropsWithChildren<Record<string, never>>;
@@ -61,8 +62,9 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
       return () => sub.unsubscribe();
     }
   }, [layout, matchedParams?.mdKey]);
+  // mdc-layout-grid provides proper margin or padding space for page element
   return (
-    <div className={cls(styles['articale-page'], 'mdc-layout-grid')}>
+    <div className={cls('articale-page', 'mdc-layout-grid')}> {/* CSS class mdc-layout-grid provides proper margin or padding space for page element */}
       <MarkdownViewComp mdKey={matchedParams?.mdKey} onContent={onContentLoaded} />
       {portals}
     </div>

@@ -1,17 +1,12 @@
 import React from 'react';
 import cls from 'classnames';
 import {useTinyRtk} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import {MDCRipple} from '@material/ripple/index';
+import * as op from 'rxjs/operators';
 import {sliceOptionFactory, epicFactory, RippleObservableProps} from './ripple.state';
 
 import './Ripple.scss';
 import styles from './Ripple.module.scss';
-// import '@material/ripple/styles.scss';
-import {MDCRipple} from '@material/ripple/index';
-
-// import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
-
-// const cx = classnames.bind(styles);
 
 export {MDCRipple};
 
@@ -34,11 +29,11 @@ const Ripple: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleProps> = 
   // const Content = props.renderTo ? props.renderTo() : null;
 
   return state.mode === 'wrapper' ?
-      <div className={cls(props.className ? props.className : '', styles.wrapper)}>
-        {props.children}
-        <div tabIndex={0} ref={slice.actionDispatcher.onDomRef}></div>
-      </div> :
-      <div tabIndex={0} ref={slice.actionDispatcher.onDomRef}></div>;
+    <div className={cls(props.className ? props.className : '', styles.wrapper)}>
+      {props.children}
+      <div tabIndex={0} ref={slice.actionDispatcher.onDomRef}></div>
+    </div> :
+    <div tabIndex={0} ref={slice.actionDispatcher.onDomRef}></div>;
 };
 
 

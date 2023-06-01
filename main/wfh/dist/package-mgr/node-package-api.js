@@ -31,7 +31,7 @@ const events_1 = require("events");
 const css_loader_1 = __importDefault(require("require-injector/dist/css-loader"));
 const lodash_1 = __importDefault(require("lodash"));
 const log4js_1 = require("log4js");
-const assetsUrl = __importStar(require("../../dist/assets-url"));
+const assetsUrl = __importStar(require("../share/assets-url"));
 const config_1 = __importDefault(require("../config"));
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 function parseName(longName) {
@@ -47,9 +47,6 @@ function parseName(longName) {
 // module.exports.default = NodeApi; // To be available for ES6/TS import syntax 
 // var suppressWarn4Urls = config.get('suppressWarning.assetsUrl', []).map(line => new RegExp(line));
 class NodeApi {
-    get contextPath() {
-        return this._contextPath();
-    }
     constructor(packageName, packageInstance) {
         this.packageName = packageName;
         this.packageInstance = packageInstance;
@@ -63,6 +60,9 @@ class NodeApi {
         this.packageShortName = parseName(packageName).name;
         // this.contextPath = this._contextPath();
         this.logger = (0, log4js_1.getLogger)(this.packageName);
+    }
+    get contextPath() {
+        return this._contextPath();
     }
     /**
      * return A log witch catgory name "<package name>.<nameAfterPackageName>"

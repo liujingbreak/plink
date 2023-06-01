@@ -19,6 +19,7 @@ interface BaseOptions {
   animFirstContent?: boolean;
   type?: 'opacity' | 'translateY';
   className?: string;
+  innerClassName?: string;
   debug?: boolean;
 }
 
@@ -129,7 +130,6 @@ const reducers = {
 
 const epicFactory: EpicFactory<SwitchState, typeof reducers> = function(slice, ofType) {
   return (action$, state$) => {
-
     return rx.merge(
       action$.pipe(ofType('switchContent'),
         // switch to replace current one, if user frequently trigger animation
@@ -215,7 +215,7 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
 
   const content = state.contentKeys.map((key, idx) => {
     const item = state.contentByKey[key];
-    return <div key={key} className={cls(styles.movingBox, item.clsName)} ref={item.onContainerReady}>{item.renderable}</div>;
+    return <div key={key} className={cls(props.innerClassName ?? '', styles.movingBox, item.clsName)} ref={item.onContainerReady}>{item.renderable}</div>;
   });
   const rootCls = cls(props.className || '', (cx(props.size == null ? 'fit' : props.size, 'scope',
     props.type === 'opacity' ? 'animate-opacity' : '')));

@@ -4,11 +4,11 @@ export interface BaseComponentState<Props> {
     componentProps?: Props;
     error?: Error;
 }
-type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
+declare type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
     _syncComponentProps(s: S, payload: Props): void;
     _willUnmount(s: S): void;
 };
-export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends Reducers<S>> = (slice: Slice<S, R & CompPropsSyncReducer<Props, S>>, ofType: OfTypeFn<S, R & CompPropsSyncReducer<Props, S>>) => Epic<S> | void;
+export declare type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends Reducers<S>> = (slice: Slice<S, R & CompPropsSyncReducer<Props, S>>, ofType: OfTypeFn<S, R & CompPropsSyncReducer<Props, S>>) => Epic<S> | void;
 /**
  * Unlike useTinyReduxTookit, useTinyRtk() accepts a State which extends BaseComponentState,
  *  useTinyRtk() will automatically create an extra reducer "_syncComponentProps" for shallow coping

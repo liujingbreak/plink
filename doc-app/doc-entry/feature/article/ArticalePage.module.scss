@@ -22,6 +22,10 @@
 .articale-page {
   display: flex;
   min-height: 100%;
+  > div {
+    // avoid horizontal scroll bar caused by extra wide markdown code block
+    min-width: 0;
+  }
 }
 
 // https://github.com/css-modules/css-modules

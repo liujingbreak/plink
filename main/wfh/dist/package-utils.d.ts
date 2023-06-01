@@ -3,7 +3,7 @@ import { lookupPackageJson } from './cmd/utils';
 import { PackageType, allPackages, packages4WorkspaceKey, packages4Workspace } from './package-mgr/package-list-helper';
 export { PackageType, allPackages, packages4WorkspaceKey, packages4Workspace };
 export declare function createLazyPackageFileFinder(): (file: string) => PackageInstance | undefined;
-export type FindPackageCb = (fullName: string, 
+export declare type FindPackageCb = (fullName: string, 
 /** @Deprecated empty string */
 packagePath: string, parsedName: {
     name: string;

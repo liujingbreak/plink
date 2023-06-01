@@ -198,7 +198,7 @@ export class StateFactory {
         this.actionsToDispatch.next(action);
     }
     /**
-     * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
+     * Unlike Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
      * Parameter is a Slice instead of action map
      */
     bindActionCreators(slice) {

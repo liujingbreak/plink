@@ -1,9 +1,10 @@
 {
-	"extends": "./wfh/tsconfig-base.json",
+  "extends": "./wfh/tsconfig-base.json",
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
     "rootDir": ".",
+    "rootDirs": ["wfh/ts", "wfh/share"],
     "moduleResolution": "node",
     "typeRoots": [
       "node_modules/@types",
@@ -41,7 +42,8 @@
     "wfh/ts/**/*.ts",
     "packages/redux-toolkit-observable/**/*.ts",
     "packages/thread-promise-pool/ts/**/*.ts",
-    "packages/reactive-terminal-ui/src/**/*.ts"
+    "packages/reactive-terminal-ui/src/**/*.ts",
+    "wfh/share/**/*.ts"
   ],
   "exclude": [
     "packages/**/*.d.ts"

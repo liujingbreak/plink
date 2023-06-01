@@ -41,7 +41,7 @@ export function poo() {
 
   // Disable @pmmmwh/react-refresh-webpack-plugin, since it excludes our node_modules
   // from HMR
-  process.env.FAST_REFRESH = 'false';
+  // process.env.FAST_REFRESH = 'false';
 
   hookCommonJsRequire((filename, target, req, resolve) => {
     if (filename.startsWith(reactScriptsPath + sep)) {

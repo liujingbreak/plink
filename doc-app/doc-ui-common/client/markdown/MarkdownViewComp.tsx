@@ -1,7 +1,7 @@
 /// <reference path="../../ts/mermaid-types.d.mts" />
 import React from 'react';
 import * as op from 'rxjs/operators';
-// import classnames from 'classnames/bind';
+import classnames from 'classnames/bind';
 import 'github-markdown-css/github-markdown.css';
 import unescape from 'lodash/unescape';
 // import {MarkdownIndex} from './MarkdownIndex';
@@ -9,8 +9,11 @@ import {SwitchAnim} from '../animation/SwitchAnim';
 
 import {getState, getStore, dispatcher} from './markdownSlice';
 import styles from './MarkdownViewComp.module.scss';
+import {TableOfContents} from './toc/TableOfContents';
 
 let mermaidIdSeed = 0;
+const cls = classnames.bind(styles);
+
 export type MarkdownViewCompProps = {
   /** markdown file relative path, which is compiled by markdown-loader */
   mdKey?: string;
@@ -24,6 +27,8 @@ export type MarkdownViewCompProps = {
 //     };
 //   };
 // }, {}, null, {forwardRef: true});
+
+const EMPTY_HTML_OBJ = {__html: ''};
 
 export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props) {
   // const routeParams = useParams<{mdKey: string}>();
@@ -46,10 +51,12 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
     }
   }, [props.mdKey]);
 
+  const [htmlObj, setHtmlObj] = React.useState<{__html: string}>(EMPTY_HTML_OBJ);
+
   React.useEffect(() => {
-    // console.log(props.contents[props.mdKey!], containerDom, props.mdKey);
     if (props.mdKey != null && getState().computed.reactHtml[props.mdKey] && containerDom) {
-      containerDom.innerHTML = getState().computed.reactHtml[props.mdKey].__html;
+      // containerDom.innerHTML = getState().computed.reactHtml[props.mdKey].__html;
+      setHtmlObj(getState().computed.reactHtml[props.mdKey]);
 
       setTimeout(() => {
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -87,15 +94,17 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
       op.map(s => s.computed.reactHtml[props.mdKey!]?.__html),
       op.distinctUntilChanged()
     ).subscribe({next(s) {
-      touchState(s);
+      touchState({});
     }});
     return () => sub.unsubscribe();
   }, [props.mdKey]);
 
   return (
-    <SwitchAnim className={styles.switchAnim} contentHash={props.mdKey}>
-      <div ref={containerRefCb}
-        className="markdown-body"></div>
+    <SwitchAnim className={cls('switchAnim')} innerClassName={styles.container} contentHash={props.mdKey}>
+      <>
+        <div ref={containerRefCb} className="markdown-body" dangerouslySetInnerHTML={htmlObj}></div>
+        {props.mdKey ? <TableOfContents markdownKey={props.mdKey} /> : '...'}
+      </>
     </SwitchAnim>
   );
 });

@@ -1,7 +1,7 @@
 import trim from 'lodash/trim';
 import escapeRegExp from 'lodash/escapeRegExp';
 import React from 'react';
-import {ActionStreamControl, createActionStreamByType} from '@wfh/redux-toolkit-observable/rx-utils';
+import {ActionStreamControl, createActionStreamByType} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 

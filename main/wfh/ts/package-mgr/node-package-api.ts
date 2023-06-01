@@ -6,7 +6,7 @@ import Inject from 'require-injector';
 import _ from 'lodash';
 import {Logger, getLogger} from 'log4js';
 import PackageInstance from '../packageNodeInstance';
-import * as assetsUrl from '../../dist/assets-url';
+import * as assetsUrl from '../share/assets-url';
 import config from '../config';
 import {PackageInfo} from './package-info-gathering';
 

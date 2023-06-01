@@ -170,10 +170,20 @@ function createCliPrinter(msgPrefix) {
     const flushed$ = new rx.Subject();
     const progressMsg$ = new rx.Subject();
     const [cols, rows] = process.stdout.getWindowSize();
+    let linesOfLastMsg = 0;
     rx.combineLatest(import('string-width'), progressMsg$)
-        .pipe(op.mergeMap(([{ default: strWidth }, msg]) => {
+        .pipe(op.concatMap(([{ default: strWidth }, msg]) => {
         const textLines = cliLineWrapByWidth(util_1.default.format(msgPrefix, ...msg), cols, strWidth);
-        return rx.concat(...textLines.map((text, lineIdx) => Promise.all([
+        const clearLinesDone = [];
+        if (linesOfLastMsg > textLines.length) {
+            const numOfRowsToClear = linesOfLastMsg - textLines.length;
+            const rowIdx = rows - linesOfLastMsg;
+            for (let i = 0; i < numOfRowsToClear; i++) {
+                clearLinesDone.push(new Promise(resolve => process.stdout.cursorTo(0, i + rowIdx, resolve)), new Promise(resolve => process.stdout.clearLine(0, resolve)));
+            }
+        }
+        linesOfLastMsg = textLines.length;
+        return rx.merge(...clearLinesDone, ...textLines.map((text, lineIdx) => Promise.all([
             new Promise(resolve => process.stdout.cursorTo(0, rows - textLines.length + lineIdx, resolve)),
             new Promise(resolve => process.stdout.write(text, (_err) => resolve())),
             new Promise(resolve => process.stdout.clearLine(1, resolve))

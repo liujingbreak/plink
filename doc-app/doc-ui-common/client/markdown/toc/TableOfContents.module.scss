@@ -1,0 +1,19 @@
+@use "@wfh/material-components-react/client/theme";
+
+.toc-{
+  &item {
+    line-height: 1.5rem;
+    position: relative;
+    padding-left: 1rem;
+  }
+  &title {
+    white-space: nowrap;
+    overflow: hidden;
+    color: change-color(theme.$primary, $alpha: 0.7);
+    transition: color 0.25s linear;
+    &:hover {
+      color: theme.$secondary;
+    }
+  }
+}
+
