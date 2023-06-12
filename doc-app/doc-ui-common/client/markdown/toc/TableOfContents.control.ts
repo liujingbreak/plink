@@ -71,8 +71,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
                 toc$.next([toc, multipleTopLevelTitles]);
               }
               toc$.complete();
-              state$.getValue().itemByHash = itemByHash;
-              state$.next(state$.getValue());
+              state$.next({...state$.getValue(), itemByHash});
             })
           )
         );
@@ -81,8 +80,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     tocUiControl.actionOfType('expand').pipe(
       op.map(({payload}) => {
         const s = state$.getValue();
-        s.expanded = payload;
-        state$.next(s);
+        state$.next({...s, expanded: payload});
       })
     ),
     state$.pipe(

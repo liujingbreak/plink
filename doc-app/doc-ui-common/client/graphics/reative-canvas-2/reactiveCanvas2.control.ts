@@ -1,4 +1,5 @@
 import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import {createActionStreamByType} from '@wfh/redux-toolkit-observable/es/rx-utils';
 
 export type ReactiveCanvasProps = {
@@ -7,19 +8,18 @@ export type ReactiveCanvasProps = {
   // onReady?(paintCtx: PaintableContext): Iterable<PaintableSlice<any, any>> | void;
 };
 
-interface ReactiveCanvas2State {
+type ReactiveCanvas2State = {
   ctx?: CanvasRenderingContext2D;
-  componentProps: ReactiveCanvasProps;
   canvas: HTMLCanvasElement | null;
   width: number;
   height: number;
   pixelWidth: number;
   pixelHeight: number;
-  rootPaintable?: PositionalPaintableSlice;
+  rootPaintable?: PositionalPaintable;
   // We want a separate observable store to perform well in animation frames
   animFrameTime$: rx.BehaviorSubject<number | undefined | null>;
   _countAnimatings:  number;
-}
+} & ReactiveCanvasProps;
 
 export type ReactiveCanvas2Actions = {
   _createDom(dom: HTMLCanvasElement | null): void;
@@ -28,31 +28,92 @@ export type ReactiveCanvas2Actions = {
   _afterResize(): void;
   startAnimating(): void;
   stopAnimating(): void;
-  changeContext(newCtx: CanvasRenderingContext2D): void;
+  // changeContext(newCtx: CanvasRenderingContext2D): void;
   changeRatio(scaleRatio: number): void;
   _componentTreeReady(): void;
 };
 
 export function createControl() {
   const state$ = new rx.BehaviorSubject<ReactiveCanvas2State>({
-    componentProps: {
-      scaleRatio: 2
-    },
+    scaleRatio: 2,
     canvas: null,
     width: 0,
     height: 0,
     pixelHeight: 0,
     pixelWidth: 0,
-    // rootId,
-    // rootPaintable: createPaintableSlice('root'),
-    // components: [new Map([ [rootId, rootPaintableData] ])],
     _countAnimatings: 0,
     animFrameTime$: new rx.BehaviorSubject<number | null | undefined>(null)
-    // rendering: false,
-    // animEscapeTime: 0
   });
 
   const control = createActionStreamByType<ReactiveCanvas2Actions>();
+  const {actionOfType} = control;
+  const sub = rx.merge(
+    actionOfType('resize').pipe(
+      op.map(() => {
+        const s = {...state$.getValue()};
+        if (s.canvas == null)
+          return;
+        const vw = s.canvas.parentElement!.clientWidth;
+        const vh = s.canvas.parentElement!.clientHeight;
 
-  return [state$, control] as const;
+        if (vw !== s.pixelWidth || vh !== s.pixelHeight) {
+          const ratio = s.scaleRatio!;
+          s.pixelWidth = vw;
+          s.pixelHeight = vh;
+          s.width = Math.floor(vw * ratio);
+          s.height = Math.floor(vh * ratio);
+        }
+        state$.next(s);
+      })
+    ),
+    actionOfType('startAnimating').pipe(
+      op.map(() => {
+        const s = state$.getValue();
+        state$.next({...s, _countAnimatings: s._countAnimatings + 1});
+      })
+    ),
+    actionOfType('stopAnimating').pipe(
+      op.map(() => {
+        const s = state$.getValue();
+        state$.next({...s, _countAnimatings: s._countAnimatings - 1});
+      })
+    ),
+    actionOfType('_createDom').pipe(
+      op.map(({payload: canvas}) => {
+        if (canvas) {
+          const s = state$.getValue();
+          state$.next({
+            ...s,
+            canvas,
+            ctx: canvas.getContext('2d')!
+          });
+        }
+      })
+    ),
+    actionOfType('changeRatio').pipe(
+      op.map(({payload: scaleRatio}) => {
+        state$.next({...state$.getValue(), scaleRatio});
+      })
+    ),
+    rx.combineLatest(
+      actionOfType('_afterResize'),
+      actionOfType('_componentTreeReady')
+    ).pipe(
+      op.map(() => {
+        renderImmediately();
+      })
+    ),
+    state$.pipe(
+      op.distinctUntilChanged((x, y) => x.width === y.width && x.height === y.height && x.canvas !== y.canvas),
+      op.filter(s => s.canvas != null),
+      op.map((s) => {
+        const can = s.canvas!;
+        can.setAttribute('width', s.width + '');
+        can.setAttribute('height', s.height + '');
+        can.style.width = s.pixelWidth + 'px';
+        can.style.height = s.pixelHeight + 'px';
+      })
+    )
+  ).subscribe();
+  return [state$, control, () => sub.unsubscribe()] as const;
 }

@@ -46,10 +46,10 @@ const sub = rx.merge(
   ),
   control.actionOfType('getHtmlDone').pipe(
     op.map(({payload: {key, data}}) => {
-      const state = store.getValue();
+      const state = {...store.getValue()};
       state.contents[key] = data;
       state.computed.reactHtml[key] = {__html: data.html};
-      store.next({...state});
+      store.next(state);
     })
   )
 ).pipe(

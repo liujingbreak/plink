@@ -1,8 +1,8 @@
 import React from 'react';
 import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
+import cls from 'classnames';
 import {sliceOptionFactory, epicFactory, ReactiveCanvasProps as Props} from './reactiveCanvas.state';
 import styles from './ReactiveCanvas.module.scss';
-import cls from 'classnames';
 
 // CRA's babel plugin will remove statement "export {ReactiveCanvasProps}" in case there is only type definition, have to reassign and export it.
 export type ReactiveCanvasProps = Props;
