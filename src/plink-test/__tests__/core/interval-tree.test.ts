@@ -59,7 +59,7 @@ describe('Interval tree', () => {
     printTree(tree);
   });
 
-  it('Delete single interval from duplicate interval', () => {
+  it('Delete intervals from duplicate interval', () => {
     const tree = createTree();
     tree.insertInterval(25, 29, null);
     const node = tree.insertInterval(25, 31, null);
@@ -69,17 +69,43 @@ describe('Interval tree', () => {
     expect(tree.root?.max).toEqual(31);
 
     let maxHighOfMulti = node.maxHighOfMulti;
-    tree.deleteInterval(25, 31);
+    expect(tree.deleteInterval(25, 31)).toBe(true);
     expect(node.multi?.length).toBe(2);
     expect(maxHighOfMulti !== node.maxHighOfMulti).toBeTruthy();
+    printTree(tree);
     expect(tree.root?.max).toEqual(30);
 
     maxHighOfMulti = node.maxHighOfMulti;
-    tree.deleteInterval(25, 35);
+    expect(tree.deleteInterval(25, 35)).toBeFalsy();
+
+    tree.deleteInterval(25, 30);
     expect(node.multi == null).toBeTruthy();
     expect(node.int != null).toBeTruthy();
     expect(maxHighOfMulti !== node.maxHighOfMulti).toBeTruthy();
     printTree(tree);
+  });
+
+  it('Delete intervals from more duplicate interval node', () => {
+    const tree = createTree();
+    tree.insertInterval(25, 38, null);
+    tree.insertInterval(25, 32, null);
+    tree.insertInterval(25, 37, null);
+    tree.insertInterval(25, 34, null);
+    tree.insertInterval(25, 38, null);
+    printTree(tree);
+
+    expect(tree.root?.max).toBe(38);
+    const node = tree.search(25);
+    expect(node?.int == null).toBeTruthy();
+    expect(tree.deleteInterval(25, 32)).toBeTruthy();
+    expect(tree.deleteInterval(25, 38)).toBeTruthy();
+    expect(tree.root?.max).toBe(37);
+    expect(tree.deleteInterval(25, 37)).toBeTruthy();
+    expect(tree.root?.max).toBe(34);
+    expect(tree.deleteInterval(25, 34)).toBeTruthy();
+    printTree(tree);
+    expect(tree.root?.max).toBe(30);
+    expect(node?.int != null).toBeTruthy();
   });
 });
 

@@ -78,11 +78,26 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
       } else if (deleted) {
         node.maxHighOfMulti = node.multi.reduce((max, curr) => Math.max(curr[0], max), Number.MIN_VALUE);
       }
-      if (node.p && origMaxHigh !== node.maxHighOfMulti)
-        maintainNodeMaxValue(node.p);
+      if (origMaxHigh !== node.maxHighOfMulti)
+        maintainNodeMaxValue(node);
       return deleted;
     } else if (node.highValuesTree) {
-      return node.highValuesTree.delete(high);
+      const origMaxHigh = node.maxHighOfMulti;
+      const deleted = node.highValuesTree.delete(high);
+      if (deleted && node.highValuesTree.size() === 1) {
+        node.int = [node.key, node.highValuesTree.root!.key];
+        node.value = node.highValuesTree.root!.value;
+        node.highValuesTree = undefined;
+        node.maxHighOfMulti = node.int[1];
+        if (origMaxHigh !== node.maxHighOfMulti)
+          maintainNodeMaxValue(node);
+        return true;
+      } else if (deleted) {
+        node.maxHighOfMulti = node.highValuesTree.maximum()!.key;
+        if (origMaxHigh !== node.maxHighOfMulti)
+          maintainNodeMaxValue(node);
+        return true;
+      }
     }
     return false;
   }
