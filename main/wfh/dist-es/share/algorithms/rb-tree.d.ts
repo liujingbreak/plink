@@ -5,7 +5,7 @@
  *
  * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
-export declare type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<any, any, any>> = {
+export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<any, any, any>> = {
     key: T;
     value: V;
     p: C | null;

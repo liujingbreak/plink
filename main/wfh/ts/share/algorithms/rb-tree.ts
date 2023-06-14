@@ -13,7 +13,12 @@ export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbT
   left: C | null;
   right: C | null;
   isRed: boolean;
+  /** total weight of currentt node and children's.
+  * size = left child's size + right child size + weight
+  */
   size: number;
+  /** weight of current node, not includingg childlren'ss */
+  weight: number;
 };
 
 export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTreeNode<T, V, RbTreeNode<any, any>>> {
@@ -69,7 +74,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTr
         if (left === v)
           return;
         left = v;
-        z.size = (left ? left.size : 0) + (right ? right.size : 0) + 1;
+        self.updateNodeSize(z);
         self.onLeftChildChange(z, v);
       }
     });
@@ -83,30 +88,31 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTr
         if (right === v)
           return;
         right = v;
-        z.size = (left ? left.size : 0) + (right ? right.size : 0) + 1;
+        self.updateNodeSize(z);
         self.onRightChildChange(z, v);
       }
     });
 
-    let size = 0;
+    let weight = 0;
 
-    Object.defineProperty(z, 'size', {
+    Object.defineProperty(z, 'weight', {
       get() {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-        return size;
+        return weight;
       },
       set(v: number) {
-        if (size === v)
+        if (weight === v)
           return;
 
-        size = v;
-        if (z.p) {
-          z.p.size = (z.p.left?.size || 0) + (z.p.right?.size || 0) + 1;
-        }
+        weight = v;
+        self.updateNodeSize(z);
+        // if (z.p) {
+        //   z.p.size = (z.p.left?.size || 0) + (z.p.right?.size || 0) + 1;
+        // }
       }
     });
 
-    z.size = 1;
+    z.weight = 1;
 
     if (y == null) {
       this.root = z;
@@ -119,7 +125,9 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTr
     return z;
   }
 
-  /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0 */
+  /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0 
+  * and it is baesed on "size" which is accumulated  from "weight" of node ands children's
+  */
   atIndex(idx: number, beginNode: ND | null | undefined = this.root): ND | null | undefined {
     let currNode = beginNode;
     while (currNode) {
@@ -310,6 +318,14 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTr
    * To be extend and overridden
    */
   protected onRightChildChange(_parent: ND, _child: ND | null | undefined) {
+  }
+
+  protected updateNodeSize(node: ND) {
+    let z = node as typeof node.p;
+    while (z) {
+      z.size = z.weight + (z.left?.size ?? 0) + (z.right?.size ?? 0);
+      z = z.p;
+    }
   }
 
   protected deleteNode(z: ND) {

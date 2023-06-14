@@ -115,7 +115,8 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
   }
 
   *searchMultipleOverlaps(low: number, high: number): Generator<[low: number, high: number, data: V, node: IntervalTreeNode<V>]> {
-    const foundNodes = searchMultipleOverlaps(low, high, this.root);
+    const foundNodes = [] as IntervalTreeNode<V>[];
+    searchMultipleOverlaps(foundNodes, low, high, this.root);
     // const intervals = new Array<[number, number, V, IntervalTreeNode<V>]>(foundNodes.length);
     for (const node of foundNodes) {
       if (node.int) {
@@ -163,27 +164,28 @@ function doesIntervalOverlap(intA: [number, number], intB: [number, number]) {
   return !(intA[1] < intB[0] || intB[1] < intA[0]);
 }
 
-function searchMultipleOverlaps<V>(low: number, high: number, node: IntervalTreeNode<V> | null | undefined): IntervalTreeNode<V>[] {
-  const overlaps = [] as IntervalTreeNode<V>[];
+function searchMultipleOverlaps<V>(
+  overlaps: IntervalTreeNode<V>[], low: number, high: number, node: IntervalTreeNode<V> | null | undefined
+): number {
   if (node == null) {
-    return overlaps;
+    return 0;
   }
+  let numOverlaps = 0;
   if (doesIntervalOverlap([node.key, node.maxHighOfMulti!], [low, high])) {
     overlaps.push(node);
+    numOverlaps = 1;
   }
   if (node.left && low <= node.left.max) {
-    const overlapsLeftChild = searchMultipleOverlaps(low, high, node.left);
-    if (overlapsLeftChild.length > 0) {
-      overlaps.push(...overlapsLeftChild);
-      const overlapsRightChild = searchMultipleOverlaps(low, high, node.right);
-      overlaps.push(...overlapsRightChild);
+    const numOverlapsLeft = searchMultipleOverlaps(overlaps, low, high, node.left);
+    if (numOverlapsLeft > 0) {
+      numOverlaps += numOverlapsLeft;
+      numOverlaps += searchMultipleOverlaps(overlaps, low, high, node.right);
     }
     // Skip right child, as if zero left child overlaps, then
     // target interval's high value must be even smaller than all left children's low values,
     // meaning entire left child tree is greater than target interval, so right child tree does the same
   } else {
-    const overlapsRightChild = searchMultipleOverlaps(low, high, node.right);
-    overlaps.push(...overlapsRightChild);
+    numOverlaps += searchMultipleOverlaps(overlaps, low, high, node.right);
   }
-  return overlaps;
+  return numOverlaps;
 }
