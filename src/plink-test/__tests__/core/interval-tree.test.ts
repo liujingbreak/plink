@@ -33,11 +33,13 @@ describe('Interval tree', () => {
 
   it('Find overlaps from more duplicates', () => {
     const tree = createTree();
+    expect(tree.size()).toBe(10);
     tree.insertInterval(6, 18, null);
     tree.insertInterval(6, 12, null);
     tree.insertInterval(6, 17, null);
     tree.insertInterval(6, 14, null);
     tree.insertInterval(6, 28, null);
+    expect(tree.size()).toBe(15);
     printTree(tree);
     const founds = [...tree.searchMultipleOverlaps(7, 15)];
     // eslint-disable-next-line no-console
@@ -64,13 +66,13 @@ describe('Interval tree', () => {
     tree.insertInterval(25, 29, null);
     const node = tree.insertInterval(25, 31, null);
 
-    expect(node.multi != null).toBeTruthy();
+    expect(node.highValuesTree != null).toBeTruthy();
     expect(node.int == null).toBeTruthy();
     expect(tree.root?.max).toEqual(31);
 
     let maxHighOfMulti = node.maxHighOfMulti;
     expect(tree.deleteInterval(25, 31)).toBe(true);
-    expect(node.multi?.length).toBe(2);
+    expect(node.highValuesTree!.size()).toBe(2);
     expect(maxHighOfMulti !== node.maxHighOfMulti).toBeTruthy();
     printTree(tree);
     expect(tree.root?.max).toEqual(30);
@@ -79,7 +81,7 @@ describe('Interval tree', () => {
     expect(tree.deleteInterval(25, 35)).toBeFalsy();
 
     tree.deleteInterval(25, 30);
-    expect(node.multi == null).toBeTruthy();
+    expect(node.highValuesTree == null).toBeTruthy();
     expect(node.int != null).toBeTruthy();
     expect(maxHighOfMulti !== node.maxHighOfMulti).toBeTruthy();
     printTree(tree);
@@ -92,6 +94,7 @@ describe('Interval tree', () => {
     tree.insertInterval(25, 37, null);
     tree.insertInterval(25, 34, null);
     tree.insertInterval(25, 38, null);
+    expect(tree.size()).toBe(14);
     printTree(tree);
 
     expect(tree.root?.max).toBe(38);
@@ -105,6 +108,7 @@ describe('Interval tree', () => {
     expect(tree.deleteInterval(25, 34)).toBeTruthy();
     printTree(tree);
     expect(tree.root?.max).toBe(30);
+    expect(tree.size()).toBe(10);
     expect(node?.int != null).toBeTruthy();
   });
 });
@@ -131,7 +135,7 @@ function printTree(tree: IntervalTree) {
       p = p.p;
     }
     const str = `${leadingSpaceChars}+- ${node.p ? node.p?.left === node ? 'L' : 'R' : 'root'} ${node.key + ''} - ${node.maxHighOfMulti + ''}` +
-      `(max ${node.max} ${node.multi ? '[multi]' : node.highValuesTree ? '[tree]' : ''}): size: ${node.size}`;
+      `(max ${node.max} ${node.highValuesTree ? '[tree]' : ''}): size: ${node.size}`;
     lines.push(node.isRed ? chalk.red(str) : str);
   });
   // eslint-disable-next-line no-console

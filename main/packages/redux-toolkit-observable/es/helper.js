@@ -180,7 +180,7 @@ export function action$OfSlice(sliceHelper, actionType) {
     }
  * ```
  */
-class Refrigerator {
+export class Refrigerator {
     constructor(originRef) {
         this[_a] = false;
         this.ref = originRef;
@@ -200,5 +200,4 @@ class Refrigerator {
 }
 _a = immerable, _b = immerable;
 Refrigerator[_b] = false;
-export { Refrigerator };
 //# sourceMappingURL=helper.js.map

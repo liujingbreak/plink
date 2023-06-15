@@ -7,8 +7,6 @@ import {RbTreeNode, RedBlackTree} from './rb-tree';
 export interface IntervalTreeNode<V = unknown> extends RbTreeNode<number, V, IntervalTreeNode<V>> {
   /** For no duplicate single interval*/
   int?: [low: number, high: number];
-  /** For 2-3 intervals which has same "low" value but different "high" value */
-  multi?: [high: number, data: V][];
   /** For 4+ intervals, a tree to store different "high" value */
   highValuesTree?: RedBlackTree<number, V>;
   /** Maximum "high" value of multi intervals that this node contains */
@@ -27,25 +25,21 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
   insertInterval(low: number, high: number, data: V) {
     const node = this.insert(low);
     if (node.int) {
-      // A duplicate low boundray
-      node.multi = [
-        [node.int[1], node.value as V],
-        [high, data]
-      ];
-      node.int = undefined;
-    } else if (node.multi) {
-      if (node.multi.length >= 3) {
-        node.highValuesTree = new RedBlackTree<number, V>();
-        for (const [h, v] of node.multi) {
-          node.highValuesTree.insert(h).value = v;
-        }
-        node.highValuesTree.insert(high).value = data;
-        node.multi = undefined;
-      } else {
-        node.multi.push([high, data]);
+      if (node.int[1] === high) {
+        // duplicate high boundray value
+        node.value = data;
+        return node;
       }
-    } else if (node.highValuesTree) {
+      // A duplicate low boundray
+      node.highValuesTree = new RedBlackTree<number, V>();
+      node.highValuesTree.insert(node.int[1]).value = node.value;
       node.highValuesTree.insert(high).value = data;
+
+      node.int = undefined;
+      node.weight++;
+    } if (node.highValuesTree) {
+      node.highValuesTree.insert(high).value = data;
+      node.weight = node.highValuesTree.size();
     } else {
       node.int = [low, high];
       node.value = data;
@@ -64,39 +58,25 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
     if (node.int && node.int[1] === high) {
       this.deleteNode(node);
       return true;
-    } else if (node.multi != null) {
-      const multiLen = node.multi.length;
-      node.multi = node.multi.filter(it => it[0] !== high);
-      const deleted = multiLen !== node.multi.length;
-      const origMaxHigh = node.maxHighOfMulti;
-
-      if (node.multi.length === 1) {
-        node.int = [node.key, node.multi[0][0]];
-        node.value = node.multi[0][1];
-        node.multi = undefined;
-        node.maxHighOfMulti = node.int[1];
-      } else if (deleted) {
-        node.maxHighOfMulti = node.multi.reduce((max, curr) => Math.max(curr[0], max), Number.MIN_VALUE);
-      }
-      if (origMaxHigh !== node.maxHighOfMulti)
-        maintainNodeMaxValue(node);
-      return deleted;
     } else if (node.highValuesTree) {
       const origMaxHigh = node.maxHighOfMulti;
       const deleted = node.highValuesTree.delete(high);
-      if (deleted && node.highValuesTree.size() === 1) {
-        node.int = [node.key, node.highValuesTree.root!.key];
-        node.value = node.highValuesTree.root!.value;
-        node.highValuesTree = undefined;
-        node.maxHighOfMulti = node.int[1];
-        if (origMaxHigh !== node.maxHighOfMulti)
-          maintainNodeMaxValue(node);
-        return true;
-      } else if (deleted) {
-        node.maxHighOfMulti = node.highValuesTree.maximum()!.key;
-        if (origMaxHigh !== node.maxHighOfMulti)
-          maintainNodeMaxValue(node);
-        return true;
+      if (deleted) {
+        node.weight--;
+        if (node.highValuesTree.size() === 1) {
+          node.int = [node.key, node.highValuesTree.root!.key];
+          node.value = node.highValuesTree.root!.value;
+          node.highValuesTree = undefined;
+          node.maxHighOfMulti = node.int[1];
+          if (origMaxHigh !== node.maxHighOfMulti)
+            maintainNodeMaxValue(node);
+          return true;
+        } else {
+          node.maxHighOfMulti = node.highValuesTree.maximum()!.key;
+          if (origMaxHigh !== node.maxHighOfMulti)
+            maintainNodeMaxValue(node);
+          return true;
+        }
       }
     }
     return false;
@@ -121,12 +101,6 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
     for (const node of foundNodes) {
       if (node.int) {
         yield [...node.int, node.value, node];
-      } else if (node.multi) {
-        for (const [h, data] of node.multi) {
-          if (doesIntervalOverlap([low, high], [node.key, h])) {
-            yield [node.key, h, data, node];
-          }
-        }
       } else if (node.highValuesTree) {
         for (const highTreeNode of node.highValuesTree.keysSmallererThan(high)) {
           yield [node.key, highTreeNode.key, highTreeNode.value, node];

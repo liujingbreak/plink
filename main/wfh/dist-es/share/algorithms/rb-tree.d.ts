@@ -12,7 +12,12 @@ export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbT
     left: C | null;
     right: C | null;
     isRed: boolean;
+    /** total weight of currentt node and children's.
+    * size = left child's size + right child size + weight
+    */
     size: number;
+    /** weight of current node, not includingg childlren'ss */
+    weight: number;
 };
 export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTreeNode<T, V, RbTreeNode<any, any>>> {
     protected comparator?: ((a: T, b: T) => number) | undefined;
@@ -26,7 +31,9 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND
     insert(key: T): Omit<ND, 'value'> & {
         value: V | undefined;
     };
-    /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0 */
+    /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0
+    * and it is baesed on "size" which is accumulated  from "weight" of node ands children's
+    */
     atIndex(idx: number, beginNode?: ND | null | undefined): ND | null | undefined;
     indexOf(key: T): number;
     search(key: T): ND | null;
@@ -57,6 +64,7 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND
      * To be extend and overridden
      */
     protected onRightChildChange(_parent: ND, _child: ND | null | undefined): void;
+    protected updateNodeSize(node: ND): void;
     protected deleteNode(z: ND): boolean;
     private deleteFixup;
     private transplant;

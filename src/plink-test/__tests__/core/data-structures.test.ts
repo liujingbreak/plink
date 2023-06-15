@@ -72,6 +72,29 @@ describe('RB tree', () => {
     expect([...tree.keysSmallererThan(5.5)].length).toEqual(6);
     expect([...tree.keysGreaterThan(5.5)].length).toEqual(4);
   });
+
+  it('size calculation', () => {
+    const tree = new RedBlackTree<number>();
+    const numberSet = new Set([...(function*() {for (let i = 0; i < 20; i++) yield i;})()]);
+    while (numberSet.size > 0) {
+      const idx = Math.floor(Math.random() * numberSet.size);
+      let i = 0;
+      for (const n of numberSet.values()) {
+        if (i === idx) {
+          numberSet.delete(n);
+          tree.insert(n);
+          break;
+        }
+        i++;
+      }
+    }
+    expect(tree.size()).toEqual(20);
+
+    const node = tree.search(10);
+    node!.weight = 3; // default is 1
+    expect(tree.size()).toBe(22); // expect total size increased by 2
+    printTree(tree);
+  });
 });
 
 function printTree(tree: RedBlackTree<any>) {
