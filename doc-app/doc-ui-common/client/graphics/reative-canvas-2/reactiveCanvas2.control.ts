@@ -15,7 +15,6 @@ type ReactiveCanvas2State = {
   height: number;
   pixelWidth: number;
   pixelHeight: number;
-  rootPaintable?: PositionalPaintable;
   // We want a separate observable store to perform well in animation frames
   animFrameTime$: rx.BehaviorSubject<number | undefined | null>;
   _countAnimatings:  number;
@@ -28,9 +27,9 @@ export type ReactiveCanvas2Actions = {
   _afterResize(): void;
   startAnimating(): void;
   stopAnimating(): void;
-  // changeContext(newCtx: CanvasRenderingContext2D): void;
   changeRatio(scaleRatio: number): void;
-  _componentTreeReady(): void;
+  /** root component should subscribe this event, and start painting all children */
+  renderContent(ctx: CanvasRenderingContext2D): void;
 };
 
 export function createControl() {
@@ -95,12 +94,17 @@ export function createControl() {
         state$.next({...state$.getValue(), scaleRatio});
       })
     ),
-    rx.combineLatest(
-      actionOfType('_afterResize'),
-      actionOfType('_componentTreeReady')
-    ).pipe(
+    actionOfType('_afterResize').pipe(
       op.map(() => {
-        renderImmediately();
+        const ctx = state$.getValue().ctx;
+        if (ctx)
+          control.dispatcher.renderContent(ctx);
+      })
+    ),
+    actionOfType('renderContent').pipe(
+      op.map(() => {
+        const s = state$.getValue();
+        ctx.clearRect(0, 0, s.width, s.height);
       })
     ),
     state$.pipe(
@@ -113,6 +117,19 @@ export function createControl() {
         can.style.width = s.pixelWidth + 'px';
         can.style.height = s.pixelHeight + 'px';
       })
+    ),
+    actionOfType('onDomMount').pipe(
+      op.switchMap(() => rx.timer(150)),
+      op.map(() => {
+        control.dispatcher.resize(); // let other paintable react on "resize" action first
+        control.dispatcher._afterResize(); // trigger re-render
+      }),
+      op.switchMap(() => rx.fromEvent<UIEvent>(window, 'resize')),
+      op.map(_event => {
+        control.dispatcher.resize();
+        control.dispatcher._afterResize();
+      })
+
     )
   ).subscribe();
   return [state$, control, () => sub.unsubscribe()] as const;
