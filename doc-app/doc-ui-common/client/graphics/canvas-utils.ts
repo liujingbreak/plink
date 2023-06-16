@@ -67,9 +67,9 @@ export class Segment {
     return new Segment({x: pointX, y: pointY}, {x: handleInX, y: handleInY}, {x: handleOutX, y: handleOutY});
   }
   /** Relative to this.point */
-  handleIn?: {x: number; y: number};
+  handleIn?: Point;
   /** Relative to this.point */
-  handleOut?: {x: number; y: number};
+  handleOut?: Point;
 
   constructor(public point: Point, handleIn?: Point | null, handleOut?: Point ) {
     // this.point = {...point};
@@ -148,8 +148,10 @@ export class Segment {
 
 export const CIRCLE_BEZIER_CONST = 0.551915024494;
 
-export const quarterCircleCurve = [Segment.from(0, 1, -CIRCLE_BEZIER_CONST, 1, CIRCLE_BEZIER_CONST, 1),
-  Segment.from(1, 0, 1, CIRCLE_BEZIER_CONST, 1, -CIRCLE_BEZIER_CONST)];
+export const quarterCircleCurve = [
+  Segment.from(0, 1, -CIRCLE_BEZIER_CONST, 1, CIRCLE_BEZIER_CONST, 1),
+  Segment.from(1, 0, 1, CIRCLE_BEZIER_CONST, 1, -CIRCLE_BEZIER_CONST)
+];
 
 /**
  * 
