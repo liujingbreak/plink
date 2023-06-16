@@ -1,4 +1,4 @@
-type PaintableState = {
+export type PaintableState = {
   /** value is calculated by relativeX */
   x: number;
   /** value is calculated by relativeY */
@@ -15,3 +15,5 @@ type PaintableState = {
   /** relative right position to parent height, 0 - 1 */
   relativeY?: number;
 };
+
+
