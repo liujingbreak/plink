@@ -10,11 +10,11 @@
   $surface: #fffbff,
   $background: #fffbff,
   // $on-background: #1c1b1e,
-  $on-surface: #1c1b1e
+  $on-surface: #1c1b1e,
   // $error: ,
   // $on-error: ,
 );
 
 @forward "@material/theme";
-$raised-btn-ripple-color: white;
+$raised-btn-ripple-color: if(theme.contrast-tone(theme.$primary) == 'dark', black, white);
 

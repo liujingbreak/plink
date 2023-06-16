@@ -63,7 +63,7 @@ export function animate(startValue: number, endValue: number, durationMSec: numb
           op.map(time => {
             progress = (time - initTime) / durationMSec;
             // console.log(time - initTime, progress);
-            let currValue = progress > 1 ? endValue : startValue + deltaValue * timingFn(progress);
+            const currValue = progress > 1 ? endValue : startValue + deltaValue * timingFn(progress);
             return currValue;
           }),
           op.takeWhile(() => progress <= 1)

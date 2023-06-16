@@ -15,21 +15,22 @@ type ReactiveCanvas2State = {
   height: number;
   pixelWidth: number;
   pixelHeight: number;
-  // We want a separate observable store to perform well in animation frames
-  animFrameTime$: rx.BehaviorSubject<number | undefined | null>;
   _countAnimatings:  number;
 } & ReactiveCanvasProps;
 
 export type ReactiveCanvas2Actions = {
-  _createDom(dom: HTMLCanvasElement | null): void;
-  onDomMount(): void;
   resize(): void;
-  _afterResize(): void;
   startAnimating(): void;
   stopAnimating(): void;
   changeRatio(scaleRatio: number): void;
   /** root component should subscribe this event, and start painting all children */
   renderContent(ctx: CanvasRenderingContext2D): void;
+};
+
+type ReactiveCanvas2InternalActions = {
+  _createDom(dom: HTMLCanvasElement | null): void;
+  _afterResize(): void;
+  onDomMount(): void;
 };
 
 export function createControl() {
@@ -40,12 +41,36 @@ export function createControl() {
     height: 0,
     pixelHeight: 0,
     pixelWidth: 0,
-    _countAnimatings: 0,
-    animFrameTime$: new rx.BehaviorSubject<number | null | undefined>(null)
+    _countAnimatings: 0
   });
 
-  const control = createActionStreamByType<ReactiveCanvas2Actions>();
+  let countAnimatings = 0;
+
+  const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvas2InternalActions>();
   const {actionOfType} = control;
+  // We want a separate observable store to perform well in animation frames
+  const animFrameTime$ = new rx.Observable<number>(sub => {
+    let keep = true;
+    requestAnimationFrame(frame);
+
+    function frame(time: number) {
+      sub.next(time);
+      if (keep && countAnimatings > 0)
+        requestAnimationFrame(frame);
+    }
+    return () => {keep = false; };
+  }).pipe(
+    op.exhaustMap(_time => state$.pipe(
+      op.map(s => s.ctx),
+      op.distinctUntilChanged(),
+      op.filter(ctx => ctx != null),
+      op.take(1),
+      op.map(ctx => control.dispatcher.renderContent(ctx!))
+    )),
+    // op.takeUntil(actionOfType('stopAnimateFrame')),
+    op.share()
+  );
+
   const sub = rx.merge(
     actionOfType('resize').pipe(
       op.map(() => {
@@ -67,14 +92,13 @@ export function createControl() {
     ),
     actionOfType('startAnimating').pipe(
       op.map(() => {
-        const s = state$.getValue();
-        state$.next({...s, _countAnimatings: s._countAnimatings + 1});
+        if (countAnimatings++ === 0)
+          animFrameTime$.subscribe();
       })
     ),
     actionOfType('stopAnimating').pipe(
       op.map(() => {
-        const s = state$.getValue();
-        state$.next({...s, _countAnimatings: s._countAnimatings - 1});
+        countAnimatings--;
       })
     ),
     actionOfType('_createDom').pipe(
@@ -102,7 +126,7 @@ export function createControl() {
       })
     ),
     actionOfType('renderContent').pipe(
-      op.map(() => {
+      op.map(({payload: ctx}) => {
         const s = state$.getValue();
         ctx.clearRect(0, 0, s.width, s.height);
       })
@@ -129,7 +153,6 @@ export function createControl() {
         control.dispatcher.resize();
         control.dispatcher._afterResize();
       })
-
     )
   ).subscribe();
   return [state$, control, () => sub.unsubscribe()] as const;
