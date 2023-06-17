@@ -12,11 +12,13 @@
  * e.g. DOM object, React Component, functions
  */
 import {EpicFactory, createReducers, SliceHelper, RegularReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
-import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {createPaintables} from './huePalette';
+import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+import {ReactiveCanvasProps} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/ReactiveCanvas2';
+import {createHueCircle as createCanvasContent} from './colorToolCanvasContent';
 // import {create} from './colorToolCanvasPainter';
 export interface ColorToolProps {
   mixColors?: {
@@ -47,7 +49,7 @@ export interface ColorToolState {
   colorClickCallbacks: {[key: string]: () => any};
   label?: string;
   gradientStyle: {[style: string]: string};
-  createPaintables(p: PaintableContext): Iterable<PaintableSlice<any, any>>;
+  // createPaintables(p: PaintableContext): Iterable<PaintableSlice<any, any>>;
   error?: Error;
 }
 // const reducers = {
@@ -107,8 +109,8 @@ export function sliceOptionFactory() {
   const initialState: ColorToolState = {
     colors: [] as Color[],
     colorClickCallbacks: {},
-    gradientStyle: {},
-    createPaintables
+    gradientStyle: {}
+    // createPaintables
   };
   return {
     name: 'ColorTool',
@@ -159,3 +161,48 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
 
 
 export type ColorToolSliceHelper = SliceHelper<ColorToolState, typeof reducers>;
+
+export type ColorToolActions = {
+  onUnmount(): void;
+  canvasReady: NonNullable<ReactiveCanvasProps['onReady']>;
+};
+
+export function createControl() {
+  const control = createActionStreamByType<ColorToolActions>({debug: process.env.NODE_ENV === 'development' ? 'colorTool' : false});
+  const {actionOfType} = control;
+  rx.merge(
+    actionOfType('canvasReady').pipe(
+      op.switchMap(({payload: [root, rootState, canvasCtl, canvasState$]}) => {
+        return rx.merge(
+          root.actionOfType('renderContent').pipe(
+            op.map(({payload: [ctx, state, ctl]}) => {
+              // TODO: create canvas paintables
+            })
+          ),
+          rx.defer(() => {
+            const ret = createCanvasContent(root, rootState);
+            canvasCtl.dispatcher.render();
+            return ret;
+          })
+        );
+      })
+    )
+  ).pipe(
+    op.takeUntil(actionOfType('onUnmount')),
+    op.catchError((err, src) => {
+      console.error(err);
+      void Promise.resolve().then(() => {
+        if (err instanceof Error)
+          throw err;
+        else
+          throw new Error(err);
+      });
+      return src;
+    })
+  ).subscribe();
+
+  return [control] as const;
+}
+
+export type ColorToolControl = ActionStreamControl<ColorToolActions>;
+

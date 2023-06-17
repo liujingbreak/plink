@@ -103,19 +103,19 @@ export class Segment {
     // console.log('transform', matrix, newSeg.point);
     newSeg.point = applyToPoint(matrix, newSeg.point);
     // console.log('transform', this.point, newSeg.point);
-    const matrix1 = transform(
-      translate(-newSeg.point.x, -newSeg.point.y),
-      matrix
-    );
+    // const matrix1 = transform(
+    //   translate(-newSeg.point.x, -newSeg.point.y),
+    //   matrix
+    // );
     if (newSeg.handleIn) {
       newSeg.handleIn = applyToPoint(transform(
-        matrix1,
+        matrix,
         translate(newSeg.handleIn.x, newSeg.handleIn.y)
       ), this.point);
     }
     if (newSeg.handleOut) {
       newSeg.handleOut = applyToPoint(transform(
-        matrix1,
+        matrix,
         translate(newSeg.handleOut.x, newSeg.handleOut.y)
       ), this.point);
     }
@@ -196,7 +196,7 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
 
   let segements = Array.isArray(segs) ? segs as Segment[] : Array.from(segs);
 
-  if (opts && opts.round) {
+  if (opts?.round) {
     const round = typeof opts.round === 'function' ? opts.round : Math.round;
     segements = segements.map(seg => seg.round(round));
   }
@@ -227,7 +227,7 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
     }
     i++;
   }
-  if (opts != null && opts.closed) {
+  if (opts?.closed) {
     const lastSeg = segements[segements.length - 1];
     if (segements[0].handleIn && lastSeg.handleOut) {
       const c1 = lastSeg.absHandleOutPoint()!;
@@ -418,7 +418,7 @@ export function boundsOf(segs: Iterable<Segment>, roundResult = false): {x: numb
     }
     lastSeg = seg;
   }
-  if (firstSeg && firstSeg.handleIn && lastSeg?.handleOut && firstSeg !== lastSeg) {
+  if (firstSeg?.handleIn && lastSeg?.handleOut && firstSeg !== lastSeg) {
     const bei = new Bezier(lastSeg.point, lastSeg.absHandleOutPoint()!, firstSeg.absHandleInPoint()!, firstSeg.point);
     const box = bei.bbox();
     // console.log(box);
@@ -442,15 +442,17 @@ export function boundsOf(segs: Iterable<Segment>, roundResult = false): {x: numb
     return prev.max > curr.max ? prev : curr;
   }).max;
 
-  return roundResult ? {
-    x: round(minOfXMins), y: round(minOfYMins),
-    w: round(maxOfXMaxs - minOfXMins),
-    h: round(maxOfYMaxs - minOfYMins)
-  } : {
-    x: minOfXMins, y: minOfYMins,
-    w: maxOfXMaxs - minOfXMins,
-    h: maxOfYMaxs - minOfYMins
-  };
+  return roundResult ?
+    {
+      x: round(minOfXMins), y: round(minOfYMins),
+      w: round(maxOfXMaxs - minOfXMins),
+      h: round(maxOfYMaxs - minOfYMins)
+    }
+    : {
+      x: minOfXMins, y: minOfYMins,
+      w: maxOfXMaxs - minOfXMins,
+      h: maxOfYMaxs - minOfYMins
+    };
 }
 
 export function centerOf(segs: Iterable<Segment>, roundResult = false): {x: number; y: number} {

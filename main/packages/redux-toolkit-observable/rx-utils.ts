@@ -192,7 +192,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     interceptor$.next(newInterceptor);
   }
 
-  let action$ = opt.debug
+  const debuggableAction$ = opt.debug
     ? actionUpstream.pipe(
       opt.log ?
         tap(action => opt.log!(debugName + 'rx:action', action.type)) :
@@ -208,10 +208,10 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     )
     : actionUpstream;
 
-  action$ = interceptor$.pipe(
+  const action$ = interceptor$.pipe(
     switchMap(interceptor => interceptor ?
-      actionUpstream.pipe(interceptor, share()) :
-      actionUpstream)
+      debuggableAction$.pipe(interceptor, share()) :
+      debuggableAction$)
   );
 
   return {

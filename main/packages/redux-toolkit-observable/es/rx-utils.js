@@ -123,7 +123,7 @@ export function createActionStreamByType(opt = {}) {
         const newInterceptor = factory(interceptor$.getValue());
         interceptor$.next(newInterceptor);
     }
-    let action$ = opt.debug
+    const debuggableAction$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
             tap(action => opt.log(debugName + 'rx:action', action.type)) :
             typeof window !== 'undefined' ?
@@ -135,9 +135,9 @@ export function createActionStreamByType(opt = {}) {
                     // eslint-disable-next-line no-console
                     tap(action => console.log(debugName + 'rx:action', action.type)), share())
         : actionUpstream;
-    action$ = interceptor$.pipe(switchMap(interceptor => interceptor ?
-        actionUpstream.pipe(interceptor, share()) :
-        actionUpstream));
+    const action$ = interceptor$.pipe(switchMap(interceptor => interceptor ?
+        debuggableAction$.pipe(interceptor, share()) :
+        debuggableAction$));
     return {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,

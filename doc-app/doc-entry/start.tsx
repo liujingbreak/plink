@@ -7,8 +7,11 @@ import {bootstrap} from './main/clientApp';
 
 dispatcher.registerFiles({
   intro: () => import('./intro.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/intro.md').then(res => res.default),
-  sample: () => import(
-    './sample.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/sample.md'
+  // sample: () => import(
+  //   './sample.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/sample.md'
+  // ).then(res => res.default),
+  trans: () => import(
+    './trans.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/doc-ui-common/client/graphics/understand-transformation-matrix.md'
   ).then(res => res.default)
   // design1
 });

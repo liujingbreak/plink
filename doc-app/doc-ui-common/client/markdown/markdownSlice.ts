@@ -1,4 +1,4 @@
-import {createActionStreamByType} from '@wfh/redux-toolkit-observable/rx-utils';
+import {createActionStreamByType} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {LoaderRecivedData} from '@wfh/doc-ui-common/isom/md-types';

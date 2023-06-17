@@ -1,6 +1,7 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {createActionStreamByType} from '@wfh/redux-toolkit-observable/es/rx-utils';
+import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
+import {createControl as createPaintable, PaintableCtl} from './paintable';
 
 export type ReactiveCanvasProps = {
   /** default 2 */
@@ -8,7 +9,7 @@ export type ReactiveCanvasProps = {
   // onReady?(paintCtx: PaintableContext): Iterable<PaintableSlice<any, any>> | void;
 };
 
-type ReactiveCanvas2State = {
+export type ReactiveCanvas2State = {
   ctx?: CanvasRenderingContext2D;
   canvas: HTMLCanvasElement | null;
   width: number;
@@ -19,7 +20,9 @@ type ReactiveCanvas2State = {
 } & ReactiveCanvasProps;
 
 export type ReactiveCanvas2Actions = {
-  resize(): void;
+  /** render once */
+  render(): void;
+  onResize(): void;
   startAnimating(): void;
   stopAnimating(): void;
   changeRatio(scaleRatio: number): void;
@@ -29,15 +32,14 @@ export type ReactiveCanvas2Actions = {
 
 type ReactiveCanvas2InternalActions = {
   _createDom(dom: HTMLCanvasElement | null): void;
+  /** TODO: maybe this action is unnecessary due to onResize() */
   _afterResize(): void;
   onDomMount(): void;
+  onUnmount(): void;
 };
 
 export function createControl() {
-  const state$ = new rx.BehaviorSubject<ReactiveCanvas2State>({
-    scaleRatio: 2,
-    canvas: null,
-    width: 0,
+  const state$ = new rx.BehaviorSubject<ReactiveCanvas2State>({ scaleRatio: 2, canvas: null, width: 0,
     height: 0,
     pixelHeight: 0,
     pixelWidth: 0,
@@ -46,7 +48,9 @@ export function createControl() {
 
   let countAnimatings = 0;
 
-  const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvas2InternalActions>();
+  const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvas2InternalActions>(
+    {debug: process.env.NODE_ENV === 'development' ? 'ReativeCanvas2' : false}
+  );
   const {actionOfType} = control;
   // We want a separate observable store to perform well in animation frames
   const animFrameTime$ = new rx.Observable<number>(sub => {
@@ -71,8 +75,8 @@ export function createControl() {
     op.share()
   );
 
-  const sub = rx.merge(
-    actionOfType('resize').pipe(
+  rx.merge(
+    actionOfType('onResize').pipe(
       op.map(() => {
         const s = {...state$.getValue()};
         if (s.canvas == null)
@@ -142,18 +146,70 @@ export function createControl() {
         can.style.height = s.pixelHeight + 'px';
       })
     ),
-    actionOfType('onDomMount').pipe(
-      op.switchMap(() => rx.timer(150)),
+    rx.combineLatest(
+      actionOfType('onDomMount').pipe(
+        op.delay(150), // wait for DOM being rendering
+        op.map(() => {
+          control.dispatcher.onResize(); // let other paintable react on "resize" action first
+        })
+      ),
+      actionOfType('render').pipe(op.take(1))
+    ).pipe(
       op.map(() => {
-        control.dispatcher.resize(); // let other paintable react on "resize" action first
+        // Maybe _afterResize is unnecessary, since dispatching onResize is enough for other subscriber to react on it
+        // before dispatching 'renderContent'
         control.dispatcher._afterResize(); // trigger re-render
       }),
       op.switchMap(() => rx.fromEvent<UIEvent>(window, 'resize')),
+      op.throttleTime(333),
       op.map(_event => {
-        control.dispatcher.resize();
+        control.dispatcher.onResize();
         control.dispatcher._afterResize();
       })
     )
+  ).pipe(
+    op.takeUntil(actionOfType('onUnmount')),
+    op.catchError((err, src) => {
+      void Promise.resolve().then(() => {
+        if (err instanceof Error)
+          throw err;
+        else
+          throw new Error(err);
+      });
+      return src;
+    })
   ).subscribe();
-  return [state$, control, () => sub.unsubscribe()] as const;
+  return [state$, control] as const;
 }
+
+export type ReactiveCanvas2Control = ActionStreamControl<ReactiveCanvas2Actions & ReactiveCanvas2InternalActions>;
+
+export function createRootPaintable(canvasCtl: ReactiveCanvas2Control, canvasState$: rx.BehaviorSubject<ReactiveCanvas2State>) {
+  const [baseCtl, baseState] = createPaintable();
+  const {actionOfType: canvasAc} = canvasCtl;
+  baseState.width = canvasState$.getValue().width;
+  baseState.height = canvasState$.getValue().height;
+  rx.merge(
+    canvasState$.pipe(
+      op.distinctUntilChanged((s1, s2) => s1.width === s2.width && s1.height === s2.height),
+      op.tap(s => {
+        baseState.width = s.width;
+        baseState.height = s.height;
+        baseCtl.dispatcher.onResize(s.width, s.height);
+      })
+    ),
+    canvasAc('renderContent').pipe(
+      op.map(({payload: ctx}) => {
+        baseCtl.dispatcher.renderContent(ctx, baseState, baseCtl);
+      })
+    ),
+    canvasAc('onUnmount').pipe(
+      op.map(() => {
+        baseCtl.dispatcher.detach();
+      })
+    )
+  ).subscribe();
+  return [baseCtl, baseState] as const;
+}
+
+export type RootPaintable = PaintableCtl;
