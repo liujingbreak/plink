@@ -8,7 +8,7 @@ import {createBezierArch, Segment, transSegments} from '@wfh/doc-ui-common/clien
 export function createHueCircle(root: PaintableCtl, rootState: PaintableState) {
 
   const [singleHueCtrl, singleHueState] = createControl();
-  let scale = 1;
+  let scaleRatio = 1;
   const curveSegs = [new Segment({x: 0, y: 0}), ...createBezierArch(0, 1)];
   console.log(curveSegs);
 

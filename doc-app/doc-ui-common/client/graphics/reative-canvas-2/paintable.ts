@@ -13,12 +13,10 @@ export type PaintableState = {
   /** relative size of parent, if parent is not a positional paintable, size is relative to reactive canvas, value is between 0 ~ 1 */
   relativeWidth?: number;
   relativeHeight?: number;
-  /** Transformation matrix of position relative to parent */
-  transform: Matrix;
   transPipeline: string[];
   transPipelineByName: Map<string, (up: rx.Observable<Matrix>) => rx.Observable<Matrix>>;
   /** used to actual render and calculate interactions detection */
-  absTransform: Matrix;
+  transform: Matrix;
   detached: boolean;
   parent?: [PaintableCtl, PaintableState];
   /** bounding box calculation is expensive, if it is not used for interaction detective,
@@ -37,12 +35,18 @@ export type PaintableActions = {
   setSize(w: number, h: number): void;
   /** change relative size which is proportional to parent's size */
   changeRelativeSize(w: number, h: number): void;
-  // changeTransform(m: Matrix): void;
-  // onTransformChanged(absTransform: Matrix): void;
   addTransformOperator(
     name: string,
     op: (up: rx.Observable<Matrix>) => rx.Observable<Matrix>
   ): void;
+  removeTransformOperator(name: string): void;
+  /**
+   * Indicate whether `transform` should be calculate by transform operators once `renderContent` is emitted.
+   * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
+   *  set to `false` once transform operators are executed and `transform` is updated.
+   */
+  setTransformDirty(isDirty: boolean): void;
+  _composeTransform(): void;
   renderContent(
     ctx: CanvasRenderingContext2D,
     state: PaintableState,
@@ -63,7 +67,6 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
     width: 100,
     height: 150,
     transform: identity(),
-    absTransform: identity(),
     transPipelineByName: new Map(),
     transPipeline: [],
     detached: true
@@ -74,9 +77,6 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
   const {actionOfType: aot, dispatcher} = ctl;
 
   rx.merge(
-    // aot('changeTransform').pipe(
-    //   op.tap(({payload}) => state.transform = payload)
-    // ),
     aot('setSize').pipe(
       op.tap(({payload: [w, h]}) => {
         state.width = w;
@@ -84,12 +84,43 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
         dispatcher.onResize(state.width, state.height);
       })
     ),
-    aot('addTransformOperator').pipe(
-      op.tap(({payload: [key, op]}) => {
-        state.transPipelineByName.set(key, op);
-        state.transPipeline.push(key);
+
+    rx.merge(
+      aot('addTransformOperator').pipe(
+        op.tap(({payload: [key, op]}) => {
+          state.transPipelineByName.set(key, op);
+          state.transPipeline.push(key);
+        })
+      ),
+      aot('removeTransformOperator').pipe(
+        op.tap(({payload}) => {
+          const idx = state.transPipeline.indexOf(payload);
+          state.transPipeline.splice(idx, 1);
+          state.transPipelineByName.delete(payload);
+        })
+      )
+    ).pipe(
+      op.switchMap(() => {
+        const ops = state.transPipeline.map(key => state.transPipelineByName.get(key)!) as [rx.OperatorFunction<Matrix, Matrix>];
+        return aot('_composeTransform').pipe(
+          op.mapTo(identity()),
+          op.tap(() => {
+            dispatcher.setTransformDirty(false);
+          }),
+          ...ops
+        );
       })
     ),
+
+    aot('renderContent').pipe(
+      op.withLatestFrom(aot('setTransformDirty').pipe(
+        op.filter(({payload: dirty}) => dirty)
+      )),
+      op.tap(() => {
+        dispatcher._composeTransform();
+      })
+    ),
+
     parentChange$(ctl, state).pipe(
       op.switchMap(({payload: [parent, pState]}) => {
         state.detached = false;
@@ -99,9 +130,12 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
         // Push absolute transformation calculation operator as last entry in pipeline
         dispatcher.addTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<Matrix>) => {
           return upStream.pipe(
-            op.map(m => compose(pState.absTransform, state.transform))
+            op.map(m => compose(pState.transform, m))
           );
         });
+
+        // When attached to a new parent, should always trigger `transform` recalculation
+        dispatcher.setTransformDirty(true);
 
         return rx.merge(
           // Side effect on relative size change or parent resize
@@ -126,6 +160,14 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
             })
           ),
 
+          // When parent transform is dirty (transform is changed),
+          // current Paintable should also be marked as dirty, since
+          // transformOperator "baseOnParent" depends on `parentState.transform`
+          pac('setTransformDirty').pipe(
+            op.filter(({payload}) => payload),
+            op.tap(() => dispatcher.setTransformDirty(true))
+          ),
+
           // Pass down parent's detach event
           rx.merge(
             pac('detach'),
@@ -144,9 +186,7 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
         ).pipe(
           op.takeUntil(aot('detach')),
           op.finalize(() => {
-            const idx = state.transPipeline.indexOf(TRANSFORM_BY_PARENT_OPERATOR);
-            state.transPipeline.splice(idx, 1);
-            state.transPipelineByName.delete(TRANSFORM_BY_PARENT_OPERATOR);
+            dispatcher.removeTransformOperator(TRANSFORM_BY_PARENT_OPERATOR);
           })
         );
       })

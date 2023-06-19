@@ -14,7 +14,7 @@ export function alignToParent(
   targetPaintableState: PaintableState,
   _opts: {vertical?: AlignmentValues; horizontal?: AlignmentValues} = {}) {
 
-  const {actionOfType: act, dispatcher} = targetPaintable;
+  const {dispatcher} = targetPaintable;
   return parentChange$(targetPaintable, targetPaintableState).pipe(
     op.switchMap(({payload: [parent, pState]}) => {
       const {actionOfType: pac} = parent;
@@ -32,13 +32,11 @@ export function alignToParent(
         op.tap(([w, h]) => {
           targetPaintableState.x = w / 2;
           targetPaintableState.y = h / 2;
+          dispatcher.setTransformDirty(true);
         }),
         op.finalize(() => {
-          const idx = targetPaintableState.transPipeline.indexOf('position');
-          targetPaintableState.transPipeline.splice(idx, 1);
-          targetPaintableState.transPipelineByName.delete('position');
+          dispatcher.removeTransformOperator('position');
         })
-
       );
     })
   );
