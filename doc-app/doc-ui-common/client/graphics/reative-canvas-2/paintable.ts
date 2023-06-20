@@ -41,16 +41,19 @@ export type PaintableActions = {
   ): void;
   removeTransformOperator(name: string): void;
   /**
-   * Indicate whether `transform` should be calculate by transform operators once `renderContent` is emitted.
+   * Indicate whether `transform` should be calculate by transform operators once `_renderInternally` is emitted.
    * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
    *  set to `false` once transform operators are executed and `transform` is updated.
    */
   setTransformDirty(isDirty: boolean): void;
+  _renderInternally(ctx: CanvasRenderingContext2D): void;
   _composeTransform(): void;
-  /** @param transform undefined if there is not dirty transformation
-   * needs to be composed
+  /**
+   * Begin actual content and child paintables rendering, at this moment,
+   * transform matrix is composed and not dirty.
+   *
+   * Child paintable should also subscribe to this message for their own `_renderInternally` action
    */
-  _onTransformComposed(transform?: Matrix): void;
   renderContent(
     ctx: CanvasRenderingContext2D,
     state: PaintableState,
@@ -122,23 +125,38 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
       }),
       op.map(matrix => {
         state.transform = matrix;
-        dispatcher._onTransformComposed(matrix);
+        dispatcher.setTransformDirty(false);
       })
     ),
 
-    // When rendering, check whether transform should be "composed"
-    aot('renderContent').pipe(
+    // When rendering, check whether transform should be "composed",
+    // otherwise directly emit `renderContent`
+    aot('_renderInternally').pipe(
       op.withLatestFrom(aot('setTransformDirty').pipe(
-        op.map(({payload: dirty}) => dirty),
-        op.distinctUntilChanged(),
-        op.filter( dirty => dirty)
+        op.map(({payload: dirty}) => dirty)
+        // op.distinctUntilChanged()
       )),
-      op.tap(([, dirty]) => {
-        if (dirty)
-          dispatcher._composeTransform();
-        else
-          dispatcher._onTransformComposed();
-      })
+      op.switchMap(([{payload: ctx}, dirty]) => {
+        if (dirty) {
+          return rx.merge(
+            // wait for `_composeTransform` result: transform becomes not `dirty`
+            aot('setTransformDirty').pipe(
+              op.filter(({payload: dirty}) => !dirty),
+              op.take(1),
+              op.mapTo(ctx)
+            ),
+            // compose tranform matrix if it is dirty
+            new rx.Observable<never>(sub => {
+              dispatcher._composeTransform();
+              sub.complete();
+            })
+          );
+        } else {
+          dispatcher.renderContent(ctx, state, ctl);
+          return rx.of(ctx);
+        }
+      }),
+      op.map((ctx) => dispatcher.renderContent(ctx, state, ctl))
     ),
 
     parentChange$(ctl, state).pipe(
@@ -202,7 +220,7 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
 
           pac('renderContent').pipe(
             op.map(({payload: [ctx]}) => {
-              dispatcher.renderContent(ctx, state, ctl);
+              dispatcher._renderInternally(ctx);
             })
           )
         ).pipe(
