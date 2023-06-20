@@ -31,10 +31,10 @@ export type PaintableActions = {
   /** attach to a parent paintable object */
   attachTo(p: ActionStreamControl<PaintableActions>, pState: PaintableState): void;
   onResize(w: number, h: number): void;
-  /** set absolute size, alternatively call changeRelativeSize() */
+  /** set absolute size, alternatively call setRelativeSize() */
   setSize(w: number, h: number): void;
   /** change relative size which is proportional to parent's size */
-  changeRelativeSize(w: number, h: number): void;
+  setRelativeSize(w: number, h: number): void;
   addTransformOperator(
     name: string,
     op: (up: rx.Observable<Matrix>) => rx.Observable<Matrix>
@@ -47,6 +47,10 @@ export type PaintableActions = {
    */
   setTransformDirty(isDirty: boolean): void;
   _composeTransform(): void;
+  /** @param transform undefined if there is not dirty transformation
+   * needs to be composed
+   */
+  _onTransformComposed(transform?: Matrix): void;
   renderContent(
     ctx: CanvasRenderingContext2D,
     state: PaintableState,
@@ -84,6 +88,12 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
         dispatcher.onResize(state.width, state.height);
       })
     ),
+    aot('setRelativeSize').pipe(
+      op.tap(({payload: [w, h]}) => {
+        state.relativeWidth = w;
+        state.relativeHeight = h;
+      })
+    ),
 
     rx.merge(
       aot('addTransformOperator').pipe(
@@ -109,15 +119,25 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
           }),
           ...ops
         );
+      }),
+      op.map(matrix => {
+        state.transform = matrix;
+        dispatcher._onTransformComposed(matrix);
       })
     ),
 
+    // When rendering, check whether transform should be "composed"
     aot('renderContent').pipe(
       op.withLatestFrom(aot('setTransformDirty').pipe(
-        op.filter(({payload: dirty}) => dirty)
+        op.map(({payload: dirty}) => dirty),
+        op.distinctUntilChanged(),
+        op.filter( dirty => dirty)
       )),
-      op.tap(() => {
-        dispatcher._composeTransform();
+      op.tap(([, dirty]) => {
+        if (dirty)
+          dispatcher._composeTransform();
+        else
+          dispatcher._onTransformComposed();
       })
     ),
 
@@ -147,13 +167,15 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
               )
             ),
             rx.concat(
-              rx.of([state.width, state.height]),
-              aot('changeRelativeSize').pipe(
+              rx.of([state.relativeWidth, state.relativeHeight]),
+              aot('setRelativeSize').pipe(
                 op.map(({payload}) => payload)
               )
             )
           ).pipe(
             op.map(([[pW, pH], [rW, rH]]) => {
+              if (rW == null || rH == null)
+                return;
               state.width = pW * rW;
               state.height = pH * rH;
               dispatcher.onResize(state.width, state.height);

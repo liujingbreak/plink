@@ -14,7 +14,7 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState) {
 
   const {dispatcher, actionOfType: aot} = singleHueCtrl;
   dispatcher.attachTo(root, rootState);
-  dispatcher.changeRelativeSize(0.25, 0.25);
+  dispatcher.setRelativeSize(0.25, 0.25);
 
   return rx.merge(
     rx.concat(
