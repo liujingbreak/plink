@@ -180,7 +180,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     return a$;
   }
 
-  const debugName = typeof opt.debug === 'string' ? `[${opt.debug}] ` : '';
+  const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : '';
   const interceptor$ = new BehaviorSubject<OperatorFunction<ActionTypes<AC>[keyof AC], ActionTypes<AC>[keyof AC]> | null>(null);
 
   function changeActionInterceptor(

@@ -10,35 +10,37 @@ type AlignmentValues = 'left' | 'center' | 'right' | 'top' | 'down';
  * TODO: implement for 'left', 'right', ...
  */
 export function alignToParent(
-  targetPaintable: PaintableCtl,
-  targetPaintableState: PaintableState,
+  paintableCtl: PaintableCtl,
+  state: PaintableState,
   _opts: {vertical?: AlignmentValues; horizontal?: AlignmentValues} = {}) {
 
-  const {dispatcher} = targetPaintable;
-  dispatcher.addTransformOperator(
-    'position', matrix$ => matrix$.pipe(
-      op.map(m => compose(m, translate(targetPaintableState.x, targetPaintableState.y)))
-    ));
+  const {dispatcher} = paintableCtl;
 
-  return parentChange$(targetPaintable, targetPaintableState).pipe(
-    op.switchMap(({payload: [parent, pState]}) => {
-      const {actionOfType: pac} = parent;
+  return rx.merge(
+    new rx.Observable(sub => {
+      dispatcher.putTransformOperator(
+        'position', matrix$ => matrix$.pipe(
+          op.map(m => compose(m, translate(state.x, state.y)))
+        ));
+      sub.complete();
+    }),
+    parentChange$(paintableCtl, state).pipe(
+      op.switchMap(({payload: [parent, pState]}) => {
+        const {actionOfType: pac} = parent;
 
-      return rx.concat(
-        rx.of([pState.width, pState.height]),
-        pac('onResize').pipe(
-          op.map(({payload}) => payload)
-        )
-      ).pipe(
-        op.tap(([w, h]) => {
-          targetPaintableState.x = w / 2;
-          targetPaintableState.y = h / 2;
-          dispatcher.setTransformDirty(true);
-        }),
-        op.finalize(() => {
-          dispatcher.removeTransformOperator('position');
-        })
-      );
-    })
+        return rx.concat(
+          rx.of([pState.width, pState.height]),
+          pac('onResize').pipe(
+            op.map(({payload}) => payload)
+          )
+        ).pipe(
+          op.tap(([w, h]) => {
+            state.x = w / 2;
+            state.y = h / 2;
+            dispatcher.setTransformDirty(true);
+          })
+        );
+      })
+    )
   );
 }

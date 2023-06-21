@@ -35,7 +35,17 @@ export type PaintableActions = {
   setSize(w: number, h: number): void;
   /** change relative size which is proportional to parent's size */
   setRelativeSize(w: number, h: number): void;
-  addTransformOperator(
+  /**
+   * `putTransformOperator` helps to customize how `matrix` is finally calculated.
+   * Be aware of the order of first time of emitting this action matters, it decides how pipeline is composed.
+   *
+   * The action can be emitted multiple time with same `name` without being duplicate,
+   * the order of pipline opertors are not changed.
+   *
+   * @param name a short name being added to `transPipeline`, which indicates the order of pipe operators
+   * in final transformation matrix calculaton pipeline
+   */
+  putTransformOperator(
     name: string,
     op: (up: rx.Observable<Matrix>) => rx.Observable<Matrix>
   ): void;
@@ -78,15 +88,9 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
     detached: true
   };
 
-  const ctl = createActionStreamByType<PaintableActions>();
+  const ctl = createActionStreamByType<PaintableActions>({debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
 
   const {actionOfType: aot, dispatcher} = ctl;
-  // Push absolute transformation calculation operator as last entry in pipeline
-  dispatcher.addTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<Matrix>) => {
-    return upStream.pipe(
-      op.map(m => compose(pState.transform, m))
-    );
-  });
 
   rx.merge(
     aot('setSize').pipe(
@@ -104,17 +108,12 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
     ),
 
     rx.merge(
-      aot('addTransformOperator').pipe(
+      aot('putTransformOperator').pipe(
         op.tap(({payload: [key, op]}) => {
+          if (!state.transPipelineByName.has(key)) {
+            state.transPipeline.push(key);
+          }
           state.transPipelineByName.set(key, op);
-          state.transPipeline.push(key);
-        })
-      ),
-      aot('removeTransformOperator').pipe(
-        op.tap(({payload}) => {
-          const idx = state.transPipeline.indexOf(payload);
-          state.transPipeline.splice(idx, 1);
-          state.transPipelineByName.delete(payload);
         })
       )
     ).pipe(
@@ -157,7 +156,6 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
             })
           );
         } else {
-          dispatcher.renderContent(ctx, state, ctl);
           return rx.of(ctx);
         }
       }),
@@ -232,7 +230,21 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
         state.detached = true;
         state.parent = undefined;
       })
-    )
+    ),
+    new rx.Observable(sub => {
+      // Push absolute transformation calculation operator as last entry in pipeline
+      dispatcher.putTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<Matrix>) => {
+        return upStream.pipe(
+          op.map(m => {
+            return state.parent ?
+              compose(state.parent[1].transform, m) :
+              m;
+          })
+        );
+      });
+
+      sub.complete();
+    }),
   ).pipe(
     op.takeUntil(aot('detach'))
   ).subscribe();
