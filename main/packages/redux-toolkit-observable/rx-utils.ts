@@ -199,7 +199,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
         typeof window !== 'undefined' ?
           tap(action => {
           // eslint-disable-next-line no-console
-            console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', action.type);
+            console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', action.type, action.payload);
           })
           :
           // eslint-disable-next-line no-console
