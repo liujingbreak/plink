@@ -15,13 +15,14 @@ export function alignToParent(
   _opts: {vertical?: AlignmentValues; horizontal?: AlignmentValues} = {}) {
 
   const {dispatcher} = targetPaintable;
+  dispatcher.addTransformOperator(
+    'position', matrix$ => matrix$.pipe(
+      op.map(m => compose(m, translate(targetPaintableState.x, targetPaintableState.y)))
+    ));
+
   return parentChange$(targetPaintable, targetPaintableState).pipe(
     op.switchMap(({payload: [parent, pState]}) => {
       const {actionOfType: pac} = parent;
-      dispatcher.addTransformOperator(
-        'position', matrix$ => matrix$.pipe(
-          op.map(m => compose(m, translate(targetPaintableState.x, targetPaintableState.y)))
-        ));
 
       return rx.concat(
         rx.of([pState.width, pState.height]),

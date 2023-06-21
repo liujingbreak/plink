@@ -39,7 +39,6 @@ export type PaintableActions = {
     name: string,
     op: (up: rx.Observable<Matrix>) => rx.Observable<Matrix>
   ): void;
-  removeTransformOperator(name: string): void;
   /**
    * Indicate whether `transform` should be calculate by transform operators once `_renderInternally` is emitted.
    * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
@@ -82,6 +81,12 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
   const ctl = createActionStreamByType<PaintableActions>();
 
   const {actionOfType: aot, dispatcher} = ctl;
+  // Push absolute transformation calculation operator as last entry in pipeline
+  dispatcher.addTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<Matrix>) => {
+    return upStream.pipe(
+      op.map(m => compose(pState.transform, m))
+    );
+  });
 
   rx.merge(
     aot('setSize').pipe(
@@ -165,12 +170,6 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
         state.parent = [parent, pState];
         const {actionOfType: pac} = parent;
 
-        // Push absolute transformation calculation operator as last entry in pipeline
-        dispatcher.addTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<Matrix>) => {
-          return upStream.pipe(
-            op.map(m => compose(pState.transform, m))
-          );
-        });
 
         // When attached to a new parent, should always trigger `transform` recalculation
         dispatcher.setTransformDirty(true);
@@ -224,10 +223,7 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
             })
           )
         ).pipe(
-          op.takeUntil(aot('detach')),
-          op.finalize(() => {
-            dispatcher.removeTransformOperator(TRANSFORM_BY_PARENT_OPERATOR);
-          })
+          op.takeUntil(aot('detach'))
         );
       })
     ),

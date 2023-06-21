@@ -8,24 +8,21 @@ import {createBezierArch, Segment, transSegments} from '@wfh/doc-ui-common/clien
 export function createHueCircle(root: PaintableCtl, rootState: PaintableState) {
 
   const [singleHueCtrl, singleHueState] = createControl();
-  let scaleRatio = 1;
   const curveSegs = [new Segment({x: 0, y: 0}), ...createBezierArch(0, 1)];
   console.log(curveSegs);
 
   const {dispatcher, actionOfType: aot} = singleHueCtrl;
   dispatcher.attachTo(root, rootState);
   dispatcher.setRelativeSize(0.25, 0.25);
+  dispatcher.addTransformOperator(
+    'scale',
+    matrix$ => matrix$.pipe(
+
+    )
+  );
 
   return rx.merge(
-    rx.concat(
-      rx.of({payload: singleHueState.absTransform}),
-      aot('onTransformChanged')
-    ).pipe(
-      op.tap(({payload: matrix}) => {
-        console.log(matrix);
-        transSegments(curveSegs, matrix);
-      })
-    ),
+    alignToParent(singleHueCtrl, singleHueState),
     rx.concat(
       rx.of({payload: [singleHueState.width, singleHueState.height] as const}),
       aot('onResize')
@@ -34,8 +31,7 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState) {
         const size = Math.min(w, h);
         // transSegments(curveSegs, )
       })
-    ),
-    alignToParent(singleHueCtrl, singleHueState)
+    )
   );
 }
 
