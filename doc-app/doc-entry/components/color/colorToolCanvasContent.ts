@@ -3,7 +3,7 @@ import * as op from 'rxjs/operators';
 import {compose, scale} from 'transformation-matrix';
 import {PaintableCtl, PaintableState, createControl} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/paintable';
 import {alignToParent} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/paintable-utils';
-import {createBezierArch, Segment, transSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {createBezierArch, Segment, transSegments, drawSegmentPath} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
 
 export function createHueCircle(root: PaintableCtl, rootState: PaintableState) {
 
@@ -40,7 +40,13 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState) {
 
     aot('renderContent').pipe(
       op.map(({payload: [ctx, state]}) => {
-        console.log('renderContent', state, [...transSegments(curveSegs, state.transform)]);
+        const transformed = [...transSegments(curveSegs, state.transform)];
+        console.log('renderContent', state, transformed);
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        drawSegmentPath(transformed, ctx, {round: true});
+        ctx.closePath();
+        ctx.fill();
       })
     )
   );

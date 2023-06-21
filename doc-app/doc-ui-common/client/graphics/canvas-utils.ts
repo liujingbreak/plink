@@ -102,20 +102,24 @@ export class Segment {
     const newSeg = this.clone();
     // console.log('transform', matrix, newSeg.point);
     newSeg.point = applyToPoint(matrix, newSeg.point);
-    // console.log('transform', this.point, newSeg.point);
-    // const matrix1 = transform(
-    //   translate(-newSeg.point.x, -newSeg.point.y),
-    //   matrix
-    // );
+    // matrix 1 is the actual transformation plus getting a relative position of "handle point" by segment's "point" position
+    const matrix1 = transform(
+      // 3. Get "handle point"'s x and y coordinate value relative to "point"'s x and y value in absolute coordinate system
+      translate(-newSeg.point.x, -newSeg.point.y),
+      // 2. Apply actual transformation on "point" (instead of "handle point")
+      matrix
+    );
     if (newSeg.handleIn) {
       newSeg.handleIn = applyToPoint(transform(
-        matrix,
+        matrix1,
+        // 1. Based on initial coordinate system,
+        // `translate` "point" position to "handle point"'s position
         translate(newSeg.handleIn.x, newSeg.handleIn.y)
       ), this.point);
     }
     if (newSeg.handleOut) {
       newSeg.handleOut = applyToPoint(transform(
-        matrix,
+        matrix1,
         translate(newSeg.handleOut.x, newSeg.handleOut.y)
       ), this.point);
     }
@@ -214,12 +218,12 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
       const c2 = seg.absHandleInPoint();
 
       if (c1 && c2) {
-        if (opts && opts.debug)
+        if (opts?.debug)
           // eslint-disable-next-line no-console
           console.log('bezierCurveTo', c1, c2, p);
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);
       } else {
-        if (opts && opts.debug)
+        if (opts?.debug)
           // eslint-disable-next-line no-console
           console.log('lineTo', p);
         ctx.lineTo(p.x, p.y);
