@@ -117,7 +117,7 @@ export function createActionStreamByType(opt = {}) {
         }
         return a$;
     }
-    const debugName = typeof opt.debug === 'string' ? `[${opt.debug}] ` : '';
+    const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : '';
     const interceptor$ = new BehaviorSubject(null);
     function changeActionInterceptor(factory) {
         const newInterceptor = factory(interceptor$.getValue());

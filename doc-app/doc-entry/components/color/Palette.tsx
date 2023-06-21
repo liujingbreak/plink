@@ -40,6 +40,3 @@ const Palette = React.memo<PaletteProps>(function(props) {
 });
 
 export {Palette};
-
-
-

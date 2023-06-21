@@ -121,9 +121,6 @@ export function createControl<ExtActions extends Record<string, ((...payload: an
         const ops = state.transPipeline.map(key => state.transPipelineByName.get(key)!) as [rx.OperatorFunction<Matrix, Matrix>];
         return aot('_composeTransform').pipe(
           op.mapTo(identity()),
-          op.tap(() => {
-            dispatcher.setTransformDirty(false);
-          }),
           ...ops
         );
       }),

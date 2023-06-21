@@ -45,5 +45,3 @@ const ColorTool = React.memo<ColorToolProps>(props => {
 
 export {ColorTool};
 
-
-
