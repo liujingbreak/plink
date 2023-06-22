@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
-import {createControl as createPaintable, PaintableCtl} from './paintable';
+import {createPaintable, PaintableCtl} from './paintable';
 
 export type ReactiveCanvasProps = {
   /** default 2 */
@@ -16,7 +16,7 @@ export type ReactiveCanvas2State = {
   height: number;
   pixelWidth: number;
   pixelHeight: number;
-  _countAnimatings:  number;
+  _animateCounter:  number;
 } & ReactiveCanvasProps;
 
 export type ReactiveCanvas2Actions = {
@@ -39,39 +39,41 @@ type ReactiveCanvas2InternalActions = {
 };
 
 export function createControl() {
-  const state$ = new rx.BehaviorSubject<ReactiveCanvas2State>({ scaleRatio: 2, canvas: null, width: 0,
+  const state$ = new rx.BehaviorSubject<ReactiveCanvas2State>({
+    scaleRatio: 2,
+    canvas: null,
+    width: 0,
     height: 0,
     pixelHeight: 0,
     pixelWidth: 0,
-    _countAnimatings: 0
+    _animateCounter: 0
   });
 
-  let countAnimatings = 0;
+  let animateCounter = 0;
 
   const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvas2InternalActions>(
     {debug: process.env.NODE_ENV === 'development' ? 'ReativeCanvas2' : false}
   );
   const {actionOfType} = control;
   // We want a separate observable store to perform well in animation frames
-  const animFrameTime$ = new rx.Observable<number>(sub => {
+  const animFrameTimer$ = new rx.Observable<number>(sub => {
     let keep = true;
     requestAnimationFrame(frame);
 
     function frame(time: number) {
       sub.next(time);
-      if (keep && countAnimatings > 0)
+      if (keep && animateCounter > 0)
         requestAnimationFrame(frame);
     }
     return () => {keep = false; };
   }).pipe(
-    op.exhaustMap(_time => state$.pipe(
+    op.withLatestFrom(state$.pipe(
       op.map(s => s.ctx),
       op.distinctUntilChanged(),
       op.filter(ctx => ctx != null),
-      op.take(1),
-      op.map(ctx => control.dispatcher.renderContent(ctx!))
+      op.take(1)
     )),
-    // op.takeUntil(actionOfType('stopAnimateFrame')),
+    op.map(([time, ctx]) => control.dispatcher.renderContent(ctx!)),
     op.share()
   );
 
@@ -95,14 +97,14 @@ export function createControl() {
       })
     ),
     actionOfType('startAnimating').pipe(
-      op.map(() => {
-        if (countAnimatings++ === 0)
-          animFrameTime$.subscribe();
-      })
+      op.map(() => animateCounter++),
+      op.exhaustMap(() => animFrameTimer$.pipe(
+        op.takeWhile(() => animateCounter > 0)
+      ))
     ),
     actionOfType('stopAnimating').pipe(
       op.map(() => {
-        countAnimatings--;
+        animateCounter--;
       })
     ),
     actionOfType('_createDom').pipe(
@@ -213,3 +215,4 @@ export function createRootPaintable(canvasCtl: ReactiveCanvas2Control, canvasSta
 }
 
 export type RootPaintable = PaintableCtl;
+export * from './paintable';

@@ -76,7 +76,7 @@ export type PaintableActions = {
 const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
 
 // eslint-disable-next-line space-before-function-paren, @typescript-eslint/ban-types
-export function createControl<ExtActions extends Record<string, ((...payload: any[]) => void)> = {}>() {
+export function createPaintable<ExtActions extends Record<string, ((...payload: any[]) => void)> = {}>() {
   const state: PaintableState = {
     x: 0,
     y: 0,

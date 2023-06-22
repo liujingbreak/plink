@@ -172,10 +172,10 @@ export function createControl() {
   const {actionOfType} = control;
   rx.merge(
     actionOfType('canvasReady').pipe(
-      op.switchMap(({payload: [root, rootState, canvasCtl, canvasState$]}) => {
+      op.switchMap(({payload: [root, rootState, canvasCtl, _canvasState$]}) => {
         return rx.merge(
           rx.defer(() => {
-            const ret = createCanvasContent(root, rootState);
+            const ret = createCanvasContent(root, rootState, canvasCtl);
             canvasCtl.dispatcher.render();
             return ret;
           })

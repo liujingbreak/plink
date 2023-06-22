@@ -1,15 +1,14 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {compose, scale} from 'transformation-matrix';
-import {PaintableCtl, PaintableState, createControl} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/paintable';
+import {PaintableCtl, PaintableState, createPaintable, ReactiveCanvas2Control} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/reactiveCanvas2.control';
 import {alignToParent} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/paintable-utils';
 import {createBezierArch, Segment, transSegments, drawSegmentPath} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
 
-export function createHueCircle(root: PaintableCtl, rootState: PaintableState) {
+export function createHueCircle(root: PaintableCtl, rootState: PaintableState, canvasCtl: ReactiveCanvas2Control) {
 
-  const [singleHueCtrl, singleHueState] = createControl();
+  const [singleHueCtrl, singleHueState] = createPaintable();
   const curveSegs = [new Segment({x: 0, y: 0}), ...createBezierArch(0, 1)];
-  console.log(curveSegs);
 
   const {dispatcher, actionOfType: aot} = singleHueCtrl;
   dispatcher.attachTo(root, rootState);
@@ -41,12 +40,19 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState) {
     aot('renderContent').pipe(
       op.map(({payload: [ctx, state]}) => {
         const transformed = [...transSegments(curveSegs, state.transform)];
-        console.log('renderContent', state, transformed);
+        // console.log('renderContent', state, transformed);
         ctx.fillStyle = 'red';
         ctx.beginPath();
         drawSegmentPath(transformed, ctx, {round: true});
         ctx.closePath();
         ctx.fill();
+      })
+    ),
+    aot('renderContent').pipe(
+      op.take(1),
+      op.tap(() => {
+        canvasCtl.dispatcher.startAnimating();
+        setTimeout(() => canvasCtl.dispatcher.stopAnimating(), 500);
       })
     )
   );
