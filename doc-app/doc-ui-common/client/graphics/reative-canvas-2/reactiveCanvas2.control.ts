@@ -1,6 +1,7 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
+import {renderFrame$} from '../../animation/ease-functions';
 import {createPaintable, PaintableCtl} from './paintable';
 
 export type ReactiveCanvasProps = {
@@ -23,8 +24,6 @@ export type ReactiveCanvas2Actions = {
   /** render once */
   render(): void;
   onResize(): void;
-  startAnimating(): void;
-  stopAnimating(): void;
   changeRatio(scaleRatio: number): void;
   /** root component should subscribe this event, and start painting all children */
   renderContent(ctx: CanvasRenderingContext2D): void;
@@ -49,33 +48,10 @@ export function createControl() {
     _animateCounter: 0
   });
 
-  let animateCounter = 0;
-
   const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvas2InternalActions>(
     {debug: process.env.NODE_ENV === 'development' ? 'ReativeCanvas2' : false}
   );
   const {actionOfType} = control;
-  // We want a separate observable store to perform well in animation frames
-  const animFrameTimer$ = new rx.Observable<number>(sub => {
-    let keep = true;
-    requestAnimationFrame(frame);
-
-    function frame(time: number) {
-      sub.next(time);
-      if (keep && animateCounter > 0)
-        requestAnimationFrame(frame);
-    }
-    return () => {keep = false; };
-  }).pipe(
-    op.withLatestFrom(state$.pipe(
-      op.map(s => s.ctx),
-      op.distinctUntilChanged(),
-      op.filter(ctx => ctx != null),
-      op.take(1)
-    )),
-    op.map(([time, ctx]) => control.dispatcher.renderContent(ctx!)),
-    op.share()
-  );
 
   rx.merge(
     actionOfType('onResize').pipe(
@@ -94,17 +70,6 @@ export function createControl() {
           s.height = Math.floor(vh * ratio);
         }
         state$.next(s);
-      })
-    ),
-    actionOfType('startAnimating').pipe(
-      op.map(() => animateCounter++),
-      op.exhaustMap(() => animFrameTimer$.pipe(
-        op.takeWhile(() => animateCounter > 0)
-      ))
-    ),
-    actionOfType('stopAnimating').pipe(
-      op.map(() => {
-        animateCounter--;
       })
     ),
     actionOfType('_createDom').pipe(
@@ -136,6 +101,15 @@ export function createControl() {
         const s = state$.getValue();
         ctx.clearRect(0, 0, s.width, s.height);
       })
+    ),
+    renderFrame$.pipe(
+      op.withLatestFrom(state$.pipe(
+        op.map(s => s.ctx),
+        op.distinctUntilChanged(),
+        op.filter(ctx => ctx != null),
+        op.take(1)
+      )),
+      op.map(([, ctx]) => control.dispatcher.renderContent(ctx!))
     ),
     state$.pipe(
       op.distinctUntilChanged((x, y) => x.width === y.width && x.height === y.height && x.canvas !== y.canvas),

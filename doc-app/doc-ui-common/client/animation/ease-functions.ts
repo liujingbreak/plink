@@ -29,7 +29,7 @@ export {bezierEasing};
  * @returns Observable of changing value
  */
 export function animate(startValue: number, endValue: number, durationMSec: number,
-  timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease', animFrameTime$: rx.Observable<number> = createAnimFrameTimer())
+  timingFuntion: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' = 'ease')
   : rx.Observable<number> {
 
   let timingFn: (input: number) => number;
@@ -52,13 +52,14 @@ export function animate(startValue: number, endValue: number, durationMSec: numb
   }
 
   const deltaValue = endValue - startValue;
-  return animFrameTime$.pipe(
-    op.take<number>(1),
+
+  return animCalculateTimer$.pipe(
+    op.take(1),
     op.switchMap(initTime => {
       let progress = 0;
 
       return rx.concat(
-        animFrameTime$.pipe(
+        animCalculateTimer$.pipe(
           op.filter(time => time > initTime),
           op.map(time => {
             progress = (time - initTime) / durationMSec;
@@ -66,7 +67,7 @@ export function animate(startValue: number, endValue: number, durationMSec: numb
             const currValue = progress > 1 ? endValue : startValue + deltaValue * timingFn(progress);
             return currValue;
           }),
-          op.takeWhile(() => progress <= 1)
+          op.takeWhile(() => progress < 1)
         ),
         rx.of(endValue)
       );
@@ -74,19 +75,26 @@ export function animate(startValue: number, endValue: number, durationMSec: numb
   );
 }
 
-export function createAnimFrameTimer() {
-  return new rx.Observable<number>(sub => {
-    let stop = false;
-    function run() {
-      requestAnimationFrame(time => {
-        sub.next(time);
-        if (!stop) {
-          run();
-        }
-      });
-    }
+/**
+ * Rendering logic should run for this observable, not animCalculateTimer$, since for every frame animCalculateTimer$
+ * is emitted earlier than renderFrame$
+ */
+export const renderFrame$ = new rx.Subject<void>();
 
-    run();
-    return () => {stop = true; };
-  });
-}
+const animCalculateTimer$ = new rx.Observable<number>(sub => {
+  let stop = false;
+  function run() {
+    requestAnimationFrame(time => {
+      sub.next(time);
+      renderFrame$.next();
+      if (!stop) {
+        run();
+      }
+    });
+  }
+
+  run();
+  return () => {stop = true; };
+}).pipe(
+  op.share()
+);

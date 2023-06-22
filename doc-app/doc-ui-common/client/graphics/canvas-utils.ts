@@ -158,7 +158,7 @@ export const quarterCircleCurve = [
 ];
 
 /**
- * 
+ * draw a 1/4 circle starts frome [0, 1] counter-clocl wise 
  * @param startT 0 ~ 1, t value of a qaurter circle bezier curve
  * @param endT 0 ~ 1
  */
