@@ -1,19 +1,21 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {compose, scale} from 'transformation-matrix';
-import {PaintableCtl, PaintableState, createPaintable, ReactiveCanvas2Control} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/reactiveCanvas2.control';
+import Color from 'color';
+import {compose, scale, rotate} from 'transformation-matrix';
+import {PaintableCtl, PaintableState, createPaintable, ReactiveCanvas2Control} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2';
 import {alignToParent} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/paintable-utils';
 import {animate} from '@wfh/doc-ui-common/client/animation/ease-functions';
-import {createBezierArch, Segment, transSegments, drawSegmentPath} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {createBezierArch, Segment, transSegments, drawSegmentPath, reverseSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
 
 export function createHueCircle(root: PaintableCtl, rootState: PaintableState, canvasCtl: ReactiveCanvas2Control) {
 
   const [singleHueCtrl, singleHueState] = createPaintable();
-  let curveSegs = [new Segment({x: 0, y: 0}), ...createBezierArch(0, 1)];
 
   const {dispatcher, actionOfType: aot} = singleHueCtrl;
   dispatcher.attachTo(root, rootState);
-  dispatcher.setRelativeSize(0.25, 0.25);
+  dispatcher.setRelativeSize(0.4, 0.4);
+  dispatcher.setTouchDetection(true);
+  const {setProgress, shapeChange$} = createPaintingObjects();
   let scaleRatio = 1;
 
   return rx.merge(
@@ -39,23 +41,89 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, c
     ),
 
     aot('renderContent').pipe(
-      op.map(({payload: [ctx, state]}) => {
-        const transformed = [...transSegments(curveSegs, state.transform)];
-        ctx.fillStyle = 'red';
-        ctx.beginPath();
-        drawSegmentPath(transformed, ctx, {round: true});
-        ctx.closePath();
-        ctx.fill();
+      op.withLatestFrom(shapeChange$),
+      op.map(([{payload: [ctx, state]}, [shapes, colors]]) => {
+        let i = 0;
+        for (const segs of shapes) {
+          const transformed = [...transSegments(segs, state.transform)];
+          ctx.fillStyle = colors[i++];
+          ctx.beginPath();
+          drawSegmentPath(transformed, ctx, {closed: true, round: true});
+          ctx.closePath();
+          ctx.fill();
+        }
       })
     ),
     aot('renderContent').pipe(
       op.take(1),
-      op.switchMap(() => animate(0, 1, 2000, 'ease-out')),
+      op.switchMap(() => animate(0, 1, 1000, 'ease-out')),
       op.map(v => {
-        curveSegs = [new Segment({x: 0, y: 0}), ...createBezierArch(0, v)];
+        setProgress(v);
       })
     )
   );
 }
 
+function createPaintingObjects() {
+  const setProgress$ = new rx.Subject<number>();
+  const dispatcher = new rx.Subject<[Iterable<Segment>[], string[]]>();
 
+  const numOfColors = 48;
+  const fanShapes = [] as Iterable<Segment>[];
+  const colors: string[] = [];
+
+  const shapeChange$ = rx.defer(() => {
+    const archRatio = 1 / (numOfColors / 4);
+
+    const angle = Math.PI * 2 / numOfColors;
+    const angleDeg = 360 / numOfColors;
+    const curveSegs = createBezierArch(0, archRatio);
+    const smallCurveSegs = [...transSegments(curveSegs, scale(0.7))];
+    let lastCurveEnd = curveSegs[0];
+    let lastSmallCurveEnd = smallCurveSegs[0];
+    const shape = [...reverseSegments(smallCurveSegs), ...curveSegs];
+
+    for (let i = 0, last = numOfColors - 1; i < numOfColors; i++) {
+      const rotatedShape = Array.from(transSegments(shape, rotate(-angle * i)));
+
+      rotatedShape[1].point = lastSmallCurveEnd.point; // make twe adjacent curve share some point, so that avoid T-joint issue
+      rotatedShape[2].point = lastCurveEnd.point;
+      if (i === last) {
+        rotatedShape[0].point = smallCurveSegs[0].point;
+        rotatedShape[3].point = curveSegs[0].point;
+      }
+      lastSmallCurveEnd = rotatedShape[0];
+      lastCurveEnd = rotatedShape[3];
+      fanShapes[i] = rotatedShape;
+
+      colors.push(new Color().hue(angleDeg * i).lightness(50)
+        .saturationl(70)
+        .toString());
+    }
+    return dispatcher;
+  });
+
+  return {
+    setProgress(progress: number) {
+      setProgress$.next(progress);
+    },
+    shapeChange$: rx.merge(
+      shapeChange$,
+      setProgress$.pipe(
+        op.map(value => {
+          const fShowNumColorsF = numOfColors * value;
+          const iShowNumColors = Math.floor(fShowNumColorsF);
+          const partialShape = fShowNumColorsF - iShowNumColors;
+          const numOfShapes = iShowNumColors < numOfColors ? iShowNumColors : iShowNumColors + 1;
+          const showShapes = fanShapes.slice(0, numOfShapes);
+          const showColors = colors.slice(0, numOfShapes);
+          if (partialShape > 0) {
+            showColors[iShowNumColors - 1] = new Color(colors[iShowNumColors - 1]).alpha(partialShape).toString();
+          }
+          dispatcher.next([showShapes, showColors]);
+        }),
+        op.ignoreElements()
+      )
+    )
+  };
+}

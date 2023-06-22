@@ -7,7 +7,7 @@ import {RbTreeNode, RedBlackTree} from './rb-tree';
 export interface IntervalTreeNode<V = unknown> extends RbTreeNode<number, V, IntervalTreeNode<V>> {
   /** For no duplicate single interval*/
   int?: [low: number, high: number];
-  /** For 4+ intervals, a tree to store different "high" value */
+  /** For multiple intervals, a tree to store different "high" value */
   highValuesTree?: RedBlackTree<number, V>;
   /** Maximum "high" value of multi intervals that this node contains */
   maxHighOfMulti?: number;

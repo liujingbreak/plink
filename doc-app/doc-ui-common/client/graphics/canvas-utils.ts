@@ -153,9 +153,10 @@ export class Segment {
 export const CIRCLE_BEZIER_CONST = 0.551915024494;
 
 export const quarterCircleCurve = [
-  Segment.from(0, 1, -CIRCLE_BEZIER_CONST, 1, CIRCLE_BEZIER_CONST, 1),
-  Segment.from(1, 0, 1, CIRCLE_BEZIER_CONST, 1, -CIRCLE_BEZIER_CONST)
+  new Segment({x: 0, y: 1}, {x: -CIRCLE_BEZIER_CONST, y: 1}, {x: CIRCLE_BEZIER_CONST, y: 1}),
+  new Segment({x: 1, y: 0}, {x: 1, y: CIRCLE_BEZIER_CONST}, {x: 1, y: -CIRCLE_BEZIER_CONST})
 ];
+
 
 /**
  * draw a 1/4 circle starts frome [0, 1] counter-clocl wise 

@@ -4,7 +4,7 @@ import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-
 import {renderFrame$} from '../../animation/ease-functions';
 import {createPaintable, PaintableCtl} from './paintable';
 
-export type ReactiveCanvasProps = {
+export type ReactiveCanvasConfig = {
   /** default 2 */
   scaleRatio?: number;
   // onReady?(paintCtx: PaintableContext): Iterable<PaintableSlice<any, any>> | void;
@@ -18,7 +18,7 @@ export type ReactiveCanvas2State = {
   pixelWidth: number;
   pixelHeight: number;
   _animateCounter:  number;
-} & ReactiveCanvasProps;
+} & ReactiveCanvasConfig;
 
 export type ReactiveCanvas2Actions = {
   /** render once */
@@ -162,6 +162,8 @@ export type ReactiveCanvas2Control = ActionStreamControl<ReactiveCanvas2Actions 
 
 export function createRootPaintable(canvasCtl: ReactiveCanvas2Control, canvasState$: rx.BehaviorSubject<ReactiveCanvas2State>) {
   const [baseCtl, baseState] = createPaintable();
+  baseState.detached = false;
+  baseState.treeDetached = false;
   const {actionOfType: canvasAc} = canvasCtl;
   baseState.width = canvasState$.getValue().width;
   baseState.height = canvasState$.getValue().height;
@@ -189,4 +191,3 @@ export function createRootPaintable(canvasCtl: ReactiveCanvas2Control, canvasSta
 }
 
 export type RootPaintable = PaintableCtl;
-export * from './paintable';

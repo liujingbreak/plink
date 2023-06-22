@@ -2,8 +2,12 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {Matrix, identity, compose} from 'transformation-matrix';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
+import {heavyCal} from './paintable-heavy-cal';
+
+let SEQ = 0;
 
 export type PaintableState = {
+  id: string;
   x: number;
   y: number;
   /** value is calculated by relativeWidth */
@@ -17,11 +21,17 @@ export type PaintableState = {
   transPipelineByName: Map<string, (up: rx.Observable<Matrix>) => rx.Observable<Matrix>>;
   /** used to actual render and calculate interactions detection */
   transform: Matrix;
+  /**
+   * 1. Cache "transform" matrix tree to a web_worker for touch detection,
+   * 2. Calculate "boundingBox" for touch detection
+   */
+  touchDetection?: boolean;
   detached: boolean;
+  treeDetached: boolean;
   parent?: [PaintableCtl, PaintableState];
   /** bounding box calculation is expensive, if it is not used for interaction detective,
   * we shall not calculate it in case of actions like:
-  *   - ancestorDetached
+  *   - treeDetached
   *   - detach
   */
   boundingBox?: {x: number; y: number; w: number; h: number};
@@ -35,6 +45,7 @@ export type PaintableActions = {
   setSize(w: number, h: number): void;
   /** change relative size which is proportional to parent's size */
   setRelativeSize(w: number, h: number): void;
+  setTouchDetection(enable: boolean): void;
   /**
    * `putTransformOperator` helps to customize how `matrix` is finally calculated.
    * Be aware of the order of first time of emitting this action matters, it decides how pipeline is composed.
@@ -50,27 +61,32 @@ export type PaintableActions = {
     op: (up: rx.Observable<Matrix>) => rx.Observable<Matrix>
   ): void;
   /**
-   * Indicate whether `transform` should be calculate by transform operators once `_renderInternally` is emitted.
+   * Indicate whether `transform` should be calculate by transform operators once `renderInternally` is emitted.
    * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
    *  set to `false` once transform operators are executed and `transform` is updated.
    */
   setTransformDirty(isDirty: boolean): void;
-  _renderInternally(ctx: CanvasRenderingContext2D): void;
-  _composeTransform(): void;
   /**
    * Begin actual content and child paintables rendering, at this moment,
    * transform matrix is composed and not dirty.
    *
-   * Child paintable should also subscribe to this message for their own `_renderInternally` action
+   * Child paintable should also subscribe to this message for their own `renderInternally` action
    */
-  renderContent(
+  renderContent<E extends PaintableActions = PaintableActions>(
     ctx: CanvasRenderingContext2D,
     state: PaintableState,
-    ctl: ActionStreamControl<PaintableActions>
+    ctl: ActionStreamControl<E>
   ): void;
   detach(): void;
   /** Event: one of ancestors is detached, so current "paintable" is no long connected to canvas */
-  ancestorDetached(): void;
+  treeDetached(): void;
+  treeAttached(): void;
+};
+
+type InternalActions = {
+  renderInternally(ctx: CanvasRenderingContext2D): void;
+  composeTransform(): void;
+  setTreeAttached(attached: boolean): void;
 };
 
 const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
@@ -78,6 +94,7 @@ const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
 // eslint-disable-next-line space-before-function-paren, @typescript-eslint/ban-types
 export function createPaintable<ExtActions extends Record<string, ((...payload: any[]) => void)> = {}>() {
   const state: PaintableState = {
+    id: '' + SEQ++,
     x: 0,
     y: 0,
     width: 100,
@@ -85,10 +102,11 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
     transform: identity(),
     transPipelineByName: new Map(),
     transPipeline: [],
-    detached: true
+    detached: true,
+    treeDetached: true
   };
 
-  const ctl = createActionStreamByType<PaintableActions>({debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
+  const ctl = createActionStreamByType<PaintableActions & InternalActions>({debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
 
   const {actionOfType: aot, dispatcher} = ctl;
 
@@ -106,6 +124,14 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
         state.relativeHeight = h;
       })
     ),
+    aot('setTreeAttached').pipe(
+      op.map(({payload}) => {
+        state.treeDetached = !payload;
+        return payload;
+      }),
+      op.distinctUntilChanged(),
+      op.map(attached => attached ? dispatcher.treeAttached() : dispatcher.treeDetached())
+    ),
 
     rx.merge(
       aot('putTransformOperator').pipe(
@@ -119,7 +145,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
     ).pipe(
       op.switchMap(() => {
         const ops = state.transPipeline.map(key => state.transPipelineByName.get(key)!) as [rx.OperatorFunction<Matrix, Matrix>];
-        return aot('_composeTransform').pipe(
+        return aot('composeTransform').pipe(
           op.mapTo(identity()),
           ...ops
         );
@@ -132,15 +158,14 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
 
     // When rendering, check whether transform should be "composed",
     // otherwise directly emit `renderContent`
-    aot('_renderInternally').pipe(
+    aot('renderInternally').pipe(
       op.withLatestFrom(aot('setTransformDirty').pipe(
         op.map(({payload: dirty}) => dirty)
-        // op.distinctUntilChanged()
       )),
       op.switchMap(([{payload: ctx}, dirty]) => {
         if (dirty) {
           return rx.merge(
-            // wait for `_composeTransform` result: transform becomes not `dirty`
+            // wait for `composeTransform` result: transform becomes not `dirty`
             aot('setTransformDirty').pipe(
               op.filter(({payload: dirty}) => !dirty),
               op.take(1),
@@ -148,7 +173,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
             ),
             // compose tranform matrix if it is dirty
             new rx.Observable<never>(sub => {
-              dispatcher._composeTransform();
+              dispatcher.composeTransform();
               sub.complete();
             })
           );
@@ -172,13 +197,13 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
         return rx.merge(
           // Side effect on relative size change or parent resize
           rx.combineLatest(
-            rx.concat(
+            rx.merge(
               rx.of([pState.width, pState.height]),
               pac('onResize').pipe(
                 op.map(({payload}) => payload)
               )
             ),
-            rx.concat(
+            rx.merge(
               rx.of([state.relativeWidth, state.relativeHeight]),
               aot('setRelativeSize').pipe(
                 op.map(({payload}) => payload)
@@ -201,20 +226,24 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
             op.filter(({payload}) => payload),
             op.tap(() => dispatcher.setTransformDirty(true))
           ),
-
-          // Pass down parent's detach event
           rx.merge(
-            pac('detach'),
-            pac('ancestorDetached')
-          ).pipe(
-            op.map(() => {
-              dispatcher.ancestorDetached();
-            })
+            rx.of(pState.treeDetached).pipe(
+              op.map(detached => dispatcher.setTreeAttached(!detached))
+            ),
+            pac('treeDetached').pipe(
+              op.map(() => {
+                dispatcher.setTreeAttached(false);
+              })
+            ),
+            pac('treeAttached').pipe(
+              op.map(() => {
+                dispatcher.setTreeAttached(true);
+              })
+            )
           ),
-
           pac('renderContent').pipe(
             op.map(({payload: [ctx]}) => {
-              dispatcher._renderInternally(ctx);
+              dispatcher.renderInternally(ctx);
             })
           )
         ).pipe(
@@ -223,9 +252,39 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
       })
     ),
     aot('detach').pipe(
-      op.tap(() => {
+      op.map(() => {
         state.detached = true;
         state.parent = undefined;
+        dispatcher.setTreeAttached(false);
+      })
+    ),
+    aot('setTouchDetection').pipe(
+      op.map(({payload}) => {
+        state.touchDetection = payload;
+        return payload;
+      })
+    ),
+
+    // TODO: When touchDetection is enabled and current paintable is attached to rendering tree,
+    // prepare touch detection data: calculating bounding box
+    rx.combineLatest(
+      rx.merge(
+        rx.of(state.touchDetection),
+        aot('setTouchDetection').pipe(
+          op.map(({payload}) => payload),
+          op.distinctUntilChanged(),
+          op.filter(enabled => enabled)
+        )
+      ),
+      aot('treeAttached')
+    ).pipe(
+      op.map(([enabled]) => enabled),
+      op.switchMap((enabled) => {
+        if (enabled) {
+          heavyCal.dispatcher.calcBoundingBox();
+          // TODO:
+        }
+        return rx.EMPTY;
       })
     ),
     new rx.Observable(sub => {
@@ -241,7 +300,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
       });
 
       sub.complete();
-    }),
+    })
   ).pipe(
     op.takeUntil(aot('detach'))
   ).subscribe();
@@ -251,7 +310,10 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
 
 export type PaintableCtl = ActionStreamControl<PaintableActions>;
 
-export function parentChange$({actionOfType: aot}: ActionStreamControl<PaintableActions>, state: PaintableState) {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function parentChange$<E extends PaintableActions = PaintableActions>(
+  {actionOfType: aot}: ActionStreamControl<E>, state: PaintableState
+) {
   return rx.concat(
     state.parent ? rx.of({payload: state.parent}) : rx.EMPTY,
     aot('attachTo')

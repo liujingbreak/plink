@@ -449,11 +449,11 @@ export class PaintableContext {
     : rx.Observable<number> {
     return rx.defer(() => {
       this.canvasSlice.actionDispatcher.startAnimating();
-      return easeFn.animate(startValue, endValue, durationMSec, timingFuntion,
-        this.getState().animFrameTime$
-          .pipe(
-            op.filter(time => time != null)
-          ) as rx.Observable<number>
+      return easeFn.animate(startValue, endValue, durationMSec, timingFuntion
+        // this.getState().animFrameTime$
+        //   .pipe(
+        //     op.filter(time => time != null)
+        //   ) as rx.Observable<number>
       );
     }).pipe(
       op.finalize(() => {

@@ -28,7 +28,7 @@ export function alignToParent(
       op.switchMap(({payload: [parent, pState]}) => {
         const {actionOfType: pac} = parent;
 
-        return rx.concat(
+        return rx.merge(
           rx.of([pState.width, pState.height]),
           pac('onResize').pipe(
             op.map(({payload}) => payload)

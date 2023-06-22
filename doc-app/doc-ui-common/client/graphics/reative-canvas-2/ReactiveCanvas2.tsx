@@ -2,14 +2,14 @@ import React from 'react';
 import {BehaviorSubject} from 'rxjs';
 import cls from 'classnames';
 import styles from '../ReactiveCanvas.module.scss';
-import {createControl, ReactiveCanvasProps as Props, ReactiveCanvas2Control, ReactiveCanvas2State,
+import {createControl, ReactiveCanvasConfig, ReactiveCanvas2Control, ReactiveCanvas2State,
   createRootPaintable
 } from './reactiveCanvas2.control';
 import {PaintableCtl, PaintableState} from './paintable';
 // import {sliceOptionFactory, epicFactory, ReactiveCanvasProps as Props} from './reactiveCanvas.state';
 
 // CRA's babel plugin will remove statement "export {ReactiveCanvasProps}" in case there is only type definition, have to reassign and export it.
-export type ReactiveCanvasProps = React.PropsWithChildren<Props & {
+export type ReactiveCanvasProps = React.PropsWithChildren<ReactiveCanvasConfig & {
   className?: string;
   onReady?(rootPaintable: PaintableCtl, rootPaintableState: PaintableState, control: ReactiveCanvas2Control, state$: BehaviorSubject<ReactiveCanvas2State>): void;
 }>;
