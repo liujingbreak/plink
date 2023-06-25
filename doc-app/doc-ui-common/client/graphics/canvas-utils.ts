@@ -66,18 +66,42 @@ export class Segment {
   static from(pointX: number, pointY: number, handleInX: number, handleInY: number, handleOutX: number, handleOutY: number) {
     return new Segment({x: pointX, y: pointY}, {x: handleInX, y: handleInY}, {x: handleOutX, y: handleOutY});
   }
+  point: Point = {x: 0, y: 0};
   /** Relative to this.point */
   handleIn?: Point;
   /** Relative to this.point */
   handleOut?: Point;
 
-  constructor(public point: Point, handleIn?: Point | null, handleOut?: Point ) {
-    // this.point = {...point};
+  constructor(coordinates: [number, number, (number | null)?, (number | null)?, (number | null)?, (number | null)?]);
+  constructor(point: Point, handleIn?: Point | null, handleOut?: Point);
+  constructor(
+    point: Point | [number, number, (number | null)?, (number | null)?, (number | null)?, (number | null)?],
+    handleIn?: Point | null,
+    handleOut?: Point
+  ) {
+    if (Array.isArray(point)) {
+      this.point.x = point[0];
+      this.point.y = point[1];
+      if (point[2] != null && point[3] != null) {
+        this.handleIn = {
+          x: point[2],
+          y: point[3]
+        };
+      }
+      if (point[4] != null && point[5] != null) {
+        this.handleOut = {
+          x: point[4]!,
+          y: point[5]!
+        };
+      }
+    } else {
+      this.point = point;
+    }
     if (handleIn) {
-      this.handleIn = {x: handleIn.x - point.x, y: handleIn.y - point.y};
+      this.handleIn = {x: handleIn.x - this.point.x, y: handleIn.y - this.point.y};
     }
     if (handleOut) {
-      this.handleOut = {x: handleOut.x - point.x, y: handleOut.y - point.y};
+      this.handleOut = {x: handleOut.x - this.point.x, y: handleOut.y - this.point.y};
     }
   }
 
@@ -147,6 +171,18 @@ export class Segment {
       newSeg.handleOut = {...this.handleOut};
     }
     return newSeg;
+  }
+
+  toNumbers() {
+    const arr = [this.point.x, this.point.y];
+    if (this.handleIn) {
+      arr[2] = this.handleIn.x;
+      arr[3] = this.handleIn.y;
+    }
+    if (this.handleOut) {
+      arr[4] = this.handleOut.x;
+      arr[5] = this.handleOut.y;
+    }
   }
 }
 
