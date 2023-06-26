@@ -2,7 +2,8 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {Matrix, identity, compose} from 'transformation-matrix';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
-import {heavyCal} from './paintable-heavy-cal';
+// import {heavyCal} from './paintable-heavy-cal';
+import {Segment} from '../canvas-utils';
 
 let SEQ = 0;
 
@@ -10,42 +11,36 @@ export type PaintableState = {
   id: string;
   x: number;
   y: number;
-  /** value is calculated by relativeWidth */
+  /** absolute size, value is calculated by relativeWidth */
   width: number;
-  /** value is calculated by relativeHeight */
+  /** absolute size, value is calculated by relativeHeight */
   height: number;
   /** relative size of parent, if parent is not a positional paintable, size is relative to reactive canvas, value is between 0 ~ 1 */
   relativeWidth?: number;
+  /** relative size of parent, if parent is not a positional paintable, size is relative to reactive canvas, value is between 0 ~ 1 */
   relativeHeight?: number;
   transPipeline: string[];
   transPipelineByName: Map<string, (up: rx.Observable<Matrix>) => rx.Observable<Matrix>>;
   /** used to actual render and calculate interactions detection */
   transform: Matrix;
-  /**
-   * 1. Cache "transform" matrix tree to a web_worker for touch detection,
-   * 2. Calculate "boundingBox" for touch detection
-   */
-  touchDetection?: boolean;
   detached: boolean;
   treeDetached: boolean;
   parent?: [PaintableCtl, PaintableState];
-  /** bounding box calculation is expensive, if it is not used for interaction detective,
-  * we shall not calculate it in case of actions like:
-  *   - treeDetached
-  *   - detach
-  */
-  boundingBox?: {x: number; y: number; w: number; h: number};
+  /** For touch detection */
+  detectables?: Map<string, Segment[]>;
+  detectableBbox?: Map<string, {x: number; y: number; w: number; h: number}>;
 };
 
 export type PaintableActions = {
+  setProp(override: Partial<Pick<PaintableState, 'width' | 'height' | 'relativeHeight' | 'relativeWidth'>>): void;
   /** attach to a parent paintable object */
   attachTo(p: ActionStreamControl<PaintableActions>, pState: PaintableState): void;
   onResize(w: number, h: number): void;
   /** set absolute size, alternatively call setRelativeSize() */
-  setSize(w: number, h: number): void;
+  // setSize(w: number, h: number): void;
   /** change relative size which is proportional to parent's size */
-  setRelativeSize(w: number, h: number): void;
-  setTouchDetection(enable: boolean): void;
+  // setRelativeSize(w: number, h: number): void;
+  // setTouchDetection(enable: boolean): void;
   /**
    * `putTransformOperator` helps to customize how `matrix` is finally calculated.
    * Be aware of the order of first time of emitting this action matters, it decides how pipeline is composed.
@@ -78,6 +73,7 @@ export type PaintableActions = {
     ctl: ActionStreamControl<E>
   ): void;
   detach(): void;
+  updateDetectables(key: string, segments: Segment[]): void;
   /** Event: one of ancestors is detached, so current "paintable" is no long connected to canvas */
   treeDetached(): void;
   treeAttached(): void;
@@ -90,6 +86,7 @@ type InternalActions = {
 };
 
 const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
+const hasOwnProperty = (t: any, prop: string) => Object.prototype.hasOwnProperty.call(t, prop);
 
 // eslint-disable-next-line space-before-function-paren, @typescript-eslint/ban-types
 export function createPaintable<ExtActions extends Record<string, ((...payload: any[]) => void)> = {}>() {
@@ -111,17 +108,12 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
   const {actionOfType: aot, dispatcher} = ctl;
 
   rx.merge(
-    aot('setSize').pipe(
-      op.tap(({payload: [w, h]}) => {
-        state.width = w;
-        state.height = h;
-        dispatcher.onResize(state.width, state.height);
-      })
-    ),
-    aot('setRelativeSize').pipe(
-      op.tap(({payload: [w, h]}) => {
-        state.relativeWidth = w;
-        state.relativeHeight = h;
+    aot('setProp').pipe(
+      op.map(({payload}) => {
+        Object.assign(state, payload);
+        if (hasOwnProperty(payload, 'width') || hasOwnProperty(payload, 'height')) {
+          dispatcher.onResize(state.width, state.height);
+        }
       })
     ),
     aot('setTreeAttached').pipe(
@@ -205,8 +197,9 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
             ),
             rx.merge(
               rx.of([state.relativeWidth, state.relativeHeight]),
-              aot('setRelativeSize').pipe(
-                op.map(({payload}) => payload)
+              aot('setProp').pipe(
+                op.filter(({payload}) => hasOwnProperty(payload, 'relativeWidth') || hasOwnProperty(payload, 'relativeHeight')),
+                op.map(({payload}) => [payload.relativeWidth, payload.relativeHeight])
               )
             )
           ).pipe(
@@ -258,35 +251,17 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
         dispatcher.setTreeAttached(false);
       })
     ),
-    aot('setTouchDetection').pipe(
-      op.map(({payload}) => {
-        state.touchDetection = payload;
-        return payload;
+    aot('updateDetectables').pipe(
+      op.map(({payload: [key, segments]}) => {
+        if (state.detectables == null)
+          state.detectables = new Map();
+        state.detectables.set(key, segments);
       })
+    ),
+    aot('treeAttached').pipe(
+
     ),
 
-    // TODO: When touchDetection is enabled and current paintable is attached to rendering tree,
-    // prepare touch detection data: calculating bounding box
-    rx.combineLatest(
-      rx.merge(
-        rx.of(state.touchDetection),
-        aot('setTouchDetection').pipe(
-          op.map(({payload}) => payload),
-          op.distinctUntilChanged(),
-          op.filter(enabled => enabled)
-        )
-      ),
-      aot('treeAttached')
-    ).pipe(
-      op.map(([enabled]) => enabled),
-      op.switchMap((enabled) => {
-        if (enabled) {
-          heavyCal.dispatcher.calcBoundingBox();
-          // TODO:
-        }
-        return rx.EMPTY;
-      })
-    ),
     new rx.Observable(sub => {
       // Push absolute transformation calculation operator as last entry in pipeline
       dispatcher.putTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<Matrix>) => {

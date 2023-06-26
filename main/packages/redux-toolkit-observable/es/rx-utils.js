@@ -146,8 +146,25 @@ export function createActionStreamByType(opt = {}) {
         changeActionInterceptor,
         ofType: createOfTypeOperator(typePrefix),
         isActionType: createIsActionTypeFn(typePrefix),
-        nameOfAction: (action) => action.type.split('/')[1]
+        nameOfAction: (action) => nameOfAction(action),
+        _actionFromObject(obj) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            actionUpstream.next({ type: typePrefix + obj.t, payload: obj.p });
+        },
+        _actionToObject(action) {
+            return { t: nameOfAction(action), p: action.payload };
+        }
     };
+}
+/**
+ * Get the "action name" from payload's "type" field,
+ * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
+ * this function returns the `actionName` part
+ * @return undefined if current action doesn't have a valid "type" field
+ */
+// eslint-disable-next-line space-before-function-paren
+export function nameOfAction(action) {
+    return action.type.split('/')[1];
 }
 function createIsActionTypeFn(prefix) {
     return function isActionType(action, type) {

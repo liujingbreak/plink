@@ -47,6 +47,14 @@ export type ActionStreamControl<AC> = {
         type: unknown;
     }, type: K): action is ActionTypes<AC>[K];
     nameOfAction(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
+    _actionFromObject(obj: {
+        t: string;
+        p: any;
+    }): void;
+    _actionToObject(action: ActionTypes<AC>[keyof AC]): {
+        t: string;
+        p: any;
+    };
 };
 /**
  * Unlike `createActionStream()`, this function only needs an "Action creator" type as generic type parameter,
@@ -69,6 +77,13 @@ export declare function createActionStreamByType<AC extends Record<string, ((...
     debug?: string | boolean;
     log?: (msg: string, ...objs: any[]) => unknown;
 }): ActionStreamControl<AC>;
+/**
+ * Get the "action name" from payload's "type" field,
+ * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
+ * this function returns the `actionName` part
+ * @return undefined if current action doesn't have a valid "type" field
+ */
+export declare function nameOfAction<AC extends Record<string, ((...payload: any[]) => void)>>(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
 export interface OfTypeFn<AC> {
     <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
     <T extends keyof AC, T2 extends keyof AC>(type: T, type2: T2): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2]>;

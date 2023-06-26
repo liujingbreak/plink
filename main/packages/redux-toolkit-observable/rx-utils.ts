@@ -106,6 +106,8 @@ export type ActionStreamControl<AC> = {
   ofType: OfTypeFn<AC>;
   isActionType<K extends keyof AC>(action: {type: unknown}, type: K): action is ActionTypes<AC>[K];
   nameOfAction(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
+  _actionFromObject(obj: {t: string; p: any}): void;
+  _actionToObject(action: ActionTypes<AC>[keyof AC]): {t: string; p: any};
 };
 
 /**
@@ -222,8 +224,28 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     changeActionInterceptor,
     ofType: createOfTypeOperator<AC>(typePrefix),
     isActionType: createIsActionTypeFn<AC>(typePrefix),
-    nameOfAction: (action: ActionTypes<AC>[keyof AC]): keyof AC | undefined => action.type.split('/')[1]
+    nameOfAction: (action: ActionTypes<AC>[keyof AC]) => nameOfAction<AC>(action),
+    _actionFromObject(obj: {t: string; p: any}) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      actionUpstream.next({type: typePrefix + obj.t, payload: obj.p} as ActionTypes<AC>[keyof AC]);
+    },
+    _actionToObject(action: ActionTypes<AC>[keyof AC]) {
+      return {t: nameOfAction(action) as string, p: action.payload};
+    }
   };
+}
+
+/**
+ * Get the "action name" from payload's "type" field,
+ * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
+ * this function returns the `actionName` part
+ * @return undefined if current action doesn't have a valid "type" field
+ */
+// eslint-disable-next-line space-before-function-paren
+export function nameOfAction<AC extends Record<string, ((...payload: any[]) => void)>>(
+  action: ActionTypes<AC>[keyof AC]
+): keyof AC | undefined {
+  return action.type.split('/')[1];
 }
 
 export interface OfTypeFn<AC> {
