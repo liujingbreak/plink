@@ -1,7 +1,8 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {createActionStreamByType} from '@wfh/redux-toolkit-observable/es/rx-utils';
-import type {SlowActions} from './paintable-heavy-cal';
+import type {BackgrounActions} from './paintable-heavy-cal';
+import {boundsOf} from '../canvas-utils';
 
 /* eslint-disable no-restricted-globals */
 addEventListener('message', event => {
@@ -12,11 +13,12 @@ addEventListener('message', event => {
   console.log(event);
 });
 
-const {actionOfType: aot, _actionFromObject} = createActionStreamByType<SlowActions>();
+const {actionOfType: aot, _actionFromObject} = createActionStreamByType<BackgrounActions>();
 
 rx.merge(
-  aot('calcBoundingBox').pipe(
+  aot('calcBBox').pipe(
     op.map(({payload}) => {
+
       console.log('payload', payload);
     })
   )

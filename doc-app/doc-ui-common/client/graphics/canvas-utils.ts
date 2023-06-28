@@ -421,7 +421,9 @@ export function smoothSegments(segments: Segment[], opts: {
   }
 }
 
-export function boundsOf(segs: Iterable<Segment>, roundResult = false): {x: number; y: number; w: number; h: number} {
+export type Rectangle = {x: number; y: number; w: number; h: number};
+
+export function boundsOf(segs: Iterable<Segment>, roundResult = false): Rectangle {
   let lastSeg: Segment | undefined;
   let firstSeg: Segment | undefined;
   const bounds: {x: {min: number; max: number}[]; y: {min: number; max: number}[]} = {x: [], y: []};

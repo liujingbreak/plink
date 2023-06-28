@@ -29,6 +29,7 @@ export type PaintableState = {
   /** For touch detection */
   detectables?: Map<string, Segment[]>;
   detectableBbox?: Map<string, {x: number; y: number; w: number; h: number}>;
+  isDetectablesValid: boolean;
 };
 
 export type PaintableActions = {
@@ -100,7 +101,8 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
     transPipelineByName: new Map(),
     transPipeline: [],
     detached: true,
-    treeDetached: true
+    treeDetached: true,
+    isDetectablesValid: true
   };
 
   const ctl = createActionStreamByType<PaintableActions & InternalActions>({debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
@@ -253,13 +255,17 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
     ),
     aot('updateDetectables').pipe(
       op.map(({payload: [key, segments]}) => {
-        if (state.detectables == null)
-          state.detectables = new Map();
-        state.detectables.set(key, segments);
+        state.isDetectablesValid = false;
+        // if (state.detectables == null)
+        //   state.detectables = new Map();
+        // state.detectables.set(key, segments);
       })
     ),
-    aot('treeAttached').pipe(
-
+    // If trabsform matrix changedd andd tree is attached to be renderable
+    aot('setTransformDirty').pipe(
+      op.map(({payload: dirty}) => dirty),
+      op.distinctUntilChanged(),
+      op.filter(dirty => !dirty),
     ),
 
     new rx.Observable(sub => {

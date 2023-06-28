@@ -2,6 +2,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {createActionStreamByType} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import {createReactiveWorkerPool} from '../../utils/worker-pool';
+import {Rectangle, Segment} from '../canvas-utils';
 
 const pool = createReactiveWorkerPool(
   // eslint-disable-next-line @typescript-eslint/tslint/config
@@ -13,22 +14,30 @@ const pool = createReactiveWorkerPool(
   }
 );
 
-export type SlowActions = {
-  calcBoundingBox(): void;
+export type BackgrounActions = {
+  calcBBox(segs: Record<string, Segment[]>): void;
+  transformBBox(rects: {[key: string]: Rectangle}): void;
 };
 
-export const heavyCal = createActionStreamByType<SlowActions>();
-const {action$, _actionToObject} = heavyCal;
+type ResponseEvents = {
+  calcBBoxDone(rects: {[key: string]: Rectangle}): void;
+};
 
-rx.merge(
-  action$.pipe(
-    op.mergeMap(action => {
-      const msg = _actionToObject(action);
-      return pool.execute(msg);
-    }),
-    op.map(res => {
-      console.log(res);
-    })
-  )
-).subscribe();
+export function createForCanvas() {
+  const heavyCal = createActionStreamByType<BackgrounActions & ResponseEvents>();
+  const {action$, _actionToObject, ofType} = heavyCal;
 
+  rx.merge(
+    action$.pipe(
+      ofType('transformBBox', 'calcBBox'),
+      op.mergeMap(action => {
+        const msg = _actionToObject(action);
+        return pool.executeStatefully(msg);
+      }),
+      op.map(res => {
+        console.log(res);
+      })
+    )
+  ).subscribe();
+  return heavyCal;
+}
