@@ -232,7 +232,7 @@ class Refrigerator {
         return this.ref;
     }
 }
-exports.Refrigerator = Refrigerator;
 _a = immer_1.immerable, _b = immer_1.immerable;
 Refrigerator[_b] = false;
+exports.Refrigerator = Refrigerator;
 //# sourceMappingURL=helper.js.map

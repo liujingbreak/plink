@@ -107,10 +107,10 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
 
   const ctl = createActionStreamByType<PaintableActions & InternalActions>({debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
 
-  const {actionOfType: aot, dispatcher} = ctl;
+  const {actionByType: aot, dispatcher} = ctl;
 
   rx.merge(
-    aot('setProp').pipe(
+    aot.setProp.pipe(
       op.map(({payload}) => {
         Object.assign(state, payload);
         if (hasOwnProperty(payload, 'width') || hasOwnProperty(payload, 'height')) {
@@ -118,7 +118,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
         }
       })
     ),
-    aot('setTreeAttached').pipe(
+    aot.setTreeAttached.pipe(
       op.map(({payload}) => {
         state.treeDetached = !payload;
         return payload;
@@ -128,7 +128,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
     ),
 
     rx.merge(
-      aot('putTransformOperator').pipe(
+      aot.putTransformOperator.pipe(
         op.tap(({payload: [key, op]}) => {
           if (!state.transPipelineByName.has(key)) {
             state.transPipeline.push(key);
@@ -139,7 +139,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
     ).pipe(
       op.switchMap(() => {
         const ops = state.transPipeline.map(key => state.transPipelineByName.get(key)!) as [rx.OperatorFunction<Matrix, Matrix>];
-        return aot('composeTransform').pipe(
+        return aot.composeTransform.pipe(
           op.mapTo(identity()),
           ...ops
         );
@@ -152,15 +152,15 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
 
     // When rendering, check whether transform should be "composed",
     // otherwise directly emit `renderContent`
-    aot('renderInternally').pipe(
-      op.withLatestFrom(aot('setTransformDirty').pipe(
+    aot.renderInternally.pipe(
+      op.withLatestFrom(aot.setTransformDirty.pipe(
         op.map(({payload: dirty}) => dirty)
       )),
       op.switchMap(([{payload: ctx}, dirty]) => {
         if (dirty) {
           return rx.merge(
             // wait for `composeTransform` result: transform becomes not `dirty`
-            aot('setTransformDirty').pipe(
+            aot.setTransformDirty.pipe(
               op.filter(({payload: dirty}) => !dirty),
               op.take(1),
               op.mapTo(ctx)
@@ -182,7 +182,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
       op.switchMap(({payload: [parent, pState]}) => {
         state.detached = false;
         state.parent = [parent, pState];
-        const {actionOfType: pac} = parent;
+        const {actionByType: pActions} = parent;
 
 
         // When attached to a new parent, should always trigger `transform` recalculation
@@ -193,13 +193,13 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
           rx.combineLatest(
             rx.merge(
               rx.of([pState.width, pState.height]),
-              pac('onResize').pipe(
+              pActions.onResize.pipe(
                 op.map(({payload}) => payload)
               )
             ),
             rx.merge(
               rx.of([state.relativeWidth, state.relativeHeight]),
-              aot('setProp').pipe(
+              aot.setProp.pipe(
                 op.filter(({payload}) => hasOwnProperty(payload, 'relativeWidth') || hasOwnProperty(payload, 'relativeHeight')),
                 op.map(({payload}) => [payload.relativeWidth, payload.relativeHeight])
               )
@@ -217,7 +217,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
           // When parent transform is dirty (transform is changed),
           // current Paintable should also be marked as dirty, since
           // transformOperator "baseOnParent" depends on `parentState.transform`
-          pac('setTransformDirty').pipe(
+          pActions.setTransformDirty.pipe(
             op.filter(({payload}) => payload),
             op.tap(() => dispatcher.setTransformDirty(true))
           ),
@@ -225,35 +225,35 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
             rx.of(pState.treeDetached).pipe(
               op.map(detached => dispatcher.setTreeAttached(!detached))
             ),
-            pac('treeDetached').pipe(
+            pActions.treeDetached.pipe(
               op.map(() => {
                 dispatcher.setTreeAttached(false);
               })
             ),
-            pac('treeAttached').pipe(
+            pActions.treeAttached.pipe(
               op.map(() => {
                 dispatcher.setTreeAttached(true);
               })
             )
           ),
-          pac('renderContent').pipe(
+          pActions.renderContent.pipe(
             op.map(({payload: [ctx]}) => {
               dispatcher.renderInternally(ctx);
             })
           )
         ).pipe(
-          op.takeUntil(aot('detach'))
+          op.takeUntil(aot.detach)
         );
       })
     ),
-    aot('detach').pipe(
+    aot.detach.pipe(
       op.map(() => {
         state.detached = true;
         state.parent = undefined;
         dispatcher.setTreeAttached(false);
       })
     ),
-    aot('updateDetectables').pipe(
+    aot.updateDetectables.pipe(
       op.map(({payload: [key, segments]}) => {
         state.isDetectablesValid = false;
         // if (state.detectables == null)
@@ -262,7 +262,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
       })
     ),
     // If trabsform matrix changedd andd tree is attached to be renderable
-    aot('setTransformDirty').pipe(
+    aot.setTransformDirty.pipe(
       op.map(({payload: dirty}) => dirty),
       op.distinctUntilChanged(),
       op.filter(dirty => !dirty),
@@ -283,7 +283,7 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
       sub.complete();
     })
   ).pipe(
-    op.takeUntil(aot('detach'))
+    op.takeUntil(aot.detach)
   ).subscribe();
 
   return [ctl as unknown as ActionStreamControl<PaintableActions & ExtActions>, state] as const;
@@ -293,10 +293,10 @@ export type PaintableCtl = ActionStreamControl<PaintableActions>;
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export function parentChange$<E extends PaintableActions = PaintableActions>(
-  {actionOfType: aot}: ActionStreamControl<E>, state: PaintableState
+  {actionByType: aot}: ActionStreamControl<E>, state: PaintableState
 ) {
   return rx.concat(
     state.parent ? rx.of({payload: state.parent}) : rx.EMPTY,
-    aot('attachTo')
+    aot.attachTo
   );
 }

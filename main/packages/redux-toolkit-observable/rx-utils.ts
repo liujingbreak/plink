@@ -96,6 +96,7 @@ export type ActionStreamControl<AC> = {
   dispatcher: AC;
   /** use dispatcher.<actionName> instead */
   dispatchFactory: SimpleActionDispatchFactory<AC>;
+  actionByType: {[T in keyof AC]: Observable<ActionTypes<AC>[T]>};
   actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]>;
   changeActionInterceptor<T extends keyof AC>(
     interceptorFactory: (
@@ -152,7 +153,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     return dispatch;
   }
   const dispatcherProxy = new Proxy<AC>({} as AC, {
-    get(target, key, rec) {
+    get(_target, key, _rec) {
       return dispatchFactory(key as keyof AC);
     }
   });
@@ -181,6 +182,14 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     }
     return a$;
   }
+
+  const actionByTypeProxy = new Proxy<{[T in keyof AC]: Observable<ActionTypes<AC>[T]>}>(
+    {} as {[T in keyof AC]: Observable<ActionTypes<AC>[T]>},
+    {
+      get(_target, key, _rec) {
+        return actionOfType(key as keyof AC);
+      }
+    });
 
   const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : '';
   const interceptor$ = new BehaviorSubject<OperatorFunction<ActionTypes<AC>[keyof AC], ActionTypes<AC>[keyof AC]> | null>(null);
@@ -220,6 +229,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     dispatcher: dispatcherProxy,
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
     action$,
+    actionByType: actionByTypeProxy,
     actionOfType,
     changeActionInterceptor,
     ofType: createOfTypeOperator<AC>(typePrefix),

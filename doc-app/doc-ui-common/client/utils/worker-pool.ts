@@ -12,6 +12,7 @@ type PoolActions<T> = {
     cb: null | ((err: Error | null, content: WorkerMsgData<R>['content']) => void)): void;
 
   onTaskDone(worker: Worker, msg: WorkerMsgData<unknown>): void;
+  onTaskRun(worker: Worker, taskId: string): void;
   onTaskError(worker: Worker, msg: any): void;
   createWorker(): void;
   _workerCreated(w: Worker): void;
@@ -47,15 +48,15 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
   /** Queued tasks which has "dataKey" to specific worker */
   const tasksForAssignedWorker = new Map<Worker, string[]>();
 
-  const {actionOfType, dispatcher} = createActionStreamByType<PoolActions<T>>(opts);
+  const {actionByType, dispatcher} = createActionStreamByType<PoolActions<T>>(opts);
   // A singleton stream to control concurrency
 
   rx.merge(
     rx.merge(
-      actionOfType('addTaskForPatitionData').pipe(
+      actionByType.addTaskForPatitionData.pipe(
         op.map(({payload}) => payload)
       ),
-      actionOfType('addTask').pipe(
+      actionByType.addTask.pipe(
         op.map(({payload}) => ([null, ...payload] as const))
       )
     ).pipe(
@@ -67,14 +68,15 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
         return worker$.pipe(
           // wait for `_workerIdle`
           op.concatMap(worker => rx.merge(
-            actionOfType('_workerIdle').pipe(
+            actionByType._workerIdle.pipe(
               op.filter(({payload: w}) => worker === w),
-              // op.takeUntil(actionOfType('onTaskError').pipe(
+              // op.takeUntil(actionByType.onTaskError.pipe(
               //   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               //   op.filter(({payload: [w, res]}) => worker === w && (res.taskId === taskId || res.taskId == null))
               // ))
             ),
             rx.defer(() => {
+              dispatcher.onTaskRun(worker, taskId);
               worker.postMessage({taskId, poolId, content: task} as WorkerMsgData<T>);
               return rx.EMPTY;
             })
@@ -83,7 +85,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       }, opts.concurrent)
     ),
 
-    actionOfType('createWorker').pipe(
+    actionByType.createWorker.pipe(
       op.mergeMap(() => factory()),
       op.map(worker => {
         allWorkers.push(worker);
@@ -104,7 +106,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       })
     ),
 
-    actionOfType('onTaskDone').pipe(
+    actionByType.onTaskDone.pipe(
       op.map(({payload: [w, msg]}) => {
         const taskData = taskById.get(msg.taskId);
         if (taskData) {
@@ -114,15 +116,16 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
         }
         const queue = tasksForAssignedWorker.get(w);
         if (queue && queue.length > 0) {
-          const taskId = queue.shift();
-          w.postMessage({taskId, poolId, content: taskById.get(taskId!)!.task} as WorkerMsgData<T>);
+          const taskId = queue.shift()!;
+          dispatcher.onTaskRun(w, taskId);
+          w.postMessage({taskId, poolId, content: taskById.get(taskId)!.task} as WorkerMsgData<T>);
         } else {
           dispatcher._workerIdle(w);
         }
       })
     ),
 
-    actionOfType('_workerIdle').pipe(
+    actionByType._workerIdle.pipe(
       op.map(({payload: w}) => {
         if (idleWorkers.size >= (opts.maxIdleWorkers ?? Number.MAX_VALUE) && !dataWorkerSet.has(w)) {
           w.terminate();
@@ -161,7 +164,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       } else {
         // Create a new worker and associate it with dataKey
         return rx.merge(
-          actionOfType('_workerCreated').pipe(
+          actionByType._workerCreated.pipe(
             op.take(1),
             op.map(({payload: worker}) => {
               workerByDataKey.set(key, worker);
@@ -183,7 +186,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
         return rx.of(worker);
       } else {
         return rx.merge(
-          actionOfType('_workerCreated').pipe(
+          actionByType._workerCreated.pipe(
             op.take(1),
             op.map(({payload}) => payload)
           ),

@@ -31,14 +31,14 @@ export declare function useRtk<Props extends Record<string, any>, S extends Base
 export interface BaseComponentState<Props> {
     componentProps?: Props;
 }
-export declare type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R & CompPropsSyncReducer<Props, S>>) => Epic<PayloadAction<any>, any, {
+export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R & CompPropsSyncReducer<Props, S>>) => Epic<PayloadAction<any>, any, {
     [Sn in Name]: S;
 }> | void;
-declare type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
+type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
     _syncComponentProps(s: S | Draft<S>, action: PayloadAction<Props>): void;
     _willUnmount(s: S | Draft<S>): void;
 };
-export declare type InjectedCompPropsType<ConnectHOC> = (ConnectHOC extends InferableComponentEnhancerWithProps<infer TInjectedProps, any> ? TInjectedProps : {
+export type InjectedCompPropsType<ConnectHOC> = (ConnectHOC extends InferableComponentEnhancerWithProps<infer TInjectedProps, any> ? TInjectedProps : {
     [p: string]: unknown;
 }) & (ConnectHOC extends InferableComponentEnhancerWithProps<any, infer TOwnProps> ? TOwnProps : {
     [p: string]: unknown;

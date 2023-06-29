@@ -39,6 +39,9 @@ export type ActionStreamControl<AC> = {
     dispatcher: AC;
     /** use dispatcher.<actionName> instead */
     dispatchFactory: SimpleActionDispatchFactory<AC>;
+    actionByType: {
+        [T in keyof AC]: Observable<ActionTypes<AC>[T]>;
+    };
     actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]>;
     changeActionInterceptor<T extends keyof AC>(interceptorFactory: (originalInterceptor: OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]> | null) => OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]>): void;
     action$: Observable<ActionTypes<AC>[keyof AC]>;

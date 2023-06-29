@@ -90,7 +90,7 @@ export function createActionStreamByType(opt = {}) {
         return dispatch;
     }
     const dispatcherProxy = new Proxy({}, {
-        get(target, key, rec) {
+        get(_target, key, _rec) {
             return dispatchFactory(key);
         }
     });
@@ -117,6 +117,11 @@ export function createActionStreamByType(opt = {}) {
         }
         return a$;
     }
+    const actionByTypeProxy = new Proxy({}, {
+        get(_target, key, _rec) {
+            return actionOfType(key);
+        }
+    });
     const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : '';
     const interceptor$ = new BehaviorSubject(null);
     function changeActionInterceptor(factory) {
@@ -142,6 +147,7 @@ export function createActionStreamByType(opt = {}) {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
+        actionByType: actionByTypeProxy,
         actionOfType,
         changeActionInterceptor,
         ofType: createOfTypeOperator(typePrefix),

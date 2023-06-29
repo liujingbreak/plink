@@ -3,14 +3,14 @@
  * https://redux-observable.js.org/
  */
 import { Observable, OperatorFunction } from 'rxjs';
-declare type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
-export declare type ActionTypes<AC> = {
+type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
+export type ActionTypes<AC> = {
     [K in keyof AC]: {
         type: string;
         payload: InferParam<AC[K]>;
     };
 };
-declare type InferParam<F> = Plen<F> extends 1 | 0 ? (F extends (a: infer A) => any ? A : unknown) : Plen<F> extends 2 ? F extends (...p: infer P) => any ? P : unknown : Plen<F> extends 1 | 2 ? F extends (a: infer A, b: infer B) => any ? A | [A, B] : F extends (...p: infer P) => any ? P : unknown : F extends (...p: infer P) => any ? P : unknown;
+type InferParam<F> = Plen<F> extends 1 | 0 ? (F extends (a: infer A) => any ? A : unknown) : Plen<F> extends 2 ? F extends (...p: infer P) => any ? P : unknown : Plen<F> extends 1 | 2 ? F extends (a: infer A, b: infer B) => any ? A | [A, B] : F extends (...p: infer P) => any ? P : unknown : F extends (...p: infer P) => any ? P : unknown;
 /**
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
@@ -34,11 +34,14 @@ export declare function createActionStream<AC extends Record<string, ((...payloa
     }, type: K) => action is ActionTypes<AC>[K];
     nameOfAction: <K extends keyof AC>(action: ActionTypes<AC>[K]) => K;
 };
-declare type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
-export declare type ActionStreamControl<AC> = {
+type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
+export type ActionStreamControl<AC> = {
     dispatcher: AC;
     /** use dispatcher.<actionName> instead */
     dispatchFactory: SimpleActionDispatchFactory<AC>;
+    actionByType: {
+        [T in keyof AC]: Observable<ActionTypes<AC>[T]>;
+    };
     actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]>;
     changeActionInterceptor<T extends keyof AC>(interceptorFactory: (originalInterceptor: OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]> | null) => OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]>): void;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
@@ -47,6 +50,14 @@ export declare type ActionStreamControl<AC> = {
         type: unknown;
     }, type: K): action is ActionTypes<AC>[K];
     nameOfAction(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
+    _actionFromObject(obj: {
+        t: string;
+        p: any;
+    }): void;
+    _actionToObject(action: ActionTypes<AC>[keyof AC]): {
+        t: string;
+        p: any;
+    };
 };
 /**
  * Unlike `createActionStream()`, this function only needs an "Action creator" type as generic type parameter,
@@ -69,6 +80,13 @@ export declare function createActionStreamByType<AC extends Record<string, ((...
     debug?: string | boolean;
     log?: (msg: string, ...objs: any[]) => unknown;
 }): ActionStreamControl<AC>;
+/**
+ * Get the "action name" from payload's "type" field,
+ * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
+ * this function returns the `actionName` part
+ * @return undefined if current action doesn't have a valid "type" field
+ */
+export declare function nameOfAction<AC extends Record<string, ((...payload: any[]) => void)>>(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
 export interface OfTypeFn<AC> {
     <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
     <T extends keyof AC, T2 extends keyof AC>(type: T, type2: T2): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2]>;
