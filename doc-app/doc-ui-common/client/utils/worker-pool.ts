@@ -13,7 +13,7 @@ type PoolActions<T> = {
 
   onTaskDone(worker: Worker, msg: WorkerMsgData<unknown>): void;
   onTaskRun(worker: Worker, taskId: string): void;
-  onTaskError(worker: Worker, msg: any): void;
+  onWorkerError(worker: Worker, msg: any): void;
   createWorker(): void;
   _workerCreated(w: Worker): void;
   _workerIdle(w: Worker): void;
@@ -51,6 +51,8 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
   const {actionByType, dispatcher} = createActionStreamByType<PoolActions<T>>(opts);
   // A singleton stream to control concurrency
 
+  // Handle `addTask` and `addTaskForPatitionData`,
+  // use `mergeMap(, concurrent) to controll number of parallel "non-idle" workers
   rx.merge(
     rx.merge(
       actionByType.addTaskForPatitionData.pipe(
@@ -70,10 +72,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
           op.concatMap(worker => rx.merge(
             actionByType._workerIdle.pipe(
               op.filter(({payload: w}) => worker === w),
-              // op.takeUntil(actionByType.onTaskError.pipe(
-              //   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              //   op.filter(({payload: [w, res]}) => worker === w && (res.taskId === taskId || res.taskId == null))
-              // ))
+              op.take(1)
             ),
             rx.defer(() => {
               dispatcher.onTaskRun(worker, taskId);
@@ -85,6 +84,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       }, opts.concurrent)
     ),
 
+    // Create new worker, register event listerners on worker
     actionByType.createWorker.pipe(
       op.mergeMap(() => factory()),
       op.map(worker => {
@@ -97,34 +97,65 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
         worker.onmessageerror = event => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (event.data.poolId === poolId)
-            dispatcher.onTaskError(worker, event.data);
+            dispatcher.onWorkerError(worker, event.data);
         };
         worker.onerror = event => {
-          dispatcher.onTaskError(worker, event);
+          dispatcher.onWorkerError(worker, event);
         };
         dispatcher._workerCreated(worker);
       })
     ),
 
-    actionByType.onTaskDone.pipe(
-      op.map(({payload: [w, msg]}) => {
-        const taskData = taskById.get(msg.taskId);
-        if (taskData) {
-          if (taskData.cb)
-            taskData?.cb(null, msg);
-          taskById.delete(msg.taskId);
-        }
-        const queue = tasksForAssignedWorker.get(w);
-        if (queue && queue.length > 0) {
-          const taskId = queue.shift()!;
-          dispatcher.onTaskRun(w, taskId);
-          w.postMessage({taskId, poolId, content: taskById.get(taskId)!.task} as WorkerMsgData<T>);
-        } else {
-          dispatcher._workerIdle(w);
-        }
+    // Observe `onTaskRun` event,
+    // when current worker encounters error
+    // or that task is finished,
+    // - call `callback` function for that task
+    // - Remove task from queque
+    // - check if there is more task waiting in queue and run it
+    // - set task to "idle"
+    actionByType.onTaskRun.pipe(
+      op.mergeMap(({payload: [worker, taskId]}) => {
+        const taskData = taskById.get(taskId);
+
+        return rx.merge(
+          actionByType.onWorkerError.pipe(
+            op.filter(({payload: [w]}) => w === worker),
+            op.take(1),
+            op.map(({payload: [w, msg]}) => {
+              if (taskData) {
+                if (taskData.cb)
+                  taskData?.cb(new Error(msg), msg);
+                taskById.delete(taskId);
+              }
+            })
+          ),
+          actionByType.onTaskDone.pipe(
+            op.filter(({payload: [w, msg]}) => w === worker && msg.taskId === taskId),
+            op.take(1),
+            op.map(({payload: [w, msg]}) => {
+              if (taskData) {
+                if (taskData.cb)
+                  taskData?.cb(null, msg);
+                taskById.delete(taskId);
+              }
+            })
+          )
+        ).pipe(
+          op.map(() => {
+            const queue = tasksForAssignedWorker.get(worker);
+            if (queue && queue.length > 0) {
+              const taskId = queue.shift()!;
+              dispatcher.onTaskRun(worker, taskId);
+              worker.postMessage({taskId, poolId, content: taskById.get(taskId)!.task} as WorkerMsgData<T>);
+            } else {
+              dispatcher._workerIdle(worker);
+            }
+          })
+        );
       })
     ),
 
+    // Once a task is `idle`, check options about whether it should be terminated to release thread resource
     actionByType._workerIdle.pipe(
       op.map(({payload: w}) => {
         if (idleWorkers.size >= (opts.maxIdleWorkers ?? Number.MAX_VALUE) && !dataWorkerSet.has(w)) {
@@ -134,6 +165,11 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
         }
       })
     )
+  ).pipe(
+    op.catchError((err, src) => {
+      console.error(err);
+      return src;
+    })
   ).subscribe();
 
   function assignWorker(
