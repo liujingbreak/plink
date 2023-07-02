@@ -2,6 +2,7 @@
 import {applyToPoint, Matrix, transform, translate} from 'transformation-matrix';
 import {Bezier} from 'bezier-js';
 import glur from 'glur';
+import type Color from 'color';
 
 // import {getMinAndMax} from '@wfh/plink/wfh/dist-es5/utils/algorithms';
 
@@ -173,8 +174,12 @@ export class Segment {
     return newSeg;
   }
 
-  toNumbers() {
-    const arr = [this.point.x, this.point.y];
+  toNumbers(): [
+    pointX: number, pointY: number,
+    handleInX: (number | null), handleInY: (number | null),
+    handleOutX: (number | null), handleOutY: (number | null)
+  ] {
+    const arr = [this.point.x, this.point.y, null, null, null, null] as [number, number, number | null, number | null, number | null, number | null];
     if (this.handleIn) {
       arr[2] = this.handleIn.x;
       arr[3] = this.handleIn.y;
@@ -183,6 +188,7 @@ export class Segment {
       arr[4] = this.handleOut.x;
       arr[5] = this.handleOut.y;
     }
+    return arr;
   }
 }
 
@@ -502,4 +508,8 @@ export function centerOf(segs: Iterable<Segment>, roundResult = false): {x: numb
   const bounds = boundsOf(segs);
 
   return {x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2};
+}
+
+export function colorToRgbaStr(color: Color) {
+  return `rgba(${Math.round(color.red())},${Math.round(color.green())},${Math.round(color.blue())},${color.alpha().toFixed(2)})`;
 }

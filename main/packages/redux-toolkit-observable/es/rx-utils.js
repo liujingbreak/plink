@@ -2,10 +2,12 @@
  * redux-observable like async reactive actions, side effect utilities
  * https://redux-observable.js.org/
  */
-import { Subject, defer, BehaviorSubject } from 'rxjs';
-import { switchMap, filter, tap, share } from 'rxjs/operators';
+import { Subject, BehaviorSubject } from 'rxjs';
+import { switchMap, filter, map, tap, share } from 'rxjs/operators';
 let SEQ = 0;
 /**
+ * @Deprecated
+ * Use createActionStreamByType<R>() instead.
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
  * What you can get from this function are:
@@ -94,26 +96,13 @@ export function createActionStreamByType(opt = {}) {
             return dispatchFactory(key);
         }
     });
-    const emitByType = {};
     const actionsByType = {};
-    let splitByTypeConnected = false;
+    const payloadsByType = {};
+    const ofType = createOfTypeOperator(typePrefix);
     function actionOfType(type) {
         let a$ = actionsByType[type];
         if (a$ == null) {
-            const emitter = new Subject();
-            emitByType[type] = emitter;
-            a$ = actionsByType[type] = defer(() => {
-                if (!splitByTypeConnected) {
-                    splitByTypeConnected = true;
-                    action$.subscribe(action => {
-                        const emitter = emitByType[action.type.split('/')[1]];
-                        if (emitter) {
-                            emitter.next(action);
-                        }
-                    });
-                }
-                return emitter;
-            });
+            a$ = actionsByType[type] = action$.pipe(ofType(type));
         }
         return a$;
     }
@@ -122,7 +111,19 @@ export function createActionStreamByType(opt = {}) {
             return actionOfType(key);
         }
     });
-    const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : '';
+    const payloadByTypeProxy = new Proxy({}, {
+        get(_target, key, _rec) {
+            let p$ = payloadsByType[key];
+            if (p$ == null) {
+                const matchType = typePrefix + key;
+                p$ = payloadsByType[key] = action$.pipe(filter(({ type }) => type === matchType), 
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                map(action => action.payload), share());
+            }
+            return p$;
+        }
+    });
+    const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : typePrefix;
     const interceptor$ = new BehaviorSubject(null);
     function changeActionInterceptor(factory) {
         const newInterceptor = factory(interceptor$.getValue());
@@ -130,15 +131,15 @@ export function createActionStreamByType(opt = {}) {
     }
     const debuggableAction$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
-            tap(action => opt.log(debugName + 'rx:action', action.type)) :
-            typeof window !== 'undefined' ?
+            tap(action => opt.log(debugName + 'rx:action', nameOfAction(action))) :
+            (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
                 tap(action => {
                     // eslint-disable-next-line no-console
-                    console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', action.type, action.payload);
+                    console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', nameOfAction(action), action.payload === undefined ? '' : action.payload);
                 })
                 :
                     // eslint-disable-next-line no-console
-                    tap(action => console.log(debugName + 'rx:action', action.type)), share())
+                    tap(action => console.log(debugName + 'rx:action', nameOfAction(action), action.payload === undefined ? '' : action.payload)), share())
         : actionUpstream;
     const action$ = interceptor$.pipe(switchMap(interceptor => interceptor ?
         debuggableAction$.pipe(interceptor, share()) :
@@ -147,10 +148,11 @@ export function createActionStreamByType(opt = {}) {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
+        payloadByType: payloadByTypeProxy,
         actionByType: actionByTypeProxy,
         actionOfType,
         changeActionInterceptor,
-        ofType: createOfTypeOperator(typePrefix),
+        ofType,
         isActionType: createIsActionTypeFn(typePrefix),
         nameOfAction: (action) => nameOfAction(action),
         _actionFromObject(obj) {
@@ -180,10 +182,11 @@ function createIsActionTypeFn(prefix) {
 /** create rx a operator to filter action by action.type */
 function createOfTypeOperator(typePrefix = '') {
     return (...types) => (upstream) => {
+        const matchTypes = types.map(type => typePrefix + type);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return upstream.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        filter((action) => types.some((type) => action.type === typePrefix + type)), share());
+        filter((action) => matchTypes.some(type => action.type === type)), share());
     };
 }
 //# sourceMappingURL=rx-utils.js.map

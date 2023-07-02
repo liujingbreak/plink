@@ -9,6 +9,8 @@ const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 let SEQ = 0;
 /**
+ * @Deprecated
+ * Use createActionStreamByType<R>() instead.
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
  * What you can get from this function are:
@@ -98,26 +100,13 @@ function createActionStreamByType(opt = {}) {
             return dispatchFactory(key);
         }
     });
-    const emitByType = {};
     const actionsByType = {};
-    let splitByTypeConnected = false;
+    const payloadsByType = {};
+    const ofType = createOfTypeOperator(typePrefix);
     function actionOfType(type) {
         let a$ = actionsByType[type];
         if (a$ == null) {
-            const emitter = new rxjs_1.Subject();
-            emitByType[type] = emitter;
-            a$ = actionsByType[type] = (0, rxjs_1.defer)(() => {
-                if (!splitByTypeConnected) {
-                    splitByTypeConnected = true;
-                    action$.subscribe(action => {
-                        const emitter = emitByType[action.type.split('/')[1]];
-                        if (emitter) {
-                            emitter.next(action);
-                        }
-                    });
-                }
-                return emitter;
-            });
+            a$ = actionsByType[type] = action$.pipe(ofType(type));
         }
         return a$;
     }
@@ -126,7 +115,19 @@ function createActionStreamByType(opt = {}) {
             return actionOfType(key);
         }
     });
-    const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : '';
+    const payloadByTypeProxy = new Proxy({}, {
+        get(_target, key, _rec) {
+            let p$ = payloadsByType[key];
+            if (p$ == null) {
+                const matchType = typePrefix + key;
+                p$ = payloadsByType[key] = action$.pipe((0, operators_1.filter)(({ type }) => type === matchType), 
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                (0, operators_1.map)(action => action.payload), (0, operators_1.share)());
+            }
+            return p$;
+        }
+    });
+    const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : typePrefix;
     const interceptor$ = new rxjs_1.BehaviorSubject(null);
     function changeActionInterceptor(factory) {
         const newInterceptor = factory(interceptor$.getValue());
@@ -134,15 +135,15 @@ function createActionStreamByType(opt = {}) {
     }
     const debuggableAction$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
-            (0, operators_1.tap)(action => opt.log(debugName + 'rx:action', action.type)) :
-            typeof window !== 'undefined' ?
+            (0, operators_1.tap)(action => opt.log(debugName + 'rx:action', nameOfAction(action))) :
+            (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
                 (0, operators_1.tap)(action => {
                     // eslint-disable-next-line no-console
-                    console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', action.type, action.payload);
+                    console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', nameOfAction(action), action.payload === undefined ? '' : action.payload);
                 })
                 :
                     // eslint-disable-next-line no-console
-                    (0, operators_1.tap)(action => console.log(debugName + 'rx:action', action.type)), (0, operators_1.share)())
+                    (0, operators_1.tap)(action => console.log(debugName + 'rx:action', nameOfAction(action), action.payload === undefined ? '' : action.payload)), (0, operators_1.share)())
         : actionUpstream;
     const action$ = interceptor$.pipe((0, operators_1.switchMap)(interceptor => interceptor ?
         debuggableAction$.pipe(interceptor, (0, operators_1.share)()) :
@@ -151,10 +152,11 @@ function createActionStreamByType(opt = {}) {
         dispatcher: dispatcherProxy,
         dispatchFactory: dispatchFactory,
         action$,
+        payloadByType: payloadByTypeProxy,
         actionByType: actionByTypeProxy,
         actionOfType,
         changeActionInterceptor,
-        ofType: createOfTypeOperator(typePrefix),
+        ofType,
         isActionType: createIsActionTypeFn(typePrefix),
         nameOfAction: (action) => nameOfAction(action),
         _actionFromObject(obj) {
@@ -186,10 +188,11 @@ function createIsActionTypeFn(prefix) {
 /** create rx a operator to filter action by action.type */
 function createOfTypeOperator(typePrefix = '') {
     return (...types) => (upstream) => {
+        const matchTypes = types.map(type => typePrefix + type);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return upstream.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        (0, operators_1.filter)((action) => types.some((type) => action.type === typePrefix + type)), (0, operators_1.share)());
+        (0, operators_1.filter)((action) => matchTypes.some(type => action.type === type)), (0, operators_1.share)());
     };
 }
 //# sourceMappingURL=rx-utils.js.map

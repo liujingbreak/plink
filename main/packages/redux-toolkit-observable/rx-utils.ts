@@ -3,8 +3,8 @@
  * https://redux-observable.js.org/
  */
 
-import {Observable, Subject, defer, OperatorFunction, BehaviorSubject} from 'rxjs';
-import {switchMap, filter, tap, share} from 'rxjs/operators';
+import {Observable, Subject, OperatorFunction, BehaviorSubject} from 'rxjs';
+import {switchMap, filter, map, tap, share} from 'rxjs/operators';
 
 type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
 
@@ -31,6 +31,8 @@ type InferParam<F> = Plen<F> extends 1 | 0 ?
 
 let SEQ = 0;
 /**
+ * @Deprecated
+ * Use createActionStreamByType<R>() instead.
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
  * What you can get from this function are:
@@ -50,7 +52,7 @@ export function createActionStream<AC extends Record<string, ((...payload: any[]
   dispatcher: AC;
   action$: Observable<ActionTypes<AC>[keyof AC]>;
   ofType: OfTypeFn<AC>;
-  isActionType: <K extends keyof AC>(action: {type: unknown; }, type: K) => action is ActionTypes<AC>[K];
+  isActionType: <K extends keyof AC>(action: {type: unknown}, type: K) => action is ActionTypes<AC>[K];
   nameOfAction: <K extends keyof AC>(action: ActionTypes<AC>[K]) => K;
 } {
   const dispatcher = {} as AC;
@@ -94,9 +96,11 @@ type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
 
 export type ActionStreamControl<AC> = {
   dispatcher: AC;
-  /** use dispatcher.<actionName> instead */
-  dispatchFactory: SimpleActionDispatchFactory<AC>;
+  payloadByType: {[T in keyof AC]: Observable<InferParam<AC[T]>>};
   actionByType: {[T in keyof AC]: Observable<ActionTypes<AC>[T]>};
+  /** @Deprecated use dispatcher.<actionName> instead */
+  dispatchFactory: SimpleActionDispatchFactory<AC>;
+  /** @Deprecated use `actionByType.<actionName>` instead */
   actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]>;
   changeActionInterceptor<T extends keyof AC>(
     interceptorFactory: (
@@ -158,27 +162,17 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     }
   });
 
-  const emitByType = {} as Record<keyof AC, Subject<ActionTypes<AC>[keyof AC]>>;
   const actionsByType = {} as {[K in keyof AC]: Observable<ActionTypes<AC>[K]>};
-  let splitByTypeConnected = false;
+  const payloadsByType = {} as {[K in keyof AC]: Observable<InferParam<AC[K]>>};
+
+  const ofType = createOfTypeOperator<AC>(typePrefix);
 
   function actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]> {
     let a$ = actionsByType[type];
     if (a$ == null) {
-      const emitter = new Subject<ActionTypes<AC>[keyof AC]>();
-      emitByType[type] = emitter;
-      a$ = actionsByType[type] = defer(() => {
-        if (!splitByTypeConnected) {
-          splitByTypeConnected = true;
-          action$.subscribe(action => {
-            const emitter = emitByType[action.type.split('/')[1]];
-            if (emitter) {
-              emitter.next(action);
-            }
-          });
-        }
-        return emitter;
-      });
+      a$ = actionsByType[type] = action$.pipe(
+        ofType(type)
+      );
     }
     return a$;
   }
@@ -191,7 +185,25 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
       }
     });
 
-  const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : '';
+  const payloadByTypeProxy = new Proxy<{[T in keyof AC]: Observable<InferParam<AC[T]>>}>(
+    {} as {[T in keyof AC]: Observable<InferParam<AC[T]>>},
+    {
+      get(_target, key, _rec) {
+        let p$ = payloadsByType[key as keyof AC];
+        if (p$ == null) {
+          const matchType = typePrefix + (key as string);
+          p$ = payloadsByType[key as keyof AC] = action$.pipe(
+            filter(({type}) => type === matchType),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            map(action => action.payload),
+            share()
+          );
+        }
+        return p$;
+      }
+    });
+
+  const debugName = typeof opt.debug === 'string' ? `[${typePrefix}${opt.debug}] ` : typePrefix;
   const interceptor$ = new BehaviorSubject<OperatorFunction<ActionTypes<AC>[keyof AC], ActionTypes<AC>[keyof AC]> | null>(null);
 
   function changeActionInterceptor(
@@ -206,15 +218,19 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
   const debuggableAction$ = opt.debug
     ? actionUpstream.pipe(
       opt.log ?
-        tap(action => opt.log!(debugName + 'rx:action', action.type)) :
-        typeof window !== 'undefined' ?
+        tap(action => opt.log!(debugName + 'rx:action', nameOfAction(action))) :
+        (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
           tap(action => {
           // eslint-disable-next-line no-console
-            console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', action.type, action.payload);
+            console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;',
+              nameOfAction(action),
+              action.payload === undefined ? '' : action.payload
+            );
           })
           :
           // eslint-disable-next-line no-console
-          tap(action => console.log(debugName + 'rx:action', action.type)),
+          tap(action => console.log(debugName + 'rx:action', nameOfAction(action),
+            action.payload === undefined ? '' : action.payload )),
       share()
     )
     : actionUpstream;
@@ -229,10 +245,11 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     dispatcher: dispatcherProxy,
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
     action$,
+    payloadByType: payloadByTypeProxy,
     actionByType: actionByTypeProxy,
     actionOfType,
     changeActionInterceptor,
-    ofType: createOfTypeOperator<AC>(typePrefix),
+    ofType,
     isActionType: createIsActionTypeFn<AC>(typePrefix),
     nameOfAction: (action: ActionTypes<AC>[keyof AC]) => nameOfAction<AC>(action),
     _actionFromObject(obj: {t: string; p: any}) {
@@ -279,10 +296,11 @@ function createIsActionTypeFn<AC>(prefix: string) {
 function createOfTypeOperator<AC>(typePrefix = ''): OfTypeFn<AC> {
   return <T extends keyof AC>(...types: T[]) =>
     (upstream: Observable<any>) => {
+      const matchTypes = types.map(type => typePrefix + (type as string));
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return upstream.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        filter((action) : action is ActionTypes<AC>[T] => types.some((type) => action.type === typePrefix + (type as string))),
+        filter((action) : action is ActionTypes<AC>[T] => matchTypes.some(type => action.type === type)),
         share()
       ) ;
     };

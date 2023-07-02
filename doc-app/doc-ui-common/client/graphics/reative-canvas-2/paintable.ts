@@ -2,8 +2,9 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {Matrix, identity, compose} from 'transformation-matrix';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
-// import {heavyCal} from './paintable-heavy-cal';
+import {createAnimationManager} from '../../animation/ease-functions';
 import {Segment} from '../canvas-utils';
+import {WorkerClientAction, ResponseEvents} from './paintable-worker-client';
 
 let SEQ = 0;
 
@@ -25,17 +26,17 @@ export type PaintableState = {
   transform: Matrix;
   detached: boolean;
   treeDetached: boolean;
-  parent?: [PaintableCtl, PaintableState];
+  parent?: [p: PaintableCtl, pState: PaintableState];
   /** For touch detection */
-  detectables?: Map<string, Segment[]>;
-  detectableBbox?: Map<string, {x: number; y: number; w: number; h: number}>;
-  isDetectablesValid: boolean;
+  workerClient?: ActionStreamControl<WorkerClientAction & ResponseEvents>;
+  animateMgr?: ReturnType<typeof createAnimationManager>;
+  // isDetectablesValid: boolean;
 };
 
 export type PaintableActions = {
   setProp(override: Partial<Pick<PaintableState, 'width' | 'height' | 'relativeHeight' | 'relativeWidth'>>): void;
   /** attach to a parent paintable object */
-  attachTo(p: ActionStreamControl<PaintableActions>, pState: PaintableState): void;
+  attachTo(p: PaintableCtl, pState: PaintableState): void;
   onResize(w: number, h: number): void;
   /** set absolute size, alternatively call setRelativeSize() */
   // setSize(w: number, h: number): void;
@@ -57,16 +58,22 @@ export type PaintableActions = {
     op: (up: rx.Observable<Matrix>) => rx.Observable<Matrix>
   ): void;
   /**
-   * Indicate whether `transform` should be calculate by transform operators once `renderInternally` is emitted.
+   * Indicate whether `transform` should be calculate by transform operators once `render` is emitted.
    * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
    *  set to `false` once transform operators are executed and `transform` is updated.
    */
   setTransformDirty(isDirty: boolean): void;
   /**
-   * Begin actual content and child paintables rendering, at this moment,
-   * transform matrix is composed and not dirty.
+   * When this event is dispatched, its time we do any kind of cache invalidation and
+   * transformation job for painting objects, to get ready for actually painting "transformed" things
+   * in `renderContent` phase
    *
-   * Child paintable should also subscribe to this message for their own `renderInternally` action
+   * This event is dispatched right before `renderContent`
+   */
+  transformChanged(): void;
+  /**
+   * Begin actual content and child paintables rendering, at this moment,
+   * transform matrix is composed.
    */
   renderContent<E extends PaintableActions = PaintableActions>(
     ctx: CanvasRenderingContext2D,
@@ -81,7 +88,7 @@ export type PaintableActions = {
 };
 
 type InternalActions = {
-  renderInternally(ctx: CanvasRenderingContext2D): void;
+  render(ctx: CanvasRenderingContext2D): void;
   composeTransform(): void;
   setTreeAttached(attached: boolean): void;
 };
@@ -89,10 +96,12 @@ type InternalActions = {
 const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
 const hasOwnProperty = (t: any, prop: string) => Object.prototype.hasOwnProperty.call(t, prop);
 
-// eslint-disable-next-line space-before-function-paren, @typescript-eslint/ban-types
-export function createPaintable<ExtActions extends Record<string, ((...payload: any[]) => void)> = {}>() {
+export function createPaintable<
+  // eslint-disable-next-line space-before-function-paren
+  ExtActions extends Record<string, ((...payload: any[]) => void)> = Record<string, never>
+>(opts?: Parameters<typeof createActionStreamByType>[0]) {
   const state: PaintableState = {
-    id: '' + SEQ++,
+    id: (SEQ++).toString(16),
     x: 0,
     y: 0,
     width: 100,
@@ -101,25 +110,24 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
     transPipelineByName: new Map(),
     transPipeline: [],
     detached: true,
-    treeDetached: true,
-    isDetectablesValid: true
+    treeDetached: true
   };
 
-  const ctl = createActionStreamByType<PaintableActions & InternalActions>({debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
+  const ctl = createActionStreamByType<PaintableActions & InternalActions>(opts ?? {debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
 
-  const {actionByType: aot, dispatcher} = ctl;
+  const {actionByType: aot, payloadByType: pt, dispatcher} = ctl;
 
   rx.merge(
-    aot.setProp.pipe(
-      op.map(({payload}) => {
+    pt.setProp.pipe(
+      op.map(payload => {
         Object.assign(state, payload);
         if (hasOwnProperty(payload, 'width') || hasOwnProperty(payload, 'height')) {
           dispatcher.onResize(state.width, state.height);
         }
       })
     ),
-    aot.setTreeAttached.pipe(
-      op.map(({payload}) => {
+    pt.setTreeAttached.pipe(
+      op.map(payload => {
         state.treeDetached = !payload;
         return payload;
       }),
@@ -127,16 +135,13 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
       op.map(attached => attached ? dispatcher.treeAttached() : dispatcher.treeDetached())
     ),
 
-    rx.merge(
-      aot.putTransformOperator.pipe(
-        op.tap(({payload: [key, op]}) => {
-          if (!state.transPipelineByName.has(key)) {
-            state.transPipeline.push(key);
-          }
-          state.transPipelineByName.set(key, op);
-        })
-      )
-    ).pipe(
+    pt.putTransformOperator.pipe(
+      op.tap(([key, op]) => {
+        if (!state.transPipelineByName.has(key)) {
+          state.transPipeline.push(key);
+        }
+        state.transPipelineByName.set(key, op);
+      }),
       op.switchMap(() => {
         const ops = state.transPipeline.map(key => state.transPipelineByName.get(key)!) as [rx.OperatorFunction<Matrix, Matrix>];
         return aot.composeTransform.pipe(
@@ -150,22 +155,21 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
       })
     ),
 
-    // When rendering, check whether transform should be "composed",
+    // When rendering, check whether transform is "dirty" which requires to be "composed",
     // otherwise directly emit `renderContent`
-    aot.renderInternally.pipe(
-      op.withLatestFrom(aot.setTransformDirty.pipe(
-        op.map(({payload: dirty}) => dirty)
-      )),
-      op.switchMap(([{payload: ctx}, dirty]) => {
+    pt.render.pipe(
+      op.withLatestFrom(pt.setTransformDirty),
+      op.switchMap(([ctx, dirty]) => {
         if (dirty) {
           return rx.merge(
-            // wait for `composeTransform` result: transform becomes not `dirty`
-            aot.setTransformDirty.pipe(
-              op.filter(({payload: dirty}) => !dirty),
+            // wait for `composeTransform` result: "transform" becomes not `dirty`
+            pt.setTransformDirty.pipe(
+              op.filter(dirty => !dirty),
               op.take(1),
+              op.tap(() => dispatcher.transformChanged()),
               op.mapTo(ctx)
             ),
-            // compose tranform matrix if it is dirty
+            // compose tranform matrix
             new rx.Observable<never>(sub => {
               dispatcher.composeTransform();
               sub.complete();
@@ -179,12 +183,13 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
     ),
 
     parentChange$(ctl, state).pipe(
-      op.switchMap(({payload: [parent, pState]}) => {
+      op.switchMap(([parent, pState]) => {
         state.detached = false;
         state.parent = [parent, pState];
+        state.workerClient = pState.workerClient;
+        state.animateMgr = pState.animateMgr;
+
         const {actionByType: pActions} = parent;
-
-
         // When attached to a new parent, should always trigger `transform` recalculation
         dispatcher.setTransformDirty(true);
 
@@ -238,12 +243,17 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
           ),
           pActions.renderContent.pipe(
             op.map(({payload: [ctx]}) => {
-              dispatcher.renderInternally(ctx);
+              dispatcher.render(ctx);
             })
           )
         ).pipe(
-          op.takeUntil(aot.detach)
+          op.takeUntil(aot.detach),
+          op.ignoreElements()
         );
+      }),
+      op.catchError((err, src) => {
+        console.error(err);
+        return src;
       })
     ),
     aot.detach.pipe(
@@ -253,21 +263,12 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
         dispatcher.setTreeAttached(false);
       })
     ),
-    aot.updateDetectables.pipe(
-      op.map(({payload: [key, segments]}) => {
-        state.isDetectablesValid = false;
-        // if (state.detectables == null)
-        //   state.detectables = new Map();
-        // state.detectables.set(key, segments);
+    pt.updateDetectables.pipe(
+      op.map(([key, segments]) => {
+        if (state.workerClient)
+          state.workerClient.dispatcher.updateDetectable(state.id, {[key]: segments.map(seg => seg.toNumbers())});
       })
     ),
-    // If trabsform matrix changedd andd tree is attached to be renderable
-    aot.setTransformDirty.pipe(
-      op.map(({payload: dirty}) => dirty),
-      op.distinctUntilChanged(),
-      op.filter(dirty => !dirty),
-    ),
-
     new rx.Observable(sub => {
       // Push absolute transformation calculation operator as last entry in pipeline
       dispatcher.putTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<Matrix>) => {
@@ -289,14 +290,15 @@ export function createPaintable<ExtActions extends Record<string, ((...payload: 
   return [ctl as unknown as ActionStreamControl<PaintableActions & ExtActions>, state] as const;
 }
 
-export type PaintableCtl = ActionStreamControl<PaintableActions>;
-
 // eslint-disable-next-line @typescript-eslint/ban-types
-export function parentChange$<E extends PaintableActions = PaintableActions>(
-  {actionByType: aot}: ActionStreamControl<E>, state: PaintableState
-) {
+export type PaintableCtl<E extends Record<string, (...a: any[]) => void> = Record<string, never>> = ActionStreamControl<PaintableActions & E>;
+
+// eslint-disable-next-line @typescript-eslint/ban-types, space-before-function-paren
+export function parentChange$<E extends Record<string, (...a: any[]) => void> = Record<string, never>>(
+  control: ActionStreamControl<PaintableActions & E>, state: PaintableState
+): rx.Observable<[p: PaintableCtl, pState: PaintableState]> {
   return rx.concat(
-    state.parent ? rx.of({payload: state.parent}) : rx.EMPTY,
-    aot.attachTo
+    state.parent ? rx.of(state.parent) : rx.EMPTY,
+    (control as ActionStreamControl<PaintableActions>).payloadByType.attachTo
   );
 }

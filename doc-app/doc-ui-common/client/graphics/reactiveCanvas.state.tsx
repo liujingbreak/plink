@@ -17,7 +17,7 @@ import {EpicFactory, Slice, ofPayloadAction, createSlice, PayloadAction, Action,
 // import {DFS} from '@wfh/plink/wfh/dist-es5/utils/graph';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
-import * as easeFn from '../animation/ease-functions';
+import {createAnimationManager} from '../animation/ease-functions';
 
 export interface ReactiveCanvasState {
   ctx?: CanvasRenderingContext2D;
@@ -449,7 +449,7 @@ export class PaintableContext {
     : rx.Observable<number> {
     return rx.defer(() => {
       this.canvasSlice.actionDispatcher.startAnimating();
-      return easeFn.animate(startValue, endValue, durationMSec, timingFuntion
+      return createAnimationManager().animate(startValue, endValue, durationMSec, timingFuntion
         // this.getState().animFrameTime$
         //   .pipe(
         //     op.filter(time => time != null)

@@ -1,7 +1,8 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
-import {renderFrame$} from '../../animation/ease-functions';
+import {createAnimationManager} from '../../animation/ease-functions';
+import {createForCanvas} from './paintable-worker-client';
 import {createPaintable, PaintableCtl} from './paintable';
 
 export type ReactiveCanvasConfig = {
@@ -18,6 +19,8 @@ export type ReactiveCanvas2State = {
   pixelWidth: number;
   pixelHeight: number;
   _animateCounter:  number;
+  workerClient: ReturnType<typeof createForCanvas>;
+  animateMgr: ReturnType<typeof createAnimationManager>;
 } & ReactiveCanvasConfig;
 
 export type ReactiveCanvas2Actions = {
@@ -45,16 +48,18 @@ export function createControl() {
     height: 0,
     pixelHeight: 0,
     pixelWidth: 0,
-    _animateCounter: 0
+    _animateCounter: 0,
+    workerClient: createForCanvas(),
+    animateMgr: createAnimationManager()
   });
 
   const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvas2InternalActions>(
     {debug: process.env.NODE_ENV === 'development' ? 'ReativeCanvas2' : false}
   );
-  const {actionOfType} = control;
+  const {actionByType} = control;
 
   rx.merge(
-    actionOfType('onResize').pipe(
+    actionByType.onResize.pipe(
       op.map(() => {
         const s = {...state$.getValue()};
         if (s.canvas == null)
@@ -72,7 +77,7 @@ export function createControl() {
         state$.next(s);
       })
     ),
-    actionOfType('_createDom').pipe(
+    actionByType._createDom.pipe(
       op.map(({payload: canvas}) => {
         if (canvas) {
           const s = state$.getValue();
@@ -84,25 +89,28 @@ export function createControl() {
         }
       })
     ),
-    actionOfType('changeRatio').pipe(
+    actionByType.changeRatio.pipe(
       op.map(({payload: scaleRatio}) => {
         state$.next({...state$.getValue(), scaleRatio});
       })
     ),
-    actionOfType('_afterResize').pipe(
+    actionByType._afterResize.pipe(
       op.map(() => {
         const ctx = state$.getValue().ctx;
         if (ctx)
           control.dispatcher.renderContent(ctx);
       })
     ),
-    actionOfType('renderContent').pipe(
+    actionByType.renderContent.pipe(
       op.map(({payload: ctx}) => {
         const s = state$.getValue();
         ctx.clearRect(0, 0, s.width, s.height);
       })
     ),
-    renderFrame$.pipe(
+    state$.pipe(
+      op.map(s => s.animateMgr),
+      op.distinctUntilChanged(),
+      op.switchMap(mgr => mgr.renderFrame$),
       op.withLatestFrom(state$.pipe(
         op.map(s => s.ctx),
         op.distinctUntilChanged(),
@@ -123,13 +131,13 @@ export function createControl() {
       })
     ),
     rx.combineLatest(
-      actionOfType('onDomMount').pipe(
+      actionByType.onDomMount.pipe(
         op.delay(150), // wait for DOM being rendering
         op.map(() => {
           control.dispatcher.onResize(); // let other paintable react on "resize" action first
         })
       ),
-      actionOfType('render').pipe(op.take(1))
+      actionByType.render.pipe(op.take(1))
     ).pipe(
       op.map(() => {
         // Maybe _afterResize is unnecessary, since dispatching onResize is enough for other subscriber to react on it
@@ -144,7 +152,11 @@ export function createControl() {
       })
     )
   ).pipe(
-    op.takeUntil(actionOfType('onUnmount')),
+    op.takeUntil(actionByType.onUnmount.pipe(
+      op.tap(() => {
+        state$.getValue().workerClient.dispatcher.canvasDestroyed();
+      })
+    )),
     op.catchError((err, src) => {
       void Promise.resolve().then(() => {
         if (err instanceof Error)
@@ -165,8 +177,12 @@ export function createRootPaintable(canvasCtl: ReactiveCanvas2Control, canvasSta
   baseState.detached = false;
   baseState.treeDetached = false;
   const {actionOfType: canvasAc} = canvasCtl;
-  baseState.width = canvasState$.getValue().width;
-  baseState.height = canvasState$.getValue().height;
+  const canvasState = canvasState$.getValue();
+  baseState.width = canvasState.width;
+  baseState.height = canvasState.height;
+  baseState.workerClient = canvasState.workerClient;
+  baseState.animateMgr = canvasState.animateMgr;
+
   rx.merge(
     canvasState$.pipe(
       op.distinctUntilChanged((s1, s2) => s1.width === s2.width && s1.height === s2.height),

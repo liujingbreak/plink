@@ -12,6 +12,8 @@ export type ActionTypes<AC> = {
 };
 type InferParam<F> = Plen<F> extends 1 | 0 ? (F extends (a: infer A) => any ? A : unknown) : Plen<F> extends 2 ? F extends (...p: infer P) => any ? P : unknown : Plen<F> extends 1 | 2 ? F extends (a: infer A, b: infer B) => any ? A | [A, B] : F extends (...p: infer P) => any ? P : unknown : F extends (...p: infer P) => any ? P : unknown;
 /**
+ * @Deprecated
+ * Use createActionStreamByType<R>() instead.
  * create Stream of action stream and action dispatcher,
  * similar to redux-observable Epic concept,
  * What you can get from this function are:
@@ -37,11 +39,15 @@ export declare function createActionStream<AC extends Record<string, ((...payloa
 type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
 export type ActionStreamControl<AC> = {
     dispatcher: AC;
-    /** use dispatcher.<actionName> instead */
-    dispatchFactory: SimpleActionDispatchFactory<AC>;
+    payloadByType: {
+        [T in keyof AC]: Observable<InferParam<AC[T]>>;
+    };
     actionByType: {
         [T in keyof AC]: Observable<ActionTypes<AC>[T]>;
     };
+    /** @Deprecated use dispatcher.<actionName> instead */
+    dispatchFactory: SimpleActionDispatchFactory<AC>;
+    /** @Deprecated use `actionByType.<actionName>` instead */
     actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]>;
     changeActionInterceptor<T extends keyof AC>(interceptorFactory: (originalInterceptor: OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]> | null) => OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]>): void;
     action$: Observable<ActionTypes<AC>[keyof AC]>;

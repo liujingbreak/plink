@@ -11,18 +11,29 @@ type PoolActions<T> = {
     msg: T,
     cb: null | ((err: Error | null, content: WorkerMsgData<R>['content']) => void)): void;
 
-  onTaskDone(worker: Worker, msg: WorkerMsgData<unknown>): void;
-  onTaskRun(worker: Worker, taskId: string): void;
-  onWorkerError(worker: Worker, msg: any): void;
-  createWorker(): void;
-  _workerCreated(w: Worker): void;
-  _workerIdle(w: Worker): void;
+  addTaskForAllData<R>(
+    msg: T,
+    result: rx.Subscriber<WorkerMsgData<R>['content']>
+  ): void;
+
+  _addTaskToSpecificWorker<R>(
+    workerNo: number,
+    msg: T,
+    cb: null | ((err: Error | null, content: WorkerMsgData<R>['content']) => void)
+  ): void;
+
+  onTaskDone(worker: number, msg: WorkerMsgData<unknown>): void;
+  onTaskRun(worker: number, taskId: string): void;
+  onWorkerError(worker: number, msg: any): void;
+  createWorker(no: number): void;
+  _workerCreated(w: Worker, workerNo: number): void;
+  _workerIdle(w: number): void;
   terminateAll(): void;
 };
 
 let SEQ = 0;
 let TASK_SEQ = 0;
-type WorkerMsgData<R> = {
+export type WorkerMsgData<R = any> = {
   taskId: string;
   poolId: string;
   content: R;
@@ -39,70 +50,105 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
   concurrent: number;
   maxIdleWorkers?: number;
 } & StreamControlOptions) {
-  const idleWorkers = new Set<Worker>();
-  const allWorkers: Worker[] = [];
-  const poolId = 'worker-pool:' + SEQ++;
-  const workerByDataKey = new Map<string, Worker>();
-  const dataWorkerSet = new Set<Worker>();
+  const workerByNo = new Map<number, Worker>();
+  const idleWorkers = new Set<number>();
+  const poolId = (SEQ++).toString(16);
+  let workerSeq = 0;
+  const workerByDataKey = new Map<string, number>();
+  const dataWorkerSet = new Set<number>();
   const taskById = new Map<string, {task: T; cb: TaskCallback}>();
   /** Queued tasks which has "dataKey" to specific worker */
-  const tasksForAssignedWorker = new Map<Worker, string[]>();
+  const tasksForAssignedWorker = new Map<number, string[]>();
 
-  const {actionByType, dispatcher} = createActionStreamByType<PoolActions<T>>(opts);
-  // A singleton stream to control concurrency
+  const {actionByType, payloadByType, dispatcher} = createActionStreamByType<PoolActions<T>>(opts);
 
   // Handle `addTask` and `addTaskForPatitionData`,
   // use `mergeMap(, concurrent) to controll number of parallel "non-idle" workers
   rx.merge(
     rx.merge(
-      actionByType.addTaskForPatitionData.pipe(
-        op.map(({payload}) => payload)
+      payloadByType.addTaskForPatitionData.pipe(
+        op.map(([key, task, cb]) => [key, null, task, cb] as const)
       ),
-      actionByType.addTask.pipe(
-        op.map(({payload}) => ([null, ...payload] as const))
+      payloadByType.addTask.pipe(
+        op.map((payload) => ([null, null, ...payload] as const))
+      ),
+      payloadByType._addTaskToSpecificWorker.pipe(
+        op.map(([worker, task, cb]) => {
+          return [null, worker, task, cb] as const;
+        })
       )
     ).pipe(
-      op.mergeMap(([dataKey, task, cb]) => {
-        const taskId = poolId + ':' + TASK_SEQ++;
+      op.mergeMap(([dataKey, worker, task, cb]) => {
+        const taskId = poolId + '/T' + (TASK_SEQ++).toString(16);
         taskById.set(taskId, {task, cb});
-        const worker$ = assignWorker(dataKey, taskId);
-
-        return worker$.pipe(
-          // wait for `_workerIdle`
-          op.concatMap(worker => rx.merge(
-            actionByType._workerIdle.pipe(
-              op.filter(({payload: w}) => worker === w),
-              op.take(1)
-            ),
-            rx.defer(() => {
-              dispatcher.onTaskRun(worker, taskId);
-              worker.postMessage({taskId, poolId, content: task} as WorkerMsgData<T>);
-              return rx.EMPTY;
-            })
-          ))
+        return assignWorker(taskId, dataKey, worker).pipe(
+          waitForWorkerIdle(taskId, task)
         );
       }, opts.concurrent)
     ),
 
+    payloadByType.addTaskForAllData.pipe(
+      op.mergeMap(([task, sub]) => {
+        const callbackSub = new rx.Subject<any>();
+        return rx.merge(
+          // collect all callbacks to array
+          callbackSub.pipe(
+            op.take(dataWorkerSet.size),
+            op.map(content => {
+              sub.next(content);
+            }),
+            op.catchError(err => { sub.error(err); return rx.EMPTY; }),
+            op.finalize(() => sub.complete())
+          ),
+          rx.defer(() => {
+            for (const worker of dataWorkerSet) {
+              dispatcher._addTaskToSpecificWorker(
+                worker, task,
+                (err, content) => {
+                  if (err)
+                    callbackSub.error(err);
+                  else {
+                    callbackSub.next(content);
+                  }
+                }
+              );
+            }
+            return rx.EMPTY;
+          })
+        );
+      })
+    ),
+
     // Create new worker, register event listerners on worker
     actionByType.createWorker.pipe(
-      op.mergeMap(() => factory()),
-      op.map(worker => {
-        allWorkers.push(worker);
-        worker.onmessage = event => {
+      op.mergeMap(({payload: workerNo}) => factory().pipe(
+        op.mergeMap(worker => {
+          const ready$ = new rx.ReplaySubject<[workerNo: number, worker: Worker]>(1);
+          workerByNo.set(workerNo, worker);
+
+          worker.onmessage = event => {
+            if ((event.data as {type: string}).type === 'WORKER_READY') {
+              ready$.next([workerNo, worker]);
+              ready$.complete();
+            } else {
+              dispatcher.onTaskDone(workerNo, event.data);
+            }
+
+          };
+          worker.onmessageerror = event => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          if (event.data.poolId === poolId)
-            dispatcher.onTaskDone(worker, event.data);
-        };
-        worker.onmessageerror = event => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          if (event.data.poolId === poolId)
-            dispatcher.onWorkerError(worker, event.data);
-        };
-        worker.onerror = event => {
-          dispatcher.onWorkerError(worker, event);
-        };
-        dispatcher._workerCreated(worker);
+            if (event.data.poolId === poolId)
+              dispatcher.onWorkerError(workerNo, event.data);
+          };
+          worker.onerror = event => {
+            dispatcher.onWorkerError(workerNo, event);
+          };
+          worker.postMessage({type: 'ASSIGN_WORKER_NO', data: workerNo});
+          return ready$;
+        })
+      )),
+      op.map(([workerNo, worker]) => {
+        dispatcher._workerCreated(worker, workerNo);
       })
     ),
 
@@ -120,7 +166,6 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
         return rx.merge(
           actionByType.onWorkerError.pipe(
             op.filter(({payload: [w]}) => w === worker),
-            op.take(1),
             op.map(({payload: [w, msg]}) => {
               if (taskData) {
                 if (taskData.cb)
@@ -129,10 +174,9 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
               }
             })
           ),
-          actionByType.onTaskDone.pipe(
-            op.filter(({payload: [w, msg]}) => w === worker && msg.taskId === taskId),
-            op.take(1),
-            op.map(({payload: [w, msg]}) => {
+          payloadByType.onTaskDone.pipe(
+            op.filter(([w]) => w === worker),
+            op.map(([, msg]) => {
               if (taskData) {
                 if (taskData.cb)
                   taskData?.cb(null, msg);
@@ -141,12 +185,16 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
             })
           )
         ).pipe(
+          op.take(1),
           op.map(() => {
             const queue = tasksForAssignedWorker.get(worker);
             if (queue && queue.length > 0) {
               const taskId = queue.shift()!;
               dispatcher.onTaskRun(worker, taskId);
-              worker.postMessage({taskId, poolId, content: taskById.get(taskId)!.task} as WorkerMsgData<T>);
+              const msg = {taskId, poolId, content: taskById.get(taskId)!.task} as WorkerMsgData<T>;
+              // eslint-disable-next-line no-console
+              console.log('worker pool postMessage for assigned', msg);
+              workerByNo.get(worker)?.postMessage(msg);
             } else {
               dispatcher._workerIdle(worker);
             }
@@ -159,7 +207,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
     actionByType._workerIdle.pipe(
       op.map(({payload: w}) => {
         if (idleWorkers.size >= (opts.maxIdleWorkers ?? Number.MAX_VALUE) && !dataWorkerSet.has(w)) {
-          w.terminate();
+          workerByNo.get(w)?.terminate();
         } else {
           idleWorkers.add(w);
         }
@@ -172,67 +220,84 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
     })
   ).subscribe();
 
+  /** @return Observable<Worker> or rx.EMPTY if the worker is in-progress
+   */
   function assignWorker(
+    taskId: string,
     dataKey: string | number | null,
-    taskId: string
-  ): rx.Observable<Worker> {
+    workerNo?: number | null
+  ): rx.Observable<number> {
 
-    if (dataKey != null) {
-      const key = dataKey + '';
-      const worker = workerByDataKey.get(key);
-      if (worker) {
-        // There is previously assigned worker
-        if (idleWorkers.has(worker)) {
-          // The worker is idle
-          idleWorkers.delete(worker);
-          return rx.of(worker);
-        } else {
-          // But the worker is busy
-          let queue = tasksForAssignedWorker.get(worker);
-          if (queue == null) {
-            queue = [];
-            tasksForAssignedWorker.set(worker, queue);
-          }
-          queue.push(taskId);
-          return rx.EMPTY;
+    const key = dataKey ? dataKey + '' : null;
+    workerNo = workerNo ?? (key != null ? workerByDataKey.get(key) : null);
+    if (workerNo) {
+      // There is previously assigned worker
+      if (idleWorkers.has(workerNo)) {
+        // The worker is idle
+        idleWorkers.delete(workerNo);
+        return rx.of(workerNo);
+      } else {
+        // But the worker is busy
+        let queue = tasksForAssignedWorker.get(workerNo);
+        if (queue == null) {
+          queue = [];
+          tasksForAssignedWorker.set(workerNo, queue);
         }
-
-      } else {
-        // Create a new worker and associate it with dataKey
-        return rx.merge(
-          actionByType._workerCreated.pipe(
-            op.take(1),
-            op.map(({payload: worker}) => {
-              workerByDataKey.set(key, worker);
-              dataWorkerSet.add(worker);
-              return worker;
-            })
-          ),
-          rx.defer(() => {
-            dispatcher.createWorker();
-            return rx.EMPTY;
-          })
-        );
+        queue.push(taskId);
+        return rx.EMPTY;
       }
 
+    } else if (idleWorkers.size > 0) {
+      const no = idleWorkers.values().next().value as number;
+      idleWorkers.delete(no);
+      if (key) {
+        workerByDataKey.set(key, no);
+        dataWorkerSet.add(no);
+      }
+      return rx.of(no);
     } else {
-      if (idleWorkers.size > 0) {
-        const worker = idleWorkers.values().next().value as Worker;
-        idleWorkers.delete(worker);
-        return rx.of(worker);
-      } else {
-        return rx.merge(
-          actionByType._workerCreated.pipe(
-            op.take(1),
-            op.map(({payload}) => payload)
+      const newWorkerNo = workerSeq++;
+      // Create a new worker and associate it with dataKey
+      return rx.merge(
+        actionByType._workerCreated.pipe(
+          op.filter(({payload: [w, no]}) => no === newWorkerNo),
+          op.take(1),
+          op.map(({payload: [, no]}) => {
+            if (key) {
+              workerByDataKey.set(key, no);
+              dataWorkerSet.add(no);
+            }
+            return no;
+          })
+        ),
+        rx.defer(() => {
+          dispatcher.createWorker(newWorkerNo);
+          return rx.EMPTY;
+        })
+      );
+    }
+  }
+
+  function waitForWorkerIdle(taskId: string, taskMsg: T) {
+    return function(worker$: rx.Observable<number>) {
+      return worker$.pipe(
+        // wait for `_workerIdle`
+        op.mergeMap(worker => rx.merge(
+          actionByType._workerIdle.pipe(
+            op.filter(({payload: w}) => worker === w),
+            op.take(1)
           ),
           rx.defer(() => {
-            dispatcher.createWorker();
+            dispatcher.onTaskRun(worker, taskId);
+            const msg = {taskId, poolId, content: taskMsg} as WorkerMsgData<T>;
+            // eslint-disable-next-line no-console
+            console.log('worker pool postMessage', msg);
+            workerByNo.get(worker)?.postMessage(msg);
             return rx.EMPTY;
           })
-        );
-      }
-    }
+        ))
+      );
+    };
   }
 
   return {
@@ -246,7 +311,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       });
     },
 
-    executeStatefully(msg: T, dataKey: string | number) {
+    executeForKey(msg: T, dataKey: string | number) {
       return new Promise((resolve, reject) => {
         dispatcher.addTaskForPatitionData(dataKey, msg, (err, content) => {
           if (err)
@@ -256,10 +321,16 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       });
     },
 
+    executeAllWorker(msg: T) {
+      return new rx.Observable<WorkerMsgData<T>['content']>(sub => {
+        dispatcher.addTaskForAllData(msg, sub);
+      });
+    },
+
     terminateAll() {
-      for (const w of allWorkers) {
+      for (const [no, w] of workerByNo) {
         w.terminate();
-        allWorkers.splice(0);
+        workerByNo.delete(no);
       }
     }
   };

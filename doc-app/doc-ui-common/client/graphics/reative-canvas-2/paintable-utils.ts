@@ -5,14 +5,17 @@ import {PaintableCtl, PaintableState, parentChange$} from './paintable';
 
 type AlignmentValues = 'left' | 'center' | 'right' | 'top' | 'down';
 
+export {parentChange$};
 /** change transform  matrix relative to parent size,
  * default is 'center'
  * TODO: implement for 'left', 'right', ...
  */
-export function alignToParent(
-  paintableCtl: PaintableCtl,
+// eslint-disable-next-line @typescript-eslint/ban-types, space-before-function-paren
+export function alignToParent<C extends Record<string, (...a: any[]) => void>> (
+  paintableCtl: PaintableCtl<C>,
   state: PaintableState,
-  _opts: {vertical?: AlignmentValues; horizontal?: AlignmentValues} = {}) {
+  _opts: {vertical?: AlignmentValues; horizontal?: AlignmentValues} = {}
+) {
 
   const {dispatcher} = paintableCtl;
 
@@ -25,7 +28,7 @@ export function alignToParent(
       sub.complete();
     }),
     parentChange$(paintableCtl, state).pipe(
-      op.switchMap(({payload: [parent, pState]}) => {
+      op.switchMap(([parent, pState]) => {
         const {actionOfType: pac} = parent;
 
         return rx.merge(

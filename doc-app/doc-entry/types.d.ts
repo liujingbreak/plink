@@ -3,4 +3,9 @@ declare module '*.md' {
   const html: string;
   const toc: LoaderRecivedData['toc'];
   export {html, toc};
+  global {
+    interface ImportMeta {
+      webpackHot: any;
+    }
+  }
 }
