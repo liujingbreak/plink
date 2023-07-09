@@ -64,6 +64,7 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
       })
     ),
 
+    // Render content
     pt.renderContent.pipe(
       op.withLatestFrom(shapeChange$),
       op.map(([[ctx], shapes]) => {
@@ -85,10 +86,12 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
         }
       })
     ),
+    // start animation
     pt.renderContent.pipe(
       op.take(1),
       op.map(() => {dispatcher.startOpeningAnim(huePaletteState.animateMgr!.animate(0, 1, 500)); })
     ),
+    // When animation is finished, ask web workers to perform bounds calculation
     pt.openAnimateStopped.pipe(
       op.withLatestFrom(shapeChange$),
       op.switchMap(() => rx.timer(300)),
@@ -99,12 +102,15 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
       op.throttleTime(700, rx.asapScheduler, {leading: true, trailing: true}),
       op.map(detectables => {
         let i = 0;
-        for (const segs of detectables.slice(0, detectablesLen)) {
-          dispatcher.updateDetectables('hue' + i, [...segs]);
-          i++;
-        }
+        dispatcher.updateDetectables(
+          (function* () {
+            for (const segs of detectables.slice(0, detectablesLen))
+              yield ['hue' + i++, segs];
+          })()
+        );
         return detectablesLen;
       }),
+      // Make sure we wait until all bounds are finished calculation
       op.switchMap((num) => huePaletteState.workerClient!.payloadByType.doneTaskForKey.pipe(
         op.filter(([, paintableId]) => paintableId === huePaletteState.id),
         op.take(num)
@@ -114,6 +120,8 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
         huePaletteState.workerClient?.dispatcher.getBBoxesOf(huePaletteState.id);
       })
     ),
+    // Use workerClient "gotBBoxesOf" to retrieve bounding boxes.
+    // huePaletteState.workerClient is availabe when `parentChange$()` is dispatched
     parentChange$(huePaletteCtrl, huePaletteState).pipe(
       op.switchMap(() => {
         const ppt = huePaletteState.workerClient?.payloadByType;
@@ -139,7 +147,7 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
 }
 
 function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
-  const numOfColors = 6;
+  const numOfColors = 36;
   const fanShapes = [] as [color: Color, segsIt: Iterable<Segment>][];
 
   const init$ = rx.defer(() => {

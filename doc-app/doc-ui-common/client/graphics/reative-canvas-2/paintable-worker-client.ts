@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import {WorkerMsgData, createReactiveWorkerPool} from '../../utils/worker-pool';
-import {Rectangle} from '../canvas-utils';
+import {Rectangle, SegmentNumbers} from '../canvas-utils';
 
 const pool = createReactiveWorkerPool(
   // eslint-disable-next-line @typescript-eslint/tslint/config
@@ -17,7 +17,7 @@ const pool = createReactiveWorkerPool(
 let SEQ = 0;
 
 export type WorkerClientAction = {
-  updateDetectable(paintableId: string, segs: Record<string, (number | null)[][]>): void;
+  updateDetectable(paintableId: string, segs: Iterable<[string, Iterable<SegmentNumbers>]>): void;
   // transform(paintableId: string, matrix: Matrix): void;
   isInsideSegments(x: number, y: number): void;
   getBBoxesOf(paintableId: string): void;
@@ -31,7 +31,7 @@ export type WorkerClientAction = {
 
 export type ActionsToWorker = {
   // createDetectTree(treeId: string): void;
-  _updateDetectable(treeId: string, paintableId: string, key: string, segs: (number | null)[][]): void;
+  _updateDetectable(treeId: string, paintableId: string, key: string, segs: SegmentNumbers[]): void;
   // _transform(treeId: string, paintableId: string, m: Matrix): void;
   _getBBoxesOf(treeId: string, paintableId: string): void;
   destroyDetectTree(treeId: string): void;
@@ -60,8 +60,8 @@ export function createForCanvas() {
       op.map(res => _actionFromObject(res as WorkerMsgData<any>['content']))
     ),
     payloadByType.updateDetectable.pipe(
-      op.mergeMap(([id, segs]) => rx.of(...Object.entries(segs)).pipe(
-        op.map(([key, segs]) => dispatcher._updateDetectable(detectTreeId, id, key, segs))
+      op.mergeMap(([id, objectsWithKey]) => rx.of(...objectsWithKey).pipe(
+        op.map(([key, segs]) => dispatcher._updateDetectable(detectTreeId, id, key, [...segs]))
       ))
     ),
     payloadByType.getBBoxesOf.pipe(

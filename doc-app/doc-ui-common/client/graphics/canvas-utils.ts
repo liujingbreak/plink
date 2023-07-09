@@ -59,21 +59,26 @@ export function blur(ctx: CanvasRenderingContext2D, x = 0, y = 0, width = ctx.ca
 const round = Math.round;
 
 export type Point = {x: number; y: number};
+export type SegmentNumbers = [
+  pointX: number, pointY: number,
+  handleInX?: (number | null), handleInY?: (number | null),
+  handleOutX?: (number | null), handleOutY?: (number | null)
+];
 /**
  * A paper.js segement like structure (http://paperjs.org/reference/segment/)
  * Each segment consists of an anchor point (segment.point) and optionaly an incoming and an outgoing handle (segment.handleIn and segment.handleOut), describing the tangents of the two Curve objects that are connected by this segment.
  */
 export class Segment {
-  static from(pointX: number, pointY: number, handleInX: number, handleInY: number, handleOutX: number, handleOutY: number) {
-    return new Segment({x: pointX, y: pointY}, {x: handleInX, y: handleInY}, {x: handleOutX, y: handleOutY});
-  }
+  // static from(pointX: number, pointY: number, handleInX: number, handleInY: number, handleOutX: number, handleOutY: number) {
+  //   return new Segment({x: pointX, y: pointY}, {x: handleInX, y: handleInY}, {x: handleOutX, y: handleOutY});
+  // }
   point: Point = {x: 0, y: 0};
   /** Relative to this.point */
   handleIn?: Point;
   /** Relative to this.point */
   handleOut?: Point;
 
-  constructor(coordinates: [number, number, (number | null)?, (number | null)?, (number | null)?, (number | null)?]);
+  constructor(coordinates: SegmentNumbers);
   constructor(point: Point, handleIn?: Point | null, handleOut?: Point);
   constructor(
     point: Point | [number, number, (number | null)?, (number | null)?, (number | null)?, (number | null)?],
@@ -174,11 +179,7 @@ export class Segment {
     return newSeg;
   }
 
-  toNumbers(): [
-    pointX: number, pointY: number,
-    handleInX: (number | null), handleInY: (number | null),
-    handleOutX: (number | null), handleOutY: (number | null)
-  ] {
+  toNumbers(): SegmentNumbers {
     const arr = [this.point.x, this.point.y, null, null, null, null] as [number, number, number | null, number | null, number | null, number | null];
     if (this.handleIn) {
       arr[2] = this.handleIn.x;
@@ -233,7 +234,7 @@ export function reverseSegments(segs: Iterable<Segment>) {
   });
 }
 
-export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts?: {
+export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D, opts?: {
   closed?: boolean;
   round?: boolean | ((x: number) => number);
   debug?: boolean;
@@ -253,7 +254,7 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
     if (i === 0) {
       origPoint = p;
       ctx.moveTo(p.x, p.y);
-      if (opts && opts.debug)
+      if (opts?.debug)
       // eslint-disable-next-line no-console
         console.log('moveTo', p);
     } else {
@@ -287,11 +288,11 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
   return segements;
 }
 
-export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D , opts: {closed?: boolean; round?: boolean; size?: number} = {}) {
+export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D, opts: {closed?: boolean; round?: boolean; size?: number} = {}) {
   let i = 0;
   let segements = Array.from(segs).map(seg => seg.round());
 
-  if (opts && opts.round)
+  if (opts?.round)
     segements = segements.map(seg => seg.round());
 
   if (opts.size == null)
@@ -504,7 +505,7 @@ export function boundsOf(segs: Iterable<Segment>, roundResult = false): Rectangl
     };
 }
 
-export function centerOf(segs: Iterable<Segment>, roundResult = false): {x: number; y: number} {
+export function centerOf(segs: Iterable<Segment>): {x: number; y: number} {
   const bounds = boundsOf(segs);
 
   return {x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2};

@@ -41,7 +41,7 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>(control => {
     rx.merge(
       pt._updateDetectable.pipe(
         op.map(([treeId, paintableId, key, numbersArr]) => {
-          const bound = boundsOf(numbersArr.map(nums => new Segment(nums as [number, number])));
+          const bound = boundsOf(numbersArr.map(nums => new Segment(nums)));
           const s = initState(treeId, paintableId);
           s.bounds.set(key, bound);
           dispatcher.doneTaskForKey(treeId, paintableId, key);

@@ -81,7 +81,7 @@ export type PaintableActions = {
     ctl: ActionStreamControl<E>
   ): void;
   detach(): void;
-  updateDetectables(key: string, segments: Segment[]): void;
+  updateDetectables(objectsByKey: Iterable<[key: string, segments: Segment[]]>): void;
   /** Event: one of ancestors is detached, so current "paintable" is no long connected to canvas */
   treeDetached(): void;
   treeAttached(): void;
@@ -264,9 +264,13 @@ export function createPaintable<
       })
     ),
     pt.updateDetectables.pipe(
-      op.map(([key, segments]) => {
+      op.map(objectsWithKey => {
         if (state.workerClient)
-          state.workerClient.dispatcher.updateDetectable(state.id, {[key]: segments.map(seg => seg.toNumbers())});
+          state.workerClient.dispatcher.updateDetectable(state.id,
+            (function* () {
+              for (const [key, segs] of objectsWithKey)
+                yield [key, segs.map(seg => seg.toNumbers())];
+            })());
       })
     ),
     new rx.Observable(sub => {
