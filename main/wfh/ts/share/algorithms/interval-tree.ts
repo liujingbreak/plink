@@ -22,33 +22,44 @@ export interface IntervalTreeNode<V = unknown> extends RbTreeNode<number, V, Int
  *
  */
 export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalTreeNode<V>> {
-  insertInterval(low: number, high: number, data: V) {
+  /** Return tree node, if property value is undefined */
+  insertInterval(low: number, high: number):
+  Omit<IntervalTreeNode<V>, 'value'> & {value?: V} | Omit<RbTreeNode<number, V>, 'value'> & {value?: V} {
+
+    let valueContainer: Omit<IntervalTreeNode<V>, 'value'> & {value?: V} | Omit<RbTreeNode<number, V>, 'value'> & {value?: V};
+    if (low > high) {
+      const temp = high = low;
+      low = temp;
+    }
     const node = this.insert(low);
     if (node.int) {
       if (node.int[1] === high) {
         // duplicate high boundray value
-        node.value = data;
+        // node.value = data;
         return node;
       }
       // A duplicate low boundray
       node.highValuesTree = new RedBlackTree<number, V>();
       node.highValuesTree.insert(node.int[1]).value = node.value;
-      node.highValuesTree.insert(high).value = data;
+      valueContainer = node.highValuesTree.insert(high);
 
       node.int = undefined;
       node.weight++;
-    } if (node.highValuesTree) {
-      node.highValuesTree.insert(high).value = data;
+    }
+    if (node.highValuesTree) {
+      // node.highValuesTree.insert(high).value = data;
+      valueContainer = node.highValuesTree.insert(high);
       node.weight = node.highValuesTree.size();
     } else {
       node.int = [low, high];
-      node.value = data;
+      // node.value = data;
+      valueContainer = node;
     }
     if (high > (node.maxHighOfMulti ?? Number.MIN_VALUE)) {
       node.maxHighOfMulti = high;
     }
     maintainNodeMaxValue(node);
-    return node;
+    return valueContainer;
   }
 
   deleteInterval(low: number, high: number) {
@@ -121,8 +132,8 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
   }
 }
 
-function maintainNodeMaxValue<V>(node: IntervalTreeNode<V>) {
-  let currNode: IntervalTreeNode<V> | null = node;
+function maintainNodeMaxValue<V>(node: Partial<IntervalTreeNode<V>>) {
+  let currNode: Partial<IntervalTreeNode<V>> | null | undefined = node;
   while (currNode) {
     if (currNode.maxHighOfMulti == null)
       throw new Error('currNode.maxHighOfMulti should not be empty');

@@ -55,8 +55,10 @@ export function createWorkerControl<A extends Record<string, (...payload: any[])
       );
     }),
     op.catchError((err, src) => {
-      void Promise.resolve().then(() => {throw err; });
-      return src;
+      // void Promise.resolve().then(() => {throw err; });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      postMessage({error: err});
+      throw err;
     })
   ).subscribe();
   return () => sub.unsubscribe();

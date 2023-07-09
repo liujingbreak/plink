@@ -60,7 +60,7 @@ class RedBlackTree {
                 if (left === v)
                     return;
                 left = v;
-                z.size = (left ? left.size : 0) + (right ? right.size : 0) + 1;
+                self.updateNodeSize(z);
                 self.onLeftChildChange(z, v);
             }
         });
@@ -73,27 +73,27 @@ class RedBlackTree {
                 if (right === v)
                     return;
                 right = v;
-                z.size = (left ? left.size : 0) + (right ? right.size : 0) + 1;
+                self.updateNodeSize(z);
                 self.onRightChildChange(z, v);
             }
         });
-        let size = 0;
-        Object.defineProperty(z, 'size', {
+        let weight = 0;
+        Object.defineProperty(z, 'weight', {
             get() {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-                return size;
+                return weight;
             },
             set(v) {
-                var _a, _b;
-                if (size === v)
+                if (weight === v)
                     return;
-                size = v;
-                if (z.p) {
-                    z.p.size = (((_a = z.p.left) === null || _a === void 0 ? void 0 : _a.size) || 0) + (((_b = z.p.right) === null || _b === void 0 ? void 0 : _b.size) || 0) + 1;
-                }
+                weight = v;
+                self.updateNodeSize(z);
+                // if (z.p) {
+                //   z.p.size = (z.p.left?.size || 0) + (z.p.right?.size || 0) + 1;
+                // }
             }
         });
-        z.size = 1;
+        z.weight = 1;
         if (y == null) {
             this.root = z;
         }
@@ -106,7 +106,9 @@ class RedBlackTree {
         this.redBlackInsertFixUp(z);
         return z;
     }
-    /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0 */
+    /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0
+    * and it is baesed on "size" which is accumulated  from "weight" of node ands children's
+    */
     atIndex(idx, beginNode = this.root) {
         var _a;
         let currNode = beginNode;
@@ -291,6 +293,14 @@ class RedBlackTree {
      * To be extend and overridden
      */
     onRightChildChange(_parent, _child) {
+    }
+    updateNodeSize(node) {
+        var _a, _b, _c, _d;
+        let z = node;
+        while (z) {
+            z.size = z.weight + ((_b = (_a = z.left) === null || _a === void 0 ? void 0 : _a.size) !== null && _b !== void 0 ? _b : 0) + ((_d = (_c = z.right) === null || _c === void 0 ? void 0 : _c.size) !== null && _d !== void 0 ? _d : 0);
+            z = z.p;
+        }
     }
     deleteNode(z) {
         let y = z;

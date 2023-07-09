@@ -6,7 +6,7 @@
  * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
 
-export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<any, any, any>> = {
+export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<T, V, any>> = {
   key: T;
   value: V;
   p: C | null;
@@ -21,7 +21,7 @@ export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbT
   weight: number;
 };
 
-export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTreeNode<T, V, RbTreeNode<any, any>>> {
+export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTreeNode<T, V>> {
   root: ND | null | undefined = null;
 
   constructor(protected comparator?: (a: T, b: T) => number) {
@@ -39,7 +39,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTr
    * @param key
    * @returns existing tree node if key duplicates or a new empty node
    */
-  insert(key: T): Omit<ND, 'value'> & {value: V | undefined} {
+  insert(key: T): Omit<ND, 'value'> & {value?: V} {
     let y: ND | null = null;
     let x = this.root;
     let cmp: number;

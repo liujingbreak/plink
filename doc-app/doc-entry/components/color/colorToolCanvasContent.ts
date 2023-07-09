@@ -113,7 +113,8 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
       // Make sure we wait until all bounds are finished calculation
       op.switchMap((num) => huePaletteState.workerClient!.payloadByType.doneTaskForKey.pipe(
         op.filter(([, paintableId]) => paintableId === huePaletteState.id),
-        op.take(num)
+        op.take(num),
+        op.takeLast(1)
       )),
       op.map(() => {
         bounds.splice(0);
@@ -129,7 +130,8 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
           return rx.EMPTY;
 
         return ppt.gotBBoxesOf.pipe(
-          op.map(([, , rects]) => {
+          op.filter(([, paintableId]) => paintableId === huePaletteState.id),
+          op.map(([, , rects], idx) => {
             for (const rect of rects) {
               bounds.push([
                 new Segment([rect.x, rect.y]),
@@ -138,6 +140,8 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
                 new Segment([rect.x, rect.y + rect.h])
               ]);
             }
+            console.log(idx, ':', rects.length, bounds.length);
+            // console.log(bounds.map(segs => segs.slice(0, 1).map(seg => seg.point)));
             huePaletteState.animateMgr?.renderFrame$.next();
           })
         );
@@ -147,7 +151,7 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
 }
 
 function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
-  const numOfColors = 36;
+  const numOfColors = 6;
   const fanShapes = [] as [color: Color, segsIt: Iterable<Segment>][];
 
   const init$ = rx.defer(() => {

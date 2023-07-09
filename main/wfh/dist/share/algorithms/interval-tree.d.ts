@@ -6,9 +6,7 @@ import { RbTreeNode, RedBlackTree } from './rb-tree';
 export interface IntervalTreeNode<V = unknown> extends RbTreeNode<number, V, IntervalTreeNode<V>> {
     /** For no duplicate single interval*/
     int?: [low: number, high: number];
-    /** For 2-3 intervals which has same "low" value but different "high" value */
-    multi?: [high: number, data: V][];
-    /** For 4+ intervals, a tree to store different "high" value */
+    /** For multiple intervals, a tree to store different "high" value */
     highValuesTree?: RedBlackTree<number, V>;
     /** Maximum "high" value of multi intervals that this node contains */
     maxHighOfMulti?: number;
@@ -22,8 +20,11 @@ export interface IntervalTreeNode<V = unknown> extends RbTreeNode<number, V, Int
  *
  */
 export declare class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalTreeNode<V>> {
-    insertInterval(low: number, high: number, data: V): Omit<IntervalTreeNode<V>, "value"> & {
-        value: V | undefined;
+    /** Return tree node, if property value is undefined */
+    insertInterval(low: number, high: number): Omit<IntervalTreeNode<V>, 'value'> & {
+        value?: V;
+    } | Omit<RbTreeNode<number, V>, 'value'> & {
+        value?: V;
     };
     deleteInterval(low: number, high: number): boolean;
     searchSingleOverlap(low: number, high: number): IntervalTreeNode<V> | null | undefined;

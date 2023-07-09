@@ -20,8 +20,11 @@ export interface IntervalTreeNode<V = unknown> extends RbTreeNode<number, V, Int
  *
  */
 export declare class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalTreeNode<V>> {
-    insertInterval(low: number, high: number, data: V): Omit<IntervalTreeNode<V>, "value"> & {
-        value: V | undefined;
+    /** Return tree node, if property value is undefined */
+    insertInterval(low: number, high: number): Omit<IntervalTreeNode<V>, 'value'> & {
+        value?: V;
+    } | Omit<RbTreeNode<number, V>, 'value'> & {
+        value?: V;
     };
     deleteInterval(low: number, high: number): boolean;
     searchSingleOverlap(low: number, high: number): IntervalTreeNode<V> | null | undefined;

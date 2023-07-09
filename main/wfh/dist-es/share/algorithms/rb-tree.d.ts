@@ -5,7 +5,7 @@
  *
  * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
-export declare type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<any, any, any>> = {
+export declare type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<T, V, any>> = {
     key: T;
     value: V;
     p: C | null;
@@ -19,7 +19,7 @@ export declare type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, an
     /** weight of current node, not includingg childlren'ss */
     weight: number;
 };
-export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTreeNode<T, V, RbTreeNode<any, any>>> {
+export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTreeNode<T, V>> {
     protected comparator?: ((a: T, b: T) => number) | undefined;
     root: ND | null | undefined;
     constructor(comparator?: ((a: T, b: T) => number) | undefined);
@@ -29,7 +29,7 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND
      * @returns existing tree node if key duplicates or a new empty node
      */
     insert(key: T): Omit<ND, 'value'> & {
-        value: V | undefined;
+        value?: V;
     };
     /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0
     * and it is baesed on "size" which is accumulated  from "weight" of node ands children's

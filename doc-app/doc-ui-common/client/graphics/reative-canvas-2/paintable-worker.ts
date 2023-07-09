@@ -1,5 +1,6 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import {IntervalTree} from '@wfh/plink/wfh/dist-es/share/algorithms/interval-tree';
 import {boundsOf, Rectangle, Segment} from '../canvas-utils';
 import {createWorkerControl} from '../../utils/worker-impl-util';
 import type {ActionsToWorker, ResponseEvents} from './paintable-worker-client';
@@ -12,6 +13,7 @@ type CanvasDataState = {
 type PaintableState = {
   /** key is dataKey */
   bounds: Map<string, Rectangle>;
+  yPositionTree: IntervalTree<IntervalTree<string>>;
 };
 
 const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>(control => {
@@ -30,7 +32,8 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>(control => {
     let paintableState = canvasInstanceState.paintableById.get(paintableId);
     if (paintableState == null) {
       paintableState = {
-        bounds: new Map()
+        bounds: new Map(),
+        yPositionTree: new IntervalTree()
       };
       canvasInstanceState.paintableById.set(paintableId, paintableState);
     }
@@ -44,6 +47,17 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>(control => {
           const bound = boundsOf(numbersArr.map(nums => new Segment(nums)));
           const s = initState(treeId, paintableId);
           s.bounds.set(key, bound);
+          /* const yNode = */s.yPositionTree.insertInterval(bound.y, bound.y + bound.h);
+          // if (yNode.value == null) {
+          //   const xPositionTree = new IntervalTree<string>();
+          //   yNode.value = xPositionTree;
+          // }
+          // const xNode = yNode.value.insertInterval(bound.x, bound.x + bound.w);
+          // if (xNode.value != null) {
+          //   xNode.value = key + ',' + xNode.value;
+          // } else {
+          //   xNode.value = key;
+          // }
           dispatcher.doneTaskForKey(treeId, paintableId, key);
         })
       ),

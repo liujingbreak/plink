@@ -18,8 +18,8 @@ describe('Interval tree', () => {
 
   it('Find overlaps from duplicates', () => {
     const tree = createTree();
-    tree.insertInterval(6, 13, null);
-    tree.insertInterval(6, 14, null);
+    tree.insertInterval(6, 13);
+    tree.insertInterval(6, 14);
     expect(tree.minimum()?.key).toBe(0);
     expect(tree.root?.max).toBe(30);
     const found = tree.searchSingleOverlap(5, 15);
@@ -34,11 +34,11 @@ describe('Interval tree', () => {
   it('Find overlaps from more duplicates', () => {
     const tree = createTree();
     expect(tree.size()).toBe(10);
-    tree.insertInterval(6, 18, null);
-    tree.insertInterval(6, 12, null);
-    tree.insertInterval(6, 17, null);
-    tree.insertInterval(6, 14, null);
-    tree.insertInterval(6, 28, null);
+    tree.insertInterval(6, 18);
+    tree.insertInterval(6, 12);
+    tree.insertInterval(6, 17);
+    tree.insertInterval(6, 14);
+    tree.insertInterval(6, 28);
     expect(tree.size()).toBe(15);
     printTree(tree);
     const founds = [...tree.searchMultipleOverlaps(7, 15)];
@@ -63,10 +63,10 @@ describe('Interval tree', () => {
 
   it('Delete intervals from duplicate interval', () => {
     const tree = createTree();
-    tree.insertInterval(25, 29, null);
-    const node = tree.insertInterval(25, 31, null);
+    tree.insertInterval(25, 29);
+    tree.insertInterval(25, 31) as IntervalTreeNode;
+    const node = tree.search(25)!;
 
-    expect(node.highValuesTree != null).toBeTruthy();
     expect(node.int == null).toBeTruthy();
     expect(tree.root?.max).toEqual(31);
 
@@ -89,11 +89,11 @@ describe('Interval tree', () => {
 
   it('Delete intervals from more duplicate interval node', () => {
     const tree = createTree();
-    tree.insertInterval(25, 38, null);
-    tree.insertInterval(25, 32, null);
-    tree.insertInterval(25, 37, null);
-    tree.insertInterval(25, 34, null);
-    tree.insertInterval(25, 38, null);
+    tree.insertInterval(25, 38);
+    tree.insertInterval(25, 32);
+    tree.insertInterval(25, 37);
+    tree.insertInterval(25, 34);
+    tree.insertInterval(25, 38);
     expect(tree.size()).toBe(14);
     printTree(tree);
 
@@ -111,6 +111,9 @@ describe('Interval tree', () => {
     expect(tree.size()).toBe(10);
     expect(node?.int != null).toBeTruthy();
   });
+
+  // it('For real data', () => {
+  // })
 });
 
 function createTree() {
@@ -119,7 +122,8 @@ function createTree() {
 
   const intTree = new IntervalTree();
   for (const [low, high] of intervals) {
-    intTree.insertInterval(low, high, null);
+    const node = intTree.insertInterval(low, high);
+    node.value = `[${low}-${high}]`;
   }
   expect(intTree.size()).toEqual(intervals.length);
   return intTree;

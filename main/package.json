@@ -14,7 +14,6 @@
     "watch:node": "tsc -b tsconfig-plink.json -w",
     "build:es": "tsc -b tsconfig-es5.json",
     "build:redux": "tsc -p packages/redux-toolkit-observable/tsconfig-redux-toolkit.json && tsc -p packages/redux-toolkit-observable/tsconfig-redux-toolkit-es.json",
-    "build:share": "tsc -p tsconfig-share.json",
     "clean": "rm -rf wfh/*.tsbuildinfo && rm -rf wfh/dist/*"
   },
   "repository": {

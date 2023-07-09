@@ -9,42 +9,39 @@ const rb_tree_1 = require("./rb-tree");
  *
  */
 class IntervalTree extends rb_tree_1.RedBlackTree {
-    insertInterval(low, high, data) {
+    /** Return tree node, if property value is undefined */
+    insertInterval(low, high) {
         var _a;
+        let valueContainer;
         const node = this.insert(low);
         if (node.int) {
+            if (node.int[1] === high) {
+                // duplicate high boundray value
+                // node.value = data;
+                return node;
+            }
             // A duplicate low boundray
-            node.multi = [
-                [node.int[1], node.value],
-                [high, data]
-            ];
+            node.highValuesTree = new rb_tree_1.RedBlackTree();
+            node.highValuesTree.insert(node.int[1]).value = node.value;
+            valueContainer = node.highValuesTree.insert(high);
             node.int = undefined;
+            node.weight++;
         }
-        else if (node.multi) {
-            if (node.multi.length >= 3) {
-                node.highValuesTree = new rb_tree_1.RedBlackTree();
-                for (const [h, v] of node.multi) {
-                    node.highValuesTree.insert(h).value = v;
-                }
-                node.highValuesTree.insert(high).value = data;
-                node.multi = undefined;
-            }
-            else {
-                node.multi.push([high, data]);
-            }
-        }
-        else if (node.highValuesTree) {
-            node.highValuesTree.insert(high).value = data;
+        if (node.highValuesTree) {
+            // node.highValuesTree.insert(high).value = data;
+            valueContainer = node.highValuesTree.insert(high);
+            node.weight = node.highValuesTree.size();
         }
         else {
             node.int = [low, high];
-            node.value = data;
+            // node.value = data;
+            valueContainer = node;
         }
         if (high > ((_a = node.maxHighOfMulti) !== null && _a !== void 0 ? _a : Number.MIN_VALUE)) {
             node.maxHighOfMulti = high;
         }
         maintainNodeMaxValue(node);
-        return node;
+        return valueContainer;
     }
     deleteInterval(low, high) {
         const node = this.search(low);
@@ -54,20 +51,27 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
             this.deleteNode(node);
             return true;
         }
-        else if (node.multi != null) {
-            node.multi = node.multi.filter(it => it[0] !== high);
-            if (node.multi.length === 1) {
-                node.int = [node.key, node.multi[0][0]];
-                node.value = node.multi[0][1];
-                node.multi = undefined;
-                node.maxHighOfMulti = node.int[1];
-            }
-            else {
-                node.maxHighOfMulti = node.multi.reduce((max, curr) => Math.max(curr[0], max), Number.MIN_VALUE);
-            }
-        }
         else if (node.highValuesTree) {
-            return node.highValuesTree.delete(high);
+            const origMaxHigh = node.maxHighOfMulti;
+            const deleted = node.highValuesTree.delete(high);
+            if (deleted) {
+                node.weight--;
+                if (node.highValuesTree.size() === 1) {
+                    node.int = [node.key, node.highValuesTree.root.key];
+                    node.value = node.highValuesTree.root.value;
+                    node.highValuesTree = undefined;
+                    node.maxHighOfMulti = node.int[1];
+                    if (origMaxHigh !== node.maxHighOfMulti)
+                        maintainNodeMaxValue(node);
+                    return true;
+                }
+                else {
+                    node.maxHighOfMulti = node.highValuesTree.maximum().key;
+                    if (origMaxHigh !== node.maxHighOfMulti)
+                        maintainNodeMaxValue(node);
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -84,18 +88,12 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
         return node;
     }
     *searchMultipleOverlaps(low, high) {
-        const foundNodes = searchMultipleOverlaps(low, high, this.root);
+        const foundNodes = [];
+        searchMultipleOverlaps(foundNodes, low, high, this.root);
         // const intervals = new Array<[number, number, V, IntervalTreeNode<V>]>(foundNodes.length);
         for (const node of foundNodes) {
             if (node.int) {
                 yield [...node.int, node.value, node];
-            }
-            else if (node.multi) {
-                for (const [h, data] of node.multi) {
-                    if (doesIntervalOverlap([low, high], [node.key, h])) {
-                        yield [node.key, h, data, node];
-                    }
-                }
             }
             else if (node.highValuesTree) {
                 for (const highTreeNode of node.highValuesTree.keysSmallererThan(high)) {
@@ -130,29 +128,28 @@ function doesIntervalOverlap(intA, intB) {
     // Not in case of: intA is left to intB or intA is right to intB entirely
     return !(intA[1] < intB[0] || intB[1] < intA[0]);
 }
-function searchMultipleOverlaps(low, high, node) {
-    const overlaps = [];
+function searchMultipleOverlaps(overlaps, low, high, node) {
     if (node == null) {
-        return overlaps;
+        return 0;
     }
+    let numOverlaps = 0;
     if (doesIntervalOverlap([node.key, node.maxHighOfMulti], [low, high])) {
         overlaps.push(node);
+        numOverlaps = 1;
     }
     if (node.left && low <= node.left.max) {
-        const overlapsLeftChild = searchMultipleOverlaps(low, high, node.left);
-        if (overlapsLeftChild.length > 0) {
-            overlaps.push(...overlapsLeftChild);
-            const overlapsRightChild = searchMultipleOverlaps(low, high, node.right);
-            overlaps.push(...overlapsRightChild);
+        const numOverlapsLeft = searchMultipleOverlaps(overlaps, low, high, node.left);
+        if (numOverlapsLeft > 0) {
+            numOverlaps += numOverlapsLeft;
+            numOverlaps += searchMultipleOverlaps(overlaps, low, high, node.right);
         }
         // Skip right child, as if zero left child overlaps, then
         // target interval's high value must be even smaller than all left children's low values,
         // meaning entire left child tree is greater than target interval, so right child tree does the same
     }
     else {
-        const overlapsRightChild = searchMultipleOverlaps(low, high, node.right);
-        overlaps.push(...overlapsRightChild);
+        numOverlaps += searchMultipleOverlaps(overlaps, low, high, node.right);
     }
-    return overlaps;
+    return numOverlaps;
 }
 //# sourceMappingURL=interval-tree.js.map
