@@ -46,12 +46,11 @@ export function createForCanvas() {
   const heavyCal = createActionStreamByType<WorkerClientAction & ResponseEvents & ActionsToWorker>({
     debug: process.env.NODE_ENV === 'development' ? 'workerClient' : false
   });
-  const {dispatcher, actionByType, payloadByType, action$, _actionToObject, ofType, _actionFromObject} = heavyCal;
+  const {dispatcher, actionByType, payloadByType, _actionToObject, _actionFromObject} = heavyCal;
   const detectTreeId = (SEQ++).toString(16);
 
   rx.merge(
-    action$.pipe(
-      ofType('_updateDetectable'),
+    actionByType._updateDetectable.pipe(
       op.mergeMap(action => {
         const msg = _actionToObject(action);
         const [treeId, paintableId, key] = action.payload;

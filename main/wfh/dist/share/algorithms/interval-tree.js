@@ -13,6 +13,10 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
     insertInterval(low, high) {
         var _a;
         let valueContainer;
+        if (low > high) {
+            const temp = high = low;
+            low = temp;
+        }
         const node = this.insert(low);
         if (node.int) {
             if (node.int[1] === high) {
@@ -115,12 +119,12 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
 }
 exports.IntervalTree = IntervalTree;
 function maintainNodeMaxValue(node) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     let currNode = node;
     while (currNode) {
-        if (currNode.maxHighOfMulti == null)
-            throw new Error('currNode.maxHighOfMulti should not be empty');
-        currNode.max = Math.max(currNode.maxHighOfMulti, Math.max((_b = (_a = currNode.left) === null || _a === void 0 ? void 0 : _a.max) !== null && _b !== void 0 ? _b : Number.MIN_VALUE, (_d = (_c = currNode.right) === null || _c === void 0 ? void 0 : _c.max) !== null && _d !== void 0 ? _d : Number.MIN_VALUE));
+        // if (currNode.maxHighOfMulti == null)
+        //   throw new Error('currNode.maxHighOfMulti should not be empty');
+        currNode.max = Math.max((_a = currNode.maxHighOfMulti) !== null && _a !== void 0 ? _a : Number.MIN_VALUE, Math.max((_c = (_b = currNode.left) === null || _b === void 0 ? void 0 : _b.max) !== null && _c !== void 0 ? _c : Number.MIN_VALUE, (_e = (_d = currNode.right) === null || _d === void 0 ? void 0 : _d.max) !== null && _e !== void 0 ? _e : Number.MIN_VALUE));
         currNode = currNode.p;
     }
 }

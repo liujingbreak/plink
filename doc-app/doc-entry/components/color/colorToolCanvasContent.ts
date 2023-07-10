@@ -140,7 +140,7 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
                 new Segment([rect.x, rect.y + rect.h])
               ]);
             }
-            console.log(idx, ':', rects.length, bounds.length);
+            console.log('gotBBoxes #' + idx, ':', rects, 'total bounds', bounds.length);
             // console.log(bounds.map(segs => segs.slice(0, 1).map(seg => seg.point)));
             huePaletteState.animateMgr?.renderFrame$.next();
           })
@@ -151,7 +151,7 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
 }
 
 function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
-  const numOfColors = 6;
+  const numOfColors = 36;
   const fanShapes = [] as [color: Color, segsIt: Iterable<Segment>][];
 
   const init$ = rx.defer(() => {

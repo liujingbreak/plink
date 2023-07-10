@@ -130,10 +130,11 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
             if ((event.data as {type: string}).type === 'WORKER_READY') {
               ready$.next([workerNo, worker]);
               ready$.complete();
+            } else if ((event.data as {error?: any}).error) {
+              dispatcher.onWorkerError(workerNo, (event.data as {error?: any}).error);
             } else {
               dispatcher.onTaskDone(workerNo, event.data);
             }
-
           };
           worker.onmessageerror = event => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -164,12 +165,15 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
         const taskData = taskById.get(taskId);
 
         return rx.merge(
-          actionByType.onWorkerError.pipe(
-            op.filter(({payload: [w]}) => w === worker),
-            op.map(({payload: [w, msg]}) => {
+          payloadByType.onWorkerError.pipe(
+            op.filter(([w]) => w === worker),
+            op.map(([w, msg]) => {
               if (taskData) {
-                if (taskData.cb)
-                  taskData?.cb(new Error(msg), msg);
+                if (taskData.cb) {
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                  msg.workerNo = w;
+                  taskData?.cb(msg instanceof Error ? msg : new Error(msg), msg);
+                }
                 taskById.delete(taskId);
               }
             })
@@ -230,7 +234,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
 
     const key = dataKey ? dataKey + '' : null;
     workerNo = workerNo ?? (key != null ? workerByDataKey.get(key) : null);
-    if (workerNo) {
+    if (workerNo != null) {
       // There is previously assigned worker
       if (idleWorkers.has(workerNo)) {
         // The worker is idle

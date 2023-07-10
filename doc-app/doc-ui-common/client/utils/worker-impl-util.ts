@@ -8,8 +8,9 @@ import {WorkerMsgData} from '../utils/worker-pool';
  */
 // eslint-disable-next-line space-before-function-paren
 export function createWorkerControl<A extends Record<string, (...payload: any[]) => void>>(
-  epic: (controller: ActionStreamControl<A>) => rx.Observable<ActionTypes<A>[keyof A]>
+  epic: (controller: ActionStreamControl<A>, workerNo: number) => rx.Observable<ActionTypes<A>[keyof A]>
 ) {
+
   const sub = new rx.Observable<number>(sub => {
     const handler = (event: MessageEvent<{type?: string; data: number}>) => {
       const msg = event.data;
@@ -42,10 +43,15 @@ export function createWorkerControl<A extends Record<string, (...payload: any[])
       };
 
       return rx.merge(
-        epic(controller).pipe(
+        epic(controller, workerNo).pipe(
           op.map(action => {
             const outMsg = _actionToObject(action);
             postMessage(outMsg);
+          }),
+          op.catchError((err, src) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            postMessage({error: err, workerNo});
+            return src;
           })
         ),
         new rx.Observable(sub => {
@@ -55,10 +61,9 @@ export function createWorkerControl<A extends Record<string, (...payload: any[])
       );
     }),
     op.catchError((err, src) => {
-      // void Promise.resolve().then(() => {throw err; });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       postMessage({error: err});
-      throw err;
+      return src;
     })
   ).subscribe();
   return () => sub.unsubscribe();

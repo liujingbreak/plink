@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {IntervalTree} from '@wfh/plink/wfh/dist-es/share/algorithms/interval-tree';
+import {IntervalTree, IntervalTreeNode} from '@wfh/plink/wfh/dist-es/share/algorithms/interval-tree';
 import {boundsOf, Rectangle, Segment} from '../canvas-utils';
 import {createWorkerControl} from '../../utils/worker-impl-util';
 import type {ActionsToWorker, ResponseEvents} from './paintable-worker-client';
@@ -16,7 +16,7 @@ type PaintableState = {
   yPositionTree: IntervalTree<IntervalTree<string>>;
 };
 
-const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>(control => {
+const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>((control, workerNo) => {
   const {actionByType: aot, payloadByType: pt, dispatcher} = control;
   // key is tree ID
   const canvasBgState = new Map<string, CanvasDataState>();
@@ -47,17 +47,17 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>(control => {
           const bound = boundsOf(numbersArr.map(nums => new Segment(nums)));
           const s = initState(treeId, paintableId);
           s.bounds.set(key, bound);
-          /* const yNode = */s.yPositionTree.insertInterval(bound.y, bound.y + bound.h);
-          // if (yNode.value == null) {
-          //   const xPositionTree = new IntervalTree<string>();
-          //   yNode.value = xPositionTree;
-          // }
-          // const xNode = yNode.value.insertInterval(bound.x, bound.x + bound.w);
-          // if (xNode.value != null) {
-          //   xNode.value = key + ',' + xNode.value;
-          // } else {
-          //   xNode.value = key;
-          // }
+          const yNode = s.yPositionTree.insertInterval(bound.y, bound.y + bound.h);
+          if (yNode.value == null) {
+            const xPositionTree = new IntervalTree<string>();
+            yNode.value = xPositionTree;
+          }
+          const xNode = yNode.value.insertInterval(bound.x, bound.x + bound.w);
+          if (xNode.value != null) {
+            xNode.value = key + ',' + xNode.value;
+          } else {
+            xNode.value = key;
+          }
           dispatcher.doneTaskForKey(treeId, paintableId, key);
         })
       ),
@@ -65,6 +65,8 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>(control => {
         op.map(([treeId, paintableId]) => {
           const bounds = canvasBgState.get(treeId)?.paintableById.get(paintableId)?.bounds;
           const rects = [] as Rectangle[];
+          const s = initState(treeId, paintableId);
+
           if (bounds) {
             for (const bound of bounds.values()) {
               const rect = {...bound};
@@ -72,6 +74,7 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>(control => {
             }
           }
           dispatcher.gotBBoxesOf(treeId, paintableId, rects);
+          printTree(s.yPositionTree);
         })
       ),
       pt.destroyDetectTree.pipe(
@@ -100,3 +103,20 @@ if (import.meta.webpackHot) {
   });
 }
 
+function printTree(tree: IntervalTree) {
+  const lines = [] as string[];
+  tree.inorderWalk((node, level) => {
+    let p = node as IntervalTreeNode<any> | null;
+    let leadingSpaceChars = '';
+    while (p) {
+      leadingSpaceChars = (p.p?.p && ((p === p.p.left && p.p.p.right === p.p) || (p === p.p.right && p.p.p.left === p.p)) ? '|  ' : '   ') + leadingSpaceChars;
+      p = p.p;
+    }
+    const str = `${leadingSpaceChars}+- ${node.p ? node.p?.left === node ? 'L' : 'R' : 'root'} ${node.key + ''} - ${node.maxHighOfMulti + ''}` +
+      `(max ${node.max} ${node.highValuesTree ? '[tree]' : ''}): size: ${node.size}`;
+    // lines.push(node.isRed ? chalk.red(str) : str);
+    lines.push(str);
+  });
+  // eslint-disable-next-line no-console
+  console.log(':\n' + lines.join('\n'));
+}

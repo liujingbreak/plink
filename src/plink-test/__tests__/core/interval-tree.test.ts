@@ -1,6 +1,8 @@
+// import inspector from 'inspector';
 import chalk from 'chalk';
 import {describe, it, expect}  from '@jest/globals';
 import {IntervalTree, IntervalTreeNode} from '@wfh/plink/wfh/ts/share/algorithms/interval-tree';
+// inspector.open(9222, 'localhost', true);
 
 describe('Interval tree', () => {
   it('Find overlaps', () => {
@@ -112,8 +114,25 @@ describe('Interval tree', () => {
     expect(node?.int != null).toBeTruthy();
   });
 
-  // it('For real data', () => {
-  // })
+  it('For real data', () => {
+    const tree = new IntervalTree();
+    const bounds = [
+      {x: 691, y: 503.5458566940365, w: 283.782648891598, h: 216.4541433059635},
+      {x: 677.213450345142, y: 79.99520114216102, w: 290.9146788658785, h: 208.00479885783903},
+      {x: 407.217351108402, y: 80, w: 283.782648891598, h: 216.45414330596344},
+      {x: 370.995201142161, y: 239.99999999999986, w: 131.007529392121, h: 331.8016568833376}
+    ];
+    try {
+      for (const {y, h} of bounds) {
+        tree.insertInterval(y, y + h);
+        printTree(tree);
+      }
+    } catch (e) {
+      printTree(tree);
+      throw e;
+    }
+    expect(tree.root?.max).toEqual(720);
+  });
 });
 
 function createTree() {

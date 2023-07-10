@@ -135,9 +135,9 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
 function maintainNodeMaxValue<V>(node: Partial<IntervalTreeNode<V>>) {
   let currNode: Partial<IntervalTreeNode<V>> | null | undefined = node;
   while (currNode) {
-    if (currNode.maxHighOfMulti == null)
-      throw new Error('currNode.maxHighOfMulti should not be empty');
-    currNode.max = Math.max(currNode.maxHighOfMulti, Math.max(
+    // if (currNode.maxHighOfMulti == null)
+    //   throw new Error('currNode.maxHighOfMulti should not be empty');
+    currNode.max = Math.max(currNode.maxHighOfMulti ?? Number.MIN_VALUE, Math.max(
       currNode.left?.max ?? Number.MIN_VALUE, currNode.right?.max ?? Number.MIN_VALUE
     ));
     currNode = currNode.p;
