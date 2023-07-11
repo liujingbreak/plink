@@ -140,7 +140,6 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
                 new Segment([rect.x, rect.y + rect.h])
               ]);
             }
-            console.log('gotBBoxes #' + idx, ':', rects, 'total bounds', bounds.length);
             // console.log(bounds.map(segs => segs.slice(0, 1).map(seg => seg.point)));
             huePaletteState.animateMgr?.renderFrame$.next();
           })
