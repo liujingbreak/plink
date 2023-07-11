@@ -8,7 +8,8 @@ import {WorkerMsgData} from '../utils/worker-pool';
  */
 // eslint-disable-next-line space-before-function-paren
 export function createWorkerControl<A extends Record<string, (...payload: any[]) => void>>(
-  epic: (controller: ActionStreamControl<A>, workerNo: number) => rx.Observable<ActionTypes<A>[keyof A]>
+  epic: (controller: ActionStreamControl<A>, workerNo: number) => rx.Observable<ActionTypes<A>[keyof A]>,
+  {debug}: {debug?: string | boolean}
 ) {
 
   const sub = new rx.Observable<number>(sub => {
@@ -29,7 +30,7 @@ export function createWorkerControl<A extends Record<string, (...payload: any[])
       // eslint-disable-next-line no-console
       console.log('worker-' + workerNo, 'is created');
       const controller = createActionStreamByType<A>({
-        debug: process.env.NODE_ENV === 'development' ? 'worker-' + workerNo : false
+        debug: debug ?? process.env.NODE_ENV === 'development' ? 'worker-' + workerNo : false
       });
       const {_actionFromObject, _actionToObject} = controller;
       const workerMsgHandler = (event: MessageEvent<WorkerMsgData>) => {

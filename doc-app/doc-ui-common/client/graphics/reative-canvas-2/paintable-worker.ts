@@ -1,6 +1,7 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {IntervalTree, IntervalTreeNode} from '@wfh/plink/wfh/dist-es/share/algorithms/interval-tree';
+import {IntervalTree} from '@wfh/plink/wfh/dist-es/share/algorithms/interval-tree';
+// import type {IntervalTreeNode} from '@wfh/plink/wfh/dist-es/share/algorithms/interval-tree';
 import {boundsOf, Rectangle, Segment} from '../canvas-utils';
 import {createWorkerControl} from '../../utils/worker-impl-util';
 import type {ActionsToWorker, ResponseEvents} from './paintable-worker-client';
@@ -46,6 +47,25 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>((control, wo
         op.map(([treeId, paintableId, key, numbersArr]) => {
           const bound = boundsOf(numbersArr.map(nums => new Segment(nums)));
           const s = initState(treeId, paintableId);
+          const existingB = s.bounds.get(key);
+          if (existingB) {
+            const yHigh = existingB.y + existingB.h;
+            const yNode = s.yPositionTree.searchIntervalNode(existingB.y, yHigh);
+            const xHigh = existingB.x + existingB.w;
+            const xNode = yNode?.value.searchIntervalNode(existingB.x, xHigh);
+            if (xNode) {
+              const valueArr = xNode.value.split(',');
+              if (valueArr.indexOf(key) >= 0) {
+                xNode.value = valueArr.filter(v => v !== key).join(',');
+                if (xNode.value.length === 0) {
+                  yNode?.value.deleteInterval(existingB.x, xHigh);
+                  if (yNode?.value.size() === 0 && yNode.weight === 1) {
+                    s.yPositionTree.deleteInterval(existingB.y, yHigh);
+                  }
+                }
+              }
+            }
+          }
           s.bounds.set(key, bound);
           const yNode = s.yPositionTree.insertInterval(bound.y, bound.y + bound.h);
           if (yNode.value == null) {
@@ -74,7 +94,7 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>((control, wo
             }
           }
           dispatcher.gotBBoxesOf(treeId, paintableId, rects);
-          printTree(s.yPositionTree);
+          // console.log(printTree(s.yPositionTree));
         })
       ),
       pt.destroyDetectTree.pipe(
@@ -88,7 +108,7 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>((control, wo
     aot.doneTaskForKey,
     aot.gotBBoxesOf
   );
-});
+}, {debug: false});
 
 declare global {
   interface ImportMeta {
@@ -103,20 +123,20 @@ if (import.meta.webpackHot) {
   });
 }
 
-function printTree(tree: IntervalTree) {
-  const lines = [] as string[];
-  tree.inorderWalk((node, level) => {
-    let p = node as IntervalTreeNode<any> | null;
-    let leadingSpaceChars = '';
-    while (p) {
-      leadingSpaceChars = (p.p?.p && ((p === p.p.left && p.p.p.right === p.p) || (p === p.p.right && p.p.p.left === p.p)) ? '|  ' : '   ') + leadingSpaceChars;
-      p = p.p;
-    }
-    const str = `${leadingSpaceChars}+- ${node.p ? node.p?.left === node ? 'L' : 'R' : 'root'} ${node.key + ''} - ${node.maxHighOfMulti + ''}` +
-      `(max ${node.max} ${node.highValuesTree ? '[tree]' : ''}): size: ${node.size}`;
-    // lines.push(node.isRed ? chalk.red(str) : str);
-    lines.push(str);
-  });
-  // eslint-disable-next-line no-console
-  console.log(':\n' + lines.join('\n'));
-}
+// function printTree(tree: IntervalTree) {
+//   const lines = [] as string[];
+//   tree.inorderWalk((node, level) => {
+//     let p = node as IntervalTreeNode<any> | null;
+//     let leadingSpaceChars = '';
+//     while (p) {
+//       leadingSpaceChars = (p.p?.p && ((p === p.p.left && p.p.p.right === p.p) || (p === p.p.right && p.p.p.left === p.p)) ? '|  ' : '   ') + leadingSpaceChars;
+//       p = p.p;
+//     }
+//     const str = `${leadingSpaceChars}+- ${node.p ? node.p?.left === node ? 'L' : 'R' : 'root'} ${node.key + ''} - ${node.maxHighOfMulti + ''}` +
+//       `(max ${node.max} ${node.highValuesTree ? '[tree]' : ''}): size: ${node.size}`;
+//     // lines.push(node.isRed ? chalk.red(str) : str);
+//     lines.push(str);
+//   });
+//   lines.push('total size: ' + tree.root?.size);
+//   return ':\n' + lines.join('\n');
+// }

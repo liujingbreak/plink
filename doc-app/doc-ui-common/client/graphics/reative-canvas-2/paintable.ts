@@ -30,7 +30,6 @@ export type PaintableState = {
   /** For touch detection */
   workerClient?: ActionStreamControl<WorkerClientAction & ResponseEvents>;
   animateMgr?: ReturnType<typeof createAnimationManager>;
-  // isDetectablesValid: boolean;
 };
 
 export type PaintableActions = {

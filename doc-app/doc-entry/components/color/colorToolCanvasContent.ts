@@ -99,7 +99,7 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
         rx.of(detectables),
         pt.transformChanged.pipe(op.mapTo(detectables))
       )),
-      op.throttleTime(700, rx.asapScheduler, {leading: true, trailing: true}),
+      op.debounceTime(700, rx.asapScheduler),
       op.map(detectables => {
         let i = 0;
         dispatcher.updateDetectables(
@@ -108,10 +108,11 @@ export function createHueCircle(root: PaintableCtl, rootState: PaintableState, _
               yield ['hue' + i++, segs];
           })()
         );
+        console.log('updating', detectablesLen, 'detectable objects');
         return detectablesLen;
       }),
-      // Make sure we wait until all bounds are finished calculation
-      op.switchMap((num) => huePaletteState.workerClient!.payloadByType.doneTaskForKey.pipe(
+      // Make sure we wait until all bounds are finished calculated
+      op.switchMap(num => huePaletteState.workerClient!.payloadByType.doneTaskForKey.pipe(
         op.filter(([, paintableId]) => paintableId === huePaletteState.id),
         op.take(num),
         op.takeLast(1)

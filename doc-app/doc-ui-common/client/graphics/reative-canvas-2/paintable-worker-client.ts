@@ -44,7 +44,7 @@ export type ResponseEvents = {
 
 export function createForCanvas() {
   const heavyCal = createActionStreamByType<WorkerClientAction & ResponseEvents & ActionsToWorker>({
-    debug: process.env.NODE_ENV === 'development' ? 'workerClient' : false
+    // debug: process.env.NODE_ENV === 'development' ? 'workerClient' : false
   });
   const {dispatcher, actionByType, payloadByType, _actionToObject, _actionFromObject} = heavyCal;
   const detectTreeId = (SEQ++).toString(16);

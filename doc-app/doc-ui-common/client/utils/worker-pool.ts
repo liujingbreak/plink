@@ -56,36 +56,39 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
   let workerSeq = 0;
   const workerByDataKey = new Map<string, number>();
   const dataWorkerSet = new Set<number>();
-  const taskById = new Map<string, {task: T; cb: TaskCallback}>();
+  const taskById = new Map<string, {task: T; key?: string; cb: TaskCallback}>();
   /** Queued tasks which has "dataKey" to specific worker */
   const tasksForAssignedWorker = new Map<number, string[]>();
 
-  const {actionByType, payloadByType, dispatcher} = createActionStreamByType<PoolActions<T>>(opts);
+  const {actionByType, payloadByType, dispatcher} =
+    createActionStreamByType<PoolActions<T>>(opts);
 
   // Handle `addTask` and `addTaskForPatitionData`,
   // use `mergeMap(, concurrent) to controll number of parallel "non-idle" workers
   rx.merge(
-    rx.merge(
-      payloadByType.addTaskForPatitionData.pipe(
-        op.map(([key, task, cb]) => [key, null, task, cb] as const)
-      ),
-      payloadByType.addTask.pipe(
-        op.map((payload) => ([null, null, ...payload] as const))
-      ),
-      payloadByType._addTaskToSpecificWorker.pipe(
-        op.map(([worker, task, cb]) => {
-          return [null, worker, task, cb] as const;
-        })
+    rx
+      .merge(
+        payloadByType.addTaskForPatitionData.pipe(
+          op.map(([key, task, cb]) => [key, null, task, cb] as const)
+        ),
+        payloadByType.addTask.pipe(
+          op.map(payload => [null, null, ...payload] as const)
+        ),
+        payloadByType._addTaskToSpecificWorker.pipe(
+          op.map(([worker, task, cb]) => {
+            return [null, worker, task, cb] as const;
+          })
+        )
       )
-    ).pipe(
-      op.mergeMap(([dataKey, worker, task, cb]) => {
-        const taskId = poolId + '/T' + (TASK_SEQ++).toString(16);
-        taskById.set(taskId, {task, cb});
-        return assignWorker(taskId, dataKey, worker).pipe(
-          waitForWorkerIdle(taskId, task)
-        );
-      }, opts.concurrent)
-    ),
+      .pipe(
+        op.mergeMap(([dataKey, worker, task, cb]) => {
+          const taskId = poolId + '/T' + (TASK_SEQ++).toString(16);
+          taskById.set(taskId, {task, cb, key: dataKey != null ? dataKey + '' : undefined});
+          return assignWorker(taskId, dataKey, worker).pipe(
+            waitForWorkerIdle(taskId, task)
+          );
+        }, opts.concurrent)
+      ),
 
     payloadByType.addTaskForAllData.pipe(
       op.mergeMap(([task, sub]) => {
@@ -97,16 +100,19 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
             op.map(content => {
               sub.next(content);
             }),
-            op.catchError(err => { sub.error(err); return rx.EMPTY; }),
+            op.catchError(err => {
+              sub.error(err);
+              return rx.EMPTY;
+            }),
             op.finalize(() => sub.complete())
           ),
           rx.defer(() => {
             for (const worker of dataWorkerSet) {
               dispatcher._addTaskToSpecificWorker(
-                worker, task,
+                worker,
+                task,
                 (err, content) => {
-                  if (err)
-                    callbackSub.error(err);
+                  if (err) callbackSub.error(err);
                   else {
                     callbackSub.next(content);
                   }
@@ -121,33 +127,40 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
 
     // Create new worker, register event listerners on worker
     actionByType.createWorker.pipe(
-      op.mergeMap(({payload: workerNo}) => factory().pipe(
-        op.mergeMap(worker => {
-          const ready$ = new rx.ReplaySubject<[workerNo: number, worker: Worker]>(1);
-          workerByNo.set(workerNo, worker);
+      op.mergeMap(({payload: workerNo}) =>
+        factory().pipe(
+          op.mergeMap(worker => {
+            const ready$ = new rx.ReplaySubject<
+              [workerNo: number, worker: Worker]
+            >(1);
+            workerByNo.set(workerNo, worker);
 
-          worker.onmessage = event => {
-            if ((event.data as {type: string}).type === 'WORKER_READY') {
-              ready$.next([workerNo, worker]);
-              ready$.complete();
-            } else if ((event.data as {error?: any}).error) {
-              dispatcher.onWorkerError(workerNo, (event.data as {error?: any}).error);
-            } else {
-              dispatcher.onTaskDone(workerNo, event.data);
-            }
-          };
-          worker.onmessageerror = event => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (event.data.poolId === poolId)
-              dispatcher.onWorkerError(workerNo, event.data);
-          };
-          worker.onerror = event => {
-            dispatcher.onWorkerError(workerNo, event);
-          };
-          worker.postMessage({type: 'ASSIGN_WORKER_NO', data: workerNo});
-          return ready$;
-        })
-      )),
+            worker.onmessage = event => {
+              if ((event.data as {type: string}).type === 'WORKER_READY') {
+                ready$.next([workerNo, worker]);
+                ready$.complete();
+              } else if ((event.data as {error?: any}).error) {
+                dispatcher.onWorkerError(
+                  workerNo,
+                  (event.data as {error?: any}).error
+                );
+              } else {
+                dispatcher.onTaskDone(workerNo, event.data);
+              }
+            };
+            worker.onmessageerror = event => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              if (event.data.poolId === poolId)
+                dispatcher.onWorkerError(workerNo, event.data);
+            };
+            worker.onerror = event => {
+              dispatcher.onWorkerError(workerNo, event);
+            };
+            worker.postMessage({type: 'ASSIGN_WORKER_NO', data: workerNo});
+            return ready$;
+          })
+        )
+      ),
       op.map(([workerNo, worker]) => {
         dispatcher._workerCreated(worker, workerNo);
       })
@@ -160,69 +173,114 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
     // - Remove task from queque
     // - check if there is more task waiting in queue and run it
     // - set task to "idle"
-    actionByType.onTaskRun.pipe(
-      op.mergeMap(({payload: [worker, taskId]}) => {
+    payloadByType.onTaskRun.pipe(
+      op.mergeMap(([worker, taskId]) => {
         const taskData = taskById.get(taskId);
 
-        return rx.merge(
-          payloadByType.onWorkerError.pipe(
-            op.filter(([w]) => w === worker),
-            op.map(([w, msg]) => {
-              if (taskData) {
-                if (taskData.cb) {
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                  msg.workerNo = w;
-                  taskData?.cb(msg instanceof Error ? msg : new Error(msg), msg);
+        return rx
+          .merge(
+            payloadByType.onWorkerError.pipe(
+              op.filter(([w]) => w === worker),
+              op.map(([w, msg]) => {
+                if (taskData) {
+                  if (taskData.cb) {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                    msg.workerNo = w;
+                    taskData?.cb(
+                      msg instanceof Error ? msg : new Error(msg),
+                      msg
+                    );
+                  }
+                  taskById.delete(taskId);
                 }
-                taskById.delete(taskId);
-              }
-            })
-          ),
-          payloadByType.onTaskDone.pipe(
-            op.filter(([w]) => w === worker),
-            op.map(([, msg]) => {
-              if (taskData) {
-                if (taskData.cb)
-                  taskData?.cb(null, msg);
-                taskById.delete(taskId);
-              }
-            })
+              })
+            ),
+            payloadByType.onTaskDone.pipe(
+              op.filter(([w]) => w === worker),
+              op.map(([, msg]) => {
+                if (taskData) {
+                  if (taskData.cb) taskData?.cb(null, msg);
+                  taskById.delete(taskId);
+                }
+              })
+            ),
+            rx.timer(5000).pipe(
+              op.map(() => {
+                console.error(`worker ${worker} timeout, terminating it`);
+                throw new Error(`worker ${worker} timeout, terminating it`);
+              })
+            )
           )
-        ).pipe(
-          op.take(1),
-          op.map(() => {
-            const queue = tasksForAssignedWorker.get(worker);
-            if (queue && queue.length > 0) {
-              const taskId = queue.shift()!;
-              dispatcher.onTaskRun(worker, taskId);
-              const msg = {taskId, poolId, content: taskById.get(taskId)!.task} as WorkerMsgData<T>;
-              // eslint-disable-next-line no-console
-              console.log('worker pool postMessage for assigned', msg);
-              workerByNo.get(worker)?.postMessage(msg);
-            } else {
-              dispatcher._workerIdle(worker);
-            }
-          })
-        );
+          .pipe(
+            op.take(1),
+            op.map(() => {
+              const queue = tasksForAssignedWorker.get(worker);
+              if (queue && queue.length > 0) {
+                const taskId = queue.shift()!;
+                dispatcher.onTaskRun(worker, taskId);
+                const msg = {
+                  taskId,
+                  poolId,
+                  content: taskById.get(taskId)!.task
+                } as WorkerMsgData<T>;
+                // eslint-disable-next-line no-console
+                console.log('worker pool postMessage for assigned', msg);
+                workerByNo.get(worker)?.postMessage(msg);
+              } else {
+                dispatcher._workerIdle(worker);
+              }
+            }),
+            op.catchError((err, src) => {
+              const workerObj = workerByNo.get(worker);
+              workerObj?.terminate();
+              workerByNo.delete(worker);
+              dataWorkerSet.delete(worker);
+              for (const [key, workerNo] of workerByDataKey.entries()) {
+                if (workerNo === worker) {
+                  workerByDataKey.delete(key);
+                }
+              }
+              const remainingTasks = tasksForAssignedWorker.get(worker);
+              tasksForAssignedWorker.delete(worker);
+              dispatcher.onWorkerError(worker, taskId);
+              if (remainingTasks) {
+                for (const taskId of remainingTasks) {
+                  const taskEntry = taskById.get(taskId);
+                  if (taskEntry?.key) {
+                    dispatcher.addTaskForPatitionData(taskEntry.key, taskEntry.task, taskEntry.cb);
+                  } else if (taskEntry) {
+                    dispatcher.addTask(taskEntry.task, taskEntry.cb);
+                  }
+                }
+              }
+              // TODO reassign/dispatch remaining tasks
+              return src;
+            })
+          );
       })
     ),
 
     // Once a task is `idle`, check options about whether it should be terminated to release thread resource
-    actionByType._workerIdle.pipe(
-      op.map(({payload: w}) => {
-        if (idleWorkers.size >= (opts.maxIdleWorkers ?? Number.MAX_VALUE) && !dataWorkerSet.has(w)) {
+    payloadByType._workerIdle.pipe(
+      op.map(w => {
+        if (
+          idleWorkers.size >= (opts.maxIdleWorkers ?? Number.MAX_VALUE) &&
+          !dataWorkerSet.has(w)
+        ) {
           workerByNo.get(w)?.terminate();
         } else {
           idleWorkers.add(w);
         }
       })
     )
-  ).pipe(
-    op.catchError((err, src) => {
-      console.error(err);
-      return src;
-    })
-  ).subscribe();
+  )
+    .pipe(
+      op.catchError((err, _src) => {
+        console.error(err);
+        throw err;
+      })
+    )
+    .subscribe();
 
   /** @return Observable<Worker> or rx.EMPTY if the worker is in-progress
    */
@@ -231,7 +289,6 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
     dataKey: string | number | null,
     workerNo?: number | null
   ): rx.Observable<number> {
-
     const key = dataKey ? dataKey + '' : null;
     workerNo = workerNo ?? (key != null ? workerByDataKey.get(key) : null);
     if (workerNo != null) {
@@ -250,7 +307,6 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
         queue.push(taskId);
         return rx.EMPTY;
       }
-
     } else if (idleWorkers.size > 0) {
       const no = idleWorkers.values().next().value as number;
       idleWorkers.delete(no);
@@ -286,20 +342,28 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
     return function(worker$: rx.Observable<number>) {
       return worker$.pipe(
         // wait for `_workerIdle`
-        op.mergeMap(worker => rx.merge(
-          actionByType._workerIdle.pipe(
-            op.filter(({payload: w}) => worker === w),
-            op.take(1)
-          ),
-          rx.defer(() => {
-            dispatcher.onTaskRun(worker, taskId);
-            const msg = {taskId, poolId, content: taskMsg} as WorkerMsgData<T>;
-            // eslint-disable-next-line no-console
-            console.log('worker pool postMessage', msg);
-            workerByNo.get(worker)?.postMessage(msg);
-            return rx.EMPTY;
-          })
-        ))
+        op.mergeMap(worker =>
+          rx
+            .merge(
+              payloadByType._workerIdle.pipe(op.filter(no => worker === no)),
+              payloadByType.onWorkerError.pipe(
+                op.filter(([no]) => worker === no)
+              ),
+              rx.defer(() => {
+                dispatcher.onTaskRun(worker, taskId);
+                const msg = {
+                  taskId,
+                  poolId,
+                  content: taskMsg
+                } as WorkerMsgData<T>;
+                // eslint-disable-next-line no-console
+                console.log('worker pool postMessage', msg);
+                workerByNo.get(worker)?.postMessage(msg);
+                return rx.EMPTY;
+              })
+            )
+            .pipe(op.take(1))
+        )
       );
     };
   }
@@ -308,8 +372,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
     execute(msg: T) {
       return new Promise((resolve, reject) => {
         dispatcher.addTask(msg, (err, content) => {
-          if (err)
-            return reject(err);
+          if (err) return reject(err);
           resolve(content);
         });
       });
@@ -318,8 +381,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
     executeForKey(msg: T, dataKey: string | number) {
       return new Promise((resolve, reject) => {
         dispatcher.addTaskForPatitionData(dataKey, msg, (err, content) => {
-          if (err)
-            return reject(err);
+          if (err) return reject(err);
           resolve(content);
         });
       });

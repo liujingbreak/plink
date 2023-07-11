@@ -27,6 +27,7 @@ export declare class IntervalTree<V = unknown> extends RedBlackTree<number, V, I
         value?: V;
     };
     deleteInterval(low: number, high: number): boolean;
+    searchIntervalNode(low: number, high: number): IntervalTreeNode<V> | RbTreeNode<number, V, RbTreeNode<number, V, any>> | null;
     searchSingleOverlap(low: number, high: number): IntervalTreeNode<V> | null | undefined;
     searchMultipleOverlaps(low: number, high: number): Generator<[low: number, high: number, data: V, node: IntervalTreeNode<V>]>;
     /** @Override

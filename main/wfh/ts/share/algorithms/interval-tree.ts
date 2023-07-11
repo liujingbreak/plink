@@ -63,6 +63,10 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
   }
 
   deleteInterval(low: number, high: number) {
+    if (low > high) {
+      const temp = high = low;
+      low = temp;
+    }
     const node = this.search(low);
     if (node == null)
       return false;
@@ -91,6 +95,22 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
       }
     }
     return false;
+  }
+
+  searchIntervalNode(low: number, high: number): IntervalTreeNode<V> | RbTreeNode<number, V, RbTreeNode<number, V, any>> | null {
+    if (low > high) {
+      const temp = high = low;
+      low = temp;
+    }
+    const node = this.search(low);
+    if (node == null)
+      return null;
+    if (node.int && node.int[1] === high) {
+      return node;
+    } else if (node.highValuesTree) {
+      return node.highValuesTree.search(high);
+    }
+    return null;
   }
 
   searchSingleOverlap(low: number, high: number) {
