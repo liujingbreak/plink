@@ -4,12 +4,13 @@ import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-
 import {WorkerMsgData, createReactiveWorkerPool} from '../../utils/worker-pool';
 import {Rectangle, SegmentNumbers} from '../canvas-utils';
 
+const NUM_WORKER = 2;
 const pool = createReactiveWorkerPool(
   // eslint-disable-next-line @typescript-eslint/tslint/config
   () => rx.of(new Worker(new URL('./paintable-worker', import.meta.url))),
   {
-    concurrent: 2,
-    maxIdleWorkers: 2,
+    concurrent: NUM_WORKER,
+    maxIdleWorkers: NUM_WORKER,
     debug: process.env.NODE_ENV === 'development' ? 'WorkerPool' : false
   }
 );
@@ -19,7 +20,7 @@ let SEQ = 0;
 export type WorkerClientAction = {
   updateDetectable(paintableId: string, segs: Iterable<[string, Iterable<SegmentNumbers>]>): void;
   // transform(paintableId: string, matrix: Matrix): void;
-  isInsideSegments(x: number, y: number): void;
+  detectPoint(xy: Float32Array): void;
   getBBoxesOf(paintableId: string): void;
 
   canvasDestroyed(): void;
@@ -30,21 +31,32 @@ export type WorkerClientAction = {
 };
 
 export type ActionsToWorker = {
-  // createDetectTree(treeId: string): void;
   _updateDetectable(treeId: string, paintableId: string, key: string, segs: SegmentNumbers[]): void;
   // _transform(treeId: string, paintableId: string, m: Matrix): void;
   _getBBoxesOf(treeId: string, paintableId: string): void;
+  _detectPoint(treeId: string, xy: Float32Array): void;
   destroyDetectTree(treeId: string): void;
 };
 
 export type ResponseEvents = {
   doneTaskForKey(treeId: string, paintableId: string, key: string): void;
   gotBBoxesOf(treeId: string, paintableId: string, rects: Rectangle[]): void;
+  detectedIntersection(
+    // segsWithKey: Array<[key: string, doesIntersect: boolean, intersectionEdge: [start: Float32Array, end: Float32Array][]]>,
+    segsKey: Array<string>,
+    originPoint: Float32Array
+  ): void;
+  _doneDetectPoint(
+    treeId: string,
+    // intersectionEdge: Array<[key: string, doesIntersect: boolean, intersectionEdge: [start: Float32Array, end: Float32Array][]]>,
+    intersectObjectKeys: string[],
+    originPoint: Float32Array
+  ): void;
 };
 
 export function createForCanvas() {
   const heavyCal = createActionStreamByType<WorkerClientAction & ResponseEvents & ActionsToWorker>({
-    // debug: process.env.NODE_ENV === 'development' ? 'workerClient' : false
+    debug: process.env.NODE_ENV === 'development' ? 'workerClient' : false
   });
   const {dispatcher, actionByType, payloadByType, _actionToObject, _actionFromObject} = heavyCal;
   const detectTreeId = (SEQ++).toString(16);
@@ -53,14 +65,16 @@ export function createForCanvas() {
     actionByType._updateDetectable.pipe(
       op.mergeMap(action => {
         const msg = _actionToObject(action);
-        const [treeId, paintableId, key] = action.payload;
-        return pool.executeForKey(msg, treeId + '/' + paintableId + '/' + key);
+        const [treeId, key] = action.payload;
+        return pool.executeForKey(msg, treeId + '/' + key);
       }),
       op.map(res => _actionFromObject(res as WorkerMsgData<any>['content']))
     ),
     payloadByType.updateDetectable.pipe(
       op.mergeMap(([id, objectsWithKey]) => rx.of(...objectsWithKey).pipe(
-        op.map(([key, segs]) => dispatcher._updateDetectable(detectTreeId, id, key, [...segs]))
+        // a `key` must be unique amongst all paintables within a single detection interval tree,
+        // that's why `id + '/' + key` is passes as new `key`
+        op.map(([key, segs]) => dispatcher._updateDetectable(detectTreeId, id, id + '/' + key, [...segs]))
       ))
     ),
     payloadByType.getBBoxesOf.pipe(
@@ -68,10 +82,25 @@ export function createForCanvas() {
         dispatcher._getBBoxesOf(detectTreeId, paintableId);
       })
     ),
-    actionByType._getBBoxesOf.pipe(
+    payloadByType.detectPoint.pipe(
+      op.concatMap(xy => {
+        dispatcher._detectPoint(detectTreeId, xy);
+        return payloadByType._doneDetectPoint.pipe(
+          op.take(NUM_WORKER),
+          op.reduce((acc, [, intersWithKey, p]) => {
+            acc[1].push(...intersWithKey);
+            return acc;
+          }),
+          op.map(([, intersections, point]) => {
+            dispatcher.detectedIntersection(intersections, point);
+          })
+        );
+      })
+    ),
+    rx.merge(actionByType._getBBoxesOf, actionByType._detectPoint).pipe(
       op.mergeMap(action => {
         const msg = _actionToObject(action);
-        return pool.executeAllWorker(msg);
+        return pool.executeAllWorker(msg, NUM_WORKER);
       }),
       op.map(res => _actionFromObject(res))
     ),

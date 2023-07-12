@@ -4,6 +4,13 @@ import {Bezier} from 'bezier-js';
 import glur from 'glur';
 import type Color from 'color';
 
+// float precision significant decimal
+const EPSILON = 0.000001;
+const {abs} = Math;
+
+export function approximately(a: number, b: number, precision?: number) {
+  return abs(a - b) <= (precision || EPSILON);
+}
 // import {getMinAndMax} from '@wfh/plink/wfh/dist-es5/utils/algorithms';
 
 /**
@@ -63,7 +70,7 @@ export type SegmentNumbers = [
   pointX: number, pointY: number,
   handleInX?: (number | null), handleInY?: (number | null),
   handleOutX?: (number | null), handleOutY?: (number | null)
-];
+] | Float32Array;
 /**
  * A paper.js segement like structure (http://paperjs.org/reference/segment/)
  * Each segment consists of an anchor point (segment.point) and optionaly an incoming and an outgoing handle (segment.handleIn and segment.handleOut), describing the tangents of the two Curve objects that are connected by this segment.
@@ -81,27 +88,28 @@ export class Segment {
   constructor(coordinates: SegmentNumbers);
   constructor(point: Point, handleIn?: Point | null, handleOut?: Point);
   constructor(
-    point: Point | [number, number, (number | null)?, (number | null)?, (number | null)?, (number | null)?],
+    point: Point | SegmentNumbers,
     handleIn?: Point | null,
     handleOut?: Point
   ) {
-    if (Array.isArray(point)) {
-      this.point.x = point[0];
-      this.point.y = point[1];
-      if (point[2] != null && point[3] != null) {
+    if (Array.isArray(point) || (point as Float32Array).buffer) {
+      const p = point as Float32Array;
+      this.point.x = p[0];
+      this.point.y = p[1];
+      if (p[2] != null && p[3] != null && (p[2] !== 0 && p[3] !== 0)) {
         this.handleIn = {
-          x: point[2],
-          y: point[3]
+          x: p[2],
+          y: p[3]
         };
       }
-      if (point[4] != null && point[5] != null) {
+      if (p[4] != null && p[5] != null && (p[4] !== 0 && p[5] !== 0)) {
         this.handleOut = {
-          x: point[4]!,
-          y: point[5]!
+          x: p[4]!,
+          y: p[5]!
         };
       }
     } else {
-      this.point = point;
+      this.point = point as Point;
     }
     if (handleIn) {
       this.handleIn = {x: handleIn.x - this.point.x, y: handleIn.y - this.point.y};
@@ -179,8 +187,9 @@ export class Segment {
     return newSeg;
   }
 
-  toNumbers(): SegmentNumbers {
-    const arr = [this.point.x, this.point.y, null, null, null, null] as [number, number, number | null, number | null, number | null, number | null];
+  toNumbers(): Float32Array {
+    // const arr = [this.point.x, this.point.y, null, null, null, null] as [number, number, number | null, number | null, number | null, number | null];
+    const arr = Float32Array.of(this.point.x, this.point.y, 0, 0, 0, 0);
     if (this.handleIn) {
       arr[2] = this.handleIn.x;
       arr[3] = this.handleIn.y;
@@ -509,6 +518,58 @@ export function centerOf(segs: Iterable<Segment>): {x: number; y: number} {
   const bounds = boundsOf(segs);
 
   return {x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2};
+}
+
+export function isInsideSegments(x: number, y: number, segements: Array<Segment> | SegmentNumbers[]) {
+  const testLine = {p1: {x, y}, p2: {x, y: Number.MAX_VALUE}}; // test line starts from (x,y) and pointing to upside vertically
+  // const intersectSegments = [] as [Float32Array, Float32Array][];
+  let countIntersect = 0;
+  let lastVertex = segements[0] instanceof Segment ?
+    segements[segements.length - 1] as Segment :
+    new Segment(segements[segements.length - 1] as Float32Array);
+
+  for (let i = 0, l = segements.length; i < l; i++) {
+    const vertex = segements[i];
+    const seg = vertex instanceof Segment ? vertex : new Segment(vertex as Float32Array);
+    if (lastVertex.handleOut != null && seg.handleIn != null) {
+      // In case of bezier curve
+      const bezier = new Bezier(lastVertex.point, lastVertex.absHandleOutPoint()!, seg.absHandleInPoint()!, seg.point);
+      const tArr = bezier.lineIntersects(testLine);
+      countIntersect += tArr.length;
+      // if (tArr.length > 0) {
+      //   intersectSegments.push([lastVertex.toNumbers(), seg.toNumbers()]);
+      //   // console.log('intersect bezier curve', `t: (${tArr.join(',')})`, lastVertex.point, lastVertex.handleOut, seg.handleIn, seg.point);
+      // }
+    } else {
+      // a straight line
+      let minX = lastVertex.point.x;
+      let maxX = seg.point.x;
+      if (minX > maxX) {
+        const temp = minX;
+        minX = maxX;
+        maxX = temp;
+      }
+      if (minX <= x - EPSILON && x + EPSILON <= maxX) {
+        // intersection point's x value must be between minimum X and maximum X of straight line segment
+        const dX = seg.point.x - lastVertex.point.x;
+        if (abs(dX) < EPSILON) {
+          // A vertical line, slope will become infinite big, we only need to compare x value
+          countIntersect++;
+          // intersectSegments.push([lastVertex.toNumbers(), seg.toNumbers()]);
+        } else {
+          const slope = (seg.point.y - lastVertex.point.y) / (seg.point.x - lastVertex.point.x);
+          const intersectionY = slope * (x - lastVertex.point.x) + lastVertex.point.y;
+          if (intersectionY >= y - EPSILON) {
+            // intersectSegments.push([lastVertex.toNumbers(), seg.toNumbers()]);
+            countIntersect++;
+          }
+        }
+      }
+    }
+    lastVertex = seg;
+  }
+  // console.log('count intersections', countIntersect);
+  return countIntersect % 2 !== 0;
 }
 
 export function colorToRgbaStr(color: Color) {

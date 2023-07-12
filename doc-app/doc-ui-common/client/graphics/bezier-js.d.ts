@@ -27,5 +27,8 @@ declare module 'bezier-js' {
     split(t1: number, t2: number): Bezier;
     split(t: number): {left: Bezier; right: Bezier; span: {x: number;y: number}[]};
 
+    lineIntersects(line: {p1: Point; p2: Point}): number[];
   }
+
+  export type Point = {x: number; y: number}
 }

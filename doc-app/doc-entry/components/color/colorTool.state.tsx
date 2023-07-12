@@ -169,21 +169,21 @@ export type ColorToolActions = {
 
 export function createControl() {
   const control = createActionStreamByType<ColorToolActions>({debug: process.env.NODE_ENV === 'development' ? 'colorTool' : false});
-  const {actionOfType} = control;
+  const {payloadByType} = control;
   rx.merge(
-    actionOfType('canvasReady').pipe(
-      op.switchMap(({payload: [root, rootState, canvasCtl, _canvasState$]}) => {
+    payloadByType.canvasReady.pipe(
+      op.switchMap(([root, engine]) => {
         return rx.merge(
           rx.defer(() => {
-            const ret = createCanvasContent(root, rootState, canvasCtl);
-            canvasCtl.dispatcher.render();
+            const ret = createCanvasContent(root);
+            engine.canvasController.dispatcher.render();
             return ret;
           })
         );
       })
     )
   ).pipe(
-    op.takeUntil(actionOfType('onUnmount')),
+    op.takeUntil(payloadByType.onUnmount),
     op.catchError((err, src) => {
       console.error(err);
       void Promise.resolve().then(() => {

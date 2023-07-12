@@ -13,6 +13,7 @@ type PoolActions<T> = {
 
   addTaskForAllData<R>(
     msg: T,
+    minWorkers: number,
     result: rx.Subscriber<WorkerMsgData<R>['content']>
   ): void;
 
@@ -26,6 +27,7 @@ type PoolActions<T> = {
   onTaskRun(worker: number, taskId: string): void;
   onWorkerError(worker: number, msg: any): void;
   createWorker(no: number): void;
+  _dataWorkerAdded(no: number): void;
   _workerCreated(w: Worker, workerNo: number): void;
   _workerIdle(w: number): void;
   terminateAll(): void;
@@ -91,12 +93,12 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       ),
 
     payloadByType.addTaskForAllData.pipe(
-      op.mergeMap(([task, sub]) => {
+      op.mergeMap(([task, minWorkers, sub]) => {
         const callbackSub = new rx.Subject<any>();
         return rx.merge(
-          // collect all callbacks to array
+          // Collect all callbacks to array
           callbackSub.pipe(
-            op.take(dataWorkerSet.size),
+            op.take(minWorkers),
             op.map(content => {
               sub.next(content);
             }),
@@ -106,33 +108,39 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
             }),
             op.finalize(() => sub.complete())
           ),
-          rx.defer(() => {
-            for (const worker of dataWorkerSet) {
-              dispatcher._addTaskToSpecificWorker(
-                worker,
-                task,
-                (err, content) => {
-                  if (err) callbackSub.error(err);
-                  else {
-                    callbackSub.next(content);
+          // Wait for number of dataWorker being greater than `minWorkers`,
+          // then emit `dispatcher._addTaskToSpecificWorker`
+          rx.concat(
+            rx.defer(() => rx.of(dataWorkerSet.size)),
+            payloadByType._dataWorkerAdded.pipe(op.map(() => dataWorkerSet.size))
+          ).pipe(
+            op.filter(size => size >= minWorkers),
+            op.take(1),
+            op.map(() => {
+              for (const worker of dataWorkerSet) {
+                dispatcher._addTaskToSpecificWorker(
+                  worker,
+                  task,
+                  (err, content) => {
+                    if (err) callbackSub.error(err);
+                    else {
+                      callbackSub.next(content);
+                    }
                   }
-                }
-              );
-            }
-            return rx.EMPTY;
-          })
+                );
+              }
+            })
+          )
         );
       })
     ),
 
     // Create new worker, register event listerners on worker
-    actionByType.createWorker.pipe(
-      op.mergeMap(({payload: workerNo}) =>
+    payloadByType.createWorker.pipe(
+      op.mergeMap(workerNo =>
         factory().pipe(
           op.mergeMap(worker => {
-            const ready$ = new rx.ReplaySubject<
-              [workerNo: number, worker: Worker]
-            >(1);
+            const ready$ = new rx.ReplaySubject<[workerNo: number, worker: Worker]>(1);
             workerByNo.set(workerNo, worker);
 
             worker.onmessage = event => {
@@ -312,7 +320,10 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       idleWorkers.delete(no);
       if (key) {
         workerByDataKey.set(key, no);
-        dataWorkerSet.add(no);
+        if (!dataWorkerSet.has(no)) {
+          dataWorkerSet.add(no);
+          dispatcher._dataWorkerAdded(no);
+        }
       }
       return rx.of(no);
     } else {
@@ -325,7 +336,10 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
           op.map(({payload: [, no]}) => {
             if (key) {
               workerByDataKey.set(key, no);
-              dataWorkerSet.add(no);
+              if (!dataWorkerSet.has(no)) {
+                dataWorkerSet.add(no);
+                dispatcher._dataWorkerAdded(no);
+              }
             }
             return no;
           })
@@ -387,9 +401,9 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
       });
     },
 
-    executeAllWorker(msg: T) {
+    executeAllWorker(msg: T, minumNumOfWorker: number) {
       return new rx.Observable<WorkerMsgData<T>['content']>(sub => {
-        dispatcher.addTaskForAllData(msg, sub);
+        dispatcher.addTaskForAllData(msg, minumNumOfWorker, sub);
       });
     },
 

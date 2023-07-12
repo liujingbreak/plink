@@ -1,23 +1,21 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {compose, translate} from 'transformation-matrix';
-import {PaintableCtl, PaintableState, parentChange$} from './paintable';
+import {Paintable} from './paintable';
 
 type AlignmentValues = 'left' | 'center' | 'right' | 'top' | 'down';
 
-export {parentChange$};
 /** change transform  matrix relative to parent size,
  * default is 'center'
  * TODO: implement for 'left', 'right', ...
  */
 // eslint-disable-next-line @typescript-eslint/ban-types, space-before-function-paren
-export function alignToParent<C extends Record<string, (...a: any[]) => void>> (
-  paintableCtl: PaintableCtl<C>,
-  state: PaintableState,
+export function alignToParent<E>(
+  paintable: Paintable<E>,
   _opts: {vertical?: AlignmentValues; horizontal?: AlignmentValues} = {}
 ) {
 
-  const {dispatcher} = paintableCtl;
+  const [{dispatcher}, state, {attached$}] = paintable;
 
   return rx.merge(
     new rx.Observable(sub => {
@@ -27,15 +25,13 @@ export function alignToParent<C extends Record<string, (...a: any[]) => void>> (
         ));
       sub.complete();
     }),
-    parentChange$(paintableCtl, state).pipe(
-      op.switchMap(([parent, pState]) => {
-        const {actionOfType: pac} = parent;
+    attached$().pipe(
+      op.switchMap(([state, parentCtrl, pState]) => {
+        const {payloadByType: pac} = parentCtrl;
 
         return rx.merge(
           rx.of([pState.width, pState.height]),
-          pac('onResize').pipe(
-            op.map(({payload}) => payload)
-          )
+          pac.onResize
         ).pipe(
           op.tap(([w, h]) => {
             state.x = w / 2;
