@@ -81,7 +81,10 @@ export function createAnimationManager() {
    * is emitted earlier than renderFrame$
    */
   const renderFrame$ = new rx.Subject<void>();
-
+  /** One being subscribed,
+   * it will keep reuqestAnimationFramme until
+   * all observers unsubscribed
+   */
   const animCalculateTimer$ = new rx.Observable<number>(sub => {
     let stop = false;
     function run() {
@@ -102,6 +105,11 @@ export function createAnimationManager() {
 
   return {
     animate,
-    renderFrame$
+    renderFrame$: renderFrame$.asObservable(),
+    requestSingleFrame() {
+      animCalculateTimer$.pipe(
+        op.take(1)
+      ).subscribe();
+    }
   };
 }

@@ -4,7 +4,8 @@ import Color from 'color';
 import {compose, scale, rotate} from 'transformation-matrix';
 import {PaintableCtl, Paintable, createPaintable} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2';
 import {alignToParent} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/paintable-utils';
-import {colorToRgbaStr, createBezierArch, Segment, transSegments, drawSegmentPath, reverseSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {colorToRgbaStr, createBezierArch, Segment, transSegments, drawSegmentPath, reverseSegments,
+  concatSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
 
 type ExtendActions = {
   setAuxiliaryEnabled(enabled: boolean): void;
@@ -16,190 +17,209 @@ type ExtendActions = {
 
 export function createHueCircle(root: Paintable) {
 
-  const basePaintable = createPaintable<ExtendActions>({debug: 'huePalette'});
-  const [huePaletteCtrl, huePaletteState, {attached$}] = basePaintable;
+  const basePaintable = createPaintable({debug: 'huePalette'});
+  const [huePaletteCtrl, , {attached$}] = basePaintable;
 
-  const {dispatcher, actionOfType: aot, payloadByType: pt} = huePaletteCtrl;
-  dispatcher.attachTo(root);
-  const {shapeChange$} = createPaintingObjects(huePaletteCtrl);
-  let scaleRatio = 1;
-  const transformedSegs = [] as Segment[][];
-  const detectables = [] as Segment[][];
-  const bounds = [] as Segment[][];
-  let cursorPointer: [number, number] | undefined;
-  let detectablesLen = 0;
+  const {dispatcher} = huePaletteCtrl;
+  // const {shapeChange$, centerSphere} = createPaintingObjects(huePaletteCtrl);
 
-  dispatcher.setRenderFunc(ctx => dispatcher.render(ctx));
+  dispatcher.addEpic<ExtendActions>((ctrl, huePaletteState) => {
+    const {dispatcher, actionOfType: aot, payloadByType: pt} = ctrl;
+    let scaleRatio = 1;
+    const transformedSegs = [] as Segment[][];
+    const detectables = [] as Segment[][];
+    const bounds = [] as Segment[][];
+    let cursorPointer: [number, number] | undefined;
+    let detectablesLen = 0;
+    let selectedColor: string | undefined;
+    const {shapeChange$, centerSphere} = createPaintingObjects(ctrl);
+    let transformedCenterSphere: Segment[] = centerSphere;
 
-  return rx.merge(
-    alignToParent(basePaintable),
-    new rx.Observable(sub => {
-      dispatcher.putTransformOperator( 'scale',
-        matrix$ => matrix$.pipe(
-          op.map(m => compose(m, scale(scaleRatio)))
-        )
-      );
-      sub.complete();
-    }),
+    return rx.merge(
+      alignToParent(basePaintable),
 
-    rx.concat(
-      rx.of({payload: [huePaletteState.width, huePaletteState.height] as const}),
-      aot('onResize')
-    ).pipe(
-      op.tap(({payload: [w, h]}) => {
-        const size = Math.min(w, h);
-        scaleRatio = size;
-        dispatcher.setTransformDirty(true);
-      })
-    ),
+      rx.concat(
+        rx.of({payload: [huePaletteState.width, huePaletteState.height] as const}),
+        aot('onResize')
+      ).pipe(
+        op.tap(({payload: [w, h]}) => {
+          const size = Math.min(w, h);
+          scaleRatio = size;
+          dispatcher.setTransformDirty(true);
+        })
+      ),
 
-    // When `transform` is newly changed or objects are changed, transform painting objects
-    rx.combineLatest(
-      pt.transformChanged,
-      shapeChange$
-    ).pipe(
-      op.map(([, shapes]) => {
-        let i = 0;
-        for (const [, segs] of shapes) {
-          detectables[i] = transformedSegs[i++] = [...transSegments(segs, huePaletteState.transform)];
-        }
-      })
-    ),
+      // When `transform` is newly changed or objects are changed, transform painting objects
+      rx.combineLatest(
+        pt.transformChanged,
+        shapeChange$
+      ).pipe(
+        op.map(([m, shapes]) => {
+          let i = 0;
+          for (const [, segs] of shapes) {
+            detectables[i] = transformedSegs[i++] = [...transSegments(segs, m)];
+          }
+        })
+      ),
 
-    // Render content
-    pt.render.pipe(
-      op.withLatestFrom(shapeChange$),
-      op.map(([ctx, shapes]) => {
-        let i = 0;
-        detectablesLen = shapes.length;
-        for (const segs of transformedSegs) {
-          ctx.fillStyle = colorToRgbaStr(shapes[i++][0]);
-          ctx.beginPath();
-          drawSegmentPath(segs, ctx, {closed: true, round: true});
-          ctx.closePath();
-          ctx.fill();
-        }
-        for (const bound of bounds) {
-          ctx.strokeStyle = 'black';
-          ctx.beginPath();
-          drawSegmentPath(bound, ctx, {closed: true, round: true});
-          ctx.closePath();
-          ctx.stroke();
-        }
+      pt.transformChanged.pipe(
+        op.map(m => {
+          transformedCenterSphere = [...transSegments(centerSphere, m)];
+        })
+      ),
 
-        ctx.save();
-        if (cursorPointer) {
-          ctx.fillStyle = 'white';
-          ctx.moveTo(cursorPointer[0], cursorPointer[1]);
-          ctx.beginPath();
-          ctx.arc(cursorPointer[0], cursorPointer[1], 4, 0, 2 * Math.PI);
-          ctx.closePath();
-          ctx.fill();
-        }
-        ctx.restore();
-      })
-    ),
+      // Render content
+      pt.renderContent.pipe(
+        op.map(([ctx, _baseState]) => ctx),
+        op.withLatestFrom(shapeChange$),
+        op.map(([ctx, fanShapes]) => {
+          let i = 0;
+          detectablesLen = fanShapes.length;
+          for (const segs of transformedSegs) {
+            ctx.fillStyle = colorToRgbaStr(fanShapes[i++][0]);
+            ctx.beginPath();
+            drawSegmentPath(segs, ctx, {closed: true, round: true});
+            ctx.closePath();
+            ctx.fill();
+          }
+          for (const bound of bounds) {
+            ctx.strokeStyle = 'black';
+            ctx.beginPath();
+            drawSegmentPath(bound, ctx, {closed: true, round: true});
+            ctx.closePath();
+            ctx.stroke();
+          }
 
-    attached$().pipe(
-      op.mergeMap(([state]) => {
-        const {workerClient, animateMgr} = state.canvasEngine;
-        return rx.merge(
-          // start animation
-          pt.afterRender.pipe(
-            op.take(1),
-            op.map(() => {dispatcher.startOpeningAnim(animateMgr.animate(0, 1, 500)); })
-          ),
-          workerClient.payloadByType.detectedIntersection.pipe(
-            op.withLatestFrom(pt.setAuxiliaryEnabled),
-            op.map(([[segsKeys, cursorArr], auxiliary]) => {
-              // eslint-disable-next-line no-console
-              console.log('select:', segsKeys);
-              if (auxiliary) {
-                cursorPointer = [Math.round(cursorArr[0]), Math.round(cursorArr[1])];
-                animateMgr.renderFrame$.next();
+          if (cursorPointer) {
+            ctx.save();
+            ctx.fillStyle = 'white';
+            ctx.moveTo(cursorPointer[0], cursorPointer[1]);
+            ctx.beginPath();
+            ctx.arc(cursorPointer[0], cursorPointer[1], 4, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+
+          if (selectedColor) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.fillStyle = selectedColor;
+            drawSegmentPath(transformedCenterSphere, ctx, {closed: true, round: true});
+            ctx.closePath();
+            ctx.fill();
+          }
+        })
+      ),
+
+      attached$().pipe(
+        op.mergeMap(([state]) => {
+          const {workerClient, animateMgr} = state.canvasEngine;
+          return rx.merge(
+            // start animation
+            pt.afterRender.pipe(
+              op.take(1),
+              op.map(() => {dispatcher.startOpeningAnim(animateMgr.animate(0, 1, 500)); })
+            ),
+            workerClient.payloadByType.detectedIntersection.pipe(
+              op.withLatestFrom(pt.setAuxiliaryEnabled, shapeChange$),
+              op.map(([[segsKeys, cursorArr], auxiliary, hueShapes]) => {
+                // eslint-disable-next-line no-console
+                console.log('select:', segsKeys);
+                if (segsKeys.length === 0)
+                  return;
+                const hueKey = segsKeys[segsKeys.length - 1].split('/')[1];
+                const hueIndex = Number(hueKey.slice('hue'.length));
+                selectedColor = colorToRgbaStr(hueShapes[hueIndex][0]);
+
+                if (auxiliary) {
+                  cursorPointer = [Math.round(cursorArr[0]), Math.round(cursorArr[1])];
+                }
+                animateMgr.requestSingleFrame();
+              })
+            ),
+            // When animation is finished, ask web workers to perform bounds calculation
+            pt.openAnimateStopped.pipe(
+              op.withLatestFrom(shapeChange$),
+              op.switchMap(() => rx.timer(300)),
+              op.switchMap(() => rx.concat(
+                rx.of(detectables),
+                pt.transformChanged.pipe(op.mapTo(detectables))
+              )),
+              op.debounceTime(300, rx.asapScheduler),
+              op.map(detectables => {
+                let i = 0;
+                dispatcher.updateDetectables(
+                  (function* () {
+                    for (const segs of detectables.slice(0, detectablesLen))
+                      yield ['hue' + i++, segs];
+                  })()
+                );
+                return detectablesLen;
+              }),
+              // Make sure we wait until all bounds are finished calculated
+              op.switchMap(num => workerClient.payloadByType.doneTaskForKey.pipe(
+                op.filter(([, paintableId]) => paintableId === huePaletteState.id),
+                op.take(num),
+                op.takeLast(1)
+              )),
+              op.map(() => {
+                bounds.splice(0);
+                workerClient.dispatcher.getBBoxesOf(huePaletteState.id);
+              })
+            )
+          );
+        })
+      ),
+      // Use workerClient "gotBBoxesOf" to retrieve bounding boxes.
+      // huePaletteState.workerClient is availabe when `parentChange$()` is dispatched
+      pt.setAuxiliaryEnabled.pipe(
+        op.distinctUntilChanged(),
+        op.switchMap(auxiliary => {
+          if (auxiliary) {
+            return attached$();
+          } else {
+            return rx.of([] as const);
+          }
+        }),
+        op.switchMap(([state]) => {
+          if (state == null)
+            return rx.EMPTY;
+          const {animateMgr, workerClient} = state.canvasEngine;
+          return workerClient.payloadByType.gotBBoxesOf.pipe(
+            op.filter(([, paintableId]) => paintableId === huePaletteState.id),
+            op.map(([, , rects]) => {
+              for (const rect of rects) {
+                bounds.push([
+                  new Segment([rect.x, rect.y]),
+                  new Segment([rect.x + rect.w, rect.y]),
+                  new Segment([rect.x + rect.w, rect.y + rect.h]),
+                  new Segment([rect.x, rect.y + rect.h])
+                ]);
               }
+              // console.log(bounds.map(segs => segs.slice(0, 1).map(seg => seg.point)));
+              animateMgr.requestSingleFrame();
             })
-          ),
-          // When animation is finished, ask web workers to perform bounds calculation
-          pt.openAnimateStopped.pipe(
-            op.withLatestFrom(shapeChange$),
-            op.switchMap(() => rx.timer(300)),
-            op.switchMap(() => rx.concat(
-              rx.of(detectables),
-              pt.transformChanged.pipe(op.mapTo(detectables))
-            )),
-            op.debounceTime(700, rx.asapScheduler),
-            op.map(detectables => {
-              let i = 0;
-              dispatcher.updateDetectables(
-                (function* () {
-                  for (const segs of detectables.slice(0, detectablesLen))
-                    yield ['hue' + i++, segs];
-                })()
-              );
-              return detectablesLen;
-            }),
-            // Make sure we wait until all bounds are finished calculated
-            op.switchMap(num => workerClient.payloadByType.doneTaskForKey.pipe(
-              op.filter(([, paintableId]) => paintableId === huePaletteState.id),
-              op.take(num),
-              op.takeLast(1)
-            )),
-            op.map(() => {
-              bounds.splice(0);
-              workerClient.dispatcher.getBBoxesOf(huePaletteState.id);
-            })
+          );
+        })
+      ),
+      // Emit some initial actions
+      rx.defer(() => {
+        dispatcher.putTransformOperator( 'scale',
+          matrix$ => matrix$.pipe(
+            op.map(m => compose(m, scale(scaleRatio)))
           )
         );
+        createPaintingObjects(ctrl);
+        dispatcher.attachTo(root);
+        dispatcher.setAuxiliaryEnabled(false);
+        dispatcher.setProp({
+          relativeWidth: 0.4,
+          relativeHeight: 0.4
+        });
       })
-    ),
-    // Use workerClient "gotBBoxesOf" to retrieve bounding boxes.
-    // huePaletteState.workerClient is availabe when `parentChange$()` is dispatched
-    pt.setAuxiliaryEnabled.pipe(
-      op.distinctUntilChanged(),
-      op.switchMap(auxiliary => {
-        if (auxiliary) {
-          return attached$();
-        } else {
-          return rx.of([] as const);
-        }
-      }),
-      op.switchMap(([state]) => {
-        if (state == null)
-          return rx.EMPTY;
-        const {animateMgr, workerClient} = state.canvasEngine;
-        return workerClient.payloadByType.gotBBoxesOf.pipe(
-          op.filter(([, paintableId]) => paintableId === huePaletteState.id),
-          op.map(([, , rects], idx) => {
-            for (const rect of rects) {
-              bounds.push([
-                new Segment([rect.x, rect.y]),
-                new Segment([rect.x + rect.w, rect.y]),
-                new Segment([rect.x + rect.w, rect.y + rect.h]),
-                new Segment([rect.x, rect.y + rect.h])
-              ]);
-            }
-            // console.log(bounds.map(segs => segs.slice(0, 1).map(seg => seg.point)));
-            animateMgr.renderFrame$.next();
-          })
-        );
-      })
-    ),
-    // Emit some initial actions
-    rx.defer(() => {
-      dispatcher.setAuxiliaryEnabled(false);
-      dispatcher.setProp({
-        relativeWidth: 0.4,
-        relativeHeight: 0.4
-      });
-    })
-  ).pipe(
-    op.takeUntil(pt.treeDetached),
-    op.catchError((err, src) => {
-      console.error(err);
-      return src;
-    })
-  );
+    );
+  });
 }
 
 const COMPLEMENT = 0.01; // make object a little bigger to conque T-edge issue
@@ -229,6 +249,14 @@ function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
     return rx.EMPTY;
   });
 
+  const quarterSphere = createBezierArch(0, 1);
+  let centerSphere = concatSegments([...quarterSphere as Segment[],
+    ...transSegments(quarterSphere as Segment[], rotate(Math.PI * 3 / 2)),
+    ...transSegments(quarterSphere as Segment[], rotate(Math.PI)),
+    ...transSegments(quarterSphere as Segment[], rotate(Math.PI / 2))
+  ]);
+  centerSphere = [...transSegments(centerSphere, scale(0.705))];
+
   return {
     shapeChange$: rx.concat(
       init$,
@@ -250,6 +278,8 @@ function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
       )
     ).pipe(
       op.share()
-    )
+    ),
+
+    centerSphere
   };
 }

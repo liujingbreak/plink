@@ -17,9 +17,7 @@ import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
 import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {ReactiveCanvasProps} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/ReactiveCanvas2';
-import {createHueCircle as createCanvasContent} from './colorToolCanvasContent';
-// import {create} from './colorToolCanvasPainter';
+
 export interface ColorToolProps {
   mixColors?: {
     color1: string;
@@ -124,7 +122,7 @@ export type ColorToolEpicFactory = EpicFactory<ColorToolState, typeof reducers>;
 
 export const epicFactory: ColorToolEpicFactory = function(slice) {
 
-  return (action$, state$) => {
+  return (_action$, state$) => {
     return rx.merge(
       new rx.Observable(sub => {
       }),
@@ -164,24 +162,12 @@ export type ColorToolSliceHelper = SliceHelper<ColorToolState, typeof reducers>;
 
 export type ColorToolActions = {
   onUnmount(): void;
-  canvasReady: NonNullable<ReactiveCanvasProps['onReady']>;
 };
 
 export function createControl() {
   const control = createActionStreamByType<ColorToolActions>({debug: process.env.NODE_ENV === 'development' ? 'colorTool' : false});
   const {payloadByType} = control;
   rx.merge(
-    payloadByType.canvasReady.pipe(
-      op.switchMap(([root, engine]) => {
-        return rx.merge(
-          rx.defer(() => {
-            const ret = createCanvasContent(root);
-            engine.canvasController.dispatcher.render();
-            return ret;
-          })
-        );
-      })
-    )
   ).pipe(
     op.takeUntil(payloadByType.onUnmount),
     op.catchError((err, src) => {

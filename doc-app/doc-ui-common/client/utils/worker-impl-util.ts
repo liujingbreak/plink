@@ -57,6 +57,7 @@ export function createWorkerControl<A extends Record<string, (...payload: any[])
         ),
         new rx.Observable(sub => {
           addEventListener('message', workerMsgHandler);
+          sub.complete();
           return () => removeEventListener('message', workerMsgHandler);
         })
       );

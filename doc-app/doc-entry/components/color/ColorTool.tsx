@@ -14,6 +14,9 @@ export interface ColorToolProps extends Props {
   epicFactory?: ColorToolEpicFactory;
 }
 
+// eslint-disable-next-line @typescript-eslint/tslint/config
+const worker = new Worker(new URL('./colorToolCanvas.worker', import.meta.url));
+
 const ColorTool = React.memo<ColorToolProps>(props => {
 
   const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory, props.epicFactory);
@@ -38,7 +41,7 @@ const ColorTool = React.memo<ColorToolProps>(props => {
       })}
     </div>
     <div style={state.gradientStyle} className={styles.gradient}></div>
-    <ReactiveCanvas className={styles.canvas} onReady={dispatcher.canvasReady} />
+    <ReactiveCanvas className={styles.canvas} canvasMainWorker={worker}/>
   </div>
   ;
 });

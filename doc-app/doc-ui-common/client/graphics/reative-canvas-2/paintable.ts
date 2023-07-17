@@ -3,11 +3,11 @@ import * as op from 'rxjs/operators';
 import {Matrix, identity, compose} from 'transformation-matrix';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import {Segment} from '../canvas-utils';
-import {ReactiveCanvas2Engine} from './reactiveCanvas2.control';
+import type {ReactiveCanvas2Engine} from './reactiveCanvas2.worker';
 
 let SEQ = 0;
 
-export type Paintable<E = {[type: string]: never}> = readonly [
+export type Paintable<E = unknown> = readonly [
   ActionStreamControl<PaintableActions & E>,
   PaintableState,
   {
@@ -42,11 +42,6 @@ export type PaintableActions = {
   /** attach to a parent paintable object */
   attachTo(p: Paintable): void;
   onResize(w: number, h: number): void;
-  /** set absolute size, alternatively call setRelativeSize() */
-  // setSize(w: number, h: number): void;
-  /** change relative size which is proportional to parent's size */
-  // setRelativeSize(w: number, h: number): void;
-  // setTouchDetection(enable: boolean): void;
   /**
    * `putTransformOperator` helps to customize how `matrix` is finally calculated.
    * Be aware of the order of first time of emitting this action matters, it decides how pipeline is composed.
@@ -62,10 +57,13 @@ export type PaintableActions = {
     op: (up: rx.Observable<Matrix>) => rx.Observable<Matrix>
   ): void;
 
-  setRenderFunc(fn: (
-    ctx: CanvasRenderingContext2D,
+  renderContent(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     state: Required<PaintableState>
-  ) => rx.Observable<any> | void | Promise<any>): void;
+  ): void;
+
+  // `epic` is a concept borrowed from [redux-observable](https://redux-observable.js.org/docs/basics/Epics.html)
+  addEpic<E>(epic: (...params: Paintable<E>) => rx.Observable<any>): void;
   /**
    * Indicate whether `transform` should be calculate by transform operators once `render` is emitted.
    * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
@@ -79,7 +77,7 @@ export type PaintableActions = {
    *
    * This event is dispatched right before `renderContent`
    */
-  transformChanged(): void;
+  transformChanged(m: Matrix): void;
   /**
    * Begin actual content and child paintables rendering, at this moment,
    * transform matrix is composed.
@@ -89,10 +87,10 @@ export type PaintableActions = {
   //   state: Required<PaintableState>,
   //   ctl: ActionStreamControl<E>
   // ): void;
-  afterRender(ctx: CanvasRenderingContext2D): void;
+  afterRender(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): void;
   detach(): void;
   updateDetectables(objectsByKey: Iterable<[key: string, segments: Segment[]]>): void;
-  /** Event: one of ancestors is detached, so current "paintable" is no long connected to canvas */
+  /** Event: one of ancestors or current paintable is detached, so current "paintable" is no long connected to canvas */
   treeDetached(): void;
   treeAttached(): void;
 };
@@ -105,12 +103,9 @@ type InternalActions = {
 const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
 const hasOwnProperty = (t: any, prop: string) => Object.prototype.hasOwnProperty.call(t, prop);
 
-export function createPaintable<
-  // eslint-disable-next-line space-before-function-paren
-  ExtActions extends Record<string, ((...payload: any[]) => void)> = Record<string, never>
->(
+export function createPaintable(
   opts?: Parameters<typeof createActionStreamByType>[0]
-): Paintable<ExtActions> {
+): Paintable {
   const state: PaintableState = {
     id: (SEQ++).toString(16),
     x: 0,
@@ -225,16 +220,16 @@ export function createPaintable<
           // When rendering, check whether transform is "dirty" which requires to be "composed",
           // otherwise directly emit `renderContent`
           pPayloads.afterRender.pipe(
-            op.withLatestFrom(pt.setTransformDirty, pt.setRenderFunc),
-            op.switchMap(([ctx, dirty, renderer]) => {
+            op.withLatestFrom(pt.setTransformDirty),
+            op.switchMap(([ctx, dirty]) => {
               return dirty ?
                 rx.merge(
                   // wait for `composeTransform` result "transform" becomes not `dirty`
                   pt.setTransformDirty.pipe(
                     op.filter(dirty => !dirty),
                     op.take(1),
-                    op.tap(() => dispatcher.transformChanged()),
-                    op.mapTo([ctx, renderer] as const)
+                    op.tap(() => dispatcher.transformChanged(state.transform)),
+                    op.mapTo(ctx)
                   ),
                   // compose tranform matrix
                   new rx.Observable<never>(sub => {
@@ -242,18 +237,14 @@ export function createPaintable<
                     sub.complete();
                   })
                 ) :
-                rx.of([ctx, renderer] as const);
+                rx.of(ctx);
             }),
-            op.exhaustMap(([ctx, renderer]) => rx.defer(() => {
+            op.map(ctx => {
               ctx.save();
-              const res = renderer(ctx, currState);
-              return res;
-            }).pipe(
-              op.finalize(() => {
-                ctx.restore();
-                dispatcher.afterRender(ctx);
-              })
-            ))
+              dispatcher.renderContent(ctx, currState);
+              ctx.restore();
+              dispatcher.afterRender(ctx);
+            })
           )
         ).pipe(
           op.takeUntil(aot.detach),
@@ -282,6 +273,9 @@ export function createPaintable<
             })());
         }
       })
+    ),
+    pt.addEpic.pipe(
+      op.mergeMap(epic => epic(ctl as ActionStreamControl<PaintableActions>, state, {attached$}))
     ),
     new rx.Observable(sub => {
       // Push absolute transformation calculation operator as last entry in pipeline
@@ -317,7 +311,7 @@ export function createPaintable<
   }
 
   return [
-    ctl as unknown as ActionStreamControl<PaintableActions & ExtActions>,
+    ctl as ActionStreamControl<PaintableActions>,
     state,
     {
       attached$

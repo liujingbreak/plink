@@ -211,7 +211,7 @@ export const quarterCircleCurve = [
 
 
 /**
- * draw a 1/4 circle starts frome [0, 1] counter-clocl wise 
+ * draw a 1/4 circle starts from [0, 1] counter-clock wise
  * @param startT 0 ~ 1, t value of a qaurter circle bezier curve
  * @param endT 0 ~ 1
  */
@@ -225,6 +225,35 @@ export function *transSegments(segs: Iterable<Segment>, matrix: Matrix) {
   for (const seg of segs) {
     yield seg.transform(matrix);
   }
+}
+
+export function concatSegments(segs: Iterable<Segment>) {
+  const res = [] as Segment[];
+  let lastSeg: Segment | undefined;
+  for (const seg of segs) {
+    if (lastSeg) {
+      if (abs(lastSeg.point.x - seg.point.x) <= EPSILON && abs(lastSeg.point.y - seg.point.y) <= EPSILON) {
+        if (lastSeg.handleOut == null && seg.handleOut) {
+          lastSeg.handleOut = seg.handleOut;
+        }
+      } else {
+        res.push(seg);
+        lastSeg = seg;
+      }
+    } else {
+      res.push(seg);
+      lastSeg = seg;
+    }
+  }
+  if (res.length >= 3) {
+    const seg = res[0];
+    if (abs(lastSeg!.point.x - seg.point.x) <= EPSILON && abs(lastSeg!.point.y - seg.point.y) <= EPSILON) {
+      res.pop();
+      if (lastSeg?.handleIn && res[0].handleIn == null)
+        res[0].handleIn = lastSeg?.handleIn;
+    }
+  }
+  return res;
 }
 
 export function *createSegments(vertices: Iterable<[x: number, y: number]>): Iterable<Segment> {
@@ -243,7 +272,7 @@ export function reverseSegments(segs: Iterable<Segment>) {
   });
 }
 
-export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D, opts?: {
+export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, opts?: {
   closed?: boolean;
   round?: boolean | ((x: number) => number);
   debug?: boolean;
