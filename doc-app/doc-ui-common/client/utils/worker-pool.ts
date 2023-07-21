@@ -53,6 +53,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
   maxIdleWorkers?: number;
 } & StreamControlOptions) {
   const workerByNo = new Map<number, Worker>();
+  const msgPortByNo = new Map<number, MessagePort>();
   const idleWorkers = new Set<number>();
   const poolId = (SEQ++).toString(16);
   let workerSeq = 0;
@@ -68,29 +69,27 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
   // Handle `addTask` and `addTaskForPatitionData`,
   // use `mergeMap(, concurrent) to controll number of parallel "non-idle" workers
   rx.merge(
-    rx
-      .merge(
-        payloadByType.addTaskForPatitionData.pipe(
-          op.map(([key, task, cb]) => [key, null, task, cb] as const)
-        ),
-        payloadByType.addTask.pipe(
-          op.map(payload => [null, null, ...payload] as const)
-        ),
-        payloadByType._addTaskToSpecificWorker.pipe(
-          op.map(([worker, task, cb]) => {
-            return [null, worker, task, cb] as const;
-          })
-        )
-      )
-      .pipe(
-        op.mergeMap(([dataKey, worker, task, cb]) => {
-          const taskId = poolId + '/T' + (TASK_SEQ++).toString(16);
-          taskById.set(taskId, {task, cb, key: dataKey != null ? dataKey + '' : undefined});
-          return assignWorker(taskId, dataKey, worker).pipe(
-            waitForWorkerIdle(taskId, task)
-          );
-        }, opts.concurrent)
+    rx.merge(
+      payloadByType.addTaskForPatitionData.pipe(
+        op.map(([key, task, cb]) => [key, null, task, cb] as const)
       ),
+      payloadByType.addTask.pipe(
+        op.map(payload => [null, null, ...payload] as const)
+      ),
+      payloadByType._addTaskToSpecificWorker.pipe(
+        op.map(([worker, task, cb]) => {
+          return [null, worker, task, cb] as const;
+        })
+      )
+    ).pipe(
+      op.mergeMap(([dataKey, worker, task, cb]) => {
+        const taskId = poolId + '/T' + (TASK_SEQ++).toString(16);
+        taskById.set(taskId, {task, cb, key: dataKey != null ? dataKey + '' : undefined});
+        return assignWorker(taskId, dataKey, worker).pipe(
+          waitForWorkerIdle(taskId, task)
+        );
+      }, opts.concurrent)
+    ),
 
     payloadByType.addTaskForAllData.pipe(
       op.mergeMap(([task, minWorkers, sub]) => {
@@ -142,8 +141,10 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
           op.mergeMap(worker => {
             const ready$ = new rx.ReplaySubject<[workerNo: number, worker: Worker]>(1);
             workerByNo.set(workerNo, worker);
+            const chan = new MessageChannel();
+            msgPortByNo.set(workerNo, chan.port1);
 
-            worker.onmessage = event => {
+            chan.port1.onmessage = event => {
               if ((event.data as {type: string}).type === 'WORKER_READY') {
                 ready$.next([workerNo, worker]);
                 ready$.complete();
@@ -156,15 +157,16 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
                 dispatcher.onTaskDone(workerNo, event.data);
               }
             };
-            worker.onmessageerror = event => {
+            chan.port1.onmessageerror = event => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               if (event.data.poolId === poolId)
                 dispatcher.onWorkerError(workerNo, event.data);
             };
-            worker.onerror = event => {
-              dispatcher.onWorkerError(workerNo, event);
-            };
-            worker.postMessage({type: 'ASSIGN_WORKER_NO', data: workerNo});
+            chan.port1.start();
+            // chan.port1.onerror = event => {
+            //   dispatcher.onWorkerError(workerNo, event);
+            // };
+            worker.postMessage({type: 'ASSIGN_WORKER_NO', data: workerNo, port: chan.port2}, [chan.port2]);
             return ready$;
           })
         )
@@ -233,7 +235,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
                 } as WorkerMsgData<T>;
                 // eslint-disable-next-line no-console
                 console.log('worker pool postMessage for assigned', msg);
-                workerByNo.get(worker)?.postMessage(msg);
+                msgPortByNo.get(worker)?.postMessage(msg);
               } else {
                 dispatcher._workerIdle(worker);
               }
@@ -241,6 +243,8 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
             op.catchError((err, src) => {
               const workerObj = workerByNo.get(worker);
               workerObj?.terminate();
+              msgPortByNo.get(worker)?.close();
+              msgPortByNo.delete(worker);
               workerByNo.delete(worker);
               dataWorkerSet.delete(worker);
               for (const [key, workerNo] of workerByDataKey.entries()) {
@@ -250,7 +254,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
               }
               const remainingTasks = tasksForAssignedWorker.get(worker);
               tasksForAssignedWorker.delete(worker);
-              dispatcher.onWorkerError(worker, taskId);
+              dispatcher.onWorkerError(worker, 'task timeout: ' + taskId);
               if (remainingTasks) {
                 for (const taskId of remainingTasks) {
                   const taskEntry = taskById.get(taskId);
@@ -261,8 +265,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
                   }
                 }
               }
-              // TODO reassign/dispatch remaining tasks
-              return src;
+              return rx.EMPTY;
             })
           );
       })
@@ -276,6 +279,9 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
           !dataWorkerSet.has(w)
         ) {
           workerByNo.get(w)?.terminate();
+          msgPortByNo.get(w)?.close();
+          workerByNo.delete(w);
+          msgPortByNo.delete(w);
         } else {
           idleWorkers.add(w);
         }
@@ -372,7 +378,7 @@ export function createReactiveWorkerPool<T = any>(factory: () => rx.Observable<W
                 } as WorkerMsgData<T>;
                 // eslint-disable-next-line no-console
                 console.log('worker pool postMessage', msg);
-                workerByNo.get(worker)?.postMessage(msg);
+                msgPortByNo.get(worker)?.postMessage(msg);
                 return rx.EMPTY;
               })
             )

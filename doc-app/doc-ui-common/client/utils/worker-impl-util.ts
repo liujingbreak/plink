@@ -12,11 +12,13 @@ export function createWorkerControl<A extends Record<string, (...payload: any[])
   {debug}: {debug?: string | boolean}
 ) {
 
+  let port: MessagePort | undefined;
   const sub = new rx.Observable<number>(sub => {
-    const handler = (event: MessageEvent<{type?: string; data: number}>) => {
+    const handler = (event: MessageEvent<{type?: string; data: number; port: MessagePort}>) => {
       const msg = event.data;
       if (msg.type === 'ASSIGN_WORKER_NO') {
-        postMessage({type: 'WORKER_READY'});
+        port = msg.port;
+        port.postMessage({type: 'WORKER_READY'});
         sub.next(msg.data);
         sub.complete();
         return;
@@ -47,24 +49,24 @@ export function createWorkerControl<A extends Record<string, (...payload: any[])
         epic(controller, workerNo).pipe(
           op.map(action => {
             const outMsg = _actionToObject(action);
-            postMessage(outMsg);
+            port!.postMessage(outMsg);
           }),
           op.catchError((err, src) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            postMessage({error: err, workerNo});
+            port!.postMessage({error: err, workerNo});
             return src;
           })
         ),
-        new rx.Observable(sub => {
-          addEventListener('message', workerMsgHandler);
-          sub.complete();
-          return () => removeEventListener('message', workerMsgHandler);
+        new rx.Observable(_sub => {
+          port!.addEventListener('message', workerMsgHandler);
+          port!.start();
+          return () => port!.removeEventListener('message', workerMsgHandler);
         })
       );
     }),
     op.catchError((err, src) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      postMessage({error: err});
+      port!.postMessage({error: err});
       return src;
     })
   ).subscribe();

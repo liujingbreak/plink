@@ -26,7 +26,11 @@ const ReactiveCanvas = React.memo<ReactiveCanvasProps>(props => {
   }, [dispatcher, props.scaleRatio]);
 
   React.useEffect(() => {
-    dispatcher.onDomMount();
+    if (props.canvasMainWorker)
+      dispatcher.setWorker(props.canvasMainWorker);
+  }, [dispatcher, props.canvasMainWorker]);
+
+  React.useEffect(() => {
     return () => dispatcher.onUnmount();
   }, [dispatcher]);
 
@@ -40,7 +44,7 @@ const ReactiveCanvas = React.memo<ReactiveCanvasProps>(props => {
 
   // dispatch action: slice.actionDispatcher.onClick(evt)
   return <div className={cls(styles.host, props.className)}>
-    <canvas className={props.className} ref={dispatcher._createDom}
+    <canvas className={props.className} ref={dispatcher.onDomChange}
       onPointerDown={onClick} onPointerMove={onPointerMove}/>
   </div>;
 });

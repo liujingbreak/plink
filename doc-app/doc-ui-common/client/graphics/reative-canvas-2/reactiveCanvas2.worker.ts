@@ -34,7 +34,7 @@ function createEngine(): ReactiveCanvas2Engine {
   const animateMgr = createAnimationManager();
 
   const onPointerMove$ = new rx.Subject<[number, number]>();
-  const {payloadByType, dispatcher, _actionFromObject} = control;
+  const {payloadByType, actionByType, dispatcher, _actionFromObject} = control;
 
   const workerMsgHandler = (event: MessageEvent<{p: string; t: string; type?: string; x?: number; y?: number}>) => {
     if (event.data.type === 'onPointMove') {
@@ -66,6 +66,7 @@ function createEngine(): ReactiveCanvas2Engine {
           s.height = Math.floor(vh * ratio);
         }
         state$.next(s);
+        dispatcher.render();
       })
     ),
     rx.merge(
@@ -92,27 +93,23 @@ function createEngine(): ReactiveCanvas2Engine {
         state$.next({...state$.getValue(), scaleRatio});
       })
     ),
-    payloadByType._afterResize.pipe(
-      op.map(() => {
-        const ctx = state$.getValue().ctx;
-        if (ctx)
-          dispatcher.renderContent(ctx);
-      })
-    ),
     payloadByType.renderContent.pipe(
       op.map(ctx => {
         const s = state$.getValue();
         ctx.clearRect(0, 0, s.width, s.height);
       })
     ),
-    animateMgr.renderFrame$.pipe(
-      op.withLatestFrom(state$.pipe(
+    rx.combineLatest(
+      actionByType.sceneReady,
+      rx.merge(animateMgr.renderFrame$, actionByType.render),
+      state$.pipe(
         op.map(s => s.ctx),
         op.distinctUntilChanged(),
-        op.filter(ctx => ctx != null),
+        op.filter((ctx): ctx is NonNullable<typeof ctx> => ctx != null),
         op.take(1)
-      )),
-      op.map(([, ctx]) => dispatcher.renderContent(ctx!))
+      )
+    ).pipe(
+      op.map(([, , ctx]) => dispatcher.renderContent(ctx))
     ),
     state$.pipe(
       op.distinctUntilChanged((x, y) => x.width === y.width && x.height === y.height && x.canvas !== y.canvas),
@@ -131,10 +128,10 @@ function createEngine(): ReactiveCanvas2Engine {
         }
       })
     ),
-    new rx.Observable(sub => {
+    new rx.Observable(() => {
+      postMessage('ready');
       // eslint-disable-next-line no-restricted-globals
       addEventListener('message', workerMsgHandler);
-      sub.complete();
       // eslint-disable-next-line no-restricted-globals
       return () => removeEventListener('message', workerMsgHandler);
     })

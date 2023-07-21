@@ -5,5 +5,5 @@ const [root, engine] = createRootPaintable();
 
 createHueCircle(root);
 const {canvasController} = engine;
-canvasController.dispatcher.render();
+canvasController.dispatcher.sceneReady();
 

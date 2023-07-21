@@ -83,7 +83,7 @@ export function createForCanvas() {
       })
     ),
     payloadByType.detectPoint.pipe(
-      op.concatMap(xy => {
+      op.switchMap(xy => {
         dispatcher._detectPoint(detectTreeId, xy);
         return payloadByType._doneDetectPoint.pipe(
           op.take(NUM_WORKER),

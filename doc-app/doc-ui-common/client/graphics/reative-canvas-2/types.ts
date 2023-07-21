@@ -17,6 +17,8 @@ export type ReactiveCanvas2State = {
 } & ReactiveCanvasConfig;
 
 export type ReactiveCanvas2Actions = {
+  /** Dispatch this action once when `Object`s(`Paintable`s) are created and attached to canvas root paintable */
+  sceneReady(): void;
   /** render once */
   render(): void;
   resizeViewport(width: number, height: number): void;
@@ -28,8 +30,6 @@ export type ReactiveCanvas2Actions = {
 export type ReactiveCanvas2InternalActions = {
   _createOffscreen(canvas: OffscreenCanvas): void;
   _createDom(dom: HTMLCanvasElement | null): void;
-  /** TODO: maybe this action is unnecessary due to onResize() */
-  _afterResize(): void;
   _onClick(x: number, y: number): void;
   onDomMount(): void;
   onUnmount(): void;
