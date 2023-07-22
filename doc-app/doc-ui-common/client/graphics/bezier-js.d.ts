@@ -3,7 +3,7 @@
  */
 
 declare module 'bezier-js' {
-  export type PointsCoords = number[] | {x: number; y: number; z?: number;}[];
+  export type PointsCoords = [number, number, number?][] | {x: number; y: number; z?: number;}[];
 
   export interface CoordBounds {
     min: number;
@@ -13,7 +13,7 @@ declare module 'bezier-js' {
   }
 
   export class Bezier {
-    points: {x: number;y: number}[];
+    points: Point[];
     constructor(...coords: PointsCoords);
 
     length(): number;
@@ -30,5 +30,5 @@ declare module 'bezier-js' {
     lineIntersects(line: {p1: Point; p2: Point}): number[];
   }
 
-  export type Point = {x: number; y: number}
+  export type Point = {x: number; y: number; z?: number};
 }

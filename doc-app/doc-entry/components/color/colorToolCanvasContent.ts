@@ -225,7 +225,7 @@ export function createHueCircle(root: Paintable) {
 const COMPLEMENT = 0.01; // make object a little bigger to conque T-edge issue
 
 function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
-  const numOfColors = 36;
+  const numOfColors = 6;
   const fanShapes = [] as [color: Color, segsIt: Iterable<Segment>][];
 
   const init$ = rx.defer(() => {

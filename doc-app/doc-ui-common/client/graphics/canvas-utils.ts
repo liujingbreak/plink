@@ -1,5 +1,6 @@
 /// <reference path="bezier-js.d.ts" />
 import {applyToPoint, Matrix, transform, translate} from 'transformation-matrix';
+import {mat4, vec3} from 'gl-matrix';
 import {Bezier} from 'bezier-js';
 import glur from 'glur';
 import type Color from 'color';
@@ -65,11 +66,17 @@ export function blur(ctx: CanvasRenderingContext2D, x = 0, y = 0, width = ctx.ca
 
 const round = Math.round;
 
-export type Point = {x: number; y: number};
+export type Point = {x: number; y: number; z?: number};
 export type SegmentNumbers = [
   pointX: number, pointY: number,
   handleInX?: (number | null), handleInY?: (number | null),
   handleOutX?: (number | null), handleOutY?: (number | null)
+] | Float32Array;
+
+export type Segment3dNumbers = [
+  pointX: number, pointY: number, pointZ: number,
+  handleInX?: (number | null), handleInY?: (number | null), handleInZ?: (number | null),
+  handleOutX?: (number | null), handleOutY?: (number | null),  handleOutZ?: (number | null)
 ] | Float32Array;
 /**
  * A paper.js segement like structure (http://paperjs.org/reference/segment/)
@@ -79,7 +86,7 @@ export class Segment {
   // static from(pointX: number, pointY: number, handleInX: number, handleInY: number, handleOutX: number, handleOutY: number) {
   //   return new Segment({x: pointX, y: pointY}, {x: handleInX, y: handleInY}, {x: handleOutX, y: handleOutY});
   // }
-  point: Point = {x: 0, y: 0};
+  point: Point = {x: 0, y: 0, z: 0};
   /** Relative to this.point */
   handleIn?: Point;
   /** Relative to this.point */
@@ -113,9 +120,13 @@ export class Segment {
     }
     if (handleIn) {
       this.handleIn = {x: handleIn.x - this.point.x, y: handleIn.y - this.point.y};
+      if (handleIn.z != null)
+        this.handleIn.z = handleIn.z - (this.point.z ?? 0);
     }
     if (handleOut) {
       this.handleOut = {x: handleOut.x - this.point.x, y: handleOut.y - this.point.y};
+      if (handleOut.z != null)
+        this.handleOut.z = handleOut.z - (this.point.z ?? 0);
     }
   }
 
@@ -126,21 +137,24 @@ export class Segment {
         x: method(this.handleIn.x),
         y: method(this.handleIn.y)
       };
+      if (this.handleIn.z != null)
+        newSeg.handleIn.z = method(this.handleIn.z);
     }
     if (this.handleOut) {
       newSeg.handleOut = {
         x: method(this.handleOut.x),
         y: method(this.handleOut.y)
       };
+      if (this.handleOut.z != null)
+        newSeg.handleOut.z = method(this.handleOut.z);
     }
     return newSeg;
   }
 
   transform(matrix: Matrix) {
     const newSeg = this.clone();
-    // console.log('transform', matrix, newSeg.point);
     newSeg.point = applyToPoint(matrix, newSeg.point);
-    // matrix 1 is the actual transformation plus getting a relative position of "handle point" by segment's "point" position
+    // matrix1 is the actual transformation plus getting a relative position of "handle point" by segment's "point" position
     const matrix1 = transform(
       // 3. Get "handle point"'s x and y coordinate value relative to "point"'s x and y value in absolute coordinate system
       translate(-newSeg.point.x, -newSeg.point.y),
@@ -164,20 +178,60 @@ export class Segment {
     return newSeg;
   }
 
+  transform3d(matrix: mat4) {
+    const newSeg = this.clone();
+    const point3d = vec3.fromValues(newSeg.point.x, newSeg.point.y, (newSeg.point.z ?? 0));
+    vec3.transformMat4(point3d, point3d, matrix);
+    newSeg.point.x = point3d[0];
+    newSeg.point.y = point3d[1];
+    newSeg.point.z = point3d[2];
+
+    // matrix1 is the actual transformation plus getting a relative position of "handle point" by segment's "point" position
+    const matTrans = mat4.fromTranslation(mat4.create(), vec3.fromValues(-newSeg.point.x, -newSeg.point.y, -(newSeg.point.z ?? 0)));
+    // 3. Get "handle point"'s x and y coordinate value relative to "point"'s x and y value in absolute coordinate system
+    // 2. Apply actual transformation on "point" (instead of "handle point")
+    const matrix1 = mat4.mul(matTrans, matTrans, matrix);
+    if (newSeg.handleIn) {
+      const vector = vec3.fromValues(newSeg.handleIn.x, newSeg.handleIn.y, newSeg.handleIn.z ?? 0);
+      const m = mat4.mul(mat4.create(), matrix1, mat4.fromTranslation(mat4.create(), vector));
+      const v = vec3.transformMat4(vec3.create(), point3d, m);
+      newSeg.handleIn.x = v[0];
+      newSeg.handleIn.y = v[1];
+      newSeg.handleIn.z = v[2];
+    }
+    if (newSeg.handleOut) {
+      const vector = vec3.fromValues(newSeg.handleOut.x, newSeg.handleOut.y, newSeg.handleOut.z ?? 0);
+      const m = mat4.create();
+      mat4.mul(m, matrix1, mat4.fromTranslation(mat4.create(), vector));
+      const v = vec3.transformMat4(vec3.create(), point3d, m);
+      newSeg.handleOut.x = v[0];
+      newSeg.handleOut.y = v[1];
+      newSeg.handleOut.z = v[2];
+    }
+    return newSeg;
+  }
+
   absHandleInPoint() {
     return this.handleIn ?
-      {x: this.handleIn.x + this.point.x, y: this.handleIn.y + this.point.y}
+      {x: this.handleIn.x + this.point.x,
+        y: this.handleIn.y + this.point.y,
+        z: (this.handleIn.z ?? 0) + (this.point.z ?? 0)}
       : null;
   }
 
   absHandleOutPoint() {
     return this.handleOut ?
-      {x: this.handleOut.x + this.point.x, y: this.handleOut.y + this.point.y}
+      {x: this.handleOut.x + this.point.x,
+        y: this.handleOut.y + this.point.y,
+        z: (this.handleOut.z ?? 0) + (this.point.z ?? 0)}
       : null;
   }
 
   clone() {
     const newSeg = new Segment({x: this.point.x, y: this.point.y});
+    if (this.point.z != null)
+      newSeg.point.z = this.point.z;
+
     if (this.handleIn) {
       newSeg.handleIn = {...this.handleIn};
     }
@@ -188,7 +242,6 @@ export class Segment {
   }
 
   toNumbers(): Float32Array {
-    // const arr = [this.point.x, this.point.y, null, null, null, null] as [number, number, number | null, number | null, number | null, number | null];
     const arr = Float32Array.of(this.point.x, this.point.y, 0, 0, 0, 0);
     if (this.handleIn) {
       arr[2] = this.handleIn.x;
@@ -200,13 +253,28 @@ export class Segment {
     }
     return arr;
   }
+  to3dNumbers(): Float32Array {
+    const {point} = this;
+    const arr = Float32Array.of(point.x, point.y, (point.z ?? 0), 0, 0, 0, 0, 0, 0);
+    if (this.handleIn) {
+      arr[3] = this.handleIn.x;
+      arr[4] = this.handleIn.y;
+      arr[5] = this.handleIn.z ?? 0;
+    }
+    if (this.handleOut) {
+      arr[6] = this.handleOut.x;
+      arr[7] = this.handleOut.y;
+      arr[8] = this.handleOut.z ?? 0;
+    }
+    return arr;
+  }
 }
 
 export const CIRCLE_BEZIER_CONST = 0.551915024494;
 
 export const quarterCircleCurve = [
-  new Segment({x: 0, y: 1}, {x: -CIRCLE_BEZIER_CONST, y: 1}, {x: CIRCLE_BEZIER_CONST, y: 1}),
-  new Segment({x: 1, y: 0}, {x: 1, y: CIRCLE_BEZIER_CONST}, {x: 1, y: -CIRCLE_BEZIER_CONST})
+  new Segment({x: 0, y: 1, z: 0}, {x: -CIRCLE_BEZIER_CONST, y: 1, z: 0}, {x: CIRCLE_BEZIER_CONST, y: 1, z: 0}),
+  new Segment({x: 1, y: 0, z: 0}, {x: 1, y: CIRCLE_BEZIER_CONST, z: 0}, {x: 1, y: -CIRCLE_BEZIER_CONST, z: 0})
 ];
 
 
