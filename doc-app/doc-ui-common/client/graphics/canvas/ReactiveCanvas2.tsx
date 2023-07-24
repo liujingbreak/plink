@@ -1,6 +1,6 @@
 import React from 'react';
 import cls from 'classnames';
-import styles from '../ReactiveCanvas.module.scss';
+import styles from './ReactiveCanvas2.module.scss';
 import {createDomControl} from './reactiveCanvas2.control';
 import {ReactiveCanvasConfig} from './types';
 

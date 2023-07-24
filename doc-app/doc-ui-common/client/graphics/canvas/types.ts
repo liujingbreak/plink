@@ -25,6 +25,7 @@ export type ReactiveCanvas2Actions = {
   changeRatio(scaleRatio: number): void;
   /** root component should subscribe this event, and start painting all children */
   renderContent(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): void;
+  onClicked(segsKey: Array<string>, originPoint: Float32Array): void;
 };
 
 export type ReactiveCanvas2InternalActions = {

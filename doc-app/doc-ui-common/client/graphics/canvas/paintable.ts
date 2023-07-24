@@ -1,24 +1,23 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {Matrix, identity, compose} from 'transformation-matrix';
+// import {Matrix, identity, compose} from 'transformation-matrix';
+import {mat4} from 'gl-matrix';
 import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
-import {Segment} from '../canvas-utils';
+import {Segment, mat4ToStr} from '../canvas-utils';
 import type {ReactiveCanvas2Engine} from './reactiveCanvas2.worker';
 
 let SEQ = 0;
 
 export type Paintable<E = unknown> = readonly [
   ActionStreamControl<PaintableActions & E>,
-  PaintableState,
-  {
-    attached$: () => rx.Observable<readonly [Required<PaintableState>, ...Paintable]>;
-  }
+  PaintableState
 ];
 
 export type PaintableState = {
   id: string;
   x: number;
   y: number;
+  z: number;
   /** absolute size, value is calculated by relativeWidth */
   width: number;
   /** absolute size, value is calculated by relativeHeight */
@@ -28,13 +27,15 @@ export type PaintableState = {
   /** relative size of parent, if parent is not a positional paintable, size is relative to reactive canvas, value is between 0 ~ 1 */
   relativeHeight?: number;
   transPipeline: string[];
-  transPipelineByName: Map<string, (up: rx.Observable<Matrix>) => rx.Observable<Matrix>>;
+  transPipelineByName: Map<string, (up: rx.Observable<mat4>) => rx.Observable<mat4>>;
   /** used to actual render and calculate interactions detection */
-  transform: Matrix;
+  transform: mat4;
   detached: boolean;
   treeDetached: boolean;
+  epics: ((c: ActionStreamControl<PaintableActions>, s: Required<PaintableState>) => rx.Observable<any>)[];
   parent?: Paintable;
   canvasEngine?: ReactiveCanvas2Engine;
+  epicObservables?: Array<rx.Observable<any>>;
 };
 
 export type PaintableActions = {
@@ -54,7 +55,7 @@ export type PaintableActions = {
    */
   putTransformOperator(
     name: string,
-    op: (up: rx.Observable<Matrix>) => rx.Observable<Matrix>
+    op: (up: rx.Observable<mat4>) => rx.Observable<mat4>
   ): void;
 
   renderContent(
@@ -62,8 +63,13 @@ export type PaintableActions = {
     state: Required<PaintableState>
   ): void;
 
-  // `epic` is a concept borrowed from [redux-observable](https://redux-observable.js.org/docs/basics/Epics.html)
-  addEpic<E>(epic: (...params: Paintable<E>) => rx.Observable<any>): void;
+  /** `epic` is a concept borrowed from [redux-observable](https://redux-observable.js.org/docs/basics/Epics.html).
+   * The returned "epic" observable will be subscribed when `treeAttached` event is dispatched until `treeDetached` event
+   * is dispatched.
+   * @param epicFactory the function return "epic", it is invoked only once at beginning, but the `epic` that it returns could
+   * be subscribed multiple times, if there are multiple `treeAttached` events dispatched.
+   */
+  addEpic<E>(epicFactory: (c: ActionStreamControl<PaintableActions & E>, s: Required<PaintableState>) => rx.Observable<any>): void;
   /**
    * Indicate whether `transform` should be calculate by transform operators once `render` is emitted.
    * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
@@ -77,7 +83,7 @@ export type PaintableActions = {
    *
    * This event is dispatched right before `renderContent`
    */
-  transformChanged(m: Matrix): void;
+  transformChanged(m: mat4): void;
   /**
    * Begin actual content and child paintables rendering, at this moment,
    * transform matrix is composed.
@@ -103,25 +109,38 @@ type InternalActions = {
 const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
 const hasOwnProperty = (t: any, prop: string) => Object.prototype.hasOwnProperty.call(t, prop);
 
-export function createPaintable(
+export function createPaintable<E = unknown>(
   opts?: Parameters<typeof createActionStreamByType>[0]
-): Paintable {
+): Paintable<E> {
   const state: PaintableState = {
     id: (SEQ++).toString(16),
     x: 0,
     y: 0,
+    z: 0,
     width: 100,
     height: 150,
-    transform: identity(),
+    transform: mat4.create(),
     transPipelineByName: new Map(),
     transPipeline: [],
     detached: true,
-    treeDetached: true
+    treeDetached: true,
+    epics: []
   };
 
   const ctl = createActionStreamByType<PaintableActions & InternalActions>(opts ?? {debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
 
   const {actionByType: aot, payloadByType: pt, dispatcher} = ctl;
+
+  // Push absolute transformation calculation operator as last entry in pipeline
+  dispatcher.putTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<mat4>) => {
+    return upStream.pipe(
+      op.map(m => {
+        return state.parent ?
+          mat4.mul(m, state.parent[1].transform, m) :
+          m;
+      })
+    );
+  });
 
   rx.merge(
     pt.setProp.pipe(
@@ -147,12 +166,28 @@ export function createPaintable(
           state.transPipeline.push(key);
         }
         state.transPipelineByName.set(key, op);
-      }),
+      })
+    ),
+
+    rx.concat(
+      rx.defer(() => state.transPipeline.length > 0 ? rx.of(true) : rx.EMPTY),
+      aot.putTransformOperator
+    ).pipe(
       op.switchMap(() => {
-        const ops = state.transPipeline.map(key => state.transPipelineByName.get(key)!) as [rx.OperatorFunction<Matrix, Matrix>];
+        const ops = process.env.NODE_ENV === 'development' ?
+          (state.transPipeline.map(
+            key => [
+              state.transPipelineByName.get(key)!,
+              // eslint-disable-next-line no-console
+              op.tap((m: mat4) => console.log('transformOperator', key + '\n' + mat4ToStr(m)))
+            ]) as [rx.OperatorFunction<mat4, mat4>, rx.MonoTypeOperatorFunction<mat4>][])
+            .reduce((acc, it) => { acc.push(...it); return acc; }, [] as rx.OperatorFunction<mat4, mat4>[])
+          :
+          state.transPipeline.map(key => state.transPipelineByName.get(key)!);
+
         return aot.composeTransform.pipe(
-          op.mapTo(identity()),
-          ...ops
+          op.mapTo(mat4.create()),
+          ...(ops as [rx.OperatorFunction<mat4, mat4>])
         );
       }),
       op.map(matrix => {
@@ -160,12 +195,16 @@ export function createPaintable(
         dispatcher.setTransformDirty(false);
       })
     ),
-
-    attached$().pipe(
-      op.switchMap(([currState, ...parent]) => {
+    pt.attachTo.pipe(
+      op.map(parent => {
         state.detached = false;
         state.parent = parent;
-        const [pCtl, pState] = parent;
+      })
+    ),
+
+    attached$().pipe(
+      op.switchMap((currState) => {
+        const [pCtl, pState] = currState.parent;
         state.canvasEngine = pState.canvasEngine;
         const {actionByType: pActions, payloadByType: pPayloads} = pCtl as unknown as ActionStreamControl<PaintableActions & InternalActions>;
         // When attached to a new parent, should always trigger `transform` recalculation
@@ -275,22 +314,22 @@ export function createPaintable(
       })
     ),
     pt.addEpic.pipe(
-      op.mergeMap(epic => epic(ctl as ActionStreamControl<PaintableActions>, state, {attached$}))
+      op.map(epic => state.epics.push(epic))
     ),
-    new rx.Observable(sub => {
-      // Push absolute transformation calculation operator as last entry in pipeline
-      dispatcher.putTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<Matrix>) => {
-        return upStream.pipe(
-          op.map(m => {
-            return state.parent ?
-              compose(state.parent[1].transform, m) :
-              m;
-          })
+    rx.concat(
+      rx.defer(() => rx.of(...state.epics)),
+      pt.addEpic
+    ).pipe(
+      op.mergeMap(epic => {
+        return rx.concat(
+          rx.defer(() => !state.treeDetached ? rx.of(true) : rx.EMPTY),
+          aot.treeAttached
+        ).pipe(
+          op.switchMap(() => epic(ctl as ActionStreamControl<PaintableActions>, state as Required<PaintableState>)),
+          op.takeUntil(pt.treeDetached)
         );
-      });
-
-      sub.complete();
-    })
+      })
+    )
   ).pipe(
     op.takeUntil(aot.detach),
     op.catchError((err, src) => {
@@ -301,21 +340,18 @@ export function createPaintable(
 
   function attached$() {
     return rx.concat(
-      state.parent ? rx.of([state as Required<PaintableState>, ...state.parent] as const) : rx.EMPTY,
+      rx.defer(() => state.parent ? rx.of(state as Required<PaintableState>) : rx.EMPTY),
       pt.attachTo.pipe(
-        op.map(p => {
-          return [state as Required<PaintableState>, ...p] as const;
+        op.map(_p => {
+          return state as Required<PaintableState>;
         })
       )
     );
   }
 
   return [
-    ctl as ActionStreamControl<PaintableActions>,
-    state,
-    {
-      attached$
-    }
+    ctl as unknown as ActionStreamControl<PaintableActions & E>,
+    state
   ];
 }
 

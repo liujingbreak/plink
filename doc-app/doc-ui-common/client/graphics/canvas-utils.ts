@@ -170,6 +170,7 @@ export class Segment {
       ), this.point);
     }
     if (newSeg.handleOut) {
+      // console.log('matrix:\n', matrix2dToStr(transform( matrix1, translate(newSeg.handleOut.x, newSeg.handleOut.y))));
       newSeg.handleOut = applyToPoint(transform(
         matrix1,
         translate(newSeg.handleOut.x, newSeg.handleOut.y)
@@ -180,33 +181,34 @@ export class Segment {
 
   transform3d(matrix: mat4) {
     const newSeg = this.clone();
-    const point3d = vec3.fromValues(newSeg.point.x, newSeg.point.y, (newSeg.point.z ?? 0));
-    vec3.transformMat4(point3d, point3d, matrix);
-    newSeg.point.x = point3d[0];
-    newSeg.point.y = point3d[1];
-    newSeg.point.z = point3d[2];
+    const point3d = [this.point.x, this.point.y, (this.point.z ?? 0)] as vec3;
+    const tempM = mat4.create();
+    const newPoint3d = vec3.transformMat4(vec3.create(), point3d, matrix);
+    newSeg.point.x = newPoint3d[0];
+    newSeg.point.y = newPoint3d[1];
+    newSeg.point.z = newPoint3d[2];
 
     // matrix1 is the actual transformation plus getting a relative position of "handle point" by segment's "point" position
-    const matTrans = mat4.fromTranslation(mat4.create(), vec3.fromValues(-newSeg.point.x, -newSeg.point.y, -(newSeg.point.z ?? 0)));
+    const matrix1 = mat4.fromTranslation(mat4.create(), [-newSeg.point.x, -newSeg.point.y, -(newSeg.point.z ?? 0)]);
     // 3. Get "handle point"'s x and y coordinate value relative to "point"'s x and y value in absolute coordinate system
     // 2. Apply actual transformation on "point" (instead of "handle point")
-    const matrix1 = mat4.mul(matTrans, matTrans, matrix);
-    if (newSeg.handleIn) {
-      const vector = vec3.fromValues(newSeg.handleIn.x, newSeg.handleIn.y, newSeg.handleIn.z ?? 0);
-      const m = mat4.mul(mat4.create(), matrix1, mat4.fromTranslation(mat4.create(), vector));
+    mat4.mul(matrix1, matrix1, matrix);
+    if (this.handleIn) {
+      const vector = [this.handleIn.x, this.handleIn.y, this.handleIn.z ?? 0] as vec3;
+      const m = mat4.mul(mat4.create(), matrix1, mat4.fromTranslation(tempM, vector));
       const v = vec3.transformMat4(vec3.create(), point3d, m);
-      newSeg.handleIn.x = v[0];
-      newSeg.handleIn.y = v[1];
-      newSeg.handleIn.z = v[2];
+      newSeg.handleIn!.x = v[0];
+      newSeg.handleIn!.y = v[1];
+      newSeg.handleIn!.z = v[2];
     }
-    if (newSeg.handleOut) {
-      const vector = vec3.fromValues(newSeg.handleOut.x, newSeg.handleOut.y, newSeg.handleOut.z ?? 0);
-      const m = mat4.create();
-      mat4.mul(m, matrix1, mat4.fromTranslation(mat4.create(), vector));
+    if (this.handleOut) {
+      const vector = [this.handleOut.x, this.handleOut.y, this.handleOut.z ?? 0] as vec3;
+      const m = mat4.mul(mat4.create(), matrix1, mat4.fromTranslation(tempM, vector));
+      // console.log('point3d', point3d, '\n', mat4ToStr(m));
       const v = vec3.transformMat4(vec3.create(), point3d, m);
-      newSeg.handleOut.x = v[0];
-      newSeg.handleOut.y = v[1];
-      newSeg.handleOut.z = v[2];
+      newSeg.handleOut!.x = v[0];
+      newSeg.handleOut!.y = v[1];
+      newSeg.handleOut!.z = v[2];
     }
     return newSeg;
   }
@@ -292,6 +294,12 @@ export function createBezierArch(startT: number, endT: number): [Segment, Segmen
 export function *transSegments(segs: Iterable<Segment>, matrix: Matrix) {
   for (const seg of segs) {
     yield seg.transform(matrix);
+  }
+}
+
+export function *transSegments3d(segs: Iterable<Segment>, matrix: mat4) {
+  for (const seg of segs) {
+    yield seg.transform3d(matrix);
   }
 }
 
@@ -611,10 +619,10 @@ export function boundsOf(segs: Iterable<Segment>, roundResult = false): Rectangl
     };
 }
 
-export function centerOf(segs: Iterable<Segment>): {x: number; y: number} {
+export function centerOf(segs: Iterable<Segment>): [x: number, y: number] {
   const bounds = boundsOf(segs);
 
-  return {x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2};
+  return [bounds.x + bounds.w / 2, bounds.y + bounds.h / 2];
 }
 
 export function isInsideSegments(x: number, y: number, segements: Array<Segment> | SegmentNumbers[]) {
@@ -672,3 +680,20 @@ export function isInsideSegments(x: number, y: number, segements: Array<Segment>
 export function colorToRgbaStr(color: Color) {
   return `rgba(${Math.round(color.red())},${Math.round(color.green())},${Math.round(color.blue())},${color.alpha().toFixed(2)})`;
 }
+
+export function mat4ToStr(m: mat4) {
+  return [
+    ['x:', m[0], m[4], m[8], m[12]].join(' '),
+    ['y:', m[1], m[5], m[9], m[13]].join(' '),
+    ['z:', m[2], m[6], m[10], m[14]].join(' '),
+    ['w:', m[3], m[7], m[11], m[15]].join(' ')
+  ].join('\n');
+}
+
+export function matrix2dToStr(m: Matrix) {
+  return [
+    ['x:', m.a, m.c, m.e].join(' '),
+    ['y:', m.b, m.d, m.f].join(' ')
+  ].join('\n');
+}
+

@@ -1,7 +1,8 @@
 # Transformation and matrix
-  Refer to source code of node package `transformation-matrix`
+  Refer to source code of node package `gl-matirx` and `transformation-matrix`
 
-## Matrix
+
+## Matrix (transformation-matrix) & mat4 (gl-matrix)
 
 ### Elements
 ```
@@ -17,6 +18,25 @@ x1 = a.x + c.y + e;
 y1 = b.x + d.y + f;
 ```
 `[x1, y1]` is the transformed position.
+
+#### Read `canvas-utils.ts`
+```ts
+export function mat4ToStr(m: mat4) {
+  return [
+    ['x:', m[0], m[4], m[8], m[12]].join(' '),
+    ['y:', m[1], m[5], m[9], m[13]].join(' '),
+    ['z:', m[2], m[6], m[10], m[14]].join(' '),
+    ['w:', m[3], m[7], m[11], m[15]].join(' ')
+  ].join('\n');
+}
+
+export function matrix2dToStr(m: Matrix) {
+  return [
+    ['x:', m.a, m.c, m.e].join(' '),
+    ['y:', m.b, m.d, m.f].join(' ')
+  ].join('\n');
+}
+```
 
 ### Multiplication
 
@@ -85,3 +105,39 @@ since `p1` is relative original system, it has to be substracted by [cx, cy] as 
 2. Rotate sub coordinate system by `rotationMatrix`
 
 3. Get `p2` which is a point based on original coordinate system by `translate(cx, cy)` p1.
+
+## Ventors
+
+### Dot product and angle between 2 vectors
+
+Dot product of twe vectors
+```
+v1·v2  =  x1*x2 + y1*y2 + z1*z2
+```
+
+Cosine of the angle between them:
+```
+cos(angle) = v1·v2 / lengthOf(v1) * lengthOf(v2)
+           = (x1*x2 + y1*y2 + z1*z2) / (Math.hypot(x1, y1, z1) * Math.hypot(x2, y2, z2))
+```
+When cosine value if 0, two vectors are perpendicular.
+
+### Cross product and normal (perpendicular) vector of a surface
+The *cross product* of v1 and v2 is denoted v1×v2 and is the vector defined by
+```
+v1×v2 = ( y1*z2 - z1*y2, z1*x2 - x1*z2, x1*y2 - y1*x2 )
+```
+
+If v1 and v2 are non-zero vectors, then v1×v2 is zero if and only if v1 and v2 point in the same direction or in exactly opposite directions. Assuming v1×v2 is non-zero, then it is perpendicular both to v1 and to v2; furthermore, the vectors v1, v2, v1×v2 follow the right-hand rule (in a right-handed coordinate system); that is, if you curl the fingers of your right hand from v1 to v2, then your thumb points in the direction of v1×v2. If v1 and v2 are perpendicular unit vectors, then the cross product v1×v2 is also a unit vector, which is perpendicular both to v1 and to v2.
+
+Finally, I will note that given two points P1 = (x1,y1,z1) and P2 = (x2,y2,z2), the difference P2−P1 is defined by
+```
+P2 − P1  =  ( x2 − x1, y2 − y1, z2 − z1 )
+```
+This difference is a vector that can be visualized as an arrow that starts at P1 and ends at P2.
+
+Now, suppose that P1, P2, and P3 are vertices of a polygon. Then the vectors P1−P2 and P3−P2 lie in the plane of the polygon, and so the cross product
+```
+(P3−P2) × (P1−P2)
+```
+is a vector that is perpendicular to the polygon.

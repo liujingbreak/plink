@@ -9,7 +9,7 @@ import {ReactiveCanvas2State, ReactiveCanvas2Actions, ReactiveCanvas2InternalAct
 export type ReactiveCanvas2Engine = {
   canvasState$: rx.BehaviorSubject<ReactiveCanvas2State>;
   canvasController: ReactiveCanvas2Control;
-  onPointerMove(x: number, y: number): void;
+  onPointerMove$: rx.Observable<[number, number]>;
   workerClient: ReturnType<typeof createForCanvas>;
   animateMgr: ReturnType<typeof createAnimationManager>;
 };
@@ -51,7 +51,14 @@ function createEngine(): ReactiveCanvas2Engine {
         const s = state$.getValue();
         const ratioToCanvasPoint = s.scaleRatio ?? 2;
         const pointer = Float32Array.of(Math.round(x) * ratioToCanvasPoint, Math.round(y) * ratioToCanvasPoint);
-        workerClient.dispatcher.detectPoint(pointer);
+        workerClient.dispatcher.detectPoint('clicked', pointer);
+      })
+    ),
+    workerClient.payloadByType.detectedIntersection.pipe(
+      op.map(([id, segs, originPoint]) => {
+        if (id === 'clicked') {
+          dispatcher.onClicked(segs, originPoint);
+        }
       })
     ),
     payloadByType.resizeViewport.pipe(
@@ -155,8 +162,8 @@ function createEngine(): ReactiveCanvas2Engine {
   return {
     canvasState$: state$,
     canvasController: control,
-    onPointerMove(x: number, y: number) { onPointerMove$.next([x, y]); },
     workerClient,
+    onPointerMove$: onPointerMove$.asObservable(),
     animateMgr
   };
 }

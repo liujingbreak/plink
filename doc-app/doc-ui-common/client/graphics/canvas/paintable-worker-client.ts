@@ -20,7 +20,8 @@ let SEQ = 0;
 export type WorkerClientAction = {
   updateDetectable(paintableId: string, segs: Iterable<[string, Iterable<SegmentNumbers>]>): void;
   // transform(paintableId: string, matrix: Matrix): void;
-  detectPoint(xy: Float32Array): void;
+  detectPoint(reqId: string, xy: Float32Array): void;
+  calculateFaceCenter(reqId: string, segements: SegmentNumbers[]): void;
   getBBoxesOf(paintableId: string): void;
 
   canvasDestroyed(): void;
@@ -34,7 +35,7 @@ export type ActionsToWorker = {
   _updateDetectable(treeId: string, paintableId: string, key: string, segs: SegmentNumbers[]): void;
   // _transform(treeId: string, paintableId: string, m: Matrix): void;
   _getBBoxesOf(treeId: string, paintableId: string): void;
-  _detectPoint(treeId: string, xy: Float32Array): void;
+  _detectPoint(treeId: string, reqId: string, xy: Float32Array): void;
   destroyDetectTree(treeId: string): void;
 };
 
@@ -42,12 +43,15 @@ export type ResponseEvents = {
   doneTaskForKey(treeId: string, paintableId: string, key: string): void;
   gotBBoxesOf(treeId: string, paintableId: string, rects: Rectangle[]): void;
   detectedIntersection(
+    forReqId: string,
     // segsWithKey: Array<[key: string, doesIntersect: boolean, intersectionEdge: [start: Float32Array, end: Float32Array][]]>,
     segsKey: Array<string>,
     originPoint: Float32Array
   ): void;
+  faceCenterCalculated(id: string, pointXY: Float32Array): void;
   _doneDetectPoint(
     treeId: string,
+    forReqId: string,
     // intersectionEdge: Array<[key: string, doesIntersect: boolean, intersectionEdge: [start: Float32Array, end: Float32Array][]]>,
     intersectObjectKeys: string[],
     originPoint: Float32Array
@@ -77,22 +81,24 @@ export function createForCanvas() {
         op.map(([key, segs]) => dispatcher._updateDetectable(detectTreeId, id, id + '/' + key, [...segs]))
       ))
     ),
+
     payloadByType.getBBoxesOf.pipe(
       op.map(paintableId => {
         dispatcher._getBBoxesOf(detectTreeId, paintableId);
       })
     ),
     payloadByType.detectPoint.pipe(
-      op.switchMap(xy => {
-        dispatcher._detectPoint(detectTreeId, xy);
+      op.switchMap(([reqId, xy]) => {
+        dispatcher._detectPoint(detectTreeId, reqId, xy);
         return payloadByType._doneDetectPoint.pipe(
+          op.filter(([, resId]) => resId === reqId),
           op.take(NUM_WORKER),
-          op.reduce((acc, [, intersWithKey, p]) => {
-            acc[1].push(...intersWithKey);
+          op.reduce((acc, [, _reqId, intersWithKey, p]) => {
+            acc[2].push(...intersWithKey);
             return acc;
           }),
-          op.map(([, intersections, point]) => {
-            dispatcher.detectedIntersection(intersections, point);
+          op.map(([, , intersections, point]) => {
+            dispatcher.detectedIntersection(reqId, intersections, point);
           })
         );
       })
@@ -103,6 +109,9 @@ export function createForCanvas() {
         return pool.executeAllWorker(msg, NUM_WORKER);
       }),
       op.map(res => _actionFromObject(res))
+    ),
+    actionByType.calculateFaceCenter.pipe(
+      op.mergeMap(action => pool.execute(action))
     ),
     actionByType.canvasDestroyed.pipe(
       op.map(() => dispatcher.destroyDetectTree(detectTreeId))

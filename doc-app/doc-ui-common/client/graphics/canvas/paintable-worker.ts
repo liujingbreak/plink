@@ -2,9 +2,9 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {IntervalTree} from '@wfh/plink/wfh/dist-es/share/algorithms/interval-tree';
 import type {IntervalTreeNode} from '@wfh/plink/wfh/dist-es/share/algorithms/interval-tree';
-import {boundsOf, Rectangle, Segment, isInsideSegments} from '../canvas-utils';
+import {boundsOf, Rectangle, Segment, isInsideSegments, centerOf} from '../canvas-utils';
 import {createWorkerControl} from '../../utils/worker-impl-util';
-import type {ActionsToWorker, ResponseEvents} from './paintable-worker-client';
+import type {ActionsToWorker, ResponseEvents, WorkerClientAction} from './paintable-worker-client';
 
 type CanvasDataState = {
   /** key is Paintable ID */
@@ -19,7 +19,7 @@ type PaintableState = {
   bounds: Map<string, Rectangle>;
 };
 
-const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>((control, workerNo) => {
+const unsub = createWorkerControl<ActionsToWorker & ResponseEvents & WorkerClientAction>((control, workerNo) => {
   const {actionByType: aot, payloadByType: pt, dispatcher} = control;
   // key is tree ID
   const canvasBgState = new Map<string, CanvasDataState>();
@@ -116,7 +116,7 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>((control, wo
         })
       ),
       pt._detectPoint.pipe(
-        op.map(([treeId, xy]) => {
+        op.map(([treeId, reqId, xy]) => {
           const c = initCanvasState(treeId);
           const yPositions = c.yPositionTree.searchMultipleOverlaps(xy[1], xy[1]);
           const resultKeyAndInters = [] as string[];
@@ -132,7 +132,17 @@ const unsub = createWorkerControl<ActionsToWorker & ResponseEvents>((control, wo
               }
             }
           }
-          dispatcher._doneDetectPoint(treeId, resultKeyAndInters, xy);
+          dispatcher._doneDetectPoint(treeId, reqId, resultKeyAndInters, xy);
+        })
+      ),
+      pt.calculateFaceCenter.pipe(
+        op.map(([id, segs]) => {
+          const result = centerOf((function* () {
+            for (const numbers of segs) {
+              yield new Segment(numbers);
+            }
+          })());
+          dispatcher.faceCenterCalculated(id, Float32Array.from(result));
         })
       )
     ).pipe(
