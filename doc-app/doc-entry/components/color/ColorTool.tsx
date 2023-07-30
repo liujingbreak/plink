@@ -2,7 +2,7 @@ import React from 'react';
 
 import cls from 'classnames';
 // import clsddp from 'classnames/dedupe';
-import {ReactiveCanvas} from '@wfh/doc-ui-common/client/graphics/reative-canvas-2/ReactiveCanvas2';
+import {ReactiveCanvas} from '@wfh/doc-ui-common/client/graphics/canvas';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import styles from './ColorTool.module.scss';
 // import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';

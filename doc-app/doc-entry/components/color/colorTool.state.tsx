@@ -16,7 +16,7 @@ import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
-import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+// import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
 
 export interface ColorToolProps {
   mixColors?: {
@@ -58,7 +58,7 @@ const rawReducers = {
   onColorSelected(s: ColorToolState, payload: Color) {
     void navigator.clipboard.writeText(payload.hex());
   },
-  onRenderCanvas(s: ColorToolState, ref: PaintableContext) {},
+  // onRenderCanvas(s: ColorToolState, ref: PaintableContext) {},
   _syncComponentProps(s: ColorToolState, payload: ColorToolProps) {
     s.componentProps = {...payload};
     if (payload.mixColors) {

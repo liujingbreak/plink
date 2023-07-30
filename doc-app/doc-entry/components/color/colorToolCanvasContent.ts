@@ -47,7 +47,6 @@ export function createHueCircle(root: Paintable) {
 
 
   dispatcher.addEpic<ExtendActions>((ctrl, state) => {
-
     const {dispatcher, actionOfType: aot, payloadByType: pt} = ctrl;
     const {workerClient, animateMgr, onPointerMove$, canvasController} = state.canvasEngine;
     return rx.merge(
@@ -118,7 +117,7 @@ export function createHueCircle(root: Paintable) {
             ctx.save();
             ctx.beginPath();
             ctx.fillStyle = animSelectedColor;
-            drawSegmentPath(transformedCenterSphere, ctx, {closed: true, round: true});
+            drawSegmentPath(transformedCenterSphere, ctx, {closed: true, round: true, debug: true});
             ctx.closePath();
             ctx.fill();
           }
@@ -240,7 +239,7 @@ export function createHueCircle(root: Paintable) {
 const COMPLEMENT = Math.PI / 360; // make object a little bigger to conque T-edge issue
 
 function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
-  const numOfColors = 36;
+  const numOfColors = 5;
   const fanShapes = [] as [color: Color, segsIt: Iterable<Segment>][];
 
   const init$ = rx.defer(() => {

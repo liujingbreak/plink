@@ -22,14 +22,15 @@ export function alignToParent<E>(
   _opts: {vertical?: AlignmentValues; horizontal?: AlignmentValues} = {}
 ) {
 
-  const [{dispatcher}, state] = paintable;
+  const [{dispatcher}] = paintable;
+  const posState: Float32Array = Float32Array.of(0, 0, 0);
 
   dispatcher.putTransformOperator(
     'position', matrix$ => matrix$.pipe(
       op.map(m => {
         const temp = mat4.create();
         return mat4.mul(temp, m, mat4.fromTranslation(
-          temp, [state.x, state.y, (state.z ?? 0)]
+          temp, posState
         ));
       })
     ));
@@ -42,8 +43,8 @@ export function alignToParent<E>(
       pac.onResize
     ).pipe(
       op.tap(([w, h]) => {
-        state.x = w / 2;
-        state.y = h / 2;
+        posState[0] = w / 2;
+        posState[1] = h / 2;
         dispatcher.setTransformDirty(true);
       })
     );

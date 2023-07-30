@@ -3,7 +3,7 @@
  */
 
 declare module 'bezier-js' {
-  export type PointsCoords = [number, number, number?][] | {x: number; y: number; z?: number;}[];
+  export type PointsCoords = readonly number[] | number[] | {x: number; y: number; z?: number;}[];
 
   export interface CoordBounds {
     min: number;

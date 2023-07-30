@@ -67,6 +67,8 @@ export function blur(ctx: CanvasRenderingContext2D, x = 0, y = 0, width = ctx.ca
 const round = Math.round;
 
 export type Point = {x: number; y: number; z?: number};
+export type Point3d = [x: number, y: number, z: number];
+
 export type SegmentNumbers = [
   pointX: number, pointY: number,
   handleInX?: (number | null), handleInY?: (number | null),
@@ -83,10 +85,7 @@ export type Segment3dNumbers = [
  * Each segment consists of an anchor point (segment.point) and optionaly an incoming and an outgoing handle (segment.handleIn and segment.handleOut), describing the tangents of the two Curve objects that are connected by this segment.
  */
 export class Segment {
-  // static from(pointX: number, pointY: number, handleInX: number, handleInY: number, handleOutX: number, handleOutY: number) {
-  //   return new Segment({x: pointX, y: pointY}, {x: handleInX, y: handleInY}, {x: handleOutX, y: handleOutY});
-  // }
-  point: Point = {x: 0, y: 0, z: 0};
+  point: Point3d = [0, 0, 0];
   /** Relative to this.point */
   handleIn?: Point;
   /** Relative to this.point */
@@ -101,8 +100,8 @@ export class Segment {
   ) {
     if (Array.isArray(point) || (point as Float32Array).buffer) {
       const p = point as Float32Array;
-      this.point.x = p[0];
-      this.point.y = p[1];
+      this.point[0] = p[0];
+      this.point[1] = p[1];
       if (p[2] != null && p[3] != null && (p[2] !== 0 && p[3] !== 0)) {
         this.handleIn = {
           x: p[2],
@@ -116,22 +115,23 @@ export class Segment {
         };
       }
     } else {
-      this.point = point as Point;
+      this.point[0] = (point as Point).x;
+      this.point[1] = (point as Point).y;
     }
     if (handleIn) {
-      this.handleIn = {x: handleIn.x - this.point.x, y: handleIn.y - this.point.y};
+      this.handleIn = {x: handleIn.x - this.point[0], y: handleIn.y - this.point[1]};
       if (handleIn.z != null)
-        this.handleIn.z = handleIn.z - (this.point.z ?? 0);
+        this.handleIn.z = handleIn.z - (this.point[2] ?? 0);
     }
     if (handleOut) {
-      this.handleOut = {x: handleOut.x - this.point.x, y: handleOut.y - this.point.y};
+      this.handleOut = {x: handleOut.x - this.point[0], y: handleOut.y - this.point[1]};
       if (handleOut.z != null)
-        this.handleOut.z = handleOut.z - (this.point.z ?? 0);
+        this.handleOut.z = handleOut.z - (this.point[2] ?? 0);
     }
   }
 
   round(method = Math.round) {
-    const newSeg = new Segment({x: Math.round(this.point.x), y: method(this.point.y)});
+    const newSeg = new Segment({x: Math.round(this.point[0]), y: method(this.point[1])});
     if (this.handleIn) {
       newSeg.handleIn = {
         x: method(this.handleIn.x),
@@ -153,11 +153,14 @@ export class Segment {
 
   transform(matrix: Matrix) {
     const newSeg = this.clone();
-    newSeg.point = applyToPoint(matrix, newSeg.point);
+    const p = applyToPoint(matrix, [newSeg.point[0], newSeg.point[0]]);
+    newSeg.point[0] = p[0];
+    newSeg.point[1] = p[1];
+    newSeg.point[2] = 0;
     // matrix1 is the actual transformation plus getting a relative position of "handle point" by segment's "point" position
     const matrix1 = transform(
       // 3. Get "handle point"'s x and y coordinate value relative to "point"'s x and y value in absolute coordinate system
-      translate(-newSeg.point.x, -newSeg.point.y),
+      translate(-newSeg.point[0], -newSeg.point[1]),
       // 2. Apply actual transformation on "point" (instead of "handle point")
       matrix
     );
@@ -167,36 +170,33 @@ export class Segment {
         // 1. Based on initial coordinate system,
         // `translate` "point" position to "handle point"'s position
         translate(newSeg.handleIn.x, newSeg.handleIn.y)
-      ), this.point);
+      ), {x: this.point[0], y: this.point[1]});
     }
     if (newSeg.handleOut) {
       // console.log('matrix:\n', matrix2dToStr(transform( matrix1, translate(newSeg.handleOut.x, newSeg.handleOut.y))));
       newSeg.handleOut = applyToPoint(transform(
         matrix1,
         translate(newSeg.handleOut.x, newSeg.handleOut.y)
-      ), this.point);
+      ), {x: this.point[0], y: this.point[1]});
     }
     return newSeg;
   }
 
   transform3d(matrix: mat4) {
     const newSeg = this.clone();
-    const point3d = [this.point.x, this.point.y, (this.point.z ?? 0)] as vec3;
+    // const point3d = [this.point[0], this.point[1], this.point[2]] as vec3;
     const tempM = mat4.create();
-    const newPoint3d = vec3.transformMat4(vec3.create(), point3d, matrix);
-    newSeg.point.x = newPoint3d[0];
-    newSeg.point.y = newPoint3d[1];
-    newSeg.point.z = newPoint3d[2];
+    newSeg.point = vec3.transformMat4(vec3.create(), this.point, matrix) as Point3d;
 
     // matrix1 is the actual transformation plus getting a relative position of "handle point" by segment's "point" position
-    const matrix1 = mat4.fromTranslation(mat4.create(), [-newSeg.point.x, -newSeg.point.y, -(newSeg.point.z ?? 0)]);
+    const matrix1 = mat4.fromTranslation(mat4.create(), [-newSeg.point[0], -newSeg.point[1], -(newSeg.point[2])]);
     // 3. Get "handle point"'s x and y coordinate value relative to "point"'s x and y value in absolute coordinate system
     // 2. Apply actual transformation on "point" (instead of "handle point")
     mat4.mul(matrix1, matrix1, matrix);
     if (this.handleIn) {
       const vector = [this.handleIn.x, this.handleIn.y, this.handleIn.z ?? 0] as vec3;
       const m = mat4.mul(mat4.create(), matrix1, mat4.fromTranslation(tempM, vector));
-      const v = vec3.transformMat4(vec3.create(), point3d, m);
+      const v = vec3.transformMat4(vec3.create(), this.point, m);
       newSeg.handleIn!.x = v[0];
       newSeg.handleIn!.y = v[1];
       newSeg.handleIn!.z = v[2];
@@ -205,7 +205,7 @@ export class Segment {
       const vector = [this.handleOut.x, this.handleOut.y, this.handleOut.z ?? 0] as vec3;
       const m = mat4.mul(mat4.create(), matrix1, mat4.fromTranslation(tempM, vector));
       // console.log('point3d', point3d, '\n', mat4ToStr(m));
-      const v = vec3.transformMat4(vec3.create(), point3d, m);
+      const v = vec3.transformMat4(vec3.create(), this.point, m);
       newSeg.handleOut!.x = v[0];
       newSeg.handleOut!.y = v[1];
       newSeg.handleOut!.z = v[2];
@@ -215,24 +215,27 @@ export class Segment {
 
   absHandleInPoint() {
     return this.handleIn ?
-      {x: this.handleIn.x + this.point.x,
-        y: this.handleIn.y + this.point.y,
-        z: (this.handleIn.z ?? 0) + (this.point.z ?? 0)}
+      [
+        this.handleIn.x + this.point[0],
+        this.handleIn.y + this.point[1],
+        (this.handleIn.z ?? 0) + (this.point[2] ?? 0)
+      ] as const
       : null;
   }
 
   absHandleOutPoint() {
     return this.handleOut ?
-      {x: this.handleOut.x + this.point.x,
-        y: this.handleOut.y + this.point.y,
-        z: (this.handleOut.z ?? 0) + (this.point.z ?? 0)}
+      [
+        this.handleOut.x + this.point[0],
+        this.handleOut.y + this.point[1],
+        (this.handleOut.z ?? 0) + (this.point[2] ?? 0)
+      ] as const
       : null;
   }
 
   clone() {
-    const newSeg = new Segment({x: this.point.x, y: this.point.y});
-    if (this.point.z != null)
-      newSeg.point.z = this.point.z;
+    const newSeg = new Segment({x: this.point[0], y: this.point[1]});
+    newSeg.point[2] = this.point[2];
 
     if (this.handleIn) {
       newSeg.handleIn = {...this.handleIn};
@@ -243,8 +246,17 @@ export class Segment {
     return newSeg;
   }
 
+  toBezier(endSeg: Segment) {
+    return new Bezier(
+      ...this.point,
+      ...this.absHandleOutPoint()!,
+      ...endSeg.absHandleInPoint()!,
+      ...endSeg.point
+    );
+  }
+
   toNumbers(): Float32Array {
-    const arr = Float32Array.of(this.point.x, this.point.y, 0, 0, 0, 0);
+    const arr = Float32Array.of(this.point[0], this.point[1], 0, 0, 0, 0);
     if (this.handleIn) {
       arr[2] = this.handleIn.x;
       arr[3] = this.handleIn.y;
@@ -257,7 +269,7 @@ export class Segment {
   }
   to3dNumbers(): Float32Array {
     const {point} = this;
-    const arr = Float32Array.of(point.x, point.y, (point.z ?? 0), 0, 0, 0, 0, 0, 0);
+    const arr = Float32Array.of(point[0], point[1], (point[2] ?? 0), 0, 0, 0, 0, 0, 0);
     if (this.handleIn) {
       arr[3] = this.handleIn.x;
       arr[4] = this.handleIn.y;
@@ -286,7 +298,7 @@ export const quarterCircleCurve = [
  * @param endT 0 ~ 1
  */
 export function createBezierArch(startT: number, endT: number): [Segment, Segment] {
-  const bez = new Bezier(quarterCircleCurve[0].point, quarterCircleCurve[0].absHandleOutPoint()!, quarterCircleCurve[1].absHandleInPoint()!, quarterCircleCurve[1].point);
+  const bez = quarterCircleCurve[0].toBezier(quarterCircleCurve[1]);
   const points = bez.split(startT, endT).points;
   return [new Segment(points[0], null, points[1]), new Segment(points[3], points[2])];
 }
@@ -308,7 +320,7 @@ export function concatSegments(segs: Iterable<Segment>) {
   let lastSeg: Segment | undefined;
   for (const seg of segs) {
     if (lastSeg) {
-      if (abs(lastSeg.point.x - seg.point.x) <= EPSILON && abs(lastSeg.point.y - seg.point.y) <= EPSILON) {
+      if (abs(lastSeg.point[0] - seg.point[0]) <= EPSILON && abs(lastSeg.point[1] - seg.point[1]) <= EPSILON) {
         if (lastSeg.handleOut == null && seg.handleOut) {
           lastSeg.handleOut = seg.handleOut;
         }
@@ -323,7 +335,7 @@ export function concatSegments(segs: Iterable<Segment>) {
   }
   if (res.length >= 3) {
     const seg = res[0];
-    if (abs(lastSeg!.point.x - seg.point.x) <= EPSILON && abs(lastSeg!.point.y - seg.point.y) <= EPSILON) {
+    if (abs(lastSeg!.point[0] - seg.point[0]) <= EPSILON && abs(lastSeg!.point[1] - seg.point[1]) <= EPSILON) {
       res.pop();
       if (lastSeg?.handleIn && res[0].handleIn == null)
         res[0].handleIn = lastSeg?.handleIn;
@@ -367,7 +379,7 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
     const p = seg.point;
     if (i === 0) {
       origPoint = p;
-      ctx.moveTo(p.x, p.y);
+      ctx.moveTo(p[0], p[1]);
       if (opts?.debug)
       // eslint-disable-next-line no-console
         console.log('moveTo', p);
@@ -379,12 +391,12 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
         if (opts?.debug)
           // eslint-disable-next-line no-console
           console.log('bezierCurveTo', c1, c2, p);
-        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);
+        ctx.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], p[0], p[1]);
       } else {
         if (opts?.debug)
           // eslint-disable-next-line no-console
           console.log('lineTo', p);
-        ctx.lineTo(p.x, p.y);
+        ctx.lineTo(p[0], p[1]);
       }
     }
     i++;
@@ -394,9 +406,9 @@ export function drawSegmentPath(segs: Iterable<Segment>, ctx: CanvasRenderingCon
     if (segements[0].handleIn && lastSeg.handleOut) {
       const c1 = lastSeg.absHandleOutPoint()!;
       const c2 = segements[0].absHandleInPoint()!;
-      ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, segements[0].point.x, segements[0].point.y);
+      ctx.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], segements[0].point[0], segements[0].point[1]);
     } else {
-      ctx.lineTo(origPoint!.x, origPoint!.y);
+      ctx.lineTo(origPoint![0], origPoint![1]);
     }
   }
   return segements;
@@ -416,7 +428,7 @@ export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingCont
     const p = seg.point;
     if (i === 0) {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, opts.size >> 1, 0, Math.PI * 2);
+      ctx.arc(p[0], p[1], opts.size >> 1, 0, Math.PI * 2);
       ctx.fill();
       ctx.closePath();
     } else {
@@ -424,17 +436,17 @@ export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingCont
       const c2 = seg.absHandleInPoint();
       if (c1 && c2) {
         ctx.beginPath();
-        ctx.arc(c1.x, c1.y, opts.size >> 1, 0, Math.PI * 2);
+        ctx.arc(c1[0], c1[1], opts.size >> 1, 0, Math.PI * 2);
         ctx.stroke();
         ctx.closePath();
 
         ctx.beginPath();
-        ctx.arc(c2.x, c2.y, opts.size >> 1, 0, Math.PI * 2);
+        ctx.arc(c2[0], c2[1], opts.size >> 1, 0, Math.PI * 2);
         ctx.stroke();
         ctx.closePath();
       }
       ctx.beginPath();
-      ctx.arc(p.x, p.y, opts.size >> 1, 0, Math.PI * 2);
+      ctx.arc(p[0], p[1], opts.size >> 1, 0, Math.PI * 2);
       ctx.fill();
       ctx.closePath();
     }
@@ -446,12 +458,12 @@ export function drawSegmentCtl(segs: Iterable<Segment>, ctx: CanvasRenderingCont
       const c1 = lastSeg.absHandleOutPoint()!;
       const c2 = segements[0].absHandleInPoint()!;
       ctx.beginPath();
-      ctx.arc(c1.x, c1.y, opts.size >> 1, 0, Math.PI * 2);
+      ctx.arc(c1[0], c1[1], opts.size >> 1, 0, Math.PI * 2);
       ctx.stroke();
       ctx.closePath();
 
       ctx.beginPath();
-      ctx.arc(c2.x, c2.y, opts.size >> 1, 0, Math.PI * 2);
+      ctx.arc(c2[0], c2[1], opts.size >> 1, 0, Math.PI * 2);
       ctx.stroke();
       ctx.closePath();
     }
@@ -494,7 +506,8 @@ export function smoothSegments(segments: Segment[], opts: {
   if (n <= 1)
     return;
   for (let i = 0, j = from - paddingLeft; i <= n; i++, j++) {
-    knots[i] = segments[(j < 0 ? j + segments.length : j) % segments.length].point;
+    const [x, y] = segments[(j < 0 ? j + segments.length : j) % segments.length].point;
+    knots[i] = {x, y};
   }
   let x = knots[0].x + 2 * knots[1].x;
   let y = knots[0].y + 2 * knots[1].y;
@@ -533,8 +546,8 @@ export function smoothSegments(segments: Segment[], opts: {
     i <= max; i++, j++) {
     const segment = segments[j < 0 ? j + segments.length : j];
     const pt = segment.point;
-    const hx = px[i] - pt.x;
-    const hy = py[i] - pt.y;
+    const hx = px[i] - pt[0];
+    const hy = py[i] - pt[1];
     if (loop || i < max)
       segment.handleOut = {x: hx, y: hy};
     if (loop || i > paddingLeft)
@@ -554,28 +567,28 @@ export function boundsOf(segs: Iterable<Segment>, roundResult = false): Rectangl
       firstSeg = seg;
     if (lastSeg ) {
       if (seg.handleIn && lastSeg.handleOut) {
-        const bei = new Bezier(lastSeg.point, lastSeg.absHandleOutPoint()!,
-          seg.absHandleInPoint()!, seg.point);
+        const bei = new Bezier(...lastSeg.point, ...lastSeg.absHandleOutPoint()!,
+          ...seg.absHandleInPoint()!, ...seg.point);
         const box = bei.bbox();
         bounds.x.push(box.x);
         bounds.y.push(box.y);
       } else {
         let coord = {min: 0, max: 0};
-        if (lastSeg.point.x < seg.point.x) {
-          coord.min = lastSeg.point.x;
-          coord.max = seg.point.x;
+        if (lastSeg.point[0] < seg.point[0]) {
+          coord.min = lastSeg.point[0];
+          coord.max = seg.point[0];
         } else {
-          coord.max = lastSeg.point.x;
-          coord.min = seg.point.x;
+          coord.max = lastSeg.point[0];
+          coord.min = seg.point[0];
         }
         bounds.x.push(coord);
         coord = {min: 0, max: 0};
-        if (lastSeg.point.y < seg.point.y) {
-          coord.min = lastSeg.point.y;
-          coord.max = seg.point.y;
+        if (lastSeg.point[1] < seg.point[1]) {
+          coord.min = lastSeg.point[1];
+          coord.max = seg.point[1];
         } else {
-          coord.max = lastSeg.point.y;
-          coord.min = seg.point.y;
+          coord.max = lastSeg.point[1];
+          coord.min = seg.point[1];
         }
         bounds.y.push(coord);
       }
@@ -583,7 +596,7 @@ export function boundsOf(segs: Iterable<Segment>, roundResult = false): Rectangl
     lastSeg = seg;
   }
   if (firstSeg?.handleIn && lastSeg?.handleOut && firstSeg !== lastSeg) {
-    const bei = new Bezier(lastSeg.point, lastSeg.absHandleOutPoint()!, firstSeg.absHandleInPoint()!, firstSeg.point);
+    const bei = new Bezier(...lastSeg.point, ...lastSeg.absHandleOutPoint()!, ...firstSeg.absHandleInPoint()!, ...firstSeg.point);
     const box = bei.bbox();
     // console.log(box);
     bounds.x.push(box.x);
@@ -638,7 +651,7 @@ export function isInsideSegments(x: number, y: number, segements: Array<Segment>
     const seg = vertex instanceof Segment ? vertex : new Segment(vertex as Float32Array);
     if (lastVertex.handleOut != null && seg.handleIn != null) {
       // In case of bezier curve
-      const bezier = new Bezier(lastVertex.point, lastVertex.absHandleOutPoint()!, seg.absHandleInPoint()!, seg.point);
+      const bezier = new Bezier(...lastVertex.point, ...lastVertex.absHandleOutPoint()!, ...seg.absHandleInPoint()!, ...seg.point);
       const tArr = bezier.lineIntersects(testLine);
       countIntersect += tArr.length;
       // if (tArr.length > 0) {
@@ -647,8 +660,8 @@ export function isInsideSegments(x: number, y: number, segements: Array<Segment>
       // }
     } else {
       // a straight line
-      let minX = lastVertex.point.x;
-      let maxX = seg.point.x;
+      let minX = lastVertex.point[0];
+      let maxX = seg.point[0];
       if (minX > maxX) {
         const temp = minX;
         minX = maxX;
@@ -656,14 +669,14 @@ export function isInsideSegments(x: number, y: number, segements: Array<Segment>
       }
       if (minX <= x - EPSILON && x + EPSILON <= maxX) {
         // intersection point's x value must be between minimum X and maximum X of straight line segment
-        const dX = seg.point.x - lastVertex.point.x;
+        const dX = seg.point[0] - lastVertex.point[0];
         if (abs(dX) < EPSILON) {
           // A vertical line, slope will become infinite big, we only need to compare x value
           countIntersect++;
           // intersectSegments.push([lastVertex.toNumbers(), seg.toNumbers()]);
         } else {
-          const slope = (seg.point.y - lastVertex.point.y) / (seg.point.x - lastVertex.point.x);
-          const intersectionY = slope * (x - lastVertex.point.x) + lastVertex.point.y;
+          const slope = (seg.point[1] - lastVertex.point[1]) / (seg.point[0] - lastVertex.point[0]);
+          const intersectionY = slope * (x - lastVertex.point[0]) + lastVertex.point[1];
           if (intersectionY >= y - EPSILON) {
             // intersectSegments.push([lastVertex.toNumbers(), seg.toNumbers()]);
             countIntersect++;

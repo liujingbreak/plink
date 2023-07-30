@@ -20,7 +20,7 @@ y1 = b.x + d.y + f;
 `[x1, y1]` is the transformed position.
 
 #### Read `canvas-utils.ts`
-```ts
+```js
 export function mat4ToStr(m: mat4) {
   return [
     ['x:', m[0], m[4], m[8], m[12]].join(' '),
@@ -37,6 +37,21 @@ export function matrix2dToStr(m: Matrix) {
   ].join('\n');
 }
 ```
+
+```js
+export function transformMat4(out, a, m) {
+  var x = a[0],
+      y = a[1],
+      z = a[2];
+  var w = m[3] * x + m[7] * y + m[11] * z + m[15];
+  w = w || 1.0;
+  out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
+  out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
+  out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w;
+  return out;
+}
+```
+
 
 ### Multiplication
 
@@ -141,3 +156,31 @@ Now, suppose that P1, P2, and P3 are vertices of a polygon. Then the vectors P1�
 (P3−P2) × (P1−P2)
 ```
 is a vector that is perpendicular to the polygon.
+
+
+## 3D Perspective projection matrix
+
+Refer to [webglfundamentals](https://webglfundamentals.org/webgl/lessons/webgl-3d-perspective.html)
+
+To make it appear we need to move it inside the frustum. We can do that by moving our F. We were drawing at (45, 150, 0). Let's move it to (-150, 0, -360) and let's set the rotation to something that makes it appear right side up.
+
+View point is at (0,0,0), looking at nagetive Z direction (-z), positive Y is pointing up.
+
+```js
+var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+var zNear = 1;
+var zFar = 2000;
+var matrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+matrix = m4.translate(matrix, translation[0], translation[1], translation[2]);
+matrix = m4.xRotate(matrix, rotation[0]);
+matrix = m4.yRotate(matrix, rotation[1]);
+matrix = m4.zRotate(matrix, rotation[2]);
+matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
+```
+
+[explain perspecitve matrix internal mathematics](https://stackoverflow.com/questions/28286057/trying-to-understand-the-math-behind-the-perspective-matrix-in-webgl/28301213#28301213)
+
+## LookAt matrix explained
+
+[Lets look at magic lookAt matrices](https://dev.to/carmencincotti/lets-look-at-magic-lookat-matrices-1c7o)
+

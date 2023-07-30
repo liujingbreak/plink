@@ -172,7 +172,7 @@ export type ReactiveCanvas2Control = ActionStreamControl<ReactiveCanvas2Actions 
 
 export function createRootPaintable(): [Paintable, ReactiveCanvas2Engine] {
   const engine = createEngine();
-  const base = createPaintable();
+  const base = createPaintable({debug: process.env.NODE_ENV === 'development' ? 'root-paintable' : false});
   const [baseCtl, baseState] = base;
   baseState.detached = false;
   baseState.treeDetached = false;

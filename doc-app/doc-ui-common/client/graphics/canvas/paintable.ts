@@ -8,16 +8,13 @@ import type {ReactiveCanvas2Engine} from './reactiveCanvas2.worker';
 
 let SEQ = 0;
 
-export type Paintable<E = unknown> = readonly [
+export type Paintable<E extends Record<string, (...a: any[]) => void> = Record<string, never>> = readonly [
   ActionStreamControl<PaintableActions & E>,
   PaintableState
 ];
 
 export type PaintableState = {
   id: string;
-  x: number;
-  y: number;
-  z: number;
   /** absolute size, value is calculated by relativeWidth */
   width: number;
   /** absolute size, value is calculated by relativeHeight */
@@ -32,7 +29,8 @@ export type PaintableState = {
   transform: mat4;
   detached: boolean;
   treeDetached: boolean;
-  epics: ((c: ActionStreamControl<PaintableActions>, s: Required<PaintableState>) => rx.Observable<any>)[];
+  isTransformDirty: boolean;
+  epics: ((c: ActionStreamControl<any>, s: Required<PaintableState>) => rx.Observable<any>)[];
   parent?: Paintable;
   canvasEngine?: ReactiveCanvas2Engine;
   epicObservables?: Array<rx.Observable<any>>;
@@ -69,7 +67,12 @@ export type PaintableActions = {
    * @param epicFactory the function return "epic", it is invoked only once at beginning, but the `epic` that it returns could
    * be subscribed multiple times, if there are multiple `treeAttached` events dispatched.
    */
-  addEpic<E>(epicFactory: (c: ActionStreamControl<PaintableActions & E>, s: Required<PaintableState>) => rx.Observable<any>): void;
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  addEpic<E extends Record<string, (...a: any[]) => void> = Record<string, never>>(
+    epicFactory: (
+      c: ActionStreamControl<Omit<PaintableActions, 'addEpic'> & E>, s: Required<PaintableState>
+    ) => rx.Observable<any>
+  ): void;
   /**
    * Indicate whether `transform` should be calculate by transform operators once `render` is emitted.
    * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
@@ -109,14 +112,12 @@ type InternalActions = {
 const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
 const hasOwnProperty = (t: any, prop: string) => Object.prototype.hasOwnProperty.call(t, prop);
 
-export function createPaintable<E = unknown>(
+// eslint-disable-next-line space-before-function-paren
+export function createPaintable<E extends Record<string, (...a: any[]) => void> = Record<string, never>>(
   opts?: Parameters<typeof createActionStreamByType>[0]
 ): Paintable<E> {
   const state: PaintableState = {
     id: (SEQ++).toString(16),
-    x: 0,
-    y: 0,
-    z: 0,
     width: 100,
     height: 150,
     transform: mat4.create(),
@@ -124,23 +125,13 @@ export function createPaintable<E = unknown>(
     transPipeline: [],
     detached: true,
     treeDetached: true,
+    isTransformDirty: true,
     epics: []
   };
 
   const ctl = createActionStreamByType<PaintableActions & InternalActions>(opts ?? {debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
 
   const {actionByType: aot, payloadByType: pt, dispatcher} = ctl;
-
-  // Push absolute transformation calculation operator as last entry in pipeline
-  dispatcher.putTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<mat4>) => {
-    return upStream.pipe(
-      op.map(m => {
-        return state.parent ?
-          mat4.mul(m, state.parent[1].transform, m) :
-          m;
-      })
-    );
-  });
 
   rx.merge(
     pt.setProp.pipe(
@@ -150,6 +141,9 @@ export function createPaintable<E = unknown>(
           dispatcher.onResize(state.width, state.height);
         }
       })
+    ),
+    pt.setTransformDirty.pipe(
+      op.map(dirty => {state.isTransformDirty = dirty; })
     ),
     pt.setTreeAttached.pipe(
       op.map(payload => {
@@ -219,9 +213,9 @@ export function createPaintable<E = unknown>(
             ),
             rx.merge(
               rx.of([state.relativeWidth, state.relativeHeight]),
-              aot.setProp.pipe(
-                op.filter(({payload}) => hasOwnProperty(payload, 'relativeWidth') || hasOwnProperty(payload, 'relativeHeight')),
-                op.map(({payload}) => [payload.relativeWidth, payload.relativeHeight])
+              pt.setProp.pipe(
+                op.filter(payload => hasOwnProperty(payload, 'relativeWidth') || hasOwnProperty(payload, 'relativeHeight')),
+                op.map(payload => [payload.relativeWidth, payload.relativeHeight])
               )
             )
           ).pipe(
@@ -237,7 +231,7 @@ export function createPaintable<E = unknown>(
           // When parent transform is dirty (transform is changed),
           // current Paintable should also be marked as dirty, since
           // transformOperator "baseOnParent" depends on `parentState.transform`
-          pPayloads.setTransformDirty.pipe(
+          rx.concat(rx.defer(() => rx.of(pState.isTransformDirty)), pPayloads.setTransformDirty).pipe(
             op.filter(payload => payload),
             op.tap(() => dispatcher.setTransformDirty(true))
           ),
@@ -259,7 +253,10 @@ export function createPaintable<E = unknown>(
           // When rendering, check whether transform is "dirty" which requires to be "composed",
           // otherwise directly emit `renderContent`
           pPayloads.afterRender.pipe(
-            op.withLatestFrom(pt.setTransformDirty),
+            op.withLatestFrom(rx.concat(
+              rx.defer(() => rx.of(state.isTransformDirty)),
+              pt.setTransformDirty)
+            ),
             op.switchMap(([ctx, dirty]) => {
               return dirty ?
                 rx.merge(
@@ -314,7 +311,7 @@ export function createPaintable<E = unknown>(
       })
     ),
     pt.addEpic.pipe(
-      op.map(epic => state.epics.push(epic))
+      op.map(epic => state.epics.push(epic as any))
     ),
     rx.concat(
       rx.defer(() => rx.of(...state.epics)),
@@ -325,7 +322,8 @@ export function createPaintable<E = unknown>(
           rx.defer(() => !state.treeDetached ? rx.of(true) : rx.EMPTY),
           aot.treeAttached
         ).pipe(
-          op.switchMap(() => epic(ctl as ActionStreamControl<PaintableActions>, state as Required<PaintableState>)),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          op.switchMap(() => {return epic(ctl as any, state as Required<typeof state>); }),
           op.takeUntil(pt.treeDetached)
         );
       })
@@ -337,6 +335,17 @@ export function createPaintable<E = unknown>(
       return src;
     })
   ).subscribe();
+
+  // Push absolute transformation calculation operator as last entry in pipeline
+  dispatcher.putTransformOperator(TRANSFORM_BY_PARENT_OPERATOR, (upStream: rx.Observable<mat4>) => {
+    return upStream.pipe(
+      op.map(m => {
+        return state.parent ?
+          mat4.mul(m, state.parent[1].transform, m) :
+          m;
+      })
+    );
+  });
 
   function attached$() {
     return rx.concat(
