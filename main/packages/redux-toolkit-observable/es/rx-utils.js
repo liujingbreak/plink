@@ -2,7 +2,7 @@
  * redux-observable like async reactive actions, side effect utilities
  * https://redux-observable.js.org/
  */
-import { Subject, BehaviorSubject } from 'rxjs';
+import { Subject, BehaviorSubject, ReplaySubject } from 'rxjs';
 import { switchMap, filter, map, tap, share } from 'rxjs/operators';
 let SEQ = 0;
 /**
@@ -144,8 +144,43 @@ export function createActionStreamByType(opt = {}) {
     const action$ = interceptor$.pipe(switchMap(interceptor => interceptor ?
         debuggableAction$.pipe(interceptor, share()) :
         debuggableAction$));
+    function debugLogLatestActionOperator(type) {
+        return opt.log ?
+            map((payload, idx) => {
+                if (idx === 0) {
+                    opt.log(debugName + 'rx:latest', type);
+                }
+                return payload;
+            }) :
+            (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+                map((payload, idx) => {
+                    if (idx === 0) {
+                        // eslint-disable-next-line no-console
+                        console.log(`%c ${debugName}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, payload === undefined ? '' : payload);
+                    }
+                    return payload;
+                }) :
+                map((payload, idx) => {
+                    if (idx === 0) {
+                        // eslint-disable-next-line no-console
+                        console.log(debugName + 'rx:action', type, payload === undefined ? '' : payload);
+                    }
+                    return payload;
+                });
+    }
     return {
         dispatcher: dispatcherProxy,
+        createLatestPayloads(...types) {
+            const replayedPayloads = {};
+            for (const key of types) {
+                const r$ = new ReplaySubject(1);
+                replayedPayloads[key] = opt.debug ?
+                    r$.asObservable().pipe(debugLogLatestActionOperator(key)) :
+                    r$.asObservable();
+                payloadByTypeProxy[key].subscribe(r$);
+            }
+            return replayedPayloads;
+        },
         dispatchFactory: dispatchFactory,
         action$,
         payloadByType: payloadByTypeProxy,
@@ -189,4 +224,11 @@ function createOfTypeOperator(typePrefix = '') {
         filter((action) => matchTypes.some(type => action.type === type)), share());
     };
 }
+// type TestActions = {
+//   action1(p: string): void;
+//   action2(a: string, b: number): void;
+//   action3(): void;
+//   action4(): void;
+// };
+// const replayedPayload = createActionStreamByType<TestActions>().createLatestPayloads('action2', 'action3').action2;
 //# sourceMappingURL=rx-utils.js.map

@@ -638,6 +638,8 @@ export function centerOf(segs: Iterable<Segment>): [x: number, y: number] {
   return [bounds.x + bounds.w / 2, bounds.y + bounds.h / 2];
 }
 
+/** For 2d segments (including bezier curve)
+ */
 export function isInsideSegments(x: number, y: number, segements: Array<Segment> | SegmentNumbers[]) {
   const testLine = {p1: {x, y}, p2: {x, y: Number.MAX_VALUE}}; // test line starts from (x,y) and pointing to upside vertically
   // const intersectSegments = [] as [Float32Array, Float32Array][];

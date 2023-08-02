@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {vec3, mat4} from 'gl-matrix';
-import {Paintable, createPaintable, mat4ToStr} from '@wfh/doc-ui-common/client/graphics/canvas';
+import {vec3} from 'gl-matrix';
+import {Paintable, createPaintable, transform3dTo2d} from '@wfh/doc-ui-common/client/graphics/canvas';
 import {SegmentIndexed, drawSegmentIndexedPath} from '@wfh/doc-ui-common/client/graphics/canvas/segment';
 import {createRootPaintable} from '@wfh/doc-ui-common/client/graphics/canvas/reactiveCanvas2.worker';
 
@@ -31,45 +31,23 @@ function createObjects(root: Paintable) {
   const indicesFrontFace = [0, 1, 2, 3];
   const indicesBackFace = [4, 5, 6, 7];
 
-  const frontFaceColor = 'red';
-  const backFaceColor = 'blue';
+  const frontFaceColor = 'rgba(240, 20, 20, 0.5)';
+  const backFaceColor = 'rgba(20, 20, 240, 0.5)';
 
-  const perspective = mat4.create();
 
-  const frontFaceSegs = indicesFrontFace.map(idx => new SegmentIndexed(viewVertices, idx));
-  const backFaceSegs = indicesBackFace.map(idx => new SegmentIndexed(viewVertices, idx));
+  const frontFaceSegs = indicesFrontFace.map(idx => new SegmentIndexed(viewVertices[idx], 0));
+  const backFaceSegs = indicesBackFace.map(idx => new SegmentIndexed(viewVertices[idx], 0));
 
   dispatcher.attachTo(root);
 
+  const {setLookAtMatrix, setPerspectiveMatrix} = transform3dTo2d(cube);
+  setPerspectiveMatrix(Math.PI * 70 / 180, 2, 50);
+  // setLookAtMatrix([0, 0, 2], [0, 0.5, 0], [0, 1, 0]);
+
   dispatcher.addEpic<CubeActions>((controller, state) => {
     const {payloadByType} = controller;
-    const [pControl, _pState] = state.parent;
-    dispatcher.putTransformOperator('perspective', up => {
-      return up.pipe(
-        op.map(m => mat4.mul(mat4.create(), perspective, m))
-      );
-    });
+    const [, _pState] = state.parent;
     return rx.merge(
-      rx.combineLatest(
-        pControl.payloadByType.onResize.pipe(
-          op.map(([w, h]) => {
-            return [
-              mat4.perspective(mat4.create(), Math.PI * 100 / 180, w / h, 2, 50),
-              w, h
-            ] as const;
-          })
-        ),
-        rx.concat(rx.of(-2), payloadByType.changePerspective)
-      ).pipe(
-        op.map(([[perspectiveMatrix, w, h], changedP]) => {
-          const tempM = mat4.create();
-          mat4.fromScaling(tempM, [w / 2, h / 2, 1]); // transform to screen size
-          mat4.translate(tempM, tempM, [1, 1, 0]); // move to positive Y and X axis
-          mat4.mul(tempM, tempM, perspectiveMatrix); // Perspective transform
-          mat4.translate(perspective, tempM, [0, 0, changedP]); // model view transforma on Z-axis
-          dispatcher.setTransformDirty(true);
-        })
-      ),
       payloadByType.transformChanged.pipe(
         op.map(m => {
           let i = 0;
@@ -83,22 +61,22 @@ function createObjects(root: Paintable) {
         op.map(([ctx]) => {
           ctx.fillStyle = backFaceColor;
           ctx.beginPath();
-          drawSegmentIndexedPath(backFaceSegs, ctx, {debug: true});
+          drawSegmentIndexedPath(backFaceSegs, ctx, {debug: false});
           ctx.closePath();
           ctx.fill();
 
           ctx.fillStyle = frontFaceColor;
           ctx.beginPath();
-          drawSegmentIndexedPath(frontFaceSegs, ctx, {debug: true});
+          drawSegmentIndexedPath(frontFaceSegs, ctx, {debug: false});
           ctx.closePath();
           ctx.fill();
         }),
         op.filter((_v, i) => i === 0),
         op.delay(1000),
         op.mergeMap(() => {
-          return state.canvasEngine.animateMgr.animate(-2, -20, 5000, 'linear');
+          return state.canvasEngine.animateMgr.animate(0, 2, 3000, 'linear');
         }),
-        op.map(v => dispatcher.changePerspective(v))
+        op.map(v => setLookAtMatrix([0, v, 2], [0, 0.5, 0], [0, 1, 0]))
       )
     );
   });

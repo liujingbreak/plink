@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 // import {Matrix, identity, compose} from 'transformation-matrix';
 import {mat4} from 'gl-matrix';
-import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
+import {createActionStreamByType, ActionStreamControl, PayloadStreams} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import {Segment, mat4ToStr} from '../canvas-utils';
 import type {ReactiveCanvas2Engine} from './reactiveCanvas2.worker';
 
@@ -10,7 +10,8 @@ let SEQ = 0;
 
 export type Paintable<E extends Record<string, (...a: any[]) => void> = Record<string, never>> = readonly [
   ActionStreamControl<PaintableActions & E>,
-  PaintableState
+  PaintableState,
+  PayloadStreams<Pick<PaintableActions, 'setTransformDirty' | 'onResize'>>
 ];
 
 export type PaintableState = {
@@ -29,7 +30,7 @@ export type PaintableState = {
   transform: mat4;
   detached: boolean;
   treeDetached: boolean;
-  isTransformDirty: boolean;
+  // isTransformDirty: boolean;
   epics: ((c: ActionStreamControl<any>, s: Required<PaintableState>) => rx.Observable<any>)[];
   parent?: Paintable;
   canvasEngine?: ReactiveCanvas2Engine;
@@ -70,7 +71,9 @@ export type PaintableActions = {
   // eslint-disable-next-line @typescript-eslint/ban-types
   addEpic<E extends Record<string, (...a: any[]) => void> = Record<string, never>>(
     epicFactory: (
-      c: ActionStreamControl<Omit<PaintableActions, 'addEpic'> & E>, s: Required<PaintableState>
+      c: ActionStreamControl<Omit<PaintableActions, 'addEpic'> & E>,
+      s: Required<PaintableState>,
+      replayablePayload: Paintable[2]
     ) => rx.Observable<any>
   ): void;
   /**
@@ -87,15 +90,6 @@ export type PaintableActions = {
    * This event is dispatched right before `renderContent`
    */
   transformChanged(m: mat4): void;
-  /**
-   * Begin actual content and child paintables rendering, at this moment,
-   * transform matrix is composed.
-   */
-  // renderContent<E extends PaintableActions = PaintableActions>(
-  //   ctx: CanvasRenderingContext2D,
-  //   state: Required<PaintableState>,
-  //   ctl: ActionStreamControl<E>
-  // ): void;
   afterRender(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): void;
   detach(): void;
   updateDetectables(objectsByKey: Iterable<[key: string, segments: Segment[]]>): void;
@@ -125,11 +119,12 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
     transPipeline: [],
     detached: true,
     treeDetached: true,
-    isTransformDirty: true,
+    // isTransformDirty: true,
     epics: []
   };
 
   const ctl = createActionStreamByType<PaintableActions & InternalActions>(opts ?? {debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
+  const rPayloads = ctl.createLatestPayloads('setTransformDirty', 'onResize');
 
   const {actionByType: aot, payloadByType: pt, dispatcher} = ctl;
 
@@ -142,9 +137,9 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
         }
       })
     ),
-    pt.setTransformDirty.pipe(
-      op.map(dirty => {state.isTransformDirty = dirty; })
-    ),
+    // pt.setTransformDirty.pipe(
+    //   op.map(dirty => {state.isTransformDirty = dirty; })
+    // ),
     pt.setTreeAttached.pipe(
       op.map(payload => {
         state.treeDetached = !payload;
@@ -198,7 +193,7 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
 
     attached$().pipe(
       op.switchMap((currState) => {
-        const [pCtl, pState] = currState.parent;
+        const [pCtl, pState, prPayloads] = currState.parent;
         state.canvasEngine = pState.canvasEngine;
         const {actionByType: pActions, payloadByType: pPayloads} = pCtl as unknown as ActionStreamControl<PaintableActions & InternalActions>;
         // When attached to a new parent, should always trigger `transform` recalculation
@@ -231,7 +226,7 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
           // When parent transform is dirty (transform is changed),
           // current Paintable should also be marked as dirty, since
           // transformOperator "baseOnParent" depends on `parentState.transform`
-          rx.concat(rx.defer(() => rx.of(pState.isTransformDirty)), pPayloads.setTransformDirty).pipe(
+          prPayloads.setTransformDirty.pipe(
             op.filter(payload => payload),
             op.tap(() => dispatcher.setTransformDirty(true))
           ),
@@ -253,10 +248,7 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
           // When rendering, check whether transform is "dirty" which requires to be "composed",
           // otherwise directly emit `renderContent`
           pPayloads.afterRender.pipe(
-            op.withLatestFrom(rx.concat(
-              rx.defer(() => rx.of(state.isTransformDirty)),
-              pt.setTransformDirty)
-            ),
+            op.withLatestFrom(rPayloads.setTransformDirty),
             op.switchMap(([ctx, dirty]) => {
               return dirty ?
                 rx.merge(
@@ -323,7 +315,7 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
           aot.treeAttached
         ).pipe(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          op.switchMap(() => {return epic(ctl as any, state as Required<typeof state>); }),
+          op.switchMap(() => {return epic(ctl as any, state as Required<typeof state>, rPayloads); }),
           op.takeUntil(pt.treeDetached)
         );
       })
@@ -346,6 +338,7 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
       })
     );
   });
+  dispatcher.setTransformDirty(true);
 
   function attached$() {
     return rx.concat(
@@ -360,7 +353,8 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
 
   return [
     ctl as unknown as ActionStreamControl<PaintableActions & E>,
-    state
+    state,
+    rPayloads as PayloadStreams<PaintableActions & typeof rPayloads extends PayloadStreams<infer X> ? X : never>
   ];
 }
 

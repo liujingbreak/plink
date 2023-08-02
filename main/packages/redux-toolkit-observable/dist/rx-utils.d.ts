@@ -37,11 +37,20 @@ export declare function createActionStream<AC extends Record<string, ((...payloa
     nameOfAction: <K extends keyof AC>(action: ActionTypes<AC>[K]) => K;
 };
 declare type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
-export declare type ActionStreamControl<AC> = {
+export declare type PayloadStreams<AC extends Record<string, (...a: any[]) => void>> = {
+    [K in keyof AC]: Observable<InferParam<AC[K]>>;
+};
+interface CreateReplayableFn<AC extends Record<string, (...a: any[]) => void>> {
+    <R1 extends keyof AC, R2 extends keyof AC>(actionType1: R1, at2: R2): PayloadStreams<Pick<AC, R1 | R2>>;
+    <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC>(actionType1: R1, at2: R2, at3: R3): PayloadStreams<Pick<AC, R1 | R2 | R3>>;
+    <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4>>;
+    <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC, R5 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4, at5: R5): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4 | R5>>;
+    <R extends keyof AC>(...actionTypes: R[]): PayloadStreams<Pick<AC, R>>;
+}
+export declare type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>> = {
+    createLatestPayloads: CreateReplayableFn<AC>;
     dispatcher: AC;
-    payloadByType: {
-        [T in keyof AC]: Observable<InferParam<AC[T]>>;
-    };
+    payloadByType: PayloadStreams<AC>;
     actionByType: {
         [T in keyof AC]: Observable<ActionTypes<AC>[T]>;
     };

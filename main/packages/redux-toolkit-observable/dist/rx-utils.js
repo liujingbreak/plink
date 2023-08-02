@@ -148,8 +148,43 @@ function createActionStreamByType(opt = {}) {
     const action$ = interceptor$.pipe((0, operators_1.switchMap)(interceptor => interceptor ?
         debuggableAction$.pipe(interceptor, (0, operators_1.share)()) :
         debuggableAction$));
+    function debugLogLatestActionOperator(type) {
+        return opt.log ?
+            (0, operators_1.map)((payload, idx) => {
+                if (idx === 0) {
+                    opt.log(debugName + 'rx:latest', type);
+                }
+                return payload;
+            }) :
+            (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+                (0, operators_1.map)((payload, idx) => {
+                    if (idx === 0) {
+                        // eslint-disable-next-line no-console
+                        console.log(`%c ${debugName}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, payload === undefined ? '' : payload);
+                    }
+                    return payload;
+                }) :
+                (0, operators_1.map)((payload, idx) => {
+                    if (idx === 0) {
+                        // eslint-disable-next-line no-console
+                        console.log(debugName + 'rx:action', type, payload === undefined ? '' : payload);
+                    }
+                    return payload;
+                });
+    }
     return {
         dispatcher: dispatcherProxy,
+        createLatestPayloads(...types) {
+            const replayedPayloads = {};
+            for (const key of types) {
+                const r$ = new rxjs_1.ReplaySubject(1);
+                replayedPayloads[key] = opt.debug ?
+                    r$.asObservable().pipe(debugLogLatestActionOperator(key)) :
+                    r$.asObservable();
+                payloadByTypeProxy[key].subscribe(r$);
+            }
+            return replayedPayloads;
+        },
         dispatchFactory: dispatchFactory,
         action$,
         payloadByType: payloadByTypeProxy,
@@ -195,4 +230,11 @@ function createOfTypeOperator(typePrefix = '') {
         (0, operators_1.filter)((action) => matchTypes.some(type => action.type === type)), (0, operators_1.share)());
     };
 }
+// type TestActions = {
+//   action1(p: string): void;
+//   action2(a: string, b: number): void;
+//   action3(): void;
+//   action4(): void;
+// };
+// const replayedPayload = createActionStreamByType<TestActions>().createLatestPayloads('action2', 'action3').action2;
 //# sourceMappingURL=rx-utils.js.map

@@ -3,7 +3,7 @@
  * https://redux-observable.js.org/
  */
 
-import {Observable, Subject, OperatorFunction, BehaviorSubject} from 'rxjs';
+import {Observable, Subject, OperatorFunction, BehaviorSubject, ReplaySubject} from 'rxjs';
 import {switchMap, filter, map, tap, share} from 'rxjs/operators';
 
 type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
@@ -94,9 +94,23 @@ export function createActionStream<AC extends Record<string, ((...payload: any[]
 
 type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
 
-export type ActionStreamControl<AC> = {
+export type PayloadStreams<AC extends Record<string, (...a: any[]) => void>> = {
+  [K in keyof AC]: Observable<InferParam<AC[K]>>
+};
+
+interface CreateReplayableFn<AC extends Record<string, (...a: any[]) => void>> {
+  <R1 extends keyof AC, R2 extends keyof AC>(actionType1: R1, at2: R2): PayloadStreams<Pick<AC, R1 | R2>>;
+  <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC>(actionType1: R1, at2: R2, at3: R3): PayloadStreams<Pick<AC, R1 | R2 | R3>>;
+  <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4>>;
+  <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC, R5 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4, at5: R5): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4 | R5>>;
+  <R extends keyof AC>(...actionTypes: R[]): PayloadStreams<Pick<AC, R>>;
+}
+
+export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>> = {
+  /** create `ReplaySubject(1)` for each `payloadByType` */
+  createLatestPayloads: CreateReplayableFn<AC>;
   dispatcher: AC;
-  payloadByType: {[T in keyof AC]: Observable<InferParam<AC[T]>>};
+  payloadByType: PayloadStreams<AC>;
   actionByType: {[T in keyof AC]: Observable<ActionTypes<AC>[T]>};
   /** @Deprecated use dispatcher.<actionName> instead */
   dispatchFactory: SimpleActionDispatchFactory<AC>;
@@ -221,7 +235,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
         tap(action => opt.log!(debugName + 'rx:action', nameOfAction(action))) :
         (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
           tap(action => {
-          // eslint-disable-next-line no-console
+            // eslint-disable-next-line no-console
             console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;',
               nameOfAction(action),
               action.payload === undefined ? '' : action.payload
@@ -241,8 +255,48 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
       debuggableAction$)
   );
 
+  function debugLogLatestActionOperator<P>(type: string) {
+    return opt.log ?
+      map<P, P>((payload, idx) => {
+        if (idx === 0) {
+          opt.log!(debugName + 'rx:latest', type);
+        }
+        return payload;
+      }) :
+      (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+        map<P, P>((payload, idx) => {
+          if (idx === 0) {
+            // eslint-disable-next-line no-console
+            console.log(`%c ${debugName}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type,
+              payload === undefined ? '' : payload
+            );
+          }
+          return payload;
+        }) :
+        map<P, P>((payload, idx) => {
+          if (idx === 0) {
+            // eslint-disable-next-line no-console
+            console.log(debugName + 'rx:action', type, payload === undefined ? '' : payload);
+          }
+          return payload;
+        });
+  }
+
   return {
     dispatcher: dispatcherProxy,
+    createLatestPayloads<R extends keyof AC>(...types: R[]) {
+      const replayedPayloads = {} as {[K in R]: Observable<InferParam<AC[K]>>};
+      for (const key of types) {
+        const r$ = new ReplaySubject<InferParam<AC[R]>>(1);
+        replayedPayloads[key] = opt.debug ?
+          r$.asObservable().pipe(
+            debugLogLatestActionOperator(key as string)
+          ) :
+          r$.asObservable();
+        payloadByTypeProxy[key].subscribe(r$);
+      }
+      return replayedPayloads;
+    },
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
     action$,
     payloadByType: payloadByTypeProxy,
@@ -305,3 +359,11 @@ function createOfTypeOperator<AC>(typePrefix = ''): OfTypeFn<AC> {
       ) ;
     };
 }
+
+// type TestActions = {
+//   action1(p: string): void;
+//   action2(a: string, b: number): void;
+//   action3(): void;
+//   action4(): void;
+// };
+// const replayedPayload = createActionStreamByType<TestActions>().createLatestPayloads('action2', 'action3').action2;

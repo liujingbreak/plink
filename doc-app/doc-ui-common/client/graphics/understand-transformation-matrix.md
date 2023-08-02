@@ -135,7 +135,12 @@ Cosine of the angle between them:
 cos(angle) = v1·v2 / lengthOf(v1) * lengthOf(v2)
            = (x1*x2 + y1*y2 + z1*z2) / (Math.hypot(x1, y1, z1) * Math.hypot(x2, y2, z2))
 ```
-When cosine value if 0, two vectors are perpendicular.
+When cosine value is 0, two vectors are perpendicular.
+
+```js
+c * c = a * a + b * b + 2 * a * b * Math.cos(theta)
+
+```
 
 ### Cross product and normal (perpendicular) vector of a surface
 The *cross product* of v1 and v2 is denoted v1×v2 and is the vector defined by

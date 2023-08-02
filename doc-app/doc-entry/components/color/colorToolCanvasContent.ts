@@ -3,9 +3,10 @@ import * as op from 'rxjs/operators';
 import Color from 'color';
 import {mat4} from 'gl-matrix';
 import {PaintableCtl, Paintable, createPaintable} from '@wfh/doc-ui-common/client/graphics/canvas';
-import {alignToParent} from '@wfh/doc-ui-common/client/graphics/canvas/paintable-utils';
+import {alignToParent2d} from '@wfh/doc-ui-common/client/graphics/canvas/paintable-utils';
 import {colorToRgbaStr, createBezierArch, Segment, transSegments3d, drawSegmentPath, reverseSegments,
   concatSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {createBezierArchIndexed} from '@wfh/doc-ui-common/client/graphics/canvas';
 
 type ExtendActions = {
   setAuxiliaryEnabled(enabled: boolean): void;
@@ -32,7 +33,7 @@ export function createHueCircle(root: Paintable) {
   let transformedCenterSphere: Segment[] = centerSphere;
 
   // const {shapeChange$, centerSphere} = createPaintingObjects(huePaletteCtrl);
-  alignToParent(basePaintable);
+  alignToParent2d(basePaintable);
 
   dispatcher.putTransformOperator('scale',
     matrix$ => matrix$.pipe(
@@ -261,7 +262,7 @@ function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
     return rx.EMPTY;
   });
 
-  const quarterSphere = createBezierArch(0, 1);
+  const [qStart, qEnd] = createBezierArchIndexed(0, 1);
   // centerSphere shows the color when user clicks on one color "fan" shape
   let centerSphere = concatSegments([
     ...quarterSphere as Segment[],
