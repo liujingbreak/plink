@@ -4,9 +4,9 @@ import Color from 'color';
 import {mat4} from 'gl-matrix';
 import {PaintableCtl, Paintable, createPaintable} from '@wfh/doc-ui-common/client/graphics/canvas';
 import {alignToParent2d} from '@wfh/doc-ui-common/client/graphics/canvas/paintable-utils';
-import {colorToRgbaStr, createBezierArch, Segment, transSegments3d, drawSegmentPath, reverseSegments,
-  concatSegments} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
-import {createBezierArchIndexed} from '@wfh/doc-ui-common/client/graphics/canvas';
+import {colorToRgbaStr, createBezierArch, Segment, transSegments3d, drawSegmentPath, reverseSegments
+} from '@wfh/doc-ui-common/client/graphics/canvas-utils';
+import {transformVertexArr, cloneSegmentIndexed, createCircleCurve, drawSegmentIndexedPath} from '@wfh/doc-ui-common/client/graphics/canvas';
 
 type ExtendActions = {
   setAuxiliaryEnabled(enabled: boolean): void;
@@ -30,7 +30,7 @@ export function createHueCircle(root: Paintable) {
   let selectedColor = new Color().alpha(0);
   let animSelectedColor: string | undefined;
   const {shapeChange$, centerSphere} = createPaintingObjects(huePaletteCtrl);
-  let transformedCenterSphere: Segment[] = centerSphere;
+  const transformedCenterSphere = cloneSegmentIndexed(centerSphere);
 
   // const {shapeChange$, centerSphere} = createPaintingObjects(huePaletteCtrl);
   alignToParent2d(basePaintable);
@@ -77,7 +77,7 @@ export function createHueCircle(root: Paintable) {
 
       pt.transformChanged.pipe(
         op.map(m => {
-          transformedCenterSphere = [...transSegments3d(centerSphere, m)];
+          transformVertexArr(transformedCenterSphere[0].vertexArray, centerSphere[0].vertexArray, m);
         })
       ),
 
@@ -118,7 +118,7 @@ export function createHueCircle(root: Paintable) {
             ctx.save();
             ctx.beginPath();
             ctx.fillStyle = animSelectedColor;
-            drawSegmentPath(transformedCenterSphere, ctx, {closed: true, round: true, debug: true});
+            drawSegmentIndexedPath(transformedCenterSphere, ctx, {closed: true});
             ctx.closePath();
             ctx.fill();
           }
@@ -262,15 +262,9 @@ function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
     return rx.EMPTY;
   });
 
-  const [qStart, qEnd] = createBezierArchIndexed(0, 1);
   // centerSphere shows the color when user clicks on one color "fan" shape
-  let centerSphere = concatSegments([
-    ...quarterSphere as Segment[],
-    ...transSegments3d(quarterSphere as Segment[], mat4.fromZRotation(mat4.create(), Math.PI * 3 / 2)),
-    ...transSegments3d(quarterSphere as Segment[], mat4.fromZRotation(mat4.create(), Math.PI)),
-    ...transSegments3d(quarterSphere as Segment[], mat4.fromZRotation(mat4.create(), Math.PI / 2))
-  ]);
-  centerSphere = [...transSegments3d(centerSphere, mat4.fromScaling(mat4.create(), [0.705, 0.705, 1]))];
+  const centerSphere = createCircleCurve();
+  transformVertexArr(centerSphere[0].vertexArray, centerSphere[0].vertexArray, mat4.fromScaling(mat4.create(), [0.705, 0.705, 1]));
 
   return {
     shapeChange$: rx.concat(

@@ -82,8 +82,8 @@ export function transform3dTo2d<E extends Record<string, (...a: any[]) => void>>
     );
   });
 
-  controller.dispatcher.addEpic((ctl, state, rPayloads) => {
-    const [,, parentLatestActions] = state.parent;
+  controller.dispatcher.addEpic((_ctl, state, _rPayloads) => {
+    const [, , parentLatestActions] = state.parent;
     return rx.combineLatest(
       rx.combineLatest(
         parentLatestActions.onResize.pipe(

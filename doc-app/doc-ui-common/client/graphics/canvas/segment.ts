@@ -11,6 +11,37 @@ export * from '../canvas-utils';
  * stored in vertexArray
  */
 export class SegmentIndexed {
+  static createOnArr(
+    vertexArr: Float32Array,
+    arrOffset: number,
+    point: readonly [number, number, number],
+    handleIn?: null | readonly [number, number, number],
+    handleOut?: null | readonly [number, number, number]
+  ) {
+    let offset = arrOffset;
+    const pointIdx = offset;
+    vertexArr[offset++] = point[0];
+    vertexArr[offset++] = point[1];
+    vertexArr[offset++] = point[2];
+
+    let handleInIdx: number | null = null;
+    if (handleIn) {
+      handleInIdx = offset;
+      vertexArr[offset++] = handleIn[0];
+      vertexArr[offset++] = handleIn[1];
+      vertexArr[offset++] = handleIn[2];
+    }
+
+    let handleOutIdx: number | null = null;
+    if (handleOut) {
+      handleOutIdx = offset;
+      vertexArr[offset++] = handleOut[0];
+      vertexArr[offset++] = handleOut[1];
+      vertexArr[offset++] = handleOut[2];
+    }
+    return new SegmentIndexed(vertexArr, pointIdx, handleInIdx, handleOutIdx);
+  }
+
   constructor(
     public vertexArray: Float32Array,
     public pointIdx: number,
@@ -20,15 +51,15 @@ export class SegmentIndexed {
   }
 
   get point() {
-    return this.vertexArray.slice(this.pointIdx, this.pointIdx + 3);
+    return this.vertexArray.slice(this.pointIdx, this.pointIdx + 3) as unknown as readonly [number, number, number];
   }
 
   get handleIn() {
-    return this.handleInIdx != null ? this.vertexArray.slice(this.handleInIdx, this.handleInIdx + 3) : null;
+    return this.handleInIdx != null ? this.vertexArray.slice(this.handleInIdx, this.handleInIdx + 3) as unknown as readonly [number, number, number] : null;
   }
 
   get handleOut() {
-    return this.handleOutIdx != null ? this.vertexArray.slice(this.handleOutIdx, this.handleOutIdx + 3) : null;
+    return this.handleOutIdx != null ? this.vertexArray.slice(this.handleOutIdx, this.handleOutIdx + 3) as unknown as readonly [number, number, number] : null;
   }
 
   toBezier(endSeg: SegmentIndexed) {
@@ -39,30 +70,53 @@ export class SegmentIndexed {
       ...endSeg.point
     );
   }
+
+  elementSize() {
+    let i = 1;
+    if (this.handleInIdx)
+      i++;
+    if (this.handleInIdx)
+      i++;
+    return i;
+  }
+
+  vertexArrSize() {
+    return this.elementSize() * 3;
+  }
+
+  toString() {
+    return 'point: ' + this.point.join(', ') + '\n' +
+      (this.handleIn ? 'handle in: ' + this.handleIn.join(', ') + '\n' : '') +
+      (this.handleOut ? 'handle out: ' + this.handleOut.join(', ') + '\n' : '');
+  }
 }
 
-// export function transformSegmentIndexed(segs: Iterable<SegmentIndexed>, m: mat4) {
-//   const doneVertices = new Set<Float32Array>();
-//   for (const seg of segs) {
-//     const {vertexArray} = seg;
-//     if (!doneVertices.has(vertexArray)) {
-//       doneVertices.add(vertexArray);
-//       const temp = vec3.create();
-//       for (let i = 0, l = vertexArray.length; i < l; i += 3) {
-//         vec3.transformMat4(temp, seg.vertexArray.slice(i, i + 3), m);
-//       }
-//     }
-//   }
-// }
-
-export function transVertecArr(arr: Float32Array | number[], m: mat4, arrOffset = 0, numOfVertices?: number) {
+/**
+ * @param arr target vertex array
+ * @param sourceArr source vertext array, it can be same one as arr
+ */
+export function transformVertexArr(
+  arr: Float32Array | number[],
+  sourceArr: Float32Array | number[],
+  m: mat4, arrOffset = 0, srcArrOffset = 0, numOfVertices?: number) {
   const temp = vec3.create();
-  for (let i = arrOffset, l = numOfVertices != null ? arrOffset + numOfVertices * 3 : arr.length; i < l; i += 3) {
-    vec3.transformMat4(temp, arr.slice(i, i + 3) as [number, number, number], m);
-    arr[i] = temp[0];
-    arr[i + 1] = temp[1];
-    arr[i + 2] = temp[2];
+  for (let i = srcArrOffset, targetOffset = arrOffset, l = numOfVertices != null ? srcArrOffset + numOfVertices * 3 : sourceArr.length; i < l; i += 3) {
+    vec3.transformMat4(temp, sourceArr.slice(i, i + 3) as [number, number, number], m);
+    arr[targetOffset++] = temp[0];
+    arr[targetOffset++] = temp[1];
+    arr[targetOffset++] = temp[2];
   }
+}
+
+export function cloneSegmentIndexed(source: SegmentIndexed[]) {
+  const verArrSize = source.reduce((prev, curr) => prev + curr.vertexArrSize(), 0);
+  const verArr = new Float32Array(verArrSize);
+  let offset = 0;
+  return source.map((seg, i) => {
+    const created = SegmentIndexed.createOnArr(verArr, offset, seg.point, seg.handleIn, seg.handleOut);
+    offset += created.vertexArrSize();
+    return created;
+  });
 }
 
 export function drawSegmentIndexedPath(
@@ -72,6 +126,7 @@ export function drawSegmentIndexedPath(
     closed?: boolean;
     // round?: boolean | ((x: number) => number);
     debug?: boolean;
+    debugColor?: string;
   }
 ) {
   let i = 0;
@@ -94,7 +149,7 @@ export function drawSegmentIndexedPath(
         console.log('moveTo', p[0], p[1]);
     } else {
       const c1 = segements[i - 1].handleOut;
-      const c2 = seg.handleOut;
+      const c2 = seg.handleIn;
 
       if (c1 && c2) {
         if (opts?.debug)
@@ -166,6 +221,18 @@ export function createQuarterCircleCurve() {
   ];
 }
 
+export function createCircleCurve() {
+  const vertexArr = new Float32Array(4 * 3 * 3);
+  const segs = new Array<SegmentIndexed>(4);
+  for (let i = 0; i < 4; i++) {
+    const arrOffset = i * 9;
+    segs[i] = SegmentIndexed.createOnArr(vertexArr, arrOffset, [0, 1, 0], [CIRCLE_BEZIER_CONST, 1, 0], [-CIRCLE_BEZIER_CONST, 1, 0]);
+    if (i > 0)
+      transformVertexArr(vertexArr, vertexArr, mat4.fromZRotation(mat4.create(), i * 0.5 * Math.PI), arrOffset, arrOffset, 3);
+  }
+  return segs;
+}
+
 
 /**
  * draw a 1/4 circle starts from [0, 1] counter-clock wise
@@ -184,3 +251,4 @@ export function createBezierArchIndexed(startT: number, endT: number): [SegmentI
   );
   return [new SegmentIndexed(vertexArr, 0, null, 1), new SegmentIndexed(vertexArr, 3, 2)];
 }
+

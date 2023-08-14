@@ -126,12 +126,12 @@ since `p1` is relative original system, it has to be substracted by [cx, cy] as 
 ### Dot product and angle between 2 vectors
 
 Dot product of twe vectors
-```
+```js
 v1·v2  =  x1*x2 + y1*y2 + z1*z2
 ```
 
 Cosine of the angle between them:
-```
+```js
 cos(angle) = v1·v2 / lengthOf(v1) * lengthOf(v2)
            = (x1*x2 + y1*y2 + z1*z2) / (Math.hypot(x1, y1, z1) * Math.hypot(x2, y2, z2))
 ```
@@ -144,24 +144,74 @@ c * c = a * a + b * b + 2 * a * b * Math.cos(theta)
 
 ### Cross product and normal (perpendicular) vector of a surface
 The *cross product* of v1 and v2 is denoted v1×v2 and is the vector defined by
-```
+```js
 v1×v2 = ( y1*z2 - z1*y2, z1*x2 - x1*z2, x1*y2 - y1*x2 )
 ```
 
-If v1 and v2 are non-zero vectors, then v1×v2 is zero if and only if v1 and v2 point in the same direction or in exactly opposite directions. Assuming v1×v2 is non-zero, then it is perpendicular both to v1 and to v2; furthermore, the vectors v1, v2, v1×v2 follow the right-hand rule (in a right-handed coordinate system); that is, if you curl the fingers of your right hand from v1 to v2, then your thumb points in the direction of v1×v2. If v1 and v2 are perpendicular unit vectors, then the cross product v1×v2 is also a unit vector, which is perpendicular both to v1 and to v2.
+If v1 and v2 are non-zero vectors, then v1×v2 is zero if and only if v1 and v2 point
+in the same direction or in exactly opposite directions. Assuming v1×v2 is non-zero,
+then it is perpendicular both to v1 and to v2; furthermore, the vectors v1, v2, v1×v2
+follow the right-hand rule (in a right-handed coordinate system); that is, if you
+curl the fingers of your right hand from v1 to v2, then your thumb points in the
+direction of v1×v2. If v1 and v2 are perpendicular unit vectors, then the cross product
+v1×v2 is also a unit vector, which is perpendicular both to v1 and to v2.
 
 Finally, I will note that given two points P1 = (x1,y1,z1) and P2 = (x2,y2,z2), the difference P2−P1 is defined by
-```
+```js
 P2 − P1  =  ( x2 − x1, y2 − y1, z2 − z1 )
 ```
 This difference is a vector that can be visualized as an arrow that starts at P1 and ends at P2.
 
 Now, suppose that P1, P2, and P3 are vertices of a polygon. Then the vectors P1−P2 and P3−P2 lie in the plane of the polygon, and so the cross product
-```
+```js
 (P3−P2) × (P1−P2)
 ```
 is a vector that is perpendicular to the polygon.
 
+### Equations of Planes in 3d
+<a href="https://math.libretexts.org/Bookshelves/Calculus/CLP-3_Multivariable_Calculus_(Feldman_Rechnitzer_and_Yeager)/01%3A_Vectors_and_Geometry_in_Two_and_Three_Dimensions/1.04%3A_Equations_of_Planes_in_3d">Refer to "Equations of Planes in 3d"</a>
+
+Vector **n** = `(nx, ny, nz)` is with direction perpendicular to
+that of the plane does uniquely determine the plane. If `(x,y,z)`
+is any point on the plane then the vector  `(x−x0,y−y0,z−z0)`,
+whose tail is at `(x0,y0,z0)`
+and whose head is at `(x,y,z)`,
+lies entirely inside the plane and so must be perpendicular to **n**.
+
+```js
+  nx(x-x0) + ny(y-y0) + nz(z-z0) = 0
+or
+  nx * x + ny * y + nz * z = d
+
+Where
+  d = nx * x0 + ny * y0 + nz * z0
+```js
+
+### 2D line intersection point
+2 straight lines:
+```js
+a1 x + b1 y + c1 = 0
+a2 x + b2 y + c2 = 0
+
+```
+intersection point:
+```js
+x = (b1 * c2 - b2 * c1) / (a1 * b2 - a2 * b1)
+y = (c1 * a2 - c2 * a1) / (a1 * b2 - a2 * b1)
+```
+
+Normal vector of line 1: [a1, b1]
+Normal vector of line 2: [a2, b2]
+
+So, for 2 segments
+line 1: `[x1, y1]` `[x0, y0]`
+line 2: `[x3, y3]` `[x2, y2]`
+
+```js
+d1 = [x1 - x0, y1 - y0]
+
+```
+TODO: formula to calculate intersection of 2 segments which is made by end points
 
 ## 3D Perspective projection matrix
 
