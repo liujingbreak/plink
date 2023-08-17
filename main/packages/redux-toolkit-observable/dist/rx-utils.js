@@ -85,15 +85,18 @@ function createActionStreamByType(opt = {}) {
             return dispatcher[type];
         }
         const dispatch = (...params) => {
-            const action = {
-                type: typePrefix + type,
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
-            };
+            const action = createAction(type, ...params);
             actionUpstream.next(action);
         };
         dispatcher[type] = dispatch;
         return dispatch;
+    }
+    function createAction(type, ...params) {
+        return {
+            type: typePrefix + type,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
+        };
     }
     const dispatcherProxy = new Proxy({}, {
         get(_target, key, _rec) {
@@ -194,6 +197,7 @@ function createActionStreamByType(opt = {}) {
         ofType,
         isActionType: createIsActionTypeFn(typePrefix),
         nameOfAction: (action) => nameOfAction(action),
+        createAction,
         _actionFromObject(obj) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             actionUpstream.next({ type: typePrefix + obj.t, payload: obj.p });
@@ -230,11 +234,15 @@ function createOfTypeOperator(typePrefix = '') {
         (0, operators_1.filter)((action) => matchTypes.some(type => action.type === type)), (0, operators_1.share)());
     };
 }
-// type TestActions = {
+// type TestActions<X extends string> = {
 //   action1(p: string): void;
 //   action2(a: string, b: number): void;
 //   action3(): void;
-//   action4(): void;
+//   action4<A extends string>(y: number, x: X, z: A): void;
 // };
-// const replayedPayload = createActionStreamByType<TestActions>().createLatestPayloads('action2', 'action3').action2;
+// type TestActionsB = {
+//   action5(a: Observable<ActionTypes<TestActions<string>>[keyof TestActions<string>]>): void;
+// };
+// const ctl = createActionStreamByType<TestActions<'abc' | 'xyz'> & TestActionsB>();
+// ctl.payloadByType.action5.pipe();
 //# sourceMappingURL=rx-utils.js.map

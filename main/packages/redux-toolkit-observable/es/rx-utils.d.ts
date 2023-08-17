@@ -3,14 +3,14 @@
  * https://redux-observable.js.org/
  */
 import { Observable, OperatorFunction } from 'rxjs';
-declare type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
-export declare type ActionTypes<AC> = {
+type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
+export type ActionTypes<AC> = {
     [K in keyof AC]: {
         type: string;
         payload: InferParam<AC[K]>;
     };
 };
-declare type InferParam<F> = Plen<F> extends 1 | 0 ? (F extends (a: infer A) => any ? A : unknown) : Plen<F> extends 2 ? F extends (...p: infer P) => any ? P : unknown : Plen<F> extends 1 | 2 ? F extends (a: infer A, b: infer B) => any ? A | [A, B] : F extends (...p: infer P) => any ? P : unknown : F extends (...p: infer P) => any ? P : unknown;
+type InferParam<F> = Plen<F> extends 1 | 0 ? (F extends (a: infer A) => any ? A : unknown) : Plen<F> extends 2 ? F extends (...p: infer P) => any ? P : unknown : Plen<F> extends 1 | 2 ? F extends (a: infer A, b: infer B) => any ? A | [A, B] : F extends (...p: infer P) => any ? P : unknown : F extends (...p: infer P) => any ? P : unknown;
 /**
  * @Deprecated
  * Use createActionStreamByType<R>() instead.
@@ -36,8 +36,8 @@ export declare function createActionStream<AC extends Record<string, ((...payloa
     }, type: K) => action is ActionTypes<AC>[K];
     nameOfAction: <K extends keyof AC>(action: ActionTypes<AC>[K]) => K;
 };
-declare type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
-export declare type PayloadStreams<AC extends Record<string, (...a: any[]) => void>> = {
+type SimpleActionDispatchFactory<AC> = <K extends keyof AC>(type: K) => AC[K];
+export type PayloadStreams<AC extends Record<string, (...a: any[]) => void>> = {
     [K in keyof AC]: Observable<InferParam<AC[K]>>;
 };
 interface CreateReplayableFn<AC extends Record<string, (...a: any[]) => void>> {
@@ -47,7 +47,8 @@ interface CreateReplayableFn<AC extends Record<string, (...a: any[]) => void>> {
     <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC, R5 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4, at5: R5): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4 | R5>>;
     <R extends keyof AC>(...actionTypes: R[]): PayloadStreams<Pick<AC, R>>;
 }
-export declare type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>> = {
+export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>> = {
+    /** create `ReplaySubject(1)` for each `payloadByType` */
     createLatestPayloads: CreateReplayableFn<AC>;
     dispatcher: AC;
     payloadByType: PayloadStreams<AC>;
@@ -60,6 +61,7 @@ export declare type ActionStreamControl<AC extends Record<string, (...a: any[]) 
     actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]>;
     changeActionInterceptor<T extends keyof AC>(interceptorFactory: (originalInterceptor: OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]> | null) => OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]>): void;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
+    createAction<K extends keyof AC>(type: K, ...params: Parameters<AC[K]>): ActionTypes<AC>[keyof AC];
     ofType: OfTypeFn<AC>;
     isActionType<K extends keyof AC>(action: {
         type: unknown;

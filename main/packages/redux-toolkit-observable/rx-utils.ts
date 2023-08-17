@@ -122,6 +122,7 @@ export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>
     ) => OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]>
   ): void;
   action$: Observable<ActionTypes<AC>[keyof AC]>;
+  createAction<K extends keyof AC>(type: K, ...params: Parameters<AC[K]>): ActionTypes<AC>[keyof AC];
   ofType: OfTypeFn<AC>;
   isActionType<K extends keyof AC>(action: {type: unknown}, type: K): action is ActionTypes<AC>[K];
   nameOfAction(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
@@ -159,17 +160,22 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     if (Object.prototype.hasOwnProperty.call(dispatcher, type)) {
       return dispatcher[type];
     }
-    const dispatch = (...params: any[]) => {
-      const action = {
-        type: typePrefix + (type as string),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
-      } as ActionTypes<AC>[keyof AC];
+    const dispatch = (...params: Parameters<AC[keyof AC]>) => {
+      const action = createAction(type, ...params);
       actionUpstream.next(action);
     };
     dispatcher[type] = dispatch as AC[keyof AC];
     return dispatch;
   }
+
+  function createAction<K extends keyof AC>(type: K, ...params: Parameters<AC[K]>) {
+    return {
+      type: typePrefix + (type as string),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
+    } as ActionTypes<AC>[keyof AC];
+  }
+
   const dispatcherProxy = new Proxy<AC>({} as AC, {
     get(_target, key, _rec) {
       return dispatchFactory(key as keyof AC);
@@ -306,6 +312,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     ofType,
     isActionType: createIsActionTypeFn<AC>(typePrefix),
     nameOfAction: (action: ActionTypes<AC>[keyof AC]) => nameOfAction<AC>(action),
+    createAction,
     _actionFromObject(obj: {t: string; p: any}) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       actionUpstream.next({type: typePrefix + obj.t, payload: obj.p} as ActionTypes<AC>[keyof AC]);
@@ -360,10 +367,15 @@ function createOfTypeOperator<AC>(typePrefix = ''): OfTypeFn<AC> {
     };
 }
 
-// type TestActions = {
+// type TestActions<X extends string> = {
 //   action1(p: string): void;
 //   action2(a: string, b: number): void;
 //   action3(): void;
-//   action4(): void;
+//   action4<A extends string>(y: number, x: X, z: A): void;
 // };
-// const replayedPayload = createActionStreamByType<TestActions>().createLatestPayloads('action2', 'action3').action2;
+
+// type TestActionsB = {
+//   action5(a: Observable<ActionTypes<TestActions<string>>[keyof TestActions<string>]>): void;
+// };
+// const ctl = createActionStreamByType<TestActions<'abc' | 'xyz'> & TestActionsB>();
+// ctl.payloadByType.action5.pipe();
