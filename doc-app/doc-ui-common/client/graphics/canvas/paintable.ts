@@ -141,9 +141,9 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
     //   op.map(dirty => {state.isTransformDirty = dirty; })
     // ),
     pt.setTreeAttached.pipe(
-      op.map(payload => {
-        state.treeDetached = !payload;
-        return payload;
+      op.map(attached => {
+        state.treeDetached = !attached;
+        return attached;
       }),
       op.distinctUntilChanged(),
       op.map(attached => attached ? dispatcher.treeAttached() : dispatcher.treeDetached())

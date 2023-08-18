@@ -189,6 +189,7 @@ function createActionStreamByType(opt = {}) {
             return replayedPayloads;
         },
         dispatchFactory: dispatchFactory,
+        dispatchStream: actionUpstream,
         action$,
         payloadByType: payloadByTypeProxy,
         actionByType: actionByTypeProxy,
@@ -201,6 +202,10 @@ function createActionStreamByType(opt = {}) {
         _actionFromObject(obj) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             actionUpstream.next({ type: typePrefix + obj.t, payload: obj.p });
+        },
+        objectToAction(obj) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            return { type: typePrefix + obj.t, payload: obj.p };
         },
         _actionToObject(action) {
             return { t: nameOfAction(action), p: action.payload };

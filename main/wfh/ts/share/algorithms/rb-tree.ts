@@ -309,26 +309,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTr
     return node == null || !node.isRed;
   }
 
-  /**
-   * To be extend and overridden
-   */
-  protected onLeftChildChange(_parent: ND, _child: ND | null | undefined) {
-  }
-  /**
-   * To be extend and overridden
-   */
-  protected onRightChildChange(_parent: ND, _child: ND | null | undefined) {
-  }
-
-  protected updateNodeSize(node: ND) {
-    let z = node as typeof node.p;
-    while (z) {
-      z.size = z.weight + (z.left?.size ?? 0) + (z.right?.size ?? 0);
-      z = z.p;
-    }
-  }
-
-  protected deleteNode(z: ND) {
+  deleteNode(z: ND) {
     let y: ND | null  = z;
     let origIsRed = this.isRed(y);
     let x: ND | null = null;
@@ -362,6 +343,24 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTr
       this.deleteFixup(x);
     }
     return true;
+  }
+  /**
+   * To be extend and overridden
+   */
+  protected onLeftChildChange(_parent: ND, _child: ND | null | undefined) {
+  }
+  /**
+   * To be extend and overridden
+   */
+  protected onRightChildChange(_parent: ND, _child: ND | null | undefined) {
+  }
+
+  protected updateNodeSize(node: ND) {
+    let z = node as typeof node.p;
+    while (z) {
+      z.size = z.weight + (z.left?.size ?? 0) + (z.right?.size ?? 0);
+      z = z.p;
+    }
   }
 
   private deleteFixup(x: ND) {

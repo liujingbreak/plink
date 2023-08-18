@@ -5,7 +5,7 @@
  *
  * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
-export declare type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<T, V, any>> = {
+export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<T, V, any>> = {
     key: T;
     value: V;
     p: C | null;
@@ -56,6 +56,7 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND
     size(): number;
     isRed(node: ND | null | undefined): boolean;
     isBlack(node: ND | null | undefined): boolean;
+    deleteNode(z: ND): boolean;
     /**
      * To be extend and overridden
      */
@@ -65,7 +66,6 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND
      */
     protected onRightChildChange(_parent: ND, _child: ND | null | undefined): void;
     protected updateNodeSize(node: ND): void;
-    protected deleteNode(z: ND): boolean;
     private deleteFixup;
     private transplant;
     protected redBlackInsertFixUp(z: ND): void;

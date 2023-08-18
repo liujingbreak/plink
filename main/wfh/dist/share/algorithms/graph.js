@@ -9,7 +9,7 @@ var Color;
     Color[Color["gray"] = 1] = "gray";
     /** visisted */
     Color[Color["black"] = 2] = "black";
-})(Color = exports.Color || (exports.Color = {}));
+})(Color || (exports.Color = Color = {}));
 class Vertex {
     constructor(data, color = Color.white) {
         this.data = data;

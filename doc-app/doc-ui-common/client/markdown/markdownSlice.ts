@@ -24,15 +24,16 @@ const store = new rx.BehaviorSubject<MarkdownState>({
   computed: {reactHtml: {}}
 });
 const control = createActionStreamByType<Actions>();
+const {payloadByType: pt} = control;
 const sub = rx.merge(
-  control.actionOfType('registerFiles').pipe(
-    op.map(({payload}) => {
+  pt.registerFiles.pipe(
+    op.map(payload => {
       const state = store.getValue();
       store.next({...state, fileLoader: {...state.fileLoader, ...payload}});
     })
   ),
-  control.actionOfType('getHtml').pipe(
-    op.mergeMap(({payload: key}) => {
+  pt.getHtml.pipe(
+    op.mergeMap(key => {
       const loadFn = getState().fileLoader[key];
       const res = loadFn();
       return typeof (res as LoaderRecivedData)?.html === 'string' ?
@@ -44,8 +45,8 @@ const sub = rx.merge(
       dispatcher.getHtmlDone({key, data});
     })
   ),
-  control.actionOfType('getHtmlDone').pipe(
-    op.map(({payload: {key, data}}) => {
+  pt.getHtmlDone.pipe(
+    op.map(({key, data}) => {
       const state = {...store.getValue()};
       state.contents[key] = data;
       state.computed.reactHtml[key] = {__html: data.html};
@@ -61,7 +62,7 @@ const sub = rx.merge(
   })
 ).subscribe();
 
-export const dispatcher = control.dispatcher;
+export const {dispatcher} = control;
 export function getState() {
   return store.getValue();
 }
@@ -73,7 +74,5 @@ export function getStore() {
 if (module.hot) {
   module.hot.dispose(_data => {
     sub.unsubscribe();
-    // stateFactory.removeSlice(markdownSlice);
-    // releaseEpic();
   });
 }

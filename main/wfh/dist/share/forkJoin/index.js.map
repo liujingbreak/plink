@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../ts/share/forkJoin/index.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;AAAA,kDAAgC;AAChC,wDAAsC;AACtC,uCAAuC;AACvC,sCAAsC","sourcesContent":["export * from './forkJoin-pool';\r\nexport * from './forkJoin-baseWorker';\r\n// export * from './plugin-nodeThread';\r\n// export * from './plugin-webWorker';\r\n"]}

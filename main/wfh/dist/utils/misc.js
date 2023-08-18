@@ -45,7 +45,7 @@ var WordTokenType;
     WordTokenType[WordTokenType["tab"] = 2] = "tab";
     WordTokenType[WordTokenType["eos"] = 3] = "eos";
     WordTokenType[WordTokenType["other"] = 4] = "other";
-})(WordTokenType = exports.WordTokenType || (exports.WordTokenType = {}));
+})(WordTokenType || (exports.WordTokenType = WordTokenType = {}));
 class WordLexer extends base_LLn_parser_1.BaseLexer {
     *[Symbol.iterator]() {
         while (this.la() != null) {

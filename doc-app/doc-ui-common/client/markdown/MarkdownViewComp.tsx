@@ -2,6 +2,7 @@
 import React from 'react';
 import * as op from 'rxjs/operators';
 import classnames from 'classnames/bind';
+import cln from 'classnames';
 import 'github-markdown-css/github-markdown.css';
 import unescape from 'lodash/unescape';
 // import {MarkdownIndex} from './MarkdownIndex';
@@ -19,14 +20,6 @@ export type MarkdownViewCompProps = {
   mdKey?: string;
   onContent?: (dom: HTMLElement) => void;
 };
-
-// const ConnectHOC = connect((rootState: unknown, ownProps: MarkdownViewCompProps) => {
-//   return function(rootState: any, props: MarkdownViewCompProps) {
-//     return {
-//       contents: getState().computed.reactHtml
-//     };
-//   };
-// }, {}, null, {forwardRef: true});
 
 const EMPTY_HTML_OBJ = {__html: ''};
 
@@ -102,7 +95,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   return (
     <SwitchAnim className={cls('switchAnim')} innerClassName={styles.container} contentHash={props.mdKey}>
       <>
-        <div ref={containerRefCb} className="markdown-body" dangerouslySetInnerHTML={htmlObj}></div>
+        <div ref={containerRefCb} className={cln(styles.markdownContent, 'markdown-body')} dangerouslySetInnerHTML={htmlObj}></div>
         {props.mdKey ? <TableOfContents markdownKey={props.mdKey} /> : '...'}
       </>
     </SwitchAnim>

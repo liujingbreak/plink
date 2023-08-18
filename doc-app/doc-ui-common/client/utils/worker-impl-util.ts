@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {createActionStreamByType, ActionStreamControl, ActionTypes, PayloadStreams} from '@wfh/redux-toolkit-observable/es/rx-utils';
+import {createActionStreamByType, ActionStreamControl, ActionTypes} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import {WorkerMsgData} from '../utils/worker-pool';
 
 export type RecursiveTaskActions<A extends Record<string, (...a: any[]) => void>> = {

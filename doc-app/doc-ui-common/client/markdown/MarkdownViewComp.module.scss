@@ -8,8 +8,15 @@
 .container {
   display: flex;
   justify-content: center;
+  align-items: flex-start;
 }
 
+:global(.mdc-layout-size-desktop), :global(.mdc-layout-size-tablet) {
+  .markdownContent {
+    max-width: 900px;
+    flex-grow: 1;
+  }
+}
 
 :global {
   .markdown-body {
@@ -42,11 +49,6 @@
       overflow:hidden;
       align-items: flex-start;
       justify-content: space-around;
-    }
-  }
-  .mdc-layout-size-desktop, .mdc-layout-size-tablet {
-    .markdown-body {
-      max-width: 900px;
     }
   }
 }

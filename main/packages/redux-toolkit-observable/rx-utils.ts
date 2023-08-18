@@ -110,6 +110,7 @@ export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>
   /** create `ReplaySubject(1)` for each `payloadByType` */
   createLatestPayloads: CreateReplayableFn<AC>;
   dispatcher: AC;
+  dispatchStream: Subject<ActionTypes<AC>[keyof AC]>;
   payloadByType: PayloadStreams<AC>;
   actionByType: {[T in keyof AC]: Observable<ActionTypes<AC>[T]>};
   /** @Deprecated use dispatcher.<actionName> instead */
@@ -122,10 +123,11 @@ export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>
     ) => OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]>
   ): void;
   action$: Observable<ActionTypes<AC>[keyof AC]>;
-  createAction<K extends keyof AC>(type: K, ...params: Parameters<AC[K]>): ActionTypes<AC>[keyof AC];
+  createAction<K extends keyof AC>(type: K, ...params: Parameters<AC[K]>): ActionTypes<AC>[K];
   ofType: OfTypeFn<AC>;
   isActionType<K extends keyof AC>(action: {type: unknown}, type: K): action is ActionTypes<AC>[K];
   nameOfAction(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
+  objectToAction(obj: {t: string; p: any}): ActionTypes<AC>[keyof AC];
   _actionFromObject(obj: {t: string; p: any}): void;
   _actionToObject(action: ActionTypes<AC>[keyof AC]): {t: string; p: any};
 };
@@ -173,7 +175,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
       type: typePrefix + (type as string),
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       payload: params.length === 1 ? params[0] : params.length === 0 ? undefined : params
-    } as ActionTypes<AC>[keyof AC];
+    } as ActionTypes<AC>[K];
   }
 
   const dispatcherProxy = new Proxy<AC>({} as AC, {
@@ -304,6 +306,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
       return replayedPayloads;
     },
     dispatchFactory: dispatchFactory as SimpleActionDispatchFactory<AC>,
+    dispatchStream: actionUpstream,
     action$,
     payloadByType: payloadByTypeProxy,
     actionByType: actionByTypeProxy,
@@ -316,6 +319,10 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
     _actionFromObject(obj: {t: string; p: any}) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       actionUpstream.next({type: typePrefix + obj.t, payload: obj.p} as ActionTypes<AC>[keyof AC]);
+    },
+    objectToAction(obj: {t: string; p: any}) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      return {type: typePrefix + obj.t, payload: obj.p} as ActionTypes<AC>[keyof AC];
     },
     _actionToObject(action: ActionTypes<AC>[keyof AC]) {
       return {t: nameOfAction(action) as string, p: action.payload};

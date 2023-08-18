@@ -23,6 +23,6 @@
   },
   "devDependencies": {
     "@wfh/eslint-config-cra": "./src/tools/eslint-config-cra",
-    "typescript": "^4.9.0"
+    "typescript": "^5.1.6"
   }
 }

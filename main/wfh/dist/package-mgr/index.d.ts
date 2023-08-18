@@ -19,7 +19,7 @@ export interface PackageInfo {
     realPath: string;
     isInstalled: boolean;
 }
-export declare type PlinkJsonType = {
+export type PlinkJsonType = {
     typeRoot?: string;
     type?: 'server' | string[] | string;
     serverPriority?: string | number;

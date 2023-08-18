@@ -11,16 +11,17 @@ export type BaseReactComponentAction = {
     factory: (control: ActionStreamControl<BaseReactComponentAction & A>) => rx.Observable<any>
   ): void;
 };
+
 // eslint-disable-next-line space-before-function-paren
-export function createActionStreamWithEpic(
+export function createActionStreamWithEpic<A extends Record<string, (...a: any[]) => void> = Record<string, never>>(
   opts?: Parameters<typeof createActionStreamByType>[0]
 ) {
-  const ctrl = createActionStreamByType<BaseReactComponentAction>(opts);
-  const {dispatcher, payloadByType: pt} = ctrl;
+  const ctrl = createActionStreamByType<BaseReactComponentAction & A>(opts);
+  const {dispatcher, payloadByType: pt} = ctrl as ActionStreamControl<BaseReactComponentAction>;
 
   rx.merge(
     pt.addEpic.pipe(
-      op.mergeMap(epic => epic(ctrl))
+      op.mergeMap(factory => factory(ctrl as ActionStreamControl<BaseReactComponentAction>))
     )
   ).pipe(
     op.takeUntil(pt.onUnmount),

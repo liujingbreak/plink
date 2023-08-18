@@ -284,24 +284,6 @@ class RedBlackTree {
     isBlack(node) {
         return node == null || !node.isRed;
     }
-    /**
-     * To be extend and overridden
-     */
-    onLeftChildChange(_parent, _child) {
-    }
-    /**
-     * To be extend and overridden
-     */
-    onRightChildChange(_parent, _child) {
-    }
-    updateNodeSize(node) {
-        var _a, _b, _c, _d;
-        let z = node;
-        while (z) {
-            z.size = z.weight + ((_b = (_a = z.left) === null || _a === void 0 ? void 0 : _a.size) !== null && _b !== void 0 ? _b : 0) + ((_d = (_c = z.right) === null || _c === void 0 ? void 0 : _c.size) !== null && _d !== void 0 ? _d : 0);
-            z = z.p;
-        }
-    }
     deleteNode(z) {
         let y = z;
         let origIsRed = this.isRed(y);
@@ -340,6 +322,24 @@ class RedBlackTree {
             this.deleteFixup(x);
         }
         return true;
+    }
+    /**
+     * To be extend and overridden
+     */
+    onLeftChildChange(_parent, _child) {
+    }
+    /**
+     * To be extend and overridden
+     */
+    onRightChildChange(_parent, _child) {
+    }
+    updateNodeSize(node) {
+        var _a, _b, _c, _d;
+        let z = node;
+        while (z) {
+            z.size = z.weight + ((_b = (_a = z.left) === null || _a === void 0 ? void 0 : _a.size) !== null && _b !== void 0 ? _b : 0) + ((_d = (_c = z.right) === null || _c === void 0 ? void 0 : _c.size) !== null && _d !== void 0 ? _d : 0);
+            z = z.p;
+        }
     }
     deleteFixup(x) {
         while (x !== this.root && this.isBlack(x)) {

@@ -223,6 +223,9 @@ exports.PlinkCommand = PlinkCommand;
 class PlinkCmdOption extends commander_1.default.Option {
 }
 class CommandOverrider {
+    set nameStyler(v) {
+        this.ctx.nameStyler = v;
+    }
     constructor(program, ws) {
         this.program = program;
         this.pkgMetasMap = new Map();
@@ -235,9 +238,6 @@ class CommandOverrider {
         this.program.loadedCmdMap = new Map();
         this.program.addGlobalOptionsToSubCmds = PlinkCommand.prototype.addGlobalOptionsToSubCmds;
         this.program.createHelp = PlinkCommand.prototype.createHelp;
-    }
-    set nameStyler(v) {
-        this.ctx.nameStyler = v;
     }
     forPackage(pk, pkgFilePath, funcName) {
         const commandMetaInfos = this.ctx.currCliPkgMataInfos = [];

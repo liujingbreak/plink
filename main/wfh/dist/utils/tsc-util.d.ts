@@ -1,7 +1,7 @@
 import _ts from 'typescript';
 import * as rx from 'rxjs';
 import chokidar from 'chokidar';
-declare type TscOptions = {
+type TscOptions = {
     jsx?: boolean;
     inlineSourceMap?: boolean;
     emitDeclarationOnly?: boolean;
@@ -27,7 +27,7 @@ export declare enum LogLevel {
     log = 1,
     error = 2
 }
-declare type LangServiceActionCreator = {
+type LangServiceActionCreator = {
     watch(dirs: string[]): void;
     addSourceFile(file: string, sync: boolean, content?: string): void;
     changeSourceFile(file: string, content: string | undefined | null): void;
@@ -75,7 +75,7 @@ export declare function languageServices(ts?: any, opts?: {
         type: string;
         payload: unknown;
     }>;
-    ofType: import("../../../packages/redux-toolkit-observable/dist/rx-utils").OfTypeFn<LangServiceActionCreator>;
+    ofType: import("../../../packages/redux-toolkit-observable/rx-utils").OfTypeFn<LangServiceActionCreator>;
     store: rx.Observable<Set<string>>;
 };
 export declare function registerNode(): void;

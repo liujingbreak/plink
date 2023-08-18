@@ -158,6 +158,9 @@ function default_1(webpackEnv) {
                         webpackImporter: false,
                         sourceMap: true,
                         sassOptions: {
+                            // According to https://github.com/material-components/material-components-web/blob/master/docs/getting-started.md#appendix-configuring-a-sass-importer-for-nested-node_modules
+                            // it's better to implement a "importer" property here to help Sass resolve @matertial modules,
+                            // otherwise Sass will always load top level packages from "includePaths" (node_modules) instead of Node's module resolution algorithm
                             includePaths: ['node_modules', ...nodePath]
                         }
                     };

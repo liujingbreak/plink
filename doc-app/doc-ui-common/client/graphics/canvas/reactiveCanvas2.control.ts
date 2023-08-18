@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {createActionStreamWithEpic, ActionStreamControl, BaseReactComponentAction} from '../../reactive-base';
+import {createActionStreamWithEpic, BaseReactComponentAction} from '../../reactive-base';
 import type {ReactiveCanvas2InternalActions, ReactiveCanvas2Actions} from './types';
 
 export type CanvasActions = {
@@ -10,7 +10,7 @@ export type CanvasActions = {
 };
 
 export function createDomControl() {
-  const ctrl = createActionStreamWithEpic({debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false});
+  const ctrl = createActionStreamWithEpic< BaseReactComponentAction & CanvasActions & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>({debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false});
   const onPointerMove$ = new rx.Subject<[number, number]>();
 
   ctrl.dispatcher.addEpic<CanvasActions & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>(ctrl => {
@@ -93,7 +93,7 @@ export function createDomControl() {
   });
 
   return [
-    ctrl as ActionStreamControl< BaseReactComponentAction & CanvasActions & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>,
+    ctrl,
     function onPointerMove(x: number, y: number) {
       onPointerMove$.next([x, y]);
     }

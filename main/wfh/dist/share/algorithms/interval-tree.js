@@ -48,6 +48,10 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
         return valueContainer;
     }
     deleteInterval(low, high) {
+        if (low > high) {
+            const temp = high = low;
+            low = temp;
+        }
         const node = this.search(low);
         if (node == null)
             return false;
@@ -78,6 +82,22 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
             }
         }
         return false;
+    }
+    searchIntervalNode(low, high) {
+        if (low > high) {
+            const temp = high = low;
+            low = temp;
+        }
+        const node = this.search(low);
+        if (node == null)
+            return null;
+        if (node.int && node.int[1] === high) {
+            return node;
+        }
+        else if (node.highValuesTree) {
+            return node.highValuesTree.search(high);
+        }
+        return null;
     }
     searchSingleOverlap(low, high) {
         let node = this.root;

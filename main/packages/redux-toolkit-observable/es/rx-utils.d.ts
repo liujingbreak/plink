@@ -2,7 +2,7 @@
  * redux-observable like async reactive actions, side effect utilities
  * https://redux-observable.js.org/
  */
-import { Observable, OperatorFunction } from 'rxjs';
+import { Observable, Subject, OperatorFunction } from 'rxjs';
 type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
 export type ActionTypes<AC> = {
     [K in keyof AC]: {
@@ -51,6 +51,7 @@ export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>
     /** create `ReplaySubject(1)` for each `payloadByType` */
     createLatestPayloads: CreateReplayableFn<AC>;
     dispatcher: AC;
+    dispatchStream: Subject<ActionTypes<AC>[keyof AC]>;
     payloadByType: PayloadStreams<AC>;
     actionByType: {
         [T in keyof AC]: Observable<ActionTypes<AC>[T]>;
@@ -61,12 +62,16 @@ export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>
     actionOfType<T extends keyof AC>(type: T): Observable<ActionTypes<AC>[T]>;
     changeActionInterceptor<T extends keyof AC>(interceptorFactory: (originalInterceptor: OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]> | null) => OperatorFunction<ActionTypes<AC>[T], ActionTypes<AC>[T]>): void;
     action$: Observable<ActionTypes<AC>[keyof AC]>;
-    createAction<K extends keyof AC>(type: K, ...params: Parameters<AC[K]>): ActionTypes<AC>[keyof AC];
+    createAction<K extends keyof AC>(type: K, ...params: Parameters<AC[K]>): ActionTypes<AC>[K];
     ofType: OfTypeFn<AC>;
     isActionType<K extends keyof AC>(action: {
         type: unknown;
     }, type: K): action is ActionTypes<AC>[K];
     nameOfAction(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
+    objectToAction(obj: {
+        t: string;
+        p: any;
+    }): ActionTypes<AC>[keyof AC];
     _actionFromObject(obj: {
         t: string;
         p: any;

@@ -85,25 +85,26 @@ const MarkdownIndex = ({ mdKey, contentRef, toc, scrollBodyEl, indexOpen }: Mark
     dispatcher.addScrollCallback(handleScroll);
   }, [scrollBodyEl]);
 
+  // eslint-disable-next-line multiline-ternary
   return toc && toc.length > 0 ? (
     <div className={classnames({
       'md-index': true,
       isTop
     })} ref={wrapperRef}>
-      <div className='md-index-head' onClick={toggleIndex}>
-        <h2 className='md-index-title'>目录</h2>
-        <i className='md-index-icon material-icons mdc-icon-button__icon mdc-icon-button__icon--on'>{indexOpen ? 'expand_less' : 'expand_more'}</i>
+      <div className="md-index-head" onClick={toggleIndex}>
+        <h2 className="md-index-title">目录</h2>
+        <i className="md-index-icon material-icons mdc-icon-button__icon mdc-icon-button__icon--on">{indexOpen ? 'expand_less' : 'expand_more'}</i>
       </div>
       <div className={classnames({
         'md-index-content': true,
         open: indexOpen
       })} ref={bodyRef}>
-        <ul className='md-index-list' ref={listRef}>
+        <ul className="md-index-list" ref={listRef}>
           {toc.map((item) => (
             <li
               key={item.id}
               // href={`#${item.id}`}
-              className='md-index-link'
+              className="md-index-link"
               onClick={() => handleIndexItemClick(item)}
             >{item.text}</li>
           ))}

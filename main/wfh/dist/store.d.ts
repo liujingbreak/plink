@@ -3,7 +3,7 @@ import { StateFactory, ofPayloadAction } from '../../packages/redux-toolkit-obse
 import { createReducers, action$Of, castByActionType } from '../../packages/redux-toolkit-observable/dist/helper';
 export { ofPayloadAction, createReducers, action$Of, castByActionType };
 declare const PROCESS_MSG_TYPE = "rtk-observable:state";
-export declare type ProcessStateSyncMsg = {
+export type ProcessStateSyncMsg = {
     type: typeof PROCESS_MSG_TYPE;
     data: string;
 };
@@ -15,7 +15,7 @@ export declare const lastSavedState: any;
  * and its better after most of the slices havee been defined
  */
 export declare const stateFactory: StateFactory;
-export declare type StoreSetting = {
+export type StoreSetting = {
     actionOnExit: 'save' | 'send' | 'none';
     stateChangeCount: number;
 };

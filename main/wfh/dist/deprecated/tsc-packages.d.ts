@@ -33,6 +33,6 @@ export interface PackageJsonTscPropertyItem {
     /** "references" in tsconfig https://www.typescriptlang.org/docs/handbook/project-references.html */
     references?: string[];
 }
-export declare type PackageJsonTscProperty = PackageJsonTscPropertyItem | PackageJsonTscPropertyItem[];
+export type PackageJsonTscProperty = PackageJsonTscPropertyItem | PackageJsonTscPropertyItem[];
 export declare function tsc(opts: TscCmdParam): Observable<unknown>;
 export declare function generateTsconfigFiles(pkgs: Iterable<string>, opts: TscCmdParam): Observable<string>;

@@ -47,6 +47,9 @@ function parseName(longName) {
 // module.exports.default = NodeApi; // To be available for ES6/TS import syntax 
 // var suppressWarn4Urls = config.get('suppressWarning.assetsUrl', []).map(line => new RegExp(line));
 class NodeApi {
+    get contextPath() {
+        return this._contextPath();
+    }
     constructor(packageName, packageInstance) {
         this.packageName = packageName;
         this.packageInstance = packageInstance;
@@ -60,9 +63,6 @@ class NodeApi {
         this.packageShortName = parseName(packageName).name;
         // this.contextPath = this._contextPath();
         this.logger = (0, log4js_1.getLogger)(this.packageName);
-    }
-    get contextPath() {
-        return this._contextPath();
     }
     /**
      * return A log witch catgory name "<package name>.<nameAfterPackageName>"

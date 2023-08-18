@@ -56,7 +56,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
 
   React.useEffect(() => {
     const sub = scrollEvent$.pipe(
-      op.throttleTime(300, undefined, {trailing: true}),
+      op.throttleTime(150, undefined, {trailing: true}),
       op.tap(event => slice.actionDispatcher._onScroll(event))
     ).subscribe();
     return () => sub.unsubscribe();

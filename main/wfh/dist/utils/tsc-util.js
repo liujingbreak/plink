@@ -116,7 +116,7 @@ var LogLevel;
     LogLevel[LogLevel["trace"] = 0] = "trace";
     LogLevel[LogLevel["log"] = 1] = "log";
     LogLevel[LogLevel["error"] = 2] = "error";
-})(LogLevel = exports.LogLevel || (exports.LogLevel = {}));
+})(LogLevel || (exports.LogLevel = LogLevel = {}));
 function languageServices(ts = typescript_1.default, opts = {}) {
     const ts0 = ts;
     const { dispatcher, dispatchFactory, action$, actionOfType, ofType } = (0, rx_utils_1.createActionStreamByType)();
