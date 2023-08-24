@@ -43,6 +43,8 @@
     "packages/redux-toolkit-observable/**/*.ts",
     "packages/thread-promise-pool/ts/**/*.ts",
     "packages/reactive-terminal-ui/src/**/*.ts",
+    "packages/reactivizer/src/**/*.ts",
+    "packages/reactivizer/__tests__/**/*.ts",
     "wfh/share/**/*.ts"
   ],
   "exclude": [

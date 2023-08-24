@@ -6,7 +6,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nameOfAction = exports.createActionStreamByType = exports.createActionStream = void 0;
 const rxjs_1 = require("rxjs");
-const operators_1 = require("rxjs/operators");
 let SEQ = 0;
 /**
  * @Deprecated
@@ -41,13 +40,13 @@ function createActionStream(actionCreator, debug) {
         dispatcher[type] = dispatch;
     }
     const action$ = debug
-        ? actionUpstream.pipe((0, operators_1.tap)(typeof window !== 'undefined'
+        ? actionUpstream.pipe((0, rxjs_1.tap)(typeof window !== 'undefined'
             ? action => {
                 // eslint-disable-next-line no-console
                 console.log('%c rx:action ', 'color: white; background: #8c61ff;', action.type);
             }
             // eslint-disable-next-line no-console
-            : action => console.log('rx:action', action.type)), (0, operators_1.share)())
+            : action => console.log('rx:action', action.type)), (0, rxjs_1.share)())
         : actionUpstream;
     return {
         dispatcher,
@@ -123,9 +122,9 @@ function createActionStreamByType(opt = {}) {
             let p$ = payloadsByType[key];
             if (p$ == null) {
                 const matchType = typePrefix + key;
-                p$ = payloadsByType[key] = action$.pipe((0, operators_1.filter)(({ type }) => type === matchType), 
+                p$ = payloadsByType[key] = action$.pipe((0, rxjs_1.filter)(({ type }) => type === matchType), 
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                (0, operators_1.map)(action => action.payload), (0, operators_1.share)());
+                (0, rxjs_1.map)(action => action.payload), (0, rxjs_1.share)());
             }
             return p$;
         }
@@ -138,36 +137,36 @@ function createActionStreamByType(opt = {}) {
     }
     const debuggableAction$ = opt.debug
         ? actionUpstream.pipe(opt.log ?
-            (0, operators_1.tap)(action => opt.log(debugName + 'rx:action', nameOfAction(action))) :
+            (0, rxjs_1.tap)(action => opt.log(debugName + 'rx:action', nameOfAction(action))) :
             (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                (0, operators_1.tap)(action => {
+                (0, rxjs_1.tap)(action => {
                     // eslint-disable-next-line no-console
                     console.log(`%c ${debugName}rx:action `, 'color: white; background: #8c61ff;', nameOfAction(action), action.payload === undefined ? '' : action.payload);
                 })
                 :
                     // eslint-disable-next-line no-console
-                    (0, operators_1.tap)(action => console.log(debugName + 'rx:action', nameOfAction(action), action.payload === undefined ? '' : action.payload)), (0, operators_1.share)())
+                    (0, rxjs_1.tap)(action => console.log(debugName + 'rx:action', nameOfAction(action), action.payload === undefined ? '' : action.payload)), (0, rxjs_1.share)())
         : actionUpstream;
-    const action$ = interceptor$.pipe((0, operators_1.switchMap)(interceptor => interceptor ?
-        debuggableAction$.pipe(interceptor, (0, operators_1.share)()) :
+    const action$ = interceptor$.pipe((0, rxjs_1.switchMap)(interceptor => interceptor ?
+        debuggableAction$.pipe(interceptor, (0, rxjs_1.share)()) :
         debuggableAction$));
     function debugLogLatestActionOperator(type) {
         return opt.log ?
-            (0, operators_1.map)((payload, idx) => {
+            (0, rxjs_1.map)((payload, idx) => {
                 if (idx === 0) {
                     opt.log(debugName + 'rx:latest', type);
                 }
                 return payload;
             }) :
             (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                (0, operators_1.map)((payload, idx) => {
+                (0, rxjs_1.map)((payload, idx) => {
                     if (idx === 0) {
                         // eslint-disable-next-line no-console
                         console.log(`%c ${debugName}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, payload === undefined ? '' : payload);
                     }
                     return payload;
                 }) :
-                (0, operators_1.map)((payload, idx) => {
+                (0, rxjs_1.map)((payload, idx) => {
                     if (idx === 0) {
                         // eslint-disable-next-line no-console
                         console.log(debugName + 'rx:action', type, payload === undefined ? '' : payload);
@@ -236,7 +235,7 @@ function createOfTypeOperator(typePrefix = '') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return upstream.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        (0, operators_1.filter)((action) => matchTypes.some(type => action.type === type)), (0, operators_1.share)());
+        (0, rxjs_1.filter)((action) => matchTypes.some(type => action.type === type)), (0, rxjs_1.share)());
     };
 }
 // type TestActions<X extends string> = {

@@ -1,0 +1,31 @@
+{
+  "name": "@wfh/reactivizer",
+  "version": "1.0.0",
+  "description": "Another RxJS auxiliary tool, which \"reactive-ize\" plain Javascript (Typescript) object",
+  "main": "dist/index.js",
+  "module": "es/index.js",
+  "type": "commonjs",
+  "types": "dist/index.d.ts",
+  "plink": {
+    "tsc": {
+      "src": "src",
+      "dest": "es"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "peerDependencies": {
+    "rxjs": "^7.8.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liujingbreak/dr-comp-package.git"
+  },
+  "keywords": [
+    "rxjs", "reactive", "rx"
+  ],
+  "author": "Liu Jing",
+  "license": "MIT"
+}

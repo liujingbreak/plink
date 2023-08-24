@@ -11,7 +11,7 @@
     "cli": "./dist/cli/cmd.js#default"
   },
   "dependencies": {
-    "rxjs": "~6.4.0",
+    "rxjs": "^7.8.1",
     "lodash": "^4.17.21",
     "chalk": "^4.1.0",
     "markdown-it": "12.0.4",

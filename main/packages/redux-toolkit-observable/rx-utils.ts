@@ -3,8 +3,8 @@
  * https://redux-observable.js.org/
  */
 
-import {Observable, Subject, OperatorFunction, BehaviorSubject, ReplaySubject} from 'rxjs';
-import {switchMap, filter, map, tap, share} from 'rxjs/operators';
+import {Observable, Subject, OperatorFunction, BehaviorSubject, ReplaySubject,
+  switchMap, filter, map, tap, share} from 'rxjs';
 
 type Plen<T> = (T extends (...a: infer A) => any ? A : [])['length'];
 
@@ -297,7 +297,7 @@ export function createActionStreamByType<AC extends Record<string, ((...payload:
       for (const key of types) {
         const r$ = new ReplaySubject<InferParam<AC[R]>>(1);
         replayedPayloads[key] = opt.debug ?
-          r$.asObservable().pipe(
+          r$.pipe(
             debugLogLatestActionOperator(key as string)
           ) :
           r$.asObservable();
@@ -344,14 +344,15 @@ export function nameOfAction<AC extends Record<string, ((...payload: any[]) => v
 }
 
 export interface OfTypeFn<AC> {
-  <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
-  <T extends keyof AC, T2 extends keyof AC>(type: T, type2: T2): (
-    upstream: Observable<any>
-  ) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2]>;
-  <T extends keyof AC, T2 extends keyof AC, T3 extends keyof AC>(type: T, type2: T2, type3: T3): (
-    upstream: Observable<any>
-  ) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2] | ActionTypes<AC>[T3]>;
-  <T extends keyof AC>(...types: T[]): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+  // <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+  // <T extends keyof AC, T2 extends keyof AC>(type: T, type2: T2): (
+  //   upstream: Observable<any>
+  // ) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2]>;
+  // <T extends keyof AC, T2 extends keyof AC, T3 extends keyof AC>(type: T, type2: T2, type3: T3): (
+  //   upstream: Observable<any>
+  // ) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2] | ActionTypes<AC>[T3]>;
+  // eslint-disable-next-line @typescript-eslint/prefer-function-type
+  <T extends keyof AC>(...types: [T, ...T[]]): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
 }
 
 function createIsActionTypeFn<AC>(prefix: string) {
@@ -362,7 +363,7 @@ function createIsActionTypeFn<AC>(prefix: string) {
 
 /** create rx a operator to filter action by action.type */
 function createOfTypeOperator<AC>(typePrefix = ''): OfTypeFn<AC> {
-  return <T extends keyof AC>(...types: T[]) =>
+  return <T extends keyof AC>(...types: [T, ...T[]]) =>
     (upstream: Observable<any>) => {
       const matchTypes = types.map(type => typePrefix + (type as string));
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

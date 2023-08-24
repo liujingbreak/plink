@@ -17,11 +17,11 @@ export function createActionStreamWithEpic<A extends Record<string, (...a: any[]
   opts?: Parameters<typeof createActionStreamByType>[0]
 ) {
   const ctrl = createActionStreamByType<BaseReactComponentAction & A>(opts);
-  const {dispatcher, payloadByType: pt} = ctrl as ActionStreamControl<BaseReactComponentAction>;
+  const {dispatcher, payloadByType: pt} = ctrl as unknown as ActionStreamControl<BaseReactComponentAction>;
 
   rx.merge(
     pt.addEpic.pipe(
-      op.mergeMap(factory => factory(ctrl as ActionStreamControl<BaseReactComponentAction>))
+      op.mergeMap(factory => factory(ctrl as unknown as ActionStreamControl<BaseReactComponentAction>))
     )
   ).pipe(
     op.takeUntil(pt.onUnmount),

@@ -9,7 +9,8 @@ import { createEpicMiddleware, ofType } from 'redux-observable';
 import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError } from 'rxjs/operators';
 export function ofPayloadAction(...actionCreators) {
-    return ofType(...actionCreators.map(c => c.type));
+    const types = actionCreators.map(c => c.type);
+    return ofType(...types);
 }
 const defaultSliceReducers = {
     _change: (state, action) => {

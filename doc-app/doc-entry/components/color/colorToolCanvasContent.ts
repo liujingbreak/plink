@@ -232,6 +232,7 @@ export function createHueCircle(root: Paintable) {
       // Emit some initial actions
       rx.defer(() => {
         dispatcher.setAuxiliaryEnabled(false);
+        return rx.EMPTY;
       })
     );
   });

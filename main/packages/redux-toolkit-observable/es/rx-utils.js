@@ -2,8 +2,7 @@
  * redux-observable like async reactive actions, side effect utilities
  * https://redux-observable.js.org/
  */
-import { Subject, BehaviorSubject, ReplaySubject } from 'rxjs';
-import { switchMap, filter, map, tap, share } from 'rxjs/operators';
+import { Subject, BehaviorSubject, ReplaySubject, switchMap, filter, map, tap, share } from 'rxjs';
 let SEQ = 0;
 /**
  * @Deprecated

@@ -34,7 +34,8 @@ export function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string
 OperatorFunction<any, PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
 export function ofPayloadAction<P, T extends string>(...actionCreators: ActionCreatorWithPayload<P, T>[]):
 OperatorFunction<any, PayloadAction<P, T>> {
-  return ofType(...actionCreators.map(c => c.type)) as OperatorFunction<any, PayloadAction<P, T>>;
+  const types = actionCreators.map(c => c.type) as [T, ...T[]];
+  return ofType(...types);
 }
 
 export interface ErrorState {

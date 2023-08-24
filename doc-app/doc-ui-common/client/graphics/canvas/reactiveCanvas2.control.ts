@@ -1,19 +1,51 @@
 import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
-import {createActionStreamWithEpic, BaseReactComponentAction} from '../../reactive-base';
+import * as op from 'rxjs';
+import {ReactorComposite} from '@wfh/reactivizer';
 import type {ReactiveCanvas2InternalActions, ReactiveCanvas2Actions} from './types';
 
 export type CanvasActions = {
   onDomChange(canvas: HTMLCanvasElement | null): void;
   setWorker(worker: Worker): void;
-  workerReady(): void;
+};
+
+export type CanvasEvents = {
+  workerReady(worker: Worker): void;
 };
 
 export function createDomControl() {
-  const ctrl = createActionStreamWithEpic< BaseReactComponentAction & CanvasActions & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>({debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false});
+  const reactorComp = new ReactorComposite<CanvasActions, CanvasEvents & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>({
+    debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false
+  });
+  // const ctrl = createActionStreamWithEpic< BaseReactComponentAction & CanvasActions & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>({debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false});
   const onPointerMove$ = new rx.Subject<[number, number]>();
 
-  ctrl.dispatcher.addEpic<CanvasActions & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>(ctrl => {
+  const {i, o} = reactorComp.getControl();
+
+  i.dp.mergeStream(i.pt.setWorker.pipe(
+    op.switchMap(([, worker]) => {
+      return new rx.Observable<void>(sub => {
+        const h = (event: MessageEvent<string>) => {
+          if (event.data === 'ready') {
+            o.dp.workerReady(worker);
+            sub.next();
+            sub.complete();
+          }
+        };
+        worker.addEventListener('message', h);
+        return () => worker.removeEventListener('message', h);
+      });
+    })
+  ), false, 'setWorker');
+
+  i.dp.mergeStream(onPointerMove$.pipe(
+    op.throttleTime(100),
+    op.withLatestFrom(o.pt.workerReady),
+    op.map(([[x, y], [, worker]]) => {
+      worker.postMessage({type: 'onPointMove', x, y});
+    })
+  ), false, 'onPointerMove');
+
+  i.dp.mergeStream(ctrl => {
     const {dispatcher, payloadByType, actionByType, _actionToObject, isActionType} = ctrl;
 
     return rx.merge(

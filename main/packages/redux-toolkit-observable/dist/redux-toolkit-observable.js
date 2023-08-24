@@ -12,7 +12,8 @@ const redux_observable_1 = require("redux-observable");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 function ofPayloadAction(...actionCreators) {
-    return (0, redux_observable_1.ofType)(...actionCreators.map(c => c.type));
+    const types = actionCreators.map(c => c.type);
+    return (0, redux_observable_1.ofType)(...types);
 }
 exports.ofPayloadAction = ofPayloadAction;
 const defaultSliceReducers = {

@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
+import * as op from 'rxjs';
 // import {Matrix, identity, compose} from 'transformation-matrix';
 import {mat4} from 'gl-matrix';
 import {createActionStreamByType, ActionStreamControl, PayloadStreams} from '@wfh/redux-toolkit-observable/es/rx-utils';
@@ -130,7 +130,7 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
 
   rx.merge(
     pt.setProp.pipe(
-      op.map(payload => {
+      rx.map(payload => {
         Object.assign(state, payload);
         if (hasOwnProperty(payload, 'width') || hasOwnProperty(payload, 'height')) {
           dispatcher.onResize(state.width, state.height);
@@ -201,7 +201,7 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
 
         return rx.merge(
           // Side effect on relative size change or parent resize
-          rx.combineLatest(
+          rx.combineLatest([
             rx.merge(
               rx.of([pState.width, pState.height]),
               pPayloads.onResize
@@ -213,7 +213,7 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
                 op.map(payload => [payload.relativeWidth, payload.relativeHeight])
               )
             )
-          ).pipe(
+          ]).pipe(
             op.map(([[pW, pH], [rW, rH]]) => {
               if (rW == null || rH == null)
                 return;

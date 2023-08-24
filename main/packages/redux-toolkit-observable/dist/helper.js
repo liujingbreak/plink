@@ -26,7 +26,7 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Refrigerator = exports.action$OfSlice = exports.action$Of = exports.sliceRefActionOp = exports.isActionOfCreator = exports.action$ByType = exports.castByActionType = exports.createReducers = exports.createSliceHelper = void 0;
 const rxjs_1 = require("rxjs");
-const op = __importStar(require("rxjs/operators"));
+const op = __importStar(require("rxjs"));
 const immer_1 = require("immer");
 const redux_toolkit_observable_1 = require("./redux-toolkit-observable");
 function createSliceHelper(stateFactory, opts) {

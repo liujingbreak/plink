@@ -1,0 +1,18 @@
+{
+  "extends": "../../wfh/tsconfig-base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "target": "ES2017",
+    "outDir": "dist",
+    "declaration": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "composite": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "es/**/*.ts",
+    "dist/**/*.ts",
+    "__tests__/**/*.ts"
+  ]
+}

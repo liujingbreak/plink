@@ -35,7 +35,8 @@
     "@wfh/http-server": "1.1.4",
     "@wfh/assets-processer": "1.1.67-2",
     "axios": "0.21.1",
-    "@wfh/material-components-react": "1.0.0"
+    "@wfh/material-components-react": "1.0.0",
+    "@wfh/reactivizer": "1.0.0"
   },
   "devDependencies": {
     "@wfh/plink-test": "1.0.0",
@@ -45,13 +46,13 @@
     "@wfh/translate-generator": "1.1.4",
     "@wfh/thread-promise-pool": "1.0.1-1",
     "@reduxjs/toolkit": "~1.9.3",
-    "redux-observable": "~1.2.0",
+    "redux-observable": "~2.0.0",
     "react-app-polyfill": "^2.0.0",
     "@wfh/express-app": "1.1.8",
     "@wfh/json-schema-gen": "1.0.18-0",
     "@wfh/tool-misc": "~1.1.1",
     "sass": "^1.38.1",
-    "rxjs": "~6.4.0"
+    "rxjs": "^7.8.1"
   },
   "overrides": {
     "jest": "^29.1.2",

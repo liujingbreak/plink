@@ -2,7 +2,7 @@ import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducer
   ActionCreatorWithPayload} from '@reduxjs/toolkit';
 import {Epic} from 'redux-observable';
 import {Observable, EMPTY, of, Subject, OperatorFunction} from 'rxjs';
-import * as op from 'rxjs/operators';
+import * as op from 'rxjs';
 import {immerable, Immutable} from 'immer';
 import {StateFactory, ExtraSliceReducers, ofPayloadAction} from './redux-toolkit-observable';
 
@@ -34,14 +34,14 @@ export function createSliceHelper<S extends Record<string, any>, R extends Slice
 
   const slice = stateFactory.newSlice(opts);
   const actionDispatcher = stateFactory.bindActionCreators(slice);
-  const destory$ = new Subject();
+  const destory$ = new Subject<void>();
   const action$ = new Subject<PayloadAction | Action>();
 
   new Observable(() => {
     // Release epic
     return stateFactory.addEpic(_action$ => {
       return _action$.pipe(
-        op.tap(action => action$.next(action)),
+        op.tap(action => action$.next(action as any)),
         op.ignoreElements()
       );
     }, opts.name);
@@ -193,7 +193,7 @@ export function action$ByType<S, R extends SliceCaseReducers<S>>(stateFactory: S
     const action$ = new Subject<PayloadAction | Action>();
     stateFactory.addEpic(_action$ => {
       return _action$.pipe(
-        op.tap(action => action$.next(action)),
+        op.tap(action => action$.next(action as any)),
         op.ignoreElements()
       );
     }, slice.name);

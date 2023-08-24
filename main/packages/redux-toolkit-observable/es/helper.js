@@ -1,6 +1,6 @@
 var _a, _b;
 import { Observable, EMPTY, of, Subject } from 'rxjs';
-import * as op from 'rxjs/operators';
+import * as op from 'rxjs';
 import { immerable } from 'immer';
 import { ofPayloadAction } from './redux-toolkit-observable';
 export function createSliceHelper(stateFactory, opts) {

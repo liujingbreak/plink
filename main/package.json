@@ -14,6 +14,8 @@
     "watch:node": "tsc -b tsconfig-plink.json -w",
     "build:es": "tsc -b tsconfig-es5.json",
     "build:redux": "tsc -p packages/redux-toolkit-observable/tsconfig-redux-toolkit.json && tsc -p packages/redux-toolkit-observable/tsconfig-redux-toolkit-es.json",
+    "build:rx": "tsc -b packages/reactivizer/tsconfig-all.json",
+    "watch:rx": "tsc -b -w packages/reactivizer/tsconfig-all.json",
     "clean": "rm -rf wfh/*.tsbuildinfo && rm -rf wfh/dist/*"
   },
   "repository": {
@@ -44,7 +46,7 @@
     "lru-cache": "^5.1.1",
     "os-locale": "^5.0.0",
     "require-injector": "^5.3.1",
-    "rxjs": "~6.4.0",
+    "rxjs": "^7.8.1",
     "semver": "^7.3.2",
     "tslint": "^5.9.1",
     "typescript": "^5.1.6",
@@ -53,7 +55,7 @@
     "@types/yamljs": "^0.2.31",
     "commander": "~8.2.0",
     "@reduxjs/toolkit": "~1.9.3",
-    "redux-observable": "~1.2.0",
+    "redux-observable": "~2.0.0",
     "log4js": "~6.6.1",
     "cfonts": "~2.8.6",
     "tslib": "^2.5.0",
