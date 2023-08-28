@@ -10,15 +10,21 @@ export type ReactorCompositeActions = {
 export type ReactorCompositeOutput = {
     onError(label: string, originError: any): void;
 };
-export declare class ReactorComposite<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>> {
+export type InferFuncReturnEventNames<I extends ActionFunctions> = {
+    [K in keyof I as `${K & string}Done`]: (p: ReturnType<I[K]> extends PromiseLike<infer P> ? P : ReturnType<I[K]> extends rx.Observable<infer OB> ? OB : ReturnType<I[K]>) => void;
+};
+export declare class ReactorComposite<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>> extends DuplexController<I & ReactorCompositeActions, O> {
     private opts?;
-    latestPayloads: {
+    protected latestCompActPayloads: {
         [K in 'mergeStream']: PayloadStream<ReactorCompositeActions, K>;
     };
-    l: ReactorComposite<I, O>['latestPayloads'];
-    protected control: DuplexController<ReactorCompositeActions, ReactorCompositeOutput>;
     constructor(opts?: DuplexOptions | undefined);
     startAll(): rx.Subscription;
-    getControl(): DuplexController<ReactorCompositeActions & I, ReactorCompositeOutput & O>;
+    reactivize<F extends {
+        [s: string]: (...a: any[]) => any;
+    }>(fObject: F): ReactorComposite<I & F, InferFuncReturnEventNames<F> & O>;
+    addReaction(...params: [stream: rx.Observable<any>, disableCatchError?: boolean, errorLabel?: string]): void;
+    /** Abbrevation of addReaction */
+    r(...params: [stream: rx.Observable<any>, disableCatchError?: boolean, errorLabel?: string]): void;
     protected handleError(upStream: rx.Observable<any>, label?: string): rx.Observable<any>;
 }

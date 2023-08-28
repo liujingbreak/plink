@@ -15,7 +15,7 @@ export class DuplexController<I extends ActionFunctions, O extends ActionFunctio
   outputControl: RxController<O>;
 
   constructor(opts?: DuplexOptions) {
-    this.inputControl = this.i = new RxController<I>({debug: opts?.debug + '.in', log: opts?.log});
-    this.outputControl = this.o = new RxController<O>({debug: opts?.debug + '.out', log: opts?.log});
+    this.inputControl = this.i = new RxController<I>({debug: opts?.debug ? opts?.debug + '.in' : false, log: opts?.log});
+    this.outputControl = this.o = new RxController<O>({debug: opts?.debug ? opts?.debug + '.out' : false, log: opts?.log});
   }
 }

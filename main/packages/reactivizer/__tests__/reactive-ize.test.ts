@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {describe, it, expect}  from '@jest/globals';
-import {RxController} from '../src';
+import {RxController, ReactorComposite} from '../src';
 
 type TestMessages = {
   msg1(): void;
@@ -59,5 +59,43 @@ describe('reactivizer', () => {
     ).subscribe();
     expect(countExpect).toBe(3);
   });
+
+  it('ReactorComposite reactivize should work', async () => {
+    const comp = new ReactorComposite<TestMessages>();
+    const actionResults = [] as any[];
+    comp.startAll();
+    comp.r(comp.i.pt.msg3.pipe(
+      rx.map(([, a, b]) => {
+        actionResults.push(a);
+      })
+    ));
+
+    const ctl3 = comp.reactivize({
+      hello(greeting: string) {return 'Yes ' + greeting; },
+      world(foobar: number) {
+        return Promise.resolve(foobar);
+      }
+    });
+    const ctl4 = ctl3.reactivize({
+      foobar() { return rx.of(1, 2, 3); }
+    });
+    ctl4.r(ctl4.o.pt.helloDone.pipe(rx.map(([, s]) => actionResults.push(s))));
+    ctl4.r(ctl4.o.pt.worldDone.pipe(rx.map(([, s]) => actionResults.push(s))));
+    ctl4.r(ctl4.o.pt.foobarDone.pipe(rx.map(([, s]) => actionResults.push(s))));
+
+
+
+    ctl4.i.dp.msg3('start');
+    ctl4.i.dp.hello('human');
+    ctl4.i.dp.world(998);
+    ctl4.i.dp.foobar();
+
+    await new Promise(r => setTimeout(r, 1000));
+
+    // eslint-disable-next-line no-console
+    console.log('actionResults: ', actionResults);
+    expect(actionResults).toEqual(['start', 'Yes human', 1, 2, 3, 998]);
+  });
 });
+
 
