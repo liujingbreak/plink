@@ -64,7 +64,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "sme": "sme",
-    "jest": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest -c node_modules/@wfh/plink-test/dist/jest.config.js --runTestsByPath"
+    "jest": "echo 'You need run environment setup: source set-jest-env.sh' && jest -c node_modules/@wfh/plink-test/dist/jest.config.js --runTestsByPath"
   },
   "eslintConfig": {
     "extends": [

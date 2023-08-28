@@ -31,11 +31,18 @@ class ReactorComposite extends duplex_1.DuplexController {
     constructor(opts) {
         super(opts);
         this.opts = opts;
-        this.latestCompActPayloads = this.i.createLatestPayloadsFor('mergeStream');
+        /** Abbrevation of addReaction */
+        this.r = (...params) => {
+            if (typeof params[0] === 'string')
+                this.reactorSubj.next(params);
+            else
+                this.reactorSubj.next(['', ...params]);
+        };
+        // this.latestCompActPayloads = (this as ReactorComposite<ReactorCompositeActions, ReactorCompositeOutput>).i.createLatestPayloadsFor('mergeStream');
+        this.reactorSubj = new rx.ReplaySubject(999);
     }
     startAll() {
-        const l = this.latestCompActPayloads;
-        return rx.merge(l.mergeStream.pipe(rx.mergeMap(([_id, downStream, noError, label]) => {
+        return rx.merge(this.reactorSubj.pipe(rx.mergeMap(([label, downStream, noError]) => {
             if (noError == null || !noError) {
                 downStream = this.handleError(downStream, label);
             }
@@ -54,34 +61,44 @@ class ReactorComposite extends duplex_1.DuplexController {
         const funcs = Object.entries(fObject);
         for (const [key, func] of funcs) {
             if (typeof func === 'function') {
-                const dispatch = this.o.core.dispatcherFactory((key + 'Done'));
-                this.i.dp.mergeStream(this.i.pt[key].pipe(rx.mergeMap(([, ...params]) => {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    const res = func.apply(fObject, params);
-                    if (rx.isObservable(res)) {
-                        return res;
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                    }
-                    else if ((res === null || res === void 0 ? void 0 : res.then) && (res === null || res === void 0 ? void 0 : res.catch)) {
-                        return rx.from(res);
-                    }
-                    else {
-                        dispatch(res);
-                    }
-                    return rx.EMPTY;
-                }), rx.map(res => {
-                    dispatch(res);
-                })));
+                this.reactivizeFunction(key, func, fObject);
             }
         }
         return this;
     }
+    /**
+     * It is just a declaration of mergeMap() operator, which merge an observable to the main stream
+     * which will be or has already been observed by `startAll()`.
+     * This is where we can add `side effect`s
+    * */
     addReaction(...params) {
         this.r(...params);
     }
-    /** Abbrevation of addReaction */
-    r(...params) {
-        this.i.dp.mergeStream(...params);
+    reactivizeFunction(key, func, funcThisRef) {
+        const resolveFuncKey = key + 'Resolved';
+        const finishFuncKey = key + 'Completed';
+        const dispatchResolved = this.o.core.dispatcherFactory(resolveFuncKey);
+        const dispatchCompleted = this.o.core.dispatcherFactory(finishFuncKey);
+        this.r(this.i.pt[key].pipe(rx.mergeMap(([id, ...params]) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const res = func.apply(funcThisRef, params);
+            if (rx.isObservable(res)) {
+                return res.pipe(rx.map(res => dispatchResolved(res, id)), rx.finalize(() => dispatchCompleted(id)));
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            }
+            else if ((res === null || res === void 0 ? void 0 : res.then) && (res === null || res === void 0 ? void 0 : res.catch)) {
+                return rx.from(res.then(resolved => {
+                    dispatchResolved(resolved, id);
+                    dispatchCompleted(id);
+                }));
+            }
+            else {
+                dispatchResolved(res, id);
+                dispatchCompleted(id);
+            }
+            return rx.EMPTY;
+        })));
+        return resolveFuncKey;
     }
     handleError(upStream, label) {
         return upStream.pipe(rx.catchError((err, src) => {

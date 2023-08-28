@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {describe, it, expect}  from '@jest/globals';
-import {RxController, ReactorComposite} from '../src';
+import {RxController, ReactorComposite, nameOfAction} from '../';
 
 type TestMessages = {
   msg1(): void;
@@ -60,42 +60,87 @@ describe('reactivizer', () => {
     expect(countExpect).toBe(3);
   });
 
+  it('RxController createLatestPayloadsFor should work', async () => {
+    const ctl = new ReactorComposite<TestMessages>();
+    const l = ctl.i.createLatestPayloadsFor('msg2');
+    ctl.i.dp.msg2('replay?');
+
+    let actual = await rx.firstValueFrom(l.msg2.pipe(
+      rx.map(([, v]) => v)
+    ));
+    expect(actual).toBe('replay?');
+
+    ctl.r(l.msg2.pipe(
+      rx.map(([, v]) => actual = v)
+    ));
+
+    ctl.i.dp.msg2('changed');
+    ctl.startAll();
+    expect(actual).toBe('changed');
+  });
+
   it('ReactorComposite reactivize should work', async () => {
-    const comp = new ReactorComposite<TestMessages>();
+    const comp = new ReactorComposite<TestMessages, {testOutput(): void;}>({debug: 'test'});
     const actionResults = [] as any[];
-    comp.startAll();
     comp.r(comp.i.pt.msg3.pipe(
       rx.map(([, a, b]) => {
-        actionResults.push(a);
+        comp.o.dp.testOutput();
       })
     ));
 
-    const ctl3 = comp.reactivize({
-      hello(greeting: string) {return 'Yes ' + greeting; },
+    const functions1 = {
+      hello(greeting: string) {
+        return 'Yes ' + greeting;
+      },
       world(foobar: number) {
         return Promise.resolve(foobar);
       }
-    });
-    const ctl4 = ctl3.reactivize({
+    };
+    const ctl3 = comp.reactivize(functions1);
+    const functions2 = {
       foobar() { return rx.of(1, 2, 3); }
-    });
-    ctl4.r(ctl4.o.pt.helloDone.pipe(rx.map(([, s]) => actionResults.push(s))));
-    ctl4.r(ctl4.o.pt.worldDone.pipe(rx.map(([, s]) => actionResults.push(s))));
-    ctl4.r(ctl4.o.pt.foobarDone.pipe(rx.map(([, s]) => actionResults.push(s))));
+    };
+    const ctl4 = ctl3.reactivize(functions2);
+    // ctl4.startAll();
+    const {r, i} = ctl4;
+    const actionResultIdByKey = new Map<`${keyof (typeof functions1 & typeof functions2)}Resolved`, number>();
+    const latest = ctl4.o.createLatestPayloadsFor('worldResolved', 'foobarResolved', 'helloResolved');
+    r(i.core.action$.pipe(
+      i.core.ofType('foobar', 'hello'),
+      rx.map(a => {})
+    ));
+    r(ctl4.o.pt.testOutput.pipe(
+      rx.map(([id]) => {
+        // eslint-disable-next-line no-console
+        console.log('on payload testOutput', id);
+      })
+    ));
+    const {at} = ctl4.o;
+    r(rx.merge(at.helloResolved, at.worldResolved, at.foobarResolved).pipe(
+      rx.map(({t, p: [s, calledId]}) => {
+        const type = nameOfAction({t})!;
+        actionResultIdByKey.set(type as any, calledId);
+        actionResults.push(s);
+      })
+    ));
 
+    ctl4.startAll();
+    i.dp.msg3('a', 1);
+    const helloId = i.dp.hello('human');
+    const worldId = i.dp.world(998);
+    const foobarId = i.dp.foobar();
 
-
-    ctl4.i.dp.msg3('start');
-    ctl4.i.dp.hello('human');
-    ctl4.i.dp.world(998);
-    ctl4.i.dp.foobar();
-
-    await new Promise(r => setTimeout(r, 1000));
+    await rx.firstValueFrom(latest.worldResolved);
+    // await new Promise(r => setTimeout(r, 8000));
 
     // eslint-disable-next-line no-console
     console.log('actionResults: ', actionResults);
-    expect(actionResults).toEqual(['start', 'Yes human', 1, 2, 3, 998]);
-  });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    expect(actionResults).toEqual(['Yes human', 1, 2, 3, 998]);
+    expect(actionResultIdByKey.get('foobarResolved')).toEqual(foobarId);
+    expect(actionResultIdByKey.get('helloResolved')).toEqual(helloId);
+    expect(actionResultIdByKey.get('worldResolved')).toEqual(worldId);
+  }, 10000);
 });
 
 

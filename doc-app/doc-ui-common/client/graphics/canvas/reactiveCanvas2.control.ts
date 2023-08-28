@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs';
-import {ReactorComposite} from '@wfh/reactivizer';
-import type {ReactiveCanvas2InternalActions, ReactiveCanvas2Actions} from './types';
+import {ReactorComposite, nameOfAction} from '@wfh/reactivizer';
+import type {ReactiveCanvasInputAction, ReactiveCanvas2Actions} from './types';
 
 export type CanvasActions = {
   onDomChange(canvas: HTMLCanvasElement | null): void;
@@ -13,15 +13,15 @@ export type CanvasEvents = {
 };
 
 export function createDomControl() {
-  const reactorComp = new ReactorComposite<CanvasActions, CanvasEvents & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>({
+  const re = new ReactorComposite<CanvasActions & ReactiveCanvasInputAction, ReactiveCanvas2Actions & CanvasEvents>({
     debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false
   });
-  // const ctrl = createActionStreamWithEpic< BaseReactComponentAction & CanvasActions & ReactiveCanvas2InternalActions & ReactiveCanvas2Actions>({debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false});
+  // const ctrl = createActionStreamWithEpic< BaseReactComponentAction & CanvasActions & ReactiveCanvasInputAction & ReactiveCanvas2Actions>({debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false});
   const onPointerMove$ = new rx.Subject<[number, number]>();
 
-  const {i, o} = reactorComp.getControl();
+  const {i, o, r} = re;
 
-  i.dp.mergeStream(i.pt.setWorker.pipe(
+  r(i.pt.setWorker.pipe(
     op.switchMap(([, worker]) => {
       return new rx.Observable<void>(sub => {
         const h = (event: MessageEvent<string>) => {
@@ -37,7 +37,7 @@ export function createDomControl() {
     })
   ), false, 'setWorker');
 
-  i.dp.mergeStream(onPointerMove$.pipe(
+  r(onPointerMove$.pipe(
     op.throttleTime(100),
     op.withLatestFrom(o.pt.workerReady),
     op.map(([[x, y], [, worker]]) => {
@@ -45,87 +45,50 @@ export function createDomControl() {
     })
   ), false, 'onPointerMove');
 
-  i.dp.mergeStream(ctrl => {
-    const {dispatcher, payloadByType, actionByType, _actionToObject, isActionType} = ctrl;
+  r(i.pt.onDomChange.pipe(
+    op.filter((p): p is [typeof p[0], NonNullable<typeof p[1]>] => p[1] != null),
+    op.distinctUntilChanged(),
+    op.map(([, canvas]) => {
+      const offscreen = canvas.transferControlToOffscreen();
+      re.o.dp._createOffscreen(offscreen);
+      return canvas;
+    }),
+    op.delay(150), // wait for DOM being rendering
+    op.switchMap(canvas => {
+      return rx.concat(
+        rx.of(null), // always prepend one `onResize` action for every `onDomChange` action
+        // payloadByType.onResize
+        rx.fromEvent<UIEvent>(window, 'resize').pipe(
+          op.throttleTime(333)
+        )
+      ).pipe(
+        op.map(() => {
+          const vw = canvas.parentElement!.clientWidth;
+          const vh = canvas.parentElement!.clientHeight;
+          re.o.dp.resizeViewport(vw, vh);
+        })
+      );
+    })
+  ));
+  // Pass below actions to worker when worker is ready
+  re.r(rx.combineLatest([
+    rx.merge(i.at.onClick, o.at.resizeViewport, i.at.changeRatio, i.at.onUnmount),
+    re.o.pt.workerReady
+  ]).pipe(
+    rx.map(([action, [, worker]]) => {
+      worker.postMessage({...action, t: nameOfAction(action)});
+    })
+  ));
 
-    return rx.merge(
-      // When `setWorker` is dispatched, wait for worker message of 'ready',
-      // then dispatch `workerReady`
-      payloadByType.setWorker.pipe(
-        op.switchMap(worker => {
-          return new rx.Observable(sub => {
-            const h = (event: MessageEvent<string>) => {
-              if (event.data === 'ready') {
-                dispatcher.workerReady();
-                sub.next();
-                sub.complete();
-              }
-            };
-            worker.addEventListener('message', h);
-            return () => worker.removeEventListener('message', h);
-          });
-        })
-      ),
-      onPointerMove$.pipe(
-        op.throttleTime(100),
-        op.withLatestFrom(payloadByType.setWorker),
-        op.map(([[x, y], worker]) => {
-          worker.postMessage({type: 'onPointMove', x, y});
-        })
-      ),
-      // 1. transferControlToOffscreen
-      // 2. listen to windows' resize event
-      payloadByType.onDomChange.pipe(
-        op.filter((canvas): canvas is NonNullable<typeof canvas> => canvas != null),
-        op.distinctUntilChanged(),
-        op.map(canvas => {
-          const offscreen = canvas.transferControlToOffscreen();
-          dispatcher._createOffscreen(offscreen);
-          return canvas;
-        }),
-        op.delay(150), // wait for DOM being rendering
-        op.switchMap(canvas => {
-          return rx.concat(
-            rx.of(null), // always prepend one `onResize` action for every `onDomChange` action
-            // payloadByType.onResize
-            rx.fromEvent<UIEvent>(window, 'resize').pipe(
-              op.throttleTime(333)
-            )
-          ).pipe(
-            op.map(() => {
-              const vw = canvas.parentElement!.clientWidth;
-              const vh = canvas.parentElement!.clientHeight;
-              dispatcher.resizeViewport(vw, vh);
-            })
-          );
-        })
-      ),
-      // Pass below actions to worker when worker is ready
-      rx.merge(...[
-        actionByType._onClick,
-        actionByType._createOffscreen,
-        actionByType.resizeViewport,
-        actionByType.changeRatio,
-        actionByType.onUnmount
-      ].map(actionToWorker$ => rx.combineLatest(
-        actionToWorker$,
-        actionByType.workerReady.pipe(op.take(1)),
-        payloadByType.setWorker.pipe(op.take(1))
-      ))).pipe(
-        op.map(([action, , worker]) => {
-          const serialized = _actionToObject(action);
-          if (isActionType(action, '_createOffscreen')) {
-            worker.postMessage(serialized, [action.payload]);
-          } else {
-            worker.postMessage(serialized);
-          }
-        })
-      )
-    );
-  });
+  // Pass below actions to worker when worker is ready
+  re.r(rx.combineLatest([re.o.at._createOffscreen, re.o.pt.workerReady]).pipe(
+    rx.map(([action, [, worker]]) => {
+      worker.postMessage({...action, t: nameOfAction(action)}, [...action.p]);
+    })
+  ));
 
   return [
-    ctrl,
+    re.i,
     function onPointerMove(x: number, y: number) {
       onPointerMove$.next([x, y]);
     }

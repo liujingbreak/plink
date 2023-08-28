@@ -17,4 +17,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./control"), exports);
 __exportStar(require("./duplex"), exports);
 __exportStar(require("./epic"), exports);
+__exportStar(require("./forkJoin-node-worker"), exports);
 //# sourceMappingURL=index.js.map

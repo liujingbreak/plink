@@ -146,7 +146,7 @@ export function createHueCircle(root: Paintable) {
         op.take(1),
         op.map(() => {dispatcher.startOpeningAnim(animateMgr.animate(0, 1, 500)); })
       ),
-      canvasController.payloadByType.onClicked.pipe(
+      canvasController.payloadByType.onSegmentsClicked.pipe(
         op.withLatestFrom(pt.setAuxiliaryEnabled, shapeChange$),
         op.map(([[segsKeys, cursorArr], auxiliary, hueShapes]) => {
           // eslint-disable-next-line no-console

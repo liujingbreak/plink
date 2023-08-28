@@ -31,11 +31,11 @@ const ReactiveCanvas = React.memo<ReactiveCanvasProps>(props => {
   }, [dispatcher, props.canvasMainWorker]);
 
   React.useEffect(() => {
-    return () => dispatcher.onUnmount();
+    return () => {dispatcher.onUnmount(); };
   }, [dispatcher]);
 
   const onClick = React.useCallback<React.PointerEventHandler>(evt => {
-    dispatcher._onClick(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY);
+    dispatcher.onClick(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY);
   }, [dispatcher]);
 
   const onPointerMove = React.useCallback<React.PointerEventHandler>(evt => {

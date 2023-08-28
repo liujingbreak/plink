@@ -9,7 +9,6 @@
   "include": ["src/**/*.ts"],
   "exclude": [
     "es/**/*.ts",
-    "dist/**/*.ts",
-    "__tests__/**/*.ts"
+    "dist/**/*.ts"
   ]
 }

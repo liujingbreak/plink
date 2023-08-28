@@ -23,30 +23,40 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nameOfAction = exports.RxController = exports.ControllerCore = void 0;
+exports.deserializeAction = exports.serializeAction = exports.nameOfAction = exports.RxController = exports.ControllerCore = void 0;
 const rx = __importStar(require("rxjs"));
 let SEQ = 1;
-let ACTION_SEQ = 1;
+let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 const has = Object.prototype.hasOwnProperty;
 class ControllerCore {
     constructor(opts) {
+        var _a;
         this.opts = opts;
         this.actionUpstream = new rx.Subject();
-        this.dispatcher = {};
         this.interceptor$ = new rx.BehaviorSubject(a => a);
         this.typePrefix = SEQ++ + '/';
+        this.dispatcher = {};
         this.debugName = typeof (opts === null || opts === void 0 ? void 0 : opts.debug) === 'string' ? `[${this.typePrefix}${opts.debug}] ` : this.typePrefix;
+        this.debugExcludeSet = new Set((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : []);
         const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
             ? this.actionUpstream.pipe((opts === null || opts === void 0 ? void 0 : opts.log) ?
                 rx.tap(action => opts.log(this.debugName + 'rx:action', nameOfAction(action))) :
                 (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
                     rx.tap(action => {
-                        // eslint-disable-next-line no-console
-                        console.log(`%c ${this.debugName}rx:action `, 'color: white; background: #8c61ff;', nameOfAction(action), action.p === undefined ? '' : action.p);
+                        const type = nameOfAction(action);
+                        if (!this.debugExcludeSet.has(type)) {
+                            // eslint-disable-next-line no-console
+                            console.log(`%c ${this.debugName}rx:action `, 'color: white; background: #8c61ff;', type, [action.i, ...action.p]);
+                        }
                     })
                     :
-                        // eslint-disable-next-line no-console
-                        rx.tap(action => console.log(this.debugName + 'rx:action', nameOfAction(action), action.p === undefined ? '' : action.p)), rx.share())
+                        rx.tap(action => {
+                            const type = nameOfAction(action);
+                            if (!this.debugExcludeSet.has(type)) {
+                                // eslint-disable-next-line no-console
+                                console.log(this.debugName + 'rx:action', type, action.p === undefined ? '' : [action.i, ...action.p]);
+                            }
+                        }), rx.share())
             : this.actionUpstream;
         this.action$ = this.interceptor$.pipe(rx.switchMap(interceptor => interceptor ?
             debuggableAction$.pipe(interceptor, rx.share()) :
@@ -57,7 +67,7 @@ class ControllerCore {
             t: this.typePrefix + type,
             i: ACTION_SEQ++,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            p: params
+            p: params !== null && params !== void 0 ? params : []
         };
     }
     dispatcherFactory(type) {
@@ -76,6 +86,7 @@ class ControllerCore {
         const newInterceptor = factory(this.interceptor$.getValue());
         this.interceptor$.next(newInterceptor);
     }
+    // eslint-disable-next-line space-before-function-paren
     ofType(...types) {
         return (up) => {
             const matchTypes = types.map(type => this.typePrefix + type);
@@ -107,18 +118,44 @@ class RxController {
         const payloadsByType = {};
         const payloadByTypeProxy = new Proxy({}, {
             get(_target, key, _rec) {
-                const a$ = actionByTypeProxy[key];
-                return a$.pipe(rx.map(a => [a.i, ...a.p]), rx.share());
+                let p$ = payloadsByType[key];
+                if (p$ == null) {
+                    const a$ = actionByTypeProxy[key];
+                    p$ = payloadsByType[key] = a$.pipe(rx.map(a => [a.i, ...a.p]), rx.share());
+                }
+                return p$;
             }
         });
         this.actionByType = this.at = actionByTypeProxy;
         this.payloadByType = this.pt = payloadByTypeProxy;
         this.replaceActionInterceptor = core.replaceActionInterceptor;
+        // const dispatchAndObserveCache = {} as {[K in keyof I]: (...params: InferPayload<I[K]>) => DispatchAndObserveFn<I, K>};
+        // this.dispatchAndObserve = this.dpno = new Proxy({} as typeof dispatchAndObserveCache, {
+        //   get(_target, type) {
+        //     let fn = dispatchAndObserveCache[type as keyof I];
+        //     if (fn == null) {
+        //       fn = dispatchAndObserveCache[type as keyof I] = (...params: InferPayload<I[keyof I]>) => {
+        //         let actionId: Action<any>['i'];
+        //         const observe = rx.merge(
+        //           new rx.Observable<never>(sub => {
+        //             actionId = dispatcher[type as keyof I](...params);
+        //           })
+        //         );
+        //         return {id, observe};
+        //       };
+        //     }
+        //     return fn;
+        //   }
+        // });
     }
     /**
-     * Conceptually, it is a "store store" like Apache Kafka's "table"
+     * Conceptually, it is a "state store" like Apache Kafka's "table"
      * From perspecitve of implementation, a map ReplaySubject which provides similiar function as rx.withLatestFrom() does
+     * @return Pick<...>
+     The reason using `Pick<{[K in keyof I]: PayloadStream<I, K>}, T[number]>` instead of `{[K in T[number]]: PayloadStream<I, K>` is that the former expression
+     makes Typescript to jump to `I` type definition source code when we perform operation like "Go to definition" in editor, the latter can't
      */
+    // eslint-disable-next-line space-before-function-paren
     createLatestPayloadsFor(...types) {
         var _a;
         const replayedPayloads = {};
@@ -152,7 +189,7 @@ class RxController {
                 rx.map((payload, idx) => {
                     if (idx === 0) {
                         // eslint-disable-next-line no-console
-                        console.log(this.core.debugName + 'rx:action', type, payload === undefined ? '' : payload);
+                        console.log(this.core.debugName + 'rx:latest', type, payload === undefined ? '' : payload);
                     }
                     return payload;
                 });
@@ -167,7 +204,17 @@ exports.RxController = RxController;
  */
 // eslint-disable-next-line space-before-function-paren
 function nameOfAction(action) {
-    return action.t.split('/')[1];
+    const elements = action.t.split('/');
+    return (elements.length > 1 ? elements[1] : elements[0]);
 }
 exports.nameOfAction = nameOfAction;
+function serializeAction(action) {
+    return Object.assign(Object.assign({}, action), { t: nameOfAction(action) });
+}
+exports.serializeAction = serializeAction;
+function deserializeAction(actionObj, toController) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return toController.dispatcher[actionObj.t](...actionObj.p);
+}
+exports.deserializeAction = deserializeAction;
 //# sourceMappingURL=control.js.map

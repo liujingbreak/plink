@@ -99,11 +99,12 @@ export type PayloadStreams<AC extends Record<string, (...a: any[]) => void>> = {
 };
 
 interface CreateReplayableFn<AC extends Record<string, (...a: any[]) => void>> {
-  <R1 extends keyof AC, R2 extends keyof AC>(actionType1: R1, at2: R2): PayloadStreams<Pick<AC, R1 | R2>>;
-  <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC>(actionType1: R1, at2: R2, at3: R3): PayloadStreams<Pick<AC, R1 | R2 | R3>>;
-  <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4>>;
-  <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC, R5 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4, at5: R5): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4 | R5>>;
-  <R extends keyof AC>(...actionTypes: R[]): PayloadStreams<Pick<AC, R>>;
+  // <R1 extends keyof AC, R2 extends keyof AC>(actionType1: R1, at2: R2): PayloadStreams<Pick<AC, R1 | R2>>;
+  // <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC>(actionType1: R1, at2: R2, at3: R3): PayloadStreams<Pick<AC, R1 | R2 | R3>>;
+  // <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4>>;
+  // <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC, R5 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4, at5: R5): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4 | R5>>;
+  // eslint-disable-next-line @typescript-eslint/prefer-function-type
+  <R extends (keyof AC)[]>(...actionTypes: R): PayloadStreams<Pick<AC, R[number]>>;
 }
 
 export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>> = {
@@ -352,7 +353,7 @@ export interface OfTypeFn<AC> {
   //   upstream: Observable<any>
   // ) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2] | ActionTypes<AC>[T3]>;
   // eslint-disable-next-line @typescript-eslint/prefer-function-type
-  <T extends keyof AC>(...types: [T, ...T[]]): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+  <T extends (keyof AC)[]>(...types: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T[number]]>;
 }
 
 function createIsActionTypeFn<AC>(prefix: string) {
@@ -363,13 +364,13 @@ function createIsActionTypeFn<AC>(prefix: string) {
 
 /** create rx a operator to filter action by action.type */
 function createOfTypeOperator<AC>(typePrefix = ''): OfTypeFn<AC> {
-  return <T extends keyof AC>(...types: [T, ...T[]]) =>
+  return <T extends (keyof AC)[]>(...types: T) =>
     (upstream: Observable<any>) => {
       const matchTypes = types.map(type => typePrefix + (type as string));
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return upstream.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        filter((action) : action is ActionTypes<AC>[T] => matchTypes.some(type => action.type === type)),
+        filter((action) : action is ActionTypes<AC>[T[number]] => matchTypes.some(type => action.type === type)),
         share()
       ) ;
     };

@@ -1,30 +1,35 @@
 import * as rx from 'rxjs';
-import { RxController, ActionFunctions, PayloadStream } from './control';
+import { Action, RxController, ActionFunctions } from './control';
 import { DuplexController, DuplexOptions } from './duplex';
 export type Reactor<I extends ActionFunctions> = (ctl: RxController<I>) => rx.Observable<any>;
 export type DuplexReactor<I extends ActionFunctions, O extends ActionFunctions> = (ctl: DuplexController<I, O>) => rx.Observable<any>;
 export type ReactorCompositeActions = {
-    mergeStream(stream: rx.Observable<any>, disableCatchError?: boolean, errorLabel?: string): void;
     stopAll(): void;
 };
 export type ReactorCompositeOutput = {
     onError(label: string, originError: any): void;
 };
-export type InferFuncReturnEventNames<I extends ActionFunctions> = {
-    [K in keyof I as `${K & string}Done`]: (p: ReturnType<I[K]> extends PromiseLike<infer P> ? P : ReturnType<I[K]> extends rx.Observable<infer OB> ? OB : ReturnType<I[K]>) => void;
+export type InferFuncReturnEvents<I extends ActionFunctions> = {
+    [K in keyof I as `${K & string}Resolved`]: (p: ReturnType<I[K]> extends PromiseLike<infer P> ? P : ReturnType<I[K]> extends rx.Observable<infer OB> ? OB : ReturnType<I[K]>, callerActionId: Action<I>['i']) => void;
+} & {
+    [K in keyof I as `${K & string}Completed`]: (callerActionId: Action<I>['i']) => void;
 };
-export declare class ReactorComposite<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>> extends DuplexController<I & ReactorCompositeActions, O> {
+export declare class ReactorComposite<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>> extends DuplexController<I & ReactorCompositeActions, O & ReactorCompositeOutput> {
     private opts?;
-    protected latestCompActPayloads: {
-        [K in 'mergeStream']: PayloadStream<ReactorCompositeActions, K>;
-    };
+    protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
     constructor(opts?: DuplexOptions | undefined);
     startAll(): rx.Subscription;
     reactivize<F extends {
         [s: string]: (...a: any[]) => any;
-    }>(fObject: F): ReactorComposite<I & F, InferFuncReturnEventNames<F> & O>;
-    addReaction(...params: [stream: rx.Observable<any>, disableCatchError?: boolean, errorLabel?: string]): void;
+    }>(fObject: F): ReactorComposite<I & F, { [K in keyof F as `${K & string}Resolved`]: (p: ReturnType<F[K]> extends PromiseLike<infer P> ? P : ReturnType<F[K]> extends rx.Observable<infer OB> ? OB : ReturnType<F[K]>, callerActionId: number) => void; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: (callerActionId: number) => void; } & O>;
+    /**
+     * It is just a declaration of mergeMap() operator, which merge an observable to the main stream
+     * which will be or has already been observed by `startAll()`.
+     * This is where we can add `side effect`s
+    * */
+    addReaction(...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean]): void;
     /** Abbrevation of addReaction */
-    r(...params: [stream: rx.Observable<any>, disableCatchError?: boolean, errorLabel?: string]): void;
+    r: (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => void;
+    protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     protected handleError(upStream: rx.Observable<any>, label?: string): rx.Observable<any>;
 }
