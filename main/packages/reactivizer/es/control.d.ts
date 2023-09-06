@@ -3,47 +3,69 @@ export type ActionFunctions = {
     [k: string]: any;
 };
 type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
-export type Action<I extends ActionFunctions, K extends keyof I = keyof I> = {
+export type ActionMeta = {
     /** id */
     i: number;
+    /** reference to other actions */
+    r?: number | number[];
+};
+export type Action<I extends ActionFunctions, K extends keyof I = keyof I & string> = {
     /** type */
     t: string;
     /** payload **/
     p: InferPayload<I[K]>;
-};
-type InferMapParam<I extends ActionFunctions, K extends keyof I> = [Action<any>['i'], ...InferPayload<I[K]>];
+} & ActionMeta;
+type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
 export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<InferMapParam<I, K>>;
-type Dispatch<I extends ActionFunctions> = (...params: InferPayload<I[keyof I]>) => Action<any>['i'];
-export type CoreOptions = {
+type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
+type DispatchFor<F> = (referActions: ActionMeta | ActionMeta[], ...params: InferPayload<F>) => Action<any>['i'];
+type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
+export type CoreOptions<I> = {
     debug?: string | boolean;
-    debugExcludeTypes?: string[];
+    debugExcludeTypes?: (keyof I & string)[];
+    logStyle?: 'full' | 'noParam';
     log?: (msg: string, ...objs: any[]) => unknown;
 };
 export declare class ControllerCore<I extends ActionFunctions = {
     [k: string]: never;
 }> {
-    opts?: CoreOptions | undefined;
+    opts?: CoreOptions<I> | undefined;
     actionUpstream: rx.Subject<Action<I, keyof I>>;
     interceptor$: rx.BehaviorSubject<(up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>>;
     typePrefix: string;
     debugName: string;
     action$: rx.Observable<Action<I, keyof I>>;
     debugExcludeSet: Set<string>;
-    protected dispatcher: { [K in keyof I]: Dispatch<I>; };
-    constructor(opts?: CoreOptions | undefined);
+    protected dispatcher: { [K in keyof I]: Dispatch<I[keyof I]>; };
+    protected dispatcherFor: { [K in keyof I]: DispatchFor<I[keyof I]>; };
+    constructor(opts?: CoreOptions<I> | undefined);
     createAction<K extends keyof I>(type: K, params?: InferPayload<I[K]>): Action<I, K>;
-    dispatcherFactory<K extends keyof I>(type: K): Dispatch<I>;
+    dispatchFactory<K extends keyof I>(type: K): Dispatch<I>;
+    dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I>;
     replaceActionInterceptor(factory: (origin: (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>) => (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>): void;
     ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any, any>>) => rx.Observable<Action<I, T[number]>>;
+    notOfType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any, any>>) => rx.Observable<Action<I, Exclude<keyof I, T[number]>>>;
 }
 export declare class RxController<I extends ActionFunctions> {
     private opts?;
     core: ControllerCore<I>;
     dispatcher: {
-        [K in keyof I]: (...params: InferPayload<I[K]>) => Action<I, K>['i'];
+        [K in keyof I]: Dispatch<I[K]>;
+    };
+    dispatcherFor: {
+        [K in keyof I]: DispatchFor<I[K]>;
     };
     dp: {
-        [K in keyof I]: (...params: InferPayload<I[K]>) => Action<I, K>['i'];
+        [K in keyof I]: Dispatch<I[K]>;
+    };
+    dpf: {
+        [K in keyof I]: DispatchFor<I[K]>;
+    };
+    dispatchAndObserveRes: {
+        [K in keyof I]: DispatchAndObserveRes<I, K>;
+    };
+    do: {
+        [K in keyof I]: DispatchAndObserveRes<I, K>;
     };
     payloadByType: {
         [K in keyof I]: PayloadStream<I, K>;
@@ -57,8 +79,18 @@ export declare class RxController<I extends ActionFunctions> {
     at: {
         [K in keyof I]: rx.Observable<Action<I, K>>;
     };
+    protected latestActionsCache: { [K in keyof I]?: rx.Observable<Action<I, K>> | undefined; };
+    protected latestPayloadsCache: { [K in keyof I]?: PayloadStream<I, K> | undefined; };
     replaceActionInterceptor: ControllerCore<I>['replaceActionInterceptor'];
-    constructor(opts?: CoreOptions | undefined);
+    constructor(opts?: CoreOptions<I> | undefined);
+    createAction<K extends keyof I>(type: K, ...params: InferPayload<I[K]>): Action<I, K>;
+    /**
+     * The function returns a cache which means you may repeatly invoke this method with duplicate parameter
+     * without worrying about memory consumption
+     */
+    createLatestActionsFor<T extends (keyof I)[]>(...types: T): Pick<{
+        [K in keyof I]: rx.Observable<Action<I, K>>;
+    }, T[number]>;
     /**
      * Conceptually, it is a "state store" like Apache Kafka's "table"
      * From perspecitve of implementation, a map ReplaySubject which provides similiar function as rx.withLatestFrom() does
@@ -69,7 +101,7 @@ export declare class RxController<I extends ActionFunctions> {
     createLatestPayloadsFor<T extends (keyof I)[]>(...types: T): Pick<{
         [K in keyof I]: PayloadStream<I, K>;
     }, T[number]>;
-    protected debugLogLatestActionOperator<P>(type: string): rx.OperatorFunction<P, P>;
+    protected debugLogLatestActionOperator<P extends Action<I>>(type: string): rx.OperatorFunction<P, P>;
 }
 /**
  * Get the "action name" from payload's "type" field,
@@ -78,6 +110,22 @@ export declare class RxController<I extends ActionFunctions> {
  * @return undefined if current action doesn't have a valid "type" field
  */
 export declare function nameOfAction<I extends ActionFunctions>(action: Pick<Action<I, keyof I>, 't'>): keyof I & string;
-export declare function serializeAction(action: Action<any>): Action<any>;
-export declare function deserializeAction<I extends ActionFunctions>(actionObj: any, toController: RxController<I>): number;
+/** Rx operator function */
+export declare function actionRelatedToAction<T extends Action<any>>(id: ActionMeta['i']): (up: rx.Observable<T>) => rx.Observable<T>;
+/** Rx operator function */
+export declare function actionRelatedToPayload<T extends [ActionMeta, ...any[]]>(id: ActionMeta['i']): (up: rx.Observable<T>) => rx.Observable<T>;
+export declare function serializeAction(action: Action<any>): {
+    t: string;
+    /** payload **/
+    p: unknown[];
+    /** id */
+    i: number;
+    /** reference to other actions */
+    r?: number | number[] | undefined;
+};
+/**
+ * Create a new Action with same "i" and "r" properties and dispatched to RxController
+ * @return that dispatched new action object
+ */
+export declare function deserializeAction<I extends ActionFunctions>(actionObj: any, toController: RxController<I>): Action<I, keyof I>;
 export {};

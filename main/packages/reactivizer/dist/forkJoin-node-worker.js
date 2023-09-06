@@ -29,15 +29,15 @@ const rx = __importStar(require("rxjs"));
 const control_1 = require("./control");
 const epic_1 = require("./epic");
 const node_worker_broker_1 = require("./node-worker-broker");
-function createWorkerControl() {
-    // eslint-disable-next-line no-console
-    console.log('create worker control');
+function createWorkerControl(opts) {
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const ctx = new epic_1.ReactorComposite({ debug: '[Thread]' + (worker_threads_1.isMainThread ? 'main' : worker_threads_1.threadId) });
+    const ctx = new epic_1.ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')) : false, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
     let broker;
     ctx.startAll();
     const { r, i, o } = ctx;
     const latest = i.createLatestPayloadsFor('exit');
+    const lo = o.createLatestPayloadsFor('log', 'warn');
+    const logPrefix = '[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']');
     if (worker_threads_1.parentPort) {
         const handler = (event) => {
             const msg = event;
@@ -55,6 +55,17 @@ function createWorkerControl() {
             i.dp.stopAll();
             worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.off('message', handler);
         })));
+        r('Pass worker wait and awake message to broker', rx.merge(o.at.wait, o.at.stopWaiting).pipe(rx.map(action => {
+            worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage((0, control_1.serializeAction)(action));
+        })));
+        r(lo.log.pipe(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        rx.map(([, ...p]) => worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'log', p: [logPrefix, ...p] }))));
+    }
+    else {
+        r(rx.merge(lo.log, lo.warn).pipe(
+        // eslint-disable-next-line no-console
+        rx.map(([, ...p]) => { var _a; return ((_a = opts === null || opts === void 0 ? void 0 : opts.log) !== null && _a !== void 0 ? _a : console.log)(logPrefix, ...p); })));
     }
     r('On output "fork" request message', o.at.fork.pipe(rx.mergeMap(act => {
         const { p: [wrappedAct] } = act;
@@ -64,17 +75,20 @@ function createWorkerControl() {
         act.p[1] = chan.port2;
         const error$ = rx.fromEventPattern(h => chan.port1.on('messageerror', h), h => chan.port1.off('messageerror', h));
         const close$ = rx.fromEventPattern(h => chan.port1.on('close', h), h => chan.port1.off('close', h));
-        return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => chan.port1.off('message', h)).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.takeUntil(rx.merge(error$, close$, i.pt[wrappedActCompletedType].pipe(rx.filter(([, callerId]) => callerId === wrappedActId))))), new rx.Observable(_sub => {
+        return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => {
+            chan.port1.off('message', h);
+            chan.port1.close();
+        }).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe((0, control_1.actionRelatedToAction)(wrappedActId))))), new rx.Observable(_sub => {
             if (worker_threads_1.parentPort) {
-                act = (0, control_1.serializeAction)(act);
-                worker_threads_1.parentPort.postMessage(act, [chan.port2]);
+                const actSe = (0, control_1.serializeAction)(act);
+                worker_threads_1.parentPort.postMessage(actSe, [chan.port2]);
             }
             else {
                 if (broker == null) {
-                    broker = (0, node_worker_broker_1.createBroker)(i, { debug: 'ForkJoin-broker' });
+                    broker = (0, node_worker_broker_1.createBroker)(i, Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? 'ForkJoin-broker' : false, debugExcludeTypes: ['workerAssigned', 'assignWorker', 'workerInited', 'ensureInitWorker'], logStyle: 'noParam' }));
                     o.dp.brokerCreated(broker);
                 }
-                broker.i.dp.fork(wrappedAct);
+                broker.i.dp.fork(wrappedAct, chan.port2);
             }
         }));
     })));
@@ -84,13 +98,29 @@ function createWorkerControl() {
         const origType = (0, control_1.nameOfAction)(origAct);
         const typeOfResolved = origType + 'Resolved';
         const typeOfCompleted = origType + 'Completed';
-        return rx.merge(o.at[typeOfResolved].pipe(rx.filter(({ p: [_ret, callerId] }) => callerId === origId), rx.map(action => [action, false])), o.at[typeOfCompleted].pipe(rx.filter(({ p: [callerId] }) => callerId === origId), rx.map(action => [action, true]))).pipe(rx.map(([action, isCompleted]) => {
-            port.postMessage((0, control_1.serializeAction)(action));
-            if (isCompleted) {
-                port.close();
+        return rx.merge(o.at[typeOfResolved].pipe((0, control_1.actionRelatedToAction)(origId), rx.map(action => [action, false])), o.at[typeOfCompleted].pipe((0, control_1.actionRelatedToAction)(origId), rx.map(action => [action, true]))).pipe(rx.map(([action, isCompleted]) => {
+            const { p } = action;
+            if (hasReturnTransferable(p)) {
+                const [{ transferList }] = p;
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                p[0].transferList = null;
+                port.postMessage((0, control_1.serializeAction)(action), transferList);
+            }
+            else {
+                port.postMessage((0, control_1.serializeAction)(action));
             }
             return isCompleted;
         }), rx.takeWhile(isComplete => !isComplete));
+    })));
+    r('Pass error to broker', o.pt.onError.pipe(rx.map(([, label, err]) => {
+        if (worker_threads_1.parentPort) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            worker_threads_1.parentPort.postMessage({ error: { label, detail: err } });
+        }
+        else if (broker) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            broker.o.dp.onWorkerError(-1, { label, detail: err });
+        }
     })));
     return ctx;
 }
@@ -100,4 +130,8 @@ function reativizeRecursiveFuncs(ctx, fObject) {
     return ctx;
 }
 exports.reativizeRecursiveFuncs = reativizeRecursiveFuncs;
+function hasReturnTransferable(payload) {
+    var _a;
+    return Array.isArray((_a = payload[0]) === null || _a === void 0 ? void 0 : _a.transferList);
+}
 //# sourceMappingURL=forkJoin-node-worker.js.map

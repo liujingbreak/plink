@@ -1,6 +1,8 @@
+// import inspector from 'node:inspector';
 import * as rx from 'rxjs';
-import {Action, RxController, ActionFunctions} from './control';
+import {RxController, ActionFunctions} from './control';
 import {DuplexController, DuplexOptions} from './duplex';
+// inspector.open(9222, 'localhost', true);
 
 export type Reactor<I extends ActionFunctions> = (ctl: RxController<I>) => rx.Observable<any>;
 export type DuplexReactor<I extends ActionFunctions, O extends ActionFunctions> = (ctl: DuplexController<I, O>) => rx.Observable<any>;
@@ -18,21 +20,20 @@ export type InferFuncReturnEvents<I extends ActionFunctions> = {
   [K in keyof I as `${K & string}Resolved`]: (
     p: ReturnType<I[K]> extends PromiseLike<infer P> ?
       P : ReturnType<I[K]> extends rx.Observable<infer OB> ?
-        OB : ReturnType<I[K]>
-    , callerActionId: Action<I>['i']) => void
+        OB : ReturnType<I[K]>) => void
 } & {
-  [K in keyof I as `${K & string}Completed`]: (callerActionId: Action<I>['i']) => void;
+  [K in keyof I as `${K & string}Completed`]: () => void;
 };
 
 export class ReactorComposite<
   I extends ActionFunctions = Record<string, never>,
   O extends ActionFunctions = Record<string, never>
-> extends DuplexController<I & ReactorCompositeActions, O & ReactorCompositeOutput> {
+> extends DuplexController<ReactorCompositeActions & I, ReactorCompositeOutput & O> {
   // protected latestCompActPayloads: {[K in 'mergeStream']: PayloadStream<ReactorCompositeActions, K>};
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
   // protected control: DuplexController<ReactorCompositeActions, ReactorCompositeOutput>;
 
-  constructor(private opts?: DuplexOptions) {
+  constructor(private opts?: DuplexOptions<I & O>) {
     super(opts);
     // this.latestCompActPayloads = (this as ReactorComposite<ReactorCompositeActions, ReactorCompositeOutput>).i.createLatestPayloadsFor('mergeStream');
     this.reactorSubj = new rx.ReplaySubject(999);
@@ -69,7 +70,7 @@ export class ReactorComposite<
         this.reactivizeFunction(key, func, fObject);
       }
     }
-    return this as ReactorComposite<I & F, InferFuncReturnEvents<F> & O>;
+    return this as unknown as ReactorComposite<I & F, InferFuncReturnEvents<F> & O>;
   }
 
   /** 
@@ -92,30 +93,32 @@ export class ReactorComposite<
   protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {
     const resolveFuncKey = key + 'Resolved';
     const finishFuncKey = key + 'Completed';
-    const dispatchResolved = (this as unknown as ReactorComposite<ReactorCompositeActions, any>).o.core.dispatcherFactory(resolveFuncKey as any);
-    const dispatchCompleted = (this as unknown as ReactorComposite<ReactorCompositeActions, any>).o.core.dispatcherFactory(finishFuncKey as any);
+    const dispatchResolved = (this as unknown as ReactorComposite<ReactorCompositeActions, any>).o.core.dispatchForFactory(resolveFuncKey as any);
+    const dispatchCompleted = (this as unknown as ReactorComposite<ReactorCompositeActions, any>).o.core.dispatchForFactory(finishFuncKey as any);
+
     this.r(this.i.pt[key as keyof I].pipe(
-      rx.mergeMap(([id, ...params]) => {
+      rx.mergeMap(([meta, ...params]) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const res = func.apply(funcThisRef, params);
         if (rx.isObservable(res)) {
           return res.pipe(
-            rx.map(res => dispatchResolved(res, id)),
-            rx.finalize(() => dispatchCompleted(id))
+            rx.map(res => dispatchResolved(meta, res)),
+            rx.finalize(() => dispatchCompleted(meta))
           );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        } else if (res?.then && res?.catch) {
-          return rx.from((res as PromiseLike<unknown>).then(resolved => {
-            dispatchResolved(resolved, id);
-            dispatchCompleted(id);
-          }));
+        } else if (res?.then != null && res?.catch != null) {
+          return rx.defer(() => (res as PromiseLike<unknown>)).pipe(
+            rx.map(res => dispatchResolved(meta, res)),
+            rx.finalize(() => dispatchCompleted(meta))
+          );
         } else {
-          dispatchResolved(res, id);
-          dispatchCompleted(id);
+          dispatchResolved(meta, res);
+          dispatchCompleted(meta);
+          return rx.EMPTY;
         }
-        return rx.EMPTY;
       })
     ));
+
     return resolveFuncKey;
   }
 

@@ -1,19 +1,20 @@
+/* eslint-disable import/order */
 /**
  * Use Typescript "Project Reference" & "tsc -b Commandline" ability to compile multiple packages
  */
 import fs from 'fs';
+import Path from 'path';
 import fse from 'fs-extra';
 import _ from 'lodash';
 import log4js from 'log4js';
-import Path from 'path';
-import { merge, Observable, EMPTY } from 'rxjs';
+import {merge, Observable, EMPTY} from 'rxjs';
 import {reduce, concatMap, filter} from 'rxjs/operators';
-import { CompilerOptions } from 'typescript';
+import {CompilerOptions} from 'typescript';
 import config from '../config';
-import { setTsCompilerOptForNodePath } from '../package-mgr/package-list-helper';
-import { getState, PackageInfo, workspaceKey } from '../package-mgr';
-import { getState as getTscState } from './tsc-packages-slice';
+import {setTsCompilerOptForNodePath} from '../package-mgr/package-list-helper';
+import {getState, PackageInfo, workspaceKey} from '../package-mgr';
 import {findPackagesByNames} from '../cmd/utils';
+import {getState as getTscState} from './tsc-packages-slice';
 import {allPackages} from '../package-mgr/package-list-helper';
 import {fork} from 'child_process';
 import {plinkEnv} from '../utils/misc';
@@ -56,12 +57,12 @@ export function tsc(opts: TscCmdParam) {
     const pkgs = findPackagesByNames(getState(), opts.package);
     const tsconfigFile$ = generateTsconfigFiles(
       Array.from(pkgs).filter(pkg => pkg != null)
-      .map(pkg => pkg!.name), opts);
+        .map(pkg => pkg!.name), opts);
     return tsconfigFile$.pipe(
-      reduce<string>((all, tsconfigFile) => {
+      reduce((all, tsconfigFile) => {
         all.push(tsconfigFile);
         return all;
-      }, []),
+      }, [] as string[]),
       filter(files => files.length > 0),
       concatMap(files => {
         const env = process.env;
@@ -112,31 +113,31 @@ export function generateTsconfigFiles(pkgs: Iterable<string>, opts: TscCmdParam)
   const baseTsxConfigFile = Path.resolve(__dirname, '..', '..', 'tsconfig-tsx.json');
 
   const done = Array.from(walked.values())
-  .map(pkg => {
-    const rawConfigs = getTscState().configs.get(pkg);
-    if (rawConfigs == null) {
-      throw new Error(`Package ${pkg} does not exist.`);
-    }
-    const tsconfigFiles = tsconfigFileNames(pkg)!;
+    .map(pkg => {
+      const rawConfigs = getTscState().configs.get(pkg);
+      if (rawConfigs == null) {
+        throw new Error(`Package ${pkg} does not exist.`);
+      }
+      const tsconfigFiles = tsconfigFileNames(pkg)!;
 
-    const works = rawConfigs
-    .map((raw, idx) => {
-      return new Observable<string>(sub => {
-        const tsconfig = createTsconfigs(
-          getState().srcPackages.get(pkg)!, tsconfigFiles, idx, raw.rootDir, raw.outDir, raw.files, raw.references);
-        const toWrite = Path.resolve(tsConfigsDir, tsconfigFiles[idx]);
-        fs.writeFile(toWrite, JSON.stringify(tsconfig, null, '  '), (err) => {
-          if (err) {
-            return sub.error();
-          }
-          log.info(`Write ${toWrite}`);
-          sub.next(toWrite);
-          sub.complete();
+      const works = rawConfigs
+        .map((raw, idx) => {
+          return new Observable<string>(sub => {
+            const tsconfig = createTsconfigs(
+              getState().srcPackages.get(pkg)!, tsconfigFiles, idx, raw.rootDir, raw.outDir, raw.files, raw.references);
+            const toWrite = Path.resolve(tsConfigsDir, tsconfigFiles[idx]);
+            fs.writeFile(toWrite, JSON.stringify(tsconfig, null, '  '), (err) => {
+              if (err) {
+                return sub.error();
+              }
+              log.info(`Write ${toWrite}`);
+              sub.next(toWrite);
+              sub.complete();
+            });
+          });
         });
-      });
+      return merge(...works);
     });
-    return merge(...works);
-  });
 
   function createTsconfigs(pkg: PackageInfo, fileNames: string[], idx: number, rootDir: string, outDir: string,
     entries?: string[], references?: string[]) {
@@ -160,13 +161,13 @@ export function generateTsconfigFiles(pkgs: Iterable<string>, opts: TscCmdParam)
 
     if (entries && entries.length > 0) {
       configJson.files = entries.map(entry =>
-          Path.relative(tsConfigsDir, Path.resolve(pkg.realPath, entry))
+        Path.relative(tsConfigsDir, Path.resolve(pkg.realPath, entry))
           .replace(/\\/g, '/')
-        );
+      );
     } else {
       configJson.include = [rootDirValue + '/**/*.ts'];
       if (opts.jsx) {
-        configJson.include!.push(rootDirValue + '/**/*.tsx');
+        configJson.include.push(rootDirValue + '/**/*.tsx');
       }
     }
 

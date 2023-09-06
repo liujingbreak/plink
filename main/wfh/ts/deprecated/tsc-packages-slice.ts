@@ -55,10 +55,10 @@ const releaseEpic = stateFactory.addEpic((action$) => {
         return merge(...Array.from(pkgMap.values())
           .map(pkg => normalizePackageJsonTscProperty$(pkg)))
           .pipe(
-            reduce<ConfigItemWithName>((all, configs) => {
+            reduce((all, configs) => {
               all.push(configs);
               return all;
-            }, [])
+            }, [] as ConfigItemWithName[])
           );
       }),
       map(configs => tscActionDispatcher.putConfig(configs))
@@ -86,7 +86,7 @@ function normalizePackageJsonTscProperty$(pkg: PackageInfo) {
   const dr = pkg.json.dr;
   let rawConfigs: Observable<PackageJsonTscPropertyItem>;
 
-  if (dr && dr.tsc) {
+  if (dr?.tsc) {
     const items: PackageJsonTscPropertyItem[] = Array.isArray(dr.tsc) ? dr.tsc : [dr.tsc];
     rawConfigs = from<PackageJsonTscPropertyItem[]>(items);
   } else {
@@ -106,10 +106,10 @@ function normalizePackageJsonTscProperty$(pkg: PackageInfo) {
     });
   }
   return rawConfigs.pipe(
-    reduce<PackageJsonTscPropertyItem>((all, item) => {
+    reduce((all, item) => {
       all.push(item);
       return all;
-    }, []),
+    }, [] as PackageJsonTscPropertyItem[]),
     map(items => {
       return {pkg: pkg.name, items};
     })

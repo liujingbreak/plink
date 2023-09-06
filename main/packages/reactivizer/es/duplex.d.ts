@@ -1,9 +1,5 @@
 import { CoreOptions, RxController, ActionFunctions } from './control';
-export type DuplexOptions = {
-    debug?: string | false;
-    outputDebug?: boolean;
-    log?: CoreOptions['log'];
-};
+export type DuplexOptions<I> = CoreOptions<I>;
 export declare class DuplexController<I extends ActionFunctions, O extends ActionFunctions> {
     /** input actions controller, abbrevation name of "inputControl" */
     i: RxController<I>;
@@ -11,5 +7,5 @@ export declare class DuplexController<I extends ActionFunctions, O extends Actio
     /** output actions controller abbrevation name of "outputControl" */
     o: RxController<O>;
     outputControl: RxController<O>;
-    constructor(opts?: DuplexOptions);
+    constructor(opts?: DuplexOptions<I & O>);
 }

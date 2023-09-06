@@ -18,7 +18,7 @@ export declare function workDirChangedByCli(): {
 export default function run(moduleName: string, opts?: {
     stateExitAction?: 'save' | 'send' | 'none';
     handleShutdownMsg?: boolean;
-}): Promise<number> | undefined;
+}): Promise<number | undefined> | undefined;
 /** run in main process, mayby in PM2 as a cluster process,
 * Unlike `run(modulename, opts)` this function will always fork a child process, it is conditionally executed inside `run(modulename, opts)`
 */
@@ -27,5 +27,5 @@ export declare function forkFile(moduleName: string, opts?: {
     handleShutdownMsg?: boolean;
 } & ForkOptions): {
     childProcess: import("child_process").ChildProcess;
-    exited: Promise<number>;
+    exited: Promise<number | undefined>;
 };

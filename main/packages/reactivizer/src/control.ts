@@ -5,31 +5,33 @@ export type ActionFunctions = {[k: string]: any}; // instead of A indexed access
 
 type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
 
-export type Action<I extends ActionFunctions, K extends keyof I = keyof I> = {
+export type ActionMeta = {
   /** id */
   i: number;
+  /** reference to other actions */
+  r?: number | number[];
+};
+export type Action<I extends ActionFunctions, K extends keyof I = keyof I & string> = {
   /** type */
   t: string;
   /** payload **/
   p: InferPayload<I[K]>;
-};
+} & ActionMeta;
 
-type InferMapParam<I extends ActionFunctions, K extends keyof I> = [Action<any>['i'], ...InferPayload<I[K]>];
+type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
 
 export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<InferMapParam<I, K>>;
 
-type Dispatch<I extends ActionFunctions> = (...params: InferPayload<I[keyof I]>) => Action<any>['i'];
-// type DispatchAndObserveFn<I extends ActionFunctions, K extends keyof I> = {
-//   id: Action<I, K>['i'];
-//   observe<T>(target: rx.Observable<T>, predicate: (
-//     requestActionId: Action<I, K>['i'],
-//     targetValue: T
-//   ) => boolean): rx.Observable<T>;
-// };
+type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
+type DispatchFor<F> = (referActions: ActionMeta | ActionMeta[], ...params: InferPayload<F>) => Action<any>['i'];
+type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
+  waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>
+) => rx.Observable<InferMapParam<O, R>>;
 
-export type CoreOptions = {
+export type CoreOptions<I> = {
   debug?: string | boolean;
-  debugExcludeTypes?: string[];
+  debugExcludeTypes?: (keyof I & string)[];
+  logStyle?: 'full' | 'noParam';
   log?: (msg: string, ...objs: any[]) => unknown;
 };
 
@@ -45,30 +47,36 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   debugName: string;
   action$: rx.Observable<Action<I, keyof I>>;
   debugExcludeSet: Set<string>;
-  protected dispatcher = {} as {[K in keyof I]: Dispatch<I>};
+  protected dispatcher = {} as {[K in keyof I]: Dispatch<I[keyof I]>};
+  protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[keyof I]>};
 
-  constructor(public opts?: CoreOptions) {
+  constructor(public opts?: CoreOptions<I>) {
     this.debugName = typeof opts?.debug === 'string' ? `[${this.typePrefix}${opts.debug}] ` : this.typePrefix;
     this.debugExcludeSet = new Set(opts?.debugExcludeTypes ?? []);
 
     const debuggableAction$ = opts?.debug
       ? this.actionUpstream.pipe(
         opts?.log ?
-          rx.tap(action => opts.log!(this.debugName + 'rx:action', nameOfAction(action))) :
+          rx.tap(action => {
+            const type = nameOfAction(action);
+            if (!this.debugExcludeSet.has(type)) {
+              opts.log!(this.debugName + 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+            }
+          }) :
           (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
             rx.tap(action => {
               const type = nameOfAction(action);
               if (!this.debugExcludeSet.has(type)) {
                 // eslint-disable-next-line no-console
-                console.log(`%c ${this.debugName}rx:action `, 'color: white; background: #8c61ff;', type, [action.i, ...action.p]);
+                console.log(`%c ${this.debugName}rx:action `, 'color: white; background: #8c61ff;',
+                  type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
               }
-            })
-            :
+            }) :
             rx.tap(action => {
               const type = nameOfAction(action);
               if (!this.debugExcludeSet.has(type)) {
                 // eslint-disable-next-line no-console
-                console.log( this.debugName + 'rx:action', type, action.p === undefined ? '' : [action.i, ...action.p] );
+                console.log( this.debugName + 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
               }
             }),
         rx.share()
@@ -91,7 +99,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
     } as Action<I, K>;
   }
 
-  dispatcherFactory<K extends keyof I>(type: K): Dispatch<I> {
+  dispatchFactory<K extends keyof I>(type: K): Dispatch<I> {
     if (has.call(this.dispatcher, type)) {
       return this.dispatcher[type];
     }
@@ -101,6 +109,20 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
       return action.i;
     };
     this.dispatcher[type] = dispatch;
+    return dispatch;
+  }
+
+  dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I> {
+    if (has.call(this.dispatcherFor, type)) {
+      return this.dispatcherFor[type];
+    }
+    const dispatch = (metas: ActionMeta | ActionMeta[], ...params: InferPayload<I[keyof I]>) => {
+      const action = this.createAction(type, params);
+      action.r = Array.isArray(metas) ? metas.map(m => m.i) : metas.i;
+      this.actionUpstream.next(action);
+      return action.i;
+    };
+    this.dispatcherFor[type] = dispatch;
     return dispatch;
   }
 
@@ -122,14 +144,26 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
       );
     };
   }
+
+  // eslint-disable-next-line space-before-function-paren
+  notOfType<T extends (keyof I)[]>(...types: T) {
+    return (up: rx.Observable<Action<any, any>>) => {
+      const matchTypes = types.map(type => this.typePrefix + (type as string));
+      return up.pipe(
+        rx.filter((a): a is Action<I, Exclude<(keyof I), T[number]>> => matchTypes.every(matchType => a.t !== matchType))
+      );
+    };
+  }
 }
 
 export class RxController<I extends ActionFunctions> {
   core: ControllerCore<I>;
-  dispatcher: {[K in keyof I]: (...params: InferPayload<I[K]>) => Action<I, K>['i']};
-  dp: {[K in keyof I]: (...params: InferPayload<I[K]>) => Action<I, K>['i']};
-  // dispatchAndObserve: {[K in keyof I]: (...params: InferPayload<I[K]>) => DispatchAndObserveFn<I, K>};
-  // dpno: {[K in keyof I]: (...params: InferPayload<I[K]>) => DispatchAndObserveFn<I, K>};
+  dispatcher: {[K in keyof I]: Dispatch<I[K]>};
+  dispatcherFor: {[K in keyof I]: DispatchFor<I[K]>};
+  dp: {[K in keyof I]: Dispatch<I[K]>};
+  dpf: {[K in keyof I]: DispatchFor<I[K]>};
+  dispatchAndObserveRes: {[K in keyof I]: DispatchAndObserveRes<I, K>};
+  do: {[K in keyof I]: DispatchAndObserveRes<I, K>};
   payloadByType: {[K in keyof I]: PayloadStream<I, K>};
   pt: {[K in keyof I]: PayloadStream<I, K>};
   actionByType: {[K in keyof I]: rx.Observable<Action<I, K>>};
@@ -139,12 +173,38 @@ export class RxController<I extends ActionFunctions> {
 
   replaceActionInterceptor: ControllerCore<I>['replaceActionInterceptor'];
 
-  constructor(private opts?: CoreOptions) {
+  constructor(private opts?: CoreOptions<I>) {
     const core = this.core = new ControllerCore(opts);
 
-    this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: (...params: InferPayload<I[K]>) => Action<I, K>['i']}, {
+    this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I[K]>}, {
       get(_target, key, _rec) {
-        return core.dispatcherFactory(key as keyof I);
+        return core.dispatchFactory(key as keyof I);
+      }
+    });
+    this.dispatcherFor = this.dpf = new Proxy({} as {[K in keyof I]: DispatchFor<I[K]>}, {
+      get(_target, key, _rec) {
+        return core.dispatchForFactory(key as keyof I);
+      }
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    this.dispatchAndObserveRes = this.do = new Proxy({} as {[K in keyof I]: DispatchAndObserveRes<I, K>}, {
+      get(_target, key, _rec) {
+
+        return <R extends keyof I>(action$: rx.Observable<Action<I, R>>, ...params: any[]) => {
+          const action = self.core.createAction(key as string, params as InferPayload<I[string]>);
+          return rx.merge(
+            action$.pipe(
+              actionRelatedToAction(action.i),
+              mapActionToPayload()
+            ),
+            new rx.Observable<never>(sub => {
+              self.core.actionUpstream.next(action);
+              sub.complete();
+            })
+          );
+        };
       }
     });
 
@@ -165,8 +225,10 @@ export class RxController<I extends ActionFunctions> {
         }
       });
 
-    const payloadsByType = {} as {[K in keyof I]: rx.Observable<[Action<I, K>['i'], ...Action<I, K>['p']]>};
-    const payloadByTypeProxy = new Proxy(
+    const payloadsByType = {} as {[K in keyof I]: rx.Observable<InferMapParam<I, K>>};
+    this.actionByType = this.at = actionByTypeProxy;
+
+    this.payloadByType = this.pt = new Proxy(
       {} as typeof payloadsByType,
       {
         get(_target, key, _rec) {
@@ -174,31 +236,39 @@ export class RxController<I extends ActionFunctions> {
           if (p$ == null) {
             const a$ = actionByTypeProxy[key as keyof I];
             p$ = payloadsByType[key as keyof I] = a$.pipe(
-              rx.map(a => [a.i, ...a.p] as any),
+              mapActionToPayload(),
               rx.share()
             );
           }
           return p$;
         }
       });
-    this.actionByType = this.at = actionByTypeProxy;
-    this.payloadByType = this.pt = payloadByTypeProxy;
     this.replaceActionInterceptor = core.replaceActionInterceptor;
   }
 
+  createAction<K extends keyof I>(type: K, ...params: InferPayload<I[K]>) {
+    return this.core.createAction(type, params);
+  }
+
+  /**
+   * The function returns a cache which means you may repeatly invoke this method with duplicate parameter
+   * without worrying about memory consumption
+   */
   // eslint-disable-next-line space-before-function-paren
-  createLatestActionsFor<T extends (keyof I)[]>(...types: T): Pick<
-  {
-    [K in keyof I]:
-    rx.Observable<Action<I, K>>
-  },
-  T[number]
+  createLatestActionsFor<T extends (keyof I)[]>(...types: T): Pick<{
+    [K in keyof I]: rx.Observable<Action<I, K>>}, T[number]
   > {
     for (const type of types) {
       if (has.call(this.latestActionsCache, type))
         continue;
-      const a$ = this.latestActionsCache[type] =
-        new rx.ReplaySubject(1);
+      const a$ = new rx.ReplaySubject<Action<I, T[number]>>(1);
+      this.actionByType[type].subscribe(a$);
+      this.latestActionsCache[type] = this.opts?.debug ?
+        a$.pipe(
+          this.debugLogLatestActionOperator(type as string)
+          // rx.share() DON'T USE share(), SINCE IT WILL TURS ReplaySubject TO A NORMAL Subject
+        ) :
+        a$.asObservable();
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.latestActionsCache as any;
@@ -213,47 +283,42 @@ export class RxController<I extends ActionFunctions> {
    */
   // eslint-disable-next-line space-before-function-paren
   createLatestPayloadsFor<T extends (keyof I)[]>(...types: T): Pick<{[K in keyof I]: PayloadStream<I, K>}, T[number]> {
-    const replayedPayloads = {} as {[K in keyof I]: rx.Observable<InferMapParam<I, K>>};
-    const payloadByTypeProxy = this.payloadByType;
+    const actions = this.createLatestActionsFor(...types);
 
     for (const key of types) {
-      let r$ = this.latestActionsCache.get(key);
-      if (r$ == null) {
-        r$ = new rx.ReplaySubject<Action<I, keyof I>>(1);
-        this.latestActionsCache.set(key, r$);
-      }
-      replayedPayloads[key] = this.opts?.debug ?
-        r$.pipe(this.debugLogLatestActionOperator(key as string)) :
-        r$.asObservable();
-      payloadByTypeProxy[key].subscribe(r$);
+      if (has.call(this.latestPayloadsCache, key))
+        continue;
+      this.latestPayloadsCache[key] = actions[key].pipe(
+        rx.map(a => [{i: a.i, r: a.r}, ...a.p])
+      );
     }
-    return replayedPayloads;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.latestPayloadsCache as any;
   }
 
-  protected debugLogLatestActionOperator<P>(type: string) {
+  protected debugLogLatestActionOperator<P extends Action<I>>(type: string) {
     return this.opts?.log ?
-      rx.map<P, P>((payload, idx) => {
-        if (idx === 0) {
-          this.opts!.log!(this.core.debugName + 'rx:latest', type);
+      rx.map<P, P>((action, idx) => {
+        if (idx === 0 && !this.core.debugExcludeSet.has(type)) {
+          this.opts!.log!(this.core.debugName + 'rx:latest', type, action);
         }
-        return payload;
+        return action;
       }) :
       (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-        rx.map<P, P>((payload, idx) => {
-          if (idx === 0) {
+        rx.map<P, P>((action, idx) => {
+          if (idx === 0 && !this.core.debugExcludeSet.has(type)) {
             // eslint-disable-next-line no-console
             console.log(`%c ${this.core.debugName}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type,
-              payload === undefined ? '' : payload
-            );
+              actionMetaToStr(action));
           }
-          return payload;
+          return action;
         }) :
-        rx.map<P, P>((payload, idx) => {
-          if (idx === 0) {
+        rx.map<P, P>((action, idx) => {
+          if (idx > 0 && !this.core.debugExcludeSet.has(type)) {
             // eslint-disable-next-line no-console
-            console.log(this.core.debugName + 'rx:latest', type, payload === undefined ? '' : payload);
+            console.log(this.core.debugName + 'latest:', type, actionMetaToStr(action));
           }
-          return payload;
+          return action;
         });
   }
 }
@@ -272,14 +337,60 @@ export function nameOfAction<I extends ActionFunctions>(
   return (elements.length > 1 ? elements[1] : elements[0]) as keyof I & string;
 }
 
-export function serializeAction(action: Action<any>):
-Action<any> {
-  return {...action, t: nameOfAction(action)};
+/** Rx operator function */
+export function actionRelatedToAction<T extends Action<any>>(id: ActionMeta['i']) {
+  return function(up: rx.Observable<T>) {
+    return up.pipe(
+      rx.filter(
+        m => (m.r != null && m.r === id) || (
+          Array.isArray(m.r) && m.r.some(r => r === id)
+        )
+      )
+    );
+  };
+}
+/** Rx operator function */
+export function actionRelatedToPayload<T extends [ActionMeta, ...any[]]>(id: ActionMeta['i']) {
+  return function(up: rx.Observable<T>): rx.Observable<T> {
+    return up.pipe(
+      rx.filter(
+        ([m]) => (m.r != null && m.r === id) || (
+          Array.isArray(m.r) && m.r.some(r => r === id)
+        )
+      )
+    );
+  };
 }
 
+export function serializeAction(action: Action<any>) {
+  const a = {...action, t: nameOfAction(action)};
+  // if (a.r instanceof Set) {
+  //   a.r = [...a.r.values()];
+  // }
+  return a;
+}
+
+/**
+ * Create a new Action with same "i" and "r" properties and dispatched to RxController
+ * @return that dispatched new action object
+ */
 export function deserializeAction<I extends ActionFunctions>(actionObj: any, toController: RxController<I>) {
+  const newAction = toController.core.createAction(nameOfAction(actionObj) as keyof I, (actionObj as Action<I>).p);
+  newAction.i = (actionObj as Action<any>).i;
+  if ((actionObj as Action<any>).r)
+    newAction.r = (actionObj as Action<any>).r;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return toController.dispatcher[actionObj.t as keyof I](...actionObj.p as InferPayload<I[keyof I]>);
+  toController.core.actionUpstream.next(newAction);
+  return newAction;
 }
 
+function mapActionToPayload<I extends ActionFunctions, K extends keyof I>() {
+  return (up: rx.Observable<Action<I, K>>) => up.pipe(
+    rx.map(a => [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I, keyof I>)
+  );
+}
 
+function actionMetaToStr(action: Action<any>) {
+  const {r, i} = action;
+  return `(i: ${i}${r != null ? `, r: ${Array.isArray(r) ? [...r.values()].toString() : r}` : ''})`;
+}

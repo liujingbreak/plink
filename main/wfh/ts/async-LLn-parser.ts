@@ -1,6 +1,6 @@
-import {Observable, Subscriber, from, OperatorFunction, queueScheduler} from 'rxjs';
-import {map, observeOn} from 'rxjs/operators';
 import util from 'util';
+import {lastValueFrom, Observable, Subscriber, from, OperatorFunction, queueScheduler} from 'rxjs';
+import {map, observeOn} from 'rxjs/operators';
 export class Chunk<V, T> {
   type: T | undefined;
   values?: V[] = [];
@@ -59,10 +59,10 @@ export function parser<I, A, T>(
       tokens = tokens.pipe(operator);
   }
 
-  return tokens.pipe(
+  return lastValueFrom(tokens.pipe(
     map(token => [token]),
     mapChunksObs(name + '-parser', _parseGrammarObs)
-  ).toPromise();
+  ));
 }
 
 export function mapChunksObs<I, O>(name: string, parse: (la: LookAhead<I>) => Observable<O>):
@@ -205,13 +205,11 @@ export class LookAhead<T, TT = any> {
 	 * @param values lookahead string or tokens
 	 */
   async isNextWith<C>(values: C[], isEqual = (a: T, b: C) => a as any === b): Promise<boolean> {
-    let compareTo: C[] | string;
-    let compareFn: (...arg: any[]) => boolean;
-    compareTo = values;
-    compareFn = isEqual;
+    const compareTo = values;
+    const compareFn = isEqual;
     let i = 0;
     const l = compareTo.length;
-    while (true) {
+    for (;;) {
       if (i === l)
         return true;
       const next = await this.la(i + 1);
@@ -228,13 +226,11 @@ export class LookAhead<T, TT = any> {
   }
 
   async assertAdvanceWith<C>(values: C[], isEqual = (a: T, b: C) => a as any === b) {
-    let compareTo: C[] | string;
-    let compareFn: (...arg: any[]) => boolean;
-    compareTo = values;
-    compareFn = isEqual;
+    const compareTo = values;
+    const compareFn = isEqual;
     let i = 0;
     const l = compareTo.length;
-    while (true) {
+    for (;;) {
       if (i === l)
         return true;
       const next = await this.advance(i + 1);

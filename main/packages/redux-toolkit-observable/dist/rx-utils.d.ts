@@ -41,11 +41,7 @@ export type PayloadStreams<AC extends Record<string, (...a: any[]) => void>> = {
     [K in keyof AC]: Observable<InferParam<AC[K]>>;
 };
 interface CreateReplayableFn<AC extends Record<string, (...a: any[]) => void>> {
-    <R1 extends keyof AC, R2 extends keyof AC>(actionType1: R1, at2: R2): PayloadStreams<Pick<AC, R1 | R2>>;
-    <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC>(actionType1: R1, at2: R2, at3: R3): PayloadStreams<Pick<AC, R1 | R2 | R3>>;
-    <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4>>;
-    <R1 extends keyof AC, R2 extends keyof AC, R3 extends keyof AC, R4 extends keyof AC, R5 extends keyof AC>(actionType1: R1, at2: R2, at3: R3, at4: R4, at5: R5): PayloadStreams<Pick<AC, R1 | R2 | R3 | R4 | R5>>;
-    <R extends keyof AC>(...actionTypes: R[]): PayloadStreams<Pick<AC, R>>;
+    <R extends (keyof AC)[]>(...actionTypes: R): PayloadStreams<Pick<AC, R[number]>>;
 }
 export type ActionStreamControl<AC extends Record<string, (...a: any[]) => void>> = {
     /** create `ReplaySubject(1)` for each `payloadByType` */
@@ -110,9 +106,6 @@ export declare function createActionStreamByType<AC extends Record<string, ((...
  */
 export declare function nameOfAction<AC extends Record<string, ((...payload: any[]) => void)>>(action: ActionTypes<AC>[keyof AC]): keyof AC | undefined;
 export interface OfTypeFn<AC> {
-    <T extends keyof AC>(type: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
-    <T extends keyof AC, T2 extends keyof AC>(type: T, type2: T2): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2]>;
-    <T extends keyof AC, T2 extends keyof AC, T3 extends keyof AC>(type: T, type2: T2, type3: T3): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T] | ActionTypes<AC>[T2] | ActionTypes<AC>[T3]>;
-    <T extends keyof AC>(...types: T[]): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T]>;
+    <T extends (keyof AC)[]>(...types: T): (upstream: Observable<any>) => Observable<ActionTypes<AC>[T[number]]>;
 }
 export {};

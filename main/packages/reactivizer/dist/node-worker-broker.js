@@ -30,30 +30,35 @@ const control_1 = require("./control");
 /** WA - Worker output Message
 */
 function createBroker(mainWorkerInput, opts) {
-    const ctx = new epic_1.ReactorComposite(opts);
+    const comp = new epic_1.ReactorComposite(opts);
     const workerInitState = new Map();
-    const { r, i, o } = ctx;
-    ctx.startAll();
-    r(i.pt.ensureInitWorker.pipe(rx.mergeMap(([id, workerNo, worker]) => {
+    const { r, i, o } = comp;
+    comp.startAll();
+    r('ensureInitWorker', i.pt.ensureInitWorker.pipe(rx.mergeMap(([meta, workerNo, worker]) => {
         if (workerInitState.get(workerNo) === 'DONE') {
-            o.dp.workerInited(workerNo, null, id, true);
+            o.dpf.workerInited(meta, workerNo, null, true);
             return rx.EMPTY;
         }
         else if (workerInitState.get(workerNo) === 'WIP') {
-            return o.pt.workerInited.pipe(rx.filter(() => workerInitState.get(workerNo) === 'DONE'), rx.take(1));
+            return o.pt.workerInited.pipe(rx.filter(() => workerInitState.get(workerNo) === 'DONE'), rx.take(1), rx.tap(() => o.dpf.workerInited(meta, workerNo, null, true)));
         }
+        workerInitState.set(workerNo, 'WIP');
         worker.on('message', (event) => {
+            var _a;
             if (event.type === 'WORKER_READY') {
                 workerInitState.set(workerNo, 'DONE');
-                o.dp.workerInited(workerNo, null, id, false);
+                o.dpf.workerInited(meta, workerNo, null, false);
+            }
+            else if (event.type === 'log') {
+                // eslint-disable-next-line no-console
+                ((_a = opts === null || opts === void 0 ? void 0 : opts.log) !== null && _a !== void 0 ? _a : console.log)(...event.p);
             }
             else if (event.error) {
                 o.dp.onWorkerError(workerNo, event.error);
             }
             else {
-                const { data } = event;
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-                (0, control_1.deserializeAction)(data, o);
+                const data = event;
+                o.dp.actionFromWorker(data, workerNo);
             }
         });
         worker.on('error', event => {
@@ -70,24 +75,29 @@ function createBroker(mainWorkerInput, opts) {
     })
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
-    r(i.at.fork.pipe(rx.mergeMap(async (forkAction) => {
-        const waitWorkerAssignment = i.pt.workerAssigned.pipe(rx.filter(([, aId]) => aId === assignId));
-        const assignId = o.dp.assignWorker();
-        const [, , workerNo, worker] = await rx.firstValueFrom(waitWorkerAssignment);
+    r('On fork', i.at.fork.pipe(rx.mergeMap(async (forkAction) => {
+        const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned));
         if (worker === 'main') {
-            mainWorkerInput.core.actionUpstream.next(forkAction);
+            (0, control_1.deserializeAction)(forkAction, mainWorkerInput);
         }
         else {
-            console.log('ensureInitWorker', workerNo);
-            i.dp.ensureInitWorker(workerNo, worker);
+            await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, workerNo, worker));
             worker.postMessage((0, control_1.serializeAction)(forkAction), [forkAction.p[1]]);
         }
+    })));
+    r('dispatch action of actionFromWorker to broker\'s upStream', o.pt.actionFromWorker.pipe(rx.map(([, action, workerNo]) => {
+        if ((0, control_1.nameOfAction)(action) === 'wait')
+            i.dp.onWorkerWait(workerNo);
+        else if ((0, control_1.nameOfAction)(action) === 'stopWaiting')
+            i.dp.onWorkerAwake(workerNo);
+        else
+            (0, control_1.deserializeAction)(action, i); // fork action
     })));
     r(i.pt.letWorkerExit.pipe(rx.map(([, worker]) => {
         // eslint-disable-next-line @typescript-eslint/ban-types
         worker.postMessage((0, control_1.serializeAction)(o.core.createAction('exit')));
     })));
-    return ctx;
+    return comp;
 }
 exports.createBroker = createBroker;
 //# sourceMappingURL=node-worker-broker.js.map

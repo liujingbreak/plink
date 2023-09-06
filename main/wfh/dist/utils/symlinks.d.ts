@@ -8,7 +8,7 @@ export declare const unlinkAsync: typeof fs.unlink.__promisify__;
  * @param deleteOption
  */
 export default function scanNodeModules(dir?: string, deleteOption?: 'all' | 'invalid'): Promise<string[]>;
-export declare function listModuleSymlinks(parentDir: string, onFound: (link: string) => void | Promise<void>): Promise<void>;
+export declare function listModuleSymlinks(parentDir: string, onFound: (link: string) => void | Promise<void>): Promise<void | undefined>;
 /**
  * Do check existing symlink, recreate a new one if existing one is invalid symlink
  * @param linkTarget

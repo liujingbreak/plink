@@ -1,11 +1,13 @@
+/* eslint-disable no-console */
 import * as rx from 'rxjs';
 import {describe, it, expect}  from '@jest/globals';
-import {RxController, ReactorComposite, nameOfAction} from '../';
+import {RxController, ReactorComposite, actionRelatedToPayload, nameOfAction} from '../src';
 
 type TestMessages = {
   msg1(): void;
   msg2(a: string): void;
   msg3(a: string, b?: number): string;
+  msg3Reply(s: string): string;
 };
 
 class TestObject {
@@ -80,7 +82,7 @@ describe('reactivizer', () => {
   });
 
   it('ReactorComposite reactivize should work', async () => {
-    const comp = new ReactorComposite<TestMessages, {testOutput(): void;}>({debug: 'test'});
+    const comp = new ReactorComposite<TestMessages, {testOutput(): void}>({debug: 'test'});
     const actionResults = [] as any[];
     comp.r(comp.i.pt.msg3.pipe(
       rx.map(([, a, b]) => {
@@ -92,8 +94,9 @@ describe('reactivizer', () => {
       hello(greeting: string) {
         return 'Yes ' + greeting;
       },
-      world(foobar: number) {
-        return Promise.resolve(foobar);
+      async world(foobar: number) {
+        await new Promise(r => setTimeout(r, 100));
+        return foobar;
       }
     };
     const ctl3 = comp.reactivize(functions1);
@@ -117,9 +120,9 @@ describe('reactivizer', () => {
     ));
     const {at} = ctl4.o;
     r(rx.merge(at.helloResolved, at.worldResolved, at.foobarResolved).pipe(
-      rx.map(({t, p: [s, calledId]}) => {
+      rx.map(({t, p: [s], r}) => {
         const type = nameOfAction({t})!;
-        actionResultIdByKey.set(type as any, calledId);
+        actionResultIdByKey.set(type as any, r as number);
         actionResults.push(s);
       })
     ));
@@ -141,6 +144,52 @@ describe('reactivizer', () => {
     expect(actionResultIdByKey.get('helloResolved')).toEqual(helloId);
     expect(actionResultIdByKey.get('worldResolved')).toEqual(worldId);
   }, 10000);
+
+  it('Action meta', async () => {
+    const c = new RxController<TestMessages>();
+
+    const done = rx.firstValueFrom(c.pt.msg3.pipe(
+      rx.map(([m, a, b]) => {
+        expect(a).toEqual('aaa');
+        expect(b).toEqual(999);
+        expect(typeof m.i).toEqual('number');
+        c.dispatcherFor.msg3Reply(m, 'done');
+      })
+    ));
+
+    const latest = c.createLatestPayloadsFor('msg3Reply');
+
+    const id = c.dp.msg3('aaa', 999);
+    const replied = rx.firstValueFrom(latest.msg3Reply.pipe(
+      actionRelatedToPayload(id)
+    ));
+    await done;
+    await replied;
+
+  });
+
+  it('RxController dispatchAndObserveRes', async () => {
+    const c = new RxController<TestMessages>();
+
+    c.at.msg3.pipe(
+      rx.map(action => expect(action.p[0]).toEqual('hello'))
+    ).subscribe();
+
+    c.pt.msg3.pipe(
+      rx.map(([m, a, b]) => {
+        expect(a).toEqual('hello');
+        expect(b).toEqual(778);
+        expect(typeof m.i).toEqual('number');
+        c.dispatcher.msg2('Not for you');
+        c.dispatcherFor.msg2(m, 'world');
+      }),
+      rx.take(1)
+    ).subscribe();
+
+    const [, res] = await rx.firstValueFrom(c.do.msg3(c.at.msg2, 'hello', 778));
+    expect(res).toEqual('world');
+    console.log('perfect');
+  });
 });
 
 

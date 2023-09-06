@@ -181,7 +181,7 @@ function createActionStreamByType(opt = {}) {
             for (const key of types) {
                 const r$ = new rxjs_1.ReplaySubject(1);
                 replayedPayloads[key] = opt.debug ?
-                    r$.asObservable().pipe(debugLogLatestActionOperator(key)) :
+                    r$.pipe(debugLogLatestActionOperator(key)) :
                     r$.asObservable();
                 payloadByTypeProxy[key].subscribe(r$);
             }

@@ -24,6 +24,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReactorComposite = void 0;
+// import inspector from 'node:inspector';
 const rx = __importStar(require("rxjs"));
 const duplex_1 = require("./duplex");
 class ReactorComposite extends duplex_1.DuplexController {
@@ -77,26 +78,23 @@ class ReactorComposite extends duplex_1.DuplexController {
     reactivizeFunction(key, func, funcThisRef) {
         const resolveFuncKey = key + 'Resolved';
         const finishFuncKey = key + 'Completed';
-        const dispatchResolved = this.o.core.dispatcherFactory(resolveFuncKey);
-        const dispatchCompleted = this.o.core.dispatcherFactory(finishFuncKey);
-        this.r(this.i.pt[key].pipe(rx.mergeMap(([id, ...params]) => {
+        const dispatchResolved = this.o.core.dispatchForFactory(resolveFuncKey);
+        const dispatchCompleted = this.o.core.dispatchForFactory(finishFuncKey);
+        this.r(this.i.pt[key].pipe(rx.mergeMap(([meta, ...params]) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const res = func.apply(funcThisRef, params);
             if (rx.isObservable(res)) {
-                return res.pipe(rx.map(res => dispatchResolved(res, id)), rx.finalize(() => dispatchCompleted(id)));
+                return res.pipe(rx.map(res => dispatchResolved(meta, res)), rx.finalize(() => dispatchCompleted(meta)));
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             }
-            else if ((res === null || res === void 0 ? void 0 : res.then) && (res === null || res === void 0 ? void 0 : res.catch)) {
-                return rx.from(res.then(resolved => {
-                    dispatchResolved(resolved, id);
-                    dispatchCompleted(id);
-                }));
+            else if ((res === null || res === void 0 ? void 0 : res.then) != null && (res === null || res === void 0 ? void 0 : res.catch) != null) {
+                return rx.defer(() => res).pipe(rx.map(res => dispatchResolved(meta, res)), rx.finalize(() => dispatchCompleted(meta)));
             }
             else {
-                dispatchResolved(res, id);
-                dispatchCompleted(id);
+                dispatchResolved(meta, res);
+                dispatchCompleted(meta);
+                return rx.EMPTY;
             }
-            return rx.EMPTY;
         })));
         return resolveFuncKey;
     }

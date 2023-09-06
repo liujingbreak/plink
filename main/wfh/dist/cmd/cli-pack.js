@@ -111,10 +111,10 @@ async function packPackages(packageDirs, tarballDir, targetJsonFile) {
     const excludeFromSync = new Set();
     const package2tarball = new Map();
     if (packageDirs && packageDirs.length > 0) {
-        const done = rx.from(packageDirs).pipe(op.mergeMap(packageDir => rx.defer(() => npmPack(packageDir, tarballDir)).pipe(op.retry(2)), 4), op.reduce((all, item) => {
+        const done = rx.lastValueFrom(rx.from(packageDirs).pipe(op.mergeMap(packageDir => rx.defer(() => npmPack(packageDir, tarballDir)).pipe(op.retry(2)), 4), op.reduce((all, item) => {
             all.push(item);
             return all;
-        }, [])).toPromise();
+        }, [])));
         const tarInfos = (await done).filter(item => typeof item != null);
         for (const item of tarInfos) {
             // log.info(item);

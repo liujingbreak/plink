@@ -10,27 +10,32 @@ export class ControllerCore {
         this.interceptor$ = new rx.BehaviorSubject(a => a);
         this.typePrefix = SEQ++ + '/';
         this.dispatcher = {};
+        this.dispatcherFor = {};
         this.debugName = typeof (opts === null || opts === void 0 ? void 0 : opts.debug) === 'string' ? `[${this.typePrefix}${opts.debug}] ` : this.typePrefix;
         this.debugExcludeSet = new Set((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : []);
         const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
             ? this.actionUpstream.pipe((opts === null || opts === void 0 ? void 0 : opts.log) ?
-                rx.tap(action => opts.log(this.debugName + 'rx:action', nameOfAction(action))) :
+                rx.tap(action => {
+                    const type = nameOfAction(action);
+                    if (!this.debugExcludeSet.has(type)) {
+                        opts.log(this.debugName + 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                    }
+                }) :
                 (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
                     rx.tap(action => {
                         const type = nameOfAction(action);
                         if (!this.debugExcludeSet.has(type)) {
                             // eslint-disable-next-line no-console
-                            console.log(`%c ${this.debugName}rx:action `, 'color: white; background: #8c61ff;', type, [action.i, ...action.p]);
+                            console.log(`%c ${this.debugName}rx:action `, 'color: white; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                         }
-                    })
-                    :
-                        rx.tap(action => {
-                            const type = nameOfAction(action);
-                            if (!this.debugExcludeSet.has(type)) {
-                                // eslint-disable-next-line no-console
-                                console.log(this.debugName + 'rx:action', type, action.p === undefined ? '' : [action.i, ...action.p]);
-                            }
-                        }), rx.share())
+                    }) :
+                    rx.tap(action => {
+                        const type = nameOfAction(action);
+                        if (!this.debugExcludeSet.has(type)) {
+                            // eslint-disable-next-line no-console
+                            console.log(this.debugName + 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                        }
+                    }), rx.share())
             : this.actionUpstream;
         this.action$ = this.interceptor$.pipe(rx.switchMap(interceptor => interceptor ?
             debuggableAction$.pipe(interceptor, rx.share()) :
@@ -44,7 +49,7 @@ export class ControllerCore {
             p: params !== null && params !== void 0 ? params : []
         };
     }
-    dispatcherFactory(type) {
+    dispatchFactory(type) {
         if (has.call(this.dispatcher, type)) {
             return this.dispatcher[type];
         }
@@ -54,6 +59,19 @@ export class ControllerCore {
             return action.i;
         };
         this.dispatcher[type] = dispatch;
+        return dispatch;
+    }
+    dispatchForFactory(type) {
+        if (has.call(this.dispatcherFor, type)) {
+            return this.dispatcherFor[type];
+        }
+        const dispatch = (metas, ...params) => {
+            const action = this.createAction(type, params);
+            action.r = Array.isArray(metas) ? metas.map(m => m.i) : metas.i;
+            this.actionUpstream.next(action);
+            return action.i;
+        };
+        this.dispatcherFor[type] = dispatch;
         return dispatch;
     }
     replaceActionInterceptor(factory) {
@@ -67,14 +85,41 @@ export class ControllerCore {
             return up.pipe(rx.filter((a) => matchTypes.some(matchType => a.t === matchType)));
         };
     }
+    // eslint-disable-next-line space-before-function-paren
+    notOfType(...types) {
+        return (up) => {
+            const matchTypes = types.map(type => this.typePrefix + type);
+            return up.pipe(rx.filter((a) => matchTypes.every(matchType => a.t !== matchType)));
+        };
+    }
 }
 export class RxController {
     constructor(opts) {
         this.opts = opts;
+        this.latestActionsCache = {};
+        this.latestPayloadsCache = {};
         const core = this.core = new ControllerCore(opts);
         this.dispatcher = this.dp = new Proxy({}, {
             get(_target, key, _rec) {
-                return core.dispatcherFactory(key);
+                return core.dispatchFactory(key);
+            }
+        });
+        this.dispatcherFor = this.dpf = new Proxy({}, {
+            get(_target, key, _rec) {
+                return core.dispatchForFactory(key);
+            }
+        });
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const self = this;
+        this.dispatchAndObserveRes = this.do = new Proxy({}, {
+            get(_target, key, _rec) {
+                return (action$, ...params) => {
+                    const action = self.core.createAction(key, params);
+                    return rx.merge(action$.pipe(actionRelatedToAction(action.i), mapActionToPayload()), new rx.Observable(sub => {
+                        self.core.actionUpstream.next(action);
+                        sub.complete();
+                    }));
+                };
             }
         });
         const actionsByType = {};
@@ -89,37 +134,42 @@ export class RxController {
             }
         });
         const payloadsByType = {};
-        const payloadByTypeProxy = new Proxy({}, {
+        this.actionByType = this.at = actionByTypeProxy;
+        this.payloadByType = this.pt = new Proxy({}, {
             get(_target, key, _rec) {
                 let p$ = payloadsByType[key];
                 if (p$ == null) {
                     const a$ = actionByTypeProxy[key];
-                    p$ = payloadsByType[key] = a$.pipe(rx.map(a => [a.i, ...a.p]), rx.share());
+                    p$ = payloadsByType[key] = a$.pipe(mapActionToPayload(), rx.share());
                 }
                 return p$;
             }
         });
-        this.actionByType = this.at = actionByTypeProxy;
-        this.payloadByType = this.pt = payloadByTypeProxy;
         this.replaceActionInterceptor = core.replaceActionInterceptor;
-        // const dispatchAndObserveCache = {} as {[K in keyof I]: (...params: InferPayload<I[K]>) => DispatchAndObserveFn<I, K>};
-        // this.dispatchAndObserve = this.dpno = new Proxy({} as typeof dispatchAndObserveCache, {
-        //   get(_target, type) {
-        //     let fn = dispatchAndObserveCache[type as keyof I];
-        //     if (fn == null) {
-        //       fn = dispatchAndObserveCache[type as keyof I] = (...params: InferPayload<I[keyof I]>) => {
-        //         let actionId: Action<any>['i'];
-        //         const observe = rx.merge(
-        //           new rx.Observable<never>(sub => {
-        //             actionId = dispatcher[type as keyof I](...params);
-        //           })
-        //         );
-        //         return {id, observe};
-        //       };
-        //     }
-        //     return fn;
-        //   }
-        // });
+    }
+    createAction(type, ...params) {
+        return this.core.createAction(type, params);
+    }
+    /**
+     * The function returns a cache which means you may repeatly invoke this method with duplicate parameter
+     * without worrying about memory consumption
+     */
+    // eslint-disable-next-line space-before-function-paren
+    createLatestActionsFor(...types) {
+        var _a;
+        for (const type of types) {
+            if (has.call(this.latestActionsCache, type))
+                continue;
+            const a$ = new rx.ReplaySubject(1);
+            this.actionByType[type].subscribe(a$);
+            this.latestActionsCache[type] = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debug) ?
+                a$.pipe(this.debugLogLatestActionOperator(type)
+                // rx.share() DON'T USE share(), SINCE IT WILL TURS ReplaySubject TO A NORMAL Subject
+                ) :
+                a$.asObservable();
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return this.latestActionsCache;
     }
     /**
      * Conceptually, it is a "state store" like Apache Kafka's "table"
@@ -130,41 +180,38 @@ export class RxController {
      */
     // eslint-disable-next-line space-before-function-paren
     createLatestPayloadsFor(...types) {
-        var _a;
-        const replayedPayloads = {};
-        const payloadByTypeProxy = this.payloadByType;
+        const actions = this.createLatestActionsFor(...types);
         for (const key of types) {
-            const r$ = new rx.ReplaySubject(1);
-            replayedPayloads[key] = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debug) ?
-                r$.pipe(this.debugLogLatestActionOperator(key)) :
-                r$.asObservable();
-            payloadByTypeProxy[key].subscribe(r$);
+            if (has.call(this.latestPayloadsCache, key))
+                continue;
+            this.latestPayloadsCache[key] = actions[key].pipe(rx.map(a => [{ i: a.i, r: a.r }, ...a.p]));
         }
-        return replayedPayloads;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return this.latestPayloadsCache;
     }
     debugLogLatestActionOperator(type) {
         var _a;
         return ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log) ?
-            rx.map((payload, idx) => {
-                if (idx === 0) {
-                    this.opts.log(this.core.debugName + 'rx:latest', type);
+            rx.map((action, idx) => {
+                if (idx === 0 && !this.core.debugExcludeSet.has(type)) {
+                    this.opts.log(this.core.debugName + 'rx:latest', type, action);
                 }
-                return payload;
+                return action;
             }) :
             (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                rx.map((payload, idx) => {
-                    if (idx === 0) {
+                rx.map((action, idx) => {
+                    if (idx === 0 && !this.core.debugExcludeSet.has(type)) {
                         // eslint-disable-next-line no-console
-                        console.log(`%c ${this.core.debugName}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, payload === undefined ? '' : payload);
+                        console.log(`%c ${this.core.debugName}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, actionMetaToStr(action));
                     }
-                    return payload;
+                    return action;
                 }) :
-                rx.map((payload, idx) => {
-                    if (idx === 0) {
+                rx.map((action, idx) => {
+                    if (idx > 0 && !this.core.debugExcludeSet.has(type)) {
                         // eslint-disable-next-line no-console
-                        console.log(this.core.debugName + 'rx:latest', type, payload === undefined ? '' : payload);
+                        console.log(this.core.debugName + 'latest:', type, actionMetaToStr(action));
                     }
-                    return payload;
+                    return action;
                 });
     }
 }
@@ -179,11 +226,43 @@ export function nameOfAction(action) {
     const elements = action.t.split('/');
     return (elements.length > 1 ? elements[1] : elements[0]);
 }
-export function serializeAction(action) {
-    return Object.assign(Object.assign({}, action), { t: nameOfAction(action) });
+/** Rx operator function */
+export function actionRelatedToAction(id) {
+    return function (up) {
+        return up.pipe(rx.filter(m => (m.r != null && m.r === id) || (Array.isArray(m.r) && m.r.some(r => r === id))));
+    };
 }
+/** Rx operator function */
+export function actionRelatedToPayload(id) {
+    return function (up) {
+        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === id) || (Array.isArray(m.r) && m.r.some(r => r === id))));
+    };
+}
+export function serializeAction(action) {
+    const a = Object.assign(Object.assign({}, action), { t: nameOfAction(action) });
+    // if (a.r instanceof Set) {
+    //   a.r = [...a.r.values()];
+    // }
+    return a;
+}
+/**
+ * Create a new Action with same "i" and "r" properties and dispatched to RxController
+ * @return that dispatched new action object
+ */
 export function deserializeAction(actionObj, toController) {
+    const newAction = toController.core.createAction(nameOfAction(actionObj), actionObj.p);
+    newAction.i = actionObj.i;
+    if (actionObj.r)
+        newAction.r = actionObj.r;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return toController.dispatcher[actionObj.t](...actionObj.p);
+    toController.core.actionUpstream.next(newAction);
+    return newAction;
+}
+function mapActionToPayload() {
+    return (up) => up.pipe(rx.map(a => [{ i: a.i, r: a.r }, ...a.p]));
+}
+function actionMetaToStr(action) {
+    const { r, i } = action;
+    return `(i: ${i}${r != null ? `, r: ${Array.isArray(r) ? [...r.values()].toString() : r}` : ''})`;
 }
 //# sourceMappingURL=control.js.map

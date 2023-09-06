@@ -75,7 +75,7 @@ export declare function languageServices(ts?: any, opts?: {
         type: string;
         payload: unknown;
     }>;
-    ofType: import("../../../packages/redux-toolkit-observable/rx-utils").OfTypeFn<LangServiceActionCreator>;
+    ofType: import("../../../packages/redux-toolkit-observable/dist/rx-utils").OfTypeFn<LangServiceActionCreator>;
     store: rx.Observable<Set<string>>;
 };
 export declare function registerNode(): void;

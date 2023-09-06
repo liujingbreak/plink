@@ -4,20 +4,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateTsconfigFiles = exports.tsc = void 0;
+/* eslint-disable import/order */
 /**
  * Use Typescript "Project Reference" & "tsc -b Commandline" ability to compile multiple packages
  */
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const log4js_1 = __importDefault(require("log4js"));
-const path_1 = __importDefault(require("path"));
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const config_1 = __importDefault(require("../config"));
 const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const package_mgr_1 = require("../package-mgr");
-const tsc_packages_slice_1 = require("./tsc-packages-slice");
 const utils_1 = require("../cmd/utils");
+const tsc_packages_slice_1 = require("./tsc-packages-slice");
 const package_list_helper_2 = require("../package-mgr/package-list-helper");
 const child_process_1 = require("child_process");
 const misc_1 = require("../utils/misc");

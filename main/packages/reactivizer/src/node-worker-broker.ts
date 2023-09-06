@@ -1,46 +1,52 @@
 import {Worker as NodeWorker} from 'worker_threads';
 import * as rx from 'rxjs';
 import {ReactorComposite} from './epic';
-import {Action, ActionFunctions, serializeAction, deserializeAction, RxController} from './control';
-import {BrokerInput, BrokerEvent, ForkWorkerInput} from './types';
+import {Action, ActionFunctions, serializeAction, deserializeAction, RxController, nameOfAction} from './control';
+import {BrokerInput, BrokerEvent, ForkWorkerInput, ForkWorkerOutput} from './types';
 
 /** WA - Worker output Message
 */
 export function createBroker<WA extends ActionFunctions = Record<string, never>>(
-  mainWorkerInput: RxController<ForkWorkerInput>,
+  mainWorkerInput: RxController<ForkWorkerInput & any>,
   opts?: ConstructorParameters<typeof ReactorComposite>[0]
 ) {
-  const ctx = new ReactorComposite<BrokerInput, BrokerEvent>(opts);
-  const l = ctx.i.createLatestPayloadsFor('workerAssigned');
+  const comp = new ReactorComposite<BrokerInput, BrokerEvent>(opts);
 
   const workerInitState = new Map<number, 'DONE' | 'WIP'>();
 
-  const {r, i, o} = ctx;
-  ctx.startAll();
-  r(i.pt.ensureInitWorker.pipe(
-    rx.mergeMap(([id, workerNo, worker]) => {
+  const {r, i, o} = comp;
+  comp.startAll();
+
+  r('ensureInitWorker', i.pt.ensureInitWorker.pipe(
+    rx.mergeMap(([meta, workerNo, worker]) => {
       if (workerInitState.get(workerNo) === 'DONE') {
-        o.dp.workerInited(workerNo, null, id, true);
+        o.dpf.workerInited(meta, workerNo, null, true);
         return rx.EMPTY;
       } else if (workerInitState.get(workerNo) === 'WIP') {
         return o.pt.workerInited.pipe(
           rx.filter(() => workerInitState.get(workerNo) === 'DONE'),
-          rx.take(1)
+          rx.take(1),
+          rx.tap(() => o.dpf.workerInited(meta, workerNo, null, true))
         );
       }
+
+      workerInitState.set(workerNo, 'WIP');
+
       (worker as NodeWorker).on('message', (event: Action<WA, keyof WA> | {type: string}) => {
         if ((event as {type: string}).type === 'WORKER_READY') {
           workerInitState.set(workerNo, 'DONE');
-          o.dp.workerInited(workerNo, null, id, false);
+          o.dpf.workerInited(meta, workerNo, null, false);
+        } else if ((event as {type: string}).type === 'log') {
+          // eslint-disable-next-line no-console
+          (opts?.log ?? console.log)(...(event as unknown as {p: [any, ...any[]]}).p);
         } else if ((event as {error?: any}).error) {
           o.dp.onWorkerError(
             workerNo,
             (event as {error?: any}).error
           );
         } else {
-          const {data} = event as MessageEvent<Action<any, keyof any>>;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          deserializeAction(data, o);
+          const data = event as MessageEvent<Action<any, keyof any>>;
+          o.dp.actionFromWorker(data as unknown as Action<ForkWorkerOutput<any>>, workerNo);
         }
       });
 
@@ -62,24 +68,27 @@ export function createBroker<WA extends ActionFunctions = Record<string, never>>
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
   ));
 
-  r(i.at.fork.pipe(
+  r('On fork', i.at.fork.pipe(
     rx.mergeMap(async forkAction => {
-      const waitWorkerAssignment = l.workerAssigned.pipe(
-        rx.filter(([, aId]) => aId === assignId)
-      );
-      const assignId = o.dp.assignWorker();
-      const [, , workerNo, worker] = await rx.firstValueFrom(waitWorkerAssignment);
+      const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned));
+
       if (worker === 'main') {
-        mainWorkerInput.core.actionUpstream.next(forkAction as Action<any>);
+        deserializeAction(forkAction, mainWorkerInput);
       } else {
-        console.log('ensureInitWorker', workerNo);
-        const initId = i.dp.ensureInitWorker(workerNo, worker);
-        await rx.firstValueFrom(o.pt.workerInited.pipe(
-          rx.map(([, , , id]) => id === initId)
-        ));
-        console.log('postMessage to worker', forkAction);
+        await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, workerNo, worker));
         worker.postMessage(serializeAction(forkAction), [forkAction.p[1]!]);
       }
+    })
+  ));
+
+  r('dispatch action of actionFromWorker to broker\'s upStream', o.pt.actionFromWorker.pipe(
+    rx.map(([, action, workerNo]) => {
+      if (nameOfAction(action) === 'wait')
+        i.dp.onWorkerWait(workerNo);
+      else if (nameOfAction(action) === 'stopWaiting')
+        i.dp.onWorkerAwake(workerNo);
+      else
+        deserializeAction(action, i); // fork action
     })
   ));
 
@@ -91,7 +100,7 @@ export function createBroker<WA extends ActionFunctions = Record<string, never>>
       ));
     })
   ));
-  return ctx as unknown as Broker<WA>;
+  return comp as unknown as Broker<WA>;
 }
 
-export type Broker<WA extends ActionFunctions = any> = ReactorComposite<BrokerInput, BrokerEvent & WA>;
+export type Broker<WA extends ActionFunctions = Record<string, never>> = ReactorComposite<BrokerInput, BrokerEvent & WA>;

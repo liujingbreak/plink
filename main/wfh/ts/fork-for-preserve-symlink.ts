@@ -80,6 +80,10 @@ export function forkFile(
     }
   }));
 
+  // Set env.__plinkLogMainPid to a noexist PID
+  // so that `initProcess()` won't assign a PID to this variable as default,
+  // and current process will not be consider as main log process by
+  // `log-config.ts`
   process.env.__plinkLogMainPid = '-1';
   initProcess('none');
 

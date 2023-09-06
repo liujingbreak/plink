@@ -50,7 +50,7 @@ exports.getStore = getStore;
 function normalizePackageJsonTscProperty$(pkg) {
     const dr = pkg.json.dr;
     let rawConfigs;
-    if (dr && dr.tsc) {
+    if (dr === null || dr === void 0 ? void 0 : dr.tsc) {
         const items = Array.isArray(dr.tsc) ? dr.tsc : [dr.tsc];
         rawConfigs = (0, rxjs_1.from)(items);
     }

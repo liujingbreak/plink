@@ -4,9 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LookAhead = exports.mapChunks = exports.mapChunksObs = exports.parser = exports.Token = exports.Chunk = void 0;
+const util_1 = __importDefault(require("util"));
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const util_1 = __importDefault(require("util"));
 class Chunk {
     constructor(pos, line, col) {
         this.pos = pos;
@@ -45,7 +45,7 @@ function parser(name, input, parseLex, pipeOperators, parseGrammar) {
         for (const operator of pipeOperators)
             tokens = tokens.pipe(operator);
     }
-    return tokens.pipe((0, operators_1.map)(token => [token]), mapChunksObs(name + '-parser', _parseGrammarObs)).toPromise();
+    return (0, rxjs_1.lastValueFrom)(tokens.pipe((0, operators_1.map)(token => [token]), mapChunksObs(name + '-parser', _parseGrammarObs)));
 }
 exports.parser = parser;
 function mapChunksObs(name, parse) {
@@ -157,13 +157,11 @@ class LookAhead {
        * @param values lookahead string or tokens
        */
     async isNextWith(values, isEqual = (a, b) => a === b) {
-        let compareTo;
-        let compareFn;
-        compareTo = values;
-        compareFn = isEqual;
+        const compareTo = values;
+        const compareFn = isEqual;
         let i = 0;
         const l = compareTo.length;
-        while (true) {
+        for (;;) {
             if (i === l)
                 return true;
             const next = await this.la(i + 1);
@@ -178,13 +176,11 @@ class LookAhead {
         return this.assertAdvanceWith(values);
     }
     async assertAdvanceWith(values, isEqual = (a, b) => a === b) {
-        let compareTo;
-        let compareFn;
-        compareTo = values;
-        compareFn = isEqual;
+        const compareTo = values;
+        const compareFn = isEqual;
         let i = 0;
         const l = compareTo.length;
-        while (true) {
+        for (;;) {
             if (i === l)
                 return true;
             const next = await this.advance(i + 1);
