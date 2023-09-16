@@ -191,33 +191,6 @@ export function setTsCompilerOptForNodePath(
   return assigneeOptions as CompilerOptions;
 }
 
-/**
- * For those special scoped package which is like @loadable/component, its type definition package is
- * @types/loadable__component
- */
-// function assignSpecialPaths(dependencies: {[dep: string]: string} | undefined,
-//   nodePaths: Iterable<string>,
-//   assigneeOptions: Partial<CompilerOptions>, absBaseUrlPath: string) {
-//   if (dependencies == null)
-//     return;
-
-//   // if (assigneeOptions.paths == null)
-//   //   assigneeOptions.paths = {};
-//   for (const item of Object.keys(dependencies)) {
-//     const m = /^@types\/(.*?)__(.*?)$/.exec(item);
-//     if (m) {
-//       const originPkgName = `@${m[1]}/${m[2]}`;
-//       const exactOne: string[] = assigneeOptions.paths![originPkgName] = [];
-//       const wildOne: string[] = assigneeOptions.paths![originPkgName + '/*'] = [];
-//       for (const dir of nodePaths) {
-//         const relativeDir = Path.relative(absBaseUrlPath, dir + '/' + item).replace(/\\/g, '/');
-//         exactOne.push(relativeDir);
-//         wildOne.push(relativeDir + '/*');
-//       }
-//     }
-//   }
-// }
-
 function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {
   let drcpDir = (getState().linkedDrcp || getState().installedDrcp)!.realPath;
 

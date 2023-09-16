@@ -1,10 +1,22 @@
 {
   "extends": "./tsconfig-node.json",
+  "references": [
+    {"path": "../algorithms/tsconfig-es.json"}
+  ],
   "compilerOptions": {
+    "baseUrl": ".",
     "module": "ESNext",
     "outDir": "es",
     "strict": true,
-    "inlineSources": true
+    "inlineSources": true,
+    "paths": {
+      "@wfh/algorithms/*": [
+        "../algorithms/src/*"
+      ],
+      "@wfh/algorithms": [
+        "../algorithms/src"
+      ]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": [

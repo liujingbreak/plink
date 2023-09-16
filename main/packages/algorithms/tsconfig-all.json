@@ -1,0 +1,8 @@
+{
+  "extends": "../../wfh/tsconfig-base.json",
+  "references": [
+    {"path": "tsconfig-node.json"},
+    {"path": "tsconfig-es.json"}
+  ],
+  "include": []
+}

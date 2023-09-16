@@ -17,7 +17,7 @@ export type InferFuncReturnEvents<I extends ActionFunctions> = {
 export declare class ReactorComposite<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>> extends DuplexController<ReactorCompositeActions & I, ReactorCompositeOutput & O> {
     private opts?;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
-    constructor(opts?: DuplexOptions<I & O> | undefined);
+    constructor(opts?: DuplexOptions<ReactorCompositeActions & ReactorCompositeOutput & I & O> | undefined);
     startAll(): rx.Subscription;
     reactivize<F extends {
         [s: string]: (...a: any[]) => any;

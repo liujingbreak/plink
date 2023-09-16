@@ -16,6 +16,8 @@
     "build:redux": "tsc -p packages/redux-toolkit-observable/tsconfig-redux-toolkit.json && tsc -p packages/redux-toolkit-observable/tsconfig-redux-toolkit-es.json",
     "build:rx": "tsc -b packages/reactivizer/tsconfig-all.json",
     "watch:rx": "tsc -b -w packages/reactivizer/tsconfig-all.json",
+    "build:al": "tsc -b packages/algorithms/tsconfig-all.json",
+    "watch:al": "tsc -b -w packages/algorithms/tsconfig-all.json",
     "clean": "rm -rf wfh/*.tsbuildinfo && rm -rf wfh/dist/*"
   },
   "repository": {

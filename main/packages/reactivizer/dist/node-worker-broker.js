@@ -29,11 +29,15 @@ const epic_1 = require("./epic");
 const control_1 = require("./control");
 /** WA - Worker output Message
 */
-function createBroker(mainWorkerInput, opts) {
+function createBroker(mainWorker, opts) {
+    const mainWorkerComp = mainWorker;
     const comp = new epic_1.ReactorComposite(opts);
     const workerInitState = new Map();
     const { r, i, o } = comp;
     comp.startAll();
+    r(mainWorkerComp.o.pt.forkByBroker.pipe(rx.map(([, wrappedAct, port]) => {
+        i.dp.forkFromWorker(-1, wrappedAct, port);
+    })));
     r('ensureInitWorker', i.pt.ensureInitWorker.pipe(rx.mergeMap(([meta, workerNo, worker]) => {
         if (workerInitState.get(workerNo) === 'DONE') {
             o.dpf.workerInited(meta, workerNo, null, true);
@@ -67,30 +71,31 @@ function createBroker(mainWorkerInput, opts) {
         worker.on('messageerror', event => {
             o.dp.onWorkerError(workerNo, event);
         });
-        worker.on('exit', event => {
-            o.dp.onWorkerExit(workerNo, event);
+        worker.on('exit', code => {
+            o.dp.onWorkerExit(workerNo, code);
         });
         worker.postMessage({ type: 'ASSIGN_WORKER_NO', workerNo });
         return rx.EMPTY;
     })
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
-    r('On fork', i.at.fork.pipe(rx.mergeMap(async (forkAction) => {
+    r('On fork', i.at.forkFromWorker.pipe(rx.mergeMap(async (forkAction) => {
         const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned));
         if (worker === 'main') {
-            (0, control_1.deserializeAction)(forkAction, mainWorkerInput);
+            (0, control_1.deserializeAction)(forkAction, mainWorkerComp.i);
         }
         else {
             await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, workerNo, worker));
-            worker.postMessage((0, control_1.serializeAction)(forkAction), [forkAction.p[1]]);
+            worker.postMessage((0, control_1.serializeAction)(forkAction), [forkAction.p[2]]);
         }
     })));
     r('dispatch action of actionFromWorker to broker\'s upStream', o.pt.actionFromWorker.pipe(rx.map(([, action, workerNo]) => {
-        if ((0, control_1.nameOfAction)(action) === 'wait')
+        const type = (0, control_1.nameOfAction)(action);
+        if (type === 'wait')
             i.dp.onWorkerWait(workerNo);
-        else if ((0, control_1.nameOfAction)(action) === 'stopWaiting')
+        else if (type === 'stopWaiting')
             i.dp.onWorkerAwake(workerNo);
-        else
+        else if (type === 'fork')
             (0, control_1.deserializeAction)(action, i); // fork action
     })));
     r(i.pt.letWorkerExit.pipe(rx.map(([, worker]) => {

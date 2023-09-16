@@ -18,4 +18,5 @@ __exportStar(require("./control"), exports);
 __exportStar(require("./duplex"), exports);
 __exportStar(require("./epic"), exports);
 __exportStar(require("./forkJoin-node-worker"), exports);
+__exportStar(require("./utils"), exports);
 //# sourceMappingURL=index.js.map

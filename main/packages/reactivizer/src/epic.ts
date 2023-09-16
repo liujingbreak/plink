@@ -33,7 +33,7 @@ export class ReactorComposite<
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
   // protected control: DuplexController<ReactorCompositeActions, ReactorCompositeOutput>;
 
-  constructor(private opts?: DuplexOptions<I & O>) {
+  constructor(private opts?: DuplexOptions<ReactorCompositeActions & ReactorCompositeOutput & I & O>) {
     super(opts);
     // this.latestCompActPayloads = (this as ReactorComposite<ReactorCompositeActions, ReactorCompositeOutput>).i.createLatestPayloadsFor('mergeStream');
     this.reactorSubj = new rx.ReplaySubject(999);

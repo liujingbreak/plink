@@ -35,6 +35,18 @@
       ],
       "@wfh/reactive-terminal-ui/dist/*": [
         "packages/reactive-terminal-ui/src/*"
+      ],
+      "@wfh/algorithms/*": [
+        "packages/algorithms/src/*"
+      ],
+      "@wfh/algorithms": [
+        "packages/algorithms/src"
+      ],
+      "@wfh/reactivizer/*": [
+        "packages/reactivizer/src/*"
+      ],
+      "@wfh/reactivizer": [
+        "packages/reactivizer/src"
       ]
     }
   },
@@ -45,6 +57,7 @@
     "packages/reactive-terminal-ui/src/**/*.ts",
     "packages/reactivizer/src/**/*.ts",
     "packages/reactivizer/__tests__/**/*.ts",
+    "packages/algorithms/src/**/*.ts",
     "wfh/share/**/*.ts"
   ],
   "exclude": [

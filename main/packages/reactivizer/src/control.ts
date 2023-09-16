@@ -28,9 +28,9 @@ type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O ex
   waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
 
-export type CoreOptions<I> = {
+export type CoreOptions<K extends string[]> = {
   debug?: string | boolean;
-  debugExcludeTypes?: (keyof I & string)[];
+  debugExcludeTypes?: K;
   logStyle?: 'full' | 'noParam';
   log?: (msg: string, ...objs: any[]) => unknown;
 };
@@ -50,7 +50,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   protected dispatcher = {} as {[K in keyof I]: Dispatch<I[keyof I]>};
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[keyof I]>};
 
-  constructor(public opts?: CoreOptions<I>) {
+  constructor(public opts?: CoreOptions<(string & keyof I)[]>) {
     this.debugName = typeof opts?.debug === 'string' ? `[${this.typePrefix}${opts.debug}] ` : this.typePrefix;
     this.debugExcludeSet = new Set(opts?.debugExcludeTypes ?? []);
 
@@ -173,7 +173,7 @@ export class RxController<I extends ActionFunctions> {
 
   replaceActionInterceptor: ControllerCore<I>['replaceActionInterceptor'];
 
-  constructor(private opts?: CoreOptions<I>) {
+  constructor(private opts?: CoreOptions<(string & keyof I)[]>) {
     const core = this.core = new ControllerCore(opts);
 
     this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I[K]>}, {

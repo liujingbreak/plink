@@ -1,21 +1,29 @@
 import {Worker as NodeWorker} from 'worker_threads';
 import * as rx from 'rxjs';
+import {DuplexOptions} from './duplex';
 import {ReactorComposite} from './epic';
 import {Action, ActionFunctions, serializeAction, deserializeAction, RxController, nameOfAction} from './control';
-import {BrokerInput, BrokerEvent, ForkWorkerInput, ForkWorkerOutput} from './types';
+import {Broker, BrokerInput, BrokerEvent, ForkWorkerInput, ForkWorkerOutput} from './types';
 
 /** WA - Worker output Message
 */
-export function createBroker<WA extends ActionFunctions = Record<string, never>>(
-  mainWorkerInput: RxController<ForkWorkerInput & any>,
-  opts?: ConstructorParameters<typeof ReactorComposite>[0]
+export function createBroker<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>, WA extends ActionFunctions = Record<string, never>>(
+  mainWorker: ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O>,
+  opts?: DuplexOptions<BrokerInput & O & BrokerEvent & ForkWorkerOutput>
 ) {
-  const comp = new ReactorComposite<BrokerInput, BrokerEvent>(opts);
+  const mainWorkerComp = mainWorker as unknown as ReactorComposite<ForkWorkerInput, ForkWorkerOutput>;
+  const comp = new ReactorComposite<BrokerInput, BrokerEvent>(opts as any);
 
   const workerInitState = new Map<number, 'DONE' | 'WIP'>();
 
   const {r, i, o} = comp;
   comp.startAll();
+
+  r(mainWorkerComp.o.pt.forkByBroker.pipe(
+    rx.map(([, wrappedAct, port]) => {
+      i.dp.forkFromWorker(-1, wrappedAct, port);
+    })
+  ));
 
   r('ensureInitWorker', i.pt.ensureInitWorker.pipe(
     rx.mergeMap(([meta, workerNo, worker]) => {
@@ -46,7 +54,7 @@ export function createBroker<WA extends ActionFunctions = Record<string, never>>
           );
         } else {
           const data = event as MessageEvent<Action<any, keyof any>>;
-          o.dp.actionFromWorker(data as unknown as Action<ForkWorkerOutput<any>>, workerNo);
+          o.dp.actionFromWorker(data as unknown as Action<ForkWorkerOutput>, workerNo);
         }
       });
 
@@ -58,8 +66,8 @@ export function createBroker<WA extends ActionFunctions = Record<string, never>>
         o.dp.onWorkerError(workerNo, event);
       });
 
-      (worker as NodeWorker).on('exit', event => {
-        o.dp.onWorkerExit(workerNo, event);
+      (worker as NodeWorker).on('exit', code => {
+        o.dp.onWorkerExit(workerNo, code);
       });
 
       (worker as NodeWorker).postMessage({type: 'ASSIGN_WORKER_NO', workerNo});
@@ -68,26 +76,27 @@ export function createBroker<WA extends ActionFunctions = Record<string, never>>
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
   ));
 
-  r('On fork', i.at.fork.pipe(
+  r('On fork', i.at.forkFromWorker.pipe(
     rx.mergeMap(async forkAction => {
       const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned));
 
       if (worker === 'main') {
-        deserializeAction(forkAction, mainWorkerInput);
+        deserializeAction(forkAction, mainWorkerComp.i);
       } else {
         await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, workerNo, worker));
-        worker.postMessage(serializeAction(forkAction), [forkAction.p[1]!]);
+        worker.postMessage(serializeAction(forkAction), [forkAction.p[2]!]);
       }
     })
   ));
 
   r('dispatch action of actionFromWorker to broker\'s upStream', o.pt.actionFromWorker.pipe(
     rx.map(([, action, workerNo]) => {
-      if (nameOfAction(action) === 'wait')
+      const type = nameOfAction<ForkWorkerOutput>(action);
+      if (type === 'wait')
         i.dp.onWorkerWait(workerNo);
-      else if (nameOfAction(action) === 'stopWaiting')
+      else if (type === 'stopWaiting')
         i.dp.onWorkerAwake(workerNo);
-      else
+      else if (type === 'fork')
         deserializeAction(action, i); // fork action
     })
   ));
@@ -103,4 +112,3 @@ export function createBroker<WA extends ActionFunctions = Record<string, never>>
   return comp as unknown as Broker<WA>;
 }
 
-export type Broker<WA extends ActionFunctions = Record<string, never>> = ReactorComposite<BrokerInput, BrokerEvent & WA>;

@@ -1002,7 +1002,7 @@ function _createSymlinksForWorkspace(wsKey: string) {
   const ws = getState().workspaces.get(wsKey)!;
 
   const pkgNames = ws.linkedDependencies.map(item => item[0])
-  .concat(ws.linkedDevDependencies.map(item => item[0]));
+    .concat(ws.linkedDevDependencies.map(item => item[0]));
 
   const pkgNameSet = new Set(pkgNames);
 
@@ -1016,17 +1016,17 @@ function _createSymlinksForWorkspace(wsKey: string) {
       lines: [Path.relative(rootDir, symlinkDir).replace(/\\/g, '/')]});
   }
 
-  let symlinksToCreate = from(Array.from(pkgNameSet.values())) // Important, do not use pkgNameSet iterable, it will be changed before subscription
-  .pipe(
-    map(name => {
-      const pkg = getState().srcPackages.get(name) || ws.installedComponents!.get(name)!;
-      if (pkg == null) {
-        log.warn(`Missing package information of ${name}, please run "Plink sync ${wsKey}" again to sync Plink state`);
-      }
-      return pkg;
-    }),
-    filter(pkg => pkg != null)
-  );
+  const symlinksToCreate = from(Array.from(pkgNameSet.values())) // Important, do not use pkgNameSet iterable, it will be changed before subscription
+    .pipe(
+      map(name => {
+        const pkg = getState().srcPackages.get(name) || ws.installedComponents!.get(name)!;
+        if (pkg == null) {
+          log.warn(`Missing package information of ${name}, please run "Plink sync ${wsKey}" again to sync Plink state`);
+        }
+        return pkg;
+      }),
+      filter(pkg => pkg != null)
+    );
 
   if (rootDir === workspaceDir(wsKey)) {
     const plinkPkg = getState().linkedDrcp || getState().installedDrcp;
@@ -1120,7 +1120,9 @@ function createPackageInfoWithJson(pkJsonFile: string, json: PackageInfo['json']
 
 function cp(from: string, to: string) {
   if (from.startsWith('-')) {
+    // eslint-disable-next-line prefer-rest-params,@typescript-eslint/no-unsafe-assignment
     from = arguments[1];
+    // eslint-disable-next-line prefer-rest-params,@typescript-eslint/no-unsafe-assignment
     to = arguments[2];
   }
   fsext.copySync(from, to);
@@ -1149,14 +1151,14 @@ function deleteDuplicatedInstalledPkg(workspaceKey: string) {
   wsState.linkedDependencies.concat(wsState.linkedDevDependencies).map(([pkgName]) => {
     const dir = Path.resolve(rootDir, workspaceKey, 'node_modules', pkgName);
     return fs.promises.lstat(dir)
-    .then((stat) => {
-      if (!stat.isSymbolicLink()) {
-        // eslint-disable-next-line no-console
-        log.info(`Previous installed ${Path.relative(rootDir, dir)} is deleted, due to linked package ${pkgName}`);
-        return fs.promises.unlink(dir);
-      }
-    })
-    .catch(doNothing);
+      .then((stat) => {
+        if (!stat.isSymbolicLink()) {
+          // eslint-disable-next-line no-console
+          log.info(`Previous installed ${Path.relative(rootDir, dir)} is deleted, due to linked package ${pkgName}`);
+          return fs.promises.unlink(dir);
+        }
+      })
+      .catch(doNothing);
   });
 }
 

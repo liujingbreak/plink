@@ -28,13 +28,13 @@ const worker_threads_1 = require("worker_threads");
 const rx = __importStar(require("rxjs"));
 const control_1 = require("./control");
 const epic_1 = require("./epic");
-const node_worker_broker_1 = require("./node-worker-broker");
+// import {createBroker} from './node-worker-broker';
 function createWorkerControl(opts) {
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const ctx = new epic_1.ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')) : false, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')) : false, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
     let broker;
-    ctx.startAll();
-    const { r, i, o } = ctx;
+    comp.startAll();
+    const { r, i, o } = comp;
     const latest = i.createLatestPayloadsFor('exit');
     const lo = o.createLatestPayloadsFor('log', 'warn');
     const logPrefix = '[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']');
@@ -84,11 +84,7 @@ function createWorkerControl(opts) {
                 worker_threads_1.parentPort.postMessage(actSe, [chan.port2]);
             }
             else {
-                if (broker == null) {
-                    broker = (0, node_worker_broker_1.createBroker)(i, Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? 'ForkJoin-broker' : false, debugExcludeTypes: ['workerAssigned', 'assignWorker', 'workerInited', 'ensureInitWorker'], logStyle: 'noParam' }));
-                    o.dp.brokerCreated(broker);
-                }
-                broker.i.dp.fork(wrappedAct, chan.port2);
+                o.dp.forkByBroker(wrappedAct, chan.port2);
             }
         }));
     })));
@@ -122,12 +118,12 @@ function createWorkerControl(opts) {
             broker.o.dp.onWorkerError(-1, { label, detail: err });
         }
     })));
-    return ctx;
+    return comp;
 }
 exports.createWorkerControl = createWorkerControl;
-function reativizeRecursiveFuncs(ctx, fObject) {
-    ctx.reactivize(fObject);
-    return ctx;
+function reativizeRecursiveFuncs(comp, fObject) {
+    comp.reactivize(fObject);
+    return comp;
 }
 exports.reativizeRecursiveFuncs = reativizeRecursiveFuncs;
 function hasReturnTransferable(payload) {

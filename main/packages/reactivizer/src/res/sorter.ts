@@ -1,11 +1,12 @@
 import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
 import {createWorkerControl, reativizeRecursiveFuncs, ForkTransferablePayload} from '../forkJoin-node-worker';
-import {actionRelatedToPayload, CoreOptions} from '../control';
+import {actionRelatedToPayload} from '../control';
+import {DuplexOptions} from '../duplex';
 import {timeoutLog} from '../utils';
 import {ForkWorkerInput, ForkWorkerOutput} from '../types';
 
-export function createSorter(opts?: CoreOptions<ForkWorkerInput & ForkWorkerOutput>) {
+export function createSorter(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
   const ctl = createWorkerControl(opts);
 
   const sortActions = {

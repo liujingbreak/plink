@@ -20,16 +20,16 @@ export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Obs
 type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
 type DispatchFor<F> = (referActions: ActionMeta | ActionMeta[], ...params: InferPayload<F>) => Action<any>['i'];
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
-export type CoreOptions<I> = {
+export type CoreOptions<K extends string[]> = {
     debug?: string | boolean;
-    debugExcludeTypes?: (keyof I & string)[];
+    debugExcludeTypes?: K;
     logStyle?: 'full' | 'noParam';
     log?: (msg: string, ...objs: any[]) => unknown;
 };
 export declare class ControllerCore<I extends ActionFunctions = {
     [k: string]: never;
 }> {
-    opts?: CoreOptions<I> | undefined;
+    opts?: CoreOptions<(string & keyof I)[]> | undefined;
     actionUpstream: rx.Subject<Action<I, keyof I>>;
     interceptor$: rx.BehaviorSubject<(up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>>;
     typePrefix: string;
@@ -38,7 +38,7 @@ export declare class ControllerCore<I extends ActionFunctions = {
     debugExcludeSet: Set<string>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[keyof I]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[keyof I]>; };
-    constructor(opts?: CoreOptions<I> | undefined);
+    constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
     createAction<K extends keyof I>(type: K, params?: InferPayload<I[K]>): Action<I, K>;
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I>;
     dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I>;
@@ -82,7 +82,7 @@ export declare class RxController<I extends ActionFunctions> {
     protected latestActionsCache: { [K in keyof I]?: rx.Observable<Action<I, K>> | undefined; };
     protected latestPayloadsCache: { [K in keyof I]?: PayloadStream<I, K> | undefined; };
     replaceActionInterceptor: ControllerCore<I>['replaceActionInterceptor'];
-    constructor(opts?: CoreOptions<I> | undefined);
+    constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
     createAction<K extends keyof I>(type: K, ...params: InferPayload<I[K]>): Action<I, K>;
     /**
      * The function returns a cache which means you may repeatly invoke this method with duplicate parameter

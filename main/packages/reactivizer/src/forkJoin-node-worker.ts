@@ -5,13 +5,13 @@ import {parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, deserializeAction, serializeAction, nameOfAction, RxController, actionRelatedToAction} from './control';
 import {ReactorComposite, InferFuncReturnEvents} from './epic';
-import {ForkWorkerInput, ForkWorkerOutput} from './types';
+import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
 import {DuplexOptions} from './duplex';
-import {Broker, createBroker} from './node-worker-broker';
+// import {createBroker} from './node-worker-broker';
 
-export function createWorkerControl<I extends ActionFunctions = ActionFunctions>(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput<I>>) {
+export function createWorkerControl<I extends ActionFunctions | unknown = unknown>(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
   // eslint-disable-next-line @typescript-eslint/ban-types
-  const ctx = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput<I>>({
+  const comp = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput>({
     ...opts,
     debug: opts?.debug ? ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')) : false,
     log: isMainThread ? opts?.log : (...args) => parentPort?.postMessage({type: 'log', p: args}),
@@ -20,8 +20,8 @@ export function createWorkerControl<I extends ActionFunctions = ActionFunctions>
   });
   let broker: Broker | undefined;
 
-  ctx.startAll();
-  const {r, i, o} = ctx;
+  comp.startAll();
+  const {r, i, o} = comp;
   const latest = i.createLatestPayloadsFor('exit');
   const lo = o.createLatestPayloadsFor('log', 'warn');
 
@@ -101,16 +101,7 @@ export function createWorkerControl<I extends ActionFunctions = ActionFunctions>
             const actSe = serializeAction(act);
             parentPort.postMessage(actSe, [chan.port2]);
           } else {
-            if (broker == null) {
-              broker = createBroker(i, {
-                ...opts,
-                debug: opts?.debug ? 'ForkJoin-broker' : false,
-                debugExcludeTypes: ['workerAssigned', 'assignWorker', 'workerInited', 'ensureInitWorker'],
-                logStyle: 'noParam'
-              });
-              o.dp.brokerCreated(broker as unknown as Broker<I>);
-            }
-            broker.i.dp.fork(wrappedAct, chan.port2);
+            o.dp.forkByBroker(wrappedAct, chan.port2);
           }
         })
       );
@@ -162,7 +153,7 @@ export function createWorkerControl<I extends ActionFunctions = ActionFunctions>
       }
     })
   ));
-  return ctx as unknown as ReactorComposite<I & ForkWorkerInput, ForkWorkerOutput<I>>;
+  return comp as unknown as ReactorComposite<I extends unknown ? ForkWorkerInput : ForkWorkerInput & I, ForkWorkerOutput>;
 }
 
 export function reativizeRecursiveFuncs<
@@ -170,9 +161,9 @@ export function reativizeRecursiveFuncs<
   O extends ActionFunctions,
   // eslint-disable-next-line space-before-function-paren
   F extends {[s: string]: (...a: any[]) => any}
->(ctx: ReactorComposite<I, O>, fObject: F) {
-  ctx.reactivize(fObject);
-  return ctx as unknown as ReactorComposite<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O>;
+>(comp: ReactorComposite<I, O>, fObject: F) {
+  comp.reactivize(fObject);
+  return comp as unknown as ReactorComposite<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O>;
 }
 
 export type ForkTransferablePayload<T = unknown> = {

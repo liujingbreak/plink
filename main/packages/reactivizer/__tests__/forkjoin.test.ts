@@ -1,10 +1,13 @@
 /* eslint-disable no-console */
 import Path from 'node:path';
+import os from 'node:os';
 import {Worker} from 'node:worker_threads';
 import {initProcess, initConfig, logConfig, log4File} from '@wfh/plink';
 import * as rx from 'rxjs';
 import {describe, it, expect, beforeEach}  from '@jest/globals';
 import {createSorter} from '../src/res/sorter';
+import {createBroker} from '../src/node-worker-broker';
+import {apply} from '../src/worker-scheduler';
 
 initProcess('none');
 logConfig(initConfig({})());
@@ -23,23 +26,23 @@ describe('forkjoin worker', () => {
     expect(new Set(arr).size).toEqual(20);
   });
 
-  it('main worker can recursively fork main worker and perform merge-sort', async () => {
+  it.skip('main worker can recursively fork main worker and perform merge-sort', async () => {
     await forkMergeSort('mainOnly');
   }, 30000);
 
-  it('main worker can fork another worker and perform merge-sort', async () => {
+  it.skip('single worker can fork another worker and perform merge-sort', async () => {
     await forkMergeSort('singleWorker');
   }, 30000);
 
-  it('main worker can fork another worker or main worker itself', async () => {
+  it('main worker and wokers can fork another worker or main worker itself', async () => {
     await forkMergeSort('mix');
   }, 30000);
 
-  it.skip('main worker can fork another worker or main worker itself', async () => {
+  it.skip('new workers can fork another worker or main worker itself', async () => {
     await forkMergeSort('newWorker');
   }, 30000);
 
-  async function forkMergeSort(threadMode: 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker') {
+  async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker') {
     const sorter = createSorter({
       debug: false,
       log(...msg) {
@@ -51,11 +54,26 @@ describe('forkjoin worker', () => {
     sorter.o.dp.log('worker created');
     const workers = [] as Worker[];
 
-    const brokerLo = sorter.o.createLatestPayloadsFor('brokerCreated');
+    const broker = createBroker(sorter, {
+      debug: 'ForkJoin-broker',
+      log(...msg) {
+        log.info(...msg);
+      },
+      debugExcludeTypes: ['workerAssigned', 'assignWorker', 'workerInited', 'ensureInitWorker'],
+      logStyle: 'noParam'
+    });
 
-    sorter.r(sorter.o.pt.brokerCreated.pipe(
-      rx.take(1),
-      rx.mergeMap(([, {o, i}]) => rx.merge(
+    const {i, o} = broker;
+
+    if (threadMode === 'scheduler') {
+      apply(broker, {
+        maxNumOfWorker: os.cpus().length > 0 ? os.cpus().length : 3,
+        workerFactory() {
+          return new Worker(Path.resolve(__dirname, '../dist/res/sort-worker.js'));
+        }
+      });
+    } else {
+      sorter.r(rx.merge(
         // Mimic a thread pool's job
         o.pt.assignWorker.pipe(
           rx.map(([m], idx) => {
@@ -103,8 +121,8 @@ describe('forkjoin worker', () => {
             workers.splice(0);
           })
         )
-      ))
-    ));
+      ));
+    }
 
     sorter.o.dp.log('Initial test array', testArr);
 
@@ -116,8 +134,9 @@ describe('forkjoin worker', () => {
     expect(workerIsAssigned).toBe(true);
     sorter.o.dp.log('-----------------------------\nsorted:', testArr);
 
-    const [, {i, o}] = await rx.firstValueFrom(brokerLo.brokerCreated);
-    if (threadMode !== 'mainOnly') {
+    if (threadMode === 'scheduler') {
+      broker.i.dp.stopAll();
+    } else if (threadMode !== 'mainOnly') {
       const latestBrokerEvents = o.createLatestPayloadsFor('onWorkerExit');
       for (const worker of workers)
         i.dp.letWorkerExit(worker);

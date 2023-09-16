@@ -1,6 +1,6 @@
 import {CoreOptions, RxController, ActionFunctions} from './control';
 
-export type DuplexOptions<I> = CoreOptions<I>;
+export type DuplexOptions<I> = CoreOptions<(string & keyof I)[]>;
 
 export class DuplexController<I extends ActionFunctions, O extends ActionFunctions> {
   /** input actions controller, abbrevation name of "inputControl" */
