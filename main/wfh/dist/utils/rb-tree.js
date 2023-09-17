@@ -14,5 +14,5 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("../share/algorithms/rb-tree"), exports);
+__exportStar(require("../../../packages/algorithms/dist/rb-tree"), exports);
 //# sourceMappingURL=rb-tree.js.map

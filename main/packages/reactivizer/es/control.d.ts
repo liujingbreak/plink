@@ -39,7 +39,7 @@ export declare class ControllerCore<I extends ActionFunctions = {
     protected dispatcher: { [K in keyof I]: Dispatch<I[keyof I]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[keyof I]>; };
     constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
-    createAction<K extends keyof I>(type: K, params?: InferPayload<I[K]>): Action<I, K>;
+    createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J, K>;
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I>;
     dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I>;
     replaceActionInterceptor(factory: (origin: (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>) => (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>): void;
@@ -83,7 +83,7 @@ export declare class RxController<I extends ActionFunctions> {
     protected latestPayloadsCache: { [K in keyof I]?: PayloadStream<I, K> | undefined; };
     replaceActionInterceptor: ControllerCore<I>['replaceActionInterceptor'];
     constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
-    createAction<K extends keyof I>(type: K, ...params: InferPayload<I[K]>): Action<I, K>;
+    createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;
     /**
      * The function returns a cache which means you may repeatly invoke this method with duplicate parameter
      * without worrying about memory consumption
@@ -114,10 +114,10 @@ export declare function nameOfAction<I extends ActionFunctions>(action: Pick<Act
 export declare function actionRelatedToAction<T extends Action<any>>(id: ActionMeta['i']): (up: rx.Observable<T>) => rx.Observable<T>;
 /** Rx operator function */
 export declare function actionRelatedToPayload<T extends [ActionMeta, ...any[]]>(id: ActionMeta['i']): (up: rx.Observable<T>) => rx.Observable<T>;
-export declare function serializeAction(action: Action<any>): {
+export declare function serializeAction<I extends ActionFunctions = any, K extends keyof I = string>(action: Action<I, K>): {
     t: string;
     /** payload **/
-    p: unknown[];
+    p: InferPayload<I[K]>;
     /** id */
     i: number;
     /** reference to other actions */

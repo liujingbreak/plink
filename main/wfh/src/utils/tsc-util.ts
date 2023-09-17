@@ -128,7 +128,7 @@ export function createTranspileFileWithTsCheck(
       ),
       action$.pipe(
         ofType('onEmitFailure', 'onSuggest'),
-        op.map(({payload: [file, diagnostics]}) => {
+        op.map(({payload: [_file, diagnostics]}) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           console.error('[tsc-util]', diagnostics);
         })

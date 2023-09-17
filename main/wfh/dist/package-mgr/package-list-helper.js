@@ -156,46 +156,22 @@ function setTsCompilerOptForNodePath(tsconfigDir, baseUrl = './', assigneeOption
     return assigneeOptions;
 }
 exports.setTsCompilerOptForNodePath = setTsCompilerOptForNodePath;
-/**
- * For those special scoped package which is like @loadable/component, its type definition package is
- * @types/loadable__component
- */
-// function assignSpecialPaths(dependencies: {[dep: string]: string} | undefined,
-//   nodePaths: Iterable<string>,
-//   assigneeOptions: Partial<CompilerOptions>, absBaseUrlPath: string) {
-//   if (dependencies == null)
-//     return;
-//   // if (assigneeOptions.paths == null)
-//   //   assigneeOptions.paths = {};
-//   for (const item of Object.keys(dependencies)) {
-//     const m = /^@types\/(.*?)__(.*?)$/.exec(item);
-//     if (m) {
-//       const originPkgName = `@${m[1]}/${m[2]}`;
-//       const exactOne: string[] = assigneeOptions.paths![originPkgName] = [];
-//       const wildOne: string[] = assigneeOptions.paths![originPkgName + '/*'] = [];
-//       for (const dir of nodePaths) {
-//         const relativeDir = Path.relative(absBaseUrlPath, dir + '/' + item).replace(/\\/g, '/');
-//         exactOne.push(relativeDir);
-//         wildOne.push(relativeDir + '/*');
-//       }
-//     }
-//   }
-// }
 function pathMappingForLinkedPkgs(baseUrlAbsPath) {
     let drcpDir = ((0, index_1.getState)().linkedDrcp || (0, index_1.getState)().installedDrcp).realPath;
     const pathMapping = {};
     for (const [name, { realPath, json }] of (0, index_1.getState)().srcPackages.entries() || []) {
         const tsDirs = (0, misc_1.getTscConfigOfPkg)(json);
         const realDir = path_1.default.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
-        pathMapping[name] = [realDir];
+        const typeFile = json.types;
+        pathMapping[name] = [typeFile ? path_1.default.join(realDir, typeFile).replace(/\\/g, '/') : realDir];
         pathMapping[`${name}/${tsDirs.destDir}/*`.replace(/\/\//g, '/')] = [`${realDir}/${tsDirs.srcDir}/*`.replace(/\/\//g, '/')];
         // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
         pathMapping[name + '/*'] = [`${realDir}/*`];
     }
     // if (pkgName !== '@wfh/plink') {
     drcpDir = path_1.default.relative(baseUrlAbsPath, drcpDir).replace(/\\/g, '/');
-    pathMapping['@wfh/plink'] = [drcpDir + '/wfh/ts/index.ts'];
-    pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/ts/*'];
+    pathMapping['@wfh/plink'] = [drcpDir + '/wfh/src/index.ts'];
+    pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/src/*'];
     return pathMapping;
 }
 /**

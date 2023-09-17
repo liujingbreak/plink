@@ -7,12 +7,12 @@ import log4js from 'log4js';
 import chalk from 'chalk';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import { ActionCreatorWithPayload, PayloadAction } from '@reduxjs/toolkit';
+import {ActionCreatorWithPayload, PayloadAction} from '@reduxjs/toolkit';
 import ts from 'typescript';
-import { setTsCompilerOptForNodePath, CompilerOptions, packages4WorkspaceKey } from './package-mgr/package-list-helper';
-import { getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
-  isCwdWorkspace, workspaceDir } from './package-mgr';
-import { stateFactory, ofPayloadAction, action$Of } from './store';
+import {setTsCompilerOptForNodePath, CompilerOptions, packages4WorkspaceKey} from './package-mgr/package-list-helper';
+import {getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
+  isCwdWorkspace, workspaceDir} from './package-mgr';
+import {stateFactory, ofPayloadAction, action$Of} from './store';
 import * as _recp from './recipe-manager';
 import {symbolicLinkPackages} from './rwPackageJson';
 import {getPackageSettingFiles} from './config';
@@ -140,15 +140,17 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     ),
     action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceChanged),
       op.concatMap(async ({payload: wsKeys}) => {
-        const wsDir = isCwdWorkspace() ? workDir :
-          getPkgState().currWorkspace ? Path.resolve(rootPath, getPkgState().currWorkspace!)
-          : undefined;
+        const wsDir = isCwdWorkspace() ?
+          workDir :
+          getPkgState().currWorkspace ?
+            Path.resolve(rootPath, getPkgState().currWorkspace!) :
+            undefined;
         await writePackageSettingType();
         const lastWsKey = wsKeys[wsKeys.length - 1];
         updateTsconfigFileForProjects(lastWsKey);
         await Promise.all(Array.from(getState().tsconfigByRelPath.values())
           .map(data => updateHookedTsconfig(data, wsDir)));
-        await updateNodeModuleSymlinks(lastWsKey).toPromise();
+        return updateNodeModuleSymlinks(lastWsKey);
       })
     ),
     action$.pipe(ofPayloadAction(slice.actions.hookTsconfig),

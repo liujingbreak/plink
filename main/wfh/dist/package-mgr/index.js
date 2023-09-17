@@ -806,7 +806,7 @@ function _createSymlinksForWorkspace(wsKey) {
             lines: [path_1.default.relative(rootDir, symlinkDir).replace(/\\/g, '/')]
         });
     }
-    let symlinksToCreate = (0, rxjs_1.from)(Array.from(pkgNameSet.values())) // Important, do not use pkgNameSet iterable, it will be changed before subscription
+    const symlinksToCreate = (0, rxjs_1.from)(Array.from(pkgNameSet.values())) // Important, do not use pkgNameSet iterable, it will be changed before subscription
         .pipe((0, operators_1.map)(name => {
         const pkg = getState().srcPackages.get(name) || ws.installedComponents.get(name);
         if (pkg == null) {
@@ -894,7 +894,9 @@ function createPackageInfoWithJson(pkJsonFile, json, isInstalled = false) {
 }
 function cp(from, to) {
     if (from.startsWith('-')) {
+        // eslint-disable-next-line prefer-rest-params,@typescript-eslint/no-unsafe-assignment
         from = arguments[1];
+        // eslint-disable-next-line prefer-rest-params,@typescript-eslint/no-unsafe-assignment
         to = arguments[2];
     }
     fs_extra_1.default.copySync(from, to);

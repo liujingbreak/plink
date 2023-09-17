@@ -90,13 +90,13 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
     );
   }
 
-  createAction<K extends keyof I>(type: K, params?: InferPayload<I[K]>) {
+  createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>) {
     return {
       t: this.typePrefix + (type as string),
       i: ACTION_SEQ++,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       p: params ?? []
-    } as Action<I, K>;
+    } as Action<J, K>;
   }
 
   dispatchFactory<K extends keyof I>(type: K): Dispatch<I> {
@@ -246,7 +246,7 @@ export class RxController<I extends ActionFunctions> {
     this.replaceActionInterceptor = core.replaceActionInterceptor;
   }
 
-  createAction<K extends keyof I>(type: K, ...params: InferPayload<I[K]>) {
+  createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>) {
     return this.core.createAction(type, params);
   }
 
@@ -362,7 +362,7 @@ export function actionRelatedToPayload<T extends [ActionMeta, ...any[]]>(id: Act
   };
 }
 
-export function serializeAction(action: Action<any>) {
+export function serializeAction<I extends ActionFunctions = any, K extends keyof I = string>(action: Action<I, K>) {
   const a = {...action, t: nameOfAction(action)};
   // if (a.r instanceof Set) {
   //   a.r = [...a.r.values()];

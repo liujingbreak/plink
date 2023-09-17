@@ -199,7 +199,8 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {
   for (const [name, {realPath, json}] of getState().srcPackages.entries() || []) {
     const tsDirs = getTscConfigOfPkg(json);
     const realDir = Path.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
-    pathMapping[name] = [realDir];
+    const typeFile = json.types as string;
+    pathMapping[name] = [typeFile ? Path.join(realDir, typeFile).replace(/\\/g, '/') : realDir];
 
     pathMapping[`${name}/${tsDirs.destDir}/*`.replace(/\/\//g, '/')] = [`${realDir}/${tsDirs.srcDir}/*`.replace(/\/\//g, '/')];
     // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
@@ -208,8 +209,8 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath: string) {
 
   // if (pkgName !== '@wfh/plink') {
   drcpDir = Path.relative(baseUrlAbsPath, drcpDir).replace(/\\/g, '/');
-  pathMapping['@wfh/plink'] = [drcpDir + '/wfh/ts/index.ts'];
-  pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/ts/*'];
+  pathMapping['@wfh/plink'] = [drcpDir + '/wfh/src/index.ts'];
+  pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/src/*'];
   return pathMapping;
 }
 

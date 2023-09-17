@@ -92,9 +92,9 @@ export function createSorter(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOu
         const arr2RightOffset = arr2LeftOffset + arr2LeftLen;
         const arr2RightLen = len2 - arr2LeftLen;
 
-        // console.log('merge with fork', offset1, len1, [...arr1], offset2, len2, [...arr2], ', binarySerach pivot value:', arr1[arr1LeftLen - 1], '\n',
-        //   '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n',
-        //   '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
+        o.dp.log('merge with fork', offset1, len1, [...arr1], offset2, len2, [...arr2], ', binarySerach pivot value:', arr1[arr1LeftLen - 1], '\n',
+          '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n',
+          '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
 
         const mergeRightPartAction = sorter.i.createAction('merge', buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold);
         const forkDone = rx.lastValueFrom(rx.merge(
@@ -105,7 +105,7 @@ export function createSorter(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOu
             rx.takeUntil(sorter.i.pt.mergeCompleted.pipe(
               actionRelatedToPayload(mergeRightPartAction.i)
             )),
-            timeoutLog(3000, () => o.dp.warn('merge resolving timeout for:', `action id: ${mergeRightPartAction.i}`,
+            timeoutLog(5000, () => o.dp.warn('merge resolving timeout for:', `action id: ${mergeRightPartAction.i}`,
               arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen))
           )
         ));
@@ -140,7 +140,7 @@ export function createSorter(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOu
         }
       }
 
-      // console.log('merge returns', offset1, len1, offset2, len2, destArr);
+      // o.dp.log('merge returns', offset1, len1, offset2, len2, destArr);
       return {content: destBuf, transferList: [destBuf]};
     }
   };

@@ -5,7 +5,7 @@ export function apply(broker, opts) {
     const { r, o, i } = broker;
     const workerRankTree = new RedBlackTree();
     const ranksByWorkerNo = new Map();
-    r(o.at.assignWorker.pipe(rx.map(() => {
+    r(o.pt.assignWorker.pipe(rx.map(([m]) => {
         if (ranksByWorkerNo.size < opts.maxNumOfWorker) {
             const newWorker = opts.workerFactory();
             ranksByWorkerNo.set(SEQ, [newWorker, 1]);
@@ -16,13 +16,14 @@ export function apply(broker, opts) {
             else {
                 tnode.value = [SEQ];
             }
+            i.dpf.workerAssigned(m, SEQ, newWorker);
             SEQ++;
         }
         else {
             const treeNode = workerRankTree.minimum();
             const workerNo = treeNode.value[0];
             const [worker] = ranksByWorkerNo.get(workerNo);
-            i.dp.workerAssigned(treeNode.value[0], worker);
+            i.dpf.workerAssigned(m, treeNode.value[0], worker);
         }
     })));
     r(rx.merge(i.pt.onWorkerAwake, i.pt.workerAssigned).pipe(rx.map(([, workerNo]) => {
@@ -44,12 +45,15 @@ export function apply(broker, opts) {
     })));
     r(i.at.stopAll.pipe());
     function changeWorkerRank(workerNo, changeValue) {
-        const [, rank] = ranksByWorkerNo.get(workerNo);
+        const entry = ranksByWorkerNo.get(workerNo);
+        const [, rank] = entry;
+        const newRank = rank + changeValue;
+        entry[1] = newRank;
         const node = workerRankTree.search(rank);
         if (node) {
             const idx = node.value.indexOf(workerNo);
             node.value.splice(idx, 1);
-            const tnode = workerRankTree.insert(rank + changeValue);
+            const tnode = workerRankTree.insert(newRank);
             if (tnode.value)
                 tnode.value.push(workerNo);
             else

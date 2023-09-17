@@ -26,6 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createBroker = void 0;
 const rx = __importStar(require("rxjs"));
 const epic_1 = require("./epic");
+const utils_1 = require("./utils");
 const control_1 = require("./control");
 /** WA - Worker output Message
 */
@@ -35,7 +36,7 @@ function createBroker(mainWorker, opts) {
     const workerInitState = new Map();
     const { r, i, o } = comp;
     comp.startAll();
-    r(mainWorkerComp.o.pt.forkByBroker.pipe(rx.map(([, wrappedAct, port]) => {
+    r(rx.merge(mainWorkerComp.o.pt.forkByBroker).pipe(rx.map(([, wrappedAct, port]) => {
         i.dp.forkFromWorker(-1, wrappedAct, port);
     })));
     r('ensureInitWorker', i.pt.ensureInitWorker.pipe(rx.mergeMap(([meta, workerNo, worker]) => {
@@ -79,14 +80,15 @@ function createBroker(mainWorker, opts) {
     })
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
-    r('On fork', i.at.forkFromWorker.pipe(rx.mergeMap(async (forkAction) => {
-        const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned));
+    r('On forkFromWorker', i.pt.forkFromWorker.pipe(rx.mergeMap(async ([, , targetAction, port]) => {
+        const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned.pipe((0, utils_1.timeoutLog)(3000, () => console.log('worker assignment timeout')))));
+        const fa = mainWorkerComp.i.createAction('onFork', targetAction, port);
         if (worker === 'main') {
-            (0, control_1.deserializeAction)(forkAction, mainWorkerComp.i);
+            (0, control_1.deserializeAction)(fa, mainWorkerComp.i);
         }
         else {
             await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, workerNo, worker));
-            worker.postMessage((0, control_1.serializeAction)(forkAction), [forkAction.p[2]]);
+            worker.postMessage((0, control_1.serializeAction)(fa), [port]);
         }
     })));
     r('dispatch action of actionFromWorker to broker\'s upStream', o.pt.actionFromWorker.pipe(rx.map(([, action, workerNo]) => {
@@ -95,8 +97,9 @@ function createBroker(mainWorker, opts) {
             i.dp.onWorkerWait(workerNo);
         else if (type === 'stopWaiting')
             i.dp.onWorkerAwake(workerNo);
-        else if (type === 'fork')
-            (0, control_1.deserializeAction)(action, i); // fork action
+        else if (type === 'forkByBroker') {
+            i.dp.forkFromWorker(workerNo, ...action.p);
+        }
     })));
     r(i.pt.letWorkerExit.pipe(rx.map(([, worker]) => {
         // eslint-disable-next-line @typescript-eslint/ban-types

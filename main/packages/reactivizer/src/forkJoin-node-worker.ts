@@ -15,7 +15,7 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
     ...opts,
     debug: opts?.debug ? ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')) : false,
     log: isMainThread ? opts?.log : (...args) => parentPort?.postMessage({type: 'log', p: args}),
-    debugExcludeTypes: ['log', 'warn'],
+    debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting'],
     logStyle: 'noParam'
   });
   let broker: Broker | undefined;
@@ -71,7 +71,6 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
       const wrappedActId = wrappedAct.i;
       const wrappedActCompletedType = nameOfAction(wrappedAct) + 'Completed';
       const chan = new NodeMessagechannel();
-      act.p[1] = chan.port2;
       const error$ = rx.fromEventPattern(
         h => chan.port1.on('messageerror', h),
         h => chan.port1.off('messageerror', h)
@@ -98,8 +97,8 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
         ),
         new rx.Observable<void>(_sub => {
           if (parentPort) {
-            const actSe = serializeAction(act);
-            parentPort.postMessage(actSe, [chan.port2]);
+            const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
+            parentPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
           } else {
             o.dp.forkByBroker(wrappedAct, chan.port2);
           }
@@ -108,7 +107,7 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
     })
   ));
 
-  r('On recieving "being forked" message, wait for fork action returns', i.pt.fork.pipe(
+  r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(
     rx.mergeMap(([, origAct, port]) => {
       const origId = origAct.i;
       deserializeAction(origAct, i);
@@ -131,9 +130,9 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
             const [{transferList}] = p;
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             (p[0] as any).transferList = null;
-            port!.postMessage(serializeAction(action), transferList);
+            port.postMessage(serializeAction(action), transferList);
           } else {
-            port!.postMessage(serializeAction(action));
+            port.postMessage(serializeAction(action));
           }
           return isCompleted;
         }),

@@ -2,6 +2,7 @@ import {Worker as NodeWorker} from 'worker_threads';
 import * as rx from 'rxjs';
 import {DuplexOptions} from './duplex';
 import {ReactorComposite} from './epic';
+import {timeoutLog} from './utils';
 import {Action, ActionFunctions, serializeAction, deserializeAction, RxController, nameOfAction} from './control';
 import {Broker, BrokerInput, BrokerEvent, ForkWorkerInput, ForkWorkerOutput} from './types';
 
@@ -12,14 +13,14 @@ export function createBroker<I extends ActionFunctions = Record<string, never>, 
   opts?: DuplexOptions<BrokerInput & O & BrokerEvent & ForkWorkerOutput>
 ) {
   const mainWorkerComp = mainWorker as unknown as ReactorComposite<ForkWorkerInput, ForkWorkerOutput>;
-  const comp = new ReactorComposite<BrokerInput, BrokerEvent>(opts as any);
+  const comp = new ReactorComposite<BrokerInput & ForkWorkerOutput, BrokerEvent>(opts as any);
 
   const workerInitState = new Map<number, 'DONE' | 'WIP'>();
 
   const {r, i, o} = comp;
   comp.startAll();
 
-  r(mainWorkerComp.o.pt.forkByBroker.pipe(
+  r(rx.merge(mainWorkerComp.o.pt.forkByBroker).pipe(
     rx.map(([, wrappedAct, port]) => {
       i.dp.forkFromWorker(-1, wrappedAct, port);
     })
@@ -76,15 +77,18 @@ export function createBroker<I extends ActionFunctions = Record<string, never>, 
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
   ));
 
-  r('On fork', i.at.forkFromWorker.pipe(
-    rx.mergeMap(async forkAction => {
-      const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned));
+  r('On forkFromWorker', i.pt.forkFromWorker.pipe(
+    rx.mergeMap(async ([, , targetAction, port]) => {
+      const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned.pipe(
+        timeoutLog<typeof i.at.workerAssigned extends rx.Observable<infer T> ? T : never>(3000, () => console.log('worker assignment timeout')),
+      )));
+      const fa = mainWorkerComp.i.createAction('onFork', targetAction, port);
 
       if (worker === 'main') {
-        deserializeAction(forkAction, mainWorkerComp.i);
+        deserializeAction(fa, mainWorkerComp.i);
       } else {
         await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, workerNo, worker));
-        worker.postMessage(serializeAction(forkAction), [forkAction.p[2]!]);
+        worker.postMessage(serializeAction(fa), [port]);
       }
     })
   ));
@@ -96,8 +100,9 @@ export function createBroker<I extends ActionFunctions = Record<string, never>, 
         i.dp.onWorkerWait(workerNo);
       else if (type === 'stopWaiting')
         i.dp.onWorkerAwake(workerNo);
-      else if (type === 'fork')
-        deserializeAction(action, i); // fork action
+      else if (type === 'forkByBroker') {
+        i.dp.forkFromWorker(workerNo, ...(action as Action<ForkWorkerOutput, 'forkByBroker'>).p);
+      }
     })
   ));
 

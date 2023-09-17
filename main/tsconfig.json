@@ -4,7 +4,7 @@
     "strict": true,
     "baseUrl": ".",
     "rootDir": ".",
-    "rootDirs": ["wfh/ts", "wfh/share"],
+    "rootDirs": ["wfh/src", "wfh/share"],
     "moduleResolution": "node",
     "typeRoots": [
       "node_modules/@types",
@@ -51,14 +51,13 @@
     }
   },
   "include": [
-    "wfh/ts/**/*.ts",
+    "wfh/src/**/*.ts",
     "packages/redux-toolkit-observable/**/*.ts",
     "packages/thread-promise-pool/ts/**/*.ts",
     "packages/reactive-terminal-ui/src/**/*.ts",
     "packages/reactivizer/src/**/*.ts",
     "packages/reactivizer/__tests__/**/*.ts",
-    "packages/algorithms/src/**/*.ts",
-    "wfh/share/**/*.ts"
+    "packages/algorithms/src/**/*.ts"
   ],
   "exclude": [
     "packages/**/*.d.ts"

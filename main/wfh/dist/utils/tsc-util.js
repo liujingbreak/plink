@@ -99,7 +99,7 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, opts) {
             else if (outputFile.endsWith('.map')) {
                 sourceMap = outputContent;
             }
-        }), op.takeWhile(() => destFile == null || sourceMap == null)), action$.pipe(ofType('onEmitFailure', 'onSuggest'), op.map(({ payload: [file, diagnostics] }) => {
+        }), op.takeWhile(() => destFile == null || sourceMap == null)), action$.pipe(ofType('onEmitFailure', 'onSuggest'), op.map(({ payload: [_file, diagnostics] }) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             console.error('[tsc-util]', diagnostics);
         }))).subscribe();

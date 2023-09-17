@@ -1,1 +1,1 @@
-{"version":3,"file":"rb-tree.js","sourceRoot":"","sources":["../../ts/utils/rb-tree.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;AAAA,8DAA4C","sourcesContent":["export * from '../share/algorithms/rb-tree';\n\n"]}
+{"version":3,"file":"rb-tree.js","sourceRoot":"","sources":["../../src/utils/rb-tree.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;AAAA,4EAA0D","sourcesContent":["export * from '../../../packages/algorithms/dist/rb-tree';\n\n"]}

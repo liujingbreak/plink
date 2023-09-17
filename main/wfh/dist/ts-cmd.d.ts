@@ -28,3 +28,4 @@ export interface TscCmdParam {
     };
 }
 export declare function tsc(argv: TscCmdParam, ts?: typeof _ts): Promise<string[]>;
+export declare function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, basePath: string, opts?: TscCmdParam, ts?: typeof _ts): void;

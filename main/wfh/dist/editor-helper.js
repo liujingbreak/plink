@@ -114,15 +114,17 @@ store_1.stateFactory.addEpic((action$, state$) => {
             }), op.catchError((err, src) => rx.EMPTY));
         }), op.finalize(() => exports.dispatcher.clearSymlinksDone()));
     })), action$.pipe((0, store_1.ofPayloadAction)(package_mgr_1.slice.actions.workspaceChanged), op.concatMap(async ({ payload: wsKeys }) => {
-        const wsDir = (0, package_mgr_1.isCwdWorkspace)() ? workDir :
-            (0, package_mgr_1.getState)().currWorkspace ? path_1.default.resolve(rootPath, (0, package_mgr_1.getState)().currWorkspace)
-                : undefined;
+        const wsDir = (0, package_mgr_1.isCwdWorkspace)() ?
+            workDir :
+            (0, package_mgr_1.getState)().currWorkspace ?
+                path_1.default.resolve(rootPath, (0, package_mgr_1.getState)().currWorkspace) :
+                undefined;
         await writePackageSettingType();
         const lastWsKey = wsKeys[wsKeys.length - 1];
         updateTsconfigFileForProjects(lastWsKey);
         await Promise.all(Array.from(getState().tsconfigByRelPath.values())
             .map(data => updateHookedTsconfig(data, wsDir)));
-        await updateNodeModuleSymlinks(lastWsKey).toPromise();
+        return updateNodeModuleSymlinks(lastWsKey);
     })), action$.pipe((0, store_1.ofPayloadAction)(slice.actions.hookTsconfig), op.mergeMap(action => {
         return action.payload;
     }), op.mergeMap((file) => {

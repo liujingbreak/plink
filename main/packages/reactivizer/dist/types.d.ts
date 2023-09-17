@@ -5,10 +5,10 @@ import { Action, ActionFunctions } from './control';
 export type Broker<WA extends ActionFunctions = Record<string, never>> = ReactorComposite<BrokerInput, BrokerEvent & WA>;
 export type ForkWorkerInput = {
     exit(): void;
-    fork(targetAction: Action<any>, messagePort?: NodeMessagePort): void;
+    onFork(targetAction: Action<any>, port: NodeMessagePort): void;
 };
 export type ForkWorkerOutput = {
-    fork: ForkWorkerInput['fork'];
+    fork(targetAction: Action<any>): void;
     /** Informs broker that current step is waiting on forked function returns*/
     wait(): void;
     /** Informs broker that current function step is be awake and continue on other instructions */
@@ -16,7 +16,7 @@ export type ForkWorkerOutput = {
     log(...obj: any[]): void;
     warn(...obj: any[]): void;
     /** broker implementation should react to this event*/
-    forkByBroker: ForkWorkerInput['fork'];
+    forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort): void;
 };
 export type BrokerInput = {
     onWorkerWait(workerNo: number): void;
@@ -24,7 +24,7 @@ export type BrokerInput = {
     ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): void;
     /** Send message to worker to stop all event listerners on it */
     letWorkerExit(worker: Worker | NodeWorker): void;
-    forkFromWorker(workerNo: number, targetAction: Action<any>, messagePort?: NodeMessagePort): void;
+    forkFromWorker(workerNo: number, targetAction: Action<any>, messagePort: NodeMessagePort): void;
     workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): void;
 };
 export type BrokerEvent = {

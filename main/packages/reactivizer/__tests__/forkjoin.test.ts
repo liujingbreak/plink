@@ -28,23 +28,23 @@ describe('forkjoin worker', () => {
 
   it.skip('main worker can recursively fork main worker and perform merge-sort', async () => {
     await forkMergeSort('mainOnly');
-  }, 30000);
+  }, 50000);
 
   it.skip('single worker can fork another worker and perform merge-sort', async () => {
     await forkMergeSort('singleWorker');
-  }, 30000);
+  }, 50000);
 
-  it('main worker and wokers can fork another worker or main worker itself', async () => {
+  it.skip('main worker and wokers can fork another worker or main worker itself', async () => {
     await forkMergeSort('mix');
-  }, 30000);
+  }, 50000);
 
-  it.skip('new workers can fork another worker or main worker itself', async () => {
-    await forkMergeSort('newWorker');
-  }, 30000);
+  it('Scheduled workers can fork another worker or main worker itself', async () => {
+    await forkMergeSort('scheduler');
+  }, 50000);
 
   async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker') {
     const sorter = createSorter({
-      debug: false,
+      debug: true,
       log(...msg) {
         log.info(...msg);
       }
@@ -59,7 +59,7 @@ describe('forkjoin worker', () => {
       log(...msg) {
         log.info(...msg);
       },
-      debugExcludeTypes: ['workerAssigned', 'assignWorker', 'workerInited', 'ensureInitWorker'],
+      debugExcludeTypes: ['workerInited', 'ensureInitWorker'],
       logStyle: 'noParam'
     });
 

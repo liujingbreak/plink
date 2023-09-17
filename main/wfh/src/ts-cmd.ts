@@ -160,7 +160,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       basePath: workDir,
       // tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
       changeCompilerOptions(co) {
-        setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, workDir.replace(/\\/g, '/'), argv, ts);
+        setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, workDir, argv, ts);
       }
     },
     watcher: argv.poll ?
@@ -264,7 +264,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
 
 const COMPILER_OPTIONS_MERGE_EXCLUDE = new Set(['baseUrl', 'typeRoots', 'paths', 'rootDir']);
 
-function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, basePath: string, opts?: TscCmdParam, ts: typeof _ts = _ts): void {
+export function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompilerOptions, basePath: string, opts?: TscCmdParam, ts: typeof _ts = _ts): void {
   let wsKey: string | null | undefined = workspaceKey(plinkEnv.workDir);
   if (!getState().workspaces.has(wsKey))
     wsKey = getState().currWorkspace;

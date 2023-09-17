@@ -31,7 +31,7 @@ const epic_1 = require("./epic");
 // import {createBroker} from './node-worker-broker';
 function createWorkerControl(opts) {
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')) : false, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')) : false, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting'], logStyle: 'noParam' }));
     let broker;
     comp.startAll();
     const { r, i, o } = comp;
@@ -72,7 +72,6 @@ function createWorkerControl(opts) {
         const wrappedActId = wrappedAct.i;
         const wrappedActCompletedType = (0, control_1.nameOfAction)(wrappedAct) + 'Completed';
         const chan = new worker_threads_1.MessageChannel();
-        act.p[1] = chan.port2;
         const error$ = rx.fromEventPattern(h => chan.port1.on('messageerror', h), h => chan.port1.off('messageerror', h));
         const close$ = rx.fromEventPattern(h => chan.port1.on('close', h), h => chan.port1.off('close', h));
         return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => {
@@ -80,15 +79,15 @@ function createWorkerControl(opts) {
             chan.port1.close();
         }).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe((0, control_1.actionRelatedToAction)(wrappedActId))))), new rx.Observable(_sub => {
             if (worker_threads_1.parentPort) {
-                const actSe = (0, control_1.serializeAction)(act);
-                worker_threads_1.parentPort.postMessage(actSe, [chan.port2]);
+                const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
+                worker_threads_1.parentPort.postMessage((0, control_1.serializeAction)(forkByBroker), [chan.port2]);
             }
             else {
                 o.dp.forkByBroker(wrappedAct, chan.port2);
             }
         }));
     })));
-    r('On recieving "being forked" message, wait for fork action returns', i.pt.fork.pipe(rx.mergeMap(([, origAct, port]) => {
+    r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(rx.mergeMap(([, origAct, port]) => {
         const origId = origAct.i;
         (0, control_1.deserializeAction)(origAct, i);
         const origType = (0, control_1.nameOfAction)(origAct);

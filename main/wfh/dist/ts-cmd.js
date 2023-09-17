@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.tsc = void 0;
+exports.setupCompilerOptionsWithPackages = exports.tsc = void 0;
 /* eslint-disable max-len */
 const path_1 = __importStar(require("path"));
 const fs = __importStar(require("fs"));
@@ -152,7 +152,7 @@ async function tsc(argv, ts = typescript_1.default) {
             basePath: workDir,
             // tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
             changeCompilerOptions(co) {
-                setupCompilerOptionsWithPackages(co, workDir.replace(/\\/g, '/'), argv, ts);
+                setupCompilerOptionsWithPackages(co, workDir, argv, ts);
             }
         },
         watcher: argv.poll ?
@@ -278,6 +278,7 @@ function setupCompilerOptionsWithPackages(compilerOptions, basePath, opts, ts = 
         }
     }
 }
+exports.setupCompilerOptionsWithPackages = setupCompilerOptionsWithPackages;
 /**
  * Return real path of targeting file, return null if targeting file is not in our compiliation scope
  * @param fileName

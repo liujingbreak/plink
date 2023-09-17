@@ -1,1 +1,1 @@
-{"version":3,"file":"graph.js","sourceRoot":"","sources":["../../ts/utils/graph.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;AAAA,4DAA0C","sourcesContent":["export * from '../share/algorithms/graph';\n\n"]}
+{"version":3,"file":"graph.js","sourceRoot":"","sources":["../../src/utils/graph.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;AAAA,0EAAwD","sourcesContent":["export * from '../../../packages/algorithms/dist/graph';\n\n"]}

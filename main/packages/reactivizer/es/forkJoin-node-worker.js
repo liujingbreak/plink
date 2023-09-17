@@ -5,7 +5,7 @@ import { ReactorComposite } from './epic';
 // import {createBroker} from './node-worker-broker';
 export function createWorkerControl(opts) {
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')) : false, log: isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => parentPort === null || parentPort === void 0 ? void 0 : parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')) : false, log: isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => parentPort === null || parentPort === void 0 ? void 0 : parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting'], logStyle: 'noParam' }));
     let broker;
     comp.startAll();
     const { r, i, o } = comp;
@@ -46,7 +46,6 @@ export function createWorkerControl(opts) {
         const wrappedActId = wrappedAct.i;
         const wrappedActCompletedType = nameOfAction(wrappedAct) + 'Completed';
         const chan = new NodeMessagechannel();
-        act.p[1] = chan.port2;
         const error$ = rx.fromEventPattern(h => chan.port1.on('messageerror', h), h => chan.port1.off('messageerror', h));
         const close$ = rx.fromEventPattern(h => chan.port1.on('close', h), h => chan.port1.off('close', h));
         return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => {
@@ -54,15 +53,15 @@ export function createWorkerControl(opts) {
             chan.port1.close();
         }).pipe(rx.map(event => deserializeAction(event, i)), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe(actionRelatedToAction(wrappedActId))))), new rx.Observable(_sub => {
             if (parentPort) {
-                const actSe = serializeAction(act);
-                parentPort.postMessage(actSe, [chan.port2]);
+                const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
+                parentPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
             }
             else {
                 o.dp.forkByBroker(wrappedAct, chan.port2);
             }
         }));
     })));
-    r('On recieving "being forked" message, wait for fork action returns', i.pt.fork.pipe(rx.mergeMap(([, origAct, port]) => {
+    r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(rx.mergeMap(([, origAct, port]) => {
         const origId = origAct.i;
         deserializeAction(origAct, i);
         const origType = nameOfAction(origAct);

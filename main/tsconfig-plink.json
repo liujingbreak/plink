@@ -2,7 +2,7 @@
   "extends": "./wfh/tsconfig-base.json",
   "compilerOptions": {
     "target": "es2017",
-    "rootDirs": ["wfh/ts"],
+    "rootDirs": ["wfh/src"],
     "moduleResolution": "node",
     "declaration": true,
     "baseUrl": ".",
@@ -32,12 +32,14 @@
   },
   "references": [
     {"path": "packages/redux-toolkit-observable/tsconfig-redux-toolkit.json"},
-    {"path": "packages/thread-promise-pool/tsconfig-thread-promise.json"}
+    {"path": "packages/thread-promise-pool/tsconfig-thread-promise.json"},
+    {"path": "packages/algorithms/tsconfig-node.json"},
+    {"path": "packages/reactivizer/tsconfig-node.json"}
   ],
   "include": [
-    "wfh/ts/**/*.ts"
+    "wfh/src/**/*.ts"
   ],
   "exclude": [
-    "wfh/ts/__tests__/**/*"
+    "wfh/src/__tests__/**/*"
   ]
 }

@@ -6,12 +6,12 @@ export type Broker<WA extends ActionFunctions = Record<string, never>> = Reactor
 
 export type ForkWorkerInput = {
   exit(): void;
-  fork(targetAction: Action<any>, messagePort?: NodeMessagePort): void;
+  onFork(targetAction: Action<any>, port: NodeMessagePort): void;
 };
 
 export type ForkWorkerOutput = {
   // inited(workerNo: number): void;
-  fork: ForkWorkerInput['fork'];
+  fork(targetAction: Action<any>): void;
   /** Informs broker that current step is waiting on forked function returns*/
   wait(): void;
   /** Informs broker that current function step is be awake and continue on other instructions */
@@ -20,7 +20,7 @@ export type ForkWorkerOutput = {
   warn(...obj: any[]): void;
 
   /** broker implementation should react to this event*/
-  forkByBroker: ForkWorkerInput['fork'];
+  forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort): void;
 };
 
 export type BrokerInput = {
@@ -30,7 +30,7 @@ export type BrokerInput = {
   /** Send message to worker to stop all event listerners on it */
   letWorkerExit(worker: Worker | NodeWorker): void;
   // fork: ForkWorkerOutput['fork'];
-  forkFromWorker(workerNo: number, targetAction: Action<any>, messagePort?: NodeMessagePort): void;
+  forkFromWorker(workerNo: number, targetAction: Action<any>, messagePort: NodeMessagePort): void;
   workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): void;
 };
 

@@ -101,13 +101,11 @@ function createSorter(opts) {
                 const arr2LeftLen = (0, sortedIndex_1.default)(arr2, arr1[arr1LeftLen - 1]);
                 const arr2RightOffset = arr2LeftOffset + arr2LeftLen;
                 const arr2RightLen = len2 - arr2LeftLen;
-                // console.log('merge with fork', offset1, len1, [...arr1], offset2, len2, [...arr2], ', binarySerach pivot value:', arr1[arr1LeftLen - 1], '\n',
-                //   '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n',
-                //   '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
+                o.dp.log('merge with fork', offset1, len1, [...arr1], offset2, len2, [...arr2], ', binarySerach pivot value:', arr1[arr1LeftLen - 1], '\n', '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n', '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
                 const mergeRightPartAction = sorter.i.createAction('merge', buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold);
                 const forkDone = rx.lastValueFrom(rx.merge(sorter.i.pt.mergeResolved.pipe((0, control_1.actionRelatedToPayload)(mergeRightPartAction.i), rx.map(([, res]) => res), 
                 // Wait for sortCompleted recieved, so that Jest test won't report console log after test exits
-                rx.takeUntil(sorter.i.pt.mergeCompleted.pipe((0, control_1.actionRelatedToPayload)(mergeRightPartAction.i))), (0, utils_1.timeoutLog)(3000, () => o.dp.warn('merge resolving timeout for:', `action id: ${mergeRightPartAction.i}`, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen)))));
+                rx.takeUntil(sorter.i.pt.mergeCompleted.pipe((0, control_1.actionRelatedToPayload)(mergeRightPartAction.i))), (0, utils_1.timeoutLog)(5000, () => o.dp.warn('merge resolving timeout for:', `action id: ${mergeRightPartAction.i}`, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen)))));
                 sorter.o.dp.fork(mergeRightPartAction);
                 const leftMerged = (_a = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))) === null || _a === void 0 ? void 0 : _a.content;
                 o.dp.wait();
@@ -140,7 +138,7 @@ function createSorter(opts) {
                     }
                 }
             }
-            // console.log('merge returns', offset1, len1, offset2, len2, destArr);
+            // o.dp.log('merge returns', offset1, len1, offset2, len2, destArr);
             return { content: destBuf, transferList: [destBuf] };
         }
     };
