@@ -18,9 +18,12 @@ export function createSorter(opts) {
                 const rightpartLen = arr.length - leftPartLen;
                 const sortAction = sorter.i.createAction('sort', buf, rightPartOffset, rightpartLen, noForkThreshold);
                 // o.dp.log('create fork sort action for half', rightPartOffset, rightpartLen, `action id: ${sortAction.i}`);
-                const forkDone = rx.lastValueFrom(rx.merge(sorter.i.pt.sortResolved.pipe(actionRelatedToPayload(sortAction.i), rx.map(([, res]) => res), 
+                const forkDone = rx.firstValueFrom(rx.merge(sorter.i.pt.sortResolved.pipe(actionRelatedToPayload(sortAction.i), rx.map(([, res]) => res), 
                 // Wait for sortCompleted recieved, so that Jest test won't report console log after test exits
-                rx.takeUntil(sorter.i.pt.sortCompleted.pipe(actionRelatedToPayload(sortAction.i))), timeoutLog(6000, () => o.dp.warn('fork sort timeout', rightPartOffset, rightpartLen, 'action id:', sortAction.i)))));
+                // rx.takeUntil(sorter.i.pt.sortCompleted.pipe(
+                //   actionRelatedToPayload(sortAction.i)
+                // )),
+                timeoutLog(6000, () => o.dp.warn('fork sort timeout', rightPartOffset, rightpartLen, 'action id:', sortAction.i)))));
                 o.dp.fork(sortAction);
                 // o.dp.log('sort another half in current worker', leftPartOffset, leftPartLen);
                 await sortActions.sort(buf, leftPartOffset, leftPartLen, noForkThreshold);
@@ -72,11 +75,16 @@ export function createSorter(opts) {
                 const arr2LeftLen = binarySearch(arr2, arr1[arr1LeftLen - 1]);
                 const arr2RightOffset = arr2LeftOffset + arr2LeftLen;
                 const arr2RightLen = len2 - arr2LeftLen;
-                o.dp.log('merge with fork', offset1, len1, [...arr1], offset2, len2, [...arr2], ', binarySerach pivot value:', arr1[arr1LeftLen - 1], '\n', '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n', '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
+                // o.dp.log('merge with fork', offset1, len1, [...arr1], offset2, len2, [...arr2], ', binarySerach pivot value:', arr1[arr1LeftLen - 1], '\n',
+                //   '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n',
+                //   '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
                 const mergeRightPartAction = sorter.i.createAction('merge', buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold);
-                const forkDone = rx.lastValueFrom(rx.merge(sorter.i.pt.mergeResolved.pipe(actionRelatedToPayload(mergeRightPartAction.i), rx.map(([, res]) => res), 
+                const forkDone = rx.firstValueFrom(rx.merge(sorter.i.pt.mergeResolved.pipe(actionRelatedToPayload(mergeRightPartAction.i), rx.map(([, res]) => res), 
                 // Wait for sortCompleted recieved, so that Jest test won't report console log after test exits
-                rx.takeUntil(sorter.i.pt.mergeCompleted.pipe(actionRelatedToPayload(mergeRightPartAction.i))), timeoutLog(5000, () => o.dp.warn('merge resolving timeout for:', `action id: ${mergeRightPartAction.i}`, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen)))));
+                // rx.takeUntil(sorter.i.pt.mergeCompleted.pipe(
+                //   actionRelatedToPayload(mergeRightPartAction.i)
+                // )),
+                timeoutLog(5000, () => o.dp.warn('merge resolving timeout for:', `action id: ${mergeRightPartAction.i}`, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen)))));
                 sorter.o.dp.fork(mergeRightPartAction);
                 const leftMerged = (_a = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))) === null || _a === void 0 ? void 0 : _a.content;
                 o.dp.wait();

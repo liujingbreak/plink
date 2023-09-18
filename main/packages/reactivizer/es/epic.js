@@ -2,7 +2,6 @@
 import * as rx from 'rxjs';
 import { DuplexController } from './duplex';
 export class ReactorComposite extends DuplexController {
-    // protected control: DuplexController<ReactorCompositeActions, ReactorCompositeOutput>;
     constructor(opts) {
         super(opts);
         this.opts = opts;
@@ -13,8 +12,8 @@ export class ReactorComposite extends DuplexController {
             else
                 this.reactorSubj.next(['', ...params]);
         };
-        // this.latestCompActPayloads = (this as ReactorComposite<ReactorCompositeActions, ReactorCompositeOutput>).i.createLatestPayloadsFor('mergeStream');
         this.reactorSubj = new rx.ReplaySubject(999);
+        // this.logSubj = new rx.ReplaySubject(50);
     }
     startAll() {
         return rx.merge(this.reactorSubj.pipe(rx.mergeMap(([label, downStream, noError]) => {
@@ -74,7 +73,12 @@ export class ReactorComposite extends DuplexController {
     }
     handleError(upStream, label) {
         return upStream.pipe(rx.catchError((err, src) => {
+            var _a;
             this.o.dp.onError(err, label);
+            if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
+                this.opts.log(err);
+            else
+                console.error(label !== null && label !== void 0 ? label : '', err);
             return src;
         }));
     }

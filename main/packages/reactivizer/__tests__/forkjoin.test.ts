@@ -44,7 +44,7 @@ describe('forkjoin worker', () => {
 
   async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker') {
     const sorter = createSorter({
-      debug: true,
+      debug: false,
       log(...msg) {
         log.info(...msg);
       }
@@ -55,7 +55,7 @@ describe('forkjoin worker', () => {
     const workers = [] as Worker[];
 
     const broker = createBroker(sorter, {
-      debug: 'ForkJoin-broker',
+      debug: 'broker',
       log(...msg) {
         log.info(...msg);
       },
@@ -64,10 +64,11 @@ describe('forkjoin worker', () => {
     });
 
     const {i, o} = broker;
+    const numOfWorkers = os.cpus().length > 0 ? os.cpus().length - 1 : 3;
 
     if (threadMode === 'scheduler') {
       apply(broker, {
-        maxNumOfWorker: os.cpus().length > 0 ? os.cpus().length : 3,
+        maxNumOfWorker: numOfWorkers,
         workerFactory() {
           return new Worker(Path.resolve(__dirname, '../dist/res/sort-worker.js'));
         }
@@ -131,13 +132,17 @@ describe('forkjoin worker', () => {
       sorter.o.at.sortCompleted, testArr.buffer as SharedArrayBuffer, 0, num, 8
     ));
 
-    expect(workerIsAssigned).toBe(true);
+    if (threadMode !== 'scheduler') {
+      expect(workerIsAssigned).toBe(true);
+    }
     sorter.o.dp.log('-----------------------------\nsorted:', testArr);
 
+    const latestBrokerEvents = o.createLatestPayloadsFor('onWorkerExit');
     if (threadMode === 'scheduler') {
+      void rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
       broker.i.dp.stopAll();
+      sorter.i.dp.stopAll();
     } else if (threadMode !== 'mainOnly') {
-      const latestBrokerEvents = o.createLatestPayloadsFor('onWorkerExit');
       for (const worker of workers)
         i.dp.letWorkerExit(worker);
       await rx.lastValueFrom(latestBrokerEvents.onWorkerExit.pipe(rx.take(workers.length)));

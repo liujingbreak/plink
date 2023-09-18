@@ -29,14 +29,14 @@ export class ReactorComposite<
   I extends ActionFunctions = Record<string, never>,
   O extends ActionFunctions = Record<string, never>
 > extends DuplexController<ReactorCompositeActions & I, ReactorCompositeOutput & O> {
-  // protected latestCompActPayloads: {[K in 'mergeStream']: PayloadStream<ReactorCompositeActions, K>};
+
+  // protected static logSubj: rx.Subject<[level: string, ...msg: any[]]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
-  // protected control: DuplexController<ReactorCompositeActions, ReactorCompositeOutput>;
 
   constructor(private opts?: DuplexOptions<ReactorCompositeActions & ReactorCompositeOutput & I & O>) {
     super(opts);
-    // this.latestCompActPayloads = (this as ReactorComposite<ReactorCompositeActions, ReactorCompositeOutput>).i.createLatestPayloadsFor('mergeStream');
     this.reactorSubj = new rx.ReplaySubject(999);
+    // this.logSubj = new rx.ReplaySubject(50);
   }
 
   startAll() {
@@ -126,6 +126,10 @@ export class ReactorComposite<
     return upStream.pipe(
       rx.catchError((err, src) => {
         (this as unknown as ReactorComposite<ReactorCompositeActions, ReactorCompositeOutput>).o.dp.onError(err, label);
+        if (this.opts?.log)
+          this.opts.log(err);
+        else
+          console.error(label ?? '', err);
         return src;
       })
     );

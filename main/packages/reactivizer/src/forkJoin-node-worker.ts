@@ -88,6 +88,7 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
           }
         ).pipe(
           rx.map(event => deserializeAction(event, i)),
+          rx.take(1),
           rx.takeUntil(rx.merge(
             error$,
             close$,
@@ -133,6 +134,14 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
             port.postMessage(serializeAction(action), transferList);
           } else {
             port.postMessage(serializeAction(action));
+          }
+          if (isCompleted) {
+            if (parentPort) {
+              const act = o.createAction('returned');
+              parentPort.postMessage(serializeAction(act));
+            } else {
+              o.dp.returned();
+            }
           }
           return isCompleted;
         }),

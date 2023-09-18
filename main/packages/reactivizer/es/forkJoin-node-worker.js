@@ -51,7 +51,7 @@ export function createWorkerControl(opts) {
         return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => {
             chan.port1.off('message', h);
             chan.port1.close();
-        }).pipe(rx.map(event => deserializeAction(event, i)), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe(actionRelatedToAction(wrappedActId))))), new rx.Observable(_sub => {
+        }).pipe(rx.map(event => deserializeAction(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe(actionRelatedToAction(wrappedActId))))), new rx.Observable(_sub => {
             if (parentPort) {
                 const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
                 parentPort.postMessage(serializeAction(forkByBroker), [chan.port2]);

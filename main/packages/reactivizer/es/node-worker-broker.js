@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import { ReactorComposite } from './epic';
-import { timeoutLog } from './utils';
+// import {timeoutLog} from './utils';
 import { serializeAction, deserializeAction, nameOfAction } from './control';
 /** WA - Worker output Message
 */
@@ -55,7 +55,9 @@ export function createBroker(mainWorker, opts) {
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
     r('On forkFromWorker', i.pt.forkFromWorker.pipe(rx.mergeMap(async ([, , targetAction, port]) => {
-        const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned.pipe(timeoutLog(3000, () => console.log('worker assignment timeout')))));
+        const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned
+        // timeoutLog<typeof i.at.workerAssigned extends rx.Observable<infer T> ? T : never>(3000, () => console.log('worker assignment timeout'))
+        ));
         const fa = mainWorkerComp.i.createAction('onFork', targetAction, port);
         if (worker === 'main') {
             deserializeAction(fa, mainWorkerComp.i);

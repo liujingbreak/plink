@@ -77,7 +77,7 @@ function createWorkerControl(opts) {
         return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => {
             chan.port1.off('message', h);
             chan.port1.close();
-        }).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe((0, control_1.actionRelatedToAction)(wrappedActId))))), new rx.Observable(_sub => {
+        }).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe((0, control_1.actionRelatedToAction)(wrappedActId))))), new rx.Observable(_sub => {
             if (worker_threads_1.parentPort) {
                 const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
                 worker_threads_1.parentPort.postMessage((0, control_1.serializeAction)(forkByBroker), [chan.port2]);

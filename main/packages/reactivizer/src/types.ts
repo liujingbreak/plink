@@ -16,6 +16,7 @@ export type ForkWorkerOutput = {
   wait(): void;
   /** Informs broker that current function step is be awake and continue on other instructions */
   stopWaiting(): void;
+  returned(): void;
   log(...obj: any[]): void;
   warn(...obj: any[]): void;
 
@@ -26,9 +27,11 @@ export type ForkWorkerOutput = {
 export type BrokerInput = {
   onWorkerWait(workerNo: number): void;
   onWorkerAwake(workerNo: number): void;
+  onWorkerReturned(workerNo: number): void;
   ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): void;
   /** Send message to worker to stop all event listerners on it */
   letWorkerExit(worker: Worker | NodeWorker): void;
+  letAllWorkerExit(): void;
   // fork: ForkWorkerOutput['fork'];
   forkFromWorker(workerNo: number, targetAction: Action<any>, messagePort: NodeMessagePort): void;
   workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): void;
@@ -38,6 +41,7 @@ export type BrokerEvent = {
   workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, skipped: boolean): void;
   onWorkerError(workerNo: number, error: unknown): void;
   onWorkerExit(workerNo: number, exitCode: number): void;
+  onAllWorkerExit(): void;
   assignWorker(): void;
   actionFromWorker(action: Action<ForkWorkerOutput>, workerNo: number): void;
 };

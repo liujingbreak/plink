@@ -28,7 +28,11 @@ export function apply(broker: Broker, opts: {
         SEQ++;
       } else {
         const treeNode = workerRankTree.minimum()!;
+        if (treeNode == null)
+          throw new Error('minimum node is null');
         const workerNo = treeNode.value[0];
+        if (ranksByWorkerNo.get(workerNo) == null)
+          throw new Error('ranksByWorkerNo has null for ' + workerNo);
         const [worker] = ranksByWorkerNo.get(workerNo)!;
         i.dpf.workerAssigned(m, treeNode.value[0], worker);
       }
@@ -41,7 +45,7 @@ export function apply(broker: Broker, opts: {
     })
   ));
 
-  r(i.pt.onWorkerWait.pipe(
+  r(rx.merge(i.pt.onWorkerWait, i.pt.onWorkerReturned).pipe(
     rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))
   ));
 
@@ -61,7 +65,22 @@ export function apply(broker: Broker, opts: {
     })
   ));
 
-  r(i.at.stopAll.pipe());
+  r(i.at.letAllWorkerExit.pipe(
+    rx.exhaustMap(a => {
+      const num = ranksByWorkerNo.size;
+      for (const [worker] of ranksByWorkerNo.values())
+        i.dp.letWorkerExit(worker);
+      return rx.concat(
+        o.at.onWorkerExit.pipe(
+          rx.take(num)
+        ),
+        new rx.Observable((sub) => {
+          o.dpf.onAllWorkerExit(a);
+          sub.complete();
+        })
+      );
+    })
+  ));
 
   function changeWorkerRank(workerNo: number, changeValue: number) {
     const entry = ranksByWorkerNo.get(workerNo)!;
@@ -73,6 +92,8 @@ export function apply(broker: Broker, opts: {
     if (node) {
       const idx = node.value.indexOf(workerNo);
       node.value.splice(idx, 1);
+      if (node.value.length === 0)
+        workerRankTree.deleteNode(node);
       const tnode = workerRankTree.insert(newRank);
       if (tnode.value)
         tnode.value.push(workerNo);

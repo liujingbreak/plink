@@ -26,7 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createBroker = void 0;
 const rx = __importStar(require("rxjs"));
 const epic_1 = require("./epic");
-const utils_1 = require("./utils");
+// import {timeoutLog} from './utils';
 const control_1 = require("./control");
 /** WA - Worker output Message
 */
@@ -81,7 +81,9 @@ function createBroker(mainWorker, opts) {
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
     r('On forkFromWorker', i.pt.forkFromWorker.pipe(rx.mergeMap(async ([, , targetAction, port]) => {
-        const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned.pipe((0, utils_1.timeoutLog)(3000, () => console.log('worker assignment timeout')))));
+        const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned
+        // timeoutLog<typeof i.at.workerAssigned extends rx.Observable<infer T> ? T : never>(3000, () => console.log('worker assignment timeout'))
+        ));
         const fa = mainWorkerComp.i.createAction('onFork', targetAction, port);
         if (worker === 'main') {
             (0, control_1.deserializeAction)(fa, mainWorkerComp.i);
