@@ -3,7 +3,8 @@ import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, deserializeAction, serializeAction, nameOfAction, RxController, actionRelatedToAction} from './control';
+import {Action, ActionFunctions, deserializeAction, serializeAction, nameOfAction, RxController,
+  actionRelatedToAction, InferPayload, actionRelatedToPayload} from './control';
 import {ReactorComposite, InferFuncReturnEvents} from './epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
 import {DuplexOptions} from './duplex';
@@ -15,7 +16,7 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
     ...opts,
     debug: opts?.debug ? ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')) : false,
     log: isMainThread ? opts?.log : (...args) => parentPort?.postMessage({type: 'log', p: args}),
-    debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting'],
+    debugExcludeTypes: ['log', 'warn'],
     logStyle: 'noParam'
   });
   let broker: Broker | undefined;
@@ -41,14 +42,15 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
 
     r('exit', latest.exit.pipe(
       rx.map(() => {
-        i.dp.stopAll();
+        comp.destory();
         parentPort?.off('message', handler);
       })
     ));
 
     r('Pass worker wait and awake message to broker', rx.merge(
       o.at.wait,
-      o.at.stopWaiting
+      o.at.stopWaiting,
+      o.at.returned
     ).pipe(
       rx.map(action => {
         parentPort?.postMessage(serializeAction(action));
@@ -136,12 +138,7 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
             port.postMessage(serializeAction(action));
           }
           if (isCompleted) {
-            if (parentPort) {
-              const act = o.createAction('returned');
-              parentPort.postMessage(serializeAction(act));
-            } else {
-              o.dp.returned();
-            }
+            o.dp.returned();
           }
           return isCompleted;
         }),
@@ -150,8 +147,8 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
     })
   ));
 
-  r('Pass error to broker', o.pt.onError.pipe(
-    rx.map(([, label, err]) => {
+  r('Pass error to broker', comp.error$.pipe(
+    rx.map(([label, err]) => {
       if (parentPort) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         parentPort.postMessage({error: {label, detail: err}});
@@ -172,6 +169,20 @@ export function reativizeRecursiveFuncs<
 >(comp: ReactorComposite<I, O>, fObject: F) {
   comp.reactivize(fObject);
   return comp as unknown as ReactorComposite<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O>;
+}
+
+export function fork< I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends keyof I = `${K}Resolved`>(
+  comp: ReactorComposite<I, O>,
+  actionType: K & string, params: InferPayload<I[K]>,
+  resActionType?: R
+): Promise<InferPayload<I[R]>[0]> {
+  const forkedAction = comp.o.createAction(actionType, ...params);
+  const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType ?? (actionType + 'Resolved')) as keyof I].pipe(
+    actionRelatedToPayload(forkedAction.i),
+    rx.map(([, res]) => res)
+  ));
+  (comp.o as unknown as RxController<ForkWorkerOutput>).dp.fork(forkedAction);
+  return forkDone;
 }
 
 export type ForkTransferablePayload<T = unknown> = {

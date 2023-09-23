@@ -1,7 +1,7 @@
 {
   "name": "@wfh/algorithms",
   "version": "1.0.0",
-  "description": "Basic algorithms and data structures that Plink uses inside, including Red-black tree, interval-tree, BFS, DFS graph algorithms",
+  "description": "Basic algorithms and data structures that is used by Plink internally, including Red-black tree, interval-tree, BFS, DFS graph algorithms",
   "main": "dist/index.js",
   "module": "es/index.js",
   "type": "commonjs",
@@ -19,6 +19,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/liujingbreak/dr-comp-package.git"
+  },
+  "devDependencies": {
+    "chalk": "^4.1.0"
   },
   "keywords": [
     "red black tree", "DFS", "BFS"

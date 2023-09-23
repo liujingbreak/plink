@@ -34,7 +34,7 @@ function apply(broker, opts) {
     r(o.pt.assignWorker.pipe(rx.map(([m]) => {
         if (ranksByWorkerNo.size < opts.maxNumOfWorker) {
             const newWorker = opts.workerFactory();
-            ranksByWorkerNo.set(SEQ, [newWorker, 1]);
+            ranksByWorkerNo.set(SEQ, [newWorker, 0]);
             const tnode = workerRankTree.insert(1);
             if (tnode.value) {
                 tnode.value.push(SEQ);
@@ -56,10 +56,13 @@ function apply(broker, opts) {
             i.dpf.workerAssigned(m, treeNode.value[0], worker);
         }
     })));
-    r(rx.merge(i.pt.onWorkerAwake, i.pt.workerAssigned).pipe(rx.map(([, workerNo]) => {
+    r(i.pt.workerAssigned.pipe(rx.map(([, workerNo]) => {
         changeWorkerRank(workerNo, 1);
     })));
-    r(i.pt.onWorkerWait.pipe(rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))));
+    r(o.pt.newWorkerReady.pipe(rx.mergeMap(([, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1))), rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(rx.tap(() => changeWorkerRank(workerNo, -1)))))));
+    // r(rx.merge(i.pt.onWorkerWait, i.pt.onWorkerReturned).pipe(
+    //   rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))
+    // ));
     r(o.pt.onWorkerExit.pipe(rx.tap(([, workerNo]) => {
         if (ranksByWorkerNo.has(workerNo)) {
             const [, rank] = ranksByWorkerNo.get(workerNo);
@@ -100,6 +103,7 @@ function apply(broker, opts) {
                 tnode.value = [workerNo];
         }
     }
+    return ranksByWorkerNo;
 }
 exports.apply = apply;
 //# sourceMappingURL=worker-scheduler.js.map

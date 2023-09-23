@@ -1,11 +1,11 @@
 import { parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread } from 'worker_threads';
 import * as rx from 'rxjs';
-import { deserializeAction, serializeAction, nameOfAction, actionRelatedToAction } from './control';
+import { deserializeAction, serializeAction, nameOfAction, actionRelatedToAction, actionRelatedToPayload } from './control';
 import { ReactorComposite } from './epic';
 // import {createBroker} from './node-worker-broker';
 export function createWorkerControl(opts) {
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')) : false, log: isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => parentPort === null || parentPort === void 0 ? void 0 : parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting'], logStyle: 'noParam' }));
+    const comp = new ReactorComposite(Object.assign(Object.assign({}, opts), { debug: (opts === null || opts === void 0 ? void 0 : opts.debug) ? ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')) : false, log: isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => parentPort === null || parentPort === void 0 ? void 0 : parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
     let broker;
     comp.startAll();
     const { r, i, o } = comp;
@@ -26,10 +26,10 @@ export function createWorkerControl(opts) {
         /* eslint-disable no-restricted-globals */
         parentPort === null || parentPort === void 0 ? void 0 : parentPort.on('message', handler);
         r('exit', latest.exit.pipe(rx.map(() => {
-            i.dp.stopAll();
+            comp.destory();
             parentPort === null || parentPort === void 0 ? void 0 : parentPort.off('message', handler);
         })));
-        r('Pass worker wait and awake message to broker', rx.merge(o.at.wait, o.at.stopWaiting).pipe(rx.map(action => {
+        r('Pass worker wait and awake message to broker', rx.merge(o.at.wait, o.at.stopWaiting, o.at.returned).pipe(rx.map(action => {
             parentPort === null || parentPort === void 0 ? void 0 : parentPort.postMessage(serializeAction(action));
         })));
         r(lo.log.pipe(
@@ -78,10 +78,13 @@ export function createWorkerControl(opts) {
             else {
                 port.postMessage(serializeAction(action));
             }
+            if (isCompleted) {
+                o.dp.returned();
+            }
             return isCompleted;
         }), rx.takeWhile(isComplete => !isComplete));
     })));
-    r('Pass error to broker', o.pt.onError.pipe(rx.map(([, label, err]) => {
+    r('Pass error to broker', comp.error$.pipe(rx.map(([label, err]) => {
         if (parentPort) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             parentPort.postMessage({ error: { label, detail: err } });
@@ -96,6 +99,12 @@ export function createWorkerControl(opts) {
 export function reativizeRecursiveFuncs(comp, fObject) {
     comp.reactivize(fObject);
     return comp;
+}
+export function fork(comp, actionType, params, resActionType) {
+    const forkedAction = comp.o.createAction(actionType, ...params);
+    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe(actionRelatedToPayload(forkedAction.i), rx.map(([, res]) => res)));
+    comp.o.dp.fork(forkedAction);
+    return forkDone;
 }
 function hasReturnTransferable(payload) {
     var _a;

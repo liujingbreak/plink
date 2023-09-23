@@ -1,8 +1,8 @@
-import chalk from 'chalk';
 import {describe, it, expect}  from '@jest/globals';
-import {RedBlackTree, RbTreeNode} from '@wfh/plink/wfh/ts/share/algorithms/rb-tree';
-import {DFS} from '@wfh/plink/wfh/ts/share/algorithms/graph';
 import _ from 'lodash';
+import {RedBlackTree, RbTreeNode} from '../src/rb-tree';
+import {DFS} from '../src/graph';
+import {printRbTree as printTree} from '../src/utils';
 
 describe('RB tree', () => {
   it('smoke', () => {
@@ -97,19 +97,3 @@ describe('RB tree', () => {
   });
 });
 
-function printTree(tree: RedBlackTree<any>) {
-  const lines = [] as string[];
-  tree.inorderWalk(node => {
-    let p = node as typeof node | null;
-    let leadingSpaceChars = '';
-    while (p) {
-      leadingSpaceChars = (p.p?.p && ((p === p.p.left && p.p.p.right === p.p) || (p === p.p.right && p.p.p.left === p.p)) ? '|  ' : '   ') + leadingSpaceChars;
-      p = p.p;
-    }
-    const str = `${leadingSpaceChars}+- ${node.p ? node.p?.left === node ? 'L' : 'R' : 'root'} ${node.key + ''} - ` +
-      `size: ${node.size}`;
-    lines.push(node.isRed ? chalk.red(str) : str);
-  });
-  // eslint-disable-next-line no-console
-  console.log(':\n' + lines.join('\n'));
-}

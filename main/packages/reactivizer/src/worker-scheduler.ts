@@ -17,7 +17,7 @@ export function apply(broker: Broker, opts: {
     rx.map(([m]) => {
       if (ranksByWorkerNo.size < opts.maxNumOfWorker) {
         const newWorker = opts.workerFactory();
-        ranksByWorkerNo.set(SEQ, [newWorker, 1]);
+        ranksByWorkerNo.set(SEQ, [newWorker, 0]);
         const tnode = workerRankTree.insert(1);
         if (tnode.value) {
           tnode.value.push(SEQ);
@@ -39,15 +39,26 @@ export function apply(broker: Broker, opts: {
     })
   ));
 
-  r(rx.merge(i.pt.onWorkerAwake, i.pt.workerAssigned).pipe(
+  r(i.pt.workerAssigned.pipe(
     rx.map(([, workerNo]) => {
       changeWorkerRank(workerNo, 1);
     })
   ));
 
-  r(rx.merge(i.pt.onWorkerWait, i.pt.onWorkerReturned).pipe(
-    rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))
+  r(o.pt.newWorkerReady.pipe(
+    rx.mergeMap(([, workerNo,  workerOutputCtl]) => rx.merge(
+      workerOutputCtl.pt.stopWaiting.pipe(
+        rx.tap(() => changeWorkerRank(workerNo, 1))
+      ),
+      rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(
+        rx.tap(() => changeWorkerRank(workerNo, -1))
+      )
+    ))
   ));
+
+  // r(rx.merge(i.pt.onWorkerWait, i.pt.onWorkerReturned).pipe(
+  //   rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))
+  // ));
 
   r(o.pt.onWorkerExit.pipe(
     rx.tap(([, workerNo]) => {
@@ -101,5 +112,7 @@ export function apply(broker: Broker, opts: {
         tnode.value = [workerNo];
     }
   }
+
+  return ranksByWorkerNo;
 }
 

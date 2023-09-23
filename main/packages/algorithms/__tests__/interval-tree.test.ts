@@ -1,7 +1,7 @@
 // import inspector from 'inspector';
 import chalk from 'chalk';
 import {describe, it, expect}  from '@jest/globals';
-import {IntervalTree, IntervalTreeNode} from '@wfh/plink/wfh/ts/share/algorithms/interval-tree';
+import {IntervalTree, IntervalTreeNode} from '../src/interval-tree';
 // inspector.open(9222, 'localhost', true);
 
 describe('Interval tree', () => {

@@ -3,7 +3,7 @@ import * as rx from 'rxjs';
 // type Mutable<I> = {-readonly [K in keyof I]: I[K]};
 export type ActionFunctions = {[k: string]: any}; // instead of A indexed access type, since a "class type" can not be assigned to "Indexed access type with function type property"
 
-type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
+export type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
 
 export type ActionMeta = {
   /** id */
@@ -194,7 +194,8 @@ export class RxController<I extends ActionFunctions> {
 
         return <R extends keyof I>(action$: rx.Observable<Action<I, R>>, ...params: any[]) => {
           const action = self.core.createAction(key as string, params as InferPayload<I[string]>);
-          return rx.merge(
+          const r$ = new rx.ReplaySubject<InferMapParam<I, R>>(1);
+          rx.merge(
             action$.pipe(
               actionRelatedToAction(action.i),
               mapActionToPayload()
@@ -203,7 +204,8 @@ export class RxController<I extends ActionFunctions> {
               self.core.actionUpstream.next(action);
               sub.complete();
             })
-          );
+          ).subscribe(r$);
+          return r$.asObservable();
         };
       }
     });

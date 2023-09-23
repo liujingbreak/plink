@@ -4,4 +4,4 @@ import { Broker } from './types';
 export declare function apply(broker: Broker, opts: {
     maxNumOfWorker: number;
     workerFactory(): Worker | NodeWorker;
-}): void;
+}): Map<number, [worker: Worker | NodeWorker, rank: number]>;

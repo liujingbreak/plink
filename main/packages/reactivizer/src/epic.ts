@@ -7,15 +7,6 @@ import {DuplexController, DuplexOptions} from './duplex';
 export type Reactor<I extends ActionFunctions> = (ctl: RxController<I>) => rx.Observable<any>;
 export type DuplexReactor<I extends ActionFunctions, O extends ActionFunctions> = (ctl: DuplexController<I, O>) => rx.Observable<any>;
 
-export type ReactorCompositeActions = {
-  // mergeStream(stream: rx.Observable<any>, disableCatchError?: boolean, errorLabel?: string): void;
-  stopAll(): void;
-};
-
-export type ReactorCompositeOutput = {
-  onError(label: string, originError: any): void;
-};
-
 export type InferFuncReturnEvents<I extends ActionFunctions> = {
   [K in keyof I as `${K & string}Resolved`]: (
     p: ReturnType<I[K]> extends PromiseLike<infer P> ?
@@ -28,14 +19,15 @@ export type InferFuncReturnEvents<I extends ActionFunctions> = {
 export class ReactorComposite<
   I extends ActionFunctions = Record<string, never>,
   O extends ActionFunctions = Record<string, never>
-> extends DuplexController<ReactorCompositeActions & I, ReactorCompositeOutput & O> {
-
+> extends DuplexController<I, O> {
+  error$: rx.Subject<[lable: string, originError: any]> = new rx.ReplaySubject();
+  destory$: rx.Subject<void> = new rx.ReplaySubject(1);
   // protected static logSubj: rx.Subject<[level: string, ...msg: any[]]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
 
-  constructor(private opts?: DuplexOptions<ReactorCompositeActions & ReactorCompositeOutput & I & O>) {
+  constructor(private opts?: DuplexOptions<I & O>) {
     super(opts);
-    this.reactorSubj = new rx.ReplaySubject(999);
+    this.reactorSubj = new rx.ReplaySubject();
     // this.logSubj = new rx.ReplaySubject(50);
   }
 
@@ -50,7 +42,7 @@ export class ReactorComposite<
         })
       )
     ).pipe(
-      rx.takeUntil(this.i.pt.stopAll),
+      rx.takeUntil(this.destory$),
       rx.catchError((err, src) => {
         if (this.opts?.log)
           this.opts.log(err);
@@ -59,6 +51,10 @@ export class ReactorComposite<
         return src;
       })
     ).subscribe();
+  }
+
+  destory() {
+    this.destory$.next();
   }
 
   // eslint-disable-next-line space-before-function-paren
@@ -93,8 +89,8 @@ export class ReactorComposite<
   protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {
     const resolveFuncKey = key + 'Resolved';
     const finishFuncKey = key + 'Completed';
-    const dispatchResolved = (this as unknown as ReactorComposite<ReactorCompositeActions, any>).o.core.dispatchForFactory(resolveFuncKey as any);
-    const dispatchCompleted = (this as unknown as ReactorComposite<ReactorCompositeActions, any>).o.core.dispatchForFactory(finishFuncKey as any);
+    const dispatchResolved = (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).o.core.dispatchForFactory(resolveFuncKey as any);
+    const dispatchCompleted = (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).o.core.dispatchForFactory(finishFuncKey as any);
 
     this.r(this.i.pt[key as keyof I].pipe(
       rx.mergeMap(([meta, ...params]) => {
@@ -125,7 +121,7 @@ export class ReactorComposite<
   protected handleError(upStream: rx.Observable<any>, label?: string) {
     return upStream.pipe(
       rx.catchError((err, src) => {
-        (this as unknown as ReactorComposite<ReactorCompositeActions, ReactorCompositeOutput>).o.dp.onError(err, label);
+        (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).error$.next([err, label]);
         if (this.opts?.log)
           this.opts.log(err);
         else

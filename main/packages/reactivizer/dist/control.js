@@ -142,10 +142,12 @@ class RxController {
             get(_target, key, _rec) {
                 return (action$, ...params) => {
                     const action = self.core.createAction(key, params);
-                    return rx.merge(action$.pipe(actionRelatedToAction(action.i), mapActionToPayload()), new rx.Observable(sub => {
+                    const r$ = new rx.ReplaySubject(1);
+                    rx.merge(action$.pipe(actionRelatedToAction(action.i), mapActionToPayload()), new rx.Observable(sub => {
                         self.core.actionUpstream.next(action);
                         sub.complete();
-                    }));
+                    })).subscribe(r$);
+                    return r$.asObservable();
                 };
             }
         });

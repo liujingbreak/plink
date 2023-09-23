@@ -36,23 +36,24 @@ function createBroker(mainWorker, opts) {
     const workerInitState = new Map();
     const { r, i, o } = comp;
     comp.startAll();
-    r(rx.merge(mainWorkerComp.o.pt.forkByBroker).pipe(rx.map(([, wrappedAct, port]) => {
-        i.dp.forkFromWorker(-1, wrappedAct, port);
-    })));
+    const workerOutputs = new Map();
+    r('Emit newWorkerReady event', o.pt.workerInited.pipe(rx.filter(([, , , , skipped]) => !skipped), rx.tap(([meta, workerNo, , outputCtrl]) => o.dpf.newWorkerReady(meta, workerNo, outputCtrl))));
     r('ensureInitWorker', i.pt.ensureInitWorker.pipe(rx.mergeMap(([meta, workerNo, worker]) => {
         if (workerInitState.get(workerNo) === 'DONE') {
-            o.dpf.workerInited(meta, workerNo, null, true);
+            o.dpf.workerInited(meta, workerNo, null, workerOutputs.get(workerNo), true);
             return rx.EMPTY;
         }
         else if (workerInitState.get(workerNo) === 'WIP') {
-            return o.pt.workerInited.pipe(rx.filter(() => workerInitState.get(workerNo) === 'DONE'), rx.take(1), rx.tap(() => o.dpf.workerInited(meta, workerNo, null, true)));
+            return o.pt.workerInited.pipe(rx.filter(() => workerInitState.get(workerNo) === 'DONE'), rx.take(1), rx.tap(() => o.dpf.workerInited(meta, workerNo, null, workerOutputs.get(workerNo), true)));
         }
         workerInitState.set(workerNo, 'WIP');
         worker.on('message', (event) => {
             var _a;
             if (event.type === 'WORKER_READY') {
                 workerInitState.set(workerNo, 'DONE');
-                o.dpf.workerInited(meta, workerNo, null, false);
+                const wo = new control_1.RxController();
+                workerOutputs.set(workerNo, wo);
+                o.dpf.workerInited(meta, workerNo, null, wo, false);
             }
             else if (event.type === 'log') {
                 // eslint-disable-next-line no-console
@@ -63,7 +64,12 @@ function createBroker(mainWorker, opts) {
             }
             else {
                 const data = event;
-                o.dp.actionFromWorker(data, workerNo);
+                let wo = workerOutputs.get(workerNo);
+                if (wo == null) {
+                    wo = new control_1.RxController();
+                    workerOutputs.set(workerNo, wo);
+                }
+                (0, control_1.deserializeAction)(data, wo);
             }
         });
         worker.on('error', event => {
@@ -80,8 +86,8 @@ function createBroker(mainWorker, opts) {
     })
     // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
-    r('On forkFromWorker', i.pt.forkFromWorker.pipe(rx.mergeMap(async ([, , targetAction, port]) => {
-        const [, workerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned
+    r('On forkFromWorker', rx.merge(o.pt.newWorkerReady.pipe(rx.mergeMap(([, , workerOutput]) => workerOutput.pt.forkByBroker)), mainWorkerComp.o.pt.forkByBroker).pipe(rx.mergeMap(async ([, targetAction, port]) => {
+        const [, assignedWorkerNo, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned
         // timeoutLog<typeof i.at.workerAssigned extends rx.Observable<infer T> ? T : never>(3000, () => console.log('worker assignment timeout'))
         ));
         const fa = mainWorkerComp.i.createAction('onFork', targetAction, port);
@@ -89,18 +95,8 @@ function createBroker(mainWorker, opts) {
             (0, control_1.deserializeAction)(fa, mainWorkerComp.i);
         }
         else {
-            await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, workerNo, worker));
+            await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, assignedWorkerNo, worker));
             worker.postMessage((0, control_1.serializeAction)(fa), [port]);
-        }
-    })));
-    r('dispatch action of actionFromWorker to broker\'s upStream', o.pt.actionFromWorker.pipe(rx.map(([, action, workerNo]) => {
-        const type = (0, control_1.nameOfAction)(action);
-        if (type === 'wait')
-            i.dp.onWorkerWait(workerNo);
-        else if (type === 'stopWaiting')
-            i.dp.onWorkerAwake(workerNo);
-        else if (type === 'forkByBroker') {
-            i.dp.forkFromWorker(workerNo, ...action.p);
         }
     })));
     r(i.pt.letWorkerExit.pipe(rx.map(([, worker]) => {

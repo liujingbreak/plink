@@ -1,10 +1,11 @@
 /* eslint-disable no-console */
 import Path from 'node:path';
+import {performance} from 'node:perf_hooks';
 import os from 'node:os';
 import {Worker} from 'node:worker_threads';
 import {initProcess, initConfig, logConfig, log4File} from '@wfh/plink';
 import * as rx from 'rxjs';
-import {describe, it, expect, beforeEach}  from '@jest/globals';
+import {describe, it, expect, beforeEach, afterEach}  from '@jest/globals';
 import {createSorter} from '../src/res/sorter';
 import {createBroker} from '../src/node-worker-broker';
 import {apply} from '../src/worker-scheduler';
@@ -14,12 +15,18 @@ logConfig(initConfig({})());
 const log = log4File(__filename);
 
 describe('forkjoin worker', () => {
-  const num = 20;
+  const num = 100000;
   let testArr: Float32Array;
+  let shutdown: () => Promise<any>;
 
   beforeEach(() => {
     testArr = createSharedArryForTest(0, num);
   });
+
+  afterEach(async () => {
+    await shutdown();
+  });
+
   it.skip('messUp function', () => {
     const arr = createSharedArryForTest(0, 20);
     console.log(arr);
@@ -55,7 +62,7 @@ describe('forkjoin worker', () => {
     const workers = [] as Worker[];
 
     const broker = createBroker(sorter, {
-      debug: 'broker',
+      debug: false,
       log(...msg) {
         log.info(...msg);
       },
@@ -66,8 +73,9 @@ describe('forkjoin worker', () => {
     const {i, o} = broker;
     const numOfWorkers = os.cpus().length > 0 ? os.cpus().length - 1 : 3;
 
+    let ranksByWorkerNo: ReturnType<typeof apply>;
     if (threadMode === 'scheduler') {
-      apply(broker, {
+      ranksByWorkerNo = apply(broker, {
         maxNumOfWorker: numOfWorkers,
         workerFactory() {
           return new Worker(Path.resolve(__dirname, '../dist/res/sort-worker.js'));
@@ -111,12 +119,12 @@ describe('forkjoin worker', () => {
           rx.ignoreElements()
         ),
         rx.merge(
-          o.pt.onError.pipe(rx.map(([, label, err]) => console.error('Broker', label, 'on error', err))),
+          broker.error$.pipe(rx.map(([label, err]) => console.error('Broker', label, 'on error', err))),
           o.pt.onWorkerError.pipe(rx.map(([, workNo, err]) => console.error('Worker', workNo, 'on error', err)))
         ).pipe(
           rx.take(1),
           rx.map(() => {
-            sorter.i.dp.stopAll();
+            sorter.destory();
             for (const worker of workers)
               i.dp.letWorkerExit(worker);
             workers.splice(0);
@@ -125,29 +133,56 @@ describe('forkjoin worker', () => {
       ));
     }
 
+    const comparingTestArr = new Float32Array(testArr);
+    performance.mark('comparingSort');
+    comparingTestArr.sort();
+    performance.measure('single thread native sort measure', 'comparingSort');
+    let performanceEntry = performance.getEntriesByName('single thread native sort measure')[0];
+    console.log(performanceEntry.name, performanceEntry.duration, 'ms');
+
     sorter.o.dp.log('Initial test array', testArr);
 
+
+    performance.mark(threadMode + '/sort start');
     // call main sort function
     await rx.firstValueFrom(sorter.i.do.sort(
-      sorter.o.at.sortCompleted, testArr.buffer as SharedArrayBuffer, 0, num, 8
+      sorter.o.at.sortCompleted, testArr.buffer as SharedArrayBuffer, 0, num, 2000
     ));
+    performance.measure(threadMode + '/sort measure', threadMode + '/sort start');
+    performanceEntry = performance.getEntriesByName(threadMode + '/sort measure')[0];
+    console.log(performanceEntry.name, performanceEntry.duration, 'ms');
+    performance.clearMeasures();
+    performance.clearMarks();
 
     if (threadMode !== 'scheduler') {
       expect(workerIsAssigned).toBe(true);
     }
     sorter.o.dp.log('-----------------------------\nsorted:', testArr);
 
+    if (threadMode === 'scheduler') {
+      await new Promise(r => setTimeout(r, 500));
+      console.log('Ranks of workers:', [...ranksByWorkerNo!.entries()].map(([workerNo, [, rank]]) => `#${workerNo}: ${rank}`));
+      for (const [, rank] of ranksByWorkerNo!.values()) {
+        expect(rank).toBe(0);
+      }
+    }
+
     const latestBrokerEvents = o.createLatestPayloadsFor('onWorkerExit');
     if (threadMode === 'scheduler') {
-      void rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
-      broker.i.dp.stopAll();
-      sorter.i.dp.stopAll();
+      shutdown = async () => {
+        await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
+        broker.destory();
+        sorter.destory();
+      };
     } else if (threadMode !== 'mainOnly') {
-      for (const worker of workers)
-        i.dp.letWorkerExit(worker);
-      await rx.lastValueFrom(latestBrokerEvents.onWorkerExit.pipe(rx.take(workers.length)));
+      shutdown = async () => {
+        for (const worker of workers)
+          i.dp.letWorkerExit(worker);
+        await rx.lastValueFrom(latestBrokerEvents.onWorkerExit.pipe(rx.take(workers.length)));
+      };
     }
   }
+
 });
 
 function createSharedArryForTest(from: number, to: number) {
