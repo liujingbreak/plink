@@ -70,6 +70,7 @@ function createBroker(mainWorker, opts) {
                     workerOutputs.set(workerNo, wo);
                 }
                 (0, control_1.deserializeAction)(data, wo);
+                o.dp.actionFromWorker(data, workerNo);
             }
         });
         worker.on('error', event => {
@@ -99,6 +100,20 @@ function createBroker(mainWorker, opts) {
             worker.postMessage((0, control_1.serializeAction)(fa), [port]);
         }
     })));
+    // r('dispatch action of actionFromWorker to broker\'s upStream', o.pt.actionFromWorker.pipe(
+    //   rx.map(([, action, workerNo]) => {
+    //     const type = nameOfAction<ForkWorkerOutput>(action);
+    //     if (type === 'wait')
+    //       i.dp.onWorkerWait(workerNo);
+    //     else if (type === 'stopWaiting')
+    //       i.dp.onWorkerAwake(workerNo);
+    //     else if (type === 'forkByBroker') {
+    //       i.dp.forkFromWorker(workerNo, ...(action as Action<ForkWorkerOutput, 'forkByBroker'>).p);
+    //     } else if (type === 'returned') {
+    //       i.dp.onWorkerReturned(workerNo);
+    //     }
+    //   })
+    // ));
     r(i.pt.letWorkerExit.pipe(rx.map(([, worker]) => {
         // eslint-disable-next-line @typescript-eslint/ban-types
         worker.postMessage((0, control_1.serializeAction)(o.core.createAction('exit')));

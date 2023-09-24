@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 export type ActionFunctions = {
     [k: string]: any;
 };
-export type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
+type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
 export type ActionMeta = {
     /** id */
     i: number;

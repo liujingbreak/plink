@@ -33,4 +33,5 @@ export type BrokerEvent = {
     onWorkerExit(workerNo: number, exitCode: number): void;
     onAllWorkerExit(): void;
     assignWorker(): void;
+    actionFromWorker(action: Action<ForkWorkerOutput>, workerNo: number): void;
 };

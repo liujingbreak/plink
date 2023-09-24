@@ -31,8 +31,6 @@ class ReactorComposite extends duplex_1.DuplexController {
     constructor(opts) {
         super(opts);
         this.opts = opts;
-        this.error$ = new rx.ReplaySubject();
-        this.destory$ = new rx.ReplaySubject(1);
         /** Abbrevation of addReaction */
         this.r = (...params) => {
             if (typeof params[0] === 'string')
@@ -40,7 +38,7 @@ class ReactorComposite extends duplex_1.DuplexController {
             else
                 this.reactorSubj.next(['', ...params]);
         };
-        this.reactorSubj = new rx.ReplaySubject();
+        this.reactorSubj = new rx.ReplaySubject(999);
         // this.logSubj = new rx.ReplaySubject(50);
     }
     startAll() {
@@ -49,7 +47,7 @@ class ReactorComposite extends duplex_1.DuplexController {
                 downStream = this.handleError(downStream, label);
             }
             return downStream;
-        }))).pipe(rx.takeUntil(this.destory$), rx.catchError((err, src) => {
+        }))).pipe(rx.takeUntil(this.i.pt.stopAll), rx.catchError((err, src) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
@@ -57,9 +55,6 @@ class ReactorComposite extends duplex_1.DuplexController {
                 console.error(err);
             return src;
         })).subscribe();
-    }
-    destory() {
-        this.destory$.next();
     }
     // eslint-disable-next-line space-before-function-paren
     reactivize(fObject) {
@@ -105,7 +100,7 @@ class ReactorComposite extends duplex_1.DuplexController {
     handleError(upStream, label) {
         return upStream.pipe(rx.catchError((err, src) => {
             var _a;
-            this.error$.next([err, label]);
+            this.o.dp.onError(err, label);
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
             else

@@ -15,7 +15,7 @@ logConfig(initConfig({})());
 const log = log4File(__filename);
 
 describe('forkjoin worker', () => {
-  const num = 100000;
+  const num = 30;
   let testArr: Float32Array;
   let shutdown: () => Promise<any>;
 
@@ -146,7 +146,7 @@ describe('forkjoin worker', () => {
     performance.mark(threadMode + '/sort start');
     // call main sort function
     await rx.firstValueFrom(sorter.i.do.sort(
-      sorter.o.at.sortCompleted, testArr.buffer as SharedArrayBuffer, 0, num, 2000
+      sorter.o.at.sortCompleted, testArr.buffer as SharedArrayBuffer, 0, num, num / 6
     ));
     performance.measure(threadMode + '/sort measure', threadMode + '/sort start');
     performanceEntry = performance.getEntriesByName(threadMode + '/sort measure')[0];

@@ -6,7 +6,7 @@ export declare const sorter: import("..").ReactorComposite<{
     mergeCompleted: () => void;
 } & import("../types").ForkWorkerInput & {
     sort(buf: SharedArrayBuffer, offset: number | undefined, len: number, noForkThreshold?: number): Promise<[number, number]>;
-    merge(buf: SharedArrayBuffer, offset1: number | undefined, len1: number, offset2: number | undefined, len2: number, noForkThreshold?: number): Promise<import("..").ForkTransferablePayload<ArrayBuffer | null> | null>;
+    merge(buf: SharedArrayBuffer, offset1: number | undefined, len1: number, offset2: number | undefined, len2: number, noForkThreshold?: number, targetBuffer?: SharedArrayBuffer | undefined, targetOffset?: number | undefined): Promise<import("..").ForkTransferablePayload<ArrayBuffer | null> | null>;
 }, {
     sortResolved: (p: [number, number]) => void;
     mergeResolved: (p: import("..").ForkTransferablePayload<ArrayBuffer | null> | null) => void;

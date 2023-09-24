@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fork = exports.reativizeRecursiveFuncs = exports.createWorkerControl = void 0;
+exports.reativizeRecursiveFuncs = exports.createWorkerControl = void 0;
 const worker_threads_1 = require("worker_threads");
 const rx = __importStar(require("rxjs"));
 const control_1 = require("./control");
@@ -52,7 +52,7 @@ function createWorkerControl(opts) {
         /* eslint-disable no-restricted-globals */
         worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.on('message', handler);
         r('exit', latest.exit.pipe(rx.map(() => {
-            comp.destory();
+            i.dp.stopAll();
             worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.off('message', handler);
         })));
         r('Pass worker wait and awake message to broker', rx.merge(o.at.wait, o.at.stopWaiting, o.at.returned).pipe(rx.map(action => {
@@ -110,7 +110,7 @@ function createWorkerControl(opts) {
             return isCompleted;
         }), rx.takeWhile(isComplete => !isComplete));
     })));
-    r('Pass error to broker', comp.error$.pipe(rx.map(([label, err]) => {
+    r('Pass error to broker', o.pt.onError.pipe(rx.map(([, label, err]) => {
         if (worker_threads_1.parentPort) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             worker_threads_1.parentPort.postMessage({ error: { label, detail: err } });
@@ -128,13 +128,6 @@ function reativizeRecursiveFuncs(comp, fObject) {
     return comp;
 }
 exports.reativizeRecursiveFuncs = reativizeRecursiveFuncs;
-function fork(comp, actionType, params, resActionType) {
-    const forkedAction = comp.o.createAction(actionType, ...params);
-    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe((0, control_1.actionRelatedToPayload)(forkedAction.i), rx.map(([, res]) => res)));
-    comp.o.dp.fork(forkedAction);
-    return forkDone;
-}
-exports.fork = fork;
 function hasReturnTransferable(payload) {
     var _a;
     return Array.isArray((_a = payload[0]) === null || _a === void 0 ? void 0 : _a.transferList);

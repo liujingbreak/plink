@@ -9,18 +9,17 @@ export function createSorter(opts) {
         async sort(buf, offset = 0, len, noForkThreshold = 50) {
             const arr = new Float32Array(buf, offset << 2, len);
             if (arr.length > noForkThreshold) {
-                const leftPartOffset = offset;
                 const leftPartLen = arr.length >> 1;
                 const rightPartOffset = offset + leftPartLen;
                 const rightpartLen = arr.length - leftPartLen;
                 // o.dp.log('create fork sort action for half', rightPartOffset, rightpartLen, `action id: ${sortAction.i}`);
                 const forkDone = fork(sorter, 'sort', [buf, rightPartOffset, rightpartLen, noForkThreshold]);
                 // o.dp.log('sort another half in current worker', leftPartOffset, leftPartLen);
-                await sortActions.sort(buf, leftPartOffset, leftPartLen, noForkThreshold);
+                await sortActions.sort(buf, offset, leftPartLen, noForkThreshold);
                 o.dp.wait();
                 await forkDone;
                 o.dp.stopWaiting();
-                const mergeRes = await sortActions.merge(buf, leftPartOffset, leftPartLen, rightPartOffset, rightpartLen, noForkThreshold);
+                const mergeRes = await sortActions.merge(buf, offset, leftPartLen, rightPartOffset, rightpartLen, noForkThreshold, buf, offset);
                 const mergedBuf = mergeRes === null || mergeRes === void 0 ? void 0 : mergeRes.content;
                 if (mergedBuf != null) {
                     const mergedArr = new Float32Array(mergedBuf);
@@ -37,10 +36,9 @@ export function createSorter(opts) {
             }
             return [offset, len];
         },
-        async merge(buf, offset1 = 0, len1, offset2 = 0, len2, noForkThreshold = 50) {
+        async merge(buf, offset1 = 0, len1, offset2 = 0, len2, noForkThreshold = 50, targetBuffer, targetOffset) {
             var _a, _b;
             const destBuf = new ArrayBuffer((len1 + len2) << 2);
-            const destArr = new Float32Array(destBuf);
             if (len1 < len2) {
                 // Ensure 1st array is longer than 2nd array, because we split 1st array into evenly half to be forked merge, 1st array's length determines how much
                 // the divide level is, not the 2nd array. In extreme case, the "divide fork" will be meaningless if the 1st array is empty.
@@ -73,7 +71,7 @@ export function createSorter(opts) {
                 o.dp.wait();
                 const rightMerged = (_b = (await forkDone)) === null || _b === void 0 ? void 0 : _b.content;
                 o.dp.stopWaiting();
-                const destArr = new Float32Array(destBuf);
+                const destArr = targetBuffer ? new Float32Array(targetBuffer, targetOffset << 2, len1 + len2) : new Float32Array(destBuf);
                 let i = 0;
                 if (leftMerged) {
                     for (const v of new Float32Array(leftMerged)) {
@@ -87,6 +85,7 @@ export function createSorter(opts) {
                 }
             }
             else {
+                const destArr = new Float32Array(destBuf);
                 const arr1 = new Float32Array(buf, offset1 << 2, len1);
                 const arr2 = new Float32Array(buf, offset2 << 2, len2);
                 // o.dp.log('merge directly', offset1, len1, arr1, offset2, len2, arr2);
@@ -99,9 +98,18 @@ export function createSorter(opts) {
                         destArr[i] = arr2[pos2++];
                     }
                 }
+                if (targetBuffer) {
+                    const target = new Float32Array(targetBuffer, targetOffset, len1 + len2);
+                    let i = 0;
+                    for (const v of destArr)
+                        target[i++] = v;
+                }
             }
             // o.dp.log('merge returns', offset1, len1, offset2, len2, destArr);
-            return { content: destBuf, transferList: [destBuf] };
+            if (targetBuffer)
+                return null;
+            else
+                return { content: destBuf, transferList: [destBuf] };
         }
     };
     const sorter = reativizeRecursiveFuncs(ctl, sortActions);
