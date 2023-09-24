@@ -15,7 +15,7 @@ logConfig(initConfig({})());
 const log = log4File(__filename);
 
 describe('forkjoin worker', () => {
-  const num = 30;
+  const num = 1300;
   let testArr: Float32Array;
   let shutdown: () => Promise<any>;
 
@@ -45,11 +45,15 @@ describe('forkjoin worker', () => {
     await forkMergeSort('mix');
   }, 50000);
 
+  it('Scheduled single worker', async () => {
+    await forkMergeSort('scheduler', 1);
+  }, 50000);
+
   it('Scheduled workers can fork another worker or main worker itself', async () => {
     await forkMergeSort('scheduler');
   }, 50000);
 
-  async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker') {
+  async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker', workerNum?: number) {
     const sorter = createSorter({
       debug: false,
       log(...msg) {
@@ -71,7 +75,7 @@ describe('forkjoin worker', () => {
     });
 
     const {i, o} = broker;
-    const numOfWorkers = os.cpus().length > 0 ? os.cpus().length - 1 : 3;
+    const numOfWorkers = workerNum ?? (os.cpus().length > 0 ? os.cpus().length - 1 : 3);
 
     let ranksByWorkerNo: ReturnType<typeof apply>;
     if (threadMode === 'scheduler') {
@@ -133,12 +137,12 @@ describe('forkjoin worker', () => {
       ));
     }
 
-    const comparingTestArr = new Float32Array(testArr);
-    performance.mark('comparingSort');
-    comparingTestArr.sort();
-    performance.measure('single thread native sort measure', 'comparingSort');
-    let performanceEntry = performance.getEntriesByName('single thread native sort measure')[0];
-    console.log(performanceEntry.name, performanceEntry.duration, 'ms');
+    // const comparingTestArr = new Float32Array(testArr);
+    // performance.mark('comparingSort');
+    // comparingTestArr.sort();
+    // performance.measure('single thread native sort measure', 'comparingSort');
+    // let performanceEntry = performance.getEntriesByName('single thread native sort measure')[0];
+    // console.log(performanceEntry.name, performanceEntry.duration, 'ms');
 
     sorter.o.dp.log('Initial test array', testArr);
 
@@ -148,8 +152,8 @@ describe('forkjoin worker', () => {
     await rx.firstValueFrom(sorter.i.do.sort(
       sorter.o.at.sortCompleted, testArr.buffer as SharedArrayBuffer, 0, num, num / 6
     ));
-    performance.measure(threadMode + '/sort measure', threadMode + '/sort start');
-    performanceEntry = performance.getEntriesByName(threadMode + '/sort measure')[0];
+    performance.measure(`measure ${numOfWorkers}`, threadMode + '/sort start');
+    const performanceEntry = performance.getEntriesByName(`measure ${numOfWorkers}`)[0];
     console.log(performanceEntry.name, performanceEntry.duration, 'ms');
     performance.clearMeasures();
     performance.clearMarks();
