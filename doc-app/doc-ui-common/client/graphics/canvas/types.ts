@@ -18,10 +18,15 @@ export type ReactiveCanvas2State = {
 
 export type ReactiveCanvas2Actions = {
   _createOffscreen(canvas: OffscreenCanvas): void;
-  setScaleRatio(value: number): void;
+  // setScaleRatio(value: number): void;
+  resizeViewport(width: number, height: number): void;
+};
+
+export type ReactiveCanvasWorkerInput = {
   /** Dispatch this action once when `Object`s(`Paintable`s) are created and attached to canvas root paintable */
   sceneReady(): void;
-  resizeViewport(width: number, height: number): void;
+  _createOffscreen: ReactiveCanvas2Actions['_createOffscreen'];
+  resizeViewport: ReactiveCanvas2Actions['resizeViewport'];
   /** root component should subscribe this event, and start painting all children */
   onClick: ReactiveCanvasInputAction['onClick'];
   changeRatio: ReactiveCanvasInputAction['changeRatio'];

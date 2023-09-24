@@ -1,7 +1,8 @@
 import { ForkTransferablePayload } from '../forkJoin-node-worker';
 import { DuplexOptions } from '../duplex';
 import { ForkWorkerInput, ForkWorkerOutput } from '../types';
-export declare function createSorter(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>): import("..").ReactorComposite<{
+import { ForkSortComparator, WritableArray } from './sort-comparator-interf';
+export declare function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>): import("..").ReactorComposite<{
     sortResolved: (p: [number, number]) => void;
     mergeResolved: (p: ForkTransferablePayload<ArrayBuffer | null> | null) => void;
 } & {

@@ -1,7 +1,7 @@
 import React from 'react';
 import cls from 'classnames';
 import styles from './ReactiveCanvas2.module.scss';
-import {createDomControl} from './reactiveCanvas2.control';
+import {createDomControl} from './reactiveCanvas2.dom.control';
 import {ReactiveCanvasConfig} from './types';
 
 // CRA's babel plugin will remove statement "export {ReactiveCanvasProps}" in case there is only type definition, have to reassign and export it.

@@ -1,27 +1,26 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
-import {ReactorComposite, Action} from '@wfh/reactivizer';
+import {ReactorComposite, Action, deserializeAction} from '@wfh/reactivizer';
 import {createAnimationManager} from '../../animation/ease-functions';
 import {createForCanvas} from './paintable-worker-client';
 import {createPaintable, PaintableCtl, Paintable} from './paintable';
-import {ReactiveCanvas2Actions, ReactiveCanvasInputAction, ReactiveCanvasWorkerOutput} from './types';
+import {ReactiveCanvas2Actions, ReactiveCanvasWorkerInput, ReactiveCanvasWorkerOutput} from './types';
 
 export type ReactiveCanvas2Engine = {
-  canvasController: ReactorComposite<ReactiveCanvas2Actions, ReactiveCanvasWorkerOutput>;
+  canvasController: ReactorComposite<ReactiveCanvasWorkerInput, ReactiveCanvasWorkerOutput>;
   onPointerMove$: rx.Observable<[number, number]>;
   workerClient: ReturnType<typeof createForCanvas>;
   animateMgr: ReturnType<typeof createAnimationManager>;
 };
 
 function createEngine(): ReactiveCanvas2Engine {
-  const comp = new ReactorComposite<ReactiveCanvas2Actions, ReactiveCanvasWorkerOutput>({debug: process.env.NODE_ENV === 'development' ? 'reativeCanvas2.worker' : false});
-  const sub = comp.startAll();
+  const comp = new ReactorComposite<ReactiveCanvasWorkerInput, ReactiveCanvasWorkerOutput>({debug: process.env.NODE_ENV === 'development' ? 'reativeCanvas2.worker' : false});
+  comp.startAll();
   const {r, i, o} = comp;
   const {pt} = i;
   const {dispatcher} = o;
   const lo = comp.o.createLatestPayloadsFor('setIsOffScreen', 'setCanvasSize');
-  const li = comp.i.createLatestPayloadsFor('setScaleRatio');
+  // const li = comp.i.createLatestPayloadsFor('setScaleRatio');
   // const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvasInputAction>(
   //   {debug: process.env.NODE_ENV === 'development' ? 'reativeCanvas2.worker' : false}
   // );
@@ -37,15 +36,14 @@ function createEngine(): ReactiveCanvas2Engine {
       onPointerMove$.next([x, y]);
     } else {
       const {data} = event as MessageEvent<Action<ReactiveCanvas2Actions, keyof ReactiveCanvas2Actions>>;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      (comp.i.dp[data.t as keyof ReactiveCanvas2Actions] as any)(...data.p);
+      deserializeAction(data, comp.i);
     }
   };
 
   r(pt.onClick.pipe(
-    op.withLatestFrom(li.setScaleRatio),
-    op.map(([[, x, y], [, scaleRatio]]) => {
-      const ratioToCanvasPoint = scaleRatio ?? 2;
+    // op.withLatestFrom(li.setScaleRatio),
+    op.map(([, x, y]) => {
+      const ratioToCanvasPoint = 2;
       const pointer = Float32Array.of(Math.round(x) * ratioToCanvasPoint, Math.round(y) * ratioToCanvasPoint);
       workerClient.dispatcher.detectPoint('clicked', pointer);
     })
@@ -60,9 +58,9 @@ function createEngine(): ReactiveCanvas2Engine {
   ));
 
   r(pt.resizeViewport.pipe(
-    rx.withLatestFrom(li.setScaleRatio),
-    op.map(([[, vw, vh], [, scaleRatio]]) => {
-      const ratio = scaleRatio;
+    // rx.withLatestFrom(li.setScaleRatio),
+    op.map(([, vw, vh]) => {
+      const ratio = 2;
       const pixelWidth = vw;
       const pixelHeight = vh;
       const width = Math.floor(vw * ratio);
@@ -124,32 +122,10 @@ function createEngine(): ReactiveCanvas2Engine {
     return () => removeEventListener('message', workerMsgHandler);
   }));
 
-  r(i.at.onUnmount.pipe(rx.map(() => sub.unsubscribe())));
-
-  rx.merge(
-    new rx.Observable(() => {
-      postMessage('ready');
-      // eslint-disable-next-line no-restricted-globals
-      addEventListener('message', workerMsgHandler);
-      // eslint-disable-next-line no-restricted-globals
-      return () => removeEventListener('message', workerMsgHandler);
-    })
-  ).pipe(
-    op.takeUntil(pt.onUnmount.pipe(
-      op.tap(() => {
-        workerClient.dispatcher.canvasDestroyed();
-      })
-    )),
-    op.catchError((err, src) => {
-      void Promise.resolve().then(() => {
-        if (err instanceof Error)
-          throw err;
-        else
-          throw new Error(err);
-      });
-      return src;
-    })
-  ).subscribe();
+  r(i.at.onUnmount.pipe(rx.map(() => {
+    workerClient.dispatcher.canvasDestroyed();
+    comp.destory();
+  })));
 
   return {
     canvasController: comp,
@@ -158,8 +134,6 @@ function createEngine(): ReactiveCanvas2Engine {
     animateMgr
   };
 }
-
-export type ReactiveCanvas2Control = ActionStreamControl<ReactiveCanvas2Actions & ReactiveCanvasInputAction>;
 
 export function createRootPaintable(): [Paintable, ReactiveCanvas2Engine] {
   const engine = createEngine();

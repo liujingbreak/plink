@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.reativizeRecursiveFuncs = exports.createWorkerControl = void 0;
+exports.fork = exports.reativizeRecursiveFuncs = exports.createWorkerControl = void 0;
 const worker_threads_1 = require("worker_threads");
 const rx = __importStar(require("rxjs"));
 const control_1 = require("./control");
@@ -52,7 +52,7 @@ function createWorkerControl(opts) {
         /* eslint-disable no-restricted-globals */
         worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.on('message', handler);
         r('exit', latest.exit.pipe(rx.map(() => {
-            i.dp.stopAll();
+            comp.destory();
             worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.off('message', handler);
         })));
         r('Pass worker wait and awake message to broker', rx.merge(o.at.wait, o.at.stopWaiting, o.at.returned).pipe(rx.map(action => {
@@ -69,15 +69,13 @@ function createWorkerControl(opts) {
     }
     r('On output "fork" request message', o.at.fork.pipe(rx.mergeMap(act => {
         const { p: [wrappedAct] } = act;
-        const wrappedActId = wrappedAct.i;
-        const wrappedActCompletedType = (0, control_1.nameOfAction)(wrappedAct) + 'Completed';
         const chan = new worker_threads_1.MessageChannel();
         const error$ = rx.fromEventPattern(h => chan.port1.on('messageerror', h), h => chan.port1.off('messageerror', h));
         const close$ = rx.fromEventPattern(h => chan.port1.on('close', h), h => chan.port1.off('close', h));
         return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => {
             chan.port1.off('message', h);
             chan.port1.close();
-        }).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe((0, control_1.actionRelatedToAction)(wrappedActId))))), new rx.Observable(_sub => {
+        }).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), new rx.Observable(_sub => {
             if (worker_threads_1.parentPort) {
                 const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
                 worker_threads_1.parentPort.postMessage((0, control_1.serializeAction)(forkByBroker), [chan.port2]);
@@ -90,10 +88,7 @@ function createWorkerControl(opts) {
     r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(rx.mergeMap(([, origAct, port]) => {
         const origId = origAct.i;
         (0, control_1.deserializeAction)(origAct, i);
-        const origType = (0, control_1.nameOfAction)(origAct);
-        const typeOfResolved = origType + 'Resolved';
-        const typeOfCompleted = origType + 'Completed';
-        return rx.merge(o.at[typeOfResolved].pipe((0, control_1.actionRelatedToAction)(origId), rx.map(action => [action, false])), o.at[typeOfCompleted].pipe((0, control_1.actionRelatedToAction)(origId), rx.map(action => [action, true]))).pipe(rx.map(([action, isCompleted]) => {
+        return o.core.action$.pipe((0, control_1.actionRelatedToAction)(origId), rx.take(1), rx.map(action => {
             const { p } = action;
             if (hasReturnTransferable(p)) {
                 const [{ transferList }] = p;
@@ -104,13 +99,10 @@ function createWorkerControl(opts) {
             else {
                 port.postMessage((0, control_1.serializeAction)(action));
             }
-            if (isCompleted) {
-                o.dp.returned();
-            }
-            return isCompleted;
-        }), rx.takeWhile(isComplete => !isComplete));
+            o.dp.returned();
+        }));
     })));
-    r('Pass error to broker', o.pt.onError.pipe(rx.map(([, label, err]) => {
+    r('Pass error to broker', comp.error$.pipe(rx.map(([label, err]) => {
         if (worker_threads_1.parentPort) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             worker_threads_1.parentPort.postMessage({ error: { label, detail: err } });
@@ -128,6 +120,13 @@ function reativizeRecursiveFuncs(comp, fObject) {
     return comp;
 }
 exports.reativizeRecursiveFuncs = reativizeRecursiveFuncs;
+function fork(comp, actionType, params, resActionType) {
+    const forkedAction = comp.o.createAction(actionType, ...params);
+    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe((0, control_1.actionRelatedToPayload)(forkedAction.i), rx.map(([, res]) => res)));
+    comp.o.dp.fork(forkedAction);
+    return forkDone;
+}
+exports.fork = fork;
 function hasReturnTransferable(payload) {
     var _a;
     return Array.isArray((_a = payload[0]) === null || _a === void 0 ? void 0 : _a.transferList);

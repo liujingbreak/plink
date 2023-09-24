@@ -3,7 +3,7 @@ import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, deserializeAction, serializeAction, nameOfAction, RxController,
+import {Action, ActionFunctions, deserializeAction, serializeAction, RxController,
   actionRelatedToAction, InferPayload, actionRelatedToPayload} from './control';
 import {ReactorComposite, InferFuncReturnEvents} from './epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
@@ -70,8 +70,6 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
   r('On output "fork" request message', o.at.fork.pipe(
     rx.mergeMap(act => {
       const {p: [wrappedAct]} = act;
-      const wrappedActId = wrappedAct.i;
-      const wrappedActCompletedType = nameOfAction(wrappedAct) + 'Completed';
       const chan = new NodeMessagechannel();
       const error$ = rx.fromEventPattern(
         h => chan.port1.on('messageerror', h),
@@ -91,12 +89,7 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
         ).pipe(
           rx.map(event => deserializeAction(event, i)),
           rx.take(1),
-          rx.takeUntil(rx.merge(
-            error$,
-            close$,
-            (i as RxController<any>).at[wrappedActCompletedType].pipe(
-              actionRelatedToAction(wrappedActId)
-            )))
+          rx.takeUntil(rx.merge(error$, close$))
         ),
         new rx.Observable<void>(_sub => {
           if (parentPort) {
@@ -114,20 +107,10 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
     rx.mergeMap(([, origAct, port]) => {
       const origId = origAct.i;
       deserializeAction(origAct, i);
-      const origType = nameOfAction(origAct);
-      const typeOfResolved = origType + 'Resolved';
-      const typeOfCompleted = origType + 'Completed';
-      return rx.merge(
-        (o as RxController<any>).at[typeOfResolved].pipe(
-          actionRelatedToAction(origId),
-          rx.map(action => [action, false] as const)
-        ),
-        (o as RxController<any>).at[typeOfCompleted].pipe(
-          actionRelatedToAction(origId),
-          rx.map(action => [action, true] as const)
-        )
-      ).pipe(
-        rx.map(([action, isCompleted]) => {
+      return o.core.action$.pipe(
+        actionRelatedToAction(origId),
+        rx.take(1),
+        rx.map(action => {
           const {p} = action;
           if (hasReturnTransferable(p)) {
             const [{transferList}] = p;
@@ -137,12 +120,8 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
           } else {
             port.postMessage(serializeAction(action));
           }
-          if (isCompleted) {
-            o.dp.returned();
-          }
-          return isCompleted;
-        }),
-        rx.takeWhile(isComplete => !isComplete)
+          o.dp.returned();
+        })
       );
     })
   ));

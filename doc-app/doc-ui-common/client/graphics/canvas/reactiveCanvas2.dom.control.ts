@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs';
-import {ReactorComposite, nameOfAction} from '@wfh/reactivizer';
+import {ReactorComposite, serializeAction} from '@wfh/reactivizer';
 import type {ReactiveCanvasInputAction, ReactiveCanvas2Actions} from './types';
 
 export type CanvasActions = {
@@ -21,7 +21,7 @@ export function createDomControl() {
 
   const {i, o, r} = re;
 
-  r(i.pt.setWorker.pipe(
+  r('setWorker', i.pt.setWorker.pipe(
     op.switchMap(([, worker]) => {
       return new rx.Observable<void>(sub => {
         const h = (event: MessageEvent<string>) => {
@@ -35,15 +35,15 @@ export function createDomControl() {
         return () => worker.removeEventListener('message', h);
       });
     })
-  ), false, 'setWorker');
+  ));
 
-  r(onPointerMove$.pipe(
+  r('onPointerMove', onPointerMove$.pipe(
     op.throttleTime(100),
     op.withLatestFrom(o.pt.workerReady),
     op.map(([[x, y], [, worker]]) => {
       worker.postMessage({type: 'onPointMove', x, y});
     })
-  ), false, 'onPointerMove');
+  ));
 
   r(i.pt.onDomChange.pipe(
     op.filter((p): p is [typeof p[0], NonNullable<typeof p[1]>] => p[1] != null),
@@ -71,21 +71,23 @@ export function createDomControl() {
     })
   ));
   // Pass below actions to worker when worker is ready
-  re.r(rx.combineLatest([
+  r('after worker ready, postMessage', rx.combineLatest([
     rx.merge(i.at.onClick, o.at.resizeViewport, i.at.changeRatio, i.at.onUnmount),
     re.o.pt.workerReady
   ]).pipe(
     rx.map(([action, [, worker]]) => {
-      worker.postMessage({...action, t: nameOfAction(action)});
+      worker.postMessage(serializeAction(action));
     })
   ));
 
   // Pass below actions to worker when worker is ready
-  re.r(rx.combineLatest([re.o.at._createOffscreen, re.o.pt.workerReady]).pipe(
+  r(rx.combineLatest([re.o.at._createOffscreen, re.o.pt.workerReady]).pipe(
     rx.map(([action, [, worker]]) => {
-      worker.postMessage({...action, t: nameOfAction(action)}, [...action.p]);
+      worker.postMessage(serializeAction(action), action.p);
     })
   ));
+
+  re.startAll();
 
   return [
     re.i,

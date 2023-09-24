@@ -1,6 +1,6 @@
 import { parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread } from 'worker_threads';
 import * as rx from 'rxjs';
-import { deserializeAction, serializeAction, nameOfAction, actionRelatedToAction, actionRelatedToPayload } from './control';
+import { deserializeAction, serializeAction, actionRelatedToAction, actionRelatedToPayload } from './control';
 import { ReactorComposite } from './epic';
 // import {createBroker} from './node-worker-broker';
 export function createWorkerControl(opts) {
@@ -43,15 +43,13 @@ export function createWorkerControl(opts) {
     }
     r('On output "fork" request message', o.at.fork.pipe(rx.mergeMap(act => {
         const { p: [wrappedAct] } = act;
-        const wrappedActId = wrappedAct.i;
-        const wrappedActCompletedType = nameOfAction(wrappedAct) + 'Completed';
         const chan = new NodeMessagechannel();
         const error$ = rx.fromEventPattern(h => chan.port1.on('messageerror', h), h => chan.port1.off('messageerror', h));
         const close$ = rx.fromEventPattern(h => chan.port1.on('close', h), h => chan.port1.off('close', h));
         return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => {
             chan.port1.off('message', h);
             chan.port1.close();
-        }).pipe(rx.map(event => deserializeAction(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, close$, i.at[wrappedActCompletedType].pipe(actionRelatedToAction(wrappedActId))))), new rx.Observable(_sub => {
+        }).pipe(rx.map(event => deserializeAction(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), new rx.Observable(_sub => {
             if (parentPort) {
                 const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
                 parentPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
@@ -64,10 +62,7 @@ export function createWorkerControl(opts) {
     r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(rx.mergeMap(([, origAct, port]) => {
         const origId = origAct.i;
         deserializeAction(origAct, i);
-        const origType = nameOfAction(origAct);
-        const typeOfResolved = origType + 'Resolved';
-        const typeOfCompleted = origType + 'Completed';
-        return rx.merge(o.at[typeOfResolved].pipe(actionRelatedToAction(origId), rx.map(action => [action, false])), o.at[typeOfCompleted].pipe(actionRelatedToAction(origId), rx.map(action => [action, true]))).pipe(rx.map(([action, isCompleted]) => {
+        return o.core.action$.pipe(actionRelatedToAction(origId), rx.take(1), rx.map(action => {
             const { p } = action;
             if (hasReturnTransferable(p)) {
                 const [{ transferList }] = p;
@@ -78,11 +73,8 @@ export function createWorkerControl(opts) {
             else {
                 port.postMessage(serializeAction(action));
             }
-            if (isCompleted) {
-                o.dp.returned();
-            }
-            return isCompleted;
-        }), rx.takeWhile(isComplete => !isComplete));
+            o.dp.returned();
+        }));
     })));
     r('Pass error to broker', comp.error$.pipe(rx.map(([label, err]) => {
         if (parentPort) {

@@ -3,6 +3,7 @@ import * as op from 'rxjs';
 // import {Matrix, identity, compose} from 'transformation-matrix';
 import {mat4} from 'gl-matrix';
 import {createActionStreamByType, ActionStreamControl, PayloadStreams} from '@wfh/redux-toolkit-observable/es/rx-utils';
+import {ActionFunctions, ReactorComposite} from '@wfh/reactivizer';
 import {Segment, mat4ToStr} from '../canvas-utils';
 import type {ReactiveCanvas2Engine} from './reactiveCanvas2.worker';
 
@@ -38,7 +39,8 @@ export type PaintableState = {
 };
 
 export type PaintableActions = {
-  setProp(override: Partial<Pick<PaintableState, 'width' | 'height' | 'relativeHeight' | 'relativeWidth'>>): void;
+  setSize(width?: number, height?: number): void;
+  setRelativeSize(rWidth?: number, rHeight?: number): void;
   /** attach to a parent paintable object */
   attachTo(p: Paintable): void;
   onResize(w: number, h: number): void;
@@ -62,20 +64,6 @@ export type PaintableActions = {
     state: Required<PaintableState>
   ): void;
 
-  /** `epic` is a concept borrowed from [redux-observable](https://redux-observable.js.org/docs/basics/Epics.html).
-   * The returned "epic" observable will be subscribed when `treeAttached` event is dispatched until `treeDetached` event
-   * is dispatched.
-   * @param epicFactory the function return "epic", it is invoked only once at beginning, but the `epic` that it returns could
-   * be subscribed multiple times, if there are multiple `treeAttached` events dispatched.
-   */
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  addEpic<E extends Record<string, (...a: any[]) => void> = Record<string, never>>(
-    epicFactory: (
-      c: ActionStreamControl<Omit<PaintableActions, 'addEpic'> & E>,
-      s: Required<PaintableState>,
-      replayablePayload: Paintable[2]
-    ) => rx.Observable<any>
-  ): void;
   /**
    * Indicate whether `transform` should be calculate by transform operators once `render` is emitted.
    * @param isDirty `true` there is any side effect so that `transform` should be to be re-calculated,
@@ -107,7 +95,7 @@ const TRANSFORM_BY_PARENT_OPERATOR = 'baseOnParent';
 const hasOwnProperty = (t: any, prop: string) => Object.prototype.hasOwnProperty.call(t, prop);
 
 // eslint-disable-next-line space-before-function-paren
-export function createPaintable<E extends Record<string, (...a: any[]) => void> = Record<string, never>>(
+export function createPaintable<E extends ActionFunctions = Record<string, never>>(
   opts?: Parameters<typeof createActionStreamByType>[0]
 ): Paintable<E> {
   const state: PaintableState = {
@@ -120,13 +108,12 @@ export function createPaintable<E extends Record<string, (...a: any[]) => void> 
     detached: true,
     treeDetached: true,
     // isTransformDirty: true,
-    epics: []
   };
 
-  const ctl = createActionStreamByType<PaintableActions & InternalActions>(opts ?? {debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
-  const rPayloads = ctl.createLatestPayloads('setTransformDirty', 'onResize');
+  const ctl = new ReactorComposite<PaintableActions, InternalActions>(opts ?? {debug: process.env.NODE_ENV === 'development' ? 'Paintable' : false});
+  const rPayloads = ctl.i.createLatestPayloadsFor('setTransformDirty', 'onResize');
 
-  const {actionByType: aot, payloadByType: pt, dispatcher} = ctl;
+  const {actionByType: aot, payloadByType: pt, dispatcher} = ctl.i;
 
   rx.merge(
     pt.setProp.pipe(

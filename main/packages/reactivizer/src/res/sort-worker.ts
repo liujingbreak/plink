@@ -1,5 +1,6 @@
 import {createSorter} from './sorter';
+// import {defaultComparator} from './sort-comparator-interf';
 
-export const sorter = createSorter({
+export const sorter = createSorter(null, {
   debug: false
 });

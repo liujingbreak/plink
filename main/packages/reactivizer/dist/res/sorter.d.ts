@@ -1,7 +1,8 @@
 import { ForkTransferablePayload } from '../forkJoin-node-worker';
 import { DuplexOptions } from '../duplex';
 import { ForkWorkerInput, ForkWorkerOutput } from '../types';
-export declare function createSorter(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>): import("..").ReactorComposite<{
+import { ForkSortComparator, WritableArray } from './sort-comparator-interf';
+export declare function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>): import("..").ReactorComposite<{
     sortResolved: (p: [number, number]) => void;
     mergeResolved: (p: ForkTransferablePayload<ArrayBuffer | null> | null) => void;
 } & {
@@ -15,7 +16,7 @@ export declare function createSorter(opts?: DuplexOptions<ForkWorkerInput & Fork
         number,
         number
     ]>;
-    merge(buf: SharedArrayBuffer, offset1: number | undefined, len1: number, offset2: number | undefined, len2: number, noForkThreshold?: number): Promise<null | ForkTransferablePayload<ArrayBuffer | null>>;
+    merge(buf: SharedArrayBuffer, offset1: number | undefined, len1: number, offset2: number | undefined, len2: number, noForkThreshold?: number, targetBuffer?: SharedArrayBuffer, targetOffset?: number): Promise<null | ForkTransferablePayload<ArrayBuffer | null>>;
 }, {
     sortResolved: (p: [number, number]) => void;
     mergeResolved: (p: ForkTransferablePayload<ArrayBuffer | null> | null) => void;

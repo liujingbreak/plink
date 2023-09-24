@@ -1,13 +1,15 @@
 import binarySearch from 'lodash/sortedIndex';
 import { createWorkerControl, reativizeRecursiveFuncs, fork } from '../forkJoin-node-worker';
-export function createSorter(opts) {
+import { DefaultComparator } from './sort-comparator-interf';
+export function createSorter(comparator, opts) {
     const ctl = createWorkerControl(opts);
+    const cmp = comparator !== null && comparator !== void 0 ? comparator : new DefaultComparator();
     const sortActions = {
         /**
          * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
          */
         async sort(buf, offset = 0, len, noForkThreshold = 50) {
-            const arr = new Float32Array(buf, offset << 2, len);
+            const arr = cmp.createTypedArray(buf, offset, len);
             if (arr.length > noForkThreshold) {
                 const leftPartLen = arr.length >> 1;
                 const rightPartOffset = offset + leftPartLen;
@@ -22,7 +24,7 @@ export function createSorter(opts) {
                 const mergeRes = await sortActions.merge(buf, offset, leftPartLen, rightPartOffset, rightpartLen, noForkThreshold, buf, offset);
                 const mergedBuf = mergeRes === null || mergeRes === void 0 ? void 0 : mergeRes.content;
                 if (mergedBuf != null) {
-                    const mergedArr = new Float32Array(mergedBuf);
+                    const mergedArr = cmp.createTypedArray(mergedBuf);
                     let i = 0;
                     for (const v of mergedArr) {
                         arr[i++] = v;
@@ -31,14 +33,14 @@ export function createSorter(opts) {
                 // o.dp.log('return merge-sort', offset, len, [...arr]);
             }
             else {
-                arr.sort();
+                arr.sort(cmp.compare);
                 // o.dp.log('return directly sort', offset, len, [...arr]);
             }
             return [offset, len];
         },
         async merge(buf, offset1 = 0, len1, offset2 = 0, len2, noForkThreshold = 50, targetBuffer, targetOffset) {
             var _a, _b;
-            const destBuf = new ArrayBuffer((len1 + len2) << 2);
+            const destBuf = cmp.createArrayBufferOfSize(len1 + len2);
             if (len1 < len2) {
                 // Ensure 1st array is longer than 2nd array, because we split 1st array into evenly half to be forked merge, 1st array's length determines how much
                 // the divide level is, not the 2nd array. In extreme case, the "divide fork" will be meaningless if the 1st array is empty.
@@ -53,12 +55,12 @@ export function createSorter(opts) {
                 return null;
             }
             if (len1 + len2 > noForkThreshold) {
-                const arr1 = new Float32Array(buf, offset1 << 2, len1);
+                const arr1 = cmp.createTypedArray(buf, offset1, len1);
                 const arr1LeftOffset = offset1;
                 const arr1LeftLen = (len1 >> 1);
                 const arr1RightOffset = arr1LeftOffset + arr1LeftLen;
                 const arr1RightLen = len1 - arr1LeftLen;
-                const arr2 = new Float32Array(buf, offset2 << 2, len2);
+                const arr2 = cmp.createTypedArray(buf, offset2, len2);
                 const arr2LeftOffset = offset2;
                 const arr2LeftLen = binarySearch(arr2, arr1[arr1LeftLen - 1]);
                 const arr2RightOffset = arr2LeftOffset + arr2LeftLen;
@@ -71,23 +73,23 @@ export function createSorter(opts) {
                 o.dp.wait();
                 const rightMerged = (_b = (await forkDone)) === null || _b === void 0 ? void 0 : _b.content;
                 o.dp.stopWaiting();
-                const destArr = targetBuffer ? new Float32Array(targetBuffer, targetOffset << 2, len1 + len2) : new Float32Array(destBuf);
+                const destArr = targetBuffer ? cmp.createTypedArray(targetBuffer, targetOffset, len1 + len2) : cmp.createTypedArray(destBuf);
                 let i = 0;
                 if (leftMerged) {
-                    for (const v of new Float32Array(leftMerged)) {
+                    for (const v of cmp.createTypedArray(leftMerged)) {
                         destArr[i++] = v;
                     }
                 }
                 if (rightMerged) {
-                    for (const v of new Float32Array(rightMerged)) {
+                    for (const v of cmp.createTypedArray(rightMerged)) {
                         destArr[i++] = v;
                     }
                 }
             }
             else {
-                const destArr = new Float32Array(destBuf);
-                const arr1 = new Float32Array(buf, offset1 << 2, len1);
-                const arr2 = new Float32Array(buf, offset2 << 2, len2);
+                const destArr = cmp.createTypedArray(destBuf);
+                const arr1 = cmp.createTypedArray(buf, offset1, len1);
+                const arr2 = cmp.createTypedArray(buf, offset2, len2);
                 // o.dp.log('merge directly', offset1, len1, arr1, offset2, len2, arr2);
                 let pos1 = 0, pos2 = 0;
                 for (let i = 0, l = len1 + len2; i < l; i++) {
@@ -99,7 +101,7 @@ export function createSorter(opts) {
                     }
                 }
                 if (targetBuffer) {
-                    const target = new Float32Array(targetBuffer, targetOffset, len1 + len2);
+                    const target = cmp.createTypedArray(targetBuffer, targetOffset, len1 + len2);
                     let i = 0;
                     for (const v of destArr)
                         target[i++] = v;
