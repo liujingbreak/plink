@@ -9,6 +9,7 @@ export type ActionMeta = {
     /** reference to other actions */
     r?: number | number[];
 };
+export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
 export type Action<I extends ActionFunctions, K extends keyof I = keyof I & string> = {
     /** type */
     t: string;
@@ -18,7 +19,7 @@ export type Action<I extends ActionFunctions, K extends keyof I = keyof I & stri
 type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
 export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<InferMapParam<I, K>>;
 type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
-type DispatchFor<F> = (referActions: ActionMeta | ActionMeta[], ...params: InferPayload<F>) => Action<any>['i'];
+type DispatchFor<F> = (referActions: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
 export type CoreOptions<K extends string[]> = {
     debug?: string | boolean;
@@ -88,9 +89,9 @@ export declare class RxController<I extends ActionFunctions> {
      * The function returns a cache which means you may repeatly invoke this method with duplicate parameter
      * without worrying about memory consumption
      */
-    createLatestActionsFor<T extends (keyof I)[]>(...types: T): Pick<{
-        [K in keyof I]: rx.Observable<Action<I, K>>;
-    }, T[number]>;
+    createLatestActionsFor<T extends (keyof I)[]>(...types: T): {
+        [K in T[number]]: rx.Observable<Action<I, K>>;
+    };
     /**
      * Conceptually, it is a "state store" like Apache Kafka's "table"
      * From perspecitve of implementation, a map ReplaySubject which provides similiar function as rx.withLatestFrom() does
@@ -98,9 +99,9 @@ export declare class RxController<I extends ActionFunctions> {
      The reason using `Pick<{[K in keyof I]: PayloadStream<I, K>}, T[number]>` instead of `{[K in T[number]]: PayloadStream<I, K>` is that the former expression
      makes Typescript to jump to `I` type definition source code when we perform operation like "Go to definition" in editor, the latter can't
      */
-    createLatestPayloadsFor<T extends (keyof I)[]>(...types: T): Pick<{
-        [K in keyof I]: PayloadStream<I, K>;
-    }, T[number]>;
+    createLatestPayloadsFor<T extends (keyof I)[]>(...types: T): {
+        [K in T[number]]: PayloadStream<I, K>;
+    };
     protected debugLogLatestActionOperator<P extends Action<I>>(type: string): rx.OperatorFunction<P, P>;
 }
 /**

@@ -4,12 +4,11 @@
   "description": "Another RxJS auxiliary tool, which \"reactive-ize\" plain Javascript (Typescript) object",
   "main": "dist/index.js",
   "module": "es/index.js",
-  "type": "commonjs",
   "types": "dist/index.d.ts",
   "plink": {
     "tsc": {
       "src": "src",
-      "dest": "es"
+      "dest": "dist"
     }
   },
   "sideEffects": false,

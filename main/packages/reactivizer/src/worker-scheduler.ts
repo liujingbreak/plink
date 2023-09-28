@@ -5,7 +5,7 @@ import {Broker} from './types';
 
 let SEQ = 0;
 
-export function apply(broker: Broker, opts: {
+export function applyScheduler(broker: Broker, opts: {
   maxNumOfWorker: number;
   workerFactory(): Worker | NodeWorker;
 }) {

@@ -1,5 +1,4 @@
 import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
 import {ReactorComposite, Action, deserializeAction} from '@wfh/reactivizer';
 import {createAnimationManager} from '../../animation/ease-functions';
 import {createForCanvas} from './paintable-worker-client';
@@ -41,8 +40,8 @@ function createEngine(): ReactiveCanvas2Engine {
   };
 
   r(pt.onClick.pipe(
-    // op.withLatestFrom(li.setScaleRatio),
-    op.map(([, x, y]) => {
+    // rx.withLatestFrom(li.setScaleRatio),
+    rx.map(([, x, y]) => {
       const ratioToCanvasPoint = 2;
       const pointer = Float32Array.of(Math.round(x) * ratioToCanvasPoint, Math.round(y) * ratioToCanvasPoint);
       workerClient.dispatcher.detectPoint('clicked', pointer);
@@ -50,7 +49,7 @@ function createEngine(): ReactiveCanvas2Engine {
   ));
 
   r(workerClient.payloadByType.detectedIntersection.pipe(
-    op.map(([id, segs, originPoint]) => {
+    rx.map(([id, segs, originPoint]) => {
       if (id === 'clicked') {
         dispatcher.onSegmentsClicked(segs, originPoint);
       }
@@ -59,7 +58,7 @@ function createEngine(): ReactiveCanvas2Engine {
 
   r(pt.resizeViewport.pipe(
     // rx.withLatestFrom(li.setScaleRatio),
-    op.map(([, vw, vh]) => {
+    rx.map(([, vw, vh]) => {
       const ratio = 2;
       const pixelWidth = vw;
       const pixelHeight = vh;
@@ -71,7 +70,7 @@ function createEngine(): ReactiveCanvas2Engine {
   ));
 
   r(pt._createOffscreen.pipe(
-    op.tap(([, canvas]) => {
+    rx.tap(([, canvas]) => {
       dispatcher.setIsOffScreen(true);
       dispatcher.setCanvasAndContext(canvas, canvas.getContext('2d') as OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D);
     })
@@ -135,39 +134,39 @@ function createEngine(): ReactiveCanvas2Engine {
   };
 }
 
-export function createRootPaintable(): [Paintable, ReactiveCanvas2Engine] {
+export function createRootPaintable(): Paintable {
   const engine = createEngine();
   const base = createPaintable({debug: process.env.NODE_ENV === 'development' ? 'root-paintable' : false});
-  const [baseCtl, baseState] = base;
-  baseState.detached = false;
-  baseState.treeDetached = false;
-  const {payloadByType: canvasPayloads} = engine.canvasController;
-  const canvasState = engine.canvasState$.getValue();
-  baseState.width = canvasState.width;
-  baseState.height = canvasState.height;
-  baseState.canvasEngine = engine;
+  const [{i, o, r}] = base;
+  o.dp.isDetached(false);
+  o.dp.setTreeAttached(true);
 
-  rx.merge(
-    engine.canvasState$.pipe(
-      op.distinctUntilChanged((s1, s2) => s1.width === s2.width && s1.height === s2.height),
-      op.tap(s => {
-        baseState.width = s.width;
-        baseState.height = s.height;
-        baseCtl.dispatcher.onResize(s.width, s.height);
-      })
-    ),
-    canvasPayloads.renderContent.pipe(
-      op.map(ctx => {
-        baseCtl.dispatcher.afterRender(ctx);
-      })
-    ),
-    canvasPayloads.onUnmount.pipe(
-      op.map(() => {
-        baseCtl.dispatcher.detach();
-      })
-    )
-  ).subscribe();
-  return [base, engine];
+  r(engine.canvasController.o.pt.setCanvasSize.pipe(
+    rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2),
+    rx.tap(([m, w, h]) => o.dpf.onResize(m, w, h))
+  ));
+
+  r(engine.canvasController.o.pt.renderContent.pipe(
+    rx.map(([m, ctx]) => o.dpf.afterRender(m, ctx))
+  ));
+
+  r(engine.canvasController.i.at.onUnmount.pipe(
+    rx.tap(a => i.dpf.detach(a))
+  ));
+
+  // rx.merge(
+  //   canvasPayloads.renderContent.pipe(
+  //     rx.map(ctx => {
+  //       baseCtl.dispatcher.afterRender(ctx);
+  //     })
+  //   ),
+  //   canvasPayloads.onUnmount.pipe(
+  //     rx.map(() => {
+  //       baseCtl.dispatcher.detach();
+  //     })
+  //   )
+  // ).subscribe();
+  return base;
 }
 
 export type RootPaintable = PaintableCtl;

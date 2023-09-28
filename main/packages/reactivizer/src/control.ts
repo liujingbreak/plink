@@ -11,6 +11,9 @@ export type ActionMeta = {
   /** reference to other actions */
   r?: number | number[];
 };
+
+export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
+
 export type Action<I extends ActionFunctions, K extends keyof I = keyof I & string> = {
   /** type */
   t: string;
@@ -23,7 +26,7 @@ type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, 
 export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<InferMapParam<I, K>>;
 
 type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
-type DispatchFor<F> = (referActions: ActionMeta | ActionMeta[], ...params: InferPayload<F>) => Action<any>['i'];
+type DispatchFor<F> = (referActions: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
   waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
@@ -116,9 +119,9 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
     if (has.call(this.dispatcherFor, type)) {
       return this.dispatcherFor[type];
     }
-    const dispatch = (metas: ActionMeta | ActionMeta[], ...params: InferPayload<I[keyof I]>) => {
+    const dispatch = (metas: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<I[keyof I]>) => {
       const action = this.createAction(type, params);
-      action.r = Array.isArray(metas) ? metas.map(m => m.i) : metas.i;
+      action.r = Array.isArray(metas) ? metas.map(m => m.i) : (metas as ActionMeta).i;
       this.actionUpstream.next(action);
       return action.i;
     };
@@ -257,9 +260,9 @@ export class RxController<I extends ActionFunctions> {
    * without worrying about memory consumption
    */
   // eslint-disable-next-line space-before-function-paren
-  createLatestActionsFor<T extends (keyof I)[]>(...types: T): Pick<{
-    [K in keyof I]: rx.Observable<Action<I, K>>}, T[number]
-  > {
+  createLatestActionsFor<T extends (keyof I)[]>(...types: T): {
+    [K in T[number]]: rx.Observable<Action<I, K>>
+  } {
     for (const type of types) {
       if (has.call(this.latestActionsCache, type))
         continue;
@@ -284,7 +287,7 @@ export class RxController<I extends ActionFunctions> {
    makes Typescript to jump to `I` type definition source code when we perform operation like "Go to definition" in editor, the latter can't
    */
   // eslint-disable-next-line space-before-function-paren
-  createLatestPayloadsFor<T extends (keyof I)[]>(...types: T): Pick<{[K in keyof I]: PayloadStream<I, K>}, T[number]> {
+  createLatestPayloadsFor<T extends (keyof I)[]>(...types: T): {[K in T[number]]: PayloadStream<I, K>} {
     const actions = this.createLatestActionsFor(...types);
 
     for (const key of types) {

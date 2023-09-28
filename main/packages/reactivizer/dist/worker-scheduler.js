@@ -23,11 +23,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.apply = void 0;
+exports.applyScheduler = void 0;
 const algorithms_1 = require("@wfh/algorithms");
 const rx = __importStar(require("rxjs"));
 let SEQ = 0;
-function apply(broker, opts) {
+function applyScheduler(broker, opts) {
     const { r, o, i } = broker;
     const workerRankTree = new algorithms_1.RedBlackTree();
     const ranksByWorkerNo = new Map();
@@ -105,5 +105,5 @@ function apply(broker, opts) {
     }
     return ranksByWorkerNo;
 }
-exports.apply = apply;
+exports.applyScheduler = applyScheduler;
 //# sourceMappingURL=worker-scheduler.js.map

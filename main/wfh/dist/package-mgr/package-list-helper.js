@@ -163,7 +163,17 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath) {
         const tsDirs = (0, misc_1.getTscConfigOfPkg)(json);
         const realDir = path_1.default.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
         const typeFile = json.types;
-        pathMapping[name] = [typeFile ? path_1.default.join(realDir, typeFile).replace(/\\/g, '/') : realDir];
+        const realDestDir = path_1.default.posix.join(realDir, tsDirs.destDir);
+        if (typeFile &&
+            path_1.default.posix.join(realDir, typeFile).startsWith(realDestDir + '/')) {
+            // In case types file is inside compilation destination directory
+            const relTypeFile = path_1.default.basename(path_1.default.posix.relative(tsDirs.destDir, typeFile), '.d.ts');
+            const mapped = path_1.default.join(realDir, tsDirs.srcDir, relTypeFile).replace(/\\/g, '/');
+            pathMapping[name] = [mapped + '.ts', mapped + '.mts', mapped + '.cts'];
+        }
+        else if (typeFile) {
+            pathMapping[name] = [typeFile ? path_1.default.join(realDir, typeFile).replace(/\\/g, '/') : realDir];
+        }
         pathMapping[`${name}/${tsDirs.destDir}/*`.replace(/\/\//g, '/')] = [`${realDir}/${tsDirs.srcDir}/*`.replace(/\/\//g, '/')];
         // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
         pathMapping[name + '/*'] = [`${realDir}/*`];

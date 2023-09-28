@@ -1,20 +1,50 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSorter = void 0;
+const rx = __importStar(require("rxjs"));
 const sortedIndex_1 = __importDefault(require("lodash/sortedIndex"));
 const forkJoin_node_worker_1 = require("../forkJoin-node-worker");
 const sort_comparator_interf_1 = require("./sort-comparator-interf");
 function createSorter(comparator, opts) {
     const ctl = (0, forkJoin_node_worker_1.createWorkerControl)(opts);
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new sort_comparator_interf_1.DefaultComparator();
+    ctl.r(ctl.i.pt.sortInWorker.pipe(rx.map(async ([m, ...params]) => {
+        const forkDone = (0, forkJoin_node_worker_1.fork)(sorter, 'sort', params);
+        const ret = await forkDone;
+        o.dpf.sortResolved(m, ret);
+        o.dpf.sortCompleted(m);
+    })));
     const sortActions = {
         /**
          * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
          */
-        async sort(buf, offset = 0, len, noForkThreshold = 50) {
+        async sort(buf, offset, len, noForkThreshold = 50) {
             const arr = cmp.createTypedArray(buf, offset, len);
             if (arr.length > noForkThreshold) {
                 const leftPartLen = arr.length >> 1;
@@ -44,7 +74,7 @@ function createSorter(comparator, opts) {
             }
             return [offset, len];
         },
-        async merge(buf, offset1 = 0, len1, offset2 = 0, len2, noForkThreshold = 50, targetBuffer, targetOffset) {
+        async merge(buf, offset1, len1, offset2, len2, noForkThreshold = 50, targetBuffer, targetOffset) {
             var _a, _b;
             const destBuf = cmp.createArrayBufferOfSize(len1 + len2);
             if (len1 < len2) {

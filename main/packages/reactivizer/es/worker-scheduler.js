@@ -1,7 +1,7 @@
 import { RedBlackTree } from '@wfh/algorithms';
 import * as rx from 'rxjs';
 let SEQ = 0;
-export function apply(broker, opts) {
+export function applyScheduler(broker, opts) {
     const { r, o, i } = broker;
     const workerRankTree = new RedBlackTree();
     const ranksByWorkerNo = new Map();

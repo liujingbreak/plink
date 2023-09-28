@@ -423,30 +423,3 @@ function writeTsConfigFile(tsconfigFile: string, tsconfigOverrideSrc: any) {
   }
 }
 
-// async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInfo[],
-//   onGitIgnoreFileUpdate: (file: string, content: string) => void) {
-
-//   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
-//     Path.dirname(require.resolve('@wfh/plink/package.json'));
-
-//   const igConfigFiles = pks.map(pk => {
-//     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
-//     return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir);
-//   });
-
-//   appendGitignore(igConfigFiles, onGitIgnoreFileUpdate);
-// }
-
-// function findGitIngoreFile(startDir: string): string | null {
-//   let dir = startDir;
-//   while (true) {
-//     const test = Path.resolve(startDir, '.gitignore');
-//     if (fs.existsSync(test)) {
-//       return test;
-//     }
-//     const parent = Path.dirname(dir);
-//     if (parent === dir)
-//       return null;
-//     dir = parent;
-//   }
-// }

@@ -8,7 +8,7 @@ import * as rx from 'rxjs';
 import {describe, it, expect, beforeEach, afterEach}  from '@jest/globals';
 import {createSorter} from '../src/res/sorter';
 import {createBroker} from '../src/node-worker-broker';
-import {apply} from '../src/worker-scheduler';
+import {applyScheduler} from '../src/worker-scheduler';
 
 initProcess('none');
 logConfig(initConfig({})());
@@ -77,9 +77,9 @@ describe('forkjoin worker', () => {
     const {i, o} = broker;
     const numOfWorkers = workerNum ?? (os.cpus().length > 0 ? os.cpus().length - 1 : 3);
 
-    let ranksByWorkerNo: ReturnType<typeof apply>;
+    let ranksByWorkerNo: ReturnType<typeof applyScheduler>;
     if (threadMode === 'scheduler') {
-      ranksByWorkerNo = apply(broker, {
+      ranksByWorkerNo = applyScheduler(broker, {
         maxNumOfWorker: numOfWorkers,
         workerFactory() {
           return new Worker(Path.resolve(__dirname, '../dist/res/sort-worker.js'));
@@ -149,7 +149,7 @@ describe('forkjoin worker', () => {
 
     performance.mark(threadMode + '/sort start');
     // call main sort function
-    await rx.firstValueFrom(sorter.i.do.sort(
+    await rx.firstValueFrom(sorter.i.do.sortInWorker(
       sorter.o.at.sortCompleted, testArr.buffer as SharedArrayBuffer, 0, num, num / numOfWorkers / 2
     ));
     performance.measure(`measure ${numOfWorkers}`, threadMode + '/sort start');

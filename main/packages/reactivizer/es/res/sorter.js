@@ -1,14 +1,21 @@
+import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
 import { createWorkerControl, reativizeRecursiveFuncs, fork } from '../forkJoin-node-worker';
 import { DefaultComparator } from './sort-comparator-interf';
 export function createSorter(comparator, opts) {
     const ctl = createWorkerControl(opts);
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new DefaultComparator();
+    ctl.r(ctl.i.pt.sortInWorker.pipe(rx.map(async ([m, ...params]) => {
+        const forkDone = fork(sorter, 'sort', params);
+        const ret = await forkDone;
+        o.dpf.sortResolved(m, ret);
+        o.dpf.sortCompleted(m);
+    })));
     const sortActions = {
         /**
          * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
          */
-        async sort(buf, offset = 0, len, noForkThreshold = 50) {
+        async sort(buf, offset, len, noForkThreshold = 50) {
             const arr = cmp.createTypedArray(buf, offset, len);
             if (arr.length > noForkThreshold) {
                 const leftPartLen = arr.length >> 1;
@@ -38,7 +45,7 @@ export function createSorter(comparator, opts) {
             }
             return [offset, len];
         },
-        async merge(buf, offset1 = 0, len1, offset2 = 0, len2, noForkThreshold = 50, targetBuffer, targetOffset) {
+        async merge(buf, offset1, len1, offset2, len2, noForkThreshold = 50, targetBuffer, targetOffset) {
             var _a, _b;
             const destBuf = cmp.createArrayBufferOfSize(len1 + len2);
             if (len1 < len2) {

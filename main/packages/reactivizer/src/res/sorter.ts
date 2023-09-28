@@ -1,18 +1,32 @@
+import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
 import {createWorkerControl, reativizeRecursiveFuncs, ForkTransferablePayload, fork} from '../forkJoin-node-worker';
 import {DuplexOptions} from '../duplex';
 import {ForkWorkerInput, ForkWorkerOutput} from '../types';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
 
+type SorterInput = {
+  sortInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): void;
+};
+
 export function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
-  const ctl = createWorkerControl(opts);
+  const ctl = createWorkerControl<SorterInput>(opts);
   const cmp = comparator ?? new DefaultComparator();
+
+  ctl.r(ctl.i.pt.sortInWorker.pipe(
+    rx.map(async ([m, ...params]) => {
+      const forkDone = fork(sorter, 'sort', params);
+      const ret = await forkDone;
+      o.dpf.sortResolved(m, ret);
+      o.dpf.sortCompleted(m);
+    })
+  ));
 
   const sortActions = {
     /**
      * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
      */
-    async sort(buf: SharedArrayBuffer, offset = 0, len: number, noForkThreshold = 50): Promise<[number, number]> {
+    async sort(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold = 50): Promise<[number, number]> {
       const arr = cmp.createTypedArray(buf, offset, len);
       if (arr.length > noForkThreshold) {
         const leftPartLen = arr.length >> 1;
@@ -45,7 +59,7 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
       return [offset, len];
     },
 
-    async merge(buf: SharedArrayBuffer, offset1 = 0, len1: number, offset2 = 0, len2: number, noForkThreshold = 50, targetBuffer?: SharedArrayBuffer, targetOffset?: number):
+    async merge(buf: SharedArrayBuffer, offset1: number, len1: number, offset2: number, len2: number, noForkThreshold = 50, targetBuffer?: SharedArrayBuffer, targetOffset?: number):
     Promise<null | ForkTransferablePayload<ArrayBuffer | null>> {
       const destBuf = cmp.createArrayBufferOfSize(len1 + len2);
       if (len1 < len2) {

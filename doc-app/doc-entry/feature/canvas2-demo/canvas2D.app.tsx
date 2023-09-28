@@ -18,7 +18,7 @@ mdDispatcher.registerFiles({
   ).then(res => res.default),
 
   'fork-worker': () => import(
-    './forker-worker-pool.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/doc-ui-common/client/utils/forker-worker-pool.md'
+    './fork-worker-pool.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/doc-ui-common/client/utils/fork-worker-pool.md'
   ).then(res => res.default)
   // design1
 });

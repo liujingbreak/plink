@@ -10,7 +10,7 @@ import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
 import {DuplexOptions} from './duplex';
 // import {createBroker} from './node-worker-broker';
 
-export function createWorkerControl<I extends ActionFunctions | unknown = unknown>(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
+export function createWorkerControl<I extends ActionFunctions = Record<string, never>>(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
   // eslint-disable-next-line @typescript-eslint/ban-types
   const comp = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput>({
     ...opts,
@@ -137,7 +137,7 @@ export function createWorkerControl<I extends ActionFunctions | unknown = unknow
       }
     })
   ));
-  return comp as unknown as ReactorComposite<I extends unknown ? ForkWorkerInput : ForkWorkerInput & I, ForkWorkerOutput>;
+  return comp as unknown as ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput>;
 }
 
 export function reativizeRecursiveFuncs<
