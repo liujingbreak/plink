@@ -31,8 +31,8 @@ const rx = __importStar(require("rxjs"));
 const sortedIndex_1 = __importDefault(require("lodash/sortedIndex"));
 const forkJoin_node_worker_1 = require("../forkJoin-node-worker");
 const sort_comparator_interf_1 = require("./sort-comparator-interf");
-function createSorter(comparator, opts) {
-    const ctl = (0, forkJoin_node_worker_1.createWorkerControl)(opts);
+async function createSorter(comparator, opts) {
+    const ctl = await rx.firstValueFrom((0, forkJoin_node_worker_1.createWorkerControl)(opts));
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new sort_comparator_interf_1.DefaultComparator();
     ctl.r(ctl.i.pt.sortInWorker.pipe(rx.map(async ([m, ...params]) => {
         const forkDone = (0, forkJoin_node_worker_1.fork)(sorter, 'sort', params);

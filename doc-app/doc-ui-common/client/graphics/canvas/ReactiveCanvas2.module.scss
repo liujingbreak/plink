@@ -1,7 +1,6 @@
 .host {
   flex-basis: 0%;
   flex-shrink: 1;
-  height: 100px;
   // In case resizing window to smaller size, "overflow: hidden"
   // makes the outer DIV able to shrink itself regardless the size of child
   // element canvas has been fixed to a big size.

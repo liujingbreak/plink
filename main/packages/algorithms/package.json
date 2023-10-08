@@ -4,8 +4,11 @@
   "description": "Basic algorithms and data structures that is used by Plink internally, including Red-black tree, interval-tree, BFS, DFS graph algorithms",
   "main": "dist/index.js",
   "module": "es/index.js",
-  "type": "commonjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    "import": "./es/index.js",
+    "require": "./dist/index.js"
+  },
   "plink": {
     "tsc": {
       "src": "src",

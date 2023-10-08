@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 import * as rx from 'rxjs';
 import {describe, it, expect}  from '@jest/globals';
-import {RxController, ReactorComposite, actionRelatedToPayload, nameOfAction} from '../src';
+import {RxController, ReactorComposite, actionRelatedToPayload, nameOfAction,
+  ActionTable} from '../src';
 
 type TestMessages = {
   msg1(): void;
@@ -37,7 +38,8 @@ describe('reactivizer', () => {
 
 
     const ctl2 = new RxController<TestMessages & TestObject>();
-    const l = ctl2.createLatestPayloadsFor('msg5', 'msg6');
+    const table = new ActionTable(ctl2, ['msg5', 'msg6', 'msg3Reply']);
+    const {l} = table;
     const {dp: dp2} = ctl2;
     dp2.msg1();
     dp2.msg5('x');
@@ -59,12 +61,19 @@ describe('reactivizer', () => {
         })
       )
     ).subscribe();
+    expect(table.getLatestActionOf('msg5')!.slice(1)).toEqual(['x']);
+    expect(table.getLatestActionOf('msg6')!.slice(1)).toEqual(['aaa', 2]);
+    expect(table.getLatestActionOf('msg3Reply')).toBe(undefined);
+
     expect(countExpect).toBe(3);
   });
 
   it('RxController createLatestPayloadsFor should work', async () => {
-    const ctl = new ReactorComposite<TestMessages>();
-    const l = ctl.i.createLatestPayloadsFor('msg2');
+    const tableForActions = ['msg2', 'msg1'] as const;
+    const ctl = new ReactorComposite<TestMessages, Record<string, never>, typeof tableForActions>({
+      inputTableFor: tableForActions
+    });
+    const l = ctl.inputTable.l;
     ctl.i.dp.msg2('replay?');
 
     let actual = await rx.firstValueFrom(l.msg2.pipe(
@@ -107,7 +116,8 @@ describe('reactivizer', () => {
     // ctl4.startAll();
     const {r, i} = ctl4;
     const actionResultIdByKey = new Map<`${keyof (typeof functions1 & typeof functions2)}Resolved`, number>();
-    const latest = ctl4.o.createLatestPayloadsFor('worldResolved', 'foobarResolved', 'helloResolved');
+
+    const latest = ctl4.outputTable.addActions('worldResolved', 'foobarResolved', 'helloResolved').l;
     r(i.core.action$.pipe(
       i.core.ofType('foobar', 'hello'),
       rx.map(a => {})
@@ -127,7 +137,6 @@ describe('reactivizer', () => {
       })
     ));
 
-    ctl4.startAll();
     i.dp.msg3('a', 1);
     const helloId = i.dp.hello('human');
     const worldId = i.dp.world(998);
@@ -157,7 +166,7 @@ describe('reactivizer', () => {
       })
     ));
 
-    const latest = c.createLatestPayloadsFor('msg3Reply');
+    const latest = new ActionTable(c, ['msg3Reply']).l;
 
     const id = c.dp.msg3('aaa', 999);
     const replied = rx.firstValueFrom(latest.msg3Reply.pipe(

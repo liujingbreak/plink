@@ -1,0 +1,57 @@
+import * as rx from 'rxjs';
+export type ActionFunctions = Record<string, any>;
+export type EmptyActionFunctions = Record<string, never>;
+export type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
+export type ActionMeta = {
+    /** id */
+    i: number;
+    /** reference to other actions */
+    r?: number | number[];
+};
+export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
+export type Action<I extends ActionFunctions, K extends keyof I = keyof I & string> = {
+    /** type */
+    t: string;
+    /** payload **/
+    p: InferPayload<I[K]>;
+} & ActionMeta;
+export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
+export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<InferMapParam<I, K>>;
+export type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
+export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
+export type CoreOptions<K extends string[]> = {
+    name?: string | boolean;
+    debug?: boolean;
+    debugExcludeTypes?: K;
+    logStyle?: 'full' | 'noParam';
+    log?: (msg: string, ...objs: any[]) => unknown;
+};
+export declare const has: (v: PropertyKey) => boolean;
+export declare class ControllerCore<I extends ActionFunctions = {
+    [k: string]: never;
+}> {
+    opts?: CoreOptions<(string & keyof I)[]> | undefined;
+    actionUpstream: rx.Subject<Action<I, keyof I>>;
+    interceptor$: rx.BehaviorSubject<(up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>>;
+    typePrefix: string;
+    logPrefix: string;
+    action$: rx.Observable<Action<I, keyof I>>;
+    debugExcludeSet: Set<string>;
+    protected dispatcher: { [K in keyof I]: Dispatch<I[keyof I]>; };
+    protected dispatcherFor: { [K in keyof I]: DispatchFor<I[keyof I]>; };
+    constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
+    createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J, K>;
+    dispatchFactory<K extends keyof I>(type: K): Dispatch<I>;
+    dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I>;
+    replaceActionInterceptor(factory: (origin: (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>) => (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>): void;
+    ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any, any>>) => rx.Observable<Action<I, T[number]>>;
+    notOfType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any, any>>) => rx.Observable<Action<I, Exclude<keyof I, T[number]>>>;
+}
+/**
+ * Get the "action name" from payload's "type" field,
+ * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
+ * this function returns the `actionName` part
+ * @return undefined if current action doesn't have a valid "type" field
+ */
+export declare function nameOfAction<I extends ActionFunctions>(action: Pick<Action<I, keyof I>, 't'>): keyof I & string;
+export declare function actionMetaToStr(action: ActionMeta): string;

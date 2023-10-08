@@ -1,6 +1,6 @@
 // import inspector from 'node:inspector';
 import * as rx from 'rxjs';
-import {RxController, ActionFunctions} from './control';
+import {RxController, ActionTable, ActionFunctions} from './control';
 import {DuplexController, DuplexOptions} from './duplex';
 // inspector.open(9222, 'localhost', true);
 
@@ -16,23 +16,57 @@ export type InferFuncReturnEvents<I extends ActionFunctions> = {
   [K in keyof I as `${K & string}Completed`]: () => void;
 };
 
+export interface ReactorCompositeOpt<
+  I extends ActionFunctions = Record<string, never>,
+  O extends ActionFunctions = Record<string, never>,
+  LI extends readonly (keyof I)[] = readonly [],
+  LO extends readonly (keyof O)[] = readonly []
+> extends DuplexOptions<I & O> {
+  name: string;
+  inputTableFor?: LI;
+  outputTableFor?: LO;
+}
+
 export class ReactorComposite<
   I extends ActionFunctions = Record<string, never>,
-  O extends ActionFunctions = Record<string, never>
+  O extends ActionFunctions = Record<string, never>,
+  LI extends readonly (keyof I)[] = readonly [],
+  LO extends readonly (keyof O)[] = readonly []
 > extends DuplexController<I, O> {
   error$: rx.Subject<[lable: string, originError: any]> = new rx.ReplaySubject();
   destory$: rx.Subject<void> = new rx.ReplaySubject(1);
+
+  get inputTable(): ActionTable<I, LI> {
+    if (this.iTable)
+      return this.iTable;
+    this.iTable = new ActionTable<I, LI>(this.i, [] as unknown as LI);
+    return this.iTable;
+  }
+
+  get outputTable(): ActionTable<O, LO> {
+    if (this.oTable)
+      return this.oTable;
+    this.oTable = new ActionTable<O, LO>(this.o, [] as unknown as LO);
+    return this.oTable;
+  }
+
+  private iTable: ActionTable<I, LI> | undefined;
+  private oTable: ActionTable<O, LO> | undefined;
   // protected static logSubj: rx.Subject<[level: string, ...msg: any[]]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
 
-  constructor(private opts?: DuplexOptions<I & O>) {
+  constructor(private opts?: ReactorCompositeOpt<I, O, LI, LO>) {
     super(opts);
     this.reactorSubj = new rx.ReplaySubject();
-    // this.logSubj = new rx.ReplaySubject(50);
-  }
 
-  startAll() {
-    return rx.merge(
+    if (opts?.inputTableFor && opts?.inputTableFor.length > 0) {
+      this.iTable = new ActionTable(this.i, opts.inputTableFor);
+    }
+    if (opts?.outputTableFor && opts?.outputTableFor.length > 0) {
+      this.oTable = new ActionTable(this.o, opts.outputTableFor);
+    }
+    // this.logSubj = new rx.ReplaySubject(50);
+    rx.merge(
       this.reactorSubj.pipe(
         rx.mergeMap(([label, downStream, noError]) => {
           if (noError == null || !noError) {
@@ -52,6 +86,9 @@ export class ReactorComposite<
       })
     ).subscribe();
   }
+
+  /** @deprecated no longer needed, always start automatically after being contructed */
+  startAll() {}
 
   destory() {
     this.destory$.next();
@@ -86,6 +123,22 @@ export class ReactorComposite<
       this.reactorSubj.next(['', ...params as [stream: rx.Observable<any>, disableCatchError?: boolean]]);
   };
 
+  /**
+   * A rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
+   * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
+   * errors, you should add your own "catchError" after.
+   *
+   * `addReaction(lable, ...)` uses this op internally.
+   */
+  labelError(label: string) {
+    return (upStream: rx.Observable<any>) => upStream.pipe(
+      rx.catchError((err) => {
+        this.logError(label, err);
+        return rx.throwError(err);
+      })
+    );
+  }
+
   protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {
     const resolveFuncKey = key + 'Resolved';
     const finishFuncKey = key + 'Completed';
@@ -118,15 +171,21 @@ export class ReactorComposite<
     return resolveFuncKey;
   }
 
-  protected handleError(upStream: rx.Observable<any>, label?: string) {
+  protected logError(label: string, err: any) {
+    (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).error$.next([err, label]);
+    if (this.opts?.log)
+      this.opts.log('@' + this.opts.name + '::' + label, err);
+    else
+      console.error('@' + this.opts?.name + '::' + label, err);
+  }
+
+  protected handleError(upStream: rx.Observable<any>, label = '', hehavior: 'continue' | 'stop' | 'throw' = 'continue') {
     return upStream.pipe(
       rx.catchError((err, src) => {
-        (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).error$.next([err, label]);
-        if (this.opts?.log)
-          this.opts.log(err);
-        else
-          console.error(label ?? '', err);
-        return src;
+        this.logError(label, err);
+        if (hehavior === 'throw')
+          return rx.throwError(err);
+        return hehavior === 'continue' ? src : rx.EMPTY;
       })
     );
   }

@@ -1,103 +1,9 @@
 import * as rx from 'rxjs';
-let SEQ = 1;
-let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
-const has = Object.prototype.hasOwnProperty;
-export class ControllerCore {
-    constructor(opts) {
-        var _a;
-        this.opts = opts;
-        this.actionUpstream = new rx.Subject();
-        this.interceptor$ = new rx.BehaviorSubject(a => a);
-        this.typePrefix = SEQ++ + '/';
-        this.dispatcher = {};
-        this.dispatcherFor = {};
-        this.debugName = typeof (opts === null || opts === void 0 ? void 0 : opts.debug) === 'string' ? `[${this.typePrefix}${opts.debug}] ` : this.typePrefix;
-        this.debugExcludeSet = new Set((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : []);
-        const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
-            ? this.actionUpstream.pipe((opts === null || opts === void 0 ? void 0 : opts.log) ?
-                rx.tap(action => {
-                    const type = nameOfAction(action);
-                    if (!this.debugExcludeSet.has(type)) {
-                        opts.log(this.debugName + 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-                    }
-                }) :
-                (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                    rx.tap(action => {
-                        const type = nameOfAction(action);
-                        if (!this.debugExcludeSet.has(type)) {
-                            // eslint-disable-next-line no-console
-                            console.log(`%c ${this.debugName}rx:action `, 'color: white; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-                        }
-                    }) :
-                    rx.tap(action => {
-                        const type = nameOfAction(action);
-                        if (!this.debugExcludeSet.has(type)) {
-                            // eslint-disable-next-line no-console
-                            console.log(this.debugName + 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-                        }
-                    }), rx.share())
-            : this.actionUpstream;
-        this.action$ = this.interceptor$.pipe(rx.switchMap(interceptor => interceptor ?
-            debuggableAction$.pipe(interceptor, rx.share()) :
-            debuggableAction$));
-    }
-    createAction(type, params) {
-        return {
-            t: this.typePrefix + type,
-            i: ACTION_SEQ++,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            p: params !== null && params !== void 0 ? params : []
-        };
-    }
-    dispatchFactory(type) {
-        if (has.call(this.dispatcher, type)) {
-            return this.dispatcher[type];
-        }
-        const dispatch = (...params) => {
-            const action = this.createAction(type, params);
-            this.actionUpstream.next(action);
-            return action.i;
-        };
-        this.dispatcher[type] = dispatch;
-        return dispatch;
-    }
-    dispatchForFactory(type) {
-        if (has.call(this.dispatcherFor, type)) {
-            return this.dispatcherFor[type];
-        }
-        const dispatch = (metas, ...params) => {
-            const action = this.createAction(type, params);
-            action.r = Array.isArray(metas) ? metas.map(m => m.i) : metas.i;
-            this.actionUpstream.next(action);
-            return action.i;
-        };
-        this.dispatcherFor[type] = dispatch;
-        return dispatch;
-    }
-    replaceActionInterceptor(factory) {
-        const newInterceptor = factory(this.interceptor$.getValue());
-        this.interceptor$.next(newInterceptor);
-    }
-    // eslint-disable-next-line space-before-function-paren
-    ofType(...types) {
-        return (up) => {
-            const matchTypes = types.map(type => this.typePrefix + type);
-            return up.pipe(rx.filter((a) => matchTypes.some(matchType => a.t === matchType)));
-        };
-    }
-    // eslint-disable-next-line space-before-function-paren
-    notOfType(...types) {
-        return (up) => {
-            const matchTypes = types.map(type => this.typePrefix + type);
-            return up.pipe(rx.filter((a) => matchTypes.every(matchType => a.t !== matchType)));
-        };
-    }
-}
+import { ControllerCore, has, nameOfAction, actionMetaToStr } from './stream-core';
+export * from './stream-core';
 export class RxController {
     constructor(opts) {
         this.opts = opts;
-        this.latestActionsCache = {};
-        this.latestPayloadsCache = {};
         const core = this.core = new ControllerCore(opts);
         this.dispatcher = this.dp = new Proxy({}, {
             get(_target, key, _rec) {
@@ -111,16 +17,25 @@ export class RxController {
         });
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
-        this.dispatchAndObserveRes = this.do = new Proxy({}, {
+        this.dispatchForAndObserveRes = this.dfo = new Proxy({}, {
             get(_target, key, _rec) {
-                return (action$, ...params) => {
+                return (action$, referActions, ...params) => {
                     const action = self.core.createAction(key, params);
+                    if (referActions)
+                        action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
                     const r$ = new rx.ReplaySubject(1);
                     rx.merge(action$.pipe(actionRelatedToAction(action.i), mapActionToPayload()), new rx.Observable(sub => {
                         self.core.actionUpstream.next(action);
                         sub.complete();
                     })).subscribe(r$);
                     return r$.asObservable();
+                };
+            }
+        });
+        this.dispatchAndObserveRes = this.do = new Proxy({}, {
+            get(_target, key, _rec) {
+                return (action$, ...params) => {
+                    return self.dfo[key](action$, null, ...params);
                 };
             }
         });
@@ -149,84 +64,72 @@ export class RxController {
         });
         this.replaceActionInterceptor = core.replaceActionInterceptor;
     }
+    /** create state of actions, you can consider it like a map of BehaviorSubject of actions */
+    // withTableFor<MS extends Array<keyof I>>(...actionNames: MS) {
+    //   if (this.table == null)
+    //     this.table = new ActionTable(this, actionNames) as TB;
+    //   else
+    //     this.table.addActions(...actionNames);
+    //   return this as RxController<I, (KS[number] | MS[number])[], ActionTable<I, (KS[number] | MS[number])[]>>;
+    // }
     createAction(type, ...params) {
         return this.core.createAction(type, params);
     }
-    /**
-     * The function returns a cache which means you may repeatly invoke this method with duplicate parameter
-     * without worrying about memory consumption
-     */
-    // eslint-disable-next-line space-before-function-paren
-    createLatestActionsFor(...types) {
+}
+export class ActionTable {
+    constructor(streamCtl, actionNames) {
+        this.streamCtl = streamCtl;
+        this.latestPayloads = {};
+        this.actionSnapshot = new Map();
+        this.l = this.latestPayloads;
+        this.addActions(...actionNames);
+    }
+    addActions(...actionNames) {
         var _a;
-        for (const type of types) {
-            if (has.call(this.latestActionsCache, type))
+        for (const type of actionNames) {
+            if (has.call(this.latestPayloads, type))
                 continue;
             const a$ = new rx.ReplaySubject(1);
-            this.actionByType[type].subscribe(a$);
-            this.latestActionsCache[type] = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debug) ?
-                a$.pipe(this.debugLogLatestActionOperator(type)
-                // rx.share() DON'T USE share(), SINCE IT WILL TURS ReplaySubject TO A NORMAL Subject
-                ) :
+            this.streamCtl.actionByType[type].pipe(rx.map(a => {
+                const mapParam = [{ i: a.i, r: a.r }, ...a.p];
+                this.actionSnapshot.set(type, mapParam);
+                return mapParam;
+            })).subscribe(a$);
+            this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debug) ?
+                a$.pipe(this.debugLogLatestActionOperator(type)) :
                 a$.asObservable();
         }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return this.latestActionsCache;
+        return this;
     }
-    /**
-     * Conceptually, it is a "state store" like Apache Kafka's "table"
-     * From perspecitve of implementation, a map ReplaySubject which provides similiar function as rx.withLatestFrom() does
-     * @return Pick<...>
-     The reason using `Pick<{[K in keyof I]: PayloadStream<I, K>}, T[number]>` instead of `{[K in T[number]]: PayloadStream<I, K>` is that the former expression
-     makes Typescript to jump to `I` type definition source code when we perform operation like "Go to definition" in editor, the latter can't
-     */
-    // eslint-disable-next-line space-before-function-paren
-    createLatestPayloadsFor(...types) {
-        const actions = this.createLatestActionsFor(...types);
-        for (const key of types) {
-            if (has.call(this.latestPayloadsCache, key))
-                continue;
-            this.latestPayloadsCache[key] = actions[key].pipe(rx.map(a => [{ i: a.i, r: a.r }, ...a.p]));
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return this.latestPayloadsCache;
+    getLatestActionOf(actionName) {
+        return this.actionSnapshot.get(actionName);
     }
     debugLogLatestActionOperator(type) {
         var _a;
-        return ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log) ?
+        const core = this.streamCtl.core;
+        return ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.log) ?
             rx.map((action, idx) => {
-                if (idx === 0 && !this.core.debugExcludeSet.has(type)) {
-                    this.opts.log(this.core.debugName + 'rx:latest', type, action);
+                if (idx === 0 && !core.debugExcludeSet.has(type)) {
+                    this.streamCtl.opts.log(core.logPrefix + 'rx:latest', type, action);
                 }
                 return action;
             }) :
             (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                rx.map((action, idx) => {
-                    if (idx === 0 && !this.core.debugExcludeSet.has(type)) {
+                rx.map((p, idx) => {
+                    if (idx === 0 && !core.debugExcludeSet.has(type)) {
                         // eslint-disable-next-line no-console
-                        console.log(`%c ${this.core.debugName}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, actionMetaToStr(action));
+                        console.log(`%c ${core.logPrefix}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, actionMetaToStr(p[0]));
                     }
-                    return action;
+                    return p;
                 }) :
-                rx.map((action, idx) => {
-                    if (idx > 0 && !this.core.debugExcludeSet.has(type)) {
+                rx.map((p, idx) => {
+                    if (idx > 0 && !core.debugExcludeSet.has(type)) {
                         // eslint-disable-next-line no-console
-                        console.log(this.core.debugName + 'latest:', type, actionMetaToStr(action));
+                        console.log(core.logPrefix + 'latest:', type, actionMetaToStr(p[0]));
                     }
-                    return action;
+                    return p;
                 });
     }
-}
-/**
- * Get the "action name" from payload's "type" field,
- * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
- * this function returns the `actionName` part
- * @return undefined if current action doesn't have a valid "type" field
- */
-// eslint-disable-next-line space-before-function-paren
-export function nameOfAction(action) {
-    const elements = action.t.split('/');
-    return (elements.length > 1 ? elements[1] : elements[0]);
 }
 /** Rx operator function */
 export function actionRelatedToAction(id) {
@@ -262,9 +165,5 @@ export function deserializeAction(actionObj, toController) {
 }
 function mapActionToPayload() {
     return (up) => up.pipe(rx.map(a => [{ i: a.i, r: a.r }, ...a.p]));
-}
-function actionMetaToStr(action) {
-    const { r, i } = action;
-    return `(i: ${i}${r != null ? `, r: ${Array.isArray(r) ? [...r.values()].toString() : r}` : ''})`;
 }
 //# sourceMappingURL=control.js.map

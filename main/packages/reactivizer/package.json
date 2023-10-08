@@ -1,10 +1,17 @@
 {
   "name": "@wfh/reactivizer",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Another RxJS auxiliary tool, which \"reactive-ize\" plain Javascript (Typescript) object",
   "main": "dist/index.js",
   "module": "es/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    "import": "./es/index.js",
+    "require": "./dist/index.js"
+  },
+  "files": [
+    "dist", "es", "__tests__"
+  ],
   "plink": {
     "tsc": {
       "src": "src",

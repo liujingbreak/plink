@@ -1,9 +1,9 @@
-import {createRootPaintable} from '@wfh/doc-ui-common/client/graphics/canvas/reactiveCanvas2.worker';
+import {createRootAndEngine} from '@wfh/doc-ui-common/client/graphics/canvas/reactiveCanvas2.worker';
 import {createHueCircle} from './colorToolCanvasContent';
 
-const [root, engine] = createRootPaintable();
+const [root, engine] = createRootAndEngine();
 
-createHueCircle(root);
+createHueCircle(root, engine);
 const {canvasController} = engine;
-canvasController.dispatcher.sceneReady();
+canvasController.i.dp.sceneReady();
 

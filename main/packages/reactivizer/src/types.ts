@@ -6,7 +6,7 @@ export type Broker<WA extends ActionFunctions = Record<string, never>> = Reactor
 
 export type ForkWorkerInput = {
   exit(): void;
-  onFork(targetAction: Action<any>, port: NodeMessagePort): void;
+  onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): void;
 };
 
 export type ForkWorkerOutput = {
@@ -21,19 +21,17 @@ export type ForkWorkerOutput = {
   warn(...obj: any[]): void;
 
   /** broker implementation should react to this event*/
-  forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort): void;
+  forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort | MessagePort): void;
 };
 
 export type BrokerInput = {
-  // onWorkerWait(workerNo: number): void;
-  // onWorkerAwake(workerNo: number): void;
-  // onWorkerReturned(workerNo: number): void;
   ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): void;
   /** Send message to worker to stop all event listerners on it */
   letWorkerExit(worker: Worker | NodeWorker): void;
+  /** Since Web worker doesn't have "close" event, there is no way currently this ca
+   * work in web browser
+   */
   letAllWorkerExit(): void;
-  // fork: ForkWorkerOutput['fork'];
-  // forkFromWorker(workerNo: number, targetAction: Action<any>, messagePort: NodeMessagePort): void;
   workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): void;
 };
 

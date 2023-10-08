@@ -5,7 +5,7 @@ import { ForkSortComparator, WritableArray } from './sort-comparator-interf';
 type SorterInput = {
     sortInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): void;
 };
-export declare function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>): import("..").ReactorComposite<{
+export declare function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>): Promise<import("..").ReactorComposite<{
     sortResolved: (p: [number, number]) => void;
     mergeResolved: (p: ForkTransferablePayload<ArrayBuffer | null> | null) => void;
 } & {
@@ -23,5 +23,5 @@ export declare function createSorter<D extends WritableArray>(comparator?: ForkS
 } & {
     sortCompleted: () => void;
     mergeCompleted: () => void;
-} & ForkWorkerOutput>;
+} & ForkWorkerOutput, readonly [], readonly []>>;
 export {};

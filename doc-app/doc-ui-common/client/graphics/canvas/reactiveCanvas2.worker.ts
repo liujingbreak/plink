@@ -1,24 +1,30 @@
 import * as rx from 'rxjs';
+import {mat4} from 'gl-matrix';
 import {ReactorComposite, Action, deserializeAction} from '@wfh/reactivizer';
 import {createAnimationManager} from '../../animation/ease-functions';
 import {createForCanvas} from './paintable-worker-client';
-import {createPaintable, PaintableCtl, Paintable} from './paintable';
+import {createPaintable} from './paintable';
 import {ReactiveCanvas2Actions, ReactiveCanvasWorkerInput, ReactiveCanvasWorkerOutput} from './types';
 
 export type ReactiveCanvas2Engine = {
-  canvasController: ReactorComposite<ReactiveCanvasWorkerInput, ReactiveCanvasWorkerOutput>;
+  canvasController: ReactorComposite<ReactiveCanvasWorkerInput, ReactiveCanvasWorkerOutput, never[], typeof outputTableFor>;
   onPointerMove$: rx.Observable<[number, number]>;
   workerClient: ReturnType<typeof createForCanvas>;
   animateMgr: ReturnType<typeof createAnimationManager>;
 };
 
+const outputTableFor = ['setIsOffScreen', 'setCanvasSize'] as const;
+
 function createEngine(): ReactiveCanvas2Engine {
-  const comp = new ReactorComposite<ReactiveCanvasWorkerInput, ReactiveCanvasWorkerOutput>({debug: process.env.NODE_ENV === 'development' ? 'reativeCanvas2.worker' : false});
-  comp.startAll();
+  const comp = new ReactorComposite<ReactiveCanvasWorkerInput, ReactiveCanvasWorkerOutput, never[], typeof outputTableFor>({
+    name: 'reativeCanvas2.worker',
+    debug: process.env.NODE_ENV === 'development',
+    outputTableFor
+  });
   const {r, i, o} = comp;
   const {pt} = i;
   const {dispatcher} = o;
-  const lo = comp.o.createLatestPayloadsFor('setIsOffScreen', 'setCanvasSize');
+  const lo = comp.outputTable.l;
   // const li = comp.i.createLatestPayloadsFor('setScaleRatio');
   // const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvasInputAction>(
   //   {debug: process.env.NODE_ENV === 'development' ? 'reativeCanvas2.worker' : false}
@@ -44,17 +50,17 @@ function createEngine(): ReactiveCanvas2Engine {
     rx.map(([, x, y]) => {
       const ratioToCanvasPoint = 2;
       const pointer = Float32Array.of(Math.round(x) * ratioToCanvasPoint, Math.round(y) * ratioToCanvasPoint);
-      workerClient.dispatcher.detectPoint('clicked', pointer);
+      workerClient.i.dp.detectPoint('clicked', pointer);
     })
   ));
 
-  r(workerClient.payloadByType.detectedIntersection.pipe(
-    rx.map(([id, segs, originPoint]) => {
-      if (id === 'clicked') {
-        dispatcher.onSegmentsClicked(segs, originPoint);
-      }
-    })
-  ));
+  // r(workerClient.payloadByType.detectedIntersection.pipe(
+  //   rx.map(([id, segs, originPoint]) => {
+  //     if (id === 'clicked') {
+  //       dispatcher.onSegmentsClicked(segs, originPoint);
+  //     }
+  //   })
+  // ));
 
   r(pt.resizeViewport.pipe(
     // rx.withLatestFrom(li.setScaleRatio),
@@ -76,20 +82,20 @@ function createEngine(): ReactiveCanvas2Engine {
     })
   ));
 
-  r(o.pt.renderContent.pipe(
+  r('clear canvas', o.pt.renderContent.pipe(
     rx.withLatestFrom(lo.setCanvasSize),
     rx.map(([[, ctx], [, width, height]]) => {
       ctx.clearRect(0, 0, width, height);
     })
   ));
 
-  r(rx.combineLatest([
+  r('dispatch renderContent', rx.combineLatest([
     i.at.sceneReady,
     rx.merge(animateMgr.renderFrame$, o.at.render),
     o.pt.setCanvasAndContext
   ]).pipe(
-    rx.map(([, , [, _canvas, ctx]]) => {
-      dispatcher.renderContent(ctx);
+    rx.map(([m, , [, _canvas, ctx]]) => {
+      o.dpf.renderContent(m, ctx);
     })
   ));
 
@@ -121,10 +127,10 @@ function createEngine(): ReactiveCanvas2Engine {
     return () => removeEventListener('message', workerMsgHandler);
   }));
 
-  r(i.at.onUnmount.pipe(rx.map(() => {
-    workerClient.dispatcher.canvasDestroyed();
-    comp.destory();
-  })));
+  // r(i.at.onUnmount.pipe(rx.map(() => {
+  //   workerClient.dispatcher.canvasDestroyed();
+  //   comp.destory();
+  // })));
 
   return {
     canvasController: comp,
@@ -134,12 +140,15 @@ function createEngine(): ReactiveCanvas2Engine {
   };
 }
 
-export function createRootPaintable(): Paintable {
+export function createRootAndEngine() {
   const engine = createEngine();
-  const base = createPaintable({debug: process.env.NODE_ENV === 'development' ? 'root-paintable' : false});
-  const [{i, o, r}] = base;
+  const root = createPaintable({
+    name: 'root-paintable',
+    debug: process.env.NODE_ENV === 'development'});
+  const {i, o, r} = root;
   o.dp.isDetached(false);
   o.dp.setTreeAttached(true);
+  o.dp.setAbsoluteTransform(mat4.create());
 
   r(engine.canvasController.o.pt.setCanvasSize.pipe(
     rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2),
@@ -157,16 +166,15 @@ export function createRootPaintable(): Paintable {
   // rx.merge(
   //   canvasPayloads.renderContent.pipe(
   //     rx.map(ctx => {
-  //       baseCtl.dispatcher.afterRender(ctx);
+  //       rootCtl.dispatcher.afterRender(ctx);
   //     })
   //   ),
   //   canvasPayloads.onUnmount.pipe(
   //     rx.map(() => {
-  //       baseCtl.dispatcher.detach();
+  //       rootCtl.dispatcher.detach();
   //     })
   //   )
   // ).subscribe();
-  return base;
+  return [root, engine] as const;
 }
 
-export type RootPaintable = PaintableCtl;

@@ -1,15 +1,14 @@
 import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
 import {vec3} from 'gl-matrix';
 import {Paintable, createPaintable, transform3dTo2d} from '@wfh/doc-ui-common/client/graphics/canvas';
 import {SegmentIndexed, drawSegmentIndexedPath} from '@wfh/doc-ui-common/client/graphics/canvas/segment';
-import {createRootPaintable} from '@wfh/doc-ui-common/client/graphics/canvas/reactiveCanvas2.worker';
+import {createRootAndEngine} from '@wfh/doc-ui-common/client/graphics/canvas/reactiveCanvas2.worker';
 
-const [root, engine] = createRootPaintable();
+const [root, engine] = createRootAndEngine();
 
 createObjects(root);
 const {canvasController} = engine;
-canvasController.dispatcher.sceneReady();
+canvasController.i.dp.sceneReady();
 
 type CubeActions = {
   changePerspective(v: number): void;
@@ -17,8 +16,7 @@ type CubeActions = {
 
 function createObjects(root: Paintable) {
   const cube = createPaintable<CubeActions>({debug: process.env.NODE_ENV === 'development' ? 'cube' : false});
-  const [controller] = cube;
-  const {dispatcher} = controller;
+  const {dispatcher} = cube.i;
   const vertices: [number, number, number][] = [
     // face front, right-top, right-bottom, left-bottom, left-top
     [1, 1, 0], [1, -1, 0], [-1, -1, 0], [-1, 1, 0],
@@ -43,42 +41,36 @@ function createObjects(root: Paintable) {
   const {setLookAtMatrix, setPerspectiveMatrix} = transform3dTo2d(cube);
   setPerspectiveMatrix(Math.PI * 70 / 180, 2, 50);
   // setLookAtMatrix([0, 0, 2], [0, 0.5, 0], [0, 1, 0]);
+  cube.r(cube.o.pt.setAbsoluteTransform.pipe(
+    rx.map(([, m]) => {
+      let i = 0;
+      for (const ver of vertices) {
+        vec3.transformMat4(viewVertices[i], ver, m);
+        i++;
+      }
+    })
+  ));
 
-  dispatcher.addEpic<CubeActions>((controller, state) => {
-    const {payloadByType} = controller;
-    const [, _pState] = state.parent;
-    return rx.merge(
-      payloadByType.transformChanged.pipe(
-        op.map(m => {
-          let i = 0;
-          for (const ver of vertices) {
-            vec3.transformMat4(viewVertices[i], ver, m);
-            i++;
-          }
-        })
-      ),
-      payloadByType.renderContent.pipe(
-        op.map(([ctx]) => {
-          ctx.fillStyle = backFaceColor;
-          ctx.beginPath();
-          drawSegmentIndexedPath(backFaceSegs, ctx, {debug: false});
-          ctx.closePath();
-          ctx.fill();
+  cube.r(cube.o.pt.renderContent.pipe(
+    rx.map(([, ctx]) => {
+      ctx.fillStyle = backFaceColor;
+      ctx.beginPath();
+      drawSegmentIndexedPath(backFaceSegs, ctx, {debug: false});
+      ctx.closePath();
+      ctx.fill();
 
-          ctx.fillStyle = frontFaceColor;
-          ctx.beginPath();
-          drawSegmentIndexedPath(frontFaceSegs, ctx, {debug: false});
-          ctx.closePath();
-          ctx.fill();
-        }),
-        op.filter((_v, i) => i === 0),
-        op.delay(1000),
-        op.mergeMap(() => {
-          return state.canvasEngine.animateMgr.animate(0, 2, 3000, 'linear');
-        }),
-        op.map(v => setLookAtMatrix([0, v, 2], [0, 0.5, 0], [0, 1, 0]))
-      )
-    );
-  });
+      ctx.fillStyle = frontFaceColor;
+      ctx.beginPath();
+      drawSegmentIndexedPath(frontFaceSegs, ctx, {debug: false});
+      ctx.closePath();
+      ctx.fill();
+    }),
+    rx.filter((_v, i) => i === 0),
+    rx.delay(1000),
+    rx.mergeMap(() => {
+      return engine.animateMgr.animate(0, 2, 3000, 'linear');
+    }),
+    rx.map(v => setLookAtMatrix([0, v, 2], [0, 0.5, 0], [0, 1, 0]))
+  ));
 }
 

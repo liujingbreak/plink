@@ -9,8 +9,8 @@ type SorterInput = {
   sortInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): void;
 };
 
-export function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
-  const ctl = createWorkerControl<SorterInput>(opts);
+export async function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
+  const ctl = await rx.firstValueFrom(createWorkerControl<SorterInput>(opts));
   const cmp = comparator ?? new DefaultComparator();
 
   ctl.r(ctl.i.pt.sortInWorker.pipe(

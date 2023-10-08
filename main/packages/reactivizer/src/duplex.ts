@@ -1,6 +1,6 @@
 import {CoreOptions, RxController, ActionFunctions} from './control';
 
-export type DuplexOptions<I> = CoreOptions<(string & keyof I)[]>;
+export type DuplexOptions<I = Record<string, never>> = CoreOptions<(string & keyof I)[]>;
 
 export class DuplexController<I extends ActionFunctions, O extends ActionFunctions> {
   /** input actions controller, abbrevation name of "inputControl" */
@@ -11,7 +11,8 @@ export class DuplexController<I extends ActionFunctions, O extends ActionFunctio
   outputControl: RxController<O>;
 
   constructor(opts?: DuplexOptions<I & O>) {
-    this.inputControl = this.i = new RxController<I>({...opts, debug: opts?.debug ? opts?.debug + '.input' : false, log: opts?.log});
-    this.outputControl = this.o = new RxController<O>({...opts, debug: opts?.debug ? opts?.debug + '.output' : false, log: opts?.log});
+    const name = opts?.name ?? '';
+    this.inputControl = this.i = new RxController<I>({...opts, debug: opts?.debug, name: name + '.input', log: opts?.log});
+    this.outputControl = this.o = new RxController<O>({...opts, debug: opts?.debug, name: name + '.output', log: opts?.log});
   }
 }

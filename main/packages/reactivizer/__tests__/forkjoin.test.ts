@@ -54,7 +54,7 @@ describe('forkjoin worker', () => {
   }, 50000);
 
   async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker', workerNum?: number) {
-    const sorter = createSorter(null, {
+    const sorter = await createSorter(null, {
       debug: false,
       log(...msg) {
         log.info(...msg);
@@ -171,7 +171,7 @@ describe('forkjoin worker', () => {
       }
     }
 
-    const latestBrokerEvents = o.createLatestPayloadsFor('onWorkerExit');
+    const latestBrokerEvents = broker.outputTable.addActions('onWorkerExit').l;
     if (threadMode === 'scheduler') {
       shutdown = async () => {
         await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));

@@ -1,4 +1,4 @@
-import {Worker as NodeWorker} from 'worker_threads';
+import {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
 import {DuplexOptions} from './duplex';
 import {ReactorComposite} from './epic';
@@ -100,7 +100,7 @@ export function createBroker<I extends ActionFunctions = Record<string, never>, 
         deserializeAction(fa, mainWorkerComp.i);
       } else {
         await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, assignedWorkerNo, worker));
-        worker.postMessage(serializeAction(fa), [port]);
+        worker.postMessage(serializeAction(fa), [port as NodeMessagePort]);
       }
     })
   ));

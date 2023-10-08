@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {mat4, vec3} from 'gl-matrix';
+import {mat4} from 'gl-matrix';
 import {Paintable} from './paintable';
 // import {mat4ToStr} from '../canvas-utils';
 
@@ -18,39 +18,25 @@ type AlignmentValues = 'left' | 'center' | 'right' | 'top' | 'down';
  * TODO: implement for 'left', 'right', ...
  */
 // eslint-disable-next-line @typescript-eslint/ban-types, space-before-function-paren
-export function alignToParent2d<E extends Record<string, (...a: any[]) => void>>(
-  paintable: Paintable<E>,
+export function alignToParent2d(
+  paintable: Paintable<any, any, any, any>,
   _opts: {vertical?: AlignmentValues; horizontal?: AlignmentValues} = {}
 ) {
 
-  const [{dispatcher}] = paintable;
-  const posState: Float32Array = Float32Array.of(0, 0, 0);
+  const {i, inputTable: {l: li}} = paintable as Paintable;
 
-  dispatcher.putTransformOperator(
+  i.dp.putTransformOperator(
     'position', matrix$ => matrix$.pipe(
-      op.map(m => {
+      rx.withLatestFrom(li.attachTo.pipe(
+        rx.switchMap(([, parent]) => parent.outputTable.l.onResize)
+      )),
+      rx.map(([origMatrix, [, pw, ph]]) => {
         const temp = mat4.create();
-        return mat4.mul(temp, m, mat4.fromTranslation(
-          temp, posState
+        return mat4.mul(temp, origMatrix, mat4.fromTranslation(
+          temp, [pw >> 1, ph >> 1, 0]
         ));
       })
     ));
-
-  dispatcher.addEpic((_control, state) => {
-    const [parentCtrl, pState] = state.parent;
-    const {payloadByType: pac} = parentCtrl;
-    return rx.merge(
-      rx.of([pState.width, pState.height]),
-      pac.onResize
-    ).pipe(
-      op.tap(([w, h]) => {
-        posState[0] = w / 2;
-        posState[1] = h / 2;
-        dispatcher.setTransformDirty(true);
-      })
-    );
-
-  });
 }
 
 export type ActionsOf3d = {
@@ -63,9 +49,10 @@ type ActionOf3dInteral = {
 };
 
 // eslint-disable-next-line space-before-function-paren
-export function transform3dTo2d<E extends Record<string, (...a: any[]) => void>>(topLevel3dPaintable: Paintable<E>) {
-  const [controller] = topLevel3dPaintable as unknown as Paintable<ActionsOf3d & ActionOf3dInteral>;
-  const rPayloadsFor3d = controller.createLatestPayloads('setToScreen2dMatrix', 'setLookAtMatrix', 'setPerspectiveMatrix');
+export function transform3dTo2d(topLevel3dPaintable: Paintable<any, any, any, any>) {
+  const controller = topLevel3dPaintable as Paintable<ActionsOf3d, ActionOf3dInteral>;
+  const latestEvents = controller.outputTable.addActions('setToScreen2dMatrix').l;
+  const rPayloadsFor3d = controller.inputTable.addActions('setLookAtMatrix', 'setPerspectiveMatrix').l;
 
   const screenMatrixCache = mat4.create();
   const tempSizeM = mat4.create();
@@ -73,43 +60,45 @@ export function transform3dTo2d<E extends Record<string, (...a: any[]) => void>>
   const tempPerspectiveM = mat4.create();
   const tempScreenLookatM = mat4.create();
   const tempLookAtM = mat4.create();
-  controller.dispatcher.setToScreen2dMatrix(screenMatrixCache);
+  controller.o.dp.setToScreen2dMatrix(screenMatrixCache);
 
-  controller.dispatcher.putTransformOperator('perspective', up => {
+  controller.i.dp.putTransformOperator('perspective', up => {
     return up.pipe(
-      op.withLatestFrom(rPayloadsFor3d.setToScreen2dMatrix),
-      op.map(([m, screenMatrix]) => mat4.mul(screenMatrixCache, screenMatrix, m))
+      op.withLatestFrom(latestEvents.setToScreen2dMatrix),
+      op.map(([m, [, screenMatrix]]) => mat4.mul(screenMatrixCache, screenMatrix, m))
     );
   });
 
-  controller.dispatcher.addEpic((_ctl, state, _rPayloads) => {
-    const [, , parentLatestActions] = state.parent;
-    return rx.combineLatest(
-      rx.combineLatest(
-        parentLatestActions.onResize.pipe(
-          op.map(([w, h]) => {
-            mat4.fromScaling(tempSizeM, [w / 2, -h / 2, 1]); // transform to screen size
-            mat4.translate(tempSizeM, tempSizeM, [1, -1, 0]); // move to positive Y and X axis
-            return [tempSizeM, w / h] as const;
+  controller.r(controller.inputTable.l.attachTo.pipe(
+    rx.switchMap(([, parent]) => {
+      const parentLatestActions = parent.outputTable.l;
+      return rx.combineLatest([
+        rx.combineLatest([
+          parentLatestActions.onResize.pipe(
+            op.map(([, w, h]) => {
+              mat4.fromScaling(tempSizeM, [w / 2, -h / 2, 1]); // transform to screen size
+              mat4.translate(tempSizeM, tempSizeM, [1, -1, 0]); // move to positive Y and X axis
+              return [tempSizeM, w / h] as const;
+            })
+          ),
+          rPayloadsFor3d.setPerspectiveMatrix
+        ]).pipe(
+          op.map(([[tempSizeM, screenAspect], [, fovy, near, far]]) => {
+            return mat4.mul(tempSizeAndPersM, tempSizeM,
+              mat4.perspective(tempPerspectiveM, fovy, screenAspect, near, far));
           })
         ),
-        rPayloadsFor3d.setPerspectiveMatrix
-      ).pipe(
-        op.map(([[tempSizeM, screenAspect], [fovy, near, far]]) => {
-          return mat4.mul(tempSizeAndPersM, tempSizeM,
-            mat4.perspective(tempPerspectiveM, fovy, screenAspect, near, far));
+        rPayloadsFor3d.setLookAtMatrix.pipe(
+          op.map(([, eye, center, up]) => mat4.lookAt(tempLookAtM, eye, center, up))
+        )
+      ]).pipe(
+        op.map(([m, lookAtParams]) => {
+          controller.o.dp.setToScreen2dMatrix(mat4.mul(tempScreenLookatM, m, lookAtParams));
+          controller.o.dp.setTransformDirty(true);
         })
-      ),
-      rPayloadsFor3d.setLookAtMatrix.pipe(
-        op.map(([eye, center, up]) => mat4.lookAt(tempLookAtM, eye, center, up))
-      )
-    ).pipe(
-      op.map(([m, lookAtParams]) => {
-        controller.dispatcher.setToScreen2dMatrix(mat4.mul(tempScreenLookatM, m, lookAtParams));
-        controller.dispatcher.setTransformDirty(true);
-      })
-    );
-  });
+      );
+    })
+  ));
 
-  return controller.dispatcher as Pick<typeof controller.dispatcher, 'setLookAtMatrix' | 'setPerspectiveMatrix'>;
+  return controller.i.dp as unknown as Pick<typeof controller.i.dp, 'setLookAtMatrix' | 'setPerspectiveMatrix'>;
 }

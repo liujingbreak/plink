@@ -2,8 +2,8 @@ import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
 import { createWorkerControl, reativizeRecursiveFuncs, fork } from '../forkJoin-node-worker';
 import { DefaultComparator } from './sort-comparator-interf';
-export function createSorter(comparator, opts) {
-    const ctl = createWorkerControl(opts);
+export async function createSorter(comparator, opts) {
+    const ctl = await rx.firstValueFrom(createWorkerControl(opts));
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new DefaultComparator();
     ctl.r(ctl.i.pt.sortInWorker.pipe(rx.map(async ([m, ...params]) => {
         const forkDone = fork(sorter, 'sort', params);

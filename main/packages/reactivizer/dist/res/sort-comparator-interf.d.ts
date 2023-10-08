@@ -27,7 +27,7 @@ export interface ForkSortComparator<D extends WritableArray> {
 export declare class DefaultComparator implements ForkSortComparator<Uint32Array> {
     input: RxController<ForkSortComparatorInput>;
     output: RxController<ForkSortComparatorOutput>;
-    protected compositeCtrl: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput>;
+    protected compositeCtrl: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput, readonly [], readonly []>;
     constructor();
     compare(a: number, b: number): number;
     createTypedArray(buf: SharedArrayBuffer | ArrayBuffer, offset?: number, len?: number): Uint32Array;

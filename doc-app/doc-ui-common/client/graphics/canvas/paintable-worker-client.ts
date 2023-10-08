@@ -1,21 +1,20 @@
-import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
-import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
-import {WorkerMsgData, createReactiveWorkerPool} from '../../utils/worker-pool';
+// import * as rx from 'rxjs';
+import {ReactorComposite} from '@wfh/reactivizer';
+// import {WorkerMsgData, createReactiveWorkerPool} from '../../utils/worker-pool';
 import {Rectangle, SegmentNumbers} from '../canvas-utils';
 
-const NUM_WORKER = 2;
-const pool = createReactiveWorkerPool(
-  // eslint-disable-next-line @typescript-eslint/tslint/config
-  () => rx.of(new Worker(new URL('./paintable-worker', import.meta.url))),
-  {
-    concurrent: NUM_WORKER,
-    maxIdleWorkers: NUM_WORKER,
-    debug: process.env.NODE_ENV === 'development' ? 'WorkerPool' : false
-  }
-);
+// const NUM_WORKER = 2;
+// const pool = createReactiveWorkerPool(
+//   // eslint-disable-next-line @typescript-eslint/tslint/config
+//   () => rx.of(new Worker(new URL('./paintable-worker', import.meta.url))),
+//   {
+//     concurrent: NUM_WORKER,
+//     maxIdleWorkers: NUM_WORKER,
+//     debug: process.env.NODE_ENV === 'development' ? 'WorkerPool' : false
+//   }
+// );
 
-let SEQ = 0;
+// let SEQ = 0;
 
 export type WorkerClientAction = {
   updateDetectable(paintableId: string, segs: Iterable<[string, Iterable<SegmentNumbers>]>): void;
@@ -59,12 +58,16 @@ export type ResponseEvents = {
 };
 
 export function createForCanvas() {
-  const heavyCal = createActionStreamByType<WorkerClientAction & ResponseEvents & ActionsToWorker>({
+  const comp = new ReactorComposite<WorkerClientAction, ActionsToWorker & ResponseEvents>({
     debug: process.env.NODE_ENV === 'development' ? 'workerClient' : false
   });
-  const {dispatcher, actionByType, payloadByType, _actionToObject, _actionFromObject} = heavyCal;
-  const detectTreeId = (SEQ++).toString(16);
+  // const heavyCal = createActionStreamByType<WorkerClientAction & ResponseEvents & ActionsToWorker>({
+  //   debug: process.env.NODE_ENV === 'development' ? 'workerClient' : false
+  // });
+  // const {dispatcher, actionByType, payloadByType, _actionToObject, _actionFromObject} = heavyCal;
+  // const detectTreeId = (SEQ++).toString(16);
 
+  /*
   rx.merge(
     actionByType._updateDetectable.pipe(
       op.mergeMap(action => {
@@ -121,6 +124,6 @@ export function createForCanvas() {
       void Promise.resolve().then(() => {throw err; });
       return src;
     })
-  ).subscribe();
-  return heavyCal as ActionStreamControl<WorkerClientAction & ResponseEvents>;
+  ).subscribe();*/
+  return comp as unknown as ReactorComposite<WorkerClientAction, ResponseEvents>;
 }

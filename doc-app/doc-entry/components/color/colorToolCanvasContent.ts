@@ -2,7 +2,8 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import Color from 'color';
 import {mat4} from 'gl-matrix';
-import {PaintableCtl, Paintable, createPaintable} from '@wfh/doc-ui-common/client/graphics/canvas';
+import {Paintable, createPaintable} from '@wfh/doc-ui-common/client/graphics/canvas';
+import {ReactiveCanvas2Engine} from '@wfh/doc-ui-common/client/graphics/canvas/reactiveCanvas2.worker';
 import {alignToParent2d} from '@wfh/doc-ui-common/client/graphics/canvas/paintable-utils';
 import {colorToRgbaStr, createBezierArch, Segment, transSegments3d, drawSegmentPath, reverseSegments
 } from '@wfh/doc-ui-common/client/graphics/canvas-utils';
@@ -10,237 +11,222 @@ import {transformVertexArr, cloneSegmentIndexed, createCircleCurve, drawSegmentI
 
 type ExtendActions = {
   setAuxiliaryEnabled(enabled: boolean): void;
-  render(ctx: CanvasRenderingContext2D): void;
   startOpeningAnim(animate$: rx.Observable<number>): void;
-  openAnimateStopped(): void;
   _calCenterOfFanShape(segs: Iterable<Segment>): void;
 };
 
-export function createHueCircle(root: Paintable) {
-  const basePaintable = createPaintable<ExtendActions>({debug: 'huePalette'});
-  const [huePaletteCtrl] = basePaintable;
+type ExtendEvents = {
+  openAnimateStopped(): void;
+};
 
-  const {dispatcher} = huePaletteCtrl;
+const inputTableFor = ['setAuxiliaryEnabled'] as const;
+
+export function createHueCircle(root: Paintable, {animateMgr, canvasController}: ReactiveCanvas2Engine) {
+  const composite = createPaintable<ExtendActions, ExtendEvents, typeof inputTableFor>({debug: 'huePalette', inputTableFor});
+
+  const {i, o, r} = composite;
+  const {dp} = i;
   let scaleRatio = 1;
   const transformedSegs = [] as Segment[][];
   const detectables = [] as Segment[][];
   const bounds = [] as Segment[][];
   let cursorPointer: [number, number] | undefined;
-  let detectablesLen = 0;
   let selectedColor = new Color().alpha(0);
   let animSelectedColor: string | undefined;
-  const {shapeChange$, centerSphere} = createPaintingObjects(huePaletteCtrl);
+  const {shapeChange$, centerSphere} = createPaintingObjects(composite);
   const transformedCenterSphere = cloneSegmentIndexed(centerSphere);
 
-  // const {shapeChange$, centerSphere} = createPaintingObjects(huePaletteCtrl);
-  alignToParent2d(basePaintable);
+  // const {shapeChange$, centerSphere} = createPaintingObjects(composite);
+  alignToParent2d(composite);
 
-  dispatcher.putTransformOperator('scale',
+  dp.putTransformOperator('scale',
     matrix$ => matrix$.pipe(
       op.map(m => mat4.mul(mat4.create(), m, mat4.fromScaling(mat4.create(), [scaleRatio, scaleRatio, 1])))
     )
   );
-  dispatcher.setProp({
-    relativeWidth: 0.4,
-    relativeHeight: 0.4
-  });
-  dispatcher.attachTo(root);
+  dp.setRelativeSize(0.4, 0.4);
+  dp.setAuxiliaryEnabled(false);
+  dp.attachTo(root);
 
+  r('synce size', rx.merge(o.pt.onResize, i.pt.setSize).pipe(
+    rx.tap(([m, w, h]) => {
+      const size = Math.min(w, h);
+      scaleRatio = size;
+      o.dpf.setTransformDirty(m, true);
+    })
+  ));
 
-  dispatcher.addEpic<ExtendActions>((ctrl, state) => {
-    const {dispatcher, actionOfType: aot, payloadByType: pt} = ctrl;
-    const {workerClient, animateMgr, onPointerMove$, canvasController} = state.canvasEngine;
-    return rx.merge(
-      rx.concat(
-        rx.of({payload: [state.width, state.height] as const}),
-        aot('onResize')
-      ).pipe(
-        op.tap(({payload: [w, h]}) => {
-          const size = Math.min(w, h);
-          scaleRatio = size;
-          dispatcher.setTransformDirty(true);
-        })
-      ),
+  // When `transform` is newly changed or objects are changed, transform painting objects
+  r('on shape and transform changes', rx.combineLatest([o.pt.setAbsoluteTransform, shapeChange$]).pipe(
+    rx.map(([[, transform], shapes]) => {
+      let i = 0;
+      for (const [, segs] of shapes) {
+        detectables[i] = transformedSegs[i++] = [...transSegments3d(segs, transform)];
+      }
+    })
+  ));
 
-      // When `transform` is newly changed or objects are changed, transform painting objects
-      rx.combineLatest(
-        pt.transformChanged,
-        shapeChange$
-      ).pipe(
-        op.map(([m, shapes]) => {
-          let i = 0;
-          for (const [, segs] of shapes) {
-            detectables[i] = transformedSegs[i++] = [...transSegments3d(segs, m)];
-          }
-        })
-      ),
+  r('on transform changes', o.pt.setAbsoluteTransform.pipe(
+    op.map(([, mat]) => {
+      transformVertexArr(transformedCenterSphere[0].vertexArray, centerSphere[0].vertexArray, mat);
+    })
+  ));
 
-      pt.transformChanged.pipe(
-        op.map(m => {
-          transformVertexArr(transformedCenterSphere[0].vertexArray, centerSphere[0].vertexArray, m);
-        })
-      ),
+  r('renderContent', o.pt.renderContent.pipe(
+    rx.withLatestFrom(shapeChange$),
+    rx.map(([[, ctx], fanShapes]) => {
+      let i = 0;
+      // detectablesLen = fanShapes.length;
+      for (const segs of transformedSegs) {
+        ctx.fillStyle = colorToRgbaStr(fanShapes[i++][0]);
+        ctx.beginPath();
+        drawSegmentPath(segs, ctx, {closed: true, round: true});
+        ctx.closePath();
+        ctx.fill();
+      }
+      for (const bound of bounds) {
+        ctx.strokeStyle = 'black';
+        ctx.beginPath();
+        drawSegmentPath(bound, ctx, {closed: true, round: true});
+        ctx.closePath();
+        ctx.stroke();
+      }
 
-      // Render content
-      pt.renderContent.pipe(
-        op.map(([ctx, _baseState]) => ctx),
-        op.withLatestFrom(shapeChange$),
-        op.map(([ctx, fanShapes]) => {
-          let i = 0;
-          detectablesLen = fanShapes.length;
-          for (const segs of transformedSegs) {
-            ctx.fillStyle = colorToRgbaStr(fanShapes[i++][0]);
-            ctx.beginPath();
-            drawSegmentPath(segs, ctx, {closed: true, round: true});
-            ctx.closePath();
-            ctx.fill();
-          }
-          for (const bound of bounds) {
-            ctx.strokeStyle = 'black';
-            ctx.beginPath();
-            drawSegmentPath(bound, ctx, {closed: true, round: true});
-            ctx.closePath();
-            ctx.stroke();
-          }
+      if (cursorPointer) {
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.moveTo(cursorPointer[0], cursorPointer[1]);
+        ctx.beginPath();
+        ctx.arc(cursorPointer[0], cursorPointer[1], 4, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
 
-          if (cursorPointer) {
-            ctx.save();
-            ctx.fillStyle = 'white';
-            ctx.moveTo(cursorPointer[0], cursorPointer[1]);
-            ctx.beginPath();
-            ctx.arc(cursorPointer[0], cursorPointer[1], 4, 0, 2 * Math.PI);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-          }
+      if (animSelectedColor) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = animSelectedColor;
+        drawSegmentIndexedPath(transformedCenterSphere, ctx, {closed: true});
+        ctx.closePath();
+        ctx.fill();
+      }
+    })
+  ));
 
-          if (animSelectedColor) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.fillStyle = animSelectedColor;
-            drawSegmentIndexedPath(transformedCenterSphere, ctx, {closed: true});
-            ctx.closePath();
-            ctx.fill();
-          }
-        })
-      ),
+  r('afterRender', o.at.afterRender.pipe(
+    rx.take(1),
+    rx.map(() => {dp.startOpeningAnim(animateMgr.animate(0, 1, 500)); })
+  ));
 
-      // pt._calCenterOfFanShape.pipe(
-      //   op.mergeMap(segs => attached$().pipe(
-      //     op.map(([state]) => {
-      //       const {workerClient} = state.canvasEngine;
-      //       const id = Math.random() + '';
-      //       workerClient.dispatcher.calculateFaceCenter(id, [
-      //         ...(function* () {
-      //           for (const seg of segs) {
-      //             yield seg.toNumbers();
-      //           }
-      //         })()
-      //       ]);
-      //     })
-      //   ))
-      // ),
+  r('onSegmentsClicked', canvasController.o.pt.onSegmentsClicked.pipe(
+    rx.withLatestFrom(composite.inputTable.l.setAuxiliaryEnabled, shapeChange$),
+    rx.map(([[, segsKeys, cursorArr], [, auxiliary], hueShapes]) => {
+      // eslint-disable-next-line no-console
+      console.log('select:', segsKeys);
+      if (segsKeys.length === 0)
+        return;
+      const hueKey = segsKeys[segsKeys.length - 1].split('/')[1];
+      const hueIndex = Number(hueKey.slice('hue'.length));
 
-      // start animation
-      pt.afterRender.pipe(
-        op.take(1),
-        op.map(() => {dispatcher.startOpeningAnim(animateMgr.animate(0, 1, 500)); })
-      ),
-      canvasController.payloadByType.onSegmentsClicked.pipe(
-        op.withLatestFrom(pt.setAuxiliaryEnabled, shapeChange$),
-        op.map(([[segsKeys, cursorArr], auxiliary, hueShapes]) => {
-          // eslint-disable-next-line no-console
-          console.log('select:', segsKeys);
-          if (segsKeys.length === 0)
-            return;
-          const hueKey = segsKeys[segsKeys.length - 1].split('/')[1];
-          const hueIndex = Number(hueKey.slice('hue'.length));
-
-          if (auxiliary) {
-            cursorPointer = [Math.round(cursorArr[0]), Math.round(cursorArr[1])];
-          }
-          // animateMgr.requestSingleFrame();
-          return hueShapes[hueIndex][0];
-        }),
-        op.filter((res): res is NonNullable<typeof res> => res != null),
-        op.concatMap(targetColor => animateMgr.animate(0, 1, 300, 'linear').pipe(
-          op.map(t => {
-            const animatedColor = selectedColor.mix(targetColor, t);
-            animSelectedColor = colorToRgbaStr(animatedColor);
-            return animatedColor;
-          }),
-          op.takeLast(1),
-          op.map(targetColor => {
-            selectedColor = targetColor;
-          })
-        ))
-      ),
-      // When animation is finished, ask web workers to perform bounds calculation
-      pt.openAnimateStopped.pipe(
-        op.withLatestFrom(shapeChange$),
-        op.switchMap(() => rx.timer(300)),
-        op.switchMap(() => rx.concat(
-          rx.of(detectables),
-          pt.transformChanged.pipe(op.mapTo(detectables))
-        )),
-        op.debounceTime(300, rx.asapScheduler),
-        op.map(detectables => {
-          let i = 0;
-          dispatcher.updateDetectables(
-            (function* () {
-              for (const segs of detectables.slice(0, detectablesLen))
-                yield ['hue' + i++, segs];
-            })()
-          );
-          return detectablesLen;
-        }),
-        // Make sure we wait until all bounds are finished calculated
-        op.switchMap(num => workerClient.payloadByType.doneTaskForKey.pipe(
-          op.filter(([, paintableId]) => paintableId === state.id),
-          op.take(num),
-          op.takeLast(1)
-        )),
-        op.map(() => {
-          bounds.splice(0);
-          workerClient.dispatcher.getBBoxesOf(state.id);
-        })
-      ),
-      // Use workerClient "gotBBoxesOf" to retrieve bounding boxes.
-      // huePaletteState.workerClient is availabe when `parentChange$()` is dispatched
-      pt.setAuxiliaryEnabled.pipe(
-        op.distinctUntilChanged(),
-        op.switchMap(enabled => {
-          return enabled ?
-            workerClient.payloadByType.gotBBoxesOf.pipe(
-              op.filter(([, paintableId]) => paintableId === state.id),
-              op.map(([, , rects]) => {
-                for (const rect of rects) {
-                  bounds.push([
-                    new Segment([rect.x, rect.y]),
-                    new Segment([rect.x + rect.w, rect.y]),
-                    new Segment([rect.x + rect.w, rect.y + rect.h]),
-                    new Segment([rect.x, rect.y + rect.h])
-                  ]);
-                }
-                // console.log(bounds.map(segs => segs.slice(0, 1).map(seg => seg.point)));
-                animateMgr.requestSingleFrame();
-              })
-            ) :
-            rx.EMPTY;
-        })
-      ),
-      // Emit some initial actions
-      rx.defer(() => {
-        dispatcher.setAuxiliaryEnabled(false);
-        return rx.EMPTY;
+      if (auxiliary) {
+        cursorPointer = [Math.round(cursorArr[0]), Math.round(cursorArr[1])];
+      }
+      // animateMgr.requestSingleFrame();
+      return hueShapes[hueIndex][0];
+    }),
+    op.filter((res): res is NonNullable<typeof res> => res != null),
+    op.concatMap(targetColor => animateMgr.animate(0, 1, 300, 'linear').pipe(
+      op.map(t => {
+        const animatedColor = selectedColor.mix(targetColor, t);
+        animSelectedColor = colorToRgbaStr(animatedColor);
+        return animatedColor;
+      }),
+      op.takeLast(1),
+      op.map(targetColor => {
+        selectedColor = targetColor;
       })
-    );
-  });
+    ))
+  ));
+
+  // When animation is finished, ask web workers to perform bounds calculation
+  /*
+  r(o.at.openAnimateStopped.pipe(
+    op.withLatestFrom(shapeChange$),
+    op.switchMap(() => rx.timer(300)),
+    op.switchMap(() => rx.concat(
+      rx.of(detectables),
+      o.pt.setAbsoluteTransform.pipe(op.map(() => detectables))
+    )),
+    op.debounceTime(300, rx.asapScheduler),
+    op.map(detectables => {
+      let i = 0;
+      dp.updateDetectables(
+        (function* () {
+          for (const segs of detectables.slice(0, detectablesLen))
+            yield ['hue' + i++, segs];
+        })()
+      );
+      return detectablesLen;
+    }),
+    // Make sure we wait until all bounds are finished calculated
+    op.switchMap(num => workerClient.o.pt.doneTaskForKey.pipe(
+      op.filter(([, , paintableId]) => paintableId === state.id),
+      op.take(num),
+      op.takeLast(1)
+    )),
+    op.map(() => {
+      bounds.splice(0);
+      workerClient.i.dp.getBBoxesOf(state.id);
+    })
+  ));
+  */
+
+  // pt._calCenterOfFanShape.pipe(
+  //   op.mergeMap(segs => attached$().pipe(
+  //     op.map(([state]) => {
+  //       const {workerClient} = state.canvasEngine;
+  //       const id = Math.random() + '';
+  //       workerClient.dp.calculateFaceCenter(id, [
+  //         ...(function* () {
+  //           for (const seg of segs) {
+  //             yield seg.toNumbers();
+  //           }
+  //         })()
+  //       ]);
+  //     })
+  //   ))
+  // ),
+
+  // Use workerClient "gotBBoxesOf" to retrieve bounding boxes.
+  // huePaletteState.workerClient is availabe when `parentChange$()` is dispatched
+  // pt.setAuxiliaryEnabled.pipe(
+  //   op.distinctUntilChanged(),
+  //   op.switchMap(enabled => {
+  //     return enabled ?
+  //       workerClient.payloadByType.gotBBoxesOf.pipe(
+  //         op.filter(([, paintableId]) => paintableId === state.id),
+  //         op.map(([, , rects]) => {
+  //           for (const rect of rects) {
+  //             bounds.push([
+  //               new Segment([rect.x, rect.y]),
+  //               new Segment([rect.x + rect.w, rect.y]),
+  //               new Segment([rect.x + rect.w, rect.y + rect.h]),
+  //               new Segment([rect.x, rect.y + rect.h])
+  //             ]);
+  //           }
+  //           // console.log(bounds.map(segs => segs.slice(0, 1).map(seg => seg.point)));
+  //           animateMgr.requestSingleFrame();
+  //         })
+  //       ) :
+  //       rx.EMPTY;
+  //   })
+  // ),
 }
 
 const COMPLEMENT = Math.PI / 360; // make object a little bigger to conque T-edge issue
 
-function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
+function createPaintingObjects(ctrl: Paintable<ExtendActions, ExtendEvents, typeof inputTableFor>) {
   const numOfColors = 5;
   const fanShapes = [] as [color: Color, segsIt: Iterable<Segment>][];
 
@@ -249,7 +235,7 @@ function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
     const angle = Math.PI * 2 / numOfColors;
     const angleDeg = 360 / numOfColors;
     const shape = fanShapeGraphicsModel(numOfColors);
-    ctrl.dispatcher._calCenterOfFanShape(shape);
+    ctrl.i.dp._calCenterOfFanShape(shape);
 
     const angleCompl = COMPLEMENT / 2;
     for (let i = 0; i < numOfColors; i++) {
@@ -270,8 +256,8 @@ function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
   return {
     shapeChange$: rx.concat(
       init$,
-      ctrl.payloadByType.startOpeningAnim.pipe(
-        op.switchMap(progress$ => progress$.pipe(
+      ctrl.i.pt.startOpeningAnim.pipe(
+        op.switchMap(([, progress$]) => progress$.pipe(
           op.map(value => {
             const fShowNumColorsF = numOfColors * value;
             const iShowNumColors = Math.floor(fShowNumColorsF);
@@ -283,7 +269,7 @@ function createPaintingObjects(ctrl: PaintableCtl<ExtendActions>) {
             }
             return showShapes;
           }),
-          op.finalize(() => ctrl.dispatcher.openAnimateStopped())
+          op.finalize(() => ctrl.o.dp.openAnimateStopped())
         ))
       )
     ).pipe(

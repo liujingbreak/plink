@@ -14,7 +14,8 @@ export type CanvasEvents = {
 
 export function createDomControl() {
   const re = new ReactorComposite<CanvasActions & ReactiveCanvasInputAction, ReactiveCanvas2Actions & CanvasEvents>({
-    debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false
+    name: 'canvas-control',
+    debug: process.env.NODE_ENV === 'development'
   });
   // const ctrl = createActionStreamWithEpic< BaseReactComponentAction & CanvasActions & ReactiveCanvasInputAction & ReactiveCanvas2Actions>({debug: process.env.NODE_ENV === 'development' ? 'canvas-control' : false});
   const onPointerMove$ = new rx.Subject<[number, number]>();
