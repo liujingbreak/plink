@@ -6,13 +6,15 @@ import {bootstrap} from './main/clientApp';
 // import design1 from '@wfh/doc-ui-common/dist/markdown-loader!@wfh/assets-processer/ts/proxy-cache/design.md';
 
 dispatcher.registerFiles({
-  intro: () => import('./intro.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/intro.md').then(res => res.default),
+  reactivizer: () => import('@wfh/reactivizer/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/README.md').then(res => res.default),
+  algorithms: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/algorithms/README.md').then(res => res.default)
+  // intro: () => import('./intro.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/intro.md').then(res => res.default),
   // sample: () => import(
   //   './sample.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/sample.md'
   // ).then(res => res.default),
-  trans: () => import(
-    './trans.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/doc-ui-common/client/graphics/understand-transformation-matrix.md'
-  ).then(res => res.default)
+  // trans: () => import(
+  //   './trans.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/doc-ui-common/client/graphics/understand-transformation-matrix.md'
+  // ).then(res => res.default)
   // design1
 });
 
@@ -20,9 +22,9 @@ const LazyDocComponent = loadable(async () => {
   return (await import('./feature/article/ArticalePage')).ArticalePage;
 }, {fallback: <ShowTopLoading/>});
 
-const LazyDemoComponent = loadable(async () => {
-  return (await import('./feature/demo/DemoPage')).DemoPage;
-}, {fallback: <ShowTopLoading/>});
+// const LazyDemoComponent = loadable(async () => {
+//   return (await import('./feature/demo/DemoPage')).DemoPage;
+// }, {fallback: <ShowTopLoading/>});
 
 // const BgBlurDemo = loadable(async () => {
 //   return (await import('./feature/demo/BackgroundBlurDemo')).BackgroundBlurDemo;
@@ -41,9 +43,9 @@ const routes: AnimatableRoutesProps['routes'] = [
   // {path: '/demo/background', element: <BgDemo/>},
   // {path: '/demo/background-blur', element: <BgBlurDemo/>},
   {path: '/demo/surface', element: <SurfaceDemo/>},
-  {path: '/demo', element: <LazyDemoComponent/>},
-  {path: '/doc/:mdKey', element: <LazyDocComponent/>},
-  {path: '/*', redirect: '/test'}
+  {path: '/readme/:mdKey', element: <LazyDocComponent/>},
+  {path: '/docs/:mdKey', element: <LazyDocComponent/>},
+  {path: '/*', redirect: '/readme/reactivizer'}
 ];
 // const worker = new Worker(new URL('./feature/demo/worker', import.meta.url));
 bootstrap({routes});

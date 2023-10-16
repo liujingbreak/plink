@@ -17,9 +17,12 @@ describe('Reactivizer error handling function', () => {
     });
     const comp = new ReactorComposite<TestMessages>({
       name: 'testComposite',
-      log: mockLog,
       debug: true
     });
+
+    comp.r('call mock function when error catched', comp.error$.pipe(
+      rx.tap(a => mockLog(...a))
+    ));
 
     comp.r('testReactorLabel', comp.i.at.msg1.pipe(
       rx.concatMap(() => rx.timer(50)),
@@ -31,30 +34,33 @@ describe('Reactivizer error handling function', () => {
     comp.i.dp.msg1();
     await rx.firstValueFrom(rx.defer(() => rx.timer(500)));
     expect(mockLog).toHaveBeenCalled();
-    expect((mockLog.mock.calls[0][0] as string).startsWith('@testComposite::testReactorLabel')).toBeTruthy();
+    expect((mockLog.mock.calls[0][1] as string).startsWith('@testComposite::testReactorLabel')).toBeTruthy();
   });
 
-  // it.skip('system console log should been error output destination', async () => {
-  //   const mockLog = jest.fn((...msg: any[]) => {});
-  //   // eslint-disable-next-line no-console
-  //   const origLog = console.error;
-  //   // eslint-disable-next-line no-console
-  //   console.log = mockLog;
-  //   const comp = new ReactorComposite<TestMessages>({
-  //     name: 'testComposite2'
-  //   });
+  it('handleError() should print error with its label argument', async () => {
+    const mockLog = jest.fn((...msg: any[]) => {});
+    const comp = new ReactorComposite<TestMessages>({
+      name: 'testComposite2',
+      debug: true
+    });
 
-  //   comp.r('testReactorLabel2', comp.i.at.msg1.pipe(
-  //     rx.concatMap(() => rx.timer(50)),
-  //     rx.withLatestFrom(comp.i.pt.msg2),
-  //     rx.map(() => {throw new Error('testError 2'); })
-  //   ));
+    comp.r('call mock function when error catched', comp.error$.pipe(
+      rx.tap(a => mockLog(...a))
+    ));
 
-  //   comp.i.dp.msg2('msg2');
-  //   comp.i.dp.msg1();
-  //   await rx.firstValueFrom(rx.defer(() => rx.timer(500)));
-  //   expect(mockLog).toHaveBeenCalled();
-  //   expect((mockLog.mock.calls[0][0] as string).startsWith('@testComposite2::testReactorLabel2')).toBeTruthy();
-  //   console.error = origLog;
-  // });
+    comp.r('testReactorLabel2', comp.i.at.msg1.pipe(
+      rx.withLatestFrom(comp.i.pt.msg2),
+      rx.map(() => {throw new Error('testError 2'); }),
+      comp.labelError('customLabel'),
+      rx.catchError(() => rx.of('hello')),
+      rx.map(() => {throw new Error('testError 3'); })
+    ));
+
+    comp.i.dp.msg2('msg2');
+    comp.i.dp.msg1();
+    await rx.firstValueFrom(rx.defer(() => rx.timer(50)));
+    expect(mockLog).toHaveBeenCalled();
+    expect((mockLog.mock.calls[1][1] as string).startsWith('@testComposite2::testReactorLabel2')).toBeTruthy();
+    expect((mockLog.mock.calls[0][1] as string).startsWith('@testComposite2::customLabel')).toBeTruthy();
+  });
 });

@@ -17,18 +17,19 @@
   },
   "sideEffects": false,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: test is performed in project @wfh/plink \" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/liujingbreak/dr-comp-package.git"
+    "url": "https://github.com/liujingbreak/plink.git",
+    "directory": "main/packages/algorithms"
   },
   "devDependencies": {
     "chalk": "^4.1.0"
   },
   "keywords": [
-    "red black tree", "DFS", "BFS"
+    "red-black tree", "DFS", "BFS", "interval search tree"
   ],
-  "author": "Liu Jing",
+  "author": "Liu Jing <liujing.break@gmail.com>",
   "license": "MIT"
 }

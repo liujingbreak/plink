@@ -1,5 +1,4 @@
-
-# Package and project link toolkit
+# More than package and project link toolkit
 
 ```
  ██████╗  ██╗      ██╗ ███╗   ██╗ ██╗  ██╗ 
@@ -9,7 +8,13 @@
  ██║      ███████╗ ██║ ██║ ╚████║ ██║  ██╗ 
  ╚═╝      ╚══════╝ ╚═╝ ╚═╝  ╚═══╝ ╚═╝  ╚═╝ 
 ```
-> New version of readme and other documentation are still in-progress.
+
+## 0. The repositity of this package itself is not only a toolkit, but also a gathering of projects in form of monorepo
+
+Some of the top important projects it involves are:
+
+- @wfh/reactivizer - [an Reactive programming library based on top of RxJS](./packages/reactivizer/README.md)
+- @wfh/algorithms - [Extensible algorithms and data structure that Plink's project depends on](./packages/algorithms/README.md)
 
 If heard about **Lerna**, **Yarn**'s workspace concept and [Nx](https://nx.dev), yes this tool is a little bit in the same category.
 

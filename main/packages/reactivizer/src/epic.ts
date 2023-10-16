@@ -33,7 +33,9 @@ export class ReactorComposite<
   LI extends readonly (keyof I)[] = readonly [],
   LO extends readonly (keyof O)[] = readonly []
 > extends DuplexController<I, O> {
-  error$: rx.Subject<[lable: string, originError: any]> = new rx.ReplaySubject();
+  protected errorSubject: rx.Subject<[lable: string, originError: any]> = new rx.ReplaySubject(20);
+  /** All catched error goes here */
+  error$ = this.errorSubject.asObservable();
   destory$: rx.Subject<void> = new rx.ReplaySubject(1);
 
   get inputTable(): ActionTable<I, LI> {
@@ -124,7 +126,7 @@ export class ReactorComposite<
   };
 
   /**
-   * A rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
+   * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
    * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
    * errors, you should add your own "catchError" after.
    *
@@ -134,7 +136,7 @@ export class ReactorComposite<
     return (upStream: rx.Observable<any>) => upStream.pipe(
       rx.catchError((err) => {
         this.logError(label, err);
-        return rx.throwError(err);
+        return rx.throwError(() => err instanceof Error ? err : new Error(err));
       })
     );
   }
@@ -172,11 +174,12 @@ export class ReactorComposite<
   }
 
   protected logError(label: string, err: any) {
-    (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).error$.next([err, label]);
+    const message = '@' + (this.opts?.name ? this.opts.name + '::' : '') + label;
+    (this as unknown as ReactorComposite).errorSubject.next([err, message]);
     if (this.opts?.log)
-      this.opts.log('@' + this.opts.name + '::' + label, err);
+      this.opts.log(message, err);
     else
-      console.error('@' + this.opts?.name + '::' + label, err);
+      console.error(message, err);
   }
 
   protected handleError(upStream: rx.Observable<any>, label = '', hehavior: 'continue' | 'stop' | 'throw' = 'continue') {
@@ -184,7 +187,7 @@ export class ReactorComposite<
       rx.catchError((err, src) => {
         this.logError(label, err);
         if (hehavior === 'throw')
-          return rx.throwError(err);
+          return rx.throwError(() => err instanceof Error ? err : new Error(err));
         return hehavior === 'continue' ? src : rx.EMPTY;
       })
     );

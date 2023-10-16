@@ -81,7 +81,7 @@ export function createAnimationManager() {
    * is emitted earlier than renderFrame$
    */
   const renderFrame$ = new rx.Subject<void>();
-  /** One being subscribed,
+  /** Once being subscribed,
    * it will keep reuqestAnimationFramme until
    * all observers unsubscribed
    */
@@ -113,3 +113,5 @@ export function createAnimationManager() {
     }
   };
 }
+
+export const globalAnimMgrInstance = createAnimationManager();

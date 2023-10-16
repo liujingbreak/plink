@@ -28,11 +28,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/liujingbreak/dr-comp-package.git"
+    "url": "https://github.com/liujingbreak/plink.git",
+    "directory": "main/packages/reactivizer"
   },
   "keywords": [
-    "rxjs", "reactive", "rx"
+    "rxjs", "reactive", "rx", "forkjoin", "thread", "web worker"
   ],
-  "author": "Liu Jing",
+  "author": "Liu Jing <liujing.break@gmail.com>",
   "license": "MIT"
 }

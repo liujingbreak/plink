@@ -15,7 +15,9 @@ export interface ReactorCompositeOpt<I extends ActionFunctions = Record<string, 
 }
 export declare class ReactorComposite<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexController<I, O> {
     private opts?;
-    error$: rx.Subject<[lable: string, originError: any]>;
+    protected errorSubject: rx.Subject<[lable: string, originError: any]>;
+    /** All catched error goes here */
+    error$: rx.Observable<[lable: string, originError: any]>;
     destory$: rx.Subject<void>;
     get inputTable(): ActionTable<I, LI>;
     get outputTable(): ActionTable<O, LO>;
@@ -38,7 +40,7 @@ export declare class ReactorComposite<I extends ActionFunctions = Record<string,
     /** Abbrevation of addReaction */
     r: (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => void;
     /**
-     * A rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
+     * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
      * errors, you should add your own "catchError" after.
      *

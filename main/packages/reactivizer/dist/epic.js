@@ -44,7 +44,9 @@ class ReactorComposite extends duplex_1.DuplexController {
     constructor(opts) {
         super(opts);
         this.opts = opts;
-        this.error$ = new rx.ReplaySubject();
+        this.errorSubject = new rx.ReplaySubject(20);
+        /** All catched error goes here */
+        this.error$ = this.errorSubject.asObservable();
         this.destory$ = new rx.ReplaySubject(1);
         /** Abbrevation of addReaction */
         this.r = (...params) => {
@@ -99,7 +101,7 @@ class ReactorComposite extends duplex_1.DuplexController {
         this.r(...params);
     }
     /**
-     * A rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
+     * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
      * errors, you should add your own "catchError" after.
      *
@@ -108,7 +110,7 @@ class ReactorComposite extends duplex_1.DuplexController {
     labelError(label) {
         return (upStream) => upStream.pipe(rx.catchError((err) => {
             this.logError(label, err);
-            return rx.throwError(err);
+            return rx.throwError(() => err instanceof Error ? err : new Error(err));
         }));
     }
     reactivizeFunction(key, func, funcThisRef) {
@@ -136,17 +138,18 @@ class ReactorComposite extends duplex_1.DuplexController {
     }
     logError(label, err) {
         var _a, _b;
-        this.error$.next([err, label]);
-        if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
-            this.opts.log('@' + this.opts.name + '::' + label, err);
+        const message = '@' + (((_a = this.opts) === null || _a === void 0 ? void 0 : _a.name) ? this.opts.name + '::' : '') + label;
+        this.errorSubject.next([err, message]);
+        if ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.log)
+            this.opts.log(message, err);
         else
-            console.error('@' + ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.name) + '::' + label, err);
+            console.error(message, err);
     }
     handleError(upStream, label = '', hehavior = 'continue') {
         return upStream.pipe(rx.catchError((err, src) => {
             this.logError(label, err);
             if (hehavior === 'throw')
-                return rx.throwError(err);
+                return rx.throwError(() => err instanceof Error ? err : new Error(err));
             return hehavior === 'continue' ? src : rx.EMPTY;
         }));
     }
