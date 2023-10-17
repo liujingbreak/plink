@@ -56,6 +56,7 @@ const TopAppBar: React.ForwardRefRenderFunction<Promise<MDCTopAppBar>, TopAppBar
     if (props.getMdcRef) {
       props.getMdcRef(mdc);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useImperativeHandle(ref,

@@ -21,6 +21,11 @@
   }
 }
 
+.titleSwitchBox {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 // https://github.com/css-modules/css-modules
 
 .container {

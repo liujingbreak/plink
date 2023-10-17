@@ -71,6 +71,7 @@ describe('reactivizer', () => {
   it('RxController createLatestPayloadsFor should work', async () => {
     const tableForActions = ['msg2', 'msg1'] as const;
     const ctl = new ReactorComposite<TestMessages, Record<string, never>, typeof tableForActions>({
+      name: 'tableSample',
       inputTableFor: tableForActions
     });
     const l = ctl.inputTable.l;
@@ -91,7 +92,7 @@ describe('reactivizer', () => {
   });
 
   it('ReactorComposite reactivize should work', async () => {
-    const comp = new ReactorComposite<TestMessages, {testOutput(): void}>({debug: 'test'});
+    const comp = new ReactorComposite<TestMessages, {testOutput(): void}>({name: 'test'});
     const actionResults = [] as any[];
     comp.r(comp.i.pt.msg3.pipe(
       rx.map(([, a, b]) => {

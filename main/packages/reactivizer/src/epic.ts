@@ -97,7 +97,7 @@ export class ReactorComposite<
   }
 
   // eslint-disable-next-line space-before-function-paren
-  reactivize<F extends {[s: string]: (...a: any[]) => any}>(fObject: F) {
+  reactivize<F extends ActionFunctions>(fObject: F) {
     const funcs = Object.entries(fObject);
 
     for (const [key, func] of funcs) {

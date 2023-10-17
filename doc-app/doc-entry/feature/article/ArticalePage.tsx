@@ -53,7 +53,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
         op.distinctUntilChanged(),
         op.filter(md => {
           if (md && layout) {
-            layout.actionDispatcher.updateBarTitle('Document: ' + md.toc[0]?.text || 'Document: ');
+            layout.actionDispatcher.updateBarTitle(md.toc[0]?.text || 'Document (untitled)');
             return true;
           }
           return false;

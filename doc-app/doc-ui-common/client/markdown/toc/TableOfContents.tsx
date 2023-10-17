@@ -23,7 +23,7 @@ export const TableOfContents = React.memo<{markdownKey: string; className?: stri
       control.dispatcher.setLayoutControl(layout);
   }, [control.dispatcher, layout]);
 
-  return uiState.itemByHash ?
+  return uiState.itemByHash && uiState.topLevelItems.length > 0 ?
     <div className={cln(props.className ?? '', styles.tocBody, {[styles.fixed]: uiState.positionFixed})}>
       <div ref={control.dispatcher.onPlaceHolderRef}></div>
       <div className={styles.tocContent} ref={control.dispatcher.onContentDomRef}>

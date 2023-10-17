@@ -40,7 +40,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef.current, props.className]);
 
-  const title = React.useMemo(() => <SwitchAnim type="opacity" contentHash={state.barTitle}>{state.barTitle}</SwitchAnim>,
+  const title = React.useMemo(() => <SwitchAnim type="opacity" innerClassName={styles.titleSwitchBox} contentHash={state.barTitle}>{state.barTitle}</SwitchAnim>,
     [state.barTitle]);
 
 
