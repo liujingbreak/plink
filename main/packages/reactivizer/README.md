@@ -1,5 +1,14 @@
 # Make your plain object reactive
 
+contents
+```
+ |- 1. A brief introduction
+ | |- 1.1 Some of implemented design goals and APIs
+ | |- 1.2 Quick view of what it looks like
+ | | |- 1.2.1 Use interface or type to define the shape of reusable entity
+ | | |- 1.2.2 Turn plain object to reactive reusable entity
+```
+
 ## 1. A brief introduction
 
 `@wfh/reactivizer` is a RxJS based Reactive Programming library for programming convenience.
@@ -14,7 +23,7 @@ Unlike other "rx" based librarys,
 
 Some of the concepts and conventions are inspired by Apache kafka, Redux-observable
 
-### 1.1 Some of implemented design goals and APIs
+### 1.1. Some of implemented design goals and APIs
 - Great Typescript type definition for type inference
 - You can use plain "interface", "class" and "member functions" to define group of `Observable` message streams.
 - Mimic OOP concept, You can **extend** exsting reusable entity (class/object), **intercept** input or output messages to **override** existing behaviors of extended entity.
@@ -25,9 +34,9 @@ Some of the concepts and conventions are inspired by Apache kafka, Redux-observa
 - A **recursive forkjoin** API for Node.js **thread_workers** and browser's **web worker**, and on top of it, an implementation of multithread **merge sort** algorithm.
 - RxJS is the only required (peer) dependency, another optional dependency [@wfh/algorithms](../algorithms/README.md) is only needed in case **forkjoin**
 
-### 1.2 Quick view of what it looks like
+### 1.2. Quick view of what it looks like
 
-#### 1.2.1 Use `interface` or `type` to define the shape of reusable entity
+#### 1.2.1. Use `interface` or `type` to define the shape of reusable entity
 
 ```ts
 import * as rx from 'rxjs';
@@ -80,7 +89,7 @@ export function createSample() {
 }
 ```
 
-#### 1.2.2 Turn plain object to reactive reusable entity
+#### 1.2.2. Turn plain object to reactive reusable entity
 
 ```ts
 class MyService {
@@ -117,5 +126,9 @@ myRxService.o.pt.greetingResolved.pipe(
 
 myRxService.i.dispatcher.greeting('Tommy', 'Hi');
 ```
+
+## 2. Understand by comparing with plain object-oriented programming
+[Further reading](./docs/compare-with-OOP.md)
+
 
 > Document site is under construction, author is also working on implementing a version in Java.

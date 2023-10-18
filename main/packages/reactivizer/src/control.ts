@@ -35,7 +35,7 @@ export class RxController<I extends ActionFunctions> {
   /** abbrevation of actionByType */
   at: {[K in keyof I]: rx.Observable<Action<I, K>>};
 
-  replaceActionInterceptor: ControllerCore<I>['replaceActionInterceptor'];
+  updateInterceptor: ControllerCore<I>['updateInterceptor'];
 
   constructor(public opts?: CoreOptions<(string & keyof I)[]>) {
     const core = this.core = new ControllerCore(opts);
@@ -120,7 +120,7 @@ export class RxController<I extends ActionFunctions> {
           return p$;
         }
       });
-    this.replaceActionInterceptor = core.replaceActionInterceptor;
+    this.updateInterceptor = core.updateInterceptor;
   }
 
   /** create state of actions, you can consider it like a map of BehaviorSubject of actions */

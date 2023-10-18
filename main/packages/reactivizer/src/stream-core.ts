@@ -127,9 +127,9 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
     return dispatch;
   }
 
-  replaceActionInterceptor(
+  updateInterceptor(
     factory: (
-      origin: (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>
+      previous: (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>
     ) => (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>
   ) {
     const newInterceptor = factory(this.interceptor$.getValue());
