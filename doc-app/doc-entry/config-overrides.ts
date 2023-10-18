@@ -18,6 +18,7 @@ const handler: ReactScriptsHandler = {
   webpack(cfg, env, cmdOpt) {
     if (docUiCommon.webpack)
       docUiCommon.webpack(cfg, env, cmdOpt);
+
     // cfg.stats = 'verbose';
   }
 };

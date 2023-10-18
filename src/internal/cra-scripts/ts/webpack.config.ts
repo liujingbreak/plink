@@ -32,6 +32,9 @@ export default function(webpackEnv: 'production' | 'development') {
   const printMsg = createCliPrinter('[Build Progress]');
 
   const cmdOption = getCmdOptions();
+  if (cmdOption.cmd !== 'cra-start') {
+    process.env.FAST_REFRESH = 'false';
+  }
   // `npm run build` by default is in production mode, below hacks the way react-scripts does
   if (cmdOption.devMode || cmdOption.watch) {
     webpackEnv = 'development';
@@ -41,6 +44,7 @@ export default function(webpackEnv: 'production' | 'development') {
   }
   log.info('webpackEnv :', webpackEnv);
   process.env.INLINE_RUNTIME_CHUNK = 'true';
+  debugger;
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   reviseNodePathEnv();
 
@@ -111,8 +115,8 @@ export default function(webpackEnv: 'production' | 'development') {
 
   if (cmdOption.cmd === 'cra-build')
     config.plugins!.push(new StatsPlugin());
-  else
-    addProgressPlugin(config, (...s) => void printMsg(...s));
+
+  addProgressPlugin(config, (...s) => void printMsg(...s));
 
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTarget, config, nodePath);
@@ -224,8 +228,7 @@ function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) 
       (origTest instanceof RegExp)
       ? origTest.test(file) :
       (origTest instanceof Function ? origTest(file) : origTest === file);
-    // if (yes)
-    //   log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
+    // log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
     return yes;
   };
 }

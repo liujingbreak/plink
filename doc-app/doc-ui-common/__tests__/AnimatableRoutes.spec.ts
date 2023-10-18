@@ -20,6 +20,7 @@ describe('Animatable router', () => {
     expect(matched?.matchedParams.id).toEqual('123');
     expect(matched?.matchedParams.id2).toEqual('456');
     const matched2 = testable.matchRoute(compiled, '/hello/foobar');
+    // eslint-disable-next-line no-console
     console.log(matched2);
   });
 });

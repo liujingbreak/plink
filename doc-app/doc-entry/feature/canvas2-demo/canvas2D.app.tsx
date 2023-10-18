@@ -2,7 +2,7 @@ import loadable from '@loadable/component';
 import {ShowTopLoading} from '@wfh/doc-ui-common/client/components/ShowTopLoading';
 import {AnimatableRoutesProps} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
 import {dispatcher as mdDispatcher} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
-import {bootstrap} from '../../main/clientApp';
+import {bootstrapRoutes} from '../../main/clientApp';
 
 const LazyCanvasDemo = loadable(async () => {
   return (await import('./Canvas2Demo')).Canvas2Demo;
@@ -34,4 +34,4 @@ const routes: AnimatableRoutesProps['routes'] = [
   {path: '/*', redirect: '/demo-2d'}
 ];
 // const worker = new Worker(new URL('./feature/demo/worker', import.meta.url));
-bootstrap({routes});
+bootstrapRoutes({routes});

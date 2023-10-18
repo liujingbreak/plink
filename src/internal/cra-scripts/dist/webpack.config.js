@@ -26,6 +26,9 @@ function default_1(webpackEnv) {
     (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${plink_1.config.resolve('destDir', 'cra-scripts.report')}`);
     const printMsg = (0, utils_1.createCliPrinter)('[Build Progress]');
     const cmdOption = (0, utils_1.getCmdOptions)();
+    if (cmdOption.cmd !== 'cra-start') {
+        process.env.FAST_REFRESH = 'false';
+    }
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
     if (cmdOption.devMode || cmdOption.watch) {
         webpackEnv = 'development';
@@ -36,6 +39,7 @@ function default_1(webpackEnv) {
     }
     log.info('webpackEnv :', webpackEnv);
     process.env.INLINE_RUNTIME_CHUNK = 'true';
+    debugger;
     const origWebpackConfig = require('react-scripts/config/webpack.config');
     reviseNodePathEnv();
     const { default: craPaths } = require('./cra-scripts-paths');
@@ -97,8 +101,7 @@ function default_1(webpackEnv) {
     // Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
     if (cmdOption.cmd === 'cra-build')
         config.plugins.push(new webpack_stats_plugin_1.default());
-    else
-        addProgressPlugin(config, (...s) => void printMsg(...s));
+    addProgressPlugin(config, (...s) => void printMsg(...s));
     if (cmdOption.buildType === 'lib') {
         (0, webpack_lib_1.default)(cmdOption.buildTarget, config, nodePath);
     }
@@ -207,8 +210,7 @@ function createRuleTestFunc4Src(origTest, appSrc) {
             (origTest instanceof RegExp)
             ? origTest.test(file) :
             (origTest instanceof Function ? origTest(file) : origTest === file);
-        // if (yes)
-        //   log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
+        // log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
         return yes;
     };
 }
