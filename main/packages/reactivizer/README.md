@@ -18,7 +18,8 @@ that help to program our application in an opinionated Reactive programming styl
 The idea is combining traditional object-oriented designed resuable software entity (Class/Object) with "event streaming" and reactive style.
 
 Unlike other "rx" based librarys,
-- @wfh/reactivizer does not emphasize contribution on either **frontend** side or **backend** side, it is just a low level programming utility, but it is not limited to be used as frontend state management library or a backend service controller.
+- @wfh/reactivizer does not emphasize contribution on either **frontend** or **backend** side, it is just a low level programming utility,
+but it is not limited to be used as frontend state management tool or a backend service controller, even graphics scene builder.
 - @wfh/reactivizer is not a platform or architecture tool like "event sourcing" to address and solve high level design concerns in between modules or services.
 
 Some of the concepts and conventions are inspired by Apache kafka, Redux-observable
@@ -32,7 +33,7 @@ Some of the concepts and conventions are inspired by Apache kafka, Redux-observa
 - `table`s, message's state management, which is a queriable snapshot of `Observable` messages.
 - Message, tracing and tracking which can help to debug and locate problems of from big amount of Observable messages.
 - A **recursive forkjoin** API for Node.js **thread_workers** and browser's **web worker**, and on top of it, an implementation of multithread **merge sort** algorithm.
-- RxJS is the only required (peer) dependency, another optional dependency [@wfh/algorithms](../algorithms/README.md) is only needed in case **forkjoin**
+- RxJS is the only required (peer) dependency, another optional dependency [@wfh/algorithms](../algorithms/README.md) is only needed in case of using **forkjoin** module
 
 ### 1.2. Quick view of what it looks like
 
